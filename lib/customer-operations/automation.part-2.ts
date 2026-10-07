@@ -4,7 +4,8 @@ import { supabaseService } from '@/lib/supabase/service'
 
 
 
-import { createCustomerInfoRequest, queueCustomerInfoRequestForDispatch } from '@/lib/onboarding/infoRequests'
+import { checkCustomerInfoRequestAuthorization, createCustomerInfoRequest, queueCustomerInfoRequestForDispatch, type InfoRequestDispatchResult } from '@/lib/onboarding/infoRequests'
+import { resolveCurrentInfoRequestScopeAuthorization } from '@/lib/onboarding/infoRequestAuthorization'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -31,6 +32,7 @@ export async function requestForSite(input: {
   companyId: string;
   customerId: string;
   siteId: string;
+  meteringPointId?: string | null;
   operationId?: string | null;
   gridOwnerId?: string | null;
 }) {
@@ -61,6 +63,8 @@ export async function requestForSite(input: {
       .eq('request_type', 'z01_customer_masterdata')
       .eq('operation_id', input.operationId)
       .in('status', ACTIVE_STATUSES)
+    if (input.meteringPointId !== undefined) q = input.meteringPointId === null
+      ? q.is('metering_point_id', null) : q.eq('metering_point_id', input.meteringPointId)
     if (input.gridOwnerId) q = q.eq('grid_owner_id', input.gridOwnerId)
     const { data, error } = await q.order('updated_at', { ascending: false }).limit(1).maybeSingle()
     if (error && !missingSchema(error)) throw error
@@ -78,6 +82,8 @@ export async function requestForSite(input: {
     .eq('site_id', input.siteId)
     .eq('request_type', 'z01_customer_masterdata')
     .in('status', ACTIVE_STATUSES)
+  if (input.meteringPointId !== undefined) q2 = input.meteringPointId === null
+    ? q2.is('metering_point_id', null) : q2.eq('metering_point_id', input.meteringPointId)
   if (input.gridOwnerId) q2 = q2.eq('grid_owner_id', input.gridOwnerId)
   const { data: data2, error: error2 } = await q2.order('updated_at', { ascending: false }).limit(1).maybeSingle()
   if (error2 && !missingSchema(error2)) throw error2
@@ -174,6 +180,37 @@ export async function processCustomerDataRequest(job: JobRow): Promise<JobOutcom
     }
   }
 
+  const createRequest = (gridOwnerId?: string | null) => createCustomerInfoRequest({
+    companyId: job.company_id,
+    actorUserId: actorUserId,
+    customerId: job.customer_id,
+    siteId: job.customer_site_id,
+    meteringPointId: job.metering_point_id,
+    gridOwnerId,
+    requestType: 'z01_customer_masterdata',
+    targetPartyType: 'grid_owner',
+    requestedDataCategories: ['facility_id', 'metering_point_id', 'grid_area', 'customer_masterdata'],
+    notes: 'Automatiskt skapad från kundkortet.',
+    externalReference: `AUTO-Z01-${job.id.slice(0, 8).toUpperCase()}`,
+    operationId,
+  })
+  const scopeAuthorization = await resolveCurrentInfoRequestScopeAuthorization({
+    company_id: job.company_id, customer_id: job.customer_id,
+    site_id: job.customer_site_id, metering_point_id: job.metering_point_id,
+  })
+  if (!scopeAuthorization.gridOwnerDocumentId) {
+    const blockedRequest = await requestForSite({
+      companyId: job.company_id, customerId: job.customer_id,
+      siteId: job.customer_site_id, meteringPointId: job.metering_point_id, operationId,
+    }) ?? await createRequest()
+    const checked = await checkCustomerInfoRequestAuthorization({
+      companyId: job.company_id, actorUserId, requestId: String(blockedRequest.id),
+    })
+    if (checked.refusal) return finishCustomerDataDispatch(job, String(blockedRequest.id), checked.refusal, null)
+    // A grant may have become live after preflight. It still needs the lawful
+    // facility resolver and the queue's fresh bound check before publication.
+  }
+
   const resolved = await resolveCustomerSiteGridOwner({
     companyId: job.company_id,
     customerId: job.customer_id,
@@ -204,23 +241,11 @@ export async function processCustomerDataRequest(job: JobRow): Promise<JobOutcom
     companyId: job.company_id,
     customerId: job.customer_id,
     siteId: job.customer_site_id,
-    operationId,
-    gridOwnerId: resolved.result.gridOwnerId,
-  })
-  const request = existing ?? await createCustomerInfoRequest({
-    companyId: job.company_id,
-    actorUserId: actorUserId,
-    customerId: job.customer_id,
-    siteId: job.customer_site_id,
     meteringPointId: job.metering_point_id,
-    gridOwnerId: resolved.result.gridOwnerId,
-    requestType: 'z01_customer_masterdata',
-    targetPartyType: 'grid_owner',
-    requestedDataCategories: ['facility_id', 'metering_point_id', 'grid_area', 'customer_masterdata'],
-    notes: 'Automatiskt skapad från kundkortet.',
-    externalReference: `AUTO-Z01-${job.id.slice(0, 8).toUpperCase()}`,
     operationId,
+    gridOwnerId: resolved.result.gridOwnerId,
   })
+  const request = existing ?? await createRequest(resolved.result.gridOwnerId)
 
   const dispatch = await queueCustomerInfoRequestForDispatch({
     companyId: job.company_id,
@@ -228,18 +253,26 @@ export async function processCustomerDataRequest(job: JobRow): Promise<JobOutcom
     requestId: String(request.id),
   })
 
+  return finishCustomerDataDispatch(job, String(request.id), dispatch, resolved.result)
+}
+
+async function finishCustomerDataDispatch(
+  job: JobRow, requestId: string, dispatch: InfoRequestDispatchResult, resolution: unknown,
+): Promise<JobOutcome> {
+  const actorUserId = automationActorId(job.created_by)
+  const operationId = job.operation_id ?? job.id
   await setOperationSnapshotRequestReference({
     companyId: job.company_id,
     operationId,
     requestKind: 'customer_data_request',
-    requestReference: String(request.id),
+    requestReference: requestId,
     routeProfileId: dispatch.routeProfileId,
   })
 
   await linkOperationResources({
     companyId: job.company_id,
     operationId,
-    customerInfoRequestId: String(request.id),
+    customerInfoRequestId: requestId,
     gridOwnerDataRequestId: dispatch.gridOwnerDataRequestId,
     outboundRequestId: dispatch.outboundRequestId,
   })
@@ -277,20 +310,20 @@ export async function processCustomerDataRequest(job: JobRow): Promise<JobOutcom
       customerOperationJobId: job.id,
       operationId,
       actionUrl: `/admin/customers/${job.customer_id}?tab=sites`,
-      payload: { customer_info_request_id: request.id, operation_id: operationId, dispatch, facility_lookup: facilityLookup },
+      payload: { customer_info_request_id: requestId, operation_id: operationId, dispatch, facility_lookup: facilityLookup },
       status: automationWaiting ? 'waiting_response' : 'needs_review',
       idempotencyKey: `customer-data-facility-lookup:${job.id}:${facilityLookup.requestId ?? 'no-request'}:${facilityLookup.status}`,
     })
     return {
       status: automationWaiting ? 'waiting_response' : 'needs_review',
       result: {
-        customer_info_request_id: request.id,
+        customer_info_request_id: requestId,
         grid_owner_data_request_id: dispatch.gridOwnerDataRequestId,
         outbound_request_id: dispatch.outboundRequestId,
         reason: automationWaiting ? 'facility_lookup_ready' : 'facility_lookup_needs_review',
         dispatch,
         facility_lookup: facilityLookup,
-        resolution: resolved.result,
+        resolution,
         ...(dispatchBlocker ? { ...dispatchBlocker } : {}),
       },
     }
@@ -312,21 +345,21 @@ export async function processCustomerDataRequest(job: JobRow): Promise<JobOutcom
     customerOperationJobId: job.id,
     operationId,
     actionUrl: `/admin/customers/${job.customer_id}?tab=data-requests`,
-    payload: { customer_info_request_id: request.id, operation_id: operationId, dispatch, blocker: dispatchBlocker },
+    payload: { customer_info_request_id: requestId, operation_id: operationId, dispatch, blocker: dispatchBlocker },
     idempotencyKey: `customer-data-dispatch:${job.id}:${dispatch.status}`,
   })
 
   return {
     status: waiting ? 'waiting_response' : 'needs_review',
     result: {
-      customer_info_request_id: request.id,
+      customer_info_request_id: requestId,
       grid_owner_data_request_id: dispatch.gridOwnerDataRequestId,
       outbound_request_id: dispatch.outboundRequestId,
       reason: preparedOnly
         ? 'z01_prepared_pending_send_guard'
         : dispatchBlocker?.reason_code ?? dispatch.status,
       dispatch,
-      resolution: resolved.result,
+      resolution,
       ...(dispatchBlocker ? { ...dispatchBlocker } : {}),
     },
   }
