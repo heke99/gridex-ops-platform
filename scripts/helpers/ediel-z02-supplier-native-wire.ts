@@ -184,10 +184,10 @@ export function externalZ02Reply(input: ExternalZ02ReplyInput): string {
   add('217', ...characteristic('Z04', input.measurementMethod))
   add('226', ['RFF', ['LI', overrides.lineReference ?? original.lineReference]])
   add('260', ['RFF', ['Z05', overrides.gridAreaCode ?? original.gridAreaCode]])
-  add('END_USER_GROUP', ['NAD', 'UD', [value('227', identity.id), identity.qualifier, identity.agency], '',
+  add('END_USER_GROUP', ['NAD', 'UD', [identity.id, identity.qualifier, value('227', identity.agency)], '',
     value('228', input.customerName ?? original.customerName), value('229', customer.street), value('232', customer.city), '',
     value('231', customer.postalCode), value('316', customer.country)])
-  add('INSTALLATION_GROUP', ['NAD', 'IT', [value('233', point), '', agency], '', '', value('234', installation.street), installation.city, '', installation.postalCode, installation.country])
+  add('INSTALLATION_GROUP', ['NAD', 'IT', [point, '', value('233', agency)], '', '', value('234', installation.street), installation.city, '', installation.postalCode, installation.country])
   // P field210 forbids DTM92 in Z02. The original agreedStartMinute is retained
   // by observation; no unrelated Z03 date/BRP/meter/reading fields are copied.
   const type = omitted.has('312') ? 'PRODAT:D:97A:UN' : original.messageTypeToken

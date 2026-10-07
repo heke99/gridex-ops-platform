@@ -290,6 +290,66 @@ function positiveProjectionObject(value: unknown, booleanKeys: readonly string[]
   }
   return result
 }
+// Classification only: exact persisted catch strings are reduced in SQL before
+// stdout. An opaque catch object does not expose its lost SQLSTATE or cause.
+const positiveEnqueueThrowClasses = [
+  ['Det inkommande svaret saknar en aktiv requestsnapshot. Svaret måste granskas manuellt innan kunddata kan uppdateras.', 'active_request_snapshot_unavailable'],
+  ['Operationssnapshot saknas. Kör den senaste OPS-migrationen innan inkommande svar appliceras.', 'original_snapshot_schema_unavailable'],
+  ['Automationstabellen saknas. Kör migrationen för kundautomation först.', 'automation_job_schema_unavailable'],
+  ['Operationssnapshot saknas. Kör den senaste OPS-migrationen innan extern kommunikation startas.', 'persisted_operation_snapshot_schema_unavailable'],
+  ['[object Object]', 'opaque_object_string'],
+] as const
+const positiveEnqueueClasses = [...positiveEnqueueThrowClasses.map(([, category]) => category),
+  'absent', 'unclassified', 'conflicting_evidence'] as const
+function positiveEnqueueShape(value: unknown, keys: readonly string[]): void {
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.getOwnPropertyNames(value).length !== keys.length
+    || keys.some(key => !Object.getOwnPropertyDescriptor(value, key)
+      || !('value' in Object.getOwnPropertyDescriptor(value, key)!))) throw Error('observation_shape_unavailable')
+}
+function positiveEnqueueFailureProjection(value: unknown) {
+  positiveEnqueueShape(value, ['requestCount', 'requestClass', 'eventCount', 'copiesAgree', 'bins'])
+  const requestCount = positiveProjectionData(value, 'requestCount')
+  const requestClass = positiveProjectionData(value, 'requestClass')
+  const eventCount = positiveProjectionCount(positiveProjectionData(value, 'eventCount'))
+  const copiesAgree = positiveProjectionData(value, 'copiesAgree')
+  if (requestCount !== 1 || typeof requestClass !== 'string'
+    || !(positiveEnqueueClasses as readonly string[]).includes(requestClass)
+    || eventCount === null || eventCount > 65
+    || (eventCount === 0 ? copiesAgree !== null : typeof copiesAgree !== 'boolean')) throw Error('observation_shape_unavailable')
+  if (eventCount === 65) return Object.assign(Object.create(null), {
+    observed: false, reason: 'observation_unavailable', eventOverflow: true,
+  })
+  const inputBins = positiveProjectionData(value, 'bins')
+  positiveEnqueueShape(inputBins, positiveEnqueueClasses)
+  const bins: Record<string, number> = Object.create(null)
+  let total = 0
+  for (const category of positiveEnqueueClasses) {
+    const count = positiveProjectionCount(positiveProjectionData(inputBins, category))
+    if (count === null || count > 64) throw Error('observation_shape_unavailable')
+    total += count; bins[category] = count
+  }
+  if (total !== eventCount || copiesAgree === true && bins.conflicting_evidence !== 0
+    || copiesAgree === false && bins.conflicting_evidence === 0) throw Error('observation_shape_unavailable')
+  const known = (positiveEnqueueThrowClasses as readonly (readonly [string, string])[]).some(([, category]) => category === requestClass)
+  const classAgreement = eventCount > 0 && known && copiesAgree === true
+    ? bins[requestClass] === eventCount : null
+  return Object.assign(Object.create(null), {observed: true, eventCount, eventOverflow: false,
+    requestClass, copiesAgree, classAgreement, bins})
+}
+function observeZ02EnqueueFailureProjection(value: unknown): void {
+  const stage = 'positive.pre606.enqueue_failure_classification'
+  const emit = (observation: unknown) => {
+    try { console.info('Z02_NATIVE_ENQUEUE_FAILURE_CLASSIFICATION', JSON.stringify(observation)) } catch { /* Preserve assertion606 even if the logger fails. */ }
+  }
+  try {
+    const result = positiveEnqueueFailureProjection(value)
+    emit(Object.assign(Object.create(null), {stage}, result))
+  } catch {
+    emit(Object.assign(Object.create(null), {stage, observed: false, reason: 'observation_unavailable'}))
+  }
+}
+
 function observeZ02PositiveProjection(f: Fixture, original: Original, received: Received): void {
   const stage = 'positive.pre606.public_projection'
   const emit = (value: unknown) => { try { console.info('Z02_NATIVE_POSITIVE_PROJECTION', JSON.stringify(value)) } catch { /* Diagnostic failure cannot replace assertion606. */ } }
@@ -299,7 +359,32 @@ function observeZ02PositiveProjection(f: Fixture, original: Original, received: 
     const reason = (expression: string) => `CASE WHEN ${expression} IS NULL THEN 'absent'
       WHEN ${expression} IN (${positiveProjectionReasons.map(literal).join(',')}) THEN ${expression} ELSE 'unlisted' END`
     const boolean = (expression: string) => `CASE WHEN jsonb_typeof(${expression})='boolean' THEN ${expression}='true'::jsonb ELSE NULL END`
-    const query = `SELECT jsonb_build_object(
+    const enqueueClass = (expression: string) => `CASE WHEN ${expression} IS NULL THEN 'absent'
+      ${positiveEnqueueThrowClasses.map(([text, category]) => `WHEN ${expression} = ${literal(text)} THEN ${literal(category)}`).join('\n')}
+      ELSE 'unclassified' END`
+    const query = `WITH enqueue_request AS (
+      SELECT r.blocker_code,r.blocker_reason FROM public.customer_info_requests r
+      WHERE r.id=${literal(original.requestId)} AND r.company_id=${literal(f.companyId)}
+        AND r.customer_id=${literal(f.customerId)} AND r.site_id=${literal(f.siteId)}
+        AND r.ediel_message_id=${literal(original.originalZ01.id)}
+        AND EXISTS (SELECT 1 FROM public.ediel_messages m WHERE m.id=${literal(received.id)}
+          AND m.company_id=${literal(f.companyId)} AND m.direction='inbound' AND m.message_family='PRODAT' AND m.message_code='Z02'
+          AND m.customer_id=${literal(f.customerId)} AND m.site_id=${literal(f.siteId)})
+    ), enqueue_events AS (
+      SELECT e.payload,e.event_payload FROM public.ediel_message_events e
+      WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(received.id)}
+        AND e.event_type='manual_note' AND e.event_status='error'
+        AND e.message='Z02 kunde inte starta canonical verifiering och applicerades inte.'
+        AND jsonb_typeof(e.payload)='object' AND e.payload->>'customerInfoRequestId'=${literal(original.requestId)}
+        AND EXISTS (SELECT 1 FROM enqueue_request)
+    ), enqueue_classified AS (
+      SELECT payload IS NOT DISTINCT FROM event_payload AS copies_agree,
+        CASE WHEN jsonb_typeof(event_payload) IS DISTINCT FROM 'object'
+          OR event_payload->>'customerInfoRequestId' IS DISTINCT FROM ${literal(original.requestId)}
+          OR payload IS DISTINCT FROM event_payload THEN 'conflicting_evidence'
+          WHEN jsonb_typeof(payload->'error') IS DISTINCT FROM 'string' THEN 'unclassified'
+          ELSE ${enqueueClass("payload->>'error'")} END AS category FROM enqueue_events
+    ) SELECT jsonb_build_object(
       'message', (SELECT jsonb_build_object(
         'originalMatches', m.related_message_id IS NOT DISTINCT FROM ${literal(original.originalZ01.id)}::uuid,
         'pointMatches', m.metering_point_id IS NOT DISTINCT FROM ${literal(f.pointId)}::uuid,
@@ -332,7 +417,15 @@ function observeZ02PositiveProjection(f: Fixture, original: Original, received: 
         'coreRequestMatches', j.result->'z02_atomic_core'->>'requestId' IS NOT DISTINCT FROM ${literal(original.requestId)}
       ) ORDER BY j.created_at,j.id),'[]'::jsonb) FROM (SELECT j.id,j.created_at,j.status,j.result,j.customer_id,j.customer_site_id,j.payload FROM public.customer_operation_jobs j
         WHERE j.company_id=${literal(f.companyId)} AND j.job_type='apply_inbound_grid_owner_response'
-          AND j.payload->>'ediel_message_id'=${literal(received.id)} ORDER BY j.created_at,j.id LIMIT 5) j))`
+          AND j.payload->>'ediel_message_id'=${literal(received.id)} ORDER BY j.created_at,j.id LIMIT 5) j),
+      'enqueueFailure', jsonb_build_object(
+        'requestCount', (SELECT count(*) FROM enqueue_request),
+        'requestClass', coalesce((SELECT ${enqueueClass("CASE WHEN blocker_code='z02_processing_enqueue_failed' THEN blocker_reason END")}
+          FROM enqueue_request), 'absent'),
+        'eventCount', (SELECT least(count(*),65) FROM enqueue_classified),
+        'copiesAgree', (SELECT bool_and(copies_agree) FROM enqueue_classified),
+        'bins', (SELECT jsonb_build_object(${positiveEnqueueClasses.map(category =>
+          `${literal(category)},least(count(*) FILTER (WHERE category=${literal(category)}),65)`).join(',')}) FROM enqueue_classified)))`
     // Explicit pipes keep psql error text (including SQL identifiers) out of logs.
     if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
     const stdout = execFileSync('psql', ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'],
@@ -352,8 +445,10 @@ function observeZ02PositiveProjection(f: Fixture, original: Original, received: 
       request: positiveProjectionObject(positiveProjectionData(observation, 'request'),
         ['originalMatches', 'responseMatches', 'pointMatches'], ['status'], ['blockerCode']), jobs})
     emit(output)
+    observeZ02EnqueueFailureProjection(positiveProjectionData(observation, 'enqueueFailure'))
   } catch {
     emit(Object.assign(Object.create(null), {stage, observed: false, reason: 'observation_unavailable'}))
+    observeZ02EnqueueFailureProjection(undefined)
   }
 }
 
@@ -697,7 +792,7 @@ function physicalOmission(complete: string, omitted: string, field: Z02Omittable
     remove = [expected[index], expected[index + 1]]
   } else if (['226', '260'].includes(field)) remove = [one('RFF', field === '226' ? 'LI' : 'Z05')]
   else if (field === 'END_USER_GROUP' || field === 'INSTALLATION_GROUP') remove = [one('NAD', field === 'END_USER_GROUP' ? 'UD' : 'IT')]
-  else if (field === '227' || field === '233') one('NAD', field === '227' ? 'UD' : 'IT')[2][0] = ''
+  else if (field === '227' || field === '233') one('NAD', field === '227' ? 'UD' : 'IT')[2][2] = ''
   else if (field === '234') one('NAD', 'IT')[5] = ['']
   else {
     const slots: Partial<Record<Z02OmittableField, number>> = { '228': 4, '229': 5, '231': 8, '232': 6, '316': 9 }

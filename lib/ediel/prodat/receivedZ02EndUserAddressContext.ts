@@ -77,7 +77,7 @@ export async function fetchReceivedZ02EndUserAddressContext(input:{message:Ediel
  if(!isEvidenceUuid(m.id)||!isEvidenceUuid(m.company_id)||!isEvidenceUuid(input.actorUserId)||!m.raw_payload||m.message_standard!=='edifact')return invalid()
  const client=input.client??supabaseService
  const {data,error}=await client.rpc('gridex_ediel_received_z02_address_source_basis_v1',{p_source_message_id:m.id,p_actor_user_id:input.actorUserId})
- if(error)throw Error('received_z02_end_user_address_source_unavailable',{cause:error})
+ if(error!==null)throw Error('received_z02_end_user_address_source_unavailable',{cause:error})
  if(data===null)return undefined
  const p=record(data),original=record(p.originalMessage),source=record(p.sourceMessage)
  if(p.status!=='z02_address_source_basis'||p.version!==1||p.companyId!==m.company_id||p.environment!==m.environment||p.sourceMessageId!==m.id
