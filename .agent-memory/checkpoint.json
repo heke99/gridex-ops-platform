@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-07T01:10:35.275251+00:00",
+  "updated_at": "2026-10-07T02:40:35.459682+00:00",
   "status": "PARTIAL",
   "paused": false,
   "branch": "codex/replay-cleanup-95bc00df11da-20261007",
   "active_pr": null,
-  "base_head_sha": "600bb61e383868000270a13d9bcc1857cea3b744",
+  "base_head_sha": "1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
-  "last_merged_pr": 636,
+  "last_merged_pr": 651,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Own replay-cleanup maintenance and actual293/636 shared closeout before next eligible pair",
+  "active_item": "No95bc technicalpair; finish alreadyownedactual651/GEN295 memory-only closeout thenfresheligiblepair",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "95bc finishes its reserved replay-cleanup maintenance and actual636 memory closeout: independent final review, current-head mandatory CI and authenticated replay evidence, normal expected-head merge under immediately free role-merge, actual receipt, merge-role first release and owner-only remaining resources release. Then refresh main, original/legacy custody, coverage, #530 and atomic refs; autonomously select two eligible IDs. Other owners complete their own whole contracts; no quiet takeover.",
+  "next_action": "95bc finishes already-owned memory-only closeout of actual651/GEN295: two final metadata reviews, source-freeze/current-head required checks, normal expected-head merge only under immediately free role-merge (otherwise release own memory role before waiting), actual receipt/merge-roleFIRST release, all11 owner-only memory refs release and durable checkpoint530. Then refresh actualmain/coverage/latest530/open+retainedlegacy/originalcustody/dependencies/live refs and autonomously reserve two eligible IDs. Delivered213222 supplier/route columns must be reassessed for released635 Z03L/LK; old blanket GEN-column blocker is superseded, no old success borrowed.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1352,7 +1352,7 @@
       "Ediel/counterparty/TGT/AGT traffic"
     ]
   },
-  "current_subtask": "Independent final source review and current mandatory CI for own cleanup plus explicitly released ten-path metadata reuse",
+  "current_subtask": "Twoindependentdatedmetadatareviews/currentheadrequiredCI/normalmerge andowner11release; freshnexteligibility",
   "restoration_20261001": {
     "public_source_head": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
     "lost_unpublished_work": true,
@@ -2338,6 +2338,285 @@
           "nextAction": "Existing owners finish their current literal effects and authentic current-head review/checks, then normal expected-head merge under role-merge or explicit release. Refresh original-owner custody, dependencies, main, #530 and atomic refs before selecting two eligible IDs. OPS04/ATOPS04 need authentic selected post-correction agreed counterparty trial input and explicit LIVE mandate from the original incident/runbook/counterparty owner; preserve existing consumers and guards."
         }
       }
+    },
+    {
+      "reconciledAt": "2026-10-07T02:40:35.459682+00:00",
+      "fields": {
+        "updated_at": "2026-10-07T01:10:35.275251+00:00",
+        "branch": "codex/replay-cleanup-95bc00df11da-20261007",
+        "active_pr": null,
+        "base_head_sha": "600bb61e383868000270a13d9bcc1857cea3b744",
+        "last_merged_pr": 636,
+        "active_item": "Own replay-cleanup maintenance and actual293/636 shared closeout before next eligible pair",
+        "next_action": "95bc finishes its reserved replay-cleanup maintenance and actual636 memory closeout: independent final review, current-head mandatory CI and authenticated replay evidence, normal expected-head merge under immediately free role-merge, actual receipt, merge-role first release and owner-only remaining resources release. Then refresh main, original/legacy custody, coverage, #530 and atomic refs; autonomously select two eligible IDs. Other owners complete their own whole contracts; no quiet takeover.",
+        "current_subtask": "Independent final source review and current mandatory CI for own cleanup plus explicitly released ten-path metadata reuse",
+        "current_main_ledger_observation": {
+          "recordedAt": "2026-10-07T01:10:35.275251+00:00",
+          "actualMain": "600bb61e383868000270a13d9bcc1857cea3b744",
+          "actualTree": "0d560728011cb4ca54ced2abe09175d3dfa12de5",
+          "coverageSha256": "bf3b5bc12bcd2ae034606e774ee4cb8b20221843d176b0580acf3110378acded",
+          "rules": {
+            "total": 121,
+            "approved": 115,
+            "remaining": 6,
+            "statuses": {
+              "VERIFIED": 115,
+              "PARTIAL": 2,
+              "NOT_VERIFIED": 4
+            },
+            "remainingIds": [
+              "P-08",
+              "TR-08",
+              "TR-09",
+              "DB-01",
+              "DB-05",
+              "OPS-04"
+            ]
+          },
+          "acceptanceContracts": {
+            "total": 231,
+            "approved": 178,
+            "remaining": 53,
+            "statuses": {
+              "PASSED": 178,
+              "NOT_EXECUTED": 40,
+              "PARTIAL": 13
+            },
+            "remainingIds": [
+              "SC-014",
+              "SC-023",
+              "SC-031",
+              "SC-035",
+              "SC-037",
+              "SC-038",
+              "SC-039",
+              "SC-046",
+              "SC-047",
+              "SC-052",
+              "SC-053",
+              "SC-054",
+              "SC-070",
+              "SC-071",
+              "AT-P-01",
+              "AT-P-08",
+              "AT-TR-08",
+              "AT-TR-09",
+              "AT-DB-01",
+              "AT-DB-05",
+              "AT-OPS-04",
+              "AT-Z01L-SUPPLIER",
+              "AT-Z02L-SUPPLIER",
+              "AT-Z03L-SUPPLIER",
+              "AT-Z04L-SUPPLIER",
+              "AT-Z01LK-SUPPLIER",
+              "AT-Z02LK-SUPPLIER",
+              "AT-Z03LK-SUPPLIER",
+              "AT-Z04LK-SUPPLIER",
+              "AT-Z03C-SUPPLIER",
+              "AT-Z04C-SUPPLIER",
+              "AT-Z05C-SUPPLIER",
+              "AT-Z04A-SUPPLIER",
+              "AT-Z04D-SUPPLIER",
+              "AT-Z03H-SUPPLIER",
+              "AT-Z04H-SUPPLIER",
+              "AT-Z05H-SUPPLIER",
+              "AT-Z08H-SUPPLIER",
+              "AT-Z06E-SUPPLIER",
+              "AT-Z09E-SUPPLIER",
+              "AT-Z06F-SUPPLIER",
+              "AT-Z09F-SUPPLIER",
+              "AT-Z06G-SUPPLIER",
+              "AT-Z09G-SUPPLIER",
+              "AT-Z09B-SUPPLIER",
+              "AT-Z09D-SUPPLIER",
+              "AT-Z10M-SUPPLIER",
+              "AT-Z13V-ESCO",
+              "AT-Z14V-ESCO",
+              "AT-Z15V-ESCO",
+              "AT-Z13VH-ESCO",
+              "AT-Z14VH-ESCO",
+              "AT-Z15VH-ESCO"
+            ]
+          },
+          "total": 352,
+          "approved": 293,
+          "remaining": 59,
+          "sourceHead": "9bcf13a8b8a0304b5d997255537372a65566b094",
+          "sourceTree": "1ae7c2bbbf30ccf947d95e33b1dc361bfe4a801e",
+          "sourceHeadMandatory": "12_SUCCESS",
+          "sourceNative": "39_PASS_0_FAIL_ERROR_SKIP_ALL9284_GIT_INPUTS",
+          "sourceStrictClean": "705_DECLARED_704_PASS_1_ORIGINAL_PHASE_SKIP_BROWSER31_PASS_F3_PARITY_TYPES_EXACT",
+          "sourceUpgrade": "STRICT_CLEAN_NORMAL_APPLIED_TYPES_BYTEEXACT_SCHEMA_EQUAL_RETAINED_STATE_EACH_CATALOG1_SELECTED_PASS_140_PATTERN_SKIPS",
+          "resultingMainFull": "NOT_VERIFIED",
+          "externalAcceptance": "NOT_VERIFIED",
+          "deployment": "NOT_CLAIMED",
+          "mergeReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028476555",
+          "technicalRelease": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028519488",
+          "memoryOwner": "codex-20261006-95bc00df11da",
+          "memoryReceipt": "f838b7098c71fe22089f380eb6619aeb2059c3a2",
+          "memoryClaim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028580344",
+          "latestBoardComment": 6028710103,
+          "metadataReuse": {
+            "pr": 649,
+            "source": "de0f241ed0531d6b2d4ab9ac12a8afadc0f1741f",
+            "priorPr": 645,
+            "explicitHandoff": 6028474988,
+            "all11Release": 6028513006,
+            "foreignCheckpointExcluded": true
+          },
+          "openPrSnapshot": [
+            {
+              "number": 650,
+              "head": "286a61f048c97454bcb62c6248553ccc93bbe002",
+              "draft": true
+            },
+            {
+              "number": 649,
+              "head": "de0f241ed0531d6b2d4ab9ac12a8afadc0f1741f",
+              "draft": false
+            },
+            {
+              "number": 648,
+              "head": "f350becbabf1a399e5548ec646291a5e979560b9",
+              "draft": false
+            },
+            {
+              "number": 647,
+              "head": "f2e999ab48d4d31a6e270485ca88a38b40fc0482",
+              "draft": true
+            },
+            {
+              "number": 646,
+              "head": "5d25852e38a41e51628635d4efebd1d192118111",
+              "draft": false
+            },
+            {
+              "number": 645,
+              "head": "72fa9396998817a188f9edd03a480978ebaf9a75",
+              "draft": false
+            },
+            {
+              "number": 644,
+              "head": "87d0cee2deb106c625d8bb0fc3499d17c7df0334",
+              "draft": true
+            },
+            {
+              "number": 643,
+              "head": "aa97d1b70e70e94dc225e1ff1e260de8f94d5000",
+              "draft": true
+            },
+            {
+              "number": 640,
+              "head": "850cb523ab285af00caa081cc563143b54006289",
+              "draft": true
+            },
+            {
+              "number": 638,
+              "head": "ba8d773e3c65240fb2b428ecc279bc476d953125",
+              "draft": true
+            },
+            {
+              "number": 635,
+              "head": "a360abd7a5632a71c11dbb55fbef6045dfdde2bf",
+              "draft": true
+            },
+            {
+              "number": 630,
+              "head": "70c4a2bdd44f246c1f0890649771093213e86edd",
+              "draft": true
+            },
+            {
+              "number": 629,
+              "head": "4b131b8a1af28e45919497b72cc5d4e4147c3a07",
+              "draft": false
+            },
+            {
+              "number": 628,
+              "head": "fe84419f374c4f19660cae7364834ce1baeacbff",
+              "draft": true
+            },
+            {
+              "number": 627,
+              "head": "ac26467f2285a0f6c738e8ebbfbc55a495363272",
+              "draft": true
+            }
+          ],
+          "liveIdReservationSnapshot": [
+            {
+              "id": "AT-DB-01",
+              "receipt": "7229018fbd098c0d85ee3ae5187f4bdd843b988e"
+            },
+            {
+              "id": "AT-TR-09",
+              "receipt": "7229018fbd098c0d85ee3ae5187f4bdd843b988e"
+            },
+            {
+              "id": "AT-Z01L-SUPPLIER",
+              "receipt": "c85366170e3dc6b76894cf7aafaaddf2a5c5b1cd"
+            },
+            {
+              "id": "AT-Z01LK-SUPPLIER",
+              "receipt": "c85366170e3dc6b76894cf7aafaaddf2a5c5b1cd"
+            },
+            {
+              "id": "AT-Z03H-SUPPLIER",
+              "receipt": "e3cea354803ae327bf340f9e8517dbe3b87755d0"
+            },
+            {
+              "id": "AT-Z04H-SUPPLIER",
+              "receipt": "e3cea354803ae327bf340f9e8517dbe3b87755d0"
+            },
+            {
+              "id": "AT-Z05H-SUPPLIER",
+              "receipt": "3f512b3e343b33bae22b72496ff1c44652f309c9"
+            },
+            {
+              "id": "AT-Z06E-SUPPLIER",
+              "receipt": "3fe4a1e57cf961aff4d922a5294f3eaebeaaad82"
+            },
+            {
+              "id": "AT-Z08H-SUPPLIER",
+              "receipt": "3f512b3e343b33bae22b72496ff1c44652f309c9"
+            },
+            {
+              "id": "AT-Z09E-SUPPLIER",
+              "receipt": "3fe4a1e57cf961aff4d922a5294f3eaebeaaad82"
+            },
+            {
+              "id": "AT-Z14V-ESCO",
+              "receipt": "a080bdb4f2a52984a550ab60e4cdfbfde59e179f"
+            },
+            {
+              "id": "DB-01",
+              "receipt": "7229018fbd098c0d85ee3ae5187f4bdd843b988e"
+            },
+            {
+              "id": "SC-014",
+              "receipt": "a080bdb4f2a52984a550ab60e4cdfbfde59e179f"
+            },
+            {
+              "id": "TR-09",
+              "receipt": "7229018fbd098c0d85ee3ae5187f4bdd843b988e"
+            }
+          ],
+          "nextAction": "95bc finishes its reserved replay-cleanup maintenance and actual636 memory closeout: independent final review, current-head mandatory CI and authenticated replay evidence, normal expected-head merge under immediately free role-merge, actual receipt, merge-role first release and owner-only remaining resources release. Then refresh main, original/legacy custody, coverage, #530 and atomic refs; autonomously select two eligible IDs. Other owners complete their own whole contracts; no quiet takeover."
+        },
+        "replay_cleanup_95bc_current": {
+          "source": "1981286b20108b41f2cfea8314efee247eaa87db",
+          "ids": [],
+          "technicalReceipt": "f7547494edf5a1ce4ef247810c5604963905430f",
+          "memoryReceipt": "f838b7098c71fe22089f380eb6619aeb2059c3a2",
+          "checkpoint": ".agent-memory/masterplan-codex-20261006-95bc00df11da-replay-cleanup-checkpoint.md",
+          "claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028580344",
+          "red": "9_EXECUTED_6_FAIL_3_PASS",
+          "green": "UNCHANGED_9_PASS_EXIT0",
+          "sourceReview": "TWO_INDEPENDENT_AUTHORING_APPROVE",
+          "databaseReplay": "NOT_RUN",
+          "currentCI": "NOT_RUN",
+          "delivery": "NOT_MERGED",
+          "nextAction": "95bc finishes its reserved replay-cleanup maintenance and actual636 memory closeout: independent final review, current-head mandatory CI and authenticated replay evidence, normal expected-head merge under immediately free role-merge, actual receipt, merge-role first release and owner-only remaining resources release. Then refresh main, original/legacy custody, coverage, #530 and atomic refs; autonomously select two eligible IDs. Other owners complete their own whole contracts; no quiet takeover."
+        }
+      }
     }
   ],
   "masterplan_current_reconciliation_20261006": {
@@ -2606,10 +2885,10 @@
     "active_item": "Reconcile delivered286/352 and continue current reserved whole-contract packets"
   },
   "current_main_ledger_observation": {
-    "recordedAt": "2026-10-07T01:10:35.275251+00:00",
-    "actualMain": "600bb61e383868000270a13d9bcc1857cea3b744",
-    "actualTree": "0d560728011cb4ca54ced2abe09175d3dfa12de5",
-    "coverageSha256": "bf3b5bc12bcd2ae034606e774ee4cb8b20221843d176b0580acf3110378acded",
+    "recordedAt": "2026-10-07T02:40:35.459682+00:00",
+    "actualMain": "1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a",
+    "actualTree": "45ea1533702665b11b8f1a7eafeef96162d14227",
+    "coverageSha256": "31fc286d62354e9632d576c4b5cc40f04b76ef112887e5ba241b34418bdd402e",
     "rules": {
       "total": 121,
       "approved": 115,
@@ -2630,11 +2909,11 @@
     },
     "acceptanceContracts": {
       "total": 231,
-      "approved": 178,
-      "remaining": 53,
+      "approved": 180,
+      "remaining": 51,
       "statuses": {
-        "PASSED": 178,
-        "NOT_EXECUTED": 40,
+        "PASSED": 180,
+        "NOT_EXECUTED": 38,
         "PARTIAL": 13
       },
       "remainingIds": [
@@ -2676,8 +2955,6 @@
         "AT-Z04H-SUPPLIER",
         "AT-Z05H-SUPPLIER",
         "AT-Z08H-SUPPLIER",
-        "AT-Z06E-SUPPLIER",
-        "AT-Z09E-SUPPLIER",
         "AT-Z06F-SUPPLIER",
         "AT-Z09F-SUPPLIER",
         "AT-Z06G-SUPPLIER",
@@ -2694,106 +2971,105 @@
       ]
     },
     "total": 352,
-    "approved": 293,
-    "remaining": 59,
-    "sourceHead": "9bcf13a8b8a0304b5d997255537372a65566b094",
-    "sourceTree": "1ae7c2bbbf30ccf947d95e33b1dc361bfe4a801e",
-    "sourceHeadMandatory": "12_SUCCESS",
-    "sourceNative": "39_PASS_0_FAIL_ERROR_SKIP_ALL9284_GIT_INPUTS",
-    "sourceStrictClean": "705_DECLARED_704_PASS_1_ORIGINAL_PHASE_SKIP_BROWSER31_PASS_F3_PARITY_TYPES_EXACT",
-    "sourceUpgrade": "STRICT_CLEAN_NORMAL_APPLIED_TYPES_BYTEEXACT_SCHEMA_EQUAL_RETAINED_STATE_EACH_CATALOG1_SELECTED_PASS_140_PATTERN_SKIPS",
-    "resultingMainFull": "NOT_VERIFIED",
+    "approved": 295,
+    "remaining": 57,
+    "technicalMergedPr": 651,
+    "technicalSourceHead": "bfa77190123d2211a02f53c5eeea848da9d558da",
+    "technicalSourceTree": "5e49d74a860440a72a8f4dfe4d7358432320f639",
+    "technicalSourceMandatory": "16_SUCCESS",
+    "sourceCompleteClean": "726_DECLARED_725_PASS_1_ORIGINAL_PHASE_SKIP_31_BROWSER_18_PHASES_TYPES_EXACT_Z22_PASS",
+    "sourceNative": "Z05_39_AND_Z14N49_ALL9299_GIT_INPUTS",
+    "sourceUnit": "898_FILES_12090_PASS_PLUS_45_QUALITY",
+    "sourceUpgrade": "BOTH_HISTORICAL_INPUTPLANS_AUTHENTIC_RETAINED_STATE_AND_3_TYPES_SCHEMA_BYTEEXACT; EACH_CATALOG1_PASS140_PATTERN_SKIPS",
+    "sourceCapture": "CAPTURE_ONLY_3_OUTPUTS_BYTEEXACT_COMMITTED; NATIVE_BROWSER_COMPARISON_UPGRADE_NOT_RUN",
+    "composition": "BFA_PLUS_ED7C_EXACT45ea153; ALL13_OWN_ALL_FOREIGN_352_MAIN_ROWS_PRESERVED; ORIGINAL9_PASS_EXIT0_ROOT_AND_INDEPENDENT_NEW1178_INPUTS",
+    "resultingMainRuntime": "NOT_VERIFIED",
     "externalAcceptance": "NOT_VERIFIED",
     "deployment": "NOT_CLAIMED",
-    "mergeReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028476555",
-    "technicalRelease": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028519488",
+    "mergeReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6029739979",
+    "mergeRoleReleasedFirst": "2026-10-07T02:39:11.578853+00:00",
+    "ownTechnical2Released": true,
+    "continuingMemoryClaim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6029772715",
     "memoryOwner": "codex-20261006-95bc00df11da",
     "memoryReceipt": "f838b7098c71fe22089f380eb6619aeb2059c3a2",
-    "memoryClaim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028580344",
-    "latestBoardComment": 6028710103,
-    "metadataReuse": {
-      "pr": 649,
-      "source": "de0f241ed0531d6b2d4ab9ac12a8afadc0f1741f",
-      "priorPr": 645,
-      "explicitHandoff": 6028474988,
-      "all11Release": 6028513006,
-      "foreignCheckpointExcluded": true
-    },
+    "memoryScope": [
+      ".agent-memory/current-state.md",
+      ".agent-memory/current-task.md",
+      ".agent-memory/checkpoint.json",
+      ".agent-memory/handover.md",
+      ".agent-memory/open-blockers.md",
+      ".agent-memory/work-plan.md",
+      ".agent-memory/completed-work.md",
+      ".agent-memory/verification-matrix.md",
+      ".agent-memory/session-log.md",
+      ".agent-memory/masterplan-status-20261006.json"
+    ],
+    "latestBoardComment": 6029748932,
     "openPrSnapshot": [
       {
         "number": 650,
-        "head": "286a61f048c97454bcb62c6248553ccc93bbe002",
-        "draft": true
+        "head": "8cf0289e0f35991f26b2b70d5343044f7ec30f65",
+        "title": "test(ediel): verify public bilateral H contracts and current authority"
       },
       {
         "number": 649,
         "head": "de0f241ed0531d6b2d4ab9ac12a8afadc0f1741f",
-        "draft": false
-      },
-      {
-        "number": 648,
-        "head": "f350becbabf1a399e5548ec646291a5e979560b9",
-        "draft": false
+        "title": "docs: reconcile merged N acceptance and remaining campaign work"
       },
       {
         "number": 647,
-        "head": "f2e999ab48d4d31a6e270485ca88a38b40fc0482",
-        "draft": true
+        "head": "2d5d0bc377094b953b1bfebc42b3dd36d05d1162",
+        "title": "Fix first14 technical ACK candidates and preserve global ambiguity"
       },
       {
         "number": 646,
         "head": "5d25852e38a41e51628635d4efebd1d192118111",
-        "draft": false
+        "title": "test(ediel): qualify frozen AT-P01 field acceptance contract"
       },
       {
         "number": 645,
         "head": "72fa9396998817a188f9edd03a480978ebaf9a75",
-        "draft": false
+        "title": "docs(ediel): reconcile actual290 deliveries and remaining owner boundaries"
       },
       {
         "number": 644,
-        "head": "87d0cee2deb106c625d8bb0fc3499d17c7df0334",
-        "draft": true
+        "head": "f7f59be342966f112ca5fa3037322d8091a4dda0",
+        "title": "Verify Z14V first reception with protected reporting source and ACK guards"
       },
       {
         "number": 643,
         "head": "aa97d1b70e70e94dc225e1ff1e260de8f94d5000",
-        "draft": true
+        "title": "feat(ediel): bind received Z02 address checks to accepted original source"
       },
       {
         "number": 640,
-        "head": "850cb523ab285af00caa081cc563143b54006289",
-        "draft": true
+        "head": "42ae5fa30fb15e5d5ac4c5c4adfee54992970bc0",
+        "title": "fix(ediel): enforce production S/MIME and contain retired address authority"
       },
       {
         "number": 638,
-        "head": "ba8d773e3c65240fb2b428ecc279bc476d953125",
-        "draft": true
+        "head": "fb682d83996f4bbbe48df18e25a289a42b2a3538",
+        "title": "Prove Z01 supplier information requests and preserve status compatibility"
       },
       {
         "number": 635,
         "head": "a360abd7a5632a71c11dbb55fbef6045dfdde2bf",
-        "draft": true
+        "title": "fix(ediel): preserve L/LK dispatch and restore public schema contracts"
       },
       {
         "number": 630,
         "head": "70c4a2bdd44f246c1f0890649771093213e86edd",
-        "draft": true
-      },
-      {
-        "number": 629,
-        "head": "4b131b8a1af28e45919497b72cc5d4e4147c3a07",
-        "draft": false
+        "title": "fix(ediel): qualify A/D readings and reject forbidden outbound directions"
       },
       {
         "number": 628,
         "head": "fe84419f374c4f19660cae7364834ce1baeacbff",
-        "draft": true
+        "title": "test(ediel): retain blocked Z10M native contract probes"
       },
       {
         "number": 627,
         "head": "ac26467f2285a0f6c738e8ebbfbc55a495363272",
-        "draft": true
+        "title": "test(ediel): verify Z03C/Z05C supplier cancellation native chains"
       }
     ],
     "liveIdReservationSnapshot": [
@@ -2854,21 +3130,31 @@
         "receipt": "7229018fbd098c0d85ee3ae5187f4bdd843b988e"
       }
     ],
-    "nextAction": "95bc finishes its reserved replay-cleanup maintenance and actual636 memory closeout: independent final review, current-head mandatory CI and authenticated replay evidence, normal expected-head merge under immediately free role-merge, actual receipt, merge-role first release and owner-only remaining resources release. Then refresh main, original/legacy custody, coverage, #530 and atomic refs; autonomously select two eligible IDs. Other owners complete their own whole contracts; no quiet takeover."
+    "earlierActual636": "600bb61e/9bc;705clean+39native/ATZ05L+LK accepted/own12 released; NOT repeated",
+    "incomingActual629": "ed7c0980/4b131b8a;19currentnon-skippedSUCCESS; actualATZ06E+Z09E PASSED in ledger; current1094/12newSQL incl213222",
+    "incomingActual648": "9908978d; publicZ01currentauthorization delivered; whole638 remains retained",
+    "nextAction": "95bc finishes already-owned memory-only closeout of actual651/GEN295: two final metadata reviews, source-freeze/current-head required checks, normal expected-head merge only under immediately free role-merge (otherwise release own memory role before waiting), actual receipt/merge-roleFIRST release, all11 owner-only memory refs release and durable checkpoint530. Then refresh actualmain/coverage/latest530/open+retainedlegacy/originalcustody/dependencies/live refs and autonomously reserve two eligible IDs. Delivered213222 supplier/route columns must be reassessed for released635 Z03L/LK; old blanket GEN-column blocker is superseded, no old success borrowed."
   },
   "replay_cleanup_95bc_current": {
-    "source": "1981286b20108b41f2cfea8314efee247eaa87db",
+    "source": "bfa77190123d2211a02f53c5eeea848da9d558da",
     "ids": [],
-    "technicalReceipt": "f7547494edf5a1ce4ef247810c5604963905430f",
+    "red": "9_EXECUTED_6FAIL3PASS",
+    "green": "UNCHANGED9PASS_EXIT0",
+    "sourceReview": "TWO_FINAL_SOURCE_CURRENT_EXECUTION_APPROVE",
+    "sourceCI": "ALL16_SUCCESS",
+    "sourceCompleteClean": "726_DECLARED_725_PASS_1_ORIGINAL_PHASE_SKIP",
+    "delivery": "ACTUAL_MERGED651_1ac0d4f1",
+    "actualMain": "1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a",
+    "actualTree": "45ea1533702665b11b8f1a7eafeef96162d14227",
+    "mergedReceipt": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6029739979",
+    "mergeRoleReleasedFirst": "2026-10-07T02:39:11.578853+00:00",
+    "technical2Released": true,
+    "memory11StillOwned": true,
     "memoryReceipt": "f838b7098c71fe22089f380eb6619aeb2059c3a2",
     "checkpoint": ".agent-memory/masterplan-codex-20261006-95bc00df11da-replay-cleanup-checkpoint.md",
-    "claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6028580344",
-    "red": "9_EXECUTED_6_FAIL_3_PASS",
-    "green": "UNCHANGED_9_PASS_EXIT0",
-    "sourceReview": "TWO_INDEPENDENT_AUTHORING_APPROVE",
-    "databaseReplay": "NOT_RUN",
-    "currentCI": "NOT_RUN",
-    "delivery": "NOT_MERGED",
-    "nextAction": "95bc finishes its reserved replay-cleanup maintenance and actual636 memory closeout: independent final review, current-head mandatory CI and authenticated replay evidence, normal expected-head merge under immediately free role-merge, actual receipt, merge-role first release and owner-only remaining resources release. Then refresh main, original/legacy custody, coverage, #530 and atomic refs; autonomously select two eligible IDs. Other owners complete their own whole contracts; no quiet takeover."
+    "continuingClaim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6029772715",
+    "resultingMainRuntime": "NOT_VERIFIED",
+    "external": "NOT_VERIFIED",
+    "nextAction": "95bc finishes already-owned memory-only closeout of actual651/GEN295: two final metadata reviews, source-freeze/current-head required checks, normal expected-head merge only under immediately free role-merge (otherwise release own memory role before waiting), actual receipt/merge-roleFIRST release, all11 owner-only memory refs release and durable checkpoint530. Then refresh actualmain/coverage/latest530/open+retainedlegacy/originalcustody/dependencies/live refs and autonomously reserve two eligible IDs. Delivered213222 supplier/route columns must be reassessed for released635 Z03L/LK; old blanket GEN-column blocker is superseded, no old success borrowed."
   }
 }
