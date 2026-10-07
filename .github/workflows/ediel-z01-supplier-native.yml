@@ -1,0 +1,302 @@
+name: Ediel Z01 supplier native observation
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-at-z01-supplier-native.test.ts'
+      - 'scripts/ediel-z01-supplier-native.config.ts'
+      - 'scripts/test-ediel-z01-info-request-status-compatibility.cjs'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/helpers/**'
+      - 'scripts/gridex-aud-003-*'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - 'scripts/sql/**'
+      - '__tests__/fixtures/**'
+      - '__tests__/helpers/**'
+      - 'e2e/production/helpers/**'
+      - 'lib/**'
+      - 'types/**'
+      - 'supabase/**'
+      - 'docs/ediel/masterplan-v2/registers/**'
+      - 'quality/audits/ediel-masterplan-v2/coverage.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/ediel-z01-supplier-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z01-supplier-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental feedback only. Ordinary OPS clean/upgrade/full native/browser,
+# type and schema gates remain mandatory. Observation does not approve IDs.
+jobs:
+  z01-supplier-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Observe the whole proposed Z01 proof after disposable canonical replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          Z01_NATIVE_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          rm -rf -- z01-supplier-native-evidence z01-supplier-native-precondition-evidence
+          export Z01_NATIVE_WORKING="$RUNNER_TEMP/z01-supplier-native-working"
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z01-supplier-native-status.json"
+          mkdir -p "$Z01_NATIVE_WORKING"
+          native_tests=(scripts/ediel-at-z01-supplier-native.test.ts)
+          export Z01_NATIVE_TEST_SCOPE
+          Z01_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
+          # Replay temporarily substitutes migration markers. Verify every input
+          # against committed original bytes and hash Git objects BEFORE replay.
+          # The receipt exports paths/hashes only, never source or credentials.
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+          head = git('rev-parse', 'HEAD')
+          assert head == os.environ['Z01_NATIVE_PR_HEAD_SHA'], 'exact_pr_head_required'
+          test_scope = os.environ['Z01_NATIVE_TEST_SCOPE'].splitlines()
+          required = test_scope + [
+              '.github/workflows/ediel-z01-supplier-native.yml',
+              'scripts/ediel-z01-supplier-native.config.ts',
+              'scripts/test-ediel-z01-info-request-status-compatibility.cjs',
+              'scripts/ediel-source-owner-native.config.ts',
+              'scripts/helpers/ediel-z01-info-request-native-fixture.ts',
+              'scripts/helpers/ediel-z01-info-request-native-wire.ts',
+              'scripts/helpers/ediel-native-permission-catalog.setup.ts',
+              'scripts/gridex-aud-003-clean-replay.sh',
+              'scripts/gridex-redact-native-evidence.py',
+              'scripts/migration-history-manifest.json',
+              'scripts/migration-history-manifest.additions.json',
+              'scripts/migration-history-manifest.runtime.additions.json',
+              '__tests__/fixtures/prodat-register.ts',
+              '__tests__/helpers/sourceOwnerFixtures.ts',
+              'e2e/production/helpers/swedish-organization-number.mjs',
+              'docs/ediel/masterplan-v2/registers/rules.json',
+              'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
+              'quality/audits/ediel-masterplan-v2/coverage.json',
+              'supabase/config.toml', 'supabase/database.types.ts',
+              'package.json', 'package-lock.json',
+          ]
+          assert len(required) == len(set(required)), 'duplicate_required_input'
+          tracked = set(subprocess.check_output([
+              'git', 'ls-tree', '-r', '--name-only', '-z', 'HEAD'
+          ]).decode().rstrip('\0').split('\0'))
+          assert set(required) <= tracked, 'required_input_missing_from_head'
+          def consumed(path):
+              return (
+                  path.startswith(('lib/', 'types/', 'e2e/production/helpers/', '__tests__/helpers/'))
+                  or path.startswith('scripts/helpers/')
+                  or path.startswith('supabase/') and path.endswith(('.sql', '.ts', '.tsx', '.toml'))
+                  or path.startswith('scripts/sql/') and path.endswith('.sql')
+                  or path.startswith('scripts/gridex-aud-003-')
+                  or path.startswith('scripts/migration-history-manifest') and path.endswith('.json')
+                  or path.startswith('__tests__/fixtures/')
+                  or path.startswith('docs/ediel/masterplan-v2/registers/')
+                  or path.startswith('tsconfig') and path.endswith('.json')
+              )
+          paths = sorted(set(required) | {p for p in tracked if consumed(p)})
+          assert len(paths) == len(set(paths)), 'duplicate_receipt_input'
+          hashes = {}
+          # A single Git batch process keeps the comprehensive input set bounded.
+          with subprocess.Popen(['git', 'cat-file', '--batch'], stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE) as objects:
+              for path in paths:
+                  objects.stdin.write(('HEAD:' + path + '\n').encode())
+                  objects.stdin.flush()
+                  header = objects.stdout.readline().split()
+                  assert len(header) == 3 and header[1] == b'blob', 'committed_blob_required'
+                  original = objects.stdout.read(int(header[2]))
+                  assert objects.stdout.read(1) == b'\n', 'git_batch_delimiter_required'
+                  assert pathlib.Path(path).read_bytes() == original, 'original_input_drift: ' + path
+                  hashes[path] = hashlib.sha256(original).hexdigest()
+              objects.stdin.close()
+              assert objects.wait() == 0, 'git_input_hashing_failed'
+          receipt = {
+              'purpose': 'whole_proposed_native_observation_not_acceptance_approval',
+              'whole_acceptance_approval': 'NOT_APPROVED',
+              'checkout_sha': head,
+              'checkout_tree': git('rev-parse', 'HEAD^{tree}'),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'workflow_job': os.environ['GITHUB_JOB'],
+              'test_scope': test_scope,
+              'input_sha256': hashes,
+              'input_count': len(hashes),
+              'input_hash_origin': 'HEAD original Git object bytes; every working input verified before canonical replay',
+              'native_execution': 'NOT_RUN', 'native_observation': 'NOT_RUN',
+              'native_exit_code': None,
+              'runtime': {'postgres': '17.6.1.155', 'supabase_cli': '2.101.0', 'node': '22'},
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          (pathlib.Path(os.environ['Z01_NATIVE_WORKING']) / 'receipt.json').write_text(
+              json.dumps(receipt, indent=2) + '\n')
+          PY
+          Z01_NATIVE_PHASE_FILE="$RUNNER_TEMP/z01-supplier-native-phase"
+          Z01_NATIVE_EXIT_FILE="$RUNNER_TEMP/z01-supplier-native-exit"
+          # A plain subshell preserves errexit. An if/OR-list would suppress
+          # it inside the sourced replay. Its original EXIT trap owns cleanup.
+          set +e
+          (
+            set -euo pipefail
+            printf '%s\n' cjs > "$Z01_NATIVE_PHASE_FILE"
+            node scripts/test-ediel-z01-info-request-status-compatibility.cjs \
+              > "$RUNNER_TEMP/z01-status-compatibility.log" 2>&1
+            # Force the existing disposable local, pinned PG17.6.1.155 mode.
+            unset GRIDEX_REPLAY_DB_URL
+            printf '%s\n' canonical_replay > "$Z01_NATIVE_PHASE_FILE"
+            source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z01-supplier-replay.log" 2>&1
+            printf '%s\n' status > "$Z01_NATIVE_PHASE_FILE"
+            supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+            printf '%s\n' native > "$Z01_NATIVE_PHASE_FILE"
+            native_exit=0
+            GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+              --config scripts/ediel-z01-supplier-native.config.ts \
+              "${native_tests[@]}" \
+              --reporter=default --reporter=junit \
+              --outputFile="$Z01_NATIVE_WORKING/native-junit.xml" \
+              > "$Z01_NATIVE_WORKING/native.log" 2>&1 || native_exit=$?
+            printf '%s\n' "$native_exit" > "$Z01_NATIVE_EXIT_FILE"
+            exit "$native_exit"
+          ) > "$RUNNER_TEMP/z01-supplier-pipeline-control.log" 2>&1
+          pipeline_exit=$?
+          set -e
+          phase="$(cat "$Z01_NATIVE_PHASE_FILE")"
+          case "$phase" in cjs|canonical_replay|status|native) ;; *) exit 1 ;; esac
+          if [[ "$phase" != native ]]; then
+            export Z01_PRECONDITION_PHASE="$phase" Z01_PRECONDITION_EXIT="$pipeline_exit"
+            export Z01_PRECONDITION_WORKING="$RUNNER_TEMP/z01-supplier-precondition-working"
+            mkdir -p "$Z01_PRECONDITION_WORKING"
+            python3 - <<'PY'
+          import json, os, pathlib
+          phase = os.environ['Z01_PRECONDITION_PHASE']
+          code = int(os.environ['Z01_PRECONDITION_EXIT'])
+          assert phase in {'cjs', 'canonical_replay', 'status'} and 0 <= code <= 255
+          working = pathlib.Path(os.environ['Z01_PRECONDITION_WORKING'])
+          receipt = json.loads((pathlib.Path(os.environ['Z01_NATIVE_WORKING']) / 'receipt.json').read_text())
+          receipt.update({
+              'precondition_phase': phase, 'precondition_exit_code': code,
+              'precondition_observation': 'FAIL',
+              'native_execution': 'NOT_RUN', 'native_observation': 'NOT_RUN',
+              'native_exit_code': None, 'junit_state': 'MISSING', 'junit_counts': None,
+          })
+          (working / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          # Bounded metadata only: no raw precondition output or exception body.
+          (working / 'phase.log').write_text(json.dumps({
+              'phase': phase, 'exit_code': code, 'native_observation': 'NOT_RUN',
+              'whole_acceptance_approval': 'NOT_APPROVED',
+          }) + '\n')
+          PY
+            python3 scripts/gridex-redact-native-evidence.py \
+              --local-secrets "$GRIDEX_NATIVE_STATUS" --root "$Z01_PRECONDITION_WORKING"
+            mkdir -p z01-supplier-native-precondition-evidence
+            cp "$Z01_PRECONDITION_WORKING/phase.log" "$Z01_PRECONDITION_WORKING/receipt.json" \
+              z01-supplier-native-precondition-evidence/
+            rm -f "$GRIDEX_NATIVE_STATUS"
+            if (( pipeline_exit != 0 )); then exit "$pipeline_exit"; fi
+            exit 1
+          fi
+          native_exit="$(cat "$Z01_NATIVE_EXIT_FILE")"
+          [[ "$native_exit" =~ ^[0-9]{1,3}$ ]]
+          (( 10#$native_exit <= 255 ))
+          if (( pipeline_exit != native_exit )); then
+            if (( pipeline_exit != 0 )); then exit "$pipeline_exit"; fi
+            exit 1
+          fi
+          export Z01_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import json, os, pathlib, xml.etree.ElementTree as ET
+          working = pathlib.Path(os.environ['Z01_NATIVE_WORKING'])
+          receipt_path = working / 'receipt.json'
+          receipt = json.loads(receipt_path.read_text())
+          native_exit = int(os.environ['Z01_NATIVE_EXIT'])
+          junit = working / 'native-junit.xml'
+          junit_state, cases = 'MISSING', []
+          if junit.is_file():
+              try:
+                  cases = list(ET.parse(junit).getroot().iter('testcase'))
+                  junit_state = 'PARSED' if cases else 'NO_TESTCASES'
+              except ET.ParseError:
+                  junit_state = 'MALFORMED'
+          counts = {
+              'tests': len(cases),
+              'failures': sum(c.find('failure') is not None for c in cases),
+              'errors': sum(c.find('error') is not None for c in cases),
+              'skipped': sum(c.find('skipped') is not None for c in cases),
+          }
+          executed = counts['tests'] - counts['skipped']
+          observation = 'NOT_RUN'
+          if executed:
+              observation = ('FAIL' if native_exit or counts['failures'] or counts['errors']
+                             else 'INCOMPLETE' if counts['skipped'] else 'PASS')
+          receipt.update({
+              'native_execution': 'EXECUTED' if executed else 'NOT_RUN',
+              'native_observation': observation, 'native_exit_code': native_exit,
+              'junit_state': junit_state, 'junit_counts': counts,
+          })
+          receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root "$Z01_NATIVE_WORKING"
+          # Export only these successfully redacted outputs. No replay logs,
+          # status file, environment, catalog outputs or raw source are uploaded.
+          mkdir -p z01-supplier-native-evidence
+          cp "$Z01_NATIVE_WORKING/native.log" "$Z01_NATIVE_WORKING/receipt.json" z01-supplier-native-evidence/
+          if [[ -f "$Z01_NATIVE_WORKING/native-junit.xml" ]]; then
+            cp "$Z01_NATIVE_WORKING/native-junit.xml" z01-supplier-native-evidence/
+          fi
+          cat z01-supplier-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          # Preserve the exact native failure. A zero exit without executed,
+          # complete JUnit evidence is still an unsuccessful observation gate.
+          if (( native_exit != 0 )); then exit "$native_exit"; fi
+          python3 - <<'PY'
+          import json, pathlib
+          receipt = json.loads(pathlib.Path('z01-supplier-native-evidence/receipt.json').read_text())
+          assert receipt['native_observation'] == 'PASS', 'native_junit_proof_required'
+          PY
+      - name: Upload redacted native observation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z01-supplier-native-${{ github.event.pull_request.head.sha }}
+          path: |
+            z01-supplier-native-evidence/native.log
+            z01-supplier-native-evidence/native-junit.xml
+            z01-supplier-native-evidence/receipt.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload redacted precondition failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z01-supplier-precondition-${{ github.event.pull_request.head.sha }}
+          path: |
+            z01-supplier-native-precondition-evidence/phase.log
+            z01-supplier-native-precondition-evidence/receipt.json
+          if-no-files-found: warn
+          retention-days: 14
