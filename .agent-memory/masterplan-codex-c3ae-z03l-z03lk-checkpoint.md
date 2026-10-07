@@ -1,3 +1,33 @@
+## Fresh L/LK resumption CLAIM before code — 2026-10-07T03:01:10.408376+00:00
+
+Agent codex-20261006T134154Z-c3ae376b9893, NEW reservation packet5b7d6b12-46d0-4294-aca2-32ed76f9c716, exact receipt66a70e46a61f8795fc3b50bc174e543e41ca2790, all14 sorted create-only refs then TWO individual full GETMATCH passes. Sole active IDs AT-Z03L-SUPPLIER and AT-Z03LK-SUPPLIER remain NOT_EXECUTED. Branch codex/ediel-z03l-z03lk-c3ae376b9893, isolatedworktree /workspace/gridex-c3ae-z03l-z03lk; current preservedPR635 OPEN/DRAFT/head a360abd7a5632a71c11dbb55fbef6045dfdde2bf/tree256be576e324a883edc98e5efffdb70c0c9fc0c3 CLEAN; source not changed yet. Own separate metadata branch persists993fb priorhistory. Previous H actualall7release d25afc6d/#5306029965585 complete beforethisclaim; H650 authentic10046PASS54FAIL/wholeblocked/source8cf remains preserved, common/protectedsource owners continue their responsibilities. No root role-memory/merge/secondpair.
+
+Actualmain1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a/tree45ea1533702665b11b8f1a7eafeef96162d14227; coverage115/121rules+180/231contracts=295/352. Ordered mainmemory/README/AGENTS/workflow/reservations/checkpoint/blockers/activeplan/decisions/knownfailures/legacyregister/current530/openPR/live refs read. Actual delivered213222 SQL SHA4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5 +normalZ22/Z23 birth +genuineGEN1094 remove oldschema/registration/birthwaiting. Reuse, no duplicate SQL/GEN/types/sharedmemory authoring. Retained original595/503/614 work assessed via635/current implementation; HOLD/unapprovedrows preserved. Lastauthenticf9 32=26PASS6FAIL/schema8PGRST204/publicmaterializer42703 remains historical; a360 bootstrapfailed/no32artifact; olda360full903/12219 andsourceapproval do not qualify newmaincomposition.
+
+Original literalcriteria: actual SUPPLIER/genuine signednewagreement/publicLZ22 orLKZ23 case+site/requestevent/original/outbox/provideraccepted/timers; L D-14, LKday, max14calendar months; distinctphysicalCONTRL+APERAK and rightZ04L/LK; no earlyactive supply; allrole/direction/R-D/correlation/immutable/replay prohibitions. Existing retained fixes missingmain remain reusable: durable scopedrequestlookup and storedsubtype/date/status +sameenvironment forwarding, affectedordinarytests, publiccase seam/strict32. Two independent readonly retained-source/currentmain assessments now running. Currentmain preview has ONLY2foreign add/add conflicts (Ecustomerbirthtests tagpostimages): use exactincomingmain; no foreignauthoring/custody. Verify everyforeignmain blob/coverage preserved.
+
+Exact OWN12 paths (twoIDs usecoverage rowlocks):
+- .github/workflows/ediel-z03l-z03lk-native.yml
+- __tests__/ediel-public-supplier-route-column-contract.test.ts
+- __tests__/ediel-z03-dispatch-window.test.ts
+- __tests__/ediel-z03-route-context.test.ts
+- __tests__/switch-readiness.test.ts
+- lib/customer-operations/customerProcessRouteReadiness.ts
+- lib/customer-operations/switchReadiness.ts
+- lib/operations/edielAutomation.ts
+- lib/operations/types.ts
+- scripts/ediel-at-z03l-z03lk-supplier-native.config.ts
+- scripts/ediel-at-z03l-z03lk-supplier-native.test.ts
+- scripts/staff-user-actor-guard-regression.sql
+
+Excluded common helper scripts/helpers/ediel-normal-switch-native-fixture.ts currently owned2c7007; root does not claim/edit/delete it. Public callback/type (+12/-2 a360) required for genuine ownpubliccase proof, not dispensable. Immutable reuse/adoption request #5306029989264 authorizes only rootreviewedcallback under owner's existingcustody andpreserves all defaultcaller behavior; owner returns reviewedpublishedcarrier or explicitboundedhandoff. Faithful mainadoption must preserve incominghelper untilsuchhandoff, so scriptsTS/native may remainBLOCKED temporarily; no fakeacceptedseed/callbackdeletion/duplicatedwholesalefixture. Independent ownsourceparts cancontinue withinthispair.
+
+Skillrouting continued: using-superpowers/worktrees/dispatching-parallel-agents/executingplans/systematicdebugging/TDD/spec-to-code/requesting-code-review/verification-before-completion +Supabase for actualnative/SQL inspection. Previouslyread applicableinstructions retained; no UI/Next/performance/hooks/broadaudit change. Reviewers READONLY, rootonly12lockedpaths/ownCP/Git operations.
+
+NextROOT: publishthisCP and530 CLAIM withall14verifiedreceipt BEFOREcode; retainoriginala360, faithful normalcurrentmain adoption andresolveforeign2tests toexactincomingmain, retainonlyownclaimeduniquechanges/currentmainallotherpostimages, waitlegitimatehelpercarrier. Reviewcompletecurrentconsumers/currentdiff, freshaffectedruntime tests/all3types/scopedlint/register/migration/full afterfinalsourcefreeze, twofreshsource reviews/publication/actualnew32 andallmandatory currentgates. OnlycompletewholeID enablesowncoverageandcurrentreview/green/expectedheadmerge underfreeatomicmergerole; exactdurableactualreceiptandownerrelease thennextpair. Failedproof/blockers staydocumented; no source/gate/oracle weakening.
+
+---
+
 ## CURRENT MAIN CORRECTION — 2026-10-06 22:26 UTC
 
 Fresh live receipt6026417007 and actual coverage establish mainfd4a6a06f0cb462cfa15c3ee4a038d557dd559e0 is actual PR637 CODE merge, not641 memory. Actual115/121 rules+175/231 contracts=290/352;62remain. This supersedes the earlier pre-release paragraph that mislabeled fd4a as641 and retained286. PR641 remains open, role-memory e8 remains foreign24fa. Own actual15-release0ad1f700/6026519492 unchanged. GEN5owner93e has now freshly claimed actualmigration4504 underbf957d0b6f3e7f172015202f52e9b9bc1023fe16/6026471583 forbyte-exact213222 reuse; registration/currentcapture stillpending, wholeL/LK remains released/unapproved. Root next soleZ02pair claim is in progress, no code until all confirmed and checkpoint530 published.
