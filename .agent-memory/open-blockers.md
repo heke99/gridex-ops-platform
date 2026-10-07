@@ -1,3 +1,15 @@
+## Actual campaign observation — 2026-10-07T12:37:33.769902+00:00
+
+TR08/AT-TR08 requires authentic relay TLS/SPF/provider-policy and actual delivery-hop evidence. DB05/AT-DB05/SC070 requires authorized retention-class workflows/legal source. OPS04/AT-OPS04 requires agreed real counterparty/environment/incident/route/certificate/profile/tenant input and the original LIVE mandate. P08 and remaining scenarios/F/G/ESCO/V/VH require fresh original-source/criterion assessment. HOLD/PAUSED and CLOSED_UNMERGED retained branches remain requirements; tag absence is not whole custody transfer. No blanket production authority, forced sends or relaxed tests.
+
+Actual main 0ecf9c60812dea2654da13d0a6ce112c650a0fe4; **115 VERIFIED rules +185 PASSED contracts =300/352;52 remain**. Actual A/D656 delivery5b/source0ce and source-only663 are separate; resulting-main runtime/deployment/external acceptance NOT_VERIFIED. Receipts6037593233/6037786738.
+
+A/D literal software contracts are delivered; all52 remaining rows retain their own criteria, original custody and independent proof requirements.
+
+H03/H04 owner93 retains its genuine pre-A/D77a100-case56PASS44FAIL receipt; the respective93/c65 owners of H03/H04 and H05/H08 need lawful physical259 declaration admission and full current effects, with no fabricated actual readings/global TRUE. L03/LK03 ownerc3 retains authenticfb34=32PASS2FAIL and first-field undetermined gates; the12 negative assertions do not establish specific mismatch causality. Z01 owner24fa and Z02 owner2f retain their version-bound native/GEN duties; no results are borrowed across sources. C03/C05 owner2c delivered bounded public birth via663; whole cancellation contracts remain unapproved. TR09/DB01 ownerb6 retains real production/certificate/provider prerequisites and current five-SQL profile fixes; original production effects need genuine qualification. GEN2f owns actual composed-input capture/parity, with new columns requiring real generation rather than handwritten outputs.
+
+Earlier dated entries below are historical. This own metadata update is proposed; current-head review/CI/delivery remain required.
+
 ## Actual campaign observation — 2026-10-07T02:40:35.459682+00:00
 
 Observed actual main 1ac0d4f1e779a9f5c1c694b5ddaf071088161f4a (tree 45ea1533702665b11b8f1a7eafeef96162d14227), coverage SHA256 31fc286d62354e9632d576c4b5cc40f04b76ef112887e5ba241b34418bdd402e: **115/121 VERIFIED rules + 180/231 PASSED contracts = 295/352; 57 remain**. Actual PR #629 delivered ed7c0980 from4b131b8a with nineteen non-skipped source checks SUCCESS and its two E contracts accepted in main. PR #651 merged at2026-10-07T02:36:55Z frombfa77190; exactparents ed7c0980+bfa77190 and exact reviewed tree45ea153 authenticated. Its scoped cleanup and dated636/released649/645 metadata are delivered; no ID is promoted by651. Earlier dated snapshots and the old GEN213222 missing-column blocker are SUPERSEDED by these actual observations.
