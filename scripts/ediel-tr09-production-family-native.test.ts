@@ -140,18 +140,23 @@ async function diagnoseProductionPrerequisites(s: Fixture) {
     'production', ${rows('public.ediel_production_state', `t.company_id=${literal(s.f.companyId)}`)},
     'certification', ${rows('public.ediel_certification_evidence', `t.company_id=${literal(s.f.companyId)}`)})`)
   const authority = admission()
+  const attempt = async (stage: string) => {
+    try {
+      const result = await runProductionDryRun(s.f.companyId, s.f.actorUserId, s.ack)
+      console.info('TR09 actual readiness diagnostic', {stage,
+        status: result.success ? 'READY_INPUTS' : 'BLOCKED', dryRunStatus: result.status,
+        blockers: result.blockingIssues.map(issue => issue.code), wouldSend: result.previewMetadata.wouldSend})
+      return null
+    } catch (error) {
+      console.info('TR09 actual readiness diagnostic', {stage, status: 'DIAGNOSTIC_FAIL',
+        errorCode: errorMessage(error).match(/^[A-Za-z0-9_]+/)?.[0] ?? 'unclassified', wouldSend: 'NOT_REACHED'})
+      return errorMessage(error)
+    }
+  }
   try {
-    const result = await runProductionDryRun(s.f.companyId, s.f.actorUserId, s.ack)
-    console.info('TR09 actual readiness diagnostic', {
-      status: result.success ? 'READY_INPUTS' : 'BLOCKED',
-      dryRunStatus: result.status,
-      blockers: result.blockingIssues.map(issue => issue.code),
-      wouldSend: result.previewMetadata.wouldSend,
-    })
-  } catch (error) {
-    console.info('TR09 actual readiness diagnostic', {status: 'DIAGNOSTIC_FAIL',
-      errorCode: errorMessage(error).match(/^[A-Za-z0-9_]+/)?.[0] ?? 'unclassified',
-      wouldSend: 'NOT_REACHED'})
+    if (await attempt('original_actor') === 'actor_not_authorized_for_configuration_snapshot') {
+      await withOwnSnapshotPermission(s, () => attempt('prospective_own_profile_write'))
+    }
   } finally {
     // Partial snapshots/readiness journals may exist after an actual failure.
     // They may not manufacture business effects or production admission.
@@ -164,6 +169,45 @@ async function diagnoseProductionPrerequisites(s: Fixture) {
   const evidence = sql<Json>(`SELECT public.canonical_ediel_production_evidence_readiness(${literal(s.f.companyId)})`)
   console.info('TR09 actual canonical prerequisites', {ready: readiness.ready,
     blockers: readiness.blockers, evidenceReady: evidence.ready, missingEvidence: evidence.missing})
+}
+async function withOwnSnapshotPermission(s: Fixture, action: () => Promise<unknown>) {
+  // A prospective fixture permission is neither a production decision nor a
+  // passed attestation. Restore the entire original grant image, even on error.
+  const permissionState = () => sql<Json>(`SELECT jsonb_build_object(${[
+    'public.permissions', 'public.roles', 'public.role_permissions', 'public.user_roles',
+    'public.user_permissions', 'public.admin_users', 'public.company_memberships',
+  ].map(table => `${literal(table)},${rows(table, 'true')}`).join(',')})`)
+  const pristine = permissionState()
+  const roles = sql<Array<{id: string; key: string}>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',r.id,'key',r.key)),'[]')
+    FROM public.roles r JOIN public.user_roles u ON u.role_id=r.id
+    WHERE u.user_id=${literal(s.f.actorUserId)} AND u.company_id=${literal(s.f.companyId)}
+      AND u.status='active' AND u.is_active AND r.is_active AND NOT r.is_system_role
+      AND r.scope='company' AND r.key='native_actor_'||r.id::text`)
+  expect(roles).toHaveLength(1)
+  const role = roles[0]
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.user_roles WHERE role_id=${literal(role.id)} OR role=${literal(role.key)}`)).toBe(1)
+  const catalog = sql<Array<{id: string; is_active: boolean}>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'is_active',is_active)),'[]')
+    FROM public.permissions WHERE key='ediel.profile.write'`)
+  expect(catalog.length).toBeLessThanOrEqual(1)
+  if (catalog.length) expect(catalog[0].is_active).toBe(true)
+  const permissionId = catalog[0]?.id ?? randomUUID(), grantId = randomUUID()
+  try {
+    // Atomically create only our missing reference and our one role grant.
+    sql(`BEGIN;
+      ${catalog.length ? '' : `INSERT INTO public.permissions(id,key,name,description,category,is_active)
+        VALUES(${literal(permissionId)},'ediel.profile.write','Native snapshot permission','Prospective disposable TR09 diagnostic input','native_fixture',true);`}
+      INSERT INTO public.role_permissions(id,role_id,role_key,permission_id,permission_key,effect)
+        VALUES(${literal(grantId)},${literal(role.id)},${literal(role.key)},${literal(permissionId)},'ediel.profile.write','allow');
+      COMMIT;`)
+    expect(sql(`SELECT to_jsonb(public.canonical_actor_is_authorized(${literal(s.f.companyId)},${literal(s.f.actorUserId)},'ediel.profile.write',false))`)).toBe(true)
+    await action()
+  } finally {
+    sql(`BEGIN;
+      DELETE FROM public.role_permissions WHERE id=${literal(grantId)} AND role_id=${literal(role.id)} AND permission_id=${literal(permissionId)};
+      ${catalog.length ? '' : `DELETE FROM public.permissions WHERE id=${literal(permissionId)} AND key='ediel.profile.write';`}
+      COMMIT;`)
+    expect(permissionState()).toEqual(pristine)
+  }
 }
 const rows = (table: string, predicate: string) => `(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]') FROM ${table} t WHERE ${predicate})`
 function graph(s: Fixture) {
