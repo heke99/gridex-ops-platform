@@ -3,14 +3,14 @@
 // Issuer trust and SMTP configuration are explicitly synthetic, not legal or
 // market acceptance. The retained ground fixture prepares an UNSENT Z03: this
 // proves no usable sent correlation, not literal absence of every Z03 row.
-import { randomUUID } from 'node:crypto'
+import { createHash, createHmac, randomUUID } from 'node:crypto'
 import { afterEach, expect, it, vi } from 'vitest'
 import { guideOrderedFixtureRaw } from '../__tests__/helpers/prodatGuideOrderedFixture'
 import { characteristic, line, qty, type Parts } from '../__tests__/fixtures/prodat-register'
 import { createRegulatedSupplyGroundNativeFixture } from './helpers/ediel-regulated-supply-ground-native-fixture'
-import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
+import { seedNormalSwitchNativeFixture, nativeActorRoleSql, nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from './helpers/originalMailboxNative'
-import { archiveRegulatedSupplyGround, reviewRegulatedSupplyGround, readRegulatedSupplyGroundScope } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
+import { archiveRegulatedSupplyGround, reviewRegulatedSupplyGround, readRegulatedSupplyGroundScope, type RegulatedSupplySubmission } from '@/lib/ediel/production/regulatedSupplyGroundIntake'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { buildReceivedSourceValidationEvidence } from '@/lib/ediel/core/receivedSourceValidationEvidence'
@@ -23,9 +23,31 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 const provider = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: provider }) } }))
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks() })
-type Ground = Awaited<ReturnType<typeof createRegulatedSupplyGroundNativeFixture>>
-type WireOptions = { omitStart?: boolean; omitAnnualVolume?: boolean; omitReadingField?: '214' | '218'; invoiceeIdentity?: string; startOffsetMinutes?: number; revokeSupplierRole?: boolean }
+type Ground = (Awaited<ReturnType<typeof createRegulatedSupplyGroundNativeFixture>> & { z03Mode: 'legacy_unsent' })
+  | (Awaited<ReturnType<typeof createAssignedGroundWithoutOwnZ03>> & { z03Mode: 'absent' })
+type WireOptions = { withoutOwnZ03?: boolean; omitStart?: boolean; omitAnnualVolume?: boolean; omitReadingField?: '214' | '218'; invoiceeIdentity?: string; startOffsetMinutes?: number; revokeSupplierRole?: boolean }
 
+// Proposed local A-test producer, same original legal/archive/review mechanism.
+// Sole change: existing real normal-stage producer deferOriginal:true; no delete or privately minted acceptance.
+async function createAssignedGroundWithoutOwnZ03(){
+ const f=await seedNormalSwitchNativeFixture({requestedStartDate:'2026-10-15',deferOriginal:true}),reviewer=randomUUID(),agreement=randomUUID(),keyId=randomUUID(),representationId=randomUUID(),key=Buffer.from('SYNTHETIC regulated issuer verifier mechanism fixture only')
+ sql(`INSERT INTO auth.users(instance_id,confirmation_token,recovery_token,email_change_token_new,email_change,id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES('00000000-0000-0000-0000-000000000000','','','','',${literal(reviewer)},'authenticated','authenticated',${literal(`${reviewer}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
+ INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(reviewer)},${literal(`${reviewer}@example.invalid`)},'Synthetic separate regulated reviewer','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
+ INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${literal(f.companyId)},${literal(reviewer)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
+ ${nativeActorRoleSql(f.companyId,reviewer)}
+ INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT own.actor,${literal(f.companyId)},p.id,p.key,'allow',true,'active' FROM (VALUES(${literal(reviewer)}::uuid)) own(actor) CROSS JOIN public.permissions p WHERE p.key IN('communication.read','communication.write','contracts.read','metering.read','metering.write');
+ INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT ${literal(reviewer)},${literal(f.companyId)},id,key,'allow',true,'active' FROM public.permissions WHERE key='ediel.regulated_supply.review';`)
+ const dso=sql<string>(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(f.receiver)} AND is_verified`)
+ sql(`INSERT INTO public.tenant_bilateral_agreements(id,company_id,environment,counterparty_actor_id,capability_code,terms,is_enabled,valid_from,valid_to,source_reference) VALUES(${literal(agreement)},${literal(f.companyId)},'test',${literal(dso)},'PRODAT:Z04:A','{"synthetic_fixture_only":true}',true,clock_timestamp()-interval '1 day','2100-01-01','SYNTHETIC NATIVE LEGAL ORIGINAL');`)
+ const selector={environment:'test' as const,kind:'assigned_supply' as const,contractId:f.contractId,meteringPointId:f.pointId,identityAgency:'9' as const,bilateralAgreementId:agreement,startAt:'2026-10-14T23:00:00Z'},owner={companyId:f.companyId,actorUserId:f.actorUserId}
+ const scoped=await readRegulatedSupplyGroundScope({...owner,...selector});expect(scoped.status,JSON.stringify(scoped)).toBe('scoped')
+ const bytes=Buffer.from('%PDF-1.7\nSYNTHETIC test legal original; no real decision\n%%EOF'),sourceHash=createHash('sha256').update(bytes).digest('hex'),submission:RegulatedSupplySubmission={...selector,source:{bytesBase64:bytes.toString('base64'),mimeType:'application/pdf',reference:'SYNTHETIC NATIVE LEGAL ORIGINAL',version:'1'}}
+ sql(`INSERT INTO gridex_regulated_supply.issuer_keys(id,company_id,environment,issuer_code,legal_issuer_reference,legal_authority_source_hash,receipt_signing_key,valid_from,valid_to) VALUES(${literal(keyId)},${literal(f.companyId)},'test','SYNTHETIC','DECLARED VERIFIER BOUNDARY; NOT LEGAL ACCEPTANCE',${literal('a'.repeat(64))},decode(${literal(key.toString('hex'))},'hex'),clock_timestamp()-interval '1 day','2100-01-01');
+ INSERT INTO gridex_regulated_supply.issuer_representations(id,company_id,environment,issuer_key_id,legal_actor_id,dso_actor_id,grid_area_code,permitted_kind,bilateral_agreement_id,legal_representation_reference,legal_authority_source_hash,valid_from,valid_to) VALUES(${literal(representationId)},${literal(f.companyId)},'test',${literal(keyId)},${literal(f.actorUserId)},${literal(dso)},'TES','assigned_supply',${literal(agreement)},'SYNTHETIC NON LEGAL REPRESENTATION',${literal('b'.repeat(64))},clock_timestamp()-interval '1 day','2100-01-01');`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code='Z03'`)).toBe(0)
+ const signed=(version='1')=>{const payload=Buffer.from(JSON.stringify({format:'ediel_regulated_supply_ground_receipt_v1',issuerCode:'SYNTHETIC',receiptId:randomUUID(),companyId:f.companyId,environment:'test',scope:scoped.scope,sourceHash,sourceReference:submission.source.reference,sourceVersion:version,legalDecisionReference:'SYNTHETIC DECLARED MECHANISM ONLY',issuedAt:new Date(Date.now()-1000).toISOString(),expiresAt:'2099-01-01T00:00:00Z'}));return {...submission,source:{...submission.source,version},issuerReceipt:{keyId,representationId,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',key).update(payload).digest('hex')}}}
+ return {...f,...owner,reviewer,agreement,representationId,scoped,bytes,sourceHash,submission,signed}
+}
 function assignedWire(f: Ground, reference: string, options: WireOptions = {}) {
   // Independent literal P26.A wire facts, not the production renderer. Field
   // 223 is Z26 and 210 is the archived ground's exact Swedish standard time.
@@ -70,16 +92,19 @@ async function ground(options: WireOptions = {}) {
   for (const [key, value] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid', EDIEL_APP_DKIM_ENABLED: 'false',
     EDIEL_SMTP_FROM: 'synthetic@example.invalid', EDIEL_SMTP_USER: 'synthetic@example.invalid', EDIEL_SMTP_PASS: 'synthetic-only', EDIEL_EMAIL_PROVIDER: 'strato' })) vi.stubEnv(key, value)
   provider.mockReset()
-  const f = await createRegulatedSupplyGroundNativeFixture()
+  const f: Ground = options.withoutOwnZ03
+    ? { ...await createAssignedGroundWithoutOwnZ03(), z03Mode: 'absent' }
+    : { ...await createRegulatedSupplyGroundNativeFixture(), z03Mode: 'legacy_unsent' }
   const artifact = await archiveRegulatedSupplyGround({ companyId: f.companyId, actorUserId: f.actorUserId, ...f.signed() })
   const authorized = await reviewRegulatedSupplyGround({ companyId: f.companyId, actorUserId: f.reviewer,
     artifactId: String(artifact.artifactId), sourceHash: String(artifact.sourceHash), scopeHash: String(artifact.scopeHash),
     decision: 'approve', reason: 'Separate synthetic assigned-supply native review' })
   expect(authorized.status, JSON.stringify(authorized)).toBe('authorized')
-  expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(f.originalZ03.id)}`)).toBe(false)
+  if (f.z03Mode === 'legacy_unsent') expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(f.originalZ03.id)}`)).toBe(false)
+  else expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code='Z03'`)).toBe(0)
   expect(provider).not.toHaveBeenCalled()
   const reference = `A${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
-  expect(reference).not.toBe(f.caseReference)
+  if (f.z03Mode === 'legacy_unsent') expect(reference).not.toBe(f.caseReference)
   if (options.revokeSupplierRole) sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp()-interval '1 second'
     WHERE company_id=${literal(f.companyId)} AND environment='test' AND actor_id=${literal(f.actorUserId)} AND role_code='electricity_supplier'`)
   const wire = assignedWire(f, reference, options), smtp = assertEdielSmtpReadiness(), receivedAt = new Date().toISOString()
@@ -134,7 +159,8 @@ function preserves(f: Awaited<ReturnType<typeof ground>>) {
   expect(sql(`SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=${literal(f.switchId)}`)).toEqual(f.beforeSwitch)
   expect(sql(`SELECT to_jsonb(c) FROM public.customer_contracts c WHERE id=${literal(f.contractId)}`)).toEqual(f.beforeContract)
   expect(sql(`SELECT to_jsonb(c) FROM public.customers c WHERE id=${literal(f.customerId)}`)).toEqual(f.beforeCustomer)
-  expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(f.originalZ03.id)}`)).toBe(false)
+  if (f.z03Mode === 'legacy_unsent') expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(f.originalZ03.id)}`)).toBe(false)
+  else expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code='Z03'`)).toBe(0)
   expect(provider).not.toHaveBeenCalled()
 }
 
@@ -156,6 +182,14 @@ async function adapterSource(options: WireOptions = {}) {
 
 it('actual unmatched mail adapter must admit physical A with genuine custody and no own sent Z03', async () => {
   await assertAssignedEffects(await adapterSource())
+}, 120000)
+
+it('actual unmatched A registers assigned supply and routed ACKs without any own Z03 original', async () => {
+  const f = await adapterSource({ withoutOwnZ03: true })
+  expect('originalZ03' in f).toBe(false)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code='Z03'`)).toBe(0)
+  await assertAssignedEffects(f)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND message_code='Z03'`)).toBe(0)
 }, 120000)
 
 async function diagnoseSourceValidation(f: Awaited<ReturnType<typeof source>>) {

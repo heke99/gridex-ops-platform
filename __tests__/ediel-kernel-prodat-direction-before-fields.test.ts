@@ -5,6 +5,7 @@ import {beforeEach,expect,it,vi} from 'vitest'
 import type {CreateEdielMessageInput} from '@/lib/ediel/types'
 import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
 import {characteristic,line,qty,type Parts} from './fixtures/prodat-register'
+import {bilateralCustomerNativeWire} from '../scripts/helpers/ediel-bilateral-customer-native-wire'
 
 const io=vi.hoisted(()=>({actor:vi.fn(),authorize:vi.fn(),rpc:vi.fn(),from:vi.fn(),witness:vi.fn(),persist:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc,from:io.from}}))
@@ -89,4 +90,16 @@ it('an unknown physical reason still has no canonical policy and cannot mint an 
  expect(result.blocking).toBe(true)
  expect(result.issues).toContainEqual(expect.objectContaining({code:'CANONICAL_POLICY_VALIDATION_FAILED',description:expect.stringContaining('prodat_subtype_unknown')}))
  expect(await refusal(input)).toContain('PRODAT_TRANSACTION_REASON_INVALID')
+})
+
+it('unqualified outbound Z06E retains its real first field diagnostic before any original',async()=>{
+ const input=draft('Z06','E34')
+ input.rawPayload=bilateralCustomerNativeWire({sender,receiver,point,customerIdentity:'199001011234',reference:'OWN-E',
+  marketMinute:'202610190000',repeatRegister:true,invoicee:true})
+ const result=await validate(input)
+ expect(result.canonicalPolicy).toMatchObject({family:'PRODAT',code:'Z06',subtype:'E',semantics:{direction:'inbound'}})
+ expect(result.issues).toContainEqual(expect.objectContaining({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED'}))
+ const first=result.issues.find(issue=>issue.blocking||issue.severity==='error')
+ expect(first).toMatchObject({code:'PRODAT_REGISTER_EVIDENCE_UNDETERMINED'})
+ expect(await refusal(input)).toContain(`${first!.code} - ${first!.description}`)
 })
