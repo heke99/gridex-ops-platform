@@ -35,6 +35,7 @@ import { getEdielMessageById, listEdielMessageEvents } from '@/lib/ediel/db'
 import { archiveNetworkRegistrySource, readNetworkRegistrySourceArtifact, reviewNetworkRegistrySource } from '@/lib/ediel/production/networkRegistrySource'
 import { readContractRequestedMethodSource } from '@/lib/ediel/production/contractRequestedMethodSource'
 import type { SupplyObjectPartition } from '@/lib/ediel/flows/supplyMarketTransition'
+import { observeOriginalNegativeSupply, assertOriginalNegativeSupplyCause } from './helpers/ediel-z03-native-supply-observation'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
@@ -1390,7 +1391,10 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
         return segment
       }),true))
       const source=await receive(f,raw),before=business(f),history=originalHistory(f),otherBefore=other?business(other):null
-      await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+      const supplyObservation=observeOriginalNegativeSupply(f,source)
+      try {
+        await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+      } finally { supplyObservation.stop() }
       const negativeDiagnosticReads=await Promise.allSettled([
         getEdielMessageById(source.id,{companyId:f.companyId}),
         listEdielMessageEvents(source.id,f.companyId),
@@ -1399,6 +1403,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
       expect(business(f)).toEqual(before); expect(originalHistory(f)).toEqual(history); noPositiveAperak(f,source.id)
       if (other) expect(business(other)).toEqual(otherBefore)
       noActivation(f)
+      assertOriginalNegativeSupplyCause(f,source,contrast,other,supplyObservation.observation)
     })
   }
 
@@ -1406,7 +1411,10 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     const f=await seed(variant),other=await seed(variant); await send(f)
     const source=await receive(f,confirmation(f,body=>withOwnReadings(body,true)).replaceAll(f.receiver,other.receiver))
     const before=business(f),otherBefore=business(other),history=originalHistory(f)
-    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+    const supplyObservation=observeOriginalNegativeSupply(f,source)
+    try {
+      await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+    } finally { supplyObservation.stop() }
     const negativeDiagnosticReads=await Promise.allSettled([
       getEdielMessageById(source.id,{companyId:f.companyId}),
       listEdielMessageEvents(source.id,f.companyId),
@@ -1414,6 +1422,7 @@ describe.each(['L','LK'] as const)('ordinary supplier Z03%s native proposals',va
     console.info('native_original_negative_gate',JSON.stringify({variant,contrast:'other grid party',diagnostic:projectZ04Diagnostic(f,source,negativeDiagnosticReads)}))
     expect(business(f)).toEqual(before); expect(business(other)).toEqual(otherBefore)
     expect(originalHistory(f)).toEqual(history); noPositiveAperak(f,source.id); noActivation(f)
+    assertOriginalNegativeSupplyCause(f,source,'other grid party',other,supplyObservation.observation)
   })
 
   it('rejects wrong direction, foreign actor and disabled environment at the actual public outbound boundary',async()=>{
