@@ -1,3 +1,13 @@
+## Fixture extraction — actual baseline, 2026-10-07
+
+Same L/LK responsibility and 20 resource reservations. PR #635 remains draft and its published version is unchanged. The extraction is local and has no source commit yet.
+
+Actual targeted run: 97 tests, 94 passed and 3 failed, process exit 1. The original 77 tests pass. The mixed-object suite retains its two original behavior failures and the register-evidence suite retains its one original behavior failure. The original 77 test bodies and both selected suites were preserved at this stage. No setup failure or relaxed oracle is credited as meaningful RED. Execution details and source bindings remain in private verification receipts.
+
+Next: the bounded author updates only the selected three fixture/context setups, with valid physical declarations before source birth and the actual issuer. I verify the complete four-file change, all original identities/oracles, actual tests/types/lint and two independent source reviews before publication. No full/native/CI/whole approval or coverage change. Runtime and shared-fixture work remain with their respective owners.
+
+---
+
 ## Actual published52 native RED qualified twice; BEFORE_AUTHORING GO — 2026-10-07 14:58 UTC
 
 Same sole AT-Z03L-SUPPLIER + AT-Z03LK-SUPPLIER, agent codex-20261006T134154Z-c3ae376b9893, packet5b7d6b12; all20 atomic resources freshly MATCH original66a70/c7a08/new4d8a. Main9b013631afed0b7de5f704fdc759bc68624d92b5, coverage300/352/52remaining/ownNOT_EXECUTED. Public635 OPEN DRAFT head52b7968d/tree462ec/native66942; own local CLEAN78ae0ef97e6528b8dbbfb8f8db01c26c17557c2a/tree3159/native15e36 unpublished. No roles/newpair/sharedmemory/mainmerge/coverage.
