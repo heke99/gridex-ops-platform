@@ -46,6 +46,8 @@ it('admits only the six actual appended fields and preserves every original fing
 it.each([
   ['missing column', 'ALTER TABLE companies DROP COLUMN brp_name'],
   ['wrong type', 'ALTER TABLE companies ALTER COLUMN brp_name TYPE varchar'],
+  ['text domain constraint', `CREATE DOMAIN public.profile_fingerprint_text AS text CHECK (VALUE IS NULL);
+    ALTER TABLE companies ALTER COLUMN brp_name TYPE public.profile_fingerprint_text`],
   ['wrong nullability', 'ALTER TABLE companies ALTER COLUMN market_role SET NOT NULL'],
   ['wrong status default', "ALTER TABLE companies ALTER COLUMN esett_status SET DEFAULT 'ready'"],
   ['unexpected contact default', "ALTER TABLE companies ALTER COLUMN technical_contact_name SET DEFAULT 'invented'"],

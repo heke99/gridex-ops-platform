@@ -38,6 +38,7 @@ BEGIN
       WHERE table_schema='public' AND table_name='companies'
         AND column_name=ANY(names)
         AND (data_type<>'text' OR udt_name<>'text' OR is_nullable<>'YES'
+          OR domain_schema IS NOT NULL OR domain_name IS NOT NULL
           OR column_default IS DISTINCT FROM CASE
             WHEN column_name IN ('brp_status','esett_status') THEN '''missing''::text'
             ELSE NULL END))
