@@ -8,6 +8,7 @@ import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator';
 import {captureEdielTechnicalSyntaxAckEvidence,readEdielTechnicalSourceEndpoint,recordEdielTechnicalSyntaxDecision,technicalSyntaxAckQualification} from '@/lib/ediel/ack/technicalSyntaxAuthority';
 import {createHash} from 'node:crypto';
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
+import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition';
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft';
 import {readUnattributedTechnicalIntake} from '@/lib/ediel/inbound/receptions';
@@ -86,6 +87,30 @@ function hasInboundAckParties(message: EdielMessageRow): boolean {
   return Boolean(
     message.sender_ediel_id?.trim() && message.receiver_ediel_id?.trim(),
   );
+}
+
+function inboundActorRefusal(cause:unknown):EdielExecutionFailure {
+  const failure=new EdielExecutionFailure({kind:'security_quarantine',code:'EDIEL_INBOUND_EXECUTION_ACTOR_FORBIDDEN'},
+    'ediel_inbound_execution_actor_forbidden');
+  Object.defineProperty(failure,'cause',{value:cause,enumerable:false,writable:true,configurable:true});
+  return failure;
+}
+
+function technicalActorRefusal(error:unknown):EdielExecutionFailure|null {
+  if(error instanceof EdielExecutionFailure && error.disposition.kind==='security_quarantine')return error;
+  // Technical RPC adapters retain trusted PostgREST errors in Error.cause.
+  // Public payloads, message text and outer error labels are not authority.
+  const seen=new Set<object>();let current=error;
+  for(let depth=0;depth<8;depth++){
+    if(!(current instanceof Error)||seen.has(current))return null;
+    seen.add(current);
+    const property=Object.getOwnPropertyDescriptor(current,'cause');
+    const cause:unknown=property&&'value' in property?property.value:undefined;
+    if(!cause||typeof cause!=='object'||seen.has(cause))return null;
+    if(Object.getOwnPropertyDescriptor(cause,'code')?.value==='42501')return inboundActorRefusal(error);
+    current=cause;
+  }
+  return null;
 }
 
 async function createAckBlockedEvent(params: {
@@ -326,7 +351,7 @@ async function applyCanonicalRuntimeDecision(params: {
     try{deathStatusContext=await loadCustomerLifeEventValidationContext(params.message,params.actorUserId)}
     catch(error){lifeEventSourceReadFailure=formatErrorMessage(error,'Kundhändelsens skyddade källa kunde inte läsas.')}
   }
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(params.message,{deathStatusContext});
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(params.message,{deathStatusContext,actorUserId:params.actorUserId});
   // Only the opaque result of this exact rule invocation may keep independent
   // good own scopes moving past a sibling's internal hold. Public JSON cannot.
   const authorizedPartialOwner=hasReceivedCanonicalProdatPartialOwner(decision,params.message);
@@ -898,7 +923,15 @@ export async function processInboundEdielMessage(params: {
       const endpoint=await readEdielTechnicalSourceEndpoint(message.id,{actorUserId,phase:'prepare'});
       if(endpoint) {
         if(endpoint.environment!==message.environment || endpoint.sourceHash!==createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'))throw new Error('technical_source_wire_scope_mismatch');
-        await assertEdielTenantActor({companyId:endpoint.companyId,actorUserId,permission:'communication.write'});
+        try {
+          await assertEdielTenantActor({companyId:endpoint.companyId,actorUserId,permission:'communication.write'});
+        } catch(error) {
+          if(error instanceof EdielExecutionFailure && error.disposition.kind==='security_quarantine')throw error;
+          // A direct PostgREST permission error is trusted only at this actual
+          // actor-check stage; keep every other actor/read error unchanged.
+          if(error&&typeof error==='object'&&Object.getOwnPropertyDescriptor(error,'code')?.value==='42501')throw inboundActorRefusal(error);
+          throw error;
+        }
         const syntax=selectedSyntax;
         await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
           syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code),execution:{actorUserId,phase:'prepare'}});
@@ -917,6 +950,8 @@ export async function processInboundEdielMessage(params: {
         }
       }
     } catch(error) {
+      const securityRefusal=technicalActorRefusal(error);
+      if(securityRefusal)throw securityRefusal;
       await createAckBlockedEvent({actorUserId,sourceMessage:message,ackFamily:'CONTRL',
         reason:formatErrorMessage(error,'Teknisk kvittens kunde inte kvalificeras.')});
     }
