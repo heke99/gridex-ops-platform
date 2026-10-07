@@ -248,6 +248,7 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     expect(ownRequest(f, original).status).toBe('waiting_for_z02'); expect((await watches(f, original))[0].status).toBe('pending')
     const received = await receiveZ01SupplierReply(f, z02(f, original))
     expect(received.id).toBeTruthy()
+    observeCorrelationCause(f, original, received, 'positive-own-Z02-before-effects')
     expect(ownRequest(f, original)).toMatchObject({status: 'ready_for_switch', response_ediel_message_id: received.id})
     expect(coreApplications(f, original.requestId)).toBe(1)
     expect((await watches(f, original))[0].status).toBe('fulfilled')
@@ -529,6 +530,7 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const before = customerState(f), foreignBefore = customerState(foreign), sealed = sealedSource(original.originalZ01.id)
     expect(await getEdielMessageById(original.originalZ01.id, {companyId: foreign.companyId})).toBeNull()
     const received = await receiveZ01SupplierReply(f, z02(f, original))
+    observeCorrelationCause(f, original, received, 'foreign-actor-prerequisite')
     // Establish a real own received source before attempting a different
     // company's current actor. First application and resulting state are frozen.
     const applied = customerState(f), applications = coreApplications(f, original.requestId)
