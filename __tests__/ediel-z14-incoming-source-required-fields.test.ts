@@ -59,7 +59,7 @@ describe('fresh physical positive Z14 incoming source-required fields',()=>{
   expect(body).not.toEqual(complete)
   const decision=resolveCanonicalRuntimeDecision(message(body))
   expect(decision.syntaxDecision).toBe('accepted')
-  expect(decision.issues).toContainEqual(expect.objectContaining({blocking:true,prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field,errorKind:'missing',occurrence:expect.objectContaining({lineIndex:0,objectId:'735123456789012345',lineItemReference:'CASE:A+B?C'})})}))
+  expect(decision.issues).toContainEqual(expect.objectContaining({layer:'application',severity:'error',prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field,errorKind:'missing',occurrence:expect.objectContaining({lineIndex:0,objectId:'735123456789012345',lineItemReference:'CASE:A+B?C'})})}))
   expect(decision.applicationDecision).toBe('rejected')
   expect(decision.responsePlan.some(p=>p.family==='APERAK'&&p.outcome==='positive')).toBe(false)
  })
@@ -79,8 +79,12 @@ describe('source requirement is local to the actual incoming Z14 scope',()=>{
    const body=positive(reason)
    expect(direct(body,field,alphabet)).toEqual([])
    const issues=direct(omit(body,field),field,alphabet)
-   expect(missing(issues,field)).toHaveLength(1)
-   expect(missing(issues,field)[0]).toMatchObject({blocking:true,prodatDiagnostic:{occurrence:{lineIndex:0,lineItemReference:'CASE:A+B?C'}}})
+   // These two byte mutations retain the supplied agency while clearing the
+   // identity; the existing component owners correctly classify them invalid.
+   const errorKind=field==='209'||field==='227'?'invalid':'missing'
+   const own=issues.filter(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field&&i.prodatDiagnostic.errorKind===errorKind)
+   expect(own).toHaveLength(1)
+   expect(own[0]).toMatchObject({blocking:true,prodatDiagnostic:{errorKind,occurrence:{lineIndex:0,lineItemReference:'CASE:A+B?C'}}})
   })
  }
  it.each(mapped)('N does not acquire positive required child %s',field=>{

@@ -34,6 +34,18 @@ function ackEvidence(p:PendingZ14,source:EdielMessageRow){
  const actual=replies(p,source)
  return {sourceMessageId:source.id,acks:actual.acks.map(a=>({id:a.id,family:a.message_family,outcome:a.ack_outcome})),outbox:actual.outbox.map(x=>({id:x.id,messageId:x.ediel_message_id,family:x.message_family})),blockedEvents:sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('type',event_type,'status',event_status,'message',message,'payload',payload) ORDER BY created_at,id),'[]') FROM public.ediel_message_events WHERE company_id=${lit(p.f.ids.company)} AND ediel_message_id=${lit(source.id)} AND payload->>'blockedBy'='canonical_inbound_ack_guard'`)}
 }
+function canonicalLineageEvidence(p:PendingZ14,source:EdielMessageRow){
+ // Diagnose actual owner observations only; never install assessment facts.
+ return sql(`SELECT jsonb_build_object('source',${lit(source.id)},'payloadHash',${lit(createHash('sha256').update(source.raw_payload!).digest('hex'))},
+ 'sourceCurrent',public.ediel_permission_source_is_current_v1(a.company_id,mp.id,${lit(source.id)}),
+ 'assignmentMatches',gridex_service_administration.permission_matches_assignment_v1(a,mp),
+ 'receipts',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',e.id,'canonical',e.canonical_assessment_id,'company',e.company_id,'source',e.source_message_id,'payloadHash',e.payload_hash,'objectScopes',e.object_scopes) ORDER BY e.id),'[]') FROM gridex_received_sources.permission_effect_receipts e WHERE e.company_id=a.company_id AND e.permission_id=mp.id AND e.source_message_id=${lit(source.id)}),
+ 'assessments',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',v.id,'previous',v.previous_assessment_id,'company',v.company_id,'source',v.source_message_id,'environment',v.environment,'payloadHash',v.source_payload_hash,'factsHash',v.facts_hash,
+ 'syntax',v.facts_text::jsonb->>'syntaxDecision','application',v.facts_text::jsonb->>'applicationDecision','functional',v.facts_text::jsonb->>'functionalDecision',
+ 'leaf',NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id),
+ 'applicationFacetHash',(SELECT f.application_facts_hash FROM gridex_received_sources.prodat_application_facets f WHERE f.assessment_id=v.id AND f.company_id=v.company_id AND f.source_message_id=v.source_message_id AND f.environment=v.environment AND f.source_payload_hash=v.source_payload_hash)) ORDER BY v.assessed_at,v.id),'[]') FROM gridex_received_sources.validation_assessments v WHERE v.company_id=a.company_id AND v.source_message_id=${lit(source.id)})
+ ) FROM public.ediel_service_assignments a JOIN public.metering_permissions mp ON mp.company_id=a.company_id AND mp.id=${lit(p.permissionId)} WHERE a.company_id=${lit(p.f.ids.company)} AND a.id=${lit(p.f.assignment)}`)
+}
 function observedPositiveReplies(p:PendingZ14,source:EdielMessageRow){
  const actual=replies(p,source),wire=tokenizeEdifact(source.raw_payload!),envelope=EdifactEnvelopeCodec.decode(source.raw_payload!)
  const line=wire.segments.find(s=>s.tag==='LIN')!,li=wire.segments.find(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='LI')!
@@ -42,7 +54,10 @@ function observedPositiveReplies(p:PendingZ14,source:EdielMessageRow){
   expect(validateEdifactEnvelope(ack.raw_payload!).syntaxOk).toBe(true)
   const physical=EdifactEnvelopeCodec.decode(ack.raw_payload!),correlation=readPhysicalAckSourceCorrelation(ack,source)
   expect([physical.sender,physical.receiver]).toEqual([envelope.receiver,envelope.sender]);expect(correlation.classification.outcome).toBe('positive')
-  if(ack.message_family==='CONTRL')expect(correlation.acknowledgedReferences).toEqual([envelope.interchangeReference])
+  if(ack.message_family==='CONTRL'){
+   expect(envelope.interchangeReference).toHaveLength(20)
+   expect(correlation.acknowledgedReferences).toEqual([envelope.interchangeReference!.slice(0,14)])
+  }
   else{
    expect(ack.route_profile_id).toBe(p.f.ids.ackProfile)
    expect(correlation.lookupReferences).toContainEqual({type:'BGM_REF',value:segmentComposite(wire.segments.find(s=>s.tag==='BGM'),2,wire.una)[0]})
@@ -75,6 +90,7 @@ async function firstPositive(p:PendingZ14){
  // This is the FIRST domain/validation invocation. No fixture prefix applies
  // permission, records accepted validation or captures a passing private facet.
  await process(p,source)
+ console.info('Z14 first-processing canonical lineage',JSON.stringify(canonicalLineageEvidence(p,source)))
  const after=z14Market(p)
  expect(after.permission).toMatchObject({status:'active',source_z14_message_id:source.id,inbound_z14_message_id:source.id})
  expect(after.permission.metadata).toMatchObject({marketPermission:{mode:'S17',legalActor:p.f.sender,dsoActor:p.f.receiver,sourceZ14:source.id,objects:expect.arrayContaining([expect.objectContaining({point:p.f.point,product:p.f.product,status:'A74'})])}})
@@ -95,6 +111,7 @@ async function firstPositive(p:PendingZ14){
  const acks=observedPositiveReplies(p,source)
  expect((await getEdielMessageById(source.id))?.raw_payload).toBe(raw)
  await process(p,source)
+ console.info('Z14 replay canonical lineage',JSON.stringify(canonicalLineageEvidence(p,source)))
  console.info('Z14 replay ACK evidence',JSON.stringify(ackEvidence(p,source)))
  expect(z14Market(p)).toEqual(after);expect(observedPositiveReplies(p,source)).toEqual(acks)
  expect((await getEdielMessageById(source.id))?.raw_payload).toBe(raw)
