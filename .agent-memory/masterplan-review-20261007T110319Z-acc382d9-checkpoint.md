@@ -712,3 +712,131 @@ Next2f: use named immutable disposableunion permission6037585786 and donor666603
 
 
 Preflight handed off #5306037627313. Latest remote main 5b150f18adaf0b8d82ba2651696421d3e34884fe; live core/checksum custody {"lib/ediel/core/runtimeDecision.ts": ["ae584a61876018926c528f933581a8a1e8505c1d"], "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts": ["ae584a61876018926c528f933581a8a1e8505c1d"], "lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts": ["94b8514b6a38838293d76eb7e36c84aad2e3d3e0"], "lib/ediel/core/messagePolicy.ts": ["94b8514b6a38838293d76eb7e36c84aad2e3d3e0"], "scripts/migration-history-manifest.json": ["bfd6b43bf96d970eaee19b1826dd92eaa94729fd"], "scripts/migration-history-manifest.additions.json": []}. No implementation or artifact/CI duplication. Next exact composed source intake review remains offered to owner2f under #5306037490572; source/GEN/whole/merge ownership unchanged.
+
+
+## Current published Z02 source and critical release handoff
+
+GEN_HELP / currenthead correction + exact release dependencies — review-acc382; inputpreflight6037627313.
+
+Published658 is now c495b05a9d0c6820959a141f07427126296349b7. Independently fetched and verified SQLsubtree +ALL3 supportedmanifest OIDs BYTEEXACT9daf→c495. Therefore prior1108 inputinventory remains valid with current main5b +658c495 +66260ee +666e43; no repeated full check/test/capture needed for this inventory. Native/application inputs changed and current qualification belongs root/assignedreader, no old89 transfer. Current sourcec495 automaticcapture37618260279 is1097 only; retain actualscope/result, never1108union credit. Allrequired current finalchecks stillrequired.
+
+Coordination: ownerbilateral subtask6037632467 covers currentmain V/AD+Z02 CORE composition/ownership; my scope is ONLY SQL+checksum/captureinput inventory and equivalence, including immutable TRfive+donorone. No duplicated CORE/source/full/native/artifact review. Donor original666capture reader6037574859 remains soleauthentic isolated1100 reader. GEN2f may reuse this exact1108 matrix and skip rebuilding the same census unless relevantSQL/manifest bytes change; actualcomposed head/tree/replay outputs stillneed ownqualification.
+
+Precise currentcriticalpath:95 alreadyMERGED656 and promised explicit release; runtimeDecision +canonicalPolicyFieldValidator currentlyae584 stilloccupied. b6 alreadypublished60ee and promised canonicalmanifest file-only release6037585786; currentlybfd6 stilloccupied. Please finish the owner-only documentaryhandoffs +GETMATCH/DELETE/404 for these exactpromisedresources as soon as your protocol permits; named2f thenfreshclaims immediately. No waiting on anotherCIrun is needed for the administrative release of already delivered656/immutable reviewedchecksum row, and no agent should assume that mainmerge or intent is a release. Sharedmemory mirror may proceed under its rightfulrole; I claim/edit neitherrole norheldfile. Named recipients remainresponsible for actualadoption/native/GEN/parity/upgrade/currentgates/coverage/merge.
+
+```json
+{
+  "heads": {
+    "main": "5b150f18adaf0b8d82ba2651696421d3e34884fe",
+    "Z02-published": "c495b05a9d0c6820959a141f07427126296349b7",
+    "readiness": "e43f11a591c016cec2d6f236644c9c3c3ec1e80b",
+    "TRDB-published": "60ee79dc6058956afae04ebd1d111c56e04e9610"
+  },
+  "counts": {
+    "main": 1099,
+    "Z02-published": 1097,
+    "readiness": 1100,
+    "TRDB-published": 1104
+  },
+  "unionCount": 1108,
+  "samePathConflicts": {},
+  "manifestChecksumConflicts": {},
+  "newVsMain": [
+    {
+      "path": "supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql",
+      "mode": "100644",
+      "blob": "88f66b2190aabc0a849b095e137b708ca0d18c94",
+      "sha256": "b07568932c85e7342221255a3cf00058a57241c78932f2b76a7a84c0dcb3edeb",
+      "bytes": 3584,
+      "sources": [
+        "TRDB-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261006235632_ediel_checked_production_capability_convergence.sql",
+      "mode": "100644",
+      "blob": "8a49c09568f43be2887e650b37dffab038abb610",
+      "sha256": "681b5100a40ca564e5d238fd7671e8e1758be960d9fefc0463c489b315672f1b",
+      "bytes": 6579,
+      "sources": [
+        "TRDB-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007074502_received_z02_payload_scalar_readers.sql",
+      "mode": "100644",
+      "blob": "900064370ea8f10865b4c77de70da5aa17ee2816",
+      "sha256": "5dfb46fa4db7a12a6645571a3ebb32582b48c880152de091f3384333fac0d95f",
+      "bytes": 1632,
+      "sources": [
+        "Z02-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007085618_received_z02_blocking_correlation_issue.sql",
+      "mode": "100644",
+      "blob": "51f54cf724fb124e3870e83f57dba795f647a8ad",
+      "sha256": "59b6c7b0d189834167cd0146017d6a3c4d3aa1f17ea39ecd6d6d54b4e5441cf3",
+      "bytes": 13973,
+      "sources": [
+        "Z02-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007093025_received_z02_address_source_basis.sql",
+      "mode": "100644",
+      "blob": "55829ccaa6d8979c81110085fcddfe563389ba97",
+      "sha256": "35e16c265fd7da02eb591942395745e78f706a32b105fe9a7a17ac12667cd98c",
+      "bytes": 12768,
+      "sources": [
+        "Z02-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007110303_company_readiness_optional_esett.sql",
+      "mode": "100644",
+      "blob": "bb11e6a2ae9755b5be22c14626fa48ff3d062ffb",
+      "sha256": "50631f53e227ad99a6b660909b95d7b036026304241e8f798a568cf9d214cb56",
+      "bytes": 10270,
+      "sources": [
+        "readiness"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql",
+      "mode": "100644",
+      "blob": "83612cce2730ab4d0dbe645cb96f7cb57ec1118e",
+      "sha256": "a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c",
+      "bytes": 995,
+      "sources": [
+        "TRDB-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql",
+      "mode": "100644",
+      "blob": "60992b9ccd5b7e69b08b65f38766ead230da1eaa",
+      "sha256": "f9be8025dd32c2f3f4fe737cdeadc59318d74ffec1a265ff70f58228bdabecbc",
+      "bytes": 3850,
+      "sources": [
+        "TRDB-published"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql",
+      "mode": "100644",
+      "blob": "265c3d2eb2fc6f4d7b92a4d943bb02377d9cc506",
+      "sha256": "38542d9a1e1553fb49ed71e6dc65080d5324f3b9d52378a470f92c820985e52b",
+      "bytes": 3632,
+      "sources": [
+        "TRDB-published"
+      ]
+    }
+  ],
+  "scope": "Read-only exact published SQL/checksum input inventory: main5b,658c495,66260ee,666e43; 1108. No composed replay/GEN/native/whole proof. All three manifests and SQLsubtree identical prior9daf\u2192c495; prior input-count/hash evidence reused.",
+  "priorMain": "c401ae989f8add2f73912746936ced6be2d02708",
+  "currentMainSQLTreeVerifiedEqual": true,
+  "priorTRDBFrozenSource": "9d013f18aa85b813d94c85142e1248f097ab1028",
+  "priorZ02Source": "9daf93de7a4633b755d8d42d461af051f304b781"
+}
+```
