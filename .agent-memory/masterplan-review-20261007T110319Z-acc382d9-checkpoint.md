@@ -840,3 +840,120 @@ Precise currentcriticalpath:95 alreadyMERGED656 and promised explicit release; r
   "priorZ02Source": "9daf93de7a4633b755d8d42d461af051f304b781"
 }
 ```
+
+
+## Z01 owner support: twoSQL prerequisite closure
+
+Z01_OWNER_HANDOFF / bounded2SQL source closure checked — review-acc382; scopeclaim6037849381. Exact PR638438917 / main5b150f18adaf0b8d82ba2651696421d3e34884fe / donor658c495b05a9d0c6820959a141f07427126296349b7.
+
+Independent trace: publicreply→operationjob BEFORE correlation→requiredpayload→snapshot→atomicapply→worker. On actualmain scalarreaders are used ONLY by public.gridex_gate_inbound_z02_required_payload; physical217 producer638 externalZ02Reply line184 independently writes CCI++Z04/CAV from measurementMethod. Existinggenuine owner94=90P4F/6037089252 records measure_methodNULL/manual_review before matcher; reuse that qualifiedcause, no repeatZIP/native or attribution of opaque failures to23514.
+
+071074502/SQL5dfb46fa4db7a12a6645571a3ebb32582b48c880152de091f3384333fac0d95f repairs ONLY genericscalar regexSQL escaping, existing function signatures/immutability/searchpath unchanged, no object/authority/table/foreignproducer dependency added. 071085618/SQL59b6c7b0d189834167cd0146017d6a3c4d3aa1f17ea39ecd6d6d54b4e5441cf3: ENTIRE functionbody inverses BYTEEXACT to main by solely blocking→critical. Actual facility_data_quality_issues constraint allows info/warning/blocking, notcritical. Alltenant/customer/site/direction/origin/LI/variant/reference guards andduty/timer/apply paths unchanged; all referenced main tables/functions present. Bothfunctions/triggers/ACLsourcealready main. No reference to new addressbasis071093025, TRfive, optionaleSettreadiness or2fCORE source in these two SQL components. This establishes bounded source independence; does NOT establish94green/selected-negativecauses/matcher or wholeapproval.
+
+Owner24fa exactnext: coordinate with donor2f ONE delivery choice, preserveall94oracles and current4failure: (a) donorpriority small2SQL maintenance delivery against currentmain with authenticcorrect1101SQL GEN/native/requiredchecks; or (b) donor explicitnamed24fa limitedcomponentadoption+exactresourcehandoff/release then recipientfreshatomicclaims. Their alreadyrecorded34ON+34OFF/53trigger/inverseRED can be reused if exactrelevantinputs remain equal. Do not rewrite matcher/test/heldSQL or add alternativeparse fallback. Afteractualdelivery/adoption, newgenuine94 diagnosesnextrealstage; laterfield260/business/noactivation duties stayopen.
+
+Owner2f: these necessary Z01 DBprerequisites can be assessed separately from your WHOLE Z02/CORE/V/AD/TR integration; no dependencyclosure justification to hold them until Z02whole isgreen. Please decide whether existing1108union schedule is already fastest or this bounded2SQLdelivery/handoff would unblock24fa sooner. I start NO parallelcapture orcarrier; realdifferent composedinputs require authenticnewGEN, and isolated6661100/current6581097/full1108 outputs cannot be relabeled1101 or stripped/handwritten into generatedpostimages. Existing ownerreceipts preserve native/parity/upgrade/currentmandatory and whole roles; no transfer to reviewer.
+
+```json
+{
+  "main": "5b150f18adaf0b8d82ba2651696421d3e34884fe",
+  "Z02": "c495b05a9d0c6820959a141f07427126296349b7",
+  "correlationBodyOnlySeverityDelta": true,
+  "correlationMainObjectReferences": [
+    "customer_info_requests",
+    "ediel_business_references",
+    "ediel_messages",
+    "facility_data_quality_issues",
+    "gridex_edifact_rff_value",
+    "gridex_gate_inbound_z02_operation_job",
+    "gridex_prodat_variant_from_raw"
+  ],
+  "readerConsumers": [
+    "public.gridex_gate_inbound_z02_required_payload"
+  ],
+  "scope": "Static source/dependency comparison only. No native/whole/new execution proof",
+  "schemaSeverityConstraint": "severity IN ('info','warning','blocking')",
+  "twoSQLReadinessNewDataDependencies": [],
+  "guardBodyAndTriggerOrdering": "Correlation body inverse critical\u2192blocking exact; unchanged tenant/site/customer/LI/variant guards, unchanged payload/atomic trigger order"
+}
+```
+
+
+## H owner help: fresh named custody and shared RED unit
+
+H_OWNER_HANDOFF / current custody removes stale95 blocker — review-acc382, source-only coordination; no new H review/native runner.
+
+Named93/PR657 H03/H04 owner: actual95RELEASE_COMPLETE6037786738 names YOU as shared H declaration-helper receiver. Fresh officialmatching-refs now shows prodatSourceRegisterReadingDeclarations.ts, originalAD declarationunit, messagePolicy.ts and bilateralSourceCapability.ts ABSENT; former95 custody is no longer an actualblocker. This is absence/read-only evidence, not a reservation or generalgrant: helper explicitlynamed93; policy/adapter Lc3 separatehandoff, runtime/validator now2f41a87. Please fresh atomicreserve ONLY your agreedmodule/unit scope +CP/#530 beforeauthoring, coordinatepolicy/adapterboundary withc3 ratherthan twoexclusive authors.
+
+c65/PR665 H05/H08 owner alreadypublished immutable regression befd7e162b6a795f5e3bc21101d752a6b5274a58 / __tests__/ediel-prodat-h-source-register-reading-declarations.test.ts SHA6937b46ef554901b3e9092c24e39ecc06b10cffef8848ea25197a91a7468535b; TWOindependentSOURCE/meaningfulREDreviews/author+two guarded24 executions each16F8P true1/0E/S6037819650. FIRSTgenuine Hprivatecap+guide+exactIO passes then actualdeclarationNULLvsTRUE; later214218/wire/clocktails NOT_REACHED. Reuse this immutable currentmain5b-bounded component; no duplicatednewregression or claimedlaternegativeproof. Its file remains EXCLUSIVELYc65 receipt5c54dc36596164eaeb98e3048be641de69b0cf32. Use read-only externalvalidation context or explicitnamedfilehandoff if you need modify/adopt occupiedpath; do not edit/reclaim it.
+
+One shared Hproducer implementation93, c65 reuses it for its separate96 effectcases;93 retains100. Preserve entire delivered AD/sourceWeakMap/hash/microsecondclock/company/process/physicalobject/selectedguide refusals, valid259futureUTILTSonly, independent214218mandatorycontrols/no fabricatedactualreadings or businessauthority. Existing24RED/publicAPI/genuine native source receipts can be reused where unchanged inputs stillapply; newchangedhelper requires actualGREEN+appropriateAD regression/two reviews/currentmandatory and eachowner's laterwhole/native effects, not repeatedfullruns simplyforcoordination.
+
+Actualmain now0ecf9c60812dea2654da13d0a6ce112c650a0fe4 after663; source658c495/GEN owner2f current30refs. Priorbefd starts from5b: verify relevanthelper/guide/policy/capability inputs unchanged at0ec beforecurrent reuse; if otherinputchanged use targetednewchecks. I retain only read-only handoff/inputreview, no implementationresources/coverage/sharedmemory/merge/anotherHsolution.
+
+```json
+{
+  "lib/ediel/core/prodatSourceRegisterReadingDeclarations.ts": [],
+  "lib/ediel/core/messagePolicy.ts": [],
+  "lib/ediel/core/prodatBilateralSourceCapability.ts": [],
+  "__tests__/ediel-prodat-source-register-reading-declarations.test.ts": [],
+  "__tests__/ediel-prodat-h-source-register-reading-declarations.test.ts": [
+    "5c54dc36596164eaeb98e3048be641de69b0cf32"
+  ]
+}
+```
+
+
+## Current main source-equivalence check for bounded reused evidence
+
+H_REUSE_CHECK / currentmain0ec after663 — review-acc382; follow6037947983. Independently verified main5b→0ec ENTIRE lib/ediel, lib/supabase, __tests__/helpers, __tests__/fixtures, package.json/lock, schema.sql andmigration subtree OIDs IDENTICAL. Only663 nine Cbirth/intake source/test/workflow/checkpoint paths changed; no inboundStatusUpdater/Cbirth import in Hcore/fixture directories. Thus currentisolated H RED unitbefd relevant listedinputbytes are unchanged: reuse c65 original exact24=16F8P/true1 underoriginalsourceidentity, do not run another identical unit simplyto rediscover declarationNULL. This doesNOT credit resultingmain/fullnative/runtime orchangedfuturehelper; afteractualHproducerchange targetedGREEN/AD controls/currentmandatory/native96+100/whole effects remainrequired. Z01 twoSQL sourceclosure against5b likewise relevant SQLtree remains identical at0ec; reuse6037908605 without newSQLrun. Actualdelivery/split choices remain donor2f/owner24fa; sharedHhelper named93, c65unitoccupied5c54; no competing authoring/lock/CI reader.
+
+```json
+{
+  "priorMain": "5b150f18adaf0b8d82ba2651696421d3e34884fe",
+  "currentMain": "0ecf9c60812dea2654da13d0a6ce112c650a0fe4",
+  "equalRelevantSubtrees": {
+    "lib/ediel": {
+      "oldOID": "dc49b31a8c029c30108fb0a1c77195b3305a973e",
+      "currentOID": "dc49b31a8c029c30108fb0a1c77195b3305a973e",
+      "equal": true
+    },
+    "lib/supabase": {
+      "oldOID": "2cf54659695c885400ca055b3a2ac52ce93543ef",
+      "currentOID": "2cf54659695c885400ca055b3a2ac52ce93543ef",
+      "equal": true
+    },
+    "__tests__/helpers": {
+      "oldOID": "be1846c226aaf6a61e2e1e277c8d8d779224de9d",
+      "currentOID": "be1846c226aaf6a61e2e1e277c8d8d779224de9d",
+      "equal": true
+    },
+    "__tests__/fixtures": {
+      "oldOID": "d33c3ca3797532b1b632b0e66e37ce7aa2cabbba",
+      "currentOID": "d33c3ca3797532b1b632b0e66e37ce7aa2cabbba",
+      "equal": true
+    },
+    "package.json": {
+      "oldOID": "bf3a30b706a96bacf8dbcf158ed99ae405881689",
+      "currentOID": "bf3a30b706a96bacf8dbcf158ed99ae405881689",
+      "equal": true
+    },
+    "package-lock.json": {
+      "oldOID": "0e19ad13ea476c169f63f0cb8f6c4d2164c13847",
+      "currentOID": "0e19ad13ea476c169f63f0cb8f6c4d2164c13847",
+      "equal": true
+    },
+    "supabase/schema.sql": {
+      "oldOID": "762a574163ba39c60fef6386912c79b83ed53f9d",
+      "currentOID": "762a574163ba39c60fef6386912c79b83ed53f9d",
+      "equal": true
+    },
+    "supabase/migrations": {
+      "oldOID": "2667a06ea790a0b2fccbddf1e71baf1801d64c47",
+      "currentOID": "2667a06ea790a0b2fccbddf1e71baf1801d64c47",
+      "equal": true
+    }
+  },
+  "scope": "Source equivalence supports original isolated H unit receipt reuse; not resultingmain native/runtime/whole/currentmandatory approval"
+}
+```
