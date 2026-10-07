@@ -49,6 +49,13 @@ export function prodatFixtureAckResult(input:{ackFamily:string;sourceMessage:Edi
 export function prodatFixtureSourceRpc(name:string,args:Record<string,unknown>) {
  let data:Record<string,unknown>
  const original=originals.get(String(args.p_source_message_id??args.p_message_id)),primary=name==='gridex_record_prodat_source_validation_v6'||name==='gridex_record_source_validation_v1'
+ // This declared unit fixture has no immutable ESCO service origin. Model only
+ // the named protected READ's explicit unrelated result, never private facts.
+ if(name==='gridex_ediel_received_z14_reporting_source_basis_v1'){
+  if(!original||original.company_id!==PRODAT_FIXTURE_COMPANY||args.p_actor_user_id!==id(2))throw Error('DECLARED_SOURCE_ORIGINAL_REQUIRED')
+  const result=Promise.resolve({data:null,error:null})
+  return Object.assign(result,{abortSignal:()=>result})
+ }
  if(name==='gridex_actor_has_company_permission')return Promise.resolve({data:args.p_company_id===PRODAT_FIXTURE_COMPANY&&args.p_actor_user_id===id(2)&&['communication.read','communication.write','ediel_testing.write'].includes(String(args.p_permission)),error:null})
  if(primary){
   if(!original||args.p_company_id!==original.company_id||args.p_environment!==original.environment||args.p_source_payload_hash!==hash(original.raw_payload!))throw Error('DECLARED_SOURCE_ORIGINAL_REQUIRED')
