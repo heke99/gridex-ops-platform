@@ -3,6 +3,8 @@ import {createReceivedSourceOwnerSession, type SourceOwnerSession} from '@/lib/e
 import type {SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import { recordReceivedSourceValidation } from '@/lib/ediel/core/receivedSourceValidationLedger';
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence';
+import {hasReceivedZ04RequiredStartRejection,assertReceivedZ04RequiredStartActor} from '@/lib/ediel/prodat/receivedZ04RequiredStartRejection';
+import {observeReceivedZ04RequiredStart} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator';
 import {receivedOriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRulePackRegistry';
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator';
 import {captureEdielTechnicalSyntaxAckEvidence,readEdielTechnicalSourceEndpoint,recordEdielTechnicalSyntaxDecision,technicalSyntaxAckQualification} from '@/lib/ediel/ack/technicalSyntaxAuthority';
@@ -326,7 +328,7 @@ async function applyCanonicalRuntimeDecision(params: {
     try{deathStatusContext=await loadCustomerLifeEventValidationContext(params.message,params.actorUserId)}
     catch(error){lifeEventSourceReadFailure=formatErrorMessage(error,'Kundhändelsens skyddade källa kunde inte läsas.')}
   }
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(params.message,{deathStatusContext});
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(params.message,{deathStatusContext,actorUserId:params.actorUserId});
   // Only the opaque result of this exact rule invocation may keep independent
   // good own scopes moving past a sibling's internal hold. Public JSON cannot.
   const authorizedPartialOwner=hasReceivedCanonicalProdatPartialOwner(decision,params.message);
@@ -344,11 +346,12 @@ async function applyCanonicalRuntimeDecision(params: {
   });
   const registryIncidentReview = decision.prodatProcessingDisposition?.kind==='internal_review' &&
     receivedOriginalRulePackWitness(decision.validationReport.rulePackEvidence)===null;
-  if(params.message.message_family==='PRODAT' && decision.syntaxDecision==='accepted' && decision.policy && !registryIncidentReview) {
+  const requiredStartRejection=hasReceivedZ04RequiredStartRejection(decision,params.message,params.actorUserId);
+  if(params.message.message_family==='PRODAT' && decision.syntaxDecision==='accepted' && (decision.policy||requiredStartRejection) && !registryIncidentReview) {
     if(sourceValidationEvidence.status!=='recorded')throw new Error('prodat_canonical_source_validation_unconfirmed');
     await captureFreshEdielSourceRulePackEvidence(params.resolvedCompanyId,params.message.id);
   }
-  const sourceOwnerSession = createReceivedSourceOwnerSession(sourceValidationEvidence);
+  const sourceOwnerSession = requiredStartRejection?null:createReceivedSourceOwnerSession(sourceValidationEvidence);
   const now = new Date().toISOString();
   const parsedPayloadBeforeRuntime = params.message.parsed_payload ?? {};
   const validationReportBeforeRuntime = params.message.validation_report ?? {};
@@ -893,6 +896,14 @@ export async function processInboundEdielMessage(params: {
   // Syntax belongs to the actual wire and transport endpoint. It precedes
   // legal tenant routing and grants no business attribution or guide approval.
   let acceptedTechnicalAcknowledgementCompanyId: string | null = null;
+  // A grammar-qualified physical A210 refusal must precede even diagnostic
+  // tenant writes. NULL technical endpoints remain lawful for other sources;
+  // this current actor READ grants no response or business capability.
+  if(selectedSyntax.ok&&message.message_family==='PRODAT'&&message.message_code==='Z04'&&message.company_id&&message.raw_payload){
+    const wire=tokenizeEdifact(message.raw_payload);
+    if(observeReceivedZ04RequiredStart({rawSegments:wire.segments.map(row=>row.raw),una:wire.una}).length
+      &&!await assertReceivedZ04RequiredStartActor(message,actorUserId))return message;
+  }
   if(message.message_family!=='CONTRL') {
     try {
       const endpoint=await readEdielTechnicalSourceEndpoint(message.id,{actorUserId,phase:'prepare'});
@@ -975,6 +986,17 @@ export async function processInboundEdielMessage(params: {
     resolvedCompanyId: tenantResolution.companyId,
   });
   const runtimeMessage = canonicalRuntime.message;
+
+  // Only this same-invocation negative owner may precede the unavailable
+  // bilateral automatic policy. Real canonical capture above and the normal
+  // protected negative ACK gateway remain mandatory; no business path follows.
+  if(hasReceivedZ04RequiredStartRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
+    const plan=canonicalRuntime.decision.responsePlan.find(plan=>plan.family==='APERAK'&&plan.outcome==='negative');
+    if(!plan?.applicationErrors?.length)throw new Error('prodat_required_start_negative_owner_unavailable');
+    await createAckIfMissing({actorUserId,sourceMessage:runtimeMessage,ackFamily:'APERAK',outcome:'negative',
+      messageText:plan.reason,applicationErrors:plan.applicationErrors});
+    return runtimeMessage;
+  }
 
   await recordBackendAutomationPipelineTrace({
     actorUserId,

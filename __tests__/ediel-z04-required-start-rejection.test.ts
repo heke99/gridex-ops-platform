@@ -4,6 +4,8 @@
 // persistence and the status port stops execution: no accepted ledger, business
 // capability, native prepare receipt, ACK or real database authority is fabricated.
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
+import {readFileSync} from 'node:fs'
+import {PGlite} from '@electric-sql/pglite'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {ownerId,ownerRows,ownerSource,ownerRulePack} from './helpers/sourceOwnerFixtures'
 import {withProdatFixtureInsertContext} from './helpers/prodatInboundSourceFixture'
@@ -18,18 +20,20 @@ import {resolveCanonicalRulePack} from '@/lib/ediel/rulebook/canonicalRulePackRe
 import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import {bindReceivedRegisterValidation} from '@/lib/ediel/core/receivedRegisterValidationBinding'
 import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition'
+import {loadReceivedZ04RequiredStartRejection,ownReceivedZ04RequiredStartRejection,readReceivedZ04RequiredStartWitness,
+ hasReceivedZ04RequiredStartRejection} from '@/lib/ediel/prodat/receivedZ04RequiredStartRejection'
 
 type Row=Record<string,unknown>
 const io=vi.hoisted(()=>({source:{} as EdielMessageRow,rows:{} as Record<string,Row[]>,
  calls:[] as {name:string;args:Row}[],writes:[] as {port:string;value:Row}[],status:null as Row|null,
  legal:null as Row|null,registry:[] as Row[],sourceReadError:false,legalReadError:false,registryReadError:false,
- permission:true,readDelayMs:0}))
+ permission:true,readDelayMs:0,bilateralError:null as unknown}))
 const actor=ownerId(50),company=ownerId(2),foreign=ownerId(999)
 const result=(data:unknown,error:unknown=null)=>{const p=Promise.resolve({data,error});return Object.assign(p,{abortSignal:()=>p})}
 const stop=()=>new Error('DECLARED_FIRST_STATUS_BOUNDARY_NO_PERSISTENCE')
 function rpc(name:string,args:Row){
  io.calls.push({name,args:structuredClone(args)})
- if(name==='ediel_read_prodat_bilateral_source_capability_v1')return result(null)
+ if(name==='ediel_read_prodat_bilateral_source_capability_v1')return result(null,io.bilateralError)
  if(name==='ediel_require_inbound_legal_context_v1'){
   expect(args).toEqual({p_company_id:company,p_message_id:io.source.id})
   if(io.readDelayMs)vi.setSystemTime(new Date(Date.now()+io.readDelayMs))
@@ -101,7 +105,7 @@ function setSource(source:EdielMessageRow){
  io.rows.metering_permissions=[{id:ownerId(904),company_id:company,status:'pending'},{id:ownerId(905),company_id:foreign,status:'active'}]
  for(const name of ['ediel_actor_settings','ediel_route_profiles','communication_routes'])io.rows[name]=[]
  io.calls=[];io.writes=[];io.status=null;io.legal=null;io.registry=[]
- io.sourceReadError=false;io.legalReadError=false;io.registryReadError=false;io.permission=true;io.readDelayMs=0
+ io.sourceReadError=false;io.legalReadError=false;io.registryReadError=false;io.permission=true;io.readDelayMs=0;io.bilateralError=null
 }
 /** These are declared immutable birth/legal/activation READ results, never a
  * business agreement or accepted ledger. The real public decoders below verify
@@ -120,7 +124,7 @@ function qualified(){
   rule_profile_key:profileKey,rule_profile_version_id:registry.message_profile_id,rule_profile_version:registry.original_version,
   rule_pack_checksum:registry.source_hash,rule_pack_snapshot:{...snapshot,profileKey,profileVersionId:registry.message_profile_id,
    version:registry.original_version,checksum:registry.source_hash}}))
- io.registry=[{...registry,profile_key:profileKey,profile,original_snapshot:snapshot}]
+ io.registry=[{...registry,profile_key:profileKey,profile,original_snapshot:structuredClone(snapshot)}]
  io.legal={basisKind:'observed_source_persistence',companyId:company,environment:'test',direction:'inbound',family:'PRODAT',
   code:'Z04',subtype:'A',legalActorId:ownerId(9),legalEdielId:'54321',actorRole:'electricity_supplier',
   // This opaque legal catalogue edition is distinct from the born pack checksum.
@@ -174,6 +178,16 @@ it('public A receiver reaches genuine missing210 decision before the refused can
   expect.objectContaining({ercCode:'41',fieldCode:'210',id:'735123456789012345',li:'CASE-1'}),
  ]))
 })
+it.each(['membership','permission'] as const)('public missing A210 stops %s denial before tenant/diagnostic/canonical writers even with a NULL endpoint',async denial=>{
+ qualified();if(denial==='membership')io.rows.company_memberships=[];else io.permission=false
+ const before=structuredClone({source:io.source,graphs:io.rows})
+ const failure=await processInboundEdielMessage({actorUserId:actor,edielMessageId:io.source.id}).catch(error=>error)
+ expect.soft(failure).toBeInstanceOf(EdielExecutionFailure)
+ expect.soft(failure).toMatchObject({disposition:{kind:'security_quarantine',code:denial==='membership'?'EDIEL_TENANT_ACTOR_FORBIDDEN':'EDIEL_TENANT_PERMISSION_FORBIDDEN'},
+  message:denial==='membership'?'ediel_tenant_actor_forbidden':'ediel_tenant_permission_forbidden'})
+ expect.soft(io.status).toBeNull();expect({source:io.source,graphs:io.rows}).toEqual(before)
+ expect(io.writes).toEqual([])
+})
 it('declared protected A source/legal/registry READs pass the actual decoders without granting operational policy',async()=>{
  qualified()
  const basis=await requireEdielInboundLegalContext(company,io.source.id)
@@ -217,6 +231,76 @@ it('an actorless physical R210 observation cannot mint a response owner even wit
  expect(io.calls.some(call=>call.name==='ediel_require_inbound_legal_context_v1')).toBe(false)
  expect(io.writes).toEqual([])
 })
+it('a copied policy-null rejection cannot mint any response/full-object/APP/function facet',async()=>{
+ qualified();const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,actorFacts())
+ expect(readReceivedCanonicalProdatResponseValidation(decision,io.source)).not.toBeNull()
+ const copy=structuredClone(decision)
+ expect(readReceivedCanonicalProdatResponseValidation(copy,io.source)).toBeNull()
+ const evidence=buildReceivedSourceValidationEvidence({original:io.source,validated:io.source,resolvedCompanyId:company,decision:copy})
+ expect(evidence?.prodatResponseValidation).toBeUndefined();expect(evidence?.prodatApplicationValidation).toBeUndefined()
+ expect(evidence?.prodatSourceFunctionValidation).toBeUndefined();expect(io.writes).toEqual([])
+ expect(evidence?.prodatObjectValidation).toBeUndefined()
+})
+it('a copied decision plus a new real READ cannot replace a fresh actual structural register invocation',async()=>{
+ qualified();const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,actorFacts())
+ expect(readReceivedCanonicalProdatResponseValidation(decision,io.source)).not.toBeNull()
+ const token=await loadReceivedZ04RequiredStartRejection(io.source,actor)
+ expect(token).not.toBeNull();const copy=structuredClone(decision)
+ expect(ownReceivedZ04RequiredStartRejection(copy,io.source,actor,token!)).toBe(false)
+ expect(hasReceivedZ04RequiredStartRejection(copy,io.source,actor)).toBe(false)
+ expect(io.writes).toEqual([])
+})
+it.each(['copy','wrong actor','expired','changed source'] as const)('the actual protected READ token refuses %s redemption',async adverse=>{
+ qualified();const token=await loadReceivedZ04RequiredStartRejection(io.source,actor)
+ expect(token).not.toBeNull();expect(readReceivedZ04RequiredStartWitness(token!,io.source,actor)).not.toBeNull()
+ const candidate=adverse==='copy'?structuredClone(token!):token!
+ const source=adverse==='changed source'?{...io.source,raw_payload:io.source.raw_payload!+' '}:io.source
+ if(adverse==='expired')vi.setSystemTime(new Date(Date.now()+2001))
+ expect(readReceivedZ04RequiredStartWitness(candidate,source,adverse==='wrong actor'?foreign:actor)).toBeNull()
+ expect(io.writes).toEqual([])
+})
+it('a consumed actual structural register proof cannot be reused with a later real READ',async()=>{
+ qualified();const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,actorFacts())
+ expect(hasReceivedZ04RequiredStartRejection(decision,io.source,actor)).toBe(true)
+ expect(hasReceivedZ04RequiredStartRejection(decision,io.source,foreign)).toBe(false)
+ const token=await loadReceivedZ04RequiredStartRejection(io.source,actor)
+ expect(token).not.toBeNull();expect(ownReceivedZ04RequiredStartRejection(decision,io.source,actor,token!)).toBe(false)
+ expect(readReceivedZ04RequiredStartWitness(token!,io.source,actor)).toBeNull()
+ expect(io.writes).toEqual([])
+})
+it('the actual captured SQL response validator accepts only the real negative facet, without a ledger or prepare receipt',async()=>{
+ qualified();const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,actorFacts())
+ const evidence=buildReceivedSourceValidationEvidence({original:io.source,validated:io.source,resolvedCompanyId:company,decision})
+ expect(evidence?.prodatResponseValidation).toBeDefined()
+ const schema=readFileSync('supabase/schema.sql','utf8')
+ const captured=(name:string)=>{
+  const start=schema.indexOf('CREATE FUNCTION '+name+'(')
+  if(start<0)throw Error('ACTUAL_CAPTURED_FUNCTION_REQUIRED:'+name)
+  const rest=schema.slice(start),tag=/\bAS (\$[a-zA-Z0-9_]*\$)/.exec(rest)
+  if(!tag)throw Error('ACTUAL_CAPTURED_FUNCTION_BODY_REQUIRED:'+name)
+  const end=rest.indexOf(tag[1]+';',tag.index+tag[0].length)
+  if(end<0)throw Error('ACTUAL_CAPTURED_FUNCTION_END_REQUIRED:'+name)
+  return rest.slice(0,end+tag[1].length+1)
+ }
+ // Only genuine pure SQL lexer/validator bodies run here. No accepted source,
+ // canonical ledger, current roles or native ACK prepare is declared or seeded.
+ const db=new PGlite()
+ try{
+  await db.exec('CREATE SCHEMA gridex_utilts_binding;CREATE SCHEMA gridex_received_sources;')
+  await db.exec(captured('gridex_utilts_binding.wire_tokens_v1'))
+  await db.exec(captured('gridex_received_sources.validate_prodat_responses_v1'))
+  const accepts=async(raw:string,facts:string,facet:unknown)=>(await db.query<{accepted:boolean}>(
+   'SELECT gridex_received_sources.validate_prodat_responses_v1($1,$2::jsonb,$3::jsonb) AS accepted',[raw,facts,JSON.stringify(facet)])).rows[0].accepted
+  expect(await accepts(io.source.raw_payload!,evidence!.factsText,evidence!.prodatResponseValidation)).toBe(true)
+  const positive=structuredClone(evidence!.prodatResponseValidation!)
+  positive.objects[0].outcome='positive';positive.responses[0].ercCode='100'
+  expect(await accepts(io.source.raw_payload!,evidence!.factsText,positive)).toBe(false)
+  expect(await accepts(io.source.raw_payload!+' ',evidence!.factsText,evidence!.prodatResponseValidation)).toBe(false)
+  const facts=JSON.parse(evidence!.factsText);facts.registerValidation.owner='CALLER_REGISTER'
+  expect(await accepts(io.source.raw_payload!,JSON.stringify(facts),evidence!.prodatResponseValidation)).toBe(false)
+  expect(io.writes).toEqual([])
+ }finally{await db.close()}
+},30000)
 const adverseReads:readonly [string,()=>void][]=[
  ['missing protected original',()=>{io.rows.ediel_messages=[]}],
  ['different protected raw/hash',()=>{io.rows.ediel_messages[0].raw_payload=String(io.rows.ediel_messages[0].raw_payload)+' '}],
@@ -292,4 +376,19 @@ it.each(['A','D'] as const)('present own start in %s remains a capability hold, 
  if(subtype==='A')expect(decision.policy).toBeNull()
  else expect(decision.policy?.subtype).toBe('D')
  expect(decision.applicationDecision).not.toBe('accepted');expect(decision.responsePlan.some(p=>p.family==='APERAK'&&p.outcome==='positive')).toBe(false)
+})
+
+it('typed bilateral READ security denial propagates unchanged before rejection-only authority',async()=>{
+ qualified();const denied=new EdielExecutionFailure({kind:'security_quarantine',code:'DECLARED_CURRENT_BILATERAL_SECURITY'},'declared_current_bilateral_security')
+ io.bilateralError=denied;const before=structuredClone({source:io.source,graphs:io.rows})
+ await expect(resolveCanonicalRuntimeDecisionWithRegistry(io.source,actorFacts())).rejects.toBe(denied)
+ expect(io.calls.map(call=>call.name)).toEqual(['ediel_read_prodat_bilateral_source_capability_v1'])
+ expect(io.writes).toEqual([]);expect({source:io.source,graphs:io.rows}).toEqual(before)
+})
+it('unknown bilateral READ failure retains the prior hold without minting rejection authority',async()=>{
+ qualified();io.bilateralError=new Error('DECLARED_UNKNOWN_BILATERAL_READ_FAILURE')
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,actorFacts())
+ expect(decision.policy).toBeNull();expect(decision.applicationDecision).not.toBe('accepted')
+ expect(readReceivedCanonicalProdatResponseValidation(decision,io.source)).toBeNull()
+ expect(io.calls.map(call=>call.name)).toEqual(['ediel_read_prodat_bilateral_source_capability_v1']);expect(io.writes).toEqual([])
 })
