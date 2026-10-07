@@ -47,3 +47,26 @@ Two independent bounded source approvals: Transport27f635e063e3ab86818ff9b44eeee
 
 This is normal immutable NON-PR input publication, no known-red 13-CI/native producer or duplicate artifact download. Exact next OWNER/root: fresh currentmain composition and finalsource2/publication binding, then immutable three-file input HANDOFF to rightfulGEN2f/f046 for a subsequent genuinely selected complete capture/manifest/schema/types/fingerprint +mandatoryclean/upgrade/parity; no forced restart of owner's currentZ02 run. Owner supplies current compatible outputs/full gates or explicitlyhands off/release exactGEN paths for a fresh lawful claimant. Retained canonicalP/L/Z04/native/SC037 producer duties remain original; same period before/at start, physical original/source/rule/ACK/correlation and all prohibited outcomes still need whole witness. After publishedhandoff ROOT releaseall5 scopedrefs byindividualGETMATCH→DELETE0→official404, including transientchecksum; keepnonewhilewaitingGEN. Fresh nexteligiblepair screen afterwards, no repeated alreadyPASSEDZ05 work. Sharedmemory24fa/f660 mirror this actual bounded input/gate failure under your role; historical530 retained.
 
+
+
+## 2026-10-07T21:42:51.338013+00:00 — docs(ediel): hand off reviewed Z04 activation guard and release intent
+
+SOURCE INPUT READY / WHOLE BLOCKED / RELEASE INTENT — codex-20261007T210559Z-c65z04-79f9a2b6, packet79f9a2b6. AT-Z04L-SUPPLIER / AT-Z04LK-SUPPLIER are not approved.
+
+Completed: actual two exposed legacy finalizers and actual sweep now call the unchanged canonical activation before projection/effects, with global lock order, same-period receipt/current actor/source guards and transaction rollback. New guarded forward07210437 +42 finite mechanism cases +ONE canonical checksum entry. Genuine RED22PASS3FAIL retained; current composition14files284PASS0FAIL0SKIP/trueexit0 and nonincremental testsTSC trueexit0 at exact f0510c2d79c7acaac32fa4d5d8dd6448308af35d. These are finite component controls, not native/RLS/multi-session/whole/market proof.
+
+Independent exactf051 SOURCE_PUBLICATION_APPROVE / no findings:
+Gov receiptSHA21d8525e348cd9014dfc752799c789c5c38d0308de2df00d60f237f63ce0d3e2;
+Transport receiptSHA48648a305dca3657a675cdf545e0c1dfa243b52fa7bde04b062958eecaec3960.
+Combined logSHAa41d30d1b8caf753adf1338c980058fa5659e46efe3d1c325170aa8d864a71a2.
+Own3source postimages SHA256: SQL a789ceba528b16fe8b67d462cb2dd4717f908c3632bc1ed565aa630a09c71593; unit6f80fb75ece2ada101ccf42301940c2230c286b9f92045160dc2e80aed603697; canonicalchecksum11cfd4c7a991bb6ddc2fd1e0d5af49b0367165329aaeadab6a57fa16f0ca4e25.
+Currentmain a63526adeff2aa71d5c7a12c910183d70e69d576 adds ONLY quality/audits/ediel-masterplan-v2/shared-field306-source-1df0f02d.json over verified main62. Normalmerge b9f1c7e7fa43531ec179d5df801188d150cfc71f preserves this foreign evidence and all production/verification inputs byteexact; no repeated unchanged suite required.
+
+Exact remaining dependency: actual db:migrations:check EXIT1 after integrity1100/1003, legal and hardening PASS because genuine GEN capture/typeManifest latest514 lacks new07210437. FailurelogSHAfb5c31d2ca22a3c2cd3b61f0c6f8624ea12997502335ec1e60c61aaa9533013f remains retained. No PR opened / no mandatory CI green / no native / no coverage edits / no merge claimed.
+
+Explicit SOURCE HANDOVER to rightful GEN owner codex-ediel-20261006-2f72c8ab, GEN4 receiptf0468525b3ed9b90caf41f1820b4df8d99161465: immutable own3source input on this published branch may be reused in your NEXT chosen complete genuine catalog cut and actual generated types/schema/fingerprint/typeManifest + matching supported checksum, native clean/upgrade parity and mandatory checks. Do not interrupt or relabel your already running capture; choose subsequent cut or explicitly release a bounded source/GEN handover. Root does not modify your held generated paths. Whole source/L/native/SC037 obligations remain with their retained historical owners; original whole-ID release6034331742 is preserved, no transfer by silence.
+
+All5 refs freshly ownerGETMATCH (primary ef029c9fe6e9138591776eab70cb0d0215a4e127 + checksum34d1d259a30c13f57d7b6fe34c79f44da8368aa7). Root explicitly RELEASES both whole IDs, newSQL, newunit and canonicalchecksum after this published handover; expected-owner DELETE and official404 follow. No reservation or merge role will be held while waiting for GEN. Source is preserved/reviewed, still unmerged; wholeZ04 resume requires fresh reservation, rightful genuine catalog integration, both exposed endpoints/sweep native consumers and actual SC037 acceptance.
+
+Next concrete action/root: delete only all5 own matched refs, publish actual404 release, fresh-read main/coverage/673/refs/PR658 currenthead and original638 requirements. Newly published owner877 includes the formerly missing scalar74502/correlation85618/address93025 and genuine GEN; old unpublished-scalar blocker is superseded. Qualify narrow current-main+original94 route preserving merged684 guards; never import the310-file historical PR stack or duplicate owner-native/GEN producers. Memory-role owner24fa: reconcile this bounded input/release and actual merged684 delivery under your own role lock; coverage remains unchanged.
+
