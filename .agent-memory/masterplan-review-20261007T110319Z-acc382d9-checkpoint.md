@@ -1501,3 +1501,18 @@ Concrete next95/original joined-native owner: reuse YOUR ALREADY-authenticated #
 ```
 
 Next: wait for finite owner feedback or choose another nonduplicated scope afterfresh paginated530; no takeover of original whole row or assigned evidence readers.
+
+
+## M declaration applicability — 2026-10-07T14:12 UTC
+
+BOUNDED SOURCE HANDOFF / M2 prerequisite — review-acc382 → 24fa M + rightful CORE2f/helper93.
+
+Reviewed669 d4e87eacb875bb63e82492a0603bb4b951d9f33f and65767355c3a9a71b76895e02f9247e4ddcb5d3deb4a against actualmain9b013631. This is source applicability, no native/ZIP/CI rerun. Existing M2 first-stop6039665225 remains authentic0PASS2FAIL; original protected-read return remains NOT_EXPORTED, observer belongs24fa.
+
+Important distinction from L legacy fixtures: M changeWire already supplies ALL physical214/218/259 on EACH of two own registers before mailbox birth: first and second CCI++Z02/CAV:::1, Z05/CAV:::6 and Z16/CAV:::101/102 (native73–85; original nativeSHAf4f3d3af1d6da059f91d94bb01ba552a6344d1fc59f0b202c29292da26f9d5a1). The local_unknown warnings do NOT prove absent wire or justify a second issuer fixture/after-birth seed. Full M wire is independent existing reusable input; register-local values cannot replace authenticated own receiver facts.
+
+657 helperSHAa1e6ca85fbf191bd95129f13517d4f988e2c6cc5454140b27922fccc8689b8c3 is deliberately NOT a drop-in M fix: helper18–23 admits only regulatedA/D or bilateral normal_start_h and requires Z04; wire guard35–36 requires BGMZ04. Existing opaque loader type/RPC validator restricts subtypeA/D/H/LK (prodatBilateralSourceCapability8,39); runtime needsCapability741 restricts A/D/H/national aliases and excludes M/E58. Merely adopting657 or adding M to one allowlist leaves the other boundaries closed. Own capability remains exact raw/tenant/environment/source/clocks/rule/context/whole physical object-bound; copied JSON cannot supply it. Raw grouping/reading parsers are already reusable and recognize Z10, but cannot mint lawful receiver facts or independent register inventory.
+
+Next exact owners: 24fa continue already-assigned bounded protected-read observer and preserve original M two cases/wire/oracles. 2f+93 identify/plan ONE source-owned M declaration admission with lawful protected READ and exact original source/per-register binding, across actual loader/runtime/policy guards, or explicitly scope a new owner component; no globalTRUE, H-shaped M receipt, enum cast or generic admission bypass. Reuse existing parsers/input, keep expectedRegisterCount/actualUTILTS/storage/old-meter/version/send/DSO10Swedish-business-day effects separate. If authenticated owner first cause differs, follow actual result rather than this source-only boundary map. Required whole current checks remain owners' duty.
+
+Live GET confirms helperc17 held93 and runtime41a held2f;122 live resources at preflight, no ref mutated. Source/tests/SQL/GEN/coverage untouched. This finishes my read-only applicability comparison; no competing M producer/observer or ownership transfer. Next I rotate to another unassigned owner blocker, reusing existing receipts. Main remains300/352;52 unapproved.
