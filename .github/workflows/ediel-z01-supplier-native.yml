@@ -61,6 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          rm -rf -- z01-supplier-native-evidence z01-supplier-native-precondition-evidence
           export Z01_NATIVE_WORKING="$RUNNER_TEMP/z01-supplier-native-working"
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z01-supplier-native-status.json"
           mkdir -p "$Z01_NATIVE_WORKING"
@@ -155,20 +156,77 @@ jobs:
           (pathlib.Path(os.environ['Z01_NATIVE_WORKING']) / 'receipt.json').write_text(
               json.dumps(receipt, indent=2) + '\n')
           PY
-          node scripts/test-ediel-z01-info-request-status-compatibility.cjs \
-            > "$RUNNER_TEMP/z01-status-compatibility.log" 2>&1
-          # Force the existing replay's disposable local, pinned PG17.6.1.155
-          # mode. Keep its EXIT cleanup trap and all canonical checksum gates.
-          unset GRIDEX_REPLAY_DB_URL
-          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z01-supplier-replay.log" 2>&1
-          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
-          native_exit=0
-          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
-            --config scripts/ediel-z01-supplier-native.config.ts \
-            "${native_tests[@]}" \
-            --reporter=default --reporter=junit \
-            --outputFile="$Z01_NATIVE_WORKING/native-junit.xml" \
-            > "$Z01_NATIVE_WORKING/native.log" 2>&1 || native_exit=$?
+          Z01_NATIVE_PHASE_FILE="$RUNNER_TEMP/z01-supplier-native-phase"
+          Z01_NATIVE_EXIT_FILE="$RUNNER_TEMP/z01-supplier-native-exit"
+          # A plain subshell preserves errexit. An if/OR-list would suppress
+          # it inside the sourced replay. Its original EXIT trap owns cleanup.
+          set +e
+          (
+            set -euo pipefail
+            printf '%s\n' cjs > "$Z01_NATIVE_PHASE_FILE"
+            node scripts/test-ediel-z01-info-request-status-compatibility.cjs \
+              > "$RUNNER_TEMP/z01-status-compatibility.log" 2>&1
+            # Force the existing disposable local, pinned PG17.6.1.155 mode.
+            unset GRIDEX_REPLAY_DB_URL
+            printf '%s\n' canonical_replay > "$Z01_NATIVE_PHASE_FILE"
+            source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z01-supplier-replay.log" 2>&1
+            printf '%s\n' status > "$Z01_NATIVE_PHASE_FILE"
+            supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+            printf '%s\n' native > "$Z01_NATIVE_PHASE_FILE"
+            native_exit=0
+            GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+              --config scripts/ediel-z01-supplier-native.config.ts \
+              "${native_tests[@]}" \
+              --reporter=default --reporter=junit \
+              --outputFile="$Z01_NATIVE_WORKING/native-junit.xml" \
+              > "$Z01_NATIVE_WORKING/native.log" 2>&1 || native_exit=$?
+            printf '%s\n' "$native_exit" > "$Z01_NATIVE_EXIT_FILE"
+            exit "$native_exit"
+          ) > "$RUNNER_TEMP/z01-supplier-pipeline-control.log" 2>&1
+          pipeline_exit=$?
+          set -e
+          phase="$(cat "$Z01_NATIVE_PHASE_FILE")"
+          case "$phase" in cjs|canonical_replay|status|native) ;; *) exit 1 ;; esac
+          if [[ "$phase" != native ]]; then
+            export Z01_PRECONDITION_PHASE="$phase" Z01_PRECONDITION_EXIT="$pipeline_exit"
+            export Z01_PRECONDITION_WORKING="$RUNNER_TEMP/z01-supplier-precondition-working"
+            mkdir -p "$Z01_PRECONDITION_WORKING"
+            python3 - <<'PY'
+          import json, os, pathlib
+          phase = os.environ['Z01_PRECONDITION_PHASE']
+          code = int(os.environ['Z01_PRECONDITION_EXIT'])
+          assert phase in {'cjs', 'canonical_replay', 'status'} and 0 <= code <= 255
+          working = pathlib.Path(os.environ['Z01_PRECONDITION_WORKING'])
+          receipt = json.loads((pathlib.Path(os.environ['Z01_NATIVE_WORKING']) / 'receipt.json').read_text())
+          receipt.update({
+              'precondition_phase': phase, 'precondition_exit_code': code,
+              'precondition_observation': 'FAIL',
+              'native_execution': 'NOT_RUN', 'native_observation': 'NOT_RUN',
+              'native_exit_code': None, 'junit_state': 'MISSING', 'junit_counts': None,
+          })
+          (working / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          # Bounded metadata only: no raw precondition output or exception body.
+          (working / 'phase.log').write_text(json.dumps({
+              'phase': phase, 'exit_code': code, 'native_observation': 'NOT_RUN',
+              'whole_acceptance_approval': 'NOT_APPROVED',
+          }) + '\n')
+          PY
+            python3 scripts/gridex-redact-native-evidence.py \
+              --local-secrets "$GRIDEX_NATIVE_STATUS" --root "$Z01_PRECONDITION_WORKING"
+            mkdir -p z01-supplier-native-precondition-evidence
+            cp "$Z01_PRECONDITION_WORKING/phase.log" "$Z01_PRECONDITION_WORKING/receipt.json" \
+              z01-supplier-native-precondition-evidence/
+            rm -f "$GRIDEX_NATIVE_STATUS"
+            if (( pipeline_exit != 0 )); then exit "$pipeline_exit"; fi
+            exit 1
+          fi
+          native_exit="$(cat "$Z01_NATIVE_EXIT_FILE")"
+          [[ "$native_exit" =~ ^[0-9]{1,3}$ ]]
+          (( 10#$native_exit <= 255 ))
+          if (( pipeline_exit != native_exit )); then
+            if (( pipeline_exit != 0 )); then exit "$pipeline_exit"; fi
+            exit 1
+          fi
           export Z01_NATIVE_EXIT="$native_exit"
           python3 - <<'PY'
           import json, os, pathlib, xml.etree.ElementTree as ET
@@ -230,5 +288,15 @@ jobs:
             z01-supplier-native-evidence/native.log
             z01-supplier-native-evidence/native-junit.xml
             z01-supplier-native-evidence/receipt.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload redacted precondition failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z01-supplier-precondition-${{ github.event.pull_request.head.sha }}
+          path: |
+            z01-supplier-native-precondition-evidence/phase.log
+            z01-supplier-native-precondition-evidence/receipt.json
           if-no-files-found: warn
           retention-days: 14
