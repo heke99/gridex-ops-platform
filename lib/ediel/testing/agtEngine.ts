@@ -741,22 +741,33 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     }
   }
 
+  const step = findStep(definition, {
+    actor: 'actor',
+    direction: 'outbound',
+    family: 'PRODAT',
+    code: definition.messageCode,
+  })
+  if (!step || !Number.isSafeInteger(step.stepNo) || step.stepNo < 1) {
+    throw new Error('agt_outbound_step_unavailable')
+  }
+  const operationScope = `${params.companyId}:test:${definition.approvalVersion}:${definition.suite}:${definition.roleCode}:${definition.testCaseCode}:step:${step.stepNo}`
+  if (run) {
+    input.sourceOperationId = `ediel_agt:${operationScope}:run:${run.id}`
+  } else {
+    const interchangeReference = input.interchangeReference ?? ''
+    if (!/^[0-9A-F]{14}$/.test(interchangeReference)) throw new Error('agt_command_interchange_reference_required')
+    input.sourceOperationId = `ediel_agt:${operationScope}:command:${interchangeReference}`
+  }
+
   const message = await createCanonicalOutboundMessage({actorUserId: params.actorUserId,
     requestType: tgtCanonicalDraftRouteRequest(input), baseInput: input})
 
   if (run) {
-    const step = findStep(definition, {
-      actor: 'actor',
-      direction: 'outbound',
-      family: 'PRODAT',
-      code: definition.messageCode,
-    })
-
     await attachEdielMessageToTestRun({
       companyId: params.companyId,
       testRunId: run.id,
       edielMessageId: message.id,
-      stepNo: step?.stepNo ?? 1,
+      stepNo: step.stepNo,
       expectedDirection: 'outbound',
       expectedFamily: 'PRODAT',
       expectedCode: definition.messageCode,

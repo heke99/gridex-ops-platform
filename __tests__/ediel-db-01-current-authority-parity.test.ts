@@ -281,6 +281,13 @@ describe('DB01 actual AGT producer uses current runtime while ignoring retired h
         companyId: COMPANY, environment: 'test', direction: 'outbound', rulePackId: PACK,
         communicationRouteId: ROUTE, routeProfileId: PROFILE, senderEdielId: '24200', senderRole: 'supplier'}}})
     expect.soft(rpcCalls.map(call => call.name)).toContain('ediel_prepare_outbound_owner_witness_v1')
+    // The command owns this identity before the real gateway. Neither the
+    // persistence port nor a supplied execution snapshot may fill it in.
+    const operationId = `ediel_agt:${COMPANY}:test:2026A:PRODAT:supplier:L7:step:1:run:${RUN}`
+    expect.soft(canonicalCreation.mock.calls[0][0].baseInput.sourceOperationId).toBe(operationId)
+    expect.soft(messageCreation.mock.calls[0][0].sourceOperationId).toBe(operationId)
+    expect.soft(row.source_operation_id).toBe(operationId)
+    expect.soft(row.execution_context_snapshot).toMatchObject({executionContext: {sourceOperationId: operationId}})
   })
 
   it.each(['missing', 'foreign'] as const)('an invalid %s locked profile cannot fall back to the valid runtime profile', async kind => {
@@ -297,10 +304,22 @@ describe('DB01 actual AGT producer uses current runtime while ignoring retired h
 
   it('a manual command without a locked run selects its real named AGT runtime profile', async () => {
     tables.ediel_test_runs = []
+    const canonicalCreation = vi.spyOn(kernel, 'createCanonicalOutboundMessage')
+    const messageCreation = vi.spyOn(messageDb, 'createEdielMessage')
     const row = await createEdielSupplierAgtOutboundCommand({actorUserId: USER, companyId: COMPANY, testCaseCode: 'L7'})
     expect(row).toMatchObject({communication_route_id: ROUTE, route_profile_id: PROFILE,
       mailbox: 'locked-mailbox', party_address_id: null, canonical_rule_pack_id: PACK})
     expect(tables.ediel_test_run_messages).toEqual([])
+    expect(canonicalCreation).toHaveBeenCalledOnce()
+    expect(messageCreation).toHaveBeenCalledOnce()
+    expect(row.interchange_reference).toMatch(/^[0-9A-F]{14}$/)
+    // Manual commands retain their actual generated UNB identity; there is
+    // no invented persisted run or new retry/idempotency authority here.
+    const operationId = `ediel_agt:${COMPANY}:test:2026A:PRODAT:supplier:L7:step:1:command:${row.interchange_reference}`
+    expect.soft(canonicalCreation.mock.calls[0][0].baseInput.sourceOperationId).toBe(operationId)
+    expect.soft(messageCreation.mock.calls[0][0].sourceOperationId).toBe(operationId)
+    expect.soft(row.source_operation_id).toBe(operationId)
+    expect.soft(row.execution_context_snapshot).toMatchObject({executionContext: {sourceOperationId: operationId}})
   })
 
   it.each([
