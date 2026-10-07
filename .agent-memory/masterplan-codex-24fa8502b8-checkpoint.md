@@ -1,6 +1,6 @@
 # Masterplan checkpoint — root24fa
 
-Updated 2026-10-07T04:03:59.206522+00:00. Agent `codex-20261006T134820Z-24fa8502b8`; sole packet `96fb3e7d-8656-43d8-8789-06d27cc9f55d`: **AT-Z01L-SUPPLIER + AT-Z01LK-SUPPLIER**. Both whole contracts remain unapproved. All15 active technical refs remain held after explicit two-retired-file RELEASE264e13ef; no merge or memory roles held. Do not start another pair.
+Updated 2026-10-07T10:03:58.899533+00:00. Agent `codex-20261006T134820Z-24fa8502b8`; sole packet `96fb3e7d-8656-43d8-8789-06d27cc9f55d`: **AT-Z01L-SUPPLIER + AT-Z01LK-SUPPLIER**. Both whole contracts remain unapproved. All15 active technical refs remain held after explicit two-retired-file RELEASE264e13ef; no merge or memory roles held. Do not start another pair.
 
 ## Current sources and next action
 
@@ -306,11 +306,11 @@ Userexplicitresume confirms653delivered. Independently readactualremote APIs/mai
 Before-code plan: retain original94/native344/fixture44a/workflow/sourceauth/poa/refusal/retry/noeffects assertions; normalmerge actualc401 into isolatedcurrent638branch ONLYafter two exactpostimage/affectedpath GOs and thisCP530. No manual foreignSQL/GEN/coverage edits; reusealreadydelivered653/currentSC/P01/V source. Freshcurrentfull/defaultNode22+unchangedloopbackpreload/retainedPATH/supportedtoolpermission+3nonincrementaltypes/affectedconsumers/integrity/generated/closure → exactsource/publicationreviews/documentation/normalpush → authenticnew94/allinputs/API/ZIP/JUnit/exit/all20correlationcauses+allpositiveeffects → currentmandatory/twofinalwhole reviews → onlyown2coverage rows+newcurrentgates asneeded → atomicmergelock/expectedhead/actualmainreceipt/releases. No localDockerblindretry/externalLIVE/privatewitness/oracle/gate weakening. Prior wholeblocker653no longerapplies; newblockersmustderivefromactualfreshfeedback. ResponsibleROOTexistingpair, independentreviewersa/b sourceonly.
 
 
-## Reviewed faithful main adoption — 2026-10-07T10:03Z
+## Reviewed faithful main adoption — before actual adoption (2026-10-07 UTC)
 
 Originalpacket96fb/root24fa retains15 individuallyGETMATCH technicalresources andno roles. Two independent reviews authorize ONLY faithful SOURCE_ADOPTION of80e+c401→tree0ff44b574d5ef07fa5cc2570c8b0470de5e6d426: reviewerA confirmed allpostimages/653/94/closure2599 and supplied typedactor reproduction; reviewerB durable review SHA667f038731b1876ca357553b29d541668d982bba941711f418c9100706ef9067. No runtime/native/currentCI/whole approval. Currentmain298 remains preserved. Confirmed actualmain actor42501 maps to typed ediel_inbound_execution_actor_forbidden absent from unchanged native537 matcher; separate same-price area correlation remains runtimepending, no rootforeign edits. Root will keep native344/all94/workflowd153/frozenreader ec3 unchanged for FIRST genuine currentmain run. Any laterowned proof adaptation requires actualfailed feedback, exactclosedtypedrefusal/no effects and reviewedTDD/versionedreader pins. Next root freshmain/15/clean80 then normalmerge exactc401 (noforce), verifytree/foreignbytes, freshsealed ordinary/full/types/sourceclosure, publish reviewed638 successor and qualify genuinecurrent94. Still no newpair; no coveragepromotion.
 
 
-## Actual main adoption and publication preparation — 2026-10-07T10:06Z
+## Actual main adoption and publication preparation — 2026-10-07T10:02:13Z
 
 Root actualsource12377c19da7950d4bb43c121b044889ad447dfa5/tree0ff44b574d5ef07fa5cc2570c8b0470de5e6d426 has orderedparents80e,c401 andcleanworktree. Exactreviewedpreview adopted normally, no conflicts/noforce; allforeigncoverage298 preserved. Both durableSOURCE_ONLY GOs: A b59fd65aa8f5656aaa2a4ed8fcf3be97019ee9ce7fffa7451a424867d80cb6c5; B667f038731b1876ca357553b29d541668d982bba941711f418c9100706ef9067. Freshpre-adoptionmainc401/all15GETMATCH. FrozenXML ec3 closure freshly rebuilt2599/allworkinginputsexact/original94 exact (scratch z01-12377-current-source/source-readiness.json), not runtimeevidence. Native344/fixture44a/workflowd153 unchanged. Supported defaultfull/types/affectedunits independentlyRUNNING sealed12377, not yetPASS. Next root normalpublish12377 toexistingDRAFT638 andstart genuineunchanged94/currentmandatoryCI; retainfrozenhead during full. Confirmedtypedactor matcher finding pending actualrun; noforeign source edits or wholepromotion. No rootroles/newpair.
