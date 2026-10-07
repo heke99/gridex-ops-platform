@@ -358,7 +358,9 @@ function replyBody(f: Fixture, original: Original, refs = references(), invoicee
     ...rawParts(originalAckLegalNadSegment('FR', parties.legalReceiver) + "'"),
     ...rawParts(originalAckLegalNadSegment('DO', parties.legalSender) + "'"),
     line('1', f.external, undefined, '9'), qty('1000'), ...common(f.external, 'Synthetic Own Customer', observed.start),
-    ...characteristic('Z07', 'Z12'), ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'D'),
+    // Prospective synthetic DSO declares daily balance settlement before mail birth.
+    // This is incoming test data, not a receiver point or reporting-frequency fact.
+    ...characteristic('Z07', 'Z12'), ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'Z32'),
     // Prospective own readings declaration, before physical mail birth. This
     // does not assert actual UTILTS delivery or supply a policy condition fact.
     ...characteristic('Z02', '10', 3), ...characteristic('Z05', '8', 3), ...characteristic('Z16', 'E01', 3),
@@ -538,6 +540,11 @@ async function ready(f: Fixture, original: Original, raw = reply(f, original), e
   const installationValue=firstObject[firstObject.indexOf(installationCharacteristics[0])+1]
   expect(installationValue?.tag).toBe('CAV')
   expect(segmentComposite(installationValue,1,installationWire.una)).toEqual(['Z12'])
+  const settlementCharacteristics=firstObject.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,installationWire.una)[0]==='Z15')
+  expect(settlementCharacteristics).toHaveLength(1)
+  const settlementValue=firstObject[firstObject.indexOf(settlementCharacteristics[0])+1]
+  expect(settlementValue?.tag).toBe('CAV')
+  expect(segmentComposite(settlementValue,1,installationWire.una)).toEqual(['Z32'])
   const received = await intake(f, raw)
   expect(received.tenant, JSON.stringify(received)).toMatchObject({ status: 'resolved', companyId: f.companyId })
   expect(received.id, JSON.stringify(received)).not.toBeNull()
