@@ -205,7 +205,7 @@ it('refuses unknown leaf source on migration replay and preserves the current de
   const originalBody = (await db.query<{body: string}>('SELECT prosrc body FROM pg_proc WHERE oid=$1::regprocedure', [signature])).rows[0].body
   await db.exec('BEGIN')
   try {
-    await db.exec(before.rows[0].definition.replace(originalBody, originalBody+'\n-- foreign source change\n'))
+    await db.exec(before.rows[0].definition.replace(originalBody, () => originalBody+'\n-- foreign source change\n'))
     await expect(db.exec(readFileSync(forward,'utf8'))).rejects.toThrow('ediel_transport_exact_original_private_leaf_required')
   } finally { await db.exec('ROLLBACK') }
   expect(await db.query('SELECT pg_get_functiondef($1::regprocedure) definition', [signature])).toEqual(before)
