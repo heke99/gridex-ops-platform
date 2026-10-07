@@ -1,3 +1,13 @@
+## Actual main6135 adoption; native successor source verification pending — 2026-10-07
+
+After durable586e4046/#5306030957427/all14MATCH/main6135/freeze/reviewguards, normalactualmain merge producedLOCALe14899923d3b0b3da3959a284272765227d5405d/treee36d96bcd5f234ad175254be675a40afc72e862c EXACT approved preview. Allseven foreignpostimages/fifteenownsourceposts preserved; frozenworkingnative7e82 exact. No takeover/codeediting of incomingproducer/helperOPS/SQL/GEN/coverage. Remote635 stays167f qualified26/6, no new execution credit.
+
+Ownnative successor IMPLEMENTED_NOT_VERIFIED for resultingcomposition: author source-only lint/scriptsTS/AST/9controls passed on901; finaltwofreshindependentreviews and currentthreeTS/full/affected/static PENDING. Root will copy onlythisownCP plusfrozennative tooneLOCAL sourcecommit, keep allotherfiles, then bind everycurrentcheck toactualhead/tree. Sourcepublication waits actualmandatorylocalproof andfinalsourceAPP; genuine32/currentGHA/wholeproof stillrequired. BothIDs NOT_APPROVED/NOT_EXECUTED, all196oldoracles/32identities retained, sourceunknowncause/replaytails remainnotproved. Sole14/no roles/newpair.
+
+Next root freezeactualcommit/head/tree then run exactcurrentallthreeNONincrementaltypes/full/defaultguard/affectedchecks/static; twofreshreviewers bindfinalcodepostimages. Publishtruthful successoronlyafterthesechecks, qualifyNEW authentic32/allinputhashes/nativeaggregates+actualeffects. Ifactualforeigncauseappears, notifyrightfulowner withpreciseproof; no guess/waiver.
+
+---
+
 ## Native v4 frozen; reviewed main6135 composition GO — 2026-10-07
 
 Ownnative7e82f9311ee1630273fb74c099966957253f02025feb6c3cfe703d8cb3db35cf frozen onLOCAL901, author receipt57853fcf5bbbe0e81ee30e9046136e2efb7b36f6f747ab5149cf77ff0df6804f/finaldiff62745e3f +135/-4. All196previous oracles/32identities exact/current214; actualscriptsNONincrementalTS/lint/syntaxAST/9pureprivacycontrols PASS source-only. Onlynativechanged among9347tracked paths; oldhelperOPS exact. Fresh independent network and diagnostic/literal reviews running; no finalAPP/native/wholecredit.
