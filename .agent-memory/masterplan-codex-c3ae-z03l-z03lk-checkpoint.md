@@ -1,3 +1,15 @@
+## Three bounded regressions installed locally — 2026-10-07
+
+Same L/LK responsibility and 20 reservations. Exactly four owned test/helper files are committed locally on the existing unique source branch. No production module, policy, runtime, native test or foreign file changed in this step. The original 77 test tail is byte-for-byte preserved, and all other tracked files match the parent. Exact commit and complete binding receipts are recorded in the private session checkpoint.
+
+Root actual checks on the clean committed version: scoped lint exit 0; targeted 97 tests exit 0. Nonincremental type checks are running. Two independent complete installed-source reviews are running; no approval assumed. The author retained the extraction baseline of 94 passed and 3 original failures before the three fixture fixes. All original identities/oracles, 17 unrelated cases, the repeated-register quantity defect and the original syntax-negative carrier remain required.
+
+Public PR #635 stays draft at its previous version. Its authenticated native result remains 32 passed and 2 failed; later whole effects/history/replay and the intended negative causes remain unproved. Prior full-suite failures remain recorded. No coverage, merge or whole approval.
+
+Documentation blocker: updating the existing #530 comment would re-send metadata rejected by automatic review. Sanitized new comments to the existing continuation and own PR returned connector internal errors; readback confirmed no successful post. I preserve the old receipt and continue publishing this own checkpoint. Next: finish actual types and both source reviews, then a separately documented current-version publication decision; runtime and shared-fixture integration remain with their owners.
+
+---
+
 ## Fixture extraction — actual baseline, 2026-10-07
 
 Same L/LK responsibility and 20 resource reservations. PR #635 remains draft and its published version is unchanged. The extraction is local and has no source commit yet.
