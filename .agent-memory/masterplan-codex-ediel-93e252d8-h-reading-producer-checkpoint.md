@@ -1,3 +1,9 @@
+## CURRENT — exact source ready for review
+
+Actual implementation c63cfdf944eb1353868edbf6ee8bcc6c5011a11a; current-main composition 680fe67b60834edb0c22deea0926397be7266ebf includes actual metadata-only main7b47beb821cb8321c9de53efd3294f38a3d07971/PR671. All six newly delivered memory postimages are preserved exactly; source/typecheck/unit inputs unchanged. Exactly three own paths differ from current main, all foreign modes/types/OIDs preserved. New-base H24+A/D19=43PASS0FAIL0SKIP, nonincremental tests/main TSC0, scoped ESLint/diff0. Reports /tmp/gridex-h-producer-unit-result.json and /tmp/gridex-h-producer-checks.json. This section supersedes the historical pending/extracted-only labels below.
+
+SOURCE_ONLY_REVIEW_READY; no PR, current-head CI, merge or whole coverage approval yet. Next owner93: two independent final source reviews of the frozen commit containing this checkpoint; normal new-branch publication and small prerequisite PR linking657/650/653/665, current mandatory green checks, immediate-free merge-role delivery, actual receipt and role-FIRST release then ONLY helper/unit resources. Retain original five H locks and native657 responsibility. PR657 actual1af2cf324d1f75100f5e1cd1bbe3f2d469c176dd, its new genuine100 run37649783668 is queued; previous authenticab1d79/21 is not new-head proof.
+
 # H reading declaration producer — bounded source delivery
 
 Agent `codex-ediel-20261006-93e252d8`; existing packet `88aa62fd-bf50-433d-9b98-5504c892594d`, substep `d0f1e771-7500-4b35-a4c4-ebff1b9faf24`. H03/H04 remain owned and incomplete. This is an intermediate source prerequisite, with no coverage promotion or transfer of H05/H08 custody.
