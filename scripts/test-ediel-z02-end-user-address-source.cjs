@@ -271,3 +271,106 @@ test('finite actual SQL received-Z02 source qualification', async t => {
     })
   } finally { await db.close() }
 })
+
+// Additive scalar-only regression: declared synthetic strings and sentinel, no
+// accepted producer, source capability, market authority or native credit.
+{
+const scalarLegacyFile = path.join(__dirname, '../supabase/migrations/20260903070000_harden_inbound_z02_required_payload_gate.sql')
+const legacyFull = readFileSync(scalarLegacyFile, 'utf8')
+const scalarBlocks = ['gridex_edifact_cci_cav_value','gridex_edifact_nad_element'].map(name => {
+ const start = legacyFull.indexOf(`create or replace function public.${name}(`)
+ const end = legacyFull.indexOf('$$;', start)
+ assert.ok(start >= 0 && end > start, 'actual immutable scalar definition must exist')
+ return legacyFull.slice(start, end + 3)
+})
+const scalarAcl = legacyFull.split('\n').filter(line => /^(revoke all|grant execute) on function public\.gridex_edifact_(cci_cav_value|nad_element)\(/.test(line)).join('\n')
+const original = scalarBlocks.join('\n\n') + '\n' + scalarAcl
+const scalarForwardFile = path.join(__dirname, '../supabase/migrations/20261007074502_received_z02_payload_scalar_readers.sql')
+let proposed = null
+try { proposed = readFileSync(scalarForwardFile, 'utf8') } catch (error) { if (error.code !== 'ENOENT') throw error }
+// Missing proposed forward executes every physical oracle against unchanged old
+// scalar SQL and fails on actual NULL values; it never skips a test or grants facts.
+const wire = "CCI++Z04'CAV+Z04'CCI++Z13'CAV+Z22'NAD+UD+199001011234:SE2:260++Original Name+Original Street+Original City++12345+SE'NAD+IT+735123456789508946::9++Site Name+Site Street+Site City++54321+SE'";
+const c = (name, raw, qualifier, expected) => ({name, query:'SELECT public.gridex_edifact_cci_cav_value($1,$2) value', values:[raw,qualifier], expected});
+const n = (name, raw, qualifier, index, expected) => ({name, query:'SELECT public.gridex_edifact_nad_element($1,$2,$3) value', values:[raw,qualifier,index], expected});
+const cases = [c('physical method217',wire,'Z04','Z04'), c('physical reason223 Z22',wire,'Z13','Z22'),
+  c('physical reason223 Z23',wire.replace('CAV+Z22','CAV+Z23'),'Z13','Z23'),
+  c('method never borrows adjacent reason',wire,'Z04','Z04'),
+  c('reason never borrows adjacent method',wire,'Z13','Z22'),
+  c('whitespace between physical CCI/CAV',"CCI++Z04'\r\n CAV+Z04'",'Z04','Z04'),
+  c('CAV excludes actual carriage return',"CCI++Z04'CAV+Z04\rIGNORED'",'Z04','Z04'),
+  c('CAV excludes actual newline',"CCI++Z04'CAV+Z04\nIGNORED'",'Z04','Z04'),
+  c('r/n letters remain physical value',"CCI++Z04'CAV+winter'",'Z04','winter'),
+  c('retains last colon component',"CCI++Z04'CAV+FIRST:SECOND:Z04'",'Z04','Z04'),
+  c('retains CAV first element',"CCI++Z04'CAV+Z04+OTHER'",'Z04','Z04'),
+  c('missing physical descriptor',wire,'Z99',null),c('missing CAV',"CCI++Z04'RFF+LI:A'",'Z04',null),
+  c('empty CAV',"CCI++Z04'CAV+'",'Z04',null),c('blank CAV',"CCI++Z04'CAV+   '",'Z04',null),
+  c('null raw',null,'Z04',null),c('empty raw','','Z04',null),c('null descriptor',wire,null,null),
+  c('empty descriptor',wire,'',null),c('metachar descriptor is not wildcard',"CCI++ZX4'CAV+Z04'",'Z.4',null),
+  c('regex injection cannot choose another descriptor',wire,'Z04|Z13',null),
+  c('SQL-like descriptor cannot change sentinel',wire,"Z04'; DELETE FROM public.scalar_sentinel; --",null),
+  n('UD C082 zero-based element2',wire,'UD',2,'199001011234:SE2:260'),
+  n('IT C082 zero-based element2',wire,'IT',2,'735123456789508946::9'),
+  n('UD name element4',wire,'UD',4,'Original Name'),n('UD street element5',wire,'UD',5,'Original Street'),
+  n('UD city element6',wire,'UD',6,'Original City'),n('UD postcode element8',wire,'UD',8,'12345'),
+  n('UD country element9',wire,'UD',9,'SE'),n('IT street element5',wire,'IT',5,'Site Street'),
+  n('IT city element6',wire,'IT',6,'Site City'),n('IT postcode element8',wire,'IT',8,'54321'),
+  n('IT country element9',wire,'IT',9,'SE'),n('existing empty element3',wire,'UD',3,null),
+  n('empty physical value',"NAD+UD++'",'UD',2,null),n('missing NAD element2',"RFF+LI:A'",'UD',2,null),
+  n('null NAD raw',null,'UD',2,null),n('empty NAD raw','','UD',2,null),n('null qualifier',wire,null,2,null),
+  n('empty qualifier',wire,'',2,null),n('negative index',wire,'UD',-1,null),n('null index',wire,'UD',null,null),
+  n('out of range index',wire,'UD',100,null),n('max integer index fails closed',wire,'UD',2147483647,null),
+  n('literal qualifier not wildcard',"NAD+UXD+VALUE'",'U.D',2,null),
+  n('qualifier regex injection refused',wire,'UD|IT',2,null),
+  n('legacy no-match element0 compatibility',"RFF+LI:A'",'UD',0,'NAD'),
+  n('legacy no-match element1 compatibility',"RFF+LI:A'",'UD',1,'UD')];
+for (const qualifier of ['Z.4','Z+4','Z[4]','Z(4)','Z|4','Z$4','Z^4','Z\\4']) {
+  cases.push(c(`declared synthetic literal descriptor ${qualifier}`,`CCI++${qualifier}'CAV+LITERAL'`,qualifier,'LITERAL'));
+}
+for (const qualifier of ['U.D','U[ D]','U(D)','U|D','U\\D']) {
+  cases.push(n(`declared synthetic literal NAD qualifier ${qualifier}`,`NAD+${qualifier}+VALUE'`,qualifier,2,'VALUE'));
+}
+const metadata = `SELECT oid::text,proowner::text,proacl::text,provolatile,prosecdef,proisstrict,proparallel,proleakproof,proconfig
+ FROM pg_proc WHERE oid IN ('public.gridex_edifact_cci_cav_value(text,text)'::regprocedure,
+ 'public.gridex_edifact_nad_element(text,text,integer)'::regprocedure) ORDER BY proname`;
+const snapshot = async db => (await db.query('SELECT jsonb_agg(to_jsonb(s) ORDER BY id) state FROM public.scalar_sentinel s')).rows[0].state;
+test(`finite scalar ${proposed ? 'isolated proposed-forward' : 'immutable old SQL RED'} (not native or authority)`, async t => {
+ for (const created of ['on','off']) for (const called of ['on','off']) {
+  const db = new PGlite();
+  try {
+   await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
+    CREATE TABLE public.scalar_sentinel(id integer PRIMARY KEY, facts text); INSERT INTO public.scalar_sentinel VALUES(1,'SYNTHETIC_UNCHANGED');
+    SET standard_conforming_strings=${created};`);
+   await db.exec(original);
+   const originalMetadata = (await db.query(metadata)).rows;
+   if (proposed) await db.exec(proposed);
+   await t.test(`create=${created} call=${called} identity/ACL/immutable-invoker metadata`,async()=>{
+    assert.deepEqual((await db.query(metadata)).rows,originalMetadata);
+    assert.equal(originalMetadata.length,2);
+    for (const f of originalMetadata) {assert.equal(f.provolatile,'i'); assert.equal(f.prosecdef,false);}
+    for (const role of ['anon','authenticated']) for (const signature of [
+      'public.gridex_edifact_cci_cav_value(text,text)','public.gridex_edifact_nad_element(text,text,integer)']) {
+      assert.equal((await db.query("SELECT has_function_privilege($1,$2,'EXECUTE') allowed",[role,signature])).rows[0].allowed,false);
+    }
+   });
+   await db.exec(`SET standard_conforming_strings=${called};`);
+   const before = await snapshot(db);
+   for (const row of cases) await t.test(`create=${created} call=${called} ${row.name}`,async()=>{
+    await db.exec('SET ROLE service_role');
+    try {assert.equal((await db.query(row.query,row.values)).rows[0].value,row.expected);}
+    finally {await db.exec('RESET ROLE');}
+    assert.deepEqual(await snapshot(db),before,'scalar evaluation may not mutate synthetic sentinel');
+   });
+   await t.test(`create=${created} call=${called} anon/auth cannot execute`,async()=>{
+    for (const role of ['anon','authenticated']) {
+     await db.exec(`SET ROLE ${role}`);
+     try {await assert.rejects(()=>db.query(cases[0].query,cases[0].values),{code:'42501'});}
+     finally {await db.exec('RESET ROLE');}
+    }
+    assert.deepEqual(await snapshot(db),before);
+   });
+  } finally {await db.close();}
+ }
+});
+
+}
