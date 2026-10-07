@@ -1,3 +1,13 @@
+## Native v4 frozen; reviewed main6135 composition GO — 2026-10-07
+
+Ownnative7e82f9311ee1630273fb74c099966957253f02025feb6c3cfe703d8cb3db35cf frozen onLOCAL901, author receipt57853fcf5bbbe0e81ee30e9046136e2efb7b36f6f747ab5149cf77ff0df6804f/finaldiff62745e3f +135/-4. All196previous oracles/32identities exact/current214; actualscriptsNONincrementalTS/lint/syntaxAST/9pureprivacycontrols PASS source-only. Onlynativechanged among9347tracked paths; oldhelperOPS exact. Fresh independent network and diagnostic/literal reviews running; no finalAPP/native/wholecredit.
+
+Fresh final before-main composition APPROVE receiptcd3f7e43a623e98b70a4497c057f19ffde6a59a1c649e35b6f700298f6a21699 independently matches7incoming/15retained/9330unchanged/1147protectedpaths exact, no findings; newHfallback leavesA/D→L/LK order unchanged. Rootall14freshGETMATCH/currentmain6135/frozenSHA/reviewSHA guards PASS /tmp/gridex-c3ae-l-before-main6135-adoption.json. GO normal901+6135 merge toexactpreviewtreee36d96bc whilepreservingnative workingbytes; then exact15ownfinalsourcefreeze/reviews/allcurrenttypes/full/affected/static before publication. Remote635 remains167f qualified26/6/native1; no cause/fix/coverage/CI_GREEN/merge/externalclaim. Sole14/no roles/newpair.
+
+Next root actualnormalmainadoption and truthful receipt; final currentnative sourcecommit +threecurrenttype/full/static receipts andtwofreshreviews→NEW authentic32/currentmandatory. Alloldfailures/sourceepochs retained; actualnewcause decides ownminimalrepair or rightfulforeignownerhandoff. No product/SQL/helper/OPS edits.
+
+---
+
 ## Actual common653 delivered; before normal current-main composition — 2026-10-07
 
 Actualmain6135d88a54ab4d7296ca920760ce17587ff396f1 is authenticated MERGED65327ae6399b479893ece939471224aeb2d1dbde0ca, orderedparents69d+27ae, exactlyseven incoming publicphysicalZ02/bilateralZ04birth implementation/unit/ownerCP paths. No incoming SQL/GEN/coverage changes; wholeledger295 unchanged. Prior main69 currentlabel superseded. Ownbranch committed901 and authorizedpartialnative author continues only ownfile; remote635167f remains authentic26/6/no wholeapproval. No result borrowed from653 to assert Lbusinesscommit/replay success.
