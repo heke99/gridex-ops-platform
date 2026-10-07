@@ -29,3 +29,9 @@ CLAIM EXTENSION — same c65 Z04L/LK79f9. Fresh canonical checksum scripts/migra
 
 Whole/mandatory blocker unchanged: genuine NEW migration tail capture/types/schema/fingerprint/manifest belongs2f/f046; sourceauthor cannot manufacture same-signature exemption. This global checksum reservation is transient and will be explicitly released with exactimmutable source handoff, not held waiting forGEN. Existing owner2f alreadyrunning Z02 cut must not be restarted to add unreviewed guard. Next IMP finishes ownedSQL/unit; rootregistersonehash/doesactualbounded verification, twoindependentreviews, then offers exactcompatible subsequentcut/input to rightfulGENowner. Sameonepair, coverage300/352 unchanged. Sharedmemory24fa/f660 mirrorthisadditiveextent.
 
+
+
+## 2026-10-07T21:14:58.201734+00:00 — docs(ediel): bind exact Z04 checksum extension receipt
+
+EXACT CLAIM EXTENSION READBACK — c65 same79f9, preceding6046984331 now explicitly binds checksum receipt34d1d259a30c13f57d7b6fe34c79f44da8368aa7 and resourcefile-dccf88f654930e87029c320c6b38971e39f28bd83a870a46a7da8a46f3220173 for scripts/migration-history-manifest.json. OfficialGETMATCH, all4original ef029c9refs alsoMATCH; no code/checksum edit yet. Same five exactresources only; checksum released after sourcehandoff, not while waitingGEN. Next ROOT register ONLY the new actualSQL hash after source freeze; all historical entries/metadata invariant. This supplies the exact previously session-recorded additional receipt in public documentation before implementation.
+
