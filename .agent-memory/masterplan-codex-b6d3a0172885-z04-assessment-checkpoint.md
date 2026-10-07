@@ -17,3 +17,7 @@ Reuse actual #653 normal/bilateral intake and #635 normal-switch work; do not re
 Skill routing: verification-before-completion, code/spec comparison, differential review and requesting-code-review for this bounded read-only assessment. Prior requesting-code-review review independently qualifies scope/ownership and blockers. No SQL source design, database mutation, UI, performance or broad security audit; corresponding skill groups not triggered.
 
 Next owner: this session. Create receipt and both ID refs atomically, GET MATCH both, publish this checkpoint and #530 CLAIM before assessment. Then inspect current public call paths, reuse meaningful existing tests, distinguish finite proof/native/current merge/external states, record exact blockers and owner actions. No coverage promotion unless the whole ID is proved. If blocked, preserve this branch, publish BLOCKED/RELEASE and GET MATCH/DELETE/404 own refs. Shared role-memory remains foreign c65/6b552; own checkpoint and #530 only.
+
+## Reservation confirmed
+
+Receipt 3e5889ef841f79b9d55ed83f94597919507765f6. Both sorted ID refs created atomically and every GET equals this receipt. No file/shared role/source lease acquired. Status: CLAIMED; assessment waits for published checkpoint and #530 CLAIM readback.
