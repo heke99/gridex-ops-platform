@@ -770,3 +770,16 @@ TEST_ONLY GO in isolated branch codex/c65-z04-r210-producer-5874e7b5, parent exa
 
 Next: root monitors exact current PR647/644 mandatory checks and composes newly changed main with fresh reviews/checks as required. Imp produces old behavioral RED before production. Gov independently checks the complete negative-only chain. Root retains all refs and will publish only immutable own-path handoffs to rightful A/D owner after review; no new pair or premature whole A/D approval.
 
+
+
+### 2026-10-07T06:43:57.202023+00:00 — docs: record retained actor-boundary test-only GO
+TEST_ONLY GO — existing c65 actor producer obligation for A/D handoff6031990843, same SC014/V packet; no new IDs.
+
+Isolated branch codex/c65-z04-actor-producer-5874e7b5, parent exact rightful published95 source9d541c3621f6c846268e20f6f8f866b308b45a72. Its four native/checkpoint/helper changes from original7e63 are preserved unchanged; all product source bytes are identical. Paths remain root-owned: inboundProcessing.ts (0dec) and existing ediel-inbound-actor-refusal-boundary.test.ts (888edabab30d50d649acb2c0546099798f23a5ed). All36 packet refs are reconfirmed before source edits.
+
+Reuse the existing unchanged 13 behavioral actor-boundary tests against this parent's real public processor before production. Preserve genuine old RED, including zero-write and unchanged-source/tenant graph assertions. Then import only retained de7 actor-stop chunks: trusted security-quarantine identity/cause, actual actor-stage direct42501 mapping and outer technical catch rethrow before diagnostics/continuation writes. Gov independently approved this prospective bounded plan, correcting an invalid actorUserId forwarding proposal: the current parent lacks that runtime fact type, so this two-path carrier will not add forwarding or edit runtime. R210's separate typed runtime carrier owns any needed forwarding.
+
+No V source, SQL, GEN, foreign native/helper/oracle or coverage edits. Finite unit ports are mechanics evidence; genuine unchanged native actor/effect assertions must still be reached by the rightful owner after adoption. Next root: test-only old RED, narrow retained source reuse, current 13-case GREEN and adjacent type/lint/consumer checks, two independent final source reviews, then immutable handoff to95. Imp continues the independent A210 test-first path within the same owned pair.
+
+Current de7 migration compound also exits0 with 1099 tracked files/1002 version groups/latest051400/generated-types575196e3; log SHA b6550b878db4dc3920cecbc468b0bf0e14e723d267c3a5658e1af4d2b48900a9. Gov independently qualified current de7 original native whole V/S17 proof, receipt SHA e1e967107a1b54fd611524cebffb84147ec21aabe81fbb7adb9b9e9387558117. Current mandatory CI still pending. Actual main edf0b9d2 has 296/352 approved after genuine P01 merge646; own open PRs are not counted as main delivery.
+
