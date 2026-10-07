@@ -1,3 +1,14 @@
+## LOCAL READ_OR SOURCE FROZEN / COMPONENT GREEN / REVIEW START — 2026-10-07
+
+Same soleL/LK26/635published7f; localREADOR source7d4c5dcf7ffaac433a6f464aead992751ff73f0d/tree7134859e05da85271f108d80d668d5e5f2ee4ef3,parentb5563257 normalmain751adoption. Exactly4ownedpaths changed; ALL9406foreign mode/type/OIDs unchanged,9410total,clean. Product two guardarguments typed COMMfirstOR only; originalproducer275prefix exact plus67append, twelve tests unchanged after RED. Both directtrace2 inverses restore entireprevious files byteexact; all59business bodies/oracles/timeline preserved. Native417c/helper439a/SDKcdd/authmainb8a unchanged. Privatefreeze receipt preserved; no sourcepush yet.
+
+Actual singleproducer RED77oldPASS12newFAIL becomes89PASS,trueexit0/4.543594s,logc1ff2ba8a2f8e3aaef4971feca8cdfc0cbce62ee24bc6933f36353961eed118f; exact same89cases. Both PLAN full reports e31f435a/6c745d63 +literal exactproposal3e56b90f and ROOTself reviewed. Count97/109 assumptions explicitly superseded by actual89 census. Combined original8file250 scope plus deliveredREAD30 run underway; source/args/realcensus required, no absent-filter testcredit. Fresh three nonincremental compilerchecks/lint and two full exactfinalSOURCE reviews next; keep7d source immutable until closed.
+
+Native SQLediel-only gate/COREautomaticownL/original229252/current genuineTRUEeffects/twelvecause observation/currentwhole CI andrequiredwhole review remain open. Actual earlierceb full14315PASS9FAIL retained as earlier-source observation only; no current7dwholegreen or native/SQL execution. NextROOT currentaffectedchecks/finalSOURCE2→readerinputclosure/publication once; existingowners handoff6586045872116/runtime6044583982 retained, no takeovers/coverage/role claim/newpair.
+
+
+---
+
 ## ACTUAL TEST-FIRST RED / CENSUS CORRECTION / MINIMAL FIX GO — 2026-10-07
 
 Same soleL/LK26/newisolatedb556 main751. ONLY producer test changed by exact67-line append after whole275-line originalprefix; product SHA b0426e07 and direct2/native/fixture/auth unchanged. Actual Node22/default/canonicalguard run finished trueexit1: singleproducer file89 cases =77 originalPASS +12 newFAIL,5.244622s, logSHA4f15a697fd2e5d048519bc79c550eb6954f85ccd19cb6e5943adc6f2e746e2cf. Private filename red109 is an old plan label, NOT actual census. Earlier plan/file-level97/109 assumption is corrected by actual execution; no tests added/removed to fit counts. All original test source275-line prefix byteexact7edc4505, all original77pass.
