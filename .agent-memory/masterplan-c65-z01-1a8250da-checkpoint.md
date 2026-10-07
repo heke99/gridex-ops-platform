@@ -76,3 +76,9 @@ Main0795314545214f6609d9a3b14113ae1e0bc07f46 (#682) delivered only two full-hist
 Both exact544 SOURCE_PUBLICATION_APPROVE: Govdbf2571c618bde215f09920e83c9b721952cd911f74199762f910c9a617ee21b / IMP8387256ac48cb388c15ae282a4a23ed33ccc262b8f334af3ca94020f817ac00d / rootselfe980be3080247e5523844058dfd6de5a8b6d8493f6405830efd16e0968cf31bb. Actual coverage descriptor SHA4b596a8e matches full-e2e workflow Git blob; all guards preserved. Reuse ownerb6 actual147 checks and source/all8 delivery, no duplicate147/full/native/artifact run. Oldd3 own greens stay oldhead only.
 
 Next c65 normal fast-forward PR684 d3→544, attributed exacthead SOURCE comments and updated PR scope/body, then all fresh currenthead mandatory results. No manual CI cancellation/rerun. Whole94 and owner2f/helper1df dependencies remain pending; own six refs retained, no merge/memory role.
+
+## Actual current-head publication reconciled
+
+Normal source FF d3→544565f911f6369bb5034d0a82502f93628f2181 succeeded. Immediate PR readback briefly still reported oldd3 and tripped the conservative assertion; no second push. Fresh officialPR and exactremote source ref both MATCH544, reconciled with actual before-use receipt6736046012628 and CP e295ad69d5af4b3fd6156ee9b22d2d06d281cf60. Current exacthead attributed independent SOURCE comments5447811743/5447811929 published; PR body currenthead/216 tests/dependencies/CP refreshed.
+
+Fresh544 CI execution started; current successful jobs: smoke, verify, browser-public. Remaining selected/mandatory jobs running or queued; pr-certificate dependency appears after upstream completion. Oldd3 actual greens are preserved, not current544 approval. Latest CI snapshot `/tmp/c65-z01-544-current-checks.json`. No role/whole/native94/mainmerge. Next c65 exactterminal result qualification and expectedhead merge only allrequired green; future releasedZ04 guard scout is read-only eligibility, no second packet/reservation/code begun.
