@@ -136,6 +136,41 @@ const hash = (text: string) => createHash('sha256').update(text, 'utf8').digest(
 const refs = () => ({ interchangeReference: randomUUID().replaceAll('-', '').slice(0, 14),
   messageReference: randomUUID().replaceAll('-', '').slice(0, 14) })
 const record = (value: unknown): Row => value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}
+// Diagnostic-only: one original operation, fixed stage, no private source facts.
+type ObservedZ02NativeStage =
+  | 'control.namespace.identity'
+  | 'control.namespace.registry'
+  | 'control.mail.birth'
+  | 'control.message.initial-read'
+  | 'control.runtime.initial'
+  | 'control.message.source-read'
+  | 'control.address.fetch'
+  | 'negative.mail.birth'
+  | 'negative.message.read'
+  | 'negative.source-basis.rpc'
+  | 'negative.address.fetch'
+  | 'negative.runtime.initial'
+  | 'negative.inbound.process'
+  | 'negative.business-ack.list'
+  | 'control.message.reread'
+  | 'control.address.reread'
+  | 'control.runtime.reread'
+  | 'control.registry.reread'
+
+async function observeZ02NativeOperation<T>(observedStage: ObservedZ02NativeStage, operation: () => PromiseLike<T>): Promise<T> {
+  try { return await operation() }
+  catch (error) {
+    try {
+      const code = error && typeof error === 'object' ? Object.getOwnPropertyDescriptor(error, 'code')?.value : undefined
+      const message = error && typeof error === 'object' ? Object.getOwnPropertyDescriptor(error, 'message')?.value : undefined
+      console.error('Z02_NATIVE_OPERATION_FAILURE', JSON.stringify({
+        observedStage,
+        ...(typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code) ? { sqlstate: code } : {}),
+        historicalRulePackBasisUnavailable: message === 'ediel_historical_rule_pack_basis_unavailable',
+      }))
+    } finally { throw error }
+  }
+}
 async function sent(variant: 'L' | 'LK') {
   const f = await createZ01SupplierNativeFixture(variant, provider)
   vi.stubEnv('GRIDEX_AUTOMATION_USER_ID', f.actorUserId)
@@ -253,22 +288,22 @@ async function stage(f: Fixture, rawPayload: string, environment: 'test' | 'prod
   } finally { warn.mockRestore() }
 }
 async function actualNamespaceBaseline(f: Fixture, original: Original, rawPayload: string) {
-  const supplier = await resolveCanonicalTenantEdielIdentityWithEvidence({ companyId: f.companyId, environment: 'test', requireExactCounts: true })
+  const supplier = await observeZ02NativeOperation('control.namespace.identity', () => resolveCanonicalTenantEdielIdentityWithEvidence({ companyId: f.companyId, environment: 'test', requireExactCounts: true }))
   expect(supplier.identity).toMatchObject({ companyId: f.companyId, environment: 'test',
     legalEdielId: original.wire.parties.legalSender.id, transportEdielId: original.wire.envelope.sender })
   expect(supplier.identity.roleCodes).toContain('electricity_supplier')
-  const dso = await requireRegistryDispatchSource({ companyId: f.companyId, communicationRouteId: f.z01RouteId,
-    routeProfileId: f.z01RouteProfileId, environment: 'test', messageFamily: 'PRODAT', applicationReference: '23-DDQ-PRODAT' })
+  const dso = await observeZ02NativeOperation('control.namespace.registry', () => requireRegistryDispatchSource({ companyId: f.companyId, communicationRouteId: f.z01RouteId,
+    routeProfileId: f.z01RouteProfileId, environment: 'test', messageFamily: 'PRODAT', applicationReference: '23-DDQ-PRODAT' }))
   expect(dso).toMatchObject({ status: 'source_qualified', market: 'EL', legalEdielId: original.wire.parties.legalReceiver.id,
     wire: { environment: 'test', interchangePartyId: original.wire.envelope.receiver } })
   expect(dso.roles).toContain('grid_owner')
-  const baseline = await stage(f, rawPayload)
+  const baseline = await observeZ02NativeOperation('control.mail.birth', () => stage(f, rawPayload))
   expect(baseline.tenant).toMatchObject({ status: 'resolved', companyId: f.companyId })
   expect(baseline.id, JSON.stringify(baseline)).not.toBeNull()
   expect(baseline.birthErrors).toEqual([])
-  const row = await getEdielMessageById(baseline.id!)
+  const row = await observeZ02NativeOperation('control.message.initial-read', () => getEdielMessageById(baseline.id!))
   expect(row).not.toBeNull()
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(row!, { actorUserId: f.actorUserId })
+  const decision = await observeZ02NativeOperation('control.runtime.initial', () => resolveCanonicalRuntimeDecisionWithRegistry(row!, { actorUserId: f.actorUserId }))
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify(decision)).toEqual(['accepted', 'accepted', 'accepted'])
   expect(sql<Row>(`SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE source_message_id=${literal(baseline.id)}`))
     .toMatchObject({ status: 'ready', reason: null, company_id: f.companyId, environment: 'test', payload_sha256: hash(rawPayload) })
@@ -280,8 +315,8 @@ async function actualNamespaceBaseline(f: Fixture, original: Original, rawPayloa
  * after a negative; NULL alone never establishes its physical cause. */
 async function sourceControl(f: Fixture, original: Original, rawPayload: string) {
   const namespace = await actualNamespaceBaseline(f, original, rawPayload)
-  const row = (await getEdielMessageById(namespace.baseline.id!))!
-  const context = await fetchReceivedZ02EndUserAddressContext({ message: row, actorUserId: f.actorUserId })
+  const row = (await observeZ02NativeOperation('control.message.source-read', () => getEdielMessageById(namespace.baseline.id!)))!
+  const context = await observeZ02NativeOperation('control.address.fetch', () => fetchReceivedZ02EndUserAddressContext({ message: row, actorUserId: f.actorUserId }))
   expect(context).toBeDefined()
   const facts = redeemReceivedZ02EndUserAddressContext({ message: row, context: context! })
   expect(facts).toEqual([expect.objectContaining({ meteringPointId: f.external, identityAgency: original.wire.identityAgency,
@@ -290,31 +325,31 @@ async function sourceControl(f: Fixture, original: Original, rawPayload: string)
   return { ...namespace, row, facts, rawPayload, bytes: frozen(row.id), originalBytes: frozen(original.originalZ01.id) }
 }
 async function rereadControl(f: Fixture, original: Original, control: Awaited<ReturnType<typeof sourceControl>>) {
-  const row = (await getEdielMessageById(control.row.id))!
-  const context = await fetchReceivedZ02EndUserAddressContext({ message: row, actorUserId: f.actorUserId })
+  const row = (await observeZ02NativeOperation('control.message.reread', () => getEdielMessageById(control.row.id)))!
+  const context = await observeZ02NativeOperation('control.address.reread', () => fetchReceivedZ02EndUserAddressContext({ message: row, actorUserId: f.actorUserId }))
   expect(context).toBeDefined()
   expect(redeemReceivedZ02EndUserAddressContext({ message: row, context: context! })).toEqual(control.facts)
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(row, { actorUserId: f.actorUserId })
+  const decision = await observeZ02NativeOperation('control.runtime.reread', () => resolveCanonicalRuntimeDecisionWithRegistry(row, { actorUserId: f.actorUserId }))
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify(decision)).toEqual(['accepted','accepted','accepted'])
   expect(frozen(row.id)).toEqual(control.bytes); expect(frozen(original.originalZ01.id)).toEqual(control.originalBytes)
-  expect(await requireRegistryDispatchSource({ companyId: f.companyId, communicationRouteId: f.z01RouteId,
-    routeProfileId: f.z01RouteProfileId, environment: 'test', messageFamily: 'PRODAT', applicationReference: '23-DDQ-PRODAT' })).toEqual(control.dso)
+  expect(await observeZ02NativeOperation('control.registry.reread', () => requireRegistryDispatchSource({ companyId: f.companyId, communicationRouteId: f.z01RouteId,
+    routeProfileId: f.z01RouteProfileId, environment: 'test', messageFamily: 'PRODAT', applicationReference: '23-DDQ-PRODAT' }))).toEqual(control.dso)
 }
 async function unavailableSource(f: Fixture, original: Original, id: string, rawPayload: string,
   control: Awaited<ReturnType<typeof sourceControl>>) {
   expect(id).not.toBe(control.row.id)
-  const row = (await getEdielMessageById(id))!
+  const row = (await observeZ02NativeOperation('negative.message.read', () => getEdielMessageById(id)))!
   expect(row).toMatchObject({ id, company_id: f.companyId, direction: 'inbound', environment: 'test',
     message_family: 'PRODAT', message_code: 'Z02', raw_payload: rawPayload, immutable_payload_hash: hash(rawPayload) })
   const receivedBytes = record(frozen(id))
   const source = sql<Row>(`SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE source_message_id=${literal(id)}`)
   expect(source).toMatchObject({ source_message_id: id, company_id: f.companyId, environment: 'test',
     raw_payload: rawPayload, payload_hash: hash(rawPayload) })
-  const actualRead = await supabaseService.rpc('gridex_ediel_received_z02_address_source_basis_v1', {
-    p_source_message_id: id, p_actor_user_id: f.actorUserId })
+  const actualRead = await observeZ02NativeOperation('negative.source-basis.rpc', () => supabaseService.rpc('gridex_ediel_received_z02_address_source_basis_v1', {
+    p_source_message_id: id, p_actor_user_id: f.actorUserId }))
   expect(actualRead.error).toBeNull(); expect(actualRead.data).toBeNull()
-  expect(await fetchReceivedZ02EndUserAddressContext({ message: row, actorUserId: f.actorUserId })).toBeUndefined()
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(row, { actorUserId: f.actorUserId })
+  expect(await observeZ02NativeOperation('negative.address.fetch', () => fetchReceivedZ02EndUserAddressContext({ message: row, actorUserId: f.actorUserId }))).toBeUndefined()
+  const decision = await observeZ02NativeOperation('negative.runtime.initial', () => resolveCanonicalRuntimeDecisionWithRegistry(row, { actorUserId: f.actorUserId }))
   expect(decision.syntaxDecision, JSON.stringify(decision)).toBe('accepted')
   expect(decision.applicationDecision, JSON.stringify(decision)).toBe('manual_review')
   expect(decision.functionalDecision).toBe('manual_review')
@@ -322,7 +357,7 @@ async function unavailableSource(f: Fixture, original: Original, id: string, raw
     code: 'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE', description: 'received_z02_end_user_address_source_unavailable' })]))
   expect(decision.issues.some(i => i.prodatDiagnostic?.kind === 'field' && i.prodatDiagnostic.fieldNumber === '229')).toBe(false)
   expect(decision.responsePlan.filter(p => p.family === 'APERAK')).toEqual([])
-  const processed = await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: id })
+  const processed = await observeZ02NativeOperation('negative.inbound.process', () => processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: id }))
   expect(processed.validation_report).toMatchObject({ applicationDecision: 'manual_review', functionalDecision: 'manual_review',
     canonicalRuntime: { issues: expect.arrayContaining([expect.objectContaining({ code: 'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE' })]) } })
   expect(sql(`SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE source_message_id=${literal(id)}`)).toEqual(source)
@@ -331,8 +366,8 @@ async function unavailableSource(f: Fixture, original: Original, id: string, raw
     expect(after[key], key).toEqual(receivedBytes[key])
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments
     WHERE source_message_id=${literal(id)} AND facts_text::jsonb->>'applicationDecision'='accepted'`)).toBe(0)
-  expect((await listBusinessAckMessagesForSource({ companyId: f.companyId, sourceMessageId: id,
-    actorUserId: f.actorUserId, environment: 'test' })).filter(a => a.message_family === 'APERAK')).toEqual([])
+  expect((await observeZ02NativeOperation('negative.business-ack.list', () => listBusinessAckMessagesForSource({ companyId: f.companyId, sourceMessageId: id,
+    actorUserId: f.actorUserId, environment: 'test' }))).filter(a => a.message_family === 'APERAK')).toEqual([])
   await rereadControl(f, original, control)
 }
 /** Independent physical observer: only fresh control references and the exact
@@ -761,7 +796,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const rawPayload = reply(f, original, overrides, [], { ...refs(), ...frame })
     physicalFacet(complete, rawPayload, facet)
     const control = await sourceControl(f, original, complete)
-    const before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id), staged = await stage(f, rawPayload)
+    const before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id), staged = await observeZ02NativeOperation('negative.mail.birth', () => stage(f, rawPayload))
     expect(staged.id, JSON.stringify(staged)).not.toBeNull(); expect(staged.birthErrors).toEqual([])
     await unavailableSource(f, original, staged.id!, rawPayload, control)
     const observation = refusalObservation(f, original, staged.id!)
@@ -780,7 +815,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     physicalFacet(complete, rawPayload, 'point')
     const control = await sourceControl(f, original, complete)
     const before = protectedEffects(f, original), otherBefore = protectedEffects(other, original), sealed = frozen(original.originalZ01.id)
-    const staged = await stage(f, rawPayload)
+    const staged = await observeZ02NativeOperation('negative.mail.birth', () => stage(f, rawPayload))
     expect(staged.id, JSON.stringify(staged)).not.toBeNull(); expect(staged.birthErrors).toEqual([])
     await unavailableSource(f, original, staged.id!, rawPayload, control)
     assertRefusedEffects(f, original, before, sealed)
@@ -811,7 +846,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
       const changed = reply(f, original, { [facet]: '99999' }, [], { ...refs(), ...frame })
       physicalFacet(complete, changed, facet)
       const control = await sourceControl(f, original, complete)
-      const staged = await stage(f, changed)
+      const staged = await observeZ02NativeOperation('negative.mail.birth', () => stage(f, changed))
       if (facet === 'legalSender' || facet === 'transportSender') {
         expect(staged.id, JSON.stringify(staged)).not.toBeNull(); expect(staged.birthErrors).toEqual([])
       }
@@ -879,7 +914,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
       .toEqual(segmentComposite(originalWire.segments.find(s => s.tag === 'UNB'), 2, originalWire.una))
     physicalFacet(complete, rawPayload, 'issuer')
     const before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id)
-    const staged = await stage(f, rawPayload)
+    const staged = await observeZ02NativeOperation('negative.mail.birth', () => stage(f, rawPayload))
     expect(staged.tenant).toMatchObject({ status: 'resolved', companyId: f.companyId })
     expect(staged.id, JSON.stringify(staged)).not.toBeNull()
     expect(staged.birthErrors).toEqual([])
