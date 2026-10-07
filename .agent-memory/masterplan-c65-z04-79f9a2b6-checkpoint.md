@@ -21,3 +21,11 @@ Independent prospectiveplan Transport7d910ce69507c7f56d9cd49ed3f71327f14613221e4
 
 Next IMP writes source/tests only, rootsole localverifier after frozen source, transport+second independent reviewer source2. GEN2f stillholds actualchosen-tail capture/type-manifest paths; checksums currentlyfreshABSENT rather than old587/b6 held. Root may separatelycreate-onlyclaim exact checksum path before registration, preserving full history; no gate exemption. Do not impose new guard on the owner's alreadyrunning currentZ02 cut; hand over exactreviewed compatible source for a subsequent chosen complete capture, or scoped explicit receiver release. No PR/CI/native producer for knownmissingGEN, no role/no coverage changes. Sharedmemory24fa/f660 may mirror confirmedRED/currentpacket.
 
+
+
+## 2026-10-07T21:14:24.986249+00:00 — docs(ediel): reserve released checksum for Z04 guard integration
+
+CLAIM EXTENSION — same c65 Z04L/LK79f9. Fresh canonical checksum scripts/migration-history-manifest.json is actually ABSENT after original root2c release6046553488; no old held587 label assumed. Create-only additional receipt and exactfile ref recorded in session, official newGETMATCH + all4original ef029c9GETMATCH, total5owned refs. ROOT owns ONLY additive new07210437 hash registration preserving ALL historical dictionary/source/metadata. No replacement foundation/replay/type/schema/script or gate relaxation. This checksum is read by actual replay (an optional checker-only overlay would leave replay unsupported), so preparing the real current consumer reduces GEN handoff. No checksum edit yet; write once actual reviewed forward hash freezes.
+
+Whole/mandatory blocker unchanged: genuine NEW migration tail capture/types/schema/fingerprint/manifest belongs2f/f046; sourceauthor cannot manufacture same-signature exemption. This global checksum reservation is transient and will be explicitly released with exactimmutable source handoff, not held waiting forGEN. Existing owner2f alreadyrunning Z02 cut must not be restarted to add unreviewed guard. Next IMP finishes ownedSQL/unit; rootregistersonehash/doesactualbounded verification, twoindependentreviews, then offers exactcompatible subsequentcut/input to rightfulGENowner. Sameonepair, coverage300/352 unchanged. Sharedmemory24fa/f660 mirrorthisadditiveextent.
+
