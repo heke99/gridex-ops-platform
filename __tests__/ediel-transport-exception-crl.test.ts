@@ -1,12 +1,30 @@
+// masterplan: TR-09, AT-TR-09
 import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { createHash, randomUUID, X509Certificate } from 'node:crypto'
-const io=vi.hoisted(()=>({rpc:vi.fn()}))
+const io=vi.hoisted(()=>({rpc:vi.fn(), legacyZeroExit:false}))
+vi.mock('node:child_process', async importOriginal => {
+ const actual=await importOriginal<typeof import('node:child_process')>()
+ const {promisify}=await import('node:util')
+ const execute=promisify(actual.execFile),execFile=actual.execFile.bind(undefined)
+ // Declared legacy OpenSSL process port: real cryptography, original streams,
+ // only its known exit-zero-on-signature-failure convention is emulated.
+ Object.defineProperty(execFile,promisify.custom,{value:async(file:string,args:string[],options:import('node:child_process').ExecFileOptions)=>{
+  try{return await execute(file,args,options)}catch(error){
+   const result=error as Error & {code?:number;stdout?:string;stderr?:string}
+   if(io.legacyZeroExit&&file==='openssl'&&args[0]==='crl'&&args.includes('-verify')&&result.code===1
+    &&typeof result.stdout==='string'&&typeof result.stderr==='string'&&result.stderr.includes('verify failure'))
+    return {stdout:result.stdout,stderr:result.stderr}
+   throw error
+  }
+ }})
+ return {...actual,execFile}
+})
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {rpc:io.rpc} }))
 import { type EdielCertificateTrustAuthority } from '@/lib/ediel/security/certificateTrust'
 const scope = { companyId: randomUUID(), environment: 'test' as const, receiverEdielId: '76543' }
@@ -31,7 +49,7 @@ beforeAll(() => {
     validFrom: new Date(now - 60_000).toISOString(), validTo: new Date(now + 31 * 86400_000).toISOString(), recipientFingerprints: [new X509Certificate(leaf).fingerprint256.replaceAll(':', '').toLowerCase()], anchors: [readFileSync(path('ca.pem'), 'utf8')], intermediates: [], crls: [cleanCrl] }
 })
 afterAll(() => { if (directory) rmSync(directory, { recursive: true, force: true }) })
-afterEach(()=>io.rpc.mockReset())
+afterEach(()=>{io.rpc.mockReset();io.legacyZeroExit=false})
 const verifierPath=new URL('../lib/ediel/transport/exception/previousCrl.ts',import.meta.url)
 const sha=(s:string)=>createHash('sha256').update(s,'utf8').digest('hex')
 async function verify(crl=cleanCrl,at=new Date(Date.now()+2*86400_000),hashes=[sha(crl)]){
@@ -54,6 +72,25 @@ it('keeps actual expired leaf/CA dates current rather than rewinding to CRL vali
 it('refuses a corrupted CRL even when its issuer, dates and source digest claim a reserve case',async()=>{
  const lines=cleanCrl.split('\n');lines[2]=(lines[2][0]==='A'?'B':'A')+lines[2].slice(1)
  expect(await verify(lines.join('\n'))).toMatchObject({verified:false})
+})
+it('holds a structurally valid CRL whose signature fails even when OpenSSL exits zero',async()=>{
+ const original=join(directory,'clean.crl'),derPath=join(directory,'bad-signature.der'),badPath=join(directory,'bad-signature.crl')
+ const der=execFileSync('openssl',['crl','-in',original,'-outform','DER'],{stdio:['ignore','pipe','pipe']})
+ // Change only the last signature octet, retaining every signed issuer/date
+ // and revoked-serial byte; the new source digest remains correctly bound.
+ der[der.length-1]^=1;writeFileSync(derPath,der)
+ openssl(['crl','-inform','DER','-in',derPath,'-out',badPath])
+ const metadata=(path:string)=>openssl(['crl','-in',path,'-noout','-issuer','-lastupdate','-nextupdate'])
+ expect(metadata(badPath)).toBe(metadata(original))
+ const result=spawnSync('openssl',['crl','-in',badPath,'-noout','-verify','-CAfile',join(directory,'ca.pem')],
+  {encoding:'utf8',timeout:10000,maxBuffer:65536,stdio:['ignore','pipe','pipe']})
+ expect(result.error).toBeUndefined();expect(result.signal).toBeNull()
+ expect([0,1]).toContain(result.status);expect(result.stdout.trim()).toBe('')
+ expect(result.stderr).toContain('verify failure')
+ const badCrl=readFileSync(badPath,'utf8')
+ if(result.status===1)expect(await verify(badCrl)).toMatchObject({verified:false})
+ io.legacyZeroExit=true
+ expect(await verify(badCrl)).toMatchObject({verified:false})
 })
 it('refuses an all-CDP claim that omits the actual certificate distribution point',async()=>{
  const verify=(await import('@/lib/ediel/transport/exception/previousCrl')).verifyPreviousSignedCrlCryptography

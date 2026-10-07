@@ -9,13 +9,15 @@ import {
   type AckOutcome,
   type EdielAperakApplicationError,
 } from '@/lib/ediel/ack'
-import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
+import { createCanonicalAckMessage, createCanonicalOutboundMessage } from '@/lib/ediel/core/kernel'
+import { canonicalProdatProfileForMessage } from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import { tgtCanonicalDraftRouteRequest } from '@/lib/ediel/testing/tgtCanonicalDraftRoute'
+import { bindSourceQualifiedPositiveFixtureDraft, resolveSourceQualifiedPositiveFixtureDraft } from '@/lib/ediel/testing/positiveFixtureAuthority'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import { getEdielAgtSupplierRuntime } from '@/lib/ediel/testing/agtRuntime'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   attachEdielMessageToTestRun,
-  createEdielMessage,
   createEdielMessageEvent,
   createEdielTestRun,
   getEdielMessageById,
@@ -487,7 +489,7 @@ function buildAgtProdatOutboundInput(params: {
     messageFamily: 'PRODAT',
     messageCode: code,
     messageVersion: '26A',
-    processType: `agt_supplier_${definition.testCaseCode.toLowerCase()}`,
+    processType: canonicalProdatProfileForMessage(code)?.processGroup ?? null,
     environment: 'test',
     testFlag: 1,
     status: 'prepared',
@@ -623,6 +625,7 @@ async function assertStrictAgtOutboundRoute(params: {
   if (uniqueIssues.length > 0) {
     throw new Error(`L1/L7 AGT preflight stoppade skick: ${uniqueIssues.join(' | ')}`)
   }
+  return {route: prodat.route!, profile: prodat.profile!}
 }
 
 export async function createEdielSupplierAgtOutboundCommand(params: {
@@ -658,7 +661,7 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     throw new Error('Outbound AGT PRODAT kräver NAD+Z02. Fyll i balansansvarig/BRP Ediel-id i AGT-runtime innan du skickar L1/L7. Detta stoppar bara felaktig outbound-payload, inte L2-L5 inbound-testerna.')
   }
 
-  await assertStrictAgtOutboundRoute({
+  const runtime = await assertStrictAgtOutboundRoute({
     companyId: params.companyId,
     actorEdielId: readiness.actor.actorEdielId,
     testCaseCode: definition.testCaseCode,
@@ -667,28 +670,49 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
   const run = params.testRunId
     ? await getActiveRunById(params.companyId, params.testRunId)
     : await findActiveAgtRunForDefinition(params.companyId, definition)
+  if (params.testRunId && !run) throw new Error('agt_run_unavailable')
   const input = buildAgtProdatOutboundInput({
     actorUserId: params.actorUserId,
     definition,
     actor: readiness.actor,
     companyId: params.companyId,
   })
+  input.communicationRouteId = runtime.route.id
+  input.routeProfileId = runtime.profile.id
+  input.mailbox = trimOrNull(runtime.profile.mailbox) ?? input.mailbox
+  input.partyId = runtime.profile.party_id ?? null
+  input.routeTransportSecurityMode = runtime.profile.transport_security_mode ?? runtime.profile.encryption_mode ?? 'unencrypted'
+  input.transportSecurityMode = input.routeTransportSecurityMode
   const routeProfileId = String(run?.route_profile_id ?? '').trim()
-  if (routeProfileId) {
+  if (run) {
     const lockedRoleCode = String(run?.role_code ?? '').trim()
     if (!lockedRoleCode) throw new Error('agt_run_role_code_required')
+    if (run.test_suite !== definition.suite || run.test_case_code !== definition.testCaseCode
+      || lockedRoleCode !== definition.roleCode || !isEdielAgtRunApprovalVersion(run.approval_version)) {
+      throw new Error('agt_run_scope_mismatch')
+    }
+    if (!routeProfileId) throw new Error('agt_run_route_profile_unavailable')
     const { data: routeProfile, error } = await supabaseService
       .from('ediel_route_profiles')
-      .select('id,communication_route_id,mailbox,encryption_mode,transport_security_mode,certificate_id,receiver_certificate_id,party_id,party_address_id')
+      .select('id,company_id,environment,message_family,is_enabled,default_test_flag,sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,application_reference,communication_route_id,mailbox,encryption_mode,transport_security_mode,certificate_id,receiver_certificate_id,party_id')
       .eq('id', routeProfileId)
       .eq('company_id', run?.company_id ?? params.companyId ?? '')
       .maybeSingle()
     if (error) throw error
+    if (!routeProfile || routeProfile.id !== runtime.profile.id || routeProfile.company_id !== params.companyId
+      || routeProfile.communication_route_id !== runtime.route.id || routeProfile.environment !== 'test'
+      || routeProfile.message_family !== 'PRODAT' || routeProfile.is_enabled !== true || routeProfile.default_test_flag !== 1
+      || upper(routeProfile.sender_ediel_id) !== upper(input.senderEdielId)
+      || upper(routeProfile.receiver_ediel_id) !== upper(input.receiverEdielId)
+      || upper(routeProfile.application_reference) !== upper(input.applicationReference)
+      || upper(routeProfile.sender_sub_address) !== upper(input.senderSubAddress)
+      || upper(routeProfile.receiver_sub_address) !== upper(input.receiverSubAddress)) {
+      throw new Error('agt_run_route_profile_unavailable')
+    }
     if (routeProfile?.communication_route_id) {
       input.communicationRouteId = String(routeProfile.communication_route_id)
       input.mailbox = String(routeProfile.mailbox ?? input.mailbox ?? '')
       input.partyId = typeof routeProfile.party_id === 'string' ? routeProfile.party_id : null
-      input.partyAddressId = typeof routeProfile.party_address_id === 'string' ? routeProfile.party_address_id : null
       input.routeTransportSecurityMode = String(routeProfile.transport_security_mode ?? routeProfile.encryption_mode ?? 'unencrypted')
       input.transportSecurityMode = run?.encryption_mode === 'smime' ? 'required_encrypted' : 'unencrypted'
       input.validationReport = {
@@ -718,21 +742,37 @@ export async function createEdielSupplierAgtOutboundCommand(params: {
     }
   }
 
-  const message = await createEdielMessage(input)
+  const step = findStep(definition, {
+    actor: 'actor',
+    direction: 'outbound',
+    family: 'PRODAT',
+    code: definition.messageCode,
+  })
+  if (!step || !Number.isSafeInteger(step.stepNo) || step.stepNo < 1) {
+    throw new Error('agt_outbound_step_unavailable')
+  }
+  const operationScope = `${params.companyId}:test:${definition.approvalVersion}:${definition.suite}:${definition.roleCode}:${definition.testCaseCode}:step:${step.stepNo}`
+  if (run) {
+    input.sourceOperationId = `ediel_agt:${operationScope}:run:${run.id}`
+    const qualification = await resolveSourceQualifiedPositiveFixtureDraft({companyId: params.companyId, runId: run.id,
+      stepNo: step.stepNo, actorUserId: params.actorUserId, rawPayload: input.rawPayload ?? '', diagnosticCodes: []})
+    if (!qualification) throw new Error('ediel_positive_fixture_original_required')
+    bindSourceQualifiedPositiveFixtureDraft(input, qualification)
+  } else {
+    const interchangeReference = input.interchangeReference ?? ''
+    if (!/^[0-9A-F]{14}$/.test(interchangeReference)) throw new Error('agt_command_interchange_reference_required')
+    input.sourceOperationId = `ediel_agt:${operationScope}:command:${interchangeReference}`
+  }
+
+  const message = await createCanonicalOutboundMessage({actorUserId: params.actorUserId,
+    requestType: tgtCanonicalDraftRouteRequest(input), baseInput: input})
 
   if (run) {
-    const step = findStep(definition, {
-      actor: 'actor',
-      direction: 'outbound',
-      family: 'PRODAT',
-      code: definition.messageCode,
-    })
-
     await attachEdielMessageToTestRun({
       companyId: params.companyId,
       testRunId: run.id,
       edielMessageId: message.id,
-      stepNo: step?.stepNo ?? 1,
+      stepNo: step.stepNo,
       expectedDirection: 'outbound',
       expectedFamily: 'PRODAT',
       expectedCode: definition.messageCode,
