@@ -31,6 +31,8 @@ import { buildContrlDraft, buildAperakDraft } from '@/lib/ediel/ack'
 import { readCommittedInboundAck } from '@/lib/ediel/ack/committedInboundAck'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatRegisterReadingState } from '@/lib/ediel/prodat/prodatRegisterReadings'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 type Fixture = Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>> & { endMinute: string }
@@ -69,7 +71,21 @@ function z04(f: Fixture, reason = 'Z22') {
     .replaceAll('11111:160:SVK', `${f.brpEdielId}:160:SVK`).replaceAll('CUSTOMER-1::89', `${f.customerIdentity.id}:SE2:260`)
     .replaceAll('RFF+Z05:NET-1', `RFF+Z05:${f.gridAreaCode}`).replaceAll('RFF+LI:CASE-1', `RFF+LI:${f.caseReference}`)
     .replaceAll('202610010000', f.requestedStartDate.replaceAll('-', '') + '0000').replaceAll('CAV+Z22', `CAV+${reason}`)
-  return envelope(f, wire, 'Z04')
+  if (reason !== 'Z22') return envelope(f, wire, 'Z04')
+  // Prospective ordinary L counterpart input, before mail/source birth. Physical
+  // declarations do not supply receiver inventory or a qualified READ receipt.
+  const tokens = tokenizeEdifact(wire), grouped = prodatRegisterGroups(tokens.segments, tokens.una, 'Z04')
+  const [own] = grouped.groups
+  const reference = own?.segments.find(segment => ['RFF', 'NAD'].includes(segment.tag))
+  if (grouped.groups.length !== 1 || grouped.problems.length || own.itemId !== f.external
+    || own.identityAgency !== '9' || reference?.tag !== 'RFF'
+    || ['214', '218', '259'].some(field => prodatRegisterReadingState(field, own.segments, tokens.una).present)) {
+    throw Error('native_cancellation_ordinary_l_wire_scope_required')
+  }
+  const declarations = ['CCI++Z02', 'CAV+:::1', 'CCI++Z05', 'CAV+:::6', 'CCI++Z16', 'CAV+:::111']
+  const completed = wire.slice(0, 9) + tokens.segments.flatMap(segment => segment === reference
+    ? [...declarations, segment.raw] : [segment.raw]).join(tokens.una.segmentTerminator) + tokens.una.segmentTerminator
+  return envelope(f, completed, 'Z04')
 }
 function z05(f: Fixture, reason = 'Z22', mutate: (wire: string) => string = wire => wire) {
   const wire = closureFixture({ reason, minute: f.endMinute, li: f.caseReference }).wire
@@ -189,6 +205,16 @@ function observeProcessedSource(f: Fixture, source: EdielMessageRow) {
     'sourcePeriods',(SELECT count(*) FROM public.customer_supply_periods p JOIN m ON p.company_id=m.company_id AND p.source_message_id=m.id),
     'receptions',(SELECT count(*) FROM receptions),'receptionBindingMismatches',(SELECT count(*) FROM receptions WHERE bound IS DISTINCT FROM true),
     'validatedEvents',(SELECT count(*) FROM events WHERE event_type='validated'),
+    'preBusinessActorTestingHandledEvents',(SELECT count(*) FROM events WHERE event_type='linked' AND event_status='success' AND payload->'actorTestingGlobalHook'='true'::jsonb AND payload->>'phase'='pre_business_processing'),
+    'preBusinessActorTestingWarningEvents',(SELECT count(*) FROM events WHERE event_type='manual_note' AND event_status='warning' AND payload->'actorTestingGlobalHook'='true'::jsonb AND payload->>'phase'='pre_business_processing'),
+    'validatedPartitionKeyEvents',(SELECT count(*) FROM events WHERE event_type='validated' AND payload ? 'sourceObjectPartition'),
+    'validatedPartitionObjectEvents',(SELECT count(*) FROM events WHERE event_type='validated' AND jsonb_typeof(payload->'sourceObjectPartition')='object'),
+    'validatedAppliedEvents',(SELECT count(*) FROM events WHERE event_type='validated' AND payload->'applied'='true'::jsonb),
+    'validatedFullyAppliedEvents',(SELECT count(*) FROM events WHERE event_type='validated' AND payload->'fullyApplied'='true'::jsonb),
+    'validatedReviewRequiredEvents',(SELECT count(*) FROM events WHERE event_type='validated' AND payload->'reviewRequired'='true'::jsonb),
+    'canonicalSyntax',(SELECT CASE WHEN validation_report#>>'{canonicalRuntime,syntaxDecision}' IN ('accepted','rejected','not_applicable','manual_review') THEN validation_report#>>'{canonicalRuntime,syntaxDecision}' ELSE 'unknown' END FROM m),
+    'canonicalApplication',(SELECT CASE WHEN validation_report#>>'{canonicalRuntime,applicationDecision}' IN ('accepted','rejected','not_applicable','manual_review') THEN validation_report#>>'{canonicalRuntime,applicationDecision}' ELSE 'unknown' END FROM m),
+    'canonicalFunction',(SELECT CASE WHEN validation_report#>>'{canonicalRuntime,functionalDecision}' IN ('accepted','rejected','not_applicable','manual_review') THEN validation_report#>>'{canonicalRuntime,functionalDecision}' ELSE 'unknown' END FROM m),
     'warningEvents',(SELECT count(*) FROM events WHERE event_status='warning'),
     'rolledBackEvents',(SELECT count(*) FROM events WHERE payload->>'supplySourceApply'='rolled_back'),
     'registerReadingsUnknownIssueCount',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,kind}'='local_unknown' AND x#>>'{prodatDiagnostic,sourceRule}'='PRODAT26A:register-readings'),
