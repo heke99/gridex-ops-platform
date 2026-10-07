@@ -1,0 +1,9 @@
+# Campaign status reconciliation — codex-ediel-20261006-2f72c8ab
+
+2026-10-07; ROLE ONLY, no new rule pair. Sole technical pair remains AT-Z02L-SUPPLIER / AT-Z02LK-SUPPLIER packet ac08f5ae-1dd9-4209-8fd6-2a596ffaf10f, all 13 technical resources retained.
+
+Before start: actual main 8cc92e14673f8547520c504f673fbfa1208785ff, exact tree 30d39426160522b376ce22dc123274c0fc980177; actual metadata-only PR655 merged, owner RELEASE6031497503, fresh remote resources404. Role packet 7e93a2bb-7b0b-4786-aa39-5920a3e59c9b, canonical receipt aebf6520cdc2cb1cb43a5c6aedfeec704c430c25. Sorted create-only POST and exact GET MATCH confirmed both file-4bc7b439008e991cfc917fe1387d03f0338119a6650db99a4541e3e10e0d0a5d and role-memory. Earlier disk/receipt nextAction mismatch aborted before any ref mutation; canonical receipt retained and disk reconciled before successful claims. No shared file edited yet.
+
+Reserved only .agent-memory/masterplan-status-20261006.json. Branch codex/ediel-campaign-status-2f72c8ab-20261007. Append a dated latestCampaignContinuationObservation preserving every old byte, foreign history and 295/352 ledger. Current published658 ab6b and local f801 preparation remain distinct; old640 reservations actually released with genuine failing artifact receipts. Native/CI/merge/whole/external statuses must not be inferred from source or capture.
+
+Next: ROOT post CLAIM530 and confirm checkpoint/comment exact readbacks before status write; read latest shared file/current receipts, append only new observation, two independent final metadata reviews and all eight current mandatory checks before expected-head merge. Acquire role-merge only if immediately free after green; otherwise release own role-memory and refresh. After actual delivery record real main/PR, release merge first then memory/file. Continue sole Z02 pair; held c65 integration/GEN paths require reviewed immutable carrier, never take foreign locks. No approved coverage edits.
