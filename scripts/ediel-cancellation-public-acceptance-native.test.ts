@@ -122,11 +122,87 @@ async function receiveProdat(f: Fixture, wire: string, code: 'Z04' | 'Z05', subt
     return message!
   })
 }
+// Observation only: no resolver, recorder, apply call or authority is added.
+// Emit finite projections; source identities and complete facts stay private.
+function observeProcessedSource(f: Fixture, source: EdielMessageRow) {
+  const observation = sql(`WITH m AS (
+    SELECT *, encode(sha256(convert_to(raw_payload,'UTF8')),'hex') AS observed_hash
+    FROM public.ediel_messages WHERE id=${literal(source.id)} AND company_id=${literal(f.companyId)}
+      AND environment=${literal(source.environment)}
+  ), assessments AS (
+    SELECT a.*, a.company_id=m.company_id AND a.environment=m.environment
+      AND a.source_payload_hash=m.observed_hash AS bound,
+      a.facts_hash=encode(sha256(convert_to(a.facts_text,'UTF8')),'hex') AS facts_match
+    FROM gridex_received_sources.validation_assessments a JOIN m ON a.source_message_id=m.id
+  ), leaves AS (
+    SELECT a.* FROM assessments a WHERE NOT EXISTS (
+      SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id)
+  ), applications AS (
+    SELECT p.*, a.bound AND a.facts_match AND p.company_id=m.company_id AND p.environment=m.environment
+      AND p.source_message_id=m.id AND p.source_payload_hash=m.observed_hash
+      AND p.application_facts_hash=encode(sha256(convert_to(p.application_facts_text,'UTF8')),'hex') AS bound
+    FROM gridex_received_sources.prodat_application_facets p JOIN leaves a ON p.assessment_id=a.id CROSS JOIN m
+  ), application_objects AS (
+    SELECT x->>'applicationDecision' AS decision FROM applications p,
+      jsonb_array_elements(p.application_facts_text::jsonb->'objects') x WHERE p.bound
+  ), contexts AS (
+    SELECT c.*, c.company_id=m.company_id AND c.environment=m.environment AND c.payload_sha256=m.observed_hash AS bound
+    FROM gridex_ediel_inbound_context.receipts c JOIN m ON c.source_message_id=m.id
+  ), partitions AS (
+    SELECT p.*, p.company_id=m.company_id AND p.environment=m.environment AND p.payload_hash=m.observed_hash
+      AND a.bound AND a.facts_match AS bound
+    FROM gridex_received_sources.supply_object_partitions p JOIN m ON p.source_message_id=m.id
+      LEFT JOIN assessments a ON a.id=p.canonical_assessment_id
+  ), effects AS (
+    SELECT e.*, e.company_id=m.company_id AND e.environment=m.environment AND e.payload_hash=m.observed_hash AS bound
+    FROM gridex_received_sources.supply_object_effect_receipts e JOIN m ON e.source_message_id=m.id
+  ), receptions AS (
+    SELECT r.*, r.company_id=m.company_id AND r.environment=m.environment
+      AND r.canonical_payload_hash=m.observed_hash AND r.received_payload_hash=m.observed_hash AS bound
+    FROM gridex_ediel_inbound_receptions.receptions r JOIN m ON r.source_message_id=m.id
+  ), events AS (
+    SELECT e.* FROM public.ediel_message_events e JOIN m ON e.ediel_message_id=m.id AND e.company_id=m.company_id
+  ) SELECT jsonb_build_object(
+    'phase','after_actual_process','code',(SELECT CASE WHEN message_code IN ('Z04','Z05') THEN message_code ELSE 'unexpected' END FROM m),
+    'sourceCount',(SELECT count(*) FROM m),'sourceHashMatches',
+      (SELECT observed_hash=${literal(createHash('sha256').update(source.raw_payload!).digest('hex'))} FROM m),
+    'status',(SELECT CASE WHEN status IN ('received','parsed','validated','processed','failed') THEN status ELSE 'unexpected' END FROM m),
+    'hasFailureReason',(SELECT failure_reason IS NOT NULL FROM m),
+    'assessments',(SELECT count(*) FROM assessments),'assessmentBindingMismatches',(SELECT count(*) FROM assessments WHERE bound IS DISTINCT FROM true OR facts_match IS DISTINCT FROM true),
+    'leaves',(SELECT count(*) FROM leaves),'applicationFacets',(SELECT count(*) FROM applications),
+    'applicationBindingMismatches',(SELECT count(*) FROM applications WHERE bound IS DISTINCT FROM true),
+    'headerAccepted',(SELECT count(*) FROM applications WHERE bound AND application_facts_text::jsonb->>'headerDecision'='accepted'),
+    'headerHeld',(SELECT count(*) FROM applications WHERE bound AND application_facts_text::jsonb->>'headerDecision'='held'),
+    'headerRejected',(SELECT count(*) FROM applications WHERE bound AND application_facts_text::jsonb->>'headerDecision'='rejected'),
+    'headerUnexpected',(SELECT count(*) FROM applications WHERE bound AND coalesce(application_facts_text::jsonb->>'headerDecision','') NOT IN ('accepted','held','rejected')),
+    'objectsAccepted',(SELECT count(*) FROM application_objects WHERE decision='accepted'),
+    'objectsHeld',(SELECT count(*) FROM application_objects WHERE decision='held'),
+    'objectsRejected',(SELECT count(*) FROM application_objects WHERE decision='rejected'),
+    'objectsUnexpected',(SELECT count(*) FROM application_objects WHERE coalesce(decision,'') NOT IN ('accepted','held','rejected')),
+    'contextReady',(SELECT count(*) FROM contexts WHERE bound AND status='ready'),'contextHeld',(SELECT count(*) FROM contexts WHERE bound AND status='held'),
+    'contextBindingMismatches',(SELECT count(*) FROM contexts WHERE bound IS DISTINCT FROM true),
+    'partitions',(SELECT count(*) FROM partitions),'partitionBindingMismatches',(SELECT count(*) FROM partitions WHERE bound IS DISTINCT FROM true),
+    'partitionsApplied',(SELECT count(*) FROM partitions WHERE bound AND result->'applied'='true'::jsonb),
+    'partitionsFullyApplied',(SELECT count(*) FROM partitions WHERE bound AND result->'fullyApplied'='true'::jsonb),
+    'partitionsReviewRequired',(SELECT count(*) FROM partitions WHERE bound AND result->'reviewRequired'='true'::jsonb),
+    'effects',(SELECT count(*) FROM effects),'effectBindingMismatches',(SELECT count(*) FROM effects WHERE bound IS DISTINCT FROM true),
+    'sourcePeriods',(SELECT count(*) FROM public.customer_supply_periods p JOIN m ON p.company_id=m.company_id AND p.source_message_id=m.id),
+    'receptions',(SELECT count(*) FROM receptions),'receptionBindingMismatches',(SELECT count(*) FROM receptions WHERE bound IS DISTINCT FROM true),
+    'validatedEvents',(SELECT count(*) FROM events WHERE event_type='validated'),
+    'warningEvents',(SELECT count(*) FROM events WHERE event_status='warning'),
+    'rolledBackEvents',(SELECT count(*) FROM events WHERE payload->>'supplySourceApply'='rolled_back'),
+    'dependentUnknown214',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,sourceRule}' IN ('Z04:214','Z05:214')),
+    'dependentUnknown218',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,sourceRule}' IN ('Z04:218','Z05:218')),
+    'dependentUnknown259',(SELECT count(*) FROM m,jsonb_array_elements(coalesce(validation_report#>'{canonicalRuntime,issues}','[]'::jsonb)) x WHERE x->>'code'='PRODAT_DEPENDENT_CONDITION_UNDETERMINED' AND x#>>'{prodatDiagnostic,sourceRule}' IN ('Z04:259','Z05:259'))
+  );`)
+  console.info('C_NATIVE_OBSERVER', JSON.stringify(observation))
+}
 async function process(f: Fixture, source: EdielMessageRow) {
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source)
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify({ phase: 'runtime_decision_'+source.message_code, source: source.id, issues: decision.issues }))
     .toEqual(['accepted', 'accepted', 'accepted'])
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: source.id })
+  observeProcessedSource(f, source)
   return (await getEdielMessageById(source.id))!
 }
 const periods = (f: Fixture) => sql<Period[]>(`SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.customer_supply_periods p WHERE company_id=${literal(f.companyId)};`)
