@@ -138,8 +138,8 @@ it.each(['Z25','Z22'])('uses the original retained zoned receipt for Z05/%s acro
  expect(io.catalog).toHaveBeenCalledExactlyOnceWith({family:'PRODAT',messageCode:'Z05',transactionSubtype:reason,applicationReference:'23-DDQ-PRODAT',direction:'inbound',businessDate:'2026-09-22'})
  expect(db.writes('ediel_messages')[0].payload).toHaveProperty('message_received_at','2026-09-21T22:30:00.000Z')
 })
-it.each(['Z25','Z22'])('rejects a foreign retained-mail owner before Z05/%s catalog or source effects',async(reason)=>{
- const payload=wire('Z05',[reason]);setup(payload);patchMail({company_id:'foreign-company'})
+it.each(['Z25','Z22'].flatMap(reason=>[{company_id:'foreign-company'},{received_at:null},{received_at:'invalid-clock'}].map(patch=>({reason,patch}))))('rejects invalid Z05/$reason retained mail $patch before catalog or source effects',async({reason,patch})=>{
+ const payload=wire('Z05',[reason]);setup(payload);patchMail(patch)
  await expect(createInboundEdielMessage(input(payload))).rejects.toThrow('ediel_actual_inbound_receipt_clock_required')
  expect(io.catalog).not.toHaveBeenCalled();expect(db.writes('ediel_messages')).toEqual([])
  expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission'])
