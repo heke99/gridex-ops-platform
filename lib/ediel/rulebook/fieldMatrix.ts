@@ -638,7 +638,9 @@ export function validateFieldMatrixPayload(
         ? resolveProdatSourceSubtypeRequirement({messageCode:code, fieldNumber:baseRule.fieldNumber ?? '', subtype:sourceSubtype, market:prodatProductMarket(input)}) : null
       const inactiveParent = sourceSubtype && isProdatFieldInInapplicableParent({messageCode:code,subtype:sourceSubtype,fieldNumber:baseRule.fieldNumber})
       const rule: RulebookFieldRule = excludedDate || inactiveParent || sourceRequirement === 'forbidden'
-        ? { ...baseRule, requirement:'forbidden' } : baseRule
+        ? { ...baseRule, requirement:'forbidden' }
+        : family === 'PRODAT' && code === 'Z14' && input.direction === 'inbound' && sourceRequirement === 'required'
+          ? { ...baseRule, requirement:'required' } : baseRule
       const scopedInput = { ...input, rawSegments: scopedSegments }
       const emit = (finding: Omit<EdielRulebookIssue, 'blocking'>, kind: 'missing' | 'invalid' = 'invalid',failureEvidence?:ProdatFailureEvidence) => issues.push(issue({...finding, ...(family === 'PRODAT' ? {prodatDiagnostic:prodatFieldDiagnostic(rule.fieldNumber,kind,input,scopedSegments,`PRODAT26A:§2.2:${code}:${rule.fieldNumber}`,undefined,undefined,failureEvidence)} : {})}))
       // P26.A r3 p119: resolve national applicability BEFORE reading contents.

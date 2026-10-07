@@ -1,3 +1,4 @@
+import {validateReceivedZ14ReportingContext,type ReceivedZ14ReportingContext} from '@/lib/ediel/prodat/receivedZ14ReportingContext'
 import {projectProdatSourceFunctionObjects,type ReceivedProdatSourceFunctionValidation} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
 import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
 import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
@@ -64,6 +65,7 @@ export function validateCanonicalPolicyFields(input: {
   onSourceFunctionObjects?:(evidence:ReceivedProdatSourceFunctionValidation)=>void
   onApplicationObjects?: (evidence: ProdatApplicationObjectValidation) => void
   reportingContext?: ExpectedContext
+  receivedReportingContext?:ReceivedZ14ReportingContext
   policy: CanonicalEdielPolicy
   rawSegments?: readonly string[] | null
   rawPayload?: string | null
@@ -256,6 +258,8 @@ export function validateCanonicalPolicyFields(input: {
     }
   }
 
+  if(input.policy.direction==='inbound')issues.push(...validateReceivedZ14ReportingContext({code:input.policy.code,
+    rawPayload:input.rawPayload,rawSegments:input.rawSegments,una:input.una,context:input.receivedReportingContext}))
   input.onApplicationObjects?.(projectProdatApplicationObjects({register:registerEvidence,issues,
     completeInvocation:input.scope!=='dependent_only' && input.policy.direction==='inbound'
       && canonicalProdat26AFieldRules(input.policy.code).every(expected=>input.policy.fieldRules.map(asRulebookFieldRule).some(rule=>rule.fieldNumber===expected.fieldNumber)),
