@@ -12,6 +12,20 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 This is a long-lived production project.
 
+## Active Masterplan coordination board — 2026-10-07
+
+Use [#673](https://github.com/heke99/gridex-ops-platform/issues/673) for new
+Masterplan CLAIM/READY/BLOCKED/MERGED/RELEASE receipts and handovers.
+[#530](https://github.com/heke99/gridex-ops-platform/issues/530) reached GitHub's
+2,500-comment limit and remains the historical evidence archive. Read the
+current board and relevant linked #530 receipts before selecting or resuming work.
+
+Operational instructions in older memory files or prompts to post new receipts
+on #530 now refer to #673. Preserve original #530 links and historical receipts;
+do not rewrite them or treat the channel move as a release. Atomic GitHub refs
+still determine ownership, and the reservation, documentation, review, coverage
+and merge protocols remain unchanged.
+
 Before every non-trivial task:
 
 1. Read `.agent-memory/README.md`.
@@ -28,7 +42,7 @@ Before every non-trivial task:
 12. Inspect the actual implementation.
 13. For Masterplan work, read `.agent-memory/masterplan-agent-workflow.md`,
     `.agent-memory/masterplan-reservations.md`, your own checkpoint, the legacy PR register,
-    latest #530 receipts and live remote locks before
+    latest #673 receipts, relevant historical #530 receipts and live remote locks before
     selecting a packet.
 14. Continue from the recorded next action.
 
@@ -40,7 +54,7 @@ After every atomic subtask, inspect changes, run targeted verification, update
 the checkpoint and current task, record the exact next action, and continue.
 
 For parallel Masterplan packets, each technical agent records these updates in
-its own packet checkpoint and on #530. Agents acquire the atomic memory-role
+its own packet checkpoint and on #673. Agents acquire the atomic memory-role
 lock to reconcile shared current-task/checkpoint/handover from those receipts.
 
 Before session end, update checkpoint, handover, current state, blockers,
@@ -274,13 +288,15 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
 8. **Self-selection and reservation (mandatory, Claude and Codex):** choose
    two eligible unapproved rule IDs and their contracts yourself from current
    main, priority and dependencies (or two remaining contract/scenario IDs when
-   work is acceptance-only; a final single eligible ID is allowed). Read #530,
+   work is acceptance-only; a final single eligible ID is allowed). Read #673
+   and relevant historical #530 receipts,
    current PRs, checkpoints and live remote locks. Atomically reserve IDs and
    exact file scope using `.agent-memory/masterplan-reservations.md`, then post
    `CLAIM <IDs> — <agent> — packet <UUID> — branch <branch>` with the receipt
    and next action before code. Conflicts require selecting other free work.
    No user assignment, coordinator acknowledgement or staggered launch is needed.
-   Issue #530 carries progress; atomic refs establish ownership. Acquire the
+   Issue #673 carries new progress; #530 preserves earlier evidence. Atomic refs
+   establish ownership. Acquire the
    merge-role lock for serial current-head delivery. Post `READY <IDs> — PR #N` for reviewable work,
    `CI_GREEN` only for the current head, and `MERGED <IDs> — PR #N — <main SHA>`
    after actual delivery. Only then select the next pair. A legacy `DONE` comment
