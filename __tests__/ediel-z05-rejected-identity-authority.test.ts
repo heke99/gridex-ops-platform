@@ -24,7 +24,7 @@ import {loadReceivedZ05RejectedIdentityRejection, observeReceivedZ05RejectedIden
 type Row = Record<string, unknown>
 const io = vi.hoisted(() => ({source: {} as EdielMessageRow, rows: {} as Record<string, Row[]>,
   legal: {} as Row, catalog: [] as Row[], calls: [] as {name: string; args: Row}[], permission: true,
-  sourceError: false, legalError: false, catalogError: false, permissionError: null as unknown, delay: 0}))
+  sourceError: false, legalError: false, catalogError: false, permissionError: null as unknown, delay: 0, clockReadHook: null as (() => void) | null}))
 const actor = ownerId(50), company = ownerId(2)
 function table(name: string) {
   if (!Object.hasOwn(io.rows, name)) throw Error('UNDECLARED_REJECTION_READ:' + name)
@@ -45,6 +45,7 @@ vi.mock('@/lib/supabase/service', () => ({supabaseService: {from: (name: string)
   if (name === 'ediel_require_inbound_legal_context_v1') {
     expect(args).toEqual({p_company_id: company, p_message_id: io.source.id})
     if (io.delay) vi.setSystemTime(new Date(Date.now() + io.delay))
+    io.clockReadHook?.()
     return {data: structuredClone(io.legal), error: io.legalError ? Error('DECLARED_LEGAL_READ_ERROR') : null}
   }
   if (name === 'resolve_canonical_ediel_rule_pack_with_witness_v1') return {data: structuredClone(io.catalog), error: io.catalogError ? Error('DECLARED_CATALOG_READ_ERROR') : null}
@@ -76,13 +77,13 @@ function setup(body = object()) {
     observedAt: io.source.message_received_at, canonicalProjection: {family: 'PRODAT', code: 'Z05', subtype: 'H', transactionReasonCode: 'Z25',
       direction: 'inbound', receiverRoles: ['supplier'], applicationReferences: ['23-DDQ-PRODAT']}}
   io.calls = []; io.permission = true
-  io.sourceError = false; io.legalError = false; io.catalogError = false; io.permissionError = null; io.delay = 0
+  io.sourceError = false; io.legalError = false; io.catalogError = false; io.permissionError = null; io.delay = 0; io.clockReadHook = null
   expect(validateEdifactSyntax(io.source).ok).toBe(true)
 }
 const input = () => {const wire = tokenizeEdifact(io.source.raw_payload!); return {rawSegments: wire.segments.map(s => s.raw), una: wire.una}}
 const registryCalls = () => io.calls.filter(c => c.name === 'resolve_canonical_ediel_rule_pack_with_witness_v1')
 beforeEach(() => {vi.useFakeTimers({toFake: ['Date']}); vi.setSystemTime(new Date('2026-10-07T22:30:00Z')); setup()})
-afterEach(() => vi.useRealTimers())
+afterEach(() => {vi.restoreAllMocks(); vi.useRealTimers()})
 
 it.each(['invalid', 'absent'])('observes actual own %s field209 without borrowing NAD identity', kind => {
   const body = object(); if (kind === 'absent') body[0] = ['LIN', '1']; setup(body)
@@ -246,4 +247,37 @@ it.each(['report-accepted', 'report-functional', 'report-syntax', 'report-policy
   expect(ownReceivedZ05RejectedIdentityRejection(decision, io.source, actor, token)).toBe(false)
   expect(hasReceivedZ05RejectedIdentityRejection(decision, io.source, actor)).toBe(false)
   expect(buildReceivedProdatResponseValidation(io.source, decision)).toBeNull()
+})
+
+// The monotonic clock port is deliberately controlled; all real source/owner
+// methods execute. Fixed wall time must not renew a stale private READ/structure.
+it.each([2001, -1])('refuses a private READ with monotonic elapsed %s while wall time stays fixed', async elapsed => {
+  const monotonic = vi.spyOn(performance, 'now').mockReturnValue(10_000), wall = Date.now()
+  expect(performance.now()).toBe(10_000)
+  io.clockReadHook = () => {monotonic.mockReturnValue(10_000 + elapsed)}
+  expect(await loadReceivedZ05RejectedIdentityRejection(io.source, actor)).toBeNull()
+  expect(Date.now()).toBe(wall)
+})
+it.each(['witness', 'redemption', 'structure'])('refuses monotonic-expired %s without a wall-clock advance', async stage => {
+  const monotonic = vi.spyOn(performance, 'now').mockReturnValue(10_000), wall = Date.now()
+  const {token, decision} = await prepared()
+  monotonic.mockReturnValue(12_001)
+  if (stage === 'witness') expect(readReceivedZ05RejectedIdentityWitness(token, io.source, actor)).toBeNull()
+  else {
+    // A newly qualified READ remains fresh; only the earlier genuine structure
+    // is expired. A refreshed token cannot renew that structural invocation.
+    const selected = stage === 'structure' ? await loadReceivedZ05RejectedIdentityRejection(io.source, actor) : token
+    expect(selected).not.toBeNull(); if (!selected) return
+    expect(ownReceivedZ05RejectedIdentityRejection(decision, io.source, actor, selected)).toBe(false)
+    expect(hasReceivedZ05RejectedIdentityRejection(decision, io.source, actor)).toBe(false)
+    expect(buildReceivedProdatResponseValidation(io.source, decision)).toBeNull()
+  }
+  expect(Date.now()).toBe(wall)
+})
+it('retains the exact two-second monotonic boundary when the wall clock stays valid', async () => {
+  const monotonic = vi.spyOn(performance, 'now').mockReturnValue(10_000)
+  const {token, decision} = await prepared()
+  monotonic.mockReturnValue(12_000)
+  expect(readReceivedZ05RejectedIdentityWitness(token, io.source, actor)).not.toBeNull()
+  expect(ownReceivedZ05RejectedIdentityRejection(decision, io.source, actor, token)).toBe(true)
 })
