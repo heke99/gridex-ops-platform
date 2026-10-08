@@ -63,7 +63,9 @@ describe('prospective ordinary Z04 input for cancellation prerequisites', () => 
   ])('refuses a %s in the supplied synthetic field259 bundle before rewriting it', (_name, replacement) => {
     // Only the declared fixture-input port is supplied; parser, scope guard,
     // selection, encoder and downstream assertions remain real.
-    const supplied = sourceOwnerFixture.ownerSource({ readingDeclarations: true })
+    const supplied = sourceOwnerFixture.ownerSource({
+      readingDeclarations: true, sourceCodes: { installationStatus: 'Z12', settlementMethod: 'Z31' },
+    })
     expect(supplied.raw_payload).toContain("CCI++Z16'CAV+:::111'")
     vi.spyOn(sourceOwnerFixture, 'ownerSource').mockReturnValue({
       ...supplied, raw_payload: supplied.raw_payload!.replace("CCI++Z16'CAV+:::111'", replacement),
