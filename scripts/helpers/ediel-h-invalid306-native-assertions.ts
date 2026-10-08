@@ -186,6 +186,32 @@ function arrayReasons(i: Input) { return i.decision.issues.filter(e => e.layer =
   && e.prodatDiagnostic?.kind === 'field' && e.prodatDiagnostic.fieldNumber === '306'
   && e.prodatDiagnostic.errorKind === 'invalid').map(e => e.code) }
 
+function completedInvocation(i: Input, result: Awaited<ReturnType<typeof processInboundEdielMessage>>, o: Observations) {
+  // Use THIS real processor return, never a latest mutable public-row report
+  // or a source-wide old-history existence check (especially under concurrency).
+  expect(result).toMatchObject({ id: i.source.id, company_id: i.companyId, environment: 'test', direction: 'inbound',
+    raw_payload: i.source.raw_payload, immutable_payload_hash: hash(i.source.raw_payload!) })
+  const receipt = record(record(result.validation_report).receivedSourceValidationEvidence)
+  expect(receipt).toMatchObject({ status: 'recorded', sourceDisposition: 'not_established' })
+  const assessmentId = text(receipt.assessmentId), factsHash = text(receipt.factsHash)
+  const assessments = o.canonical.filter(a => a.id === assessmentId)
+  expect(assessments).toHaveLength(1); canonical(i, assessments[0]); expect(assessments[0].facts_hash).toBe(factsHash)
+  for (const kind of ['application', 'response'] as const) {
+    const facets = o[kind].filter(f => f.assessment_id === assessmentId)
+    expect(facets, `This completed invocation requires its own ${kind} facet`).toHaveLength(1)
+    ownSource(i, facets[0]); expect(facets[0].source_payload_hash).toBe(hash(i.source.raw_payload!))
+  }
+  // qualifyObservations already validates every composition's full rejected
+  // physical scope, canonical facts hash, NULL business/party and real committed
+  // witness. Require that proof for this returned invocation's canonical ID.
+  const compositions = o.composition.filter(a => a.canonical_assessment_id === assessmentId)
+  expect(compositions.length, 'This completed invocation must have its own committed rejected composition').toBeGreaterThan(0)
+  for (const a of compositions) {
+    ownSource(i, a)
+    expect(o.availability.filter(w => w.assessment_id === a.id)).toHaveLength(1)
+  }
+}
+
 async function acknowledgements(i: Input, o: Observations) {
   // Guarded public reader is always authoritative; SQL only supplements it.
   const acks = await listBusinessAckMessagesForSource({ companyId: i.companyId, sourceMessageId: i.source.id,
@@ -262,7 +288,7 @@ async function acknowledgements(i: Input, o: Observations) {
     const queued = rows('public.ediel_outbox', i.companyId).filter(q => q.ediel_message_id === ack.id)
     expect(queued).toHaveLength(1)
     expect(queued[0]).toMatchObject({ company_id: i.companyId, environment: 'test', source_message_id: i.source.id,
-      ediel_message_id: ack.id, ack_family: ack.message_family, ack_outcome: ack.ack_outcome,
+      ediel_message_id: ack.id, message_family: ack.message_family, ack_outcome: ack.ack_outcome,
       immutable_payload_hash: hash(ack.raw_payload!), status: 'queued', sent_at: null,
       created_by: i.actorUserId, route_profile_id: ack.route_profile_id })
     expect(ack.route_profile_id).not.toBeNull(); expect(ack.communication_route_id).not.toBeNull(); instant(queued[0].queued_at)
@@ -335,8 +361,9 @@ export async function assertInvalid306NativeContract(i: Input) {
   const technicalBefore = technical(i), timersBefore = rows('public.ediel_sla_timers', i.companyId)
   const expectationsBefore = rows('public.ediel_business_expectations', i.companyId)
   const process = () => processInboundEdielMessage({ actorUserId: i.actorUserId, edielMessageId: i.source.id })
-  await process()
+  const firstResult = await process()
   const firstObservations = observations(i); qualifyObservations(i, previous, firstObservations); previous = firstObservations
+  completedInvocation(i, firstResult, firstObservations)
   const acks = await acknowledgements(i, firstObservations)
   firstGraph(i, beforeGraph, i.durable(), acks); expect(i.business()).toEqual(beforeBusiness); stableSource(i, beforeSeal)
   const firstTechnical = technical(i); qualifyTechnical(i, technicalBefore, firstTechnical)
@@ -344,15 +371,23 @@ export async function assertInvalid306NativeContract(i: Input) {
   expect(rows('public.ediel_business_expectations', i.companyId)).toEqual(expectationsBefore)
   expect(i.smtpCalls()).toBe(sends); await i.rereadControl()
   const firstGraphSnapshot = i.durable()
+  const firstSourceSeal = i.sourceSeal()
   for (const stage of ['sequential', 'concurrent'] as const) {
-    if (stage === 'sequential') await process()
+    const returned: Awaited<ReturnType<typeof processInboundEdielMessage>>[] = []
+    if (stage === 'sequential') returned.push(await process())
     else {
       const results = await Promise.allSettled([process(), process()])
       expect(results.map(r => r.status)).toEqual(['fulfilled', 'fulfilled'])
+      for (const result of results) {
+        if (result.status !== 'fulfilled') throw result.reason
+        returned.push(result.value)
+      }
     }
     const current = observations(i); qualifyObservations(i, previous, current); previous = current
+    for (const result of returned) completedInvocation(i, result, current)
     expect(await acknowledgements(i, current)).toEqual(acks)
     expect(i.durable(), stage).toEqual(firstGraphSnapshot); expect(i.business()).toEqual(beforeBusiness); stableSource(i, beforeSeal)
+    expect(i.sourceSeal(), 'First captured rule basis and full immutable source seal stay frozen').toEqual(firstSourceSeal)
     expect(technical(i)).toEqual(firstTechnical); expect(rows('public.ediel_sla_timers', i.companyId)).toEqual(firstTimers)
     expect(rows('public.ediel_business_expectations', i.companyId)).toEqual(expectationsBefore)
     expect(i.smtpCalls()).toBe(sends); await i.rereadControl(); expect(i.durable()).toEqual(firstGraphSnapshot)
