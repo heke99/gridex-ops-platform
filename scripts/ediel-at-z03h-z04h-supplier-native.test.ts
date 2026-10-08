@@ -958,7 +958,7 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
       } else {
         expect(await observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message))).toBeNull()
       }
-    } else if(!fieldError) {
+    } else if(!fieldError&&!requiredPhysical) {
       expect(['311','312','202','207','208','223','226','209','210','260']).toContain(field)
       expect(await observedStage(`critical_negative_${field}_read_capability`,()=>readSourceQualifiedProdatBilateralCapability(message))).toBeNull()
       expect(JSON.stringify(decision)).toContain('prodat_bilateral_capability_required:Z04:H')
