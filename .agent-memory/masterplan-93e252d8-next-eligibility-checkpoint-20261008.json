@@ -1,0 +1,1703 @@
+{
+  "status": "DATED_ROOT_NEXT52_BLOCKED_OCCUPIED_RETAINED_NO_NEW_CLAIM",
+  "agent": "codex-ediel-20261006-93e252d8",
+  "at": "2026-10-08T09:53:06.999905+00:00",
+  "main": "74bcd6d109861e940269f75821f6d3516df29a96",
+  "tree": "30a63bc9057832a21ac035cadd62250f0ca58570",
+  "solePriorPacketReleased": "88aa62fd-bf50-433d-9b98-5504c892594d",
+  "sourceDelivery": {
+    "status": "ACTUAL_NORMAL_EXPECTED_CURRENT_SOURCE_COMPONENT657_MERGED",
+    "pr": 657,
+    "source": "2f4359edcf3272fda2b62811ad92c6274ab537bf",
+    "main": "74bcd6d109861e940269f75821f6d3516df29a96",
+    "parents": [
+      "0b7d930ca67b8b78cb6e6f04b8f94eb7edac37ec",
+      "2f4359edcf3272fda2b62811ad92c6274ab537bf"
+    ],
+    "tree": "30a63bc9057832a21ac035cadd62250f0ca58570",
+    "mergedAt": "2026-10-08T09:41:05Z",
+    "mergeRole": "1e2e6945a61033b1cd13bf6247eb83b2d5e1b157",
+    "claimReceipt": 6057074092,
+    "wholeH": "NOT_EXECUTED",
+    "coverage": "UNCHANGED_300_OF_352",
+    "resultingMainRuntime": "NOT_RUN",
+    "externalVerified": false
+  },
+  "releaseReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6057179928",
+  "coverage": {
+    "approved": 300,
+    "total": 352,
+    "remaining": 52,
+    "unchanged": true
+  },
+  "partition": {
+    "OCCUPIED": 6,
+    "RETAINED_TRANSPORT_AND_PROVIDER_INPUT": 2,
+    "RELEASED_PREREQUISITES_NOT_READY": 18,
+    "RETAINED_LEGAL_LIFECYCLE_AND_INPUT": 3,
+    "AUTHENTIC_INCIDENT_INPUT_AND_RETAINED_DUTY": 2,
+    "RETAINED_DUTY": 21
+  },
+  "liveIdRefs": {
+    "AT-P-08": "672e62bc169c9ee667c4f73a5f84a0dbe5567f5b",
+    "AT-Z02L-SUPPLIER": "29fd83fe244175831345a7de1810a2bc544abf30",
+    "AT-Z02LK-SUPPLIER": "29fd83fe244175831345a7de1810a2bc544abf30",
+    "AT-Z13V-ESCO": "98592b9a3cc0617b76e0814a1e5df137e40356f7",
+    "AT-Z13VH-ESCO": "98592b9a3cc0617b76e0814a1e5df137e40356f7",
+    "P-08": "672e62bc169c9ee667c4f73a5f84a0dbe5567f5b"
+  },
+  "totalLiveResources": 84,
+  "sourceRegisters": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "bytes": 157239,
+      "sha256": "51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "bytes": 91487,
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "bytes": 150753,
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10"
+    },
+    {
+      "path": ".agent-memory/masterplan-legacy-pr-register.json",
+      "bytes": 19391,
+      "sha256": "01bfde30257c56b6801c70fd3a32f893de1c29e94c25ba733259213192ebf255"
+    }
+  ],
+  "originalAssessment": {
+    "main": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+    "publicCompanion": "https://github.com/heke99/gridex-ops-platform/blob/67fdb81506011fdd59bdc6c9f5abb13947e865c8/.agent-memory/masterplan-b6d3-41f5172a-next-eligibility.json",
+    "qualification": "ROOT independently matched all52 normative/currentcoverage IDs/statuses, read whole original custody/criteria/nextactions; retainedSC original checkpoints and SC053054 actual public storage/read/billing/monitor selected view source assessed. Exact currentH/C/Z originals independently2+ROOT and genuine source delivery qualify remaining ownH prerequisites. Missing sixTRDB selectedSQL independentlychecked currentmain; legacy543/599 preservedbranch comparisons read previously; no foreign report alone used as permission."
+  },
+  "legacyDispositionPreserved": [
+    {
+      "number": 599,
+      "state": "CLOSED_UNMERGED",
+      "head": "20c227166a007c07b3eafabdd89cae28f7538a13",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 596,
+      "state": "CLOSED_UNMERGED",
+      "head": "5d45640c7763fd9e5ba764fee72a3009027c9822",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 576,
+      "state": "CLOSED_UNMERGED",
+      "head": "5022b224a1d1d1e41c85727f40b0cbd8e948d902",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 545,
+      "state": "CLOSED_UNMERGED",
+      "head": "1b7702efc7386567eebc646e856e8af4f612219b",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 543,
+      "state": "CLOSED_UNMERGED",
+      "head": "29b63436ccc5b9cf37a6c7521d799ee196e2281f",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 536,
+      "state": "CLOSED_UNMERGED",
+      "head": "bd12b6b7857b290af19bcd9c0c1a303cad3bf7c4",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 482,
+      "state": "CLOSED_UNMERGED",
+      "head": "86d2a86e6bc34adbe7e13a97069964a4ccab314c",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 422,
+      "state": "CLOSED_UNMERGED",
+      "head": "3c20d8e0b11edc859752e4e894fc346080022bb4",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 418,
+      "state": "CLOSED_UNMERGED",
+      "head": "ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 310,
+      "state": "CLOSED_UNMERGED",
+      "head": "e961135199f292b8210884f07de3b616a670161a",
+      "disposition": "PAUSED"
+    },
+    {
+      "number": 273,
+      "state": "CLOSED_UNMERGED",
+      "head": "db363e68b889d5a20e4ccdd41a3639b9be72c021",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 150,
+      "state": "CLOSED_UNMERGED",
+      "head": "90c41bb6ffbbde8c29d5798e8e3fb337ac76edb8",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 148,
+      "state": "CLOSED_UNMERGED",
+      "head": "17704bff4308ca955416df27b2fc3451f62f8c90",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 146,
+      "state": "CLOSED_UNMERGED",
+      "head": "08cbe8db46cca71fea8279f9c8e3677d8119854c",
+      "disposition": "HOLD"
+    },
+    {
+      "number": 43,
+      "state": "CLOSED_UNMERGED",
+      "head": "f640d29028199006623ac3e3888170e0fbe1b90e",
+      "disposition": "HOLD"
+    }
+  ],
+  "independentSC053054Qualification": {
+    "wholePinsMatched": 75,
+    "snapshotPinsMatched": 2,
+    "reportSha256": "a5d80627282bfc04c1729e9bf15ccb9e43221765cdf0fe913a7aabcd2fd06dbc",
+    "finding": "Explicit retained originalfixture/source/wholeauthor. SC053 realNULL quality46 versus provenzero requires actualseries durable qualified consumer; SC054 no earlyACK/failed-storage watch needs actual deadline-selectedfailure/caller. CurrentackSlaMonitor definition no tracked caller; view status priority failed/awaitingbeforeack_overdue omitsthose from selection. Static limitation not fresh native confirmed defect/approval; narrow transfer needed."
+  },
+  "DockerReadOnly": {
+    "daemonInfoExit": 0,
+    "root": "/var/lib/docker",
+    "inventoryAllZero": true,
+    "workspaceAvailable": "28GB",
+    "nativeExecuted": false,
+    "limits": "Availability/emptyinventory/overlay capacity only; actualproducer image/layers/ports/space/exclusivelease/source and toolchain not fully prequalified."
+  },
+  "sharedStatus": {
+    "role": "role-memory",
+    "owner": "ROLE_ACTUALLY_RELEASED_BY_PROTOCOL_OWNER",
+    "priorReceipt": "74b4932bd9f2e824232ea0a4259eaea0e7a15e5b",
+    "releaseReceipt": 6057240082,
+    "protocolPR": 709,
+    "nextOwnerAction": "ROOT93 fresh-claim exact shared status files/role for a small actual657 reconciliation; then review/CI/normal merge. Acquire exact shared status files under own legitimate role, mirror actual657 source/main/whole15blocked/owner-only all12 release and this dated remaining52 inventory preserving all foreign historical evidence. No overlapping shared update by93."
+  },
+  "readyIndependentPairs": [],
+  "newPacketStarted": false,
+  "initialFreshnessRefusal": "Initial expected4 ID refs refused because new original-owner-authorized P08 proxy claim created2 new refs during final read. No file/ref/source change occurred before refusal; fresh receipt/message reviewed then updated dated partition, preserved original retained Z09B/D custody.",
+  "rows": [
+    {
+      "id": "P-08",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "OCCUPIED",
+      "responsible": "claude-ediel-20261008-bardeen; proxy executor codex-root-coordinator",
+      "basis": "Explicit owner-authorized handover6057229927 of P08/ATP08 only; actual5resource proxy CLAIM6057243035 receipt672e62bc169c9ee667c4f73a5f84a0dbe5567f5b. Z09B/D andSC036 not transferred.",
+      "nextConcreteAction": "Bardeen independently verifies5refs, completes all literal XOR210211/9293/40109/no157 and actual originalACKdurableproductionchain; reserve additional source scope first. Current9ACK-trigger-only proof cannot close whole. Original retained work reused.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "P-08",
+        "area": "Avtal",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z09D",
+        "trigger": "Start eller slut produktionsavtal",
+        "condition": "210 XOR211; inte216 i stället.",
+        "on_pass": "Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation.",
+        "on_failure": "Båda: P-APERAK40/109; ingen generell157.",
+        "callsite_owner": "profileRenderer / lifecycle",
+        "source": "P §2.2,3.3",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-P-08"
+      },
+      "actualIdLock": "672e62bc169c9ee667c4f73a5f84a0dbe5567f5b",
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "TR-08",
+      "coverageStatus": "NOT_VERIFIED",
+      "admissibility": "RETAINED_TRANSPORT_AND_PROVIDER_INPUT",
+      "responsible": "Retained transport/provider TLS/SPF owner",
+      "basis": "Current legacy register543/545 preserves original relay/CRL branches and residual software defects, not just external provider policy.",
+      "nextConcreteAction": "Original TR08 relay owner resumes retained543 narrow implementation: strict hop-index/trace/plaintext classification refusal, then genuine agreed provider policy and whole delivery-hop TLS/SPF proof. An explicit source/remaining-proof handoff can permit new code work; market activation is not an added software gate.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "TR-08",
+        "area": "TLS/SPF",
+        "kind": "Ediel/Handbok",
+        "applies_to": "SMTP-reläer",
+        "trigger": "Kommunikation",
+        "condition": "Verifiera relä-TLS och SPF. TLS till första servern bevisar inte nästa serverhopp.",
+        "on_pass": "Kontrollera providerpolicy och verkligt leveransspår.",
+        "on_failure": "Deklarera inte hela transporten verifierad bara för att port465 kan nås.",
+        "callsite_owner": "transport security readiness",
+        "source": "T §3.1,bilagaA",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TR-08"
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "TR-09",
+      "coverageStatus": "NOT_VERIFIED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "GEN/core rightful owner2f72; future fresh TRDB whole/native claimant after source qualification",
+      "basis": "Original24fa explicit whole BLOCKED/RELEASE in historical5306038325392, durable708df8d31a44cbc9039478b8591fd60cdc2e6956; current refs absent, source19e/120f preserved NONPR; actual708 metadata delivered0b7d. Current main still lacks selected six SQL timestamps111843/114453/114513/154601/235632/231122 and canonical GEN/runtime adoption/parity.",
+      "nextConcreteAction": "2f72 lawfully deliver/adopt coupled selected SQL/catalog/schema/types/runtime with actual clean-upgrade/full parity, or explicit narrow source/GEN handoff. Future accountable native claimant requalifies original21+21+14/full39 inputs, exclusive isolated lease and PLAN/SOURCE2 before separately justified new attempt. Our Docker info succeeds with empty inventory/host28GB; old capacity refusal not transferred here. No unchanged historical retry or invented latest-main qualification.",
+      "idLock": {
+        "agent": "codex-20261006T134820Z-24fa8502b8",
+        "packet": "6d5fe7e4-2c37-4b37-a886-bb044e79a5c3",
+        "receipt": "c84b1dfebb1a1643b6da823cdc00a3f421fef104"
+      },
+      "normativeRequirement": {
+        "id": "TR-09",
+        "area": "Reservförfarande",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Tillfälligt krypterings-/CRLproblem",
+        "trigger": "Reservförfarande prövas",
+        "condition": "Endast uttryckligen specificerade undantagsfall i T får användas med respektive villkor/larm och fortsatt obligatorisk TLS.",
+        "on_pass": "Skapa separat avvikelsejournal och avgränsad driftåtgärd.",
+        "on_failure": "Ingen generell switch för oskyddad trafik och inga påhittade undantag.",
+        "callsite_owner": "transport exception policy",
+        "source": "T §3.1,bilagaA",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TR-09"
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "DB-01",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "GEN/core rightful owner2f72; future fresh TRDB whole/native claimant after source qualification",
+      "basis": "Original24fa explicit whole BLOCKED/RELEASE in historical5306038325392, durable708df8d31a44cbc9039478b8591fd60cdc2e6956; current refs absent, source19e/120f preserved NONPR; actual708 metadata delivered0b7d. Current main still lacks selected six SQL timestamps111843/114453/114513/154601/235632/231122 and canonical GEN/runtime adoption/parity.",
+      "nextConcreteAction": "2f72 lawfully deliver/adopt coupled selected SQL/catalog/schema/types/runtime with actual clean-upgrade/full parity, or explicit narrow source/GEN handoff. Future accountable native claimant requalifies original21+21+14/full39 inputs, exclusive isolated lease and PLAN/SOURCE2 before separately justified new attempt. Our Docker info succeeds with empty inventory/host28GB; old capacity refusal not transferred here. No unchanged historical retry or invented latest-main qualification.",
+      "idLock": {
+        "agent": "codex-20261006T134820Z-24fa8502b8",
+        "packet": "6d5fe7e4-2c37-4b37-a886-bb044e79a5c3",
+        "receipt": "c84b1dfebb1a1643b6da823cdc00a3f421fef104"
+      },
+      "normativeRequirement": {
+        "id": "DB-01",
+        "area": "Datamodell",
+        "kind": "Intern arkitektur",
+        "applies_to": "Affärsdata och protokolljournal",
+        "trigger": "Schema ändras",
+        "condition": "Identifiera befintlig auktoritativ tabell för varje uppgift innan något nytt skapas.",
+        "on_pass": "Utöka med expand, backfill, validate och först därefter contract.",
+        "on_failure": "Skapa inte parallella kund-, regel- eller ruttauktoriteter.",
+        "callsite_owner": "migration design",
+        "source": "SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-DB-01"
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "DB-05",
+      "coverageStatus": "NOT_VERIFIED",
+      "admissibility": "RETAINED_LEGAL_LIFECYCLE_AND_INPUT",
+      "responsible": "Retained legal data-lifecycle owner",
+      "basis": "Retained legacy599/source plus specific6736054316806 correction/handoff request acknowledged in6055272872; no observed scope transfer.",
+      "nextConcreteAction": "Original legal-data-lifecycle owner supplies or hands over decided retention-class close/delete/pseudonymize workflow and the specific closed-retention four-post consumer corrections. Internal correctness work is possible under authorized custody; absence of legal policy cannot be cured by guessed retention or blind cascade.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "DB-05",
+        "area": "Radering",
+        "kind": "Intern arkitektur",
+        "applies_to": "Kund, tenant eller uppdrag avslutas",
+        "trigger": "Raderingsbegäran",
+        "condition": "Skilj operativ avveckling, åtkomstrevoke, persondatagallring och skyldighet att bevara journal/avräkningsunderlag.",
+        "on_pass": "Använd en beslutad workflow per retentionklass och behörigt underlag.",
+        "on_failure": "Radera inte all historik med CASCADE och spara inte allt för alltid utan rättslig grund.",
+        "callsite_owner": "data lifecycle service",
+        "source": "SYS; juridiskretentionG04",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-DB-05"
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "OPS-04",
+      "coverageStatus": "NOT_VERIFIED",
+      "admissibility": "AUTHENTIC_INCIDENT_INPUT_AND_RETAINED_DUTY",
+      "responsible": "Original incident/release/counterparty owner",
+      "basis": "Frozen OPS04 +actualZ14N receipt explicitBLOCKED",
+      "nextConcreteAction": "Supply agreed bounded genuine selectedcounterparty/milieu/incident/route/cert/profile/tenant input; execute actualcourse, no synthetictrial or blindresend.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "OPS-04",
+        "area": "Begränsadliveverifiering",
+        "kind": "Intern arkitektur",
+        "applies_to": "Kontrollerad produktionstest",
+        "trigger": "Efter rättelse",
+        "condition": "Verifiera incidentspår, rutt, certifikat, profil och tenantkontext samt ett överenskommet motpartsprov.",
+        "on_pass": "Genomför ett kontrollerat verkligt förlopp i rätt miljö.",
+        "on_failure": "Massimport av referenser eller blinda omsändningar är inte en teststrategi.",
+        "callsite_owner": "release runbook",
+        "source": "TGT; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-OPS-04"
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-023",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Sole ESCO09/history producer with ESCO07 preserved",
+      "basis": "Explicit5305999424902+6022005090+5995605329",
+      "nextConcreteAction": "Join actualZ15VH ownhistoryjob/requestedwindow completion/coverage inspection and independentV/liveDDQ continuation; reuse b7d70f proposal/native33 without duplicateworker.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-023",
+        "name": "Historikslut påverkar inte löpande tillstånd",
+        "given": "Separata V- och VH-förlopp finns för samma objekt.",
+        "when": "Ta emot Z15VH.",
+        "expected": "Historikjobbet avslutas/täckningen granskas; V fortsätter om giltigt.",
+        "prohibited": "Pågående V och DDQ-leverans avslutas inte.",
+        "rule_ids": [
+          "ESCO-07"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-031",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P/U/SC03x-05x source owners +source-owned native/timer/billing authors",
+      "basis": "Explicit5305990498953;review checkpoints031/034,035/039,037/052,038/045,046/047,053/054",
+      "nextConcreteAction": "Original whole owner completes incoming ignored-extra facets and persisted business-noneffects through actual wrapper/consumer; raw-projection reading of unused fields is an unconfirmed source observation, needs genuine public reproduction before fix. Reuse delivered units/source guards; no root source takeover.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-031",
+        "name": "Extra, icke tillämpliga PRODAT-uppgifter",
+        "given": "Syntaxen är giltig men meddelandet innehåller extra uppgifter som ska ignoreras enligt PRODAT-anvisningen.",
+        "when": "Gör mottagningskontrollen.",
+        "expected": "Ingen negativ APERAK enbart för dessa extrauppgifter; uppgifterna påverkar inte affärsdata.",
+        "prohibited": "Mottagningstoleransen innebär inte att den egna byggaren ska börja skicka dessa uppgifter.",
+        "rule_ids": [
+          "P-02"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-035",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P/U/SC03x-05x source owners +source-owned native/timer/billing authors",
+      "basis": "Explicit5305990498953;review checkpoints031/034,035/039,037/052,038/045,046/047,053/054",
+      "nextConcreteAction": "Reuse delivered exactreviews/currentcode. Close firsttwo/actionablesiblings; real downstream date/reviewer/source guards; actual before/atZ04 activation; nooverwrite/method conflicts; profilevalidNULLvszero stored/read underlay; validwritefailure physicalACK refusal and real durable monitor/caller/deadline. Original owners provide exactexisting observation seam or explicitremainingcriteria handoff.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-035",
+        "name": "Z02 verifierar uppgifter, inte leverans",
+        "given": "En behörig uppgiftsförfrågan kan entydigt korreleras.",
+        "when": "Ta emot ett giltigt Z02.",
+        "expected": "Lagra tillåten verifierad information och gör en separat prövning av nästa affärssteg.",
+        "prohibited": "Skapa inte aktiv leverans eller ett Z04-bekräftat tillstånd.",
+        "rule_ids": [
+          "P-10"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-037",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P/U/SC03x-05x source owners +source-owned native/timer/billing authors",
+      "basis": "Explicit5305990498953;review checkpoints031/034,035/039,037/052,038/045,046/047,053/054",
+      "nextConcreteAction": "Reuse delivered exactreviews/currentcode. Close firsttwo/actionablesiblings; real downstream date/reviewer/source guards; actual before/atZ04 activation; nooverwrite/method conflicts; profilevalidNULLvszero stored/read underlay; validwritefailure physicalACK refusal and real durable monitor/caller/deadline. Original owners provide exactexisting observation seam or explicitremainingcriteria handoff.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-037",
+        "name": "Leveransstart ligger i framtiden",
+        "given": "Ett korrekt Z04 har mottagits med ett framtida startdatum.",
+        "when": "Kör aktiveringsjobbet före och vid starttidpunkten.",
+        "expected": "Ingen förtida aktivering. Endast rätt, fortsatt giltiga period aktiveras vid rätt start.",
+        "prohibited": "SMTP-acceptans eller en teknisk kvittens får inte tidigarelägga startdatumet.",
+        "rule_ids": [
+          "P-11"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-038",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P/U/SC03x-05x source owners +source-owned native/timer/billing authors",
+      "basis": "Explicit5305990498953;review checkpoints031/034,035/039,037/052,038/045,046/047,053/054",
+      "nextConcreteAction": "Original whole owner reviews reused own95 PR656 authentic34 A/D proof with real A-noZ03 and D-production-point-noZ03 public effects/physical ACK and separate production relation; no repeated implementation. Complete current whole-scenario qualification/approval or explicit remaining approval-scope handoff. Own656 effect receipt is historical source0ce, not new main-native34.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-038",
+        "name": "Z04A och Z04D utan egen Z03",
+        "given": "Rätt särskild grund för anvisning respektive mottagningspliktig produktion finns.",
+        "when": "Ta emot respektive meddelande.",
+        "expected": "Använd särskild process och dess kontroller.",
+        "prohibited": "Ett generellt krav på en föregående egen Z03 får inte blockera dessa korrekta specialprocesser.",
+        "rule_ids": [
+          "P-12"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-039",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P/U/SC03x-05x source owners +source-owned native/timer/billing authors",
+      "basis": "Explicit5305990498953;review checkpoints031/034,035/039,037/052,038/045,046/047,053/054",
+      "nextConcreteAction": "Reuse delivered exactreviews/currentcode. Close firsttwo/actionablesiblings; real downstream date/reviewer/source guards; actual before/atZ04 activation; nooverwrite/method conflicts; profilevalidNULLvszero stored/read underlay; validwritefailure physicalACK refusal and real durable monitor/caller/deadline. Original owners provide exactexisting observation seam or explicitremainingcriteria handoff.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-039",
+        "name": "Kancellering anländer före originalet",
+        "given": "Original och kancellering kommer från rätt motpart men anländer i omvänd ordning.",
+        "when": "Bearbeta enligt tillämplig korrelations- och kancelleringsregel.",
+        "expected": "Bevara båda meddelandena och deras orsakskedja. Eventuell intern väntan måste hålla föreskrivna kvittensfrister; annars krävs rätt externt utfall eller kontakt.",
+        "prohibited": "Ingen dubbel aktivering, tyst bortkastning eller gissad kompensation mot ett annat original.",
+        "rule_ids": [
+          "P-14"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-046",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P/U/SC03x-05x source owners +source-owned native/timer/billing authors",
+      "basis": "Explicit5305990498953;review checkpoints031/034,035/039,037/052,038/045,046/047,053/054",
+      "nextConcreteAction": "Reuse delivered exactreviews/currentcode. Close firsttwo/actionablesiblings; real downstream date/reviewer/source guards; actual before/atZ04 activation; nooverwrite/method conflicts; profilevalidNULLvszero stored/read underlay; validwritefailure physicalACK refusal and real durable monitor/caller/deadline. Original owners provide exactexisting observation seam or explicitremainingcriteria handoff.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-046",
+        "name": "Äldre version av mätvärden anländer sist",
+        "given": "En nyare godkänd dataversion finns. Den senare ankomsten har äldre registrerings-/uppdateringstidpunkt, fält 512 eller 532.",
+        "when": "Behandla den äldre transaktionen som i övrigt är korrekt.",
+        "expected": "Positiv APERAK enligt regeln. Den nyare aktiva dataversionen skrivs inte över.",
+        "prohibited": "Ingen UTILTS-ERR eller tyst omfakturering enbart på grund av ankomstordningen.",
+        "rule_ids": [
+          "U-04"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-047",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Original SC047 joined-native author +Claude underlyingSRC",
+      "basis": "SC047joinedcheckpoint592;wholeproof retained",
+      "nextConcreteAction": "Qualify original E88sourcecopy +E01E10 actual physicalpositivecontrast, legalreceiver/source/no foreign/customer effects/retry through currentwhole evidence. No component-only promotion.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-047",
+        "name": "Okänt objekt i rätt mottagarsammanhang",
+        "given": "Syntax och nationell anvisningskontroll har passerat. Rätt juridisk mottagare och roll är fastställda men objektet är okänt enligt den tillämpliga funktionskontrollen.",
+        "when": "Pröva objektkontrollen.",
+        "expected": "UTILTS-ERR E10 där detta är kontrollens föreskrivna utfall.",
+        "prohibited": "Skapa inte ett nytt kundobjekt eller sök i andra tenants för att få kontrollen grön.",
+        "rule_ids": [
+          "U-03",
+          "TEN-11"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-052",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude E73/E66/requestedtype/source native owner",
+      "basis": "5305992830290 /SC037052checkpoint",
+      "nextConcreteAction": "Close prescribed physical requestedtypeRFF from actualqualified source, intended role/issuer/profile-positivepublicconsumer/effects; preserve refuted unauthorizedE73 allegation and validhistoricalE66alternative.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-052",
+        "name": "E73 begär E66 i DGI-rollen",
+        "given": "ESCO har rätt omfattning, tillämpligt tillstånd och verifierad bilateral kapabilitet för begäran.",
+        "when": "Bygg en begäran om saknade E66-värden.",
+        "expected": "Application Reference motsvarar den begärda E66-DGI-profilen. Efterfrågad meddelandetyp är uttrycklig.",
+        "prohibited": "Härled inte en generell E73-referens och anta inte rätt till S02 bara för att E73 kan begära S02 i en annan roll.",
+        "rule_ids": [
+          "U-06"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-053",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P/U/SC03x-05x source owners +source-owned native/timer/billing authors",
+      "basis": "Explicit5305990498953;review checkpoints031/034,035/039,037/052,038/045,046/047,053/054",
+      "nextConcreteAction": "Reuse delivered exactreviews/currentcode. Close firsttwo/actionablesiblings; real downstream date/reviewer/source guards; actual before/atZ04 activation; nooverwrite/method conflicts; profilevalidNULLvszero stored/read underlay; validwritefailure physicalACK refusal and real durable monitor/caller/deadline. Original owners provide exactexisting observation seam or explicitremainingcriteria handoff.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-053",
+        "name": "NULL skiljs från noll",
+        "given": "En observation saknas och representeras enligt profilens NULL-regel. En annan innehåller ett verifierat nollvärde.",
+        "when": "Lagra data och bygg behörigt underlag.",
+        "expected": "Skilda värde- och kvalitetsrepresentationer; ingen automatisk nollifyllnad.",
+        "prohibited": "Mätarställning, energi och effekt får inte blandas ihop.",
+        "rule_ids": [
+          "U-09"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-054",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P/U/SC03x-05x source owners +source-owned native/timer/billing authors",
+      "basis": "Explicit5305990498953;review checkpoints031/034,035/039,037/052,038/045,046/047,053/054",
+      "nextConcreteAction": "Reuse delivered exactreviews/currentcode. Close firsttwo/actionablesiblings; real downstream date/reviewer/source guards; actual before/atZ04 activation; nooverwrite/method conflicts; profilevalidNULLvszero stored/read underlay; validwritefailure physicalACK refusal and real durable monitor/caller/deadline. Original owners provide exactexisting observation seam or explicitremainingcriteria handoff.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-054",
+        "name": "Lagringen misslyckas",
+        "given": "UTILTS-transaktionen är korrekt men databastransaktionen misslyckas.",
+        "when": "Pröva skapandet av kvittensjobbet.",
+        "expected": "Ingen extern positiv APERAK före beständigt genomförd, föreskriven affärsbehandling. Fel och tidsfrist bevakas.",
+        "prohibited": "Enbart köstatus får inte betraktas som lagring i mottagande applikation.",
+        "rule_ids": [
+          "U-14"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-070",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_LEGAL_LIFECYCLE_AND_INPUT",
+      "responsible": "Retained legal data-lifecycle owner",
+      "basis": "Retained legacy599/source plus specific6736054316806 correction/handoff request acknowledged in6055272872; no observed scope transfer.",
+      "nextConcreteAction": "Original legal-data-lifecycle owner supplies or hands over decided retention-class close/delete/pseudonymize workflow and the specific closed-retention four-post consumer corrections. Internal correctness work is possible under authorized custody; absence of legal policy cannot be cured by guessed retention or blind cascade.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-070",
+        "name": "Kundavslut med bevarandekrav",
+        "given": "En kund avslutar. Vissa journaluppgifter behöver bevaras enligt beslutad lagringsklass.",
+        "when": "Kör datalivscykeln.",
+        "expected": "Operativt avslut, återkallade rättigheter och tillåten radering eller pseudonymisering genomförs med spårbar lagringsgrund.",
+        "prohibited": "Ingen blind CASCADE-radering av mätdata, fakturor och kvittenshistorik.",
+        "rule_ids": [
+          "DB-05"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "SC-071",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "revocation-20261005 actual sole native/export continuation owner",
+      "basis": "Explicit5305991386261 accepted5991584319;SC071checkpoint586",
+      "nextConcreteAction": "Currentcandidate canonicaladmission +actual realleased-export/currentgrant/revoke/expiry/version/transboundary proof. Existing10genuine BASE+overlay receipt is notcurrentcandidatewhole; reuse tested sole producer, no secondharness.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "SC-071",
+        "name": "Samtidig återkallelse och distribution",
+        "given": "Ett åtkomstgrant återkallas samtidigt som ett E66-resultat ska delas internt.",
+        "when": "Kör exportjobb och rättighetsändring parallellt.",
+        "expected": "Kontroll av aktuell version och transaktionsgräns hindrar utlämning utan giltig rätt.",
+        "prohibited": "Ett tidigare behörighetsbeslut får inte användas efter relevant återkallelse.",
+        "rule_ids": [
+          "TEN-10",
+          "TEN-12"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-P-08",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "OCCUPIED",
+      "responsible": "claude-ediel-20261008-bardeen; proxy executor codex-root-coordinator",
+      "basis": "Explicit owner-authorized handover6057229927 of P08/ATP08 only; actual5resource proxy CLAIM6057243035 receipt672e62bc169c9ee667c4f73a5f84a0dbe5567f5b. Z09B/D andSC036 not transferred.",
+      "nextConcreteAction": "Bardeen independently verifies5refs, completes all literal XOR210211/9293/40109/no157 and actual originalACKdurableproductionchain; reserve additional source scope first. Current9ACK-trigger-only proof cannot close whole. Original retained work reused.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-P-08",
+        "name": "Regelkontrakt: P-08",
+        "given": "Z09D",
+        "when": "Start eller slut produktionsavtal – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "210 XOR211; inte216 i stället. → Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation.",
+        "prohibited": "Båda: P-APERAK40/109; ingen generell157.",
+        "rule_ids": [
+          "P-08"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": "672e62bc169c9ee667c4f73a5f84a0dbe5567f5b",
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-TR-08",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_TRANSPORT_AND_PROVIDER_INPUT",
+      "responsible": "Retained transport/provider TLS/SPF owner",
+      "basis": "Current legacy register543/545 preserves original relay/CRL branches and residual software defects, not just external provider policy.",
+      "nextConcreteAction": "Original TR08 relay owner resumes retained543 narrow implementation: strict hop-index/trace/plaintext classification refusal, then genuine agreed provider policy and whole delivery-hop TLS/SPF proof. An explicit source/remaining-proof handoff can permit new code work; market activation is not an added software gate.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-TR-08",
+        "name": "Regelkontrakt: TR-08",
+        "given": "SMTP-reläer",
+        "when": "Kommunikation – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Verifiera relä-TLS och SPF. TLS till första servern bevisar inte nästa serverhopp. → Kontrollera providerpolicy och verkligt leveransspår.",
+        "prohibited": "Deklarera inte hela transporten verifierad bara för att port465 kan nås.",
+        "rule_ids": [
+          "TR-08"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-TR-09",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "GEN/core rightful owner2f72; future fresh TRDB whole/native claimant after source qualification",
+      "basis": "Original24fa explicit whole BLOCKED/RELEASE in historical5306038325392, durable708df8d31a44cbc9039478b8591fd60cdc2e6956; current refs absent, source19e/120f preserved NONPR; actual708 metadata delivered0b7d. Current main still lacks selected six SQL timestamps111843/114453/114513/154601/235632/231122 and canonical GEN/runtime adoption/parity.",
+      "nextConcreteAction": "2f72 lawfully deliver/adopt coupled selected SQL/catalog/schema/types/runtime with actual clean-upgrade/full parity, or explicit narrow source/GEN handoff. Future accountable native claimant requalifies original21+21+14/full39 inputs, exclusive isolated lease and PLAN/SOURCE2 before separately justified new attempt. Our Docker info succeeds with empty inventory/host28GB; old capacity refusal not transferred here. No unchanged historical retry or invented latest-main qualification.",
+      "idLock": {
+        "agent": "codex-20261006T134820Z-24fa8502b8",
+        "packet": "6d5fe7e4-2c37-4b37-a886-bb044e79a5c3",
+        "receipt": "c84b1dfebb1a1643b6da823cdc00a3f421fef104"
+      },
+      "normativeRequirement": {
+        "id": "AT-TR-09",
+        "name": "Regelkontrakt: TR-09",
+        "given": "Tillfälligt krypterings-/CRLproblem",
+        "when": "Reservförfarande prövas – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Endast uttryckligen specificerade undantagsfall i T får användas med respektive villkor/larm och fortsatt obligatorisk TLS. → Skapa separat avvikelsejournal och avgränsad driftåtgärd.",
+        "prohibited": "Ingen generell switch för oskyddad trafik och inga påhittade undantag.",
+        "rule_ids": [
+          "TR-09"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-DB-01",
+      "coverageStatus": "PARTIAL",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "GEN/core rightful owner2f72; future fresh TRDB whole/native claimant after source qualification",
+      "basis": "Original24fa explicit whole BLOCKED/RELEASE in historical5306038325392, durable708df8d31a44cbc9039478b8591fd60cdc2e6956; current refs absent, source19e/120f preserved NONPR; actual708 metadata delivered0b7d. Current main still lacks selected six SQL timestamps111843/114453/114513/154601/235632/231122 and canonical GEN/runtime adoption/parity.",
+      "nextConcreteAction": "2f72 lawfully deliver/adopt coupled selected SQL/catalog/schema/types/runtime with actual clean-upgrade/full parity, or explicit narrow source/GEN handoff. Future accountable native claimant requalifies original21+21+14/full39 inputs, exclusive isolated lease and PLAN/SOURCE2 before separately justified new attempt. Our Docker info succeeds with empty inventory/host28GB; old capacity refusal not transferred here. No unchanged historical retry or invented latest-main qualification.",
+      "idLock": {
+        "agent": "codex-20261006T134820Z-24fa8502b8",
+        "packet": "6d5fe7e4-2c37-4b37-a886-bb044e79a5c3",
+        "receipt": "c84b1dfebb1a1643b6da823cdc00a3f421fef104"
+      },
+      "normativeRequirement": {
+        "id": "AT-DB-01",
+        "name": "Regelkontrakt: DB-01",
+        "given": "Affärsdata och protokolljournal",
+        "when": "Schema ändras – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Identifiera befintlig auktoritativ tabell för varje uppgift innan något nytt skapas. → Utöka med expand, backfill, validate och först därefter contract.",
+        "prohibited": "Skapa inte parallella kund-, regel- eller ruttauktoriteter.",
+        "rule_ids": [
+          "DB-01"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-DB-05",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_LEGAL_LIFECYCLE_AND_INPUT",
+      "responsible": "Retained legal data-lifecycle owner",
+      "basis": "Retained legacy599/source plus specific6736054316806 correction/handoff request acknowledged in6055272872; no observed scope transfer.",
+      "nextConcreteAction": "Original legal-data-lifecycle owner supplies or hands over decided retention-class close/delete/pseudonymize workflow and the specific closed-retention four-post consumer corrections. Internal correctness work is possible under authorized custody; absence of legal policy cannot be cured by guessed retention or blind cascade.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-DB-05",
+        "name": "Regelkontrakt: DB-05",
+        "given": "Kund, tenant eller uppdrag avslutas",
+        "when": "Raderingsbegäran – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Skilj operativ avveckling, åtkomstrevoke, persondatagallring och skyldighet att bevara journal/avräkningsunderlag. → Använd en beslutad workflow per retentionklass och behörigt underlag.",
+        "prohibited": "Radera inte all historik med CASCADE och spara inte allt för alltid utan rättslig grund.",
+        "rule_ids": [
+          "DB-05"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-OPS-04",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "AUTHENTIC_INCIDENT_INPUT_AND_RETAINED_DUTY",
+      "responsible": "Original incident/release/counterparty owner",
+      "basis": "Frozen OPS04 +actualZ14N receipt explicitBLOCKED",
+      "nextConcreteAction": "Supply agreed bounded genuine selectedcounterparty/milieu/incident/route/cert/profile/tenant input; execute actualcourse, no synthetictrial or blindresend.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-OPS-04",
+        "name": "Regelkontrakt: OPS-04",
+        "given": "Kontrollerad produktionstest",
+        "when": "Efter rättelse – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Verifiera incidentspår, rutt, certifikat, profil och tenantkontext samt ett överenskommet motpartsprov. → Genomför ett kontrollerat verkligt förlopp i rätt miljö.",
+        "prohibited": "Massimport av referenser eller blinda omsändningar är inte en teststrategi.",
+        "rule_ids": [
+          "OPS-04"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z01L-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Fresh future whole claimant; actual2f CORE/GEN source producer",
+      "basis": "Actual explicit15Z01 RELEASE6038201371; preserved PR638438917c3/native94; current2f PR6585aef source and protected files are unmerged/owned; latest bounded fallback6039525024",
+      "nextConcreteAction": "Rightful2f delivers source-qualified scalar/correlation/CORE received source and actual required current native/capture evidence, or explicit minimal port/source handoff. Then fresh whole claim and reuse94 producer. No new duplicate original intake or currently necessary independent repair demonstrated on main.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z01L-SUPPLIER",
+        "name": "Meddelandefall Z01L",
+        "given": "SUPPLIER; Kund/fullmakt, anläggning, nätområde och avtalad tilltänkt start enligt fältprofil.",
+        "when": "Behörig kontroll av kundens nätavtalsuppgifter inför möjlig start; inte obligatoriskt om korrekta uppgifter redan finns.",
+        "expected": "23-DDQ-PRODAT; BGM=Z01; fält223=Z22; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z02L-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "OCCUPIED",
+      "responsible": "codex-ediel-20261006-2f72c8ab",
+      "basis": "Fresh111-ref snapshot plus full matching atomic receipt message 29fd83fe244175831345a7de1810a2bc544abf30",
+      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
+      "idLock": {
+        "agent": "codex-ediel-20261006-2f72c8ab",
+        "packet": "ac08f5ae-1dd9-4209-8fd6-2a596ffaf10f",
+        "receipt": "29fd83fe244175831345a7de1810a2bc544abf30"
+      },
+      "normativeRequirement": {
+        "id": "AT-Z02L-SUPPLIER",
+        "name": "Meddelandefall Z02L",
+        "given": "SUPPLIER; Inte Z03 eller Z04; får inte aktivera leverans.",
+        "when": "Svar på egen korrelerad Z01.",
+        "expected": "23-DDQ-PRODAT; BGM=Z02; fält223=Z22; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": "29fd83fe244175831345a7de1810a2bc544abf30",
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z03L-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Future fresh claimant;2f CORE/one-use READ integration owner",
+      "basis": "Explicit entire-pair RELEASE6736049937238; two policy/test files offered only via explicit handoff of f833; original13 positive suffix failures remain.",
+      "nextConcreteAction": "2f delivers legitimate actor/source one-use private READ and truthful own physical259 positive inputs; qualifies preserved f833 policy without restoring false/byCell authority or weakening13 positive effects. Fresh claimant then reuses original L/LK native/public APIs and actual current mandatory gates.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z03L-SUPPLIER",
+        "name": "Meddelandefall Z03L",
+        "given": "SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före.",
+        "when": "Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt.",
+        "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z22; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z04L-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Fresh future whole claimant; actualc3 L/LK and2f CORE producer; originalSC037 boundary owner",
+      "basis": "Explicit whole handover6047437221 and actual all5ref DELETE4046047451102; current2f c2696e1a holds activation forward; original SC037 unchanged-period source duty remains.",
+      "nextConcreteAction": "Obtain actual qualified c3 source/READ port with real public LK origin and physical sentZ03 tuple, lawful2f CORE integration, and same unchanged production period before/at realSQLnow from originalSC037 owner. Reuse existing56 and native producers; no clock tamper/private accepted seed/defaultunknownFALSE or duplicate timer. Fresh claim only when independent necessary work is available.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z04L-SUPPLIER",
+        "name": "Meddelandefall Z04L",
+        "given": "SUPPLIER; Z04 får komma före positiv APERAK. Samma LI ensamt räcker inte för korrelation.",
+        "when": "Nätägarens affärsbekräftelse på egen Z03.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z22; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z01LK-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Fresh future whole claimant; actual2f CORE/GEN source producer",
+      "basis": "Actual explicit15Z01 RELEASE6038201371; preserved PR638438917c3/native94; current2f PR6585aef source and protected files are unmerged/owned; latest bounded fallback6039525024",
+      "nextConcreteAction": "Rightful2f delivers source-qualified scalar/correlation/CORE received source and actual required current native/capture evidence, or explicit minimal port/source handoff. Then fresh whole claim and reuse94 producer. No new duplicate original intake or currently necessary independent repair demonstrated on main.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z01LK-SUPPLIER",
+        "name": "Meddelandefall Z01LK",
+        "given": "SUPPLIER; Kund/fullmakt, anläggning, nätområde och avtalad tilltänkt start enligt fältprofil.",
+        "when": "Behörig kontroll av kundens nätavtalsuppgifter inför möjlig start; inte obligatoriskt om korrekta uppgifter redan finns.",
+        "expected": "23-DDQ-PRODAT; BGM=Z01; fält223=Z23; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z02LK-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "OCCUPIED",
+      "responsible": "codex-ediel-20261006-2f72c8ab",
+      "basis": "Fresh111-ref snapshot plus full matching atomic receipt message 29fd83fe244175831345a7de1810a2bc544abf30",
+      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
+      "idLock": {
+        "agent": "codex-ediel-20261006-2f72c8ab",
+        "packet": "ac08f5ae-1dd9-4209-8fd6-2a596ffaf10f",
+        "receipt": "29fd83fe244175831345a7de1810a2bc544abf30"
+      },
+      "normativeRequirement": {
+        "id": "AT-Z02LK-SUPPLIER",
+        "name": "Meddelandefall Z02LK",
+        "given": "SUPPLIER; Inte Z03 eller Z04; får inte aktivera leverans.",
+        "when": "Svar på egen korrelerad Z01.",
+        "expected": "23-DDQ-PRODAT; BGM=Z02; fält223=Z23; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": "29fd83fe244175831345a7de1810a2bc544abf30",
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z03LK-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Future fresh claimant;2f CORE/one-use READ integration owner",
+      "basis": "Explicit entire-pair RELEASE6736049937238; two policy/test files offered only via explicit handoff of f833; original13 positive suffix failures remain.",
+      "nextConcreteAction": "2f delivers legitimate actor/source one-use private READ and truthful own physical259 positive inputs; qualifies preserved f833 policy without restoring false/byCell authority or weakening13 positive effects. Fresh claimant then reuses original L/LK native/public APIs and actual current mandatory gates.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z03LK-SUPPLIER",
+        "name": "Meddelandefall Z03LK",
+        "given": "SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före.",
+        "when": "Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt.",
+        "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z23; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z04LK-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Fresh future whole claimant; actualc3 L/LK and2f CORE producer; originalSC037 boundary owner",
+      "basis": "Explicit whole handover6047437221 and actual all5ref DELETE4046047451102; current2f c2696e1a holds activation forward; original SC037 unchanged-period source duty remains.",
+      "nextConcreteAction": "Obtain actual qualified c3 source/READ port with real public LK origin and physical sentZ03 tuple, lawful2f CORE integration, and same unchanged production period before/at realSQLnow from originalSC037 owner. Reuse existing56 and native producers; no clock tamper/private accepted seed/defaultunknownFALSE or duplicate timer. Fresh claim only when independent necessary work is available.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z04LK-SUPPLIER",
+        "name": "Meddelandefall Z04LK",
+        "given": "SUPPLIER; Z04 får komma före positiv APERAK. Samma LI ensamt räcker inte för korrelation.",
+        "when": "Nätägarens affärsbekräftelse på egen Z03.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z23; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z03C-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Future fresh claimant;2f coupled C217/private runtime GEN owner and original L/timing/SC039 owners",
+      "basis": "Explicit entire release6736042852805 plus actual14 deletions6042927784; current C217 implementation697 delivered, actual coupled forward now held2f c2696e1a; old26P4F is historical, not proof implementation is absent.",
+      "nextConcreteAction": "Adopt actual legitimate coupled C217 SQL/current source parity from2f, obtain real healthy confirmed L period/ending and immutable original timing basis, then reuse strict retained public C producers and qualify literal ACK/confirmation/restoration/replay/concurrency. Do not classify current217 code as missing from old failure.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z03C-SUPPLIER",
+        "name": "Meddelandefall Z03C",
+        "given": "SUPPLIER; Referera rätt originalärende/objekt/kund; L senast4dagar före, LK senast inflyttningsdagen.",
+        "when": "Återtag av eget bytes-/flyttärende inom kancelleringsfönstret.",
+        "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z24; CONTRL, APERAK och enligt förloppet Z04C.; Markera kancellering begärd; inte färdig enbart på SMTP250.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z04C-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Future fresh claimant; original structural/reading/current-source owners and2f runtime",
+      "basis": "Current main .agent-memory/masterplan-codex-20261006-95bc00df11da-replay-cleanup-checkpoint.md:111 positively records PR628fe844 explicit whole RELEASE, historical0P2F and633boundedrepair; no live ID ref.",
+      "nextConcreteAction": "Qualify real accepted two-register source/review/apply/own readings and final ACK/storage/retry/current meter binding and original DSO replacement/ten Swedish-business-day send. For C04 preserve actual same-period causal cancellation/compensation/ACK timing. Runtime/P-requiredness private reading authority is not supplied by new physical constructor flags; ask exact source/producer owner for missing port or narrow handoff, then fresh claim/reuse original strict producers.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z04C-SUPPLIER",
+        "name": "Meddelandefall Z04C",
+        "given": "SUPPLIER; Bevara original- och kancelleringsordning; kancellering före original lagras för begränsad korrelation, ingen godtycklig aktivering.",
+        "when": "Bekräftelse/korrigering som upphäver berört startförlopp.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z24; CONTRL och tillämplig APERAK.; Upphäv endast rätt bekräftade/framtida period; vid redan verkställd effekt starta kontrollerad kompensation.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z05C-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Future fresh claimant;2f coupled C217/private runtime GEN owner and original L/timing/SC039 owners",
+      "basis": "Explicit entire release6736042852805 plus actual14 deletions6042927784; current C217 implementation697 delivered, actual coupled forward now held2f c2696e1a; old26P4F is historical, not proof implementation is absent.",
+      "nextConcreteAction": "Adopt actual legitimate coupled C217 SQL/current source parity from2f, obtain real healthy confirmed L period/ending and immutable original timing basis, then reuse strict retained public C producers and qualify literal ACK/confirmation/restoration/replay/concurrency. Do not classify current217 code as missing from old failure.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z05C-SUPPLIER",
+        "name": "Meddelandefall Z05C",
+        "given": "SUPPLIER; Skilj återtag av leveransslut från ESCO Z15C.",
+        "when": "Tidigare meddelat leveransslut återtas.",
+        "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z24; CONTRL och tillämplig APERAK.; Återställ rätt avslutsbeslut efter kontroll; skapa inte duplicerad leveransperiod.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z03H-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "2f72 canonical/runtime/GEN producer and41f ACK/kernel producer; future fresh whole H claimant",
+      "basis": "Own657actual74bcd6 source2f, source677/706 reused; SOURCE2/current-main2/ROOT, mandatory9SUCCESS/all14terminal; actualH85P15F/C1P29F/Z0539P; wholeNOT_EXECUTED. Own all12 actualDELETE0/GET4046736057179928 after wholeBLOCKED/RELEASE6736057135638 and merge-roleFIRST release.",
+      "nextConcreteAction": "Actual born malformed protected national negative APERAK311314209223/202/258, typed306/252/229 rejection, current private historical source response203210260226, actual owned-request firstAPERAK repair before SENT/secondCONTRL/sequential/concurrent replay. 2f72 qualifies actualH209 runtime load/private witness-one-use and fullGEN;41f lawful exact owned request/ACK sourceAPP/private route predicate, no relaxed guard/source patch. Preserve all100cases/strict395306 suffix/full no-effects/legal issuer/original transition.",
+      "idLock": {
+        "agent": "codex-ediel-20261006-93e252d8",
+        "packet": "88aa62fd-bf50-433d-9b98-5504c892594d",
+        "receipt": "96a7780e22a9deec98dff3d917ad9c378bcf88fc"
+      },
+      "normativeRequirement": {
+        "id": "AT-Z03H-SUPPLIER",
+        "name": "Meddelandefall Z03H",
+        "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+        "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+        "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z04H-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "2f72 canonical/runtime/GEN producer and41f ACK/kernel producer; future fresh whole H claimant",
+      "basis": "Own657actual74bcd6 source2f, source677/706 reused; SOURCE2/current-main2/ROOT, mandatory9SUCCESS/all14terminal; actualH85P15F/C1P29F/Z0539P; wholeNOT_EXECUTED. Own all12 actualDELETE0/GET4046736057179928 after wholeBLOCKED/RELEASE6736057135638 and merge-roleFIRST release.",
+      "nextConcreteAction": "Actual born malformed protected national negative APERAK311314209223/202/258, typed306/252/229 rejection, current private historical source response203210260226, actual owned-request firstAPERAK repair before SENT/secondCONTRL/sequential/concurrent replay. 2f72 qualifies actualH209 runtime load/private witness-one-use and fullGEN;41f lawful exact owned request/ACK sourceAPP/private route predicate, no relaxed guard/source patch. Preserve all100cases/strict395306 suffix/full no-effects/legal issuer/original transition.",
+      "idLock": {
+        "agent": "codex-ediel-20261006-93e252d8",
+        "packet": "88aa62fd-bf50-433d-9b98-5504c892594d",
+        "receipt": "96a7780e22a9deec98dff3d917ad9c378bcf88fc"
+      },
+      "normativeRequirement": {
+        "id": "AT-Z04H-SUPPLIER",
+        "name": "Meddelandefall Z04H",
+        "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+        "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z05H-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Future fresh H claimant;2f runtime41a87/GENf046 plus93 H04 same-source period",
+      "basis": "Entire WHOLE release6736054956345, actual both ID DELETE4046054983436, final6055272872. Main helper H209 exists; current runtimeDecision contains no loadReceivedZ05RejectedIdentityRejection or ownReceivedZ05RejectedIdentityRejection call.",
+      "nextConcreteAction": "2f integrates actual actor/company/legal/original birth/physical209/clock → protected witness/one-use owner → actual capture/negative ACK gateway, preserving R210/Z02/private guards and genuine coupled GEN/clean-upgrade parity.93 supplies real H04 same-source qualified period. Future H claim reuses665/654 strict96 and genuine H100 observations; supplies declared bilateral H05 and documented-ground H08 public inputs without seeding accepted/ready/legal facts. No duplicate96 producer before changed dependency.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z05H-SUPPLIER",
+        "name": "Meddelandefall Z05H",
+        "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+        "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+        "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z08H-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Future fresh H claimant;2f runtime41a87/GENf046 plus93 H04 same-source period",
+      "basis": "Entire WHOLE release6736054956345, actual both ID DELETE4046054983436, final6055272872. Main helper H209 exists; current runtimeDecision contains no loadReceivedZ05RejectedIdentityRejection or ownReceivedZ05RejectedIdentityRejection call.",
+      "nextConcreteAction": "2f integrates actual actor/company/legal/original birth/physical209/clock → protected witness/one-use owner → actual capture/negative ACK gateway, preserving R210/Z02/private guards and genuine coupled GEN/clean-upgrade parity.93 supplies real H04 same-source qualified period. Future H claim reuses665/654 strict96 and genuine H100 observations; supplies declared bilateral H05 and documented-ground H08 public inputs without seeding accepted/ready/legal facts. No duplicate96 producer before changed dependency.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z08H-SUPPLIER",
+        "name": "Meddelandefall Z08H",
+        "given": "SUPPLIER; Juridiska förutsättningar för hävning måste vara dokumenterade; ingen automatisk hävning enbart vid betalningsflagga.",
+        "when": "Behörigt avslut/hävning av elhandelsavtal.",
+        "expected": "23-DDQ-PRODAT; BGM=Z08; fält223=Z25; CONTRL, APERAK och relevant Z05L enligt förlopp.; Bevakad avslutsbegäran och kontrollerat leveransslut.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z06F-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Original F/G/source/native/field306 authors",
+      "basis": "Wholecustody5305997324364/5998493891/5994614443 andFGcheckpoints",
+      "nextConcreteAction": "Reuse actually delivered finiteprofile306/deferredfirstapply components; current validissuer/archive/review/public admission/physical ignoredUD/receivedACK/watch/later ownZ06 and relevantUTILTS durablechain required; no quietnative/source takeover.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z06F-SUPPLIER",
+        "name": "Meddelandefall Z06F",
+        "given": "SUPPLIER; Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.",
+        "when": "Nätägarens kund-/anläggningsuppdatering.",
+        "expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z09F-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Original F/G/source/native/field306 authors",
+      "basis": "Wholecustody5305997324364/5998493891/5994614443 andFGcheckpoints",
+      "nextConcreteAction": "Reuse actually delivered finiteprofile306/deferredfirstapply components; current validissuer/archive/review/public admission/physical ignoredUD/receivedACK/watch/later ownZ06 and relevantUTILTS durablechain required; no quietnative/source takeover.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z09F-SUPPLIER",
+        "name": "Meddelandefall Z09F",
+        "given": "SUPPLIER; Z09E har NAD+UD; Z09F/G använder respektive217 Z04/Z03 och giltighetsdatum157; inte automatiskt kundbyte.",
+        "when": "Begär kvartsmätning enligt kundavtal.",
+        "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=E64; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z06G-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Original F/G/source/native/field306 authors",
+      "basis": "Wholecustody5305997324364/5998493891/5994614443 andFGcheckpoints",
+      "nextConcreteAction": "Reuse actually delivered finiteprofile306/deferredfirstapply components; current validissuer/archive/review/public admission/physical ignoredUD/receivedACK/watch/later ownZ06 and relevantUTILTS durablechain required; no quietnative/source takeover.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z06G-SUPPLIER",
+        "name": "Meddelandefall Z06G",
+        "given": "SUPPLIER; Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.",
+        "when": "Nätägarens kund-/anläggningsuppdatering.",
+        "expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z09G-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Original F/G/source/native/field306 authors",
+      "basis": "Wholecustody5305997324364/5998493891/5994614443 andFGcheckpoints",
+      "nextConcreteAction": "Reuse actually delivered finiteprofile306/deferredfirstapply components; current validissuer/archive/review/public admission/physical ignoredUD/receivedACK/watch/later ownZ06 and relevantUTILTS durablechain required; no quietnative/source takeover.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z09G-SUPPLIER",
+        "name": "Meddelandefall Z09G",
+        "given": "SUPPLIER; Z09E har NAD+UD; Z09F/G använder respektive217 Z04/Z03 och giltighetsdatum157; inte automatiskt kundbyte.",
+        "when": "Informera att nätägaren ska avgöra mätmetoden enligt ändrat avtal.",
+        "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=E32; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z09B-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P08/source/native author",
+      "basis": "Original retained P08/source/native authors; merged598 body and .agent-memory/masterplan-at-z09b-z09d-supplier-checkpoint.md explicitly preserve P08/source/native/ACK/history; finite48CLAIM5997296939/5997811985; current54custodyreceipt6035674793",
+      "nextConcreteAction": "Original whole owner closes literal210 XOR211/not216/build92or93/both40-A903109/no157 and actual signed original archive/review→productiongateway→positiveAPERAK→correct durable own event confirmation, or explicitly transfers only remaining whole proof/approval responsibility. Existing source and bounded48/date/confirmation mechanics reuse; synthetic issuer competence is a possible software proof boundary, not external authority and not itself an external blocker. Empty ID refs do not release recorded whole duty.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z09B-SUPPLIER",
+        "name": "Meddelandefall Z09B",
+        "given": "SUPPLIER; Senast en kalendermånad före; rätt aktör/område/avtal; AI-lista ersätter inte Z09B.",
+        "when": "Byte av balansansvarig för berörda leveransrelationer.",
+        "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z27; CONTRL och APERAK; uppdatering enligt BRP-förloppet.; Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z09D-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Claude P08/source/native author",
+      "basis": "Original retained P08/source/native authors; merged598 body and .agent-memory/masterplan-at-z09b-z09d-supplier-checkpoint.md explicitly preserve P08/source/native/ACK/history; finite48CLAIM5997296939/5997811985; current54custodyreceipt6035674793",
+      "nextConcreteAction": "Original whole owner closes literal210 XOR211/not216/build92or93/both40-A903109/no157 and actual signed original archive/review→productiongateway→positiveAPERAK→correct durable own event confirmation, or explicitly transfers only remaining whole proof/approval responsibility. Existing source and bounded48/date/confirmation mechanics reuse; synthetic issuer competence is a possible software proof boundary, not external authority and not itself an external blocker. Empty ID refs do not release recorded whole duty.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z09D-SUPPLIER",
+        "name": "Meddelandefall Z09D",
+        "given": "SUPPLIER; 210 XOR 211, aldrig DTM157 som ersättning; inte NAD+UD på Z09D.",
+        "when": "Produktionsavtal tecknas eller upphör.",
+        "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z70; CONTRL och APERAK; eventuella efterföljande mottagningspliktsförlopp separat.; Starta/avsluta rätt produktionsavtal.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z10M-SUPPLIER",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Future fresh claimant; original structural/reading/current-source owners and2f runtime",
+      "basis": "Current main .agent-memory/masterplan-codex-20261006-95bc00df11da-replay-cleanup-checkpoint.md:111 positively records PR628fe844 explicit whole RELEASE, historical0P2F and633boundedrepair; no live ID ref.",
+      "nextConcreteAction": "Qualify real accepted two-register source/review/apply/own readings and final ACK/storage/retry/current meter binding and original DSO replacement/ten Swedish-business-day send. For C04 preserve actual same-period causal cancellation/compensation/ACK timing. Runtime/P-requiredness private reading authority is not supplied by new physical constructor flags; ask exact source/producer owner for missing port or narrow handoff, then fresh claim/reuse original strict producers.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z10M-SUPPLIER",
+        "name": "Meddelandefall Z10M",
+        "given": "SUPPLIER; Gamla/nya mätarnummer olika; flerregisteroverlay; tio vardagar som sändningsfrist för nätägaren.",
+        "when": "Nätägarens mätarbyte.",
+        "expected": "23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z13V-ESCO",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "OCCUPIED",
+      "responsible": "codex-ediel-20261007-b6d3-41f5172a",
+      "basis": "Fresh111-ref snapshot plus full matching atomic receipt message 98592b9a3cc0617b76e0814a1e5df137e40356f7",
+      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
+      "idLock": {
+        "agent": "codex-ediel-20261007-b6d3-41f5172a",
+        "packet": "9c03dbbe-c5b2-48d6-8476-ef5ca2b4fc08",
+        "receipt": "98592b9a3cc0617b76e0814a1e5df137e40356f7"
+      },
+      "normativeRequirement": {
+        "id": "AT-Z13V-ESCO",
+        "name": "Meddelandefall Z13V",
+        "given": "ESCO; Kundidentitet ej födelsedatum; Z13 behöver inte anläggnings-id men LIN+1 finns; scope/roll/avtal/beneficiary separat.",
+        "when": "Avtal med slutkund och DSO finns; begär fortlöpande rapportering.",
+        "expected": "23-DGI-PRODAT; BGM=Z13; fält223=S17; CONTRL, APERAK för begäran; därefter Z14 eller Z14N.; Skapa begäran och objektrelaterade rättigheter först efter positivt Z14; inte elleverans.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": "98592b9a3cc0617b76e0814a1e5df137e40356f7",
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z15V-ESCO",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Retained ESCO/TEN/V/VH source permission/history/native owners",
+      "basis": "Wholecustody5305995567079+5995605329;Vcheckpoints583585600611",
+      "nextConcreteAction": "Request a narrow source/remaining-proof handoff for real public Z15 birth qualification and existing history-job completion port. Current intake selects only Z14; existing Z15V native uses caller-supplied PRODAT:Z15:V profile through f.insert. Pure new physical Z15 birth witness helper/tests could be a useful independent component after explicit retained-source boundary agreement; they do not close permission/history/DDQ whole. Preserve existing current permission source and original ESCO09 producer, do not fork its worker or use manual profile pin as public-birth proof.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z15V-ESCO",
+        "name": "Meddelandefall Z15V",
+        "given": "ESCO; Datum164, idZ09, status/orsak; får inte avsluta annan tenant eller DDQ-leverans.",
+        "when": "Fortlöpande tillstånd upphör.",
+        "expected": "23-DGI-PRODAT; BGM=Z15; fält223=S17; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z13VH-ESCO",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "OCCUPIED",
+      "responsible": "codex-ediel-20261007-b6d3-41f5172a",
+      "basis": "Fresh111-ref snapshot plus full matching atomic receipt message 98592b9a3cc0617b76e0814a1e5df137e40356f7",
+      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
+      "idLock": {
+        "agent": "codex-ediel-20261007-b6d3-41f5172a",
+        "packet": "9c03dbbe-c5b2-48d6-8476-ef5ca2b4fc08",
+        "receipt": "98592b9a3cc0617b76e0814a1e5df137e40356f7"
+      },
+      "normativeRequirement": {
+        "id": "AT-Z13VH-ESCO",
+        "name": "Meddelandefall Z13VH",
+        "given": "ESCO; Kundidentitet ej födelsedatum; Z13 behöver inte anläggnings-id men LIN+1 finns; scope/roll/avtal/beneficiary separat.",
+        "when": "Avtal med slutkund och DSO finns; begär avgränsad historik.",
+        "expected": "23-DGI-PRODAT; BGM=Z13; fält223=S18; CONTRL, APERAK för begäran; därefter Z14 eller Z14N.; Skapa begäran och objektrelaterade rättigheter först efter positivt Z14; inte elleverans.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": "98592b9a3cc0617b76e0814a1e5df137e40356f7",
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z14VH-ESCO",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Sole ESCO09/history producer with ESCO07 preserved",
+      "basis": "Explicit5305999424902+6022005090+5995605329",
+      "nextConcreteAction": "Join actualZ15VH ownhistoryjob/requestedwindow completion/coverage inspection and independentV/liveDDQ continuation; reuse b7d70f proposal/native33 without duplicateworker.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z14VH-ESCO",
+        "name": "Meddelandefall Z14VH",
+        "given": "ESCO; A74; tillstånds-id; rättLI; ej bredda kund-/tids-/produktomfattning från antaganden. Förvänta inte Z04.",
+        "when": "DSO godkänner tillgång för angivna godkända anläggningar.",
+        "expected": "23-DGI-PRODAT; BGM=Z14; fält223=S18; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    },
+    {
+      "id": "AT-Z15VH-ESCO",
+      "coverageStatus": "NOT_EXECUTED",
+      "admissibility": "RETAINED_DUTY",
+      "responsible": "Retained ESCO/TEN/V/VH source permission/history/native owners",
+      "basis": "Wholecustody5305995567079+5995605329;Vcheckpoints583585600611",
+      "nextConcreteAction": "Request a narrow source/remaining-proof handoff for real public Z15 birth qualification and existing history-job completion port. Current intake selects only Z14; existing Z15V native uses caller-supplied PRODAT:Z15:V profile through f.insert. Pure new physical Z15 birth witness helper/tests could be a useful independent component after explicit retained-source boundary agreement; they do not close permission/history/DDQ whole. Preserve existing current permission source and original ESCO09 producer, do not fork its worker or use manual profile pin as public-birth proof.",
+      "idLock": null,
+      "normativeRequirement": {
+        "id": "AT-Z15VH-ESCO",
+        "name": "Meddelandefall Z15VH",
+        "given": "ESCO; Datum164, idZ09, status/orsak; får inte avsluta annan tenant eller DDQ-leverans.",
+        "when": "Historikleveransen har avslutats.",
+        "expected": "23-DGI-PRODAT; BGM=Z15; fält223=S18; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "actualIdLock": null,
+      "originalDatedAssessmentMain": "9b5d4e46189ca68401e1474d513593ce0840a2d1",
+      "eligibleForThisAgentNow": false,
+      "noCoveragePromotion": true
+    }
+  ],
+  "limits": "This snapshot establishes no immediately implementable independent next pair within current custody and required dependencies. It is not a claim that no future work or undisclosed authorized transfer can exist. Real future unlock: actual2f selectedGEN/private deliver or explicit retained P08/TEN/SC/history/DB05 narrow whole handoff; current board changes must be refreshed before claim. No actualmain native/market/deployment approval."
+}
