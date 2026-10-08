@@ -8,13 +8,37 @@ their own pairs, then continue after delivery without new assignments. Read
 `masterplan-reservations.md`. Receiving the shared prompt starts that agent's
 wave; this documentation update does not launch agents or clear external gates.
 
+## Active board and Claude proxy update — 2026-10-08
+
+New operational receipts go to [#673](https://github.com/heke99/gridex-ops-platform/issues/673);
+#530 remains the historical archive at GitHub's comment limit. Preserve original
+#530 links and evidence; the board move does not release any resource.
+
+The [owner's proxy decision](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6056938983)
+supersedes no-delegated-lock decision 6056709473. Claude agents may implement
+within their assigned fixed role. A capable Codex proxy may execute the existing
+GitData reservation operations for a documented Claude request, using Claude as
+`receipt.agent` and itself as `delegatedBy`. Follow the complete
+"Claude reservations through a Codex proxy" section of
+`masterplan-reservations.md`: refresh custody/dependencies, obtain any foreign
+source split approval, acquire sorted create-if-absent refs on actual main,
+reconcile/roll back only this attempt's receipt-bound refs and verify all refs
+before CLAIM/implementation clearance. Release requires the Claude owner's
+documented delivery/handover request and exact original receipt-SHA checks.
+There is no automatic expiry or substitute branch/comment lock. Authorization
+alone proves no tag access, acquisition or release; report technical failures.
+All security, negative-effect, original-evidence, review, CI and ordinary merge
+gates remain. No foreign scope, platform admin or branch-protection bypass is
+granted. Historical decisions and failed receipts retain their original evidence.
+
 ## Mandatory startup and packet selection
 
 1. Read `AGENTS.md`, this memory's `README.md` and its ordered current-state,
    current-task, checkpoint, handover, blocker and work-plan files. Read your
    own checkpoint, relevant domain memory, decisions and known failures.
 2. Read this workflow, `masterplan-reservations.md` and the legacy PR register. Read the latest
-   ownership comments on GitHub issue #530, current main, open PRs and relevant
+   ownership comments on GitHub issue #673 and relevant historical #530 receipts,
+   current main, open PRs and relevant
    retained closed PRs. Local memory is not a live cross-agent ownership lock.
 3. Finish your existing reservation first. Compare its branch and original PR
    requirements against current implementation and coverage before changing
@@ -22,8 +46,9 @@ wave; this documentation update does not launch agents or clear external gates.
 4. Choose two eligible unowned rule IDs and related acceptance contracts yourself,
    or two remaining contract/scenario IDs when work is acceptance-only. A final
    single eligible ID is allowed. Follow current priority and dependencies;
-   reserve IDs and exact file scope using the atomic protocol. Record the receipt,
-   dependencies and next action in your checkpoint and CLAIM on #530 before code.
+   reserve IDs and exact file scope using the atomic protocol (including the
+   documented Claude proxy path). Record the receipt,
+   dependencies and next action in your checkpoint and CLAIM on #673 before code.
    On conflict, release your partial attempt and select other free work.
    No user assignment, coordinator acknowledgement or launch delay is needed.
 5. Use a unique branch and isolated worktree/checkout. Preserve other agents'
@@ -45,7 +70,7 @@ and before pause/handover, record:
   merged, blocked or released;
 - the next concrete action and its owner.
 
-No agent starts another packet without updating its checkpoint and #530.
+No agent starts another packet without updating its checkpoint and #673.
 Chat-only documentation does not satisfy this gate. Keep concise checkpoints
 and real test/coverage evidence; preserve failed observations and avoid writing
 duplicate audit narratives. Never store secrets or production customer data.
@@ -53,7 +78,7 @@ duplicate audit narratives. Never store secrets or production customer data.
 All agents own their checkpoints. Agents acquire the atomic `role-memory` lock
 for shared current-state/current-task/checkpoint/work-plan and summaries, refresh
 the latest receipts, and reconcile changes without overwriting foreign evidence.
-Send concise CLAIM/READY/BLOCKED/MERGED/RELEASE receipts to #530 and record one
+Send concise CLAIM/READY/BLOCKED/MERGED/RELEASE receipts to #673 and record one
 unique handover line per actual merge. No permanent campaign coordinator is
 required. Side tracks retain their separate memory owners.
 
@@ -74,7 +99,7 @@ for the current PR head. Scope locks prevent conflicting source edits; the merge
 role serializes delivery. Changed code or conflict resolution requires relevant
 fresh verification. Never weaken gates or borrow old success.
 
-`READY` means reviewable and `CI_GREEN` means the current PR gates passed.
+  `READY` means reviewable and `CI_GREEN` means the current PR gates passed.
 Neither releases the reservation or permits taking a new pair. `MERGED` requires
 the actual main commit and PR receipt. Only then read current ownership again
 and select/reserve the next pair yourself. A blocked packet can be relinquished only through
