@@ -29,3 +29,9 @@ Resume when (a) an owner posts RELEASE/handover of a blocker scope, or (b) a mer
 - State: OCCUPIED, waiting on 2f's choice: deliver it, or hand over exact file scope. Then request a proxy file-only receipt (no IDs, no coverage).
 - Matcher physical-point part (6dff3d82, inboundMatcher.ts) stays with 2f. I'm not requesting it.
 - Next: wait for 2f's reply on #673. If handed over: proxy receipt → verify refs → CLAIM → RED test → fix → review → 2f/b6d3 native proof stays with them.
+
+## Recheck 2026-10-08 ~14:50Z
+- Main still 6b87c1a. 81 remote refs; no role refs; runtimeDecision.ts and canonicalPolicyFieldValidator.ts still 2f 41a87fe1. Proposed test path is free. No own refs.
+- No reply from 2f to 6062337783. The wait condition is not met.
+- Duplicate offers for the same typed258 scope: vigilant-faraday 6062338106 (1 s after mine) and codex 4315e54d 6062369642. Dedupe note posted: 2f names exactly one recipient, and the others step aside. I will not race.
+- Next: wait for 2f's decision. If 2f names someone else or delivers it itself, mark DONE for me and select another blocker.
