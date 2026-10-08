@@ -125,3 +125,59 @@ then reuse request and obtain exact owner-delivered integration or explicit
 helper/file handoff before reservations/CLAIM/code. Billing projection and
 unchanged source-owner replay remain2f's existing coordinated production, not
 new fixture work for this agent. No broad52-ID audit or new artifact producer.
+
+
+## B2 SELECTED — typed258 source-bound rejection, WAITING_SCOPE_HANDOFF
+
+Taken: exact source/custody applicability check and bounded existing-request
+follow-up only; no implementation custody, ID claim or reservation attempt.
+Reuse41f request6060202710 and owner correction6061952106. H/native collector
+41f retains packet1102ed76 and original100 unchanged. Published71778d209e4
+is not free scope. Reuse qualified713 case79 actual publicbirth followed by
+1301 missing typed258, and later717 original85PASS15FAIL6062309394; do not
+recollect or rerun either native suite.
+
+Fresh exact source applicability:
+- main6b87c1a9 and actual699b729172c9145c6b5e6acd9f8d7d0eee917e46cdb
+  runtime blob BOTH881d3404d80598cc435939da9c817817735eaa3b.
+- lib/ediel/core/runtimeDecision.ts remains own2f extension receipt
+  41a87fe18c0900aa5b5c65ad6adb1f303e2927c4; decoded actual files include
+  runtimeDecision, canonicalPolicyFieldValidator and history manifest.
+  Exact runtime resourcefile8ac0ae0f1d3e4dcab2b6e6223335774e8e01029f21438f894651c096633ee1b5
+  still points41a87. No handed-over helper paths or release exists for us.
+- resolveCanonicalRuntimeDecisionWithRegistry (main726ff) attempts existing
+  source-qualified bilateral capability; present rejection-only extension is
+  specifically Z04 A/Z26 physicalR210. No H/Z25 typed258 port is delivered in
+  this source. This confirms existing handoff applicability, not a third
+  native diagnosis or an authority-bypass proposal.
+- delivered713 rejectedBilateralSwitchBirthProfile gives catalog witnesses only:
+  it expressly grants no admission/business authority or register inheritance.
+  Keep its strict two-register recognizer, original wire/custody/clock and syntax.
+- unchanged H case79 (native1286–1308) calls registry decision without supplied
+  actor facts, requires physical field258, real negativeACK, business equality
+  and healthy-control reread. A helper contract must preserve that current
+  caller shape and cannot require fabricated accepted facts or weakened oracle.
+
+Exclusions: held runtime/policy validator, inboundStatusUpdater/717, SQL,
+GEN/manifests/schema/types, native100 and workflows, protectedACK/source/private
+owners, bilateral capability grants, coverage, fixture/oracle/backpatch work.
+All remain with their actual owners; branch/checkpoint is not a lock.
+
+One bounded handoff request reuses6060202710: recipients runtime owner2f72 and
+H custodian41f. Either2f delivers current integration, or2f/41f supplies a single
+explicit helper contract with exact NEW implementation/test paths, stable input/
+output and authority/evidence boundaries, owner integration point, required
+positive/negative controls and handoff receipt. This agent can then reserve
+those exact paths (and required IDs if applicable), verify every ref and CLAIM
+before implementing. Runtime/GEN integration remains with2f; H/native collector
+41f. Request/availability does not transfer ownership. No broad selection audit,
+new producer/collector or repeat generic permissions requested.
+
+Done now: bounded existing-source applicability/custody review; no code defect
+reclassified beyond qualified owner evidence. No tests executed because no
+source changed and no missing finite proof is being asserted. No CI_GREEN,
+whole-ID, deployment, actual handoff or release claim. No own refs to release.
+Next event: exact delivered runtime source from2f, or an explicit new-helper
+handoff/interface accepted by2f/41f; then this agent verifies required custody
+and completes finite tests/review/currentCI/normalmerge/actualrelease in own
+agreed scope. Until that event remain read-only; oldB1 offline status is closed.
