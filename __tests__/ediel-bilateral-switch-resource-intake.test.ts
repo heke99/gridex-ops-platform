@@ -56,7 +56,7 @@ it('binds the actual owned physical H point before the first immutable source IN
 it.each([
  ['outbound_requests','payload',{environment:'production'}],['outbound_requests','payload',null],
  ['outbound_requests','metering_point_id',id(92)],['outbound_requests','customer_id',id(92)],
- ['metering_points','ediel_metering_point_id','unrelated'],['metering_points','customer_site_id',id(92)],
+ ['metering_points','ediel_metering_point_id','unrelated'],['metering_points','customer_site_id',id(92)],['metering_points','site_id',null],
  ['customers','company_id',id(92)],['customer_sites','customer_id',id(92)],
 ])('leaves birth point unresolved for current %s.%s conflict',async(table,field,value)=>{
  rows[table as string][0][field as string]=value

@@ -85,8 +85,12 @@ it.each([
  rows[table][0][field]=field==='ediel_metering_point_id'?physical+' ':id(99)
  expect(await resolve()).toBeNull()
 })
-it.each(['site_id','customer_site_id'])('supports the existing nullable%s alias without inventing a required population',async field=>{
- rows.metering_points[0][field]=null;expect(await resolve()).toEqual(scope)
+it('supports a null compatibility pointer with the exact actual canonical site relation',async()=>{
+ rows.metering_points[0].customer_site_id=null;expect(await resolve()).toEqual(scope)
+})
+it('refuses null canonical point.site_id even when the compatibility pointer matches',async()=>{
+ rows.metering_points[0].site_id=null;expect(rows.metering_points[0].customer_site_id).toBe(scope.siteId)
+ expect(await resolve()).toBeNull()
 })
 it.each(['outbound_requests','metering_points','customers','customer_sites'])('propagates%s SQL error instead of fabricating qualification',async table=>{
  const error=Error('declared_SQL_'+table);errors[table]=error;await expect(resolve()).rejects.toBe(error)
