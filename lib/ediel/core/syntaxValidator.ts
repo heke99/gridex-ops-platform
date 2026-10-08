@@ -4,6 +4,9 @@ import { validateEdifactEnvelope, validateUnsmGrammar, type UnsmGrammarResult, t
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 
+type EdielSyntaxInput = Pick<EdielMessageRow,
+  'raw_payload' | 'message_family' | 'message_code' | 'status' | 'syntax_check_status' | 'validation_report' | 'failure_reason'>
+
 export type EdielSyntaxIssue = {
   code:
     | EdifactValidationIssue['code']
@@ -32,7 +35,7 @@ export type EdielSyntaxValidationResult = {
 }
 
 
-function runtimeSyntaxAccepted(message: EdielMessageRow): boolean {
+function runtimeSyntaxAccepted(message: EdielSyntaxInput): boolean {
   const report = message.validation_report as {
     utiltsRuntime?: {
       validation?: {
@@ -53,19 +56,19 @@ function runtimeSyntaxAccepted(message: EdielMessageRow): boolean {
 }
 
 
-function actualEdifactMessageType(message: EdielMessageRow): string | null {
+function actualEdifactMessageType(message: EdielSyntaxInput): string | null {
   const facts = parseEdifactMessageFacts(message.raw_payload)
   return facts.messageType ? String(facts.messageType).toUpperCase() : null
 }
 
-function isActualContrl(message: EdielMessageRow, facts?: ReturnType<typeof parseEdifactMessageFacts>): boolean {
+function isActualContrl(message: EdielSyntaxInput, facts?: ReturnType<typeof parseEdifactMessageFacts>): boolean {
   const storedFamily = String(message.message_family ?? '').toUpperCase()
   const storedCode = String(message.message_code ?? '').toUpperCase()
   const parsedType = String(facts?.messageType ?? actualEdifactMessageType(message) ?? '').toUpperCase()
   return storedFamily === 'CONTRL' || storedCode === 'CONTRL' || parsedType === 'CONTRL'
 }
 
-export function validateEdifactSyntax(message: EdielMessageRow): EdielSyntaxValidationResult {
+export function validateEdifactSyntax(message: EdielSyntaxInput): EdielSyntaxValidationResult {
   const envelope = validateEdifactEnvelope(message.raw_payload)
   const issues: EdielSyntaxIssue[] = envelope.issues.map(item => ({
     code: item.code === 'unt_unh_reference_mismatch' ? 'unh_unt_reference_mismatch' : item.code,
