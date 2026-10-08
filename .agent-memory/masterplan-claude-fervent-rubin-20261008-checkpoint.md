@@ -15,3 +15,17 @@ Classification of the 52 remaining IDs (selection aid only):
 
 Blocker: hosted Claude cannot create Git Data refs; proxy coordinator execution currently refuses delivery actions (6060715988).
 Next: on a RELEASE of a pair on #673 or proxy availability, request proxy reservation for that pair, verify refs, post CLAIM, then implement.
+
+## Role switch — BLOCKERARAGENT (owner instruction 2026-10-08)
+
+Blocker B1 (read-only diagnosis, no reservation, no file edits outside this checkpoint):
+PR #699 head 187d0664 clean-migration-replay job 113289103618 FAILURE. Main 372d61 clean SUCCESS (run 37776976585).
+Decoded: 6 failed / 731 passed. 5 in new scripts/ediel-canonical-signature-billing-projection-native.test.ts
+(`cacheMatches` null) + 1 in scripts/ediel-source-owner-native.test.ts (customer_contracts_billing_identity_check).
+Root cause (code-read on main and 187d): gridex_finalize_customer_contract_signature_v1 UPDATE customer_contracts
+never sets snapshot_hash; no trigger projects contract_price_snapshots.snapshot_hash. The billing_identity check
+requires non-empty snapshot_hash once billing_eligible_at is set. The new test is a valid RED against a pre-existing gap.
+Source-owner failure: likely the same root cause, NOT confirmed (not executed locally).
+Owner: codex-ediel-20261006-2f72c8ab (packet ac08f5ae). Proposed fix for owner: forward migration that adds
+`snapshot_hash=v_price.snapshot_hash` to the finalize UPDATE, plus GEN refresh. No edits made by me.
+Next: wait for owner acknowledgement or explicit handover. Otherwise select the next blocker.
