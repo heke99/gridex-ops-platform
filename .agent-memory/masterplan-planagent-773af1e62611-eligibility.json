@@ -262,7 +262,7 @@
       "admissibility": "OCCUPIED",
       "responsible": "codex-ediel-20261006-2f72c8ab",
       "basis": "Actual matching-ref snapshot; Fresh111-ref snapshot plus full matching atomic receipt message 29fd83fe244175831345a7de1810a2bc544abf30",
-      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
+      "nextConcreteAction": "The named current owner completes or explicitly releases its retained packet. This PLANAGENT owns no technical packet and does not inherit that owner identity.",
       "liveReceipt": "29fd83fe244175831345a7de1810a2bc544abf30"
     },
     {
@@ -298,7 +298,7 @@
       "admissibility": "OCCUPIED",
       "responsible": "codex-ediel-20261006-2f72c8ab",
       "basis": "Actual matching-ref snapshot; Fresh111-ref snapshot plus full matching atomic receipt message 29fd83fe244175831345a7de1810a2bc544abf30",
-      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
+      "nextConcreteAction": "The named current owner completes or explicitly releases its retained packet. This PLANAGENT owns no technical packet and does not inherit that owner identity.",
       "liveReceipt": "29fd83fe244175831345a7de1810a2bc544abf30"
     },
     {
@@ -451,7 +451,7 @@
       "admissibility": "OCCUPIED",
       "responsible": "codex-ediel-20261007-b6d3-41f5172a",
       "basis": "Actual matching-ref snapshot; Fresh111-ref snapshot plus full matching atomic receipt message 98592b9a3cc0617b76e0814a1e5df137e40356f7",
-      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
+      "nextConcreteAction": "The named current owner completes or explicitly releases its retained packet. This PLANAGENT owns no technical packet and does not inherit that owner identity.",
       "liveReceipt": "98592b9a3cc0617b76e0814a1e5df137e40356f7"
     },
     {
@@ -469,7 +469,7 @@
       "admissibility": "OCCUPIED",
       "responsible": "codex-ediel-20261007-b6d3-41f5172a",
       "basis": "Actual matching-ref snapshot; Fresh111-ref snapshot plus full matching atomic receipt message 98592b9a3cc0617b76e0814a1e5df137e40356f7",
-      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
+      "nextConcreteAction": "The named current owner completes or explicitly releases its retained packet. This PLANAGENT owns no technical packet and does not inherit that owner identity.",
       "liveReceipt": "98592b9a3cc0617b76e0814a1e5df137e40356f7"
     },
     {
