@@ -12,6 +12,7 @@ import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prep
  nativeEscoExternal,NATIVE_ESCO_DB} from './fixtures/ediel-service-evidence-native'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {readEdielServiceAdministration} from '@/lib/ediel/services/administration'
+import {createEdielMessageIntent,getEdielMessageIntentById} from '@/lib/ediel/intent/intentEngine'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {matchOutboundRequestForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
@@ -582,6 +583,9 @@ function producerState(f:Fixture){
   foreignDigest('gridex_ediel_services.issuer_keys',`id<>${lit(f.ids.key)}`),
   foreignDigest('gridex_service_administration.commands',`company_id NOT IN ${companies} OR company_id IS NULL`),
   foreignDigest('gridex_ediel_exports.jobs',`beneficiary_company_id<>${lit(f.ids.beneficiary)} OR beneficiary_company_id IS NULL`))
+ // Neither producer writes message/permission events. Freeze both entire
+ // event relations, including all tenants and NULL rows, without allowances.
+ foreign.push(foreignDigest('public.ediel_message_events','true'),foreignDigest('public.ediel_permission_events','true'))
  // Own public NULL rows are already full images; private/command/export NULL
  // rows are in this disjoint complement. Every retained row field is hashed.
  return {
@@ -647,7 +651,56 @@ async function refuseWrongProducerRole(mode:'V'|'VH'){
  if(mode==='VH')expect(sql(`SELECT to_jsonb(a) FROM public.ediel_service_assignments a WHERE id=${lit(seeded.assignment)}`)).toEqual(sentinel)
 }
 
+// This is the real outbound-Z14 pre-render direction gate. Its ESCO actor
+// also fails the separate sender-role check; it is no inbound reception proof.
+async function refuseOutboundZ14Direction(mode:'V'|'VH'){
+ const f=await seed(mode),before=producerState(f)
+ const input:Parameters<typeof createEdielMessageIntent>[0]={companyId:f.ids.company,environment:'test',market:'electricity',
+  messageFamily:'PRODAT',messageCode:'Z14',businessProcess:'metering_permission',direction:'outbound',
+  senderEdielId:f.sender,receiverEdielId:f.receiver,applicationReference:f.app,
+  routeProfileId:f.ids.routeProfile,communicationRouteId:f.ids.route,customerId:f.ids.customer,customerSiteId:f.ids.site,
+  facilityId:f.point,meteringPointId:f.point,interchangeReference:randomUUID().replaceAll('-','').slice(0,14),
+  messageReference:randomUUID().replaceAll('-','').slice(0,14),transactionReference:randomUUID().replaceAll('-','').slice(0,20),
+  idempotencyKey:'native-z14-wrong-direction:'+randomUUID(),payload:{actorRole:'esco'},actorUserId:f.ids.actor,
+  routeProfile:{actorRole:'esco',applicationReference:f.app}}
+ const intent=await createEdielMessageIntent(input)
+ expect(intent).toMatchObject({companyId:f.ids.company,environment:'test',messageFamily:'PRODAT',messageCode:'Z14',direction:'outbound',
+  validationStatus:'blocked',renderStatus:'not_rendered',outboxStatus:'not_queued',edielMessageId:null,outboundRequestId:null})
+ expect(intent.validationResult).toMatchObject({ok:false,status:'blocked',checks:{required_metadata:true,no_placeholder_identifiers:true,
+  application_reference_policy:true,tenant_scope:true,message_code_supported:true,prodat_outbound_direction:false}})
+ expect(intent.blockingReasons).toContainEqual({code:'prodat_direction_not_allowed',
+  message:'PRODAT Z14 är inte ett outbound-meddelande för Gridex marknadsroll.',field:'messageCode',severity:'block',
+  details:{supportStatus:'inbound_only',direction:'outbound'}})
+ expect(await getEdielMessageIntentById(intent.id)).toEqual(intent)
+ const after=producerState(f)
+ const ownIntents=(state:ReturnType<typeof producerState>)=>{
+  const rows=state.business.ediel_message_intents
+  expect(Array.isArray(rows)).toBe(true)
+  return rows as Record<string,unknown>[]
+ }
+ const old=ownIntents(before),current=ownIntents(after),added=current.filter(r=>!old.some(prior=>prior.id===r.id))
+ expect(added).toHaveLength(1)
+ const row=added[0]
+ expect(row).toMatchObject({id:intent.id,company_id:f.ids.company,environment:'test',market:'electricity',message_family:'PRODAT',
+  message_code:'Z14',business_process:'metering_permission',direction:'outbound',sender_ediel_id:f.sender,receiver_ediel_id:f.receiver,
+  application_reference:f.app,route_profile_id:f.ids.routeProfile,communication_route_id:f.ids.route,customer_id:f.ids.customer,
+  customer_site_id:f.ids.site,facility_id:f.point,metering_point_id:f.point,interchange_reference:input.interchangeReference,
+  message_reference:input.messageReference,transaction_reference:input.transactionReference,idempotency_key:input.idempotencyKey,
+  payload:input.payload,created_by:f.ids.actor,updated_by:f.ids.actor,validation_status:'blocked',render_status:'not_rendered',
+  outbox_status:'not_queued',ediel_message_id:null,outbound_request_id:null,
+  validation_result:intent.validationResult,blocking_reasons:intent.blockingReasons})
+ for(const field of ['created_at','updated_at'])expect(Number.isFinite(Date.parse(String(row[field])))).toBe(true)
+ expect(current.filter(r=>r.id!==intent.id)).toEqual(old)
+ expect({...after,business:{...after.business,ediel_message_intents:current.filter(r=>r.id!==intent.id)}}).toEqual(before)
+ expect(await createEdielMessageIntent(input)).toEqual(intent)
+ expect(producerState(f)).toEqual(after)
+ expect(nativeEscoExternal.send).not.toHaveBeenCalled()
+}
+
 for(const mode of ['V','VH'] as const){
+ it(`${mode}: actual outbound Z14 direction gate retains one blocked intent with no wire or business effects; immutable reuse`,async()=>{
+  await refuseOutboundZ14Direction(mode)
+ })
  it(`${mode}: actual separately reviewed wrong legal producer role cannot approve or originate Z13; atomic rollback`,async()=>{
   await refuseWrongProducerRole(mode)
  })
