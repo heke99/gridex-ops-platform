@@ -42169,11 +42169,89 @@ COMMENT ON COLUMN public.ediel_outbox.intent_id IS 'EdielMessageIntent that prod
 CREATE FUNCTION public.claim_ediel_outbox_item(p_outbox_item_id uuid, p_worker_id text, p_actor_user_id uuid) RETURNS SETOF public.ediel_outbox
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public'
-    AS $$
+    AS $_$
+DECLARE candidate public.ediel_outbox%rowtype;locked_outbox public.ediel_outbox%rowtype;
+ ack public.ediel_messages%rowtype;source public.ediel_messages%rowtype;
+ basis jsonb;initial_basis jsonb;e jsonb;technical boolean:=false;pass integer;
 begin
   if p_outbox_item_id is null or nullif(trim(p_worker_id),'') is null or p_actor_user_id is null then
     raise exception 'ediel_outbox_claim_arguments_required' using errcode='22023';
   end if;
+  -- Routing peek only. Never take an outbox/message row lock before the
+  -- unchanged private reader acquires its current graph and source receipts.
+  SELECT * INTO candidate FROM public.ediel_outbox WHERE id=p_outbox_item_id;
+  IF candidate.company_id IS NOT NULL AND candidate.status IN ('prepared','queued') THEN
+    SELECT * INTO ack FROM public.ediel_messages WHERE id=candidate.ediel_message_id;
+    IF ack.company_id=candidate.company_id AND ack.environment=candidate.environment
+       AND ack.environment IN ('test','production') AND ack.direction='outbound'
+       AND ack.message_family='CONTRL' AND ack.canonical_rule_pack_id IS NULL
+       AND ack.rule_profile_version_id IS NULL AND ack.rule_pack_checksum IS NULL THEN
+      initial_basis:=gridex_ediel_technical_ack.read_persisted_contrl_v2(
+        candidate.company_id,candidate.environment,candidate.ediel_message_id,p_actor_user_id,'send');
+      FOR pass IN 1..2 LOOP
+        basis:=initial_basis;
+        IF pass=2 THEN
+          -- The first call already holds this same complete graph/source chain.
+          -- Revalidate current actor/phase/endpoint after the outbox lock wait.
+          basis:=gridex_ediel_technical_ack.read_persisted_contrl_v2(
+            candidate.company_id,candidate.environment,candidate.ediel_message_id,p_actor_user_id,'send');
+          IF basis IS DISTINCT FROM initial_basis THEN
+            RAISE EXCEPTION 'ediel_technical_contrl_claim_basis_changed' USING ERRCODE='23514';
+          END IF;
+        END IF;
+        e:=basis->'technicalSyntaxAckEvidence';
+        IF jsonb_typeof(basis) IS DISTINCT FROM 'object' OR basis->'version' IS DISTINCT FROM '2'::jsonb
+           OR basis->>'executionActorUserId' IS DISTINCT FROM p_actor_user_id::text
+           OR basis->>'executionPhase' IS DISTINCT FROM 'send'
+           OR jsonb_typeof(basis->'ackMessage') IS DISTINCT FROM 'object'
+           OR jsonb_typeof(e) IS DISTINCT FROM 'object' OR e->'version' IS DISTINCT FROM '1'::jsonb
+           OR e->>'kind' IS DISTINCT FROM 'technical_syntax_ack'
+           OR e->>'companyId' IS DISTINCT FROM candidate.company_id::text
+           OR e->>'environment' IS DISTINCT FROM candidate.environment
+           OR (e->>'syntaxDecision' IN ('accepted','rejected')) IS NOT TRUE
+           OR (e->>'sourceMessageId' ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') IS NOT TRUE
+           OR (e->>'sourceHash' ~ '^[0-9a-f]{64}$') IS NOT TRUE THEN
+          RAISE EXCEPTION 'ediel_technical_contrl_claim_basis_required' USING ERRCODE='23514';
+        END IF;
+        SELECT * INTO ack FROM public.ediel_messages WHERE id=candidate.ediel_message_id FOR SHARE;
+        SELECT * INTO source FROM public.ediel_messages WHERE id=(e->>'sourceMessageId')::uuid FOR SHARE;
+        IF ack.id IS NULL OR ack.company_id IS DISTINCT FROM candidate.company_id
+           OR ack.environment IS DISTINCT FROM candidate.environment OR ack.direction IS DISTINCT FROM 'outbound'
+           OR ack.message_family IS DISTINCT FROM 'CONTRL' OR ack.canonical_rule_pack_id IS NOT NULL
+           OR ack.rule_profile_version_id IS NOT NULL OR ack.rule_pack_checksum IS NOT NULL
+           OR nullif(ack.raw_payload,'') IS NULL OR ack.immutable_rendered_at IS NULL
+           OR ack.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(ack.raw_payload,'UTF8')),'hex')
+           OR (to_jsonb(ack)-ARRAY['related_message_id','ack_outcome']) IS DISTINCT FROM
+              ((basis->'ackMessage')-ARRAY['related_message_id','ack_outcome'])
+           OR basis#>>'{ackMessage,related_message_id}' IS DISTINCT FROM e->>'sourceMessageId'
+           OR basis#>>'{ackMessage,ack_outcome}' IS DISTINCT FROM
+              (CASE e->>'syntaxDecision' WHEN 'accepted' THEN 'positive' WHEN 'rejected' THEN 'negative' END)
+           OR source.id IS NULL OR source.direction IS DISTINCT FROM 'inbound'
+           OR source.environment IS DISTINCT FROM candidate.environment
+           OR (source.company_id IS NOT NULL AND source.company_id IS DISTINCT FROM candidate.company_id)
+           OR nullif(source.raw_payload,'') IS NULL
+           -- Inbound original hash and outbound reply hash are different seals.
+           OR e->>'sourceHash' IS DISTINCT FROM encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex') THEN
+          RAISE EXCEPTION 'ediel_technical_contrl_claim_current_binding_required' USING ERRCODE='23514';
+        END IF;
+        IF pass=1 THEN
+          SELECT * INTO locked_outbox FROM public.ediel_outbox WHERE id=p_outbox_item_id FOR UPDATE;
+          IF locked_outbox.id IS NULL OR locked_outbox.company_id IS DISTINCT FROM ack.company_id
+             OR locked_outbox.environment IS DISTINCT FROM ack.environment
+             OR locked_outbox.ediel_message_id IS DISTINCT FROM ack.id
+             OR (locked_outbox.status IN ('prepared','queued')) IS NOT TRUE
+             OR to_jsonb(locked_outbox) IS DISTINCT FROM to_jsonb(candidate) THEN
+            RETURN;
+          END IF;
+        END IF;
+      END LOOP;
+      -- Re-read after the last private call; no stale routing snapshot is an
+      -- authority Boolean. Competing transactions cannot change this locked row.
+      SELECT * INTO locked_outbox FROM public.ediel_outbox WHERE id=p_outbox_item_id FOR UPDATE;
+      IF to_jsonb(locked_outbox) IS DISTINCT FROM to_jsonb(candidate) THEN RETURN;END IF;
+      technical:=true;
+    END IF;
+  END IF;
   return query
   with claimed as (
     update public.ediel_outbox o
@@ -42187,11 +42265,12 @@ begin
        and exists(
          select 1 from public.ediel_messages m
          where m.id=o.ediel_message_id and m.company_id=o.company_id and m.direction='outbound'
-           and m.rule_profile_version_id is not null and nullif(m.rule_pack_checksum,'') is not null
+           and ((m.rule_profile_version_id is not null and nullif(m.rule_pack_checksum,'') is not null)
+             or (technical and m.id=ack.id and to_jsonb(m)=to_jsonb(ack)))
        )
      returning o.*
   ) select * from claimed;
-end; $$;
+end; $_$;
 
 --
 -- Name: claim_ediel_outbox_items(text, uuid, integer, text, interval); Type: FUNCTION; Schema: public; Owner: -
