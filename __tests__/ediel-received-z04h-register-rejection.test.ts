@@ -1,7 +1,7 @@
 // Finite H258 rejection-only regression. Real canonical syntax, physical
 // register validators, fresh actor/source/legal/catalog decoders and public
 // receiver execute. Database transport is declared and the canonical writer
-// refuses persistence: no ledger, ACK prepare or business authority is seeded.
+// refuses persistence: no ledger, private prepare receipt or business authority is seeded.
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {readFileSync} from 'node:fs'
 import {PGlite} from '@electric-sql/pglite'
@@ -12,6 +12,8 @@ import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenize
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
 import {resolveCanonicalRuntimeDecisionWithRegistry,readReceivedCanonicalProdatResponseValidation,
  readReceivedCanonicalProdatApplicationObjects,readReceivedCanonicalProdatSourceFunction} from '@/lib/ediel/core/runtimeDecision'
+import {prodatAckObjectScopes} from '@/lib/ediel/prodat/prodatAckMessageFunction'
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
@@ -359,5 +361,68 @@ it.each(wireChanges.filter(([name])=>!['wrong code','wrong reason'].includes(nam
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source)
  expect(decision.responsePlan.filter(plan=>plan.family==='APERAK'&&plan.outcome==='negative')).toEqual([])
  expect(readReceivedCanonicalProdatResponseValidation(decision,io.source)).toBeNull()
+ expect(io.writes).toEqual([])
+})
+
+it('actual operational mapper selects the genuine first ACK object for its source-qualified second258 without inheriting register authority',async()=>{
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor}),wire=tokenizeEdifact(io.source.raw_payload!)
+ const errors=errors258(decision),first=wire.segments.find(row=>row.tag==='LIN')!
+ expect(errors.length).toBeGreaterThan(0)
+ expect(errors.every(error=>error.prodatFieldDiagnostic?.kind==='field'&&error.prodatFieldDiagnostic.occurrence.registerPosition===2)).toBe(true)
+ expect(prodatAckObjectScopes({sourceWire:wire,messageCode:'Z04',outcome:'negative',applicationErrors:errors})).toEqual([
+  {objectId:'735123456789012345',identityAgency:'9',firstLineIndex:first.index,lineItemReference:'CASE-1'},
+ ])
+ expect(io.writes).toEqual([])
+})
+it('actual ACK preparation reads protected existing scopes then renders the exact negative258 draft without a write or invented receipt',async()=>{
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor})
+ const prepared=await prepareSourceAckDraft({actorUserId:actor,sourceMessage:io.source,ackFamily:'APERAK',outcome:'negative',applicationErrors:errors258(decision)})
+ expect(prepared.kind).toBe('draft')
+ if(prepared.kind!=='draft')throw Error('EXPECTED_FRESH_FINITE_DRAFT')
+ expect(prepared.draft).toMatchObject({direction:'outbound',messageFamily:'APERAK',environment:'test'})
+ const wire=tokenizeEdifact(prepared.draft.rawPayload!),bgm=wire.segments.find(row=>row.tag==='BGM')!
+ expect(segmentComposite(bgm,3,wire.una)[0]).toBe('34')
+ expect(wire.segments.some(row=>row.tag==='ERC'&&segmentComposite(row,1,wire.una)[0]==='42')).toBe(true)
+ expect(wire.segments.some(row=>row.tag==='FTX'&&segmentComposite(row,3,wire.una)[0]==='258')).toBe(true)
+ expect(io.calls.filter(call=>call.name==='gridex_read_outbound_acks_for_source_v2').length).toBeGreaterThan(0)
+ expect(io.writes).toEqual([])
+})
+
+it.each(wireChanges.filter(([name])=>name!=='valid second'))('actual negative mapper refuses borrowed H258 scope on %s source',async(_name,change)=>{
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor})
+ const sourceWire=tokenizeEdifact(change(io.source.raw_payload!))
+ expect(()=>prodatAckObjectScopes({sourceWire,messageCode:'Z04',outcome:'negative',applicationErrors:errors258(decision)}))
+  .toThrow('aperak_prodat_requested_scope_unqualified')
+ expect(io.writes).toEqual([])
+})
+it.each(['erc','field','text','national-text','physical-coordinate'] as const)('actual negative mapper refuses %s substitution on genuine H258 source',async(change)=>{
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor})
+ const applicationErrors=structuredClone(errors258(decision)),error=applicationErrors[0]
+ if(change==='erc')error.ercCode='100'
+ if(change==='field')error.fieldCode='209'
+ if(change==='text')error.text+=' forged'
+ if(change==='national-text')error.prodatAperakText=undefined
+ if(change==='physical-coordinate')error.prodatOccurrence!.registerPosition=1
+ expect(()=>prodatAckObjectScopes({sourceWire:tokenizeEdifact(io.source.raw_payload!),messageCode:'Z04',outcome:'negative',applicationErrors}))
+  .toThrow('aperak_prodat_requested_scope_unqualified')
+ expect(io.writes).toEqual([])
+})
+it('actual positive selected scope retains invalid register chain refusal',()=>{
+ const sourceWire=tokenizeEdifact(io.source.raw_payload!),first=sourceWire.segments.find(row=>row.tag==='LIN')!
+ expect(()=>prodatAckObjectScopes({sourceWire,messageCode:'Z04',outcome:'positive',prodatAcknowledgementLineIndices:[first.index]}))
+  .toThrow('aperak_prodat_selected_scope_invalid')
+ expect(io.writes).toEqual([])
+})
+
+it.each([undefined,[]])('actual negative H258 mapper refuses empty application errors %s',applicationErrors=>{
+ expect(()=>prodatAckObjectScopes({sourceWire:tokenizeEdifact(io.source.raw_payload!),messageCode:'Z04',outcome:'negative',applicationErrors}))
+  .toThrow('aperak_prodat_requested_scope_unqualified')
+ expect(io.writes).toEqual([])
+})
+it('actual negative mapper refuses unrelated physical raw substitution with preserved coarse coordinates',async()=>{
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor})
+ const sourceWire=tokenizeEdifact(io.source.raw_payload!.replace('LIN+2++735123456789012345:::9+1:', 'LIN+2++735123456789012345:::9+2:'))
+ expect(()=>prodatAckObjectScopes({sourceWire,messageCode:'Z04',outcome:'negative',applicationErrors:errors258(decision)}))
+  .toThrow('aperak_prodat_requested_scope_unqualified')
  expect(io.writes).toEqual([])
 })

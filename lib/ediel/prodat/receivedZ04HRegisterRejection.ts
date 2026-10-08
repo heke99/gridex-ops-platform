@@ -16,6 +16,7 @@ import {validateProdatRegisterPolicy} from '@/lib/ediel/rulebook/prodatRegisterP
 import {projectProdatRegisterValidation} from './prodatRegisterValidationEvidence'
 import {DEFAULT_UNA,type EdifactServiceStringAdvice} from '@/lib/ediel/core/una'
 import {prodatRegisterFieldState} from './prodatRegisterFields'
+import type {AperakEngineApplicationError} from '@/lib/ediel/aperakEngine'
 import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
 import {assertReceivedZ04RequiredStartActor} from './receivedZ04RequiredStartRejection'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
@@ -164,6 +165,17 @@ export function observeReceivedZ04HRegister(input:Input):EdielRulebookIssue[] {
  const rule=canonicalProdat26AFieldRules('Z04').filter(rule=>rule.fieldNumber==='258')
  return validateFieldMatrixPayload({family:'PRODAT',code:'Z04',direction:'inbound',mode:'parse',rawSegments:input.rawSegments,una},rule)
   .filter(issue=>issue.prodatDiagnostic?.kind==='field'&&issue.prodatDiagnostic.fieldNumber==='258'&&issue.prodatDiagnostic.errorKind==='invalid')
+}
+/** Negative ACK object selection only: recompute the entire qualified national
+ * error from the exact physical wire. This grants no common-field inheritance,
+ * valid register chain, positive admission or durable response authority. */
+export function receivedZ04HRegisterRejectionAckFirstLine(input:Input,error:AperakEngineApplicationError):number|null {
+ const errors=projectProdatDiagnostics(observeReceivedZ04HRegister(input)).applicationErrors
+ if(!isQualifiedProdatApplicationError(error)||!errors.some(actual=>isDeepStrictEqual(actual,error)))return null
+ const {groups}=prodatRegisterGroups(input.rawSegments,input.una??DEFAULT_UNA,'Z04')
+ const [first,second]=groups
+ return first&&second&&error.prodatOccurrence?.scope==='register'
+  &&error.prodatOccurrence.lineIndex===second.lineIndex?first.lineIndex:null
 }
 const structures=new WeakMap<object,{raw:string;facts:string;at:number}>()
 const wireIdentity=(input:Input)=>evidenceHash(JSON.stringify([input.rawSegments,input.una??DEFAULT_UNA]))
