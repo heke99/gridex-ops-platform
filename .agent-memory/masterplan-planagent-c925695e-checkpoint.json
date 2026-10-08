@@ -719,7 +719,10 @@
     },
     "done": "Read actual new main active instructions/queue/protocol and correction; normal nonconflicting carry of delivered main into own NONPR checkpoint branch. Current foreign699/716/717 check metadata fetched only; no logs/artifacts/native/review duplication.",
     "blockedOwner": "Original P/U/SC custodian session_01RxmpLE5UfwVEetssVwdAWs (5305990498953), relevant retained billing/timer/native source owners named5992136188; request6061265068 remains ungranted.",
-    "next": "Reuse existing own handoff request6061265068; no duplicate request/new broad selection audit. Await actual original P/U/SC+billing/timer/native-owner scope/remaining-criteria transfer for SC053/054, or a genuinely independently executable released criterion. Fresh source/ref checks and own atomic ID/exact-path reservation + CLAIM precede any implementation. No new pair chosen or code authorized merely by6061952106."
+    "next": "Reuse existing own handoff request6061265068; no duplicate request/new broad selection audit. Await actual original P/U/SC+billing/timer/native-owner scope/remaining-criteria transfer for SC053/054, or a genuinely independently executable released criterion. Fresh source/ref checks and own atomic ID/exact-path reservation + CLAIM precede any implementation. No new pair chosen or code authorized merely by6061952106.",
+    "resumptionReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6062392816",
+    "boardRecheckThrough": 6062374894,
+    "resumptionReceiptReadback": "PENDING_FINAL_REMOTE_CHECK"
   },
   "resumptionHistory": [
     {
@@ -896,5 +899,12 @@
       ]
     }
   },
-  "candidateRowsAuthority": "Previously assessed52-ID selection pointers, not a new broad audit. Current correction updates only relevant custody/dependency labels; fresh source hashes unchanged. Selection is presently bounded to existing SC053/054 handoff request."
+  "candidateRowsAuthority": "Previously assessed52-ID selection pointers, not a new broad audit. Current correction updates only relevant custody/dependency labels; fresh source hashes unchanged. Selection is presently bounded to existing SC053/054 handoff request.",
+  "initialSelectionMain": "372d61847ae59290f1077a433d26fc3e144c4a1f",
+  "activeMain": "6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9",
+  "activeInstructions": {
+    "main": "6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9",
+    "AGENTS_sha256": "f9e0f7cb4a7e48d94b30f8d438d1ba7fc6cebb82d1814b4712b67cdc53f7d0a0",
+    "routing": "Delivered715/6061952106 current role/startup/custody precedence applies; foreign709 algorithm unchanged."
+  }
 }
