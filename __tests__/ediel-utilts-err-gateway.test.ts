@@ -43,8 +43,13 @@ vi.mock('@/lib/supabase/service', () => {
       return this
     }
     or(expression: string) {
-      const options = expression.split(',').map(part => part.split('.eq.'))
-      this.filters.push(row => options.some(([key, expected]) => String(value(row, key) ?? '') === expected))
+      const options = expression.split(',').map(part => {
+        const match = /^([^.]+)\.(eq|is)\.(.*)$/.exec(part)
+        if (!match || match[2] === 'is' && match[3] !== 'null') throw Error(`unexpected_or:${expression}`)
+        const [, key, operation, expected] = match
+        return (row: Row) => operation === 'is' ? value(row, key) == null : String(value(row, key) ?? '') === expected
+      })
+      this.filters.push(row => options.some(filter => filter(row)))
       return this
     }
     order() { return this }
@@ -81,6 +86,9 @@ vi.mock('@/lib/supabase/service', () => {
         } else {
           data = rows.filter(row => this.filters.every(filter => filter(row))).slice(0, this.cap)
           if (this.mode === 'update') data.forEach(row => Object.assign(row, this.payload))
+        }
+        if (this.one && this.mode === 'read' && data.length > 1) {
+          return { data: null, error: { code: 'PGRST116', message: 'Multiple rows cannot be returned as one JSON object' }, count: data.length }
         }
         return { data: this.one ? data[0] ?? null : data, error: null, count: data.length }
       }).then(resolve, reject)
@@ -233,13 +241,59 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
     tenant_actor_roles: [{ id: randomUUID(), company_id: company, environment: 'test', actor_id: actor, role_code: 'DDQ' }],
     tenant_counterparty_relations: [],
     communication_routes: [{ id: route, company_id: company, route_name: 'Synthetic local route', is_active: true, route_scope: 'ediel_ack', environment_type: 'bilateral_test', grid_owner_id: null, target_system: 'synthetic-local-only' }],
-    ediel_route_runtime_v: [{ communication_route_id: route, company_id: company, route_profile_id: profile, environment: 'test',is_enabled:true }],
+    // Prospective external configuration, not source/ACK authority. One
+    // explicitly generic profile can carry all reply families for this APP.
+    ediel_route_profiles: [{ id: profile, communication_route_id: route, company_id: company, environment: 'test',
+      is_enabled: true, is_active: true, application_reference: source.application_reference, message_family: null, business_code: null }],
+    ediel_route_runtime_v: [{ communication_route_id: route, company_id: company, route_profile_id: profile, environment: 'test',
+      is_enabled: true, application_reference: source.application_reference, message_family: null, business_code: null }],
   })) database.tables.set(table, rows as Row[])
   const finalize = () => createUtiltsRuntimeAcks({ actorUserId: actor, sourceMessage: source,
     ackPlan: runtime.ackPlan, transactionDispositions: runtime.transactionDispositions })
   const acks = () => database.tables.get('ediel_messages')!.filter(row => row.direction === 'outbound')
   return { source, runtime, actor, finalize, acks, reservations }
 }
+
+it.each([
+  ['tenant', { company_id: 'foreign' }],
+  ['route', { communication_route_id: 'foreign' }],
+  ['environment', { environment: 'production' }],
+  ['APP', { application_reference: '23-DGI-PRODAT' }],
+  ['family', { message_family: 'APERAK' }],
+  ['code', { business_code: 'APERAK' }],
+  ['inactive', { is_active: false }],
+  ['disabled', { is_enabled: false }],
+] as const)('actual ERR gateway refuses a %s-incompatible configured profile without ACK effects', async (_label, delta) => {
+  const f = seed([{ reference: 'PROFILE-REFUSAL', outcome: 'processability_rejected' }])
+  Object.assign(database.tables.get('ediel_route_profiles')![0], delta)
+  const before = structuredClone([...database.tables]), originals = structuredClone([...database.bornOriginals])
+  const draft = buildUtiltsErrDraft({ actorUserId: f.actor, sourceMessage: f.source, messageText: 'E87', relatedTransactionReference: 'PROFILE-REFUSAL' })
+  await expect(createCanonicalAckMessage({ actorUserId: f.actor, sourceMessage: f.source, ackFamily: 'UTILTS_ERR', outcome: 'negative', draft }))
+    .rejects.toThrow('ediel_ack_route_profile_required')
+  expect([...database.tables]).toEqual(before)
+  expect([...database.bornOriginals]).toEqual(originals)
+  expect(f.acks()).toEqual([])
+})
+
+it.each(['generic', 'specific', 'missing-profile', 'missing-view', 'wrong-view-APP'] as const)(
+  'actual ERR gateway refuses %s configuration before creating any ACK', async fault => {
+    const f = seed([{ reference: 'PROFILE-UNIQUE', outcome: 'processability_rejected' }])
+    const profiles = database.tables.get('ediel_route_profiles')!, views = database.tables.get('ediel_route_runtime_v')!
+    const draft = buildUtiltsErrDraft({ actorUserId: f.actor, sourceMessage: f.source, messageText: 'E87', relatedTransactionReference: 'PROFILE-UNIQUE' })
+    if (fault === 'generic' || fault === 'specific') profiles.push({ ...profiles[0], id: randomUUID(),
+      ...(fault === 'specific' ? { message_family: 'UTILTS_ERR', business_code: draft.code } : {}) })
+    else if (fault === 'missing-profile') profiles.length = 0
+    else if (fault === 'missing-view') views.length = 0
+    else views[0].application_reference = '23-DGI-PRODAT'
+    const before = structuredClone([...database.tables]), originals = structuredClone([...database.bornOriginals])
+    const result = createCanonicalAckMessage({ actorUserId: f.actor, sourceMessage: f.source, ackFamily: 'UTILTS_ERR', outcome: 'negative', draft })
+    if (fault === 'generic' || fault === 'specific') await expect(result).rejects.toMatchObject({ code: 'PGRST116' })
+    else await expect(result).rejects.toThrow(fault === 'missing-profile' ? 'ediel_ack_route_profile_required' : 'ediel_ack_route_profile_scope_mismatch')
+    expect([...database.tables]).toEqual(before)
+    expect([...database.bornOriginals]).toEqual(originals)
+    expect(f.acks()).toEqual([])
+  },
+)
 
 it('keeps a leading own-ID functional ERR separate from its trimmed positive sibling through the actual ACK gateway',async()=>{
  const f=seed([{reference:' OWN A',outcome:'processability_rejected'},{reference:'OWN A',outcome:'accepted'}])
