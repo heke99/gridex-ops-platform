@@ -26,6 +26,60 @@ do not rewrite them or treat the channel move as a release. Atomic GitHub refs
 still determine ownership, and the reservation, documentation, review, coverage
 and merge protocols remain unchanged.
 
+## Autonomous Masterplan roles — owner continuation, 2026-10-08
+
+Keep the role authorized for this chat; a new agent receives a role, not assigned
+rule IDs. This distinction applies to blanket two-ID and pre-dispatch wording
+in older memory. The current continuation authorizes eligible work, while
+specific HOLD/PAUSED criteria, external decisions and existing custody remain.
+
+- **PLANAGENT:** finish your existing packet/PR, then select two executable,
+  unapproved and unowned rule IDs with their contracts; use two contract/scenario
+  IDs for acceptance-only work, or a final single eligible ID. Follow the
+  existing atomic ID/file reservation, review, coverage and delivery contract.
+- **BLOCKERARAGENT:** retain this fixed role. Choose one evidenced blocker
+  affecting the plan, finish or explicitly hand it over, then choose another.
+  Code changes are allowed after verified exact file custody and any required
+  ID reservation/owner handoff. Do not take unrelated plan pairs.
+- **GRANSKARE:** perform the agreed bounded independent read-only review of
+  an exact source and its relevant execution path. Report findings and limits;
+  review does not transfer implementation scope or approve unproved whole IDs.
+
+Use `.agent-memory/masterplan-next-wave-prompt.md` for PLANAGENT and
+`.agent-memory/masterplan-blocker-agent-prompt.md` for BLOCKERARAGENT. Existing
+reviewers keep their role. The prompts support new and resumed Claude/Codex
+sessions; a new session never inherits another session's locks by assumption.
+
+Read the active sections of startup memory and your checkpoint, then relevant
+dated history. Refresh actual main, coverage, PR heads/checks, #673 and remote
+refs before selection. Older snapshots or an idle chat are not current custody.
+Classify candidates as READY, OCCUPIED, WAITING_DEPENDENCY, EXTERNAL_DECISION
+or DONE in existing checkpoints/queue entries; these are selection aids, not
+new locks or coverage statuses. A blocked entry names its owner, required
+deliverable and exact resumption event. Resume on a relevant change rather
+than duplicating another owner's native/capture/GEN/artifact work.
+
+Every role records taken/done/verification/blocker/next in its own checkpoint
+and #673 before another work item. Keep receipts concise. Shared summaries
+require both role-memory and exact file custody; the role does not grant files
+reserved by another writer. Preserve dated evidence instead of copying whole
+audit narratives into each transition.
+
+Direct self-reservation requires working authenticated Git Data operations in
+the current execution host. The already owner-authorized Claude proxy remains
+valid ([decision6056938983](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6056938983)):
+Claude is `receipt.agent`, the capable coordinator is `delegatedBy`, and the
+same create-if-absent, exact scope, SHA verification and owner-requested release
+checks apply. No implementation before verified refs and documented CLAIM.
+Comments/branches are never locks. Proxy success is not direct Claude tag
+capability; hosted Cloud restrictions do not establish Local/SSH capabilities.
+Do not create probes or expose credentials to test access.
+
+Reuse existing review/verification only when the exact source, relevant
+environment and asserted behavior remain applicable and the relevant comparison
+is recorded. Changed behavior/environment or conflicts require fresh affected
+checks. All mandatory checks for the current PR head still apply before merge.
+
 Before every non-trivial task:
 
 1. Read `.agent-memory/README.md`.
@@ -285,8 +339,9 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
    remaining partial cards.
 7. **Shared work:** before starting a cluster, check open PRs and
    `.agent-memory/handover.md` so two sessions never fix the same thing.
-8. **Self-selection and reservation (mandatory, Claude and Codex):** choose
-   two eligible unapproved rule IDs and their contracts yourself from current
+8. **Self-selection and reservation (mandatory, Claude and Codex):** maintain
+   the authorized role above. PLANAGENT chooses
+   two eligible unapproved rule IDs and their contracts independently from current
    main, priority and dependencies (or two remaining contract/scenario IDs when
    work is acceptance-only; a final single eligible ID is allowed). Read #673
    and relevant historical #530 receipts,
@@ -294,7 +349,9 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
    exact file scope using `.agent-memory/masterplan-reservations.md`, then post
    `CLAIM <IDs> — <agent> — packet <UUID> — branch <branch>` with the receipt
    and next action before code. Conflicts require selecting other free work.
-   No user assignment, coordinator acknowledgement or staggered launch is needed.
+   Direct self-reservation needs no user allocation, coordinator acknowledgement
+   or staggered launch. A restricted session using the already-authorized proxy
+   must obtain and verify its actual reservation receipt before implementation.
    Issue #673 carries new progress; #530 preserves earlier evidence. Atomic refs
    establish ownership. Acquire the
    merge-role lock for serial current-head delivery. Post `READY <IDs> — PR #N` for reviewable work,
