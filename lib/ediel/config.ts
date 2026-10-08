@@ -357,11 +357,13 @@ export async function getEdielRouteRuntimeByCommunicationRouteId(
     // The route can legitimately carry several processes and reply families.
     // Select the complete configured candidate universe, retaining compatible
     // NULL family/code rows as competitors; maybeSingle refuses ambiguity.
+    // Legacy NULL-active profiles remain eligible alongside explicit true;
+    // explicit false is disabled and every compatible row competes.
     const { data: profile, error: profileError } = await supabaseService
       .from('ediel_route_profiles').select('*')
       .eq('company_id', scopedCompanyId).eq('communication_route_id', communicationRouteId)
       .eq('environment', selection.environment).eq('application_reference', selection.applicationReference)
-      .eq('is_enabled', true).eq('is_active', true)
+      .eq('is_enabled', true).or('is_active.is.null,is_active.eq.true')
       .or(`message_family.is.null,message_family.eq.${selection.family}`)
       .or(`business_code.is.null,business_code.eq.${selection.code}`)
       .maybeSingle()
@@ -369,7 +371,8 @@ export async function getEdielRouteRuntimeByCommunicationRouteId(
     if (!profile) throw new Error('ediel_ack_route_profile_required')
     if (typeof profile.id !== 'string' || !profile.id || profile.company_id !== scopedCompanyId
       || profile.communication_route_id !== communicationRouteId || profile.environment !== selection.environment
-      || profile.application_reference !== selection.applicationReference || profile.is_enabled !== true || profile.is_active !== true
+      || profile.application_reference !== selection.applicationReference || profile.is_enabled !== true
+      || !(profile.is_active === null || profile.is_active === true)
       || !(profile.message_family === null || profile.message_family === selection.family)
       || !(profile.business_code === null || profile.business_code === selection.code)) {
       throw new Error('ediel_ack_route_profile_scope_mismatch')

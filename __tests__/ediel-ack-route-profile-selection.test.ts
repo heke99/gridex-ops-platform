@@ -12,7 +12,8 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
  const filters:((row:Record<string,unknown>)=>boolean)[]=[]
  const query={select:()=>query,eq:(key:string,value:unknown)=>{filters.push(row=>row[key]===value);return query},
   or:(expression:string)=>{const [absent,equal]=expression.split(',');const key=absent.split('.')[0]
-   const value=equal.split('.eq.')[1];filters.push(row=>row[key]===null||row[key]===value);return query},
+   const literal=equal.split('.eq.')[1],value=literal==='true'?true:literal==='false'?false:literal
+   filters.push(row=>row[key]===null||row[key]===value);return query},
   maybeSingle:async()=>{const rows=(table==='ediel_route_profiles'?io.profiles:io.views).filter(row=>filters.every(f=>f(row)))
    if(rows.length>1)return {data:null,error:{code:'PGRST116',message:'Multiple rows cannot be returned as one JSON object'}}
    return {data:table==='ediel_route_runtime_v'&&rows[0]&&io.override?{...rows[0],...io.override}:rows[0]??null,error:null}}}
@@ -75,6 +76,15 @@ describe('fresh ACK profiles use the source-qualified unique configuration',()=>
  })
  it.each([['specific',profile('second')],['wildcard',profile('generic',null,app,null)]])('refuses a competing %s profile',async(_label,second)=>{
   configure([profile('first'),second]);await expect(getEdielRouteRuntimeByCommunicationRouteId(route,selection())).rejects.toMatchObject({code:'PGRST116'})
+  expect(io.reads).not.toContain('ediel_route_runtime_v')
+ })
+ it('preserves a unique enabled legacy NULL-active profile',async()=>{
+  configure([{...profile('legacy',null,app,null),is_active:null}])
+  await expect(getEdielRouteRuntimeByCommunicationRouteId(route,selection())).resolves.toMatchObject({route_profile_id:'legacy'})
+ })
+ it('keeps a legacy NULL-active competitor in the ambiguity universe',async()=>{
+  configure([profile('explicit'),{...profile('legacy',null,app,null),is_active:null}])
+  await expect(getEdielRouteRuntimeByCommunicationRouteId(route,selection())).rejects.toMatchObject({code:'PGRST116'})
   expect(io.reads).not.toContain('ediel_route_runtime_v')
  })
  it('accepts a unique compatible NULL family/code without discarding its identity',async()=>{
