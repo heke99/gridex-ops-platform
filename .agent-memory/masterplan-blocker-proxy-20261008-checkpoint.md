@@ -1,5 +1,43 @@
 # Blocker agent: Claude proxy protocol reconciliation
 
+## Current resumed source — 2026-10-08
+
+Same original owner/packet and two exact file resources at receipt74b4932.
+Actual main6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9/treef48c29203565565c217bba419ff56d3fbba3ebbd
+is adopted normally from preserved reviewed52dc93ed; original da2 source and
+all dated failures/reviews below remain history. No protocol bytes were changed
+from52dc; all foreign paths and coverage retain exact actual-main postimages.
+The earlier714 wait is fulfilled by actual merge0509defb and exact release
+6061322756, confirmed by owner correction6061952106. PR713/715 deliveries are
+also actual main. This supersedes the earlier NOT_PUBLISHED wait framing below;
+that section describes its dated observation only, not a current prohibition.
+
+Both original file refs freshly GET_MATCH74b4932; role-memory was actually
+released6061236210. No own role, technical ID or coverage row is held. Resumption
+scope/evidence/next are recorded6062452361 and on the operational checkpoint
+branch at d5d9f2c8f40326600d4f27040247310d3eae6f4e. This source update changes
+only this unique checkpoint while adopting actual main; shared protocol bytes
+reuse the already reviewed correction without another semantic edit.
+
+Next: self-review three-path composition and specification integrity, obtain
+two fresh complete-path independent reviews at the exact resulting head, then
+publish that descendant on the existing709 branch. Require SUCCESS for verify,
+quality-release-gates, clean-migration-replay, upgrade-migration-replay, smoke,
+coverage, browser-public and pr-certificate on that exact published head; prior
+da2 successes/failures and52dc reviews are bounded historical evidence.
+Conditional staging/full/nightly gates follow current workflow applicability.
+No manual rerun or native/capture/GEN/foreign artifact work is authorized here.
+After current-head CI and actual-main composition2 approval, acquire merge-role
+only if immediately free, normally merge expected source, authenticate actual
+PR/main parents/tree, release own role FIRST, document actual delivery and only
+then exact74 file releases. No merge, CI_GREEN, runtime/whole-ID approval or
+release is asserted by source preparation. Coverage stays115+185=300/352.
+
+After delivery refresh Claude queue: P08 handover/7refs already exist;
+conditional699 request withdrawn; GEN/source/probe/native work remain with
+existing owners. Select only a concrete eligible blocker with actual handoff,
+verified own refs and CLAIM; do not repeat generic custody requests or jobs.
+
 ## Prepared protocol correction — 2026-10-08
 
 Same owner codex-blocker-proxy-20261008-a7912b34 / packet a7912b34-f5f8-4a3b-b0a1-f9d31fac2a3a.
