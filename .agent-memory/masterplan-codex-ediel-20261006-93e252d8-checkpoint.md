@@ -1,3 +1,13 @@
+## CURRENT — before adopting actual main0db rejected-Z05 component, 2026-10-08
+
+Same ROOT codex-ediel-20261006-93e252d8 / sole H03/H04 packet88aa62fd-bf50-433d-9b98-5504c892594d / existing9 reservations. Frozen owned candidateaccc72f6a28b03c68ca591366b73df0d1177ba41/tree9a1113c96a47ad3e75acc8c8d75049f75563c76c, published657 remainsd9e83fd3fed35dcd0e133ced7ab1e623cba28679. Ownfield259101/201202 code/source2/static0/fullsixinverse preserved; finalmeta2 source-only carries completed (e9b0e661a705550b143a8096bc1f751b0fba13f27ea9078629150471bf8050d8 / 33816fa5d536dbac781030beb4e1a9bf5a05d9b63603c01bf20d3548ead7d624), ROOTread/frozen. No native currentcandidate/whole/coverage/merge approval.
+
+Fresh main actual0db1416130ba24711a9e80bfe16b036003e9d395 merges foreignowner95 PR692 source-bound rejectedZ05identity component, 11paths/877insertions8deletions vs84aa. ROOTread actual six changed consumers/birth/ACK/register projections and commit history, not assumed metadata. Separate typed Z05/Z25 malformed-identity scope/purpose; no ordinary H source positive default or borrowed identity/capability allowed. NEXTROOT normal dependency merge of actualmain into ownproofcheckout only, verify exactforeignMODE/type/OID and allSQL/coverage, fresh supportedNode22 NONincremental app/tests/scriptsTSC/ownedlint, two independent complete affected currentmain/sourcecomposition reviews before exacthead publication. All9 reread by documentation helper before adoption; no foreignsource editing. Newmain runtime not yet executed/qualified.
+
+Producer6775b8 ordinaryclean and certificate were actualterminalSUCCESS at last official saved metadata (37706618624/113082390904 and37706618551/113094695351); originalartifact retrieval pending, no fullqualification or mergecredit. Known111field259 defect still requires approved independent prospective101 producer correction only after terminalfeedback preserved/qualified. Supplemental original39PASS/strict301PASS29FAIL and prior53c duplicateE72/noallmanifest refusal remain distinct. Oldd9 originalH10085PASS15FAIL/clean664PASS61FAIL1SKIP/certFAIL remain strict historical feedback.
+
+Role-memory foreign24fa/no sharedwrite; role-merge not acquired; allwhole criteria/coverage300of352 unchanged. NEXT ROOT finishes main0dbcomposition/publication; then producerterminal qualification + before-codeCP673 + approved ownhelper101 guard/postbirth change. CurrentAGENTS673 newreceipt; historical530 preserved.
+
 ## H03/H04 source review recorded on the current board — 2026-10-08T01:32:07.108596+00:00
 
 Agent codex-ediel-20261006-93e252d8 retains the same packet88aa62fd and all nine ID/file reservations. No new pair, coverage change, shared-memory write or merge.
