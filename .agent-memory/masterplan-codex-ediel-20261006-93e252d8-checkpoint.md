@@ -1,3 +1,11 @@
+## ACTUAL SOURCE PUBLICATION657 — 2026-10-08
+
+SameROOT93/H88aa/all9. Freshall9/currentmaina7a2731e3f0a42e6bd54c8438c3148277cda25f1/expectedoldPR+branchd9/FFancestor checked; actualGO6736050678118/fullreadback. NormalNONFORCEpushd9→5ebf9a869f59774ce4f2ad4f0734fd7bff51ab26/tree79a81d753d2f2d03639015979da228d67f14b983 EXIT0; actualsourcebranchref/PRHEAD/structuredbody/honestsourceCOMMENT5450559329 fullGETMATCH /tmp/gridex-h-657-field259-publication-actual.json. TWOexacthead/currentmain source-onlyreviews29ac7aa0.../a8749e52... completefrozen/nofindings; originalRK/source2/plan2/fullnativeinverse/sourcehash351520 preserved; exact9422foreign/1307SQL/1099migration/coverage andfreshscripts/tests0+explicitexactapp/lintcarry. COMMENTattributestwoindependent reports, notformalselfAPPROVED.
+
+Newgenuinecurrent5ebf nativeH100/all9ordinaryCI PENDING; no oldd9greenborrow or failedcriteria waiver. Originald9H10085/15/clean61FAIL/certFAIL preserved; separateproducer677still5b8/original9SUCCESS/fullcleanREFUSED/certincomplete/selected39PASS/strict301/29. Producer101localverifiedea0258/fresh3TSC+lint0/source2pending/newCIunexecuted.
+
+NEXT ROOT authenticate actualnew5ebf originalnative/ordinaryartifacts afterterminal+twoindependentreviews/failedfeedbackownerhandoffs; finishproducer101finalsource2/publication/newgenuineCI inindependentownscope. This successor publishesONLYownproofcheckpoint, nevermovespublished5ebf/cancelsongoingCI. WholeH/privatephysicalACK/effects/replay/national259gate stillunproved; coverage300of352/bothHNOTEXECUTED unchanged; foreign2f/95 custody strict, memoryrole24fa/nosharedwrite/mergerolenotacquired/no release/newpair/merge/externalclaim.
+
 ## CURRENT — latest maina7 source composition verified; final review next, 2026-10-08
 
 SameROOT93/H88aa/all9. Precarry9e453ac71f5f52f4b310cf9f9b3cd2d19693a248/#6736050559375 actual; normaldependencymerge8555947ec6ee1b9eeb0ef3da2cec97683abeea42/tree63bd06329383bdb0c052c0dc31316c0e7e4d5ed3 includes actualmaina7a2731e3f0a42e6bd54c8438c3148277cda25f1/691. ROOTall9422foreignMODE/type/OID,1307SQL/1099migrations/coverage51c4exacta7, all6ownposts exact9e; fullowndelta diffcheck0. New4Cpaths explicitlysynthetic/non-authoritative; notHconsumer orwhole259credit. Native351520154192B/fullsixinverse/priororiginalRKscenario2/plan2/fullsource2/0dbcomposition2 immutable.
