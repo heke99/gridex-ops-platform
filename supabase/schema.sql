@@ -14780,7 +14780,7 @@ BEGIN
  AND NOT EXISTS(SELECT FROM public.user_permissions u JOIN public.permissions p ON p.id=u.permission_id OR u.permission_id IS NULL AND p.key=u.permission_key WHERE u.user_id=actor AND (u.company_id=c OR u.company_id IS NULL) AND u.is_active AND u.status='active' AND u.effect='deny' AND p.key=wanted)
  AND NOT EXISTS(SELECT FROM public.user_permission_overrides o WHERE o.user_id=actor AND (o.company_id=c OR o.company_id IS NULL) AND o.is_active AND o.effect='deny' AND o.permission_key=wanted)
  AND public.gridex_actor_has_company_permission(actor,c,wanted) IS TRUE;END IF;
- IF NOT EXISTS(SELECT FROM public.companies WHERE id=c AND status IN('active','archived','pending_deletion'))
+ IF NOT EXISTS(SELECT FROM public.companies WHERE id=c AND status IN('active','archived','pending_deletion','closed'))
   OR NOT public.ediel_retention_lock_auth_actor_v1(actor)
   OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=actor AND user_status='active')
   OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=c AND user_id=actor AND status='active' AND is_active AND accepted_at IS NOT NULL) THEN RETURN false;END IF;
@@ -15454,7 +15454,7 @@ CREATE FUNCTION gridex_ediel_retention.record_permission_v1(c uuid, actor uuid, 
     AS $$
 DECLARE wanted text;BEGIN
  IF k='__read_scope__' THEN wanted:='ediel.retention.read';ELSE SELECT permission_key INTO wanted FROM gridex_ediel_retention.record_class_catalog WHERE retention_class=k;END IF;
- IF wanted IS NULL OR NOT EXISTS(SELECT FROM public.companies WHERE id=c AND status IN('active','archived','pending_deletion'))
+ IF wanted IS NULL OR NOT EXISTS(SELECT FROM public.companies WHERE id=c AND status IN('active','archived','pending_deletion','closed'))
  OR NOT public.ediel_retention_lock_auth_actor_v1(actor)
  OR NOT EXISTS(SELECT FROM public.user_profiles u WHERE u.id=actor AND u.user_status='active' AND to_jsonb(u)->>'disabled_at' IS NULL)
  OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=c AND user_id=actor AND status='active' AND is_active AND accepted_at IS NOT NULL)
@@ -44361,7 +44361,7 @@ DECLARE actor uuid:=public.ediel_retention_session_actor_v1();company record;ses
  IF actor IS NULL THEN RAISE EXCEPTION 'retention_current_session_actor_required' USING ERRCODE='42501';END IF;
  LOCK TABLE public.permissions,public.roles,public.user_roles,public.role_permissions,public.user_permissions,public.user_permission_overrides IN SHARE MODE;
  PERFORM public.ediel_retention_lock_auth_actor_v1(actor);PERFORM id FROM public.user_profiles WHERE id=actor FOR SHARE;
- FOR company IN SELECT c.id,c.name,c.status FROM public.company_memberships m JOIN public.companies c ON c.id=m.company_id WHERE m.user_id=actor AND m.status='active' AND m.is_active AND m.accepted_at IS NOT NULL AND c.status IN('active','archived','pending_deletion') ORDER BY c.id LIMIT 1001 LOOP
+ FOR company IN SELECT c.id,c.name,c.status FROM public.company_memberships m JOIN public.companies c ON c.id=m.company_id WHERE m.user_id=actor AND m.status='active' AND m.is_active AND m.accepted_at IS NOT NULL AND c.status IN('active','archived','pending_deletion','closed') ORDER BY c.id LIMIT 1001 LOOP
   n:=n+1;IF n>1000 THEN RAISE EXCEPTION 'retention_current_company_list_bound';END IF;
   BEGIN
    session:=public.ediel_current_retention_session_v1(company.id,actor);
@@ -57592,6 +57592,25 @@ $$;
 COMMENT ON FUNCTION public.gridex_company_legal_profile_defaults(p_company jsonb) IS 'Deterministic canonical projection from companies. Hash includes every legal field and excludes unrelated updated_at timestamps.';
 
 --
+-- Name: gridex_company_retained_history_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_company_retained_history_v1(p_company_id uuid) RETURNS text[]
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select array_remove(array[
+    case when exists (select 1 from public.customers c where c.company_id = p_company_id
+      and c.is_test_data is not true and coalesce(lower(c.source), '') not like '%test%') then 'customers' end,
+    case when exists (select 1 from public.customer_contracts x where x.company_id = p_company_id) then 'customer_contracts' end,
+    case when exists (select 1 from public.customer_invoices x where x.company_id = p_company_id) then 'customer_invoices' end,
+    case when exists (select 1 from public.invoice_documents x where x.company_id = p_company_id) then 'invoice_documents' end,
+    case when exists (select 1 from public.billing_underlays x where x.company_id = p_company_id) then 'billing_underlays' end,
+    case when exists (select 1 from public.contract_charge_ledger x where x.company_id = p_company_id) then 'contract_charge_ledger' end
+  ], null)
+$$;
+
+--
 -- Name: gridex_complete_facility_response(uuid, uuid, uuid, text, uuid, text, text, text, text, uuid, jsonb, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -70566,6 +70585,68 @@ begin
 end $$;
 
 --
+-- Name: gridex_guard_company_disposable_status_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_guard_company_disposable_status_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_retained text[];
+begin
+  if new.status = 'deleted_test_only' and old.status is distinct from 'deleted_test_only' then
+    if current_user not in ('postgres', 'supabase_admin') then
+      raise exception using
+        errcode = '23001',
+        message = 'company_disposable_status_blocked',
+        detail = 'Only the canonical lifecycle command may mark a tenant disposable.';
+    end if;
+    -- Applies to every role, including the SECURITY DEFINER lifecycle command.
+    v_retained := public.gridex_company_retained_history_v1(new.id);
+    if cardinality(v_retained) > 0 then
+      raise exception using
+        errcode = '23001',
+        message = 'company_disposable_retained_history',
+        detail = 'Tenant holds retained history: ' || array_to_string(v_retained, ',');
+    end if;
+  end if;
+  return new;
+end
+$$;
+
+--
+-- Name: gridex_guard_company_hard_delete_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_guard_company_hard_delete_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_retained text[];
+begin
+  if current_user in ('postgres', 'supabase_admin') then
+    return old;
+  end if;
+  if old.status = 'deleted_test_only' then
+    v_retained := public.gridex_company_retained_history_v1(old.id);
+    if cardinality(v_retained) = 0 then
+      return old;
+    end if;
+    raise exception using
+      errcode = '23001',
+      message = 'company_hard_delete_blocked',
+      detail = 'Disposable tenant still holds retained history: ' || array_to_string(v_retained, ',');
+  end if;
+  raise exception using
+    errcode = '23001',
+    message = 'company_hard_delete_blocked',
+    detail = 'Retained audit, journal and billing history would be cascaded away; close the tenant through canonical_transition_tenant_lifecycle.';
+end
+$$;
+
+--
 -- Name: gridex_guard_company_white_label_platform(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -70588,6 +70669,44 @@ begin
 
   raise exception 'Only platform superadmins can change a company''s white-label platform' using errcode = '42501';
 end;
+$$;
+
+--
+-- Name: gridex_guard_customer_hard_delete_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_guard_customer_hard_delete_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  if current_user in ('postgres', 'supabase_admin') then
+    return old;
+  end if;
+  raise exception using
+    errcode = '23001',
+    message = 'customer_hard_delete_blocked',
+    detail = 'Use gridex_delete_test_customer_v1 for test customers; real customers keep their history.';
+end
+$$;
+
+--
+-- Name: gridex_guard_history_truncate_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_guard_history_truncate_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  if current_user in ('postgres', 'supabase_admin') then
+    return null;
+  end if;
+  raise exception using
+    errcode = '23001',
+    message = 'history_truncate_blocked',
+    detail = format('TRUNCATE of %I.%I would remove retained history.', tg_table_schema, tg_table_name);
+end
 $$;
 
 --
@@ -141265,6 +141384,24 @@ CREATE TRIGGER ai_reconciliation_receipts_no_mutation BEFORE DELETE OR UPDATE ON
 CREATE TRIGGER ai_reconciliation_receipts_no_truncate BEFORE TRUNCATE ON gridex_ai_processing.reconciliation_receipts FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
 
 --
+-- Name: decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ai_processing; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ai_processing.decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: outbound_origins gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ai_processing; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ai_processing.outbound_origins FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: reconciliation_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ai_processing; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ai_processing.reconciliation_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: revocations ai_purpose_revoke_lock; Type: TRIGGER; Schema: gridex_ai_purpose_sources; Owner: -
 --
 
@@ -141281,6 +141418,12 @@ CREATE TRIGGER artifacts_immutable BEFORE DELETE OR UPDATE ON gridex_ai_purpose_
 --
 
 CREATE TRIGGER artifacts_no_truncate BEFORE TRUNCATE ON gridex_ai_purpose_sources.artifacts FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ai_purpose_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ai_purpose_sources.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: issuer_keys issuer_keys_immutable; Type: TRIGGER; Schema: gridex_ai_purpose_sources; Owner: -
@@ -141377,6 +141520,18 @@ CREATE TRIGGER classification_origin_immutable BEFORE DELETE OR UPDATE ON gridex
 --
 
 CREATE TRIGGER classification_origin_no_truncate BEFORE TRUNCATE ON gridex_bilateral_customer_sources.life_event_classification_origins FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_customer_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_customer_sources.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: life_event_classification_origins gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_customer_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_customer_sources.life_event_classification_origins FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: issuer_keys issuer_keys_immutable; Type: TRIGGER; Schema: gridex_bilateral_customer_sources; Owner: -
@@ -141497,6 +141652,60 @@ CREATE TRIGGER closure_operations_immutable BEFORE DELETE OR UPDATE ON gridex_bi
 --
 
 CREATE TRIGGER closure_operations_no_truncate BEFORE TRUNCATE ON gridex_bilateral_prodat.closure_operations FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_prodat.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: closure_end_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_prodat.closure_end_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: closure_operations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_prodat.closure_operations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_keys gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_prodat.issuer_keys FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_representations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_prodat.issuer_representations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: outbound_operations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_prodat.outbound_operations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: reviews gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_prodat.reviews FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: source_capability_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_prodat.source_capability_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: supply_effect_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_bilateral_prodat.supply_effect_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: issuer_keys issuer_keys_immutable; Type: TRIGGER; Schema: gridex_bilateral_prodat; Owner: -
@@ -141655,6 +141864,30 @@ CREATE TRIGGER events_immutable BEFORE DELETE OR UPDATE ON gridex_brp_changes.ev
 CREATE TRIGGER events_no_truncate BEFORE TRUNCATE ON gridex_brp_changes.events FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
 
 --
+-- Name: events gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_brp_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_brp_changes.events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: origins gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_brp_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_brp_changes.origins FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: period_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_brp_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_brp_changes.period_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: registry_grounds gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_brp_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_brp_changes.registry_grounds FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: period_versions period_versions_immutable; Type: TRIGGER; Schema: gridex_brp_changes; Owner: -
 --
 
@@ -141695,6 +141928,18 @@ CREATE TRIGGER revocations_no_truncate BEFORE TRUNCATE ON gridex_brp_changes.rev
 --
 
 CREATE TRIGGER brp_00_retention_source_lock BEFORE INSERT ON gridex_brp_declaration_intake.artifacts FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.protected_copy_insert_v1();
+
+--
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_brp_declaration_intake; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_brp_declaration_intake.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_keys gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_brp_declaration_intake; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_brp_declaration_intake.issuer_keys FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: artifact_revocations immutable; Type: TRIGGER; Schema: gridex_brp_declaration_intake; Owner: -
@@ -141853,16 +142098,58 @@ CREATE TRIGGER brp_source_no_truncate BEFORE TRUNCATE ON gridex_brp_sources.cont
 CREATE TRIGGER brp_source_no_truncate BEFORE TRUNCATE ON gridex_brp_sources.qualified_candidates FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
 
 --
+-- Name: contract_declarations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_brp_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_brp_sources.contract_declarations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: bindings expectation_binding_immutable; Type: TRIGGER; Schema: gridex_business_expectations; Owner: -
 --
 
 CREATE TRIGGER expectation_binding_immutable BEFORE DELETE OR UPDATE ON gridex_business_expectations.bindings FOR EACH ROW EXECUTE FUNCTION gridex_business_expectations.immutable_v1();
 
 --
+-- Name: bindings gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_business_expectations; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_business_expectations.bindings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: authority_versions certificate_trust_authority_immutable; Type: TRIGGER; Schema: gridex_certificate_trust; Owner: -
 --
 
 CREATE TRIGGER certificate_trust_authority_immutable BEFORE DELETE OR UPDATE ON gridex_certificate_trust.authority_versions FOR EACH ROW EXECUTE FUNCTION gridex_certificate_trust.immutable_v1();
+
+--
+-- Name: authority_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_certificate_trust; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_certificate_trust.authority_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_contract_source_intake; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_contract_source_intake.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_keys gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_contract_source_intake; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_contract_source_intake.issuer_keys FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: representations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_contract_source_intake; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_contract_source_intake.representations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: reviews gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_contract_source_intake; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_contract_source_intake.reviews FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: artifacts immutable; Type: TRIGGER; Schema: gridex_contract_source_intake; Owner: -
@@ -142165,6 +142452,30 @@ CREATE TRIGGER customer_event_partition_immutable BEFORE DELETE OR UPDATE ON gri
 CREATE TRIGGER customer_event_partition_no_truncate BEFORE TRUNCATE ON gridex_customer_life_events.partition_receipts FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
 
 --
+-- Name: certification_classifications gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_customer_life_events; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_customer_life_events.certification_classifications FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_customer_life_events; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_customer_life_events.customer_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: events gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_customer_life_events; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_customer_life_events.events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tasks gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_customer_life_events; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_customer_life_events.tasks FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: customer_versions immutable_truncate; Type: TRIGGER; Schema: gridex_customer_life_events; Owner: -
 --
 
@@ -142345,6 +142656,18 @@ CREATE TRIGGER customer_masterdata_no_truncate BEFORE TRUNCATE ON gridex_custome
 CREATE TRIGGER customer_masterdata_revocation_scope BEFORE INSERT ON gridex_customer_masterdata.revocations FOR EACH ROW EXECUTE FUNCTION gridex_customer_masterdata.declaration_scope_v1();
 
 --
+-- Name: preparations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_customer_masterdata; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_customer_masterdata.preparations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: signed_declarations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_customer_masterdata; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_customer_masterdata.signed_declarations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: err_reason_source_editions immutable_rows; Type: TRIGGER; Schema: gridex_ediel_ack_guide; Owner: -
 --
 
@@ -142441,6 +142764,12 @@ CREATE TRIGGER immutable_update_delete BEFORE DELETE OR UPDATE ON gridex_ediel_a
 CREATE TRIGGER immutable_update_delete BEFORE DELETE OR UPDATE ON gridex_ediel_ack_guide.source_bindings FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
 
 --
+-- Name: positive_service_scope_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_ack_replay; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_ack_replay.positive_service_scope_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: creation_receipts immutable_creation; Type: TRIGGER; Schema: gridex_ediel_ack_replay; Owner: -
 --
 
@@ -142463,6 +142792,24 @@ CREATE TRIGGER positive_service_scope_immutable BEFORE DELETE OR UPDATE ON gride
 --
 
 CREATE TRIGGER positive_service_scope_no_truncate BEFORE TRUNCATE ON gridex_ediel_ack_replay.positive_service_scope_receipts FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_ack_replay.service_scope_immutable_v1();
+
+--
+-- Name: events gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_business_incidents; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_business_incidents.events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: incidents gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_business_incidents; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_business_incidents.incidents FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: plans gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_business_incidents; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_business_incidents.plans FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: events immutable_business_incident; Type: TRIGGER; Schema: gridex_ediel_business_incidents; Owner: -
@@ -142585,10 +142932,28 @@ CREATE TRIGGER beneficiary_export_result_no_truncate BEFORE TRUNCATE ON gridex_e
 CREATE TRIGGER beneficiary_export_scope_immutable BEFORE DELETE OR UPDATE ON gridex_ediel_exports.jobs FOR EACH ROW EXECUTE FUNCTION gridex_ediel_exports.immutable_scope_v1();
 
 --
+-- Name: jobs gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_exports; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_exports.jobs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: receipts immutable_receipts; Type: TRIGGER; Schema: gridex_ediel_inbound_context; Owner: -
 --
 
 CREATE TRIGGER immutable_receipts BEFORE DELETE OR UPDATE ON gridex_ediel_inbound_context.receipts FOR EACH ROW EXECUTE FUNCTION gridex_ediel_inbound_context.immutable();
+
+--
+-- Name: receptions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_inbound_receptions.receptions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: response_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_inbound_receptions; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_inbound_receptions.response_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: receptions immutable; Type: TRIGGER; Schema: gridex_ediel_inbound_receptions; Owner: -
@@ -142649,6 +143014,12 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_outbound_owner
 --
 
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_outbound_owner.witnesses FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_outbound_owner.immutable();
+
+--
+-- Name: evidence gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_readiness; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_readiness.evidence FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: evidence scoped_evidence_no_mutation; Type: TRIGGER; Schema: gridex_ediel_readiness; Owner: -
@@ -142931,6 +143302,72 @@ CREATE TRIGGER decisions_no_truncate BEFORE TRUNCATE ON gridex_ediel_retention.d
 --
 
 CREATE TRIGGER finance_retention_revocation_lock BEFORE INSERT ON gridex_ediel_retention.finance_revocations FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.finance_revocation_lock_v1();
+
+--
+-- Name: blob_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.blob_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.customer_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_tombstones gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.customer_tombstones FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: decision_evidence_policies gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.decision_evidence_policies FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: finance_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.finance_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_file_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.invoice_file_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_file_sources gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.invoice_file_sources FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuers gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.issuers FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: process_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.process_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: record_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_retention.record_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: classification_copy_revocations immutable; Type: TRIGGER; Schema: gridex_ediel_retention; Owner: -
@@ -143527,6 +143964,42 @@ CREATE TRIGGER artifacts_immutable BEFORE DELETE OR UPDATE ON gridex_ediel_servi
 CREATE TRIGGER artifacts_no_truncate BEFORE TRUNCATE ON gridex_ediel_services.artifacts FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_services.immutable_v1();
 
 --
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_services; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_services.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_keys gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_services; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_services.issuer_keys FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_representations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_services; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_services.issuer_representations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: periodic_reason_reviews gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_services; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_services.periodic_reason_reviews FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: projection_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_services; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_services.projection_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: reviews gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_services; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_services.reviews FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: issuer_keys issuer_keys_immutable; Type: TRIGGER; Schema: gridex_ediel_services; Owner: -
 --
 
@@ -143683,6 +144156,30 @@ CREATE TRIGGER ediel_reconciliation_events_no_truncate BEFORE TRUNCATE ON gridex
 CREATE TRIGGER ediel_reconciliation_generic_observed AFTER UPDATE ON gridex_ediel_transport.attempts FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_observed_v1();
 
 --
+-- Name: attempts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_transport.attempts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: dsn_observations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_transport.dsn_observations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: reconciliation_case_events gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_transport.reconciliation_case_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: reconciliation_cases gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_ediel_transport.reconciliation_cases FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: dsn_observations immutable; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
 --
 
@@ -143735,6 +144232,30 @@ CREATE TRIGGER contract_declaration_scope BEFORE INSERT ON gridex_metering_metho
 --
 
 CREATE TRIGGER contract_request_revocation_scope BEFORE INSERT ON gridex_metering_method_changes.contract_request_revocations FOR EACH ROW EXECUTE FUNCTION gridex_metering_method_changes.contract_declaration_scope_v1();
+
+--
+-- Name: contract_request_declarations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_metering_method_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_metering_method_changes.contract_request_declarations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: events gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_metering_method_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_metering_method_changes.events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: origins gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_metering_method_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_metering_method_changes.origins FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: recovery_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_metering_method_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_metering_method_changes.recovery_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: origins method_origin_immutable; Type: TRIGGER; Schema: gridex_metering_method_changes; Owner: -
@@ -143875,6 +144396,18 @@ CREATE TRIGGER method_recovery_carrier_immutable BEFORE DELETE OR UPDATE ON grid
 CREATE TRIGGER method_recovery_carrier_no_truncate BEFORE TRUNCATE ON gridex_method_expectations.recovery_carriers FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
 
 --
+-- Name: originals gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_negative_fixtures; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_negative_fixtures.originals FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: positive_originals gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_negative_fixtures; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_negative_fixtures.positive_originals FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: negative_prepared_consumptions immutable_row; Type: TRIGGER; Schema: gridex_negative_fixtures; Owner: -
 --
 
@@ -143951,6 +144484,12 @@ CREATE TRIGGER artifacts_immutable BEFORE DELETE OR UPDATE ON gridex_network_reg
 --
 
 CREATE TRIGGER artifacts_no_truncate BEFORE TRUNCATE ON gridex_network_registry_sources.artifacts FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_network_registry_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_network_registry_sources.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: issuer_keys issuer_keys_immutable; Type: TRIGGER; Schema: gridex_network_registry_sources; Owner: -
@@ -144139,6 +144678,12 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_received_err_respons
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_received_err_response.receipts FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
 
 --
+-- Name: expectations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_reading_expectations; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_reading_expectations.expectations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: expectations immutable_rows; Type: TRIGGER; Schema: gridex_received_reading_expectations; Owner: -
 --
 
@@ -144179,6 +144724,138 @@ CREATE TRIGGER expectation_permission_applied AFTER INSERT ON gridex_received_so
 --
 
 CREATE TRIGGER expectation_z02_applied AFTER INSERT ON gridex_received_sources.z02_core_applications FOR EACH ROW EXECUTE FUNCTION gridex_business_expectations.applied_source_v1();
+
+--
+-- Name: normal_supply_activations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.normal_supply_activations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: normal_switch_confirmations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.normal_switch_confirmations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: permission_effect_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.permission_effect_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: permission_transitions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.permission_transitions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: prodat_mixed_object_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.prodat_mixed_object_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: prodat_mixed_reply_consumptions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.prodat_mixed_reply_consumptions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: prodat_mixed_reply_outbox gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.prodat_mixed_reply_outbox FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: prodat_object_validation_facets gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.prodat_object_validation_facets FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: prodat_recovery_li_preparations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.prodat_recovery_li_preparations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: prodat_recovery_operations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.prodat_recovery_operations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: prodat_recovery_origins gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.prodat_recovery_origins FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: production_contract_brp_bindings gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.production_contract_brp_bindings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: production_contract_confirmations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.production_contract_confirmations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: production_contract_events gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.production_contract_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: production_contract_origins gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.production_contract_origins FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: production_contract_periods gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.production_contract_periods FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: regulated_supply_ground_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.regulated_supply_ground_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: structural_apply_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.structural_apply_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: supply_source_transitions gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.supply_source_transitions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: switch_brp_source_bindings gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.switch_brp_source_bindings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: switch_contract_request_bindings gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.switch_contract_request_bindings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: switch_originals gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_received_sources.switch_originals FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: customer_primary_response_receipts immutable_rows; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
@@ -144961,6 +145638,30 @@ CREATE TRIGGER artifacts_immutable BEFORE DELETE OR UPDATE ON gridex_regulated_s
 CREATE TRIGGER artifacts_no_truncate BEFORE TRUNCATE ON gridex_regulated_supply.artifacts FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
 
 --
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_regulated_supply; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_regulated_supply.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_keys gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_regulated_supply; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_regulated_supply.issuer_keys FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_representations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_regulated_supply; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_regulated_supply.issuer_representations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: reviews gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_regulated_supply; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_regulated_supply.reviews FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: issuer_keys issuer_keys_immutable; Type: TRIGGER; Schema: gridex_regulated_supply; Owner: -
 --
 
@@ -145075,6 +145776,24 @@ CREATE TRIGGER events_immutable BEFORE DELETE OR UPDATE ON gridex_requested_chan
 CREATE TRIGGER events_no_truncate BEFORE TRUNCATE ON gridex_requested_changes.events FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
 
 --
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_requested_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_requested_changes.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: events gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_requested_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_requested_changes.events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: origins gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_requested_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_requested_changes.origins FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: issuer_keys issuer_keys_immutable; Type: TRIGGER; Schema: gridex_requested_changes; Owner: -
 --
 
@@ -145183,6 +145902,12 @@ CREATE TRIGGER revocations_no_truncate BEFORE TRUNCATE ON gridex_requested_chang
 CREATE TRIGGER zz_customer_version_consumed_retention BEFORE INSERT ON gridex_requested_changes.confirmed_customer_versions FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.process_customer_version_guard_v1();
 
 --
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_requested_customer_changes; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_requested_customer_changes.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: artifacts immutable_artifacts; Type: TRIGGER; Schema: gridex_requested_customer_changes; Owner: -
 --
 
@@ -145261,6 +145986,12 @@ CREATE TRIGGER no_truncate_revocations BEFORE TRUNCATE ON gridex_requested_custo
 CREATE TRIGGER requested_customer_change_revoke_lock BEFORE INSERT ON gridex_requested_customer_changes.revocations FOR EACH ROW EXECUTE FUNCTION gridex_requested_customer_changes.revoke_lock_v1();
 
 --
+-- Name: entry_sources gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_requested_method_watches; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_requested_method_watches.entry_sources FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: entry_sources immutable_truncate; Type: TRIGGER; Schema: gridex_requested_method_watches; Owner: -
 --
 
@@ -145271,6 +146002,18 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_requested_method_wat
 --
 
 CREATE TRIGGER immutable_update_delete BEFORE DELETE OR UPDATE ON gridex_requested_method_watches.entry_sources FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: commands gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_service_administration; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_service_administration.commands FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: manual_permission_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_service_administration; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_service_administration.manual_permission_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: commands service_admin_command_immutable; Type: TRIGGER; Schema: gridex_service_administration; Owner: -
@@ -145333,6 +146076,12 @@ CREATE TRIGGER ediel_service_request_timing_immutable BEFORE DELETE OR UPDATE ON
 CREATE TRIGGER ediel_service_request_timing_no_truncate BEFORE TRUNCATE ON gridex_service_permission.request_timing_receipts FOR EACH STATEMENT EXECUTE FUNCTION gridex_service_administration.immutable_v1();
 
 --
+-- Name: origins gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_service_permission; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_service_permission.origins FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
 -- Name: origins service_permission_origin_immutable; Type: TRIGGER; Schema: gridex_service_permission; Owner: -
 --
 
@@ -145373,6 +146122,54 @@ CREATE TRIGGER end_receipts_immutable BEFORE DELETE OR UPDATE ON gridex_supply_r
 --
 
 CREATE TRIGGER end_receipts_no_truncate BEFORE TRUNCATE ON gridex_supply_rescission.end_receipts FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_supply_rescission; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_supply_rescission.artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: end_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_supply_rescission; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_supply_rescission.end_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_keys gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_supply_rescission; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_supply_rescission.issuer_keys FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: issuer_representations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_supply_rescission; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_supply_rescission.issuer_representations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: mandates gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_supply_rescission; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_supply_rescission.mandates FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: outbound_operations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_supply_rescission; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_supply_rescission.outbound_operations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: outbound_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_supply_rescission; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_supply_rescission.outbound_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: reviews gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_supply_rescission; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_supply_rescission.reviews FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: issuer_keys issuer_keys_immutable; Type: TRIGGER; Schema: gridex_supply_rescission; Owner: -
@@ -145475,6 +146272,24 @@ CREATE TRIGGER cancellation_origin_immutable BEFORE DELETE OR UPDATE ON gridex_s
 --
 
 CREATE TRIGGER cancellation_origin_no_truncate BEFORE TRUNCATE ON gridex_switch_cancellations.origins FOR EACH STATEMENT EXECUTE FUNCTION gridex_switch_cancellations.origin_immutable_v1();
+
+--
+-- Name: origins gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_switch_cancellations; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_switch_cancellations.origins FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: approvals gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_transport_exception; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_transport_exception.approvals FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: operations gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_transport_exception; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_transport_exception.operations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: alarms immutable; Type: TRIGGER; Schema: gridex_transport_exception; Owner: -
@@ -145583,6 +146398,18 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_unattributed_intake.
 --
 
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_unattributed_intake.technical_births FOR EACH STATEMENT EXECUTE FUNCTION gridex_unattributed_intake.immutable_v1();
+
+--
+-- Name: contracts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_utilts_binding; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_utilts_binding.contracts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: gridex_utilts_binding; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON gridex_utilts_binding.receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: contracts utilts_contract_immutable; Type: TRIGGER; Schema: gridex_utilts_binding; Owner: -
@@ -147075,6 +147902,18 @@ CREATE TRIGGER gridex_capture_received_prodat_source AFTER INSERT ON public.edie
 CREATE TRIGGER gridex_capture_received_utilts_source AFTER INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.capture_utilts_insert_v1();
 
 --
+-- Name: companies gridex_companies_disposable_status_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_companies_disposable_status_guard BEFORE UPDATE OF status ON public.companies FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_company_disposable_status_v1();
+
+--
+-- Name: companies gridex_companies_hard_delete_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_companies_hard_delete_guard BEFORE DELETE ON public.companies FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_company_hard_delete_v1();
+
+--
 -- Name: companies gridex_companies_legal_field_validation; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -147099,10 +147938,2032 @@ CREATE TRIGGER gridex_contract_price_snapshots_immutable_tg BEFORE DELETE OR UPD
 CREATE TRIGGER gridex_customer_authorization_documents_file_path_biut BEFORE INSERT OR UPDATE ON public.customer_authorization_documents FOR EACH ROW EXECUTE FUNCTION public.gridex_fill_customer_authorization_document_file_path();
 
 --
+-- Name: customers gridex_customers_hard_delete_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_customers_hard_delete_guard BEFORE DELETE ON public.customers FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_customer_hard_delete_v1();
+
+--
 -- Name: ediel_route_profiles gridex_ediel_route_profile_history_trg; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER gridex_ediel_route_profile_history_trg AFTER INSERT OR UPDATE ON public.ediel_route_profiles FOR EACH ROW EXECUTE FUNCTION public.gridex_capture_ediel_route_profile_history();
+
+--
+-- Name: actor_test_attempt_evidence gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.actor_test_attempt_evidence FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: actor_test_attempts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.actor_test_attempts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: actor_test_manual_attestations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.actor_test_manual_attestations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: actor_test_results gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.actor_test_results FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ai_list_discrepancies gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ai_list_discrepancies FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ai_list_import_rows gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ai_list_import_rows FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ai_list_imports gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ai_list_imports FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: audit_logs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.audit_logs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: authorization_scopes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.authorization_scopes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: automation_locks gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.automation_locks FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: base_price_components gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.base_price_components FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: bidding_zone_monthly_metrics gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.bidding_zone_monthly_metrics FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_adjustment_cases gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_adjustment_cases FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_automation_jobs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_automation_jobs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_automation_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_automation_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_export_run_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_export_run_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_export_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_export_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_import_batches gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_import_batches FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_import_rows gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_import_rows FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_period_locks gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_period_locks FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_provider_connections gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_provider_connections FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_provider_webhook_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_provider_webhook_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_underlay_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_underlay_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_underlay_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_underlay_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: billing_underlays gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.billing_underlays FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: campaign_price_components gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.campaign_price_components FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: campaign_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.campaign_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: campaigns gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.campaigns FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_audit_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_audit_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_command_results gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_command_results FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_data_repair_audit gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_data_repair_audit FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_domain_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_domain_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_ediel_profile_identities gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_ediel_profile_identities FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_energy_flow_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_energy_flow_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_energy_remediation_queue gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_energy_remediation_queue FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_event_outbox gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_event_outbox FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_provisioning_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_provisioning_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: canonical_readiness_shadow_comparisons gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.canonical_readiness_shadow_comparisons FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: communication_logs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.communication_logs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: communication_routes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.communication_routes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: companies gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.companies FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_actor_test_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_actor_test_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_capabilities gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_capabilities FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_customer_number_sequences gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_customer_number_sequences FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_email_settings gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_email_settings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_invitations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_invitations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_market_party_routes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_market_party_routes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_market_price_sources gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_market_price_sources FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_memberships gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_memberships FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_monthly_metrics gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_monthly_metrics FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_number_sequences gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_number_sequences FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_onboarding_lifecycle gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_onboarding_lifecycle FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: company_provisioning_jobs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.company_provisioning_jobs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: consumption_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.consumption_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_charge_ledger gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_charge_ledger FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_invoice_fee_remediation_tasks gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_invoice_fee_remediation_tasks FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_lifecycle_backfill_issues gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_lifecycle_backfill_issues FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_lifecycle_operation_errors gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_lifecycle_operation_errors FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_offer_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_offer_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_offers gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_offers FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_price_option_area_prices gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_price_option_area_prices FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_price_options gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_price_options FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_price_snapshots gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_price_snapshots FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_pricing_migration_reviews gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_pricing_migration_reviews FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_products gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_products FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_publication_graph_issues gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_publication_graph_issues FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: contract_publication_revisions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_publication_revisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_addresses gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_addresses FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_application_intakes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_application_intakes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_application_provisioning_steps gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_application_provisioning_steps FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_application_workflow_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_application_workflow_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_application_workflows gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_application_workflows FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_authorization_documents gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_authorization_documents FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_billing_profile_revisions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_billing_profile_revisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_blockers gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_blockers FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_case_attachments gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_case_attachments FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_case_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_case_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_cases gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_cases FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_communication_templates gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_communication_templates FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_communications gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_communications FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_contacts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_contacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_contract_acceptances gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_contract_acceptances FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_contract_documents gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_contract_documents FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_contract_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_contract_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_contract_evidence gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_contract_evidence FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_contract_signature_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_contract_signature_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_contracts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_contracts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_correction_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_correction_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_data_tasks gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_data_tasks FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_documents gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_documents FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_duplicate_resolution_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_duplicate_resolution_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_identity_change_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_identity_change_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_identity_change_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_identity_change_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_info_request_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_info_request_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_info_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_info_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_internal_notes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_internal_notes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_invoice_documents gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_invoice_documents FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_invoice_lines gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_invoice_lines FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_invoices gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_invoices FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_legal_acceptances gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_legal_acceptances FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_lifecycle_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_lifecycle_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_lifecycle_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_lifecycle_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_match_review_cases gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_match_review_cases FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_monthly_metrics gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_monthly_metrics FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_notifications gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_notifications FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_onboarding_applications gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_onboarding_applications FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_onboarding_legal_snapshots gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_onboarding_legal_snapshots FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_onboarding_operations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_onboarding_operations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_operation_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_operation_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_operation_jobs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_operation_jobs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_operation_request_snapshots gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_operation_request_snapshots FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_operation_tasks gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_operation_tasks FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_portal_accounts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_portal_accounts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_portal_api_access_logs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_portal_api_access_logs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_portal_claims gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_portal_claims FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_portal_completions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_portal_completions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_portal_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_portal_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_portal_identities gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_portal_identities FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_portal_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_portal_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_portal_write_idempotency gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_portal_write_idempotency FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_portfolio_forecast_snapshots gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_portfolio_forecast_snapshots FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_readiness_snapshots gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_readiness_snapshots FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_site_address_conflicts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_site_address_conflicts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_site_address_history gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_site_address_history FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_site_resolution gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_site_resolution FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_sites gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_sites FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customer_supply_periods gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customer_supply_periods FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: customers gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: dashboard_alerts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.dashboard_alerts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: data_quality_issues gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.data_quality_issues FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: document_ai_extractions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.document_ai_extractions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: domain_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.domain_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: duplicate_groups gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.duplicate_groups FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_ack_chains gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_ack_chains FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_ack_lifecycle gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_ack_lifecycle FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_ack_matrix_rules gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_ack_matrix_rules FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_ack_transaction_results gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_ack_transaction_results FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_active_test_configurations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_active_test_configurations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_actor_settings gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_actor_settings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_ai_list_imports gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_ai_list_imports FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_aperak_error_details gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_aperak_error_details FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_aperak_error_rules gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_aperak_error_rules FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_brp_settings gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_brp_settings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_business_correlations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_business_correlations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_business_errors gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_business_errors FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_business_expectations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_business_expectations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_business_references gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_business_references FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_certificate_directory_cache gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_certificate_directory_cache FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_certificates gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_certificates FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_certification_evidence gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_certification_evidence FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_configuration_snapshots gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_configuration_snapshots FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_counterparties gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_counterparties FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_data_access_grants gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_data_access_grants FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_dead_letter_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_dead_letter_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_decision_traces gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_decision_traces FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_engine_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_engine_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_error_rules gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_error_rules FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_exchange_logs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_exchange_logs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_field_matrix_imports gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_field_matrix_imports FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_field_matrix_rules gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_field_matrix_rules FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_go_live_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_go_live_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_inbound_business_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_inbound_business_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_inbound_cases gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_inbound_cases FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_inbound_quarantine gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_inbound_quarantine FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_inbound_request_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_inbound_request_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_it_system_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_it_system_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_mailboxes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_mailboxes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_manual_review_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_manual_review_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_masterdata_reconciliation_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_masterdata_reconciliation_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_match_candidates gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_match_candidates FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_message_correlations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_message_correlations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_message_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_message_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_message_intents gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_message_intents FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_message_payloads gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_message_payloads FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_message_rules gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_message_rules FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_message_splits gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_message_splits FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_message_validation_issues gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_message_validation_issues FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_messages gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_messages FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_outbound_queue gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_outbound_queue FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_outbox gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_outbox FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_permission_cases gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_permission_cases FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_portal_validation_feedback gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_portal_validation_feedback FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_process_links gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_process_links FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_processing_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_processing_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_production_readiness_checks gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_production_readiness_checks FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_production_send_approvals gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_production_send_approvals FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_production_state gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_production_state FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_repair_issues gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_repair_issues FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_repair_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_repair_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_route_history gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_route_history FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_route_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_route_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_routing_decisions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_routing_decisions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_rule_pack_backfill_issues gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_rule_pack_backfill_issues FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_rule_pack_snapshots gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_rule_pack_snapshots FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_rule_profile_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_rule_profile_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_rule_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_rule_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_service_assignments gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_service_assignments FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_service_history gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_service_history FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_sla_timers gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_sla_timers FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_system_test_settings gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_system_test_settings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_test_artifacts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_test_artifacts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_test_run_messages gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_test_run_messages FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_test_run_steps gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_test_run_steps FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_test_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_test_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_tgt_test_data gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_tgt_test_data FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_transport_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_transport_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: ediel_unresolved_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.ediel_unresolved_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: electricity_suppliers gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.electricity_suppliers FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: energy_service_permissions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.energy_service_permissions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: event_outbox gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.event_outbox FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: external_contract_intakes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.external_contract_intakes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: facility_data_quality_issues gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.facility_data_quality_issues FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: forecast_adjustments gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.forecast_adjustments FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: forecast_run_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.forecast_run_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: forecast_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.forecast_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: grid_area_mappings gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.grid_area_mappings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: grid_owner_access_agreements gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.grid_owner_access_agreements FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: grid_owner_contact_channels gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.grid_owner_contact_channels FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: grid_owner_contact_routes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.grid_owner_contact_routes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: grid_owner_data_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.grid_owner_data_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: grid_owner_information_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.grid_owner_information_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: grid_owner_monthly_metrics gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.grid_owner_monthly_metrics FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: grid_owners gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.grid_owners FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: inbound_ediel_match_attempts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.inbound_ediel_match_attempts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: inbound_ediel_parse_results gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.inbound_ediel_parse_results FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: inbound_email_attachments gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.inbound_email_attachments FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: inbound_email_messages gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.inbound_email_messages FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: inbound_operation_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.inbound_operation_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: inbound_processing_jobs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.inbound_processing_jobs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: integration_api_clients gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.integration_api_clients FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: integration_api_rate_limit_buckets gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.integration_api_rate_limit_buckets FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: integration_api_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.integration_api_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: integration_api_write_idempotency gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.integration_api_write_idempotency FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: integration_provider_accounts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.integration_provider_accounts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_dead_letters gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.invoice_dead_letters FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_documents gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.invoice_documents FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_export_attempts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.invoice_export_attempts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_export_files gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.invoice_export_files FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_export_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.invoice_export_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_export_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.invoice_export_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_provider_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.invoice_provider_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: invoice_purchase_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.invoice_purchase_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: legal_bundle_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.legal_bundle_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: legal_bundles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.legal_bundles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: legal_text_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.legal_text_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: manual_communication_mailboxes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.manual_communication_mailboxes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: manual_email_outbox gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.manual_email_outbox FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: manual_inbound_messages gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.manual_inbound_messages FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: market_process_policies gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.market_process_policies FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: meter_reading_series gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.meter_reading_series FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: meter_reading_values gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.meter_reading_values FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_period_gaps gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_period_gaps FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_permission_sites gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_permission_sites FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_permissions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_permissions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_point_monthly_consumption gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_point_monthly_consumption FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_points gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_points FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_requirements gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_requirements FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_value_batches gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_value_batches FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_value_errors gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_value_errors FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_value_sources gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_value_sources FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: metering_values gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.metering_values FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: normalized_metering_values gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.normalized_metering_values FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: operations_automation_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.operations_automation_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: outbound_dispatch_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.outbound_dispatch_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: outbound_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.outbound_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: partner_exports gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.partner_exports FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: platform_customer_relationship_observations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.platform_customer_relationship_observations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: platform_data_quality_issues gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.platform_data_quality_issues FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: platform_go_live_route_simulations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.platform_go_live_route_simulations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: platform_inbound_quarantine gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.platform_inbound_quarantine FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: platform_reconciliation_findings gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.platform_reconciliation_findings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: platform_usage_event_failures gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.platform_usage_event_failures FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: portfolio_monthly_price_history gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.portfolio_monthly_price_history FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: portfolio_monthly_prices gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.portfolio_monthly_prices FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: portfolio_monthly_settlements gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.portfolio_monthly_settlements FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: portfolio_price_estimates gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.portfolio_price_estimates FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: portfolio_settlement_invoice_bindings gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.portfolio_settlement_invoice_bindings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: portfolio_settlement_permission_grants gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.portfolio_settlement_permission_grants FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: portfolios gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.portfolios FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: power_of_attorney_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.power_of_attorney_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: power_of_attorney_scopes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.power_of_attorney_scopes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: powers_of_attorney gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.powers_of_attorney FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: price_books gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.price_books FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: price_components gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.price_components FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: price_period_locks gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.price_period_locks FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: price_plan_versions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.price_plan_versions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: price_plans gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.price_plans FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: pricing_audit_logs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.pricing_audit_logs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: pricing_component_rules gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.pricing_component_rules FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: pricing_interval_evidence gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.pricing_interval_evidence FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: pricing_preview_lines gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.pricing_preview_lines FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: pricing_run_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.pricing_run_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: pricing_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.pricing_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: public_contract_offers gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.public_contract_offers FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: route_decision_logs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.route_decision_logs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: spot_price_import_jobs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.spot_price_import_jobs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: supplier_switch_events gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.supplier_switch_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: supplier_switch_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.supplier_switch_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_actor_identifiers gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_actor_identifiers FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_actor_roles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_actor_roles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_application_reference_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_application_reference_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_bilateral_agreements gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_bilateral_agreements FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_certificate_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_certificate_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_communication_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_communication_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_contract_assignments gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_contract_assignments FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_counterparty_relations gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_counterparty_relations FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_counterparty_routes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_counterparty_routes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_customer_assertion_replays gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_customer_assertion_replays FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_customer_identity_providers gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_customer_identity_providers FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_customer_sync_requests gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_customer_sync_requests FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_ediel_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_ediel_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_email_domains gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_email_domains FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_email_outbox gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_email_outbox FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_email_outbox_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_email_outbox_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_email_templates gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_email_templates FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_integrity_audit_runs gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_integrity_audit_runs FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_integrity_findings gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_integrity_findings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_launch_states gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_launch_states FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_legal_overrides gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_legal_overrides FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_legal_profiles gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_legal_profiles FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_mailboxes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_mailboxes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_message_capabilities gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_message_capabilities FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_portal_customer_links gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_portal_customer_links FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_staff_actor_anchors gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_staff_actor_anchors FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_staff_assertion_replays gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_staff_assertion_replays FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_staff_identity_bindings gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_staff_identity_bindings FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_staff_identity_deliveries gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_staff_identity_deliveries FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: tenant_website_installation_receipts gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.tenant_website_installation_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: user_permission_overrides gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.user_permission_overrides FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: user_permissions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.user_permissions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: webhook_deliveries gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.webhook_deliveries FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: webhook_subscriptions gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.webhook_subscriptions FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: website_application_review_items gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.website_application_review_items FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: website_contract_quotes gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.website_contract_quotes FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
+
+--
+-- Name: website_customer_applications gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.website_customer_applications FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_guard_history_truncate_v1();
 
 --
 -- Name: invoice_export_items gridex_invoice_export_items_sent_guard_tg; Type: TRIGGER; Schema: public; Owner: -
@@ -192576,6 +195437,12 @@ GRANT ALL ON FUNCTION public.gridex_company_legal_profile_defaults(p_company jso
 GRANT ALL ON FUNCTION public.gridex_company_legal_profile_defaults(p_company jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_company_retained_history_v1(p_company_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.gridex_company_retained_history_v1(p_company_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_complete_facility_response(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid, p_source text, p_ediel_message_id uuid, p_facility_id text, p_metering_point_external_id text, p_grid_area_code text, p_price_area_code text, p_source_party_grid_owner_id uuid, p_raw_payload jsonb, p_note text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -193886,11 +196753,35 @@ REVOKE ALL ON FUNCTION public.gridex_guard_canonical_public_offer() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_guard_canonical_public_offer() TO service_role;
 
 --
+-- Name: FUNCTION gridex_guard_company_disposable_status_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_guard_company_disposable_status_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION gridex_guard_company_hard_delete_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_guard_company_hard_delete_v1() FROM PUBLIC;
+
+--
 -- Name: FUNCTION gridex_guard_company_white_label_platform(); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_guard_company_white_label_platform() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_guard_company_white_label_platform() TO service_role;
+
+--
+-- Name: FUNCTION gridex_guard_customer_hard_delete_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_guard_customer_hard_delete_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION gridex_guard_history_truncate_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_guard_history_truncate_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION gridex_guard_immutable_meter_reading_series(); Type: ACL; Schema: public; Owner: -

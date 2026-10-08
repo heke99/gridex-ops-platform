@@ -97628,6 +97628,10 @@ export type Database = {
         Args: { p_company: Json }
         Returns: Json
       }
+      gridex_company_retained_history_v1: {
+        Args: { p_company_id: string }
+        Returns: string[]
+      }
       gridex_complete_facility_response: {
         Args: {
           p_actor_user_id?: string
