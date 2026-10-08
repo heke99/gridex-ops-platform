@@ -547,3 +547,30 @@ Both corrected77d9fb39 reports nowAPPROVE C0I0 fullyROOTread/self/sealed; priorI
 ## 2026-10-08 — actual306 preflight documentation guard
 
 SameH306 preflight STOP corrected documentation — b6d3 H1102, exact18 fixture scope retained PLAN2/OP2/self. Current-documentation guard stopped before candidate reads, exclusive journal, receipt creation or refs; latest GO body omitted literal306. No new ref/code operation occurred, journal absent, original7 retained. Preserve failed invocation result. This current receipt explicitly binds field306 and same exactplan602a/manifest301b/correctedscript77d9/seal7ecb. NEXT ROOT unchanged reviewed operation may resume only after this durableCP/673 readback; all25 then exact18CLAIM before edits. 7208c mandatorynineSUCCESS remains separate from unqualified original artifact11570116577/transport owner request6066367326 and CORE/2f physicalnegative gates. No newnative/GEN/coverage/wholeapproval.
+
+
+## 2026-10-08 — actual306 exact18 extension CLAIM
+
+CLAIM AT-Z03H-SUPPLIER + AT-Z04H-SUPPLIER — codex-ediel-20261007-b6d3-41f5172a — packet1102ed76-cc69-452b-a20d-92f34cfda805 — branch codex/ediel-h-invalid306-b6d3-41f5172a. Same H306 exact18 fixture compatibility extension.
+
+Atomic receipt 17d531a0c6fa49aa6206e5ac945d0bf76ff54c83 on actualmain1897ea4999ca93bf4631ee53f1cbe19de86d7dc3 exacttree/singleparent. All18 sorted create-only refs and all25 final GET_MATCH verified, exit0/no rollback. Original7 receipts01f5/b52/912e unchanged. Previous documentation guard exit1 made ZERO mutations, corrected currentCP/6736067630359 before this oncejournal. PLAN602a/manifest301b and corrected OP77d9/seal7ecb approved2+self; no fixture authoring yet. Exact files:
+- __tests__/ediel-inbound-own-source-coordinator.test.ts — file-af173ce29e6646b3dd9f7dc5985f503663f5b83d1f403d41e2454d9a4b53dff0
+- __tests__/ediel-ops-05-caller-effects.test.ts — file-f03841adaeda3a69b36160eef0f1bd77c23b55a3c35c3cefff913fc2d0a96b79
+- __tests__/ediel-prodat-dependent-subtype-source.test.ts — file-e933ff580c6d63aa3ccc739044d81333bc4bb037bcfb3e58dafd524c26e0c8c0
+- __tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts — file-4561c0867eb226953c21d4e81c07aad68ebc2e15fcd01a92834ba93e78804d75
+- __tests__/ediel-prodat-dependent-z06-product.test.ts — file-4af35a025a7bae2d56e7639a29bde4e848984b53e76f2536d365e2ded9317ced
+- __tests__/ediel-prodat-field-identity-inbound.test.ts — file-b500169ab6b3bbca32a512641c76dd4de78b8ccb09bcaa4b9022e746136b1ca4
+- __tests__/ediel-prodat-gas-disposition.test.ts — file-9c35a1df0436a88199aeb6eedacba985c13b2e736081cf2daa638b145aa20ec0
+- __tests__/ediel-prodat-own-application-validation.test.ts — file-7626e099eaacf3281e2522ac584de10b48838bdb8f3da725fdb3859baed0b727
+- __tests__/ediel-prodat-register-batch-application.test.ts — file-343afa21caccb25ec27fe511490a65d99e5536683f527e96e491d132e9a6171c
+- __tests__/ediel-received-prodat-response-validation.test.ts — file-9ce8c0b50d6d2864ea5f4817686c34631effc1219c535af3bc6f064565592f68
+- __tests__/ediel-sc-012-dual-role-state-isolation.test.ts — file-b1f7cda8d75efe943a0215c9ac7ed52d75647af9ff57aaf69a0ae063ade13a05
+- __tests__/ediel-sc-069-scope-inbound.test.ts — file-3263b5e3e61cf70b5bc7a8426613942beeea91e7d91cf373bef12c263d05e60a
+- __tests__/ediel-source-owner-processor.test.ts — file-989f4502a751a060e713687267cd9a9f80cdda4bd387e2ddb6a49302e99e7134
+- __tests__/ediel-source-owner-runtime.test.ts — file-0d95e890db1a4d3fd1864fb961741c780029076268097173620d8b6ced8316d0
+- __tests__/fixtures/prodat-complete-register-wire.ts — file-3fdbb50c4ad54e4df45404b7d3a61b8c7efa2fbdb7775b58dbcae98a01315b38
+- __tests__/helpers/mixedZ04Fixture.ts — file-9952bee93142fc0db0b54a41c3c9c734a2070321f0802c48bf01344bf47c2b91
+- __tests__/helpers/sourceOwnerFixtures.ts — file-d0fc690eb36330de1429bc2b39227191d0883d62d3f422bdf4dc1ed770612ffb
+- __tests__/helpers/structuralOwnerFixtures.ts — file-e0a896b2f97e74d1c5097eb7f560bb50a7697a8260bc31d67e06302d4de1ca1a
+
+Completed: production306 allowedValuesZ11/Z12/local30PASS commit2903f52f; actual38baseline1228P vs changed1112P116F diagnosed healthyE22fixtures. NEXT ROOT explicit positivefixtureZ12 and named prebirth status constructor, original ownerSource fullrows/wire/hash/UNKNOWN/options unchanged; all oracles/nativeE22/security unchanged, same38finite+new/source/NI/lint/SOURCE2+self then reviewed source-onlyhandoff to CORE/2f. Existing7208c nine mandatorySUCCESS but original11570116577 stillunqualified; transport request6066367326, physicalnegative owner outputs remain. No newproducer/GEN/heldruntime-validator-SQL/coverage/newpair or wholeapproval.
