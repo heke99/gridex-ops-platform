@@ -112,6 +112,24 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/fixtures/ediel-service-evidence-native.ts') {
     const originalDigest = "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0"
     if (sha256(bytes) === originalDigest) return bytes
+    // Reverse only this known role/review seam inside the finite historical
+    // Git port. Current fixture bytes never qualify historical native proof.
+    if (sha256(bytes) === "09b779f3e803d1e541f167d4bdb7b700e29a884c7356700dba3d1e565a4a6931") {
+      const reviewExtraction: [string, string, number][] = [
+        ["export async function seedNativeEscoFixture(mode:'V'|'VH'='V',input?:{providerRole?:'energy_service_company'|'grid_owner'}){\n const providerRole=input?.providerRole??'energy_service_company'\n if(!['energy_service_company','grid_owner'].includes(providerRole))throw Error('native_esco_prospective_role_invalid')\n", "export async function seedNativeEscoFixture(mode:'V'|'VH'='V'){\n", 1],
+        ["${nativeEscoLiteral(providerRole)}", "'energy_service_company'", 2],
+        ["// Authentic review only; assignment approval remains a separate public command.\nexport async function reviewNativeEscoAssignmentEvidence(f:NativeEscoFixture,termination?:NativeEscoTermination){\n", "async function approveNativeEscoAssignment(f:NativeEscoFixture,termination?:NativeEscoTermination){\n", 1],
+        [" return {hash,receiptIds,artifacts}\n}\nasync function approveNativeEscoAssignment(f:NativeEscoFixture,termination?:NativeEscoTermination){\n const evidence=await reviewNativeEscoAssignmentEvidence(f,termination)\n", "", 1],
+        [" return evidence\n}\nasync function sendNativeEscoPermissionRequest", " return {hash,receiptIds,artifacts}\n}\nasync function sendNativeEscoPermissionRequest", 1],
+      ]
+      let restored = bytes.toString('utf8')
+      for (const [current, previous, occurrences] of reviewExtraction) {
+        if (restored.split(current).length !== occurrences + 1) throw Error('fixture_reviewed_esco_review_inverse_not_exact')
+        restored = restored.replaceAll(current, previous)
+      }
+      bytes = Buffer.from(restored)
+      if (sha256(bytes) !== "5987a7db027c99efd353dd56a810d3c4fc96d3af1b4628a9fe1b50d25e1993e8") throw Error('fixture_reviewed_esco_review_inverse_digest_mismatch')
+    }
     // Undo only the known pending-Z13 extraction within this historical Git
     // port. This never admits current-head native evidence or alters its pins.
     if (sha256(bytes) === "5987a7db027c99efd353dd56a810d3c4fc96d3af1b4628a9fe1b50d25e1993e8") {
@@ -581,4 +599,25 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
   expect(result.evidence.caseEvidence ?? []).toEqual([])
   expect(result.evidence.codeEvidence).toBe('incomplete')
   expect(result.evidence.blockers).toContain('case_source_missing_or_unqualified')
+})
+
+// Exercise the actual finite port, including its whole-byte admission guards.
+it('historical ESCO finite port restores only the exact reviewed role extraction', () => {
+  const source = readFileSync('scripts/fixtures/ediel-service-evidence-native.ts')
+  expect(['09b779f3e803d1e541f167d4bdb7b700e29a884c7356700dba3d1e565a4a6931',
+    '5987a7db027c99efd353dd56a810d3c4fc96d3af1b4628a9fe1b50d25e1993e8',
+    '7b80b1fcd3555d7261e2fcdabd310eddc9c937d7b25a921ec4c23ed0a0efeb71',
+    '136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0']).toContain(sha256(source))
+  expect(sha256(reviewedProducerFixture('scripts/fixtures/ediel-service-evidence-native.ts', source)))
+    .toBe('136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0')
+})
+
+it.each([
+  ['unknown suffix', (source: string) => source + '\n// unknown source\n'],
+  ['changed default role', (source: string) => source.replace("'energy_service_company'", "'grid_owner'")],
+  ['duplicate inverse anchor', (source: string) => source + "\nreturn evidence\n"],
+])('historical ESCO finite port refuses %s without admitting current native proof', (_name, mutate) => {
+  const source = readFileSync('scripts/fixtures/ediel-service-evidence-native.ts', 'utf8')
+  expect(() => reviewedProducerFixture('scripts/fixtures/ediel-service-evidence-native.ts', Buffer.from(mutate(source))))
+    .toThrow('fixture_reviewed_esco_source_unavailable')
 })
