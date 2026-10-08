@@ -148,7 +148,7 @@ jobs:
                   'errors':sum(c.find('error') is not None for c in cases),
                   'skipped':sum(c.find('skipped') is not None for c in cases)}
           if native_exit.exists() and int(native_exit.read_text())==0:
-              if counts!={'cases':24,'failures':0,'errors':0,'skipped':0}:
+              if counts!={'cases':28,'failures':0,'errors':0,'skipped':0}:
                   raise RuntimeError('complete_unskipped_z13_boundary_required')
           receipt={'purpose':'supplemental_public_z13_request_received_ack_boundary',
               'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
@@ -213,7 +213,7 @@ jobs:
                       'message':failure.get('message','')[:1000] if failure is not None else None,
                       'detail':(failure.text or '')[-2000:] if failure is not None else None})
           # GitHub stores at most ten notices per step. Four bounded bundles
-          # retain all twenty-four dispositions alongside receipt/diagnostics.
+          # retain all twenty-eight dispositions alongside receipt/diagnostics.
           for offset in range(0,len(cases),7):notice('Gridex native cases '+str(offset//7+1),bounded_cases(cases[offset:offset+7]))
           log=work/'native.log'
           if log.exists():

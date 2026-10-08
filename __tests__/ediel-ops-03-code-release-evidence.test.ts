@@ -112,6 +112,22 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/fixtures/ediel-service-evidence-native.ts') {
     const originalDigest = "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0"
     if (sha256(bytes) === originalDigest) return bytes
+    // Admit only the complete prospective omission postimage, restoring the
+    // exact reviewed role/review seam before its unchanged historical inverse.
+    if (sha256(bytes) === "f62c3dcaee46fd9169123033b84b5be0386e7875540c2ffbebe8cbdd15cd38ee") {
+      const sourceOmissionInverse: [string, string][] = [
+        ["export async function reviewNativeEscoAssignmentEvidence(f:NativeEscoFixture,termination?:NativeEscoTermination,sourceOmission?:'217'|'261'){\n if(sourceOmission!==undefined&&sourceOmission!=='217'&&sourceOmission!=='261')throw Error('native_esco_prospective_source_omission_invalid')\n", "export async function reviewNativeEscoAssignmentEvidence(f:NativeEscoFixture,termination?:NativeEscoTermination){\n"],
+        ["permission_agreement_reference:kind==='end_user_contract'&&sourceOmission!=='261'?", "permission_agreement_reference:kind==='end_user_contract'?"],
+        ["permission_requested_method:kind==='end_user_contract'&&sourceOmission!=='217'?", "permission_requested_method:kind==='end_user_contract'?"],
+      ]
+      let restored = bytes.toString('utf8')
+      for (const [current, previous] of sourceOmissionInverse) {
+        if (restored.split(current).length !== 2) throw Error('fixture_reviewed_esco_source_omission_inverse_not_unique')
+        restored = restored.replace(current, previous)
+      }
+      bytes = Buffer.from(restored)
+      if (sha256(bytes) !== "09b779f3e803d1e541f167d4bdb7b700e29a884c7356700dba3d1e565a4a6931") throw Error('fixture_reviewed_esco_source_omission_inverse_digest_mismatch')
+    }
     // Reverse only this known role/review seam inside the finite historical
     // Git port. Current fixture bytes never qualify historical native proof.
     if (sha256(bytes) === "09b779f3e803d1e541f167d4bdb7b700e29a884c7356700dba3d1e565a4a6931") {
@@ -604,7 +620,7 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 // Exercise the actual finite port, including its whole-byte admission guards.
 it('historical ESCO finite port restores only the exact reviewed role extraction', () => {
   const source = readFileSync('scripts/fixtures/ediel-service-evidence-native.ts')
-  expect(['09b779f3e803d1e541f167d4bdb7b700e29a884c7356700dba3d1e565a4a6931',
+  expect(["f62c3dcaee46fd9169123033b84b5be0386e7875540c2ffbebe8cbdd15cd38ee", '09b779f3e803d1e541f167d4bdb7b700e29a884c7356700dba3d1e565a4a6931',
     '5987a7db027c99efd353dd56a810d3c4fc96d3af1b4628a9fe1b50d25e1993e8',
     '7b80b1fcd3555d7261e2fcdabd310eddc9c937d7b25a921ec4c23ed0a0efeb71',
     '136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0']).toContain(sha256(source))
@@ -619,5 +635,22 @@ it.each([
 ])('historical ESCO finite port refuses %s without admitting current native proof', (_name, mutate) => {
   const source = readFileSync('scripts/fixtures/ediel-service-evidence-native.ts', 'utf8')
   expect(() => reviewedProducerFixture('scripts/fixtures/ediel-service-evidence-native.ts', Buffer.from(mutate(source))))
+    .toThrow('fixture_reviewed_esco_source_unavailable')
+})
+
+// Prospective omission is transported only as this exact complete postimage.
+// It is reversed to the original historical model, never qualified as native.
+it('historical ESCO finite port restores the exact prospective source omission seam', () => {
+  const source = readFileSync('scripts/fixtures/ediel-service-evidence-native.ts')
+  expect(sha256(source)).toBe("f62c3dcaee46fd9169123033b84b5be0386e7875540c2ffbebe8cbdd15cd38ee")
+  expect(sha256(reviewedProducerFixture('scripts/fixtures/ediel-service-evidence-native.ts', source)))
+    .toBe('136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0')
+})
+it.each(['217', '261', 'guard'] as const)('historical ESCO finite port refuses changed prospective omission %s', field => {
+  const source = readFileSync('scripts/fixtures/ediel-service-evidence-native.ts', 'utf8')
+  const anchor = field === 'guard' ? "throw Error('native_esco_prospective_source_omission_invalid')" : "kind==='end_user_contract'&&sourceOmission!=='" + field + "'"
+  expect(source.split(anchor)).toHaveLength(2)
+  const changed = source.replace(anchor, field === 'guard' ? "return undefined" : "sourceOmission!=='999'")
+  expect(() => reviewedProducerFixture('scripts/fixtures/ediel-service-evidence-native.ts', Buffer.from(changed)))
     .toThrow('fixture_reviewed_esco_source_unavailable')
 })

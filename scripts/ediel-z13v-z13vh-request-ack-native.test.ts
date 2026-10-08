@@ -13,6 +13,7 @@ import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prep
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {omitZ14Field} from './helpers/ediel-z14v-current-native-fixture'
 import {readEdielServiceAdministration} from '@/lib/ediel/services/administration'
+import {coordinateEdielServicePermission,resolveEdielServicePermissionCommand} from '@/lib/ediel/services/commands'
 import {createEdielMessageIntent,getEdielMessageIntentById} from '@/lib/ediel/intent/intentEngine'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {matchOutboundRequestForInbound} from '@/lib/inbound-mail/inboundMatcher'
@@ -48,7 +49,7 @@ const hash=(raw:string)=>createHash('sha256').update(raw).digest('hex')
 beforeEach(resetNativeEscoFixture)
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
 
-async function request(mode:'V'|'VH',objectReply=false){
+async function prospectiveRequest(mode:'V'|'VH',objectReply=false){
  const seeded=await seed(mode)
  const contrlAckProfile=configureProspectiveAckRoute(seeded)
  const objectAckProfile=objectReply?configureProspectiveAckRoute(seeded,'APERAK'):null
@@ -68,6 +69,15 @@ async function request(mode:'V'|'VH',objectReply=false){
    'hash',encode(sha256(convert_to(gridex_service_administration.scope_v1(a)::text,'UTF8')),'hex'))
    FROM public.ediel_service_assignments a WHERE company_id=${lit(seeded.ids.company)} AND id=${lit(assignment)}`)}
  }
+ const checkSentinel=()=>{
+  if(mode==='VH')expect(sql(`SELECT to_jsonb(a) FROM public.ediel_service_assignments a WHERE id=${lit(seeded.assignment)}`)).toEqual(sentinel)
+ }
+ checkSentinel()
+ return{f,checkSentinel,objectAckProfile,contrlAckProfile}
+}
+
+async function request(mode:'V'|'VH',objectReply=false){
+ const{f,checkSentinel,objectAckProfile,contrlAckProfile}=await prospectiveRequest(mode,objectReply)
  const p=await prepare(f)
  const wire=EdifactEnvelopeCodec.decode(p.z13.raw_payload!)
  expect(p.z13).toMatchObject({company_id:f.ids.company,direction:'outbound',environment:'test',message_code:'Z13',status:'sent',application_reference:'23-DGI-PRODAT'})
@@ -115,9 +125,6 @@ async function request(mode:'V'|'VH',objectReply=false){
  expect(sql(`SELECT to_jsonb(immutable_payload_hash) FROM public.ediel_messages WHERE id=${lit(p.z13.id)}`)).toBe(hash(p.z13.raw_payload!))
  expect(p.z13.message_sent_at).toBeTruthy()
  expect(nativeEscoExternal.send).toHaveBeenCalledTimes(1)
- const checkSentinel=()=>{
-  if(mode==='VH')expect(sql(`SELECT to_jsonb(a) FROM public.ediel_service_assignments a WHERE id=${lit(seeded.assignment)}`)).toEqual(sentinel)
- }
  checkSentinel()
  return{f,p,checkSentinel,objectAckProfile,contrlAckProfile}
 }
@@ -1064,6 +1071,7 @@ function producerState(f:Fixture){
   FROM public.${table} r WHERE ${table==='companies'?`id IN ${companies}`:`company_id IN ${companies} OR company_id IS NULL`})`)
  for(const table of ['gridex_service_administration.scope_versions','gridex_ediel_services.artifacts','gridex_ediel_services.issuer_representations',
   'gridex_ediel_services.reviews','gridex_service_permission.origins','gridex_ediel_transport.attempts',
+  'gridex_service_administration.permission_request_owners','gridex_service_permission.request_timing_receipts',
   'gridex_received_sources.permission_effect_receipts','gridex_received_sources.permission_effect_transitions_v1']){
   fields.push(`'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r WHERE company_id IN ${companies})`)
   foreign.push(foreignDigest(table,`company_id NOT IN ${companies} OR company_id IS NULL`))
@@ -1106,6 +1114,89 @@ function currentProducerReviews(f:Fixture,evidence:Awaited<ReturnType<typeof rev
  }
  return rows
 }
+async function refuseMissingProducerSource(mode:'V'|'VH',field:'217'|'261'){
+ const{f,checkSentinel}=await prospectiveRequest(mode)
+ // Omit the one claim prospectively, before issuer signing, public archive
+ // and the separate reviewer. All five contracts remain genuinely current.
+ const reviewed=await reviewNativeEscoAssignmentEvidence(f,undefined,field),reviews=currentProducerReviews(f,reviewed)
+ const agreement=field==='261'?null:'SYN-'+f.ids.customer.slice(0,20),method=field==='217'?null:'Z04'
+ const endUser=reviews.find(r=>r.evidence.kind==='end_user_contract')!.evidence
+ expect(endUser).toMatchObject({permission_agreement_reference:agreement,permission_requested_method:method})
+ for(const row of reviews.filter(r=>r.evidence.kind!=='end_user_contract')){
+  expect(row.evidence).toMatchObject({permission_agreement_reference:null,permission_requested_method:null})
+ }
+ const archives=sql<{artifact:FullRow;normalized:FullRow;current:boolean}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object(
+  'artifact',to_jsonb(a),'normalized',gridex_ediel_services.evidence_terms_v1(e),
+  'current',gridex_ediel_services.receipt_current_v1(a)) ORDER BY a.evidence_kind),'[]')
+  FROM gridex_ediel_services.artifacts a JOIN gridex_ediel_services.reviews r ON r.artifact_id=a.id AND r.company_id=a.company_id
+  JOIN public.ediel_service_evidence e ON e.id=r.evidence_id AND e.company_id=r.company_id AND e.assignment_id=a.assignment_id
+  WHERE a.company_id=${lit(f.ids.company)} AND a.assignment_id=${lit(f.assignment)} AND a.id IN (${reviewed.artifacts.map(lit).join(',')})
+   AND r.decision='approved' AND r.scope_basis_version=${f.current().basis}`)
+ expect(archives).toHaveLength(5)
+ for(const archive of archives){
+  expect(archive.current).toBe(true)
+  expect(archive.artifact).toMatchObject({company_id:f.ids.company,assignment_id:f.assignment,environment:'test',
+   scope_basis_version:f.current().basis,source_hash:reviewed.hash,source_version:'synthetic-v1',scope:f.current().scope})
+  expect(archive.artifact.evidence_terms).toEqual(archive.normalized)
+  expect(archive.normalized).toMatchObject({permission_agreement_reference:archive.artifact.evidence_kind==='end_user_contract'?agreement:null,
+   permission_requested_method:archive.artifact.evidence_kind==='end_user_contract'?method:null})
+ }
+ expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version}))
+  .toMatchObject({status:'approved_waiting_permission'})
+ expect(sql(`SELECT public.ediel_service_assignment_assessment_v1(${lit(f.ids.company)},${lit(f.assignment)})`))
+  .toMatchObject({status:'authorized',missing:[]})
+ const coordinated=await coordinateEdielServicePermission({providerCompanyId:f.ids.company,assignmentId:f.assignment,
+  actorUserId:f.ids.actor,expectedVersion:f.current().version,command:'request_access'})
+ expect(coordinated).toMatchObject({status:'permission_required'})
+ const permissionId=coordinated.permissionId
+ expect(permissionId).toMatch(/^[0-9a-f-]{36}$/)
+ if(!permissionId)throw Error('native_source_omission_actual_pending_permission_required')
+ const before=producerState(f)
+ const rows=(table:string)=>before.business[table] as FullRow[]
+ expect(rows('metering_permissions')).toHaveLength(1)
+ expect(rows('metering_permissions')[0]).toMatchObject({id:permissionId,company_id:f.ids.company,customer_id:f.ids.customer,
+  status:'draft',source_z13_message_id:null,outbound_z13_message_id:null,approved_start_at:null,approved_end_at:null})
+ expect(rows('ediel_assignment_permission_links')).toHaveLength(1)
+ expect(rows('ediel_assignment_permission_links')[0]).toMatchObject({company_id:f.ids.company,assignment_id:f.assignment,permission_id:permissionId})
+ expect(rows('gridex_service_administration.permission_request_owners')).toHaveLength(1)
+ expect(rows('gridex_service_administration.permission_request_owners')[0]).toMatchObject({company_id:f.ids.company,
+  assignment_id:f.assignment,permission_id:permissionId,scope_basis_version:f.current().basis,scope:f.current().scope})
+ const timing=rows('gridex_service_permission.request_timing_receipts')
+ expect(timing).toHaveLength(1)
+ expect(timing[0]).toMatchObject({company_id:f.ids.company,assignment_id:f.assignment,permission_id:permissionId,
+  scope_basis_version:f.current().basis,scope:f.current().scope,proof:{sourceHash:reviewed.hash,sourceVersion:'synthetic-v1',
+   evidenceId:reviews.find(r=>r.evidence.kind==='dso_contract')!.evidence.id,reviewerUserId:f.ids.reviewer,networkStart:'2026-05-01',networkEnd:null}})
+ expect(sql(`SELECT gridex_service_permission.current_request_timing_v1(${lit(f.ids.company)},${lit(f.assignment)},
+  ${lit(f.ids.actor)},${f.current().version},true)`)).toMatchObject({status:'authorized',missing:[],permissionId,mode,
+   requestDay:timing[0].request_day,proof:timing[0].proof,scope:f.current().scope})
+ for(const table of ['ediel_messages','ediel_message_intents','ediel_outbox','outbound_requests','ediel_data_access_grants',
+  'metering_permission_sites','customer_supply_periods','supplier_switch_requests','meter_reading_series','meter_reading_values',
+  'gridex_service_permission.origins','gridex_ediel_transport.attempts','gridex_received_sources.permission_effect_receipts',
+  'gridex_received_sources.permission_effect_transitions_v1','exports'])expect(rows(table)).toEqual([])
+ for(const count of Object.values(before.effects))expect(count).toBe(0)
+ // Public resolution qualifies the actual pending owner before the missing
+ // source term is tested. Neither this read nor the negative call may write.
+ expect(await resolveEdielServicePermissionCommand({providerCompanyId:f.ids.company,assignmentId:f.assignment,
+  actorUserId:f.ids.actor,expectedVersion:f.current().version,permissionId})).toEqual({status:'permission_required',permissionId})
+ expect(producerState(f)).toEqual(before)
+ const command={action:'request_access',assignmentId:f.assignment,expectedVersion:f.current().version,permissionId,preferredRouteId:f.ids.route}
+ const held={status:'held',missing:[field==='261'?'authentic_source_defined_end_user_agreement_reference':'authentic_source_defined_requested_reporting_method']}
+ expect(await f.command(command)).toEqual(held)
+ expect(producerState(f)).toEqual(before)
+ expect(await f.command(command)).toEqual(held)
+ expect(producerState(f)).toEqual(before)
+ expect(currentProducerReviews(f,reviewed)).toEqual(reviews)
+ checkSentinel();expect(nativeEscoExternal.send).not.toHaveBeenCalled()
+}
+
+for(const mode of ['V','VH'] as const){
+ for(const field of ['217','261'] as const){
+  it(`${mode}: missing reviewed producer source field ${field} holds the public Z13 request before wire or rights; immutable retry`,async()=>{
+   await refuseMissingProducerSource(mode,field)
+  })
+ }
+}
+
 async function refuseWrongProducerRole(mode:'V'|'VH'){
  const seeded=await seed(mode,{providerRole:'grid_owner'})
  const sentinel=sql(`SELECT to_jsonb(a) FROM public.ediel_service_assignments a WHERE id=${lit(seeded.assignment)}`)

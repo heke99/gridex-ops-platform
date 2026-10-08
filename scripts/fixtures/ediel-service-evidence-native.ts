@@ -90,13 +90,14 @@ export async function seedNativeEscoFixture(mode:'V'|'VH'='V',input?:{providerRo
 type NativeEscoFixture=Awaited<ReturnType<typeof seedNativeEscoFixture>>
 type NativeEscoTermination={reason:'B77'|'B78'|'B79'|'B80'|'E37';at:string}
 // Authentic review only; assignment approval remains a separate public command.
-export async function reviewNativeEscoAssignmentEvidence(f:NativeEscoFixture,termination?:NativeEscoTermination){
+export async function reviewNativeEscoAssignmentEvidence(f:NativeEscoFixture,termination?:NativeEscoTermination,sourceOmission?:'217'|'261'){
+ if(sourceOmission!==undefined&&sourceOmission!=='217'&&sourceOmission!=='261')throw Error('native_esco_prospective_source_omission_invalid')
  const pdf=Buffer.from('%PDF-1.7\nSYNTHETIC DISPOSABLE ESCO EVIDENCE. NOT EXTERNAL LEGAL APPROVAL.\n%%EOF'),hash=createHash('sha256').update(pdf).digest('hex'),key=Buffer.alloc(32,0x59),receiptIds:string[]=[],artifacts:string[]=[]
  nativeEscoSql(`INSERT INTO gridex_ediel_services.issuer_keys(id,company_id,environment,issuer_code,legal_issuer_reference,legal_authority_source_hash,receipt_signing_key,valid_from,valid_to) VALUES(${nativeEscoLiteral(f.ids.key)},${nativeEscoLiteral(f.ids.company)},'test','synthetic-native-issuer','SYNTHETIC EXTERNAL REGISTRY INPUT ONLY',${nativeEscoLiteral(hash)},decode(${nativeEscoLiteral(key.toString('hex'))},'hex'),'2000-01-01','2099-01-01')`)
  const baseTerms={valid_from:'2000-01-01T00:00:00Z',valid_to:'2099-01-01T00:00:00Z',permission_purpose_code:'B72',permission_reporting_frequency:'D',permission_request_grid_area:'TES',permission_reporting_term_kind:f.mode==='V'?'indefinite':'bounded',permission_customer_classification:'private'}
  // Same per-kind terms as the suite's own qualifier: the end-user contract
  // names the agreement/method, the DSO contract carries the network period.
- const termsFor=(kind:string)=>({...baseTerms,permission_agreement_reference:kind==='end_user_contract'?'SYN-'+f.ids.customer.slice(0,20):null,permission_requested_method:kind==='end_user_contract'?'Z04' as const:null,permission_network_contract_start:kind==='dso_contract'?'2026-05-01':null,permission_network_contract_end:null,...(kind==='service_contract'&&termination?{permission_termination_reason:termination.reason,permission_termination_at:termination.at}:{})})
+ const termsFor=(kind:string)=>({...baseTerms,permission_agreement_reference:kind==='end_user_contract'&&sourceOmission!=='261'?'SYN-'+f.ids.customer.slice(0,20):null,permission_requested_method:kind==='end_user_contract'&&sourceOmission!=='217'?'Z04' as const:null,permission_network_contract_start:kind==='dso_contract'?'2026-05-01':null,permission_network_contract_end:null,...(kind==='service_contract'&&termination?{permission_termination_reason:termination.reason,permission_termination_at:termination.at}:{})})
  const terms=termsFor('end_user_contract')
  // Raw claims alone hold; a real staged command plus separate native review is
  // needed, and absence of issuer authority never creates verified evidence.
