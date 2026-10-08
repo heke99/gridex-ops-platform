@@ -170,3 +170,8 @@ Reader helper owns authoring/tests and freezes the actual successor; independent
 ## R2 private metadata selector failure retained
 
 The independent fingerprint source-plan reviewer preserved actual exit1 while inspecting private freeze metadata: source_own26 is a boolean predicate, not an inventory. The complete static seal did not execute; no SQL or product change occurred. Authorize only reading the correctly typed explicit source-path inventory and preserving the boolean predicate check, then completing the unchanged bounded source/payload/query/inverse seal. Keep the first failure and every existing guard; no script-baseline or source edit follows. R2 owns this private read-only correction; ROOT waits for both final source-plan dispositions before documenting the project baseline author step. Reader successor authoring continues under the prior exact scope; PR699 remains draft/RED and all delivery gates remain pending.
+
+
+## R1 predecessor receipt locator correction
+
+R1's private source-plan seal returned exit1 with66/67 checks passing: its evidence-subdirectory-only receipt locator missed the original PGlite failure stored at the known private directory root. Read-only diagnosis and ROOT exact hash check confirm the immutable original receipt remains intact; no evidence loss or product defect. Authorize adding only that explicit known predecessor receipt path to the existing locator inputs, retaining all three expected hashes and every other check byte exact. Preserve the first failed seal. R1 owns this private locator correction and final67-check seal; no SQL, replay, project baseline or oracle change. ROOT still waits for both final source-plan reviews; private reader authoring proceeds independently.
