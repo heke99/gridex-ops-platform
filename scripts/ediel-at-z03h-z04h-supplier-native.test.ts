@@ -351,7 +351,8 @@ function own(f: Fixture, original: Original) {
   expect(wire.objects).toHaveLength(1); expect(wire.objects[0].reason).toBe('Z25')
   return wire.objects[0]
 }
-function replyBody(f: Fixture, original: Original, refs = references(), invoicee = false): Parts[] {
+function replyBody(f: Fixture, original: Original, refs = references(), invoicee = false,
+  meterTimeFrame: '101' | '201' = '101'): Parts[] {
   const observed = own(f, original), parties = originalAckPartyIdentities({ rawPayload: original.raw_payload, expectedFamily: 'PRODAT' })
   const now = refs.createdAt.toISOString().replace(/[-:T]/g, '').slice(0, 12)
   const body: Parts[] = [ ['BGM', 'Z04', refs.document, '9', 'AB'], ['DTM', ['137', now, '203']], ['DTM', ['ZZZ', '1', '805']],
@@ -361,9 +362,12 @@ function replyBody(f: Fixture, original: Original, refs = references(), invoicee
     // Prospective synthetic DSO declares daily balance settlement before mail birth.
     // This is incoming test data, not a receiver point or reporting-frequency fact.
     ...characteristic('Z07', 'Z12'), ...characteristic('Z12', 'D', 3), ...characteristic('Z15', 'Z32'),
-    // Prospective own readings declaration, before physical mail birth. This
-    // does not assert actual UTILTS delivery or supply a policy condition fact.
-    ...characteristic('Z02', '10', 3), ...characteristic('Z05', '8', 3), ...characteristic('Z16', 'E01', 3),
+    // Prospective DSO cumulative meter-stand channel, before physical mail birth.
+    // Original RK v1.7: 101 is one single-tariff counter covering all time;
+    // 201 is the high-load counter of the paired 201/202 scenario below.
+    // These tariff counters are separate from interval-energy sampling. Only
+    // future UTILTS stands are declared, not delivery, inventory or policy facts.
+    ...characteristic('Z02', '10', 3), ...characteristic('Z05', '8', 3), ...characteristic('Z16', meterTimeFrame, 3),
     ['CCI', '', 'Z14'], ['CAV', ['', '', '', 'L917', '8716867000030']],
     ['NAD', 'IT', [f.external, '', '9'], '', '', 'Street', 'Town', '', '12345', 'SE'],
     ['NAD', 'Z02', [f.brpEdielId, '160', 'SVK'], '', '', '', '', '', '', 'SE'],
@@ -545,6 +549,21 @@ async function ready(f: Fixture, original: Original, raw = reply(f, original), e
   const settlementValue=firstObject[firstObject.indexOf(settlementCharacteristics[0])+1]
   expect(settlementValue?.tag).toBe('CAV')
   expect(segmentComposite(settlementValue,1,installationWire.una)).toEqual(['Z32'])
+  const expectedTimeFrames = expectedRegisters === 1 ? ['101'] : ['201', '202']
+  const prospectiveRegisters = prodatRegisterGroups(installationWire.segments, installationWire.una)
+  expect(prospectiveRegisters.problems).toEqual([])
+  expect(prospectiveRegisters.groups).toHaveLength(expectedRegisters)
+  for (const [index, group] of prospectiveRegisters.groups.entries()) {
+    expect(group).toMatchObject({ messageIndex: 0, itemId: f.external, identityAgency: '9', validRegisterChain: true,
+      registerCount: expectedRegisters, registerPosition: index + 1 })
+    expect(group.registerIndex).toBe(expectedRegisters === 1 ? null : String(index + 1))
+    // Each physical register supplies its own full C889, before immutable birth.
+    const timeFrames = group.segments.filter(s => s.tag === 'CCI' && segmentComposite(s, 2, installationWire.una)[0] === 'Z16')
+    expect(timeFrames).toHaveLength(1)
+    const value = group.segments[group.segments.indexOf(timeFrames[0]) + 1]
+    expect(value?.tag).toBe('CAV')
+    expect(segmentComposite(value, 1, installationWire.una)).toEqual(['', '', '', expectedTimeFrames[index]])
+  }
   const received = await intake(f, raw)
   expect(received.tenant, JSON.stringify(received)).toMatchObject({ status: 'resolved', companyId: f.companyId })
   expect(received.id, JSON.stringify(received)).not.toBeNull()
@@ -561,7 +580,7 @@ async function ready(f: Fixture, original: Original, raw = reply(f, original), e
       .toEqual([
         { present: true, value: '10', malformed: false },
         { present: true, value: '8', malformed: false },
-        { present: true, value: index === 0 ? 'E01' : 'E02', malformed: false },
+        { present: true, value: expectedTimeFrames[index], malformed: false },
       ])
   }
   const capability = await readSourceQualifiedProdatBilateralCapability(message)
@@ -1229,9 +1248,11 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect((await loadCustomerMasterdataValidationContext((await getEdielMessageById(original.id))!,f.actorUserId))!.projection).toEqual(originalContext!.projection)
   })
   it('actual two-register Z04 inheritance makes each declared physical subline258 necessary',async()=>{
-    const {f,original}=await sent(), refs=references(), first=replyBody(f,original,refs).map((p):Parts=>p[0]==='LIN'?line('1',f.external,'1','9'):p)
+    // Prospective cumulative tariff counters, original RK v1.7 normal-time convention:
+    // 201 high-load 06–22 Mon–Fri Nov–Mar/Lista0; 202 low-load for all remaining time.
+    const {f,original}=await sent(), refs=references(), first=replyBody(f,original,refs,false,'201').map((p):Parts=>p[0]==='LIN'?line('1',f.external,'1','9'):p)
     const body:Parts[]=[...first,line('2',f.external,'2','9'),qty('1200'),
-      ...characteristic('Z02','10',3),...characteristic('Z05','8',3),...characteristic('Z16','E02',3)]
+      ...characteristic('Z02','10',3),...characteristic('Z05','8',3),...characteristic('Z16','202',3)]
     const complete=reply(f,original,body,refs), control=await ready(f,original,complete,own(f,original).li,2)
     expect(control.decision.prodatRegisterValidation?.objects).toHaveLength(1)
     const fresh=freshPhysicalIdentity(complete), parts=rawParts(fresh), lines=parts.filter(p=>p[0]==='LIN')
