@@ -426,3 +426,76 @@ it('actual negative mapper refuses unrelated physical raw substitution with pres
   .toThrow('aperak_prodat_requested_scope_unqualified')
  expect(io.writes).toEqual([])
 })
+
+it('ordinary positive capability refusal must not bypass the actor-qualified physical H258 negative owner',async()=>{
+ io.bilateralError={code:'P0001',message:'ediel_historical_rule_pack_basis_unavailable'}
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor})
+ expect(io.calls.some(call=>call.name==='ediel_read_prodat_bilateral_source_capability_v1')).toBe(true)
+ expect(io.calls.some(call=>call.name==='ediel_require_inbound_legal_context_v1')).toBe(true)
+ expect(decision).toMatchObject({policy:null,syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:'not_applicable'})
+ const facet=readReceivedCanonicalProdatResponseValidation(decision,io.source)
+ expect(facet?.responses).toEqual(expect.arrayContaining([expect.objectContaining({fieldCode:'258',ercCode:'42'})]))
+ expect(readReceivedCanonicalProdatApplicationObjects(decision,io.source)).toBeNull()
+ expect(readReceivedCanonicalProdatSourceFunction(decision,io.source)).toBeNull()
+ expect(io.writes).toEqual([])
+})
+it('ordinary positive capability refusal still reaches the actual H258 canonical writer before any public effects',async()=>{
+ io.bilateralError={code:'P0001',message:'ediel_historical_rule_pack_basis_unavailable'}
+ const error=await processInboundEdielMessage({actorUserId:actor,edielMessageId:io.source.id}).catch(error=>error)
+ expect(error?.message).toBe('prodat_canonical_source_validation_unconfirmed')
+ const writes=io.writes.filter(write=>write.port==='gridex_record_prodat_source_validation_v6')
+ expect(writes).toHaveLength(1)
+ expect(JSON.parse(String(writes[0].value.p_response_facts_text)).responses)
+  .toEqual(expect.arrayContaining([expect.objectContaining({fieldCode:'258',ercCode:'42'})]))
+ expect(writes[0].value.p_object_facts_text).toBeNull()
+ expect(writes[0].value.p_application_facts_text).toBeNull()
+ expect(writes[0].value.p_source_function_facts_text).toBeNull()
+ expect(io.status).toBeNull()
+})
+it('positive capability security quarantine must throw before all H258 negative authority reads',async()=>{
+ const error=new EdielExecutionFailure({kind:'security_quarantine',code:'DECLARED_SECURITY_STOP'},'DECLARED_SECURITY_STOP')
+ io.bilateralError=error
+ await expect(resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor})).rejects.toBe(error)
+ expect(io.calls.map(call=>call.name)).toEqual(['ediel_read_prodat_bilateral_source_capability_v1'])
+ expect(io.writes).toEqual([])
+})
+it.each(wireChanges)('ordinary positive capability refusal retains the pre-existing hold for non-target %s source',async(_name,change)=>{
+ setSource(withProdatFixtureInsertContext({...io.source,raw_payload:change(io.source.raw_payload!)}))
+ io.bilateralError={code:'P0001',message:'ediel_historical_rule_pack_basis_unavailable'}
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor})
+ expect(readReceivedCanonicalProdatResponseValidation(decision,io.source)).toBeNull()
+ expect(readReceivedCanonicalProdatApplicationObjects(decision,io.source)).toBeNull()
+ expect(readReceivedCanonicalProdatSourceFunction(decision,io.source)).toBeNull()
+ expect(io.calls.some(call=>call.name==='ediel_require_inbound_legal_context_v1')).toBe(false)
+ expect(io.writes).toEqual([])
+})
+
+it('ordinary positive capability refusal leaves actorless H258 observation prospective with no private reads or facet',async()=>{
+ io.bilateralError={code:'P0001',message:'ediel_historical_rule_pack_basis_unavailable'}
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source)
+ expect(errors258(decision).length).toBeGreaterThan(0)
+ expect(readReceivedCanonicalProdatResponseValidation(decision,io.source)).toBeNull()
+ expect(readReceivedCanonicalProdatApplicationObjects(decision,io.source)).toBeNull()
+ expect(readReceivedCanonicalProdatSourceFunction(decision,io.source)).toBeNull()
+ expect(io.calls.map(call=>call.name)).toEqual(['ediel_read_prodat_bilateral_source_capability_v1'])
+ expect(io.writes).toEqual([])
+})
+it.each(adverseReads.filter(([name])=>['missing protected original','wrong born legal receiver','missing named catalogue row'].includes(name)))
+ ('ordinary positive capability refusal does not replace %s proof with negative authority',async(_name,change)=>{
+  io.bilateralError={code:'P0001',message:'ediel_historical_rule_pack_basis_unavailable'}
+  change()
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor})
+  expect(readReceivedCanonicalProdatResponseValidation(decision,io.source)).toBeNull()
+  expect(readReceivedCanonicalProdatApplicationObjects(decision,io.source)).toBeNull()
+  expect(readReceivedCanonicalProdatSourceFunction(decision,io.source)).toBeNull()
+  expect(decision.policy).toBeNull();expect(decision.applicationDecision).not.toBe('accepted')
+  expect(io.writes).toEqual([])
+ })
+it('ordinary positive capability refusal does not bypass actual rejection actor quarantine',async()=>{
+ io.bilateralError={code:'P0001',message:'ediel_historical_rule_pack_basis_unavailable'}
+ io.permission=false
+ await expect(resolveCanonicalRuntimeDecisionWithRegistry(io.source,{actorUserId:actor}))
+  .rejects.toMatchObject({disposition:{kind:'security_quarantine',code:'EDIEL_TENANT_PERMISSION_FORBIDDEN'}})
+ expect(io.calls.some(call=>call.name==='ediel_require_inbound_legal_context_v1')).toBe(false)
+ expect(io.writes).toEqual([])
+})

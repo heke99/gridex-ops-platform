@@ -756,7 +756,14 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
       if(capability)base=resolveCanonicalRuntimeDecisionCore(message,{admissionAt:facts.admissionAt,replayAt:facts.replayAt,deathStatusContext:facts.deathStatusContext,prodatSourceCapability:capability},options)
     }catch(error){
       if(error instanceof EdielExecutionFailure&&error.disposition.kind==='security_quarantine')throw error
-      return base
+      // An unavailable positive H capability cannot suppress its independently
+      // qualified physical negative258 route. The original/actor/legal/catalog
+      // and one-use rejection checks below still own every response authority.
+      const physicalH258Rejection=!base.policy&&base.canonical.family==='PRODAT'&&base.canonical.messageCode==='Z04'
+        &&['H','Z25'].includes(base.canonical.subtype??'')&&message.direction==='inbound'
+        &&base.issues.some(item=>item.code==='CANONICAL_POLICY_RESOLUTION_FAILED'&&item.description==='prodat_bilateral_capability_required:Z04:H')
+        &&projectProdatDiagnostics(observeReceivedZ04HRegister({rawSegments:base.canonical.rawSegments,una:base.canonical.una})).applicationErrors.length>0
+      if(!physicalH258Rejection)return base
     }
   }
   if(base.syntaxDecision==='accepted'&&!base.policy&&base.canonical.family==='PRODAT'&&base.canonical.messageCode==='Z04'
