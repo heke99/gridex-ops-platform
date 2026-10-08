@@ -88,3 +88,40 @@ role-memory remain with codex-blocker-proxy-a7912b34 (6061011315).
 External decisions retain their named owners/HOLD.
 No next technical blocker claimed until this item has documented actual delivery
 or explicit handoff/release. No own resources exist to release.
+
+
+## B1 DONE — resumed after correction6061952106, 2026-10-08
+
+Previous observations above are historical. Same identity/branch; no inherited
+or new technical reservations. Read current main6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9,
+active startup memory/queue/protocol/AGENTS and actual own checkpoint.
+
+Actual714 GET: CLOSED/MERGED, sourcee18f99817308b7dde3a7cbd410f6a6fd4d710386,
+merge0509defba33a0a5eee10cd60fd4574fda4a97268 at13:47:38Z.
+Reuse actual delivery6061309591 and exact owner release6061322756:
+merge-role FIRST b1776b51 GET_MATCH/DELETE/GET404, then file701ac receipt
+ ee171db1 GET_MATCH/DELETE/GET404. B1's delivery/release alternative is fulfilled;
+no repeated merge/DELETE/CI/native/log/artifact collection. No own refs existed.
+Currentmain contains the delivery; coverage remains115+185=300/352.
+
+Current file701ac ->2e5f25f66da934d623a6c87c394a0c281a96204a is a DIFFERENT
+Claude403caa82 reservation for published716/bbf038f2; do not delete it under old
+ ee171. Current716 clean/certificate still running, no currentCI_GREEN.
+709 retains two74b4932 protocol-file refs, but has released role-memory.
+717/78d209e4 current component/native evidence belongs41f; no takeover.
+
+Observed host now RUNNING/connected, network ENFORCED, VPN false. Initial default
+sandbox git fetch failed proxy socket/connection; supported additional network
+permission then git fetch and authenticated gh GET main succeeded on inherited
+proxy. This confirms current read access, not a fabricated tag-write test.
+No probes or secret output. Earlier offline/shell-unavailable status superseded.
+Normal own-branch main adoption879537bc preserves all foreign main postimages;
+only this unique checkpoint differs. Remote publication/readback follows.
+
+Next after this DONE receipt: select a single remaining documented blocker from
+corrected evidence. Prioritize existing typed258 request6060202710 as corrected
+by6061952106; inspect current selected source only to avoid duplicate repair,
+then reuse request and obtain exact owner-delivered integration or explicit
+helper/file handoff before reservations/CLAIM/code. Billing projection and
+unchanged source-owner replay remain2f's existing coordinated production, not
+new fixture work for this agent. No broad52-ID audit or new artifact producer.
