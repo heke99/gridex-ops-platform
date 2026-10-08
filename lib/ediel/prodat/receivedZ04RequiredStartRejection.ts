@@ -65,11 +65,16 @@ export async function assertReceivedZ04RequiredStartActor(source:EdielMessageRow
 }
 export async function loadReceivedZ04RequiredStartRejection(source:EdielMessageRow,actor:string):Promise<ReceivedZ04RequiredStartRejection|null> {
  const started=Date.now()
- if(!await assertReceivedZ04RequiredStartActor(source,actor))return null
+ const sourceId=source.id,companyId=source.company_id,environment=source.environment
+ const actorSource:EdielMessageRow={...source,company_id:companyId}
+ // Freeze the READ principal before the actor await. An unavailable birth
+ // identity must still leave the actual actor denial/quarantine first.
+ let identity:string|null=null
+ try{identity=bornIdentity(source)}catch{/* Refuse the unavailable birth after the actor check. */}
+ if(!await assertReceivedZ04RequiredStartActor(actorSource,actor))return null
  try{
-  const identity=bornIdentity(source)
-  if(!identity||!isEvidenceUuid(source.company_id))return null
-  const stored=await supabaseService.from('ediel_messages').select('*').eq('id',source.id).eq('company_id',source.company_id).single()
+  if(!identity||!isEvidenceUuid(companyId))return null
+  const stored=await supabaseService.from('ediel_messages').select('*').eq('id',sourceId).eq('company_id',companyId).single()
   if(stored.error||bornIdentity(stored.data)!==identity)return null
   const original=stored.data as EdielMessageRow,witness=bornWitness(original)
   if(!witness)return null
@@ -78,17 +83,17 @@ export async function loadReceivedZ04RequiredStartRejection(source:EdielMessageR
   if(!first.length||groups.some(group=>group.messageIndex!==0||!group.validRegisterChain)
    ||first.some(group=>prodatEndUserWireSubtype('Z04',group.segments,wire.una)!=='A')
    ||!first.some(group=>!prodatDateState('210',group.segments,wire.una).present))return null
-  const legal=await requireEdielInboundLegalContext(source.company_id,source.id)
+  const legal=await requireEdielInboundLegalContext(companyId,sourceId)
   const basis=legal as unknown as Record<string,unknown>,projection=basis.canonicalProjection
   const receivers=wire.segments.filter(row=>row.tag==='NAD'&&segmentComposite(row,1,wire.una)[0]==='DO')
   const received=parseSourceReceiptInstant(original.message_received_at)
   if(Date.now()-started>2000||Date.now()<started||unb.length!==1||unh.length!==1||receivers.length!==1
-   ||legal.basisKind!=='observed_source_persistence'||legal.direction!=='inbound'||legal.environment!==source.environment
+   ||legal.basisKind!=='observed_source_persistence'||legal.direction!=='inbound'||legal.environment!==environment
    ||basis.family!=='PRODAT'||basis.code!=='Z04'||basis.subtype!=='A'||!isEvidenceUuid(legal.legalActorId)||!isEvidenceUuid(legal.transportActorId)
    ||legal.actorRole!=='electricity_supplier'||legal.legalEdielId!==segmentComposite(receivers[0],2,wire.una)[0]
    ||legal.transportEdielId!==segmentComposite(unb[0],3,wire.una)[0]
    ||legal.applicationReference!==segmentComposite(unb[0],7,wire.una)[0]
-   ||source.environment!==(segmentComposite(unb[0],11,wire.una)[0]==='1'?'test':'production')
+   ||environment!==(segmentComposite(unb[0],11,wire.una)[0]==='1'?'test':'production')
    ||typeof basis.sourceEdition!=='string'||!/^[a-f0-9]{64}$/.test(basis.sourceEdition)
    ||received===null||parseSourceReceiptInstant(legal.sourceReceivedAt)!==received||parseSourceReceiptInstant(legal.observedAt)===null
    ||!isEvidenceRecord(projection)||projection.family!=='PRODAT'||projection.code!=='Z04'||projection.subtype!=='A'
