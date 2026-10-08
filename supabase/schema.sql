@@ -17746,9 +17746,17 @@ declare
  c uuid:=(p_input->>'companyId')::uuid; env text:=p_input->>'environment'; mid uuid:=(p_input->>'messageId')::uuid;
  actor uuid:=(p_input->>'actorUserId')::uuid; aid uuid:=(p_input->>'attemptId')::uuid; action text:=p_input->>'action';
  owner jsonb:=p_input->'owner'; binding jsonb:=p_input->'binding'; result jsonb:=p_input->'result';
- m public.ediel_messages%rowtype; a gridex_ediel_transport.attempts%rowtype; r gridex_ediel_transport.reservations%rowtype; v_classification text; lane jsonb; ai_basis jsonb; is_ai boolean;
+ m public.ediel_messages%rowtype; a gridex_ediel_transport.attempts%rowtype; r gridex_ediel_transport.reservations%rowtype; v_classification text; lane jsonb; ai_basis jsonb; is_ai boolean; technical_basis jsonb; technical_evidence jsonb; technical_candidate boolean:=false;
 begin
  if c is null or actor is null or mid is null or aid is null or env is null or env not in ('test','production') or action is null or action not in ('prepare','enter','observe','release') then raise exception 'ediel_transport_scope_required'; end if;
+ -- Routing is only a candidate selector. Authority comes from the existing
+ -- actor-qualified private original port, with graph-first locks before rows.
+ if env='production' and exists(select 1 from public.ediel_messages candidate
+   where candidate.id=mid and candidate.company_id=c and candidate.environment=env
+     and candidate.direction='outbound' and candidate.message_standard='edifact' and candidate.message_family='CONTRL') then
+  technical_candidate:=true;
+  technical_basis:=gridex_ediel_technical_ack.read_persisted_contrl_v2(c,env,mid,actor,'send');
+ end if;
  perform 1 from public.user_profiles x where x.id=actor for share;
  perform 1 from public.company_memberships x where x.company_id=c and x.user_id=actor for share;
  -- A global administrator alone is not a tenant service context.
@@ -17756,11 +17764,35 @@ begin
  or not exists(select 1 from public.user_profiles x where x.id=actor and x.user_status='active')
  or not (coalesce(public.gridex_actor_has_company_permission(actor,c,'ediel.send'),false)
    or coalesce(public.gridex_actor_has_company_permission(actor,c,'communication.send'),false))
- or not exists(select 1 from public.canonical_tenant_operation_decision(c,case when env='production' then 'ediel.production.send' else 'ediel.test.process' end) d where d.allowed) then raise exception 'ediel_transport_actor_not_authorized' using errcode='42501'; end if;
+ then raise exception 'ediel_transport_actor_not_authorized' using errcode='42501'; end if;
  select * into strict m from public.ediel_messages where id=mid and company_id=c and environment=env for update;
  is_ai:=m.message_standard='ai_list' and m.message_family='AI_LIST' and m.message_code='AI';
  if m.direction is distinct from 'outbound' or not(m.message_standard='edifact' or coalesce(is_ai,false)) or m.raw_payload is null or m.immutable_rendered_at is null or m.immutable_payload_hash is distinct from encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
  then raise exception 'ediel_transport_sealed_message_required'; end if;
+ -- The private reader projects exactly two non-authoritative public caches.
+ -- Bind those projections to its protected source/syntax, preserve stored rows,
+ -- and compare every other field to the current locked sealed message.
+ if technical_candidate then
+  technical_evidence:=technical_basis->'technicalSyntaxAckEvidence';
+  if jsonb_typeof(technical_basis) is distinct from 'object' or env is distinct from 'production' or m.message_family is distinct from 'CONTRL'
+   or technical_basis->'version' is distinct from '2'::jsonb
+   or technical_basis->>'executionActorUserId' is distinct from actor::text
+   or technical_basis->>'executionPhase' is distinct from 'send'
+   or jsonb_typeof(technical_basis->'ackMessage') is distinct from 'object'
+   or jsonb_typeof(technical_evidence) is distinct from 'object'
+   or technical_evidence->>'kind' is distinct from 'technical_syntax_ack'
+   or technical_evidence->'version' is distinct from '1'::jsonb
+   or technical_evidence->>'companyId' is distinct from c::text
+   or technical_evidence->>'environment' is distinct from env
+   or nullif(technical_evidence->>'sourceMessageId','') is null
+   or technical_basis#>>'{ackMessage,related_message_id}' is distinct from technical_evidence->>'sourceMessageId'
+   or technical_evidence->>'syntaxDecision' is null or technical_evidence->>'syntaxDecision' not in ('accepted','rejected')
+   or technical_basis#>>'{ackMessage,ack_outcome}' is distinct from (case technical_evidence->>'syntaxDecision' when 'accepted' then 'positive' when 'rejected' then 'negative' end)
+   or (technical_basis->'ackMessage')-array['related_message_id','ack_outcome'] is distinct from to_jsonb(m)-array['related_message_id','ack_outcome']
+  then raise exception 'ediel_transport_technical_contrl_basis_mismatch' using errcode='42501'; end if;
+ end if;
+ if not technical_candidate and not exists(select 1 from public.canonical_tenant_operation_decision(c,case when env='production' then 'ediel.production.send' else 'ediel.test.process' end) d where d.allowed)
+ then raise exception 'ediel_transport_actor_not_authorized' using errcode='42501'; end if;
  if action in ('prepare','enter') then
   if is_ai then ai_basis:=gridex_ai_processing.require_ai_outbound_source_v1(c,mid,actor); end if;
   perform public.ediel_require_scoped_capability_for_message_v1(c,mid);
@@ -22882,7 +22914,7 @@ BEGIN
       END LOOP;
       IF obj->>'disposition'<>'unavailable' AND ((obj->>'messageIndex')::int<>0 OR jsonb_typeof(obj->'messageReference')<>'string'
         OR ((jsonb_typeof(obj->'objectId')<>'string' OR coalesce(obj->>'identityAgency','') NOT IN ('9','89'))
-          AND NOT (obj->>'disposition'='accepted' AND gridex_received_sources.identity_omission_scope_v1(src.raw_payload,obj)))) THEN
+          AND NOT ((obj->>'disposition'='accepted' AND gridex_received_sources.identity_omission_scope_v1(src.raw_payload,obj)) OR (obj->>'disposition'='rejected' AND gridex_received_sources.rejected_identity_scope_v1(src.raw_payload,obj) IS TRUE)))) THEN
         RAISE EXCEPTION 'received_register_unvalidated_scope' USING ERRCODE='23514';
       END IF;
       IF (obj->>'disposition'='accepted') IS DISTINCT FROM (jsonb_array_length(obj->'reasons')=0)
@@ -26862,6 +26894,87 @@ END
 $$;
 
 --
+-- Name: rejected_identity_scope_v1(text, jsonb); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.rejected_identity_scope_v1(raw text, object_scope jsonb) RETURNS boolean
+    LANGUAGE plpgsql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE tokens jsonb; own jsonb; lin jsonb; cci jsonb; cav jsonb; refs jsonb;
+ message_end integer; next_index integer; parent_index integer; party_index integer;
+ ordinal integer:=0; reason text; message_reason text; own_li text; selected_li text;
+ line_refs text[]:=ARRAY[]::text[]; selected boolean:=false;
+BEGIN
+ IF raw IS NULL OR jsonb_typeof(object_scope) IS DISTINCT FROM 'object'
+  OR object_scope->>'disposition' IS DISTINCT FROM 'rejected'
+  OR object_scope->'objectId' IS DISTINCT FROM 'null'::jsonb
+  OR object_scope->'messageIndex' IS DISTINCT FROM '0'::jsonb
+  OR jsonb_typeof(object_scope->'registers') IS DISTINCT FROM 'array'
+  OR jsonb_array_length(object_scope->'registers') IS DISTINCT FROM 1
+  OR object_scope#>'{registers,0,registerIndex}' IS DISTINCT FROM 'null'::jsonb
+  OR object_scope#>'{registers,0,registerPosition}' IS DISTINCT FROM '1'::jsonb THEN RETURN false; END IF;
+ tokens:=gridex_received_sources.closure_wire_tokens_v2(raw);
+ IF tokens IS NULL
+  OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH')<>1
+  OR (SELECT t#>>'{elements,2,0}' FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH') IS DISTINCT FROM 'PRODAT'
+  OR (SELECT t#>>'{elements,1,0}' FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH') IS DISTINCT FROM object_scope->>'messageReference'
+  OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='BGM')<>1
+  OR (SELECT t#>>'{elements,1,0}' FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='BGM') IS DISTINCT FROM 'Z05'
+  OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='CCI' AND t#>>'{elements,2,0}'='Z13')
+   <>(SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='LIN')
+  OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNT')<>1 THEN RETURN false; END IF;
+ SELECT (t->>'index')::integer INTO message_end FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNT';
+ IF (SELECT (t->>'index')::integer FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH')
+   >=(SELECT (t->>'index')::integer FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='BGM')
+  OR (SELECT (t->>'index')::integer FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='BGM')
+   >=(SELECT min((t->>'index')::integer) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='LIN') THEN RETURN false; END IF;
+ FOR lin IN SELECT t FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='LIN' ORDER BY (t->>'index')::integer LOOP
+  ordinal:=ordinal+1;
+  IF (lin->>'index')::integer>=message_end OR jsonb_array_length(lin->'elements')>4
+   OR jsonb_array_length(lin#>'{elements,1}') IS DISTINCT FROM 1
+   OR (lin#>>'{elements,1,0}' ~ '^[0-9]{1,6}$') IS NOT TRUE
+   OR (lin#>>'{elements,1,0}')::integer<>ordinal THEN RETURN false; END IF;
+  SELECT coalesce(min((t->>'index')::integer),message_end) INTO next_index
+   FROM jsonb_array_elements(tokens)t WHERE t->>'tag' IN('LIN','UNT','UNZ') AND (t->>'index')::integer>(lin->>'index')::integer;
+  SELECT jsonb_agg(t ORDER BY (t->>'index')::integer) INTO own FROM jsonb_array_elements(tokens)t
+   WHERE (t->>'index')::integer>=(lin->>'index')::integer AND (t->>'index')::integer<next_index;
+  SELECT min((t->>'index')::integer) INTO parent_index FROM jsonb_array_elements(own)t WHERE t->>'tag' IN('RFF','NAD');
+  IF (SELECT count(*) FROM jsonb_array_elements(own)t WHERE t->>'tag'='CCI' AND t#>>'{elements,2,0}'='Z13')<>1 THEN RETURN false; END IF;
+  SELECT t INTO cci FROM jsonb_array_elements(own)t WHERE t->>'tag'='CCI' AND t#>>'{elements,2,0}'='Z13';
+  SELECT t INTO cav FROM jsonb_array_elements(own)t WHERE t->>'tag'='CAV' AND (t->>'index')::integer=(cci->>'index')::integer+1;
+  IF cav IS NULL OR (parent_index IS NOT NULL AND (cci->>'index')::integer>=parent_index)
+   OR jsonb_array_length(cci->'elements')<>3 OR jsonb_array_length(cci#>'{elements,2}')<>1
+   OR EXISTS(SELECT FROM jsonb_array_elements(cci#>'{elements,1}')v WHERE v#>>'{}'<>'')
+   OR jsonb_array_length(cav->'elements')<>2 OR jsonb_array_length(cav#>'{elements,1}')<>1
+   OR EXISTS(SELECT FROM jsonb_array_elements(own)t WHERE t->>'tag'='CAV' AND (t->>'index')::integer=(cav->>'index')::integer+1)
+   OR coalesce(cav#>>'{elements,1,0}','') NOT IN('Z25','Z22') THEN RETURN false; END IF;
+  reason:=cav#>>'{elements,1,0}';
+  IF message_reason IS NOT NULL AND reason<>message_reason THEN RETURN false; END IF;
+  message_reason:=reason;
+  SELECT min((t->>'index')::integer) INTO party_index FROM jsonb_array_elements(own)t WHERE t->>'tag'='NAD';
+  SELECT jsonb_agg(t) INTO refs FROM jsonb_array_elements(own)t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='LI'
+   AND (party_index IS NULL OR (t->>'index')::integer<party_index);
+  own_li:=NULL;
+  IF jsonb_array_length(refs)=1 AND jsonb_array_length(refs#>'{0,elements,1}')=2
+   AND char_length(refs#>>'{0,elements,1,1}') BETWEEN 1 AND 128
+   AND refs#>>'{0,elements,1,1}'=btrim(refs#>>'{0,elements,1,1}')
+   AND refs#>>'{0,elements,1,1}' !~ '[[:cntrl:]]' THEN own_li:=refs#>>'{0,elements,1,1}'; END IF;
+  line_refs:=array_append(line_refs,own_li);
+  IF lin->'index'=object_scope#>'{registers,0,segmentIndex}' THEN
+   IF nullif(lin#>>'{elements,3,0}','') IS NOT NULL
+    OR to_jsonb(nullif(lin#>>'{elements,3,3}','')) IS DISTINCT FROM nullif(object_scope->'identityAgency','null'::jsonb)
+    OR object_scope#>'{registers,0,lineIndex}' IS DISTINCT FROM to_jsonb(ordinal-1)
+    OR object_scope#>>'{registers,0,lineNumber}' IS DISTINCT FROM lin#>>'{elements,1,0}'
+    OR own_li IS NULL THEN RETURN false; END IF;
+   selected:=true; selected_li:=own_li;
+  END IF;
+ END LOOP;
+ RETURN selected AND selected_li IS NOT NULL AND (SELECT count(*) FROM unnest(line_refs)r WHERE r=selected_li)=1;
+EXCEPTION WHEN OTHERS THEN RETURN false;
+END $_$;
+
+--
 -- Name: render_owned_li_repair_v1(text, jsonb); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
 --
 
@@ -28974,6 +29087,172 @@ BEGIN
 END $$;
 
 --
+-- Name: z02_address_source_basis_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.z02_address_source_basis_v1(p_source_message_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+ m public.ediel_messages%rowtype;s gridex_received_sources.sources%rowtype;
+ original public.ediel_messages%rowtype;candidate public.ediel_messages%rowtype;
+ request public.customer_info_requests%rowtype;candidate_request public.customer_info_requests%rowtype;
+ site public.customer_sites%rowtype;customer public.customers%rowtype;
+ snapshot public.customer_operation_request_snapshots%rowtype;
+ dispatch gridex_ediel_transport.attempts%rowtype;
+ source_wire jsonb;original_wire jsonb;source_object jsonb;original_object jsonb;
+ candidate_wire jsonb;candidate_object jsonb;receipt jsonb;
+ source_transport jsonb;candidate_transport jsonb;
+ matches integer:=0;object_matches integer;request_id uuid;original_id uuid;
+ expected_object text;expected_identity text;expected_qualifier text;address_hash text;
+BEGIN
+ IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN
+  RAISE EXCEPTION 'z02_address_source_service_required' USING ERRCODE='42501';
+ END IF;
+ SELECT * INTO s FROM gridex_received_sources.sources WHERE source_message_id=p_source_message_id;
+ IF NOT FOUND THEN RETURN NULL;END IF;
+ -- Service execution is not authority to disclose another company's source.
+ PERFORM u.id FROM public.user_profiles u WHERE u.id=p_actor_user_id AND u.user_status='active' FOR SHARE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'z02_address_source_actor_required' USING ERRCODE='42501';END IF;
+ PERFORM cm.user_id FROM public.company_memberships cm
+  WHERE cm.company_id=s.company_id AND cm.user_id=p_actor_user_id
+   AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL FOR SHARE;
+ IF NOT FOUND OR NOT (
+  coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,s.company_id,'ediel.read'),false)
+  OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,s.company_id,'communication.read'),false)) THEN
+  RAISE EXCEPTION 'z02_address_source_actor_read_required' USING ERRCODE='42501';
+ END IF;
+ PERFORM public.ediel_require_source_bytes_available_v1(s.company_id,s.source_message_id);
+ SELECT * INTO m FROM public.ediel_messages WHERE id=s.source_message_id
+  AND company_id=s.company_id AND environment=s.environment FOR SHARE;
+ IF NOT FOUND OR m.direction IS DISTINCT FROM 'inbound' OR m.message_standard IS DISTINCT FROM 'edifact'
+  OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z02'
+  OR s.message_code IS DISTINCT FROM 'Z02' OR s.raw_payload IS NULL
+  OR s.raw_payload IS DISTINCT FROM m.raw_payload
+  OR s.payload_hash IS DISTINCT FROM m.immutable_payload_hash
+  OR s.payload_hash IS DISTINCT FROM encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex')
+  OR s.source_received_at IS NULL OR NOT isfinite(s.source_received_at)
+  OR s.source_received_at IS DISTINCT FROM m.message_received_at
+  OR m.customer_id IS NULL OR m.site_id IS NULL THEN RETURN NULL;END IF;
+
+ SELECT * INTO site FROM public.customer_sites WHERE id=m.site_id
+  AND company_id=s.company_id AND customer_id=m.customer_id FOR SHARE;
+ IF NOT FOUND THEN RETURN NULL;END IF;
+ SELECT * INTO customer FROM public.customers WHERE id=m.customer_id AND company_id=s.company_id FOR SHARE;
+ IF NOT FOUND THEN RETURN NULL;END IF;
+ expected_object:=coalesce(nullif(btrim(site.normalized_facility_id),''),nullif(btrim(site.facility_id),''));
+ expected_identity:=coalesce(nullif(btrim(customer.org_number),''),nullif(btrim(customer.personal_number),''));
+ expected_qualifier:=CASE WHEN nullif(btrim(customer.org_number),'') IS NOT NULL THEN 'SE1'
+  WHEN nullif(btrim(customer.personal_number),'') IS NOT NULL THEN 'SE2' ELSE NULL END;
+ IF expected_object IS NULL OR expected_identity IS NULL THEN RETURN NULL;END IF;
+ source_wire:=gridex_received_sources.z02_core_wire_v1(s.raw_payload);
+ IF source_wire IS NULL OR source_wire->>'code' IS DISTINCT FROM 'Z02' THEN RETURN NULL;END IF;
+ SELECT x->'elements' INTO source_transport FROM jsonb_array_elements(
+  gridex_received_sources.closure_wire_tokens_v2(s.raw_payload)) x WHERE x->>'tag'='UNB';
+ SELECT count(*) INTO object_matches FROM jsonb_array_elements(source_wire->'objects') x
+  WHERE x->>'objectId'=expected_object;
+ IF object_matches<>1 THEN RETURN NULL;END IF;
+ SELECT x INTO source_object FROM jsonb_array_elements(source_wire->'objects') x WHERE x->>'objectId'=expected_object;
+ IF nullif(source_object->>'identityAgency','') IS NULL OR nullif(source_object->>'lineReference','') IS NULL
+  OR (source_object->>'reason' IN ('Z22','Z23')) IS NOT TRUE THEN RETURN NULL;END IF;
+
+ -- Select by the physical source correlation, not latest request or mutable
+ -- sent_at/parsed_payload. Multiple matching requests are unavailable authority.
+ FOR candidate_request IN SELECT r.* FROM public.customer_info_requests r
+  WHERE r.company_id=s.company_id AND r.customer_id=m.customer_id AND r.site_id=m.site_id
+   AND r.operation_id IS NOT NULL AND r.ediel_message_id IS NOT NULL FOR SHARE
+ LOOP
+  SELECT * INTO candidate FROM public.ediel_messages o WHERE o.id=candidate_request.ediel_message_id
+   AND o.company_id=s.company_id AND o.environment=s.environment AND o.direction='outbound'
+   AND o.message_standard='edifact' AND o.message_family='PRODAT' AND o.message_code='Z01'
+   AND o.customer_id=m.customer_id AND o.site_id=m.site_id FOR SHARE;
+  IF NOT FOUND OR candidate.raw_payload IS NULL OR candidate.immutable_rendered_at IS NULL
+   OR NOT isfinite(candidate.immutable_rendered_at)
+   OR candidate.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(candidate.raw_payload,'UTF8')),'hex')
+   THEN CONTINUE;END IF;
+  candidate_wire:=gridex_received_sources.z02_core_wire_v1(candidate.raw_payload);
+  SELECT x->'elements' INTO candidate_transport FROM jsonb_array_elements(
+   gridex_received_sources.closure_wire_tokens_v2(candidate.raw_payload)) x WHERE x->>'tag'='UNB';
+  IF candidate_wire IS NULL OR candidate_wire->>'code' IS DISTINCT FROM 'Z01'
+   OR source_wire->>'sender' IS DISTINCT FROM candidate_wire->>'receiver'
+   OR source_wire->>'receiver' IS DISTINCT FROM candidate_wire->>'sender'
+   OR nullif(source_wire->>'transportSender','') IS NULL OR nullif(source_wire->>'transportReceiver','') IS NULL
+   OR source_wire->>'transportSender' IS DISTINCT FROM candidate_wire->>'transportReceiver'
+   OR source_wire->>'transportReceiver' IS DISTINCT FROM candidate_wire->>'transportSender'
+   OR source_transport->2 IS DISTINCT FROM candidate_transport->3
+   OR source_transport->3 IS DISTINCT FROM candidate_transport->2 THEN CONTINUE;END IF;
+  SELECT count(*) INTO object_matches FROM jsonb_array_elements(candidate_wire->'objects') x
+   WHERE x->>'objectId'=expected_object;
+  IF object_matches<>1 THEN CONTINUE;END IF;
+  SELECT x INTO candidate_object FROM jsonb_array_elements(candidate_wire->'objects') x WHERE x->>'objectId'=expected_object;
+  IF candidate_object->>'identityAgency' IS DISTINCT FROM source_object->>'identityAgency'
+   OR candidate_object->>'lineReference' IS DISTINCT FROM source_object->>'lineReference'
+   OR candidate_object->>'reason' IS DISTINCT FROM source_object->>'reason'
+   OR candidate_object->>'customerId' IS DISTINCT FROM expected_identity
+   OR candidate_object->>'customerQualifier' IS DISTINCT FROM expected_qualifier
+   OR candidate_object->>'customerAgency' IS DISTINCT FROM '260'
+   OR nullif(candidate_object->>'customerName','') IS NULL
+   OR NOT EXISTS(SELECT FROM public.ediel_business_references br WHERE br.company_id=s.company_id
+    AND br.source_message_id=candidate.id AND br.message_family='PRODAT' AND br.message_code='Z01'
+    AND br.reference_type='RFF_LI' AND br.reference_value=source_object->>'lineReference') THEN CONTINUE;END IF;
+  matches:=matches+1;request_id:=candidate_request.id;original_id:=candidate.id;
+  original_wire:=candidate_wire;original_object:=candidate_object;
+ END LOOP;
+ IF matches<>1 THEN RETURN NULL;END IF;
+ SELECT * INTO request FROM public.customer_info_requests WHERE id=request_id;
+ SELECT * INTO original FROM public.ediel_messages WHERE id=original_id;
+ PERFORM public.ediel_require_source_bytes_available_v1(s.company_id,original.id);
+ IF request.grid_owner_id IS NOT NULL AND (
+  request.grid_owner_id IS DISTINCT FROM site.grid_owner_id
+  OR m.grid_owner_id IS NOT NULL AND m.grid_owner_id IS DISTINCT FROM request.grid_owner_id
+  OR original.grid_owner_id IS NOT NULL AND original.grid_owner_id IS DISTINCT FROM request.grid_owner_id)
+  THEN RETURN NULL;END IF;
+ SELECT count(*) INTO matches FROM public.customer_operation_request_snapshots x
+  WHERE x.company_id=s.company_id AND x.operation_id=request.operation_id AND x.customer_id=m.customer_id
+   AND x.customer_site_id=m.site_id AND x.request_kind='customer_data_request'
+   AND x.request_reference=request.id::text AND x.superseded_at IS NULL;
+ IF matches<>1 THEN RETURN NULL;END IF;
+ SELECT * INTO snapshot FROM public.customer_operation_request_snapshots x
+  WHERE x.company_id=s.company_id AND x.operation_id=request.operation_id AND x.customer_id=m.customer_id
+   AND x.customer_site_id=m.site_id AND x.request_kind='customer_data_request'
+   AND x.request_reference=request.id::text AND x.superseded_at IS NULL FOR SHARE;
+ address_hash:=coalesce(nullif(btrim(site.address_hash),''),lower(concat_ws('|',nullif(btrim(site.street),''),
+  nullif(regexp_replace(coalesce(site.postal_code,''),'[^0-9]','','g'),''),nullif(btrim(site.city),''))));
+ IF snapshot.site_address_hash IS DISTINCT FROM address_hash OR snapshot.grid_owner_id IS DISTINCT FROM site.grid_owner_id
+  OR nullif(original_object->>'installationAddress','') IS NOT NULL
+   AND btrim(original_object->>'installationAddress') IS DISTINCT FROM btrim(site.street) THEN RETURN NULL;END IF;
+
+ -- Reuse the genuine private provider receipt reader after READ authorization.
+ -- Its historical sender is not requalified against present-day SEND rights.
+ receipt:=gridex_ediel_transport.accepted_source_basis_v1(original);
+ IF receipt IS NULL OR receipt->>'status' IS DISTINCT FROM 'accepted_projection'
+  OR receipt->>'lane' IS DISTINCT FROM 'generic_journal' THEN RETURN NULL;END IF;
+ SELECT * INTO dispatch FROM gridex_ediel_transport.attempts a WHERE a.id=(receipt->>'attemptId')::uuid
+  AND a.company_id=s.company_id AND a.environment=s.environment AND a.message_id=original.id
+  AND a.classification='accepted' AND a.binding->>'originalHash'=original.immutable_payload_hash
+  AND a.entered_at IS NOT NULL AND a.observed_at IS NOT NULL
+  AND isfinite(a.entered_at) AND isfinite(a.observed_at)
+  AND original.immutable_rendered_at<=a.entered_at AND a.entered_at<=a.observed_at
+  AND a.observed_at<=s.source_received_at
+  AND a.observed_at=(receipt->>'observedAt')::timestamptz FOR SHARE;
+ IF NOT FOUND THEN RETURN NULL;END IF;
+
+ -- Incoming UD fields are intentionally absent from the authority predicate.
+ -- The caller parses original C059 bytes and validates reply fields separately.
+ RETURN jsonb_build_object('status','z02_address_source_basis','version',1,
+  'companyId',s.company_id,'environment',s.environment,'sourceMessageId',m.id,
+  'sourcePayloadHash',s.payload_hash,'sourceReceivedAt',s.source_received_at,'sourceRawPayload',s.raw_payload,
+  'sourceMessage',to_jsonb(m),'sourceContext',s.received_context,
+  'originalMessageId',original.id,'originalPayloadHash',original.immutable_payload_hash,
+  'originalRenderedAt',original.immutable_rendered_at,'originalRawPayload',original.raw_payload,
+  'originalMessage',to_jsonb(original),'sourceObject',source_object,'originalObject',original_object,
+  'request',to_jsonb(request),'requestSnapshot',to_jsonb(snapshot),'customer',to_jsonb(customer),'site',to_jsonb(site),
+  'acceptedTransport',to_jsonb(dispatch),'acceptedTransportReceipt',receipt);
+END $$;
+
+--
 -- Name: z02_core_wire_v1(text); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
 --
 
@@ -31061,6 +31340,114 @@ BEGIN
 END $$;
 
 --
+-- Name: wait_after_z13_ack_v1(); Type: FUNCTION; Schema: gridex_service_permission; Owner: -
+--
+
+CREATE FUNCTION gridex_service_permission.wait_after_z13_ack_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+ c gridex_ack_authority.source_correlations%rowtype;
+ a gridex_ack_authority.source_correlations%rowtype;
+ s public.ediel_messages%rowtype;
+ p public.metering_permissions%rowtype;
+ o gridex_service_permission.origins%rowtype;
+ wire jsonb; original jsonb; expected jsonb; proof jsonb; ack_raw text;
+ positive_aperaks uuid[]:=ARRAY[]::uuid[]; positive_contrl boolean:=false;
+BEGIN
+ IF NEW.result->'sourceAccepted' IS DISTINCT FROM 'true'::jsonb
+  OR NEW.result->'finalAckReached' IS DISTINCT FROM 'true'::jsonb
+  OR NEW.result->'wholeSourceRejected' IS DISTINCT FROM 'false'::jsonb THEN RETURN NEW; END IF;
+ SELECT * INTO STRICT c FROM gridex_ack_authority.source_correlations WHERE ack_message_id=NEW.ack_message_id;
+ -- Most ACKs have no service-permission origin. Do not impose new permission
+ -- locks or business authority on those unrelated source families.
+ SELECT * INTO o FROM gridex_service_permission.origins
+  WHERE message_id=c.source_message_id AND company_id=c.company_id AND message_code='Z13';
+ IF NOT FOUND THEN RETURN NEW; END IF;
+ SELECT * INTO s FROM public.ediel_messages WHERE id=c.source_message_id FOR UPDATE;
+ IF s.company_id IS DISTINCT FROM c.company_id OR s.environment IS DISTINCT FROM c.environment
+  OR s.direction IS DISTINCT FROM 'outbound' OR s.message_family IS DISTINCT FROM 'PRODAT'
+  OR s.message_code IS DISTINCT FROM 'Z13' OR s.intent_id IS DISTINCT FROM o.intent_id THEN RETURN NEW; END IF;
+ IF s.message_sent_at IS NULL OR s.immutable_rendered_at IS NULL
+  OR s.immutable_payload_hash IS DISTINCT FROM c.source_payload_hash
+  OR c.source_payload_hash IS DISTINCT FROM encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex')
+  OR NEW.result#>>'{sourceMessage,id}' IS DISTINCT FROM s.id::text
+  OR NEW.result#>>'{sourceMessage,company_id}' IS DISTINCT FROM c.company_id::text
+  OR NEW.result#>>'{sourceMessage,environment}' IS DISTINCT FROM c.environment
+  OR NEW.result#>>'{sourceMessage,raw_payload}' IS DISTINCT FROM s.raw_payload THEN
+  RAISE EXCEPTION 'ediel_z13_waiting_source_receipt_conflict' USING ERRCODE='23514';
+ END IF;
+ -- A distinct later ACK must not repair an aggregate already completed before
+ -- this migration. Earlier *partial* receipts can still complete prospectively.
+ IF EXISTS(SELECT FROM gridex_ack_authority.applied_receipts r
+  JOIN gridex_ack_authority.source_correlations prior USING(ack_message_id)
+  WHERE prior.source_message_id=s.id AND r.ack_message_id<>NEW.ack_message_id
+   AND r.result->'sourceAccepted'='true'::jsonb AND r.result->'finalAckReached'='true'::jsonb)
+ THEN RETURN NEW; END IF;
+ wire:=gridex_ack_authority.wire_v1(s.raw_payload);
+ IF wire->>'family' IS DISTINCT FROM 'PRODAT' OR wire->>'code' IS DISTINCT FROM 'Z13'
+  OR wire->>'environment' IS DISTINCT FROM c.environment THEN RETURN NEW; END IF;
+ PERFORM gridex_ack_authority.require_physical_actor_v1(c.company_id,c.actor_user_id,true);
+ proof:=gridex_ack_authority.read_committed_v1(c.company_id,c.environment,c.ack_message_id,c.actor_user_id);
+ IF proof->>'kind' IS DISTINCT FROM 'exact_receipt' OR proof->'result' IS DISTINCT FROM NEW.result THEN
+  RAISE EXCEPTION 'ediel_z13_waiting_committed_receipt_required' USING ERRCODE='23514'; END IF;
+ expected:=gridex_ack_authority.prodat_expected_physical_scope_keys_v1(s.raw_payload,s.id);
+ IF jsonb_typeof(expected) IS DISTINCT FROM 'array' OR jsonb_array_length(expected)=0
+  OR EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=s.id AND x.outcome='negative')
+ THEN RETURN NEW; END IF;
+ -- The final ACK may be CONTRL arriving after APERAK. Qualify that earlier
+ -- APERAK's immutable canonical receipt and physical scopes as well. The outer
+ -- owner writes its physical receipt AFTER applied_receipts; do not demand it
+ -- prematurely for the current APERAK. Recompute the same actual projection.
+ FOR a IN SELECT * FROM gridex_ack_authority.source_correlations
+  WHERE source_message_id=s.id AND company_id=c.company_id AND environment=c.environment
+   AND source_payload_hash=c.source_payload_hash AND ack_outcome='positive'
+   AND ack_family IN('CONTRL','APERAK') ORDER BY ack_message_id LOOP
+  proof:=gridex_ack_authority.read_committed_v1(c.company_id,c.environment,a.ack_message_id,c.actor_user_id);
+  IF proof->>'kind' IS DISTINCT FROM 'exact_receipt' THEN CONTINUE; END IF;
+  IF a.ack_family='CONTRL' AND a.ack_scope='interchange'
+   AND EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=s.id
+    AND x.ack_message_id=a.ack_message_id AND x.ack_family='CONTRL' AND x.ack_scope='interchange' AND x.outcome='positive')
+  THEN positive_contrl:=true;
+  ELSIF a.ack_family='APERAK' AND a.ack_scope='object' THEN
+   SELECT raw_payload INTO STRICT ack_raw FROM public.ediel_messages WHERE id=a.ack_message_id;
+   IF a.scope_outcomes IS DISTINCT FROM gridex_ack_authority.prodat_physical_outcomes_v1(ack_raw,s.raw_payload,s.id)
+   THEN RAISE EXCEPTION 'ediel_z13_waiting_physical_scope_conflict' USING ERRCODE='23514'; END IF;
+   positive_aperaks:=array_append(positive_aperaks,a.ack_message_id);
+  END IF;
+ END LOOP;
+ IF NOT positive_contrl OR cardinality(positive_aperaks)=0
+  OR EXISTS(SELECT FROM jsonb_array_elements_text(expected) ref WHERE NOT EXISTS(
+   SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=s.id
+    AND x.ack_family='APERAK' AND x.ack_scope='object' AND x.source_reference=ref
+    AND x.ack_message_id=ANY(positive_aperaks) AND x.outcome='positive')) THEN RETURN NEW; END IF;
+ -- The current graph owner already holds SHARE on this table before locking
+ -- messages. A blocking upgrade here can deadlock with another ACK waiting on
+ -- messages. NOWAIT deliberately propagates 55P03: the ENTIRE ACK transaction
+ -- rolls back and can retry; never commit acceptance with a skipped projection.
+ LOCK TABLE public.metering_permissions IN ROW EXCLUSIVE MODE NOWAIT;
+ SELECT * INTO p FROM public.metering_permissions WHERE id=o.permission_id AND company_id=c.company_id FOR UPDATE;
+ original:=gridex_received_sources.permission_partition_wire_v1(s.raw_payload);
+ IF NOT FOUND OR (p.status IN('z13_ready','z13_sent')) IS NOT TRUE
+  OR p.source_z13_message_id IS DISTINCT FROM s.id OR p.outbound_z13_message_id IS DISTINCT FROM s.id
+  OR s.customer_id IS NULL OR p.customer_id IS DISTINCT FROM s.customer_id
+  OR o.basis->>'customerId' IS DISTINCT FROM p.customer_id::text
+  OR nullif(btrim(p.rff_li_reference),'') IS NULL
+  OR jsonb_typeof(original->'objects') IS DISTINCT FROM 'array'
+  OR (SELECT count(*) FROM jsonb_array_elements(original->'objects') x WHERE x->>'li'=p.rff_li_reference)<>1
+  OR nullif(p.grid_owner_ediel_id,'') IS NULL OR p.grid_owner_ediel_id IS DISTINCT FROM original->>'receiver'
+  OR p.source_z14_message_id IS NOT NULL OR p.inbound_z14_message_id IS NOT NULL OR p.inbound_z15_message_id IS NOT NULL
+  OR p.market_state_version IS DISTINCT FROM 0::bigint OR p.permission_reference IS NOT NULL
+  OR p.approved_start_date IS NOT NULL OR p.approved_end_date IS NOT NULL
+  OR p.approved_start_at IS NOT NULL OR p.approved_end_at IS NOT NULL
+  OR coalesce(p.metadata,'{}'::jsonb) ?| ARRAY['marketPermission','z14','z15'] THEN RETURN NEW; END IF;
+ UPDATE public.metering_permissions SET status='waiting_for_customer_approval',updated_at=now(),updated_by=c.actor_user_id
+  WHERE id=p.id AND company_id=c.company_id;
+ RETURN NEW;
+END $$;
+
+--
 -- Name: actor_v1(uuid, uuid, text); Type: FUNCTION; Schema: gridex_supply_rescission; Owner: -
 --
 
@@ -31703,6 +32090,7 @@ BEGIN
   OR own->>'customerIdentity' IS DISTINCT FROM b->>'customerIdentity' OR own->>'customerQualifier' IS DISTINCT FROM b->>'customerQualifier' OR own->>'customerAgency' IS DISTINCT FROM '260' OR own->>'gridArea' IS DISTINCT FROM b->>'gridArea'
   OR own->>'start' IS DISTINCT FROM b#>>'{sourceObject,start}' OR w->>'sender' IS DISTINCT FROM b->>'legalSenderId' OR w->>'receiver' IS DISTINCT FROM b->>'legalReceiverId'
   OR NEW.immutable_rendered_at IS NULL OR NEW.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(NEW.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'switch_cancellation_exact_original_wire_required';END IF;
+ PERFORM gridex_switch_cancellations.require_original_method_v1(o.company_id,o.original_message_id,o.original_hash,NEW.environment,NEW.raw_payload);
  IF o.message_id IS NOT NULL THEN RAISE EXCEPTION 'switch_cancellation_original_already_bound';END IF;
  UPDATE gridex_switch_cancellations.origins SET message_id=NEW.id,payload_hash=NEW.immutable_payload_hash WHERE id=o.id;
  UPDATE public.supplier_switch_requests SET status='cancellation_requested',updated_by=o.actor_user_id,updated_at=now() WHERE id=o.switch_id AND company_id=o.company_id;
@@ -31806,6 +32194,66 @@ CREATE FUNCTION gridex_switch_cancellations.origin_immutable_v1() RETURNS trigge
  IF TG_OP='UPDATE' AND OLD.message_id IS NULL AND NEW.message_id IS NOT NULL AND NEW.payload_hash IS NOT NULL
   AND to_jsonb(NEW)-ARRAY['message_id','payload_hash'] IS NOT DISTINCT FROM to_jsonb(OLD)-ARRAY['message_id','payload_hash'] THEN RETURN NEW;END IF;
  RAISE EXCEPTION 'switch_cancellation_origin_immutable';END $$;
+
+--
+-- Name: original_method_v1(uuid, uuid, text, text); Type: FUNCTION; Schema: gridex_switch_cancellations; Owner: -
+--
+
+CREATE FUNCTION gridex_switch_cancellations.original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text) RETURNS text
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE m public.ediel_messages%rowtype;o gridex_received_sources.switch_originals%rowtype;
+ binding gridex_received_sources.switch_contract_request_bindings%rowtype;
+ d gridex_metering_method_changes.contract_request_declarations%rowtype;
+ w jsonb;own jsonb;method text;frozen jsonb;prior_legal jsonb;
+BEGIN
+ SELECT * INTO m FROM public.ediel_messages WHERE id=original AND company_id=c FOR SHARE;
+ SELECT * INTO o FROM gridex_received_sources.switch_originals WHERE message_id=m.id AND company_id=c FOR SHARE;
+ SELECT * INTO binding FROM gridex_received_sources.switch_contract_request_bindings WHERE message_id=m.id AND company_id=c FOR SHARE;
+ SELECT * INTO d FROM gridex_metering_method_changes.contract_request_declarations WHERE id=binding.declaration_id AND company_id=c FOR SHARE;
+ IF m.id IS NULL OR o.message_id IS NULL OR binding.message_id IS NULL OR d.id IS NULL
+  OR m.environment IS DISTINCT FROM expected_environment OR m.direction IS DISTINCT FROM 'outbound'
+  OR m.message_standard IS DISTINCT FROM 'edifact' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z03'
+  OR m.immutable_rendered_at IS NULL OR m.immutable_payload_hash IS DISTINCT FROM expected_hash
+  OR o.payload_hash IS DISTINCT FROM expected_hash OR binding.payload_hash IS DISTINCT FROM expected_hash
+  OR expected_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+  OR gridex_received_sources.sent_source_is_current_v1(m) IS NOT TRUE THEN RETURN NULL;END IF;
+ w:=gridex_received_sources.switch_origin_wire_v1(m.raw_payload);own:=w#>'{objects,0}';
+ method:=gridex_received_sources.switch_requested_method_v1(m.raw_payload);
+ IF w IS NULL OR own IS DISTINCT FROM o.original_object OR (own->>'reason' IN('Z22','Z23')) IS NOT TRUE
+  OR method IS NULL OR method IS DISTINCT FROM binding.requested_method OR method IS DISTINCT FROM d.requested_method
+  OR d.environment IS DISTINCT FROM m.environment OR d.contract_id IS DISTINCT FROM o.contract_id OR d.protected_contract_hash IS DISTINCT FROM o.contract_hash
+  OR d.customer_id IS DISTINCT FROM m.customer_id OR d.site_id IS DISTINCT FROM m.site_id OR d.metering_point_id IS DISTINCT FROM m.metering_point_id
+  OR d.point_id IS DISTINCT FROM own->>'point' OR d.identity_agency IS DISTINCT FROM own->>'identityAgency'
+  OR d.grid_area_code IS DISTINCT FROM own->>'gridArea' OR d.legal_sender_id IS DISTINCT FROM w->>'sender' OR d.legal_receiver_id IS DISTINCT FROM w->>'receiver'
+ THEN RETURN NULL;END IF;
+ prior_legal:=gridex_ediel_inbound_context.require_v1(c,m.id);
+ IF d.legal_actor_id::text IS DISTINCT FROM prior_legal->>'legalActorId' THEN RETURN NULL;END IF;
+ -- This is the existing immutable declaration's original evidence projection.
+ -- No current-declaration selection, revocation lookup or contract reapproval.
+ frozen:=jsonb_build_object('status','authorized','declarationId',d.id,'companyId',c,'environment',d.environment,'contractId',d.contract_id,
+  'contractRevision',d.contract_revision,'protectedContractHash',d.protected_contract_hash,'agreementSha256',d.agreement_sha256,
+  'customerId',d.customer_id,'siteId',d.site_id,'meteringPointId',d.metering_point_id,'pointId',d.point_id,'identityAgency',d.identity_agency,
+  'legalActorId',d.legal_actor_id,'legalSenderId',d.legal_sender_id,'legalReceiverId',d.legal_receiver_id,'gridArea',d.grid_area_code,
+  'requestedMethod',d.requested_method,'sourceReference',d.source_reference,'sourceVersion',d.source_version,'sourceDigest',d.source_sha256);
+ IF binding.source_basis IS DISTINCT FROM frozen THEN RETURN NULL;END IF;
+ RETURN method;
+END$$;
+
+--
+-- Name: require_original_method_v1(uuid, uuid, text, text, text); Type: FUNCTION; Schema: gridex_switch_cancellations; Owner: -
+--
+
+CREATE FUNCTION gridex_switch_cancellations.require_original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text, raw text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE method text:=gridex_switch_cancellations.original_method_v1(c,original,expected_hash,expected_environment);
+BEGIN
+ IF method IS NULL OR gridex_received_sources.switch_requested_method_v1(raw) IS DISTINCT FROM method
+ THEN RAISE EXCEPTION 'switch_cancellation_exact_original_method_required';END IF;
+END$$;
 
 --
 -- Name: actor_v1(uuid, uuid, text); Type: FUNCTION; Schema: gridex_transport_exception; Owner: -
@@ -36183,6 +36631,7 @@ declare
   v_company public.companies%rowtype;
   v_actor public.ediel_actor_settings%rowtype;
   v_route public.ediel_route_profiles%rowtype;
+  v_communication_route public.communication_routes%rowtype;
   v_payload jsonb;
   v_hash text;
   v_next_version bigint;
@@ -36250,6 +36699,16 @@ begin
     raise exception 'test_route_actor_binding_mismatch';
   end if;
 
+  select * into v_communication_route
+  from public.communication_routes
+  where id=v_route.communication_route_id and company_id=p_company_id
+  for share;
+  if not found or v_communication_route.is_active is distinct from true
+     or v_communication_route.environment_type is null
+     or v_communication_route.environment_type not in ('agt_test','tgt_test','bilateral_test') then
+    raise exception 'test_route_communication_source_required';
+  end if;
+
   v_payload := jsonb_build_object(
     'test_context', jsonb_build_object(
       'actor_profile_id', v_actor.id,
@@ -36259,7 +36718,7 @@ begin
       'counterparty_ediel_id', v_route_receiver,
       'message_family', upper(coalesce(v_route.message_family,'')),
       'application_reference', v_route.application_reference,
-      'environment_type', v_route.environment_type
+      'environment_type', v_communication_route.environment_type
     ),
     'company', jsonb_build_object(
       'id', v_company.id,
@@ -36294,13 +36753,15 @@ begin
         'receiver_subaddress',coalesce(r.receiver_sub_address,r.receiver_subaddress),
         'application_reference',r.application_reference,
         'message_family',r.message_family,
-        'environment_type',r.environment_type,
+        'environment_type',cr.environment_type,
         'mailbox_id',r.mailbox_id,'transport_profile_id',r.transport_profile_id,
         'certificate_id',r.certificate_id,'receiver_certificate_id',r.receiver_certificate_id,
         'transport_security_mode',r.transport_security_mode,
         'is_active',r.is_active,'is_enabled',r.is_enabled
       ) order by r.environment,r.id)
       from public.ediel_route_profiles r
+      left join public.communication_routes cr
+        on cr.id=r.communication_route_id and cr.company_id=r.company_id
       where r.company_id=p_company_id
     ),'[]'::jsonb),
     'mailboxes', coalesce((
@@ -39944,6 +40405,20 @@ begin
     raise exception 'unsupported_actor_role:%', coalesce(v_actor_role, 'null');
   end if;
 
+  -- Historical command replay precedes current defaults/identity binding.
+  -- This immutable receipt supplies no current profile or LIVE authority.
+  select * into v_existing from public.canonical_command_results
+  where company_id = v_company_id and command_type = 'ediel.actor_profile.save'
+    and idempotency_key = v_idempotency_key;
+  if found then
+    if v_existing.actor_user_id is distinct from v_actor_user_id then raise exception 'idempotency_actor_mismatch'; end if;
+    v_hash := public.canonical_json_sha256((v_existing.request_payload || p_command) - 'actor_user_id');
+    if v_existing.request_payload is null or v_existing.request_hash is distinct from v_hash then
+      raise exception 'idempotency_key_payload_mismatch';
+    end if;
+    return v_existing.result_payload;
+  end if;
+
   v_defaults := jsonb_build_object(
     'company_id', v_company_id, 'company_name', v_company.name,
     'organization_number', v_company.org_number,
@@ -40018,14 +40493,6 @@ begin
 
   v_command := v_defaults || p_command;
   v_hash := public.canonical_json_sha256(v_command - 'actor_user_id');
-  select * into v_existing from public.canonical_command_results
-  where company_id = v_company_id and command_type = 'ediel.actor_profile.save'
-    and idempotency_key = v_idempotency_key;
-  if found then
-    if v_existing.actor_user_id is distinct from v_actor_user_id then raise exception 'idempotency_actor_mismatch'; end if;
-    if v_existing.request_hash <> v_hash then raise exception 'idempotency_key_payload_mismatch'; end if;
-    return v_existing.result_payload;
-  end if;
 
   v_result := public.canonical_save_ediel_actor_profile_v1_unchecked(v_command);
   update public.canonical_command_results
@@ -40174,8 +40641,19 @@ begin
   -- Company-level Ediel fields describe the primary supplier identity. Other
   -- market roles are stored in actor profiles and must not overwrite it.
   if v_actor_role in ('supplier', 'electricity_supplier') then
+    -- UPDATE OF legal fields fires the real legal-sync trigger even for equal
+    -- values. Invoke it only for a real change; never disable or bypass it.
     update public.companies set
       org_number = nullif(p_command->>'organization_number', ''),
+      support_email = nullif(p_command->>'support_email', ''),
+      billing_contact_email = nullif(p_command->>'billing_contact_email', '')
+    where id = v_company_id
+      and (org_number, support_email, billing_contact_email) is distinct from
+        (public.gridex_normalize_swedish_organization_number(nullif(p_command->>'organization_number', '')),
+         nullif(p_command->>'support_email', ''),
+         nullif(p_command->>'billing_contact_email', ''));
+
+    update public.companies set
       market_role = v_actor_role,
       actor_role = v_actor_role,
       ediel_id = nullif(upper(p_command->>'ediel_id'), ''),
@@ -40195,8 +40673,6 @@ begin
       esett_status = coalesce(nullif(p_command->>'esett_status', ''), 'missing'),
       technical_contact_name = nullif(p_command->>'technical_contact_name', ''),
       technical_contact_email = nullif(p_command->>'technical_contact_email', ''),
-      support_email = nullif(p_command->>'support_email', ''),
-      billing_contact_email = nullif(p_command->>'billing_contact_email', ''),
       updated_at = now()
     where id = v_company_id;
   end if;
@@ -40772,6 +41248,40 @@ begin
     p_idempotency_key
   );
 
+  -- checked_live_untouched_capability_projection_v1
+  if p_target_state='live'
+    and v_result->>'changed'='true'
+    and v_result->>'company_id'=p_company_id::text
+    and v_result->>'state'='live'
+    and coalesce((v_readiness->>'ready')::boolean,false)
+    and v_readiness->>'company_id'=p_company_id::text
+    and v_readiness->>'configuration_snapshot_id'=p_configuration_snapshot_id::text
+    and exists (
+      select 1 from public.ediel_production_state s
+      where s.company_id=p_company_id and s.state='live'
+        and s.state_version=(v_result->>'state_version')::bigint
+        and s.configuration_snapshot_id=p_configuration_snapshot_id
+        and s.readiness_check_id=p_readiness_check_id
+        and s.dry_run_id=p_dry_run_id
+    )
+    and coalesce((public.canonical_ediel_production_evidence_readiness(p_company_id)->>'ready')::boolean,false)
+  then
+    insert into public.company_capabilities as capability (
+      company_id,capability_code,enabled,readiness_status,
+      last_verified_at,last_verified_by,created_by,updated_by
+    ) values (
+      p_company_id,'ediel_production',true,'ready',
+      now(),p_actor_user_id,p_actor_user_id,p_actor_user_id
+    ) on conflict (company_id,capability_code) do update
+    set enabled=true,readiness_status='ready',last_verified_at=now(),
+        last_verified_by=p_actor_user_id,updated_by=p_actor_user_id,updated_at=now()
+    where capability.enabled=false and capability.readiness_status='not_configured'
+      and capability.configuration='{}'::jsonb and capability.blockers='{}'::text[]
+      and capability.last_verified_at is null and capability.last_verified_by is null
+      and capability.created_by is null and capability.updated_by is null
+      and capability.updated_at is not distinct from capability.created_at;
+  end if;
+
   update public.canonical_command_results
   set request_payload = v_request,
       request_hash = v_hash
@@ -40920,19 +41430,19 @@ begin
 
   v_lock:=p_target_state<>'live';
   insert into public.ediel_send_locks(
-    company_id,environment,locked,locked_reason,locked_by,locked_at,
+    company_id,environment,lock_key,locked,locked_reason,locked_by,locked_at,
     unlocked_by,unlocked_at,updated_at
   ) values (
-    p_company_id,'production',v_lock,
+    p_company_id,'production',jsonb_build_array(p_company_id,'production')::text,v_lock,
     case when v_lock then coalesce(p_reason,'Canonical production state is not live.') else null end,
     case when v_lock then p_actor_user_id else null end,
-    case when v_lock then now() else null end,
+    now(),
     case when not v_lock then p_actor_user_id else null end,
     case when not v_lock then now() else null end,
     now()
   ) on conflict (company_id,environment) do update
   set locked=excluded.locked,locked_reason=excluded.locked_reason,
-      locked_by=excluded.locked_by,locked_at=excluded.locked_at,
+      locked_by=excluded.locked_by,locked_at=case when excluded.locked then excluded.locked_at else public.ediel_send_locks.locked_at end,
       unlocked_by=excluded.unlocked_by,unlocked_at=excluded.unlocked_at,
       updated_at=excluded.updated_at;
 
@@ -47194,6 +47704,7 @@ BEGIN
   OR r.source_type IS DISTINCT FROM 'manual' OR r.source_id::text IS DISTINCT FROM i.id::text OR r.request_type IS DISTINCT FROM 'supplier_switch' OR r.operation_id IS DISTINCT FROM i.operation_id
   OR r.payload->>'environment' IS DISTINCT FROM m.environment OR r.customer_id IS DISTINCT FROM m.customer_id OR r.site_id IS DISTINCT FROM m.site_id OR r.metering_point_id IS DISTINCT FROM m.metering_point_id THEN RAISE EXCEPTION 'switch_cancellation_current_intent_request_required';END IF;
  IF b->>'status' IS DISTINCT FROM 'authorized' OR (b-ARRAY['operationId','intentId','outboundRequestId','messageId']) IS DISTINCT FROM o.basis THEN RAISE EXCEPTION 'switch_cancellation_current_source_held';END IF;
+ PERFORM gridex_switch_cancellations.require_original_method_v1(o.company_id,o.original_message_id,o.original_hash,m.environment,m.raw_payload);
 END $$;
 
 --
@@ -48811,7 +49322,14 @@ $$;
 CREATE FUNCTION public.ediel_switch_cancellation_source_v1(p_company_id uuid, p_switch_id uuid, p_actor_user_id uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO ''
-    AS $$BEGIN RETURN gridex_switch_cancellations.context_v1(p_company_id,p_switch_id,p_actor_user_id);END $$;
+    AS $$DECLARE b jsonb;method text;
+BEGIN
+ b:=gridex_switch_cancellations.context_v1(p_company_id,p_switch_id,p_actor_user_id);
+ IF b->>'status' IS DISTINCT FROM 'authorized' THEN RETURN b;END IF;
+ method:=gridex_switch_cancellations.original_method_v1(p_company_id,(b->>'originalMessageId')::uuid,b->>'originalHash',b->>'environment');
+ IF method IS NULL THEN RETURN jsonb_build_object('status','held','missing',ARRAY['qualified_immutable_original_requested_method']);END IF;
+ RETURN b||jsonb_build_object('requestedMethod',method);
+END $$;
 
 --
 -- Name: ediel_transport_exception_alarms_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -49526,6 +50044,12 @@ CREATE TABLE public.companies (
     industry text DEFAULT 'electricity_supplier'::text NOT NULL,
     brp_ediel_id text,
     billing_provider_environment text,
+    market_role text,
+    brp_name text,
+    brp_status text DEFAULT 'missing'::text,
+    esett_status text DEFAULT 'missing'::text,
+    technical_contact_name text,
+    technical_contact_email text,
     CONSTRAINT companies_billing_provider_environment_check CHECK (((billing_provider_environment IS NULL) OR (billing_provider_environment = ANY (ARRAY['test'::text, 'production'::text])))),
     CONSTRAINT companies_canonical_status_check CHECK ((status = ANY (ARRAY['onboarding'::text, 'active'::text, 'paused'::text, 'suspended'::text, 'archived'::text, 'pending_deletion'::text, 'closed'::text, 'deleted_test_only'::text]))),
     CONSTRAINT companies_customer_number_prefix_check CHECK (((customer_number_prefix IS NULL) OR (customer_number_prefix ~ '^[A-Z0-9]{2,12}$'::text))),
@@ -56716,7 +57240,7 @@ begin
   if not v_has_brp then
     blockers := array_append(blockers, 'Aktiv production-BRP saknas');
   end if;
-  if lower(coalesce(c.esett_status, 'missing')) <> 'ready' then
+  if lower(coalesce(to_jsonb(c)->>'esett_status', 'missing')) <> 'ready' then
     blockers := array_append(blockers, 'eSett-status är inte klar');
   end if;
   if not v_has_prod_route then
@@ -63986,6 +64510,18 @@ CREATE FUNCTION public.gridex_ediel_positive_fixture_read_v1(p_context jsonb) RE
  IF current_user<>'service_role' THEN RAISE EXCEPTION 'service_role_required' USING ERRCODE='42501';END IF;RETURN gridex_negative_fixtures.read_positive_v1(p_context);END $$;
 
 --
+-- Name: gridex_ediel_received_z02_address_source_basis_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_ediel_received_z02_address_source_basis_v1(p_source_message_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+ SELECT gridex_received_sources.z02_address_source_basis_v1(p_source_message_id,p_actor_user_id)
+$$;
+
+--
 -- Name: gridex_ediel_received_z14_reporting_source_basis_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -64088,7 +64624,7 @@ begin
   if coalesce(p_raw, '') = '' or coalesce(p_cci_code, '') = '' then return null; end if;
   v_match := regexp_match(
     p_raw,
-    'CCI\\+\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', '\\\1', 'g') || '[^'']*''[[:space:]]*CAV\\+([^+''\\r\\n]+)'
+    E'CCI\\+\\+' || regexp_replace(p_cci_code, '([^a-zA-Z0-9])', E'\\\\\\1', 'g') || E'[^'']*''[[:space:]]*CAV\\+([^+''\\r\\n]+)'
   );
   v_value := nullif(btrim(v_match[1]), '');
   if v_value is null then return null; end if;
@@ -64132,7 +64668,7 @@ begin
   if coalesce(p_raw, '') = '' or coalesce(p_qualifier, '') = '' or p_element_index < 0 then return null; end if;
   v_match := regexp_match(
     p_raw,
-    'NAD\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', '\\\1', 'g') || '\\+([^''\\r\\n]+)'
+    E'NAD\\+' || regexp_replace(p_qualifier, '([^a-zA-Z0-9])', E'\\\\\\1', 'g') || E'\\+([^''\\r\\n]+)'
   );
   v_segment := 'NAD+' || p_qualifier || '+' || coalesce(v_match[1], '');
   v_parts := string_to_array(v_segment, '+');
@@ -67265,10 +67801,14 @@ declare
   v_effective_date date;
   v_market_date date := (now() at time zone 'Europe/Stockholm')::date;
   v_now timestamptz := now();
+  v_canonical_count integer;
+  v_canonical_rows jsonb;
 begin
   if p_company_id is null or p_request_id is null or p_actor_user_id is null then
     raise exception 'supplier_switch_activation_scope_required';
   end if;
+
+  perform gridex_bilateral_prodat.lock_supply_v1();
 
   select *
   into v_request
@@ -67390,6 +67930,39 @@ begin
     end if;
   end if;
 
+  select count(*), jsonb_agg(to_jsonb(effect))
+  into v_canonical_count, v_canonical_rows
+  from public.activate_customer_supply_v1(
+    p_company_id, v_request.id, v_request.inbound_z04_message_id,
+    null, p_actor_user_id, null
+  ) effect;
+
+  if v_canonical_count <> 1
+     or v_canonical_rows #>> '{0,supplier_switch_request_id}' is distinct from v_request.id::text
+     or not exists (
+       select 1
+       from gridex_received_sources.normal_switch_confirmations confirmation
+       join gridex_received_sources.normal_supply_activations activation
+         on activation.period_id = confirmation.period_id
+        and activation.company_id = confirmation.company_id
+        and activation.source_message_id = confirmation.source_message_id
+       join public.customer_supply_periods current_period
+         on current_period.id = activation.period_id
+        and current_period.company_id = activation.company_id
+       where confirmation.company_id = p_company_id
+         and confirmation.switch_id = v_request.id
+         and confirmation.source_message_id = v_request.inbound_z04_message_id
+         and activation.actor_user_id = p_actor_user_id
+         and activation.result is not distinct from v_canonical_rows -> 0
+         and activation.resulting_period is not distinct from to_jsonb(current_period)
+         and current_period.status = 'active'
+         and current_period.source_switch_request_id = v_request.id
+         and current_period.source_message_id = v_request.inbound_z04_message_id
+         and current_period.id::text = v_canonical_rows #>> '{0,supply_period_id}'
+     ) then
+    raise exception 'supplier_switch_activation_canonical_receipt_required';
+  end if;
+
   update public.customer_sites
   set current_supplier_name = v_request.incoming_supplier_name,
       current_supplier_org_number = v_request.incoming_supplier_org_number,
@@ -67415,14 +67988,11 @@ begin
   end if;
 
   update public.supplier_switch_requests
-  set status = 'completed',
-      completed_at = v_now,
-      failure_reason = null,
-      updated_by = p_actor_user_id,
-      updated_at = v_now
+  set failure_reason = null,
+      updated_by = p_actor_user_id
   where id = v_request.id
     and company_id = p_company_id
-    and status = 'accepted';
+    and status = 'completed';
 
   if not found then
     raise exception 'supplier_switch_activation_state_changed';
@@ -67483,8 +68053,12 @@ declare
   v_site_after public.customer_sites%rowtype;
   v_point_before public.metering_points%rowtype;
   v_point_after public.metering_points%rowtype;
+  v_canonical_count integer;
+  v_canonical_rows jsonb;
 begin
   perform public.gridex_assert_switch_writer_v1(p_company_id);
+
+  perform gridex_bilateral_prodat.lock_supply_v1();
 
   select * into v_request
   from public.supplier_switch_requests
@@ -67506,6 +68080,39 @@ begin
   for update;
   if not found then
     raise exception using errcode = 'P0002', message = 'supplier_switch_site_not_found_for_tenant';
+  end if;
+
+  select count(*), jsonb_agg(to_jsonb(effect))
+  into v_canonical_count, v_canonical_rows
+  from public.activate_customer_supply_v1(
+    p_company_id, v_request.id, v_request.inbound_z04_message_id,
+    null, p_actor_user_id, null
+  ) effect;
+
+  if v_canonical_count <> 1
+     or v_canonical_rows #>> '{0,supplier_switch_request_id}' is distinct from v_request.id::text
+     or not exists (
+       select 1
+       from gridex_received_sources.normal_switch_confirmations confirmation
+       join gridex_received_sources.normal_supply_activations activation
+         on activation.period_id = confirmation.period_id
+        and activation.company_id = confirmation.company_id
+        and activation.source_message_id = confirmation.source_message_id
+       join public.customer_supply_periods current_period
+         on current_period.id = activation.period_id
+        and current_period.company_id = activation.company_id
+       where confirmation.company_id = p_company_id
+         and confirmation.switch_id = v_request.id
+         and confirmation.source_message_id = v_request.inbound_z04_message_id
+         and activation.actor_user_id = p_actor_user_id
+         and activation.result is not distinct from v_canonical_rows -> 0
+         and activation.resulting_period is not distinct from to_jsonb(current_period)
+         and current_period.status = 'active'
+         and current_period.source_switch_request_id = v_request.id
+         and current_period.source_message_id = v_request.inbound_z04_message_id
+         and current_period.id::text = v_canonical_rows #>> '{0,supply_period_id}'
+     ) then
+    raise exception 'supplier_switch_activation_canonical_receipt_required';
   end if;
 
   update public.customer_sites
@@ -67535,9 +68142,12 @@ begin
   end if;
 
   update public.supplier_switch_requests
-  set status = 'completed', completed_at = now(), updated_by = p_actor_user_id, updated_at = now()
-  where id = p_request_id
+  set updated_by = p_actor_user_id
+  where id = p_request_id and company_id = p_company_id and status = 'completed'
   returning * into v_request;
+  if not found then
+    raise exception 'supplier_switch_activation_state_changed';
+  end if;
 
   insert into public.supplier_switch_events (
     switch_request_id, event_type, event_status, message, payload, company_id, created_by
@@ -68122,7 +68732,7 @@ begin
       when v_code = 'response_site_mismatch' then 'response_site_mismatch'
       else 'request_site_customer_mismatch'
     end,
-    'critical',
+    'blocking',
     'ediel_z02_atomic_core_apply',
     v_code,
     'Atomisk Z02-apply blockerades av datainvariant.',
@@ -68477,7 +69087,7 @@ begin
         when v_reason_code like '%tenant%' then 'tenant_mismatch'
         else 'request_site_customer_mismatch'
       end,
-      'critical',
+      'blocking',
       'ediel_z02_correlation_gate',
       v_reason_code,
       v_reason_text,
@@ -140509,6 +141119,12 @@ CREATE TRIGGER immutable_update_delete BEFORE DELETE OR UPDATE ON gridex_ack_aut
 CREATE TRIGGER immutable_update_delete BEFORE DELETE OR UPDATE ON gridex_ack_authority.source_correlations FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
 
 --
+-- Name: applied_receipts z13_customer_waiting; Type: TRIGGER; Schema: gridex_ack_authority; Owner: -
+--
+
+CREATE TRIGGER z13_customer_waiting AFTER INSERT ON gridex_ack_authority.applied_receipts FOR EACH ROW EXECUTE FUNCTION gridex_service_permission.wait_after_z13_ack_v1();
+
+--
 -- Name: outbound_origins ai_origin_actual_operation; Type: TRIGGER; Schema: gridex_ai_processing; Owner: -
 --
 
@@ -186813,6 +187429,12 @@ REVOKE ALL ON FUNCTION gridex_received_sources.regulated_ground_immutable_v1() F
 REVOKE ALL ON FUNCTION gridex_received_sources.reject_mutation() FROM PUBLIC;
 
 --
+-- Name: FUNCTION rejected_identity_scope_v1(raw text, object_scope jsonb); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.rejected_identity_scope_v1(raw text, object_scope jsonb) FROM PUBLIC;
+
+--
 -- Name: FUNCTION render_owned_li_repair_v1(raw text, allocations jsonb); Type: ACL; Schema: gridex_received_sources; Owner: -
 --
 
@@ -187152,6 +187774,12 @@ GRANT ALL ON FUNCTION gridex_received_sources.witness_document_reference_v1(p_co
 
 REVOKE ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) FROM PUBLIC;
 GRANT ALL ON FUNCTION gridex_received_sources.witness_object_availability(p_company_id uuid, p_environment text, p_assessment_id uuid, p_facts_hash text) TO service_role;
+
+--
+-- Name: FUNCTION z02_address_source_basis_v1(p_source_message_id uuid, p_actor_user_id uuid); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.z02_address_source_basis_v1(p_source_message_id uuid, p_actor_user_id uuid) FROM PUBLIC;
 
 --
 -- Name: FUNCTION z02_core_wire_v1(p_raw text); Type: ACL; Schema: gridex_received_sources; Owner: -
@@ -187640,6 +188268,12 @@ GRANT ALL ON FUNCTION gridex_service_permission.reserve_v1(c uuid, aid uuid, act
 REVOKE ALL ON FUNCTION gridex_service_permission.resolve_before_request_timing_v1(p_company_id uuid, p_assignment_id uuid, p_actor_user_id uuid, p_expected_version bigint, p_permission_id uuid) FROM PUBLIC;
 
 --
+-- Name: FUNCTION wait_after_z13_ack_v1(); Type: ACL; Schema: gridex_service_permission; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_service_permission.wait_after_z13_ack_v1() FROM PUBLIC;
+
+--
 -- Name: FUNCTION actor_v1(c uuid, actor uuid, mode text); Type: ACL; Schema: gridex_supply_rescission; Owner: -
 --
 
@@ -187825,6 +188459,18 @@ REVOKE ALL ON FUNCTION gridex_switch_cancellations.bound_message_immutable_v1() 
 --
 
 REVOKE ALL ON FUNCTION gridex_switch_cancellations.context_v1(c uuid, sw uuid, actor uuid, prepare_execution boolean) FROM PUBLIC;
+
+--
+-- Name: FUNCTION original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_switch_cancellations.original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text, raw text); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_switch_cancellations.require_original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text, raw text) FROM PUBLIC;
 
 --
 -- Name: FUNCTION actor_v1(c uuid, a uuid, p text); Type: ACL; Schema: gridex_transport_exception; Owner: -
@@ -192703,6 +193349,13 @@ GRANT ALL ON FUNCTION public.gridex_ediel_positive_fixture_publish_v1(p_context 
 
 REVOKE ALL ON FUNCTION public.gridex_ediel_positive_fixture_read_v1(p_context jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_ediel_positive_fixture_read_v1(p_context jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_ediel_received_z02_address_source_basis_v1(p_source_message_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_ediel_received_z02_address_source_basis_v1(p_source_message_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_ediel_received_z02_address_source_basis_v1(p_source_message_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_ediel_received_z14_reporting_source_basis_v1(p_source_message_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
