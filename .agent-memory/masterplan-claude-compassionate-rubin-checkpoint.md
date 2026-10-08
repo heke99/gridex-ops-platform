@@ -26,3 +26,22 @@
 After a #673 receipt confirms tag-write verification: refresh main, coverage, #673 and
 refs. Then reserve atomically either P-08/AT-P-08 (only if the original author's
 release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
+
+## 2026-10-08 — coordinator-reservation request assessed: PROTOCOL_BLOCKER
+
+- Fresh main `0b7d930` (only #708 TRDB memory added); #658/#699 still unmerged; same 10 live ID locks.
+- The user asked for a reservation through an authorised coordinator if the protocol allows it.
+  It does not: owner decision #673 6056709473 says "no delegated lock is introduced", and
+  `masterplan-agent-workflow.md`/`masterplan-reservations.md` define self-acquired refs and
+  "no coordinator acknowledgement / no permanent coordinator". No substitute mechanism invented;
+  no RESERVATION_REQUEST posted as if it were valid; no code.
+- Needed to unblock (owner/blocker agent): EITHER verified tag create+delete from Claude
+  sessions (current gate), OR an explicit owner protocol change permitting proxy-created
+  refs with the requesting agent recorded as work owner.
+- Intended packet once unblocked (no ownership implied): a released supplier L/LK pair
+  (AT-Z04L/AT-Z04LK, released 6047451102) after 2f72 #658/#699 reach main. P-08/AT-P-08
+  only after an explicit release by its original author.
+- Cleanup pending for an authorised coordinator after verification: probe branch
+  `agent-claims/probe/claude-zealous-1791451004`. This agent creates no probe branches and
+  uses no branches as locks.
+- Next: read-only waiting; resume at the receipt that lifts this blocker.
