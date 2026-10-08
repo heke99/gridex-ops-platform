@@ -557,12 +557,17 @@ function producerState(f:Fixture){
   'ediel_assignment_permission_links','ediel_data_access_grants','ediel_service_history','metering_permissions','metering_permission_sites',
   'customer_supply_periods','supplier_switch_requests','meter_reading_series','meter_reading_values',
   'communication_routes','ediel_route_profiles','outbound_requests','ediel_messages','ediel_message_intents','ediel_outbox']
+ const foreignDigest=(table:string,predicate:string)=>`'${table}',(SELECT jsonb_build_object('count',count(*),
+  'sha256',encode(sha256(convert_to(coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]'::jsonb)::text,'UTF8')),'hex'))
+  FROM ${table} r WHERE ${predicate})`
+ const foreign=publicTables.map(table=>foreignDigest('public.'+table,table==='companies'?`id NOT IN ${companies}`:`company_id NOT IN ${companies}`))
  const fields=publicTables.map(table=>`'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]')
   FROM public.${table} r WHERE ${table==='companies'?`id IN ${companies}`:`company_id IN ${companies} OR company_id IS NULL`})`)
  for(const table of ['gridex_service_administration.scope_versions','gridex_ediel_services.artifacts','gridex_ediel_services.issuer_representations',
   'gridex_ediel_services.reviews','gridex_service_permission.origins','gridex_ediel_transport.attempts',
   'gridex_received_sources.permission_effect_receipts','gridex_received_sources.permission_effect_transitions_v1']){
   fields.push(`'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r WHERE company_id IN ${companies})`)
+  foreign.push(foreignDigest(table,`company_id NOT IN ${companies} OR company_id IS NULL`))
  }
  fields.push(`'legalActors',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.platform_market_actors r WHERE id IN (${lit(f.ids.legal)},${lit(f.ids.dso)}))`,
   `'platformRoles',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM public.platform_actor_roles r WHERE actor_id IN (${lit(f.ids.legal)},${lit(f.ids.dso)}))`,
@@ -570,7 +575,17 @@ function producerState(f:Fixture){
   `'issuerKeys',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_services.issuer_keys r WHERE id=${lit(f.ids.key)})`,
   `'issuerRevocations',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM gridex_ediel_services.issuer_revocations r)`,
   `'exports',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_exports.jobs r WHERE beneficiary_company_id=${lit(f.ids.beneficiary)})`)
+ const legalActors=`(${lit(f.ids.legal)},${lit(f.ids.dso)})`,users=`(${lit(f.ids.actor)},${lit(f.ids.reviewer)})`
+ foreign.push(foreignDigest('public.platform_market_actors',`id NOT IN ${legalActors}`),
+  foreignDigest('public.platform_actor_roles',`actor_id NOT IN ${legalActors} OR actor_id IS NULL`),
+  foreignDigest('public.user_profiles',`id NOT IN ${users}`),
+  foreignDigest('gridex_ediel_services.issuer_keys',`id<>${lit(f.ids.key)}`),
+  foreignDigest('gridex_service_administration.commands',`company_id NOT IN ${companies} OR company_id IS NULL`),
+  foreignDigest('gridex_ediel_exports.jobs',`beneficiary_company_id<>${lit(f.ids.beneficiary)} OR beneficiary_company_id IS NULL`))
+ // Own public NULL rows are already full images; private/command/export NULL
+ // rows are in this disjoint complement. Every retained row field is hashed.
  return {
+  foreign:sql<Record<string,unknown>>(`SELECT jsonb_build_object(${foreign.join(',')})`),
   business:sql<Record<string,unknown>>(`SELECT jsonb_build_object(${fields.join(',')})`),
   commands:sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY command_id),'[]') FROM gridex_service_administration.commands r WHERE company_id IN ${companies}`),
   effects:f.effects(),
@@ -614,6 +629,7 @@ async function refuseWrongProducerRole(mode:'V'|'VH'){
  expect(approved).toEqual({status:'held',missing:['provider_legal_esco_role_missing']})
  const after=producerState(f)
  expect(after.business).toEqual(before.business);expect(after.effects).toEqual(before.effects)
+ expect(after.foreign).toEqual(before.foreign)
  const added=after.commands.filter(r=>!before.commands.some(old=>old.command_id===r.command_id))
  expect(added).toHaveLength(1)
  const audit=added[0]
