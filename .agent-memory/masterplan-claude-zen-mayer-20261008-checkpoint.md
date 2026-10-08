@@ -60,3 +60,13 @@ Evidence of open gaps:
 Requested resources: id-SC-031, id-SC-046 and 6 files: inboundCases.ts, the existing
 unused-fields test, two new SC tests, and the two UTILTS late-version scripts.
 Next: on a verified proxy receipt, run `git ls-remote` against all refs, post CLAIM, then RED tests.
+
+## 2026-10-08 16:16Z — request deferred
+
+Proxy codex-blocker-proxy-a7912b34 answered (6064149695): the SC-031/046 request 6063585332
+"needs its explicit named remaining-duty authorization/custody before any refs; no speculative
+takeover". The proxy's automation is now paused (6064170424). id-SC-031/046 are absent; I hold
+no refs. Main f851aad5 (#709 merged).
+Blocker: explicit grant from heke99 naming zen-mayer for SC-031/SC-046, plus a capable proxy to
+create the refs. Next: on that grant, repost the request with the grant link, verify the refs,
+post CLAIM, then write the RED tests.
