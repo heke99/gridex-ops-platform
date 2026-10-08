@@ -280,8 +280,12 @@ it.each(['generic', 'specific', 'missing-profile', 'missing-view', 'wrong-view-A
     const f = seed([{ reference: 'PROFILE-UNIQUE', outcome: 'processability_rejected' }])
     const profiles = database.tables.get('ediel_route_profiles')!, views = database.tables.get('ediel_route_runtime_v')!
     const draft = buildUtiltsErrDraft({ actorUserId: f.actor, sourceMessage: f.source, messageText: 'E87', relatedTransactionReference: 'PROFILE-UNIQUE' })
-    if (fault === 'generic' || fault === 'specific') profiles.push({ ...profiles[0], id: randomUUID(),
-      ...(fault === 'specific' ? { message_family: 'UTILTS_ERR', business_code: draft.code } : {}) })
+    if (fault === 'generic' || fault === 'specific') {
+      profiles.push({ ...profiles[0], id: randomUUID(),
+        ...(fault === 'specific' ? { message_family: 'UTILTS_ERR', business_code: draft.messageCode } : {}) })
+      expect(profiles[1]).toMatchObject({ message_family: fault === 'specific' ? 'UTILTS_ERR' : null,
+        business_code: fault === 'specific' ? 'UTILTS_ERR' : null })
+    }
     else if (fault === 'missing-profile') profiles.length = 0
     else if (fault === 'missing-view') views.length = 0
     else views[0].application_reference = '23-DGI-PRODAT'
