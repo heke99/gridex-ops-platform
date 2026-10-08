@@ -2126,10 +2126,14 @@
     },
     {
       "id": "SC-038",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-supply-market-consumers.test.ts",
         "scripts/test-ediel-p-12-z04ad-scope.cjs",
-        "__tests__/ediel-supply-market-consumers.test.ts"
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "scripts/ediel-at-z04a-assigned-supply-native.test.ts",
+        "scripts/ediel-at-z04d-production-native.test.ts"
       ]
     },
     {
@@ -2216,12 +2220,14 @@
     },
     {
       "id": "SC-047",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "__tests__/ediel-utilts-err-gateway.test.ts",
         "__tests__/ediel-sc-044-047-utilts-scenarios.test.ts",
-        "lib/ediel/utiltsEngine.part-1.ts",
-        "lib/ediel/matching.ts"
+        "__tests__/ediel-utilts-err-gateway.test.ts",
+        "lib/ediel/tenant/resolveInboundTenant.ts",
+        "lib/ediel/tenant/tenantEdielIdentity.ts",
+        "lib/ediel/matching.ts",
+        "lib/ediel/utiltsEngine.part-1.ts"
       ]
     },
     {
