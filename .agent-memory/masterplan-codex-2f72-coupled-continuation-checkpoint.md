@@ -27,3 +27,11 @@ Next: continue retained SQL/consumer compatibility and current-main composition.
 Decision and next action: https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6064606108
 
 Two independent source-composition reviews and self-review approve the exact local carry of main f851aad5493637b51c57077bbfa5afc5317e45b1 into c2a6c0b8cab93a30848068b23787c74e447f1fe2. Expected tree 021ec6999c0e89e81d6c6cffc5ed2915c2baca44; all historical SQL/checksum and transferred-file bytes must remain unchanged. The responsible agent now performs the ordinary local carry and records actual parents/tree and affected verification. Publication, GEN-donor adoption, whole approval and PR merge remain separate pending steps.
+
+## Actual main carry / selected reviewed CONTRL forward
+
+Status and source-only next action: https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6064690712
+
+Actual local carry c0a8749f8810711fab054731864e42ab50c8d2b1 has expected tree021ec6999c0e89e81d6c6cffc5ed2915c2baca44 and correct parents; working tree is clean. The two affected suites pass on Node22. No remote publication or merge.
+
+The responsible agent now imports the already reviewed/released/reserved H4894 SQL and finite test from48949891eb111a319c77e47989e97397b056cc92 plus their sole canonical checksum entry. Preserve all historical migration bytes/identities/checksums and the old replay prefix. Validate finite behaviour, migration integrity, nonincremental types and scoped lint; obtain final composed-source reviews before publication. The expanded17 source needs its own genuine GEN/capture and clean/upgrade parity; b72916 capture stays separate. The named core-blockers owner retains GEN4/runtime paths until explicit handback. No whole H/coverage approval; DB05 still awaits final reviewed handover.
