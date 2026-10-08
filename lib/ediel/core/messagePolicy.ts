@@ -133,7 +133,7 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
   const subtype=family==='PRODAT'?canonicalProdatSubtypeForMessage(messageCode,canonical.subtype):null
   const ownReadingPolicy=family==='PRODAT'&&messageCode==='Z04'&&message.direction==='inbound'
     &&(subtype==='L'||subtype==='LK')
-  const byCell=readObjectFact(message,'byCell')
+  const byCell=ownReadingPolicy?readObjectFact(message,'byCell'):undefined
   const ownReadingByCell=byCell?Object.fromEntries(Object.entries(byCell).filter(([cell])=>!['Z04:214','Z04:218','Z04:259'].includes(cell))):undefined
   const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
   const candidate = (selectedGuideRevision?: string): CanonicalEdielPolicy => {
@@ -157,7 +157,7 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
       multipleMeterRegisters: readBooleanFact(message, 'multipleMeterRegisters'),
       endUserAddressAvailable: readBooleanFact(message, 'endUserAddressAvailable'),
       invoiceeAddressDiffersFromEndUser: readBooleanFact(message, 'invoiceeAddressDiffersFromEndUser'),
-      byCell: ownReadingPolicy?ownReadingByCell:byCell,
+      byCell: ownReadingPolicy?ownReadingByCell:readObjectFact(message,'byCell'),
     } : null,
     mode: 'parse' as const,
     }
