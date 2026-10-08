@@ -27,7 +27,9 @@ type Row=Record<string,unknown>
 const io=vi.hoisted(()=>({source:{} as EdielMessageRow,rows:{} as Record<string,Row[]>,
  calls:[] as {name:string;args:Row}[],writes:[] as {port:string;value:Row}[],status:null as Row|null,
  legal:null as Row|null,registry:[] as Row[],sourceReadError:false,legalReadError:false,registryReadError:false,
- permission:true,readDelayMs:0,bilateralError:null as unknown}))
+ permission:true,readDelayMs:0,bilateralError:null as unknown,
+ bornSourceId:'',sourceQueryFilters:[] as {key:string;value:unknown}[],
+ actorReadHook:null as (()=>void)|null,originalReadHook:null as (()=>void)|null}))
 const actor=ownerId(50),company=ownerId(2),foreign=ownerId(999)
 const result=(data:unknown,error:unknown=null)=>{const p=Promise.resolve({data,error});return Object.assign(p,{abortSignal:()=>p})}
 const stop=()=>new Error('DECLARED_FIRST_STATUS_BOUNDARY_NO_PERSISTENCE')
@@ -35,7 +37,7 @@ function rpc(name:string,args:Row){
  io.calls.push({name,args:structuredClone(args)})
  if(name==='ediel_read_prodat_bilateral_source_capability_v1')return result(null,io.bilateralError)
  if(name==='ediel_require_inbound_legal_context_v1'){
-  expect(args).toEqual({p_company_id:company,p_message_id:io.source.id})
+  expect(args).toEqual({p_company_id:company,p_message_id:io.bornSourceId})
   if(io.readDelayMs)vi.setSystemTime(new Date(Date.now()+io.readDelayMs))
   return result(structuredClone(io.legal),io.legalReadError?new Error('DECLARED_REQUIRED_START_LEGAL_READ_REFUSED'):null)
  }
@@ -44,8 +46,12 @@ function rpc(name:string,args:Row){
   return result(structuredClone(io.registry),io.registryReadError?new Error('DECLARED_REQUIRED_START_REGISTRY_READ_REFUSED'):null)
  }
  if(name==='ediel_read_technical_source_endpoint_v2')return result(null)
- if(name==='gridex_actor_has_company_permission')return result(io.permission&&args.p_company_id===company&&args.p_actor_user_id===actor&&
-  ['communication.read','communication.write','ediel_testing.write'].includes(String(args.p_permission)))
+ if(name==='gridex_actor_has_company_permission'){
+  const allowed=io.permission&&args.p_company_id===company&&args.p_actor_user_id===actor&&
+   ['communication.read','communication.write','ediel_testing.write'].includes(String(args.p_permission))
+  const hook=io.actorReadHook;io.actorReadHook=null;hook?.()
+  return result(allowed)
+ }
  if(name==='ediel_list_business_acks_for_source_v1')return result({version:1,companyId:company,sourceMessageId:io.source.id,
   environment:io.source.environment,ackFamily:args.p_ack_family??null,messages:[]})
  if(name==='gridex_read_outbound_acks_for_source_v2')return result({version:2,executionActorUserId:actor,executionPhase:args.p_phase,
@@ -68,11 +74,17 @@ function table(name:string){
   return {data:single?data[0]??null:data,error:name==='ediel_messages'&&io.sourceReadError?
    new Error('DECLARED_REQUIRED_START_ORIGINAL_READ_REFUSED'):null,count:data.length}
  }
- const q={select:(value='*')=>{columns=value;return q},eq:(key:string,value:unknown)=>{predicates.push(row=>row[key]===value);return q},
+ const q={select:(value='*')=>{columns=value;return q},eq:(key:string,value:unknown)=>{
+  if(name==='ediel_messages')io.sourceQueryFilters.push({key,value})
+  predicates.push(row=>row[key]===value);return q},
   not:(key:string,op:string,value:unknown)=>{if(op!=='is')throw Error('UNDECLARED_REQUIRED_START_NOT');predicates.push(row=>row[key]!==value);return q},
   lte:()=>q,or:()=>q,limit:()=>q,abortSignal:()=>q,
   update:(value:Row)=>{io.writes.push({port:'table:'+name,value:structuredClone(value)});return q},
-  maybeSingle:async()=>read(true),single:async()=>read(true),
+  maybeSingle:async()=>read(true),single:async()=>{
+   const result=read(true)
+   if(name==='ediel_messages'){const hook=io.originalReadHook;io.originalReadHook=null;hook?.()}
+   return result
+  },
   then:(resolve:(value:ReturnType<typeof read>)=>unknown)=>Promise.resolve(read()).then(resolve)}
  return q
 }
@@ -106,6 +118,7 @@ function setSource(source:EdielMessageRow){
  for(const name of ['ediel_actor_settings','ediel_route_profiles','communication_routes'])io.rows[name]=[]
  io.calls=[];io.writes=[];io.status=null;io.legal=null;io.registry=[]
  io.sourceReadError=false;io.legalReadError=false;io.registryReadError=false;io.permission=true;io.readDelayMs=0;io.bilateralError=null
+ io.bornSourceId=source.id;io.sourceQueryFilters=[];io.actorReadHook=null;io.originalReadHook=null
 }
 /** These are declared immutable birth/legal/activation READ results, never a
  * business agreement or accepted ledger. The real public decoders below verify
@@ -142,6 +155,50 @@ afterEach(()=>{vi.useRealTimers();vi.restoreAllMocks()})
 const own210=(issues:unknown)=>Array.isArray(issues)&&issues.some(item=>item.prodatDiagnostic?.kind==='field'&&
  item.prodatDiagnostic.fieldNumber==='210'&&item.prodatDiagnostic.errorKind==='missing'&&
  item.prodatDiagnostic.occurrence.objectId==='735123456789012345'&&item.prodatDiagnostic.occurrence.lineItemReference==='CASE-1')
+
+it.each([
+ ['actor','id'],['actor','company_id'],['original-read','id'],['original-read','company_id'],
+] as const)('caller %s-stage %s mutation cannot redirect the authorized R210 original READ',async(stage,field)=>{
+ qualified()
+ const original=structuredClone(io.source),graphs=structuredClone(io.rows)
+ const mutate=()=>{
+  io.source[field]=foreign
+  if(stage==='actor'){
+   const context=(io.source.execution_context_snapshot as unknown as Row).receivedProdatContext as Row
+   context[field==='id'?'sourceMessageId':'companyId']=foreign
+  }
+ }
+ if(stage==='actor')io.actorReadHook=mutate;else io.originalReadHook=mutate
+ const token=await loadReceivedZ04RequiredStartRejection(io.source,actor)
+ expect(io.source[field]).toBe(foreign)
+ expect(io.calls.filter(c=>c.name==='gridex_actor_has_company_permission').map(c=>c.args))
+  .toEqual([{p_actor_user_id:actor,p_company_id:original.company_id,p_permission:'communication.read'}])
+ expect(io.sourceQueryFilters).toEqual([{key:'id',value:original.id},{key:'company_id',value:original.company_id}])
+ expect(io.calls.filter(c=>c.name==='ediel_require_inbound_legal_context_v1').map(c=>c.args))
+  .toEqual([{p_company_id:original.company_id,p_message_id:original.id}])
+ if(token){
+  expect(readReceivedZ04RequiredStartWitness(token,io.source,actor)).toBeNull()
+  expect(readReceivedZ04RequiredStartWitness(token,original,actor)).not.toBeNull()
+ }
+ expect(io.rows).toEqual(graphs);expect(io.writes).toEqual([])
+})
+
+it.each(['unavailable','unserializable'] as const)('actor quarantine precedes %s born identity refusal',async adverse=>{
+ qualified();io.permission=false
+ if(adverse==='unavailable'){
+  delete ((io.source.execution_context_snapshot as unknown as Row).receivedProdatContext as Row).version
+ }else{
+  const snapshot=io.source.rule_pack_snapshot as unknown as Row
+  snapshot.self=snapshot
+ }
+ const failure=await loadReceivedZ04RequiredStartRejection(io.source,actor).catch(error=>error)
+ expect(failure).toBeInstanceOf(EdielExecutionFailure)
+ expect(failure).toMatchObject({disposition:{kind:'security_quarantine',code:'EDIEL_TENANT_PERMISSION_FORBIDDEN'}})
+ expect(io.calls.filter(c=>c.name==='gridex_actor_has_company_permission')).toHaveLength(1)
+ expect(io.sourceQueryFilters).toEqual([])
+ expect(io.calls.filter(c=>c.name==='ediel_require_inbound_legal_context_v1')).toEqual([])
+ expect(io.writes).toEqual([])
+})
 
 it.each(['A','D'] as const)('actual actorless %s observation reports physical R210 without minting business authority',async subtype=>{
  setSource(message(subtype));expect(validateEdifactSyntax(io.source).ok).toBe(true)
