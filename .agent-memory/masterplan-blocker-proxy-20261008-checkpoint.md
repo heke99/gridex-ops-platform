@@ -389,3 +389,147 @@ VERIFIED CURRENT-SOURCE QUALITY / CI_PENDING — PR709 — codex-blocker-proxy-2
 Exact frozen3c212a74d90d859809e2ca1d0c888e0e22cc2087: verify113375364482, quality113375364641, upgrade113375364743, smoke113375366524, coverage113375365663, browser-public113375364400 SUCCESS. Authentic existing quality-job113375364641 (run37795963888, pull_request/attempt1) checked out exact3c212a74:949PASSfiles/15074PASStests at15:02:52Z, build compiled/staticpages/bundle checks PASS. Bounded checkout/test/build log evidence preserved; old da2 quality945/14913 is historical, never borrowed. No new job/rerun/collector. Clean113375364661 and certificate113380010907 still IN_PROGRESS; six green is not CI_GREEN or merge approval.
 
 Both complete-path current-source reviews/self approve exact3c212a74/tree062e034b2869d58221ca380599924fa398308b85 against main6b87; attributed GitHub COMMENT5458525701 is implementing-account attribution, not another GitHub-user approval. Original52dc protocol bytes+9446foreign main tuples+coverage exact. Both owned file refs remain original74; no role acquired while awaiting gates. Operational next: qualify existing clean/certificate result, refresh actualmain and independent composition2, then immediately-free merge-role/normalexpected-source delivery and exactSHA role-FIRST/file release. Coverage300/352; no new technical/native/resulting-main/external acceptance.
+
+
+## Current-source and final delivery evidence — 2026-10-08
+
+Frozen source 3c212a74d90d859809e2ca1d0c888e0e22cc2087; actualmain a7621437985e9eb79f222b8470f4cb3dad59a42f; reviewedcomposition 11f99f18c0f8c22587df5bd2322979a370363b32. All eight current-source mandatory SUCCESS. Existing authentic quality113375364641:949PASSfiles/15074PASStests/buildPASS; clean113375364661:58PASSfiles/725PASStests/1SKIP; certificate113380010907 SUCCESS. All9449 foreign mode/type/object tuples and own3 source postimages exact, coverage300/352 unchanged. No native/capture/GEN/CI/artifact rerun or production/whole-ID/runtime/external acceptance. Full independent reports preserved below; normal immediately-free-role expected-head merge and authenticated role-FIRST/file release still pending.
+
+### source-review-protocol.md
+
+# Independent resumed complete-path source review
+
+APPROVE SOURCE `3c212a74d90d859809e2ca1d0c888e0e22cc2087`, tree `062e034b2869d58221ca380599924fa398308b85`, against exact actual main `6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9`. No actionable findings. This is source review before publication, not current-head CI_GREEN, PR709 merge, external/native acceptance or whole-ID approval.
+
+Read complete source reservation/workflow documents and checkpoint, actual-main AGENTS/current role prompts, current owner correction6061952106, original proxy decision6056938983 and supplied resume4 correction/main/ref/receipt/delivery/resumption evidence. Applied standard code-review/requesting-code-review; no executable application/database changes or technical/native/GEN audit were needed. No repository mutation, remote writes, CI reruns, native/capture/GEN execution or job/log/archive retrieval occurred.
+
+## Requirements and full operational paths
+
+Both protocols are byte-identical to previously reviewed52dc: workflow SHA256 `d514558041fbbd896b61b6145d5e572b861d5aef576b87b45cda95a6d3c70759`; reservations SHA256 `9cf7c524387f387443979d04cfbac986a621686aa64b7a2627c6bfb6623db66b`. Reread their entire acquisition, custody, proxy, shared-memory, deadlock, merge and release paths in the current adopted context.
+
+They agree with delivered role/startup715 instructions: PLANAGENT rule/acceptance-only/final-single eligibility remains explicit; BLOCKERARAGENT resolves sequential concrete blockers; GRANSKARE performs bounded read-only review. READY selection versus READY published receipt are distinct and neither transfers custody. Historical shared/two-ID/paused wording yields to active fixed roles while specific HOLD, external decisions and retained whole-duty custody survive. Exact output/criterion dependencies do not impose an unrelated blanket699 stop.
+
+GitData invariants remain complete: same actual-main tree/single parent receipt, unique packet/session, exact IDs/path hashes, original lightweight tag namespace, sorted create-if-absent POST, no update/force/foreign overwrite, exact GET reconciliation and failed-attempt receipt-SHA-only rollback, complete ref revalidation before CLAIM/implementation. Claude receipt.agent and Codex delegatedBy remain distinct; fresh original custody/dependency/split approval precede acquisition. Authorization/proxy success does not imply direct Claude permissions.
+
+No expiry or substitute locks are introduced. Requested Claude delivery/handover release checks exact original receipt SHA, deletes only matching requested resources and confirms absence. Foreign custody, unclaimed edits, test/security weakening and review/CI/platform bypass remain prohibited. Shared writes require memory role plus exact file custody; neither grants the other. Deadlock prevention remains immediate-free merge role or memory-role release before waiting. Current-head required gates precede expected-head merge; actual PR/main parents/composition must be authenticated and merge-role released FIRST before remaining file release/memory acquisition. Actual documentation and verified owner-only release precede another item. Whole negative/source/tenant/permission/history/idempotency/coverage obligations remain intact.
+
+## Immutable preservation and live custody
+
+Compared complete immutable recursive trees: all9446 foreign mode/type/object-ID tuples equal actual main exactly. The exact diff consists of only the two owned protocol files and unique checkpoint. Actual main, originalda2 and preserved52dc are all ancestors of this source. Actual7140509defb and7130531d3a5 are verified ancestors of main; main's715 commit/tree agrees with correction6061952106. Source tree matches the requested062e034b. `git diff --check <main> <source>` passed and worktree was clean.
+
+Coverage is byte-identical to actual main, SHA256 `51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a`,115 VERIFIED rules +185 PASSED contracts=300/352. Supplied81ref snapshot shows exactly the original two owned file refs at74b4932 and no role refs. Durable6061236210 verifies prior memory-role-only release. No foreign source, technical ID, coverage row or role acquisition is inferred.
+
+## Current checkpoint and limits
+
+The new current section correctly supersedes the dated714 wait: supplied actual merge6061309591/release6061322756 and owner6061952106 establish that dependency's delivered/released state. Earlier NOT_PUBLISHED/wait/failed observations remain preserved as explicitly dated history. Original709da2 failures remain original evidence, not source3c results. Resumption text preserves the same owner/packet/two files and names scope, actual main, documentation transition and next action; the source update changes only the own checkpoint while adopting main, with no new shared-protocol semantic edits requiring a fresh writing role.
+
+Publication must be this reviewed descendant on existing709. The checkpoint explicitly requires all eight named applicable mandatory gates at the exact published head, conditional workflow applicability, fresh actual-main composition/two delivery reviews and immediately free merge-role, then authenticated merge and role-FIRST/exact74 file release. No714/713/715 green is borrowed and no source preparation is promoted to runtime/whole approval. Next fixed-role blocker selection follows current real P08/conditional699/native/GEN custody without duplicate collection or generic handoff requests.
+
+Specification-integrity33/121/231 PASS is supplied self-verification, not independently rerun here or application conformance. Exact immutable preservation/coverage/diff checks were independently executed. Source approval remains bounded to these exact main/source/tree objects; publication, fresh CI and delivery review are still required.
+
+
+### source-review-custody.md
+
+# Independent current-source / custody / composition review
+
+Verdict: **APPROVE FOR BOUNDED DOCUMENTATION SOURCE AND COMPOSITION**, no confirmed findings.
+
+- Source `3c212a74d90d859809e2ca1d0c888e0e22cc2087`
+- Source tree `062e034b2869d58221ca380599924fa398308b85`
+- Adopted actual main `6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9`
+
+Approval applies to source/composition against this exact main only. It does not assert current successor publication/CI_GREEN, native acceptance, whole IDs, actual709 merge, or completed release of its two resources.
+
+## Review and independent preservation checks
+
+Read the complete two protocols and unique source checkpoint, actual-main AGENTS/fixed-role delivery instructions and both relevant fixed-role prompts, original proxy authority6056938983, current owner correction6061952106, supplied fresh refs/receipt/PR/main snapshots, actual714 delivery/release receipts and prior role-memory release6061236210. Narrow requesting-code-review/code-review source review applies; application/DB/native/GEN/capture work is outside this scope.
+
+Complete recursive Git tree comparison includes every path's mode, type and object ID. Main contains9448 entries, source9449. Exactly the two held protocol files and unique checkpoint differ from main; all9446 foreign main entries, including delivered713/714/715 source/startup changes and the entire coverage ledger, are preserved exactly. The two protocol blobs match reviewed52dc93ed byte-for-byte. Relative to the normal current-main adoption commit, the only new source words are38 checkpoint lines. Source tree matches the requested062e tuple, HEAD matches source, working tree is clean, and `git diff --check <main> <source>` exits0.
+
+Actual main, reviewed52dc and originalda2 are independently verified ancestors of this source. The normal adoption mergeb9622344 has parents52dc and6b87, preserving the originalda2/source lineage and foreign delivered ancestry. Actual main's normal ancestry includes7140509defb after7130531d3a5 and715's source4f035b2c; no foreign stack or unpublished715 postimage is substituted.
+
+## Full instruction and custody path
+
+The unchanged reviewed protocol now agrees with delivered715 AGENTS/prompts: roles remain fixed; plan rule/acceptance-only/final-single selection is eligible/executable and distinct from published READY receipts; blockers resolve consecutive concrete scopes; reviewers stay bounded/read-only. Historical dispatch/paused language does not clear specific HOLD/external decisions/custody. Dependencies name the exact output/criterion/owner/resumption event rather than imposing a blanket699 stop. Retained original duties survive absent tags, idle chats or administrative closure; actual scoped handover and verified release precede another item. Shared edits still require role-memory plus exact-file custody; neither grants the other.
+
+The original authorized proxy path remains intact: Claude receipt.agent, identified Codex delegatedBy, fresh actual-main/source custody/scope/dependency checks, original GitData namespace and exact-tree/single-parent receipt, sorted create-if-absent refs, all-required-ref SHA verification before CLAIM/implementation, receipt-bound rollback, no expiry, owner-requested documented delivery/handover release with exact original receipt-SHA and absence checks. Technical permission is not access proof. Foreign lock takeover/unclaimed edits, test/security weakening and platform/admin/branch-protection/review/CI bypass remain prohibited. Specific proxy operations are the documented authorized exception to generic self-owner wording, without granting the proxy implementation ownership.
+
+Both exact protocol hashes recompute correctly and fresh refs match original74b4932bd9f2e824232ea0a4259eaea0e7a15e5b. The snapshot contains81 refs/28 receipt commits and no role refs. Only those two file resources remain bound to the owner receipt; there are no own technical IDs or coverage rows. Explicit6061236210 reports role-memory2a7 GET_MATCH/DELETE/404 while retaining both74 files; the present snapshot supports absence of that role. The resumed source changes only its unique checkpoint semantically and reuses unchanged shared protocol blobs, so it does not assert a new shared-memory edit or role acquisition.
+
+Historical P08/conditional699 examples remain examples whose later handover/CLAIM/withdrawal/live evidence determines current custody. Current original Bardeen receipt672 plus extension704 bind seven P08 resources in the supplied snapshot; this owner acquires/releases none. GEN/source/native/fixture/manifest responsibilities remain foreign and named residual duties cannot be taken from absent tags.
+
+## Dependency and source-versus-delivery limits
+
+714 is now actually closed/merged at0509defb; actual delivery6061309591 binds expectede18 source, normal parents/tree and required check metadata, and6061322756 records role-FIRST release followed by exactee171 file release under the owner's conditional request. Correction6061952106 explicitly confirms that delivery/release fulfilled this owner's earlier wait and that monitor6060715988 was execution-local rather than an enduring generic prohibition. Actual713/715 main delivery is also confirmed. No access capability, automatic chat restart or foreign custody is inferred from those events.
+
+The new top section explicitly supersedes old NOT_PUBLISHED/wait observations while preserving them as dated history. PR709 still remains open at oldda2 in supplied metadata; its authentic failure history is not renamed successor success. Publication of this reviewed descendant is a future next action. Every named applicable mandatory gate must genuinely succeed on that published successor, with workflow applicability and fresh actual-main composition/two delivery reviews preserved. Foreign714/713/715 green cannot replace its CI. Merge-role acquisition remains conditional on current-head green and immediate availability; normal expected-source merge, actual main/parents/tree authentication, own role FIRST verified release and only then exact74 file releases remain future operations.
+
+No native/capture/GEN/foreign artifact collection, duplicate producer, foreign PR operation, new technical packet, whole acceptance or completed709 release is claimed. Prior repeated automation/monitor wording remains historical rather than overriding fresh owner correction and actual dependency delivery.
+
+Later supplied authenticated cp-ref-current.json/cp-commit-current.json both bind the current operational checkpoint to d5d9f2c8f40326600d4f27040247310d3eae6f4e, resumption-receipt.json binds6062452361, and remote-checkpoint-current.md contains the exact resumed scope/evidence/next text from resumption.md. I independently checked those identities and text inclusion. The earlier cp-ref/remote-checkpoint files remain historical intake snapshots. No external readback was repeated by this reviewer.
+
+No repository edit, remote write/message, job, log/archive collection, native/capture/GEN execution or mutation was performed by this reviewer. Only this /tmp report was written. A changed source or main requires fresh affected composition review and mandatory current-head gates before delivery.
+
+
+### delivery-review-protocol.md
+
+# Independent final delivery composition review
+
+APPROVE THIS EXACT COMPOSITION: frozen source `3c212a74d90d859809e2ca1d0c888e0e22cc2087` plus current main `a7621437985e9eb79f222b8470f4cb3dad59a42f` (main tree `832412f969166e29c4db627368b2c455c97f00c3`), producing normal merge tree `11f99f18c0f8c22587df5bd2322979a370363b32`. No actionable findings. This is a fresh delivery-composition assessment, not reuse of the prior6b-bound delivery environment or a claim that merge/release already occurred.
+
+Independently ran real `git merge-tree --write-tree <current-main> <source>`: exit0, exact expected tree and no conflict output. Parsed all recursive immutable trees and compared mode/type/object-ID tuples. All9449 foreign path tuples match current main; all three owned file tuples match the approved frozen source. The exact diff from current main is reservations.md, agent-workflow.md and the unique checkpoint. No foreign alteration, omission or extra path occurs. Coverage is byte-identical to current main, SHA256 `51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a`,115 VERIFIED +185 PASSED=300/352. `git diff --check <main> <composition-tree>` passed; source worktree remained clean.
+
+Main advanced via717 with four H-intake/resource/helper/test changes. Their complete postimages are preserved. Compared actual-main AGENTS, both fixed-role prompts and both protocol-base documents against the prior6b environment: all are byte-unchanged. The complete operational protocol path already examined at exact source3c remains valid under current instructions and owner decisions6056938983/6061952106. Fixed roles, acceptance-only/final-single selection, criterion-specific dependencies, historical examples, retained whole duty, original GitData create-if-absent/all-ref verification/attempt-bound rollback, Claude owner/delegatedBy identity, no expiry, documented requested exact-SHA release, foreign custody and security/review/current-head gates remain intact. Shared-file custody stays separate from role-memory, and deadlock/merge-role-FIRST release safeguards remain required. Incoming717 runtime work creates no documentation scope change or technical custody grant.
+
+Independently examined `checks-final.json`: all eight named mandatory checks (verify, quality-release-gates, clean-migration-replay, upgrade-migration-replay, smoke, coverage, browser-public, pr-certificate) are completed SUCCESS at exact frozen3c source. Ten applicability-dependent checks are skipped. These are current-source results; originalda2 failures remain historical evidence. Supplied bounded existing-job summaries bind quality113375364641 to949 passed files/15074 tests and successful build, and clean113375364661 to58 passed files/725 passed tests/one skip. This reviewer did not retrieve logs, rerun jobs, inspect/download archives or become an additional artifact collector. File-level native duration does not independently establish an individual case's timeout budget or product root cause.
+
+Ordinary delivery still requires fresh PR head/main/dependency/custody verification, an immediately free valid GitData merge-role for this operation, normal merge with expected source, authentication of actual PR/parents/tree/main, merge-role release FIRST, durable delivery documentation and exact original74b4932 owner-only file releases with absence checks. The source checkpoint's6b preparation date remains its historical stage; this report newly qualifies a762 composition. A subsequent main/source change requires fresh comparison.
+
+No resulting-main runtime execution, whole native/market/external acceptance, coverage promotion, foreign release or completed delivery is claimed. Helper files under /tmp are orchestration evidence only and do not appear in the application composition. No source edits, remote mutations, new CI/native/GEN/capture/log/archive execution occurred during this review.
+
+
+### delivery-review-custody.md
+
+# Independent final delivery-composition / custody review
+
+Verdict: **APPROVE FOR THIS EXACT SOURCE / CURRENT-MAIN COMPOSITION**, no confirmed findings.
+
+- Frozen source: `3c212a74d90d859809e2ca1d0c888e0e22cc2087`
+- Current actual main: `a7621437985e9eb79f222b8470f4cb3dad59a42f`
+- Actual-main tree: `832412f969166e29c4db627368b2c455c97f00c3`
+- Normal composed tree: `11f99f18c0f8c22587df5bd2322979a370363b32`
+
+This independently reviews the new actual composition; previous6b87-bound delivery/source reviews are historical input, not substituted current-main approval.
+
+## Independent whole-tree and affected-path verification
+
+Read current-main authenticated commit metadata, delivery-composition.json and exactsource checks-final.json, the already-collected source-bound quality/clean evidence summaries, full affected operational source/custody context from the complete source review, current fixed-role instructions and actual717 production delta. Repeated whole-tree preservation against the currentmain717 postimage, not the earlier main.
+
+Current main has9451 recursive entries and composed tree9452. Compared every path's Git mode/type/object ID. Exactly the two originally owned protocol files and unique checkpoint differ from current main. Every9449 foreign main postimage is preserved exactly, including717's bilateral resource helper/intake updates/tests and delivered713/714/715 work. All three own postimages match frozen3c source exactly; the entire coverage ledger is exact current main. The protocol blobs independently match reviewed52dc exactly in both source and composed tree. `git diff --check <actual-main> <composed-tree>` exits0; local source HEAD remains3c and worktree clean.
+
+Since prior main6b87, the only new main paths are717's bilateral resource helper/unit, existing inboundStatusUpdater and its resource-intake tests. I inspected the full production diff: it qualifies an initially missing bilateral H point via an immutable scoped request/customer/site/point candidate and current authenticated source/tenant checks before first reception. This introduces application behavior, not a new reservation/custody rule. Current AGENTS and both role prompts remain exact6b87 postimages; the composition preserves them exactly. This scoped delivery review does not independently approve717's whole behavior, actual resulting-main runtime, native100 or whole H criteria.
+
+Complete protocol execution remains valid under original6056938983 and correction6061952106: fixed-role eligible selection; documented retained original duties despite absent tags; exact criterion/output dependencies; atomic original GitData/create-if-absent scope; Claude work owner/delegatedBy identity; fresh custody/split/dependencies before refs; sorted acquisition and all-ref exact-SHA verification; receipt-bound rollback/no expiry; concrete access limits and no foreign takeover/unclaimed edits/test-security/platform/review-CI bypass; owner-requested exact original-SHA/absence release. Source versus CI versus actual delivery and external/whole acceptance remain distinct. Role-memory never grants file custody, own checkpoint exception remains, merge-role is acquired only for an authorized ready delivery and released FIRST after authenticated actual outcome.
+
+Historical P08/conditional699 and earlier monitor714 wait text remain history. Correction6061952106 and actual714 delivery/release satisfy that old resumption event without granting foreign scope, changing platform capability or weakening current-head gates. The owner retains only its original two74b4932 protocol-file resources until actual delivery or explicit relinquishment/verified release; this review asserts no tag mutation.
+
+## Exact-source completed check evidence
+
+Independently inspected checks-final.json: every returned check binds frozen3c. All eight applicable named mandatory checks are completed SUCCESS:
+
+- verify113375364482
+- quality-release-gates113375364641
+- clean-migration-replay113375364661
+- upgrade-migration-replay113375364743
+- smoke113375366524
+- coverage113375365663
+- browser-public113375364400
+- pr-certificate113380010907
+
+Ten additional conditional checks are recorded SKIPPED in this final snapshot. The supplied existing source-bound quality evidence records949 passed files/15074 passed tests and successful build; supplied existing clean summary records58 passed source-owner files/725 passed tests plus one phase skip, including the Z15C file passing. These are retained exact-source observations, not a repeated retrieval, archive/full-manifest qualification or resulting-main execution. The Z15C file duration240388ms describes its eleven-test file, not proof that an individual omission case used the full300s budget. Originalda2 failures remain preserved; no previous/foreign check is borrowed.
+
+## Guarded delivery and limits
+
+The tuple is suitable for ordinary frozen-source expected-head delivery only after an immediate fresh main/head/dependency/custody/role check. Acquire a unique original GitData role-merge receipt only if immediately free for that authorized operation; perform the normal source-guarded merge; authenticate actual PR/main parents and resulting tree against this reviewed composition; release the own merge role FIRST via exact receipt-SHA/DELETE/absence verification; then record actual delivery and perform only the documented original74 own-file releases with verified absence. This review itself creates no lock, performs no merge and releases no resource. If main/head/tree changes, refresh affected composition review before proceeding.
+
+Coverage300/352 is unchanged. Successful exact-source checks and this composition review do not establish resulting-main runtime, full native/whole-ID approval, deployment or external acceptance. No source edit, remote write/message, CI/native/capture/GEN job, log/archive retrieval, cancellation, rerun or foreign artifact collection occurred in this review. Only this /tmp report was written.
