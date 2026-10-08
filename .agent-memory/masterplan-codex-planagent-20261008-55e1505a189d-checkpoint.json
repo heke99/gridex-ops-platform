@@ -2,14 +2,14 @@
   "agent": "codex-planagent-20261008-55e1505a189d",
   "role": "PLANAGENT",
   "status": "BLOCKED_PRECLAIM",
-  "observedAt": "2026-10-08T13:51:57.832836+00:00",
-  "main": "0509defba33a0a5eee10cd60fd4574fda4a97268",
-  "tree": "c0202c0bc795a6101557bc9fda2c90d704612d6b",
+  "observedAt": "2026-10-08T14:43:30.034362+00:00",
+  "main": "6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9",
+  "tree": "f48c29203565565c217bba419ff56d3fbba3ebbd",
   "branch": "codex/codex-planagent-20261008-55e1505a189d-checkpoint",
   "checkpoint": ".agent-memory/masterplan-codex-planagent-20261008-55e1505a189d-checkpoint.json",
   "worktree": "/workspace/gridex-ops-platform",
   "existingOwnPacket": null,
-  "identityBasis": "New chat and clean managed checkout; no prior session or foreign packet identity inherited. Every live receipt owner decoded; none belongs to this generated session.",
+  "identityBasis": "Same resumed chat and documented PLANAGENT55e1505a189d; no technical packet or own reservation retained from prior turn. No foreign identities or packet responsibilities inherited.",
   "claimedIds": [],
   "claimedFiles": [],
   "ownRefs": [],
@@ -30,7 +30,7 @@
     "Own checkpoint verified as only working-tree change; no foreign source/status file edits. Checkpoint branch is NONPR resumability only, not main delivery."
   ],
   "checks": {
-    "liveResources": 93,
+    "liveResources": 81,
     "uniqueReceiptCommits": 28,
     "atomicIdRefs": {
       "AT-P-08": {
@@ -61,7 +61,7 @@
     "ownResources": 0,
     "fullLiteralCriteriaMatch": 52,
     "gitDiffCheck": "PASS: git diff --check and exact own-checkpoint-only scope; JSON parse, 52 unique remaining IDs/statuses, 115+185 counts, source pins and decoded live ID/file receipts all verified.",
-    "network": "Default sandbox proxy connection refused; supported additional network permission successfully fetched main and authenticated GitHub API. No probe or credential exposure; no speculative lock write."
+    "network": "Current environment policy enforced/unrestricted; supported authenticated GitHub API/fetch works. Own resources0; no speculative write/probe."
   },
   "reusedAssessment": {
     "original": "https://github.com/heke99/gridex-ops-platform/blob/126b647c39e344f42cfc2a3a29981e1be87295a4/.agent-memory/masterplan-93e252d8-next-eligibility-checkpoint-20261008.json",
@@ -97,12 +97,17 @@
   },
   "currentPrObservations": {
     "699": {
-      "head": "187d0664c31861863757a160905565928793c5db",
+      "head": "b729172c9145c6b5e6acd9f8d7d0eee917e46cdb",
       "state": "OPEN",
       "mandatoryFailures": [
+        "smoke",
+        "verify"
+      ],
+      "mandatoryPending": [
         "clean-migration-replay",
         "pr-certificate"
-      ]
+      ],
+      "observation": "Actual head-bound metadata only; no artifact/body/native qualification or CI_GREEN."
     },
     "713": {
       "head": "cfa5344d8b76edff837c4529dc994fa900629388",
@@ -134,13 +139,29 @@
         "upgrade-migration-replay",
         "pr-certificate"
       ]
+    },
+    "717": {
+      "head": "78d209e41fc3d27c0ac71ab0639f7ff12e17beb3",
+      "state": "OPEN",
+      "mandatoryFailures": [],
+      "mandatoryPending": [
+        "clean-migration-replay",
+        "pr-certificate"
+      ],
+      "observation": "Actual head-bound metadata only; no artifact/body/native qualification or CI_GREEN."
+    },
+    "715": {
+      "head": "4f035b2c5c0281a0c06ba8a87d16f1a9c79ca327",
+      "state": "MERGED",
+      "main": "6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9",
+      "basis": "6061762233/6061771317 plus actual main Git object and complete14-path documentation delta."
     }
   },
   "blockers": [
     {
       "scope": "Released L/LK/H/C/M/TRDB/ESCO acceptance candidates",
       "owner": "codex-ediel-20261006-2f72c8ab plus per-row retained source owners",
-      "required": "Deliver relevant selected current SQL/runtime/GEN and qualified clean/upgrade parity or explicitly hand over exact prerequisite scope; qualify each literal effect separately. #699 clean and certificate are currently FAILURE. Its merge alone cannot approve these IDs."
+      "required": "Relevant selected SQL/runtime/GEN and qualified current clean/upgrade parity must be delivered or exact prerequisites handed over; qualify each dependent literal effect separately. Current #699 b729 is published/open: verify+smokeFAIL, upgradeSUCCESS, clean+certificatepending at this observation. Old187d statuses are historical. No blanket699 wait for an independent unchanged path."
     },
     {
       "scope": "SC-038 and SC-047/SC-071 acceptance closure",
@@ -171,7 +192,11 @@
     "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6059324602",
     "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6059532964",
     "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061140676",
-    "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061192964"
+    "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061192964",
+    "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061952106",
+    "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061705233",
+    "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061974136",
+    "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6062309394"
   ],
   "skillRouting": {
     "active": [
@@ -184,7 +209,7 @@
     ],
     "skipped": "No product implementation, broad audit, architecture mapping, UI/performance, security assessment, hook installation or reusable skill authoring in this preclaim selection. No duplicate delegated selection/native/capture work."
   },
-  "nextAction": "Publish and verify this own checkpoint and concise #673 BLOCKED receipt. Resume on a relevant explicit owner release/handover, delivered criterion-specific prerequisite or lawful input; refresh main/PR heads/checks/coverage/refs, select eligible rule or acceptance pair (final single allowed), create-if-absent exact ID/file refs and documented CLAIM before implementation. No coordinator assignment or new user prompt required. No duplicate routine audit while blockers are unchanged.",
+  "nextAction": "Await an actual relevant remaining-duty/exact-scope handover, delivered criterion-specific prerequisite or lawful input. Reuse existing SC038/DB05/SC047/071/053/054 requests; no duplicate request/selection audit/producer. On a meaningful event, refresh exact current custody/source and select eligible rule or acceptance pair/final single, verify own create-if-absent refs and post CLAIM before implementation. Same PLANAGENT; no new user assignment required.",
   "limits": "Selection/resumability only. No technical CLAIM, tests/native/capture/GEN, coverage approval, CI_GREEN, merge, external acceptance or resource release asserted. All shared files and foreign resources preserved.",
   "selectionGroups": {
     "atomic": "Current receipt owner completes whole packet or explicitly hands over. P08 Bardeen/#710; L/LK2f72/#699; H41f/#713 delivered component, successor whole duty retained.",
@@ -196,17 +221,98 @@
   "branchBase": "0531d3a5271a5a9b333e81c1b4fa31cd355c368a",
   "blockedReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061335762",
   "resumptionObservation": {
-    "actualMain": "0509defba33a0a5eee10cd60fd4574fda4a97268",
-    "event": "Actual #714 bounded Z15C omission-case 300s budget and its own checkpoint delivered; role-first/file-only release6061322756. #713 scoped component release6061331442 retains H IDs/updater/successor. 2f billing forward is local/source-only6061342201, not delivered SQL/GEN/parity.",
-    "sourceComparison": [
-      ".agent-memory/masterplan-blocker-claude-uwoj7c-checkpoint.md",
-      "scripts/ediel-at-z15c-z18v-esco-native.test.ts"
-    ],
-    "coverageRegistersLegacy": "All four immutable source pins unchanged at actual0509 main; same52 literal criteria/coverage set.",
-    "atomicIds": "Same six IDs and exact owner receipts; no new own scope or executable independent pair.",
-    "producerScope": "No new CI/native/GEN/capture/large-suite/artifact run or handover request.",
-    "next": "Keep documented criterion-specific resumption event; no repeated unchanged inventory polling."
+    "correction": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061952106",
+    "correctionBodySha256": "97967163c4dbf4664ae3af11b7cb844bb3ad9e9850ef74e156b3d523012967c8",
+    "scopeTaken": "Bounded resumed PLANAGENT waiting-condition reconciliation, own checkpoint only. No technical packet/PR to finish.",
+    "done": "Read actual main/active AGENTS/startup queue/protocol, own checkpoint and correction6061952106. Checked fresh81refs/28actualreceipt SHAs; exact path/ID receipt validation and ownresources0. Same six atomic ID owners; all four criterion/coverage/legacy pins unchanged.",
+    "actualEvents": "713/714/715 delivered;71514-path change is documentation only. Prior monitor714 prohibition ended; proxy6056938983 valid. 716 is already published, solefile2e5f foreign-held. 717 positive-H component is owner41f current work. P08 seven resources remain Bardeen. 699 actualb729 published and fresh Staff capture succeeded, authentic generation/adoption/parity/delivery remain with2f.",
+    "ownWaitingConditionSatisfied": false,
+    "why": "Correction grants no scope transfer. Since own last receipt, no actual SC038/SC047/SC071/SC053/SC054 or DB05 remaining-duty handoff, no criterion-specific prerequisite delivered to main, and no agreed OPS04 input observed. Existing authorable corrections remain with their named original owners.",
+    "selection": "No new executable unowned rule or acceptance pair/final single established by these meaningful events. Existing52-row classification retained as dated criterion/custody aid, never a universalSTOP or proxyblock.",
+    "resumeOwners": "Original SC038 Claude session_01RxmpLE5UfwVEetssVwdAWs; original DB05 session_011iqKUHUejdrDzQDBYR89SU; SC047 joined-native and revocation-20261005 remaining coverage/evidence owners;2f72 current SQL/runtime/GEN/parity owner.",
+    "excluded": "No new broad52 audit, exporter/native/GEN/capture/artifact collection, foreign source edit or shared-memory write. No tests/CI/review/merge/release claimed for an unclaimed technical packet."
   },
+  "datedObservations": [
+    {
+      "main": "0509defba33a0a5eee10cd60fd4574fda4a97268",
+      "observedAt": "2026-10-08T13:51:57.832836+00:00",
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061376616",
+      "currentPrObservations": {
+        "699": {
+          "head": "b729172c9145c6b5e6acd9f8d7d0eee917e46cdb",
+          "state": "OPEN",
+          "mandatoryFailures": [
+            "smoke",
+            "verify"
+          ],
+          "mandatoryPending": [
+            "clean-migration-replay",
+            "pr-certificate"
+          ],
+          "observation": "Actual head-bound metadata only; no artifact/body/native qualification or CI_GREEN."
+        },
+        "713": {
+          "head": "cfa5344d8b76edff837c4529dc994fa900629388",
+          "state": "MERGED",
+          "mandatoryFailures": []
+        },
+        "710": {
+          "head": "06a5287cc58981353364a4fb2bb90fb76d0fe0c0",
+          "state": "OPEN",
+          "mandatoryFailures": []
+        },
+        "687": {
+          "head": "254972f66843bc6f31db40f64a4f6b2024c8a9a4",
+          "state": "OPEN",
+          "mandatoryFailures": [
+            "smoke",
+            "verify",
+            "clean-migration-replay",
+            "pr-certificate"
+          ]
+        },
+        "599": {
+          "head": "20c227166a007c07b3eafabdd89cae28f7538a13",
+          "state": "CLOSED",
+          "mandatoryFailures": [
+            "smoke",
+            "verify",
+            "clean-migration-replay",
+            "upgrade-migration-replay",
+            "pr-certificate"
+          ]
+        },
+        "717": {
+          "head": "78d209e41fc3d27c0ac71ab0639f7ff12e17beb3",
+          "state": "OPEN",
+          "mandatoryFailures": [],
+          "mandatoryPending": [
+            "clean-migration-replay",
+            "pr-certificate"
+          ],
+          "observation": "Actual head-bound metadata only; no artifact/body/native qualification or CI_GREEN."
+        },
+        "715": {
+          "head": "4f035b2c5c0281a0c06ba8a87d16f1a9c79ca327",
+          "state": "MERGED",
+          "main": "6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9",
+          "basis": "6061762233/6061771317 plus actual main Git object and complete14-path documentation delta."
+        }
+      },
+      "resumptionObservation": {
+        "actualMain": "0509defba33a0a5eee10cd60fd4574fda4a97268",
+        "event": "Actual #714 bounded Z15C omission-case 300s budget and its own checkpoint delivered; role-first/file-only release6061322756. #713 scoped component release6061331442 retains H IDs/updater/successor. 2f billing forward is local/source-only6061342201, not delivered SQL/GEN/parity.",
+        "sourceComparison": [
+          ".agent-memory/masterplan-blocker-claude-uwoj7c-checkpoint.md",
+          "scripts/ediel-at-z15c-z18v-esco-native.test.ts"
+        ],
+        "coverageRegistersLegacy": "All four immutable source pins unchanged at actual0509 main; same52 literal criteria/coverage set.",
+        "atomicIds": "Same six IDs and exact owner receipts; no new own scope or executable independent pair.",
+        "producerScope": "No new CI/native/GEN/capture/large-suite/artifact run or handover request.",
+        "next": "Keep documented criterion-specific resumption event; no repeated unchanged inventory polling."
+      }
+    }
+  ],
   "rows": [
     {"id": "P-08", "coverage": "PARTIAL", "classification": "OCCUPIED", "group": "atomic"},
     {"id": "TR-08", "coverage": "NOT_VERIFIED", "classification": "OCCUPIED", "group": "input"},
