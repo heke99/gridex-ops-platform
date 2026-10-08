@@ -67,6 +67,37 @@ async function request(mode:'V'|'VH',objectReply=false){
  expect(wire.segments.filter(s=>s.tag==='LIN')).toHaveLength(1)
  expect(wire.segments.find(s=>s.tag==='LIN')?.elements[1]).toBe('1')
  expect(wire.segments.find(s=>s.tag==='LIN')?.raw).toBe('LIN+1')
+ // Qualify fields 261/217 from the actual reviewed contract, private frozen
+ // origin and sealed SENT bytes. This READ does not create source authority.
+ expect(p.z13.intent_id).toBeTruthy()
+ const sources=sql<{origin:Record<string,unknown>;evidence:Record<string,unknown>;current:boolean}[]>(`SELECT coalesce(
+  jsonb_agg(jsonb_build_object('origin',to_jsonb(o),'evidence',to_jsonb(e),'current',gridex_ediel_services.review_current_v1(e)) ORDER BY o.intent_id),'[]')
+  FROM gridex_service_permission.origins o JOIN public.ediel_service_evidence e ON e.id=(o.basis->>'evidenceId')::uuid
+   AND e.company_id=o.company_id AND e.assignment_id=o.assignment_id AND e.kind='end_user_contract'
+  WHERE o.company_id=${lit(f.ids.company)} AND o.assignment_id=${lit(f.assignment)} AND o.permission_id=${lit(p.permissionId)}
+   AND o.intent_id=${lit(p.z13.intent_id)} AND o.message_id=${lit(p.z13.id)} AND o.message_code='Z13' AND o.actor_user_id=${lit(f.ids.actor)}`)
+ expect(sources).toHaveLength(1)
+ const {origin,evidence,current}=sources[0],basis=origin.basis as Record<string,unknown>
+ expect(current).toBe(true)
+ expect(f.ids.reviewer).not.toBe(f.ids.actor)
+ expect(evidence).toMatchObject({id:basis.evidenceId,company_id:f.ids.company,assignment_id:f.assignment,kind:'end_user_contract',
+  status:'verified',approved_by:f.ids.reviewer,approved_assignment_version:basis.scopeBasisVersion,
+  source_sha256:p.hash,source_version:'synthetic-v1',permission_agreement_reference:'SYN-'+f.ids.customer.slice(0,20),permission_requested_method:'Z04'})
+ expect(basis).toEqual(p.z13.parsed_payload?.sourcePermissionBasis)
+ expect(basis).toMatchObject({status:'authorized',companyId:f.ids.company,assignmentId:f.assignment,customerId:f.ids.customer,
+  permissionId:p.permissionId,code:'Z13',environment:'test',scopeBasisVersion:f.current().basis,evidenceSha256:p.hash,
+  evidenceVersion:evidence.source_version,agreementReference:evidence.permission_agreement_reference,requestedMethod:evidence.permission_requested_method})
+ const linePosition=wire.segments.findIndex(s=>s.tag==='LIN')
+ const agreements=wire.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='ANJ')
+ expect(agreements).toHaveLength(1)
+ expect(wire.segments.indexOf(agreements[0])).toBeGreaterThan(linePosition)
+ expect(segmentComposite(agreements[0],1,wire.una)).toEqual(['ANJ',evidence.permission_agreement_reference])
+ const methods=wire.segments.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,wire.una)[0]==='Z04')
+ expect(methods).toHaveLength(1)
+ const methodPosition=wire.segments.indexOf(methods[0])
+ expect(methodPosition).toBeGreaterThan(linePosition)
+ expect(methods[0].raw).toBe('CCI++Z04')
+ expect(wire.segments[methodPosition+1]?.raw).toBe('CAV+'+evidence.permission_requested_method)
  expect(wire.segments.some(s=>s.tag==='DTM'&&segmentComposite(s,1,wire.una)[0]==='329')).toBe(false)
  expect(wire.segments.filter(s=>s.tag==='NAD'&&segmentComposite(s,1,wire.una)[0]==='UD')
   .map(s=>segmentComposite(s,2,wire.una)[0])).toEqual(['199001011234'])
