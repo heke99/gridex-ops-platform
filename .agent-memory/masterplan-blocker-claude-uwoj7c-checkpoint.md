@@ -36,3 +36,9 @@ locks held. Only this unique checkpoint is written (needs no shared lock).
 - Proof: clean-migration-replay SUCCESS on fix head with that case PASS + all
   mandatory checks; then merge under role-merge (proxy) and release.
 - Next: on verified ref → commit fix, open PR, request independent review.
+- 12:05 UTC: proxy ref verified GET ee171db1 (agent claude-blocker-uwoj7c, delegatedBy
+  codex-root-coordinator, base 08930f52, packet 403caa82, files = the test only;
+  #673 6059268975). Branch merged main 08930f52; fix applied lines 405-407.
+  Local: tsc no errors in file; eslint 0 errors (2 pre-existing warnings, same before/after).
+  Native/clean replay not runnable here → proof is PR clean-migration-replay.
+- Next: PR, independent review, mandatory checks, merge under role-merge (proxy), release.
