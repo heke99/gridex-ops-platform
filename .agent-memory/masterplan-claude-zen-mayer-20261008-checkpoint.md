@@ -16,3 +16,27 @@ deliver at the moment (6060715988).
 Resume event: an owner posts RELEASE of a pair, or a coordinator names a free
 pair for a proxy reservation. Then request the proxy receipt, verify the refs,
 post CLAIM and implement.
+
+## Refresh 2026-10-08 ~15:00Z (after correction 6061952106)
+
+Main `6b87c1a9` (#713/#714/#715 merged); coverage 300/352, 52 remain.
+Remote refs: 81 total; ID refs are only P-08/AT-P-08 (672e, Bardeen),
+AT-Z02L/LK (29fd, 2f72) and AT-Z03H/Z04H (01f5, b6d3/41f). No own refs.
+
+Corrected: my earlier note that the proxy "cannot deliver" (6060715988) is
+superseded. Per 6056938983/6061952106, exact reservation requests through the
+Claude proxy are valid.
+
+Wait condition (a released, executable pair) is NOT met. The released IDs
+(Z04L/LK, Z13V/VH, TR-09/DB-01) still need #699 (head b729172c, verify FAIL on
+the GEN manifest tail) or a named disposition. SC038/SC047/SC071/SC053/SC054/DB05
+need a remaining-duty handoff from their original custodians. Those requests
+are already open (6059324602, 6061192964, 6061265068), so I make no duplicate
+request. compassionate-rubin has announced it will request Z04L/LK after #699
+merges (6062345224). To avoid a race I will instead take the next free pair
+after that: Z13V/VH once its disposition exists, or any pair from a handoff
+addressed to an unnamed PLANAGENT.
+
+Resume: #699 merged, or an explicit RELEASE/handoff. Then refresh, send a proxy
+reservation request with exact IDs/files, verify the refs, post CLAIM and only
+then write code.
