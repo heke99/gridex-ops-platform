@@ -1144,7 +1144,9 @@ async function refuseMissingProducerSource(mode:'V'|'VH',field:'217'|'261'){
  expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version}))
   .toMatchObject({status:'approved_waiting_permission'})
  expect(sql(`SELECT public.ediel_service_assignment_assessment_v1(${lit(f.ids.company)},${lit(f.assignment)})`))
-  .toMatchObject({status:'authorized',missing:[]})
+  .toEqual({status:'authorized',providerCompanyId:f.ids.company,providerActorId:f.ids.legal,beneficiaryCompanyId:f.ids.beneficiary,
+   assignmentId:f.assignment,assignmentVersion:f.current().version,environment:'test',customerId:f.ids.customer,
+   dsoActorId:f.ids.dso,mode,purpose:f.fields.purpose})
  const coordinated=await coordinateEdielServicePermission({providerCompanyId:f.ids.company,assignmentId:f.assignment,
   actorUserId:f.ids.actor,expectedVersion:f.current().version,command:'request_access'})
  expect(coordinated).toMatchObject({status:'permission_required'})
