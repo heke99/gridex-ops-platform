@@ -29,6 +29,7 @@ import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenize
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {readPersistedOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
@@ -594,7 +595,9 @@ const refusalOwnerTables={creationReceipts:'gridex_ediel_ack_replay.creation_rec
  sourceRules:'gridex_ediel_source_rules.receipts',technicalSources:'gridex_ediel_technical_ack.sources',technicalSyntax:'gridex_ediel_technical_ack.syntax_facets',technicalReplies:'gridex_ediel_technical_ack.replies',businessReferences:'public.ediel_business_references',
  events:'public.ediel_message_events',assessments:'gridex_received_sources.validation_assessments',
  originals:'gridex_received_sources.sources',positiveScope:'gridex_ediel_ack_replay.positive_service_scope_receipts',
- reservations:'public.ediel_ack_transaction_results',applicationFacets:'gridex_received_sources.prodat_application_facets',
+ reservations:'public.ediel_ack_transaction_results',ignoredFacets:'gridex_received_sources.prodat_ignored_field_facets',
+ objectFacets:'gridex_received_sources.prodat_object_validation_facets',responseFacets:'gridex_received_sources.prodat_response_facets',
+ functionFacets:'gridex_received_sources.prodat_source_function_facets',applicationFacets:'gridex_received_sources.prodat_application_facets',
  receptions:'gridex_ediel_inbound_receptions.receptions',processingRuns:'public.ediel_processing_runs',
  decisionTraces:'public.ediel_decision_traces',slaTimers:'public.ediel_sla_timers'} as const
 function refusalLedger(f:Fixture){
@@ -673,6 +676,9 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
  expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code,
   prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field,errorKind:'missing',
    occurrence:expect.objectContaining({scope:'object',objectId:f.point,identityAgency:'9',lineItemReference:p.li})})})]))
+ const canonicalEvidence=buildReceivedSourceValidationEvidence({original:source,validated:current,resolvedCompanyId:f.ids.company,decision})
+ expect(canonicalEvidence,'complete actual source decision evidence').toBeTruthy()
+ if(!canonicalEvidence)throw Error('native_refusal_complete_source_evidence_required')
  const after=producerState(f),actual=refusalLedger(f)
  expect(actual.foreign).toEqual(ledger.foreign)
  const replies=retainedRows(before.business.ediel_messages as FullRow[],
@@ -680,6 +686,9 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
  expect(replies).toHaveLength(2)
  expect(replies.map(r=>r.message_family).sort()).toEqual(['APERAK','CONTRL'])
  const replyIds=replies.map(r=>String(r.id)),ackFor=(id:unknown)=>replies.find(r=>r.id===id)!
+ function freshTime(value:unknown){expect(typeof value).toBe('string');const time=Date.parse(String(value))
+  expect(Number.isFinite(time)).toBe(true);expect(time).toBeGreaterThanOrEqual(Date.parse(source.created_at!));return value}
+
  for(const reply of replies){
   expect(reply).toMatchObject({company_id:f.ids.company,environment:'test',direction:'outbound',related_message_id:source.id,
    status:'draft',created_by:f.ids.actor,raw_payload:expect.any(String),immutable_payload_hash:hash(String(reply.raw_payload))})
@@ -711,9 +720,12 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
  expect(additions.creationReceipts).toHaveLength(2)
  expect(additions.creationReceipts.map(r=>r.ack_message_id).sort()).toEqual([...replyIds].sort())
  for(const row of additions.creationReceipts){const ack=ackFor(row.ack_message_id);expect(ack).toBeTruthy()
-  expect(row).toMatchObject({source_message_id:source.id,company_id:f.ids.company,environment:'test',actor_user_id:f.ids.actor,
+  const event=additions.events.find(e=>e.id===row.event_id&&e.ediel_message_id===ack.id&&e.event_type==='created')
+  expect(event).toBeTruthy()
+  expect(row).toEqual({ack_message_id:ack.id,source_message_id:source.id,company_id:f.ids.company,environment:'test',actor_user_id:f.ids.actor,
    source_payload_hash:hash(wire),ack_payload_hash:hash(String(ack.raw_payload)),family:ack.message_family,
-   outcome:ack.message_family==='CONTRL'?'positive':'negative',source_operation_id:ack.source_operation_id})
+   outcome:ack.message_family==='CONTRL'?'positive':'negative',source_operation_id:ack.source_operation_id,event_id:event!.id,
+   sequence_field:null,sequence_value:null,recorded_at:freshTime(row.recorded_at)})
  }
  expect(additions.namespace).toHaveLength(2)
  for(const row of additions.namespace){const ack=ackFor(row.source_message_id);expect(ack).toBeTruthy()
@@ -763,8 +775,6 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
  // Whole schema/default projections: every column is asserted, including
  // unused business links, routing/security/transport state and timestamps.
  const nulls=(names:string)=>Object.fromEntries(names.split(' ').map(key=>[key,null]))
- const freshTime=(value:unknown)=>{expect(typeof value).toBe('string');const time=Date.parse(String(value))
-  expect(Number.isFinite(time)).toBe(true);expect(time).toBeGreaterThanOrEqual(Date.parse(source.created_at!));return value}
  const qualifiedErrors=decision.responsePlan.find(plan=>plan.family==='APERAK')?.applicationErrors?.filter(isQualifiedProdatApplicationError)??null
  for(const ack of replies){
   const object=ack.message_family==='APERAK',family=object?'APERAK':'CONTRL',outcome=object?'negative':'positive'
@@ -826,9 +836,10 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
  // object. Technical ACK creation must not invent reference ownership.
  expect(additions.businessReferences).toEqual([])
  const qualifyAssessments=(rows:FullRow[])=>{expect(rows.length).toBeGreaterThan(0)
-  for(const row of rows){expect(row).toMatchObject({source_message_id:source.id,company_id:f.ids.company,environment:'test',source_payload_hash:hash(wire),owner:'canonical-runtime-with-registry-v1'})
-   const facts=JSON.parse(String(row.facts_text));expect(row.facts_hash).toBe(hash(String(row.facts_text)))
-   expect(facts).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected',reasonCodes:expect.arrayContaining([code])})
+  for(const row of rows){expect(row).toEqual({id:row.id,source_message_id:source.id,company_id:f.ids.company,environment:'test',source_payload_hash:hash(wire),
+   owner:'canonical-runtime-with-registry-v1',facts_text:canonicalEvidence.factsText,facts_hash:hash(canonicalEvidence.factsText),
+   previous_assessment_id:row.previous_assessment_id,assessed_at:freshTime(row.assessed_at)})
+   const facts=JSON.parse(String(row.facts_text));expect(facts).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected',reasonCodes:expect.arrayContaining([code])})
   }
  }
  qualifyAssessments(additions.assessments)
@@ -844,6 +855,8 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
    node=chain.find(r=>r.id===predecessor);expect(node,'missing source assessment predecessor').toBeTruthy()
   }
   expect(visited.size).toBe(chain.length)
+  qualifyAssessments(chain)
+
   expect(message.validation_report?.receivedSourceValidationEvidence).toEqual({status:'recorded',sourceDisposition:'not_established',assessmentId:leaves[0].id,factsHash:leaves[0].facts_hash})
   const durable=sql<FullRow>(`SELECT gridex_received_sources.require_prodat_application_objects_v1(${lit(f.ids.company)},${lit(source.id)})`)
   expect(durable.assessmentId).toBe(leaves[0].id)
@@ -854,12 +867,22 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
   const physical=tokenizeEdifact(wire)
   expect(physical.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,physical.una)[0]==='LI')
    .map(s=>segmentComposite(s,1,physical.una))).toEqual([['LI',p.li]])
-  for(const facet of state.own.applicationFacets.filter(r=>r.source_message_id===source.id)){
-   expect(chain.some(r=>r.id===facet.assessment_id)).toBe(true)
-   expect(facet).toEqual({assessment_id:facet.assessment_id,source_message_id:source.id,company_id:f.ids.company,environment:'test',
-    source_payload_hash:hash(wire),application_facts_text:facet.application_facts_text,application_facts_hash:hash(String(facet.application_facts_text))})
-   const facts=JSON.parse(String(facet.application_facts_text));expect(facts).toEqual(application)
+  const facets=[['applicationFacets','assessment_id','application_facts_text','application_facts_hash',canonicalEvidence.prodatApplicationValidation,false],
+   ['ignoredFacets','canonical_assessment_id','fields_text','fields_hash',canonicalEvidence.prodatIgnoredFields,true],
+   ['objectFacets','assessment_id','facts_text','facts_hash',canonicalEvidence.prodatObjectValidation,true],
+   ['responseFacets','assessment_id','response_facts_text','response_facts_hash',canonicalEvidence.prodatResponseValidation,false],
+   ['functionFacets','assessment_id','function_facts_text','function_facts_hash',canonicalEvidence.prodatSourceFunctionValidation,false]] as const
+  for(const [key,idKey,textKey,hashKey,expected,hasRecordedAt] of facets){
+   const rows=state.own[key].filter(r=>r.source_message_id===source.id)
+   if(expected===undefined){expect(rows).toEqual([]);continue}
+   expect(rows.map(r=>r[idKey]).sort()).toEqual(chain.map(r=>r.id).sort())
+   const text=JSON.stringify(expected)
+   for(const facet of rows){expect(facet).toEqual({[idKey]:facet[idKey],source_message_id:source.id,company_id:f.ids.company,environment:'test',
+     source_payload_hash:hash(wire),[textKey]:text,[hashKey]:hash(text),...(hasRecordedAt?{recorded_at:freshTime(facet.recorded_at)}:{})})
+    if(key==='applicationFacets')expect(JSON.parse(text)).toEqual(application)
+   }
   }
+
  }
  qualifyLeaf(actual,current)
  const timerPlan=buildAckTimerPlan(current),businessMatch=await resolveEdielBusinessMatch({message:current})
@@ -1008,7 +1031,9 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
   const added=replayAdditions[key]
   if(key==='events')qualifyEvents(added,false,replayRun)
   else if(key==='assessments'){if(added.length)qualifyAssessments(added)}
-  else if(key==='applicationFacets'){expect(added.every(r=>replayAdditions.assessments.some(a=>a.id===r.assessment_id))).toBe(true)}
+  else if(['applicationFacets','ignoredFacets','objectFacets','responseFacets','functionFacets'].includes(key)){
+   expect(added.every(r=>replayAdditions.assessments.some(a=>a.id===(key==='ignoredFacets'?r.canonical_assessment_id:r.assessment_id)))).toBe(true)
+  }
   else if(key==='processingRuns'||key==='decisionTraces'||key==='slaTimers')continue
   else expect(added).toEqual([])
  }
