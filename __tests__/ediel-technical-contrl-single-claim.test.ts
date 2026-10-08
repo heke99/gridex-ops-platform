@@ -172,7 +172,7 @@ describe('protected technical CONTRL single-item claim consumer', () => {
     await expect(claim()).rejects.toThrow(/ediel_technical_contrl_claim_/)
     expect(await snapshot()).toEqual(before)
   })
-  it.each([null, [], 'untrusted scalar'])('refuses a malformed top-level private result %j', async value => {
+  it.each([[null], [undefined], [[]], ['untrusted scalar']])('refuses a malformed top-level private result %j', async value => {
     await setProof(value)
     const before = await snapshot()
     await expect(claim()).rejects.toThrow('ediel_technical_contrl_claim_basis_required')
