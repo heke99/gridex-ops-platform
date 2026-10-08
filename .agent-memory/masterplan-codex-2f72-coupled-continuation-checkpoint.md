@@ -15,3 +15,9 @@ Next action owner: this agent. Document the diagnostic outcome, refresh current 
 ## Actual diagnostic outcome
 
 The once-only diagnostic completed with exit 1 at zip_members line 341. That guard combines original-name equality and clean-member admission; this location alone does not identify the rejected member or which predicate failed. Original parity HOLD and downstream NOT_REACHED states remain unchanged. The owner and helper now prepare a source-derived bounded observation plan before any further original-artifact access. No guard widening or repair approval.
+
+## Existing packet file extension
+
+The additions-manifest path was explicitly released by its previous owner on #673. This agent acquired and re-read its create-only reservation at receipt 9246ffc68fce0e5a10a490b60111e0d0187e3c51 on current main 1c4980e6c4c69573c4968550c585998ed5fa9bae. Existing 62 reservations all remain matched. Sole active L/LK pair is unchanged.
+
+File responsibility added: scripts/migration-history-manifest.additions.json. Preserve all historical entries and the exact reviewed Z13 tail from the explicit handoff. Assess any further donor only with exact source/checksum, compatibility and required reviews. No file edit or new forward selection is claimed yet. Next owner: this agent, after the bounded SQL guard observation plan and documented source selection.
