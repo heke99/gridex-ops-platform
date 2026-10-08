@@ -1,3 +1,46 @@
+## Active startup routing — observed 2026-10-08T12:32:29+00:00
+
+Read AGENTS.md, README.md and [the dated owner-action queue](masterplan-work-queue.md).
+Refresh actual main/coverage, PR heads/checks, #673 and remote receipts before
+action. Resume only your own documented role, packet and next criterion. There
+is no global95bc/TRDB task assignment from the older sections below. Old scalar
+snapshots in checkpoint/status files are dated evidence; checkpoint.json's
+active routing now directs agents to their own checkpoints.
+
+PLANAGENT selects eligible rule or acceptance-only work, with the existing
+final-single-eligible exception. BLOCKERARAGENT resolves sequential evidenced
+blockers; GRANSKARE performs bounded independent review. Retained custody,
+actual releases, exact dependencies and all required delivery gates remain.
+No chat is started by this document. Old dated sections below are preserved
+verbatim; read their owner/paused/current/next labels at their recorded time.
+
+## Active autonomous work selection — owner instruction, 2026-10-08
+
+Use current main's rule/acceptance registers and coverage, latest #673 receipts,
+current PR heads/checks, retained original requirements and verified remote refs.
+Older dated entries below preserve history; their named next owners and paused
+labels are not new assignments. Follow the active role contract in `AGENTS.md`.
+
+PLANAGENT chooses its own two remaining executable IDs and related contracts,
+or two acceptance IDs/final single eligible ID. BLOCKERARAGENT stays on one
+evidenced blocker at a time and selects another after completion or explicit
+handoff. Existing reviewers retain independent read-only scope. Both plan and
+blocker roles may implement only after exact verified reservations.
+
+Classify candidates in existing checkpoint/queue entries as READY, OCCUPIED,
+WAITING_DEPENDENCY, EXTERNAL_DECISION or DONE. READY requires known remaining
+criteria, executable dependencies and available scope, followed by successful
+atomic reservation. For a dependency, record its owner and exact required
+deliverable/event. These labels replace neither locks nor coverage statuses.
+
+Prioritize repairs that unblock several existing packets; seek an exact-path
+handoff when their owner can split the work. Keep one producer/collector for
+each shared capture/native artifact and use bounded independent reviews of its
+qualified results. Preserve original failures; repeat verification only after
+a relevant change or an identified missing proof. Mandatory current-head checks
+still apply. Record taken/done/next before continuing, and resume a blocked item
+when its documented dependency, scope release or decision changes.
+
 ## Actual campaign observation — 2026-10-07T12:37:33.769902+00:00
 
 95bc completes only reserved actual656/main300 shared closeout: two final metadata reviews, exact-head eight mandatory checks, normal expected-head merge only with immediately free role-merge; release memory-role before waiting for another role. Authenticate actual delivery and release merge-role FIRST then owner-only memory resources. Refresh main, coverage, original/legacy custody, #530 and live locks; select/reserve next eligible work autonomously. Other owners retain their existing packets.
