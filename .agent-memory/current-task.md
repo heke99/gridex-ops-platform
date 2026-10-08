@@ -1,3 +1,19 @@
+## Active startup routing — observed 2026-10-08T12:32:29+00:00
+
+Read AGENTS.md, README.md and [the dated owner-action queue](masterplan-work-queue.md).
+Refresh actual main/coverage, PR heads/checks, #673 and remote receipts before
+action. Resume only your own documented role, packet and next criterion. There
+is no global95bc/TRDB task assignment from the older sections below. Old scalar
+snapshots in checkpoint/status files are dated evidence; checkpoint.json's
+active routing now directs agents to their own checkpoints.
+
+PLANAGENT selects eligible rule or acceptance-only work, with the existing
+final-single-eligible exception. BLOCKERARAGENT resolves sequential evidenced
+blockers; GRANSKARE performs bounded independent review. Retained custody,
+actual releases, exact dependencies and all required delivery gates remain.
+No chat is started by this document. Old dated sections below are preserved
+verbatim; read their owner/paused/current/next labels at their recorded time.
+
 ## Active role continuation — owner instruction, 2026-10-08
 
 This active instruction supersedes older dispatch/pause/next-action labels
