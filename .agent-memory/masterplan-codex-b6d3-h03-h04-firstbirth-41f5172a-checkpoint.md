@@ -636,3 +636,43 @@ SOURCE2 + publication2/self GO field306 — same b6d3/H1102/26refs. Exact source
 Pre-execution publication review found Important1 mutableHEAD source refspec; both originals79a43/e403 preserved. Repaired only operation source to full immutable35cbe, correctedplan501ca972; both correctedreports3c104e81/7c21498d fullROOTread/self C0I0. No donorpush occurred yet; source approvals unchanged. CP241cfe source2 record is preserved; it was not separatelyposted. NEXT ROOT freshall26/currentCPbody/cleanheadtree/posts/main1897/exactdonor404 guards then ordinary nonforce git push origin 35cbe0bd22667c04844ac3cdafa312ed8a1a4ef0:refs/heads/codex/ediel-h-invalid306-b6d3-41f5172a; exactremoteSHA/tree/parents readback, no blindretry on ambiguity. No newPR/native/GEN/current720source edit or resource/coverage change.
 
 After actualpublication: exact21file source-only handoff request to 2f72/CORE, ownerACK before later verified scopedrelease/newownerCLAIM. H IDs/original3/720solecollector retained. Original artifact11570116577 genuinebytes transportrequest6066367326 stillunACKed/unqualified; actual7208c nineSUCCESS separate from privatephysicalnegative effects/replay. RetainedH229/252 source-boundary recheck preserved; rightful2fvalidator/CORE delivery requires actual original/address qualification, no copied/parsed/default authority. No newpair before ownH actualdelivery or documented wholehandoff/release; shared doc-routing role/filecustody respected.
+
+
+## 2026-10-08 — actual306 source-only publication and exact owner handoff
+
+PUBLISHED_SOURCE_ONLY / HANDOFF_REQUEST H306 — codex-ediel-20261007-b6d3-41f5172a, SAME H1102 packet1102ed76-cc69-452b-a20d-92f34cfda805; H03/H04 whole responsibility retained.
+
+Actual ordinary immutable-source push exit0: branch `codex/ediel-h-invalid306-b6d3-41f5172a`, head `35cbe0bd22667c04844ac3cdafa312ed8a1a4ef0`, tree `9d87655dd1f68cb2d6862643cf2f462ab65c0569`, singleparent `b7e25f5d8681b71d9ab46cc91e7c4dbb10a7997f`, base main1897. GitHub ref/commit tree/parent readback MATCH. Source: https://github.com/heke99/gridex-ops-platform/compare/1897ea4999ca93bf4631ee53f1cbe19de86d7dc3...codex/ediel-h-invalid306-b6d3-41f5172a
+
+Complete21/source2+self C0I0 (reportsac553cd3/e41994c9, sealdfd79a73); corrected publication2+self C0I0 before actualpush, prior mutableHEAD finding preserved/closed. Real national306 production now only Z11/Z12; actual77matrixrows/13columns otherwise preserved. Positive fixtures choose Z12 before birth, legacyE22fullrow/hash/UNKNOWN/defaults and all hostile oracles preserved; runtime/timeline use immutable declared original. Actual fresh38finite1228PASS0FAIL0SKIP/exit0, full NItests0/scoped21lint0; dated six273/appNI only applicable source closure. These are source/local proofs, no newPR/currentCI/native/merge or wholeH approval.
+
+**Primary bounded recipient: codex-ediel-20261006-2f72c8ab (2f72, existing #699 composition). ACK exact21-file SOURCE-ONLY integration of the donor below before custody changes. CORE codex-root-core-blockers-20261008 retains #721 runtime/private ownership and coordinates its own current-source path proof.** Do not edit these stillheld donorpaths until ROOT documents exactreceiptSHA release/404 and recipient creates its own verified file refs/CLAIM. This request transfers no H IDs/native collector, no foreign runtime/private/validator/SQL/GEN duty, no coverage credit. ACK must name recipient packet/branch, exact accepted paths and integration/native-verification next action; if only a source split is viable, name the split explicitly. ROOT will perform the matching scopedrelease after ACK; no informal custody swap.
+
+Exact donor file scope with original receipt SHA:
+- `__tests__/ediel-inbound-own-source-coordinator.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-ops-05-caller-effects.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-prodat-dependent-subtype-source.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-prodat-dependent-z06-product.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-prodat-field-identity-inbound.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-prodat-gas-disposition.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-prodat-installation-status-national.test.ts` — `912e2b229e2b5b93ddfb940b9ad109a3e56d8327`
+- `__tests__/ediel-prodat-own-application-validation.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-prodat-register-batch-application.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-received-prodat-response-validation.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-sc-012-dual-role-state-isolation.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-sc-069-scope-inbound.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-source-owner-processor.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/ediel-source-owner-runtime.test.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/fixtures/prodat-complete-register-wire.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/helpers/mixedZ04Fixture.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/helpers/sourceOwnerFixtures.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `__tests__/helpers/structuralOwnerFixtures.ts` — `17d531a0c6fa49aa6206e5ac945d0bf76ff54c83`
+- `lib/ediel/prodat/prodat26AFieldMatrix.ts` — `912e2b229e2b5b93ddfb940b9ad109a3e56d8327`
+- `scripts/helpers/ediel-mixed-prodat-native-wire.ts` — `6e430869b3ac5ccd2df271915ccd8f14579091bf`
+
+Changed-input native qualification must explicitly cover the unchanged four actual consumers of `scripts/helpers/ediel-mixed-prodat-native-wire.ts`: `scripts/ediel-prodat-mixed-native.test.ts`, `scripts/ediel-prodat-ack-raw-scope-native.test.ts`, `scripts/ediel-process-journal-retention-native.test.ts`, `scripts/ediel-process-journal-retention-browser-native.test.ts`. Their missingQTY213/physicalreply/currentDENY/scope/rollback/retention/replay oracles remain unchanged. Reuse the existing designated verification/capture workflow after source integration; no duplicate native/GEN/artifact producer or borrowed old-native PASS.
+
+Remaining wholeH blockers/resumption: (1) execution/connectorstorage or capable Local/SSH transport operator ACKs existing6066367326 and materializes genuine original11570116577,233223B/sha256:defcdd697a3048b1e8d6ff794c8f3943d729c405364a3208c1ece955d0aa3a37 with origin/path receipt; ROOT sole strict original qualifier then verifies fullCRC/4394input receipt/100census. One FileService403 and distinct officialroute exit1/zeroB are preserved; no old retry/newcollector. (2) COREb201/2f41a87 deliver actual source-qualified negative-only plan/private physical response path for current failures, plus independently qualified incoming229/252 original/address facts; ROOT then verifies typedown national findings, physicalnegativeACK/noeffects/control-original/replay against exact integrated source. Current252 inboundcontinue and229 outbound-only source routing were reread; no parsed/copied/default authority or native outcome inferred. Existingnegative-owner request6065552441/ACK6065634492 remains, not a new duplicate native run.
+
+Current main1897 coverage115/121 +187/231 =302/352;50remain. #6992fe8ee35 and#7217319b080 open/unmerged;7208c nine mandatorySUCCESS but originalarchive/privatewhole criteria stillunproved. All26ownrefs currently retained:21solecomponent awaiting this exactACK, original3+H2 for720/source/nativewhole continuation. No merge-role held. Sharedsummary role/files are doc-routing owner's; consume this publication/next-owner receipt. NEXT2f/CORE explicitsourceACK/integration delivery, transportprovider actualbytes; NEXTROOT exactscopedrelease/newcurrent-source qualification when those events occur. No additional independent own implementation remains proved executable within this pair; no nextpair before actualdelivery or explicitwholehandoff/release.
