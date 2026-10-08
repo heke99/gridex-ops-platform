@@ -2,9 +2,9 @@
   "agent": "codex-planagent-20261008-55e1505a189d",
   "role": "PLANAGENT",
   "status": "BLOCKED_PRECLAIM",
-  "observedAt": "2026-10-08T13:47:16.189019+00:00",
-  "main": "0531d3a5271a5a9b333e81c1b4fa31cd355c368a",
-  "tree": "75f4c573f590e442d63c0764f348c431d3f63415",
+  "observedAt": "2026-10-08T13:51:57.832836+00:00",
+  "main": "0509defba33a0a5eee10cd60fd4574fda4a97268",
+  "tree": "c0202c0bc795a6101557bc9fda2c90d704612d6b",
   "branch": "codex/codex-planagent-20261008-55e1505a189d-checkpoint",
   "checkpoint": ".agent-memory/masterplan-codex-planagent-20261008-55e1505a189d-checkpoint.json",
   "worktree": "/workspace/gridex-ops-platform",
@@ -30,8 +30,8 @@
     "Own checkpoint verified as only working-tree change; no foreign source/status file edits. Checkpoint branch is NONPR resumability only, not main delivery."
   ],
   "checks": {
-    "liveResources": 97,
-    "uniqueReceiptCommits": 29,
+    "liveResources": 93,
+    "uniqueReceiptCommits": 28,
     "atomicIdRefs": {
       "AT-P-08": {
         "receipt": "672e62bc169c9ee667c4f73a5f84a0dbe5567f5b",
@@ -193,6 +193,20 @@
     "input": "OPS04 needs agreed genuine incident/counterparty input. TR08 and DB05 additionally retain internal correction duties; original owners must complete or hand over."
   },
   "rowsBasis": "For each ID, original responsible owner, exact normative criteria, custody and resumption event are the unchanged literal row in reusedAssessment.successor/original. Current atomic owners override dated owners via checks.atomicIdRefs; current H713 delivery is recorded separately. No new row approval.",
+  "branchBase": "0531d3a5271a5a9b333e81c1b4fa31cd355c368a",
+  "blockedReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061335762",
+  "resumptionObservation": {
+    "actualMain": "0509defba33a0a5eee10cd60fd4574fda4a97268",
+    "event": "Actual #714 bounded Z15C omission-case 300s budget and its own checkpoint delivered; role-first/file-only release6061322756. #713 scoped component release6061331442 retains H IDs/updater/successor. 2f billing forward is local/source-only6061342201, not delivered SQL/GEN/parity.",
+    "sourceComparison": [
+      ".agent-memory/masterplan-blocker-claude-uwoj7c-checkpoint.md",
+      "scripts/ediel-at-z15c-z18v-esco-native.test.ts"
+    ],
+    "coverageRegistersLegacy": "All four immutable source pins unchanged at actual0509 main; same52 literal criteria/coverage set.",
+    "atomicIds": "Same six IDs and exact owner receipts; no new own scope or executable independent pair.",
+    "producerScope": "No new CI/native/GEN/capture/large-suite/artifact run or handover request.",
+    "next": "Keep documented criterion-specific resumption event; no repeated unchanged inventory polling."
+  },
   "rows": [
     {"id": "P-08", "coverage": "PARTIAL", "classification": "OCCUPIED", "group": "atomic"},
     {"id": "TR-08", "coverage": "NOT_VERIFIED", "classification": "OCCUPIED", "group": "input"},
