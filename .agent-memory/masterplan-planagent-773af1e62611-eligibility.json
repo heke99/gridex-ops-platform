@@ -2,34 +2,34 @@
   "status": "READ_ONLY_ELIGIBILITY_NO_NEW_CLAIM",
   "agent": "codex-planagent-20261008-773af1e62611",
   "main": "74bcd6d109861e940269f75821f6d3516df29a96",
-  "observedAt": "2026-10-08T09:46:26.422030+00:00",
+  "observedAt": "2026-10-08T09:57:27.536932+00:00",
   "coverage": {
     "verifiedRules": 115,
     "passedContracts": 185,
     "remaining": 52,
     "sha256": "51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a"
   },
-  "currentRemoteRefCount": 80,
-  "boardThrough": 6057160664,
+  "currentRemoteRefCount": 88,
+  "boardThrough": 6057317608,
   "sourceInventory": "67fdb81506011fdd59bdc6c9f5abb13947e865c8/.agent-memory/masterplan-b6d3-41f5172a-next-eligibility.json",
   "limits": "Dated ownership/dependency screen, not a full new behaviour audit. Historical semantic classifications are attributed to original receipts. No native, original archive, capture, generator or product test executed here. No earlier named session packet is inherited. Refresh before any acquisition.",
   "counts": {
-    "RETAINED_DUTY": 23,
+    "OCCUPIED": 6,
     "RETAINED_TRANSPORT_AND_PROVIDER_INPUT": 2,
     "RELEASED_PREREQUISITES_NOT_READY": 18,
     "RETAINED_LEGAL_LIFECYCLE_AND_INPUT": 3,
     "AUTHENTIC_INCIDENT_INPUT_AND_RETAINED_DUTY": 2,
-    "OCCUPIED": 4
+    "RETAINED_DUTY": 21
   },
   "rows": [
     {
       "id": "P-08",
       "coverageStatus": "PARTIAL",
-      "admissibility": "RETAINED_DUTY",
-      "responsible": "Claude P08/source/native author",
-      "basis": "Original retained P08/source/native authors; merged598 body and .agent-memory/masterplan-at-z09b-z09d-supplier-checkpoint.md explicitly preserve P08/source/native/ACK/history; finite48CLAIM5997296939/5997811985; current54custodyreceipt6035674793",
-      "nextConcreteAction": "Original whole owner closes literal210 XOR211/not216/build92or93/both40-A903109/no157 and actual signed original archive/review→productiongateway→positiveAPERAK→correct durable own event confirmation, or explicitly transfers only remaining whole proof/approval responsibility. Existing source and bounded48/date/confirmation mechanics reuse; synthetic issuer competence is a possible software proof boundary, not external authority and not itself an external blocker. Empty ID refs do not release recorded whole duty.",
-      "liveReceipt": null
+      "admissibility": "OCCUPIED",
+      "responsible": "claude-ediel-20261008-bardeen; proxy codex-root-coordinator",
+      "basis": "Owner-authorized remainingP08-only HANDOVER6057229927; proxy CLAIM6057243035; full receipt agent/delegatedBy/base +all5refs verified in later88-ref snapshot. Z09B/Z09D/SC036 not transferred.",
+      "nextConcreteAction": "Bardeen reconciles whole XOR210/211,92/93,40/109/no157 and actual source/original/ACK/own-production-relation effects, reserving any additional exact files before edits. Reuse existing216 exclusion tests; current stub has no environment mismatch; partial arrayContaining40/109 alone does not exclude157. Proxy executor handles owner-requested exact-SHA extensions/release; this PLANAGENT does not compete.",
+      "liveReceipt": "672e62bc169c9ee667c4f73a5f84a0dbe5567f5b"
     },
     {
       "id": "TR-08",
@@ -196,11 +196,11 @@
     {
       "id": "AT-P-08",
       "coverageStatus": "PARTIAL",
-      "admissibility": "RETAINED_DUTY",
-      "responsible": "Claude P08/source/native author",
-      "basis": "Original retained P08/source/native authors; merged598 body and .agent-memory/masterplan-at-z09b-z09d-supplier-checkpoint.md explicitly preserve P08/source/native/ACK/history; finite48CLAIM5997296939/5997811985; current54custodyreceipt6035674793",
-      "nextConcreteAction": "Original whole owner closes literal210 XOR211/not216/build92or93/both40-A903109/no157 and actual signed original archive/review→productiongateway→positiveAPERAK→correct durable own event confirmation, or explicitly transfers only remaining whole proof/approval responsibility. Existing source and bounded48/date/confirmation mechanics reuse; synthetic issuer competence is a possible software proof boundary, not external authority and not itself an external blocker. Empty ID refs do not release recorded whole duty.",
-      "liveReceipt": null
+      "admissibility": "OCCUPIED",
+      "responsible": "claude-ediel-20261008-bardeen; proxy codex-root-coordinator",
+      "basis": "Owner-authorized remainingP08-only HANDOVER6057229927; proxy CLAIM6057243035; full receipt agent/delegatedBy/base +all5refs verified in later88-ref snapshot. Z09B/Z09D/SC036 not transferred.",
+      "nextConcreteAction": "Bardeen reconciles whole XOR210/211,92/93,40/109/no157 and actual source/original/ACK/own-production-relation effects, reserving any additional exact files before edits. Reuse existing216 exclusion tests; current stub has no environment mismatch; partial arrayContaining40/109 alone does not exclude157. Proxy executor handles owner-requested exact-SHA extensions/release; this PLANAGENT does not compete.",
+      "liveReceipt": "672e62bc169c9ee667c4f73a5f84a0dbe5567f5b"
     },
     {
       "id": "AT-TR-08",
@@ -503,5 +503,18 @@
       "OCCUPIED": 6
     },
     "note": "Original93-ref observation before H owner release; preserved as history."
+  },
+  "preP08ProxyObservation": {
+    "refCount": 80,
+    "boardThrough": 6057160664,
+    "counts": {
+      "RETAINED_DUTY": 23,
+      "RETAINED_TRANSPORT_AND_PROVIDER_INPUT": 2,
+      "RELEASED_PREREQUISITES_NOT_READY": 18,
+      "RETAINED_LEGAL_LIFECYCLE_AND_INPUT": 3,
+      "AUTHENTIC_INCIDENT_INPUT_AND_RETAINED_DUTY": 2,
+      "OCCUPIED": 4
+    },
+    "note": "Published5a dated preproxy status; superseded for P08/ATP08 only by authorized handover6057229927 and verified receipt6057243035."
   }
 }
