@@ -119,3 +119,11 @@ NEXT ROOT afterthisCP+673CLAIM GET_MATCH createuniqueWT, meaningfulRED realposit
 Exact local RED commit 6ff701d1f25e3f04a4ded6582415faff41a6db4b on uniqueownresourcebranch, production stillcfa byteunchanged; realpubliccreateInboundEdielMessage/positiveH/parser/catalog/grouping finiteexternalIO shows firstINSERT expectedactualpoint34 receivedNULL while customer32/site33/request31 equal. Actualtest1FAIL/exit1, logSHA9a06d050230c47e7eceddadb96b410f331940ea1f2a9d26ba7b10e4af2ba5986. All9custody/currentCLAIM6736060543809 retained; no producer/native/wholeclaim.
 
 NEXT ROOT implementstrictreadonlyactualownrequest payload.environment/customer/site/point/raw209 closure and nullpoint-only firstINSERT; negativecontrols/mutation/replay/order, focusedfinite/statics and SOURCE2/self. PR713 frozen/source9delivery priority, no newsourcepublicationuntilactualdelivery.
+
+## 2026-10-08 — local resource source23d0 green; SOURCE review requires stricter canonical site
+
+Actual local23d0e72634568802fb749829eb077ae9c6d51f06/tree905b96be17f2c9be476198ba2fdaece6eebf53ce implementation4ownpaths only. Exacthead289finite/8, nonincremental app/tests/scriptsTSC0, scopedlint0 actuallogs h-owned-resource-23d0-verification.json; no native/currentnine/publication/wholeapproval. Initialtestframework tuple-spread mistake actual1FAIL/191PASS and initialtestTSC2 preserved; testdata corrected to explicitcandidates objects, no oracleweakened.
+
+FIRST ongoingSOURCEreview confirmed Important: allowingNULLcanonical point.site_id with matching customer_site_id is broader than actual Hbind20261001023248 requiring mp.site_id===actualmessage.site_id. Preparationcoalesce alone does notqualifyimmutableH tuple. PriorSECONDplannullablealias note mustyieldto actualH privateauthority. Source23d0 remainsimmutable/local/unpublished, bothreviews pending/findingpreserved; no SOURCE_READY claim.
+
+NEXT ROOT meaningfulRED exactNULLcanonical+matchingcompatibilitypoint refuses; then require point.site_id===selectedsite and retainoptionalNULLcompatibilityonly/conflictingpopulatedaliasrefusal. Focusedcurrentaffectedchecks/SOURCE2+self successorhead before anyfuturepublication. Ownall9locks/713frozen/currentmandatory7+2pending; no foreignnative/GEN/heldsource edits.
