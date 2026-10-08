@@ -13,3 +13,15 @@
 - Resume event: actual #699 delivery (then Z13V/VH via proxy reservation request), or an explicit
   remaining-duty handoff for DB-05 or SC-038.
 - Next: request proxy receipt for chosen IDs and exact files, verify refs, then CLAIM before any code.
+
+## 2026-10-08 owner-authorized takeover: DB-05 / AT-DB-05 / SC-070
+- Owner authorization (chat): move scope when an agent neither answers nor works on its part.
+- Inactivity evidence: #599 closed unmerged; branch claude/magical-cerf-55zxau last commit 20c22716 at 2026-10-05T15:47Z; request 6054316806 (2026-10-08T06:56Z) unanswered; no id refs for DB-05/AT-DB-05/SC-070.
+- Packet 93b2b32d-4fd7-487c-9611-d6a469a3bdf6. Direct Git Data POST git/commits -> HTTP 403 (proxy), so proxy reservation is requested on #673.
+- Files requested: 20261005130000 guard migration (reuse #599), new 20261008160000 closed-tenant retention forward,
+  lib/ediel/retention/retentionHttp.ts, __tests__/db-05-hard-delete-guard.test.ts, __tests__/db-05-closed-tenant-retention.test.ts,
+  scripts/test-ediel-db-05-retention.cjs, scripts/db-05-hard-delete-guard-native.test.ts, scripts/db-05-tenant-offboarding-native.test.ts,
+  quality/audits/ediel-masterplan-v2/db05/FINDING-F-DB-05-01.md.
+- Excluded: scripts/migration-history-manifest.json and supabase/schema.sql (file-locked by 2f/ac08, active). Manifest lines need a bounded 2f handoff or inclusion in #699.
+- Remaining work: close the gap for canonical terminal 'closed' (missing from the retention enum and the workspace/class authority) for a due lawful own-class purge; keep the operational denial, negatives, and non-target history unchanged.
+- Next: wait for the proxy receipt, verify the refs, post CLAIM, then implement TDD. No code before that.
