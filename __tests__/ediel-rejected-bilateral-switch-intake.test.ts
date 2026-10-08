@@ -113,3 +113,26 @@ it('propagates dated catalog refusal before any source INSERT or reception obser
  expect(db.writes('ediel_messages')).toEqual([]);expect(db.writes('ediel_message_events')).toEqual([])
  expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission'])
 })
+
+// Exact missing314 wire, finite DB/catalog ports only; not PostgreSQL/private proof.
+const missingSequencePayload=()=>guideOrderedFixtureRaw([line('',point,undefined,'9'),...characteristic('Z13','Z25'),['RFF',['LI','OWN']]],'Z04')
+it('retains a recognizable missing314 source at first INSERT without repairing its sequence or borrowing point authority',async()=>{
+ const rawPayload=missingSequencePayload();setup(rawPayload)
+ const request=input(rawPayload),parsedBefore=structuredClone(request.parsed),t=tokenizeEdifact(rawPayload),before=prodatRegisterGroups(t.segments,t.una,'Z04')
+ expect(before.problems).toEqual([{fieldNumber:'314',lineIndex:0,segmentIndex:t.segments.find(s=>s.tag==='LIN')!.index,reason:'global_sequence_must_increment_from_one'}])
+ expect(before.groups.map(g=>[g.lineNumber,g.validRegisterChain,g.firstLineIndex,g.effectiveSegments])).toEqual([[null,false,null,before.groups[0].segments]])
+ expect(await resolveBilateralSwitchBirthProfile({rawPayload,receivedAt})).toBeNull()
+ expect(await createInboundEdielMessage(request)).toBe(newId)
+ const writes=db.writes('ediel_messages');expect(writes).toHaveLength(1)
+ expect(writes[0].operation).toBe('insert')
+ expect(writes[0].payload).toMatchObject({company_id:company,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z04',
+  raw_payload:rawPayload,message_received_at:receivedAt,inbound_email_message_id:mailId,processing_status:'manual_review',
+  outbound_request_id:null,metering_point_id:null,customer_id:null,site_id:null,
+  canonical_rule_pack_id:'00000000-0000-4000-8000-000000000012',rule_profile_key:key,
+  rule_profile_version_id:'00000000-0000-4000-8000-000000000011',rule_profile_version:'26.A:r3',rule_pack_checksum:'a'.repeat(64),
+  rule_pack_snapshot:{...registry().original_snapshot,profileKey:key,profileVersionId:'00000000-0000-4000-8000-000000000011',version:'26.A:r3',checksum:'a'.repeat(64)}})
+ for(const k of ['execution_context_snapshot','bilateral_capability_verified','business_effect_authorized'])expect(writes[0].payload).not.toHaveProperty(k)
+ expect(db.writes('outbound_requests')).toEqual([])
+ expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission','ediel_record_inbound_reception_v1'])
+ expect(prodatRegisterGroups(t.segments,t.una,'Z04')).toEqual(before);expect(request.parsed).toEqual(parsedBefore)
+})
