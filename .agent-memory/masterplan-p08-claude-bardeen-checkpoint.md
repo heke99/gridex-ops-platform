@@ -64,3 +64,12 @@ owner decision 6056709473 states "inget delegerat lås införs"; P-08 also needs
 reconciliation (marked "disputed" in 6056759828). Status: BLOCKED_UNRESERVED, no code.
 Next: wait for owner to either verify Claude tag create+delete or document an explicit proxy procedure,
 and for P-08 original custodian release; then re-verify refs before CLAIM.
+
+## Tag-write verification after owner signal "tagg-skrivning är öppnad" — FAILED (main 0b7d930)
+
+From this session, still all refused, nothing created (ls-remote confirms absent):
+- `git push origin <main>:refs/tags/agent-claims/probe/claude-bardeen-1791452163` → remote hung up (403)
+- `gh api -X POST git/refs` (probe tag) and `POST git/commits` → HTTP 403 "not permitted through this proxy"
+No P-08 refs acquired; no CLAIM; no code. A proxy policy change may only apply to new sessions.
+Next: owner verifies from a freshly started Claude session (or blocker agent posts a create+delete receipt);
+P-08 custody release from the original author still also required.
