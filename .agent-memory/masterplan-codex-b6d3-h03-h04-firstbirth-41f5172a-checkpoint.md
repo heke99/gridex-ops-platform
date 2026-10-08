@@ -113,3 +113,9 @@ NEXT ROOT sorted createonly3file extension within current soleH1102, confirm all
 Actual createonly receipt 7f2f4ac0415e8c14f8616d593d3f4835356364ab / same1102 pair/session / actualmain372d exacttree singleparent; all3 newfile refs file-565a4ca946507db82bc2a3f9b94e9b46cfdcdbd312cd39177c44c4f1c300ca6d, file-874ece94eeb406536e9f0c3c5fc92533a56562b8700a433ea573f50a29320c33, file-98515995b2e5ed70c4eecb89656c08b865c3d9562781252a22e5d86259d88b71 confirmed GET_MATCH plus allold6 remain01f5. No roleheld; no foreignsource edited. Plan2/self971f ready and actual6736060489301 preserved. Ownnewbranch codex/ediel-h-owned-birth-b6d3-41f5172a willreusecfa in uniqueWT; codeNOTSTARTED.
 
 NEXT ROOT afterthisCP+673CLAIM GET_MATCH createuniqueWT, meaningfulRED realpositiveH publicintake firstINSERT pointNULL, commit/log exactRED beforeproduction. Then strictrealownedreadonlyhelper and nullpoint-only firstINSERT integration, focusedfinite/static/SOURCE2/self; keep713actualnine/finaldelivery priority. Whole/native/coverage unchanged.
+
+## 2026-10-08 — meaningful resource-birth RED preserved
+
+Exact local RED commit 6ff701d1f25e3f04a4ded6582415faff41a6db4b on uniqueownresourcebranch, production stillcfa byteunchanged; realpubliccreateInboundEdielMessage/positiveH/parser/catalog/grouping finiteexternalIO shows firstINSERT expectedactualpoint34 receivedNULL while customer32/site33/request31 equal. Actualtest1FAIL/exit1, logSHA9a06d050230c47e7eceddadb96b410f331940ea1f2a9d26ba7b10e4af2ba5986. All9custody/currentCLAIM6736060543809 retained; no producer/native/wholeclaim.
+
+NEXT ROOT implementstrictreadonlyactualownrequest payload.environment/customer/site/point/raw209 closure and nullpoint-only firstINSERT; negativecontrols/mutation/replay/order, focusedfinite/statics and SOURCE2/self. PR713 frozen/source9delivery priority, no newsourcepublicationuntilactualdelivery.
