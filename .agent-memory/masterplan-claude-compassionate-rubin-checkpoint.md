@@ -121,3 +121,18 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
   object created and no cross-tenant lookup.
 - Status: REQUESTED, not reserved. No code until the Codex receipt arrives and I have verified it with ls-remote and posted CLAIM.
 - Next: read-only preparation (existing tests, matching/gateway path).
+- Read-only plan (no code):
+  - SC-038:
+    - Add SC-038 to the P-12 tag in `__tests__/ediel-supply-market-consumers.test.ts`.
+    - Use the real `decideProdatLifecycle` (vi.importActual) for Z04A -> assigned_supply_started and
+      Z04D -> mandatory_purchase_supply_started, both with requiresCorrelation:false. Z03 is the contrast case (true).
+    - Z04D through `applyInboundBusinessStateMachine`: one `ediel_apply_supply_source_v1` RPC, no from/workflow calls.
+    - Z70 mapping to be checked.
+    - cjs: add a direct decision check besides the PGlite fixture.
+  - SC-047, one joined case in `ediel-sc-044-047-utilts-scenarios.test.ts`:
+    - `inboundLegalReceiverEdielId` + `resolveInboundTenantFromIdentifiers` -> tenant-a;
+    - `matchMeteringPointForEdielMessage` (ID exists only in tenant-b) -> null;
+    - `runUtiltsRuntimeForMessage` -> ['E10'];
+    - db.calls: only company_id=tenant-a, no insert/upsert. Contrast: an own-tenant row gives [].
+  - Risk: if tenant admission is only reachable via a DB, the joined case belongs to the native gateway test
+    (original-owner branch `codex/ediel-sc047-joined-native-20261005`), which is outside scope. Then request an extension.
