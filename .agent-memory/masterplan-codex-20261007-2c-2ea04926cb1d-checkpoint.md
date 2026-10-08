@@ -4,9 +4,9 @@
 
 Agent/session `codex-20261007-2c-2ea04926cb1d`; isolated branch `codex/c-prospective-source-2ea-41dd26fb`, worktree `/workspace/gridex-c-prospective-source-2ea-41dd26fb`. Own six ID/file refs match receipt `c2039f69ac134da88904a48a6a3f30bfb2ad6859`. Before-code CLAIM6048719056 and READY6048840814 are on #673.
 
-PR691 is actually OPEN at `500df58768ca6fc01394b107f1d652353783f1fc`, tree `6b1a0410a5a382aee702746f5caa019e6f4aa7c8`. ExactSOURCE2+self and freshmainbf036 composition2+self are approved SOURCEONLY. Actual current500 native37706091255/a1/job113080673508 completedFAILURE00:39:17; originalartifact11520329673/1143135bytes/SHA63eb5aeb authenticated by single before-use-approved80d839 qualification trueEXIT0 (nativeEXIT1). All9409Gitmatch/drift{}, actual30=1PASS29FAIL0ERROR0SKIP, bootstrapPASS. Independentz18AUTH d43444 +z15SEMANTIC ba8cde+self confirm28healthyperiod/ownAPPHELDfirststops and oneLKmissing217; later28effectoracles NOT_REACHED. Old803 result stays803. Latestcurrent500 mandatory00:42:46 upgrade+coverage+smokeSUCCESS(3/8); cleanIN_PROGRESS; verify/quality/browser/certificateQUEUED. No merge-role held. Whole C03/C05 and coverage remain unapproved/300of352; physicalsynthetic111 is not qualifiedREAD/healthy supply.
+PR691 is actually OPEN at `500df58768ca6fc01394b107f1d652353783f1fc`, tree `6b1a0410a5a382aee702746f5caa019e6f4aa7c8`. ExactSOURCE2+self and freshmain26eb composition2+self are approved SOURCEONLY. Actual current500 native37706091255/a1/job113080673508 completedFAILURE00:39:17; originalartifact11520329673/1143135bytes/SHA63eb5aeb authenticated by single before-use-approved80d839 qualification trueEXIT0 (nativeEXIT1). All9409Gitmatch/drift{}, actual30=1PASS29FAIL0ERROR0SKIP, bootstrapPASS. Independentz18AUTH d43444 +z15SEMANTIC ba8cde+self confirm28healthyperiod/ownAPPHELDfirststops and oneLKmissing217; later28effectoracles NOT_REACHED. Old803 result stays803. Latestcurrent500 mandatory00:46:43 upgrade+coverage+smoke+verifySUCCESS(4/8); cleanIN_PROGRESS; quality/browser/certificateQUEUED. No merge-role held. Whole C03/C05 and coverage remain unapproved/300of352; physicalsynthetic111 is not qualifiedREAD/healthy supply.
 
-Next ROOT: preserve actual500 proof2+self on673/currentPR and await all8 current500 mandatorySUCCESS. Then independent finalDELIVERY with fresh actualmain/head/sixrefs; prior500+bf036 previewa143 composition2+self is SOURCEONLY and needs extension ifmain changes. Acquire immediatelyfree create-only merge-role only after allgates, normalexpectedheadmerge500; prove actualmain/tree/parents/allforeign/fourownedpostimages, recordMERGED, release merge-role FIRST then sixc203refs/official404 and preserve exactwholehandoff. Until then sixrefs justified for active691 delivery; no secondpair/duplicate owner runs. If actualCI fails, preservegenuinecause and repaironly ownscope or exactownerhandoff. Sharedmemory24fa/c97fa/PR695; no sharededits.
+Next ROOT: preserve actual500 proof2+self on673/currentPR and await all8 current500 mandatorySUCCESS. Then independent finalDELIVERY with fresh actualmain/head/sixrefs; current500+26eb previewd82b composition2+self is SOURCEONLY and needs extension ifmain changes. Acquire immediatelyfree create-only merge-role only after allgates, normalexpectedheadmerge500; prove actualmain/tree/parents/allforeign/fourownedpostimages, recordMERGED, release merge-role FIRST then sixc203refs/official404 and preserve exactwholehandoff. Until then sixrefs justified for active691 delivery; no secondpair/duplicate owner runs. If actualCI fails, preservegenuinecause and repaironly ownscope or exactownerhandoff. Sharedmemory24fa/c97fa/PR695; no sharededits.
 
 Completed prior packet45a: PR686 actually merged to cce16a732c69c9f0562be5c2122c140fe55503aa and all own roles/files released404. Its historical phase below is superseded by the actual MERGED/RELEASE entries. PR683's old native1PASS29FAIL and C217 a7 source-only/GEN1 remain version-bound original evidence, not results of PR691.
 
@@ -1585,5 +1585,106 @@ Lossless current500 before-use approvedreader80d839 JSON-string (decode UTF8 and
 {
   "readerSha256": "80d83931ba66f6406044e0e80eba5d7fd2f08a9e0f4cf1fb9e34b5936590997e",
   "readerSource": "import sys,json,pathlib,zipfile,hashlib,subprocess,collections,xml.etree.ElementTree as ET,datetime,io\nif not __debug__: raise RuntimeError('optimized_python_disallowed')\narchive,official,checkout,out,expected_head,expected_run,expected_job=sys.argv[1:]\nAPPROVED_HEAD='500df58768ca6fc01394b107f1d652353783f1fc'\nAPPROVED_TREE='6b1a0410a5a382aee702746f5caa019e6f4aa7c8'\nAPPROVED_BRANCH='codex/c-prospective-source-2ea-41dd26fb'\nHARDENED_SOURCE='1b4be1fb5b78a6ef357f16b304f112ad939ab6ed'\nassert expected_head==APPROVED_HEAD, 'unreviewed_candidate_head'\nassert expected_run.isdecimal() and expected_job.isdecimal(), 'invalid_official_ids'\nassert int(expected_run)>0 and int(expected_job)>0\nAPPROVED_INPUTS={'.github/workflows/ediel-cancellation-public-acceptance-native.yml': ('100644', '02f52e83f9208f81e5adfcb9f2047e309013e112'), 'scripts/ediel-cancellation-public-acceptance-native.config.ts': ('100644', '1cf8c95750e6e24122a27aa77951a87d05928322'), 'scripts/ediel-cancellation-public-acceptance-native.test.ts': ('100644', '4a31a161ade1cf6bd54ee4f1205954946dc995e8'), 'scripts/helpers/ediel-cancellation-prospective-source-2ea.ts': ('100644', 'b17311dc108df610e15021c1ea45cd15ff3fc3b3'), '__tests__/ediel-cancellation-prospective-source-2ea.test.ts': ('100644', '5d95f98dbbe73e0b196db7ece45c24ec7eb9df5a'), '__tests__/helpers/sourceOwnerFixtures.ts': ('100644', 'aeac4986152d720172d96bb543cabfada43c8938')}\nAPPROVED_NATIVE_SHA256='ba82157aea9e794ecdde3b5e7f417e666f20fc97e585d40828db22609c83f140' \ndef unique(items):\n d={}\n for k,v in items:\n  assert k not in d,('duplicate_json_key',k)\n  d[k]=v\n return d\ndef read_json(p):return json.loads(pathlib.Path(p).read_text(),object_pairs_hook=unique)\no=read_json(official);run,job=o['run'],o['job'];artifacts=o['artifacts']['artifacts']\nassert run['head_sha']==expected_head and run['id']==int(expected_run) and job['id']==int(expected_job)\nassert run['path']=='.github/workflows/ediel-cancellation-public-acceptance-native.yml'\nassert run['event']=='pull_request' and run['head_branch']==APPROVED_BRANCH, 'wrong_candidate_producer'\nassert type(run['run_attempt']) is int and run['run_attempt']>0\ninstant=lambda s:datetime.datetime.fromisoformat(s.replace('Z','+00:00'))\ncurrent_artifacts=[a for a in artifacts if instant(job['started_at'])<=instant(a['created_at'])<=instant(job['completed_at'])]\nassert len(current_artifacts)==1,('current_job_window_artifact_count',len(current_artifacts));artifact=current_artifacts[0]\nassert artifact['name']=='ediel-cancellation-public-acceptance-native-'+expected_run\nassert run['repository']['full_name']=='heke99/gridex-ops-platform' and run['repository']['id']==1190539955\nassert run['head_repository']['full_name']==run['repository']['full_name'] and run['head_repository']['id']==artifact['workflow_run']['repository_id']==artifact['workflow_run']['head_repository_id']==1190539955\nassert job['run_id']==run['id'] and job['head_sha']==run['head_sha'] and job['run_attempt']==run['run_attempt']\nassert run['status']==job['status']=='completed'\nassert artifact['workflow_run']['id']==run['id'] and artifact['workflow_run']['head_sha']==run['head_sha'] and not artifact['expired']\nzip_bytes=pathlib.Path(archive).read_bytes();digest=hashlib.sha256(zip_bytes).hexdigest();assert len(zip_bytes)==artifact['size_in_bytes'] and artifact['digest']=='sha256:'+digest\ninstant=lambda s:datetime.datetime.fromisoformat(s.replace('Z','+00:00'))\nassert instant(job['started_at'])<=instant(artifact['created_at'])<=instant(job['completed_at'])\nwith zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:\n names=z.namelist();assert len(names)==len(set(names));assert set(names)=={'native.log','native-junit.xml','receipt.json'};assert z.testzip() is None\n raw={name:z.read(name) for name in names}\nr=json.loads(raw['receipt.json'],object_pairs_hook=unique)\nassert r['purpose']=='supplemental_actual_native_feedback' and r['checkout_sha']==run['head_sha']\nassert r['repository']=='heke99/gridex-ops-platform' and r['repository_id']=='1190539955' and r['workflow_run_id']==str(run['id']) and r['workflow_run_attempt']==str(run['run_attempt'])\nassert r['input_identity']=='immutable_checkout_before_replay' and r['test_scope']==['scripts/ediel-cancellation-public-acceptance-native.test.ts']\nfor key,value in {'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','upgrade_parity':'NOT_RUN','browser_tests':'NOT_RUN','whole_c03_c05':'NOT_APPROVED_BY_RECEIPT_ALONE','authentic_market_evidence':'NOT_PROVIDED'}.items():assert r[key]==value\nsha=r['checkout_sha'];git=lambda *args:subprocess.check_output(['git',*args],cwd=checkout,stderr=subprocess.DEVNULL)\nassert git('rev-parse',sha+'^{tree}').decode().strip()==r['checkout_tree']==APPROVED_TREE\nentries={}\nfor line in git('ls-tree','-rz','--full-tree',sha).split(b'\\0'):\n if not line:continue\n info,path=line.split(b'\\t',1);mode,kind,oid=info.decode().split();assert kind=='blob';name=path.decode();assert name not in entries;entries[name]=(mode,oid)\nassert set(entries)==set(r['source_blobs'])==set(r['input_sha256'])\nassert len(entries)==9409, 'reviewed_candidate_source_census_changed'\nfor name,identity in APPROVED_INPUTS.items(): assert entries[name]==identity, ('reviewed_source_pin_changed',name)\nprocess=subprocess.Popen(['git','cat-file','--batch'],cwd=checkout,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)\nfor name,(mode,oid) in entries.items():\n process.stdin.write((oid+'\\n').encode());process.stdin.flush();header=process.stdout.readline().decode().split();assert header[:2]==[oid,'blob'];body=process.stdout.read(int(header[2]));assert process.stdout.read(1)==b'\\n';digest_body=hashlib.sha256(body).hexdigest();assert r['source_blobs'][name]=={'mode':mode,'oid':oid,'sha256':digest_body};assert r['input_sha256'][name]==digest_body\nprocess.stdin.close();assert process.wait()==0\nassert r['runtime_generated_input_sha256']=={},'unexpected_runtime_input_drift_requires_individual_review'\nxml=raw['native-junit.xml'];assert b'<!DOCTYPE' not in xml and b'<!ENTITY' not in xml\nroot=ET.fromstring(xml);cases=list(root.iter('testcase'));identities=collections.Counter((x.get('classname'),x.get('name')) for x in cases)\n# Expected identities derive independently from the preserved original source,\n# never from the candidate artifact's executed JUnit.\nlegacy='ac26467f2285a0f6c738e8ebbfbc55a495363272'\nold=git('show',legacy+':scripts/ediel-at-z03c-z05c-supplier-native.test.ts').decode()\nnew=git('show',sha+':scripts/ediel-cancellation-public-acceptance-native.test.ts').decode()\nmarker=\"describe('actual native supplier cancellation chains'\"\n# Original case identities remain independently pinned to ac264. The reviewed\n# 676 successor strengthens premises/223 checks; it is intentionally not the\n# original byte-equal body. Admit only this independently SOURCE-approved body\n# and the exact current full source, never arbitrary candidate/JUnit content.\nhardened=git('show',HARDENED_SOURCE+':scripts/ediel-cancellation-public-acceptance-native.test.ts').decode()\nassert hashlib.sha256(new.encode()).hexdigest()==APPROVED_NATIVE_SHA256, 'unreviewed_native_source'\nassert hardened[hardened.index(marker):]==new[new.index(marker):], 'reviewed_hardened30_body_changed'\noriginal_body_equal=old[old.index(marker):]==new[new.index(marker):]\nassert not original_body_equal, 'unexpected_original_body_claim' \nimport re\nbody=old[old.index(marker):]\nexpected_names=re.findall(r\"\\bit\\('([^']+)'\",body)\nfor values,template in re.findall(r\"it\\.each\\(\\[([^\\]]+)\\]\\)\\('([^']+)'\",body):\n assert template.count('%s')==1\n for value in re.findall(r\"'([^']+)'\",values):expected_names.append(template.replace('%s',value))\nassert len(expected_names)==len(set(expected_names))==30\nnames=['actual native supplier cancellation chains > '+name for name in expected_names]\nexpected=collections.Counter(('scripts/ediel-cancellation-public-acceptance-native.test.ts',name) for name in names)\nassert len(cases)==30 and identities==expected,'exact_original_strict30_identities_required'\n\nfailed=sum(x.find('failure') is not None for x in cases);errors=sum(x.find('error') is not None for x in cases);skipped=sum(x.find('skipped') is not None for x in cases);passed=len(cases)-failed-errors-skipped\nfor suite in root.iter('testsuite'):\n if list(suite.iter('testsuite'))!=[suite]:continue\n own=suite.findall('testcase');assert int(suite.get('tests','-1'))==len(own)\n for tag,attr in [('failure','failures'),('error','errors'),('skipped','skipped')]:assert int(suite.get(attr,'0'))==sum(c.find(tag) is not None for c in own)\nassert skipped==0 and all(sum(c.find(tag) is not None for tag in ['failure','error','skipped'])<=1 for c in cases)\nassert type(r['native_exit_code']) is int and r['native_exit_code'] in [0,1]\nif r['native_exit_code']==0:assert passed==30 and failed==errors==skipped==0 and job['conclusion']=='success'\nelse:assert failed+errors>0 and job['conclusion']=='failure'\nresult={'classification':'AUTHENTIC_CURRENT_NATIVE_EXECUTION_NOT_WHOLE_APPROVAL','head':sha,'tree':r['checkout_tree'],'run':run['id'],'attempt':run['run_attempt'],'job':job['id'],'artifact':artifact['id'],'artifactBytes':len(zip_bytes),'artifactSha256':digest,'allOriginalGitBlobsMatched':len(entries),'runtimeGeneratedDrift':{},'bootstrap':'PASSED','nativeExit':r['native_exit_code'],'testsExecuted':len(cases),'passed':passed,'failed':failed,'errors':errors,'skipped':skipped,'exactOriginalStrict30Identities':True,'originalStrict30BodyByteEqual':False,'approvedHardened676BodyByteEqual':True,'approvedHardenedSource':HARDENED_SOURCE,'approvedNativeSourceSha256':APPROVED_NATIVE_SHA256,'originalSource':legacy,'wholeApproval':False,'marketEvidenceProvided':False,'failures':[{'name':c.get('name'),'message':c.find('failure').get('message','')[:400]} for c in cases if c.find('failure') is not None]}\npathlib.Path(out).write_text(json.dumps(result,indent=2)+'\\n');print(json.dumps({k:v for k,v in result.items() if k!='failures'}))\n"
+}
+```
+
+
+## API693 actual delivery / composition2+self / current4of8 — 2026-10-08T00:49:27.170901+00:00
+
+OfficialPR693 actualMERGED00:44:51Z, source6f967e15500f9bf53e552fd7ba6f7c0c636af4bd→main26ebd4cb71b28c7f33bcffefacb5fe13baeceb8b. Exactly3 additivepaths afterbf036: private own-source registerreading READ API, fixture, componenttest. MissingAPI-source availability blocker is SUPERSEDED byactualmain; automaticL currentactor/source READ→selectedpolicy→protectedownAPP/healthyperiod remainsunproved and ownerc65syncpolicy+CORE2f runtime. Incoming newports occur onlydefinitions+theirfinitecomponenttest, notautomaticruntime/messagePolicy/native callers. No privateREAD/whole/resultingmain native credit borrowed from source delivery.
+
+Actual500 proof2+self is published6736049806735 FULLMATCH, currentPRbody fullGETMATCH nowactual500 failureproof+old803 separatelypreserved. Honestlyattributed COMMENTED native-review5450110506 exact500/bodyFULLMATCH, notformalselfapproval. FreshofficialPROPEN500/main26eb/all6c203GETMATCH in preflight, sourceworktreeclean. Incoming693 composition extends prior500+bf SOURCE2/self overthreeonly: FP ff9b076971a6887d2824722b0d2cc236ee74f44fa13c4d73d5c199099fe181d0 +z18 0729aa022ebd5f661d286aa112ca24e2754442f7dcd7d165391d70cbde0e01a5 +ROOTself743c029813f2967b3de521c202af06d4ccf320b85c3aebd2d6773b49327675a4; conflictfree previewd82bd981f4e4c3fcc10218d8124b38b1c8a8f7bb. Main9415/preview9417/all9413foreign MODEtypeOID andownfour500posts exact, coveragebyteexact/noGEN/schema drift. No previewexecution or finalDELIVERY. Preparedrunbook knownmain/preview updated26eb/d82b, statusNOTEXECUTED.
+
+Current500 soleFP00:46:43 verify113080971772SUCCESS, now4/8 mandatoryPASS (upgrade/coverage/smoke/verify); clean113080971583IN_PROGRESS; quality113080971603/browser113080673526/certificate113090566169QUEUED. No gatesweakened or sourcechange. ROOT remaining componentaction only currentall8SUCCESS+freshmain/ref/head/finalDELIVERY→freeatomicmerge-role normal500merge→actualmainproof/MERGED→roleFIRST+six404, or genuinefailedcheck cause/scope handoff. No role held or newpair; sixretainedonlyactive691 qualification/delivery. Wholeblockedactualcurrentnative1P29F+automaticL integration/healthyperiod/selected217GEN+originalnative3/259scenario qualifiedsource, not oldmissingAPI. Sharedmemoryholder separate24fa; rootno sharedfileedit.
+
+Durable FP26ebcomposition:
+```json
+{
+  "classification": "SOURCE_COMPOSITION_APPROVE_ONLY",
+  "head": "500df58768ca6fc01394b107f1d652353783f1fc",
+  "main": "26ebd4cb71b28c7f33bcffefacb5fe13baeceb8b",
+  "previewTree": "d82bd981f4e4c3fcc10218d8124b38b1c8a8f7bb",
+  "reusePriorIndependentProof": "/tmp/gridex-691-500-independent-watch/composition-main-bf036-final_packet_review.json",
+  "incrementalIncomingPaths": [
+    "__tests__/ediel-prodat-own-source-register-reading-component.test.ts",
+    "__tests__/helpers/prodatOwnSourceReadingFixture.ts",
+    "lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations.ts"
+  ],
+  "ownedPaths": [
+    ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+    "__tests__/ediel-cancellation-prospective-source-2ea.test.ts",
+    "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+    "scripts/helpers/ediel-cancellation-prospective-source-2ea.ts"
+  ],
+  "allForeignCurrentMainModeTypeOidPreserved": true,
+  "foreignCurrentMainLeaves": 9413,
+  "previewLeaves": 9417,
+  "allFourOwnPostimagesExact500": true,
+  "coverageCurrentMainByteEqual": true,
+  "newApiNotAutomaticallyConsumedByLibOrScripts": true,
+  "noRuntimeIntegrationOrFixtureChange": "693 adds standalone private source-reading API plus separate test fixture and component test; current compiled runtime/native do not call new API",
+  "executionOfPreview": false,
+  "wholeCApproval": false,
+  "deliveryApproval": false,
+  "findings": [],
+  "reviewedAt": "2026-10-08T00:47:29.427836+00:00"
+}
+```
+
+Durable z18composition:
+```json
+{
+  "reviewer": "/root/z18v_contract_review",
+  "verdict": "SOURCE_COMPOSITION_APPROVE_ONLY",
+  "head": "500df58768ca6fc01394b107f1d652353783f1fc",
+  "headTree": "6b1a0410a5a382aee702746f5caa019e6f4aa7c8",
+  "main": "26ebd4cb71b28c7f33bcffefacb5fe13baeceb8b",
+  "mainTree": "3a7b3f4e891c7608d078c37328ed21b60a88dab7",
+  "priorMain": "bf0364e8a94c54ad79276eb9a2becf59fc7d9905",
+  "previewTree": "d82bd981f4e4c3fcc10218d8124b38b1c8a8f7bb",
+  "incrementalPaths": [
+    "__tests__/ediel-prodat-own-source-register-reading-component.test.ts",
+    "__tests__/helpers/prodatOwnSourceReadingFixture.ts",
+    "lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations.ts"
+  ],
+  "incomingGitObjects": {
+    "__tests__/ediel-prodat-own-source-register-reading-component.test.ts": "100644 blob a3353f0c304e35a3f1c57984afa65d7c591b255a",
+    "__tests__/helpers/prodatOwnSourceReadingFixture.ts": "100644 blob 9f8ba1ad9548d20518499195d788f1cfe4c43339",
+    "lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations.ts": "100644 blob 299f24f9dee5a906f7f725d4f130fea0d78d17c5"
+  },
+  "allForeignCurrentMainModeTypeOidPreserved": 9413,
+  "currentMainLeaves": 9415,
+  "previewLeaves": 9417,
+  "allFourOwnPostimagesExact500": true,
+  "coverageCurrentMainByteEqual": true,
+  "noGENSchemaCanonicalRuntimeDelta": true,
+  "previousCompositionReceipt": "/tmp/gridex-691-500-bf036-composition-z18-df5f4470b1664151a5d439c5d39b5949.json",
+  "fpReceiptSha256": "ff9b076971a6887d2824722b0d2cc236ee74f44fa13c4d73d5c199099fe181d0",
+  "consumerAssessment": "Additive opted-in actual Z04L/LK source READ API with source/legal/reception/mail/parse/currentREAD guards and one-use compiled-policy binding. No automatic caller in messagePolicy/runtime/publicnative; only newAPI+component reference these exports. Retained original A_D sources and owned ordinary L helper/callers unchanged. Availability dependency delivered; healthy/fullL and automatic CORE integration not proven.",
+  "materialFindings": [],
+  "checksPerformed": "Read-only incremental693 source/callgraph + existing tree/object comparison, no merge-tree or test/artifact/reader/CI execution",
+  "executionOfPreview": false,
+  "nativeMainExecution": false,
+  "wholeCApproval": false,
+  "deliveryApproval": false
+}
+```
+
+Durable ROOTcomposition:
+```json
+{
+  "classification": "ROOT_SELF_SOURCE_COMPOSITION_ONLY",
+  "head": "500df58768ca6fc01394b107f1d652353783f1fc",
+  "main": "26ebd4cb71b28c7f33bcffefacb5fe13baeceb8b",
+  "previewTree": "d82bd981f4e4c3fcc10218d8124b38b1c8a8f7bb",
+  "mainLeaves": 9415,
+  "previewLeaves": 9417,
+  "foreignLeaves": 9413,
+  "allForeignModeTypeOidsExact": true,
+  "ownedFourExact": true,
+  "coverageUnchanged": true,
+  "previewExecution": false,
+  "currentMainNativeOrDeliveryApproval": false,
+  "verifiedAt": "2026-10-08T00:48:36.002401+00:00"
 }
 ```
