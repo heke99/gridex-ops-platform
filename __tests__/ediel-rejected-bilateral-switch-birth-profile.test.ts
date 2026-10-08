@@ -6,6 +6,8 @@ import {resolveRejectedBilateralSwitchBirthProfile} from '@/lib/inbound-mail/rej
 import {resolveBilateralSwitchBirthProfile} from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import {ownerRulePack} from './helpers/sourceOwnerFixtures'
 import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
 import {alphabets,line,characteristic,raw,validate,type Parts} from './fixtures/prodat-register'
@@ -206,4 +208,84 @@ it.each(['invalid','2026-02-30T12:00:00Z','2026-10-06T22:30:00'])('refuses inval
 })
 it('rejects missing314 catalog association mismatch instead of fabricating a witness',async()=>{
  await expect(resolve(wire(missing314Body()).replace('E2SE6A','E2SE5A'))).rejects.toThrow('rejected_bilateral_switch_birth_association_mismatch')
+})
+
+// A missing physical APP may identify a catalog, never an admitted wire source.
+const missing311Body=(id=point,agency='9'):Parts[]=>[line('1',id,undefined,agency),...characteristic('Z13','Z25'),['RFF',['LI','OWN']]]
+const withoutApp=(payload:string)=>payload.replace('23-DDQ-PRODAT','')
+const missing311Wire=(parts:readonly Parts[]=missing311Body())=>withoutApp(wire(parts))
+it('uses the established dated catalog fallback while actual national311 validation stays blocking',async()=>{
+ const healthy=wire(missing311Body()),payload=withoutApp(healthy),t=tokenizeEdifact(payload),before=prodatRegisterGroups(t.segments,t.una,'Z04')
+ expect(before.problems).toEqual([]);expect(await resolveBilateralSwitchBirthProfile({rawPayload:payload,receivedAt:receipt})).toBeNull()
+ expectWitness(await resolve(payload))
+ expect(io.rpc).toHaveBeenCalledExactlyOnceWith('resolve_canonical_ediel_rule_pack_with_witness_v1',{
+  p_market:'electricity',p_family:'PRODAT',p_message_code:'Z04',p_transaction_subtype:'H',p_direction:'inbound',p_business_date:'2026-10-07'})
+ const policy=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z04',subtypeOrReasonCode:'Z25',direction:'inbound',
+  referenceDate:'2026-10-07',applicationReference:'23-DDQ-PRODAT',mode:'catalog_evidence'})
+ const field311={...policy,fieldRules:policy.fieldRules.filter(r=>'fieldNumber' in r&&r.fieldNumber==='311')}
+ expect(field311.fieldRules).toHaveLength(1)
+ expect(validateCanonicalPolicyFields({policy:field311,rawPayload:healthy})).toEqual([])
+ expect(validateCanonicalPolicyFields({policy:field311,rawPayload:payload})).toEqual(expect.arrayContaining([expect.objectContaining({
+  blocking:true,prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:'311',errorKind:'missing',group:'header'}),
+ })]))
+ expect(prodatRegisterGroups(t.segments,t.una,'Z04')).toEqual(before)
+})
+it.each(alphabets)('preserves missing311 with actual UNA %j and released209/LI',async(component,element,release,terminator)=>{
+ const parts=missing311Body(`POINT${component}${element}${release}${terminator}A`,'89')
+ parts[parts.length-1]=['RFF',['LI',`OWN${component}${element}${release}${terminator}A`]]
+ expectWitness(await resolve(withoutApp(guideOrderedFixtureRaw(parts,'Z04',[component,element,release,terminator]))))
+})
+it.each([
+ ...['23-DGI-PRODAT',' ',' 23-DDQ-PRODAT','23-DDQ-PRODAT ',':','23-DDQ-PRODAT:EXTRA'].map(app=>['supplied APP '+app,()=>wire(missing311Body()).replace('23-DDQ-PRODAT',app)] as const),
+ ['truncated UNB before311',()=>missing311Wire().replace("I++'","I+'")],
+ ['padded UNB',()=>missing311Wire().replace('UNB+',' UNB+')],
+ ...['','0','2','01',' 1','1 '].map(sequence=>['invalid314 '+sequence,()=>missing311Wire([line(sequence,point,undefined,'9'),...missing311Body().slice(1)])] as const),
+ ['supplied C8291:1',()=>missing311Wire([line('1',point,'1','9'),...missing311Body().slice(1)])],
+ ['empty C829',()=>missing311Wire([['LIN','1','',[point,'','','9'],''],...missing311Body().slice(1)])],
+ ['extra C829 component',()=>missing311Wire([['LIN','1','',[point,'','','9'],['1','1','']],...missing311Body().slice(1)])],
+ ['extra LIN element',()=>missing311Wire([['LIN','1','',[point,'','','9'],'',''],...missing311Body().slice(1)])],
+ ['supplied action',()=>missing311Wire([['LIN','1','ACTION',[point,'','','9']],...missing311Body().slice(1)])],
+ ['missing209',()=>missing311Wire(missing311Body(''))],
+ ['too long209',()=>missing311Wire(missing311Body('A'.repeat(26)))],
+ ['invalid agency',()=>missing311Wire(missing311Body(point,'XX'))],
+ ['reserved209 component',()=>missing311Wire([['LIN','1','',[point,'BAD','','9']],...missing311Body().slice(1)])],
+ ['extra209 component',()=>missing311Wire([['LIN','1','',[point,'','','9','']],...missing311Body().slice(1)])],
+ ['noLIN',()=>missing311Wire(missing311Body().slice(1))],
+ ['second LIN',()=>missing311Wire([...missing311Body(),line('2',point,undefined,'9')])],
+ ['original rejected258',()=>withoutApp(wire())],
+ ['missingLI',()=>missing311Wire(missing311Body().slice(0,-1))],
+ ['duplicateLI',()=>missing311Wire([...missing311Body(),['RFF',['LI','OTHER']]])],
+ ['headerLI',()=>missing311Wire([['RFF',['LI','OWN']],...missing311Body().slice(0,-1)])],
+ ['lateLI',()=>withoutApp(raw([...missing311Body().slice(0,-1),['NAD','UD',['C','','89']],['RFF',['LI','OWN']]]))],
+ ...['',' OWN','OWN '].map(li=>['invalidLI '+li,()=>missing311Wire([...missing311Body().slice(0,-1),['RFF',['LI',li]]])] as const),
+ ['paddedLI qualifier',()=>missing311Wire().replace('RFF+LI','RFF+ LI ')],
+ ['extraLI component',()=>missing311Wire().replace('RFF+LI:OWN','RFF+LI:OWN:')],
+ ['missing223',()=>missing311Wire([line('1',point,undefined,'9'),['RFF',['LI','OWN']]])],
+ ['wrong223',()=>missing311Wire().replace('CAV+Z25','CAV+Z22')],
+ ['duplicate223',()=>missing311Wire([...missing311Body(),...characteristic('Z13','Z25')])],
+ ['header223',()=>missing311Wire([...characteristic('Z13','Z25'),line('1',point,undefined,'9'),['RFF',['LI','OWN']]])],
+ ['late223',()=>withoutApp(raw([line('1',point,undefined,'9'),['RFF',['LI','OWN']],...characteristic('Z13','Z25')]))],
+ ['extraCAV',()=>missing311Wire().replace('CAV+Z25','CAV+Z25:OTHER')],
+ ['paddedCAV',()=>missing311Wire().replace('CAV+Z25',' CAV+Z25')],
+ ['missing312association',()=>missing311Wire().replace(':UN:E2SE6A',':UN:')],
+ ['wrong312version',()=>missing311Wire().replace(':97A:',':96A:')],
+ ['missing202',()=>missing311Wire().replace('BGM+Z04','BGM+')],
+ ['wrong202',()=>missing311Wire().replace('BGM+Z04','BGM+Z03')],
+ ['composite202',()=>missing311Wire().replace('BGM+Z04','BGM+Z04:OTHER')],
+ ['duplicateBGM',()=>missing311Wire([['BGM','Z04','OTHER','9'],...missing311Body()])],
+ ['lateBGM',()=>withoutApp(raw([...missing311Body(),['BGM','Z04','OTHER','9']]))],
+ ['duplicateUNH',()=>missing311Wire([['UNH','OTHER',['PRODAT','D','97A','UN','E2SE6A']],...missing311Body()])],
+ ['incorrectUNT',()=>missing311Wire().replace(/UNT\+\d+\+M/,'UNT+999+M')],
+] as const)('refuses mixed or malformed missing311 purpose: %s',async(_label,make)=>{
+ expect(await resolve(make())).toBeNull();expect(io.rpc).not.toHaveBeenCalled()
+})
+it.each(['invalid','2026-02-30T12:00:00Z','2026-10-06T22:30:00'])('refuses invalid actual missing311 receipt %s',async clock=>{
+ await expect(resolve(missing311Wire(),clock)).rejects.toThrow('rejected_bilateral_switch_birth_receipt_clock_invalid');expect(io.rpc).not.toHaveBeenCalled()
+})
+it.each([0,2])('refuses missing311 catalog count %s',async count=>{
+ io.rpc.mockResolvedValue({data:Array.from({length:count},registry),error:null})
+ await expect(resolve(missing311Wire())).rejects.toThrow(`canonical_rule_pack_evidence_count:${count}:PRODAT:Z04:H`)
+})
+it('refuses missing311 current catalog association mismatch',async()=>{
+ await expect(resolve(missing311Wire().replace('E2SE6A','E2SE5A'))).rejects.toThrow('rejected_bilateral_switch_birth_association_mismatch')
 })

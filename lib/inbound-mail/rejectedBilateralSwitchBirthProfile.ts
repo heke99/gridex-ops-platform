@@ -7,8 +7,8 @@ import {resolveCanonicalRulePack} from '@/lib/ediel/rulebook/canonicalRulePackRe
 import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
 import type {BilateralSwitchBirthProfile} from './bilateralSwitchBirthProfile'
 
-/** Catalog witnesses for recognizable rejected H sources: missing single-LIN
- * sequence, or malformed second C829. Both remain invalid: this selects no original, grants
+/** Catalog witnesses for recognizable rejected H sources: missing application,
+ * missing single-LIN sequence, or malformed second C829. These remain invalid: this selects no original, grants
  * no admission/business authority and never inherits common fields onto it.
  */
 export async function resolveRejectedBilateralSwitchBirthProfile(input: {
@@ -20,12 +20,17 @@ export async function resolveRejectedBilateralSwitchBirthProfile(input: {
   if (unhs.length!==1||bgms.length!==1) return null
   const association=segmentComposite(unhs[0],2,una)
   const code=segmentComposite(bgms[0],1,una)
-  const application=segmentComposite(segments.find(t=>t.tag==='UNB'),7,una)
+  const unbs=segments.filter(t=>t.tag==='UNB')
+  if (unbs.length!==1) return null
+  const application=segmentComposite(unbs[0],7,una)
+  const missingApplication=application.length===1&&application[0]===''
+    &&segmentElementCount(unbs[0],una)>=7&&segmentUntrimmedRaw(unbs[0])===unbs[0].raw
   if (association.length!==5||association.slice(0,4).join(':')!=='PRODAT:D:97A:UN'||!association[4]
-    ||code.length!==1||code[0]!=='Z04'||application.length!==1||application[0]!=='23-DDQ-PRODAT') return null
+    ||code.length!==1||code[0]!=='Z04'||application.length!==1||!missingApplication&&application[0]!=='23-DDQ-PRODAT') return null
   const grouping=prodatRegisterGroups(segments,una,'Z04')
   const first=grouping.groups[0]
   if (grouping.groups.length===2) {
+    if (missingApplication) return null
     const second=grouping.groups[1]
     if (segments.indexOf(bgms[0])>segments.indexOf(first.segments[0])
       ||first.messageIndex!==second.messageIndex||first.itemId!==second.itemId||first.identityAgency!==second.identityAgency) return null
@@ -46,15 +51,21 @@ export async function resolveRejectedBilateralSwitchBirthProfile(input: {
     const separator=una.dataElementSeparator,component=una.componentDataElementSeparator
     const reserved=[separator,component,una.releaseCharacter,una.segmentTerminator]
     const encode=(value:string)=>[...value].map(c=>reserved.includes(c)?una.releaseCharacter+c:c).join('')
-    const expectedLin=`LIN${separator.repeat(3)}${encode(identity?.value??'')}${component.repeat(3)}${first.identityAgency}`
+    const expectedSequence=missingApplication?'1':''
+    const expectedLin=`LIN${separator}${expectedSequence}${separator.repeat(2)}${encode(identity?.value??'')}${component.repeat(3)}${first.identityAgency}`
     if (segments.indexOf(bgms[0])>segments.indexOf(lin)||segmentElementCount(lin,una)!==3
-      ||sequence.length!==1||sequence[0]!==''||action.length!==1||action[0]!==''
+      ||sequence.length!==1||sequence[0]!==expectedSequence||action.length!==1||action[0]!==''
       ||!identity?.present||identity.malformed||segmentUntrimmedRaw(lin)!==expectedLin
-      ||first.validRegisterChain||first.firstLineIndex!==null||first.lineNumber!==null
       ||first.effectiveSegments.length!==first.segments.length||first.effectiveSegments.some((t,i)=>t!==first.segments[i])) return null
-    const problem=grouping.problems[0]
-    if (grouping.problems.length!==1||problem.fieldNumber!=='314'||problem.lineIndex!==first.lineIndex
-      ||problem.segmentIndex!==lin.index||problem.reason!=='global_sequence_must_increment_from_one') return null
+    if (missingApplication) {
+      if (grouping.problems.length!==0||!first.validRegisterChain||first.firstLineIndex!==first.lineIndex
+        ||first.lineNumber!=='1'||first.registerPosition!==1) return null
+    } else {
+      if (first.validRegisterChain||first.firstLineIndex!==null||first.lineNumber!==null) return null
+      const problem=grouping.problems[0]
+      if (grouping.problems.length!==1||problem.fieldNumber!=='314'||problem.lineIndex!==first.lineIndex
+        ||problem.segmentIndex!==lin.index||problem.reason!=='global_sequence_must_increment_from_one') return null
+    }
     // Count all supplied LI selectors; a header/duplicate/padded qualifier must
     // not disappear through normalized matching. This is not request authority.
     const lis=segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,una)[0]?.trim().toUpperCase()==='LI')
@@ -77,7 +88,7 @@ export async function resolveRejectedBilateralSwitchBirthProfile(input: {
     ||segmentUntrimmedRaw(cav)!==`CAV${separator}Z25${una.componentDataElementSeparator.repeat(reason.length-1)}`) return null
   if (parseSourceReceiptInstant(input.receivedAt)===null) throw Error('rejected_bilateral_switch_birth_receipt_clock_invalid')
   const evidence=await resolveCanonicalRulePack({family:'PRODAT',messageCode:'Z04',transactionSubtype:'Z25',
-    applicationReference:application[0],direction:'inbound',businessDate:stockholmBusinessDate(new Date(input.receivedAt))})
+    applicationReference:missingApplication?null:application[0],direction:'inbound',businessDate:stockholmBusinessDate(new Date(input.receivedAt))})
   if (association[4]!==evidence.unhAssociationCode) throw Error('rejected_bilateral_switch_birth_association_mismatch')
   if (!evidence.databaseProfileKey) throw Error('rejected_bilateral_switch_birth_database_profile_key_missing')
   return {canonical_rule_pack_id:evidence.rulePackId,rule_profile_key:evidence.databaseProfileKey,
