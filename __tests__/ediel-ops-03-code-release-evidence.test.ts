@@ -179,6 +179,16 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
     if (sha256(restored) !== originalDigest) throw Error('fixture_reviewed_esco_original_digest_mismatch')
     return restored
   }
+  }
+  // Restore only the exact proposed billing include inside this historical
+  // finite Git port; real producer source pins remain unchanged.
+  if (file === 'scripts/ediel-source-owner-native.config.ts'
+    && sha256(bytes) === 'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db') {
+    const addition = "    'scripts/ediel-canonical-signature-billing-projection-native.test.ts',\n"
+    const current = bytes.toString('utf8')
+    if (current.split(addition).length !== 2) throw Error('fixture_reviewed_billing_include_not_unique')
+    bytes = Buffer.from(current.replace(addition, ''))
+    if (sha256(bytes) !== '7461db28b3fbd1546bd45e9b5fe4a470bba786460731d215a675828d0903fedf') throw Error('fixture_reviewed_billing_config_inverse_digest_mismatch')
   const additions = file === 'scripts/ediel-source-owner-native.config.ts'
     ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n", "    'scripts/ediel-at-z15c-z18v-esco-native.test.ts',\n", "    'scripts/ediel-at-z14n-esco-native.test.ts',\n"]
     : file === '.github/workflows/ops-hardening.yml'
@@ -653,4 +663,41 @@ it.each(['217', '261', 'guard'] as const)('historical ESCO finite port refuses c
   const changed = source.replace(anchor, field === 'guard' ? "return undefined" : "sourceOmission!=='999'")
   expect(() => reviewedProducerFixture('scripts/fixtures/ediel-service-evidence-native.ts', Buffer.from(changed)))
     .toThrow('fixture_reviewed_esco_source_unavailable')
+})
+
+// Prospective config bytes are modeled here; the protected native config is
+// never imported, changed or qualified as current producer proof by this port.
+const billingNativeInclude = "    'scripts/ediel-canonical-signature-billing-projection-native.test.ts',\n"
+function prospectiveBillingConfig(input?: Buffer) {
+  const current = (input ?? readFileSync('scripts/ediel-source-owner-native.config.ts')).toString('utf8')
+  const digest = sha256(current)
+  expect(['7461db28b3fbd1546bd45e9b5fe4a470bba786460731d215a675828d0903fedf',
+    'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db']).toContain(digest)
+  if (digest === 'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db') expect(current.split(billingNativeInclude)).toHaveLength(2)
+  const source = digest === 'd9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db'
+    ? current.replace(billingNativeInclude, '') : current
+  expect(sha256(source)).toBe('7461db28b3fbd1546bd45e9b5fe4a470bba786460731d215a675828d0903fedf')
+  const anchor = "    'scripts/ediel-test-original-outcome-native.test.ts',\n"
+  expect(source.split(anchor)).toHaveLength(2)
+  const proposed = source.replace(anchor, billingNativeInclude + anchor)
+  expect(sha256(proposed)).toBe('d9bd80bf7038f9232362ecba4deaa29b3ae264ef3c89000873fc91ad740fd0db')
+  return { source: Buffer.from(source), proposed: Buffer.from(proposed) }
+}
+it('historical billing config port restores the exact whole reviewed predecessor', () => {
+  const { source, proposed } = prospectiveBillingConfig()
+  expect(prospectiveBillingConfig(proposed)).toEqual({ source, proposed })
+  const file = 'scripts/ediel-source-owner-native.config.ts'
+  const previous = reviewedProducerFixture(file, source)
+  expect(sha256(previous)).toBe('722e7d4f59e4fcb851e258d9f1b1f58136a24aeb04af4a4167371db93874fe56')
+  expect(reviewedProducerFixture(file, previous)).toEqual(previous)
+  expect(reviewedProducerFixture(file, proposed)).toEqual(previous)
+})
+it.each([
+  ['changed billing include', (source: string) => source.replace(billingNativeInclude, billingNativeInclude.replace('billing-projection', 'billing-unreviewed'))],
+  ['unknown suffix', (source: string) => source + '\n// unknown config\n'],
+  ['duplicate billing include', (source: string) => source + billingNativeInclude],
+])('historical billing config port refuses %s without admitting current native proof', (_name, mutate) => {
+  const { proposed } = prospectiveBillingConfig()
+  expect(() => reviewedProducerFixture('scripts/ediel-source-owner-native.config.ts', Buffer.from(mutate(proposed.toString('utf8')))))
+    .toThrow('fixture_reviewed_producer_source_unavailable:scripts/ediel-source-owner-native.config.ts')
 })
