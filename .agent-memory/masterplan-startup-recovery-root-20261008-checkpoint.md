@@ -75,3 +75,49 @@ expectedhead delivery and actualownref release. Ifgenuinefailure, document
 exact blocker/owner/resumeevent and resolve only lawful scope. Do not restart
 CI by routine checkpoint updates or infer merge success. This unique
 operationalcheckpoint is published separately from frozenPR715source.
+
+## Report and new-agent routing — 2026-10-08T13:17:55.310678+00:00
+
+Taken/completed: final Swedish report and two fixed-role dispatch prompts reviewed
+independently; corrected the JSON monitor scope after its new actionable request.
+Main372d unchanged:115/121rules +185/231acceptance=300/352,52remain
+(6rules P08/TR08/TR09/DB01/DB05/OPS04 plus46acceptance).17openPR;
+latest mandatory metadata13:11UTC:7148SUCCESS,7156SUCCESS+clean/certificate
+IN_PROGRESS.27otherCodexsidebar flags12:58:50UTC:24idle/3active; not
+execution/custody proof and detailed6chat reads timeout. Claude status from
+GitHub only. No whole-ID approval from green componentPRs.
+
+Actual owner progress:2f's once diagnostic6060517759 and scoped byteidentity
+repair claim6060557868;41f's threefile-extension6060543809 and meaningful
+firstINSERTpointNULL RED6060591136. Existing packets now2f65refs/41f9refs;
+97total remote refs. Reuse existingwork; typed258 runtime/matcher remains2f.
+Bardeen7refs alreadyverified for renderer+isolatedforward; no repeatinitial
+reservation or blanketmanifestdecision before authoring.
+
+Latest Claude request6060615751 handled with actual remotehead/main/owner/file
+verification: [PROXY_DELIVERY_BLOCKED](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6060715988).
+Current user's monitor prohibits PRmerges/permissionchanges; role-only waiting
+is not a valid separate operation.714OPEN exacte18f; file701ac remains
+ee171db1; no rolecreated/refdeleted/merge/probe. Case63994ms/725PASS1SKIP
+are owner-reported decodedlog evidence; root verified8checkmetadata, did not
+recollect artifacts or infer300s exercised/wholeHapproval.
+
+Next dispatch:one fixedBLOCKERARAGENT can prepare exactexistinghand-off or
+boundedreadonlyreview; implement onlyafterrequiredactualhandoff AND verified
+ownrefs/CLAIM. OnePLANAGENT onlyafterseparateexecutablefree/handoff scope
+verified. No new IDs assigned or concurrency protocolchange. Candidates
+are2f-held boundedruntime/policy work; matcheronlyifstillneededafter41f's
+currentbirthfix. SC038closure needsoriginalremainingwholehandoff plusownrefs,
+but no generic699wait. Reuse requests6060202710 and6059324602. No
+newnative/capture/GEN/artifactproducer, takeover or automaticchatwake.
+
+Full copyable prompts are on reviewed but NOT main [PR715](https://github.com/heke99/gridex-ops-platform/pull/715)
+source4f035b2c5c0281a0c06ba8a87d16f1a9c79ca327:
+[PLANAGENT](https://github.com/heke99/gridex-ops-platform/blob/4f035b2c5c0281a0c06ba8a87d16f1a9c79ca327/.agent-memory/masterplan-next-wave-prompt.md);
+[BLOCKERARAGENT](https://github.com/heke99/gridex-ops-platform/blob/4f035b2c5c0281a0c06ba8a87d16f1a9c79ca327/.agent-memory/masterplan-blocker-agent-prompt.md).
+Report localabsolute /workspace/reports/gridex-documentation-recovery-and-agent-status-20261008.md, matchingJSON; reportSHA2569de0ef99d086f0b5a4abf2ca4d55e62bb206a52aa7e601a6fa4e3f3d5f25fb35.
+
+Next ownroot: retain13own715file refs32b3163; no memory/merge-role held.
+Qualify terminal715CI and finish current-source/current-main delivery only
+in an authorized delivery operation. Operationalcheckpoint alone updates
+on this existing separate branch; frozen715head4f is unchanged.
