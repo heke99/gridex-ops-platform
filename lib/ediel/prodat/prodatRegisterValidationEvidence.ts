@@ -4,6 +4,7 @@ import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
 import {prodatRegisterGroups, prodatRegisterMessageSegments} from './prodatRegisterGroups'
 import {prodatRegisterFieldScope} from './prodat26AFieldMatrix'
 import {isProdatIdentityOmissionScope} from './prodatIdentityOmissionScope'
+import {hasProdatRejectedIdentityDiagnostic} from './prodatRejectedIdentityScope'
 import {validProdatWireDiagnostic} from './prodatFieldDiagnostic'
 
 export type ProdatRegisterValidationEvidence = {
@@ -63,7 +64,9 @@ export function projectProdatRegisterValidation(input: {
     object.registers.push({lineIndex:group.lineIndex,lineNumber:group.lineNumber,registerIndex:group.registerIndex,
       registerPosition:group.registerPosition,segmentIndex:group.segments[0].index})
     const own = validated.find(row => row.segments[0].index === group.segments[0].index)
-    if (!input.completeRuleSelection || !own || ((!group.itemId || !group.identityAgency) && !isProdatIdentityOmissionScope(input.code,group,una)) || !input.handledFields.size) {
+    const rejectedIdentity = findings.some(finding => hasProdatRejectedIdentityDiagnostic({code: input.code, group,
+      rawSegments: input.rawSegments, una}, finding.prodatDiagnostic))
+    if (!input.completeRuleSelection || !own || ((!group.itemId || !group.identityAgency) && !isProdatIdentityOmissionScope(input.code,group,una) && !rejectedIdentity) || !input.handledFields.size) {
       object.disposition = 'unavailable'
       object.reasons.push(!own ? 'REGISTER_MESSAGE_NOT_VALIDATED' : 'REGISTER_SCOPE_UNAVAILABLE')
       continue
@@ -84,7 +87,8 @@ export function projectProdatRegisterValidation(input: {
         || occurrence.messageReference !== (references.get(scope.messageIndex) ?? null)) {
         unavailable = true
         object.reasons.push(finding.code)
-      } else if (scope.itemId === group.itemId && scope.identityAgency === group.identityAgency) {
+      } else if (scope.itemId === group.itemId && scope.identityAgency === group.identityAgency
+        && (group.itemId !== null || scope.lineIndex === group.lineIndex)) {
         rejected = true
         object.reasons.push(finding.code)
       }
