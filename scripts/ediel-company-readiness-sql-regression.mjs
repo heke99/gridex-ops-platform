@@ -52,6 +52,8 @@ try {
   for (const name of ['companies', 'ediel_actor_settings', 'ediel_route_profiles', 'ediel_brp_settings', 'ediel_mailboxes', 'actor_test_results']) {
     await db.exec(`create table public.${name} (${capturedTableColumns(name)});`)
   }
+  // Explicit absent-column fixture: the final capture may include the later actor-profile restoration.
+  await db.exec('alter table public.companies drop column if exists esett_status;')
   await db.exec(`create table public.company_memberships(company_id uuid,status text,membership_role text);
     create table public.integration_api_clients(company_id uuid,status text,scopes text[],deleted_at timestamptz);
     create table public.tenant_contract_assignments(id uuid,company_id uuid);
