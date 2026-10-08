@@ -45,3 +45,17 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
   `agent-claims/probe/claude-zealous-1791451004`. This agent creates no probe branches and
   uses no branches as locks.
 - Next: read-only waiting; resume at the receipt that lifts this blocker.
+
+## 2026-10-08 ~09:40Z — tag-write reported verified; still no eligible packet
+
+- User reports Claude tag-write verified; owner 6056938983 also authorises proxy reservations.
+- Fresh main `0b7d930`; live ID locks: Z02L/LK, Z03H/Z04H, Z13V/VH. TR-09/DB-01 refs are gone
+  (24fa, #708): whole remains BLOCKED on Docker capacity plus 2f72's #699 GEN/parity delivery.
+- Every released scope (TR-09/DB-01, Z01/Z03/Z04 L+LK, Z03C/Z05C, Z05H/Z08H, Z04C/Z10M) depends
+  on #699. #699 is a draft with a red clean replay: `customer_contracts_billing_identity_check`,
+  per diagnosis 6056854240, which is handled by blocker agent zealous-gates and 2f72.
+- P-08/AT-P-08 is requested by bardeen and its custody is disputed, so I do not take it.
+- Decision: no locks created for blocked scope (reserving work that cannot progress only
+  occupies it). No code.
+- Next: on #699 merge, reserve AT-Z04L/AT-Z04LK (or TR-09/DB-01 if Docker capacity is
+  available here) with self-acquired refs, verify them with ls-remote, then post CLAIM.
