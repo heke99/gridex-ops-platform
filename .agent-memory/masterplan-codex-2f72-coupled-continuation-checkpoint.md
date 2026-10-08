@@ -20,3 +20,12 @@ The capture reader's three reproduced guard defects are fixed: all 339 synthetic
 The inventory helper's failed preflight was a private verifier mistake: Git nonexecutable mode was compared with literal filesystem permissions. All historical SQL bytes and blobs were equal. Permit only the private executable-class comparison correction, retaining the full permission census and every byte/blob check; change no project file permissions, SQL or replay selector. Stop on further unexpected failure before another correction.
 
 Next responsible owner: this agent completes final source composition, maintained tests and reviews, then obtains the full selected-source capture and mandatory parity/CI evidence. The helpers own their bounded verification tasks. No new rule pair, shared-memory update, coverage promotion, push, PR or merge is claimed here.
+
+
+## Complete source composition frozen locally
+
+The final Z13 SQL and maintained test were reused unchanged after the documented handoff and reservation. The canonical manifest now has 852 rows, with all prior rows and metadata retained; additions and runtime manifests remain unchanged. There are 15 selected new SQL migrations and 1,114 physical SQL files.
+
+Local source commit: daad258fec6151cea00838421a47a121f8eb8767. After incorporating actual main #693, final local head: e15c9ad0cfb46564555b34c3128f2a733634067b, tree83f3bbcd53078ad3cb06d359fbcf3506a1943f86, base main26ebd4cb71b28c7f33bcffefacb5fe13baeceb8b. The delta is exactly the 26 reserved source paths. All 9,409 foreign main entries retain their Git modes, kinds and objects; the working tree is clean. Schema, generated types and coverage are unchanged. This is a local commit, without publication, PR, CI or merge credit.
+
+The fourteen-migration private verifier was stopped while awaiting initialization, with its two failed preflights preserved. Its inventory and selector were never executed, so no success is claimed. The helper's next scope is the final frozen fifteen-migration composition: verify historical identities, exact checksums, unchanged manifest metadata, and actual unchanged replay-selector ordering, retaining the failed predecessors. Independent complete source review and the maintained Z13 test plus affected type/lint checks can proceed in parallel on this immutable head. Any unexpected failure must be documented before repair or rerun.
