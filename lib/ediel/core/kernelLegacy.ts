@@ -32,6 +32,7 @@ import {
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { prepareAiBiInboundReconciliation, processAiBiInboundReconciliation } from '@/lib/ediel/aiBiInboundReconciliation'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
+import type {EdielAckRouteProfileSelection} from '@/lib/ediel/config'
 
 function ensureActorUserId(value?: string | null) {
   return value && value.trim() ? value.trim() : 'system'
@@ -61,6 +62,7 @@ export async function resolveCanonicalOutboundContext(params: {
   messageStandard?: EdielMessageStandard
   receiverEdielId?: string | null
   applicationReference?: string | null
+  ackProfile?: Pick<EdielAckRouteProfileSelection, 'family' | 'code'>
 }) {
   if (!params.environment) {
     throw new Error('ediel_outbound_environment_required')
@@ -74,6 +76,7 @@ export async function resolveCanonicalOutboundContext(params: {
     messageStandard: params.messageStandard ?? 'edifact',
     receiverEdielId: params.receiverEdielId ?? null,
     applicationReference: params.applicationReference ?? null,
+    ...(params.ackProfile !== undefined ? {ackProfile: params.ackProfile} : {}),
   })
 }
 
