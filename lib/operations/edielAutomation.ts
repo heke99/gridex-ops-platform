@@ -2,6 +2,7 @@
 
 import { supabaseService } from '@/lib/supabase/service'
 import type { SupplierSwitchRequestRow } from '@/lib/operations/types'
+import type { EdielEnvironment } from '@/lib/ediel/types'
 import { findOpenOutboundBySource } from '@/lib/cis/db'
 import { createSupplierSwitchEvent, getSupplierSwitchRequestById } from '@/lib/operations/db'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
@@ -16,8 +17,10 @@ export type EnsureSwitchAutomationInput = {
   actorUserId: string
   switchRequestId: string
   communicationRouteId?: string | null
+  /** Explicit server-selected environment for both validation and origination. */
+  environment?: EdielEnvironment | null
   /**
-   * Skips the schedule + readiness gate when the SAME operation already ran it
+   * Skips the schedule + readiness gate when the SAME operation AND environment already ran it
    * (e.g. the next-step engine validates readiness right before dispatch). The
    * reason is recorded on the switch event trail — never pass user input here.
    */
@@ -177,6 +180,9 @@ export async function ensureInitialSwitchEdielAutomation(
       companyId: context.switchRequest.company_id ?? null,
       requestedStartDate: context.switchRequest.requested_start_date ?? null,
       status: context.switchRequest.status ?? null,
+      requestType: context.switchRequest.request_type,
+      transactionSubtype: context.switchRequest.prodat_variant ?? context.switchRequest.prodat_reason ?? null,
+      environment: input.environment ?? undefined,
       siteId: context.switchRequest.site_id ?? null,
       meteringPointId: context.switchRequest.metering_point_id ?? null,
     })
@@ -191,6 +197,7 @@ export async function ensureInitialSwitchEdielAutomation(
         siteId: readinessSiteId,
         switchRequestId: context.switchRequest.id,
         requestedStartDate: context.switchRequest.requested_start_date ?? null,
+        environment: input.environment,
         treatNormalIssuesAsBlockers: false,
       })
       await persistSwitchReadinessSnapshot({
@@ -279,6 +286,7 @@ export async function ensureInitialSwitchEdielAutomation(
     actorUserId: input.actorUserId,
     switchRequestId: context.switchRequest.id,
     communicationRouteId: input.communicationRouteId ?? null,
+    environment: input.environment ?? undefined,
   })
 
   await createAutomationEvent({

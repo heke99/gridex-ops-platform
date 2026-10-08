@@ -1,6 +1,7 @@
 import { evaluateRouteProfileProductionReadiness } from '@/lib/ediel/routeProfileProductionReadiness'
 import { evaluateGridOwnerBusinessApproval } from '@/lib/ediel/gridOwnerBusinessApproval'
 import { emitCustomerProcessEvent } from '@/lib/customer-operations/customerProcessEvents'
+import type { EdielEnvironment } from '@/lib/ediel/types'
 
 type Process = 'facility_lookup' | 'grid_owner_information_request' | 'z01_customer_masterdata' | 'supplier_switch'
 
@@ -35,6 +36,7 @@ export async function evaluateCustomerProcessRouteReadiness(input: {
   process: Process
   actorUserId?: string | null
   emitEvents?: boolean
+  environment?: EdielEnvironment | null
 }): Promise<CustomerProcessRouteReadinessResult> {
   const config = messageConfig(input.process)
   const blockers: CustomerProcessRouteReadinessResult['blockers'] = []
@@ -62,7 +64,7 @@ export async function evaluateCustomerProcessRouteReadiness(input: {
     companyId: input.companyId,
     gridOwnerId: input.gridOwnerId,
     process: input.process,
-    environment: 'production',
+    environment: input.environment ?? 'production',
   })
   const readiness = businessApproval.routeReadiness
 
