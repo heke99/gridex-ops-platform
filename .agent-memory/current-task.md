@@ -1,3 +1,20 @@
+## Current distributed task routing — observed 2026-10-08T19:29:47.074092+00:00
+
+Actual main `1897ea4999ca93bf4631ee53f1cbe19de86d7dc3` has 302/352 approved IDs,50 remaining.
+Read [the current dated owner-action queue](masterplan-work-queue.md), AGENTS,
+README and your own checkpoint; refresh live coverage/#673/PR heads/refs.
+SC038/SC047 and #716 are delivered/released. GEN235's mismatch and typed731's
+physical258 target are fixed; unmerged source, other native failures and
+current-head delivery gates remain separate. ROOT OwnSource wiring,2f's exact
+SQL19 preparation, b6's306 operation and the pending distinct C261 handoff have
+specific owners/scopes in the queue; no free-allocation or whole-plan clearance.
+
+Finish your own criterion, then choose eligible work within your fixed role
+after actual delivery or documented handover/release. Reuse exact bounded
+requests and do not repeat unchanged BLOCKED reports or duplicate producers.
+A new identity inherits no reservation; a stopped chat is not woken by these
+instructions. Earlier dated observations remain unchanged below.
+
 ## Active startup routing — observed 2026-10-08T12:32:29+00:00
 
 Read AGENTS.md, README.md and [the dated owner-action queue](masterplan-work-queue.md).
