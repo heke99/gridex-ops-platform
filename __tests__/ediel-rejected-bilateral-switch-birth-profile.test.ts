@@ -52,7 +52,7 @@ it('leaves the complete healthy chain to the original positive selector',async()
  expectWitness(await resolveBilateralSwitchBirthProfile({rawPayload:payload,receivedAt:receipt}))
 })
 it.each([
- ['missing second C829',()=>wire([...first(),line('2',point,undefined,'9')])],
+ ['missing second C829',():string=>wire([...first(),line('2',point,undefined,'9')])],
  ['second index3',()=>wire([...first(),line('2',point,'3','9')])],
  ['second wrong indicator',()=>wire([...first(),['LIN','2','',[point,'','','9'],['2','']]])],
  ['second extra C829 component',()=>wire([...first(),['LIN','2','',[point,'','','9'],['1','','']]])],
@@ -109,7 +109,7 @@ it.each([
  ['wrong UNT reference',()=>wire().replace("+M'UNZ","+OTHER'UNZ")],
  ['wrong UNZ count',()=>wire().replace('UNZ+1+I','UNZ+2+I')],
  ['outside envelope',()=>wire()+"FTX+AAI+++outside'"],
- ['null',()=>null],['undefined',()=>undefined],['empty',()=>''],
+ ['null',():null=>null],['undefined',():undefined=>undefined],['empty',():string=>''],
 ] as const)('refuses catalog witnesses for %s',async(_label,make)=>{
  expect(await resolve(make())).toBeNull();expect(io.rpc).not.toHaveBeenCalled()
 })
