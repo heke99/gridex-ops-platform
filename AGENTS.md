@@ -52,12 +52,33 @@ sessions; a new session never inherits another session's locks by assumption.
 
 Read the active sections of startup memory and your checkpoint, then relevant
 dated history. Refresh actual main, coverage, PR heads/checks, #673 and remote
-refs before selection. Older snapshots or an idle chat are not current custody.
+refs before selection. Old status labels and chat activity neither establish nor release custody.
+Reconcile live refs with explicit retained-duty, RELEASE and authorized
+handover receipts; absence of a tag does not erase retained whole responsibility.
 Classify candidates as READY, OCCUPIED, WAITING_DEPENDENCY, EXTERNAL_DECISION
 or DONE in existing checkpoints/queue entries; these are selection aids, not
-new locks or coverage statuses. A blocked entry names its owner, required
-deliverable and exact resumption event. Resume on a relevant change rather
-than duplicating another owner's native/capture/GEN/artifact work.
+new locks or coverage statuses. Selection READY means a feasible candidate;
+`READY <IDs> — PR #N` is a published reviewable delivery, not permission or release.
+Acceptance-only describes a packet, not completion of all rules globally. The
+existing final-single-eligible exception applies when only one executable,
+eligible ID is available; record the selection basis rather than adding a
+blocked second ID.
+
+Read `.agent-memory/masterplan-work-queue.md` for dated owner actions and startup
+recovery. Attach dependencies to the exact remaining criterion/output. Whole
+proof can wait while an independent authorized correction proceeds. A blocked
+entry names the owner, deliverable and resumption event. Check existing explicit
+releases before requesting a handoff; do not require repeat informal permission
+for an already valid exact release. If custody remains, make one bounded
+delivery/handoff request with IDs/files, source, criteria, exclusions and next
+action, reusing an existing request instead of duplicating it. An unavailable
+original chat requires an explicit authorized handover under the existing
+protocol; silence never releases custody. Remain read-only until scope and
+required refs are verified. No duplicate native/capture/GEN/artifact work.
+
+Instructions and board comments do not start a stopped chat. Resume that chat
+with its role prompt, or record an authorized scoped handoff to a new identity.
+No new chat inherits another session's packet or reservations.
 
 Every role records taken/done/verification/blocker/next in its own checkpoint
 and #673 before another work item. Keep receipts concise. Shared summaries
@@ -96,8 +117,8 @@ Before every non-trivial task:
 12. Inspect the actual implementation.
 13. For Masterplan work, read `.agent-memory/masterplan-agent-workflow.md`,
     `.agent-memory/masterplan-reservations.md`, your own checkpoint, the legacy PR register,
-    latest #673 receipts, relevant historical #530 receipts and live remote locks before
-    selecting a packet.
+    latest #673 receipts, relevant historical #530 receipts, the dated owner-action
+    queue and live remote locks before selecting a packet.
 14. Continue from the recorded next action.
 
 Do not restart completed work because chat context is missing. Code, current
