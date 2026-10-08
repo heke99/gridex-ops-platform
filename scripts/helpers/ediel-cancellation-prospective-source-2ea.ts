@@ -34,8 +34,16 @@ export function buildCancellationProspectiveZ04(f: CancellationProspectiveContex
   const tokens = tokenizeEdifact(wire), grouped = prodatRegisterGroups(tokens.segments, tokens.una, 'Z04')
   const [own] = grouped.groups
   const reference = own?.segments.find(segment => ['RFF', 'NAD'].includes(segment.tag))
+  const references = own?.segments.filter(segment => segment.tag === 'RFF'
+    && segmentComposite(segment, 1, tokens.una)[0] === 'LI') ?? []
+  const ownReference = references[0]
+  const caseReference = ownReference && segmentComposite(ownReference, 1, tokens.una)
+  const firstParty = own?.segments.find(segment => segment.tag === 'NAD')
   if (grouped.groups.length !== 1 || grouped.problems.length || own.itemId !== f.external
     || own.identityAgency !== '9' || own.registerPosition !== 1 || reference?.tag !== 'RFF'
+    || references.length !== 1 || !f.caseReference || caseReference?.length !== 2
+    || caseReference[1] !== f.caseReference || !ownReference
+    || (firstParty && ownReference.index >= firstParty.index)
     || [['223', 'Z22'], ['306', 'Z12'], ['254', 'Z31']].some(([field, expected]) => {
       const values = prodatCharacteristicValues(field, own.segments, tokens.una)
       return values.length !== 1 || values[0] !== expected
