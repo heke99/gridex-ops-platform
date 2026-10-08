@@ -55,3 +55,12 @@ intent_id, actor_user_id, outbound_request_id and paired message_id/payload_hash
 source ref/sha/actor. The native test must create these via the real producer path (not hand
 inserts bypassing the invariants) — reuse candidate: `scripts/ediel-original-source-intake-native.test.ts`
 and the Z04D production native fixtures. Plan fixed before code; implementation still waits on the reservation.
+
+## Verification 2026-10-08 ~09:35Z — reservation NOT present
+
+`git ls-remote origin 'refs/tags/agent-claims/masterplan/*'` on main 0b7d930: none of the five
+requested refs exist. Coordinator receipt #673/6056895789 is BLOCKED_RECEIPT (no receipt commit, no refs):
+owner decision 6056709473 states "inget delegerat lås införs"; P-08 also needs original-custody
+reconciliation (marked "disputed" in 6056759828). Status: BLOCKED_UNRESERVED, no code.
+Next: wait for owner to either verify Claude tag create+delete or document an explicit proxy procedure,
+and for P-08 original custodian release; then re-verify refs before CLAIM.
