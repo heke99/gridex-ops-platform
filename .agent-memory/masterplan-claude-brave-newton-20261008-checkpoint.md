@@ -61,3 +61,8 @@
 - 2f finding: the closed-tenant test reapplied the forward onto a regenerated schema, which would raise the needle guard. Fixed: the test now rebuilds the exact predecessor from the installed source when it already holds 'closed', and asserts the installed successor equals the forward's output.
   Result: 10/10 on the current schema, and 10/10 on a simulated successor schema (schema.sql restored byte-identical).
 - Handing to 2f: only the 2 migration SQL files. Kept here: IDs, HTTP, tests, native tests, workflow and config.
+
+## 2026-10-08 20:33Z status
+- Proxy released file-ee1c6bec and file-f966a20d (6066895022). 2f reserved them (receipt 53607e55, 6067045850) and published SQL19 in #699 head 2fe8ee35 with both checksum rows. GEN19 is pending with CORE. #699 is OPEN/DRAFT.
+- Main is now 1897ea49. Both SQL files remain byte-identical in #718.
+- Next: once #699 merges, merge main into #718, rerun integrity, the db-05 tests and native, then set coverage, deliver, and release my remaining 10 file refs and 3 ID refs.
