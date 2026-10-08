@@ -74,3 +74,41 @@ confirmed only the two claimed protocol files plus this checkpoint changed.
 No new implementation tests: the change is documentation and current-head
 mandatory CI remains authoritative. Independent source review and publication
 remain next; no CI_GREEN or merge yet.
+
+## Frozen source, reviews and reservation queue — 2026-10-08
+
+PR709 source is frozen at da2ce7f43918114bd4a2698c3a4e50d9b865d61b.
+Two independent exact-head/source reviews APPROVE with no blocking findings;
+[attributed COMMENT review5454684627](https://github.com/heke99/gridex-ops-platform/pull/709#pullrequestreview-5454684627).
+Both independent delivery supplements APPROVE actualmain74bcd6d109861e940269f75821f6d3516df29a96 /
+unchangedhead / tree5cea8dac5c817567c970fa4def5217539fff895b: all9436
+foreign postimages match main, all three own files match source. Fresh GitData
+GET proves receipt same exact main tree/single parent and all3 matching refs.
+READY6736057170293; verify/smoke/browser succeeded at this source; remaining
+ordinary CI is running. No CI_GREEN or merge. Protected branch settings GET
+returned403 Resource not accessible by integration; no absence of protection
+is inferred. Server merge policy remains authoritative; no bypass requested.
+
+This operational checkpoint is separate from the frozen PR head so status
+updates do not invalidate current-head reviews/CI. Two exact protocol-file
+resources remain held until verified delivery or explicit blocked handover.
+The memory-role operation is handed back after edits are frozen: document
+role-only RELEASE intent, verify exact74b4932 SHA, DELETE, confirm404 before
+waiting for CI/merge. Further shared edits require a fresh memory role.
+
+Pending Claude queue handling is the next operational blocker duty after709
+actual delivery, as requested in6736057197745; it grants no implementation
+custody. Fresh-check all requests, main, refs and dependencies first.
+P08 requester bardeen corrected its scope in6057084305: the ACK trigger-only
+three-file request does not close the whole card. Require original custodian
+Claude cool-tesla-2pmyua/session_01RxmpLE5UfwVEetssVwdAWs (#556, original
+5987293997) to hand over exact P08/AT-P08 remaining scope; explicitly decide
+whether Z09B/Z09D remain with that original custodian. Re-specify complete
+XOR210/211,92/93,40/109,no157 and own request/original/ACK/production-relation
+proof before any delegated receipt. No absent-lock or idle-session takeover.
+Conditional699 fixture request is withdrawn by6057135324; do not reserve it.
+GEN owner2f72 retains evidenced snapshot_hash/clean/parity repair and source
+split authority. Access/probe cleanup is now owned by blocker f2af1426 under
+receipt d8861fba; original probe branch GET is404 in this session. No duplicate
+cleanup or foreign job. When custody/request gates remain unmet, document the
+exact blocked queue state without creating refs or inventing permission.
