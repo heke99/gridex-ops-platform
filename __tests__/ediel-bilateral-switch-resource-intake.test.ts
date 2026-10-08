@@ -53,3 +53,63 @@ it('binds the actual owned physical H point before the first immutable source IN
  expect(db.state.calls.filter(c=>c.operation!=='select'&&c.table!=='ediel_messages'&&c.table!=='ediel_message_events')).toEqual([])
  for(const name of ['bilateral_capability_verified','business_effect_authorized','execution_context_snapshot'])expect(writes[0].payload).not.toHaveProperty(name)
 })
+it.each([
+ ['outbound_requests','payload',{environment:'production'}],['outbound_requests','payload',null],
+ ['outbound_requests','metering_point_id',id(92)],['outbound_requests','customer_id',id(92)],
+ ['metering_points','ediel_metering_point_id','unrelated'],['metering_points','customer_site_id',id(92)],
+ ['customers','company_id',id(92)],['customer_sites','customer_id',id(92)],
+])('leaves birth point unresolved for current %s.%s conflict',async(table,field,value)=>{
+ rows[table as string][0][field as string]=value
+ expect(await createInboundEdielMessage(input())).toBe(newId)
+ expect(db.writes('ediel_messages')[0].payload).toMatchObject({metering_point_id:null,customer_id:customerId,site_id:siteId,outbound_request_id:requestId})
+})
+it.each(['matched','ambiguous']as const)('never overrides/forces a %s independent meter',async status=>{
+ const request={...input(),meteringPointMatch:{status,entityType:'metering_point',entityId:status==='matched'?id(95):null,confidence:1,reasons:[],candidates:[]}}
+ expect(await createInboundEdielMessage(request)).toBe(newId)
+ expect(db.writes('ediel_messages')[0].payload?.metering_point_id).toBe(status==='matched'?id(95):null)
+ expect(resourceReads).toEqual([])
+})
+it('never grants the resource fallback to the rejected second258 catalog branch',async()=>{
+ const rawPayload=wire('');setup(rawPayload)
+ expect(await createInboundEdielMessage(input(rawPayload))).toBe(newId)
+ expect(db.writes('ediel_messages')[0].payload).toMatchObject({metering_point_id:null,rule_profile_key:'PRODAT:Z04:H:26.A:r3'})
+ expect(resourceReads).toEqual([])
+})
+it('returns an existing canonical original without reselecting catalog or resources',async()=>{
+ db.state.existing=true;const before=structuredClone(db.state.original)
+ expect(await createInboundEdielMessage(input())).toBe(db.state.original.id)
+ expect(resourceReads).toEqual([]);expect(db.writes('ediel_messages')).toEqual([]);expect(db.state.original).toEqual(before)
+ expect(io.rpc.mock.calls.filter(c=>c[0]==='resolve_canonical_ediel_rule_pack_with_witness_v1')).toEqual([])
+})
+it.each(['actor','permission','clock']as const)('keeps %s refusal before any new resource reads or source writes',async guard=>{
+ if(guard==='actor')db.state.actorActive=false
+ if(guard==='permission')db.state.permission=false
+ if(guard==='clock'){
+  const from=io.from.getMockImplementation()!
+  io.from.mockImplementation((table:string)=>{
+   const q=from(table)
+   if(table==='inbound_email_messages')q.maybeSingle=async()=>({data:{id:mailId,company_id:company,environment:'test',received_at:null},error:null})
+   return q
+  })
+ }
+ const error={actor:'ediel_tenant_actor_forbidden',permission:'ediel_tenant_permission_forbidden',clock:'ediel_actual_inbound_receipt_clock_required'}
+ await expect(createInboundEdielMessage(input())).rejects.toThrow(error[guard]);expect(resourceReads).toEqual([]);expect(db.writes('ediel_messages')).toEqual([])
+})
+it('propagates an actual request read error before source INSERT or reception observations',async()=>{
+ const from=io.from.getMockImplementation()!,error={code:'P0001',message:'declared_resource_SQL_refusal'}
+ io.from.mockImplementation((table:string)=>{const q=from(table);if(table==='outbound_requests')q.maybeSingle=async()=>({data:null,error});return q})
+ await expect(createInboundEdielMessage(input())).rejects.toEqual(error)
+ expect(db.writes('ediel_messages')).toEqual([]);expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission'])
+})
+it('pins source environment and the selected primitive tuple before awaited mail IO',async()=>{
+ const request=input(),from=io.from.getMockImplementation()!
+ io.from.mockImplementation((table:string)=>{
+  const q=from(table),original=q.maybeSingle
+  if(table==='inbound_email_messages')q.maybeSingle=async()=>{
+   const result=await original();request.environment='production';request.outboundMatch.entityId=id(98)
+   Object.assign(request.outboundMatch.candidates[0],{customer_id:id(98),site_id:id(98),metering_point_id:id(98)});return result
+  };return q
+ })
+ expect(await createInboundEdielMessage(request)).toBe(newId)
+ expect(db.writes('ediel_messages')[0].payload).toMatchObject({environment:'test',customer_id:customerId,site_id:siteId,outbound_request_id:requestId,metering_point_id:pointId})
+})
