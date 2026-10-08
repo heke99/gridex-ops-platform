@@ -1,3 +1,19 @@
+## Active startup routing — observed 2026-10-08T12:32:29+00:00
+
+Read AGENTS.md, README.md and [the dated owner-action queue](masterplan-work-queue.md).
+Refresh actual main/coverage, PR heads/checks, #673 and remote receipts before
+action. Resume only your own documented role, packet and next criterion. There
+is no global95bc/TRDB task assignment from the older sections below. Old scalar
+snapshots in checkpoint/status files are dated evidence; checkpoint.json's
+active routing now directs agents to their own checkpoints.
+
+PLANAGENT selects eligible rule or acceptance-only work, with the existing
+final-single-eligible exception. BLOCKERARAGENT resolves sequential evidenced
+blockers; GRANSKARE performs bounded independent review. Retained custody,
+actual releases, exact dependencies and all required delivery gates remain.
+No chat is started by this document. Old dated sections below are preserved
+verbatim; read their owner/paused/current/next labels at their recorded time.
+
 ## Actual H source657 delivery and remaining work — 2026-10-08T09:56:18.754981+00:00
 
 [PR #657](https://github.com/heke99/gridex-ops-platform/pull/657) merged normally at `74bcd6d109861e940269f75821f6d3516df29a96` from `2f4359edcf3272fda2b62811ad92c6274ab537bf`, tree `30a63bc9057832a21ac035cadd62250f0ca58570`, parents `0b7d930ca67b8b78cb6e6f04b8f94eb7edac37ec` and that source, on 2026-10-08T09:41:05Z. Nine mandatory source checks succeeded; two source reviews, two current-main composition reviews and ROOT qualified this bounded component. The native suite preserves all100 cases and strict physical replies, source custody,306 rejection, effects and sequential/concurrent replay.

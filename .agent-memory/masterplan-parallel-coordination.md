@@ -1,3 +1,19 @@
+## Active entrypoint — owner continuation, 2026-10-08
+
+Use AGENTS.md and README.md's current read order, then the role-specific
+[PLANAGENT prompt](masterplan-next-wave-prompt.md) or
+[BLOCKERARAGENT prompt](masterplan-blocker-agent-prompt.md). Existing reviewers
+retain their bounded independent role. New agents receive roles and select
+their own eligible scope; no IDs or previous-session locks are assigned here.
+Consult [the dated owner-action queue](masterplan-work-queue.md), refresh live
+evidence, and document before another item.
+
+Everything below is preserved historical reference. Its old pair assignments,
+counts, stack order, integration-owner labels, pause/stop wording and runtime
+commands are not current dispatch instructions. This entrypoint grants no
+production, traffic or ownership authority. Instructions do not wake a stopped
+chat; resume its role prompt or record an authorized exact-scope handoff.
+
 ## Autonomous packet selection — 2026-10-06T13:00:25.023661+00:00
 
 Owner requires identical prompts, self-selected eligible pairs, atomic ID/file

@@ -1,3 +1,19 @@
+## Active startup routing — observed 2026-10-08T12:32:29+00:00
+
+Read AGENTS.md, README.md and [the dated owner-action queue](masterplan-work-queue.md).
+Refresh actual main/coverage, PR heads/checks, #673 and remote receipts before
+action. Resume only your own documented role, packet and next criterion. There
+is no global95bc/TRDB task assignment from the older sections below. Old scalar
+snapshots in checkpoint/status files are dated evidence; checkpoint.json's
+active routing now directs agents to their own checkpoints.
+
+PLANAGENT selects eligible rule or acceptance-only work, with the existing
+final-single-eligible exception. BLOCKERARAGENT resolves sequential evidenced
+blockers; GRANSKARE performs bounded independent review. Retained custody,
+actual releases, exact dependencies and all required delivery gates remain.
+No chat is started by this document. Old dated sections below are preserved
+verbatim; read their owner/paused/current/next labels at their recorded time.
+
 ## TRDB current observation — 2026-10-07T14:36:01.128254+00:00
 
 Actual main `9b013631afed0b7de5f704fdc759bc68624d92b5` (tree `dc6054286223af01da4ad1130719506a3c8a5f4e`) includes actual merged metadata-only #668. Ledger stays **115 VERIFIED rules +185 PASSED contracts =300/352;52 remain**. Source/SQL/GEN/coverage bytes are unchanged from0ec; #668 does not establish resulting-main runtime, deployment or external acceptance. The earlier95 pending-memory/role labels below are historical: actual delivery and release [6039708993](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6039708993) supersede them. Preserve all foreign packet responsibilities and original evidence.
