@@ -59,3 +59,22 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
   occupies it). No code.
 - Next: on #699 merge, reserve AT-Z04L/AT-Z04LK (or TR-09/DB-01 if Docker capacity is
   available here) with self-acquired refs, verify them with ls-remote, then post CLAIM.
+
+## 2026-10-08 — waiting for P-08 handover + Codex proxy receipt (owner 6056938983)
+
+- No tag access tested and no probes created by this agent; I will not do either.
+- Do not implement until (1) a documented P-08 custody handover and (2) a Codex receipt with
+  remote refs that I have verified via ls-remote both exist. Bardeen (6056828417) requested the same scope, so the coordinator
+  must name a single work owner.
+- Read-only P-08 gap analysis:
+  - Unit-proved (real code, no DB): 210/211 XOR -> DTM 92/93 (`__tests__/ediel-prodat-date-events.test.ts:24`),
+    both-present P-APERAK 40/109 (`ediel-prodat-field-identity.test.ts:67-72`), 92-not-157 boundary.
+  - Gaps: no assertion that general 157 is absent (`arrayContaining` at field-identity:71); no builder
+    test emitting `DTM+93`; no explicit 216-instead rejection test.
+  - Production-relation effects (migration `20261005020000`, 9 effects incl. tenant/env guard,
+    idempotency, immutability, service_role no INSERT) are proved only on a PGlite stub
+    (`scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs`, labelled NOT native).
+  - Packet files: new `scripts/ediel-p-08-production-contract-native.test.ts`,
+    `scripts/ediel-p-08-native.config.ts`, `.github/workflows/ediel-p08-native.yml` (pattern: ediel-sc064-native
+    + gridex-aud-003-clean-replay.sh), optional tightening of the three unit tests above,
+    coverage rows P-08/AT-P-08 only after native green.
