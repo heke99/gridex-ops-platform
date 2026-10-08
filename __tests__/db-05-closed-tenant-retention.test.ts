@@ -28,6 +28,14 @@ const GATES = [
 ]
 let db: PGlite
 const before = new Map<string, string>()
+const installed = new Map<string, string>()
+const OLD_LIST = "status IN('active','archived','pending_deletion')"
+const NEW_LIST = "status IN('active','archived','pending_deletion','closed')"
+const HEADERS: Record<string, string> = {
+  [GATES[0]]: 'gridex_ediel_retention.permission_v1(c uuid,actor uuid,wanted text) RETURNS boolean',
+  [GATES[1]]: 'gridex_ediel_retention.record_permission_v1(c uuid,actor uuid,k text) RETURNS boolean',
+  [GATES[2]]: 'public.ediel_current_retention_companies_v1() RETURNS jsonb',
+}
 let closedBefore: { grant: boolean; read: boolean; listed: string[] }
 
 const one = async <T>(sql: string) => (await db.query(sql)).rows[0] as T
@@ -53,7 +61,14 @@ beforeAll(async () => {
     create or replace function extensions.digest(text,text) returns bytea language sql immutable as 'select pg_catalog.sha256(convert_to($1,''UTF8''))';`)
   const src = readFileSync('supabase/schema.sql', 'utf8').replace(/^\\(un)?restrict.*$/gm, '').replace(/^CREATE SCHEMA public;$/m, '').replace(/extensions\.geometry\([^)]*\)/g, 'bytea')
   for (const chunk of src.split(/\n(?=--\n-- Name: )/)) { try { await db.exec(chunk) } catch { /* PostGIS/extension objects */ } }
-  for (const sig of GATES) before.set(sig, await prosrc(sig))
+  // Once supabase/schema.sql is regenerated it already carries the successor gates. Rebuild the exact
+  // predecessor from that installed source so the RED baseline and the forward stay provable on both snapshots.
+  for (const sig of GATES) {
+    const src = await prosrc(sig)
+    installed.set(sig, src)
+    if (src.includes(NEW_LIST)) await db.query(`CREATE OR REPLACE FUNCTION ${HEADERS[sig]} LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $body$${src.replace(NEW_LIST, OLD_LIST)}$body$`)
+    before.set(sig, await prosrc(sig))
+  }
   for (const t of ['companies', 'company_memberships', 'user_profiles', 'permissions', 'user_permissions']) await db.exec(`alter table public.${t} disable trigger user`)
   await db.exec(`insert into public.companies(id,name,status) values ('${CLOSED}','Synthetic closed','closed'),('${OTHER}','Synthetic other','active'),('${DISPOSABLE}','Synthetic disposable','deleted_test_only');
     insert into auth.users(id) values ('${ACTOR}'),('${OUTSIDER}'),('${DENIED}');
@@ -100,11 +115,19 @@ describe('DB-05 closed tenant keeps a lawful per-class retention path', () => {
     expect(closedBefore).toEqual({ grant: false, read: false, listed: [] })
   })
 
+  it('matches the installed snapshot when it already carries the successor gates', async () => {
+    for (const sig of GATES) {
+      const src = installed.get(sig)!
+      expect([src.includes(OLD_LIST), src.includes(NEW_LIST)].filter(Boolean)).toHaveLength(1)
+      if (src.includes(NEW_LIST)) expect(await prosrc(sig)).toBe(src)
+    }
+  })
+
   it('changes only the tenant-status admission list in each gate', async () => {
     for (const sig of GATES) {
       const old = before.get(sig)!
       expect(old).toMatch(/status IN\('active','archived','pending_deletion'\)/)
-      expect(await prosrc(sig)).toBe(old.replace("status IN('active','archived','pending_deletion')", "status IN('active','archived','pending_deletion','closed')"))
+      expect(await prosrc(sig)).toBe(old.replace(OLD_LIST, NEW_LIST))
     }
   })
 })

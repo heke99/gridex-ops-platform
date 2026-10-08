@@ -55,3 +55,9 @@
   - Finding 2 (Minor): 20261005 sorts before main's latest; the tooling does not reject it, and the name is kept because that is the reserved path.
   - Finding 3 (Minor): the operational test was trivial. Fixed: replaced by a baseline assertion that the closed tenant was refused before the forward. The byte-diff test still proves the operational branch is unchanged.
   - Finding 4: coverage is not approved yet; native proofs are pending the manifest.
+
+## 2026-10-08 17:35Z 2f handover request 6065243491 (in progress)
+- 2f approved the two immutable SQL files for staged compatibility (ed92e54e, 25fbb60e) and asks for an explicit two-file handover so it can register them.
+- 2f finding: the closed-tenant test reapplied the forward onto a regenerated schema, which would raise the needle guard. Fixed: the test now rebuilds the exact predecessor from the installed source when it already holds 'closed', and asserts the installed successor equals the forward's output.
+  Result: 10/10 on the current schema, and 10/10 on a simulated successor schema (schema.sql restored byte-identical).
+- Handing to 2f: only the 2 migration SQL files. Kept here: IDs, HTTP, tests, native tests, workflow and config.
