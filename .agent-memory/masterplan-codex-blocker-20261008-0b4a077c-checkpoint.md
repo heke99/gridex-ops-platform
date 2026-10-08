@@ -25,3 +25,7 @@ READY_FOR_ROLE_RESERVATION. Next own action: freshly verify main/head/checks/cus
 ## Actual delivery — 2026-10-08T13:47:38Z
 
 MERGED PR714 at `0509defba33a0a5eee10cd60fd4574fda4a97268`; exact expected tree `c0202c0bc795a6101557bc9fda2c90d704612d6b`, normal parents `0531d3a5271a5a9b333e81c1b4fa31cd355c368a` + `e18f99817308b7dde3a7cbd410f6a6fd4d710386`, remote PR merged/main/tree/parents verified. Proxy role receipt `b1776b510f6ba4c59cc7cef8dc709e6a57d5fcbc` CREATE_ONLY/GET_MATCH and CLAIM6061286443 verified before merge. No admin bypass. Bounded timeout component only; whole IDs/coverage unchanged. Source head CI reused exactly; resulting-main runtime/deployment/full acceptance not claimed. Next immediate operation: document MERGED, owner-match DELETE/actual404 role FIRST, then conditional owner-requested exact file release; no next blocker until both are documented.
+
+## Actual release / B2 DONE
+
+After MERGED receipt6061309591 and durable checkpoint59368c31, exact role `b1776b510f6ba4c59cc7cef8dc709e6a57d5fcbc` was owner-SHA matched, DELETE succeeded and GET returned actual HTTP404 FIRST. Then owner-requested exact file `ee171db1fff4e0b0abf09fd4f1e81f419eaefb5b` was owner/packet/SHA matched, DELETE succeeded and GET returned actual HTTP404. No foreign ref changed. Own reservations now zero; work-owner B2 file is genuinely free. No branch/source deletion. Next: publish RELEASE receipt, refresh actual main/673/refs and assess next blocker; do not inherit another session's locks.
