@@ -542,3 +542,8 @@ Pre-execution OP review found one Important manifest snapshot/hash binding gap i
 ## 2026-10-08 — corrected exact18fixture atomic OP2/self GO
 
 Both corrected77d9fb39 reports nowAPPROVE C0I0 fullyROOTread/self/sealed; priorI1f441 closedbefore anyexecution andold87script preserved. PLAN602a/manifest301b/source18preimages fixed; fresh108refs36receipts main1897 no candidateoverlap. Current7ownrefs retained. NEXT ROOT execute exact6771Bscript onceonly; ALL25readback then ownCP673CLAIM before18fixturecode. Current720originalqualification andwholeH stayblocked, no role/native/GEN/coverage/privateedits.
+
+
+## 2026-10-08 — actual306 preflight documentation guard
+
+SameH306 preflight STOP corrected documentation — b6d3 H1102, exact18 fixture scope retained PLAN2/OP2/self. Current-documentation guard stopped before candidate reads, exclusive journal, receipt creation or refs; latest GO body omitted literal306. No new ref/code operation occurred, journal absent, original7 retained. Preserve failed invocation result. This current receipt explicitly binds field306 and same exactplan602a/manifest301b/correctedscript77d9/seal7ecb. NEXT ROOT unchanged reviewed operation may resume only after this durableCP/673 readback; all25 then exact18CLAIM before edits. 7208c mandatorynineSUCCESS remains separate from unqualified original artifact11570116577/transport owner request6066367326 and CORE/2f physicalnegative gates. No newnative/GEN/coverage/wholeapproval.
