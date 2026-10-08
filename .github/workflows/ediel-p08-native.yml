@@ -1,0 +1,106 @@
+name: Ediel P-08 native production contract
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-p-08-production-contract-native.test.ts'
+      - 'scripts/ediel-p-08-native.config.ts'
+      - 'lib/ediel/flows/prodatProductionContract.ts'
+      - 'lib/ediel/intent/productionContractGateway.ts'
+      - 'lib/ediel/intent/renderers/productionContract.ts'
+      - 'lib/ediel/production/contractSource.ts'
+      - 'supabase/migrations/*production_contract*'
+      - '.github/workflows/ediel-p08-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-p08-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental P-08 feedback. All ordinary OPS clean/upgrade/native/browser and
+# parity gates remain mandatory; this does not replace any of them.
+jobs:
+  p08-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute the P-08 production-contract chain after disposable clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p p08-native-working
+          # The replay owner keeps its EXIT cleanup trap. Replay/status output
+          # can contain disposable credentials and is never uploaded.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/p08-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/p08-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-p-08-native.config.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=p08-native-working/native-junit.xml \
+            > p08-native-working/native.log 2>&1 || native_exit=$?
+          export P08_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          paths = ['scripts/ediel-p-08-production-contract-native.test.ts',
+                   'scripts/ediel-p-08-native.config.ts',
+                   'scripts/ediel-source-owner-native.config.ts',
+                   'scripts/helpers/ediel-z04d-production-native-fixture.ts',
+                   'scripts/helpers/ediel-normal-switch-native-fixture.ts',
+                   'scripts/helpers/ediel-bilateral-customer-native-fixture.ts',
+                   'scripts/helpers/ediel-native-permission-catalog.setup.ts',
+                   'lib/ediel/flows/prodatProductionContract.ts',
+                   'lib/ediel/intent/productionContractGateway.ts',
+                   'lib/ediel/intent/renderers/productionContract.ts',
+                   'lib/ediel/production/contractSource.ts',
+                   'scripts/gridex-aud-003-clean-replay.sh',
+                   'scripts/migration-history-manifest.json',
+                   'scripts/migration-history-manifest.additions.json',
+                   'scripts/migration-history-manifest.runtime.additions.json']
+          receipt = {
+              'purpose': 'supplemental_actual_native_feedback',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'native_exit_code': int(os.environ['P08_NATIVE_EXIT']),
+              'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},
+              'test_scope': ['scripts/ediel-p-08-production-contract-native.test.ts'],
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('p08-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root p08-native-working
+          # Only successfully redacted files enter the uploaded directory.
+          mv p08-native-working p08-native-evidence
+          cat p08-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-p08-native-${{ github.event.pull_request.head.sha }}
+          path: p08-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14

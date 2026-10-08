@@ -102,3 +102,24 @@ Plan: one native vitest file asserting (a) literal 210 XOR 211 / no 216 substitu
 no general 157, through the real policy/renderer code; (b) on clean-replayed schema the ACK→production
 relation effects (positive bound Z09D confirms exactly its event; negative, CONTRL-only, unbound, revoked,
 other code, other tenant confirm nothing; idempotent; immutable; no service_role write).
+
+## Native findings 2026-10-08 (local clean replay of main 74bcd6d, supabase 2.101.0)
+
+Implemented (own files only): native test with real chain — production-contract BRP declaration
+(archive + independent review) → contract-intake production_contract_event (archive + independent review,
+SYNTHETIC issuer key) → prepareAndQueueProductionContractZ09 → SMTP send owner → inbound CONTRL/APERAK via
+mailbox intake, canonical decision, ACK authority. Four tests: signed positive (DTM+92 exact, CONTRL-only none,
+APERAK exactly one, replay idempotent, immutable, no API role read/write), negative APERAK 40/109 (none,
+ledger unchanged), revoked (declared SYNTHETIC revocation row; no product writer exists) none, ceased (DTM+93
+exact, confirms only its own event).
+
+Two confirmed product defects block P-08 on main (each reproduced; tests fail on unchanged main):
+1. `lib/ediel/intent/renderers/productionContract.ts:35` processType 'customer_masterdata' → canonical policy
+   CANONICAL_PROCESS_GROUP_MISMATCH; no production-contract Z09D can be born. Fix: 'masterdata'
+   (as lifeEvent/meteringMethodChange/brpChange). Extension requested #673/6057418077.
+2. Migration 20261005020000 trigger requires aperak_status='accepted', but the installed ACK authority
+   (apply_before_committed_replay_v1) only writes 'received'/'failed' + gridex_ack_authority.scope_outcomes.
+   Real positive APERAK → 0 confirmations (verified locally with original function: expected [] ).
+   Forward repair SQL validated locally (all 4 tests green with it + renderer fix emulated); requires a new
+   migration and shared manifest/capture files locked by 2f72 (bc8cdfd6/f0468525/350020b1) and b6d3 (ba5886dd).
+Lesson: never `trap - EXIT` after sourcing gridex-aud-003-clean-replay.sh (it restores migrations/seed).
