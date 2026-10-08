@@ -630,6 +630,17 @@ async function negativeAcknowledgement(f:Fixture,source:Original,decision:Awaite
   const negative=acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='negative')
   expect(negative).toHaveLength(1)
   const ack=negative[0], raw=source.raw_payload!, wire=tokenizeEdifact(ack.raw_payload!), original=tokenizeEdifact(raw)
+  if(['311','314'].includes(field)) {
+    const rejection=wire.segments.filter(t=>t.tag==='BGM')
+    expect(rejection).toHaveLength(1); expect(segmentElementCount(rejection[0],wire.una)).toBe(3)
+    expect([1,2,3].map(i=>segmentComposite(rejection[0],i,wire.una))).toEqual([[''],[''],['27']])
+  }
+  if(field==='209') {
+    const customer=original.segments.filter(t=>t.tag==='NAD'&&segmentComposite(t,1,original.una)[0]==='UD')
+    expect(customer).toHaveLength(1); const id=segmentComposite(customer[0],2,original.una)[0]
+    expect(id).not.toBe(''); for(const error of expected) { expect(error.text).toContain(`kundid=${id}`); expect(error.referenceNumber??'').toBe('') }
+    expect(wire.segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,wire.una)[0]==='Z07')).toEqual([])
+  }
   expect(ack).toMatchObject({related_message_id:source.id,immutable_payload_hash:digest(ack.raw_payload!)})
   const envelope=EdifactEnvelopeCodec.decode(raw)
   expect(EdifactEnvelopeCodec.decode(ack.raw_payload!)).toMatchObject({sender:envelope.receiver,receiver:envelope.sender,
@@ -694,7 +705,7 @@ function omit(raw: string, field: string) {
     }
     else if (['202','203','313'].includes(field) && p[0] === 'BGM') { copy[{ '202':1,'203':2,'313':4 }[field]!]= ''; removed++ }
     else if (['314','209'].includes(field) && p[0] === 'LIN') {
-      copy[field === '314' ? 1 : 3] = field === '314' ? '' : ['', '', '', component(p,3,3)]; removed++
+      copy[field === '314' ? 1 : 3] = field === '314' ? '' : ['', ...(typeof p[3] === 'string' ? [p[3]] : p[3]).slice(1)]; removed++
     }
     out.push(copy)
   }
@@ -702,6 +713,14 @@ function omit(raw: string, field: string) {
   const unh = out.findIndex(p => p[0] === 'UNH'), unt = out.findIndex(p => p[0] === 'UNT')
   const count: (string | readonly string[])[] = [...out[unt]]; count[1] = String(unt - unh + 1); out[unt] = count
   const malformed = "UNA:+.? '" + out.map(render).join("'") + "'"
+  if(['311','314','209','223'].includes(field)) {
+    const expected=parts.filter((p,i)=>field!=='223'||!(p[0]==='CCI'&&component(p,2)==='Z13'
+      ||p[0]==='CAV'&&parts[i-1]?.[0]==='CCI'&&component(parts[i-1],2)==='Z13')).map(p=>
+      field==='311'&&p[0]==='UNB'?[...p.slice(0,7),'',...p.slice(8)]
+      :field==='314'&&p[0]==='LIN'?[p[0],'',...p.slice(2)]
+      :field==='209'&&p[0]==='LIN'?[...p.slice(0,3),['',...(typeof p[3]==='string'?[p[3]]:p[3]).slice(1)],...p.slice(4)]:p)
+    expect(rawParts(malformed)).toEqual(expected.map(p=>p[0]==='UNT'?[p[0],String(expected.findIndex(t=>t[0]==='UNT')-expected.findIndex(t=>t[0]==='UNH')+1),...p.slice(2)]:p))
+  }
   if (field === '312') {
     // 0057 alone is the national version. Family/directory/agency and all
     // other physical components, including UNT, remain the genuine control.
@@ -807,8 +826,9 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
   await observedStage(`critical_negative_${field}_control_reread`,()=>reread(f,control))
   const originalBefore=sealed(original.id), controlBefore=sealed(control.message.id)
   const syntaxField=['207','208','227','233','262','250'].includes(field)
+  const requiredPhysical=['311','314','209','223'].includes(field)
   const malformed=omit(freshPhysicalIdentity(complete),field), before=business(f),
-    refusalBefore=field==='202'||syntaxField?criticalRefusalGraph(f,original,control.message.id):null,
+    refusalBefore=field==='202'||syntaxField||requiredPhysical?criticalRefusalGraph(f,original,control.message.id):null,
     received=await observedStage(`critical_negative_${field}_public_intake`,()=>intake(f,malformed,'test',field==='312'))
   if(field==='202')expect(received.id).toBeNull()
   if(syntaxField)expect(received.id).not.toBeNull()
@@ -836,6 +856,28 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
         message:`canonical_inbound_rule_profile_resolution_failed:PRODAT:Z04:${binderDate}:6`})])
       expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages
         WHERE company_id=${literal(f.companyId)} AND raw_payload=${literal(malformed)}`)).toBe(0)
+    }
+    else if(requiredPhysical) {
+      expect(received.mailbox.parsed).toMatchObject({messageFamily:'PRODAT',messageCode:'Z04',rawPayload:malformed})
+      expect(received.mailbox.sourcePayloadHash).toBe(digest(malformed))
+      const custody=sql<{mail:Row;parse:Row;receiptDate:string}>(`SELECT jsonb_build_object('mail',to_jsonb(m),'parse',to_jsonb(p),
+        'receiptDate',m.received_at::date) FROM public.inbound_email_messages m JOIN public.inbound_ediel_parse_results p
+        ON p.inbound_email_message_id=m.id AND p.company_id=m.company_id
+        WHERE m.id=${literal(received.mailbox.inboundEmailMessageId)} AND m.company_id=${literal(f.companyId)}
+          AND p.id=${literal(received.mailbox.parseResultId)}`)
+      expect(custody.mail).toMatchObject({id:received.mailbox.inboundEmailMessageId,mailbox_id:received.mailbox.mailboxId,
+        company_id:f.companyId,environment:'test',raw_edifact_payload:malformed})
+      expect(custody.parse).toMatchObject({id:received.mailbox.parseResultId,inbound_email_message_id:received.mailbox.inboundEmailMessageId,
+        company_id:f.companyId,message_family:'PRODAT',message_code:'Z04',raw_payload:malformed})
+      expect([digest(String(custody.mail.raw_edifact_payload)),digest(String(custody.parse.raw_payload))]).toEqual([digest(malformed),digest(malformed)])
+      expect(custody.receiptDate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(received.birthErrors).toEqual([expect.objectContaining({code:'23514',
+        message:`canonical_inbound_rule_profile_resolution_failed:PRODAT:Z04:${custody.receiptDate}:6`})])
+      expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}
+        AND raw_payload=${literal(malformed)}`)).toBe(0)
+      expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}
+        AND inbound_email_message_id=${literal(received.mailbox.inboundEmailMessageId)}`)).toBe(0)
+      assertUnchangedCriticalRefusalGraph(refusalBefore!,criticalRefusalGraph(f,original,control.message.id))
     }
     else if(field==='202') {
       expect(received.mailbox.parsed).toMatchObject({messageFamily:'PRODAT',messageCode:'PRODAT_UNKNOWN',rawPayload:malformed})
@@ -868,6 +910,7 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
     expect(received.id).not.toBe(control.message.id)
     const message=(await observedStage(`critical_negative_${field}_read_born_message`,()=>getEdielMessageById(received.id!)))!
     expect(message.raw_payload).toBe(malformed); expect(record(message).immutable_payload_hash).toBe(digest(malformed))
+    if(requiredPhysical)expect(message).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',inbound_email_message_id:received.mailbox.inboundEmailMessageId})
     const sourceBefore=syntaxField?sealed(message.id):null
     const decision=await observedStage(`critical_negative_${field}_canonical_decision`,()=>resolveCanonicalRuntimeDecisionWithRegistry(message))
     expect(decision.applicationDecision,JSON.stringify(decision)).not.toBe('accepted')
@@ -925,6 +968,8 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
       expect(sealed(message.id)).toEqual(sourceBefore)
       await observedStage(`critical_negative_${field}_actual_technical_reply`,()=>actualNegativeSyntaxReply(f,message,refusalBefore!,
         criticalRefusalGraph(f,original,control.message.id)))
+    } else if(requiredPhysical) {
+      await observedStage(`critical_negative_${field}_assert_negative_ack`,()=>negativeAcknowledgement(f,message,decision,field))
     } else {
       const acks=await observedStage(`critical_negative_${field}_list_physical_ack`,()=>listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'}))
       expect(acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
@@ -944,6 +989,8 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
   // NULL custody/no effects prove refusal only; they cannot satisfy that reply.
   if(field==='202')expect(received.id,
     'CV-P-HEADER missing202 requires actual source-bound negative P-APERAK BGM27/ERC41/field202; public birth returned no source').not.toBeNull()
+  if(requiredPhysical)expect(received.id,
+    `CV-P-HEADER/P-17 or CV-P-OBJECT missing${field} requires actual source-bound physical negative P-APERAK; public birth returned no source`).not.toBeNull()
 }
 // Actual national value gate, followed by the separate physical/private/replay
 // contract only when every strict source-owned rejection assertion succeeds.
