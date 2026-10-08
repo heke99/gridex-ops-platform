@@ -116,6 +116,21 @@ it('propagates dated catalog refusal before any source INSERT or reception obser
 
 // Exact missing314 wire, finite DB/catalog ports only; not PostgreSQL/private proof.
 const missingSequencePayload=()=>guideOrderedFixtureRaw([line('',point,undefined,'9'),...characteristic('Z13','Z25'),['RFF',['LI','OWN']]],'Z04')
+const missingApplicationPayload=()=>guideOrderedFixtureRaw([line('1',point,undefined,'9'),...characteristic('Z13','Z25'),['RFF',['LI','OWN']]],'Z04').replace('23-DDQ-PRODAT','')
+it('retains a physically missing311 source at first INSERT without repairing its application or borrowing point authority',async()=>{
+ const rawPayload=missingApplicationPayload();setup(rawPayload)
+ const request=input(rawPayload),t=tokenizeEdifact(rawPayload),grouping=prodatRegisterGroups(t.segments,t.una,'Z04')
+ expect(request.parsed.applicationReference).toBeNull()
+ expect(grouping.problems).toEqual([])
+ expect(grouping.groups.map(g=>[g.lineNumber,g.validRegisterChain,g.firstLineIndex,g.registerPosition])).toEqual([['1',true,0,1]])
+ expect(await resolveBilateralSwitchBirthProfile({rawPayload,receivedAt})).toBeNull()
+ expect(await createInboundEdielMessage(request)).toBe(newId)
+ const writes=db.writes('ediel_messages');expect(writes).toHaveLength(1)
+ expect(writes[0].payload).toMatchObject({raw_payload:rawPayload,application_reference:null,metering_point_id:null,
+  processing_status:'manual_review',rule_profile_key:key,parsed_payload:{applicationReference:null}})
+ for(const column of witnessColumns)expect(writes[0].payload).toHaveProperty(column)
+ expect(db.writes('outbound_requests')).toEqual([])
+})
 it('retains a recognizable missing314 source at first INSERT without repairing its sequence or borrowing point authority',async()=>{
  const rawPayload=missingSequencePayload();setup(rawPayload)
  const request=input(rawPayload),parsedBefore=structuredClone(request.parsed),t=tokenizeEdifact(rawPayload),before=prodatRegisterGroups(t.segments,t.una,'Z04')
