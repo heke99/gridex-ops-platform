@@ -537,3 +537,8 @@ NEXT ROOT freshmain/allrefs/retainedfileduty then standard reviewedcreate-only S
 
 
 Pre-execution OP review found one Important manifest snapshot/hash binding gap in script87b060; fixed BEFORE any operation: corrected6771B script77d9fb39525470e29c5dc6c322d37a6cb2a4533e9bd0ecfeee8d01d57b86ebc1 reads/parses ONE immutable manifest buffer, pins exact reviewed301b hash and each PLAN report manifest binding. Original rejectionf441e19c/script87 preserved. FIRST correctedOPreview C0I0; SECOND pending. Fresh newcensus108refs36receipts/currentmain1897 and completecandidate18scope no overlap/listedcustody; own7 retained. Execution stayspending until fullcorrectedOP2/self, then actualall25+CP673CLAIM before18authoring.
+
+
+## 2026-10-08 — corrected exact18fixture atomic OP2/self GO
+
+Both corrected77d9fb39 reports nowAPPROVE C0I0 fullyROOTread/self/sealed; priorI1f441 closedbefore anyexecution andold87script preserved. PLAN602a/manifest301b/source18preimages fixed; fresh108refs36receipts main1897 no candidateoverlap. Current7ownrefs retained. NEXT ROOT execute exact6771Bscript onceonly; ALL25readback then ownCP673CLAIM before18fixturecode. Current720originalqualification andwholeH stayblocked, no role/native/GEN/coverage/privateedits.
