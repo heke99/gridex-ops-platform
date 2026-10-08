@@ -867,3 +867,37 @@ R1/R2 independent PREAUTHORreviews assignedexact947ac076/sourcebf andROOT repair
 Preserved read-only error b03e26 actual1: guessedstaff-schema-capture.yml absent; rg4ae068 thenfullactualstaff-api-schema-capture.yml read61021e. Broadfreshmainmemoryoutput755038 was truncated; helperfullread refresh pending andunchangedpolicy/hash-boundpriorreads preserved. No code/adoption/producer/qualification inferredfromfailedread.
 
 Next ROOT: consume PLAN2 findings, finalize exactbounded authorconditions/self; acquireonlyfreshfree12additionalpaths anddocumentCLAIM beforecoupledsource/adapters. Coordinate24fa6SQL andB6SQL(+maintainedunitasneeded) actualrelease; full15sourcefreeze follows those actualhandoffs. No nextpair/sharedmemorywrite/coveragepromotion.
+
+
+## 2026-10-08 00:23 UTC — actual50 CLAIM / exactV3 conditional free-source AUTHORGO
+
+CLAIM AT-Z02L-SUPPLIER / AT-Z02LK-SUPPLIER — codex-ediel-20261006-2f72c8ab — packet ac08f5ae-1dd9-4209-8fd6-2a596ffaf10f — branch codex/ediel-coupled-sql-gen-2f72-ac08-20261008-0006
+
+2026-10-08T00:23Z; existing pair retained, session codex-ediel-2f72-ac08-coupled-20261008-0012-6cf7c705. Complete selection remains the exact15 SQL and companions documented in #673 comment6049407718. New twelve create-only atomic file locks have actually been acquired at receipt c2696e1a6ea00e2fb1225bb7f4ed7f756cb57477 (main bf0364e8a94c54ad79276eb9a2becf59fc7d9905/tree25f7fa4983c8e8588eb5f98e299439950e9dd8bc; original acquisition binds V2 ecd9de4e…, V3 source/closure pins unchanged). Normal POST exits0 plus official full receipt identity/tree/parent/message and all50 current official GETs exactly match. Acquisition receipt SHA e546da7a1f441a9fefd64821c047f8fd6c691a728e2f23cac2fd354d401807d6. No foreign lock is taken.
+
+Fresh main remains bf0364e8a94c54ad79276eb9a2becf59fc7d9905; dedicated worktree /workspace/gridex-ediel-coupled-sql-gen-2f72-ac08-0006 is still clean at that actual commit before code. Historical1099 SQL identities/checksums preserved; all837 original canonical rows and metadata,264 supported additions and143 runtime rows remain unchanged.
+
+Exact V3 plan029e8b3c80ae559a5ff5844af5c247545e6d65d0779f8ffd11c0f25524caf0b5 (54664B) now has R1 final3dc222a599d4cdef6f448cf6dfa81c2066e7c9559ea8102b37cb865bf368b29c, R2 finalefa56b419f8c7d404f80698d57961cfbe9443bb9294c0e77ec6c13088ffee772 and ROOTselfadfb99ab4d8417dd5360d846dd7adef665e3feb04fd49de0f11790be2ebe97eb/1188PASS. All full receipts read; conditional approval respects custody and separate gates.
+
+ROOT AUTHOR GO ONLY AFTER own checkpoint and this comment full expected readbacks: adopt the following12 frozen donor files, add ONLY their4 checksum rows via the unchanged registrar under own canonical-manifest lock bc8cdfd6054b361e1964955a47b581c6179908f5 (837→841), and author the two existing Z04/H209 immutable-predecessor test adapters. No production SQL changes beyond exact reviewed forwards. Full-file and old-body SHA guards, all42 Z04/all73 H209 cases and assertions retained. Retained current-main capture supports source-phase tests; genuine new capture/affected test repeat/clean+upgrade parity come later.
+
+- __tests__/ediel-at-z03c-supplier-queue.test.ts — file-aae2b8dcf99d43cd9fb885b0fbe4e25f128bbb8b5f8940073dc179ddce086d64
+- __tests__/ediel-switch-cancellation-source.test.ts — file-860a3dfcdcdc781bd3a2f042c32ceb90b53cbc26e83d5e77b09ac3db1ca92c22
+- __tests__/ediel-z04-legacy-activation-canonical-guard.test.ts — file-fd323d472d588880013597fc65b43c81fb5fc03f38350e1bc545aaa964cb65df
+- lib/ediel/intent/renderers/switchCancellation.ts — file-3d921d34fb50ecf5b490f48350eb0bf4a663b443b80b57eea6d60b655320865b
+- lib/ediel/production/switchCancellationSource.ts — file-aa30a3ad5c4ed87e1562b4a97067718797f91dc8b48635063372dc8da607d3f2
+- scripts/ediel-company-readiness-sql-regression.mjs — file-7f9233e29f2edb6cff64c47abf864e7b13ebc1b19dbba6f3f6623d4da2135fbe
+- scripts/ediel-rejected-identity-scope-sql-regression.mjs — file-2dc349e9097f48aafe86be486d6c1a0d3bf93edb648965e494997d5d325f56ce
+- scripts/ediel-switch-cancellation-sql-regression.mjs — file-a0536e2a02e013b05fd98893780b036e76fef40567004764503e6a9cd8b08399
+- supabase/migrations/20261007110303_company_readiness_optional_esett.sql — file-2df82310c511034e437315e49682a0163bf5a4a3546fed272ed64c036dd3c4ed
+- supabase/migrations/20261007132500_ediel_switch_cancellation_original_method.sql — file-605d604c585f02a9bb2aa2769724eb0057b26b474348978e983c308bb94aaeab
+- supabase/migrations/20261007210437_ediel_z04_legacy_activation_canonical_guard.sql — file-008f13f4012f2d4a9db0cd23a2003d3800245e990dcb9a85174bccba4531f596
+- supabase/migrations/20261007212410_ediel_rejected_identity_register_scope.sql — file-b61eaf74981d04cdebf0219fd3df40116bd98314d3ec3ba90ff53a3ee6ebff2e
+
+Explicit bounded authors: /root/core_closed_reuse_plan only H209 regression adapter; /root/z02_current_positive_cause only Z04 unit adapter after ROOT exact adoption. ROOT owns source adoption, checksum registration, verification integration and later publication. They cannot change other source paths, historical SQL, cases/oracles, GEN, refs or board.
+
+Remaining custody blockers: six TRDB SQL still ba46bafc65717b531265083f8cf02f135b94ef80 /24fa input12; new Z13 SQL+maintained unit still ba5886ddbe29f5255f5bff8345a2060133536e46 /b6 cf94. Need reviewed frozen source and explicit narrow owner RELEASE→official404→fresh ROOT claim. Owners retain native/whole responsibilities; supported-additions file may remain untouched because real canonical registrar accepts all15 selected rows. Requests #673 comments6049326467/6049407718 remain open. No silence inference.
+
+Permanent severity repair772f7ea5281a8def7db520b7d4d1b543887f82b9 is LOCAL ONLY,29P0F0pending, CODE2+self complete. Original877 CI8 green remains only877; genuine native69PASS20FAIL and wholeFAIL retained, positive originating SQL cause UNKNOWN. No new source/PR/GEN/capture/parity/CI/merge approval or coverage movement.
+
+Next concrete action ROOT: after full CP/comment readbacks materialize precisely free12 and register4, then run unchanged actual source baselines and bounded adapters. Separate Staff reader design PLAN2+self/own AUTHOR documentation must complete before any new reader implementation; this source GO grants no reader/use permission.
