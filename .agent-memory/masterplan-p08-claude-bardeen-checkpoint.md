@@ -90,3 +90,15 @@ So my 3-file native-trigger test alone would NOT close P-08. On handover, the sc
 re-specified (likely include producer path lib/ediel/intent/productionContractGateway.ts,
 renderers/productionContract.ts, flows/prodatProductionContract.ts consumers as read-only, and a native
 test modelled on scripts/ediel-at-z04d-production-native.test.ts). Coverage only when every criterion is proved.
+
+## RESERVED — verified 2026-10-08 (status: implementing)
+
+Custody: owner-authorized handover #673/6057229927 (from cool-tesla-2pmyua; Z09B/Z09D/SC036 NOT transferred).
+Proxy CLAIM #673/6057243035 by codex-root-coordinator. Own `git ls-remote`: all five refs
+(id-P-08, id-AT-P-08, file-271abbd6…, file-55d153d5…, file-b45d980a…) = receipt
+`672e62bc169c9ee667c4f73a5f84a0dbe5567f5b` (agent = me, delegatedBy codex-root-coordinator, base 74bcd6d).
+Scope: only the three reserved files + P-08/AT-P-08 coverage rows. Extend via coordinator before any other file.
+Plan: one native vitest file asserting (a) literal 210 XOR 211 / no 216 substitute / DTM 92|93 / APERAK 40/109,
+no general 157, through the real policy/renderer code; (b) on clean-replayed schema the ACK→production
+relation effects (positive bound Z09D confirms exactly its event; negative, CONTRL-only, unbound, revoked,
+other code, other tenant confirm nothing; idempotent; immutable; no service_role write).
