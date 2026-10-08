@@ -12,8 +12,9 @@ file lock under the reservation protocol. Its branch is evidence, not a lock.
 Read current main `74bcd6d109861e940269f75821f6d3516df29a96`, AGENTS.md,
 ordered campaign memory, workflow/reservations, frozen rules/acceptance registers,
 legacy register, current open PR metadata and relevant retained custody records.
-Read all 924 comments in the first fresh #673 response and refreshed page 10
-through comment 6057142626. Relevant original #530 P08 custody receipt
+Fetched all 924 comments in the first fresh #673 response, read selected latest
+and relevant custody/release receipts, and refreshed page 10 through comment
+6057142626. Relevant original #530 P08 custody receipt
 5987293997 was independently fetched. The prior eligibility inventory at
 `9cb41110923a29ed250fe4946fe2b5e2a0d76f0d` is dated supporting evidence,
 not current ownership. All 93 refs and their 35 unique receipt messages from
