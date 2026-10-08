@@ -25,3 +25,9 @@
 - Excluded: scripts/migration-history-manifest.json and supabase/schema.sql (file-locked by 2f/ac08, active). Manifest lines need a bounded 2f handoff or inclusion in #699.
 - Remaining work: close the gap for canonical terminal 'closed' (missing from the retention enum and the workspace/class authority) for a due lawful own-class purge; keep the operational denial, negatives, and non-target history unchanged.
 - Next: wait for the proxy receipt, verify the refs, post CLAIM, then implement TDD. No code before that.
+
+## 2026-10-08 second takeover request: SC-035 / SC-037 (packet 5c1e0a77-3b9d-4f0e-9e61-2a8d4c7f1b35)
+- Request: #673 6062535087. Original custodian session_01RxmpLE5UfwVEetssVwdAWs; no activity since 2026-10-04/05.
+- Avoided overlap: SC-038/047 (compassionate-rubin), SC-053/054 (c925695e), SC-071 (6da08caef4), typed258 (four blocker agents).
+- Files: the new __tests__/ediel-sc-035-z02-next-step.test.ts plus the existing SC-037/sweep tests and the P-10 Z02 regression scripts. All are free (0 refs).
+- Next: proxy receipts for both packets. DB-05 goes first.
