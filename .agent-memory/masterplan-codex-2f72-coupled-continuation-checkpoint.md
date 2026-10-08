@@ -35,3 +35,11 @@ Status and source-only next action: https://github.com/heke99/gridex-ops-platfor
 Actual local carry c0a8749f8810711fab054731864e42ab50c8d2b1 has expected tree021ec6999c0e89e81d6c6cffc5ed2915c2baca44 and correct parents; working tree is clean. The two affected suites pass on Node22. No remote publication or merge.
 
 The responsible agent now imports the already reviewed/released/reserved H4894 SQL and finite test from48949891eb111a319c77e47989e97397b056cc92 plus their sole canonical checksum entry. Preserve all historical migration bytes/identities/checksums and the old replay prefix. Validate finite behaviour, migration integrity, nonincremental types and scoped lint; obtain final composed-source reviews before publication. The expanded17 source needs its own genuine GEN/capture and clean/upgrade parity; b72916 capture stays separate. The named core-blockers owner retains GEN4/runtime paths until explicit handback. No whole H/coverage approval; DB05 still awaits final reviewed handover.
+
+## Actual CONTRL source / test-table correction
+
+Current receipt: https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6064871075
+
+Actual local source006c33d7c3b7a0b7f9ad7e4392ddf5066f91ef14, treed95ba1ea9793ba8096160867d3b6446843ee7583. The exact forward/checksum is installed; integrity, finite63, three nonincremental typechecks and scoped lint pass locally. No publication, new GEN, whole approval or merge.
+
+Independent review found the intended top-level empty-array test actually receives undefined due to the Vitest table shape. Preserve the original63 report and classify that missing proof accurately. The responsible agent corrects only the table to explicit argument rows, retaining null/undefined/scalar and adding the real empty array; keep all production guards and refusal/rollback assertions unchanged. Execute the affected suite, test typecheck and lint on the new source, then complete bounded rereviews. Existing app/scripts results remain their unchanged source epoch. Genuine selected17-source GEN/parity/current mandatory gates and donor handback are still pending.
