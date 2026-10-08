@@ -6,13 +6,16 @@ import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterField
 import { prodatRegisterGroups, prodatRegisterRuleScopes } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import { evaluateProdatTransactionReason } from '@/lib/ediel/prodat/prodatTransactionReason'
 import { resolveCanonicalRulePack } from '@/lib/ediel/rulebook/canonicalRulePackRegistry'
+import { isProdatRejectedIdentityScope } from '@/lib/ediel/prodat/prodatRejectedIdentityScope'
 
 /** Catalog evidence only: original custody, bilateral/legal admission and
  * business effects remain with the existing reception and SQL consumers.
  * Every physical object supplies its own reason; another object, header or
  * unsupported register cannot provide a default profile.
  */
-export async function resolveSupplyEndBirthProfile(input: { rawPayload: string | null | undefined; receivedAt: string }) {
+export async function resolveSupplyEndBirthProfile(input: {
+  rawPayload: string | null | undefined; receivedAt: string; purpose?: 'rejected_identity'
+}) {
   const canonical = parseCanonicalEdielPayload({ rawPayload: input.rawPayload, direction: 'inbound', standardHint: 'edifact' })
   if (canonical.family !== 'PRODAT' || canonical.messageCode !== 'Z05' || canonical.applicationReference !== '23-DDQ-PRODAT') return null
   const { segments, una } = tokenizeEdifact(input.rawPayload)
@@ -25,10 +28,18 @@ export async function resolveSupplyEndBirthProfile(input: { rawPayload: string |
   const reason = reasons[0]
   if (reason !== 'Z25' && reason !== 'Z22') return null
   if (reasons.length !== scopes.length || reasons.some(value => value !== reason)) return null
+  // This separate catalog purpose retains a malformed H original for later
+  // canonical rejection. It never supplies an identity or operational H cap.
+  const rejectedIdentity = input.purpose === 'rejected_identity'
+  if (rejectedIdentity && (reason !== 'Z25' || !grouped.groups.some(group => group.itemId === null))) return null
   if (!scopes.every(scope => {
     const identity = prodatRegisterFieldState('209', scope, una)
     const ownReasons = prodatCharacteristicValues('223', scope, una)
-    return identity?.present && !identity.malformed && ownReasons.length === 1 && ownReasons[0] === reason
+    const group = rejectedIdentity ? grouped.groups.find(own => own.segments[0].index === scope[0]?.index) : undefined
+    const qualifiedIdentity = identity?.present && !identity.malformed || group && isProdatRejectedIdentityScope({
+      code: 'Z05', group, rawSegments: segments.map(token => token.raw), una,
+    })
+    return qualifiedIdentity && ownReasons.length === 1 && ownReasons[0] === reason
   })) return null
   if (evaluateProdatTransactionReason({ rawSegments: canonical.rawSegments, una, code: 'Z05' }).issues.length) return null
   const received = new Date(input.receivedAt)
