@@ -4,7 +4,7 @@
 
 Agent/session `codex-20261007-2c-2ea04926cb1d`; isolated branch `codex/c-prospective-source-2ea-41dd26fb`, worktree `/workspace/gridex-c-prospective-source-2ea-41dd26fb`. Own six ID/file refs match receipt `c2039f69ac134da88904a48a6a3f30bfb2ad6859`. Before-code CLAIM6048719056 and READY6048840814 are on #673.
 
-PR691 is OPEN, exact `80384cf5f8b5754fdfcde18634738b059205d1f6`, tree `a920d21780242dcef24751fe519fb03940306851`. Two independent source approvals+self, local135/6files, three typechecks and final lint0 are recorded below. Owned public30 is authentically completed: producer EXIT1 / 1PASS29FAIL, all9409Git matched/drift{}, independent proof reviews+self complete. Mandatory CI remains pending (last3of8SUCCESS); FP is the sole metadata watcher, ROOT read the original archive ONCE. No merge-role held. Whole C03/C05 and coverage remain unapproved/300of352; synthetic register111 does not supply receiver READ or healthy supply.
+PR691 currently publishes803/treea920; a SOURCE2+self approved comment-only successor `500df58768ca6fc01394b107f1d652353783f1fc`, tree `6b1a0410a5a382aee702746f5caa019e6f4aa7c8`, is ready for normal publication. Old803 native1P29F stays803; successorCI/native are not yet executed. Two independent source approvals+self, local135/6files, three typechecks and final lint0 are recorded below. Owned public30 is authentically completed: producer EXIT1 / 1PASS29FAIL, all9409Git matched/drift{}, independent proof reviews+self complete. Mandatory CI remains pending (last3of8SUCCESS); FP is the sole metadata watcher, ROOT read the original archive ONCE. No merge-role held. Whole C03/C05 and coverage remain unapproved/300of352; synthetic register111 does not supply receiver READ or healthy supply.
 
 Next ROOT: archive the genuine independent native proof reviews, require current mandatory greens and fresh independent delivery/main-composition review before normal expected-head merge under a fresh atomic role. Document actual delivery and release own six refs, or preserve and explicitly hand off the exact blocker. Shared summaries remain separately reserved; fresh role-memory c97fa80a belongs to 24fa for the actual PR689 memory closeout. No overlapping source/GEN/native work.
 
@@ -585,4 +585,217 @@ Exact local successor `500df58768ca6fc01394b107f1d652353783f1fc`, tree `6b1a0410
 
 Failed supporting probes preserved: initial Node child ls-tree ENOBUFS (default1MiB buffer), second explicit child invocation EPERM. Final safe verification uses pure TS emit plus Python completeGitmap, same9409/no truncation guards; no permission escalation/bypass, runtime/test error or falsegreen. Old135/three typechecks retain originalsource binding; only comment semantic input equivalence established. New one-file lint pending. Both existing independentreviewers nowperform only exactsuccessor source rebind using completed803fullpath plusactualdiff; no duplicated native/reader/artifact or large test. PublishedPR remains803/oldcurrentCI; mergewithheld pendingcorrectedsourcepublication andallfreshnewheadgates.
 
-NextROOT receiveSOURCE2/self +onefilelint0, preparestrictreader600/500 pins as exactconstant-only change withbefore-useSOURCE2+self, normalpublish500/accuratemonthlyPRmetadata/ownREADYcurrentCP673. FPsolewatch newofficialhead onceactualpublication; actual8031P29F proof stays immutable/separate. No merge-role/sharedwrite/newpair/code/valuechange.
+NextROOT receiveSOURCE2/self +onefilelint0, bind the strict reader to500 as exactconstant-only change withbefore-useSOURCE2+self, normalpublish500/accuratemonthlyPRmetadata/ownREADYcurrentCP673. FPsolewatch newofficialhead onceactualpublication; actual8031P29F proof stays immutable/separate. No merge-role/sharedwrite/newpair/code/valuechange.
+
+
+## SOURCE500 PUBLICATION GO — 2026-10-08, same41dd26fb
+
+Source500/tree6b1a/parent803 differs ONLY one helpercomment; all9408other posts/native30byteexact/semanticemittedJS SHA0db1c3 identical. Actual one-file ESLint on500 trueEXIT0/empty `/tmp/gridex-2ea-c-monthly-lint.log`; no new unit/type test invocation. Actual prior135/threeTSC stay originalsourcebound, only comment/type semantic input equivalence established.
+
+Exact independentSOURCE2: z18 receipt02ff407581f14e4ebfee854b81e999972886a7d9fae7b282d8b0ca2a74ac420a andz156ac6c2b5631e67c651713ef008711172c367fce58a12588048d64323af0428d1; rootself06e788ff43c691489a2cffff96049c99637bd49931660d293e168c7370c8eb20. NoCritical/Important orremainingminorfindings; field254Z31 monthly/profiled selected explicitly, physical111 stillunqualified.
+
+Strict500 before-use reader80d83931ba66f6406044e0e80eba5d7fd2f08a9e0f4cf1fb9e34b5936590997e nowSOURCE2+self COMPLETE: independentz184949e431b557a9cee0f317481994bde25044085c9b0ff6a9d01aec68703b1895 +FP81917877ba4a2f795f67c7e3a9449a95c0120401dbf2b2e0482810f185175c76. OnlyHEAD500/TREE6b1a/helperINPUTOIDb173 constantpins changed vsoriginal6c5e; all branch/nativeSHA/census9409/strictlogic/guards unchanged; AST+directbyteinverse exact. Reader NOT_EXECUTED, artifact NOT_FETCHED/newproducer NOT_CREATED untilnormal publication. Existing run37701653427/true1/1P29F and current8036of8status remain solely803; do not transfer them.
+
+NextROOT fresh6claims/officialPR803/head andnormalpush reviewed500, getactualPR500, update inaccurate time-series PRmetadata to explicitlysynthetic monthly (not changingZ31), relay honestSOURCE2/selfCOMMENT500 and READY673/currentcheckpoint/fullreadbacks. FP thensolecurrent500 mandatory/nativeMETADATAwatch; ROOT sole neworiginalarchive/read AFTER real ownedcompletion, withapproved80dreader and fresh run/job/attempt/window/digest. No manualproducer/newlargeunit/artifactduplication. All8 requiredcurrent500checks mandatory; normalmerge onlyafterfinalcurrentdeliveryreview/freshmain/refs/freeatomicrole. Actualmaindocumentation/release6 thenfreshnexteligibility. Shared memory remainsforeign-held; no merge-role/newscope/coveragechange.
+
+<!-- BEGIN:C500_SOURCE_Z18 -->
+Original `/tmp/gridex-2ea-c-monthly-z18-source-rebind-8678eb2964b64773b595d6994880add2.json`, SHA256 `02ff407581f14e4ebfee854b81e999972886a7d9fae7b282d8b0ca2a74ac420a`.
+```json
+{
+  "reviewer": "/root/z18v_contract_review",
+  "verdict": "SOURCE_PUBLICATION_APPROVE",
+  "head": "500df58768ca6fc01394b107f1d652353783f1fc",
+  "tree": "6b1a0410a5a382aee702746f5caa019e6f4aa7c8",
+  "parent": "80384cf5f8b5754fdfcde18634738b059205d1f6",
+  "soleChangedPath": "scripts/helpers/ediel-cancellation-prospective-source-2ea.ts",
+  "helperOld": "100644 blob 947b30241773a0e087cee291117992eb8b442f1b",
+  "helperNew": "100644 blob b17311dc108df610e15021c1ea45cd15ff3fc3b3",
+  "inverseSingleCommentExact": true,
+  "fullGitCensus": 9409,
+  "otherModeTypeOidsPreserved": 9408,
+  "helperNewSha256": "8589d06c7b317a6147124a585459cf70eab3e13dc6904b10f3d9dc83d23076ea",
+  "semanticCorrection": "Z12=active installation; Z31=profiled monthly settlement. Z32 daily is not required by C03/C05 or existing source803 oracles.",
+  "sourceContinuity": "Prior complete803 SOURCE approval preserved; exact prose-only correction independent inverse confirmed.",
+  "nativeSourceAndThirtyOraclesByteEqual": true,
+  "checksRun": "Only read-only Git postimage/diff/inverse examination; no tests/typechecks/reader/CI/native/artifact rerun.",
+  "limits": [
+    "803 authentic native 1P29F remains803, not rebound to500",
+    "No successor native or mandatoryCI execution proof",
+    "No wholeC/market/delivery/merge approval"
+  ]
+}
+```
+<!-- END:C500_SOURCE_Z18 -->
+
+<!-- BEGIN:C500_SOURCE_Z15 -->
+Original `/tmp/gridex-z15c-review-691-500-source-rebind.json`, SHA256 `6ac6c2b5631e67c651713ef008711172c367fce58a12588048d64323af0428d1`.
+```json
+{
+  "version": 1,
+  "reviewer": "/root/z15c_contract_review",
+  "verdict": "SOURCE_APPROVE",
+  "scope": "Comment-only exact-source rebind of the completed full803 source review; no whole/native/CI/delivery approval.",
+  "head": "500df58768ca6fc01394b107f1d652353783f1fc",
+  "tree": "6b1a0410a5a382aee702746f5caa019e6f4aa7c8",
+  "soleParent": "80384cf5f8b5754fdfcde18634738b059205d1f6",
+  "changedPaths": [
+    "scripts/helpers/ediel-cancellation-prospective-source-2ea.ts"
+  ],
+  "actualIndependentChecks": {
+    "singleCommentDelta": {
+      "before": "// Explicit synthetic active/time-series counterpart input, before mail or",
+      "after": "// Explicit synthetic active installation/profiled monthly settlement, before mail or",
+      "inverseByteExact": true,
+      "executableCodeUnchanged": true
+    },
+    "oldEntries": 9409,
+    "newEntries": 9409,
+    "otherModeTypeOidEntriesExact": 9408,
+    "nativeTestUnitWorkflowAndRemainingSourcesByteExact": true,
+    "helperMode": "100644",
+    "oldHelperBlob": "947b30241773a0e087cee291117992eb8b442f1b",
+    "newHelperBlob": "b17311dc108df610e15021c1ea45cd15ff3fc3b3",
+    "newHelperSha256": "8589d06c7b317a6147124a585459cf70eab3e13dc6904b10f3d9dc83d23076ea"
+  },
+  "assessment": {
+    "critical": [],
+    "important": [],
+    "minor": [],
+    "sourceCorrespondence": "The replacement accurately separates synthetic active installation from the selected Z31 monthly settlement description. Literal installationStatus Z12/settlementMethod Z31 and own physical1/6/111 values are unchanged; no new qualified READ or business authority is introduced.",
+    "priorFull803Review": "Pure prospective-wire constructor and real public-intake consumer chain remain the reviewed implementation; all30 existing native identities/body/oracles remain unchanged.",
+    "reportedParentEvidenceOnly": {
+      "path": "/tmp/gridex-2ea-c-monthly-root-self.json",
+      "semanticJsByteEqual": true,
+      "emittedSha256": "0db1c3f2fa45f2bc0f970438abcefc7633793155f151b4773397fcc9eab3e099",
+      "independentCompilerRerun": false
+    }
+  },
+  "executionLimits": {
+    "newTests": false,
+    "newTypechecks": false,
+    "newNative": false,
+    "newReader": false,
+    "newArtifactReads": false,
+    "newCI": false,
+    "actual803NativeNotReboundTo500": true,
+    "wholeC03C05Approved": false,
+    "coveragePromotion": false,
+    "deliveryApproved": false,
+    "marketApproval": false
+  },
+  "performed": "Read exact commit/tree/parent/single-comment diff and existing root self-review; independently compare full immutable Git MODE/type/OID maps and inverse comment bytes. Persist this source-review receipt only."
+}
+```
+<!-- END:C500_SOURCE_Z15 -->
+
+<!-- BEGIN:C500_ROOT_SELF -->
+Original `/tmp/gridex-2ea-c-monthly-root-self.json`, SHA256 `06e788ff43c691489a2cffff96049c99637bd49931660d293e168c7370c8eb20`.
+```json
+{
+  "reviewer": "/root",
+  "kind": "comment-only successor inverse + semantic emit/fulltree self-review",
+  "head": "500df58768ca6fc01394b107f1d652353783f1fc",
+  "tree": "6b1a0410a5a382aee702746f5caa019e6f4aa7c8",
+  "parent": "80384cf5f8b5754fdfcde18634738b059205d1f6",
+  "changed": [
+    "scripts/helpers/ediel-cancellation-prospective-source-2ea.ts"
+  ],
+  "oldHelper": "100644 blob 947b30241773a0e087cee291117992eb8b442f1b",
+  "newHelper": "100644 blob b17311dc108df610e15021c1ea45cd15ff3fc3b3",
+  "fullPostCount": 9409,
+  "otherModeTypeOidPreserved": 9408,
+  "inverseSingleCommentExact": true,
+  "nativeTestBodyAndAllOtherSourceByteEqual": true,
+  "testsRerun": false,
+  "typechecksRerun": false,
+  "failedSupportChecks": [
+    "Node child_process first ls-tree exceeded default1MiB buffer ENOBUFS",
+    "Second bounded child_process invocation EPERM; no source/runtime/test failure. Final verification uses pure TypeScript emit and Python full Git map, keeping exact9409/no truncation guards."
+  ],
+  "limits": [
+    "Actual135/three typechecks remain source-bound original inputs; behavior/type input equivalent only",
+    "No actual successor CI/native/whole/delivery approval"
+  ],
+  "node": "v22.23.3",
+  "typescript": "5.9.3",
+  "semanticJsByteEqual": true,
+  "emittedSha256": "0db1c3f2fa45f2bc0f970438abcefc7633793155f151b4773397fcc9eab3e099",
+  "emitDiagnostics": 0,
+  "helperOldTextSha256": "4dc3fb47afa94462848d93e9a84b222ab58162cb193be216fac4a5f47760b0d9",
+  "helperNewTextSha256": "8589d06c7b317a6147124a585459cf70eab3e13dc6904b10f3d9dc83d23076ea"
+}
+```
+<!-- END:C500_ROOT_SELF -->
+
+<!-- BEGIN:C500_READER_Z18 -->
+Original `/tmp/gridex-2ea-c-native-500-reader-z18-3819463105f249f6b9d8ddc5665d2267.json`, SHA256 `4949e431b557a9cee0f317481994bde25044085c9b0ff6a9d01aec68703b1895`.
+```json
+{
+  "reviewer": "/root/z18v_contract_review",
+  "verdict": "BEFORE_USE_READER_SOURCE_APPROVE",
+  "head": "500df58768ca6fc01394b107f1d652353783f1fc",
+  "tree": "6b1a0410a5a382aee702746f5caa019e6f4aa7c8",
+  "readerPath": "/tmp/gridex-2ea-c-native-500-qualifier/qualify_native.py",
+  "readerSha256": "80d83931ba66f6406044e0e80eba5d7fd2f08a9e0f4cf1fb9e34b5936590997e",
+  "derivedReaderSha256": "6c5e720891f4d9c816442ff2c728cbfae8622dae2db2611f1e701787d0e77482",
+  "onlyChangedAssignmentPins": [
+    "APPROVED_HEAD",
+    "APPROVED_INPUTS",
+    "APPROVED_TREE"
+  ],
+  "sourceLogicAstInverseExact": true,
+  "fullReaderByteInverseExact": true,
+  "currentGitCensus": 9409,
+  "currentSixPinsMatched": true,
+  "onlyHelperOidChanged": "b17311dc108df610e15021c1ea45cd15ff3fc3b3",
+  "nativeSha256": "ba82157aea9e794ecdde3b5e7f417e666f20fc97e585d40828db22609c83f140",
+  "hardenedThirtyBodyByteEqual": true,
+  "preservedGuards": [
+    "exact repository/head/branch/tree/run/job/attempt/window",
+    "official ZIP digest/size/CRC/exactmembers",
+    "full9409modeOIDandSHAcompare",
+    "strict original30identity and hardenedbody",
+    "no runtime-generated drift",
+    "strict XML/no skipped cases/typed exit and job conclusion",
+    "reject python -O",
+    "no whole or market approval"
+  ],
+  "execution": "NOT_EXECUTED",
+  "limits": [
+    "No reader/native/artifact/CI/checkpoll executed",
+    "Authentic803 execution remains bound to803; not rebound to500",
+    "No delivery/whole approval"
+  ]
+}
+```
+<!-- END:C500_READER_Z18 -->
+
+<!-- BEGIN:C500_READER_FP -->
+Original `/tmp/gridex-2ea-c-native-500-qualifier/final_packet_review-before-use-500df587.json`, SHA256 `81917877ba4a2f795f67c7e3a9449a95c0120401dbf2b2e0482810f185175c76`.
+```json
+{
+  "classification": "READER_SOURCE_APPROVE_BEFORE_USE",
+  "reviewer": "/root/final_packet_review",
+  "head": "500df58768ca6fc01394b107f1d652353783f1fc",
+  "tree": "6b1a0410a5a382aee702746f5caa019e6f4aa7c8",
+  "reader": "/tmp/gridex-2ea-c-native-500-qualifier/qualify_native.py",
+  "readerSha256": "80d83931ba66f6406044e0e80eba5d7fd2f08a9e0f4cf1fb9e34b5936590997e",
+  "priorApprovedReaderSha256": "6c5e720891f4d9c816442ff2c728cbfae8622dae2db2611f1e701787d0e77482",
+  "exactThreePinAstInverse": true,
+  "exactThreeLineByteInverse": true,
+  "allSixModeOidPinsMatchImmutableGit": true,
+  "nativeSourceByteIdentical803": true,
+  "sourceCensus": 9409,
+  "newHelperOid": "b17311dc108df610e15021c1ea45cd15ff3fc3b3",
+  "allPreviouslyReviewedStrictGuardsUnchanged": true,
+  "findings": [],
+  "artifactRead": false,
+  "readerExecuted": false,
+  "nativeExecuted": false,
+  "nativeApproval": false,
+  "wholeApproval": false,
+  "deliveryApproval": false,
+  "reviewedAt": "2026-10-08T00:05:37.527993+00:00"
+}
+```
+<!-- END:C500_READER_FP -->
