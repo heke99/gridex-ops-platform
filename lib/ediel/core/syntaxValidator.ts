@@ -68,7 +68,7 @@ function isActualContrl(message: EdielSyntaxInput, facts?: ReturnType<typeof par
   return storedFamily === 'CONTRL' || storedCode === 'CONTRL' || parsedType === 'CONTRL'
 }
 
-export function validateEdifactSyntax(message: EdielSyntaxInput): EdielSyntaxValidationResult {
+export function validateEdifactSyntax<T extends EdielSyntaxInput>(message: T): EdielSyntaxValidationResult {
   const envelope = validateEdifactEnvelope(message.raw_payload)
   const issues: EdielSyntaxIssue[] = envelope.issues.map(item => ({
     code: item.code === 'unt_unh_reference_mismatch' ? 'unh_unt_reference_mismatch' : item.code,
