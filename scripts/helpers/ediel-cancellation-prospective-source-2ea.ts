@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { ownerSource, OWNER } from '../../__tests__/helpers/sourceOwnerFixtures'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
-import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, segmentSourceSpan, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import { prodatRegisterReadingState } from '@/lib/ediel/prodat/prodatRegisterReadings'
 import { prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -23,7 +23,7 @@ function envelope(f: CancellationProspectiveContext, source: string, code: 'Z04'
 }
 export function buildCancellationProspectiveZ04(f: CancellationProspectiveContext) {
   // Explicit synthetic active installation/profiled monthly settlement, before mail or
-  // source birth. Register111 remains synthetic, not a qualified READ receipt.
+  // source birth. The source fixture's register111 is not a qualified READ.
   const wire = ownerSource({ readingDeclarations: true, environment: 'test',
     sourceCodes: { installationStatus: 'Z12', settlementMethod: 'Z31' },
   }).raw_payload!.replaceAll(OWNER.external, f.external)
@@ -46,5 +46,30 @@ export function buildCancellationProspectiveZ04(f: CancellationProspectiveContex
     })) {
     throw Error('native_cancellation_ordinary_l_wire_scope_required')
   }
-  return envelope(f, wire, 'Z04')
+  // Explicit NEW synthetic scenario: RKv1.7 cumulative total active-import
+  // electricity, one untimed tariff (all hours/days/months), constant1/digits6.
+  // This selects101 before birth; it is not inferred from Z31 or one LIN and
+  // supplies no receiver READ, UTILTS receipt or historical applicability.
+  const index = own.segments.findIndex(segment => segment.tag === 'CCI'
+    && segmentComposite(segment, 2, tokens.una)[0] === 'Z16')
+  const descriptor = index < 0 ? undefined : own.segments[index]
+  const counter = index < 0 ? undefined : own.segments[index + 1]
+  const span = counter ? segmentSourceSpan(counter) : null
+  const element = tokens.una.dataElementSeparator, component = tokens.una.componentDataElementSeparator
+  if (!counter || !span || descriptor?.raw !== `CCI${element}${element}Z16`
+    || counter.raw !== `CAV${element}${component.repeat(3)}111`
+    || wire.slice(span.startOffset, span.endOffset) !== counter.raw) {
+    throw Error('native_cancellation_ordinary_l_wire_scope_required')
+  }
+  const prospective = wire.slice(0, span.startOffset) + counter.raw.slice(0, -3) + '101' + wire.slice(span.endOffset)
+  const revised = tokenizeEdifact(prospective), revisedGroups = prodatRegisterGroups(revised.segments, revised.una, 'Z04')
+  const revisedOwn = revisedGroups.groups[0]
+  const reading = revisedOwn && prodatRegisterReadingState('259', revisedOwn.segments, revised.una)
+  if (revisedGroups.groups.length !== 1 || revisedGroups.problems.length
+    || revisedOwn?.itemId !== own.itemId || revisedOwn.identityAgency !== own.identityAgency
+    || revisedOwn.registerPosition !== 1 || !reading?.present || reading.malformed || reading.value !== '101'
+    || revised.segments[counter.index]?.raw !== `CAV${element}${component.repeat(3)}101`) {
+    throw Error('native_cancellation_ordinary_l_wire_scope_required')
+  }
+  return envelope(f, prospective, 'Z04')
 }
