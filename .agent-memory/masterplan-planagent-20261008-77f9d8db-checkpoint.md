@@ -86,3 +86,29 @@ Skill routing: using-superpowers, code-review/requesting-code-review and
 verification-before-completion for ownership/evidence review; domain/TDD/native
 skills remain conditional on a lawful implementation packet. UI, performance,
 broad audit, deployment and new generator/harness work are outside this scope.
+
+## Publication refresh — supersedes the historical request state above
+
+Actual main remains `74bcd6d109861e940269f75821f6d3516df29a96`.
+[H owner release6057179928](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6057179928)
+confirms all12 H refs released after source657 delivery; whole H remains blocked.
+P08's retained custodian is **Claude cool-tesla-2pmyua**, PR556/session
+`session_01RxmpLE5UfwVEetssVwdAWs`, identified by coordination6057197745 and
+original5305987293997. Bardeen remains unreserved pending that scoped handover.
+The conditional699 fixture request is **WITHDRAWN**, not pending:
+[6057135324](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6057135324)
+reports a likely unwritten contract `snapshot_hash`. It explicitly requires
+actual clean-schema SELECT after canonical signing before confirming root cause.
+Owner2f reproduces and chooses an evidenced forward repair or named hold while
+preserving `customer_contracts_billing_identity_check`; any separate authoring
+still needs an explicit split and verified reservation. This agent neither
+reserves that withdrawn request nor independently asserts the proposed defect.
+Protocol owner already has READY PR709 at `da2ce7f43918114bd4a2698c3a4e50d9b865d61b`;
+its CI/normal delivery and Claude queue follow-up remain that owner's work.
+Independent reviewer approved prior `b59f229316d76ca065479dc0b52f9281f45c89ef`
+against main74 for documentation only, with no material findings, and requested
+this refresh. Self-review confirms one uniquely owned checkpoint, exact52 ID set,
+raw inventory digest and unchanged source/shared memory/coverage. The raw digest
+belongs to base64-decoded `/tmp/gridex-eligibility-remote.json` content; the parsed
+`/tmp/gridex-eligibility-original.json` is a derived inspection copy.
+Final head needs its own independent refresh approval before remote publication.
