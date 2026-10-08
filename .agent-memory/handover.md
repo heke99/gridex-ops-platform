@@ -1,3 +1,13 @@
+## Active continuation and actual documentation delivery — 2026-10-08T12:32:29+00:00
+
+- #712 actually merged source3292ca94 to main372d61847ae59290f1077a433d26fc3e144c4a1f at2026-10-08T12:27:21Z; exact composedtree0cad6c3f verified,8mandatorySUCCESS and two source/two composition reviews; merge-role FIRST and all6 ownfile refs actually released ([delivery](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6059844442), [release](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6059848457)). Documentation only;300/352 unchanged.
+- #711 actually merged source41aaca2b to main08930f52 at2026-10-08T11:45:18Z;93's three statusfiles/roles released ([receipt6059262212](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6059262212)). Old instructions to finish that operation are historical.
+
+For ongoing owners and stopped-chat resumption use [the dated queue](masterplan-work-queue.md)
+plus fresh own checkpoint/#673/remote refs. Existing roles stay fixed. No new
+implementation/whole-ID custody or resulting-main runtime proof is implied.
+Everything below is preserved dated handover evidence.
+
 - ACTUAL MERGED [#657](https://github.com/heke99/gridex-ops-platform/pull/657) — `74bcd6d109861e940269f75821f6d3516df29a96`, source `2f4359edcf3272fda2b62811ad92c6274ab537bf`, tree `30a63bc9057832a21ac035cadd62250f0ca58570`; nine mandatory successes and SOURCE2/current-main2/ROOT. Merge-role FIRST and all12 own receipts released; wholeH03/H04 NOT_EXECUTED,85PASS/15FAIL, coverage300/352. CORE/GEN2f and ACK41f next repair genuine source/private response and sent/replay prerequisites; [remaining criteria](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6057135638) /[release](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6057179928).
 
 ## TR09/DB01 delivery reconciliation — 2026-10-08
