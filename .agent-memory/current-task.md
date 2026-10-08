@@ -1,3 +1,23 @@
+## Active role continuation — owner instruction, 2026-10-08
+
+This active instruction supersedes older dispatch/pause/next-action labels
+below; their dated evidence is preserved. It assigns no global technical
+packet. Each agent resumes only its own documented identity, scope and next
+action after checking actual main, coverage, #673, current PRs and remote refs.
+
+PLANAGENT finishes its existing packet, then selects two executable free ID
+and exact file scopes using [the plan prompt](masterplan-next-wave-prompt.md).
+BLOCKERARAGENT retains its fixed role and handles one evidenced blocker at a
+time using [the blocker prompt](masterplan-blocker-agent-prompt.md).
+GRANSKARE remains an independent bounded read-only reviewer.
+
+Record taken/done/verification/blocker/next in your unique checkpoint and #673
+before every new work item. Shared memory requires role-memory plus exact file
+custody; an old global snapshot does not assign another agent's package to you.
+When blocked, name the owner, required deliverable and resumption event; continue
+independent authorized work or document an explicit handoff/release. Preserve
+specific HOLD/external decisions and all review/current-head/merge gates.
+
 ## TRDB current observation — 2026-10-07T14:36:01.128254+00:00
 
 Actual main `9b013631afed0b7de5f704fdc759bc68624d92b5` (tree `dc6054286223af01da4ad1130719506a3c8a5f4e`) includes actual merged metadata-only #668. Ledger stays **115 VERIFIED rules +185 PASSED contracts =300/352;52 remain**. Source/SQL/GEN/coverage bytes are unchanged from0ec; #668 does not establish resulting-main runtime, deployment or external acceptance. The earlier95 pending-memory/role labels below are historical: actual delivery and release [6039708993](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6039708993) supersede them. Preserve all foreign packet responsibilities and original evidence.
