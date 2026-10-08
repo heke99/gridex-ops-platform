@@ -21,3 +21,11 @@ The once-only diagnostic completed with exit 1 at zip_members line 341. That gua
 The additions-manifest path was explicitly released by its previous owner on #673. This agent acquired and re-read its create-only reservation at receipt 9246ffc68fce0e5a10a490b60111e0d0187e3c51 on current main 1c4980e6c4c69573c4968550c585998ed5fa9bae. Existing 62 reservations all remain matched. Sole active L/LK pair is unchanged.
 
 File responsibility added: scripts/migration-history-manifest.additions.json. Preserve all historical entries and the exact reviewed Z13 tail from the explicit handoff. Assess any further donor only with exact source/checksum, compatibility and required reviews. No file edit or new forward selection is claimed yet. Next owner: this agent, after the bounded SQL guard observation plan and documented source selection.
+
+## Bounded follow-up diagnostic preparation
+
+Source review confirms the first failing guard has two conjuncts. This agent authorizes only preparation of a separate observer for that unchanged first refusal: authenticate the exact frozen source, inspect only the exact guard frame after it fails, and report closed booleans for original-name equality and two source-known native paths. No arbitrary names or payloads, guard replay, continued validation or authentic archive access during preparation. Freeze the observer and artificial controls for two independent complete code reviews and self review; authentic use still requires a separate documented gate.
+
+The preserved source note incorrectly described the native catalog outer budget as 2 MiB. Actual source uses 64 MiB for that prefix; the JSON and aggregate bounds remain unchanged. The failing record's budget check was not reached. This correction provides no content or native approval.
+
+Helper z02_capture_review owns bounded observer preparation; this agent owns review, later execution authority and actual outcome. Existing SQL/native blockers and reservations remain unchanged.
