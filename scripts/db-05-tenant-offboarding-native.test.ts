@@ -89,3 +89,23 @@ it('closes a tenant by winding down and revoking access while keeping history, a
   expect(r.realHardDelete).toMatch(/^ERR 23001:company_hard_delete_blocked/)
   expect(r.realAfter).toEqual({ status: 'pending_deletion', customers: 1, customerEvents: 1, seededAudit: 1 })
 }, 120000)
+
+it('keeps the decided per-class retention gate open for an own member of a closed tenant only', () => {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
+  const [closed, disposable, actor, outsider] = Array.from({ length: 4 }, () => randomUUID())
+  const out = psql(`BEGIN;
+    INSERT INTO auth.users(id,email,email_confirmed_at) VALUES ('${actor}','db05-retention@example.invalid',now()),('${outsider}','db05-retention-out@example.invalid',now());
+    INSERT INTO public.user_profiles(id,user_status) VALUES ('${actor}','active'),('${outsider}','active') ON CONFLICT (id) DO UPDATE SET user_status='active';
+    INSERT INTO public.companies(id,name,status) VALUES ('${closed}','DB05 closed','active'),('${disposable}','DB05 disposable','active');
+    INSERT INTO public.company_memberships(company_id,user_id,status,is_active,accepted_at) VALUES ('${closed}','${actor}','active',true,now()),('${disposable}','${actor}','active',true,now());
+    INSERT INTO public.user_permissions(user_id,company_id,permission_key,effect,status,is_active)
+      SELECT u,c,'ediel.retention.customer_fields','allow','active',true FROM (VALUES ('${actor}'::uuid,'${closed}'::uuid),('${actor}','${disposable}'),('${outsider}','${closed}')) g(u,c);
+    UPDATE public.companies SET status='closed' WHERE id='${closed}';
+    UPDATE public.companies SET status='deleted_test_only' WHERE id='${disposable}';
+    SELECT json_build_object(
+      'closedMember',gridex_ediel_retention.permission_v1('${closed}','${actor}','ediel.retention.customer_fields'),
+      'disposableMember',gridex_ediel_retention.permission_v1('${disposable}','${actor}','ediel.retention.customer_fields'),
+      'closedOutsider',gridex_ediel_retention.permission_v1('${closed}','${outsider}','ediel.retention.customer_fields'));
+    ROLLBACK;`)
+  expect(JSON.parse(out.split('\n').filter(Boolean).at(-1)!)).toEqual({ closedMember: true, disposableMember: false, closedOutsider: false })
+})

@@ -43,3 +43,9 @@
 - BLOCKER (2f custody): db:migrations:integrity fails on 2 missing manifest lines
   (ed92e54e… for 20261005130000, 25fbb60e… for 20261008160000). schema.sql and types are also not regenerated. These need 2f to include them in #699 or hand them over.
 - Still open: a native CI workflow for scripts/db-05-*-native.test.ts. That needs an extra file reservation (.github/workflows/ediel-db05-native.yml), then an independent review. Coverage stays unchanged until then.
+
+## 2026-10-08 16:40Z extension and status
+- Extension receipt 07009521 (proxy a7912b34, #673 6064100187) adds two files: .github/workflows/ediel-db05-native.yml and scripts/db-05-native.config.ts. Both refs GET_MATCH.
+- Added the workflow (db04 pattern), the config, and a native case in scripts/db-05-tenant-offboarding-native.test.ts: closed member true, disposable and outsider false.
+- 2f ACK 6063819325: manifest/GEN inclusion requires compatible identities, a completed source review and an explicit file handoff. Independent source review is running now.
+- Confirmed locally: with the two manifest lines added (not committed), integrity passes and clean-replay-cleanup goes 9/9. Every red check on d7c9bc8e comes from the missing manifest lines.
