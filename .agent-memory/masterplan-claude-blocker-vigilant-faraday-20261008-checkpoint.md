@@ -21,3 +21,17 @@ Fix options (owner decides): seed a billing-identity-complete signed contract in
 
 ## Blocker / next
 No scope held. Handover to 2f72 (PR699 owner) posted on #673. Next: no READY blocker within my capability; resume when an owner hands over exact paths via proxy receipt or a new unowned red check appears.
+
+## Resumption 2026-10-08T14:45Z — main 6b87c1a9 (713/714/715 delivered)
+Read: correction 6061952106, handoff 6061311680, 2f b729 progress 6061974136/6062180615, b6d3 6062309394, typed258 request 6060202710.
+Wait condition (owner handover via proxy receipt / new unowned red check): NOT met. No own refs exist; nothing to release.
+
+### Correction of own diagnosis 6061187831
+The "different cause / fixture lacks billing identity" claim was wrong. Source-owner seed calls seedNormalSwitchNativeFixture -> signInvoiceTestContractCanonically (real prepare/finalize RPCs). Valid part only: PR699 Z04 migration 20261007210437 newly routes manual finalize through activate_customer_supply_v1, which sets billing_eligible_at; the missing customer_contracts.snapshot_hash projection (6061152888) is then what trips the CHECK. Fixture remedy withdrawn. Owner 2f follows 6061311680 (same-contract hash after real signing, then UNCHANGED source-owner case). No further diagnosis by me.
+
+### Next selection
+- PR699 billing/source-owner: OCCUPIED 2f (b729), handoff already prepared — DONE for me.
+- 709 protocol files: OCCUPIED a791.
+- 716/717: OCCUPIED (uwoj7c / b6d3).
+- typed258 runtime integration (6060202710, 2f custody 41a87fe1): OCCUPIED; correction names "one blocker agent" as possible bounded recipient. Offered myself on #673 as that recipient; implementation only after 2f's explicit exact-file handoff + proxy reservation receipt verified + CLAIM.
+Resumption event: 2f handover naming exact paths/tests, or 2f stating it delivers itself (then DONE, pick next).
