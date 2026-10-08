@@ -10,6 +10,7 @@ const smtp = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp }) } }))
 import { seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
+import { buildCancellationProspectiveZ04 } from './helpers/ediel-cancellation-prospective-source-2ea'
 import { ownerSource, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
 import { closureFixture, CLOSURE_OBJECT } from '../__tests__/helpers/closureWireFixtures'
 import { supabaseService } from '@/lib/supabase/service'
@@ -31,8 +32,6 @@ import { buildContrlDraft, buildAperakDraft } from '@/lib/ediel/ack'
 import { readCommittedInboundAck } from '@/lib/ediel/ack/committedInboundAck'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
-import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
-import { prodatRegisterReadingState } from '@/lib/ediel/prodat/prodatRegisterReadings'
 import { evaluateProdatTransactionReason } from '@/lib/ediel/prodat/prodatTransactionReason'
 import { isQualifiedProdatApplicationError } from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -68,26 +67,13 @@ function envelope(f: Fixture, source: string, code: 'Z04' | 'Z05') {
       messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A', businessSegments: body }] })
 }
 function z04(f: Fixture, reason = 'Z22') {
+  if (reason === 'Z22') return buildCancellationProspectiveZ04(f)
   const wire = ownerSource().raw_payload!.replaceAll(OWNER.external, f.external)
     .replaceAll('12345:160:SVK', `${f.receiver}:160:SVK`).replaceAll('54321:160:SVK', `${f.sender}:160:SVK`)
     .replaceAll('11111:160:SVK', `${f.brpEdielId}:160:SVK`).replaceAll('CUSTOMER-1::89', `${f.customerIdentity.id}:SE2:260`)
     .replaceAll('RFF+Z05:NET-1', `RFF+Z05:${f.gridAreaCode}`).replaceAll('RFF+LI:CASE-1', `RFF+LI:${f.caseReference}`)
     .replaceAll('202610010000', f.requestedStartDate.replaceAll('-', '') + '0000').replaceAll('CAV+Z22', `CAV+${reason}`)
-  if (reason !== 'Z22') return envelope(f, wire, 'Z04')
-  // Prospective ordinary L counterpart input, before mail/source birth. Physical
-  // declarations do not supply receiver inventory or a qualified READ receipt.
-  const tokens = tokenizeEdifact(wire), grouped = prodatRegisterGroups(tokens.segments, tokens.una, 'Z04')
-  const [own] = grouped.groups
-  const reference = own?.segments.find(segment => ['RFF', 'NAD'].includes(segment.tag))
-  if (grouped.groups.length !== 1 || grouped.problems.length || own.itemId !== f.external
-    || own.identityAgency !== '9' || reference?.tag !== 'RFF'
-    || ['214', '218', '259'].some(field => prodatRegisterReadingState(field, own.segments, tokens.una).present)) {
-    throw Error('native_cancellation_ordinary_l_wire_scope_required')
-  }
-  const declarations = ['CCI++Z02', 'CAV+:::1', 'CCI++Z05', 'CAV+:::6', 'CCI++Z16', 'CAV+:::111']
-  const completed = wire.slice(0, 9) + tokens.segments.flatMap(segment => segment === reference
-    ? [...declarations, segment.raw] : [segment.raw]).join(tokens.una.segmentTerminator) + tokens.una.segmentTerminator
-  return envelope(f, completed, 'Z04')
+  return envelope(f, wire, 'Z04')
 }
 function z05(f: Fixture, reason = 'Z22', mutate: (wire: string) => string = wire => wire) {
   const wire = closureFixture({ reason, minute: f.endMinute, li: f.caseReference }).wire

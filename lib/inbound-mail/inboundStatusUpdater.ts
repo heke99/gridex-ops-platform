@@ -434,7 +434,10 @@ export async function createInboundEdielMessage(input: {
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z05') {
-    const birthProfile = await resolveSupplyEndBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    const ordinary = await resolveSupplyEndBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    const birthProfile = ordinary === null
+      ? await resolveSupplyEndBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at, purpose: 'rejected_identity' })
+      : ordinary
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
   if (input.parsed.messageFamily === 'PRODAT' && (insertPayload.message_code === 'Z04' || insertPayload.message_code === 'Z05')) {
