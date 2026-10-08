@@ -1033,3 +1033,14 @@ Concrete ROOT TDD next: copy exactoriginal89 test prefix (SHA70d59ddee1906d30327
 PR6936f remainsfrozen: source2/currentbf200+3TSC/all9supplemental authenticated including8green222P andstrict301P29F0E0S/native1. Ordinary7SUCCESS with clean/certificate actuallyrunning, noCI_GREEN/mergeclaim/role. Rootlocalpolicywork permittedindependentwithinthissamepair whileCIruns; publishnew2pathPR onlyafteractual693delivery andcurrentmain/foreignidentity reconciliation. WholeZ03/runtime/native34/field259 applicability/healthyAPP business requirements remainNOT_APPROVED/ledger300/352. Future2f freshautomaticissuer across internallyselectedcompletepolicy/protectedAPP remainsforeign; precisiondocumentedbeforeauthoring, no custodytransfer.
 
 
+
+
+## 2026-10-08T00:34:18.466945+00:00 — docs(ediel): record 38 genuine policy consumer baseline failures before reuse
+
+POLICY2 ACTUAL TEST-ONLY BASELINE RED — same sole Z03L/LK a66/own125cee twofiles/all7 technicalrefs, no role/newpair. Local exacttest-only commitc8f623a76b5be536e00389f57c5379503ab9dd91 parentbc63/treeownbf+frozenAPI693; production messagePolicy remains exactcurrentmain76f29ef4, alloriginal89 test prefix byteexactreleasedBB70d59ddee1906d3032753c15685bb63ad4285fe5ba3c7e95012dc55e516c47d3 plusONE independentlyreviewed realUTILTS gettercontrol. Whole newtestSHA b4fed3c72ff50eea64d4d792b31f42723d1584bf45b0140c93628d724efe7570.
+
+Actual supportedNode22 default Vitest run90cases:52PASS38FAIL0pending0todo, trueEXIT1. All38 assertion-stage failures (missing actualpolicy registerObjects/TRUE/NULL consumer), no import/setup/runtimeerror falseRED; original89=51PASS38FAIL, extraUTILTS untouchedbyCell controlPASS/validsyntax/currentguide. Realprivateissuer/currentactor/source guards executed, newcanonicalconsumeredge absentmain. Immutable originalnames/wires/assertions kept; no native/deployed vulnerability/fullpolicy/wholeproof inferred. /tmp/c65-z03-policy2-baseline-red.json/log SHA8728c7de511f0c7a20fd63ba8a93287ac8b81c85d7f6a5bca2925d2fe1cc2b8d and fullactualJSONreport retained, headbefore/afterc8 exact.
+
+NextROOT afterthisactualRED documentation: copy ONLY retainedBB ownmessagePolicy provisionalsource (notpublish) withtestbytesunchanged, executeactual90 toqualify original89 bridgeGREEN and additionalrealUTILTS negativepreservationRED. Then narroworiginalnon-ownfactlaziness correction only (ownL/LK read/filter; originalelseexpression) andsameunchanged90suiteGREEN+boundedrelatedfullaffectedconsumers/threefreshNONincrementalTSC/lint/budgets/source2. Frozen693API/SDK/currentregistry/Hsourcefallback/runtime2f/APP/GEN untouched. PR693 exact6f stillordinaryclean/certificate actuallyrunning withall9supplementalresultqualifications/source2/current200+3TSC; no CI_GREEN/mergeclaim/nextpair. Publicationofnew2filepolicyPR stillrequiresactual693delivery andcurrentmain composition. WholeZ03/300of352 unchanged.
+
+
