@@ -8,6 +8,8 @@ import { parseCanonicalMessageRow, type CanonicalEdielMessage } from '@/lib/edie
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {sourceQualifiedProdatBilateralCapability,type SourceQualifiedProdatBilateralCapability} from './prodatBilateralSourceCapability'
 import {sourceProdatRegisterReadingDeclarations} from './prodatSourceRegisterReadingDeclarations'
+import {sourceProdatOwnRegisterReadingDeclarations,type ProdatOwnSourceReadingContext} from './prodatOwnSourceRegisterReadingDeclarations'
+import {canonicalProdatSubtypeForMessage} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 
 // Shared protocol date selection; receipt/object matching must not reselect a guide.
 function normalizeDate(value: unknown): string | null {
@@ -21,7 +23,8 @@ function normalizeDate(value: unknown): string | null {
   return parsed.getUTCFullYear() === year && parsed.getUTCMonth() + 1 === month && parsed.getUTCDate() === day ? date : null
 }
 
-export type EdielMessageTimeOptions = Readonly<{ admissionAt?: string | Date; replayAt?: string | Date;prodatSourceCapability?:SourceQualifiedProdatBilateralCapability|null }>
+export type EdielMessageTimeOptions = Readonly<{ admissionAt?: string | Date; replayAt?: string | Date;prodatSourceCapability?:SourceQualifiedProdatBilateralCapability|null;
+  prodatOwnSourceReadingContext?:ProdatOwnSourceReadingContext|null;prodatOwnSourceReadingActorUserId?:string }>
 
 function instant(value: unknown, label: string): string | null {
   if (value === null || value === undefined || value === '') return null
@@ -127,6 +130,11 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
   if(deathStatusContext)assertDeathStatusContextMatches(message,deathStatusContext)
   const family = canonical.family
   const messageCode = canonical.messageCode
+  const subtype=family==='PRODAT'?canonicalProdatSubtypeForMessage(messageCode,canonical.subtype):null
+  const ownReadingPolicy=family==='PRODAT'&&messageCode==='Z04'&&message.direction==='inbound'
+    &&(subtype==='L'||subtype==='LK')
+  const byCell=readObjectFact(message,'byCell')
+  const ownReadingByCell=byCell?Object.fromEntries(Object.entries(byCell).filter(([cell])=>!['Z04:214','Z04:218','Z04:259'].includes(cell))):undefined
   const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
   const candidate = (selectedGuideRevision?: string): CanonicalEdielPolicy => {
     const input = {
@@ -145,16 +153,18 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
       market: 'electricity' as const,
       ...(deathStatusContext?{deathStatus:deathStatusContext.selection,businessContext:deathStatusContext.businessContext}:{}),
       customerKind: readStringFact(message, 'customerKind') as 'private' | 'business' | undefined,
-      meterReadingsSentInUtilts: readBooleanFact(message, 'meterReadingsSentInUtilts'),
+      meterReadingsSentInUtilts: ownReadingPolicy?undefined:readBooleanFact(message, 'meterReadingsSentInUtilts'),
       multipleMeterRegisters: readBooleanFact(message, 'multipleMeterRegisters'),
       endUserAddressAvailable: readBooleanFact(message, 'endUserAddressAvailable'),
       invoiceeAddressDiffersFromEndUser: readBooleanFact(message, 'invoiceeAddressDiffersFromEndUser'),
-      byCell: readObjectFact(message, 'byCell'),
+      byCell: ownReadingPolicy?ownReadingByCell:byCell,
     } : null,
     mode: 'parse' as const,
     }
     const selected=resolveCanonicalEdielPolicy(input)
-    const registerObjects=sourceProdatRegisterReadingDeclarations({message,qualification:options.prodatSourceCapability,policy:selected,admissionAt:options.admissionAt})
+    const ownRegisterObjects=ownReadingPolicy?sourceProdatOwnRegisterReadingDeclarations({message,actorUserId:options.prodatOwnSourceReadingActorUserId,
+      context:options.prodatOwnSourceReadingContext,policy:selected,admissionAt:options.admissionAt}):null
+    const registerObjects=ownRegisterObjects??sourceProdatRegisterReadingDeclarations({message,qualification:options.prodatSourceCapability,policy:selected,admissionAt:options.admissionAt})
     // Resolve final conditions from the same selected guide and exact object
     // declarations. Root hints cannot fill an object's unknown source fact.
     const policy=registerObjects?resolveCanonicalEdielPolicy({...input,selectedGuideRevision:selected.guide.guideRevision,
