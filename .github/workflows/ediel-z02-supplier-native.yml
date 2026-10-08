@@ -1,0 +1,376 @@
+name: Ediel Z02 L LK native contract feedback
+
+on:
+  push:
+    branches:
+      - 'codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae'
+  pull_request:
+    paths:
+      - 'scripts/ediel-at-z02-supplier-native.test.ts'
+      - '__tests__/ediel-supplier-data-birth-profile.test.ts'
+      - '__tests__/ediel-received-z02-end-user-address-context.test.ts'
+      - '__tests__/ediel-received-z02-end-user-address-runtime.test.ts'
+      - 'scripts/test-ediel-z02-end-user-address-source.cjs'
+      - 'scripts/helpers/ediel-z02-supplier-native-*.ts'
+      - 'scripts/helpers/ediel-z02-supplier-field-refusal-native.ts'
+      - 'lib/ediel/prodat/**'
+      - 'scripts/ediel-at-z02-supplier-native.config.ts'
+      - '.github/workflows/ediel-z02-supplier-native.yml'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/helpers/ediel-normal-switch-native-fixture.ts'
+      - 'scripts/helpers/originalMailboxNative.ts'
+      - 'scripts/helpers/native-fixture-company-identity.ts'
+      - 'scripts/helpers/ediel-native-permission-catalog.setup.ts'
+      - '__tests__/helpers/sourceOwnerFixtures.ts'
+      - '__tests__/helpers/closureWireFixtures.ts'
+      - 'e2e/production/helpers/swedish-organization-number.mjs'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - 'lib/ediel/flows/prodatSwitch.ts'
+      - 'lib/ediel/flows/prodatSwitchCancellation.ts'
+      - 'lib/ediel/flows/inboundProcessing.ts'
+      - 'lib/ediel/flows/inboundAckProcessing.ts'
+      - 'lib/ediel/flows/sourceSwitchCommit.ts'
+      - 'lib/ediel/flows/supplyMarketTransition.ts'
+      - 'lib/ediel/flows/supplyEndFollowup.ts'
+      - 'lib/ediel/flows/routeDecisionContext.ts'
+      - 'lib/ediel/production/**'
+      - 'lib/ediel/intent/**'
+      - 'lib/ediel/core/**'
+      - 'lib/ediel/rulebook/**'
+      - 'lib/ediel/stateMachines/prodatLifecycle.ts'
+      - 'lib/ediel/transport/**'
+      - 'lib/ediel/ack.ts'
+      - 'lib/ediel/ack/**'
+      - 'lib/ediel/inbound/**'
+      - 'lib/ediel/prodat.ts'
+      - 'lib/ediel/db.ts'
+      - 'lib/ediel/types.ts'
+      - 'lib/ediel/mailReadiness.ts'
+      - 'lib/ediel/testing/invoiceTestContractLifecycle.ts'
+      - 'lib/inbound-mail/edielEmailParser.ts'
+      - 'lib/inbound-mail/inboundStatusUpdater.ts'
+      - 'lib/customer-contracts/documents.ts'
+      - 'lib/customer-contracts/agreementPdf.ts'
+      - 'lib/legal/authorizationChain.ts'
+      - 'lib/onboarding/infoRequests.ts'
+      - 'lib/tenant/governance.ts'
+      - 'lib/performance/mapWithConcurrency.ts'
+      - 'lib/validation/uuid.ts'
+      - 'lib/operations/db.ts'
+      - 'lib/operations/powerOfAttorneyWorkflow.ts'
+      - 'lib/supabase/service.ts'
+      - 'lib/supabase/tenantDb.ts'
+      - 'supabase/config.toml'
+      - 'supabase/migrations/**'
+      - 'lib/ediel/production/customerMasterdataSource.ts'
+      - 'lib/ediel/rulebook/validator.ts'
+      - 'lib/ediel/rulebook/canonicalRulePackRegistry.ts'
+      - 'lib/ediel/businessExpectations.ts'
+      - 'docs/ediel/masterplan-v2/annex/prodat_field_matrix_source.json'
+      - 'docs/ediel/masterplan-v2/registers/acceptance_tests.json'
+      - 'lib/ediel/prodat/customerMasterdataAuthority.ts'
+      - 'lib/ediel/prodat/builders/profileRenderer.ts'
+      - 'lib/ediel/prodat/prodatInvoicee.ts'
+      - 'lib/operations/edielAutomation.ts'
+      - 'lib/operations/supplierSwitchScheduler.ts'
+      - 'lib/customer-operations/switchReadiness.ts'
+      - 'lib/customer-operations/customerProcessRouteReadiness.ts'
+      - 'lib/ediel/gridOwnerBusinessApproval.ts'
+      - 'lib/ediel/companyRouteReadiness.ts'
+      - 'lib/ediel/routeProfileProductionReadiness.ts'
+      - 'lib/operations/types.ts'
+      - 'lib/operations/db.part-1.ts'
+      - 'lib/operations/db.part-2.ts'
+      - 'lib/operations/readiness.ts'
+      - 'lib/operations/switchLifecycleBlocks.ts'
+      - 'lib/ediel/orchestrator.ts'
+      - 'lib/ediel/rulebook/canonicalPolicyFieldValidator.ts'
+      - 'lib/ediel/prodat/prodat26AFieldMatrix.ts'
+      - 'lib/ediel/prodat/prodatRegisterEvidence.ts'
+      - 'lib/ediel/rulebook/prodatInvoiceePolicy.ts'
+      - 'lib/ediel/rulebook/prodatOptionalInstallationPolicy.ts'
+      - 'lib/ediel/core/messageBuilder/payloadPreflight.ts'
+      - 'lib/ediel/core/messageBuilder/segmentSchema.ts'
+      - 'lib/ediel/core/outboundOwnerWitness.ts'
+      - 'lib/ediel/prodat/compatAdapter.ts'
+      - 'lib/ediel/prodat/prodatRegisterInput.ts'
+      - 'lib/ediel/rulebook/fieldMatrix.ts'
+      - 'lib/ediel/prodat/prodatRegisterFields.ts'
+      - 'lib/ediel/prodat/prodatPartyFields.ts'
+      - 'lib/ediel/prodat/prodatDocumentFields.ts'
+      - 'lib/ediel/core/receivedProdatResponseValidation.ts'
+      - 'lib/ediel/core/receivedRegisterValidationBinding.ts'
+      - 'lib/ediel/prodat/prodatApplicationObjectValidation.ts'
+      - 'lib/**'
+      - 'types/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '__tests__/helpers/**'
+      - '__tests__/fixtures/**'
+      - 'e2e/production/helpers/**'
+      - 'docs/ediel/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.scripts.json'
+      - 'tsconfig.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z02-supplier-native-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Executes prospective catalog and proposed whole Z02 consumer tests.
+# Actual producer failures stay failures; whole acceptance requires all clauses.
+# All ordinary OPS clean/upgrade/native/browser
+# and parity gates remain mandatory; this does not approve either contract.
+jobs:
+  z02-supplier-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      Z02_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.Z02_SOURCE_SHA }}
+      - name: Verify exact supplemental event and checkout source
+        shell: bash
+        env:
+          SOURCE_EVENT: ${{ github.event_name }}
+          SOURCE_REF: ${{ github.ref }}
+          SOURCE_BRANCH: ${{ github.ref_name }}
+          PR_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_SOURCE_SHA: ${{ github.sha }}
+          SOURCE_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          SOURCE_WORKFLOW_REF: ${{ github.workflow_ref }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_REPOSITORY" == 'heke99/gridex-ops-platform' ]]
+          checkout_sha="$(git rev-parse HEAD)"
+          if [[ "$SOURCE_EVENT" == pull_request ]]; then
+            [[ "$PR_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$checkout_sha" == "$PR_SOURCE_SHA" ]]
+          elif [[ "$SOURCE_EVENT" == push ]]; then
+            [[ "$SOURCE_REF" == 'refs/heads/codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae' ]]
+            [[ "$SOURCE_BRANCH" == 'codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae' ]]
+            [[ "$PUSH_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$checkout_sha" == "$PUSH_SOURCE_SHA" ]]
+            [[ "$SOURCE_WORKFLOW_SHA" == "$PUSH_SOURCE_SHA" ]]
+            [[ "$SOURCE_WORKFLOW_REF" == 'heke99/gridex-ops-platform/.github/workflows/ediel-z02-supplier-native.yml@refs/heads/codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae' ]]
+          else
+            echo 'Unsupported supplemental source event.' >&2
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify finite received Z02 address source guards
+        run: node --test --experimental-test-isolation=none scripts/test-ediel-z02-end-user-address-source.cjs
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute supplier Z02 catalog and whole proposals after disposable clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p z02-supplier-native-working
+          native_tests=(scripts/ediel-at-z02-supplier-native.test.ts)
+          export Z02_SUPPLIER_NATIVE_TEST_SCOPE
+          Z02_SUPPLIER_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
+          export Z02_SUPPLIER_NATIVE_INPUT_HASHES="$RUNNER_TEMP/z02-supplier-input-hashes.json"
+          # Replay temporarily moves the original migrations until EXIT.
+          # Capture checkout input hashes before sourcing it, without secrets.
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          test_scope = os.environ['Z02_SUPPLIER_NATIVE_TEST_SCOPE'].splitlines()
+          paths = test_scope + [
+              'scripts/ediel-at-z02-supplier-native.config.ts',
+              '.github/workflows/ediel-z02-supplier-native.yml',
+              'scripts/ediel-source-owner-native.config.ts',
+              'scripts/helpers/ediel-normal-switch-native-fixture.ts',
+              'scripts/helpers/originalMailboxNative.ts',
+              'scripts/helpers/native-fixture-company-identity.ts',
+              '__tests__/helpers/sourceOwnerFixtures.ts',
+              '__tests__/helpers/closureWireFixtures.ts',
+              'e2e/production/helpers/swedish-organization-number.mjs',
+              'scripts/helpers/ediel-native-permission-catalog.setup.ts',
+              'scripts/gridex-aud-003-clean-replay.sh',
+              'scripts/gridex-redact-native-evidence.py',
+              'lib/ediel/flows/prodatSwitch.ts',
+              'lib/ediel/flows/prodatSwitchCancellation.ts',
+              'lib/ediel/flows/inboundProcessing.ts',
+              'lib/ediel/inboundCases.ts',
+              'lib/ediel/config.ts',
+              'lib/ediel/flows/inboundAckProcessing.ts',
+              'lib/ediel/flows/sourceSwitchCommit.ts',
+              'lib/ediel/flows/supplyMarketTransition.ts',
+              'lib/ediel/production/switchCancellationSource.ts',
+              'lib/ediel/intent/switchCancellationGateway.ts',
+              'lib/ediel/intent/renderers/switchCancellation.ts',
+              'lib/ediel/intent/switchRenderGateway.ts',
+              'lib/ediel/intent/intentEngine.ts',
+              'lib/ediel/core/kernel.ts',
+              'lib/ediel/core/runtimeDecision.ts',
+              'lib/ediel/core/ackPolicy.ts',
+              'lib/ediel/core/receivedSourceValidationLedger.ts',
+              'lib/ediel/core/edifactEnvelopeCodec.ts',
+              'lib/ediel/core/edifactTokenizer.ts',
+              'lib/ediel/rulebook/deadlinePolicy.ts',
+              'lib/ediel/rulebook/canonicalEdielPolicy.ts',
+              'lib/ediel/tenant/resolveInboundTenant.ts',
+              'lib/ediel/stateMachines/prodatLifecycle.ts',
+              'lib/ediel/transport/index.ts',
+              'lib/ediel/transport/index.part-1.ts',
+              'lib/ediel/transport/index.part-2.ts',
+              'lib/ediel/transport/smtpSender.ts',
+              'lib/ediel/transport/outboundAttempt.ts',
+              'lib/ediel/transport/smtpOutcome.ts',
+              'lib/ediel/mailReadiness.ts',
+              'lib/ediel/ack.ts',
+              'lib/ediel/ack/buildContrl.ts',
+              'lib/ediel/ack/buildAperak.ts',
+              'lib/ediel/ack/committedInboundAck.ts',
+              'lib/ediel/ack/inboundAckOutcome.ts',
+              'lib/ediel/inbound/receptions.ts',
+              'lib/inbound-mail/edielEmailParser.ts',
+              'lib/inbound-mail/inboundStatusUpdater.ts',
+              'lib/inbound-mail/supplierDataBirthProfile.ts',
+              '__tests__/ediel-supplier-data-birth-profile.test.ts',
+              '__tests__/ediel-received-z02-end-user-address-context.test.ts',
+              '__tests__/ediel-received-z02-end-user-address-runtime.test.ts',
+              'lib/ediel/testing/invoiceTestContractLifecycle.ts',
+              'lib/customer-contracts/documents.ts',
+              'lib/customer-contracts/agreementPdf.ts',
+              'lib/legal/authorizationChain.ts',
+              'lib/onboarding/infoRequests.ts',
+              'lib/tenant/governance.ts',
+              'lib/performance/mapWithConcurrency.ts',
+              'lib/validation/uuid.ts',
+              'supabase/config.toml',
+              'supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql',
+              'supabase/migrations/20260930214933_ediel_switch_cancellation_source_origination.sql',
+              'supabase/migrations/20260930223846_ediel_cancellation_request_environment_scope.sql',
+              'supabase/migrations/20261001142610_ediel_switch_cancellation_bound_message_trigger_definer.sql',
+              'supabase/migrations/20260930153955_ediel_supply_source_transitions.sql',
+              'supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql',
+              'supabase/migrations/20260930173632_ediel_immutable_source_legal_context.sql',
+              'supabase/migrations/20260930180104_ediel_immutable_source_rule_pack_basis.sql',
+              'supabase/migrations/20260713100000_ediel_completion_and_platform_contract.sql',
+              'supabase/migrations/20260921224255_ediel_inbound_prodat_receive_context.sql',
+              'supabase/migrations/20261001000459_ediel_immutable_inbound_reception_response_requests.sql',
+              'supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql',
+              'supabase/migrations/20261001043234_ediel_prodat_supply_own_effect_partition.sql',
+              'supabase/migrations/20261001003657_ediel_received_err_application_response_authority.sql',
+              'supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql',
+              'scripts/migration-history-manifest.json',
+              'scripts/migration-history-manifest.additions.json',
+              'scripts/migration-history-manifest.runtime.additions.json',
+              'lib/ediel/production/customerMasterdataSource.ts',
+              'lib/ediel/rulebook/validator.ts',
+              'lib/ediel/rulebook/canonicalRulePackRegistry.ts',
+              'lib/ediel/businessExpectations.ts',
+              'docs/ediel/masterplan-v2/annex/prodat_field_matrix_source.json',
+              'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
+              'lib/ediel/prodat/customerMasterdataAuthority.ts',
+              'lib/ediel/prodat/builders/profileRenderer.ts',
+              'lib/ediel/prodat/prodatInvoicee.ts',
+              'lib/operations/edielAutomation.ts',
+              'lib/operations/supplierSwitchScheduler.ts',
+              'lib/customer-operations/switchReadiness.ts',
+              'lib/customer-operations/customerProcessRouteReadiness.ts',
+              'lib/ediel/gridOwnerBusinessApproval.ts',
+              'lib/ediel/companyRouteReadiness.ts',
+              'lib/ediel/routeProfileProductionReadiness.ts',
+              'lib/operations/types.ts',
+              'lib/operations/db.part-1.ts',
+              'lib/operations/db.part-2.ts',
+              'lib/operations/readiness.ts',
+              'lib/operations/switchLifecycleBlocks.ts',
+              'lib/ediel/orchestrator.ts',
+              'lib/ediel/rulebook/canonicalPolicyFieldValidator.ts',
+              'lib/ediel/prodat/prodat26AFieldMatrix.ts',
+              'lib/ediel/prodat/prodatRegisterEvidence.ts',
+              'lib/ediel/rulebook/prodatInvoiceePolicy.ts',
+              'lib/ediel/rulebook/prodatOptionalInstallationPolicy.ts',
+              'lib/ediel/core/messageBuilder/payloadPreflight.ts',
+              'lib/ediel/core/messageBuilder/segmentSchema.ts',
+              'lib/ediel/core/outboundOwnerWitness.ts',
+              'supabase/migrations/20260930200633_ediel_outbound_witness_ack_scope_and_time_guards.sql',
+              'lib/ediel/prodat/compatAdapter.ts',
+              'lib/ediel/prodat/prodatRegisterInput.ts',
+              'lib/ediel/rulebook/fieldMatrix.ts',
+              'lib/ediel/prodat/prodatRegisterFields.ts',
+              'lib/ediel/prodat/prodatPartyFields.ts',
+              'lib/ediel/prodat/prodatDocumentFields.ts',
+              'lib/ediel/core/receivedProdatResponseValidation.ts',
+              'lib/ediel/core/receivedRegisterValidationBinding.ts',
+              'lib/ediel/prodat/prodatApplicationObjectValidation.ts',
+              'package.json', 'package-lock.json', 'tsconfig.scripts.json', 'tsconfig.json',
+          ]
+          # Include the complete tracked application/helper/schema/doc input
+          # roots, regardless of extension. A finite hand-list cannot capture
+          # transitive imports or every SQL input consumed by clean replay.
+          tracked = subprocess.check_output([
+              'git', 'ls-files', '-z', '--', 'lib', 'types', 'supabase',
+              'scripts', '__tests__/helpers', '__tests__/fixtures',
+              'e2e/production/helpers', 'docs/ediel',
+          ]).decode().split('\0')
+          paths = sorted(set(paths) | {p for p in tracked if p})
+          hashes = {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths}
+          pathlib.Path(os.environ['Z02_SUPPLIER_NATIVE_INPUT_HASHES']).write_text(json.dumps(hashes)+'\n')
+          PY
+          # The canonical replay retains its EXIT cleanup trap. Replay/status
+          # output can contain disposable credentials and is never uploaded.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z02-supplier-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z02-supplier-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-at-z02-supplier-native.config.ts \
+            "${native_tests[@]}" \
+            --reporter=default --reporter=junit \
+            --outputFile=z02-supplier-native-working/native-junit.xml \
+            > z02-supplier-native-working/native.log 2>&1 || native_exit=$?
+          export Z02_SUPPLIER_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          test_scope = os.environ['Z02_SUPPLIER_NATIVE_TEST_SCOPE'].splitlines()
+          receipt = {
+              'purpose': 'supplemental_actual_native_feedback',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'native_exit_code': int(os.environ['Z02_SUPPLIER_NATIVE_EXIT']),
+              'input_sha256': json.loads(pathlib.Path(os.environ['Z02_SUPPLIER_NATIVE_INPUT_HASHES']).read_text()),
+              'test_scope': test_scope,
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('z02-supplier-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root z02-supplier-native-working
+          # Receipt/redaction failure leaves no artifact directory to upload.
+          mv z02-supplier-native-working z02-supplier-native-evidence
+          cat z02-supplier-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z02-supplier-native-${{ env.Z02_SOURCE_SHA }}
+          path: z02-supplier-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,6 +1,12 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
+import { validateEdifactEnvelope, validateUnsmGrammar } from '@/lib/ediel/core/edifactValidation'
+import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterFields'
+import { prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import { evaluateProdatTransactionReason } from '@/lib/ediel/prodat/prodatTransactionReason'
 
 export type InboundEntityMatch = {
   status: 'matched' | 'missing' | 'ambiguous' | 'not_checked'
@@ -160,12 +166,71 @@ export async function matchOutboundRequestForInbound(input: {
   return match
 }
 
+/** Physical candidate selection only, never original/source admission. Undefined
+ * preserves other guide/kind paths; null holds a malformed own L/LK attempt.
+ * Read the actual wire, not mutable parser projections or the original RFF LI.
+ */
+function physicalSupplierReplyPoint(rawPayload: string): string | null | undefined {
+  const { segments, una } = tokenizeEdifact(rawPayload)
+  const type = ['PRODAT', 'D', '97A', 'UN', 'E2SE6A']
+  const ownGuide = segments.some(token => {
+    const parts = segmentComposite(token, 2, una)
+    return token.tag === 'UNH' && parts.length === type.length && parts.every((value, index) => value === type[index])
+  })
+  const ownApplication = segments.some(token => {
+    const parts = segmentComposite(token, 7, una)
+    return token.tag === 'UNB' && parts.length === 1 && parts[0] === '23-DDQ-PRODAT'
+  })
+  if (!ownGuide || !ownApplication
+    || !segments.some(token => token.tag === 'BGM' && segmentComposite(token, 1, una)[0] === 'Z02')) return undefined
+  const { groups, problems } = prodatRegisterGroups(segments, una, 'Z02')
+  // The attempted kind must be an adjacent physical pair inside its own LIN.
+  // Missing/unowned reasons cannot turn every invalid Z02 into this new path.
+  const ownReason = (value: string) => value === 'Z22' || value === 'Z23'
+  if (!groups.some(group => prodatCharacteristicValues('223', group.segments, una).some(ownReason))) return undefined
+  const envelope = validateEdifactEnvelope(rawPayload)
+  const grammar = validateUnsmGrammar(rawPayload)
+  if (!envelope.ok || grammar.qualification !== 'qualified' || !grammar.syntaxOk
+    || ['UNB', 'UNH', 'BGM', 'UNT', 'UNZ'].some(tag => segments.filter(token => token.tag === tag).length !== 1)
+    || problems.length || groups.length !== 1 || !groups[0].validRegisterChain) return null
+  const identity = prodatRegisterFieldState('209', groups[0].segments, una)
+  const sequence = prodatRegisterFieldState('314', groups[0].segments, una)
+  const reasons = prodatCharacteristicValues('223', groups[0].segments, una)
+  const qualifiers = segments.filter(token => token.tag === 'CCI'
+    && segmentComposite(token, 2, una)[0]?.trim().toUpperCase() === 'Z13')
+  if (!identity?.present || identity.malformed || !sequence?.present || sequence.malformed
+    || qualifiers.length !== 1 || reasons.length !== 1 || !ownReason(reasons[0])
+    || evaluateProdatTransactionReason({ rawSegments: segments.map(token => token.raw), una, code: 'Z02' }).issues.length) return null
+  return identity.value
+}
+
 export async function matchMeteringPointForInbound(input: {
   companyId: string
   parsed: ParsedEdifactEnvelope
   inboundEmailMessageId?: string | null
   parseResultId?: string | null
 }): Promise<InboundEntityMatch> {
+  const physicalPoint = physicalSupplierReplyPoint(input.parsed.rawPayload)
+  if (physicalPoint !== undefined) {
+    let rows: Array<Record<string, unknown>> = []
+    if (physicalPoint !== null) {
+      const pointQuery = () => supabaseService.from('metering_points')
+        .select('id, company_id, customer_id, site_id, grid_owner_id, meter_point_id, metering_point_id, site_facility_id, ediel_reference')
+        .eq('company_id', input.companyId)
+      // Field209 allows literal text. Typed equality keeps filter punctuation
+      // as data; each query is tenant-bound before row-ID union/uniqueness.
+      const results = await Promise.all(['meter_point_id', 'metering_point_id', 'site_facility_id', 'ediel_reference']
+        .map(column => pointQuery().eq(column, physicalPoint).limit(5)))
+      const error = results.find(result => result.error)?.error
+      if (error) throw error
+      rows = [...new Map(results.flatMap(result => result.data ?? [])
+        .map(row => [row.id, row as Record<string, unknown>])).values()]
+    }
+    const match = singleOrAmbiguous('metering_point', rows, ['Egen fysisk Z02 L/LK LIN/209 matchas utan original RFF LI som mätpunktsalternativ.'])
+    await insertAttempt({ ...input, matchType: 'metering_point', match })
+    return match
+  }
+
   const candidates = Array.from(new Set([
     input.parsed.locations['172']?.[0] ?? null,
     firstReference(input.parsed, ['Z07', 'MG', 'TN']),

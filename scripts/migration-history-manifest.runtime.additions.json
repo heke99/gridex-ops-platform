@@ -142,6 +142,9 @@
     "20261006221015_ediel_requested_change_owned_request_site.sql": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b",
     "20261006225500_customer_info_requests_z01_status_compatibility.sql": "f7848962bfbee52b0da34eb0f293827f8d3a6d8f88751ccaf41b3dd6b33b4cca",
     "20261006231000_ediel_confirmed_death_final_response.sql": "8075ab1d97959b9a74df61a1d6bb83a9c157090494c0bcc0f5958588b3fbd47e",
-    "20261006235000_ediel_confirmed_death_application_scope.sql": "59dc29a939be1351f45581361076599e09619b09b1fc8510fcda17e03dbc91bd"
+    "20261006235000_ediel_confirmed_death_application_scope.sql": "59dc29a939be1351f45581361076599e09619b09b1fc8510fcda17e03dbc91bd",
+    "20261007093025_received_z02_address_source_basis.sql": "35e16c265fd7da02eb591942395745e78f706a32b105fe9a7a17ac12667cd98c",
+    "20261007074502_received_z02_payload_scalar_readers.sql": "5dfb46fa4db7a12a6645571a3ebb32582b48c880152de091f3384333fac0d95f",
+    "20261007085618_received_z02_blocking_correlation_issue.sql": "59b6c7b0d189834167cd0146017d6a3c4d3aa1f17ea39ecd6d6d54b4e5441cf3"
   }
 }

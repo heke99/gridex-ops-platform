@@ -1,3 +1,5 @@
+import {redeemReceivedZ02EndUserAddressContext,type ReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
+import type {EdielMessageRow} from '@/lib/ediel/types'
 import {validateReceivedZ14ReportingContext,type ReceivedZ14ReportingContext} from '@/lib/ediel/prodat/receivedZ14ReportingContext'
 import {projectProdatSourceFunctionObjects,type ReceivedProdatSourceFunctionValidation} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
 import {prodatDateState} from '@/lib/ediel/prodat/prodatDateFields'
@@ -9,7 +11,7 @@ import {projectProdatApplicationObjects,type ProdatApplicationObjectValidation} 
 import {validateCanonicalAckGuide} from './ackGuidePolicy'
 import {validateEdifactHeaderGuide} from './edifactHeaderGuide'
 import {utiltsDecimalGuideViolations} from '@/lib/ediel/utilts/quantityPrecision'
-import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {segmentComposite,segmentElementCount,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {DEFAULT_UNA,serializeUna} from '@/lib/ediel/core/una'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
@@ -93,6 +95,50 @@ export function consumeReceivedZ04RequiredStartStructure(evidence:unknown,raw:st
   &&actual.facts===evidenceHash(JSON.stringify(evidence))&&Date.now()>=actual.at&&Date.now()-actual.at<=2000)
 }
 
+/** Original availability decides received229 presence; reply values may change.
+ * Only the exact readonly source capability can supply that condition. */
+function receivedZ02AddressIssues(input: {
+ policy:CanonicalEdielPolicy;sourceMessage?:EdielMessageRow;receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext;
+ rawPayload?:string|null;rawSegments?:readonly string[]|null;una?:EdifactServiceStringAdvice
+}):EdielRulebookIssue[]{
+ if(!input.receivedZ02EndUserAddressContext)return []
+ const sourceRule='PRODAT26A:Z02/229:received-original-availability'
+ const unqualified=(reason:string):EdielRulebookIssue[]=>[{severity:'error',blocking:true,
+  code:'PRODAT_RECEIVED_Z02_END_USER_ADDRESS_SCOPE_UNQUALIFIED',title:'Adressunderlag saknar eget källbevis',description:reason,
+  fieldPath:'NAD+UD/C059/3042[1..3]',prodatDiagnostic:prodatLocalDiagnostic('local_unknown',sourceRule,reason)}]
+ try{
+  const message=input.sourceMessage
+  if(!message?.raw_payload||input.rawPayload!==message.raw_payload)throw Error('received_z02_address_actual_payload_required')
+  const wire=tokenizeEdifact(message.raw_payload)
+  if(JSON.stringify(input.rawSegments)!==JSON.stringify(wire.segments.map(segment=>segment.raw))
+   ||serializeUna(input.una??wire.una)!==serializeUna(wire.una))throw Error('received_z02_address_actual_wire_required')
+  const facts=redeemReceivedZ02EndUserAddressContext({message,context:input.receivedZ02EndUserAddressContext,policy:input.policy})
+  const groups=prodatRegisterGroups(wire.segments,wire.una,'Z02').groups.filter(group=>group.registerPosition===1)
+  if(groups.length!==facts.length)throw Error('received_z02_address_whole_object_scope_required')
+  const issues:EdielRulebookIssue[]=[]
+  for(const group of groups){
+   const fact=facts.find(candidate=>candidate.meteringPointId===group.itemId&&candidate.identityAgency===group.identityAgency)
+   if(!fact)throw Error('received_z02_address_own_object_required')
+   const parties=group.segments.filter(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='UD')
+   // The mandatory UD parent is independently owned by the existing R policy.
+   if(parties.length!==1)continue
+   const address=segmentComposite(parties[0],5,wire.una)
+   const missing=!address.some(value=>value.trim())
+   const invalid=segmentElementCount(parties[0],wire.una)>9||address.length>3
+    ||address.some(value=>value.length>35||/[\x00-\x1f\x7f]/.test(value))
+    ||!address[0]?.trim()&&address.slice(1).some(value=>value.trim())
+    ||address[0]?.trim()==='.'&&!address.slice(1).some(value=>value.trim())
+   if(invalid||missing&&fact.availability==='available')issues.push({severity:'error',blocking:true,
+    code:invalid?'PRODAT_RECEIVED_Z02_END_USER_ADDRESS_FORMAT_INVALID':'PRODAT_RECEIVED_Z02_END_USER_ADDRESS_MISSING',
+    title:invalid?'Elanvändaradress har ogiltigt format':'Tillgänglig elanvändaradress saknas',
+    description:invalid?'Z02:229 kräver högst tre 35-teckens komponenter och första adressfältet enligt P26.A s.118.':'Z02:229 saknas trots adress i det korrelerade, accepterat sända egna Z01-originalet.',
+    fieldPath:'NAD+UD/C059/3042[1..3]',prodatDiagnostic:prodatFieldDiagnostic('229',invalid?'invalid':'missing',
+     {code:'Z02',rawSegments:input.rawSegments,una:wire.una},group.segments.map(segment=>segment.raw),sourceRule,group.lineIndex)})
+  }
+  return issues
+ }catch(error){return unqualified(error instanceof Error?error.message:String(error))}
+}
+
 /**
  * Field validation consumes a previously resolved canonical policy snapshot.
  * The legacy field-matrix dependency fallback is deliberately disabled by
@@ -104,6 +150,8 @@ export function validateCanonicalPolicyFields(input: {
   onIgnoredField?: (field: ProdatIgnoredField) => void
   onRegisterValidation?: (evidence: ProdatRegisterValidationEvidence) => void
   sourceFunctionContext?:DeathStatusValidationContext
+  sourceMessage?:EdielMessageRow
+  receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext
   onSourceFunctionObjects?:(evidence:ReceivedProdatSourceFunctionValidation)=>void
   onApplicationObjects?: (evidence: ProdatApplicationObjectValidation) => void
   reportingContext?: ExpectedContext
@@ -226,6 +274,7 @@ export function validateCanonicalPolicyFields(input: {
   })
   input.onRegisterValidation?.(registerEvidence)
   issues.push(...register.issues)
+  issues.push(...receivedZ02AddressIssues(input))
   if(input.policy.direction==='outbound' && rules.some(rule=>rule.fieldNumber==='229')) issues.push(...validateProdatEndUserAddress({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts}))
 
   if(rules.some(rule=>INVOICEE_FIELDS.includes(rule.fieldNumber??''))) issues.push(...validateProdatInvoicee({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'}))

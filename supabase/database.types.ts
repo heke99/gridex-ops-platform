@@ -98579,6 +98579,10 @@ export type Database = {
         Args: { p_context: Json }
         Returns: Json
       }
+      gridex_ediel_received_z02_address_source_basis_v1: {
+        Args: { p_actor_user_id: string; p_source_message_id: string }
+        Returns: Json
+      }
       gridex_ediel_received_z14_reporting_source_basis_v1: {
         Args: { p_actor_user_id: string; p_source_message_id: string }
         Returns: Json
