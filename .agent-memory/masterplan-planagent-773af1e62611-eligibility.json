@@ -2,24 +2,24 @@
   "status": "READ_ONLY_ELIGIBILITY_NO_NEW_CLAIM",
   "agent": "codex-planagent-20261008-773af1e62611",
   "main": "74bcd6d109861e940269f75821f6d3516df29a96",
-  "observedAt": "2026-10-08T09:44:23.066554+00:00",
+  "observedAt": "2026-10-08T09:46:26.422030+00:00",
   "coverage": {
     "verifiedRules": 115,
     "passedContracts": 185,
     "remaining": 52,
     "sha256": "51c4b1ae8381fbd286f015604a4c0e019eef714600d447b34d8f85237cde2d4a"
   },
-  "currentRemoteRefCount": 93,
-  "boardThrough": 6057102329,
+  "currentRemoteRefCount": 80,
+  "boardThrough": 6057160664,
   "sourceInventory": "67fdb81506011fdd59bdc6c9f5abb13947e865c8/.agent-memory/masterplan-b6d3-41f5172a-next-eligibility.json",
   "limits": "Dated ownership/dependency screen, not a full new behaviour audit. Historical semantic classifications are attributed to original receipts. No native, original archive, capture, generator or product test executed here. No earlier named session packet is inherited. Refresh before any acquisition.",
   "counts": {
     "RETAINED_DUTY": 23,
     "RETAINED_TRANSPORT_AND_PROVIDER_INPUT": 2,
-    "RELEASED_PREREQUISITES_NOT_READY": 16,
+    "RELEASED_PREREQUISITES_NOT_READY": 18,
     "RETAINED_LEGAL_LIFECYCLE_AND_INPUT": 3,
     "AUTHENTIC_INCIDENT_INPUT_AND_RETAINED_DUTY": 2,
-    "OCCUPIED": 6
+    "OCCUPIED": 4
   },
   "rows": [
     {
@@ -349,20 +349,20 @@
     {
       "id": "AT-Z03H-SUPPLIER",
       "coverageStatus": "NOT_EXECUTED",
-      "admissibility": "OCCUPIED",
-      "responsible": "codex-ediel-20261006-93e252d8",
-      "basis": "Actual matching-ref snapshot; Fresh111-ref snapshot plus full matching atomic receipt message 96a7780e22a9deec98dff3d917ad9c378bcf88fc",
-      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
-      "liveReceipt": "96a7780e22a9deec98dff3d917ad9c378bcf88fc"
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Fresh future whole claimant; source/kernel/GEN owners from original H handover",
+      "basis": "Actual657 merge6057102329; explicit whole H release intent6057135638; both ID refs absent in later80-ref official snapshot",
+      "nextConcreteAction": "Reuse actual merged657 and original100 strict assertions. Original H85PASS15FAIL needs real source-qualified H259/E01-no-user/legal positive and negative physical ACK/current declarations/protected source+kernel+GEN completion; original owner lists15 failures and rightful actions in6057135638. No source or ACK authority transferred. Qualify whole effects on current head only after dependencies.",
+      "liveReceipt": null
     },
     {
       "id": "AT-Z04H-SUPPLIER",
       "coverageStatus": "NOT_EXECUTED",
-      "admissibility": "OCCUPIED",
-      "responsible": "codex-ediel-20261006-93e252d8",
-      "basis": "Actual matching-ref snapshot; Fresh111-ref snapshot plus full matching atomic receipt message 96a7780e22a9deec98dff3d917ad9c378bcf88fc",
-      "nextConcreteAction": "Current owner completes its retained packet or explicitly releases remaining responsibility before any fresh selection; own Z13 pair is still the ROOT active packet, not a next pair.",
-      "liveReceipt": "96a7780e22a9deec98dff3d917ad9c378bcf88fc"
+      "admissibility": "RELEASED_PREREQUISITES_NOT_READY",
+      "responsible": "Fresh future whole claimant; source/kernel/GEN owners from original H handover",
+      "basis": "Actual657 merge6057102329; explicit whole H release intent6057135638; both ID refs absent in later80-ref official snapshot",
+      "nextConcreteAction": "Reuse actual merged657 and original100 strict assertions. Original H85PASS15FAIL needs real source-qualified H259/E01-no-user/legal positive and negative physical ACK/current declarations/protected source+kernel+GEN completion; original owner lists15 failures and rightful actions in6057135638. No source or ACK authority transferred. Qualify whole effects on current head only after dependencies.",
+      "liveReceipt": null
     },
     {
       "id": "AT-Z05H-SUPPLIER",
@@ -490,5 +490,18 @@
       "nextConcreteAction": "Request a narrow source/remaining-proof handoff for real public Z15 birth qualification and existing history-job completion port. Current intake selects only Z14; existing Z15V native uses caller-supplied PRODAT:Z15:V profile through f.insert. Pure new physical Z15 birth witness helper/tests could be a useful independent component after explicit retained-source boundary agreement; they do not close permission/history/DDQ whole. Preserve existing current permission source and original ESCO09 producer, do not fork its worker or use manual profile pin as public-birth proof.",
       "liveReceipt": null
     }
-  ]
+  ],
+  "historicalObservation": {
+    "refCount": 93,
+    "boardThrough": 6057102329,
+    "counts": {
+      "RETAINED_DUTY": 23,
+      "RETAINED_TRANSPORT_AND_PROVIDER_INPUT": 2,
+      "RELEASED_PREREQUISITES_NOT_READY": 16,
+      "RETAINED_LEGAL_LIFECYCLE_AND_INPUT": 3,
+      "AUTHENTIC_INCIDENT_INPUT_AND_RETAINED_DUTY": 2,
+      "OCCUPIED": 6
+    },
+    "note": "Original93-ref observation before H owner release; preserved as history."
+  }
 }
