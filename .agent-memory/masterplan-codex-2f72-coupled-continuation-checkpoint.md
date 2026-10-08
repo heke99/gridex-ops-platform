@@ -11,3 +11,9 @@ This agent now proceeds with the independent canonical-signature billing native 
 Latest observed main: 1c4980e6c4c69573c4968550c585998ed5fa9bae. Incoming runtime changes are read and will be preserved at delivery. PR #699 is still open/draft at source192 above with mandatory failures; local4809 is unpublished. Product migration, redactor repair, whole L/LK approval, new-source parity and current-head green checks remain pending. Coverage is unchanged. The proposed P-08 forward is awaiting an exact reviewed owner handoff and is not selected.
 
 Next: this agent performs the documented isolated native setup/proof and records actual setup/native/cleanup outcomes. Helpers finish diagnostic code reviews; this agent later authorizes only the bounded diagnostic read if qualified. Continue the same pair with proven repairs and fresh mandatory checks. No merge, coverage approval, shared-memory edit or reservation release is claimed.
+
+## Native runner review HOLD before startup
+
+Independent review found a cleanup gap in the private runner: terminating the owned shell could bypass cleanup, and the maintained replay suppresses stack-stop errors. Neither shell exit nor restored files proves removal of the owned stack. No setup or native case has started; original runner evidence is preserved.
+
+This agent will revise only the private runner to check residual containers for its unique owned project after shell termination, perform the same-project CLI stop if required, preserve separate cleanup outcomes, then restore the source configuration. Never stop foreign containers or run the maintained source cleanup twice. Re-review the exact successor before the one previously authorized attempt. SQL artifact HOLD and all product/native gates remain unchanged.
