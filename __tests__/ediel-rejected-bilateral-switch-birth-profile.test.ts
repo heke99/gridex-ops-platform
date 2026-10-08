@@ -138,3 +138,72 @@ it('requires the actual database profile key',async()=>{
  const row=registry();row.profile_key='';row.original_snapshot.messageProfile.profile_key='';io.rpc.mockResolvedValue({data:[row],error:null})
  await expect(resolve(wire())).rejects.toThrow('canonical_rule_pack_result_missing:profile_key')
 })
+
+const missing314Body=(id=point,agency='9'):Parts[]=>[line('',id,undefined,agency),...characteristic('Z13','Z25'),['RFF',['LI','OWN']]]
+it('selects only dated catalog witnesses for missing314 while its real sequence rejection and grouping remain unchanged',async()=>{
+ const payload=wire(missing314Body()),t=tokenizeEdifact(payload),before=prodatRegisterGroups(t.segments,t.una,'Z04')
+ expect(await resolveBilateralSwitchBirthProfile({rawPayload:payload,receivedAt:receipt})).toBeNull()
+ expect(validate(payload,['314']).some(i=>i.blocking)).toBe(true)
+ expect(before.problems).toEqual([{fieldNumber:'314',lineIndex:0,segmentIndex:t.segments.find(s=>s.tag==='LIN')!.index,reason:'global_sequence_must_increment_from_one'}])
+ expectWitness(await resolve(payload));expect(prodatRegisterGroups(t.segments,t.una,'Z04')).toEqual(before)
+ expect(before.groups[0]).toMatchObject({lineNumber:null,firstLineIndex:null,validRegisterChain:false})
+ expect(before.groups[0].effectiveSegments).toEqual(before.groups[0].segments)
+ expect(io.rpc).toHaveBeenCalledExactlyOnceWith('resolve_canonical_ediel_rule_pack_with_witness_v1',{
+  p_market:'electricity',p_family:'PRODAT',p_message_code:'Z04',p_transaction_subtype:'H',p_direction:'inbound',p_business_date:'2026-10-07'})
+})
+it.each(alphabets)('respects actual UNA %j and escaped identifiers for missing314',async(component,element,release,terminator)=>{
+ const id=`POINT${component}${element}${release}${terminator}A`
+ const parts=missing314Body(id,'89');parts[parts.length-1]=['RFF',['LI',`OWN${component}${element}${release}${terminator}A`]]
+ expectWitness(await resolve(guideOrderedFixtureRaw(parts,'Z04',[component,element,release,terminator])))
+})
+it.each(['A','A'.repeat(25)])('uses actual209 validity without a numeric-only restriction: %s',async id=>{
+ expectWitness(await resolve(wire(missing314Body(id))))
+})
+it.each([
+ ...['0','1','2','01','  ',' 1','1 ',':'].map(sequence=>['nonempty sequence '+sequence,()=>wire([line(sequence,point,undefined,'9'),...missing314Body().slice(1)])] as const),
+ ['extra empty sequence component',()=>wire([['LIN',['',''],'',[point,'','','9']],...missing314Body().slice(1)])],
+ ['supplied action',()=>wire([['LIN','','ACTION',[point,'','','9']],...missing314Body().slice(1)])],
+ ['C829 supplied',()=>wire([line('',point,'1','9'),...missing314Body().slice(1)])],
+ ['empty C829 element',()=>wire([['LIN','','',[point,'','','9'],''],...missing314Body().slice(1)])],
+ ['extra LIN element',()=>wire([['LIN','','',[point,'','','9'],'',''],...missing314Body().slice(1)])],
+ ['missing209',()=>wire(missing314Body(''))],
+ ['too long209',()=>wire(missing314Body('A'.repeat(26)))],
+ ['invalid agency',()=>wire(missing314Body(point,'XX'))],
+ ['extra209 component',()=>wire([['LIN','','',[point,'','','9','']],...missing314Body().slice(1)])],
+ ['reserved209 component',()=>wire([['LIN','','',[point,'BAD','','9']],...missing314Body().slice(1)])],
+ ['second LIN',()=>wire([...missing314Body(),line('2',point,undefined,'9')])],
+ ['second object',()=>wire([...missing314Body(),line('2','OTHER',undefined,'9')])],
+ ['missing LI',()=>wire(missing314Body().slice(0,-1))],
+ ['blank LI',()=>wire([...missing314Body().slice(0,-1),['RFF',['LI','']]])],
+ ['padded LI value',()=>wire([...missing314Body().slice(0,-1),['RFF',['LI',' OWN']]])],
+ ['duplicate LI',()=>wire([...missing314Body(),['RFF',['LI','OTHER']]])],
+ ['header LI',()=>wire([['RFF',['LI','OWN']],...missing314Body().slice(0,-1)])],
+ ['header duplicate LI',()=>wire([['RFF',['LI','HEADER']],...missing314Body()])],
+ ['late LI after NAD',()=>raw([...missing314Body().slice(0,-1),['NAD','UD',['C','','89']],['RFF',['LI','OWN']]])],
+ ['LI extra component',()=>wire([...missing314Body().slice(0,-1),['RFF',['LI','OWN','']]])],
+ ['LI extra element',()=>wire([...missing314Body().slice(0,-1),['RFF',['LI','OWN'],'EXTRA']])],
+ ['normalized lowercase LI',()=>wire([...missing314Body().slice(0,-1),['RFF',['li','OWN']]])],
+ ['normalized padded LI',()=>wire([...missing314Body().slice(0,-1),['RFF',[' LI ','OWN']]])],
+ ['missing reason',()=>wire([line('',point,undefined,'9'),['RFF',['LI','OWN']]])],
+ ['duplicate reason',()=>wire([...missing314Body(),...characteristic('Z13','Z25')])],
+ ['header reason',()=>wire([...characteristic('Z13','Z25'),line('',point,undefined,'9'),['RFF',['LI','OWN']]])],
+ ['late reason after LI',()=>raw([line('',point,undefined,'9'),['RFF',['LI','OWN']],...characteristic('Z13','Z25')])],
+ ['second CAV',()=>wire([line('',point,undefined,'9'),...characteristic('Z13','Z25'),['CAV','Z25'],['RFF',['LI','OWN']]])],
+ ['missing APP',()=>wire(missing314Body()).replace('23-DDQ-PRODAT','')],
+ ['foreign APP',()=>wire(missing314Body()).replace('23-DDQ-PRODAT','23-DGI-PRODAT')],
+ ['missing202',()=>wire(missing314Body(),'')],
+ ['Z03',()=>wire(missing314Body(),'Z03')],
+ ['nonH reason',()=>wire(missing314Body()).replace('CAV+Z25','CAV+Z22')],
+ ['duplicate BGM',()=>wire([['BGM','Z04','OTHER','9'],...missing314Body()])],
+ ['duplicate UNH',()=>wire([['UNH','OTHER',['PRODAT','D','97A','UN','E2SE6A']],...missing314Body()])],
+ ['padded LIN',()=>wire(missing314Body()).replace('LIN+++',' LIN+++')],
+ ['padded end LIN',()=>wire(missing314Body()).replace(":::9'",":::9 '")],
+] as const)('keeps the missing314 catalog purpose closed for %s',async(_label,make)=>{
+ expect(await resolve(make())).toBeNull();expect(io.rpc).not.toHaveBeenCalled()
+})
+it.each(['invalid','2026-02-30T12:00:00Z','2026-10-06T22:30:00'])('refuses invalid real missing314 receipt %s',async clock=>{
+ await expect(resolve(wire(missing314Body()),clock)).rejects.toThrow('rejected_bilateral_switch_birth_receipt_clock_invalid');expect(io.rpc).not.toHaveBeenCalled()
+})
+it('rejects missing314 catalog association mismatch instead of fabricating a witness',async()=>{
+ await expect(resolve(wire(missing314Body()).replace('E2SE6A','E2SE5A'))).rejects.toThrow('rejected_bilateral_switch_birth_association_mismatch')
+})

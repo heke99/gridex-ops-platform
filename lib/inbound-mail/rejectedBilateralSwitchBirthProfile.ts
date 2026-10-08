@@ -7,8 +7,8 @@ import {resolveCanonicalRulePack} from '@/lib/ediel/rulebook/canonicalRulePackRe
 import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
 import type {BilateralSwitchBirthProfile} from './bilateralSwitchBirthProfile'
 
-/** Catalog witnesses for the recognizable rejected two-register H source only.
- * The malformed second C829 remains invalid: this selects no original, grants
+/** Catalog witnesses for recognizable rejected H sources: missing single-LIN
+ * sequence, or malformed second C829. Both remain invalid: this selects no original, grants
  * no admission/business authority and never inherits common fields onto it.
  */
 export async function resolveRejectedBilateralSwitchBirthProfile(input: {
@@ -24,21 +24,45 @@ export async function resolveRejectedBilateralSwitchBirthProfile(input: {
   if (association.length!==5||association.slice(0,4).join(':')!=='PRODAT:D:97A:UN'||!association[4]
     ||code.length!==1||code[0]!=='Z04'||application.length!==1||application[0]!=='23-DDQ-PRODAT') return null
   const grouping=prodatRegisterGroups(segments,una,'Z04')
-  if (grouping.groups.length!==2) return null
-  const [first,second]=grouping.groups
-  if (segments.indexOf(bgms[0])>segments.indexOf(first.segments[0])
-    ||first.messageIndex!==second.messageIndex||first.itemId!==second.itemId||first.identityAgency!==second.identityAgency) return null
-  for (const [index,group] of grouping.groups.entries()) {
-    const identity=prodatRegisterFieldState('209',group.segments,una)
-    const sequence=prodatRegisterFieldState('314',group.segments,una)
-    if (!identity?.present||identity.malformed||!sequence?.present||sequence.malformed||sequence.value!==String(index+1)) return null
-    const register=segmentComposite(group.segments[0],4,una)
-    if (segmentElementCount(group.segments[0],una)!==4||register.length!==2
-      ||register[0]!=='1'||register[1]!== (index===0?'1':'')) return null
-  }
-  const expectedProblems=['invalid_C829_indicator_or_index','per_object_register_sequence_invalid']
-  if (grouping.problems.length!==2||grouping.problems.some(p=>p.fieldNumber!=='258'||p.lineIndex!==second.lineIndex)
-    ||!expectedProblems.every(reason=>grouping.problems.some(p=>p.reason===reason))) return null
+  const first=grouping.groups[0]
+  if (grouping.groups.length===2) {
+    const second=grouping.groups[1]
+    if (segments.indexOf(bgms[0])>segments.indexOf(first.segments[0])
+      ||first.messageIndex!==second.messageIndex||first.itemId!==second.itemId||first.identityAgency!==second.identityAgency) return null
+    for (const [index,group] of grouping.groups.entries()) {
+      const identity=prodatRegisterFieldState('209',group.segments,una)
+      const sequence=prodatRegisterFieldState('314',group.segments,una)
+      if (!identity?.present||identity.malformed||!sequence?.present||sequence.malformed||sequence.value!==String(index+1)) return null
+      const register=segmentComposite(group.segments[0],4,una)
+      if (segmentElementCount(group.segments[0],una)!==4||register.length!==2
+        ||register[0]!=='1'||register[1]!== (index===0?'1':'')) return null
+    }
+    const expectedProblems=['invalid_C829_indicator_or_index','per_object_register_sequence_invalid']
+    if (grouping.problems.length!==2||grouping.problems.some(p=>p.fieldNumber!=='258'||p.lineIndex!==second.lineIndex)
+      ||!expectedProblems.every(reason=>grouping.problems.some(p=>p.reason===reason))) return null
+  } else if (grouping.groups.length===1) {
+    const lin=first.segments[0],identity=prodatRegisterFieldState('209',first.segments,una)
+    const sequence=segmentComposite(lin,1,una),action=segmentComposite(lin,2,una)
+    const separator=una.dataElementSeparator,component=una.componentDataElementSeparator
+    const reserved=[separator,component,una.releaseCharacter,una.segmentTerminator]
+    const encode=(value:string)=>[...value].map(c=>reserved.includes(c)?una.releaseCharacter+c:c).join('')
+    const expectedLin=`LIN${separator.repeat(3)}${encode(identity?.value??'')}${component.repeat(3)}${first.identityAgency}`
+    if (segments.indexOf(bgms[0])>segments.indexOf(lin)||segmentElementCount(lin,una)!==3
+      ||sequence.length!==1||sequence[0]!==''||action.length!==1||action[0]!==''
+      ||!identity?.present||identity.malformed||segmentUntrimmedRaw(lin)!==expectedLin
+      ||first.validRegisterChain||first.firstLineIndex!==null||first.lineNumber!==null
+      ||first.effectiveSegments.length!==first.segments.length||first.effectiveSegments.some((t,i)=>t!==first.segments[i])) return null
+    const problem=grouping.problems[0]
+    if (grouping.problems.length!==1||problem.fieldNumber!=='314'||problem.lineIndex!==first.lineIndex
+      ||problem.segmentIndex!==lin.index||problem.reason!=='global_sequence_must_increment_from_one') return null
+    // Count all supplied LI selectors; a header/duplicate/padded qualifier must
+    // not disappear through normalized matching. This is not request authority.
+    const lis=segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,una)[0]?.trim().toUpperCase()==='LI')
+    if (lis.length!==1) return null
+    const li=lis[0],parts=segmentComposite(li,1,una),position=first.segments.indexOf(li),nad=first.segments.findIndex(t=>t.tag==='NAD')
+    if (position<0||nad>=0&&position>=nad||segmentElementCount(li,una)!==1||parts.length!==2||parts[0]!=='LI'
+      ||!parts[1]||parts[1]!==parts[1].trim()||segmentUntrimmedRaw(li)!==`RFF${separator}LI${component}${encode(parts[1])}`) return null
+  } else return null
 
   // Count every supplied selector before checking its exact physical spelling.
   // A header/late/empty/second selector must not vanish through normalization.

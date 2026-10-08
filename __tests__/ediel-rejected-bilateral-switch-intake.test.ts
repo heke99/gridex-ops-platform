@@ -136,3 +136,39 @@ it('retains a recognizable missing314 source at first INSERT without repairing i
  expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission','ediel_record_inbound_reception_v1'])
  expect(prodatRegisterGroups(t.segments,t.una,'Z04')).toEqual(before);expect(request.parsed).toEqual(parsedBefore)
 })
+
+it('returns existing missing314 immutable source before catalog reselection or source rewrite',async()=>{
+ const rawPayload=missingSequencePayload();setup(rawPayload);db.state.existing=true;const before=structuredClone(db.state.original)
+ expect(await createInboundEdielMessage(input(rawPayload))).toBe('00000000-0000-4000-8000-000000000005')
+ expect(db.state.original).toEqual(before);expect(db.writes('ediel_messages')).toEqual([])
+ expect(io.rpc.mock.calls.filter(c=>c[0]==='resolve_canonical_ediel_rule_pack_with_witness_v1')).toEqual([])
+ expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission','ediel_record_inbound_reception_v1'])
+})
+it.each(['actor','permission','environment','parse','mailtenant','clock','catalog'] as const)('refuses missing314 %s before INSERT/observation',async guard=>{
+ const rawPayload=missingSequencePayload();setup(rawPayload);const request=input(rawPayload)
+ if(guard==='actor')db.state.actorActive=false
+ if(guard==='permission')db.state.permission=false
+ if(guard==='environment')request.environment='foreign'
+ if(guard==='parse')request.parseResultId=''
+ if(guard==='mailtenant')patchMail({company_id:'foreign'})
+ if(guard==='clock')patchMail({received_at:'invalid'})
+ if(guard==='catalog')io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>name==='resolve_canonical_ediel_rule_pack_with_witness_v1'?{data:[],error:null}:db.rpc(name,args))
+ const errors={actor:'ediel_tenant_actor_forbidden',permission:'ediel_tenant_permission_forbidden',environment:'ediel_inbound_duplicate_scope_required',parse:'ediel_real_reception_actor_and_parse_required',mailtenant:'ediel_actual_inbound_receipt_clock_required',clock:'ediel_actual_inbound_receipt_clock_required',catalog:'canonical_rule_pack_evidence_count:0:PRODAT:Z04:H'}
+ await expect(createInboundEdielMessage(request)).rejects.toThrow(errors[guard])
+ expect(db.writes('ediel_messages')).toEqual([]);expect(db.writes('outbound_requests')).toEqual([])
+ expect(db.state.rpcCalls.filter(c=>c.name==='ediel_record_inbound_reception_v1')).toEqual([])
+})
+
+it('keeps missing314 rejected even when a sole owned request supplies a point candidate',async()=>{
+ const rawPayload=missingSequencePayload();setup(rawPayload)
+ const requestId='00000000-0000-4000-8000-000000000031',customerId='00000000-0000-4000-8000-000000000032',siteId='00000000-0000-4000-8000-000000000033',pointId='00000000-0000-4000-8000-000000000034'
+ const request={...input(rawPayload),outboundMatch:{status:'matched' as const,entityType:'outbound_request',entityId:requestId,confidence:1,reasons:[],
+  candidates:[{id:requestId,company_id:company,customer_id:customerId,site_id:siteId,metering_point_id:pointId,request_type:'supplier_switch'}]},
+  meteringPointMatch:{status:'missing' as const,entityType:null,entityId:null,confidence:0,reasons:[],candidates:[]}}
+ expect(await createInboundEdielMessage(request)).toBe(newId)
+ expect(db.writes('ediel_messages')).toHaveLength(1)
+ expect(db.writes('ediel_messages')[0].payload).toMatchObject({raw_payload:rawPayload,outbound_request_id:requestId,customer_id:customerId,site_id:siteId,metering_point_id:null,rule_profile_key:key})
+ expect(db.state.calls.filter(c=>['outbound_requests','metering_points','customers','customer_sites'].includes(c.table))).toEqual([])
+ for(const name of ['bilateral_capability_verified','business_effect_authorized','execution_context_snapshot'])expect(db.writes('ediel_messages')[0].payload).not.toHaveProperty(name)
+ expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission','ediel_record_inbound_reception_v1'])
+})
