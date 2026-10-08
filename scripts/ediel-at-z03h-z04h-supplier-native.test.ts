@@ -86,6 +86,42 @@ function business(f: { companyId: string }) {
     bilateral: rows('gridex_bilateral_prodat.supply_effect_receipts', f.companyId, 'source_message_id'),
     activations: rows('gridex_received_sources.normal_supply_activations', f.companyId, 'period_id') }
 }
+function assertFirstHBusinessDelta(f: Fixture, original: Original, sourceId: string, raw: string,
+  before: ReturnType<typeof business>, after: ReturnType<typeof business>, startedAt: number, completedAt: number) {
+  for (const key of ['customers', 'sites', 'points', 'contracts', 'permissions', 'activations'] as const)
+    expect(after[key], key).toEqual(before[key])
+  for (const key of ['periods', 'confirmations', 'transitions', 'bilateral'] as const) {
+    expect(after[key], key).toHaveLength(before[key].length + 1)
+    expect(after[key], key).toEqual(expect.arrayContaining(before[key]))
+    expect(before[key].filter(r => r.source_message_id === sourceId), key).toEqual([])
+    expect(after[key].filter(r => r.source_message_id === sourceId), key).toHaveLength(1)
+  }
+  const period = after.periods.find(r => r.source_message_id === sourceId)!
+  expect(period).toMatchObject({ company_id: f.companyId, source_message_id: sourceId,
+    source_switch_request_id: f.switchId, customer_id: f.customerId, metering_point_id: f.pointId,
+    contract_id: f.contractId, start_date: f.requestedStartDate, status: 'confirmed_by_grid_owner', market_state_version: 1 })
+  expect(after.confirmations.find(r => r.source_message_id === sourceId)).toMatchObject({ company_id: f.companyId,
+    period_id: period.id, switch_id: f.switchId, original_message_id: original.id,
+    original_payload_hash: digest(original.raw_payload!), contract_id: f.contractId, confirmed_period: period })
+  expect(after.transitions.find(r => r.source_message_id === sourceId)).toMatchObject({ company_id: f.companyId,
+    payload_hash: digest(raw), source_code: 'Z04', qualified_switch_ids: [f.switchId], actor_user_id: f.actorUserId })
+  expect(after.bilateral.find(r => r.source_message_id === sourceId)).toMatchObject({ company_id: f.companyId,
+    payload_hash: digest(raw), profiles: [expect.objectContaining({ profileVersionId: f.profileVersionId,
+      process: 'normal_start_h', sourceHash: f.sourceHash })] })
+  expect(after.switches).toHaveLength(before.switches.length)
+  expect(before.switches.filter(r => r.id === f.switchId)).toHaveLength(1)
+  expect(after.switches.filter(r => r.id === f.switchId)).toHaveLength(1)
+  expect(after.switches.filter(r => r.id !== f.switchId)).toEqual(before.switches.filter(r => r.id !== f.switchId))
+  const prior = before.switches.find(r => r.id === f.switchId)!, current = after.switches.find(r => r.id === f.switchId)!
+  expect(current).toMatchObject({ status: 'accepted', site_id: f.siteId, inbound_z04_message_id: sourceId,
+    confirmed_start_date: f.requestedStartDate, updated_by: f.actorUserId })
+  const updatedAt = Date.parse(String(current.updated_at))
+  expect(Number.isFinite(updatedAt)).toBe(true)
+  expect(updatedAt).toBeGreaterThanOrEqual(startedAt); expect(updatedAt).toBeLessThanOrEqual(completedAt)
+  const allowed = new Set(['status', 'site_id', 'inbound_z04_message_id', 'confirmed_start_date', 'updated_by', 'updated_at'])
+  const unchanged = (r: Row) => Object.fromEntries(Object.entries(r).filter(([key]) => !allowed.has(key)))
+  expect(unchanged(current)).toEqual(unchanged(prior))
+}
 // Failure-only SELECTs expose the committed boundary without applying another
 // effect, manufacturing a receipt, or changing the original assertion.
 function effectFailureDiagnostic(companyId: string, sourceId: string) {
@@ -309,6 +345,11 @@ function sealed(id: string) {
     FROM public.ediel_messages m WHERE id=${literal(id)}`)
 }
 function durable(f: Fixture, original: Original, sourceId: string) {
+  // Existing original/control sources only: a fresh negative source may acquire
+  // its own assessments and timers without changing this protected replay graph.
+  const scoped = (table: string, key = 'id', sourceKey = 'source_message_id') => sql<Row[]>(
+    `SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY ${key}),'[]') FROM ${table} r
+      WHERE company_id=${literal(f.companyId)} AND ${sourceKey} IN(${literal(original.id)},${literal(sourceId)})`)
   return { business: business(f), original: sealed(original.id), source: sealed(sourceId),
     profiles: rows('gridex_bilateral_prodat.profile_versions', f.companyId), origins: rows('gridex_bilateral_prodat.origins', f.companyId, 'ground_id'),
     artifacts: rows('gridex_bilateral_prodat.artifacts', f.companyId), reviews: rows('gridex_bilateral_prodat.reviews', f.companyId),
@@ -319,7 +360,20 @@ function durable(f: Fixture, original: Original, sourceId: string) {
     switchOriginals: rows('gridex_received_sources.switch_originals', f.companyId, 'message_id'),
     ownerWitnesses: rows('gridex_ediel_outbound_owner.witnesses', f.companyId),
     ownerConsumptions: rows('gridex_ediel_outbound_owner.consumptions', f.companyId, 'witness_id'),
+    requests: rows('public.outbound_requests', f.companyId),
+    responseBindings: rows('gridex_ediel_ack_guide.prodat_response_owner_bindings', f.companyId, 'witness_id'),
+    structuralBindings: rows('gridex_ediel_ack_guide.prodat_structural_response_bindings', f.companyId, 'witness_id'),
+    assessments: scoped('gridex_received_sources.validation_assessments'),
+    ignoredFacets: scoped('gridex_received_sources.prodat_ignored_field_facets', 'canonical_assessment_id'),
+    objectFacets: scoped('gridex_received_sources.prodat_object_validation_facets', 'assessment_id'),
+    responseFacets: scoped('gridex_received_sources.prodat_response_facets', 'assessment_id'),
+    applicationFacets: scoped('gridex_received_sources.prodat_application_facets', 'assessment_id'),
+    functionFacets: scoped('gridex_received_sources.prodat_source_function_facets', 'assessment_id'),
+    timers: scoped('public.ediel_sla_timers', 'id', 'ediel_message_id'),
+    expectations: scoped('public.ediel_business_expectations'),
     messages: sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'raw',raw_payload,'hash',immutable_payload_hash,
+      'company',company_id,'environment',environment,'direction',direction,'family',message_family,'code',message_code,
+      'customer',customer_id,'site',site_id,'point',metering_point_id,
       'related',related_message_id,'canonical',jsonb_build_object('pack',canonical_rule_pack_id,'key',rule_profile_key,
       'profile',rule_profile_version_id,'version',rule_profile_version,'checksum',rule_pack_checksum,'snapshot',rule_pack_snapshot),
       'execution',execution_context_snapshot) ORDER BY id),'[]')
@@ -604,8 +658,22 @@ async function acknowledgements(f: Fixture, original: Original, sourceId: string
   const source = tokenizeEdifact(raw), envelope = EdifactEnvelopeCodec.decode(raw), parties = originalAckPartyIdentities({ rawPayload: raw })
   const sourceSegment = (tag: string) => source.segments.find(s => s.tag === tag)!
   for (const ack of acks) {
-    expect(ack).toMatchObject({ related_message_id: sourceId, ack_outcome: 'positive', immutable_payload_hash: digest(ack.raw_payload!) })
+    expect(ack).toMatchObject({ company_id: f.companyId, environment: 'test', direction: 'outbound',
+      related_message_id: sourceId, ack_outcome: 'positive', immutable_payload_hash: digest(ack.raw_payload!) })
     const wire = tokenizeEdifact(ack.raw_payload!), reverse = EdifactEnvelopeCodec.decode(ack.raw_payload!)
+    const single = (tag: string) => { const found = wire.segments.filter(s => s.tag === tag); expect(found).toHaveLength(1); return found[0] }
+    const unb = single('UNB'), unh = single('UNH'), unt = single('UNT'), unz = single('UNZ')
+    expect(wire.segments[0]).toBe(unb); expect(wire.segments.at(-1)).toBe(unz)
+    expect(wire.segments.indexOf(unh)).toBe(1)
+    expect(wire.segments.indexOf(unt)).toBeGreaterThan(wire.segments.indexOf(unh))
+    expect(wire.segments.indexOf(unt)).toBe(wire.segments.length - 2)
+    expect(segmentElementCount(unt, wire.una)).toBe(2); expect(segmentElementCount(unz, wire.una)).toBe(2)
+    expect(segmentComposite(unt, 1, wire.una)).toEqual([String(wire.segments.indexOf(unt) - wire.segments.indexOf(unh) + 1)])
+    expect(segmentComposite(unt, 2, wire.una)).toEqual(segmentComposite(unh, 1, wire.una))
+    expect(segmentComposite(unz, 1, wire.una)).toEqual(['1'])
+    expect(segmentComposite(unz, 2, wire.una)).toEqual(segmentComposite(unb, 5, wire.una))
+    expect(segmentComposite(unh, 2, wire.una)).toEqual(ack.message_family === 'CONTRL'
+      ? ['CONTRL', '2', '2', 'UN', 'EDIEL2'] : ['APERAK', 'D', '96A', 'UN', 'E2SE6A'])
     expect(reverse).toMatchObject({ sender: envelope.receiver, receiver: envelope.sender, environment: 'test', applicationReference: '23-DDQ-PRODAT' })
     if (ack.message_family === 'CONTRL') {
       const uci = wire.segments.filter(s => s.tag === 'UCI'); expect(uci).toHaveLength(1)
@@ -616,7 +684,36 @@ async function acknowledgements(f: Fixture, original: Original, sourceId: string
         expect(segmentComposite(ucm, 1, wire.una)[0]).toBe(segmentComposite(sourceSegment('UNH'), 1, source.una)[0])
         expect(segmentComposite(ucm, 3, wire.una)[0]).toBe('1')
       }
+      const basis = await readPersistedEdielTechnicalContrlBasis({ companyId: f.companyId, environment: 'test',
+        ackMessageId: ack.id, expectedRawPayload: ack.raw_payload!, actorUserId: f.actorUserId, phase: 'read' })
+      expect(basis.evidence).toMatchObject({ sourceMessageId: sourceId, sourceHash: digest(raw),
+        companyId: f.companyId, environment: 'test', syntaxDecision: 'accepted' })
     } else {
+      const bgm = single('BGM')
+      expect(segmentElementCount(bgm, wire.una)).toBe(3)
+      expect(segmentComposite(bgm, 1, wire.una)).toEqual(['']); expect(segmentComposite(bgm, 2, wire.una)).toEqual([''])
+      expect(segmentComposite(bgm, 3, wire.una)).toEqual(['34'])
+      expect(sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM public.ediel_messages m
+        JOIN gridex_ediel_outbound_owner.witnesses w ON w.id::text=m.execution_context_snapshot->>'outboundOwnerWitnessId'
+        JOIN gridex_ediel_outbound_owner.consumptions c ON c.witness_id=w.id AND c.source_message_id=m.id
+        WHERE m.id=${literal(ack.id)} AND m.company_id=${literal(f.companyId)} AND m.environment='test'
+        AND m.direction='outbound' AND m.message_family='APERAK' AND m.related_message_id=${literal(sourceId)}
+        AND w.company_id=m.company_id AND w.environment=m.environment AND w.family='APERAK'
+        AND w.actor_user_id=${literal(f.actorUserId)} AND w.related_message_id=m.related_message_id
+        AND w.payload_sha256=${literal(digest(ack.raw_payload!))} AND c.payload_sha256=w.payload_sha256
+        AND c.company_id=m.company_id AND c.environment=m.environment AND (
+          EXISTS(SELECT FROM gridex_ediel_ack_guide.prodat_response_owner_bindings b
+            JOIN gridex_received_sources.prodat_response_facets r ON r.assessment_id=b.assessment_id
+            WHERE b.witness_id=w.id AND b.source_message_id=m.related_message_id AND b.company_id=m.company_id
+            AND b.environment=m.environment AND b.ack_hash=w.payload_sha256 AND b.facet_hash=r.response_facts_hash
+            AND r.source_message_id=b.source_message_id AND r.company_id=b.company_id AND r.environment=b.environment
+            AND r.source_payload_hash=${literal(digest(raw))}
+            AND r.response_facts_hash=encode(sha256(convert_to(r.response_facts_text,'UTF8')),'hex'))
+          OR EXISTS(SELECT FROM gridex_ediel_ack_guide.prodat_structural_response_bindings b
+            WHERE b.witness_id=w.id AND b.source_message_id=m.related_message_id AND b.company_id=m.company_id
+            AND b.environment=m.environment AND b.ack_hash=w.payload_sha256
+            AND b.facet_hash=encode(sha256(convert_to(b.facet_text,'UTF8')),'hex')
+            AND b.facet_text::jsonb->>'sourcePayloadHash'=${literal(digest(raw))}))))`)).toBe(true)
       for (const [role, party] of [['FR', parties.legalReceiver], ['DO', parties.legalSender]] as const) {
         const nad = wire.segments.filter(s => s.tag === 'NAD' && segmentComposite(s, 1, wire.una)[0] === role)
         expect(nad).toHaveLength(1); expect(segmentComposite(nad[0], 2, wire.una)).toEqual(party.identityComponents)
@@ -627,14 +724,18 @@ async function acknowledgements(f: Fixture, original: Original, sourceId: string
         expect(reference).toHaveLength(1); expect(segmentComposite(reference[0], 1, wire.una)).toEqual([q, value])
       }
     }
-    const outboxes = sql<{ id: string }[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id) ORDER BY id),'[]') FROM public.ediel_outbox
+    const outboxes = sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY id),'[]') FROM public.ediel_outbox o
       WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(ack.id)}`)
     expect(outboxes).toHaveLength(1)
+    expect(outboxes[0]).toMatchObject({ ediel_message_id: ack.id, company_id: f.companyId, environment: 'test',
+      source_message_id: sourceId, message_family: ack.message_family, ack_outcome: 'positive', status: 'queued',
+      immutable_payload_hash: digest(ack.raw_payload!), created_by: f.actorUserId, sent_at: null })
+    expect(Number.isFinite(Date.parse(String(outboxes[0].queued_at)))).toBe(true)
     const bytes = sealed(ack.id), { result, rpcObservation } = await observeAckTransportRpcErrors(supabaseService,
       { companyId: f.companyId, environment: 'test', messageId: ack.id, actorUserId: f.actorUserId },
-      () => sendOutboxItem({ actorUserId: f.actorUserId, outboxItemId: outboxes[0].id, smtpMimeMode: 'nodemailer-attachment' }))
+      () => sendOutboxItem({ actorUserId: f.actorUserId, outboxItemId: String(outboxes[0].id), smtpMimeMode: 'nodemailer-attachment' }))
     expect(result.status, JSON.stringify({ result, rpcObservation: result.status === 'sent' ? null : rpcObservation, diagnostic: result.status === 'sent' ? null
-      : ackSendFailureDiagnostic(f, sourceId, ack, outboxes[0].id, result.messageId, acks.indexOf(ack) + 1) })).toBe('sent'); expect(sealed(ack.id)).toEqual(bytes)
+      : ackSendFailureDiagnostic(f, sourceId, ack, String(outboxes[0].id), result.messageId, acks.indexOf(ack) + 1) })).toBe('sent'); expect(sealed(ack.id)).toEqual(bytes)
   }
   return acks
 }
@@ -1098,8 +1199,9 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(Date.parse(String(profile.approved_at))).toBeLessThanOrEqual(Date.parse(received.message.message_received_at!))
     expect(rows('gridex_bilateral_prodat.source_capability_receipts',f.companyId,'source_message_id')).toEqual([])
     const sourceBefore = sealed(received.message.id), originalBefore = sealed(original.id)
+    const firstBefore = business(f), startedAt = Date.now()
     await processInboundEdielMessage({ actorUserId:f.actorUserId,edielMessageId:received.message.id })
-    const after = business(f)
+    const completedAt = Date.now(), after = business(f)
     expect(after.periods,after.periods.length===before.periods.length+1 ? undefined
       : JSON.stringify(effectFailureDiagnostic(f.companyId,received.message.id))).toHaveLength(before.periods.length + 1)
     expect(after.periods).toEqual(expect.arrayContaining([expect.objectContaining({ source_message_id:received.message.id,
@@ -1110,6 +1212,7 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(after.confirmations).toEqual([expect.objectContaining({ source_message_id:received.message.id,original_message_id:original.id,
       switch_id:f.switchId,original_payload_hash:digest(original.raw_payload!) })])
     expect(after.transitions).toHaveLength(1); expect(after.activations).toEqual(before.activations)
+    assertFirstHBusinessDelta(f, original, received.message.id, received.message.raw_payload!, firstBefore, after, startedAt, completedAt)
     const capabilities=rows('gridex_bilateral_prodat.source_capability_receipts',f.companyId,'source_message_id')
     expect(capabilities,capabilities.length===1 ? undefined
       : JSON.stringify(effectFailureDiagnostic(f.companyId,received.message.id))).toEqual([expect.objectContaining({source_message_id:received.message.id,company_id:f.companyId,
@@ -1718,13 +1821,15 @@ describe('H outgoing current-review authority and explicit controlled agreement 
     expect(received.capability!.objects).toEqual([expect.objectContaining({profileVersionId:f.profileVersionId,sourceHash,sourceGrammarHash:q.sourceGrammarHash})])
     expect(business(f).periods).toEqual([]);expect(business(f).activations).toEqual([])
     expect(Date.parse(f.requestedStartDate+'T00:00:00Z')).toBeGreaterThan(Date.now())
+    const firstBefore=business(f), startedAt=Date.now()
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:received.message.id})
-    const after=business(f)
+    const completedAt=Date.now(), after=business(f)
     expect(after.periods,after.periods.length===1 ? undefined
       : JSON.stringify(effectFailureDiagnostic(f.companyId,received.message.id))).toEqual([expect.objectContaining({source_message_id:received.message.id,source_switch_request_id:f.switchId,customer_id:f.customerId,metering_point_id:f.pointId,contract_id:f.contractId,start_date:f.requestedStartDate,status:agreement.transition.state})])
     expect(after.confirmations).toEqual([expect.objectContaining({source_message_id:received.message.id,original_message_id:original.id})]);expect(after.activations).toEqual([])
     expect(after.bilateral).toEqual([expect.objectContaining({source_message_id:received.message.id,payload_hash:digest(received.message.raw_payload!),
       profiles:[expect.objectContaining({profileVersionId:f.profileVersionId,process:'normal_start_h',sourceHash})]})])
+    assertFirstHBusinessDelta(f,original,received.message.id,received.message.raw_payload!,firstBefore,after,startedAt,completedAt)
     const timers=sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY timer_type),'[]') FROM public.ediel_sla_timers t WHERE ediel_message_id=${literal(received.message.id)}`)
     expect(timers.map(t=>t.timer_type).sort()).toEqual(['aperak_due','contrl_due'])
     for(const timer of timers)expect(Date.parse(String(timer.due_at))).toBe(Date.parse(received.message.message_received_at!)+agreement.watches.incoming.minutes*60000)
