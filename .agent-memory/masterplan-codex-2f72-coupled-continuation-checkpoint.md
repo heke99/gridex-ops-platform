@@ -29,3 +29,9 @@ Source review confirms the first failing guard has two conjuncts. This agent aut
 The preserved source note incorrectly described the native catalog outer budget as 2 MiB. Actual source uses 64 MiB for that prefix; the JSON and aggregate bounds remain unchanged. The failing record's budget check was not reached. This correction provides no content or native approval.
 
 Helper z02_capture_review owns bounded observer preparation; this agent owns review, later execution authority and actual outcome. Existing SQL/native blockers and reservations remain unchanged.
+
+## Next coupled-source delivery route
+
+The isolated local native attempt is blocked by Docker capacity, so the owner selects the maintained official-CI route on the complete coupled composition. Carry current main into the existing reviewed local source, preserving all incoming runtime, H and OPS changes. Keep the same fifteen reviewed SQL forwards and their historical identities/checksums, existing generated outputs, and unchanged twelve-case native proof. No billing product migration or proposed P-08 forward is added.
+
+The current-main incoming changes contain no SQL or generated-output changes; their exact preservation and source compatibility must still be checked after the carry. Existing captures stay bound to their original sources. Two complete source reviews, self review and relevant checks on the exact successor precede publication to the existing draft PR. Then qualify genuine official native and clean/upgrade results; no local or older-source pass becomes current-head success. This agent owns source carry and publication; helpers own bounded reviews. Coverage remains unchanged.
