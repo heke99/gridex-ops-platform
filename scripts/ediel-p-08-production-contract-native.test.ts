@@ -162,6 +162,7 @@ const ledger = (eventId: string) => sql(`SELECT jsonb_build_object('event',(SELE
   'origin',(SELECT to_jsonb(o) FROM gridex_received_sources.production_contract_origins o WHERE event_id=${literal(eventId)}),
   'revocations',(SELECT count(*) FROM gridex_received_sources.production_contract_revocations WHERE event_id=${literal(eventId)}))`)
 const contractDates = (raw: string) => [...raw.matchAll(/DTM\+(92|93|157):([0-9]{12}):203'/g)].map(m => `${m[1]}:${m[2]}`)
+// Etc/GMT-1 is POSIX for fixed UTC+1, the product's fixed market minute convention.
 const marketMinute = (iso: string) => sql<string>(`SELECT to_jsonb(to_char(${literal(iso)}::timestamptz AT TIME ZONE 'Etc/GMT-1','YYYYMMDDHH24MI'))`)
 
 /** Render through the actual producer, assert the one-object Z09D wire and its
@@ -173,6 +174,7 @@ async function sentZ09(f: Fixture, route: string, eventId: string, kind: 'signed
   const raw = queued.message.raw_payload!
   // P-08: exactly one of 210 (DTM+92) or 211 (DTM+93) and never 216 (DTM+157) instead.
   expect(contractDates(raw)).toEqual([`${kind === 'signed' ? '92' : '93'}:${marketMinute(boundaryAt)}`])
+  expect(raw).not.toMatch(/DTM\+157:/); expect(raw).not.toMatch(kind === 'signed' ? /DTM\+93:/ : /DTM\+92:/)
   expect(raw).toMatch(/BGM\+Z09\+/); expect(raw).toContain("CAV+Z70'"); expect(raw).toContain(`LIN+1++${f.productionExternal}:::9'`)
   expect(raw).toContain(`NAD+Z02+${f.brpEdielId}:160:SVK'`)
   expect(queued.message).toMatchObject({ direction: 'outbound', message_family: 'PRODAT', message_code: 'Z09', source_operation_id: eventId, company_id: f.companyId, environment: 'test' })
@@ -194,6 +196,15 @@ async function acknowledge(f: Fixture, sent: Event, family: 'CONTRL' | 'APERAK',
   return { message, processed }
 }
 
+/** The ACK gate actually fired: the authority answered the original and recorded its APERAK outcome. */
+function appliedAperak(original: string, outcome: 'positive' | 'negative') {
+  expect(sql(`SELECT jsonb_build_object('aperak',(SELECT aperak_status FROM public.ediel_messages WHERE id=${literal(original)}),
+    'outcomes',(SELECT coalesce(jsonb_agg(outcome ORDER BY outcome),'[]') FROM gridex_ack_authority.scope_outcomes WHERE source_message_id=${literal(original)} AND ack_family='APERAK'),
+    'correlations',(SELECT count(*) FROM gridex_ack_authority.source_correlations WHERE source_message_id=${literal(original)} AND ack_family='APERAK'),
+    'chains',(SELECT count(*) FROM public.ediel_ack_chains WHERE source_message_id=${literal(original)} AND ack_family='APERAK'))`))
+    .toEqual({ aperak: 'received', outcomes: [outcome], correlations: 1, chains: 1 })
+}
+
 async function signedChain() {
   const f = await createProductionReceiptNativeFixture(externalTransport())
   const route = masterdataRoute(f).route
@@ -213,17 +224,20 @@ it('P-08 signed: DTM+92 Z09D, CONTRL alone confirms nothing, the positive APERAK
   expect((await getEdielMessageById(sent.original.id))!).toMatchObject({ aperak_status: 'received', raw_payload: sent.original.raw_payload })
   const confirmed = [{ event: sent.eventId, company: f.companyId, environment: 'test', message: sent.original.id }]
   expect(confirmations(sent.eventId)).toEqual(confirmed)
+  appliedAperak(sent.original.id, 'positive')
   // No existing period, origin or event row is changed by the confirmation.
   expect(ledger(sent.eventId)).toEqual(before)
   // Idempotent replay of the same committed APERAK keeps exactly one confirmation.
   expect(await processInboundAckMessage({ actorUserId: f.actorUserId, message })).toMatchObject({ outcome: 'positive', sourceMessage: { id: sent.original.id } })
   expect(confirmations(sent.eventId)).toEqual(confirmed)
+  appliedAperak(sent.original.id, 'positive')
   // Insert-only ledger: no role can change, delete or truncate it, and no API role can write or read it.
   expect(() => sql(`DELETE FROM gridex_received_sources.production_contract_confirmations WHERE event_id=${literal(sent.eventId)}`)).toThrow(/immutable/)
   expect(() => sql(`UPDATE gridex_received_sources.production_contract_confirmations SET environment='production' WHERE event_id=${literal(sent.eventId)}`)).toThrow(/immutable/)
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('role',r,'insert',has_table_privilege(r,'gridex_received_sources.production_contract_confirmations','INSERT'),
-    'select',has_table_privilege(r,'gridex_received_sources.production_contract_confirmations','SELECT')) ORDER BY r) FROM unnest(ARRAY['anon','authenticated','service_role']) r`))
-    .toEqual(['anon', 'authenticated', 'service_role'].map(role => ({ role, insert: false, select: false })))
+    'select',has_table_privilege(r,'gridex_received_sources.production_contract_confirmations','SELECT'),
+    'change',has_table_privilege(r,'gridex_received_sources.production_contract_confirmations','UPDATE,DELETE,TRUNCATE')) ORDER BY r) FROM unnest(ARRAY['anon','authenticated','service_role']) r`))
+    .toEqual(['anon', 'authenticated', 'service_role'].map(role => ({ role, insert: false, select: false, change: false })))
   expect(confirmations(sent.eventId)).toEqual(confirmed)
 }, 600_000)
 
@@ -232,6 +246,7 @@ it('P-08 negative APERAK 40/109 on the own Z09D confirms nothing and leaves the 
   const before = ledger(sent.eventId)
   await acknowledge(f, sent, 'CONTRL')
   await acknowledge(f, sent, 'APERAK', 'negative')
+  appliedAperak(sent.original.id, 'negative')
   expect(confirmations(sent.eventId)).toEqual([])
   expect(ledger(sent.eventId)).toEqual(before)
 }, 600_000)
@@ -245,6 +260,7 @@ it('P-08 a revoked production-contract event is never confirmed by a later posit
     VALUES(${literal(sent.eventId)},clock_timestamp(),'SYNTHETIC P08 revocation',${literal(hash(revocation))},${literal(f.actorUserId)})`)
   await acknowledge(f, sent, 'CONTRL')
   await acknowledge(f, sent, 'APERAK')
+  appliedAperak(sent.original.id, 'positive')
   expect(confirmations(sent.eventId)).toEqual([])
 }, 600_000)
 
@@ -259,4 +275,14 @@ it('P-08 ceased: after the confirmed start, the ceased event renders DTM+93 and 
   await acknowledge(f, ceased, 'CONTRL'); await acknowledge(f, ceased, 'APERAK')
   expect(confirmations(ceasedId)).toEqual([{ event: ceasedId, company: f.companyId, environment: 'test', message: ceased.original.id }])
   expect(confirmations(sent.eventId)).toEqual([{ event: sent.eventId, company: f.companyId, environment: 'test', message: sent.original.id }])
+}, 900_000)
+
+it('P-08 tenant isolation: an own positive APERAK confirms only its own tenant event; a second tenant event stays unconfirmed', async () => {
+  const a = await signedChain(), b = await signedChain()
+  expect(b.f.companyId).not.toBe(a.f.companyId)
+  await acknowledge(a.f, a.sent, 'CONTRL'); await acknowledge(a.f, a.sent, 'APERAK')
+  appliedAperak(a.sent.original.id, 'positive')
+  expect(confirmations(a.sent.eventId)).toEqual([{ event: a.sent.eventId, company: a.f.companyId, environment: 'test', message: a.sent.original.id }])
+  expect(confirmations(b.sent.eventId)).toEqual([])
+  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.production_contract_confirmations WHERE company_id=${literal(b.f.companyId)}`)).toBe(0)
 }, 900_000)

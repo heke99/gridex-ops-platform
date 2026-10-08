@@ -10,6 +10,10 @@ on:
       - 'lib/ediel/intent/renderers/productionContract.ts'
       - 'lib/ediel/production/contractSource.ts'
       - 'supabase/migrations/*production_contract*'
+      - 'supabase/schema.sql'
+      - 'scripts/helpers/ediel-z04d-production-native-fixture.ts'
+      - 'scripts/helpers/ediel-bilateral-customer-native-fixture.ts'
+      - 'lib/ediel/flows/inboundAckProcessing.ts'
       - '.github/workflows/ediel-p08-native.yml'
 
 permissions:

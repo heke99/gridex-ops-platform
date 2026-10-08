@@ -123,3 +123,13 @@ Two confirmed product defects block P-08 on main (each reproduced; tests fail on
    Forward repair SQL validated locally (all 4 tests green with it + renderer fix emulated); requires a new
    migration and shared manifest/capture files locked by 2f72 (bc8cdfd6/f0468525/350020b1) and b6d3 (ba5886dd).
 Lesson: never `trap - EXIT` after sourcing gridex-aud-003-clean-replay.sh (it restores migrations/seed).
+
+## Independent review applied (2026-10-08)
+Independent read-only review: H1 negatives/revoked vacuous on main → now assert ACK gate fired
+(aperak 'received', scope_outcomes outcome, exactly one correlation+chain); H2 tenant → new two-tenant test;
+M1 stricter no DTM+157/opposite date; M3 replay row counts; L4 UPDATE/DELETE/TRUNCATE privileges; workflow
+paths widened. Local result with both fixes emulated: 5/5 PASS. Unbound/changed-payload native case not
+added (origin payload is immutable; covered by PGlite + trigger guard) — remains reviewer note.
+SQL review notes for the composer: gate could also require NEW.status='acknowledged'; add COMMENT per convention.
+PR: https://github.com/heke99/gridex-ops-platform/pull/710 (draft, red on main by design).
+Next: await root extension (renderer) + 2f72 SQL composition decision; then apply, CI-green, coverage, merge.
