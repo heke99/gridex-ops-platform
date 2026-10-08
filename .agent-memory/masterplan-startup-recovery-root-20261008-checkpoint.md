@@ -121,3 +121,32 @@ Next ownroot: retain13own715file refs32b3163; no memory/merge-role held.
 Qualify terminal715CI and finish current-source/current-main delivery only
 in an authorized delivery operation. Operationalcheckpoint alone updates
 on this existing separate branch; frozen715head4f is unchanged.
+
+## New-agent-only dispatch clarification — 2026-10-08T13:32:22.437604+00:00
+
+User explicitly wants dispatch to NEW agents, not resuming existing chats.
+Completed: corrected both local copyable report prompts and JSON dispatchTarget;
+independent bounded reviewer APPROVE. Existing owner actions are dependencies
+for new agents, not instructions to start their old chats. Historical reports
+and previous owncheckpoint bytes retained; no ownership/coverage/protocolchange.
+
+Every NEW PLANAGENT/BLOCKERARAGENT uses own unique identity/checkpoint, generates
+a new packetUUID when reserving, reads actualmain/AGENTS/agentmemory/checkpoints/
+protocol/coverage/PRs/current673refs before selfselection, and inherits no other
+agent's packet or locks. Fixed roles continue: PLAN selects eligible package
+and completes it; BLOCKER resolves one evidenced blocker then chooses another.
+Code requires actualhandoff where necessary AND verifiedownrefs+CLAIM.
+Taken/done/exactsource/proof/blocker/next documentation and normaldelivery/
+actualrelease remain mandatory before more work. No IDs assigned by user/root.
+
+Use the two new-agent-only copyable prompts in updatedlocalreport
+/workspace/reports/gridex-documentation-recovery-and-agent-status-20261008.md
+(snapshotSHA2560523613acd291e210abb12f6c5dff4607f2e22a853b02a16b4f75cb1ba663c4e) and its matchingJSON, with reviewed715fullpromptlinks.
+BothClaude/Codex supported with actualdirectrefcapability or authorizedClaude
+proxy. Recommend one newBLOCKER first; newPLAN only with separateexecutable
+verifiedscope. Existing reservation does not become free because owner isidle.
+
+Nextroot: frozenPR715source4f unchanged, pendingdelivery NOTclaimedmain.
+Only this ownunique operationalcheckpoint updates on its existing separate
+branch. No existingchat restarted, sharedmemoryrole/file edited, remote
+reservation changed, newprobe/sourcebranch or PRmerge performed.
