@@ -71,7 +71,10 @@ async function receivedHStart(){
   ...characteristic('Z07','Z12'),...characteristic('Z12','D',3),...characteristic('Z15','Z32'),
   // Receiver-local declarations precede immutable public birth. They describe
   // future UTILTS only; no reading inventory or accepted policy fact is seeded.
-  ...characteristic('Z02','1',3),...characteristic('Z05','6',3),...characteristic('Z16','111',3),
+  // Synthetic DSO declares one cumulative meter-stand counter: original RK
+  // v1.7 single-tariff101 covers all hours, week and year. Interval-energy
+  // sampling is separate; no actual register inventory or delivery is asserted.
+  ...characteristic('Z02','1',3),...characteristic('Z05','6',3),...characteristic('Z16','101',3),
   ['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],
   ['NAD','IT',[f.external,'','9'],'','','Street','Town','','12345','SE'],['NAD','Z02',[f.brpEdielId,'160','SVK']]]
  const own=guideOrderedFixtureBody(body.map(p=>p[0]==='CAV'&&Array.isArray(p[1])&&p[1][0]==='Z22'?['CAV',['Z25']]
@@ -125,6 +128,11 @@ async function receivedHStart(){
   const settlementValue=firstObject[firstObject.indexOf(settlementCharacteristics[0])+1]
   expect(settlementValue?.tag).toBe('CAV')
   expect(segmentComposite(settlementValue,1,installationWire.una)).toEqual(['Z32'])
+  const counterCharacteristics=firstObject.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,installationWire.una)[0]==='Z16')
+  expect(counterCharacteristics).toHaveLength(1)
+  const counterValue=firstObject[firstObject.indexOf(counterCharacteristics[0])+1]
+  expect(counterValue?.tag).toBe('CAV')
+  expect(segmentComposite(counterValue,1,installationWire.una)).toEqual(['','','','101'])
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from}),parsed=mail.parsed
  const [outboundMatch,meteringPointMatch]=await Promise.all([
   matchOutboundRequestForInbound({companyId:f.companyId,parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId}),
@@ -145,7 +153,7 @@ async function receivedHStart(){
  const tokens=tokenizeEdifact(wire),groups=prodatRegisterGroups(tokens.segments,tokens.una).groups
  expect(groups).toHaveLength(1);expect(groups[0]).toMatchObject({itemId:f.external,identityAgency:'9',validRegisterChain:true})
  expect(['214','218','259'].map(field=>prodatRegisterReadingState(field,groups[0].segments,tokens.una)))
-  .toEqual([{present:true,value:'1',malformed:false},{present:true,value:'6',malformed:false},{present:true,value:'111',malformed:false}])
+  .toEqual([{present:true,value:'1',malformed:false},{present:true,value:'6',malformed:false},{present:true,value:'101',malformed:false}])
  expect(await readSourceQualifiedProdatBilateralCapability(source)).toMatchObject({sourceMessageId:sourceId,companyId:f.companyId,
   environment:'test',sourcePayloadHash:mail.sourcePayloadHash,subtype:'H',owner:'immutable-bilateral-prodat-profile-v1',
   objects:[expect.objectContaining({profileVersionId:f.profileVersionId,process:'normal_start_h',objectId:f.external,lineItemReference:physical.li,sourceHash:f.sourceHash})]})
