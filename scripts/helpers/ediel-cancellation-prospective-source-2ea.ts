@@ -22,7 +22,7 @@ function envelope(f: CancellationProspectiveContext, source: string, code: 'Z04'
       messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A', businessSegments: body }] })
 }
 export function buildCancellationProspectiveZ04(f: CancellationProspectiveContext) {
-  // Explicit synthetic active/time-series counterpart input, before mail or
+  // Explicit synthetic active installation/profiled monthly settlement, before mail or
   // source birth. Register111 remains synthetic, not a qualified READ receipt.
   const wire = ownerSource({ readingDeclarations: true, environment: 'test',
     sourceCodes: { installationStatus: 'Z12', settlementMethod: 'Z31' },
