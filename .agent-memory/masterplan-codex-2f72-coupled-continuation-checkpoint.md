@@ -69,3 +69,10 @@ Before publication actualmain advanced to9c2c36583ff293346afae75278fb5366097b9b9
 
 
 Currentmain719 carry GO: SOURCE2/self C0/I0, independently identical9478tree67951a5c8cf7274a05a8a03ffeb5ec547e036517. Four incoming main paths are disjoint from all40 actual own differences againstf851. ROOT performs ordinary local9c2c→36b carry, verifies exact tree/parents/all posts, then fresh two affected default suites, scoped lint and nonincremental test typing before guarded existing699 publication. Historical SQL1116/checksums, CORE GEN4 bytes/custody, source16 provenance and ownL/LK rows remain unchanged. No currentCI/native/GEN17/whole approval or merge.
+
+
+## Actual final source / guarded publication
+
+Actual local8f09bf7367f2c8391299d1f3da3f43384218f6cb/tree67951a5c8cf7274a05a8a03ffeb5ec547e036517, parents36bfe2e4da223fb072458cc908a6c6c374f23d21+actualmain9c2c36583ff293346afae75278fb5366097b9b98. Ordinary merge matches complete reviewed9478 map; no conflicts and working tree clean. Fresh affected default Node22 suites30PASS0FAIL0SKIP, scopedlint0, nonincremental testTSC0. Independent exact source-tree reviews/self remain applicable;64H proof remains original6ac epoch with byte-identical relevant inputs, not rerun here. Mandatory generated-tail refusal remains actual36b exit1 and unchanged after main-only carry.
+
+ROOT next: refresh actualmain/699head/all62own+4foreignGEN refs, require unchanged22a3 remote and prove it is ancestor of8f09, then normal fast-forward existing699 with exact old-head lease, preserving every CORE GEN byte. Record actual remote/PR head and current automatic CI; update draft description around selected17 and real blockers. CORE alone handles necessary authentic generated17 successor from this published source; no extra manual producer. DB05 remains excluded until exactrelease; fixture/HTTP/native owner dependencies unchanged. CurrentCI/native/cleanupgrade/parity/finalwhole review still required, no merge role or coverage approval.
