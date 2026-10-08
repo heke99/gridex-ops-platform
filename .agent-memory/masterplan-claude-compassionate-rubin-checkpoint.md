@@ -168,3 +168,15 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
     capability and source each held). The consumer test now documents that.
   - Minor: Z70 added to the held case; cleanup moved to afterEach; asserted that no customers/customer_sites table is touched.
 - Re-verified: vitest 30/30; company-filter mutation still caught; eslint 0; tsc tests 0; coverage --check 302/0 failing.
+
+## 2026-10-08 16:50Z — PR #719 CI_GREEN; waiting for proxy role-merge
+
+- PR #719 head 4d3a73e: all 9 mandatory checks SUCCESS. The foreign H feedback workflow is red as on all PRs
+  (explained in PR comment 6064252851).
+- Review APPROVE on caf4f70 (+ trivial import removal). No conflict with main f851aad5.
+- Requested role-merge via Codex proxy on #673. Next: verify the role-merge ref, merge with expectedHeadSha 4d3a73e,
+  verify main, post MERGED, then a RELEASE_REQUEST (role-merge first, then the 5 refs on 52244e72) and a handover line.
+- 17:22Z: role-merge received via proxy (receipt 5f73adba, CLAIM 6065301706). PR #719 MERGED with expectedHeadSha
+  4d3a73e into main 9c2c3658 (parents f851aad5 + 4d3a73e3). Main ledger 115 + 187 = 302/352.
+- RELEASE_REQUEST posted on #673: role-merge first, then the 5 refs on 52244e72.
+- Status: delivered. Next: verify all 6 refs are absent with ls-remote after the coordinator's release, then select the next packet.
