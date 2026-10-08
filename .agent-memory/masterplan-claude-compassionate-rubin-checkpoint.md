@@ -136,3 +136,27 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
     - db.calls: only company_id=tenant-a, no insert/upsert. Contrast: an own-tenant row gives [].
   - Risk: if tenant admission is only reachable via a DB, the joined case belongs to the native gateway test
     (original-owner branch `codex/ediel-sc047-joined-native-20261005`), which is outside scope. Then request an extension.
+
+## 2026-10-08 ~15:45Z — CLAIMED + implemented SC-038/SC-047 (locally verified)
+
+- Reservation verified: 5 refs -> receipt 52244e72 (agent compassionate-rubin, delegatedBy codex-root-coordinator,
+  base 6b87c1a9). CLAIM #673 6063457885.
+- SC-038 (`__tests__/ediel-supply-market-consumers.test.ts`, tag P-12 line + SC-038):
+  - Real `decideProdatLifecycle` for Z04A, Z04D and Z04+CAV Z70 gives the special process with requiresCorrelation:false.
+  - The consumer runs one source-bound RPC with no Z03/correlation lookup.
+  - The missing-ground control holds the message for review and makes no ordinary switch effect.
+  - Contrast: Z04L requires correlation.
+  - The cjs SQL scope fixture is unchanged and passes (6 PASS).
+- SC-047 (`__tests__/ediel-sc-044-047-utilts-scenarios.test.ts`):
+  - Uses a table-backed DB mock.
+  - The joined case runs real NAD+MR receiver -> real tenant identity/role admission (tenant-a) -> real
+    tenant-scoped matching (object only in tenant-b) = null -> E10.
+  - No company_id=tenant-b filter and no insert/upsert/update/delete. Contrast: an own object gives [].
+- Mutations caught:
+  - removing the company filter from matching;
+  - a tenant-a role that is not a valid E66 receiver;
+  - Z04D requiring correlation.
+  - Production code is unchanged.
+- Verification: vitest 24/24 + 4/4; cjs ok; eslint 0; tsc tests 0; coverage --check 302 approved, 0 failing.
+- coverage.json: only SC-038 and SC-047 set to PASSED.
+- Next: independent review of the exact head, then PR, then mandatory CI, then role-merge/merge, then MERGED + RELEASE_REQUEST.
