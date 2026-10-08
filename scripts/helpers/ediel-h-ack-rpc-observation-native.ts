@@ -120,4 +120,3 @@ export async function observeAckTransportRpcErrors<T>(client: object, scope: Ack
     }
   }
 }
-
