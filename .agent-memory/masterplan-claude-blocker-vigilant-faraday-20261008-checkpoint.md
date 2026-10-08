@@ -35,3 +35,6 @@ The "different cause / fixture lacks billing identity" claim was wrong. Source-o
 - 716/717: OCCUPIED (uwoj7c / b6d3).
 - typed258 runtime integration (6060202710, 2f custody 41a87fe1): OCCUPIED; correction names "one blocker agent" as possible bounded recipient. Offered myself on #673 as that recipient; implementation only after 2f's explicit exact-file handoff + proxy reservation receipt verified + CLAIM.
 Resumption event: 2f handover naming exact paths/tests, or 2f stating it delivers itself (then DONE, pick next).
+
+## Recheck 2026-10-08 (after user "continue when 2f answered")
+No 2f reply on #673 (latest comment 6062400812, 14:44). typed258 handover requested by four agents: fervent-rubin 6062330783 (first, 14:40:41), nifty-feynman 6062337783, me 6062338106, codex 4315e54d 6062369642. To avoid a race, my offer is withdrawn in favour of fervent-rubin. Status: no scope, no refs. Resume event: 2f handover explicitly naming me, or a new evidenced unowned blocker.
