@@ -501,7 +501,8 @@ export async function createCanonicalAckMessage(params: {
   const canonicalRulePackId = ackSourceQualification.evidence.rulePackId
   const routeContext = await resolveCanonicalOutboundContext({requestType: 'ediel_ack', companyId, environment,
     messageStandard: params.draft.messageStandard ?? 'edifact', receiverEdielId: params.draft.receiverEdielId ?? sourceMessage.sender_ediel_id ?? null,
-    applicationReference: params.draft.applicationReference ?? sourceMessage.application_reference ?? null})
+    applicationReference: sourceMessage.application_reference ?? null,
+    ackProfile: {family: params.ackFamily, code: params.draft.messageCode}})
   const routeProfileId = routeContext.routeRuntime?.route_profile_id ?? null
   if (!routeProfileId) throw new Error(`canonical_ack_route_profile_required:${routeContext.route.id}`)
 

@@ -333,23 +333,71 @@ export async function resolveMessageVersion(
   return resolved.selectedVersion
 }
 
+export type EdielAckRouteProfileSelection = {
+  family: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+  code: string
+  environment: EdielEnvironment
+  applicationReference: string
+}
+
 export async function getEdielRouteRuntimeByCommunicationRouteId(
   communicationRouteId: string,
-  options?: { companyId?: string | null }
+  options?: { companyId?: string | null; ackProfile?: EdielAckRouteProfileSelection }
 ): Promise<EdielRouteRuntimeRow | null> {
+  const scopedCompanyId = sanitize(options?.companyId)
+  const selection = options?.ackProfile
+  let selectedProfileId: string | null = null
+  if (selection !== undefined) {
+    if (!scopedCompanyId || !selection || !['CONTRL', 'APERAK', 'UTILTS_ERR'].includes(selection.family)
+      || !/^[A-Z][A-Z0-9_]{0,47}$/.test(selection.code)
+      || !['test', 'production'].includes(selection.environment)
+      || !sanitize(selection.applicationReference)) {
+      throw new Error('ediel_ack_route_profile_basis_required')
+    }
+    // The route can legitimately carry several processes and reply families.
+    // Select the complete configured candidate universe, retaining compatible
+    // NULL family/code rows as competitors; maybeSingle refuses ambiguity.
+    const { data: profile, error: profileError } = await supabaseService
+      .from('ediel_route_profiles').select('*')
+      .eq('company_id', scopedCompanyId).eq('communication_route_id', communicationRouteId)
+      .eq('environment', selection.environment).eq('application_reference', selection.applicationReference)
+      .eq('is_enabled', true).eq('is_active', true)
+      .or(`message_family.is.null,message_family.eq.${selection.family}`)
+      .or(`business_code.is.null,business_code.eq.${selection.code}`)
+      .maybeSingle()
+    if (profileError) throw profileError
+    if (!profile) throw new Error('ediel_ack_route_profile_required')
+    if (typeof profile.id !== 'string' || !profile.id || profile.company_id !== scopedCompanyId
+      || profile.communication_route_id !== communicationRouteId || profile.environment !== selection.environment
+      || profile.application_reference !== selection.applicationReference || profile.is_enabled !== true || profile.is_active !== true
+      || !(profile.message_family === null || profile.message_family === selection.family)
+      || !(profile.business_code === null || profile.business_code === selection.code)) {
+      throw new Error('ediel_ack_route_profile_scope_mismatch')
+    }
+    selectedProfileId = profile.id
+  }
   let query = supabaseService
     .from('ediel_route_runtime_v')
     .select('*')
     .eq('communication_route_id', communicationRouteId)
 
-  const scopedCompanyId = sanitize(options?.companyId)
   if (scopedCompanyId) {
     query = query.eq('company_id', scopedCompanyId)
+  }
+  if (selection && selectedProfileId) {
+    query = query.eq('route_profile_id', selectedProfileId).eq('environment', selection.environment)
   }
 
   const { data, error } = await query.maybeSingle()
 
   if (error) throw error
+  if (selection && (!data || data.route_profile_id !== selectedProfileId || data.company_id !== scopedCompanyId
+    || data.communication_route_id !== communicationRouteId || data.environment !== selection.environment
+    || data.application_reference !== selection.applicationReference || data.is_enabled !== true
+    || !(data.message_family === null || data.message_family === selection.family)
+    || !(data.business_code === null || data.business_code === selection.code))) {
+    throw new Error('ediel_ack_route_profile_scope_mismatch')
+  }
   return (data as EdielRouteRuntimeRow | null) ?? null
 }
 
