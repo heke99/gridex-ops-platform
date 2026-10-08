@@ -1,0 +1,13 @@
+# Blocker agent checkpoint — codex-blocker-20261008-e344f501
+
+Fixed role: BLOCKERARAGENT. Branch `codex/blocker-claude-proxy-e344f501`, isolated worktree `/workspace/gridex-blocker-proxy-e344f501`.
+
+## 2026-10-08 — atomic protocol-doc conflict; no ownership acquired
+
+- Read current main `0b7d930ca67b8b78cb6e6f04b8f94eb7edac37ec`, AGENTS.md, ordered agent memory/workflow/reservations, installed skills, frozen register structure, legacy retained PR register, open PRs, #673 through 6057102329 and actual remote receipts.
+- Owner decision [6056938983](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6056938983) supersedes the earlier no-proxy decision; custody, exact scopes, create-if-absent GitData refs and owner-requested exact-SHA release remain mandatory.
+- Proposed documentation-only packet `e344f501-f816-4216-b40e-fa1e178f4d2d`, unreferenced receipt `fc3c68288fe4a7758303608a61109455140caf64` on actual main/tree. First sorted POST of reservations-document resource returned HTTP422: already exists at foreign receipt `74b4932bd9f2e824232ea0a4259eaea0e7a15e5b`. GET confirms agent `codex-blocker-proxy-20261008-a7912b34`, packet a7912b34, both documents and role-memory; [CLAIM6057071524](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6057071524). No own ref was acquired, no rollback/delete performed. No product/document/coverage implementation; no native/capture/generator execution.
+- GitHub reads work with supported additional network permission; default sandbox connection to configured proxy failed. POST git/commits succeeded; resource POST conflict and GET prove atomic exclusion, not an acquired reservation. Tag DELETE has not been executed or proved by this agent.
+- Actual657 source delivery now reports main `74bcd6d109861e940269f75821f6d3516df29a96`; foreign owner retains whole H release duties. Do not infer runtime or coverage approval.
+- Skill routing: using-superpowers establishes routing; systematic-debugging for technical access/conflict; using-git-worktrees for isolation; verification-before-completion for evidence. requesting-code-review/finishing-a-development-branch activate for any implementation/delivery. acquire-codebase-knowledge skipped: no repository mapping requested. UI, database, performance, scanning and generator skills inactive: no such implementation authorized in this packet.
+- Next concrete blocker: inspect exact probe branch `agent-claims/probe/claude-zealous-1791451004` against requested SHA `9b5d4e46189ca68401e1474d513593ce0840a2d1` and explicit cleanup requests6056854240/6057009857; only delete that unchanged probe, verify404/remote absence and preserve its original commit. Then refresh blockers/custody and select independent concrete blocker.
