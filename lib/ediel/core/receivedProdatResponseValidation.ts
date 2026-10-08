@@ -1,4 +1,5 @@
 import {isDeepStrictEqual} from 'node:util'
+import {hasReceivedZ05RejectedIdentityRejection} from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRejection'
 import {hasReceivedZ04RequiredStartRejection} from '@/lib/ediel/prodat/receivedZ04RequiredStartRejection'
 import {segmentComposite,tokenizeEdifact} from './edifactTokenizer'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
@@ -19,7 +20,7 @@ export type ReceivedProdatResponseValidation={version:1;sourcePayloadHash:string
  * This pure projection does not itself mint a same-invocation capability. */
 export function buildReceivedProdatResponseValidation(message:EdielMessageRow,decision:CanonicalRuntimeDecision):ReceivedProdatResponseValidation|null {
  if(message.message_family!=='PRODAT'||message.direction!=='inbound'||!message.raw_payload||decision.syntaxDecision!=='accepted'
-  ||decision.policy?.family!=='PRODAT'&&!hasReceivedZ04RequiredStartRejection(decision,message)||!decision.validationReport.rulePackEvidence)return null
+  ||decision.policy?.family!=='PRODAT'&&!hasReceivedZ04RequiredStartRejection(decision,message)&&!hasReceivedZ05RejectedIdentityRejection(decision,message)||!decision.validationReport.rulePackEvidence)return null
  try{
   const wire=tokenizeEdifact(message.raw_payload),groups=prodatRegisterGroups(wire.segments,wire.una).groups
   const registered=decision.prodatRegisterValidation
