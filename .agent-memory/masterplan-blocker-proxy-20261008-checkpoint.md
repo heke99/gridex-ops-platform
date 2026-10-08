@@ -315,3 +315,31 @@ but designated proxy's monitor cannot merge6060715988. Do not take that operatio
 Wait actual reviewed714 main delivery before publication/adoption triggers any
 new709 CI; all changed head/source/composition evidence must be fresh. No green709,
 repair/removal, main-runtime, whole-coverage, merge or release is claimed.
+
+## Reviewed prepared source and role-only release intent
+
+Prepared52dc93ed756455e50db40b0dccd3aea896c8d200/tree22ecc043135ebcfd729004642933e1d7920af9cf is preserved
+on NONPR branch codex/blocker-proxy-correction-20261008, exact remote ref/tree and
+both full protocol bytes MATCH. Original709 source da2 remains ancestor through
+normal merge dab9bd1e (parents da2+actualmain372). Only original two owned protocol
+paths and unique checkpoint differ; all9440 foreign main mode/type/OID tuples MATCH.
+Fixed roles, acceptance-only/final-single eligibility, selection READY/receiptREADY,
+shared-role+file custody, exact dependency/retained duty/release and historical
+request examples now match6060132069, delivered712 and reviewed715 requirements.
+Original GitData/proxy/security/negative assertions/no-expiry/exactSHA gates persist.
+Self-review, specification integrity33/121/231 and diff-check PASS. Two independent
+full-path SOURCE reviewers review_proxy_protocol/review_proxy_custody APPROVE
+exact52dc with no findings. Reports remain /tmp/gridex-blocker-intake/resume3/
+source-review-protocol.md and source-review-custody.md; source-only approvals,
+not GitHub distinct-user approval/current CI/main delivery. No new PR or CI/native/
+capture/GEN/log/archive job was started; push filters exclude this preservation branch.
+
+Role-only release intent: editing/review are frozen; GET exact2a7d95 receipt, DELETE
+and GET404 for own memory-role before waiting. Retain original74b4932 two file refs.
+PR709 remains OPEN frozen da2 with original clean/certificate FAILURE. Foreign714
+current named mandatory8 SUCCESS is not actual delivery: existing proxy's monitor
+execution forbids merge6060715988. Designated proxy needs a merge-authorized
+execution for its documented Claude request6060615751; this agent does not take it.
+After actual714 delivery, adopt real main into preserved52dc descendant, get fresh
+head/source2/applicableCI/composition2; normal guarded709 merge/actualmain/roleFIRST/
+file release/queue then pause automation. No borrowed green, coverage or acceptance.
