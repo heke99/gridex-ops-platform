@@ -352,3 +352,17 @@ No own roles/technical IDs or foreign resource released. Prepared source52dc
 remains preserved NONPR; original709 head unchanged. Waiting on actual714
 proxy delivery; no new packet or automatic expiry. Source/component verification
 above does not assert current-head709 CI_GREEN/main-runtime/whole acceptance.
+
+## Later main freshness, no delivery authorization
+
+Actualmain advanced to0531d3a5271a5a9b333e81c1b4fa31cd355c368a through actual713, four foreign H catalog/intake
+production/test paths. Actual-main AGENTS/README re-read; protocol/role requirements
+and coverage unchanged. Optional future715 work-queue path is absent from actual
+main and is not treated as delivered. Prepared52dc remains source-approved on
+its exact adopted372 base; do not relabel those reviews current-main delivery
+approvals. Fresh read-only normal merge-tree with main0531 yields4180a862f156d29c38ee9d594d51727cf39fa54a;
+all9443 foreign tuples exact actualmain and allthree own tuples exact52dc;
+diff-check PASS. This is a projection, not actual709/714 merge or new source
+publication/CI. Event still actual714 delivery; then actualnewmain/source reviews
+and allcurrenthead gates/composition2. Memory role remains actually released,
+file2 remain held; no new packet or unchanged board-status post.
