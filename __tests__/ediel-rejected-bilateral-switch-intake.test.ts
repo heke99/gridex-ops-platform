@@ -59,3 +59,57 @@ it('binds a recognizable rejected second258 source before its first INSERT witho
  expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission','ediel_record_inbound_reception_v1'])
  expect(db.writes('outbound_requests')).toEqual([])
 })
+
+it('keeps an existing rejected source immutable and returns before catalog reselection',async()=>{
+ const rawPayload=payload();db.state.existing=true;const before=structuredClone(db.state.original)
+ expect(await createInboundEdielMessage(input(rawPayload))).toBe('00000000-0000-4000-8000-000000000005')
+ expect(io.rpc.mock.calls.filter(c=>c[0]==='resolve_canonical_ediel_rule_pack_with_witness_v1')).toEqual([])
+ expect(db.writes('ediel_messages')).toEqual([]);expect(db.state.original).toEqual(before)
+ expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission','ediel_record_inbound_reception_v1'])
+})
+it('preserves the healthy positive bilateral selector and original source bytes',async()=>{
+ const rawPayload=guideOrderedFixtureRaw([line('1',point,'1','9'),...characteristic('Z13','Z25'),['RFF',['LI','OWN']],line('2',point,'2','9')],'Z04');setup(rawPayload)
+ expect(await createInboundEdielMessage(input(rawPayload))).toBe(newId)
+ expect(db.writes('ediel_messages')[0].payload).toMatchObject({raw_payload:rawPayload,rule_profile_key:key,processing_status:'manual_review'})
+ expect(io.rpc.mock.calls.filter(c=>c[0]==='resolve_canonical_ediel_rule_pack_with_witness_v1')).toHaveLength(1)
+})
+function patchMail(patch:Record<string,unknown>){
+ const originalFrom=io.from.getMockImplementation()!
+ io.from.mockImplementation((table:string)=>{
+  const q=originalFrom(table)
+  if(table==='inbound_email_messages'){
+   const original=q.maybeSingle
+   q.maybeSingle=async()=>{const result=await original();return {...result,data:result.data?{...result.data,...patch}:result.data}}
+  }
+  return q
+ })
+}
+it('uses the actual retained mailbox instant at the Stockholm calendar boundary before INSERT',async()=>{
+ patchMail({received_at:'2026-10-06T22:30:00.123Z'})
+ expect(await createInboundEdielMessage(input(payload()))).toBe(newId)
+ expect(io.rpc.mock.calls.find(c=>c[0]==='resolve_canonical_ediel_rule_pack_with_witness_v1')?.[1]).toMatchObject({p_business_date:'2026-10-07',p_transaction_subtype:'H'})
+ expect(db.writes('ediel_messages')[0].payload).toHaveProperty('message_received_at','2026-10-06T22:30:00.123Z')
+})
+it.each([{company_id:'foreign-company'},{environment:'production'},{received_at:null},{received_at:'invalid-clock'}])('refuses retained mailbox %j before catalog and source effects',async patch=>{
+ patchMail(patch)
+ await expect(createInboundEdielMessage(input(payload()))).rejects.toThrow('ediel_actual_inbound_receipt_clock_required')
+ expect(io.rpc.mock.calls.filter(c=>c[0]==='resolve_canonical_ediel_rule_pack_with_witness_v1')).toEqual([])
+ expect(db.writes('ediel_messages')).toEqual([])
+})
+it.each(['actor','permission','environment','parse'] as const)('preserves the existing %s guard before rejected catalog selection',async guard=>{
+ const request=input(payload())
+ if(guard==='actor')db.state.actorActive=false
+ if(guard==='permission')db.state.permission=false
+ if(guard==='environment')request.environment='foreign'
+ if(guard==='parse')request.parseResultId=''
+ const errors={actor:'ediel_tenant_actor_forbidden',permission:'ediel_tenant_permission_forbidden',environment:'ediel_inbound_duplicate_scope_required',parse:'ediel_real_reception_actor_and_parse_required'}
+ await expect(createInboundEdielMessage(request)).rejects.toThrow(errors[guard])
+ expect(io.rpc.mock.calls.filter(c=>c[0]==='resolve_canonical_ediel_rule_pack_with_witness_v1')).toEqual([])
+ expect(db.writes('ediel_messages')).toEqual([])
+})
+it('propagates dated catalog refusal before any source INSERT or reception observation',async()=>{
+ io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>name==='resolve_canonical_ediel_rule_pack_with_witness_v1'?{data:[],error:null}:db.rpc(name,args))
+ await expect(createInboundEdielMessage(input(payload()))).rejects.toThrow('canonical_rule_pack_evidence_count:0:PRODAT:Z04:H')
+ expect(db.writes('ediel_messages')).toEqual([]);expect(db.writes('ediel_message_events')).toEqual([])
+ expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission'])
+})
