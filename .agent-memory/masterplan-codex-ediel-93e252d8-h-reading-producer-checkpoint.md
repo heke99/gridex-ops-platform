@@ -1,3 +1,9 @@
+## 2026-10-08 — CLAIM role-merge / producer677 normal expectedEA delivery
+
+Agent93 same sole H03H04 packet88aa62fd. Own create-only merge-role receipt c2b8f6da7cb36c74135d9dff8fd9cacd066824cc operationUUID9ed6d2b5-60f0-4267-be18-c19d7fa4ecd9 currentmain983f14d5d71c29863a3d67a4467c1580bd319db0 exacttreecd784a1b93faa4a9bbddd5b2ee030d06ae0ac149 confirmedGET_MATCH; all10 technicalrefs individualGET_MATCH. No foreign lock takeover. CurrentEA ea0258d8b3356f50c17bd9fbee4552bb12abdf04 exact nine mandatorySUCCESS, source/currentmain reviewsROOT+2 nofindings, fresh3TSC0/main983 normalprojection67c; attributed currentmainSOURCE review https://github.com/heke99/gridex-ops-platform/pull/677#pullrequestreview-5451272859. ServerPRmergeable=true/unstable due supplementalC30FAIL; rulesets[] but protection403 unknown, not absenceproof/waiver. Oldserver4f30 belongsA7, not983execution. Normal expectedhead API merge must enforce server policy; noadmin/force/up-to-date bypass. WholeH/Ccoverage remainsNOT_EXECUTED, fullcleanREFUSED/certincomplete/native gaps retained.
+
+ROOT next: immediately refresh all10/main/source/nine/role; normal expectedEA merge only while frozenbindings current and serverpermits; reconcileactualPR/main, document actualMERGED SHA or exactBLOCKED and release own merge role before memory. No newpair.
+
 ## 2026-10-08 — CURRENT_MAIN983_SOURCE2_COMPLETE / unchanged current PR677 EA
 
 Same agent93/sole H03H04 packet88aa62fd and ten exact owned resources. Main983f14d5d71c29863a3d67a4467c1580bd319db0 normally merged into producer proof9693aff9d16c58809c9790e0e8d52588a2fd315c/tree222255b71d499a3812fa22242324fbdca19bea87; all9425 foreign MODE/type/OIDs and1307SQL1099migrations exactmain; four compiled owned components wholebyteexact published ea0258d8b3356f50c17bd9fbee4552bb12abdf04. Actual normal EA+983 projection67c55fcee8c26077900076dd4c451395b0b0c241 matches reviewed code map except own checkpoint. Proof branch only; PR source unchanged.
