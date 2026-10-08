@@ -5,8 +5,8 @@
   "branch": "codex/planagent-eligibility-c925695e",
   "checkpoint": ".agent-memory/masterplan-planagent-c925695e-checkpoint.json",
   "role": "PLANAGENT",
-  "status": "BLOCKED_SELECTION_HANDOFF_REQUEST",
-  "observedAt": "2026-10-08T13:44:37.039364+00:00",
+  "status": "BLOCKED_EXPLICIT_SC053_SC054_HANDOFF_REQUIRED",
+  "observedAt": "2026-10-08T14:43:01.473637+00:00",
   "main": "372d61847ae59290f1077a433d26fc3e144c4a1f",
   "worktree": "/workspace/gridex-planagent-c925695e",
   "taken": {
@@ -16,7 +16,7 @@
     ],
     "reservations": [],
     "inheritedPacket": null,
-    "identityEvidence": "New chat contains no original packet/session identifier; clean branch work at main. All 30 live receipt agents are foreign. Do not adopt global checkpoint or another Codex session as own."
+    "identityEvidence": "Same documented session codex-planagent-20261008T134311Z-c925695e resumed. Existing unique checkpoint only; current81refs/28receipt agents decoded and exact file/ID bindings verified, zero own refs. No technical packet has been claimed."
   },
   "done": [
     "Read active AGENTS/startup memory, reservation/workflow/role prompt, legacy register, exact current main and all remaining normative rows.",
@@ -65,7 +65,11 @@
     "Z13V/VH original owner actual release6059127086 replaces dated occupied label; explicit6059073204 prerequisites remain.",
     "Z03H/Z04H current receipt01f5d60d replaces dated released label; current713 source delivery belongs to41f.",
     "6060715988 monitor-only merge restriction belongs to that foreign execution; it is not a permission restriction for this user-authorized PLANAGENT session.",
-    "GEN699 dependency is criterion-specific. SC053/054 can become a separate packet after actual owner handoff; do not wait for699 merely as a blanket rule."
+    "GEN699 dependency is criterion-specific. SC053/054 can become a separate packet after actual owner handoff; do not wait for699 merely as a blanket rule.",
+    "6061952106 actual713/714/715 deliveries invalidate old pending-delivery labels; actual715 startup now qualifies old protocol wording without taking foreign709 file custody.",
+    "Current699 sourceb729172c replaces187d; verify113354362991 FAILURE, quality/upgrade SUCCESS, clean/certificate IN_PROGRESS at this observation. Old187d failures remain historical, never applied as currentb729 status.",
+    "TR08/DB05/AT counterparts/SC070 have retained executable software duties as well as criterion-specific provider/legal inputs. Original seven EXTERNAL_DECISION labels must not imply external-only tasks; OPS04 pair remains actual external agreed-trial input.",
+    "No general699/proxy stop for independent SC acceptance. Actual SC053/054 retained-duty handoff alone remains the present custody condition; use existing request rather than recreate broad inventory."
   ],
   "foreignCI": {
     "699": {
@@ -97,7 +101,7 @@
   },
   "next": {
     "owner": "codex-planagent-20261008T134311Z-c925695e",
-    "action": "Request explicit SC-053/SC-054 remaining whole-criterion and producer/source handoff from original P/U/SC source and billing/timer/native owners on673. If granted, refresh exact source/main/refs, assess original native fixtures, reserve both IDs and exact paths via GitData, verify receipt and publish CLAIM before tests or code. Otherwise resume on a criterion-specific delivery/release event recorded below; no repeated unchanged status posts.",
+    "action": "Reuse existing own handoff request6061265068; no duplicate request/new broad selection audit. Await actual original P/U/SC+billing/timer/native-owner scope/remaining-criteria transfer for SC053/054, or a genuinely independently executable released criterion. Fresh source/ref checks and own atomic ID/exact-path reservation + CLAIM precede any implementation. No new pair chosen or code authorized merely by6061952106.",
     "handoffRequired": [
       "SC053 actual profile-valid NULL vs own verified zero through source-bound storage and authorized metering/billing underlay/read paths, with reading/power separation.",
       "SC054 otherwise valid UTILTS plus genuine storage failure, actual positive APERAK job/send exclusion, recovery/retry and durable selected application-deadline monitor/caller/event dedup.",
@@ -141,12 +145,12 @@
     {
       "id": "TR-08",
       "coverage": "NOT_VERIFIED",
-      "classification": "EXTERNAL_DECISION",
+      "classification": "OCCUPIED",
       "owner": "Retained transport/provider TLS/SPF owner",
       "atomicReceipt": null,
-      "resumeEventKey": "external",
+      "resumeEventKey": "retained_owner",
       "criteriaSource": "Current frozen register row TR-08",
-      "custodySource": "datedInventory rows[id=TR-08] except freshnessCorrections/live refs"
+      "custodySource": "datedInventory rows[id=TR-08] except freshnessCorrections/live refs; corrected6061952106 distinguishes internal source correction from final provider/legal input"
     },
     {
       "id": "TR-09",
@@ -171,12 +175,12 @@
     {
       "id": "DB-05",
       "coverage": "NOT_VERIFIED",
-      "classification": "EXTERNAL_DECISION",
+      "classification": "OCCUPIED",
       "owner": "Retained legal data-lifecycle owner",
       "atomicReceipt": null,
-      "resumeEventKey": "external",
+      "resumeEventKey": "retained_owner",
       "criteriaSource": "Current frozen register row DB-05",
-      "custodySource": "datedInventory rows[id=DB-05] except freshnessCorrections/live refs"
+      "custodySource": "datedInventory rows[id=DB-05] except freshnessCorrections/live refs; corrected6061952106 distinguishes internal source correction from final provider/legal input"
     },
     {
       "id": "OPS-04",
@@ -301,12 +305,12 @@
     {
       "id": "SC-070",
       "coverage": "NOT_EXECUTED",
-      "classification": "EXTERNAL_DECISION",
+      "classification": "OCCUPIED",
       "owner": "Retained legal data-lifecycle owner",
       "atomicReceipt": null,
-      "resumeEventKey": "external",
+      "resumeEventKey": "retained_owner",
       "criteriaSource": "Current frozen register row SC-070",
-      "custodySource": "datedInventory rows[id=SC-070] except freshnessCorrections/live refs"
+      "custodySource": "datedInventory rows[id=SC-070] except freshnessCorrections/live refs; corrected6061952106 distinguishes internal source correction from final provider/legal input"
     },
     {
       "id": "SC-071",
@@ -331,12 +335,12 @@
     {
       "id": "AT-TR-08",
       "coverage": "NOT_EXECUTED",
-      "classification": "EXTERNAL_DECISION",
+      "classification": "OCCUPIED",
       "owner": "Retained transport/provider TLS/SPF owner",
       "atomicReceipt": null,
-      "resumeEventKey": "external",
+      "resumeEventKey": "retained_owner",
       "criteriaSource": "Current frozen register row AT-TR-08",
-      "custodySource": "datedInventory rows[id=AT-TR-08] except freshnessCorrections/live refs"
+      "custodySource": "datedInventory rows[id=AT-TR-08] except freshnessCorrections/live refs; corrected6061952106 distinguishes internal source correction from final provider/legal input"
     },
     {
       "id": "AT-TR-09",
@@ -361,12 +365,12 @@
     {
       "id": "AT-DB-05",
       "coverage": "NOT_EXECUTED",
-      "classification": "EXTERNAL_DECISION",
+      "classification": "OCCUPIED",
       "owner": "Retained legal data-lifecycle owner",
       "atomicReceipt": null,
-      "resumeEventKey": "external",
+      "resumeEventKey": "retained_owner",
       "criteriaSource": "Current frozen register row AT-DB-05",
-      "custodySource": "datedInventory rows[id=AT-DB-05] except freshnessCorrections/live refs"
+      "custodySource": "datedInventory rows[id=AT-DB-05] except freshnessCorrections/live refs; corrected6061952106 distinguishes internal source correction from final provider/legal input"
     },
     {
       "id": "AT-OPS-04",
@@ -661,21 +665,236 @@
     "external": "The original named transport/provider, legal retention/lifecycle or incident/counterparty owner supplies decided authorized inputs AND transfers retained software criteria when needed. Software work is not a new market-activation gate."
   },
   "lastObservation": {
-    "at": "2026-10-08T13:46:55.065311+00:00",
-    "main": "0531d3a5271a5a9b333e81c1b4fa31cd355c368a",
-    "deltaFromSelectionBase": [
-      "__tests__/ediel-rejected-bilateral-switch-birth-profile.test.ts",
-      "__tests__/ediel-rejected-bilateral-switch-intake.test.ts",
-      "lib/inbound-mail/inboundStatusUpdater.ts",
-      "lib/inbound-mail/rejectedBilateralSwitchBirthProfile.ts"
+    "at": "2026-10-08T14:43:01.473637+00:00",
+    "main": "6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9",
+    "tree": "f48c29203565565c217bba419ff56d3fbba3ebbd",
+    "correction": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061952106",
+    "existingHandoffRequest": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061265068",
+    "boardThrough": {
+      "id": 6062309394,
+      "createdAt": "2026-10-08T14:39:34Z",
+      "commentCount": 1117
+    },
+    "waitingCondition": {
+      "condition": "Actual named-original-owner SC053/054 remaining-duty/source/producer handoff",
+      "fulfilled": false,
+      "evidence": "Entire fresh board since6061265068 has no SC053/054 grant;6061952106 expressly says SC047/071/053/054 retain existing owner questions until actual handoff. Absent SC053/054 tags are not transfer."
+    },
+    "actualEvents": [
+      {
+        "pr": 713,
+        "main": "0531d3a5271a5a9b333e81c1b4fa31cd355c368a",
+        "receipt": 6061331442,
+        "release": 6061363361,
+        "scope": "H first-reception component; sameH responsibility retained by41f"
+      },
+      {
+        "pr": 714,
+        "main": "0509defba33a0a5eee10cd60fd4574fda4a97268",
+        "receipt": 6061309591,
+        "release": 6061322756,
+        "scope": "B2 source delivered; replacement file reservation for716 remains foreign"
+      },
+      {
+        "pr": 715,
+        "main": "6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9",
+        "receipt": 6061762233,
+        "release": 6061771317,
+        "scope": "Startup/selection documentation delivered; no new implementation transfer"
+      }
     ],
-    "delivery": "PR713 H first-reception component delivered; SC sources/registers/coverage/custody and criterion-specific dependencies unchanged. H IDs remain foreign-owned, no whole acceptance inferred.",
-    "refsCount": 97,
-    "ownRefs": [],
-    "handoffReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061265068",
-    "handoffReadback": "FULL_BODY_MATCH",
-    "handoffResponse": "Not received as of latest fetched board through6061265068",
-    "otherNewPlanagent": "6061192964 SC047/SC071 request is a distinct session, not inherited identity or assigned scope.",
-    "next": "Wait for actual explicit SC053/SC054 handoff or relevant source release/delivery, then fresh GitData reservation and CLAIM. No unchanged polling receipts."
-  }
+    "refs": {
+      "count": 81,
+      "distinctReceipts": 28,
+      "resourceScopeBindings": "ALL_MATCH",
+      "ownResources": [],
+      "SC053_SC054_ID_tags": "ABSENT_WITH_RETAINED_WHOLE_DUTY",
+      "collectionSha256": "e30cf471ad717f6473947ba6b1012d21c328a882663d77ce6e27e61d4e5b6f74"
+    },
+    "currentSourceComparison": {
+      "from": "0531d3a5271a5a9b333e81c1b4fa31cd355c368a",
+      "to": "6b87c1a9d2b4fb8e4a6fe221411b3e9a3bd781f9",
+      "coverageRegistersLegacySCReviewAndAckMonitor": "BYTE_IDENTICAL",
+      "meaning": "Reuse custody/remaining-criteria pointers only. No fresh product-defect/behaviour/native result or whole acceptance."
+    },
+    "done": "Read actual new main active instructions/queue/protocol and correction; normal nonconflicting carry of delivered main into own NONPR checkpoint branch. Current foreign699/716/717 check metadata fetched only; no logs/artifacts/native/review duplication.",
+    "blockedOwner": "Original P/U/SC custodian session_01RxmpLE5UfwVEetssVwdAWs (5305990498953), relevant retained billing/timer/native source owners named5992136188; request6061265068 remains ungranted.",
+    "next": "Reuse existing own handoff request6061265068; no duplicate request/new broad selection audit. Await actual original P/U/SC+billing/timer/native-owner scope/remaining-criteria transfer for SC053/054, or a genuinely independently executable released criterion. Fresh source/ref checks and own atomic ID/exact-path reservation + CLAIM precede any implementation. No new pair chosen or code authorized merely by6061952106."
+  },
+  "resumptionHistory": [
+    {
+      "at": "2026-10-08T13:46:55.065311+00:00",
+      "main": "0531d3a5271a5a9b333e81c1b4fa31cd355c368a",
+      "status": "BLOCKED_SELECTION_HANDOFF_REQUEST",
+      "observation": {
+        "at": "2026-10-08T13:46:55.065311+00:00",
+        "main": "0531d3a5271a5a9b333e81c1b4fa31cd355c368a",
+        "deltaFromSelectionBase": [
+          "__tests__/ediel-rejected-bilateral-switch-birth-profile.test.ts",
+          "__tests__/ediel-rejected-bilateral-switch-intake.test.ts",
+          "lib/inbound-mail/inboundStatusUpdater.ts",
+          "lib/inbound-mail/rejectedBilateralSwitchBirthProfile.ts"
+        ],
+        "delivery": "PR713 H first-reception component delivered; SC sources/registers/coverage/custody and criterion-specific dependencies unchanged. H IDs remain foreign-owned, no whole acceptance inferred.",
+        "refsCount": 97,
+        "ownRefs": [],
+        "handoffReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061265068",
+        "handoffReadback": "FULL_BODY_MATCH",
+        "handoffResponse": "Not received as of latest fetched board through6061265068",
+        "otherNewPlanagent": "6061192964 SC047/SC071 request is a distinct session, not inherited identity or assigned scope.",
+        "next": "Wait for actual explicit SC053/SC054 handoff or relevant source release/delivery, then fresh GitData reservation and CLAIM. No unchanged polling receipts."
+      },
+      "next": {
+        "owner": "codex-planagent-20261008T134311Z-c925695e",
+        "action": "Reuse existing own handoff request6061265068; no duplicate request/new broad selection audit. Await actual original P/U/SC+billing/timer/native-owner scope/remaining-criteria transfer for SC053/054, or a genuinely independently executable released criterion. Fresh source/ref checks and own atomic ID/exact-path reservation + CLAIM precede any implementation. No new pair chosen or code authorized merely by6061952106.",
+        "handoffRequired": [
+          "SC053 actual profile-valid NULL vs own verified zero through source-bound storage and authorized metering/billing underlay/read paths, with reading/power separation.",
+          "SC054 otherwise valid UTILTS plus genuine storage failure, actual positive APERAK job/send exclusion, recovery/retry and durable selected application-deadline monitor/caller/event dedup.",
+          "Name original branch/fixture/source pins, exact transferable paths and retained dependent owners; no silent new harness, shared scheduler or GEN takeover."
+        ]
+      },
+      "foreignCI": {
+        "699": {
+          "head": "187d0664c31861863757a160905565928793c5db",
+          "clean": {
+            "id": 113289103618,
+            "conclusion": "failure"
+          },
+          "certificate": {
+            "id": 113291236501,
+            "conclusion": "failure"
+          },
+          "meaning": "API metadata only; no foreign log/artifact/native recollection."
+        },
+        "710": {
+          "head": "06a5287cc58981353364a4fb2bb90fb76d0fe0c0",
+          "p08Native": {
+            "id": 113262536459,
+            "conclusion": "failure"
+          },
+          "owner": "claude-ediel-20261008-bardeen"
+        },
+        "715": {
+          "head": "4f035b2c5c0281a0c06ba8a87d16f1a9c79ca327",
+          "clean": "in_progress",
+          "certificate": "in_progress",
+          "owner": "codex-root-startup-recovery-20261008"
+        }
+      }
+    }
+  ],
+  "currentForeignCI": {
+    "699": {
+      "head": "b729172c9145c6b5e6acd9f8d7d0eee917e46cdb",
+      "state": "open",
+      "mergedAt": null,
+      "checks": [
+        {
+          "name": "pr-certificate",
+          "id": 113360636053,
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "clean-migration-replay",
+          "id": 113354363368,
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "upgrade-migration-replay",
+          "id": 113354363351,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-release-gates",
+          "id": 113354363030,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "verify",
+          "id": 113354362991,
+          "status": "completed",
+          "conclusion": "failure"
+        }
+      ]
+    },
+    "716": {
+      "head": "bbf038f209a6080c74cb62c396d97bd9a6bdede6",
+      "state": "open",
+      "mergedAt": null,
+      "checks": [
+        {
+          "name": "pr-certificate",
+          "id": 113349701161,
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "upgrade-migration-replay",
+          "id": 113345205749,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "verify",
+          "id": 113345205741,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "clean-migration-replay",
+          "id": 113345205626,
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "quality-release-gates",
+          "id": 113345205195,
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "717": {
+      "head": "78d209e41fc3d27c0ac71ab0639f7ff12e17beb3",
+      "state": "open",
+      "mergedAt": null,
+      "checks": [
+        {
+          "name": "pr-certificate",
+          "id": 113354524596,
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "verify",
+          "id": 113350036126,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "clean-migration-replay",
+          "id": 113350035832,
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "upgrade-migration-replay",
+          "id": 113350035746,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "quality-release-gates",
+          "id": 113350035314,
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  },
+  "candidateRowsAuthority": "Previously assessed52-ID selection pointers, not a new broad audit. Current correction updates only relevant custody/dependency labels; fresh source hashes unchanged. Selection is presently bounded to existing SC053/054 handoff request."
 }
