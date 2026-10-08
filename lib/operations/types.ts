@@ -169,6 +169,8 @@ export type SupplierSwitchRequestRow = {
   readiness_snapshot?: Record<string, unknown> | null;
   readiness_checked_at?: string | null;
   request_type: SupplierSwitchRequestType;
+  prodat_variant?: string | null;
+  prodat_reason?: string | null;
   status: SupplierSwitchRequestStatus;
   requested_start_date: string | null;
   current_supplier_id?: string | null;
