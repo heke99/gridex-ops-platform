@@ -96,3 +96,32 @@ Next action, this PLANAGENT: finish independent checkpoint review, publish
 the immutable handover and BLOCKED receipt on #673, then refresh actual
 main/custody/dependencies before selecting at most two independently eligible
 IDs. No implementation starts before verified reservation and CLAIM.
+
+## Subsequent review and custody refresh
+
+Independent reviewer `independent_checkpoint_review` APPROVE at exact head
+`70ca2b31935e9eadd279a3fe22e4a4958c823dda` against main74bcd6d1, with no
+material findings. It independently fetched #5305987293997, checked B/D's
+explicit exclusion, and read both the full H15-failure handover and actual
+H release. Self verification at that head: sole unique checkpoint path,
+coverage115+185 and byte-identical frozen registers/shared protocol, diff0.
+
+New #6736057179928 documents H03/H04 all12 actual owner-only releases after
+09:45:22Z. Fresh API confirms both H IDs absent; Z02L/LK and Z13V/VH remain
+occupied and role-memory remains a7912b34. Main remains74bcd6d1. Read the
+complete #6736057135638 handover: malformed national/source-response and
+historical-guide/register/field gates require rightful source/CORE/GEN owner2f;
+SENT/secondACK/replay requires lawful owned request/ACK tuple and projection
+with ACK/kernel owner41f. This establishes available H custody, not delivery
+of those prerequisites or a new independent implementation here.
+
+Protocol owner has published PR709 exact `da2ce7f43918114bd4a2698c3a4e50d9b865d61b`
+(#6736057170293), current CI pending at that observation. Its implementation
+and review are foreign; no duplicated protocol patch or access probe.
+
+Status remains BLOCKED_UNRESERVED, no packet taken and no resources to release.
+The immutable final checkpoint and exact-head review receipt will be published
+on #673. This is an admission/blocker handover, not a separate plan package or
+main delivery. Resume only after a real changed premise: explicit custody
+handover or qualified necessary source/runtime/parity delivery. Refresh actual
+main, frozen criteria, dependency heads and every exact resource before CLAIM.
