@@ -41,7 +41,14 @@ vi.mock('@/lib/supabase/service', () => ({
                 error: null,
                 count: 1,
               }
-            : { data: null, error: null, count: 1 }
+            : table === 'supplier_switch_requests'
+              ? { data: {
+                  id: 'switch-1', company_id: 'company-1', customer_id: 'customer-1',
+                  site_id: 'site-1', metering_point_id: 'mp-1', status: 'scheduled',
+                  request_type: 'switch', prodat_variant: 'L', prodat_reason: 'Z22',
+                  requested_start_date: '2026-06-15',
+                }, error: null, count: 1 }
+              : { data: null, error: null, count: 1 }
       const builder = {
         select: () => builder,
         eq: () => builder,
