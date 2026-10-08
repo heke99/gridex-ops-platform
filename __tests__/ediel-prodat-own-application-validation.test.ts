@@ -16,7 +16,7 @@ import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/pr
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
-import {ownerSource} from './helpers/sourceOwnerFixtures'
+import {ownerSourceWithInstallationStatus as ownerSource} from './helpers/sourceOwnerFixtures'
 import {raw,line,input} from './fixtures/prodat-register'
 import {head} from './fixtures/prodat-identity'
 
@@ -60,7 +60,7 @@ describe('complete same-invocation PRODAT application scope',()=>{
 // Only registry IO is synthetic. Actual syntax, full field owner and immutable
 // source handoff run together; this is not a native original/registry proof.
 it('actual full canonical owner marks its application facet and refuses copied authority',async()=>{
-  const message=ownerSource(),decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+  const message=ownerSource('Z12'),decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
   const facet=readReceivedCanonicalProdatApplicationObjects(decision,message)
   expect(facet?.objects.map(o=>o.applicationDecision)).toEqual(['accepted'])
   const evidence=buildReceivedSourceValidationEvidence({original:message,validated:message,resolvedCompanyId:message.company_id,decision})
@@ -72,7 +72,7 @@ it('actual full canonical owner marks its application facet and refuses copied a
 })
 
 it('actual complete invocation accepts the good object while rejecting a sibling missing its own quantity',async()=>{
-  const message=ownerSource(),wire=tokenizeEdifact(message.raw_payload!),first=wire.segments.findIndex(t=>t.tag==='LIN'),end=wire.segments.findIndex(t=>t.tag==='UNT')
+  const message=ownerSource('Z12'),wire=tokenizeEdifact(message.raw_payload!),first=wire.segments.findIndex(t=>t.tag==='LIN'),end=wire.segments.findIndex(t=>t.tag==='UNT')
   const body=wire.segments.slice(first,end).map(t=>t.raw),second=body.map(segment=>segment.replace('LIN+1+','LIN+2+').replaceAll('735123456789012345','735123456789012346').replaceAll('CASE-1','CASE-2'))
   const all=[...wire.segments.slice(0,first).map(t=>t.raw),...body.filter(segment=>!segment.startsWith('QTY+31')), ...second]
   const unh=all.findIndex(segment=>segment.startsWith('UNH+')),rawPayload="UNA:+.? '"+all.join("'")+"'UNT+"+(all.length-unh+1)+"+M'UNZ+1+I'"
@@ -96,7 +96,7 @@ it('qualified death context enters the same full field invocation; copies and se
   expect(resolveCanonicalRuntimeDecision({...message,parsed_payload:{deathStatusContext:context,deathStatus:context.selection}}).policy?.prodatDependentFacts?.deathStatus).toBeUndefined()
 })
 it('syntax rejection runs before any supplied death context access',()=>{
-  const message={...ownerSource(),raw_payload:ownerSource().raw_payload!.replace(/UNT\+[0-9]+/, 'UNT+999')}
+  const message={...ownerSource('Z12'),raw_payload:ownerSource('Z12').raw_payload!.replace(/UNT\+[0-9]+/, 'UNT+999')}
   const facts={get deathStatusContext():never{throw Error('must not read context before syntax')}}
   expect(resolveCanonicalRuntimeDecision(message,facts).syntaxDecision).toBe('rejected')
 })

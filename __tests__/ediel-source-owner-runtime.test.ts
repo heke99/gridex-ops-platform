@@ -1,5 +1,5 @@
 import {beforeEach,expect,it,vi} from 'vitest'
-import {OWNER,ownerId,ownerRows,ownerSource} from './helpers/sourceOwnerFixtures'
+import {OWNER,ownerId,ownerRows,ownerSourceWithInstallationStatus as ownerSource} from './helpers/sourceOwnerFixtures'
 const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false}))
 vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)}))
 vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
@@ -14,7 +14,7 @@ import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receive
 import {timelineAssessment,timelineBody,timelineReceipt,timelineSource,timelineScope} from './helpers/sourceDecisionTimelineFixtures'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 
-const record=async(row=ownerSource())=>{
+const record=async(row=ownerSource('Z12'))=>{
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(row)
  const receipt=await recordReceivedSourceValidation({original:row,validated:row,resolvedCompanyId:OWNER.company,decision})
  return {row,decision,receipt,session:createReceivedSourceOwnerSession(receipt)}

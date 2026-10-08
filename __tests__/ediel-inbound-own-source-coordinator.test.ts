@@ -71,7 +71,7 @@ import {deathSelection} from './fixtures/prodat-death-status'
 import {raw,line,characteristic,common} from './fixtures/prodat-register'
 import {head,source} from './fixtures/prodat-identity'
 import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
-import {ownerSource} from './helpers/sourceOwnerFixtures'
+import {ownerSourceWithInstallationStatus as ownerSource} from './helpers/sourceOwnerFixtures'
 import type {SourceObjectScope} from '@/lib/ediel/sources/sourceOwnerWire'
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,company=id(2),actor=id(50),pointA='735123456789012345',pointB='735123456789012346'
 function registryEvidence(){
@@ -163,12 +163,12 @@ function receivedDomain(wire:string,code:string){
  const message={...source(wire,code),company_id:company,status:'received',application_reference:code==='Z14'?'23-DGI-PRODAT':'23-DDQ-PRODAT',
   // Declared receiver-local readings facts match the independent good supply
   // fixture. They are not an authentic source or native business approval.
-  parsed_payload:code==='Z04'?ownerSource().parsed_payload:{}} as EdielMessageRow
+  parsed_payload:code==='Z04'?ownerSource('Z12').parsed_payload:{}} as EdielMessageRow
  message.execution_context_snapshot={receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:message.id,companyId:company,environment:'test',messageCode:code,payloadHash:evidenceHash(wire),sourceReceivedAt:message.message_received_at,capturedAt:message.message_received_at}}
  return message
 }
 function supplyMessage(){
- const first=tokenizeEdifact(ownerSource().raw_payload!),start=first.segments.findIndex(token=>token.tag==='LIN'),end=first.segments.findIndex(token=>token.tag==='UNT')
+ const first=tokenizeEdifact(ownerSource('Z12').raw_payload!),start=first.segments.findIndex(token=>token.tag==='LIN'),end=first.segments.findIndex(token=>token.tag==='UNT')
  const own=first.segments.slice(start,end).map(token=>token.raw)
  const sibling=own.filter(segment=>!segment.startsWith('QTY+31')).map(segment=>segment.replace('LIN+1+','LIN+2+').replaceAll(pointA,pointB).replaceAll('CASE-1','CASE-2'))
  const all=[...first.segments.slice(0,start).map(token=>token.raw),...own,...sibling],unh=all.findIndex(segment=>segment.startsWith('UNH+'))

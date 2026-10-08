@@ -17,7 +17,7 @@ import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {raw,line,input,characteristic,type Parts} from './fixtures/prodat-register'
 import {head,source} from './fixtures/prodat-identity'
-import {ownerSource} from './helpers/sourceOwnerFixtures'
+import {ownerSourceWithInstallationStatus as ownerSource} from './helpers/sourceOwnerFixtures'
 import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 
 function fixture(body:Parts[],code='Z04'){
@@ -95,7 +95,7 @@ describe('same-plan P response projection, without source approval',()=>{
 // guidance, canonical responsePlan and actual own renderer run together.
 describe('actual canonical invocation owns the prospective response facet',()=>{
  it('records only the original same-invocation plan and rejects cloned/mutated authority',async()=>{
-  const message=ownerSource(),decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+  const message=ownerSource('Z12'),decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
   const facet=readReceivedCanonicalProdatResponseValidation(decision,message)
   expect(facet?.responses).toEqual([expect.objectContaining({scope:'object',ercCode:'100',li:'CASE-1',id:'735123456789012345'})])
@@ -171,8 +171,8 @@ describe('positive response cannot borrow held own application authority',()=>{
   const wire=raw(body,'Z10').replace('+S+R+','+12345:14+54321:14+'),original=source(wire,'Z10')
   // Declared synthetic birth/registry IO, constructed before canonical
   // invocation. No receiver readings or accepted-business facts are supplied.
-  const message={...original,company_id:ownerSource().company_id,execution_context_snapshot:{receivedProdatContext:{
-   version:1,contextOrigin:'database_insert',sourceMessageId:original.id,companyId:ownerSource().company_id,
+  const message={...original,company_id:ownerSource('Z12').company_id,execution_context_snapshot:{receivedProdatContext:{
+   version:1,contextOrigin:'database_insert',sourceMessageId:original.id,companyId:ownerSource('Z12').company_id,
    environment:'test',messageCode:'Z10',payloadHash:evidenceHash(wire),sourceReceivedAt:original.message_received_at,capturedAt:original.message_received_at}}}
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
@@ -188,7 +188,7 @@ describe('positive response cannot borrow held own application authority',()=>{
   expect(evidence?.prodatApplicationValidation?.headerDecision).toBe('held')
  })
  it('keeps actual accepted protocol decisions and local warnings separate from held own evidence',async()=>{
-  const message=ownerSource()
+  const message=ownerSource('Z12')
   // Remove only the explicitly synthetic receiver-local fixture fact BEFORE
   // invocation. Actual complete canonical field and response owners run.
   message.parsed_payload={subtype:'L',start_date:'2026-10-01'}

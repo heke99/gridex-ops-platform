@@ -23,7 +23,7 @@ vi.mock('@/lib/customers/canonicalOnboarding',async importOriginal=>({...await i
 vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:boundary.event,linkEdielMessage:boundary.link,getEdielMessageById:boundary.read}))
 const raw=(body:readonly Parts[],code='Z04')=>{
  const enhanced:Parts[]=[]
- for(let i=0;i<body.length;i++){const p=body[i];enhanced.push(p);if(p[0]==='CAV'&&body[i-1]?.[0]==='CCI'&&body[i-1]?.[2]==='Z04')enhanced.push(...characteristic('Z07','E22'),...characteristic('Z12','W',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']]);if(p[0]==='NAD'&&p[1]==='UD'){const id=(p[2] as readonly string[])[0].replace('CUSTOMER-','');enhanced.push(['NAD','IT',[id,'','89'],'','','Street','City','','12345','SE'],['NAD','Z02',['11111','160','SVK']])}}
+ for(let i=0;i<body.length;i++){const p=body[i];enhanced.push(p);if(p[0]==='CAV'&&body[i-1]?.[0]==='CCI'&&body[i-1]?.[2]==='Z04')enhanced.push(...characteristic('Z07','Z12'),...characteristic('Z12','W',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']]);if(p[0]==='NAD'&&p[1]==='UD'){const id=(p[2] as readonly string[])[0].replace('CUSTOMER-','');enhanced.push(['NAD','IT',[id,'','89'],'','','Street','City','','12345','SE'],['NAD','Z02',['11111','160','SVK']])}}
  return guideOrderedFixtureRaw([...head(),...enhanced],code).replace('+S+R+','+12345:14+54321:14+')
 }
 type Decision={meteringPointId:string;identityAgency:string;mode:'create_new_customer'|'update_existing_customer'|'link_existing_only';selectedCustomerId?:string;selectedSiteId?:string;selectedMeteringPointId?:string}

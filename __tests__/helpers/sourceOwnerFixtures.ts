@@ -22,9 +22,19 @@ export function ownerRulePack() {
 }
 /** Fixed synthetic wire. The real canonical engine must accept it, not a stub
  * of its output. Receiver-local reading facts are explicit fixture input. */
-export function ownerSource(options?:{readingDeclarations:true;environment?:'test'|'production';sourceCodes?:{
+type OwnerSourceOptions = {readingDeclarations:true;environment?:'test'|'production';sourceCodes?:{
   installationStatus:'Z11'|'Z12';settlementMethod:'Z31'|'Z32'
-}}):EdielMessageRow {
+}}
+export function ownerSource(options?:OwnerSourceOptions):EdielMessageRow {
+  return constructOwnerSource(options)
+}
+/** Explicit fixture choice made before wire construction and birth hashing.
+ * The original ownerSource defaults remain unchanged. */
+export function ownerSourceWithInstallationStatus(installationStatus:'Z11'|'Z12',options?:OwnerSourceOptions):EdielMessageRow {
+  if(installationStatus!=='Z11'&&installationStatus!=='Z12')throw new RangeError('installationStatus requires Z11 or Z12')
+  return constructOwnerSource(options,installationStatus)
+}
+function constructOwnerSource(options?:OwnerSourceOptions,installationStatus?:'Z11'|'Z12'):EdielMessageRow {
   const own=common('1','Synthetic')
   // Explicit synthetic physical inputs only; no private READ or UTILTS receipt.
   // Keep the original no-argument wire and its UNKNOWN readings unchanged.
@@ -41,7 +51,7 @@ export function ownerSource(options?:{readingDeclarations:true;environment?:'tes
   // Original D97A group8: own dates, quantity, characteristics, references, parties.
   let wire=raw([...head(),line('1',OWNER.external,undefined,'9'),...own.filter(p=>p[0]==='DTM'),qty('1000'),
     ...own.filter(p=>p[0]==='CCI'||p[0]==='CAV'),
-    ...characteristic('Z07',sourceCodes?.installationStatus??'E22'),...characteristic('Z12','D',3),...characteristic('Z15',sourceCodes?.settlementMethod??'D'),
+    ...characteristic('Z07',sourceCodes?.installationStatus??installationStatus??'E22'),...characteristic('Z12','D',3),...characteristic('Z15',sourceCodes?.settlementMethod??'D'),
     ['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],
     ...readings,
     ...own.filter(p=>p[0]==='RFF'),...own.filter(p=>p[0]==='NAD'),

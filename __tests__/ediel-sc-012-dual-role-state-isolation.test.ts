@@ -78,7 +78,7 @@ import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { permissionAckMessage, permissionAckObject } from './fixtures/prodat-permission-ack'
-import { OWNER, ownerId, ownerRows, ownerRulePack, ownerSource } from './helpers/sourceOwnerFixtures'
+import { OWNER, ownerId, ownerRows, ownerRulePack, ownerSourceWithInstallationStatus as ownerSource } from './helpers/sourceOwnerFixtures'
 import { PRODAT_FIXTURE_COMPANY, prodatFixtureSourceRpc, withProdatFixtureInsertContext } from './helpers/prodatInboundSourceFixture'
 
 const company = PRODAT_FIXTURE_COMPANY, actor = ownerId(2), foreignCompany = ownerId(200)
@@ -107,7 +107,7 @@ async function refreshBusiness() {
 
 function wire(code: 'Z13' | 'Z14' | 'Z03' | 'Z04', id: string): EdielMessageRow {
   const permission = code === 'Z13' || code === 'Z14', outbound = code === 'Z13' || code === 'Z03'
-  const base = permission ? permissionAckMessage(code, 'S17', code === 'Z14' ? 'A74' : null, null, undefined, permissionAckObject(code, 'S17', code === 'Z14' ? 'A74' : null, null, '1', 'SC012-DGI')) : ownerSource()
+  const base = permission ? permissionAckMessage(code, 'S17', code === 'Z14' ? 'A74' : null, null, undefined, permissionAckObject(code, 'S17', code === 'Z14' ? 'A74' : null, null, '1', 'SC012-DGI')) : ownerSource('Z12')
   const body = tokenizeEdifact(base.raw_payload!).segments.filter(segment => !['UNA', 'UNB', 'UNH', 'UNT', 'UNZ'].includes(segment.tag)).map(segment => {
     let raw = segment.raw
     if (!permission) raw = raw.replace('BGM+Z04', `BGM+${code}`).replace('RFF+LI:CASE-1', 'RFF+LI:SC012-DDQ').replace('NAD+UD+CUSTOMER-1', 'NAD+UD+001')

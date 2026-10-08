@@ -26,7 +26,7 @@ function message(body: Parts[], code: 'Z06'|'Z09', environment: 'test'|'producti
   // Real, independently required previous register/D data: tests may not pass
   // by failing an earlier unrelated guard instead of the new UD requirement.
   const wireBody = body.flatMap((part): Parts[] => part[0] === 'LIN' ? [part,
-    ...(code === 'Z06' ? [qty('1'), ['DTM',['354','15','806']],...characteristic('Z04','Z04'),...characteristic('Z07','E22'),
+    ...(code === 'Z06' ? [qty('1'), ['DTM',['354','15','806']],...characteristic('Z04','Z04'),...characteristic('Z07','Z12'),
       ...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3)] as Parts[] : [['DTM',['157','202610010000','203']]] as Parts[])] : [part])
   const payload = raw(wireBody,code,alphabet), wire = input(payload,code)
   const registerEvidence = createProdatRegisterEvidence({code,rawSegments:wire.rawSegments,una:wire.una,facts:{market:'electricity',endUserAddressObjects:[udAddressFact()],invoiceeObjects:[udInvoiceeFact()],

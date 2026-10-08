@@ -1,7 +1,7 @@
 import {tokenizeEdifact,segmentComposite,segmentElementCount} from '@/lib/ediel/core/edifactTokenizer'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-import {OWNER,ownerRows,ownerSource,ownerId} from './helpers/sourceOwnerFixtures'
+import {OWNER,ownerRows,ownerSourceWithInstallationStatus as ownerSource,ownerId} from './helpers/sourceOwnerFixtures'
 const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false,
   message:{} as EdielMessageRow,drafts:[] as Record<string,unknown>[],events:[] as Record<string,unknown>[],correlated:true,nativeUnavailable:false,interchangeNo:0}))
 vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)}))
@@ -26,7 +26,7 @@ vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCus
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 vi.mock('@/lib/operations/db',()=>({createSupplierSwitchEvent:async()=>null}))
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
-const reset=()=>{io.rows=ownerRows();io.calls=[];io.message=ownerSource();io.drafts=[];io.events=[];io.badReceipt='';io.badCount=false;io.failTable='';io.hideSupply=false;io.correlated=true;io.nativeUnavailable=false;io.interchangeNo=0}
+const reset=()=>{io.rows=ownerRows();io.calls=[];io.message=ownerSource('Z12');io.drafts=[];io.events=[];io.badReceipt='';io.badCount=false;io.failTable='';io.hideSupply=false;io.correlated=true;io.nativeUnavailable=false;io.interchangeNo=0}
 const run=()=>processInboundEdielMessage({actorUserId:ownerId(50),edielMessageId:OWNER.source})
 const facts=()=>JSON.parse(String(io.calls.find(c=>c.name==='gridex_record_source_object_decisions_v1')?.args.p_facts_text??'null'))
 beforeEach(()=>{reset();vi.useFakeTimers({toFake:['Date']});vi.setSystemTime(new Date('2026-09-22T18:00:00Z'));vi.spyOn(Math,'random').mockReturnValue(0.123456)})

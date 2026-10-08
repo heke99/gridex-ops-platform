@@ -121,7 +121,7 @@ import { assertCompanyCanSendProductionEdiel } from '@/lib/ediel/productionReadi
 import { getScopedEdielProductionReadiness, recordScopedEdielProductionEvidence } from '@/lib/ediel/scopedCapabilityReadiness'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
-import { OWNER, ownerId, ownerSource, ownerRows, ownerRulePack } from './helpers/sourceOwnerFixtures'
+import { OWNER, ownerId, ownerSourceWithInstallationStatus as ownerSource, ownerRows, ownerRulePack } from './helpers/sourceOwnerFixtures'
 
 const digest = (value: string) => createHash('sha256').update(value, 'utf8').digest('hex')
 const company = OWNER.company, actor = ownerId(50), ruleHash = 'a'.repeat(64), release = 'f'.repeat(40)
@@ -233,7 +233,7 @@ beforeEach(async () => {
   port.tables = { ...rows }
   for (const table of ['tenant_ediel_profiles', 'tenant_actor_identifiers', 'tenant_actor_roles']) port.tables[table] = [...rows[table].map(row => ({ ...row, environment: 'production' }))]
   port.tables.tenant_actor_roles.push({ ...port.tables.tenant_actor_roles[0], id: ownerId(163), role_code: 'energy_service_company' })
-  port.source = { ...ownerSource(), environment: 'production', test_flag: 0 }
+  port.source = { ...ownerSource('Z12'), environment: 'production', test_flag: 0 }
   port.source.execution_context_snapshot = { receivedProdatContext: { version: 1, contextOrigin: 'database_insert', sourceMessageId: port.source.id, companyId: company, environment: 'production', messageCode: 'Z04', payloadHash: digest(port.source.raw_payload!), sourceReceivedAt: port.source.message_received_at, capturedAt: port.source.message_received_at } }
   port.tables.ediel_messages = [port.source as unknown as Row]
   const raw = EdifactEnvelopeCodec.encode({ sender: '54321', receiver: '12345', senderQualifier: '14', receiverQualifier: '14', environment: 'production', applicationReference: '23-DDQ-PRODAT', interchangeReference: 'ACK-I', acknowledgementRequest: false, messages: [{ messageReference: 'ACK-M', messageTypeToken: 'CONTRL:2:2:UN', businessSegments: ['UCI+I+12345:14+54321:14+1'] }] })
