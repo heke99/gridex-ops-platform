@@ -28,7 +28,7 @@ const GATES = [
 ]
 let db: PGlite
 const before = new Map<string, string>()
-let operationalBefore: unknown
+let closedBefore: { grant: boolean; read: boolean; listed: string[] }
 
 const one = async <T>(sql: string) => (await db.query(sql)).rows[0] as T
 const prosrc = async (sig: string) => (await one<{ s: string }>(`select prosrc s from pg_proc where oid='${sig}'::regprocedure`)).s
@@ -66,7 +66,7 @@ beforeAll(async () => {
       select u, c, k, 'allow', 'active', true from (values ('${ACTOR}'::uuid,'${CLOSED}'::uuid),('${ACTOR}','${DISPOSABLE}'),('${OUTSIDER}','${CLOSED}'),('${DENIED}','${CLOSED}')) g(u,c)
       cross join (values ('ediel.retention.customer_fields'),('ediel.retention.read')) p(k);
     insert into public.user_permissions(user_id,company_id,permission_key,effect,status,is_active) values ('${DENIED}','${CLOSED}','ediel.retention.customer_fields','deny','active',true);`)
-  operationalBefore = (await one<{ ok: unknown }>(`select gridex_ediel_retention.permission_v1('${CLOSED}','${ACTOR}','customers.read') ok`)).ok
+  closedBefore = { grant: await grant(CLOSED, ACTOR, 'ediel.retention.customer_fields'), read: await readScope(CLOSED, ACTOR), listed: (await listedFor(ACTOR)).map((r) => r.companyId) }
   await db.exec(readFileSync(FORWARD, 'utf8'))
 }, 280_000)
 
@@ -96,9 +96,8 @@ describe('DB-05 closed tenant keeps a lawful per-class retention path', () => {
     expect(await grant(CLOSED, DENIED, 'ediel.retention.customer_fields')).toBe(false)
   })
 
-  it('leaves the operational (non-retention) permission branch unchanged', async () => {
-    const after = (await one<{ ok: unknown }>(`select gridex_ediel_retention.permission_v1('${CLOSED}','${ACTOR}','customers.read') ok`)).ok
-    expect(after).toEqual(operationalBefore)
+  it('was refused on the installed schema before the forward (the defect this fixes)', () => {
+    expect(closedBefore).toEqual({ grant: false, read: false, listed: [] })
   })
 
   it('changes only the tenant-status admission list in each gate', async () => {

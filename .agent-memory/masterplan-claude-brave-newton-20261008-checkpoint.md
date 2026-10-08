@@ -49,3 +49,9 @@
 - Added the workflow (db04 pattern), the config, and a native case in scripts/db-05-tenant-offboarding-native.test.ts: closed member true, disposable and outsider false.
 - 2f ACK 6063819325: manifest/GEN inclusion requires compatible identities, a completed source review and an explicit file handoff. Independent source review is running now.
 - Confirmed locally: with the two manifest lines added (not committed), integrity passes and clean-replay-cleanup goes 9/9. Every red check on d7c9bc8e comes from the missing manifest lines.
+- Independent source review (GRANSKARE subagent, head d7c9bc8e): REQUEST_CHANGES.
+  - SQL logic approved: attributes, ACL, needle guard, no grants beyond retention, lifecycle reachable.
+  - Finding 1 (Important): the manifest is still missing, which is 2f custody.
+  - Finding 2 (Minor): 20261005 sorts before main's latest; the tooling does not reject it, and the name is kept because that is the reserved path.
+  - Finding 3 (Minor): the operational test was trivial. Fixed: replaced by a baseline assertion that the closed tenant was refused before the forward. The byte-diff test still proves the operational branch is unchanged.
+  - Finding 4: coverage is not approved yet; native proofs are pending the manifest.
