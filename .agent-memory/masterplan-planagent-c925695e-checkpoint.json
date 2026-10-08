@@ -659,5 +659,23 @@
     "C_M": "Original owners supply actual healthy L period/current cancellation/reading/structural source and coupled owned SQL/parity; preserve original timing/ACK/restoration/replay tests.",
     "H": "Current GEN/private ACK/authority and owned first-birth/physical point/timing/legal-period inputs are delivered or narrowly transferred; reuse strict preserved H producer.",
     "external": "The original named transport/provider, legal retention/lifecycle or incident/counterparty owner supplies decided authorized inputs AND transfers retained software criteria when needed. Software work is not a new market-activation gate."
+  },
+  "lastObservation": {
+    "at": "2026-10-08T13:46:55.065311+00:00",
+    "main": "0531d3a5271a5a9b333e81c1b4fa31cd355c368a",
+    "deltaFromSelectionBase": [
+      "__tests__/ediel-rejected-bilateral-switch-birth-profile.test.ts",
+      "__tests__/ediel-rejected-bilateral-switch-intake.test.ts",
+      "lib/inbound-mail/inboundStatusUpdater.ts",
+      "lib/inbound-mail/rejectedBilateralSwitchBirthProfile.ts"
+    ],
+    "delivery": "PR713 H first-reception component delivered; SC sources/registers/coverage/custody and criterion-specific dependencies unchanged. H IDs remain foreign-owned, no whole acceptance inferred.",
+    "refsCount": 97,
+    "ownRefs": [],
+    "handoffReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6061265068",
+    "handoffReadback": "FULL_BODY_MATCH",
+    "handoffResponse": "Not received as of latest fetched board through6061265068",
+    "otherNewPlanagent": "6061192964 SC047/SC071 request is a distinct session, not inherited identity or assigned scope.",
+    "next": "Wait for actual explicit SC053/SC054 handoff or relevant source release/delivery, then fresh GitData reservation and CLAIM. No unchanged polling receipts."
   }
 }
