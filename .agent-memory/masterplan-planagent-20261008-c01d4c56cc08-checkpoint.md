@@ -133,3 +133,26 @@ its actual-main parent, coverage hash stays51c4b1ae8381fbd286f015604a4c0e019eef7
 all other tracked postimages match; working tree clean; integrity checker and diff check
 exit0. No CI/main delivery claim: publish own checkpoint branch and a BLOCKED receipt,
 not a rule-delivery PR. Independent exact-head review precedes publication.
+
+## Post-publication ownership transition
+
+Published checkpoint a23650f57f7732e0b5f700d02334829c2b2512a0 was verified by
+remote branch GET exact SHA; independent exact-head reviewer APPROVE had no findings.
+BLOCKED receipt6057160664 was POSTed and GET-verified body-exact. No PR or merge.
+
+The subsequent main GET still equals74bcd6d109861e940269f75821f6d3516df29a96.
+Matching refs now enumerate81 with four occupied IDs (2f Z02L/LK,41f Z13V/VH);
+H03/H04 IDs no longer appear. Original owner's explicit remaining-whole handoff
+6057135638 is read in full, including all15 native failures and original100 requirements.
+It releases whole proof/approval scope while preserving foreign CORE/GEN/runtime/ACK
+custody. No implementation clearance here: malformed national response source,
+protected request/ACK projection, conditional fields and register response still require
+that handoff's named2f/41f source prerequisites/current parity. A fresh H claimant must
+first establish independent executable work and recheck exact files; do not duplicate
+original100/native/capture or treat released tags as corrected product behavior.
+
+Protocol owner already opened #709 under its own locks; no duplicate protocol edits.
+Current own status remains BLOCKED_PRECLAIM with no reservation. Next action and the
+optional previous-session identity clarification remain as above. This additive update
+preserves all earlier dated snapshots and their exact evidence, rather than rewriting
+original observations. Final delta review precedes normal branch-only publication.
