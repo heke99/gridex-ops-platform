@@ -146,11 +146,26 @@ it.each([
 })
 
 it('every required common/own/UD Z15C omission reaches its actual syntax/guide/field barrier without market, grant or positive APERAK effects',async()=>{
- const f=await seed(),a=await qualify(f);ackRoute(f)
- const ended=await receive(f,z15(f,a,false),'PRODAT','Z15','PRODAT:Z15:V:26.A:r3');await process(f,ended)
+ const omissionClock=performance.now()
+ const reportOmissionPhase=(stage:string,field?:string)=>console.info('EDIEL_Z15C_OMISSION_PHASE',JSON.stringify({stage,field,elapsedMs:Math.round(performance.now()-omissionClock)}))
+ reportOmissionPhase('seed_enter')
+ const f=await seed()
+ reportOmissionPhase('seed_return')
+ reportOmissionPhase('qualifier_enter')
+ const a=await qualify(f)
+ reportOmissionPhase('qualifier_return')
+ ackRoute(f)
+ reportOmissionPhase('ack_route_return')
+ reportOmissionPhase('initial_birth_enter')
+ const ended=await receive(f,z15(f,a,false),'PRODAT','Z15','PRODAT:Z15:V:26.A:r3')
+ reportOmissionPhase('initial_birth_return')
+ reportOmissionPhase('initial_processor_enter')
+ await process(f,ended)
+ reportOmissionPhase('initial_processor_return')
  const before=market(f,a.permissionId);expect(before.permission.status).toBe('ended')
  const processingFailures:string[]=[]
  for(const field of permissionRequiredFields){
+  reportOmissionPhase('field_enter',field)
   if(field==='202'){
    // A physical message without BGM code has no selectable guide. The actual
    // parser calls it PRODAT_UNKNOWN and native canonical birth refuses it;
@@ -159,10 +174,15 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    await expect(receive(f,omitPermissionField(z15(f,a,true),field),'PRODAT','Z15','PRODAT:Z15:C:26.A:r3')).rejects.toThrow(/canonical_inbound_rule_profile_resolution_failed:PRODAT:PRODAT_UNKNOWN:/)
    expect(market(f,a.permissionId)).toEqual(before);expect(f.effects()).toEqual(effects)
    expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
+   reportOmissionPhase('birth_refusal_assertions_return',field)
    continue
   }
+  reportOmissionPhase('field_birth_enter',field)
   const source=await receive(f,omitPermissionField(z15(f,a,true),field),'PRODAT','Z15','PRODAT:Z15:C:26.A:r3').catch(error=>{throw new Error(`required Z15C field ${field}: ${error instanceof Error?error.message:JSON.stringify(error)}`,{cause:error})})
+  reportOmissionPhase('field_birth_return',field)
+  reportOmissionPhase('decision_enter',field)
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
+  reportOmissionPhase('decision_return',field)
   if(['207','208','227'].includes(field)){
    expect(decision.syntaxDecision,field).toBe('rejected')
    expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code:'UNSM_MANDATORY_ELEMENT_MISSING'})]))
@@ -185,6 +205,7 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    const originalAssessments=assessments()
    // A missing sequence can carry rejection evidence, never accepted objects
    // or a caller-selected physical offset. All are real native owner calls.
+   reportOmissionPhase('recorder_probe_loop_enter',field)
    for(const alteration of ['segmentIndex','lineIndex','accepted'] as const){
     const facts=JSON.parse(evidence!.factsText),objects=structuredClone(evidence!.prodatObjectValidation!)
     if(alteration==='accepted'){objects.sharedAccepted=true;objects.objects[0].disposition='accepted';objects.objects[0].reasons=[];objects.objects[0].negativeFields=[]}
@@ -192,6 +213,7 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
      facts.registerValidation.objects[0].registers[0][alteration]++
      if(alteration==='lineIndex')objects.objects[0].firstLineIndex++
     }
+    reportOmissionPhase('recorder_probe_enter',field)
     const refused=await supabaseService.rpc('gridex_record_prodat_source_validation_v6',{
      p_company_id:evidence!.companyId,p_environment:evidence!.environment,p_source_message_id:evidence!.sourceMessageId,
      p_source_payload_hash:evidence!.sourcePayloadHash,p_facts_text:JSON.stringify(facts),
@@ -201,13 +223,17 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
      p_application_facts_text:evidence!.prodatApplicationValidation?JSON.stringify(evidence!.prodatApplicationValidation):null,
      p_source_function_facts_text:evidence!.prodatSourceFunctionValidation?JSON.stringify(evidence!.prodatSourceFunctionValidation):null,
     })
+    reportOmissionPhase('recorder_probe_return',field)
     expect(refused.data,alteration).toBeNull();expect(refused.error,alteration).not.toBeNull()
     expect(assessments(),alteration).toBe(originalAssessments)
     expect(f.effects(),alteration).toEqual(protectedEffects)
     expect(ownerReplies(),alteration).toEqual([])
     expect(market(f,a.permissionId),alteration).toEqual(before)
    }
+   reportOmissionPhase('recorder_probe_loop_assertions_return',field)
+   reportOmissionPhase('processor_first_enter',field)
    await process(f,source)
+   reportOmissionPhase('processor_first_return',field)
    const replies=()=>sql<{acks:EdielMessageRow[];outbox:Record<string,unknown>[]}>(`SELECT jsonb_build_object('acks',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.message_family),'[]') FROM public.ediel_messages a WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND direction='outbound'),'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(source.id)}))`)
    const actual=replies();expect(actual.acks.map(x=>[x.message_family,x.ack_outcome])).toEqual([['APERAK','negative'],['CONTRL','positive']]);expect(actual.outbox).toHaveLength(2)
    for(const ack of actual.acks){
@@ -246,7 +272,9 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    const {events:diagnosticEvents,...afterEffects}=f.effects();void diagnosticEvents
    const {events:initialDiagnosticEvents,...beforeEffects}=protectedEffects;void initialDiagnosticEvents
    expect(afterEffects).toEqual({...beforeEffects,messages:beforeEffects.messages+2,acks:beforeEffects.acks+2,creationReceipts:beforeEffects.creationReceipts+2,namespace:beforeEffects.namespace+2,outbox:beforeEffects.outbox+2,witnesses:beforeEffects.witnesses+1,consumptions:beforeEffects.consumptions+1})
+   reportOmissionPhase('processor_replay_enter',field)
    await process(f,source)
+   reportOmissionPhase('processor_replay_return',field)
    const {events:replayEvents,...replayEffects}=f.effects();void replayEvents
    expect(replies()).toEqual(actual);expect(ownerReplies()).toEqual(qualification);expect(replayEffects).toEqual(afterEffects)
    expect(market(f,a.permissionId)).toEqual(before);expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
@@ -266,6 +294,7 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
      p_application_facts_text:evidence!.prodatApplicationValidation?JSON.stringify(evidence!.prodatApplicationValidation):null,
      p_source_function_facts_text:evidence!.prodatSourceFunctionValidation?JSON.stringify(evidence!.prodatSourceFunctionValidation):null,
     })
+    reportOmissionPhase('recorder_probe_loop_enter',field)
     for(const alteration of ['reason','shared','accepted','segmentIndex','lineIndex','reference','identity'] as const){
      const facts=JSON.parse(evidence!.factsText),objects=structuredClone(evidence!.prodatObjectValidation!),scope=facts.registerValidation.objects[0],own=objects.objects[0]
      if(alteration==='reason'){scope.reasons.push('ARBITRARY_REGISTER_REASON');own.reasons.push('ARBITRARY_REGISTER_REASON')}
@@ -275,13 +304,18 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
      else if(alteration==='lineIndex'){scope.registers[0].lineIndex++;own.firstLineIndex++}
      else if(alteration==='reference'){scope.messageReference='FOREIGN';own.messageReference='FOREIGN'}
      else{scope.objectId='FOREIGN';scope.identityAgency='9';own.objectId='FOREIGN';own.identityAgency='9'}
+     reportOmissionPhase('recorder_probe_enter',field)
      const refused=await record(facts,objects)
+     reportOmissionPhase('recorder_probe_return',field)
      expect(refused.data,alteration).toBeNull();expect(refused.error,alteration).not.toBeNull()
      expect(f.effects(),alteration).toEqual(protectedEffects)
      expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${lit(source.id)}`),alteration).toBe(assessments)
      expect(market(f,a.permissionId),alteration).toEqual(before)
     }
+    reportOmissionPhase('recorder_probe_loop_assertions_return',field)
+    reportOmissionPhase('original_recorder_enter',field)
     const recorded=await record(JSON.parse(evidence!.factsText),evidence!.prodatObjectValidation)
+    reportOmissionPhase('original_recorder_return',field)
     if(recorded.error){
      processingFailures.push(`required Z15C field 209 native recorder: ${JSON.stringify(recorded.error)}; facts=${JSON.stringify({globalReasons:JSON.parse(evidence!.factsText).reasonCodes,registerReasons:JSON.parse(evidence!.factsText).registerValidation.objects[0].reasons,ownReasons:evidence!.prodatObjectValidation?.objects[0].reasons,objects:!!evidence!.prodatObjectValidation,response:!!evidence!.prodatResponseValidation,application:!!evidence!.prodatApplicationValidation,sourceFunction:!!evidence!.prodatSourceFunctionValidation})}`)
      expect(recorded.data).toBeNull();expect(f.effects()).toEqual(protectedEffects)
@@ -290,7 +324,9 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
      expect(recorded.data).not.toBeNull();expect(f.effects()).toEqual(protectedEffects)
      const facets=()=>sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.assessment_id),'[]') FROM gridex_received_sources.prodat_object_validation_facets o WHERE source_message_id=${lit(source.id)}`)
      const initialFacets=facets();expect(initialFacets).toHaveLength(1)
+     reportOmissionPhase('replay_recorder_enter',field)
      const replay=await record(JSON.parse(evidence!.factsText),evidence!.prodatObjectValidation)
+     reportOmissionPhase('replay_recorder_return',field)
      expect(replay.error).toBeNull();expect(replay.data).not.toBeNull()
      // Each real validation appends its own immutable assessment; replay must
      // preserve the previous facet and the same rejection without business effects.
@@ -308,13 +344,16 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    }
    // Preserve failure for every ordinary processing path, while exercising
    // each independent omission before reporting the complete failing set.
+   reportOmissionPhase('ordinary_processing_branch_enter',field)
    if(field==='223'){
     // Vitest's default spy calls the actual RPC unchanged. Observe names only;
     // no return value, builder, request or error is substituted or awaited twice.
     const protectedEffects=f.effects(),sends=nativeEscoExternal.send.mock.calls.length
     const trace=vi.spyOn(supabaseService,'rpc')
     try{
+     reportOmissionPhase('processor_first_enter',field)
      await process(f,source)
+     reportOmissionPhase('processor_first_return',field)
      expect(trace.mock.calls.map(([name])=>name)).not.toContain('ediel_list_business_acks_for_source_v1')
      expect((await getEdielMessageById(source.id))?.raw_payload).toBe(source.raw_payload)
      const acks=()=>sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.id),'[]') FROM public.ediel_messages m WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)}`)
@@ -327,7 +366,9 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
      const {events:oldDiagnostics,...initial}=protectedEffects;void oldDiagnostics
      expect(after).toEqual({...initial,messages:initial.messages+1,acks:initial.acks+1,creationReceipts:initial.creationReceipts+1,namespace:initial.namespace+1,outbox:initial.outbox+1})
      expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
+     reportOmissionPhase('processor_replay_statement_enter',field)
      trace.mockClear();await process(f,source)
+     reportOmissionPhase('processor_replay_statement_return',field)
      expect(trace.mock.calls.map(([name])=>name)).not.toContain('ediel_list_business_acks_for_source_v1')
      const {events:replayDiagnostics,...replay}=f.effects();void replayDiagnostics
      expect(acks()).toEqual(actual);expect(replay).toEqual(after)
@@ -336,7 +377,9 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
     catch(error){processingFailures.push(`required Z15C field 223: ${error instanceof Error?error.message+'; stack='+error.stack:JSON.stringify(error)}; actual RPC names=${JSON.stringify(trace.mock.calls.map(([name])=>name))}`)}
     finally{trace.mockRestore()}
    }else await process(f,source).catch(error=>{processingFailures.push(`required Z15C field ${field}: ${error instanceof Error?error.message+'; stack='+error.stack:JSON.stringify(error)}`)})
+   reportOmissionPhase('ordinary_processing_branch_return',field)
   }
+  reportOmissionPhase('final_protected_assertions_enter',field)
   expect(market(f,a.permissionId),field).toEqual(before)
   expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND related_message_id=${lit(source.id)} AND message_family='APERAK' AND ack_outcome='positive'`),field).toBe(0)
   const heldSource=(await getEdielMessageById(source.id))!
@@ -348,13 +391,17 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
    expect(diagnostics,field).toHaveLength(1)
    expect(heldSource,field).toMatchObject({company_id:f.ids.company,business_match_status:'business_blocked',processing_status:'routing_unresolved'})
    const captured=diagnostics[0]
+   reportOmissionPhase('held_processor_replay_enter',field)
    await process(f,heldSource)
+   reportOmissionPhase('held_processor_replay_return',field)
    expect(sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(u) ORDER BY u.id),'[]') FROM public.ediel_unresolved_items u WHERE u.source_message_id=${lit(source.id)}`),field).toEqual([captured])
    expect(market(f,a.permissionId),field).toEqual(before)
   }
+  reportOmissionPhase('final_protected_assertions_return',field)
  }
  expect(z18Count(f)).toBe(0)
  expect(processingFailures).toEqual([])
+ reportOmissionPhase('matrix_assertions_return')
 })
 
 it('actual Z15C consumer refuses foreign tenant/actor selectors and native source raw/direction mutation before restoring the unchanged qualified original',async()=>{
