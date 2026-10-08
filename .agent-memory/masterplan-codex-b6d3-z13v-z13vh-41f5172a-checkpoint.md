@@ -843,3 +843,93 @@ Färsk samordningstavla läst genom09:10: Claude/zealous-gates-et3sjy oberoende 
 Nästa konkreta tillåtna åtgärd innan extern ändring: författa en avgränsad go-live-runbook i en särskild sektion av MIN EGEN checkpoint (ingen gemensam fil eller främmande källa). Den ska dokumentera sourceAPP-kravet, exakttenant/env/valdACKroute/family/code-universum inklNULLaktiva/NULLgeneric-konkurrenter, read-only preflight mot verklig auktoriserad konfiguration och konkret remedierings/reverifieringsförlopp utan fallback/defaulttillit/historiska ACK-omskrivning/blindresend. Minor2 generic+specific ambiguous är avsiktlig failclosed; Minor3 datum/riktning/prodbehörighet förblir kvarvarande wholekrav med namngivet ägaransvar/underlag, inga nya produktspärrar hittas på. Läs source/adminschema/go-liveplan, låt oberoende granskare kontrollera text/preflight, försegla runbook i durabelcheckpoint och länka exakt i704beskrivning samt svar673, utan att ändra17bfkälla/startaomCI. Befintliga15egnaresurser/ingenroll/ingen nyID/coverage.
 
 Färsk foreignleveransstatus: Hägare93/#657 har09:06 faktisk9mandatorySUCCESS menPRfortfarandedraft/omergad ochegnaoriginalkvalificeringar pågår. GEN2f/#699 harautentisk Staffcapture/byteidentiska3genereradefiler mencleanbilling-identity/cert/cancellation fortfarandeFAIL, lokalfortsättning opublicerad; fullparitet/reparationssystemflöden återstår hos2f. Detta låser inte upp nya wholepaket och får inte lånas somegen native/hela godkännandet. Main9b5/genuine7047green2running09:11. Komposition2 till9b5 är nu fullread-/selfkonsumtionnästa, SOURCEonly inteleverans.
+
+
+## ACK-profiler före go-live — kompatibilitet för #704
+
+Ägare för komponent/runbook: codex-ediel-20261007-b6d3-41f5172a, ESCO-paket9c03. Källversion17bf5ddd3dbc591524408360a62e133c22d07d26. Detta är en dokumenterad konfigurationsövergång, inte en uppgift om att befintliga tenants redan är redo. Inga staging-/produktionsprofiler har lästs eller ändrats av denna leverans.
+
+Nya ACK väljer profil med originalets skyddade, kvalificerade Application Reference (APP). Profilens application_reference måste därför matcha denna sourceAPP exakt, exempelvis23-DGI-PRODAT för en sådan kvalificerad PRODAT-process. En profil med en annan process/APP, en aktörsdefault eller generisk EDIEL-default ersätter inte rätt sourceAPP. Detta gäller trots att svarets familj ärCONTRL/APERAK/UTILTS_ERR. Adminskrivaren app/admin/ediel/routes/actions.ts kan behålla en befintlig APP eller fylla i en default om applicationReference utelämnas. Ange därför rätt sourceAPP uttryckligen och kontrollera den sparade raden. Ändra aldrig originalets APP eller använd redigerbar draft/default för att få urvalet grönt. Om konfigurationen saknas vägrar ediel_ack_route_profile_required; ett korrekt CONTRL bevisar inte att en efterföljande APERAK kunnat skapas. Redan committade ACK behåller sin ordinarie idempotenta replay före nytt profilurval.
+
+Den namngivna adminskrivaren är begränsad: getEdielRouteProfileByCommunicationRouteId i lib/ediel/db.ts läser med maybeSingle över company+route, utan profil-ID, miljö- eller enabled-filter. Vid noll befintliga profiler kan den infoga en; vid exakt en kan den uppdatera just den. Kontrollera hela route/company-katalogen först, inklusive andra miljöer och inaktiva profiler, och att den enda befintliga profilens miljö/identitet är den avsedda. Flytta inte en profil från annan miljö. Vid flera profiler misslyckas uppslaget även om en ärdisabled; att avaktivera en rad gör inte administrativ sparning möjlig. UI-skrivaren kan inte heller lägga till en andra APP-profil när en första redan finns. För flera profiler eller flera APP:er behövs en faktiskt stödd, auktoriserad tenant- och profil-ID-bunden, journalförd konfigurationsport. Någon sådan port eller dess operativa redo-status styrks inte av #704. Saknas verifierat stöd: stoppa den berörda konfigurationsövergången och överlämna exakt route/company/miljö, berörda profil-ID:n, full required-matris och avvikelser till heke99/utsedd tenant-routeförvaltare för en korrekt port eller uttrycklig källöverlämning. Använd inte UI-sparning, godtycklig första rad, borttagning av historiska profiler eller ett otestat direkt-DB-skript som workaround. Detta är en uttrycklig operativ blockerare för berörda tenants, inte ett skäl att återställa osäker APP-fallback.
+
+Före tenantens go-live/cutover ska ansvarig tenant-routeförvaltare använda auktoriserad läsbehörighet och dokumentera hela deklarerade inkommande processuniversum från aktuella godkända profil-/roll-/motpartsavtal samt skyddade originalens processidentitet. Enbart APP-värden som råkar finnas i gamla profiler eller senaste trafiken är inte ett komplett universum. För varje tenant/miljö/motpart och varje route som den verkliga canonicalroute-resolvern väljer för ediel_ack: dokumentera sourceAPP och de faktiskt föreskrivna svarsfamilj/businesscode-kombinationerna. Ta inte en godtycklig tenantdefault-route eller bortse från en andra vald motpartsroute. APP ska vara exakt kvalificerad sträng; miljön ärtest ellerproduction. CONTRL-only-profiler får inte räknas som APERAK-kompatibla och ett business_code får inte härledas från familjen om den verkliga svardraften använder annat code.
+
+Read-only preflight nedan använder psql-parametrar company_id, ack_route_id, environment och required_ack_matrix. required_ack_matrix är en icke-tom JSON-array av fullständiga unika objekt med application_reference, message_family och business_code från det dokumenterade universumet. Det är operatörsindata, inte en observation eller default. Kör mot rätt faktisk miljö under normal tenantbehörighet; inga credentials eller råa original publiceras. Queryfel, saknat schema/behörighet eller ofullständigt universum är ej verifierat, aldrig grönt. SQL visar konfigurationskardinalitet; den bevisar inte PostgREST- eller affärseffekter.
+
+```sql
+BEGIN TRANSACTION READ ONLY;
+WITH target AS (
+  SELECT :'company_id'::uuid AS company_id,
+         :'ack_route_id'::uuid AS communication_route_id,
+         :'environment'::text AS environment
+), required AS (
+  SELECT application_reference, message_family, business_code
+  FROM jsonb_to_recordset(:'required_ack_matrix'::jsonb) AS r(
+    application_reference text, message_family text, business_code text
+  )
+), checked AS (
+  SELECT r.*, t.environment,
+         c.profile_ids,
+         cardinality(c.profile_ids) AS candidate_count,
+         (SELECT count(*) FROM public.ediel_route_runtime_v v
+          WHERE v.route_profile_id = (c.profile_ids)[1]
+            AND v.company_id = t.company_id
+            AND v.communication_route_id = t.communication_route_id
+            AND v.environment = t.environment
+            AND v.application_reference = r.application_reference
+            AND v.is_enabled IS TRUE
+            AND (v.message_family IS NULL OR v.message_family = r.message_family)
+            AND (v.business_code IS NULL OR v.business_code = r.business_code)
+         ) AS exact_runtime_count
+  FROM required r CROSS JOIN target t
+  CROSS JOIN LATERAL (
+    SELECT coalesce(array_agg(p.id ORDER BY p.id), ARRAY[]::uuid[]) AS profile_ids
+    FROM public.ediel_route_profiles p
+    WHERE p.company_id = t.company_id
+      AND p.communication_route_id = t.communication_route_id
+      AND p.environment = t.environment
+      AND p.application_reference = r.application_reference
+      AND p.is_enabled IS TRUE
+      AND (p.is_active IS NULL OR p.is_active IS TRUE)
+      AND (p.message_family IS NULL OR p.message_family = r.message_family)
+      AND (p.business_code IS NULL OR p.business_code = r.business_code)
+  ) c
+)
+SELECT count(*) AS required_rows,
+       CASE WHEN count(*) = 0
+              OR count(*) <> count(DISTINCT (application_reference, message_family, business_code))
+              OR NOT coalesce(bool_and(
+                environment IN ('test', 'production')
+                AND application_reference IS NOT NULL AND btrim(application_reference) <> ''
+                AND message_family IS NOT NULL AND message_family IN ('CONTRL', 'APERAK', 'UTILTS_ERR')
+                AND business_code IS NOT NULL AND business_code ~ '^[A-Z][A-Z0-9_]{0,47}$'
+              ), false) THEN 'INCOMPLETE_OR_INVALID_INPUT'
+            WHEN bool_and(candidate_count = 1 AND exact_runtime_count = 1)
+              THEN 'CONFIGURATION_CARDINALITY_MATCH_ONLY'
+            ELSE 'PROFILE_REMEDIATION_REQUIRED' END AS result,
+       jsonb_agg(jsonb_build_object(
+         'sourceAPP', application_reference, 'family', message_family, 'code', business_code,
+         'candidate_count', candidate_count, 'profile_ids', profile_ids,
+         'exact_runtime_count', exact_runtime_count
+       )) AS per_required_reply
+FROM checked;
+ROLLBACK;
+```
+
+EnbartCONFIGURATION_CARDINALITY_MATCH_ONLY för det kompletta dokumenterade universumet räcker för just denna kardinalitetskontroll. Noll kandidater kräver en rätt uttryckligt konfigurerad APP/family/code på den verkliga egna routen. Två eller fler kandidater kräver att överlapp avlägsnas med en spårbar konfigurationsändring. NULL-active är fortsatt giltigt om is_enabled ärtrue; det får inte döljas i konkurrentmängden. En NULL/NULL-generisk profil och en specifik profil på samma sourceAPP konkurrerar avsiktligt och ger PGRST116; specifik profil prioriteras inte. Välj antingen en enda korrekt generisk profil för den aktuella omfattningen eller kompletta icke överlappande specifika profiler. Om en faktiskt stödd profil-ID-bunden konfigurationsport finns kan den ersatta generiska/överlappande profilen avaktiveras med is_enabled=false i ett journalfört förlopp, följt av kontroll av alla berörda svar. Den namngivna adminskrivaren erbjuder inte denna multi-profilremediering; utan verifierad port krävs ovanstående blockerade överlämning. Ingen LIMIT1/sorteringsfallback, inget borttagande av historiska original/ACK eller byte till främmande tenant/miljö. Noll eller flera exakt-profile-runtime-rader kräver rättelse av faktisk route/viewkoppling/behörighet, inte en annan profilfallback.
+
+Tenant-routeförvaltaren bevarar den tidigare konfigurationen och en ändringsjournal, anger sourceAPP explicit i den stödda profilsparningen (den namngivna adminskrivaren endast vid noll/en korrekt miljöbunden profil; annars den verifierade ID-bundna porten) och bevarar befintliga certifikat/mottagare/mailbox/transport-/säkerhetsinställningar. Vid fler APP:er ska både tidigare giltiga och nya processer förbli unikt konfigurerade. Verifiera stödd port och full berörd konfigurationsomfattning före ändringen; utan sådan port ska ingen ändring köras. Kör samma read-only preflight igen efter den tillåtna ändringen. Kontrollera också canonicalroute/aktör/miljö/mottagare/aktivering och det övriga befintliga go-live-/first-sendflödet; denna query eller admin-go-live-sidan har ingen automatisk garanti för det nya APP-universumet.
+
+Därefter krävs riktiga tillåtna systemanrop i avsedd testmiljö med skyddad originalkälla: korrekt process/svar väljer den avsedda profilidentiteten och ger föreskrivna fysiska ACK; fel APP eller generisk+specifik överlapp vägrar utan otillåtna effekter. Verifiera businesspersistens, kö/fysisk kvittens, fel-/tidsfristbevakning och exakt idempotent replay med originalet oförändrat. Följ projektets befintliga cutover/first-send/incidentregler vid verklig marknadsaktivering. Vid fel: håll berörd övergång enligt ordinarie driftförfarande, återställ spårbart korrekt profilkonfiguration och verifiera på nytt; skriv inte om committade ACK och skicka inte blint igen. Lokala modeller och denna SQL-text är inte sådan systemverifiering.
+
+Minor3: #704 inför ingen ny datum-, direction- eller is_production_route-prövning. Dessa tidigare ej styrkta whole-kriterier är inte godkända här. ROOT41f/9c03 ansvarar fortsatt för ownAT-Z13V/VH:s hela acceptans och riktning/native30, dokumenterade i denna checkpoint och review6055923847; heke99/ansvarig befintlig tenant-routeförvaltare ansvarar för verifierbar giltig profilperiod/riktning/produktionsbehörighet inför verklig aktivering eller uttrycklig överlämning till rätt ENV/TEN/route-källägare. Bevishem är originalets profilavtal/source, aktuell routekonfiguration och kvalificerade native/public anrop på exakt källa. Namn, egen kodåtgärd och underlag ska dokumenteras om återstående kriterier inte kan styrkas; inga krav eller befintliga spärrar försvagas och inga upptagna filer tas över.
+
+
+### ACK-runbookens verifiering och nästa leveransåtgärd
+
+Texten ovan är exakt granskadv2 fe7e82aa30b3b7ea6a707ebb2a6dd48ed8ae0db9bb891e5a78f4f5fe57acb7b4. Båda fullständiga v2-rapporter är lästa:6da1a3545d8103b1dd9d98ec83337057a3c66de96d9efcace3ef5a0ea0140c34 och88d8676514ecdd57df5f0f8795fbb056b08d5d1a63dbfd4b9977e3205902ac00, inga kvarvarandeCritical/Important. ROOTself har kontrollerat den verkliga adminlookup/upsert/publicform och sourceAPP-urvalet, hela readonlySQL/null-konflikt/vy-schema, konkreta0/1-remedieringsgränser och stöddID-port/STOP-överlämning samt separat whole/native/CI/operativbevisstatus. V1och9964Important/8d259missadfeasibilitygranskning är oförändrat bevarade, uttryckligen superseded som instruktion. Ingen produktion/staging/DB-preflight utförd eller profilsparning genomförd; SQLtext endast granskad och inget systemklart påstås.
+
+Aktuell main har faktiskt gått till0b7d930ca67b8b78cb6e6f04b8f94eb7edac37ec via #708 normalmerge09:19:12, treef787e45a, föräldrar9b5+c633. Fullständiga142tillägg i endastcurrent-state/handover/masterplan-status är lästa; gamla gemensamma observationsvärden är bevarade, inga produkt/test/SQL/workflow/coverageändringar. #657 är fortfarande faktisktomergad enligtPRAPI. Ursprunglig9b5main-projektion/SOURCE2 bevarasdaterad. Färsk normal704projektion mot0b7 ärtreea36d5c77212877dddd6a5914a9960074e9ab9322, alla7exakta egna postbilder/9426foreignmode-type-OID/fullpathset; enda nyaegenpath fortsatt tidigaregranskadfocusedtest. Ingen actualmerge. Ingen ny testkörning behövs för dokument-only incomingbyteändringar; exakt kompositionsgranskning uppdateras före leverans.
+
+Nästa ROOT publicera exakt denna immutableCP-runbooklänk i704PR-beskrivning och svara på6055923847/6056020748, bekräfta body/head/commentGET_MATCH utan källändring/CIomstart. Dokumentationsalternativet för Important1 ska vara konkret publicerat föremerge; operativdata/portsaknas är fortfarande specificerade tenantblockerare. Därefter freshmainkomposition2/aktuella mandatory9 terminaloriginalbevis och finalDELIVERY2+self/normalmerge-lås närall9success. Förbereddprivatmerge-esco-704-17bf-current.py är endast skriven/kompilerad, ALDRIG körd; den vägrar utan exakta terminal/fullreview/CP/sourceAPP-publicering/currentmain/15ägarskapvillkor innanlås. Inget merge/memory-rollås hålls. FrigörACK7 förstefterfaktiskMERGEDdocs och fortsättnative8/actualmaincarry/genuinenative30. Ingen coverage/nyregel/sharedstatuswrite.
