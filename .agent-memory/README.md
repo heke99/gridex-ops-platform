@@ -18,7 +18,8 @@ decisions remain higher-authority sources.
 9. `masterplan-agent-workflow.md`, `masterplan-reservations.md` and your own checkpoint
 10. `masterplan-legacy-pr-register.json`, relevant dated status evidence, latest
     #673 receipts and linked historical #530 evidence, actual main/coverage,
-    current PR heads/checks and live remote refs
+    current PR heads/checks and live remote refs; read `masterplan-work-queue.md`
+    for dated owner actions, exact dependency/handoff criteria and chat resumption
 
 Read active startup sections and your checkpoint first; consult relevant dated
 history as needed. Current code, coverage, head-bound checks and remote refs
@@ -29,7 +30,8 @@ Before implementation or another work item, every agent must save ownership, act
 completed work, verification, blockers and the exact next action. Technical
 agents update their own checkpoints; the current memory-role holder maintains
 shared status only within its exact file custody. PLANAGENT selects and atomically
-reserves its own two-ID packet; BLOCKERARAGENT stays on sequential, evidenced
+reserves its own eligible rule packet or acceptance-only packet, with the existing
+final-single-eligible exception; BLOCKERARAGENT stays on sequential, evidenced
 blockers; GRANSKARE keeps its independent read-only role. New agents get a role,
 not rule assignments. Direct GitData and the already owner-authorized Claude
 proxy both require verified actual refs before code; proxy success does not
