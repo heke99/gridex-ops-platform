@@ -16,16 +16,29 @@ decisions remain higher-authority sources.
 7. relevant domain files
 8. `decisions.md` and `known-failures.md`
 9. `masterplan-agent-workflow.md`, `masterplan-reservations.md` and your own checkpoint
-10. `masterplan-legacy-pr-register.json`, `masterplan-status-20261006.json`, then
-    latest #530 claims, current main and relevant open/retained closed PRs
+10. `masterplan-legacy-pr-register.json`, relevant dated status evidence, latest
+    #673 receipts and linked historical #530 evidence, actual main/coverage,
+    current PR heads/checks and live remote refs
 
-Before implementation or another packet, every agent must save ownership, actual
+Read active startup sections and your checkpoint first; consult relevant dated
+history as needed. Current code, coverage, head-bound checks and remote refs
+override old current/paused/next-action labels. #673 is the active board; #530
+preserves historical evidence.
+
+Before implementation or another work item, every agent must save ownership, actual
 completed work, verification, blockers and the exact next action. Technical
 agents update their own checkpoints; the current memory-role holder maintains
-shared status. Agents select and atomically
-reserve their own two-ID packets without user allocation or coordinator approval,
-then continue after actual green merge. `masterplan-next-wave-prompt.md` is the
-same dispatch prompt for everyone. Legacy CLOSED_UNMERGED requirements remain resumable
+shared status only within its exact file custody. PLANAGENT selects and atomically
+reserves its own two-ID packet; BLOCKERARAGENT stays on sequential, evidenced
+blockers; GRANSKARE keeps its independent read-only role. New agents get a role,
+not rule assignments. Direct GitData and the already owner-authorized Claude
+proxy both require verified actual refs before code; proxy success does not
+prove direct tag capability.
+
+Use `masterplan-next-wave-prompt.md` for plan agents and
+`masterplan-blocker-agent-prompt.md` for blocker agents. After documented actual
+delivery or explicit handoff/release, refresh state and choose the next eligible
+work item within that role. Legacy CLOSED_UNMERGED requirements remain resumable
 through their preserved branches; evaluate them before selecting new work.
 
 ## Parallel side track: tenantservice
@@ -65,8 +78,10 @@ Never store API keys, tokens, secrets, `.env` content, private keys, passwords,
 full identity numbers, production customer data, raw webhook secrets, entire
 chats, chain-of-thought or complete terminal output.
 
-Current baseline and next-wave preparation: read the new top sections of
-current-state.md/current-task.md, masterplan-agent-workflow.md,
-masterplan-reservations.md and the retained
-legacy register. Older integration/freeze snapshots are historical. Rule work
-awaits the next-wave dispatch.
+Current continuation: follow the role-specific instructions in `AGENTS.md`,
+the active sections of current-state.md/current-task.md/work-plan.md,
+masterplan-agent-workflow.md, masterplan-reservations.md and the legacy register.
+Older integration/freeze/pre-dispatch snapshots are historical. Specific HOLD,
+external decisions, ownership and delivery gates remain in force. If no task is
+READY, record the responsible owner and exact resumption event; a blocked state
+does not imply the plan is complete.

@@ -63,6 +63,9 @@ vi.mock('@/lib/supabase/service', () => {
           if (this.operation === 'update') for (const row of rows) Object.assign(row, structuredClone(this.value))
           else { rows = [{ id: ownerId(800 + port.writes.length), created_at: new Date().toISOString(), ...structuredClone(this.value) }]; port.tables[this.table] = [...all, ...rows] }
         }
+        if (this.one && this.operation === 'read' && rows.length > 1) {
+          return { data: null, error: { code: 'PGRST116', message: 'Multiple rows cannot be returned as one JSON object' }, ...(this.exact ? { count: selected.length } : {}) }
+        }
         return { data: structuredClone(this.one ? rows[0] ?? null : rows), error: null, ...(this.exact ? { count: selected.length } : {}) }
       }).then(done, failed)
     }
@@ -217,7 +220,11 @@ beforeEach(() => {
   port.tables.tenant_actor_roles = [{ ...port.tables.tenant_actor_roles[0], role_code: 'energy_service_company' }]
   port.tables.ediel_actor_settings = [{ id: ownerId(700), company_id: company, environment: 'test', is_active: true, actor_role: 'energy_service_company', ediel_id: '54321', actor_ediel_id: '54321', mailbox: 'configured@example.invalid', smtp_from_email: 'configured@example.invalid' }]
   port.tables.communication_routes = [{ id: ownerId(701), company_id: company, route_scope: 'ediel_ack', grid_owner_id: null, is_active: true, environment_type: 'bilateral_test', target_system: 'synthetic-counterparty', route_type: 'ediel_partner', target_email: 'counterparty@example.invalid' }]
-  port.tables.ediel_route_runtime_v = [{ route_profile_id: ownerId(702), communication_route_id: ownerId(701), company_id: company, environment: 'test', is_enabled: true, transport_type: 'smtp', message_standard: 'edifact', payload_format: 'edifact', receiver_ediel_id: '12345', application_reference: '23-DGI-PRODAT', ack_mode: 'default' }]
+  // External configuration is prospective and scoped to the original APP.
+  // A generic NULL/NULL profile is eligible, but every competitor must count.
+  port.tables.ediel_route_profiles = [{ id: ownerId(702), communication_route_id: ownerId(701), company_id: company,
+    environment: 'test', is_enabled: true, is_active: true, application_reference: '23-DGI-PRODAT', message_family: null, business_code: null }]
+  port.tables.ediel_route_runtime_v = [{ route_profile_id: ownerId(702), communication_route_id: ownerId(701), company_id: company, environment: 'test', is_enabled: true, transport_type: 'smtp', message_standard: 'edifact', payload_format: 'edifact', receiver_ediel_id: '12345', application_reference: '23-DGI-PRODAT', message_family: null, business_code: null, ack_mode: 'default' }]
   port.tables.grid_owners[0].company_id = company
   port.tables.ediel_messages = []; port.tables.ediel_message_events = []; port.tables.ediel_outbox = []
 })
@@ -247,6 +254,19 @@ async function receive(status: 'A13' | 'A76') {
 }
 
 describe('SC-021 durable denial reaches prescribed processing ACKs', () => {
+  it.each(['wrong-APP', 'ambiguous'] as const)('holds %s ACK configuration while preserving durable denial and no-access effects', async fault => {
+    const profiles = port.tables.ediel_route_profiles
+    if (fault === 'wrong-APP') profiles[0].application_reference = '23-DGI-E66-T'
+    else profiles.push({ ...profiles[0], id: ownerId(703) })
+    const result = await receive('A13')
+    expect(result.durable).toMatchObject({ status: 'rejected_active', approved_start_at: null, approved_end_at: null, inbound_z14_message_id: port.source.id })
+    expect(result.acks.map(ack => [ack.message_family, ack.ack_outcome])).toEqual([['CONTRL', 'positive']])
+    expect(port.calls.filter(call => call.name === 'ediel_create_outbound_ack_scope_atomic_v2')).toEqual([])
+    expect(port.tables.ediel_outbox.map(row => row.message_family)).toEqual(['CONTRL'])
+    const reason = fault === 'wrong-APP' ? 'ediel_ack_route_profile_required' : 'Multiple rows cannot be returned as one JSON object'
+    expect(port.tables.ediel_message_events.some(event => String(event.message).includes(reason))).toBe(true)
+  })
+
   it.each([['A13', 'rejected_active'], ['A76', 'rejected_passive_timeout']] as const)('%s persists %s and acknowledges accepted processing without access', async (status, expected) => {
     const result = await receive(status)
     expect(result.stored.raw_payload).toBe(result.before)
