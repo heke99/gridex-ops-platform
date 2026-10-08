@@ -449,3 +449,52 @@ it('unknown bilateral READ failure retains the prior hold without minting reject
  expect(readReceivedCanonicalProdatResponseValidation(decision,io.source)).toBeNull()
  expect(io.calls.map(call=>call.name)).toEqual(['ediel_read_prodat_bilateral_source_capability_v1']);expect(io.writes).toEqual([])
 })
+
+it.each(['id','environment','raw_payload'] as const)('actual actor denial precedes unavailable %s accessor',async field=>{
+ qualified();io.permission=false
+ const stored=structuredClone(io.rows),unavailable=new Error('DECLARED_UNAVAILABLE_BORN_ACCESSOR')
+ Object.defineProperty(io.source,field,{enumerable:true,configurable:true,get(){throw unavailable}})
+ const failure=await loadReceivedZ04RequiredStartRejection(io.source,actor).catch(error=>error)
+ expect(failure).toBeInstanceOf(EdielExecutionFailure)
+ expect(failure).toMatchObject({disposition:{kind:'security_quarantine',code:'EDIEL_TENANT_PERMISSION_FORBIDDEN'}})
+ expect(io.calls.filter(call=>call.name==='gridex_actor_has_company_permission').map(call=>call.args))
+  .toEqual([{p_actor_user_id:actor,p_company_id:company,p_permission:'communication.read'}])
+ expect(io.sourceQueryFilters).toEqual([])
+ expect(io.calls.filter(call=>call.name==='ediel_require_inbound_legal_context_v1')).toEqual([])
+ expect(io.rows).toEqual(stored);expect(io.writes).toEqual([])
+})
+it.each(['id','environment','raw_payload'] as const)('allowed actor refuses unavailable %s accessor without a protected READ',async field=>{
+ qualified()
+ const stored=structuredClone(io.rows),unavailable=new Error('DECLARED_UNAVAILABLE_BORN_ACCESSOR')
+ Object.defineProperty(io.source,field,{enumerable:true,configurable:true,get(){throw unavailable}})
+ const token=await loadReceivedZ04RequiredStartRejection(io.source,actor)
+ expect(token).toBeNull()
+ expect(io.calls.filter(call=>call.name==='gridex_actor_has_company_permission').map(call=>call.args))
+  .toEqual([{p_actor_user_id:actor,p_company_id:company,p_permission:'communication.read'}])
+ expect(io.sourceQueryFilters).toEqual([])
+ expect(io.calls.filter(call=>call.name==='ediel_require_inbound_legal_context_v1')).toEqual([])
+ expect(io.rows).toEqual(stored);expect(io.writes).toEqual([])
+})
+it.each([false,true])('unused source accessor stays unread with actual actor permission %s',async allowed=>{
+ qualified();io.permission=allowed
+ const stored=structuredClone(io.rows)
+ let getterReads=0
+ Object.defineProperty(io.source,'parsed_payload',{enumerable:true,configurable:true,get(){
+  getterReads++;throw new Error('UNUSED_SOURCE_GETTER_MUST_NOT_RUN')
+ }})
+ const outcome=await loadReceivedZ04RequiredStartRejection(io.source,actor).catch(error=>error)
+ expect(getterReads).toBe(0)
+ expect(io.calls.filter(call=>call.name==='gridex_actor_has_company_permission').map(call=>call.args))
+  .toEqual([{p_actor_user_id:actor,p_company_id:company,p_permission:'communication.read'}])
+ if(allowed){
+  expect(outcome).not.toBeInstanceOf(Error);expect(outcome).not.toBeNull()
+  expect(readReceivedZ04RequiredStartWitness(outcome,io.source,actor)).not.toBeNull()
+  expect(io.sourceQueryFilters).toEqual([{key:'id',value:io.bornSourceId},{key:'company_id',value:company}])
+ }else{
+  expect(outcome).toBeInstanceOf(EdielExecutionFailure)
+  expect(outcome).toMatchObject({disposition:{kind:'security_quarantine',code:'EDIEL_TENANT_PERMISSION_FORBIDDEN'}})
+  expect(io.sourceQueryFilters).toEqual([])
+  expect(io.calls.filter(call=>call.name==='ediel_require_inbound_legal_context_v1')).toEqual([])
+ }
+ expect(io.rows).toEqual(stored);expect(io.writes).toEqual([])
+})
