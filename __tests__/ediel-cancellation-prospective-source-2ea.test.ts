@@ -104,4 +104,22 @@ describe('prospective ordinary Z04 input for cancellation prerequisites', () => 
         .toThrow('native_cancellation_ordinary_l_wire_scope_required')
     },
   )
+
+  it.each(['', "OWN-C-CASE'RFF+LI:FOREIGN-C-CASE", "OWN-C-CASE'RFF+LI:OWN-C-CASE"])(
+    'refuses an empty or duplicated own physical LI: %s', caseReference => {
+      expect(() => buildCancellationProspectiveZ04({ ...context, caseReference }))
+        .toThrow('native_cancellation_ordinary_l_wire_scope_required')
+    },
+  )
+
+  it('refuses a fixture missing its own LI rather than borrowing another RFF', () => {
+    const supplied = sourceOwnerFixture.ownerSource({
+      readingDeclarations: true, sourceCodes: { installationStatus: 'Z12', settlementMethod: 'Z31' },
+    })
+    expect(supplied.raw_payload).toContain("RFF+LI:CASE-1'")
+    vi.spyOn(sourceOwnerFixture, 'ownerSource').mockReturnValue({
+      ...supplied, raw_payload: supplied.raw_payload!.replace("RFF+LI:CASE-1'", ''),
+    })
+    expect(() => buildCancellationProspectiveZ04(context)).toThrow('native_cancellation_ordinary_l_wire_scope_required')
+  })
 })
