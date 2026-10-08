@@ -22,3 +22,17 @@ Next owner/action: owner2f publishes to #699 and lets official CI run the consum
 no waiver of that gate. This agent does not run native/capture/GEN work.
 
 Next (this agent): select the next evidenced blocker within the role.
+
+## Update 2026-10-08 (after correction 6061952106)
+
+Earlier wait condition ("#699 published") is met: #699 head now `b729172c` (open, not merged), so the
+Blocker 1 local-host diagnosis above is superseded by official CI on that head.
+Current-head facts (run 37789946457/37789946371): `verify` FAIL at `db:types:check`:
+"migration tail changed (20261008051727_canonical_signature_billing_hash_projection.sql); regenerate
+Supabase types and update the manifest". Migration integrity (1115 files), legal-migration and
+contract-hardening checks passed. `smoke` E2E 14/15 FAIL (step not isolated by me);
+`cancellation-public-acceptance-native` and `z03h-z04h-supplier-native` FAIL (owners 2f / 41f).
+Classification: OCCUPIED. The required GEN regeneration/manifest for the new billing-hash forward is
+owner 2f's exact GEN/forward custody (5d3773de); no handoff exists. This agent does not regenerate,
+capture or run native. No reservations held; nothing to release.
+Next: wait for a 2f handoff/release or a new blocker with free exact scope; no routine status posts.
