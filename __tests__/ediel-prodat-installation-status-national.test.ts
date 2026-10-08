@@ -105,7 +105,7 @@ function validate(body: Parts[], code = 'Z04', subtype = 'H',
   const selected = resolveCanonicalEdielPolicy({ family: 'PRODAT', messageCode: code,
     subtypeOrReasonCode: subtype, direction, applicationReference: '23-DDQ-PRODAT',
     referenceDate: '2026-09-30', mode: 'catalog_evidence' })
-  const policy = { ...selected, fieldRules: selected.fieldRules.filter(rule => rule.fieldNumber === '306') }
+  const policy = { ...selected, fieldRules: selected.fieldRules.filter(rule => 'fieldNumber' in rule && rule.fieldNumber === '306') }
   const issues = validateCanonicalPolicyFields({ policy, rawSegments: wire.rawSegments, una: wire.una })
     .filter(issue => issue.prodatDiagnostic?.kind === 'field' && issue.prodatDiagnostic.fieldNumber === '306')
   return { issues, national: projectProdatDiagnostics(issues) }

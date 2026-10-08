@@ -1,6 +1,6 @@
 import {beforeEach,expect,it,vi} from 'vitest'
 import {OWNER,ownerId,ownerRows,ownerSourceWithInstallationStatus as ownerSource} from './helpers/sourceOwnerFixtures'
-const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false}))
+const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false,message:undefined as ReturnType<typeof ownerSource>|undefined}))
 vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)}))
 vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
@@ -15,6 +15,7 @@ import {timelineAssessment,timelineBody,timelineReceipt,timelineSource,timelineS
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 
 const record=async(row=ownerSource('Z12'))=>{
+ io.message=structuredClone(row)
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(row)
  const receipt=await recordReceivedSourceValidation({original:row,validated:row,resolvedCompanyId:OWNER.company,decision})
  return {row,decision,receipt,session:createReceivedSourceOwnerSession(receipt)}
@@ -25,7 +26,7 @@ const apply=async(state:Awaited<ReturnType<typeof record>>)=>{
  return state.session.finish()
 }
 const objectFacts=()=>JSON.parse(String(io.calls.find(c=>c.name==='gridex_record_source_object_decisions_v1')?.args.p_facts_text??'null'))
-beforeEach(()=>{io.rows=ownerRows();io.calls=[];io.badReceipt='';io.badCount=false;io.failTable='';io.hideSupply=false})
+beforeEach(()=>{io.rows=ownerRows();io.calls=[];io.badReceipt='';io.badCount=false;io.failTable='';io.hideSupply=false;io.message=undefined})
 it('uses a real fully accepted canonical register source as the positive oracle',async()=>{
  const {decision,receipt}=await record()
  expect(decision.issues).toEqual([])

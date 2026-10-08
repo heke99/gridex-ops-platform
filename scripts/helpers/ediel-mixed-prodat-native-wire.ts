@@ -6,7 +6,7 @@ import {head} from '../../__tests__/fixtures/prodat-identity'
 export function mixedProdatNativeWire(input:{external:string;sender:string;receiver:string;customerIdentity:{id:string;qualifier:string;agency:string};caseReference:string;startMinute:string;negativePoint:string}){
  const block=(index:string,point:string,li:string,register?:string):Parts[]=>[
   line(index,point,register,'9'),qty('1000'),...common(point,'Synthetic',input.startMinute),
-  ...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],
+  ...characteristic('Z07','Z12'),...characteristic('Z12','D',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],
   ['NAD','IT',[point,'','9'],'','','Street','Town','','12345','SE'],['NAD','Z02',[input.sender,'160','SVK']]
  ].map(part=>part[0]==='RFF'&&Array.isArray(part[1])&&part[1][0]==='LI'?['RFF',['LI',li]]:
   part[0]==='RFF'&&Array.isArray(part[1])&&part[1][0]==='Z05'?['RFF',['Z05','TES']]:
