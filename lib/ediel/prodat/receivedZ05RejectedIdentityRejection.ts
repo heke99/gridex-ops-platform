@@ -106,8 +106,10 @@ export async function loadReceivedZ05RejectedIdentityRejection(source: EdielMess
   // Pin the authorized READ principal before any asynchronous actor or source
   // port. A caller-owned row may change while those ports are pending.
   const messageId = source.id, companyId = source.company_id, environment = source.environment
-  const actorSource: EdielMessageRow = {...source, id: messageId, company_id: companyId, environment}
-  if (!identity || !validateEdifactSyntax({...source, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null}).ok) return null
+  const actorSource: Pick<EdielMessageRow, 'company_id'> = {company_id: companyId}
+  if (!identity) return null
+  if (!validateEdifactSyntax({raw_payload: source.raw_payload, message_family: source.message_family, message_code: source.message_code,
+    status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null}).ok) return null
   const wire = tokenizeEdifact(source.raw_payload!), input = {rawSegments: wire.segments.map(s => s.raw), una: wire.una}
   if (!observeReceivedZ05RejectedIdentity(input).length || !await assertRejectedSourceActor(actorSource, actor)) return null
   try {
