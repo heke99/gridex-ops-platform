@@ -87,3 +87,24 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
 - Action: no P-08 implementation here. The read-only gap analysis above is available to bardeen.
 - Next: wait for a proxy reservation naming this agent for another eligible pair (AT-Z04L/LK after
   #699, or TR-09/DB-01) or for a release; until then only read-only work.
+
+## 2026-10-08 ~14:45Z — resumption under correction #673 6061952106
+
+- Main `6b87c1a` (merged locally into own branch; #712/#715 role/startup docs read). Ledger 300/352.
+- Own packet: none (stood down from P-08, which is bardeen's under receipt 672e62bc). No refs, no roles.
+- Old blocker receipts corrected: my 6056824791 "proxy not supported" is superseded by owner 6056938983
+  and the current AGENTS.md. Proxy reservation via Codex is valid for my own exact request.
+- Wait condition (#699 on main): NOT met. #699 head b729172c is a draft; verify fails on the generated-types
+  manifest tail (6061974136); GEN4 adoption/native12/parity are pending with owner 2f72.
+- Live ID locks: P-08/AT-P-08 (bardeen), AT-Z02L/LK (2f72), AT-Z03H/Z04H (b6d3, PR #717).
+- Re-checked candidates:
+  - AT-Z04L/LK (released 6047451102): depend on the #699 activation forward. Not executable.
+  - AT-Z13V/VH (released 6059127086): need #699 GEN tail delivery plus a heke99/original-integrator
+    disposition of the frozen "begäran" wording, then composition of preserved `014b` (branch
+    codex/esco-014b-preserved-b6d3-41f5172a). Not executable.
+  - TR-09/DB-01: #699 + native Docker. Others: retained custody (SC/F/G/B/D/Z15) or external (TR-08/DB-05/OPS-04).
+- Result: no executable code packet for this plan agent right now. No reservation requested (reserving
+  blocked scope only occupies it).
+- Resume event: #699 merged -> request a Codex proxy reservation (agent compassionate-rubin) for
+  AT-Z04L-SUPPLIER + AT-Z04LK-SUPPLIER with exact files after a fresh custody check; Z13V/VH as the
+  alternative once its owner disposition also exists. Verify refs, then CLAIM, then code.
