@@ -51,7 +51,7 @@ beforeEach(() => {
     customerId: id(11), siteId: id(12), meteringPointId: id(13), legalActorId: id(9), legalSenderId: '12345',
     legalReceiverId: '54321', pointId: object.meteringPointId!, identityAgency: '9', gridArea: object.gridAreaId!,
     li: object.lineItemReference!, startAt: '2027-01-01T00:00:00+01:00', customerIdentity: object.endUserId!,
-    customerQualifier: 'SE1', customerName: 'Synthetic', sourceObject: {} }
+    customerQualifier: 'SE1', customerName: 'Synthetic', sourceObject: {}, requestedMethod: 'Z04' }
   tables = { ediel_message_intents: [{ id: own.intent, company_id: own.company, environment: 'test', market: 'electricity',
     message_family: 'PRODAT', message_code: 'Z03', business_process: 'supplier_switch', direction: 'outbound',
     supplier_switch_request_id: own.switch, operation_id: own.operation, metering_point_id: basis.pointId,
