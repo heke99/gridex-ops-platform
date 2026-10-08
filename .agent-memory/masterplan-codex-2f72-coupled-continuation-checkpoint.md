@@ -11,3 +11,7 @@ The bounded diagnostic has two independent code reviews and self review with no 
 PR #699 remains draft with mandatory failures. Product migration, clean/upgrade parity, complete contracts and current-head CI remain pending. Coverage is unchanged. The proposed P-08 forward remains unselected pending an exact reviewed handoff.
 
 Next action owner: this agent. Document the diagnostic outcome, refresh current main and reservations, and continue the coupled repair. No merge, shared-memory edit or release is claimed.
+
+## Actual diagnostic outcome
+
+The once-only diagnostic completed with exit 1 at zip_members line 341. That guard combines original-name equality and clean-member admission; this location alone does not identify the rejected member or which predicate failed. Original parity HOLD and downstream NOT_REACHED states remain unchanged. The owner and helper now prepare a source-derived bounded observation plan before any further original-artifact access. No guard widening or repair approval.
