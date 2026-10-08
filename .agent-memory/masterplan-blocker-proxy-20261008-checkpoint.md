@@ -1,5 +1,84 @@
 # Blocker agent: Claude proxy protocol reconciliation
 
+## Resume: terminal CI failure and bounded dependency handoff — 2026-10-08
+
+Status: BLOCKED_RETAINED, PR709 NOT_MERGED. The same owner/packet retains only
+the two original protocol-file refs at receipt74b4932bd9f2e824232ea0a4259eaea0e7a15e5b.
+Fresh authenticated GET verifies both; no own memory/merge role or technical IDs.
+Source remains da2ce7f43918114bd4a2698c3a4e50d9b865d61b. Operational branch
+remote6d2dc455d3a7266ded1f2408bfd532ff10a83cd0 was read before this append.
+Actual main is now08930f52419bf79b3f7ef33206bbf7d632f33812 (administrative711).
+The prior main1c498/source/e8 composition reviews remain historical, not delivery
+authorization for this new main. No merge is attempted while required CI fails.
+
+Read actual-main AGENTS/startup memory, reservations/workflow, legacy register,
+current673/owner6056938983, open PRs, all82 live refs and27 referenced receipts.
+Current ledger remains115 VERIFIED rules +185 PASSED contracts=300/352.
+Scope remains documentation/operations only; no application, DB, native, GEN,
+coverage or foreign-memory implementation is taken. Existing review/delivery
+skills apply; diagnosis below uses already-executed logs, not a new test job.
+
+Authenticated job/run metadata and decoded final logs qualify attempt1 at the
+exact source: clean113249446960/run37758667777 completed FAILURE10:56:21Z;
+pr-certificate113253085706/run37758667813 completed FAILURE10:56:45Z.
+The other six applicable gates SUCCESS; nine prescribed conditional skips.
+Certificate's failing step is Await the existing native producer at this exact
+checkout; no certificate artifact was produced. Retrying just that consumer
+does not resolve its failed producer.
+
+Clean's actual failed source-owner batch reports57 PASS files/1 FAIL (58),
+724 PASS tests/1 FAIL/1 SKIP (726). The sole FAIL is
+scripts/ediel-at-z15c-z18v-esco-native.test.ts:148, named
+"every required common/own/UD Z15C omission reaches its actual syntax/guide/field
+barrier without market, grant or positive APERAK effects": Test timed out in
+120000ms. NATIVE_SUITE_FAILED is set at step line151. Phase diagnostics are
+allowlisted stage/field/elapsed values: field316 processing returns122278ms,
+protected assertions return122432ms, matrix_assertions_return122484ms.
+The source emits that final marker after final no-Z18 and empty-failure-list
+assertions. These observations identify the timeout and late completion;
+they do not turn the failed case into PASS, prove a product root cause, qualify
+the original archive/full input manifest, or authorize a timeout/gate change.
+Schema snapshot/parity selftest completed successfully, but the clean gate
+still exits1. Original red result, phase trace and source assertions are retained.
+Existing artifact11545810200 is preserved on run37758667777; no archive was
+downloaded or requalified. Bounded sanitized log excerpts are locally retained
+in /tmp/gridex-blocker-intake/pr709-terminal-excerpts.txt alongside job/run metadata.
+
+Read and accepted f6df79cb's bounded handoff6059010041/6059092086: this original709
+owner remains sole collector/qualifier. This diagnosis supplies its previously
+unknown exact case; it acquires no repair custody and duplicates no producer.
+Claude blocker-uwoj7c request6058909835 already proposes the same timeout repair
+and requests95bc's explicit custody clearance for exact test path/file701ac101.
+Current ref is absent, but that alone is not a handover. No clearance for that
+request was found in the board snapshot. Proposed300000ms is unimplemented and
+unapproved here; negative field/source/tenant/ACK/no-effects/replay assertions
+and ordinary mandatory gates must remain intact. Next rightful repair action:
+95bc confirm or hand over the precise remaining timeout scope; designated
+proxy fresh-checks custody/dependencies/actual main and reserves the exact path
+before Claude code. Owner2f retains699 SQL/GEN/capture/clean/parity collection;
+no699 job/log/artifact is collected or duplicated by this agent.
+
+Queue correction supersedes earlier blocked-P08 entries below: owner-authorized
+handover6057229927 and coordinator6057243035 already transferred ONLY P08/AT-P08
+to Claude Bardeen. Fresh original receipt672e62bc169c9ee667c4f73a5f84a0dbe5567f5b
+and live ID/file refs bind agent Claude, delegatedBy codex-root-coordinator.
+Bardeen verified all five refs in6057277716 and has draft710 source06a5287c.
+Z09B/Z09D/SC036 remain separate; extensions/releases belong to that documented
+proxy. Do not recreate or release those foreign refs. Conditional699 request
+remains WITHDRAWN6057135324; probe cleanup is already observed404, no duplicate.
+
+Next this owner: publish reviewed bounded BLOCKED receipt and checkpoint; retain
+the frozen709 source and own two exact file locks for resumed delivery. This is
+not an explicit relinquishment/RELEASE or a new packet. Await an authorized,
+independently reviewed dependency repair and genuine all-eight SUCCESS at the
+actual PR source; do not rerun/cancel/change CI or borrow711's green results.
+Then fresh main composition and two current independent delivery reviews,
+immediately free original GitData merge-role, normal expected-source merge,
+actual parent/tree/main verification, merge-role FIRST release and documented
+owner-only file release. Automation pauses only after actual709 delivery,
+verified own-resource release and documented queue state; that condition has
+not occurred. Remain quiet on unchanged states. No user approval is requested.
+
 Agent `codex-blocker-proxy-20261008-a7912b34`; packet `a7912b34-f5f8-4a3b-b0a1-f9d31fac2a3a`; branch `codex/blocker-proxy-20261008`.
 Worktree `/workspace/gridex-blocker-proxy`; base main `0b7d930ca67b8b78cb6e6f04b8f94eb7edac37ec`.
 Status: IMPLEMENTING, documentation only; no rule/acceptance IDs or coverage edits.
