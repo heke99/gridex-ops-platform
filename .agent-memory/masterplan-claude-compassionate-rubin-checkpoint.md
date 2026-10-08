@@ -160,3 +160,11 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
 - Verification: vitest 24/24 + 4/4; cjs ok; eslint 0; tsc tests 0; coverage --check 302 approved, 0 failing.
 - coverage.json: only SC-038 and SC-047 set to PASSED.
 - Next: independent review of the exact head, then PR, then mandatory CI, then role-merge/merge, then MERGED + RELEASE_REQUEST.
+- Independent review (GRANSKARE subagent, head e75647f): REQUEST_CHANGES with 3 Important findings. Addressed:
+  - (1) The joined SC-047 test now uses the production `matchUtiltsTransactionsForTenant`
+    (`matchStatus` is `unmatched`/`matched`) instead of a hand-written match.
+  - (2) Added a negative-role case: the receiver is not admitted, there is no metering_points read and no E10.
+  - (3) The SC-038 ground control is the real SQL scope function in the tagged cjs fixture (role, contract, area,
+    capability and source each held). The consumer test now documents that.
+  - Minor: Z70 added to the held case; cleanup moved to afterEach; asserted that no customers/customer_sites table is touched.
+- Re-verified: vitest 30/30; company-filter mutation still caught; eslint 0; tsc tests 0; coverage --check 302/0 failing.

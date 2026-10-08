@@ -2,12 +2,13 @@
 // SC-044: IDE1 correct, IDE2 guide error (plus a later functional fault),
 // IDE3 only functional. Each keeps its own layer; IDE2 is never reclassified
 // as functional by a global result.
-import {expect,it,vi} from 'vitest'
+import {afterEach,expect,it,vi} from 'vitest'
 import {resolveUtiltsTransactionDispositions,runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 import {matchMeteringPointForEdielMessage,matchMeteringPointIdByIdentifier} from '@/lib/ediel/matching'
 import {inboundLegalReceiverEdielId,resolveInboundTenantFromIdentifiers} from '@/lib/ediel/tenant/resolveInboundTenant'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {matchUtiltsTransactionsForTenant} from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 
 const issue=(kind:'application'|'functional',tx:string)=>({severity:'error' as const,kind,code:kind==='application'?'FIELD_REQUIRED':'UNKNOWN_OBJECT',
  title:'t',description:'d',referenceNumber:tx,lineItemReference:tx,...(kind==='application'?{aperakFieldCode:'245'}:{utiltsErrCode:'E10'})})
@@ -53,41 +54,56 @@ it('the object lookup reads only the own company and never creates an object',as
 })
 
 // SC-047 joined: the legal receiver NAD+MR and role are established through the
-// real tenant admission, the object is then looked up only in that tenant, is
-// unknown there (it exists only in another tenant) and the runtime gives E10.
-it('joined: admitted receiver and role, unknown own object, E10 without creating or cross-tenant lookup',async()=>{
+// real tenant admission, the production transaction matcher looks the object up
+// only in that tenant, it is unknown there (it exists only in another tenant)
+// and the runtime gives E10.
+const seedTenants=(roleA:string)=>{
  const from='2020-01-01T00:00:00Z'
- const tenant=(company:string,actor:string,edielId:string)=>({
+ const tenant=(company:string,actor:string,edielId:string,role:string)=>({
   tenant_ediel_profiles:[{id:`p-${company}`,company_id:company,environment:'test',market:'electricity',is_enabled:true,valid_from:from,valid_to:null}],
   tenant_actor_identifiers:[{id:`i-${company}`,company_id:company,environment:'test',actor_id:actor,identifier_type:'EdielId',identifier_value:edielId,valid_from:from,valid_to:null}],
-  tenant_actor_roles:[{id:`r-${company}`,company_id:company,environment:'test',actor_id:actor,role_code:'electricity_supplier',valid_from:from,valid_to:null}],
+  tenant_actor_roles:[{id:`r-${company}`,company_id:company,environment:'test',actor_id:actor,role_code:role,valid_from:from,valid_to:null}],
  })
- const a=tenant('tenant-a','actor-a','21660'),b=tenant('tenant-b','actor-b','99999')
+ const a=tenant('tenant-a','actor-a','21660',roleA),b=tenant('tenant-b','actor-b','99999','electricity_supplier')
  db.tables={tenant_ediel_profiles:[...a.tenant_ediel_profiles,...b.tenant_ediel_profiles],
   tenant_actor_identifiers:[...a.tenant_actor_identifiers,...b.tenant_actor_identifiers],
   tenant_actor_roles:[...a.tenant_actor_roles,...b.tenant_actor_roles],
   metering_points:[{id:'foreign-point',company_id:'tenant-b',meter_point_id:'735999260731000007',metering_point_id:'735999260731000007',ediel_reference:null}]}
  db.calls=[]
- const source={...energyHandoffMessage('2026-10-01'),company_id:null,metering_point_id:null} as EdielMessageRow
- const legal=inboundLegalReceiverEdielId(source.raw_payload,'21660')
- expect(legal).toBe('21660')
- const admitted=await resolveInboundTenantFromIdentifiers({environment:'test',messageFamily:'UTILTS',messageCode:'E66',receiverEdielId:'21660',marketActorEdielId:legal})
+}
+afterEach(()=>{db.tables={};db.calls=[]})
+const inbound=()=>({...energyHandoffMessage('2026-10-01'),company_id:null,metering_point_id:null}) as EdielMessageRow
+const admit=async(source:EdielMessageRow)=>resolveInboundTenantFromIdentifiers({environment:'test',messageFamily:'UTILTS',messageCode:'E66',
+ receiverEdielId:'21660',marketActorEdielId:inboundLegalReceiverEdielId(source.raw_payload,'21660')})
+const objectCheck=async(own:EdielMessageRow)=>{
+ const facts=runUtiltsRuntimeForMessage(own,{referenceDate:'2026-10-01'}).facts
+ const matches=await matchUtiltsTransactionsForTenant({message:own,facts})
+ return {matches,codes:runUtiltsRuntimeForMessage({...own,parsed_payload:{utiltsTransactionMatches:matches}},{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes}
+}
+it('joined: admitted receiver and role, unknown own object, E10 without creating or cross-tenant lookup',async()=>{
+ seedTenants('electricity_supplier')
+ const source=inbound()
+ expect(inboundLegalReceiverEdielId(source.raw_payload,'21660')).toBe('21660')
+ const admitted=await admit(source)
  expect(admitted).toMatchObject({status:'resolved',companyId:'tenant-a'})
- const own={...source,company_id:admitted.companyId,parsed_payload:{meteringPointId:'735999260731000007'}} as EdielMessageRow
- const matched=await matchMeteringPointForEdielMessage(own)
- expect(matched).toBeNull()
- const run=runUtiltsRuntimeForMessage({...own,metering_point_id:matched,parsed_payload:{utiltsTransactionMatches:[{transactionReference:'GRIDEX2607E66001',
-  externalMeteringPointId:'735999260731000007',externalGridAreaId:'TES',meteringPointId:matched,gridOwnerId:'grid',matchStatus:'missing'}]}},{referenceDate:'2026-10-01'})
- expect(run.ackPlan.utiltsErrCodes).toEqual(['E10'])
- const objectReads=db.calls.slice(db.calls.lastIndexOf('from:metering_points'))
- expect(objectReads).toContain('eq:company_id=tenant-a')
+ const own={...source,company_id:admitted.companyId} as EdielMessageRow
+ const unknown=await objectCheck(own)
+ expect(unknown.matches).toEqual([expect.objectContaining({externalMeteringPointId:'735999260731000007',meteringPointId:null,matchStatus:'unmatched'})])
+ expect(unknown.codes).toEqual(['E10'])
+ expect(db.calls).toContain('eq:company_id=tenant-a')
  expect(db.calls).not.toContain('eq:company_id=tenant-b')
  expect(db.calls.some(c=>/^(insert|upsert|update|delete):/.test(c))).toBe(false)
+ expect(db.calls.some(c=>/^from:(customers|customer_sites)$/.test(c))).toBe(false)
  // Contrast: the same admitted pipeline with an own-tenant object is not E10.
  db.tables.metering_points.push({id:'own-point',company_id:'tenant-a',meter_point_id:'735999260731000007',metering_point_id:null,ediel_reference:null})
- const ownMatch=await matchMeteringPointForEdielMessage(own)
- expect(ownMatch).toBe('own-point')
- expect(runUtiltsRuntimeForMessage({...own,metering_point_id:ownMatch,parsed_payload:{utiltsTransactionMatches:[{transactionReference:'GRIDEX2607E66001',
-  externalMeteringPointId:'735999260731000007',externalGridAreaId:'TES',meteringPointId:ownMatch,gridOwnerId:'grid',matchStatus:'matched'}]}},{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes).toEqual([])
- db.tables={}
+ const known=await objectCheck(own)
+ expect(known.matches).toEqual([expect.objectContaining({meteringPointId:'own-point',matchStatus:'matched'})])
+ expect(known.codes).toEqual([])
+})
+it('joined: a receiver without an admissible role is not admitted, so no object check or E10 is produced',async()=>{
+ seedTenants('invented_role')
+ const admitted=await admit(inbound())
+ expect(admitted.status).not.toBe('resolved'); expect(admitted.companyId).toBeNull()
+ expect(db.calls).not.toContain('from:metering_points')
+ expect(db.calls.some(c=>/^(insert|upsert|update|delete):/.test(c))).toBe(false)
 })

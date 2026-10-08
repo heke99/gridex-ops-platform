@@ -108,10 +108,17 @@ describe('SC-038 special processes are not blocked by an ordinary own-Z03 requir
   expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_supply_source_v1', { p_company_id: 'tenant-a', p_source_message_id: 'actual-source', p_actor_user_id: 'actor' })
   expect(io.from).not.toHaveBeenCalled(); expect(io.workflow).not.toHaveBeenCalled(); expect(io.notification).not.toHaveBeenCalled()
  })
- it.each(['Z04A', 'Z04D'])('%s keeps its own ground control: a missing legal ground is held, never an ordinary fallback', async code => {
+ // The ground control itself is the real SQL scope function (role, contract,
+ // grid area, capability, source), exercised by scripts/test-ediel-p-12-z04ad-scope.cjs;
+ // here: its refusal is held by the consumer, never an ordinary fallback.
+ it.each([
+  ['Z04A', { message_code: 'Z04A' }],
+  ['Z04D', { message_code: 'Z04D' }],
+  ['Z04 with Z70', { message_code: 'Z04', raw_payload: "UNH+1+PRODAT:D:96A:UN:E2SE'BGM+Z04::260+1'CAV+Z70'" }],
+ ] as const)('%s keeps its own ground control: a missing legal ground is held, never an ordinary fallback', async (_label, extra) => {
   io.lifecycle.mockImplementation(await real())
   io.rpc.mockResolvedValue({ data: { applied: false, reason: 'regulated_supply_authentic_ground_required' }, error: null })
-  const result = await applyInboundBusinessStateMachine({ actorUserId: 'actor', message: source({ message_code: code }) })
+  const result = await applyInboundBusinessStateMachine({ actorUserId: 'actor', message: source(extra as Partial<EdielMessageRow>) })
   expect(result).toMatchObject({ outcome: 'manual_review_required', reviewRequired: true })
   expect(result.updated).not.toContain('customer_supply_periods'); expect(result.updated).not.toContain('supplier_switch_requests')
   // Held for review only; no ordinary-switch lookup or replacement effect.
