@@ -1,5 +1,6 @@
 // masterplan: AT-Z13V-ESCO, AT-Z13VH-ESCO
-// Bounded request/ACK proof, not later Z14/N, history or whole-card approval.
+// Request/ACK and prospective public Z14-to-grant proof. Whole-card approval
+// additionally needs the declared business-role/direction/R-D refusals.
 // Only disposable identities, legal issuer inputs, counterpart bytes and
 // external SMTP are synthetic. All archive/review/send/intake/ACK owners run.
 import {createHash,randomUUID} from 'node:crypto'
@@ -18,6 +19,8 @@ import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelatio
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {renderContrl2Ediel2} from '@/lib/ediel/contrlEngine'
 import {renderAperakEdiel} from '@/lib/ediel/aperakEngine'
+import {renderProdat} from '@/lib/ediel/prodatEngine'
+import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -34,9 +37,10 @@ const hash=(raw:string)=>createHash('sha256').update(raw).digest('hex')
 beforeEach(resetNativeEscoFixture)
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
 
-async function request(mode:'V'|'VH'){
+async function request(mode:'V'|'VH',objectReply=false){
  const seeded=await seed(mode)
  configureProspectiveAckRoute(seeded)
+ const objectAckProfile=objectReply?configureProspectiveAckRoute(seeded,'APERAK'):null
  let f=seeded
  const sentinel=sql(`SELECT to_jsonb(a) FROM public.ediel_service_assignments a WHERE id=${lit(seeded.assignment)}`)
  if(mode==='VH'){
@@ -73,13 +77,13 @@ async function request(mode:'V'|'VH'){
   if(mode==='VH')expect(sql(`SELECT to_jsonb(a) FROM public.ediel_service_assignments a WHERE id=${lit(seeded.assignment)}`)).toEqual(sentinel)
  }
  checkSentinel()
- return{f,p,checkSentinel}
+ return{f,p,checkSentinel,objectAckProfile}
 }
 
 // External configuration input only, supplied before archive/send/ACK birth.
 // The shared E66 profile remains unchanged; the protected route selector,
 // source authority, real draft persistence and outbox insertion still run.
-function configureProspectiveAckRoute(f:Fixture){
+function configureProspectiveAckRoute(f:Fixture,family:'CONTRL'|'APERAK'='CONTRL'){
  const profile=randomUUID(),smtp=edielSmtpConfig()
  const images=(exclude?:string)=>sql(`SELECT jsonb_build_object(
   'routes',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.communication_routes r WHERE company_id IN (${lit(f.ids.company)},${lit(f.ids.beneficiary)})),
@@ -89,9 +93,9 @@ function configureProspectiveAckRoute(f:Fixture){
   message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,
   mailbox,smtp_host,smtp_port,smtp_to,receiver_email,message_family,business_code,
   sender_subaddress,sender_sub_address,receiver_subaddress,receiver_sub_address,transport_profile_id)
-  SELECT ${lit(profile)},company_id,communication_route_id,'Synthetic Z13 technical CONTRL only',environment,
+  SELECT ${lit(profile)},company_id,communication_route_id,${lit('Synthetic '+family+' only')},environment,
   message_standard,payload_format,sender_ediel_id,receiver_ediel_id,${lit(f.app)},is_enabled,is_active,
-  mailbox,smtp_host,smtp_port,smtp_to,receiver_email,'CONTRL','CONTRL',
+  mailbox,smtp_host,smtp_port,smtp_to,receiver_email,${lit(family)},${lit(family)},
   sender_subaddress,sender_sub_address,receiver_subaddress,receiver_sub_address,transport_profile_id
   FROM public.ediel_route_profiles WHERE id=${lit(f.ids.ackProfile)} AND company_id=${lit(f.ids.company)}`)
  expect(images(profile)).toEqual(before)
@@ -103,7 +107,7 @@ function configureProspectiveAckRoute(f:Fixture){
   WHERE r.company_id=${lit(f.ids.company)} AND r.is_active AND r.route_scope='ediel_ack'
   AND r.environment_type::text IN ('tgt_test','agt_test','bilateral_test')
   AND p.environment='test' AND p.is_enabled AND p.is_active AND p.message_standard='edifact' AND p.payload_format='edifact'
-  AND (p.message_family IS NULL OR p.message_family='CONTRL') AND (p.business_code IS NULL OR p.business_code='CONTRL')
+  AND (p.message_family IS NULL OR p.message_family=${lit(family)}) AND (p.business_code IS NULL OR p.business_code=${lit(family)})
   AND p.sender_ediel_id=${lit(f.sender)} AND p.receiver_ediel_id=${lit(f.receiver)}
   AND coalesce(p.sender_subaddress,p.sender_sub_address,'')='' AND coalesce(p.receiver_subaddress,p.receiver_sub_address,'')=''
   AND (p.sender_subaddress IS NULL OR p.sender_sub_address IS NULL OR p.sender_subaddress=p.sender_sub_address)
@@ -114,6 +118,7 @@ function configureProspectiveAckRoute(f:Fixture){
    OR(tp.id IS NOT NULL AND tp.is_active AND tp.transport_channel='smtp' AND tp.direction IN ('outbound','both')
     AND tp.sender_email=${lit(smtp.from)} AND tp.host=${lit(smtp.host)} AND tp.port=${lit(smtp.port)}
     AND (p.smtp_host IS NULL OR p.smtp_host=${lit(smtp.host)}) AND (p.smtp_port IS NULL OR p.smtp_port=${lit(smtp.port)})))`)).toBe(1)
+ return profile
 }
 
 // Full row images, not count-only absence assertions. Journal/status deltas
@@ -125,7 +130,7 @@ function business(f:Fixture,p:Pending){
   'customer_supply_periods','supplier_switch_requests','meter_reading_series','meter_reading_values',
   'metering_permission_sites','ediel_service_history','communication_routes','ediel_route_profiles']
  const rows=tables.map(table=>`'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.${table} r WHERE ${table==='companies'?'id':'company_id'} IN ${companies})`)
- return sql(`SELECT jsonb_build_object(${rows.join(',')},
+ return sql<Record<string,unknown>>(`SELECT jsonb_build_object(${rows.join(',')},
   'permissions',(SELECT coalesce(jsonb_agg(CASE WHEN r.id=${lit(p.permissionId)} THEN to_jsonb(r)-ARRAY['status','updated_at','updated_by'] ELSE to_jsonb(r) END ORDER BY r.id),'[]') FROM public.metering_permissions r WHERE company_id IN ${companies}),
   'permissionEffects',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM gridex_received_sources.permission_effect_receipts r WHERE company_id IN ${companies}),
   'permissionTransitions',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM gridex_received_sources.permission_effect_transitions_v1 r WHERE company_id IN ${companies}),
@@ -347,7 +352,167 @@ function observeAckFailure(f:Fixture,message:EdielMessageRow){
  }catch{console.info('NATIVE_ACK_OBSERVATION '+JSON.stringify({diagnosticAvailable:false}))}
 }
 
+// Declared prospective grid-owner counterpart bytes. This does not choose a
+// database profile, mint a canonical assessment or apply a permission.
+function positiveZ14(f:Fixture,p:Pending){
+ const rendered=renderProdat({code:'Z14',variant:f.mode,mode:'test',
+  actor:{senderEdielId:f.receiver,receiverEdielId:f.sender},route:{applicationReference:f.app},
+  version:{selectedVersion:'E2SE6A',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A'},
+  context:{code:'Z14',bgmReference:randomUUID().replaceAll('-','').slice(0,20),transactionReference:p.li,
+   senderEdielId:f.receiver,receiverEdielId:f.sender,legalSenderId:f.receiver,legalReceiverId:f.sender,
+   customerName:'Synthetic Customer',customerId:'199001011234',customerIdCodeListQualifier:'SE2',customerIdAgency:'260',customerCountry:'SE',
+   meterPointId:f.point,gridAreaId:'TES',reasonForTransaction:f.mode==='V'?'S17':'S18',permissionStatus:'A74',permissionPurpose:'B72',
+   permissionId:'SYNTHETIC-PERMISSION-'+p.permissionId.slice(0,8),permissionTimestamp:new Date().toISOString(),
+   reportStartDate:f.fields.data_start,reportEndDate:f.fields.data_end,reportingFrequency:'D',energyProductId:f.product,
+   observationLength:'60',observationLengthFormat:'806',meteringMethod:'Z04',installationDirection:'E19',
+   siteAddress:'Synthetic Street 1',siteCity:'Teststad',sitePostalCode:'12345',siteCountry:'SE',siteIdAgency:'9'}})
+ // Request-dependent facts stay with the received reporting owner. This
+ // renderer cannot qualify them; the public processor must accept them.
+ expect(rendered.issues.filter(x=>x.severity==='error'&&!/_UNDETERMINED$/.test(x.code)),JSON.stringify(rendered.issues)).toEqual([])
+ return EdifactEnvelopeCodec.encode({sender:f.receiver,receiver:f.sender,applicationReference:f.app,
+  interchangeReference:randomUUID().replaceAll('-','').slice(0,14),environment:'test',acknowledgementRequest:true,
+  messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:rendered.segments}]})
+}
+
+async function currentPermission(f:Fixture,p:Pending){
+ const result=await supabaseService.from('metering_permissions').select('*').eq('company_id',f.ids.company).eq('id',p.permissionId).single()
+ if(result.error)throw result.error
+ return result.data
+}
+
+// Allow only the explicitly asserted own source transition and one exact
+// grant. Every prior/foreign row and every other business table stays whole.
+function continuationInvariant(image:Record<string,unknown>,f:Fixture,p:Pending,sourceId:string,grantId?:string){
+ const result={...image}
+ const select=(key:string,changed:(row:Record<string,unknown>)=>boolean)=>{
+  result[key]=(image[key] as Record<string,unknown>[]).filter(row=>!changed(row))
+ }
+ const own=(row:Record<string,unknown>)=>row.company_id===f.ids.company
+ select('permissions',row=>own(row)&&row.id===p.permissionId)
+ select('metering_permission_sites',row=>own(row)&&row.metering_permission_id===p.permissionId&&row.facility_id===f.point)
+ for(const key of ['permissionEffects','permissionTransitions'])select(key,row=>own(row)&&row.permission_id===p.permissionId&&row.source_message_id===sourceId)
+ if(grantId){
+  select('ediel_data_access_grants',row=>own(row)&&row.id===grantId&&row.assignment_id===f.assignment)
+  select('ediel_service_history',row=>own(row)&&row.entity_table==='ediel_data_access_grants'&&row.entity_id===grantId)
+ }
+ return result
+}
+
+async function committedZ14Replies(f:Fixture,p:Pending,source:EdielMessageRow,previous:Record<string,unknown>[],profile:string){
+ const after=fullOutbox(f)
+ for(const row of previous)expect(after.find(candidate=>candidate.id===row.id)).toEqual(row)
+ const added=after.filter(row=>!previous.some(old=>old.id===row.id))
+ expect(added).toHaveLength(2)
+ expect(added.map(row=>row.message_family).sort()).toEqual(['APERAK','CONTRL'])
+ const wire=tokenizeEdifact(source.raw_payload!),line=wire.segments.find(s=>s.tag==='LIN')!
+ for(const queue of added){
+  expect(queue).toMatchObject({company_id:f.ids.company,environment:'test',source_message_id:source.id,
+   ack_outcome:'positive',status:'queued',attempts:0})
+  const ack=(await getEdielMessageById(String(queue.ediel_message_id)))!
+  expect(ack).toMatchObject({company_id:f.ids.company,environment:'test',direction:'outbound',related_message_id:source.id,
+   message_family:queue.message_family,ack_outcome:'positive'})
+  const envelope=EdifactEnvelopeCodec.decode(ack.raw_payload!),physical=readPhysicalAckSourceCorrelation(ack,source)
+  expect([envelope.sender,envelope.receiver]).toEqual([f.sender,f.receiver])
+  expect(physical.classification.outcome).toBe('positive')
+  if(ack.message_family==='CONTRL'){
+   expect(physical.scope).toBe('interchange')
+   expect(physical.acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(source.raw_payload!).interchangeReference])
+  }else{
+   expect(ack.route_profile_id).toBe(profile)
+   expect(physical.prodatObjectOutcomes).toEqual([{objectId:f.point,identityAgency:'9',firstLineIndex:line.index,lineItemReference:p.li,outcome:'positive'}])
+   expect(envelope.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,envelope.una)[0])).toEqual(['100'])
+  }
+  expect(sql(`SELECT to_jsonb(immutable_payload_hash) FROM public.ediel_messages WHERE id=${lit(ack.id)}`)).toBe(hash(ack.raw_payload!))
+ }
+ const plan=await readReceivedProdatFinalResponsePlan({companyId:f.ids.company,sourceMessageId:source.id,rawPayload:source.raw_payload!})
+ expect(plan?.plans).toHaveLength(1)
+ expect(plan!.plans[0]).toMatchObject({effectKind:'metering_permission',outcome:'positive',objectLineIndices:[line.index]})
+ expect(sql(`SELECT jsonb_build_object('source',source_message_id,'company',company_id,'hash',payload_hash,'canonical',canonical_assessment_id,'permission',permission_id,'original',qualified_original_message_id)
+  FROM gridex_received_sources.permission_effect_receipts WHERE id=${lit(plan!.plans[0].effectReceiptId)}`)).toEqual({source:source.id,company:f.ids.company,
+   hash:hash(source.raw_payload!),canonical:plan!.plans[0].canonicalAssessmentId,permission:p.permissionId,original:p.z13.id})
+ return after
+}
+
+async function continueToPublishedGrant(f:Fixture,p:Pending,profile:string,checkSentinel:()=>void){
+ const before=business(f,p),waiting=await permission(f,p),queues=fullOutbox(f),original=(await getEdielMessageById(p.z13.id))!
+ expect(waiting.status).toBe('waiting_for_customer_approval')
+ await noAccess(f,p)
+ const source=await intake(f,p,positiveZ14(f,p))
+ expect(source).toMatchObject({message_family:'PRODAT',message_code:'Z14'})
+ expect(business(f,p)).toEqual(before)
+ // The first source/domain invocation is the real public processor. Public
+ // birth must choose V/VH itself; a missing selector is genuine RED here.
+ await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
+ const active=await currentPermission(f,p),mode=f.mode==='V'?'S17':'S18',after=business(f,p)
+ expect(active).toMatchObject({status:'active',source_z13_message_id:p.z13.id,source_z14_message_id:source.id,inbound_z14_message_id:source.id,
+  customer_id:f.ids.customer,rff_li_reference:p.li,permission_id:'SYNTHETIC-PERMISSION-'+p.permissionId.slice(0,8)})
+ expect(Number(active.market_state_version)).toBe(Number(waiting.market_state_version??0)+1)
+ expect(active.metadata).toMatchObject({marketPermission:{mode,legalActor:f.sender,dsoActor:f.receiver,sourceZ14:source.id,
+  objects:expect.arrayContaining([expect.objectContaining({point:f.point,product:f.product,status:'A74'})])}})
+ const sites=sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.metering_permission_sites s
+  WHERE company_id=${lit(f.ids.company)} AND metering_permission_id=${lit(p.permissionId)}`)
+ expect(sites).toHaveLength(1)
+ expect(sites[0]).toMatchObject({customer_id:f.ids.customer,facility_id:f.point,status:'approved',
+  metadata:{source:'inbound_prodat_z14',edielMessageId:source.id,mode,product:f.product}})
+ expect(Date.parse(String(sites[0].start_at))).toBe(Date.parse(f.fields.data_start))
+ if(f.fields.data_end)expect(Date.parse(String(sites[0].end_at))).toBe(Date.parse(f.fields.data_end))
+ else expect(sites[0].end_at).toBeNull()
+ expect(continuationInvariant(after,f,p,source.id)).toEqual(continuationInvariant(before,f,p,source.id))
+ const stableQueues=await committedZ14Replies(f,p,source,queues,profile)
+ expect(await readEdielServiceAdministration({companyId:f.ids.company,actorUserId:f.ids.actor,assignmentId:f.assignment})).toMatchObject({grants:[]})
+ const link=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_assignment_permission_links WHERE company_id=${lit(f.ids.company)} AND assignment_id=${lit(f.assignment)} AND permission_id=${lit(p.permissionId)}`)
+ const fields={permission_link_id:link,object_ids:[f.point],product_ids:[f.product],fields:f.fields.field_sets,
+  data_start:f.fields.data_start,data_end:f.fields.data_end,valid_from:f.fields.valid_from,valid_to:f.fields.valid_to}
+ const create=(scope=fields)=>f.command({action:'create_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version,fields:scope})
+ // A public command cannot expand the actual assignment's object scope.
+ await expect(create({...fields,object_ids:[f.point,'735999260731999999']})).rejects.toMatchObject({message:'ediel_grant_scope_exceeds_assignment'})
+ expect(business(f,p)).toEqual(after);expect(fullOutbox(f)).toEqual(stableQueues)
+ const grant=await create()
+ expect(grant).toMatchObject({status:'held',assignmentId:f.assignment,accessGranted:false})
+ const grantId=String(grant.grantId),grantRow=()=>sql<Record<string,unknown>>(`SELECT to_jsonb(g) FROM public.ediel_data_access_grants g WHERE company_id=${lit(f.ids.company)} AND id=${lit(grantId)}`)
+ const held=grantRow()
+ expect(held).toMatchObject({company_id:f.ids.company,beneficiary_company_id:f.ids.beneficiary,assignment_id:f.assignment,status:'held',
+  permission_link_id:link,object_ids:[f.point],product_ids:[f.product],fields:f.fields.field_sets,purpose:f.fields.purpose})
+ for(const key of ['data_start','data_end','valid_from','valid_to'] as const){
+  if(fields[key]===null)expect(held[key]).toBeNull()
+  else expect(Date.parse(String(held[key]))).toBe(Date.parse(fields[key]!))
+ }
+ expect(await readEdielServiceAdministration({companyId:f.ids.company,actorUserId:f.ids.actor,assignmentId:f.assignment})).toMatchObject({grants:[held]})
+ const publishCommand={action:'publish_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version,
+  grantId,expectedGrantVersion:Number(held.version)}
+ const published=await f.command(publishCommand)
+ expect(published).toMatchObject({status:'active',grantId,accessGranted:true})
+ const live=grantRow(),{status,version,updated_at,...liveScope}=live
+ void status;void version;void updated_at
+ const {status:heldStatus,version:heldVersion,updated_at:heldTime,...heldScope}=held
+ void heldStatus;void heldVersion;void heldTime
+ expect(liveScope).toEqual(heldScope);expect(live.status).toBe('active');expect(Number(live.version)).toBe(Number(held.version)+1)
+ const final=business(f,p)
+ expect(continuationInvariant(final,f,p,source.id,grantId)).toEqual(continuationInvariant(before,f,p,source.id,grantId))
+ expect(fullOutbox(f)).toEqual(stableQueues)
+ await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
+ expect(await f.command(publishCommand)).toEqual(published)
+ expect(business(f,p)).toEqual(final);expect(fullOutbox(f)).toEqual(stableQueues)
+ expect(await currentPermission(f,p)).toEqual(active)
+ expect((await getEdielMessageById(source.id))?.raw_payload).toBe(source.raw_payload)
+ expect((await getEdielMessageById(p.z13.id))?.raw_payload).toBe(original.raw_payload)
+ expect(sql(`SELECT to_jsonb(immutable_payload_hash) FROM public.ediel_messages WHERE id=${lit(source.id)}`)).toBe(hash(source.raw_payload!))
+ expect(await readEdielServiceAdministration({companyId:f.ids.company,actorUserId:f.ids.actor,assignmentId:f.assignment})).toMatchObject({grants:[live]})
+ checkSentinel()
+}
+
 for(const mode of ['V','VH'] as const){
+ it(`${mode}: public Z14 after actual request ACKs grants only the separately published beneficiary scope; immutable replay`,async()=>{
+  const{f,p,objectAckProfile,checkSentinel}=await request(mode,true)
+  expect(objectAckProfile).toBeTruthy()
+  for(const family of ['CONTRL','APERAK'] as const){
+   const ack=await intake(f,p,counterpart(p,family))
+   expect(await consume(f,ack)).toMatchObject({kind:'exact_receipt',sourceMessageId:p.z13.id,
+    result:{outcome:'positive',sourceAccepted:family==='APERAK',finalAckReached:family==='APERAK'}})
+  }
+  await continueToPublishedGrant(f,p,objectAckProfile!,checkSentinel)
+ },120000)
+
  it(`${mode}: actual Z13 receives CONTRL then object APERAK; waits for customer without access, immutable replay`,async()=>{
   const{f,p,checkSentinel}=await request(mode),before=business(f,p),pending=await permission(f,p),acks:EdielMessageRow[]=[]
   await noAccess(f,p)
