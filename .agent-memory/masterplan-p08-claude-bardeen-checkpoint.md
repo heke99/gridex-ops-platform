@@ -73,3 +73,20 @@ From this session, still all refused, nothing created (ls-remote confirms absent
 No P-08 refs acquired; no CLAIM; no code. A proxy policy change may only apply to new sessions.
 Next: owner verifies from a freshly started Claude session (or blocker agent posts a create+delete receipt);
 P-08 custody release from the original author still also required.
+
+## Owner proxy authorization + waiting (2026-10-08)
+
+#673/6056938983 supersedes 6056709473: a Codex coordinator may run masterplan-reservation-v1 on my
+behalf (receipt.agent = me, delegatedBy = coordinator). I stop tag probing. Waiting for (1) documented
+P-08 custody handover and (2) coordinator receipt; I verify refs with `git ls-remote` before CLAIM/code.
+
+## Read-only finding: P-08 remaining scope is wider than my request
+
+`masterplan-codex-20261006-95bc00df11da-replay-cleanup-checkpoint.md:101` records
+P-08, AT-P-08, AT-Z09B-SUPPLIER, AT-Z09D-SUPPLIER as RETAINED_WHOLE_CUSTODY by the original Claude
+P-08 author. Open criteria: exact 210 XOR 211, production relation 92/93, 40/109 negatives, and the
+physical own request/original/ACK/history/BRP/activation chain — not only the ACK-confirmation trigger.
+So my 3-file native-trigger test alone would NOT close P-08. On handover, the scope/file set must be
+re-specified (likely include producer path lib/ediel/intent/productionContractGateway.ts,
+renderers/productionContract.ts, flows/prodatProductionContract.ts consumers as read-only, and a native
+test modelled on scripts/ediel-at-z04d-production-native.test.ts). Coverage only when every criterion is proved.
