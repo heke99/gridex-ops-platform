@@ -22,3 +22,17 @@ locks held. Only this unique checkpoint is written (needs no shared lock).
   out). Proof route: the official mandatory `quality-release-gates` on the published
   #699 head; no fixture change, no waived gate.
 - Next: post receipt to #673; select next blocker.
+
+## B2 — main clean-migration-replay RED: Z15C omission case timeout (2026-10-08)
+
+- Status: READY, WAITING proxy reservation (request #673 6058909835). No code yet.
+- Evidence: main 1c4980e6 job 113254829237 and #709 job 113249446960, only failure
+  `scripts/ediel-at-z15c-z18v-esco-native.test.ts:148`, timeout 120000 ms;
+  `matrix_assertions_return` (after all assertions) at 125446 / 122484 ms.
+  ~90 s in real `process(f,source)` over ~22 fields; no outlier field.
+- Fix: per-test timeout `},300000)` at line 405 only. No oracle/config change.
+- Resource: file-701ac10114a78366bf6538d7aab86eaf7f3c775c4fd58b6568dea933269a1bc3
+  (404 at request; prior holder 95bc diagnostic path, asked to confirm).
+- Proof: clean-migration-replay SUCCESS on fix head with that case PASS + all
+  mandatory checks; then merge under role-merge (proxy) and release.
+- Next: on verified ref → commit fix, open PR, request independent review.
