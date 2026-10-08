@@ -179,7 +179,6 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
     if (sha256(restored) !== originalDigest) throw Error('fixture_reviewed_esco_original_digest_mismatch')
     return restored
   }
-  }
   // Restore only the exact proposed billing include inside this historical
   // finite Git port; real producer source pins remain unchanged.
   if (file === 'scripts/ediel-source-owner-native.config.ts'
@@ -189,6 +188,7 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
     if (current.split(addition).length !== 2) throw Error('fixture_reviewed_billing_include_not_unique')
     bytes = Buffer.from(current.replace(addition, ''))
     if (sha256(bytes) !== '7461db28b3fbd1546bd45e9b5fe4a470bba786460731d215a675828d0903fedf') throw Error('fixture_reviewed_billing_config_inverse_digest_mismatch')
+  }
   const additions = file === 'scripts/ediel-source-owner-native.config.ts'
     ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n", "    'scripts/ediel-at-z15c-z18v-esco-native.test.ts',\n", "    'scripts/ediel-at-z14n-esco-native.test.ts',\n"]
     : file === '.github/workflows/ops-hardening.yml'
