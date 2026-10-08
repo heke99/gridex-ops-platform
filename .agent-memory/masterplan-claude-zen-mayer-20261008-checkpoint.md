@@ -43,7 +43,7 @@ then write code.
 
 ## Selection 2026-10-08 ~15:50Z — REQUESTED (not claimed)
 
-Packet `e7c4a1d2-6b3f-4f0e-9a51-zen0mayer031` (request only). Main `6b87c1a9`.
+Packet `3149601e-918f-4678-97c6-4a8e41af08d6` (request only). Main `6b87c1a9`.
 Selected acceptance-only pair **SC-031 + SC-046**: unclaimed (no id refs) and not requested on
 #673. Remaining custody sits with the stalled original P/U/SC Claude custodian
 (session_01RxmpLE…, 5990498953), the same custodian whose duties were already transferred
