@@ -505,3 +505,14 @@ Unique clean WT /workspace/gridex-ediel-b6d3-h-invalid306-41f5172a exact1897 cre
 MEANINGFUL_RED field306 — same H1102/b6d3. Verified extension CLAIM6067130828/receipt912e2b22/all7GETMATCH precedes code. Test-only commit f09f0c10ec901d3b3bf37c6740eae9f4ddfb3760 on actualmain1897: actual canonical selected306 consumer accepts physical E22, observed [] vs expected one invalid306/ERC42 with ownpoint/LI. Node22 Vitest 1FAIL/trueexit1, h-invalid306-meaningful-red.log/result preserved. Initial fixture missing explicit APP stopped setup; corrected APP matches physical UNB, initial failure preserved. No production change yet.
 
 NEXT ROOT minimal306 allowedValues Z11/Z12, actual invalid/national/healthy/Z06optional-and-required/gray/register/UNA/immutability controls then affectedfinite/NI/lint/source2+self. No changes to heldruntime/validator/SQL/GEN/native or current7208c; original transport/physicalnegative whole requirements stay blocked with existing named owners. No whole coverage/native credit.
+
+
+## 2026-10-08 — actual306 localGREEN; full affectedfixture baseline diagnosis
+
+IMPLEMENTING sameH306 / prospective fixture compatibility amendment — b6d3, soleH1102.
+
+Local production+new30-case suite commit 2903f52fc149a9ce02c4a020678dcbfadcb62d27 after meaningfulREDf09f0c10/CLAIM6067130828. Exactly existing306 descriptor allowedValuesZ11/Z12; actual nationalERC42/ownrefs/healthyZ06/gray/register/UNA controls30PASS. Broader actual38finite1228cases: mainbaseline1228PASS0FAIL/exit0, ONLY306constant1112PASS116FAIL/exit1. Entire logs/JSON/comparison preserved; no preexisting failures. Old sixsuite251245PASS6FAIL additionally preserved. Legacy positiveE22 data blocks the intended independently healthy controls; invalidE22 must stayrejected.
+
+Prospective explicit amendment PLAN602a4a0a/manifest301b2192 exact18 additionaltest/fixturepaths under2independentreview, NO additional custody/edit yet.8directpositiveCAV0 literals E22→Z12; original ownerSource default wire/hash/UNKNOWN/sourceCodes remains unchanged, new named explicitstatus constructor beforebirth/hash,9actualfailedpositivecallerfiles chooseZ12. Assertions/security/replay/native E22/coverage/production consumers unchanged; no broad rewrite or privateauthority. Full fresh100refs33receipts list no exactcandidate custody; actualallrequiredrefs/CP673CLAIM required before edit.
+
+Actual7208c allnine mandatorySUCCESS (currentclean113460225399 andcertificate113464057586 nowSUCCESS). HnativeFAILURE/console85P15F and original11570116577 stillNOT_DOWNLOADED/NOT_QUALIFIED; noCI_GREEN delivery/merge/wholeH because requiredoriginal+runtimephysicalnegative criteria stayblocked. Existingtransportrequest6066367326; CORE/2f namedoutputs/699235GEN17 remainindependent unmerged. ROOT nextfinishfixturePLAN2+self→exactfreeadditionalfiles atomicextension/CLAIM→prospectivefixturefix→affectedfinite/NI/lint/SOURCE2+self→source-onlyhandoff. No newnative/GEN/publicproducer orpair/heldcode edit.
