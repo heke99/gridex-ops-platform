@@ -86,7 +86,7 @@ describe('prospective physical Z14 catalog witness selection', () => {
   it('uses the actual UNA separator alphabet', async () => {
     const una = { componentDataElementSeparator: ':', dataElementSeparator: ';', decimalMark: '.',
       releaseCharacter: '!', repetitionSeparator: ' ', segmentTerminator: '~' }
-    expectWitness(await select(wire(object().map(s => s.replaceAll('+', ';')), { una })), row())
+    expectWitness(await select(wire(object(), { una })), row())
   })
 
   const refusals: [string, () => string | null | undefined][] = [
@@ -105,7 +105,7 @@ describe('prospective physical Z14 catalog witness selection', () => {
     ['late selector after NAD', () => wire(['LIN+1', 'NAD+UD+TEST:::89', 'CCI++Z13', 'CAV+S17', 'RFF+LI:OWN'])],
     ['nonadjacent CAV', () => wire(['LIN+1', 'CCI++Z13', 'DTM+93:202610070000:203', 'CAV+S17', 'RFF+LI:OWN'])],
     ['padded qualifier', () => wire(object().map(s => s === 'CCI++Z13' ? 'CCI++ Z13' : s))],
-    ['padded CCI token', () => wire(object().map(s => s === 'CCI++Z13' ? ' CCI++Z13' : s))],
+    ['padded CCI token', () => wire().replace("'CCI++Z13'", "' CCI++Z13'")],
     ['padded reason', () => wire(object('S17 '))], ['lowercase reason', () => wire(object('s17'))],
     ['lowercase qualifier', () => wire(object().map(s => s === 'CCI++Z13' ? 'CCI++z13' : s))],
     ['CCI extra component', () => wire(object().map(s => s === 'CCI++Z13' ? 'CCI++Z13:EXTRA' : s))],
@@ -124,14 +124,17 @@ describe('prospective physical Z14 catalog witness selection', () => {
     ['unsupported C829', () => wire(['LIN+1++735999000000000001:::9+1:1', ...object().slice(1)])],
     ['bad LIN sequence', () => wire(object('S17', '2'))],
     ['wrong application', () => wire(object(), { application: '23-DDQ-PRODAT' })],
-    ['padded application', () => wire(object(), { application: ' 23-DGI-PRODAT' })],
+    ['padded application', () => wire().replace('23-DGI-PRODAT', ' 23-DGI-PRODAT')],
     ['application extra component', () => wire().replace('23-DGI-PRODAT', '23-DGI-PRODAT:EXTRA')],
     ['wrong code', () => wire(object(), { code: 'Z13' })],
     ['wrong family', () => wire().replace('PRODAT:D:97A', 'UTILTS:D:97A')],
     ['wrong message release', () => wire().replace('PRODAT:D:97A', 'PRODAT:D:96A')],
     ['duplicate BGM', () => wire(['BGM+Z14+OTHER+9+AB', ...object()])],
     ['late BGM', () => wire().replace("BGM+Z14+PERM-DOC+9+AB'", '').replace("UNZ+1+PERMTEST1'", "BGM+Z14+PERM-DOC+9+AB'UNZ+1+PERMTEST1'")],
-    ['second UNH', () => wire(['UNH+SECOND+PRODAT:D:97A:UN:E2SE6A', ...object()])],
+    ['second UNH', () => {
+      const original = wire(), second = original.slice(original.indexOf('UNH'), original.indexOf('UNZ')).replaceAll('PERM1', 'PERM2')
+      return original.replace("UNZ+1+PERMTEST1'", second + "UNZ+2+PERMTEST1'")
+    }],
     ['wrong UNT', () => wire().replace(/UNT\+\d+\+PERM1/, 'UNT+999+PERM1')],
     ['wrong UNZ', () => wire().replace('UNZ+1+PERMTEST1', 'UNZ+2+PERMTEST1')],
     ['dangling release', () => wire() + '?'],
