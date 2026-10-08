@@ -15,9 +15,20 @@ import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {supabaseService} from '@/lib/supabase/service'
 
-import {guideOrderedFixtureRaw} from '../../__tests__/helpers/prodatGuideOrderedFixture'
+import {guideOrderedFixtureBody} from '../../__tests__/helpers/prodatGuideOrderedFixture'
 import {line,qty,common,characteristic,type Parts} from '../../__tests__/fixtures/prodat-register'
-import {head} from '../../__tests__/fixtures/prodat-identity'
+import {seedOriginalMailboxNative} from './originalMailboxNative'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {segmentComposite,segmentElementCount,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {originalAckPartyIdentities,originalAckLegalNadSegment} from '@/lib/ediel/core/originalAckPartyIdentities'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {prodatRegisterReadingState} from '@/lib/ediel/prodat/prodatRegisterReadings'
+import {readSourceQualifiedProdatBilateralCapability} from '@/lib/ediel/core/prodatBilateralSourceCapability'
+import {qualifyPersistedBilateralProdatOutboundOriginal} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
+import {matchMeteringPointForInbound,matchOutboundRequestForInbound} from '@/lib/inbound-mail/inboundMatcher'
+import {inboundLegalReceiverEdielId,resolveInboundTenantFromIdentifiers} from '@/lib/ediel/tenant/resolveInboundTenant'
+import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
+import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 
@@ -37,19 +48,132 @@ async function receivedHStart(){
  const f=await authorized(),original=await originate(f)
  for(const [name,value]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(name,value)
  provider.mockReset();provider.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[],messageId:'synthetic-H-start-original',response:'250 synthetic accepted'})
- await sendEdielMessageViaSmtp((await getEdielMessageById(original.id))!,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})
- const physical=sql<{objects:{start:string;li:string}[]}>(`SELECT gridex_received_sources.normal_switch_wire_v1(${literal(original.raw_payload)})`).objects[0]
- const body:Parts[]=[...head().map(p=>p[0]==='NAD'&&p[1]==='FR'?['NAD','FR',[f.receiver,'160','SVK'],'','','','','','','SE']:p[0]==='NAD'&&p[1]==='DO'?['NAD','DO',[f.sender,'160','SVK'],'','','','','','','SE']:p),line('1',f.external,undefined,'9'),qty('1000'),...common(f.external,'Synthetic',physical.start),...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],['NAD','IT',[f.external,'','9'],'','','Street','Town','','12345','SE'],['NAD','Z02',[f.sender,'160','SVK']]]
- const own=body.map(p=>p[0]==='CAV'&&Array.isArray(p[1])&&p[1][0]==='Z22'?['CAV',['Z25']]:p[0]==='RFF'&&Array.isArray(p[1])&&p[1][0]==='LI'?['RFF',['LI',physical.li]]:p[0]==='RFF'&&Array.isArray(p[1])&&p[1][0]==='Z05'?['RFF',['Z05',f.gridAreaCode]]:p[0]==='NAD'&&p[1]==='UD'?['NAD','UD',[f.customerIdentity.id,f.customerIdentity.qualifier,f.customerIdentity.agency],'','Synthetic','Street','City','','12345','SE']:p) as Parts[]
- const wire=guideOrderedFixtureRaw(own,'Z04').replace('+S+R+',`+${f.receiver}:14+${f.sender}:14+`).replace("++23-DDQ-PRODAT'","++23-DDQ-PRODAT++1++1'").replace(/\+I(\+\+23-DDQ-PRODAT\+\+1\+\+1')([\s\S]*UNZ\+1\+)I'/,(_,unb:string,mid:string)=>{const id=`I${randomUUID().replaceAll('-','').slice(0,12)}`;return `+${id}${unb}${mid}${id}'`}) /* own interchange per inbound */,sourceId=randomUUID(),routeId=randomUUID(),profileId=randomUUID()
- sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email) VALUES(${literal(routeId)},${literal(f.companyId)},'Synthetic H ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
- INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email) VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Synthetic H ACK profile','test','edifact',${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,'unencrypted','recipient@example.invalid','recipient@example.invalid');
- INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
- SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},'{"subtype":"H","prodatDependentFacts":{"market":"electricity","meterReadingsSentInUtilts":false}}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:H:26.A:r3' AND profile.is_enabled;`)
- const source=(await getEdielMessageById(sourceId))!;expect(source).not.toBeNull()
+ const sent=await sendEdielMessageViaSmtp((await getEdielMessageById(original.id))!,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})
+ expect(sent.accepted).toEqual(['recipient@example.invalid']);expect(sent.rejected).toEqual([])
+ const qualification=await qualifyPersistedBilateralProdatOutboundOriginal(original,f.actorUserId)
+ expect(qualification.qualification?.objects).toEqual([expect.objectContaining({profileVersionId:f.profileVersionId,
+  process:'normal_start_h',objectId:f.external,customerId:f.customerId,siteId:f.siteId,contractId:f.contractId})])
+ const originals=sql<{objects:{start:string;li:string}[]}>(`SELECT gridex_received_sources.normal_switch_wire_v1(${literal(original.raw_payload)})`).objects
+ expect(originals).toHaveLength(1);const physical=originals[0]
+ const parts=(raw:string):Parts[]=>{const wire=tokenizeEdifact(raw);return wire.segments.map(s=>[s.tag,
+  ...Array.from({length:segmentElementCount(s,wire.una)},(_,i)=>{const values=segmentComposite(s,i+1,wire.una);return values.length===1?values[0]:values})])}
+ const originalParts=parts(original.raw_payload!),endUsers=originalParts.filter(p=>p[0]==='NAD'&&p[1]==='UD')
+ expect(endUsers).toHaveLength(1)
+ expect(endUsers[0][2]).toEqual([f.customerIdentity.id,f.customerIdentity.qualifier,f.customerIdentity.agency])
+ const envelope=EdifactEnvelopeCodec.decode(original.raw_payload!),parties=originalAckPartyIdentities({rawPayload:original.raw_payload!,expectedFamily:'PRODAT'}),
+  refs={interchange:randomUUID().replaceAll('-','').slice(0,14),message:randomUUID().replaceAll('-','').slice(0,14),document:randomUUID().replaceAll('-','').slice(0,14),createdAt:new Date()}
+ expect(envelope).toMatchObject({sender:f.sender,receiver:f.receiver,environment:'test',applicationReference:'23-DDQ-PRODAT'})
+ const body:Parts[]=[['BGM','Z04',refs.document,'9','AB'],['DTM',['137',refs.createdAt.toISOString().replace(/[-:T]/g,'').slice(0,12),'203']],['DTM',['ZZZ','1','805']],
+  ...parts(originalAckLegalNadSegment('FR',parties.legalReceiver)+"'"),...parts(originalAckLegalNadSegment('DO',parties.legalSender)+"'"),
+  line('1',f.external,undefined,'9'),qty('1000'),...common(f.external,'Synthetic',physical.start),
+  // Prospective synthetic incoming DSO declares daily balance settlement.
+  // Field254 uses Z32; the independent reporting frequency remains D.
+  ...characteristic('Z07','Z12'),...characteristic('Z12','D',3),...characteristic('Z15','Z32'),
+  // Receiver-local declarations precede immutable public birth. They describe
+  // future UTILTS only; no reading inventory or accepted policy fact is seeded.
+  // Synthetic DSO declares one cumulative meter-stand counter: original RK
+  // v1.7 single-tariff101 covers all hours, week and year. Interval-energy
+  // sampling is separate; no actual register inventory or delivery is asserted.
+  ...characteristic('Z02','1',3),...characteristic('Z05','6',3),...characteristic('Z16','101',3),
+  ['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],
+  ['NAD','IT',[f.external,'','9'],'','','Street','Town','','12345','SE'],['NAD','Z02',[f.brpEdielId,'160','SVK']]]
+ const own=guideOrderedFixtureBody(body.map(p=>p[0]==='CAV'&&Array.isArray(p[1])&&p[1][0]==='Z22'?['CAV',['Z25']]
+  :p[0]==='RFF'&&Array.isArray(p[1])&&p[1][0]==='LI'?['RFF',['LI',physical.li]]
+  :p[0]==='RFF'&&Array.isArray(p[1])&&p[1][0]==='Z05'?['RFF',['Z05',f.gridAreaCode]]
+  :p[0]==='NAD'&&p[1]==='UD'?endUsers[0]:p))
+ const render=(p:Parts)=>p.map(v=>(typeof v==='string'?[v]:v).map(x=>x.replace(/[?':+]/g,c=>'?'+c)).join(':')).join('+')
+ const wire=EdifactEnvelopeCodec.encode({sender:envelope.receiver!,receiver:envelope.sender!,senderQualifier:envelope.receiverQualifier,
+  receiverQualifier:envelope.senderQualifier,senderSubAddress:envelope.receiverSubAddress,receiverSubAddress:envelope.senderSubAddress,
+  interchangeReference:refs.interchange,applicationReference:envelope.applicationReference,acknowledgementRequest:true,environment:'test',createdAt:refs.createdAt,
+  messages:[{messageReference:refs.message,messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:own.map(render)}]})
+ const routeId=randomUUID(),profileId=randomUUID(),smtp=assertEdielSmtpReadiness()
+ // Only prospective GIVEN routing. The production parser/birth chooses source
+ // custody and the current profile; no canonical source/catalog INSERT occurs.
+ sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
+  VALUES(${literal(routeId)},${literal(f.companyId)},'Synthetic H ACK route','ediel_ack',${literal(f.gridId)},'bilateral_test',true,'recipient@example.invalid');
+  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,
+   sender_ediel_id,receiver_ediel_id,sender_sub_address,receiver_sub_address,application_reference,is_enabled,is_active,transport_security_mode,
+   smtp_to,receiver_email,mailbox,smtp_host,smtp_port)
+  VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Synthetic H ACK profile','test','edifact','edifact',
+   ${literal(envelope.sender)},${literal(envelope.receiver)},${literal(envelope.senderSubAddress)},${literal(envelope.receiverSubAddress)},
+   ${literal(envelope.applicationReference)},true,true,'unencrypted','recipient@example.invalid','recipient@example.invalid',
+   ${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)});`)
+  // Original field306 declares installation status on the first object.
+  // Qualify its prospective positive premise before immutable mailbox birth.
+  expect(sql(`SELECT jsonb_build_object('pointStatus',p.status,'siteStatus',s.status,
+    'companyId',p.company_id,'customerId',p.customer_id,'siteId',p.site_id,
+    'customerSiteId',p.customer_site_id,'external',p.ediel_metering_point_id)
+    FROM public.metering_points p JOIN public.customer_sites s ON s.id=p.site_id
+    AND s.company_id=p.company_id AND s.customer_id=p.customer_id
+    WHERE p.id=${literal(f.pointId)} AND p.company_id=${literal(f.companyId)}
+    AND p.customer_id=${literal(f.customerId)} AND s.id=${literal(f.siteId)}`)).toEqual({
+      pointStatus:'active',siteStatus:'active',companyId:f.companyId,customerId:f.customerId,
+      siteId:f.siteId,customerSiteId:f.siteId,external:f.external})
+  const installationWire=tokenizeEdifact(wire)
+  const firstLineIndex=installationWire.segments.findIndex(s=>s.tag==='LIN')
+  expect(firstLineIndex).toBeGreaterThanOrEqual(0)
+  const firstLine=installationWire.segments[firstLineIndex]
+  expect(segmentComposite(firstLine,3,installationWire.una)[0]).toBe(f.external)
+  expect(segmentComposite(firstLine,3,installationWire.una)[3]).toBe('9')
+  const boundary=installationWire.segments.slice(firstLineIndex+1).findIndex(s=>s.tag==='LIN'||s.tag==='UNT')
+  expect(boundary).toBeGreaterThanOrEqual(0)
+  const firstObject=installationWire.segments.slice(firstLineIndex,firstLineIndex+1+boundary)
+  const installationCharacteristics=firstObject.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,installationWire.una)[0]==='Z07')
+  expect(installationCharacteristics).toHaveLength(1)
+  const installationValue=firstObject[firstObject.indexOf(installationCharacteristics[0])+1]
+  expect(installationValue?.tag).toBe('CAV')
+  expect(segmentComposite(installationValue,1,installationWire.una)).toEqual(['Z12'])
+  const settlementCharacteristics=firstObject.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,installationWire.una)[0]==='Z15')
+  expect(settlementCharacteristics).toHaveLength(1)
+  const settlementValue=firstObject[firstObject.indexOf(settlementCharacteristics[0])+1]
+  expect(settlementValue?.tag).toBe('CAV')
+  expect(segmentComposite(settlementValue,1,installationWire.una)).toEqual(['Z32'])
+  const counterCharacteristics=firstObject.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,installationWire.una)[0]==='Z16')
+  expect(counterCharacteristics).toHaveLength(1)
+  const counterValue=firstObject[firstObject.indexOf(counterCharacteristics[0])+1]
+  expect(counterValue?.tag).toBe('CAV')
+  expect(segmentComposite(counterValue,1,installationWire.una)).toEqual(['','','','101'])
+ const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from}),parsed=mail.parsed
+ const [outboundMatch,meteringPointMatch]=await Promise.all([
+  matchOutboundRequestForInbound({companyId:f.companyId,parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId}),
+  matchMeteringPointForInbound({companyId:f.companyId,parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})])
+ const tenant=await resolveInboundTenantFromIdentifiers({mailboxCompanyId:f.companyId,mailboxId:mail.mailboxId,environment:'test',
+  senderEdielId:parsed.senderEdielId,senderSubaddress:parsed.senderSubAddress,receiverEdielId:parsed.receiverEdielId,receiverSubaddress:parsed.receiverSubAddress,
+  marketActorEdielId:inboundLegalReceiverEdielId(wire,parsed.receiverEdielId),applicationReference:parsed.applicationReference,
+  messageFamily:parsed.messageFamily,messageCode:parsed.messageCode,referenceCandidates:Object.values(parsed.references).flat()})
+ expect(tenant).toMatchObject({status:'resolved',companyId:f.companyId})
+ const sourceId=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',
+  inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed,outboundMatch,meteringPointMatch,tenantResolution:tenant})
+ expect(sourceId).not.toBeNull();if(!sourceId)throw Error('native_shared_h_public_birth_required')
+ const source=(await getEdielMessageById(sourceId))!
+ expect(source).toMatchObject({id:sourceId,company_id:f.companyId,environment:'test',direction:'inbound',message_family:'PRODAT',
+  message_code:'Z04',rule_profile_key:'PRODAT:Z04:H:26.A:r3',raw_payload:wire,immutable_payload_hash:mail.sourcePayloadHash,
+  inbound_email_message_id:mail.inboundEmailMessageId})
+ expect(mail.sourcePayloadHash).toBe(createHash('sha256').update(wire).digest('hex'))
+ const tokens=tokenizeEdifact(wire),groups=prodatRegisterGroups(tokens.segments,tokens.una).groups
+ expect(groups).toHaveLength(1);expect(groups[0]).toMatchObject({itemId:f.external,identityAgency:'9',validRegisterChain:true})
+ expect(['214','218','259'].map(field=>prodatRegisterReadingState(field,groups[0].segments,tokens.una)))
+  .toEqual([{present:true,value:'1',malformed:false},{present:true,value:'6',malformed:false},{present:true,value:'101',malformed:false}])
+ expect(await readSourceQualifiedProdatBilateralCapability(source)).toMatchObject({sourceMessageId:sourceId,companyId:f.companyId,
+  environment:'test',sourcePayloadHash:mail.sourcePayloadHash,subtype:'H',owner:'immutable-bilateral-prodat-profile-v1',
+  objects:[expect.objectContaining({profileVersionId:f.profileVersionId,process:'normal_start_h',objectId:f.external,lineItemReference:physical.li,sourceHash:f.sourceHash})]})
+ const lineage=sql<{source:Record<string,unknown>;mail:Record<string,unknown>;parse:Record<string,unknown>;context:Record<string,unknown>}>(`SELECT jsonb_build_object(
+  'source',to_jsonb(s),'mail',to_jsonb(m),'parse',to_jsonb(p),'context',c.context)
+  FROM gridex_received_sources.sources s JOIN public.ediel_messages e ON e.id=s.source_message_id AND e.company_id=s.company_id
+  JOIN public.inbound_email_messages m ON m.id=e.inbound_email_message_id AND m.company_id=e.company_id
+  JOIN public.inbound_ediel_parse_results p ON p.id=${literal(mail.parseResultId)} AND p.inbound_email_message_id=m.id AND p.company_id=m.company_id
+  JOIN gridex_ediel_inbound_context.receipts c ON c.source_message_id=e.id AND c.company_id=e.company_id AND c.status='ready'
+  WHERE e.id=${literal(sourceId)} AND e.company_id=${literal(f.companyId)}`)
+ expect(lineage.source).toMatchObject({source_message_id:sourceId,company_id:f.companyId,environment:'test',raw_payload:wire,payload_hash:mail.sourcePayloadHash})
+ expect(lineage.mail).toMatchObject({id:mail.inboundEmailMessageId,mailbox_id:mail.mailboxId,company_id:f.companyId,environment:'test',raw_edifact_payload:wire})
+ expect(lineage.parse).toMatchObject({id:mail.parseResultId,inbound_email_message_id:mail.inboundEmailMessageId,company_id:f.companyId,
+  message_family:'PRODAT',message_code:'Z04',raw_payload:wire})
+ expect(lineage.context).toMatchObject({basisKind:'observed_source_persistence',companyId:f.companyId,environment:'test',direction:'inbound',
+  family:'PRODAT',code:'Z04',actorRole:'electricity_supplier',legalEdielId:f.sender,applicationReference:envelope.applicationReference})
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
- expect(sql(`SELECT to_jsonb(payload_hash=encode(sha256(convert_to(raw_payload,'UTF8')),'hex') AND received_context->>'contextOrigin'='database_insert') FROM gridex_received_sources.sources WHERE source_message_id=${literal(sourceId)}`)).toBe(true)
+ expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(sourceId)}`)).toBe(0)
+ // Caller owns the first actual processor/effect, national basis and full replay.
  return {...f,sourceId,source,wire}
 }
 async function actualNationalSourceSession(actor:string){
