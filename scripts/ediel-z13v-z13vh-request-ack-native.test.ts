@@ -681,15 +681,22 @@ async function refuseOutboundZ14Direction(mode:'V'|'VH'){
  const old=ownIntents(before),current=ownIntents(after),added=current.filter(r=>!old.some(prior=>prior.id===r.id))
  expect(added).toHaveLength(1)
  const row=added[0]
- expect(row).toMatchObject({id:intent.id,company_id:f.ids.company,environment:'test',market:'electricity',message_family:'PRODAT',
+ for(const field of ['created_at','updated_at']){
+  expect(typeof row[field]).toBe('string')
+  expect(Number.isFinite(Date.parse(row[field] as string))).toBe(true)
+ }
+ expect(row).toEqual({id:intent.id,company_id:f.ids.company,environment:'test',market:'electricity',message_family:'PRODAT',
   message_code:'Z14',business_process:'metering_permission',direction:'outbound',sender_ediel_id:f.sender,receiver_ediel_id:f.receiver,
   application_reference:f.app,route_profile_id:f.ids.routeProfile,communication_route_id:f.ids.route,customer_id:f.ids.customer,
   customer_site_id:f.ids.site,facility_id:f.point,metering_point_id:f.point,interchange_reference:input.interchangeReference,
   message_reference:input.messageReference,transaction_reference:input.transactionReference,idempotency_key:input.idempotencyKey,
   payload:input.payload,created_by:f.ids.actor,updated_by:f.ids.actor,validation_status:'blocked',render_status:'not_rendered',
   outbox_status:'not_queued',ediel_message_id:null,outbound_request_id:null,
-  validation_result:intent.validationResult,blocking_reasons:intent.blockingReasons})
- for(const field of ['created_at','updated_at'])expect(Number.isFinite(Date.parse(String(row[field])))).toBe(true)
+  validation_result:intent.validationResult,blocking_reasons:intent.blockingReasons,
+  sender_subaddress:null,receiver_subaddress:null,certificate_profile_id:null,
+  grid_owner_information_request_id:null,supplier_switch_request_id:null,customer_info_request_id:null,operation_id:null,
+  grid_area_code:null,requested_effective_date:null,send_not_before:null,send_window_opens_at:null,send_window_closes_at:null,
+  expected_rule_version:null,expected_field_matrix_version:null,created_at:row.created_at,updated_at:row.updated_at})
  expect(current.filter(r=>r.id!==intent.id)).toEqual(old)
  expect({...after,business:{...after.business,ediel_message_intents:current.filter(r=>r.id!==intent.id)}}).toEqual(before)
  expect(await createEdielMessageIntent(input)).toEqual(intent)
