@@ -130,7 +130,7 @@ required; the #699 source owner must approve the proposed split.
 Two single-resource roles use the same create-if-absent protocol: `role-merge`
 serializes main merges; `role-memory` serializes shared campaign-memory writes.
 Acquire a role only for that operation, with its own unique receipt commit.
-Agents maintain their own checkpoints and #530 while roles are occupied; no
+Agents maintain their own checkpoints and #673 while roles are occupied; no
 permanent coordinator is required. Release checks the role's exact receipt SHA.
 
 Acquire `role-merge` after review and required current-head checks are green.

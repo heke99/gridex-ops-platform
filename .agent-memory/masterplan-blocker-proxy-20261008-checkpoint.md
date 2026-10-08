@@ -22,14 +22,14 @@ created in sorted order and all three GET_MATCH verified before editing.
 
 Read current-main AGENTS, ordered memory, workflow/reservations, registers,
 coverage, decisions/known failures, legacy register, live remote refs and every
-live receipt, current open PRs and relevant retained #598/#658/#699 custody.
+live receipt, current open PRs and relevant retained P08/#658/#699 custody.
 The live snapshot had89 refs, six technical acceptance IDs, no role refs; protocol
 file resources were absent. Actual main fetched/authenticated `0b7d930ca67b8b78cb6e6f04b8f94eb7edac37ec`;
 original local checkout9c86 was clean and preserved in an isolated worktree.
 Coverage remains115 VERIFIED rules +185 PASSED contracts =300/352.
 
 Claude P08 request6056828417 is not custody release or acquisition; original
-#598 whole-criterion handoff still needs reconciliation. Conditional fixture
+P08 whole-criterion handoff still needs reconciliation. Conditional fixture
 request6056854240 requires #699 owner2f72 to approve the proposed split.
 #699 head192791 remains draft with clean activation/parity/certificate work;
 GEN/private/native ownership remains foreign. No native/capture/generator run,
@@ -62,3 +62,15 @@ normal expected-head merge, authenticate main and release own resources.
 If another merge role is occupied, release memory role before waiting; do not
 hold one role while waiting for the other. P08/#699 remain separate blocker
 boundaries, not granted scopes. Record exact transitions here and on673.
+
+## Pre-publication verification
+
+`node scripts/check-ediel-masterplan-v2.cjs` exited0:33 original files,
+121 rules,231 acceptance contracts; scope is specification integrity/evidence
+references only, no application conformance or production readiness assertion.
+`git diff --check` exited0. Self-review matched every proxy clause to owner
+comment6056938983, removed two residual operational530/formatting slips, and
+confirmed only the two claimed protocol files plus this checkpoint changed.
+No new implementation tests: the change is documentation and current-head
+mandatory CI remains authoritative. Independent source review and publication
+remain next; no CI_GREEN or merge yet.

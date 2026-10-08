@@ -99,7 +99,7 @@ for the current PR head. Scope locks prevent conflicting source edits; the merge
 role serializes delivery. Changed code or conflict resolution requires relevant
 fresh verification. Never weaken gates or borrow old success.
 
-  `READY` means reviewable and `CI_GREEN` means the current PR gates passed.
+`READY` means reviewable and `CI_GREEN` means the current PR gates passed.
 Neither releases the reservation or permits taking a new pair. `MERGED` requires
 the actual main commit and PR receipt. Only then read current ownership again
 and select/reserve the next pair yourself. A blocked packet can be relinquished only through
