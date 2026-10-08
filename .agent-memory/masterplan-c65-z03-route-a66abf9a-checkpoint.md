@@ -1081,3 +1081,17 @@ Policy2 current unpublished exacthead9eda014f7a5dc728c4df613d295594473e4ee064 ap
 
 Shared status mirror pending named24fa/c97 PR695 owner: actual690+693/release/component boundaries. Whole/native/external acceptance remains unapproved, coverage unchanged. 2f-owned asyncREAD/runtime/APP/GEN and93 A/D helper remain untouched. No newpair.
 
+
+
+## 2026-10-08T00:48:21.985456+00:00 — Record policy2 original89 plus lazy control GREEN and actual-main reconciliation
+
+POLICY2 ORIGINAL89 + LAZY CONTROL GREEN / ACTUAL MAIN RECONCILED — same existing a66 Z03 pair.
+
+Exacthead9eda014f7a5dc728c4df613d295594473e4ee064 genuine unchanged90PASS/0FAIL/0SKIP exit0, logSHA70bcbec90042f987c75ac23fb68bb0740e3269ccb3a5750a59d2cf8fbb3ca9be. Whole original89file is byte-exact retainedBB prefix70d59ddee1906d3032753c15685bb63ad4285fe5ba3c7e95012dc55e516c47d3; all raw baseline/BB failure reports preserved. Only two metadata-laziness lines repaired after retainedBB89P1F. No rewritten assertions, exception suppression, physical UNKNOWN→FALSE or gate weakening.
+
+Merged actual delivered693main26ebd4cb71b28c7f33bcffefacb5fe13baeceb8b into own unpublished policy branch, finalcurrentheadf833b71a157e0cd61eb5b76748105e0a96c61b2c. Base currentmain is real26eb, not local-preview credit; source delta exactly the two reserved policy/test paths. Remaining four technical refs remain justified and no merge role held. Actual23file bounded suite, actual downstream existing positive-consumer tests and fresh nonincremental app TSC running. Remaining tests/scripts TSC, lint/budgets, full foreign inverse and rootself/SOURCE2 pending; no PR/CI/whole acceptance claimed.
+
+Independent reviewer next_read_source_scope identified previously uncovered current source-owner/processor/own APP/received-response positives relying on no-context rootFALSE fixtures. Root is executing unchanged consumers and will compare actual baseline if they fail: old hypotheses/history are not today's verdict. Never weaken UNKNOWN or foreign2f runtime constraints to make tests green. Second reviewer transport_remaining_scope reviewing full current f833source/call-path; no duplicate large tests/artifact fetch.
+
+Next ROOT: qualify actual consumer outcomes, repair only own demonstrated cause if lawful, otherwise preserve f833 and name exact missing foreign async/runtime delivery, owners and unblock result; continue independent work within pair or explicit release before next eligible pair. Shared campaign mirror remains pending current24fa/c97 PR695 owner; no held shared file edits, no coverage row change.
+
