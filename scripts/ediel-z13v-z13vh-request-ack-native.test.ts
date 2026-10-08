@@ -382,14 +382,18 @@ async function currentPermission(f:Fixture,p:Pending){
 
 // Allow only the explicitly asserted own source transition and one exact
 // grant. Every prior/foreign row and every other business table stays whole.
-function continuationInvariant(image:Record<string,unknown>,f:Fixture,p:Pending,sourceId:string,grantId?:string){
+const z14PermissionMutations=['status','source_z14_message_id','inbound_z14_message_id','permission_id','permission_reference',
+ 'approved_start_date','approved_end_date','approved_start_at','approved_end_at','product_code','report_frequency',
+ 'last_blocker','metadata','market_state_version','updated_at','updated_by']
+const unchangedPermission=(row:Record<string,unknown>)=>Object.fromEntries(Object.entries(row).filter(([key])=>!z14PermissionMutations.includes(key)))
+function continuationInvariant(image:Record<string,unknown>,f:Fixture,p:Pending,sourceId:string,grantId?:string,siteId?:string){
  const result={...image}
  const select=(key:string,changed:(row:Record<string,unknown>)=>boolean)=>{
   result[key]=(image[key] as Record<string,unknown>[]).filter(row=>!changed(row))
  }
  const own=(row:Record<string,unknown>)=>row.company_id===f.ids.company
- select('permissions',row=>own(row)&&row.id===p.permissionId)
- select('metering_permission_sites',row=>own(row)&&row.metering_permission_id===p.permissionId&&row.facility_id===f.point)
+ result.permissions=(image.permissions as Record<string,unknown>[]).map(row=>own(row)&&row.id===p.permissionId?unchangedPermission(row):row)
+ select('metering_permission_sites',row=>siteId!==undefined&&own(row)&&row.id===siteId&&row.metering_permission_id===p.permissionId&&row.facility_id===f.point)
  for(const key of ['permissionEffects','permissionTransitions'])select(key,row=>own(row)&&row.permission_id===p.permissionId&&row.source_message_id===sourceId)
  if(grantId){
   select('ediel_data_access_grants',row=>own(row)&&row.id===grantId&&row.assignment_id===f.assignment)
@@ -435,6 +439,10 @@ async function committedZ14Replies(f:Fixture,p:Pending,source:EdielMessageRow,pr
 
 async function continueToPublishedGrant(f:Fixture,p:Pending,profile:string,checkSentinel:()=>void){
  const before=business(f,p),waiting=await permission(f,p),queues=fullOutbox(f),original=(await getEdielMessageById(p.z13.id))!
+ const sqlPermission=()=>sql<Record<string,unknown>>(`SELECT to_jsonb(mp) FROM public.metering_permissions mp WHERE company_id=${lit(f.ids.company)} AND id=${lit(p.permissionId)}`)
+ const sqlSites=()=>sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.metering_permission_sites s WHERE company_id=${lit(f.ids.company)} AND metering_permission_id=${lit(p.permissionId)}`)
+ const previousPermission=sqlPermission(),previousSites=sqlSites()
+ expect(previousSites).toEqual([])
  expect(waiting.status).toBe('waiting_for_customer_approval')
  await noAccess(f,p)
  const source=await intake(f,p,positiveZ14(f,p))
@@ -445,19 +453,49 @@ async function continueToPublishedGrant(f:Fixture,p:Pending,profile:string,check
  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
  const active=await currentPermission(f,p),mode=f.mode==='V'?'S17':'S18',after=business(f,p)
  expect(active).toMatchObject({status:'active',source_z13_message_id:p.z13.id,source_z14_message_id:source.id,inbound_z14_message_id:source.id,
-  customer_id:f.ids.customer,rff_li_reference:p.li,permission_id:'SYNTHETIC-PERMISSION-'+p.permissionId.slice(0,8)})
+  outbound_z13_message_id:p.z13.id,customer_id:f.ids.customer,rff_li_reference:p.li,
+  permission_id:'SYNTHETIC-PERMISSION-'+p.permissionId.slice(0,8),permission_reference:'SYNTHETIC-PERMISSION-'+p.permissionId.slice(0,8),
+  approved_start_date:f.fields.data_start.slice(0,10),approved_end_date:f.fields.data_end?.slice(0,10)??null,
+  product_code:f.product,report_frequency:'D',last_blocker:null,updated_by:f.ids.actor})
+ expect(unchangedPermission(active)).toEqual(unchangedPermission(waiting))
+ expect(Date.parse(active.approved_start_at!)).toBe(Date.parse(f.fields.data_start))
+ if(f.fields.data_end)expect(Date.parse(active.approved_end_at!)).toBe(Date.parse(f.fields.data_end))
+ else expect(active.approved_end_at).toBeNull()
+ expect(Number.isFinite(Date.parse(active.updated_at!))).toBe(true)
+ expect(Date.parse(active.updated_at!)).toBeGreaterThanOrEqual(Date.parse(waiting.updated_at!))
  expect(Number(active.market_state_version)).toBe(Number(waiting.market_state_version??0)+1)
- expect(active.metadata).toMatchObject({marketPermission:{mode,legalActor:f.sender,dsoActor:f.receiver,sourceZ14:source.id,
-  objects:expect.arrayContaining([expect.objectContaining({point:f.point,product:f.product,status:'A74'})])}})
- const sites=sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.metering_permission_sites s
-  WHERE company_id=${lit(f.ids.company)} AND metering_permission_id=${lit(p.permissionId)}`)
+ const actualWire=sql<{objects:Record<string,unknown>[]}>(`SELECT gridex_received_sources.permission_partition_wire_v1(${lit(source.raw_payload!)})`)
+ expect(actualWire.objects).toHaveLength(1)
+ expect(actualWire.objects[0]).toMatchObject({point:f.point,product:f.product,status:'A74',li:p.li,reason:mode,identityAgency:'9'})
+ expect(active.metadata).toEqual({...waiting.metadata as Record<string,unknown>,marketPermission:{mode,legalActor:f.sender,
+  dsoActor:f.receiver,sourceZ14:source.id,objects:actualWire.objects}})
+ const sites=sqlSites(),siteId=String(sites[0]?.id)
  expect(sites).toHaveLength(1)
- expect(sites[0]).toMatchObject({customer_id:f.ids.customer,facility_id:f.point,status:'approved',
-  metadata:{source:'inbound_prodat_z14',edielMessageId:source.id,mode,product:f.product}})
+ expect(siteId).toMatch(/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/)
+ expect(sites[0]).toMatchObject({company_id:f.ids.company,metering_permission_id:p.permissionId,customer_id:f.ids.customer,
+  facility_id:f.point,grid_area_code:'TES',status:'approved',start_date:f.fields.data_start.slice(0,10),end_date:f.fields.data_end?.slice(0,10)??null})
+ expect(sites[0].metadata).toEqual({source:'inbound_prodat_z14',edielMessageId:source.id,mode,product:f.product,
+  permissionId:'SYNTHETIC-PERMISSION-'+p.permissionId.slice(0,8)})
  expect(Date.parse(String(sites[0].start_at))).toBe(Date.parse(f.fields.data_start))
  if(f.fields.data_end)expect(Date.parse(String(sites[0].end_at))).toBe(Date.parse(f.fields.data_end))
  else expect(sites[0].end_at).toBeNull()
- expect(continuationInvariant(after,f,p,source.id)).toEqual(continuationInvariant(before,f,p,source.id))
+ const receipts=sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_received_sources.permission_effect_receipts r WHERE source_message_id=${lit(source.id)}`)
+ expect(receipts).toHaveLength(1)
+ const receipt=receipts[0]
+ expect(receipt).toMatchObject({source_message_id:source.id,company_id:f.ids.company,permission_id:p.permissionId,
+  payload_hash:hash(source.raw_payload!),actor_user_id:f.ids.actor,qualified_original_message_id:p.z13.id,qualified_expected_message_code:'Z14'})
+ expect(receipt.previous_state).toEqual(previousPermission);expect(receipt.resulting_state).toEqual(sqlPermission())
+ expect(receipt.previous_sites).toEqual(previousSites);expect(receipt.resulting_sites).toEqual(sites)
+ const application=sql<{objects:Record<string,unknown>[];assessmentId:string}>(`SELECT gridex_received_sources.require_prodat_application_objects_v1(${lit(f.ids.company)},${lit(source.id)})`)
+ expect(application.objects).toHaveLength(1)
+ const {applicationDecision,reasonCodes,...scope}=application.objects[0]
+ expect(applicationDecision).toBe('accepted');expect(reasonCodes).toEqual([])
+ expect(scope).toMatchObject({objectId:f.point,identityAgency:'9',messageIndex:0,messageReference:'1'})
+ expect(receipt.object_scopes).toEqual([scope]);expect(receipt.canonical_assessment_id).toBe(application.assessmentId)
+ const transitions=sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.source_message_id),'[]') FROM gridex_received_sources.permission_effect_transitions_v1 t WHERE source_message_id=${lit(source.id)}`)
+ const transitionKeys=['source_message_id','company_id','permission_id','payload_hash','previous_state','previous_sites','resulting_state','applied_at','actor_user_id','resulting_sites','qualified_original_message_id','qualified_expected_message_code']
+ expect(transitions).toEqual([Object.fromEntries(transitionKeys.map(key=>[key,receipt[key]]))])
+ expect(continuationInvariant(after,f,p,source.id,undefined,siteId)).toEqual(continuationInvariant(before,f,p,source.id,undefined,siteId))
  const stableQueues=await committedZ14Replies(f,p,source,queues,profile)
  expect(await readEdielServiceAdministration({companyId:f.ids.company,actorUserId:f.ids.actor,assignmentId:f.assignment})).toMatchObject({grants:[]})
  const link=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_assignment_permission_links WHERE company_id=${lit(f.ids.company)} AND assignment_id=${lit(f.assignment)} AND permission_id=${lit(p.permissionId)}`)
@@ -488,7 +526,14 @@ async function continueToPublishedGrant(f:Fixture,p:Pending,profile:string,check
  void heldStatus;void heldVersion;void heldTime
  expect(liveScope).toEqual(heldScope);expect(live.status).toBe('active');expect(Number(live.version)).toBe(Number(held.version)+1)
  const final=business(f,p)
- expect(continuationInvariant(final,f,p,source.id,grantId)).toEqual(continuationInvariant(before,f,p,source.id,grantId))
+ const grantHistory=sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(h) ORDER BY h.id),'[]') FROM public.ediel_service_history h
+  WHERE company_id=${lit(f.ids.company)} AND entity_table='ediel_data_access_grants' AND entity_id=${lit(grantId)}`)
+ expect(grantHistory).toHaveLength(2)
+ expect(grantHistory[0]).toMatchObject({company_id:f.ids.company,entity_table:'ediel_data_access_grants',entity_id:grantId,before_record:null})
+ expect(grantHistory[0].after_record).toEqual(held)
+ expect(grantHistory[1]).toMatchObject({company_id:f.ids.company,entity_table:'ediel_data_access_grants',entity_id:grantId})
+ expect(grantHistory[1].before_record).toEqual(held);expect(grantHistory[1].after_record).toEqual(live)
+ expect(continuationInvariant(final,f,p,source.id,grantId,siteId)).toEqual(continuationInvariant(before,f,p,source.id,grantId,siteId))
  expect(fullOutbox(f)).toEqual(stableQueues)
  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
  expect(await f.command(publishCommand)).toEqual(published)
