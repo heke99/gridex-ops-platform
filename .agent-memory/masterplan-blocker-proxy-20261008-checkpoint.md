@@ -1,5 +1,40 @@
 # Blocker agent: Claude proxy protocol reconciliation
 
+## Dependency correction: existing B2 reservation and PR714 — 2026-10-08
+
+Status remains BLOCKED_RETAINED/709 NOT_MERGED at sourceda2ce7f4; actualmain08930f52
+and operational remote checkpointd20c5a6c were freshly GET/byte-MATCH read.
+Six mandatory709 SUCCESS/two terminal FAILURE remain the same authentic jobs.
+Both own protocol-file resources still match original74b4932; no own roles/IDs.
+No unchanged709 status comment or new producer/log/archive retrieval occurred.
+
+Correct the previous custody assessment:95bc had already explicitly released
+the exact B2 test resource in6053546296 and confirmed final release6055272872.
+Original receipt6059268975 now establishes an existing lawful proxy reservation;
+no additional no-objection or duplicate reservation is needed. Fresh GET of
+file701ac101 matches ee171db1fff4e0b0abf09fd4f1e81f419eaefb5b. Receipt names
+Claude claude-blocker-uwoj7c, delegatedBy codex-root-coordinator, packet403caa82,
+one exact test file/no IDs, actualmain08930 as sole parent and exact main tree.
+All85 current refs/27 receipt commits were read; foreign custody is preserved.
+
+The rightful owner published PR714, OPEN/unmerged sourcee18f99817308b7dde3a7cbd410f6a6fd4d710386,
+and READY6059543781. At this snapshot verify/quality/smoke/coverage/browser/targeted
+are SUCCESS, while clean113303379208, upgrade113303379336 and certificate113308248593
+are IN_PROGRESS. Dedicated native success is separate and cannot replace clean.
+Independent bounded source review6059792745/5456496045 is published; source review
+does not prove removal. Original709 red result and failed-case evidence persist.
+Current coordinator owns714 review/merge proxy/release; this agent neither takes
+the test file nor duplicates that review/native/capture/GEN/CI or its collection.
+
+Next709 action: wait for actual714 current-head green/reviewed normal delivery.
+Then fresh-check actualmain/dependencies and adopt the actually delivered repair
+in the own709 branch when necessary, preserving original da2/source evidence.
+Any resulting new709 head requires fresh self/two independent source reviews,
+actual applicable CI and fresh main composition/two delivery reviews before
+ordinary guarded merge/release. Never borrow714/dedicated/711 success or manually
+rerun the frozen failed jobs. No implementation change, merge, release or coverage
+promotion is asserted. Automation stop condition remains unmet; quiet unchanged.
+
 ## Resume: terminal CI failure and bounded dependency handoff — 2026-10-08
 
 Status: BLOCKED_RETAINED, PR709 NOT_MERGED. The same owner/packet retains only
