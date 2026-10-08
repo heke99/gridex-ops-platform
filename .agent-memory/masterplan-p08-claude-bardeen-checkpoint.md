@@ -46,3 +46,12 @@ that every ref points at the receipt. Also needs authorized cleanup: probe branc
 
 Owner/blocker agent: grant tag-ref write for this session or acquire the P-08/AT-P-08 refs
 for it. Then: acquire refs, post CLAIM on #673, implement the native test above.
+
+## Read-only analysis while waiting (no code)
+
+Real ledger (schema.sql) is far richer than the PGlite stubs: `production_contract_events` needs
+contract/customer/metering point/legal+DSO actor/registry/source hashes/approver; `origins` needs
+intent_id, actor_user_id, outbound_request_id and paired message_id/payload_hash; `revocations` needs
+source ref/sha/actor. The native test must create these via the real producer path (not hand
+inserts bypassing the invariants) — reuse candidate: `scripts/ediel-original-source-intake-native.test.ts`
+and the Z04D production native fixtures. Plan fixed before code; implementation still waits on the reservation.
