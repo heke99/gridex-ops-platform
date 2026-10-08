@@ -1,0 +1,37 @@
+# PLANAGENT checkpoint — codex-planagent-20261008-773af1e62611
+
+Status: BLOCKED_UNRESERVED; no technical packet inherited or claimed. Fixed role PLANAGENT.
+Branch `codex/planagent-20261008-773af1e62611`; worktree `/workspace/gridex-planagent-773af1e62611`; source main `74bcd6d109861e940269f75821f6d3516df29a96`.
+Own files: this uniquely named checkpoint and `.agent-memory/masterplan-planagent-773af1e62611-eligibility.json`. Per reservation protocol, uniquely named personal checkpoints require no shared-file lock. No rule ID, source/test/workflow/coverage or shared-memory path edited; no role held.
+
+Startup completed: current-main AGENTS and ordered active memory, workflow/reservations, frozen rule/acceptance rows and legacy15 retained entries; #673 through6057102329, original #5305990498953/6035674793; all32 initial reservation receipt messages and current93-ref snapshot; all14 earlier open PR descriptions and refreshed heads. Generic earlier Codex checkpoints belong to their named original sessions. Full original archive/custody decisions remain with the recorded owners.
+
+Current main actually includes bounded PR657 at74bcd6d1 (#6736057102329); whole H remains unapproved and its owner retains IDs until documented release. Ledger115 VERIFIED rules +185 PASSED contracts =300/352;52 remain. The attached52-row inventory exactly matches this ledger. Current six ID refs are Z02L/LK (2f72), Z03H/Z04H (93e), Z13V/VH (b6d3). TRDB's four absent ID refs supersede the previous inventory's OCCUPIED label; #708 release permits future assessment, not borrowing old native or bypassing GEN. Sixteen released rows have unresolved prerequisites;23 retained-custody rows and7 legal/provider/incident rows have no observed handoff enabling this session. No executable independent next packet identified by this dated screen; no permanent impossibility claimed.
+
+Owner update6056938983 supersedes6056709473. Codex may perform original GitData operations with Claude as receipt.agent and Codex as delegatedBy, after fresh custody/dependency checks and all-ref verification. No renewal/expiry mechanism is invented. Release needs documented work-owner request plus exact receipt-SHA. Protocol implementation is now FOREIGN: blocker-proxy-a7912b34 owns role-memory and workflow/reservations, receipt74b4932b, CLAIM6057071524. Do not duplicate it. Bardeen P08 request6056828417 still needs original custody handoff; conditional fixture request6056854240 needs #699 owner2f72 explicit split. No proxy receipt was created by this session.
+
+## Concrete independent P08 plan clarification for original custodian / requesting Claude
+
+This is read-only clause/test mapping, not a claim or whole approval. Reuse delivered code and producers; do not create a competing native workflow.
+
+- Preserve both signed/start210→92 and ceased/end211→93 branches and source-qualified own production event/origin/outbound/reviewer chain. Literal frozen AT-P08 requires XOR210/211, no216 substitute, 92/93 build, both→40/109 with no generic157, and correct durable relation.
+- The claim in6057100315 that216 rejection has no existing explicit test is too broad. Date-boundaries132 includes Z09/Z70/216/157 in dateExclusions;154–179 exercise actual date validator, canonical matrix, legacy validator, TGT and preflight across three alphabets. Reuse these assertions; do not duplicate them.
+- Field-identity67–72 uses arrayContaining for40/109. That assertion alone does not prohibit an additional157 application error. Future owner must bind exact allowed errors/explicit forbidden157 to a genuinely qualified original/control; this session did not exhaustively search every other test.
+- Date-events23–26 validate both92/93 selected boundaries; date-boundaries112–117 builds92 and rejects simultaneous dates. A claimed missing builder93 assertion must be checked across existing builder suites before authoring; validating93 is distinct from emitting93. No product defect inferred from a missing assertion.
+- The PGlite regression has9 declared-stub checks and explicitly is NOT native. Its seventh case mutates only company_id, despite the comment saying tenant or environment; no environment mismatch case is executed there. Native successor needs BOTH tenant and environment refusals. Do not label these9 stubs as proof of all environment effects.
+- Native whole relation proof must use real producer-created event/origin/outbound and public inbound ACK path, then exact event/company/environment/message and immutability/idempotency readback. Preserve positive, negative, CONTRL-only, unbound, revoked, wrong-code, tenant/environment mismatch and ACL denial assertions; no direct accepted/private-row seeds.
+
+Named blocker action: original P08 custodian explicitly hands remaining criteria/files to ONE Claude work owner (bardeen's request is already pending), then capable proxy verifies original custody, exact free resources and full receipt refs. Source/ACK/history/native ownership is not transferred by absent tags. Conditional699 blocker stays with2f72 and requesting gates agent: choose fixture repair or retain own repair; if split, explicit exact-file handoff before proxy acquisition. #699 current192791 remains draft with clean-migration-replay, pr-certificate and cancellation-public-acceptance-native FAILURE; upgrade SUCCESS does not close these gates. No new jobs or archive downloads.
+
+Verification on current main: specification-integrity command EXIT0 (33 originals,121 rules,231 contracts; no application/production assertion), memory Git-state EXIT0/PARTIAL, exact52-row set/count and unchanged coverage hash PASS. Self-review: only two unique checkpoint companions changed; no shared or product paths. Independent review pending; no CI_GREEN, merge or rule completion claimed. Product tests not run because no product change and no dependencies installed; no duplicate large job.
+
+Skill routing: cloud-environment-runtime (supported network/readiness); using-superpowers (routing); using-git-worktrees (isolate under project contract); verification-before-completion (execute checks); requesting-code-review (read-only independent critique). Implementation TDD/debugging/Supabase/React/NextJS and broad security/performance/audit-doc generators skipped: no product change or repo-wide conformance audit. These activate only after lawful executable ownership.
+
+Next: independent review of current-main ownership screen and five pinned P08 sources; correct material findings, publish unique checkpoint branch and short BLOCKED673 receipt, verify both remote readbacks. No personal reservation requires release. Fresh main/board/PR/custody checks must precede any future exact-ID/file acquisition; source/native owners continue their existing work.
+
+Pinned P08 source bytes on main74bcd6d1:
+- `__tests__/ediel-prodat-date-boundaries.test.ts`: SHA256 `c52b954f13b8287e29ca03dce3ed76a877cea928c604400ebc836c5067a192a5`.
+- `__tests__/ediel-prodat-date-events.test.ts`: SHA256 `3a747686fafa6ae9b43c4bb1c8a0eda3f0d90d368fb33d8eb3ce6fdbc363b565`.
+- `__tests__/ediel-prodat-field-identity.test.ts`: SHA256 `cba9cd26d15f5afcbc821e6623cebbd49463a45e6bd104150b84a3ffece724fe`.
+- `scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs`: SHA256 `46ef42d669960b45e11a7dff678abe0f2f7894dc8d21ffee58f5144ca03fbc5f`.
+- `lib/ediel/rulebook/prodatDateEventPolicy.ts`: SHA256 `727dda8b47f0a5da9b5c3b4e49458c21fb944aa8c43cf29cbee3d97d1d21b003`.
