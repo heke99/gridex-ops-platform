@@ -10,6 +10,7 @@ import { resolveNormalSwitchBirthProfile } from '@/lib/inbound-mail/normalSwitch
 import { resolveCustomerSourceBirthProfile } from '@/lib/inbound-mail/customerSourceBirthProfile'
 import { resolveSupplierDataBirthProfile } from '@/lib/inbound-mail/supplierDataBirthProfile'
 import { resolveBilateralSwitchBirthProfile } from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
+import {captureBilateralSwitchBirthResources,resolveBilateralSwitchBirthResources} from '@/lib/inbound-mail/bilateralSwitchBirthResources'
 import { resolveRejectedBilateralSwitchBirthProfile } from '@/lib/inbound-mail/rejectedBilateralSwitchBirthProfile'
 import { resolveSupplyEndBirthProfile } from '@/lib/inbound-mail/supplyEndBirthProfile'
 import { resolveCancellationBirthProfile } from '@/lib/inbound-mail/cancellationBirthProfile'
@@ -425,6 +426,13 @@ export async function createInboundEdielMessage(input: {
     ...ackColumnsForParsed(input.parsed),
   }
 
+  // Capture only scalar reference candidates before any subsequent source
+  // awaits. Replay and non-H paths do not consume a failed optional snapshot.
+  let bilateralResources: {ok:true;candidate:ReturnType<typeof captureBilateralSwitchBirthResources>} | {ok:false;error:unknown}
+  try {
+    bilateralResources={ok:true,candidate:input.parsed.messageFamily==='PRODAT'&&insertPayload.message_code==='Z04'&&insertPayload.metering_point_id===null
+      ?captureBilateralSwitchBirthResources({companyId,outboundMatch:input.outboundMatch,meteringPointMatch:input.meteringPointMatch}):null}
+  } catch(error) {bilateralResources={ok:false,error}}
   const observe=async(messageId:string)=>{
     const r=await recordInboundReception({companyId:companyId,messageId,actorUserId:actorUserId,inboundEmailMessageId:inboundEmailMessageId,parseResultId:parseResultId})
     requireFirstReception(r)
@@ -444,11 +452,21 @@ export async function createInboundEdielMessage(input: {
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z04') {
-    const birthProfile = await resolveAssignedSupplyBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    const ordinaryProfile = await resolveAssignedSupplyBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
       ?? await resolveNormalSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
-      ?? await resolveBilateralSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    const bilateralProfile = ordinaryProfile===null
+      ?await resolveBilateralSwitchBirthProfile({rawPayload:insertPayload.raw_payload,receivedAt:mailSource.received_at}):null
+    const birthProfile = ordinaryProfile??bilateralProfile
       ?? await resolveRejectedBilateralSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
     if (birthProfile) Object.assign(insertPayload, birthProfile)
+    if(bilateralProfile&&insertPayload.metering_point_id===null){
+      if(!bilateralResources.ok)throw bilateralResources.error
+      const candidate=bilateralResources.candidate
+      if(candidate&&candidate.requestId===insertPayload.outbound_request_id&&candidate.customerId===insertPayload.customer_id&&candidate.siteId===insertPayload.site_id){
+        const resources=await resolveBilateralSwitchBirthResources({candidate,rawPayload:insertPayload.raw_payload,environment:normalizedEnvironment})
+        if(resources)insertPayload.metering_point_id=resources.pointId
+      }
+    }
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z05') {
     const ordinary = await resolveSupplyEndBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
