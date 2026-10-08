@@ -6,6 +6,7 @@ import {resolveRejectedBilateralSwitchBirthProfile} from '@/lib/inbound-mail/rej
 import {resolveBilateralSwitchBirthProfile} from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {prodatRegisterFieldState} from '@/lib/ediel/prodat/prodatRegisterFields'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import {ownerRulePack} from './helpers/sourceOwnerFixtures'
@@ -288,4 +289,92 @@ it.each([0,2])('refuses missing311 catalog count %s',async count=>{
 })
 it('refuses missing311 current catalog association mismatch',async()=>{
  await expect(resolve(missing311Wire().replace('E2SE6A','E2SE5A'))).rejects.toThrow('rejected_bilateral_switch_birth_association_mismatch')
+})
+
+const missing209Body=(agency='9'):Parts[]=>[line('1','',undefined,agency),...characteristic('Z13','Z25'),['RFF',['LI','OWN']]]
+it.each(['9','89'])('binds empty209 agency%s catalog only while its real invalid-field evidence remains blocking',async agency=>{
+ const payload=wire(missing209Body(agency)),t=tokenizeEdifact(payload),before=prodatRegisterGroups(t.segments,t.una,'Z04')
+ const failureEvidence=[{raw:`LIN+1++:::${agency}`,locator:'LIN',content:`:::${agency}`}]
+ expect(prodatRegisterFieldState('209',before.groups[0].segments,t.una)).toEqual({present:true,malformed:true,value:null,failureEvidence})
+ expect(before.problems).toEqual([]);expect(before.groups[0]).toMatchObject({itemId:null,identityAgency:agency,lineNumber:'1',validRegisterChain:true,firstLineIndex:0,registerCount:1,registerPosition:1,registerIndex:null})
+ expect(await resolveBilateralSwitchBirthProfile({rawPayload:payload,receivedAt:receipt})).toBeNull()
+ expectWitness(await resolve(payload))
+ expect(io.rpc).toHaveBeenCalledExactlyOnceWith('resolve_canonical_ediel_rule_pack_with_witness_v1',{
+  p_market:'electricity',p_family:'PRODAT',p_message_code:'Z04',p_transaction_subtype:'H',p_direction:'inbound',p_business_date:'2026-10-07'})
+ const policy=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z04',subtypeOrReasonCode:'Z25',direction:'inbound',
+  referenceDate:'2026-10-07',applicationReference:'23-DDQ-PRODAT',mode:'catalog_evidence'})
+ const field209={...policy,fieldRules:policy.fieldRules.filter(r=>'fieldNumber' in r&&r.fieldNumber==='209')}
+ expect(field209.fieldRules).toHaveLength(1)
+ const assess=(rawPayload:string)=>{
+  const actual=tokenizeEdifact(rawPayload)
+  return validateCanonicalPolicyFields({policy:field209,rawPayload,rawSegments:actual.segments.map(s=>s.raw),una:actual.una})
+ }
+ expect(assess(wire([line('1',point,undefined,agency),...missing209Body().slice(1)]))).toEqual([])
+ expect(assess(payload)).toEqual(expect.arrayContaining([expect.objectContaining({blocking:true,
+  prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:'209',errorKind:'invalid',failureEvidence})})]))
+ expect(prodatRegisterGroups(t.segments,t.una,'Z04')).toEqual(before)
+})
+it.each(alphabets)('uses actual UNA %j for empty209 and released ownLI without supplying an object',async(component,element,release,terminator)=>{
+ const parts=missing209Body('89');parts[parts.length-1]=['RFF',['LI',`OWN${component}${element}${release}${terminator}A`]]
+ const payload=guideOrderedFixtureRaw(parts,'Z04',[component,element,release,terminator])
+ expectWitness(await resolve(payload));const t=tokenizeEdifact(payload)
+ expect(prodatRegisterGroups(t.segments,t.una,'Z04').groups[0].itemId).toBeNull()
+})
+it('leaves a healthy single identity to the positive selector',async()=>{
+ const payload=wire([line('1',point,undefined,'9'),...missing209Body().slice(1)])
+ expect(await resolve(payload)).toBeNull();expect(io.rpc).not.toHaveBeenCalled()
+ expectWitness(await resolveBilateralSwitchBirthProfile({rawPayload:payload,receivedAt:receipt}))
+})
+it.each([
+ ...['','0','2','01',' 1','1 '].map(sequence=>['bad314 '+sequence,()=>wire([line(sequence,'',undefined,'9'),...missing209Body().slice(1)])] as const),
+ ['supplied C8291:1',()=>wire([line('1','','1','9'),...missing209Body().slice(1)])],
+ ['emptyC829',()=>wire([['LIN','1','',['','','','9'],''],...missing209Body().slice(1)])],
+ ['extraC829',()=>wire([['LIN','1','',['','','','9'],['1','1','']],...missing209Body().slice(1)])],
+ ['action',()=>wire([['LIN','1','ACTION',['','','','9']],...missing209Body().slice(1)])],
+ ['wholeC212empty',()=>wire([['LIN','1','',''],...missing209Body().slice(1)])],
+ ['invalidagency',()=>wire(missing209Body('XX'))],
+ ['missingagency',()=>wire(missing209Body(''))],
+ ['paddedagency',()=>wire(missing209Body(' 9'))],
+ ['reservedC212',()=>wire([['LIN','1','',['','BAD','','9']],...missing209Body().slice(1)])],
+ ['extraC212',()=>wire([['LIN','1','',['','','','9','']],...missing209Body().slice(1)])],
+ ...[' ','A'.repeat(26),'PAD '].map(id=>['nonempty invalididentifier '+id,()=>wire([line('1',id,undefined,'9'),...missing209Body().slice(1)])] as const),
+ ['paddedLIN',()=>wire(missing209Body()).replace('LIN+1',' LIN+1')],
+ ['paddedLINend',()=>wire(missing209Body()).replace(":::9'",":::9 '")],
+ ['secondemptyobject',()=>wire([...missing209Body(),line('2','',undefined,'9')])],
+ ['secondnonemptyobject',()=>wire([...missing209Body(),line('2',point,undefined,'9')])],
+ ['noLIN',()=>wire(missing209Body().slice(1))],
+ ['missing311',()=>withoutApp(wire(missing209Body()))],
+ ['foreign311',()=>wire(missing209Body()).replace('23-DDQ-PRODAT','23-DGI-PRODAT')],
+ ['composite311',()=>wire(missing209Body()).replace('23-DDQ-PRODAT','23-DDQ-PRODAT:EXTRA')],
+ ['missing312',()=>wire(missing209Body()).replace(':UN:E2SE6A',':UN:')],
+ ['missing202',()=>wire(missing209Body()).replace('BGM+Z04','BGM+')],
+ ['foreign202',()=>wire(missing209Body(),'Z05')],
+ ['composite202',()=>wire(missing209Body()).replace('BGM+Z04','BGM+Z04:EXTRA')],
+ ['duplicateBGM',()=>wire([['BGM','Z04','OTHER','9'],...missing209Body()])],
+ ['lateBGM',()=>raw([...missing209Body(),['BGM','Z04','OTHER','9']])],
+ ['missing223',()=>wire([line('1','',undefined,'9'),['RFF',['LI','OWN']]])],
+ ['wrong223',()=>wire(missing209Body()).replace('CAV+Z25','CAV+Z22')],
+ ['duplicate223',()=>wire([...missing209Body(),...characteristic('Z13','Z25')])],
+ ['header223',()=>wire([...characteristic('Z13','Z25'),line('1','',undefined,'9'),['RFF',['LI','OWN']]])],
+ ['late223',()=>raw([line('1','',undefined,'9'),['RFF',['LI','OWN']],...characteristic('Z13','Z25')])],
+ ['missingLI',()=>wire(missing209Body().slice(0,-1))],
+ ['duplicateLI',()=>wire([...missing209Body(),['RFF',['LI','OTHER']]])],
+ ['headerLI',()=>wire([['RFF',['LI','OWN']],...missing209Body().slice(0,-1)])],
+ ['lateLI',()=>raw([...missing209Body().slice(0,-1),['NAD','UD',['C','','89']],['RFF',['LI','OWN']]])],
+ ['blankLI',()=>wire([...missing209Body().slice(0,-1),['RFF',['LI','']]])],
+ ['paddedLI',()=>wire(missing209Body()).replace('RFF+LI:OWN','RFF+LI: OWN')],
+ ['extraLI',()=>wire(missing209Body()).replace('RFF+LI:OWN','RFF+LI:OWN:EXTRA')],
+ ['incorrectUNT',()=>wire(missing209Body()).replace(/UNT\+\d+\+M/,'UNT+999+M')],
+] as const)('keeps the empty209 rejection catalog purpose closed for %s',async(_label,make)=>{
+ expect(await resolve(make())).toBeNull();expect(io.rpc).not.toHaveBeenCalled()
+})
+it.each([0,2])('refuses empty209 catalog count%s',async count=>{
+ io.rpc.mockResolvedValue({data:Array.from({length:count},registry),error:null})
+ await expect(resolve(wire(missing209Body()))).rejects.toThrow(`canonical_rule_pack_evidence_count:${count}:PRODAT:Z04:H`)
+})
+it('refuses empty209 catalog error/currentassociation mismatch and invalid actual receipt',async()=>{
+ await expect(resolve(wire(missing209Body()).replace('E2SE6A','E2SE5A'))).rejects.toThrow('rejected_bilateral_switch_birth_association_mismatch')
+ io.rpc.mockClear();await expect(resolve(wire(missing209Body()),'2026-02-30T12:00:00Z')).rejects.toThrow('rejected_bilateral_switch_birth_receipt_clock_invalid');expect(io.rpc).not.toHaveBeenCalled()
+ io.rpc.mockResolvedValue({data:null,error:{message:'catalog offline'}})
+ await expect(resolve(wire(missing209Body()))).rejects.toThrow('catalog offline')
 })

@@ -7,7 +7,7 @@ import {resolveCanonicalRulePack} from '@/lib/ediel/rulebook/canonicalRulePackRe
 import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
 import type {BilateralSwitchBirthProfile} from './bilateralSwitchBirthProfile'
 
-/** Catalog witnesses for recognizable rejected H sources: missing application,
+/** Catalog witnesses for recognizable rejected H sources: empty object identity, missing application,
  * missing single-LIN sequence, or malformed second C829. These remain invalid: this selects no original, grants
  * no admission/business authority and never inherits common fields onto it.
  */
@@ -47,19 +47,26 @@ export async function resolveRejectedBilateralSwitchBirthProfile(input: {
       ||!expectedProblems.every(reason=>grouping.problems.some(p=>p.reason===reason))) return null
   } else if (grouping.groups.length===1) {
     const lin=first.segments[0],identity=prodatRegisterFieldState('209',first.segments,una)
+    const identityParts=segmentComposite(lin,3,una)
+    const missingIdentity=!missingApplication&&identity?.present===true&&identity.malformed&&identity.value===null
+      &&identityParts.length===4&&identityParts.slice(0,3).every(v=>v==='')&&['9','89'].includes(identityParts[3])
     const sequence=segmentComposite(lin,1,una),action=segmentComposite(lin,2,una)
     const separator=una.dataElementSeparator,component=una.componentDataElementSeparator
     const reserved=[separator,component,una.releaseCharacter,una.segmentTerminator]
     const encode=(value:string)=>[...value].map(c=>reserved.includes(c)?una.releaseCharacter+c:c).join('')
-    const expectedSequence=missingApplication?'1':''
+    const expectedSequence=missingApplication||missingIdentity?'1':''
     const expectedLin=`LIN${separator}${expectedSequence}${separator.repeat(2)}${encode(identity?.value??'')}${component.repeat(3)}${first.identityAgency}`
     if (segments.indexOf(bgms[0])>segments.indexOf(lin)||segmentElementCount(lin,una)!==3
       ||sequence.length!==1||sequence[0]!==expectedSequence||action.length!==1||action[0]!==''
-      ||!identity?.present||identity.malformed||segmentUntrimmedRaw(lin)!==expectedLin
+      ||!missingIdentity&&(!identity?.present||identity.malformed)||segmentUntrimmedRaw(lin)!==expectedLin
       ||first.effectiveSegments.length!==first.segments.length||first.effectiveSegments.some((t,i)=>t!==first.segments[i])) return null
-    if (missingApplication) {
+    if (missingApplication||missingIdentity) {
       if (grouping.problems.length!==0||!first.validRegisterChain||first.firstLineIndex!==first.lineIndex
         ||first.lineNumber!=='1'||first.registerPosition!==1) return null
+      // A sole no-C829 group may have no usable identity. Its grouping validity
+      // selects catalog custody only; it supplies no object or point authority.
+      if (missingIdentity&&(first.itemId!==null||first.identityAgency!==identityParts[3]
+        ||first.registerCount!==1||first.registerIndex!==null)) return null
     } else {
       if (first.validRegisterChain||first.firstLineIndex!==null||first.lineNumber!==null) return null
       const problem=grouping.problems[0]
