@@ -67763,6 +67763,7 @@ begin
 
   update public.customer_contracts set
     status='signed',signed_at=(v_signature->>'accepted_at')::timestamptz,
+    snapshot_hash=v_price.snapshot_hash,
     is_distance_agreement=true,withdrawal_deadline_at=v_withdrawal_deadline,
     legal_versions_snapshot=v_legal_versions,signature_snapshot=v_signature,signature_snapshot_sha256=v_signature_hash,
     signed_ip_hash=p_signed_ip_hash,signed_user_agent=left(p_signed_user_agent,1000),locked_at=(v_signature->>'accepted_at')::timestamptz,
