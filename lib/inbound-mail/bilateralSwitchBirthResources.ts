@@ -67,8 +67,8 @@ export async function resolveBilateralSwitchBirthResources(input:{
   .eq('company_id',candidate.companyId).eq('id',candidate.pointId).maybeSingle()
  if(pointError)throw pointError
  if(!point||point.id!==candidate.pointId||point.company_id!==candidate.companyId||point.customer_id!==candidate.customerId
-  ||(point.site_id!==null&&point.site_id!==candidate.siteId)
-  ||(point.customer_site_id??point.site_id)!==candidate.siteId||point.ediel_metering_point_id!==first.itemId)return null
+  ||point.site_id!==candidate.siteId
+  ||(point.customer_site_id!==null&&point.customer_site_id!==candidate.siteId)||point.ediel_metering_point_id!==first.itemId)return null
  const {data:customer,error:customerError}=await supabaseService.from('customers')
   .select('id,company_id').eq('company_id',candidate.companyId).eq('id',candidate.customerId).maybeSingle()
  if(customerError)throw customerError
