@@ -53,7 +53,7 @@ export async function resolvePermissionReportingBirthProfile(input: {
     const parent = own.findIndex(t => t.tag === 'RFF' || t.tag === 'NAD')
     const separator = una.dataElementSeparator
     if (parent >= 0 && index >= parent || segmentUntrimmedRaw(cci) !== `CCI${separator}${separator}Z13`
-      || !cav || cav.tag !== 'CAV') return null
+      || !cav || cav.tag !== 'CAV' || own[index + 2]?.tag === 'CAV') return null
     const value = segmentComposite(cav, 1, una)
     if (value.length !== 1 || !['S17', 'S18', 'Z96'].includes(value[0])
       || segmentUntrimmedRaw(cav) !== `CAV${separator}${value[0]}`) return null
