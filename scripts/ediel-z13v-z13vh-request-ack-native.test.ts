@@ -7,6 +7,7 @@ import {createHash,randomUUID} from 'node:crypto'
 import {spawn} from 'node:child_process'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prepare,
+ reviewNativeEscoAssignmentEvidence,
  resetNativeEscoFixture,nativeEscoSql as sql,nativeEscoLiteral as lit,
  nativeEscoExternal,NATIVE_ESCO_DB} from './fixtures/ediel-service-evidence-native'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
@@ -546,7 +547,94 @@ async function continueToPublishedGrant(f:Fixture,p:Pending,profile:string,check
  checkSentinel()
 }
 
+// Pre-producer snapshots use actual existing rows, with no invented permission
+// or sent-source placeholder. Only the one failed public-command audit may grow.
+function producerState(f:Fixture){
+ const companies=`(${lit(f.ids.company)},${lit(f.ids.beneficiary)})`
+ const publicTables=['companies','tenant_actor_roles','tenant_actor_identifiers','tenant_ediel_profiles','ediel_actor_settings',
+  'tenant_counterparty_relations','company_memberships','user_permissions','company_capabilities',
+  'customers','customer_sites','metering_points','grid_owners','ediel_service_assignments','ediel_service_evidence',
+  'ediel_assignment_permission_links','ediel_data_access_grants','ediel_service_history','metering_permissions','metering_permission_sites',
+  'customer_supply_periods','supplier_switch_requests','meter_reading_series','meter_reading_values',
+  'communication_routes','ediel_route_profiles','outbound_requests','ediel_messages','ediel_message_intents','ediel_outbox']
+ const fields=publicTables.map(table=>`'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]')
+  FROM public.${table} r WHERE ${table==='companies'?`id IN ${companies}`:`company_id IN ${companies} OR company_id IS NULL`})`)
+ for(const table of ['gridex_service_administration.scope_versions','gridex_ediel_services.artifacts','gridex_ediel_services.issuer_representations',
+  'gridex_ediel_services.reviews','gridex_service_permission.origins','gridex_ediel_transport.attempts',
+  'gridex_received_sources.permission_effect_receipts','gridex_received_sources.permission_effect_transitions_v1']){
+  fields.push(`'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r WHERE company_id IN ${companies})`)
+ }
+ fields.push(`'legalActors',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.platform_market_actors r WHERE id IN (${lit(f.ids.legal)},${lit(f.ids.dso)}))`,
+  `'platformRoles',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM public.platform_actor_roles r WHERE actor_id IN (${lit(f.ids.legal)},${lit(f.ids.dso)}))`,
+  `'actors',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.user_profiles r WHERE id IN (${lit(f.ids.actor)},${lit(f.ids.reviewer)}))`,
+  `'issuerKeys',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_services.issuer_keys r WHERE id=${lit(f.ids.key)})`,
+  `'issuerRevocations',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM gridex_ediel_services.issuer_revocations r)`,
+  `'exports',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_exports.jobs r WHERE beneficiary_company_id=${lit(f.ids.beneficiary)})`)
+ return {
+  business:sql<Record<string,unknown>>(`SELECT jsonb_build_object(${fields.join(',')})`),
+  commands:sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY command_id),'[]') FROM gridex_service_administration.commands r WHERE company_id IN ${companies}`),
+  effects:f.effects(),
+ }
+}
+function currentProducerReviews(f:Fixture,evidence:Awaited<ReturnType<typeof reviewNativeEscoAssignmentEvidence>>){
+ const rows=sql<{evidence:Record<string,unknown>;current:boolean}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('evidence',to_jsonb(e),
+  'current',gridex_ediel_services.review_current_v1(e)) ORDER BY e.kind),'[]') FROM public.ediel_service_evidence e
+  WHERE company_id=${lit(f.ids.company)} AND assignment_id=${lit(f.assignment)}`)
+ expect(rows).toHaveLength(5)
+ expect(rows.map(r=>r.evidence.kind).sort()).toEqual(['downstream_use','dso_contract','end_user_contract','privacy_roles','service_contract'])
+ for(const row of rows){
+  expect(row.current).toBe(true)
+  expect(row.evidence).toMatchObject({company_id:f.ids.company,assignment_id:f.assignment,status:'verified',
+   approved_by:f.ids.reviewer,approved_assignment_version:f.current().basis,source_sha256:evidence.hash,source_version:'synthetic-v1'})
+ }
+ return rows
+}
+async function refuseWrongProducerRole(mode:'V'|'VH'){
+ const seeded=await seed(mode,{providerRole:'grid_owner'})
+ const sentinel=sql(`SELECT to_jsonb(a) FROM public.ediel_service_assignments a WHERE id=${lit(seeded.assignment)}`)
+ let f=seeded
+ if(mode==='VH'){
+  const day=sql<string>(`SELECT to_jsonb(((clock_timestamp() AT TIME ZONE 'Europe/Stockholm')::date-1)::text)`)
+  const fields={...seeded.fields,data_end:day+'T00:00:00Z'}
+  const created=await seeded.command({action:'create_assignment',commandId:randomUUID(),fields})
+  expect(created).toMatchObject({status:'held'})
+  const assignment=String(created.assignmentId)
+  expect(assignment).not.toBe(seeded.assignment)
+  f={...seeded,fields,assignment,current:()=>sql(`SELECT jsonb_build_object('version',version,'basis',scope_basis_version,
+   'scope',gridex_service_administration.scope_v1(a),'hash',encode(sha256(convert_to(gridex_service_administration.scope_v1(a)::text,'UTF8')),'hex'))
+   FROM public.ediel_service_assignments a WHERE company_id=${lit(seeded.ids.company)} AND id=${lit(assignment)}`)}
+ }
+ const reviewed=await reviewNativeEscoAssignmentEvidence(f),reviews=currentProducerReviews(f,reviewed)
+ const before=producerState(f)
+ expect(sql(`SELECT coalesce(jsonb_agg(to_jsonb(role_code) ORDER BY role_code),'[]') FROM public.tenant_actor_roles
+  WHERE company_id=${lit(f.ids.company)} AND environment='test' AND actor_id=${lit(f.ids.legal)}`)).toEqual(['grid_owner'])
+ expect(sql(`SELECT to_jsonb(actor_role) FROM public.ediel_actor_settings WHERE company_id=${lit(f.ids.company)} AND environment='test'`)).toBe('grid_owner')
+ const command={action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version}
+ const approved=await f.command(command)
+ expect(approved).toEqual({status:'held',missing:['provider_legal_esco_role_missing']})
+ const after=producerState(f)
+ expect(after.business).toEqual(before.business);expect(after.effects).toEqual(before.effects)
+ const added=after.commands.filter(r=>!before.commands.some(old=>old.command_id===r.command_id))
+ expect(added).toHaveLength(1)
+ const audit=added[0]
+ expect(audit).toEqual({command_id:command.commandId,company_id:f.ids.company,actor_user_id:f.ids.actor,
+  input:command,result:approved,recorded_at:audit.recorded_at})
+ expect(typeof audit.recorded_at).toBe('string');expect(Number.isFinite(Date.parse(String(audit.recorded_at)))).toBe(true)
+ expect(after.commands.filter(r=>r.command_id!==command.commandId)).toEqual(before.commands)
+ expect(sql(`SELECT public.ediel_service_assignment_assessment_v1(${lit(f.ids.company)},${lit(f.assignment)})`))
+  .toEqual({status:'held',missing:['assignment_not_active','provider_legal_esco_role_missing']})
+ expect(await f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:f.current().version,preferredRouteId:f.ids.route}))
+  .toEqual({status:'held',missing:['current_authentic_service_assignment_evidence_required']})
+ expect(producerState(f)).toEqual(after)
+ expect(currentProducerReviews(f,reviewed)).toEqual(reviews)
+ expect(nativeEscoExternal.send).not.toHaveBeenCalled()
+ if(mode==='VH')expect(sql(`SELECT to_jsonb(a) FROM public.ediel_service_assignments a WHERE id=${lit(seeded.assignment)}`)).toEqual(sentinel)
+}
+
 for(const mode of ['V','VH'] as const){
+ it(`${mode}: actual separately reviewed wrong legal producer role cannot approve or originate Z13; atomic rollback`,async()=>{
+  await refuseWrongProducerRole(mode)
+ })
  it(`${mode}: public Z14 after actual request ACKs grants only the separately published beneficiary scope; immutable replay`,async()=>{
   const{f,p,objectAckProfile,checkSentinel}=await request(mode,true)
   expect(objectAckProfile).toBeTruthy()
