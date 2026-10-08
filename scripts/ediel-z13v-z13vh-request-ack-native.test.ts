@@ -729,7 +729,9 @@ async function refuseOutboundZ14Direction(mode:'V'|'VH'){
   grid_area_code:null,requested_effective_date:null,send_not_before:null,send_window_opens_at:null,send_window_closes_at:null,
   expected_rule_version:null,expected_field_matrix_version:null,created_at:row.created_at,updated_at:row.updated_at})
  expect(current.filter(r=>r.id!==intent.id)).toEqual(old)
- expect({...after,business:{...after.business,ediel_message_intents:current.filter(r=>r.id!==intent.id)}}).toEqual(before)
+ expect(after.effects).toEqual({...before.effects,intents:before.effects.intents+1})
+ expect({...after,effects:{...after.effects,intents:before.effects.intents},
+  business:{...after.business,ediel_message_intents:current.filter(r=>r.id!==intent.id)}}).toEqual(before)
  expect(await createEdielMessageIntent(input)).toEqual(intent)
  expect(producerState(f)).toEqual(after)
  expect(nativeEscoExternal.send).not.toHaveBeenCalled()
