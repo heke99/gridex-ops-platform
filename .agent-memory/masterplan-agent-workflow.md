@@ -1,12 +1,15 @@
 # Masterplan agent workflow — next wave, 2026-10-06
 
-Owner instruction: each agent completes a two-rule packet, checks the affected
-system path, reviews its work and merges only when the required gates are green.
-Every agent records ownership, completed work and the exact next action before
-starting another task. Owner clarification: agents choose and atomically reserve
-their own pairs, then continue after delivery without new assignments. Read
-`masterplan-reservations.md`. Receiving the shared prompt starts that agent's
-wave; this documentation update does not launch agents or clear external gates.
+Historical next-wave instructions are qualified by active `AGENTS.md` roles.
+PLANAGENT finishes its packet, then selects eligible rule/acceptance-only work
+(or a final single eligible ID); BLOCKERARAGENT finishes or explicitly hands over
+one concrete blocker before selecting another; GRANSKARE performs the agreed
+bounded independent read-only review. Keep the authorized role. All implementing
+roles check the affected path, review their work and merge only when required
+current-head gates are green. Record custody, actual completion and next action
+before another item. Read `masterplan-reservations.md`; the continuation authorizes
+work within the fixed role, not blanket HOLD/custody clearance. Older pre-dispatch
+paused observations are history; a documentation update does not launch agents.
 
 ## Active board and Claude proxy update — 2026-10-08
 
@@ -43,14 +46,20 @@ granted. Historical decisions and failed receipts retain their original evidence
 3. Finish your existing reservation first. Compare its branch and original PR
    requirements against current implementation and coverage before changing
    anything. Already delivered work must not be implemented or approved twice.
-4. Choose two eligible unowned rule IDs and related acceptance contracts yourself,
-   or two remaining contract/scenario IDs when work is acceptance-only. A final
-   single eligible ID is allowed. Follow current priority and dependencies;
+4. PLANAGENT chooses two executable, unapproved, unowned rule IDs and related
+   acceptance contracts,
+   or two remaining contract/scenario IDs for an acceptance-only packet, even
+   when other rules are occupied or blocked. If only one executable eligible ID
+   remains in the selection, use the final-single exception and document the
+   selection rather than adding a blocked filler. Follow priority/dependencies;
    reserve IDs and exact file scope using the atomic protocol (including the
    documented Claude proxy path). Record the receipt,
    dependencies and next action in your checkpoint and CLAIM on #673 before code.
    On conflict, release your partial attempt and select other free work.
    No user assignment, coordinator acknowledgement or launch delay is needed.
+   BLOCKERARAGENT instead selects one evidenced executable blocker within its
+   fixed role, reserving its exact files and any IDs required by that scope.
+   GRANSKARE does not acquire implementation scope through a read-only review.
 5. Use a unique branch and isolated worktree/checkout. Preserve other agents'
    files, original commits and unrelated changes. Coordinate shared-file edits
    with their owners; never take over because an owner has not replied.
@@ -75,8 +84,9 @@ Chat-only documentation does not satisfy this gate. Keep concise checkpoints
 and real test/coverage evidence; preserve failed observations and avoid writing
 duplicate audit narratives. Never store secrets or production customer data.
 
-All agents own their checkpoints. Agents acquire the atomic `role-memory` lock
-for shared current-state/current-task/checkpoint/work-plan and summaries, refresh
+All agents own their checkpoints. Shared campaign-memory writes require both
+the atomic `role-memory` lock and exact file custody; neither grants the other.
+For shared current-state/current-task/checkpoint/work-plan and summaries, refresh
 the latest receipts, and reconcile changes without overwriting foreign evidence.
 Send concise CLAIM/READY/BLOCKED/MERGED/RELEASE receipts to #673 and record one
 unique handover line per actual merge. No permanent campaign coordinator is
@@ -93,17 +103,30 @@ Self-review the final diff and full affected path, address findings, and satisfy
 the repository's required review. Update only claimed coverage rows when the
 whole ID is proved. Local green, an open PR and market acceptance are distinct.
 
-Keep PRs small. Each agent acquires `role-merge`, refreshes main/dependencies and
+Keep PRs small. Each implementing agent acquires `role-merge`, refreshes main/dependencies and
 merges its own packet after required review and all mandatory checks are green
 for the current PR head. Scope locks prevent conflicting source edits; the merge
 role serializes delivery. Changed code or conflict resolution requires relevant
 fresh verification. Never weaken gates or borrow old success.
 
-`READY` means reviewable and `CI_GREEN` means the current PR gates passed.
-Neither releases the reservation or permits taking a new pair. `MERGED` requires
-the actual main commit and PR receipt. Only then read current ownership again
-and select/reserve the next pair yourself. A blocked packet can be relinquished only through
-explicit RELEASE/handover, retaining completed work and remaining requirements.
+The `READY` receipt means published/reviewable and `CI_GREEN` means the current PR gates passed.
+Neither releases reservations or permits another item. `MERGED` requires the
+actual main commit, parents/tree composition and PR receipt. Release merge-role
+FIRST before memory-role acquisition or remaining file releases, then document
+actual delivery and verified owner-only resource release before selecting the
+next eligible packet/blocker in the fixed role. A blocked item may be retained
+for a named resumption event or relinquished through explicit RELEASE/handover,
+preserving completed work and remaining requirements. Finish actual release
+before taking another item; absent tags do not relinquish retained whole duties.
+
+Classify current candidates as READY, OCCUPIED, WAITING_DEPENDENCY,
+EXTERNAL_DECISION or DONE in existing checkpoints; selection READY means an
+executable candidate, distinct from a READY receipt. Neither is a lock, custody
+transfer or coverage approval. Name each blocker/dependency's owner,
+exact required output or criterion and resumption event. Do not impose a blanket
+#699 dependency when only a specific SQL/GEN/private-source output is required;
+refresh the actual output and criterion proof. Preserve specific HOLD boundaries
+and reuse original evidence only when source, environment and assertions apply.
 
 ## Retained old PR work is checked before new work
 
@@ -126,6 +149,8 @@ reconstruction and external/legal/market gates retain their recorded boundaries.
 
 Totals come from current main's coverage ledger; never sum overlapping branches.
 Report approved rule/contract counts separately from effort, external acceptance
-and deployment. The shared prompt is the next-wave dispatch; after receiving it,
-continue through eligible packets without requesting another assignment. When
-none are eligible, report actual completion, occupied work and blockers.
+and deployment. Receiving the role-specific continuation authorizes eligible
+work within that role; no new assignment is needed after verified delivery or
+explicit handover and actual release. When none is executable, record the actual
+blocker, owner, required deliverable and resumption event. Wait on that event
+without repeated empty reports; this does not declare the whole plan complete.

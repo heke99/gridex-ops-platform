@@ -1,5 +1,35 @@
 # Blocker agent: Claude proxy protocol reconciliation
 
+## Prepared protocol correction — 2026-10-08
+
+Same owner codex-blocker-proxy-20261008-a7912b34 / packet a7912b34-f5f8-4a3b-b0a1-f9d31fac2a3a.
+Original PR709 source da2ce7f4 and failed observations/reviews remain preserved.
+This local prepared successor adopts actualmain372d6184 while changing only
+the two originally held protocol files and this unique checkpoint. Requested
+correction6060132069 follows fixed-role AGENTS from delivered712: role-specific
+selection, historical paused/dispatch wording, memory-role plus exact custody,
+retained whole-duty/release and criterion-specific dependencies, historical
+Claude request examples. Original GitData receipt/ref/rollback/exact-SHA/no-expiry,
+proxy identities and security/review/current-head CI gates remain intact.
+
+Both exact protocol refs retain74b4932; role-memory2a7d95e34f1d47b0d395a228e5d3eef27d26ccba
+was create-only/GET_MATCH verified before preparation (CLAIM6061011315).
+No technical IDs, coverage, foreign-memory/source paths, native/capture/GEN jobs
+or foreign collectors are taken. Finish self/integrity/diff checks and two
+independent exact-prepared-source reviews, freeze source, release memory-role
+with exact receipt/DELETE/GET404 before waiting. Retain the two file refs.
+
+NOT_PUBLISHED_TO_PR: PR709 remains frozen da2 with its authentic failed clean
+and certificate. Foreign714 e18 has eight requested mandatory SUCCESS, but
+designated proxy delivery is blocked by its monitor scope6060715988; no takeover.
+After actual reviewed714 main delivery, adopt that main in this existing-source
+descendant, verify new head/path triggers and get fresh source2/current CI plus
+actual-main composition2 before normal merge and merge-role FIRST/file release.
+No borrowed green, resulting-main/native/whole-ID approval or release is asserted.
+Operational current checkpoint stays on codex/blocker-proxy-checkpoint-20261008;
+dated initial observations below are historical, with later673/live receipts
+authoritative for P08/withdrawn699 and other custody. Coverage remains300/352.
+
 Agent `codex-blocker-proxy-20261008-a7912b34`; packet `a7912b34-f5f8-4a3b-b0a1-f9d31fac2a3a`; branch `codex/blocker-proxy-20261008`.
 Worktree `/workspace/gridex-blocker-proxy`; base main `0b7d930ca67b8b78cb6e6f04b8f94eb7edac37ec`.
 Status: IMPLEMENTING, documentation only; no rule/acceptance IDs or coverage edits.
