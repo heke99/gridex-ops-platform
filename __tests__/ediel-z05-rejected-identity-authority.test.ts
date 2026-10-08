@@ -312,3 +312,70 @@ it('retains the exact two-second monotonic boundary when the wall clock stays va
   expect(readReceivedZ05RejectedIdentityWitness(token, io.source, actor)).not.toBeNull()
   expect(ownReceivedZ05RejectedIdentityRejection(decision, io.source, actor, token)).toBe(true)
 })
+
+// Caller-only accessors are in-process API inputs, never native/SQL fixtures.
+// setup already retained a separate plain born original before this mutation.
+function unusedCallerGetter() {
+  let reads = 0
+  Object.defineProperty(io.source, 'parsed_payload', {enumerable: true, get() {
+    reads++; throw Error('UNUSED_H209_CALLER_PROPERTY_READ')
+  }})
+  return () => reads
+}
+it.each(['permission', '42501'] as const)('unused caller getter preserves actual %s quarantine before original READ', async kind => {
+  const stored = structuredClone(io.rows), original = structuredClone(io.source)
+  const denial = {code: '42501', message: 'DECLARED_ACTOR_SQL_DENIAL'}
+  if (kind === 'permission') io.permission = false
+  else io.permissionError = denial
+  const getterReads = unusedCallerGetter()
+  const outcome = await loadReceivedZ05RejectedIdentityRejection(io.source, actor)
+    .then(value => ({value, error: null}), (error: unknown) => ({value: null, error}))
+  expect(outcome.error).toBeInstanceOf(EdielExecutionFailure)
+  expect(outcome.error).toMatchObject({disposition: {kind: 'security_quarantine',
+    code: kind === 'permission' ? 'EDIEL_TENANT_PERMISSION_FORBIDDEN' : 'EDIEL_TENANT_ACTOR_FORBIDDEN'}})
+  if (kind === '42501') expect(Object.getOwnPropertyDescriptor(outcome.error, 'cause')?.value).toBe(denial)
+  expect(outcome.value).toBeNull()
+  expect(getterReads()).toBe(0)
+  expect(io.calls).toEqual([{name: 'gridex_actor_has_company_permission', args: {
+    p_actor_user_id: actor, p_company_id: original.company_id, p_permission: 'communication.read'}}])
+  expect(io.sourceQueryFilters).toEqual([])
+  expect(io.rows).toEqual(stored)
+})
+it('unused caller getter leaves the lawful original READ and private witness intact', async () => {
+  const original = structuredClone(io.source), stored = structuredClone(io.rows)
+  const getterReads = unusedCallerGetter()
+  const token = await loadReceivedZ05RejectedIdentityRejection(io.source, actor)
+  expect(token).not.toBeNull()
+  expect(getterReads()).toBe(0)
+  expect(io.calls.filter(c => c.name === 'gridex_actor_has_company_permission')).toEqual([
+    {name: 'gridex_actor_has_company_permission', args: {
+      p_actor_user_id: actor, p_company_id: original.company_id, p_permission: 'communication.read'}}])
+  expect(io.sourceQueryFilters).toEqual([{key: 'id', value: original.id}, {key: 'company_id', value: original.company_id}])
+  expect(io.calls.filter(c => c.name === 'ediel_require_inbound_legal_context_v1').map(c => c.args))
+    .toEqual([{p_company_id: original.company_id, p_message_id: original.id}])
+  expect(registryCalls()).toHaveLength(1)
+  expect(io.rows).toEqual(stored)
+  if (!token) throw Error('EXPECTED_ACTUAL_PRIVATE_H209_READ')
+  expect(readReceivedZ05RejectedIdentityWitness(token, original, actor)).toMatchObject({
+    profileKey: original.rule_profile_key, sourceHash: original.rule_pack_checksum})
+})
+it.each(['actorless', 'healthy', 'invalid-birth', 'invalid-syntax', 'L'] as const)('unused caller getter cannot admit %s to private IO', async kind => {
+  if (kind === 'healthy') setup(object('1', '735123456789012345'))
+  if (kind === 'L') {
+    const body = object(); body[body.findIndex(p => p[0] === 'CAV')] = ['CAV', ['Z22']]; setup(body)
+  }
+  const context = (io.source.execution_context_snapshot as Row).receivedProdatContext as Row
+  if (kind === 'invalid-birth') context.payloadHash = 'f'.repeat(64)
+  if (kind === 'invalid-syntax') {
+    io.source.raw_payload = io.source.raw_payload!.replace(/UNT\+\d+\+/, 'UNT+999+')
+    context.payloadHash = evidenceHash(io.source.raw_payload)
+    expect(validateEdifactSyntax(io.source).ok).toBe(false)
+  }
+  if (kind === 'healthy' || kind === 'L') expect(observeReceivedZ05RejectedIdentity(input())).toEqual([])
+  const stored = structuredClone(io.rows), getterReads = unusedCallerGetter()
+  expect(await loadReceivedZ05RejectedIdentityRejection(io.source, kind === 'actorless' ? '' : actor)).toBeNull()
+  expect(getterReads()).toBe(0)
+  expect(io.calls).toEqual([])
+  expect(io.sourceQueryFilters).toEqual([])
+  expect(io.rows).toEqual(stored)
+})
