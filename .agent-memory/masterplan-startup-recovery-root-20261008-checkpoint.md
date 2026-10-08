@@ -203,3 +203,50 @@ Nextroot: publish this ownunique checkpoint on its existing separate branch;
 finalreport provides actualresults, per-chat nexts andcommonfixed-role prompt.
 No automaticforeignhandoff, idleexpiry, permissionchange, probe, code takeover
 or falselyclaimed all-agent execution. Earlier historical snapshots remain dated.
+
+## Actual Claude proxy reservations and independent lanes — 2026-10-08T15:13:15Z
+
+Taken/completed: renewed strictClaude requestmonitor; actualmain6b87 AGENTS,
+active orderedmemory, reservation/workflow/queue, owncheckpoint and receipt
+history read.1148comments/83refs initially scanned; bounded independent semantic
+review; finalupdated union1158comments/100refs. No new immediate renewal/release.
+User additionally authorized explicit transfer of documented stalled remaining
+duties, then renewed strictmonitor(noforeignlocks/code/merge/protocol/permissions).
+
+Actualrequested dutyhandover/reservation, not inferredsilence: DB05/ATDB05/SC070
+request6062465552 -> Claudeclaude-planagent-brave-newton/93b2b32d, receipt
+2ad3089ecc1557127d60cad057b775064a71db7a,12refs; SC038/SC047request6062502984
+-> Claudecompassionate-rubin/3d94ea6c, receipt
+52244e72be7823f59ec58864fe472788260cd502,5refs. Bothunreferenced receiptcommits
+preserve exactmain tree/singleparent;17sorted create-if-absent refs acquired
+and everyactualremoteSHA reverified before [receipt6062944769](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6062944769)
+POST/GET exactbodyMATCH. Onlyrequested IDs/exactfiles, noforeignrefdeleted/updated.
+NextClaudeworkowners verifyactualrefs, documentownCLAIM then implementownedcriteria.
+Root has no technicalID/file/role ownership; onlytheseClaudecustodies changed.
+
+FuturebraveSC035/037request6062535087/5c1e remainsDEFERRED_NOT_RESERVED:
+finishDB05actualdelivery/release or explicithandoff before nextfreshselection.
+All7proposedfuture refs absent at finalreceiptcheck; no speculativehold.
+DB05requested05130000 is retainedunmerged#599source absent onmain; preserve
+appliedhistory, reuse reviewedsource, author isolatedrequestednewforward.
+Sharedmanifest/schema/GEN remains2f. SC038A/D34 applicability andSC047 existing
+joined-nativeproof must bequalified; neitherunitgreen nor custody approveswholeIDs.
+
+Independentforwardlanes:2f699/b729verify+smokeFAIL, generated-tail/adoption;
+41f claimedCONTRLforward/test with realoldSQL RED; newtwoClaudepackets can
+authorindependently.716/bbf has8/8mandatorySUCCESS14:59UTC(clean/cert14:57);
+existing0b4aproxy maycompleteitsauthorizeddelivery, butthismonitor didnomerge
+or roleclaim and retainsnewClaude2e5file until actualownerrequestedrelease.
+709nowpublished3c212a74 withnewCI, no old714wait. Typed258 multipleoffers
+stillneed ONEexacthelper/interface/custodyhandoff; noforeignruntime takeover.
+
+Proofs: /workspace/reports/gridex-claude-proxy-monitor-20261008T1512.json;
+/tmp/gridex-claude-monitor-latest/actual-reservations.json andreservation-receipt.json.
+No code/production/native/capture/GEN/artifact/job/probe/newbranch/permission/
+protocol/PRmerge mutation or directClaude tag-capabilityrestoration claimed.
+Coverage300/352 unchanged;52remain. No externalchatwake tool; receiptpublication
+does not startstoppedchats. Latestcontinuation usesfreshrefs andeachfixedrole.
+
+Nextroot: publishonlythisownunique append-onlycheckpoint onexistingbranch,
+finaluserreport actualunblocking andcopyablecontinuation. Subsequentstrict
+monitors reconcilethisverifiedreceipt andnewownerrequests withoutdoublehandling.
