@@ -12,6 +12,7 @@ import type {
 import {
   getEdielRouteRuntimeByCommunicationRouteId,
   type EdielRouteRuntimeRow,
+  type EdielAckRouteProfileSelection,
 } from '@/lib/ediel/config'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import { isEdielPortalParty, isEdielPortalEmail } from '@/lib/ediel/core/productionGuards'
@@ -134,10 +135,14 @@ export async function resolveCanonicalRouteContext(params: {
   messageStandard?: EdielMessageStandard
   receiverEdielId?: string | null
   applicationReference?: string | null
+  ackProfile?: Pick<EdielAckRouteProfileSelection, 'family' | 'code'>
 }): Promise<CanonicalRouteContext> {
   const environment = params.environment
   const companyId = trimOrNull(params.companyId)
   if (!companyId) throw new Error('canonical_route_company_required')
+  if (params.ackProfile !== undefined && (!params.ackProfile || params.requestType !== 'ediel_ack')) {
+    throw new Error('ediel_ack_route_profile_basis_required')
+  }
 
   // TEN-02/TEN-05: the process (application reference) selects the tenant's role profile.
   const actor = await resolveCanonicalActorContext(environment, companyId, processActorRole(params.applicationReference))
@@ -160,7 +165,11 @@ export async function resolveCanonicalRouteContext(params: {
     throw new Error(`canonical_route_environment_mismatch:${route.id}:${environment}`)
   }
 
-  const routeRuntime = await getEdielRouteRuntimeByCommunicationRouteId(route.id, { companyId })
+  const routeRuntime = await getEdielRouteRuntimeByCommunicationRouteId(route.id, {
+    companyId,
+    ...(params.ackProfile !== undefined ? { ackProfile: { ...params.ackProfile, environment,
+      applicationReference: params.applicationReference ?? '' } } : {}),
+  })
   if (routeRuntime?.environment && routeRuntime.environment !== environment) {
     throw new Error(`canonical_route_profile_environment_mismatch:${route.id}:${environment}:${routeRuntime.environment}`)
   }

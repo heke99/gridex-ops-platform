@@ -1,3 +1,13 @@
+## TR09/DB01 delivery reconciliation — 2026-10-08
+
+- ACTUAL MERGED [#694](https://github.com/heke99/gridex-ops-platform/pull/694) at 2026-10-08T00:58:10Z — `84aa3b5c3a4da2800926f8724b0887f0b63f2832`, source `2f7e32d3fdcfcbf8589ce7c2cb9e6e9c6a153ef2`, tree `2a7a32c1b1d9f39c2d7e283083dd4eaadb6f27ef`. Two bounded existing-SQL proofs; no new SQL or whole approval.
+- ACTUAL MERGED [#698](https://github.com/heke99/gridex-ops-platform/pull/698) at 2026-10-08T02:27:00Z — `0e6265624358f1eca205dbcda224fd289f7a166c`, source `f8c7998d6900e1c589612e54a23d67c526e37443`, tree `60da5cba639aad6a2b98dd79713aedbb11deba37`. Foreign-image helper/unit source; ordinary mandatory checks passed, supplemental C30 failure retained; no native/whole approval.
+- ACTUAL MERGED [#695](https://github.com/heke99/gridex-ops-platform/pull/695) at 2026-10-08T02:49:50Z — `c587957dff2e5518ff4f068e500dbd4acc0c5d2e`, source `08d0852ad936b219f5ece82558a1d550a46453c7`, tree `a8a98e20d580759b8c734ef10b1391c9582e5812`. Three-file metadata delivery; no product or coverage change.
+
+- Captured-source handoff: NONPR `19e2a5d86e71e50db942429fe5a1a4b4fba525c3` / `120f44f3876e791aba10a3c44ff8e925d940ac80` preserved with remote9446/9449 tuple match. Original LOCAL TR C157/DB v4 both FAIL exit1/zero native cases at Docker ENOSPC; independently qualified cleanup/restoration0 and separate local lease release0 do not approve native/whole behavior. Current capacity and2f canonical GEN/main/parity delivery remain blockers; ROOT documents whole handoff and actual owner-only resource release before next work. [Receipt](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6038325392) / [checkpoint](https://github.com/heke99/gridex-ops-platform/blob/b1175619f1936bb7652db6f71afdf6a02a910af8/.agent-memory/masterplan-codex-24fa8502b8-tr09-db01-6d5fe7-checkpoint.md).
+
+Earlier dated handover history is preserved verbatim below.
+
 - ACTUAL MERGED PR #677 — `bc73a44528c9717461294a8654a66114f83f07da`, source `ea0258d8b3356f50c17bd9fbee4552bb12abdf04`, tree `67c55fcee8c26077900076dd4c451395b0b0c241`; nine mandatory successes, independent source/current-main reviews and fresh typechecks; own merge-role released FIRST404. H declaration/producer/correction component only; whole H03/H04 NOT_EXECUTED, coverage300/352, all ten own technical refs retained. ROOT93 next #657 current-source native/CI proof or exact blocked handover; [receipt](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6052123013).
 
 ## Supplier H component observation — 2026-10-08T03:20Z
