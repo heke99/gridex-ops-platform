@@ -40,3 +40,23 @@ addressed to an unnamed PLANAGENT.
 Resume: #699 merged, or an explicit RELEASE/handoff. Then refresh, send a proxy
 reservation request with exact IDs/files, verify the refs, post CLAIM and only
 then write code.
+
+## Selection 2026-10-08 ~15:50Z — REQUESTED (not claimed)
+
+Packet `e7c4a1d2-6b3f-4f0e-9a51-zen0mayer031` (request only). Main `6b87c1a9`.
+Selected acceptance-only pair **SC-031 + SC-046**: unclaimed (no id refs) and not requested on
+#673. Remaining custody sits with the stalled original P/U/SC Claude custodian
+(session_01RxmpLE…, 5990498953), the same custodian whose duties were already transferred
+for SC-038/047 and DB-05 under owner authorization (6062944769).
+
+Evidence of open gaps:
+- SC-031: reviewer gap in `quality/audits/.../sc031-sc034-review-20261005/SC-031.md`. Direction
+  propagation at `lib/ediel/inboundCases.ts:401` is fixed on main. Variant: `:1062` (multi-object
+  selection) still calls `validateProdatRegisterPayload` without `direction` → would reject inbound
+  unused X/D-false fields. Needs RED first.
+- SC-046: `sc046-sc047-review-20261005/review.md`. Positive APERAK, no UTILTS-ERR and no overwrite or
+  rebilling for a late older 512/532 version are unproven.
+
+Requested resources: id-SC-031, id-SC-046 and 6 files: inboundCases.ts, the existing
+unused-fields test, two new SC tests, and the two UTILTS late-version scripts.
+Next: on a verified proxy receipt, run `git ls-remote` against all refs, post CLAIM, then RED tests.
