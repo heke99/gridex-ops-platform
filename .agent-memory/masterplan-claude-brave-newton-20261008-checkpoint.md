@@ -31,3 +31,15 @@
 - Avoided overlap: SC-038/047 (compassionate-rubin), SC-053/054 (c925695e), SC-071 (6da08caef4), typed258 (four blocker agents).
 - Files: the new __tests__/ediel-sc-035-z02-next-step.test.ts plus the existing SC-037/sweep tests and the P-10 Z02 regression scripts. All are free (0 refs).
 - Next: proxy receipts for both packets. DB-05 goes first.
+
+## 2026-10-08 15:40Z DB-05 packet 93b2b32d — CLAIMED and implemented locally
+- Receipt 2ad3089e: 12 refs verified (ls-remote plus decoded message). CLAIM posted at #673 6063323005.
+- Reused #599 source: guard migration 20261005130000, guard PGlite test, retention wrapper, two native tests, finding.
+- RED: new __tests__/db-05-closed-tenant-retention.test.ts against a no-op forward gave 3 fails (closed grant, workspace list, gate diff); the 4 negatives passed.
+  The HTTP consumer RED was a zod enum without 'closed'.
+- GREEN: forward 20261008160000 patches only the status list in permission_v1, record_permission_v1 and
+  ediel_current_retention_companies_v1, adding 'closed'; retentionHttp.ts enum also gets 'closed'.
+- Local results: vitest 4 files / 37 PASS (closed 9, guard 14, workspace and record HTTP); retention wrapper 9+10 PASS; eslint 0; typecheck:tests 0.
+- BLOCKER (2f custody): db:migrations:integrity fails on 2 missing manifest lines
+  (ed92e54e… for 20261005130000, 25fbb60e… for 20261008160000). schema.sql and types are also not regenerated. These need 2f to include them in #699 or hand them over.
+- Still open: a native CI workflow for scripts/db-05-*-native.test.ts. That needs an extra file reservation (.github/workflows/ediel-db05-native.yml), then an independent review. Coverage stays unchanged until then.
