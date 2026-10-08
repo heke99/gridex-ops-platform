@@ -108,3 +108,16 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
 - Resume event: #699 merged -> request a Codex proxy reservation (agent compassionate-rubin) for
   AT-Z04L-SUPPLIER + AT-Z04LK-SUPPLIER with exact files after a fresh custody check; Z13V/VH as the
   alternative once its owner disposition also exists. Verify refs, then CLAIM, then code.
+
+## 2026-10-08 ~15:00Z — owner-authorised transfer SC-038 + SC-047; RESERVATION_REQUESTED
+
+- Owner (heke99) explicitly authorised in this session the transfer of the remaining retained duty for
+  SC-038 + SC-047 (rule 6057197745). Request posted: #673 6062502984, packet 3d94ea6c-05b3-4a71-a053-0af66b1532d1.
+- Requested refs: id-SC-038, id-SC-047, file refs for scripts/test-ediel-p-12-z04ad-scope.cjs,
+  __tests__/ediel-supply-market-consumers.test.ts, __tests__/ediel-sc-044-047-utilts-scenarios.test.ts.
+  Base main 6b87c1a9. All were free at request time.
+- Criteria: SC-038 positive Z04A + Z04D/Z70 special process with no own Z03, plus same-tenant relation (reuses
+  qualified native A/D34 6045763964). SC-047 joined receiver/role -> unknown object -> E10, with no customer
+  object created and no cross-tenant lookup.
+- Status: REQUESTED, not reserved. No code until the Codex receipt arrives and I have verified it with ls-remote and posted CLAIM.
+- Next: read-only preparation (existing tests, matching/gateway path).
