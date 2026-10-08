@@ -717,8 +717,13 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
   const physical=readPhysicalAckSourceCorrelation(reply as unknown as EdielMessageRow,current)
   expect(physical.classification.outcome).toBe(reply.message_family==='CONTRL'?'positive':'negative')
   const tokens=tokenizeEdifact(String(reply.raw_payload))
-  if(reply.message_family==='CONTRL')expect(physical.acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(wire).interchangeReference])
+  if(reply.message_family==='CONTRL'){
+   expect(physical.scope).toBe('interchange')
+   expect(physical.acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(wire).interchangeReference])
+   expect(tokens.segments.filter(s=>s.tag==='BGM')).toHaveLength(0)
+  }
   else {
+   expect(tokens.segments.filter(s=>s.tag==='BGM')).toHaveLength(1)
    expect(physical.acknowledgedReferences).toEqual([p.li])
    expect(tokens.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,tokens.una)[0])).toEqual(['41'])
    expect(tokens.segments.some(s=>s.tag==='FTX'&&segmentComposite(s,3,tokens.una).join(':')===field+'::260')).toBe(true)
@@ -803,6 +808,8 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
   const q=object?await readPersistedOutboundAckRulePackEvidence(ack as unknown as EdielMessageRow):undefined
   if(q){expect(q.sourceMessage.id).toBe(source.id);expect(q.evidence).toEqual(sourceEvidence)}
   const parsed=tokenizeEdifact(String(ack.raw_payload)),envelope=EdifactEnvelopeCodec.decode(String(ack.raw_payload))
+  // An absent CONTRL BGM is SQL NULL; a present, empty APERAK BGM1004 stays ''.
+  const bgm=parsed.segments.find(s=>s.tag==='BGM')
   const reference=(qualifier:string)=>parsed.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,parsed.una)[0]===qualifier)
    .map(s=>segmentComposite(s,1,parsed.una)[1])[0]??null
   const profileId=object?objectAckProfile:contrlAckProfile
@@ -825,15 +832,16 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
    mailbox:profile.mailbox,sender_ediel_id:f.sender,receiver_ediel_id:f.receiver,sender_sub_address:envelope.senderSubAddress??null,
    receiver_sub_address:envelope.receiverSubAddress??null,sender_name:current.receiver_name?.trim()||null,receiver_name:current.sender_name?.trim()||null,
    sender_email:profile.mailbox,receiver_email:route.target_email,file_name:ack.file_name,mime_type:'application/edifact',
-   interchange_reference:envelope.interchangeReference,external_reference:segmentComposite(parsed.segments.find(s=>s.tag==='BGM'),2,parsed.una)[0]??null,
+   interchange_reference:envelope.interchangeReference,external_reference:bgm?(segmentComposite(bgm,2,parsed.una)[0]??null):null,
    correlation_reference:reference('ACW'),transaction_reference:reference('TN'),application_reference:f.app,
    original_message_id:generatedRef,original_transaction_id:null,original_message_code:'Z14',related_message_id:source.id,
    communication_route_id:route.id,route_profile_id:profileId,raw_payload:ack.raw_payload,
-   source_operation_id:object?sql(`SELECT 'ediel_ack:'||${lit(source.id)}||':APERAK:rawscope:'||encode(sha256(convert_to(gridex_ediel_ack_guide.prodat_outcomes_v1(${lit(String(ack.raw_payload))},${lit(wire)})::text,'UTF8')),'hex')`):`ediel_ack:${source.id}:CONTRL:message`,parsed_payload:metadata,
+   source_operation_id:object?sql(`SELECT to_jsonb('ediel_ack:'||${lit(source.id)}||':APERAK:rawscope:'||encode(sha256(convert_to(gridex_ediel_ack_guide.prodat_outcomes_v1(${lit(String(ack.raw_payload))},${lit(wire)})::text,'UTF8')),'hex'))`):`ediel_ack:${source.id}:CONTRL:message`,parsed_payload:metadata,
    validation_report:{generatedBy:'buildAckDraft',engine:'canonical_ediel_ack_engine',engineVersion:'2026-05-production-ack-v1',
     sourceMessageId:source.id,sourceFamily:'PRODAT',sourceCode:'Z14',sourceInterchangeReference:current.interchange_reference,
     generatedInterchangeReference:envelope.interchangeReference,applicationErrors:errors,utiltsErrSequenceToken:null,aperakSequenceToken:null,
-    ackScope:object?'object':'interchange',relatedTransactionReference:null,payloadPreflight:preflight},
+    // buildContrlDraft uses the builder's diagnostic default; physical scope is asserted above.
+    ackScope:object?'object':'message',relatedTransactionReference:null,payloadPreflight:preflight},
    ...Object.fromEntries(['customer_id','site_id','metering_point_id','grid_owner_id','switch_request_id','grid_owner_data_request_id','outbound_request_id','partner_export_id']
     .map(key=>[key,object?(current as unknown as FullRow)[key]:null])),
    requires_contrl:false,requires_aperak:false,contrl_status:'not_required',aperak_status:'not_required',utilts_err_status:'not_required',
