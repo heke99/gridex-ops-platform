@@ -93,7 +93,8 @@ for(const mutation of ['none','foreign-business','foreign-party','missing-owner'
  if(mutation==='missing-owner')facts.objects[0].party=null
  const factsText=JSON.stringify(facts),at=receipt.availableAt
  const assessment=timelineAssessment(31,null,{canonicalAssessmentId:ownerId(30),assessedAt:at,availableAt:at,availabilityWitnessId:receipt.witnessId,factsText,factsHash:evidenceHash(factsText)})
- const body=timelineBody([timelineSource({assessments:[assessment]})],{cutoffAt:at,capturedAt:at})
+ const rawPayload=io.message!.raw_payload!
+ const body=timelineBody([timelineSource({rawPayload,payloadHash:evidenceHash(rawPayload),assessments:[assessment]})],{cutoffAt:at,capturedAt:at})
  const result=inspectReceivedSourceDecisionTimeline({...timelineScope,cutoffAt:at},timelineReceipt(body))
  expect(result).toMatchObject({authorityStatus:'not_established',selection:'not_performed',marketSupersession:'not_performed'})
  if(mutation==='none'){
