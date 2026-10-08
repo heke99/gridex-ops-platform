@@ -295,3 +295,23 @@ Since the preceding reviewed main74bcd6d, the only net main changes are four Edi
 The supplied checks-current.json is bound to unchanged sourceda2ce7f4: six SUCCESS, nine prescribed SKIPPED, and two IN_PROGRESS (`clean-migration-replay`, `pr-certificate`). No CI_GREEN or merge completion is asserted by this review. Preserve the genuine running jobs and wait for ordinary required current-head gates and fresh actual-main verification before delivery.
 
 Prior review2.md and delivery-review2.md remain historical/source evidence. This is an exact-composition freshness supplement, not a rewritten source approval or permission bypass. Reviewer invoked no job, external message, native run, generator/capture or repository mutation and wrote only this /tmp report. Any further main/tree change requires fresh affected composition verification.
+
+## Bounded source correction preparation — owner request6060132069
+
+Existing owner/packet retains two protocol files at74b4932; source709da2 frozen.
+Actualmain372d6184 now contains fixed-role AGENTS/prompt delivery712. Request6060132069
+requires the two held protocol files to follow fixed roles, exact shared-file
+custody, retained duty/criterion dependencies and historical request examples.
+Own role-memory operation5e83aaac-49e1-4f0a-a5e1-30c266e73dc9/receipt2a7d95e34f1d47b0d395a228e5d3eef27d26ccba was
+original same-main-tree/single-parent POST then create-only GET_MATCH verified;
+CLAIM6061011315. No new implementation ID/file is acquired.
+
+Status PREPARING_LOCAL_CORRECTION: next branch codex/blocker-proxy-correction-20261008
+on actualmain372, preserve original da2 source/checkpoint/evidence, change only
+the two held protocol files and unique checkpoint. Self/integrity/diff/source2
+review before source freeze; release only new memory role before waiting.
+PR714 remains foreign OPEN e18; fresh eight named checks SUCCESS/request6060615751,
+but designated proxy's monitor cannot merge6060715988. Do not take that operation.
+Wait actual reviewed714 main delivery before publication/adoption triggers any
+new709 CI; all changed head/source/composition evidence must be fresh. No green709,
+repair/removal, main-runtime, whole-coverage, merge or release is claimed.
