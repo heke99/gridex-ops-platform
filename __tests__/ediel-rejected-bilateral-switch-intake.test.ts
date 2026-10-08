@@ -7,6 +7,7 @@ import {parseInboundEmailContent} from '@/lib/inbound-mail/edielEmailParser'
 import {resolveBilateralSwitchBirthProfile} from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {prodatRegisterFieldState} from '@/lib/ediel/prodat/prodatRegisterFields'
 import {ownerRulePack} from './helpers/sourceOwnerFixtures'
 import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
 import {line,characteristic} from './fixtures/prodat-register'
@@ -231,4 +232,22 @@ it('keeps missing311 rejected when a sole owned request supplies a point candida
  expect(db.state.calls.filter(c=>['outbound_requests','metering_points','customers','customer_sites'].includes(c.table))).toEqual([])
  for(const name of ['bilateral_capability_verified','business_effect_authorized','execution_context_snapshot'])expect(db.writes('ediel_messages')[0].payload).not.toHaveProperty(name)
  expect(db.state.rpcCalls.map(c=>c.name)).toEqual(['gridex_actor_has_company_permission','ediel_record_inbound_reception_v1'])
+})
+
+const missingIdentityPayload=()=>guideOrderedFixtureRaw([line('1','',undefined,'9'),...characteristic('Z13','Z25'),['RFF',['LI','OWN']]],'Z04')
+it('retains physically empty209 at first INSERT without supplying an identity or point authority',async()=>{
+ const rawPayload=missingIdentityPayload();setup(rawPayload)
+ const request=input(rawPayload),t=tokenizeEdifact(rawPayload),grouping=prodatRegisterGroups(t.segments,t.una,'Z04')
+ expect(prodatRegisterFieldState('209',grouping.groups[0].segments,t.una)).toEqual({present:true,malformed:true,value:null,
+  failureEvidence:[{raw:'LIN+1++:::9',locator:'LIN',content:':::9'}]})
+ expect(grouping.problems).toEqual([])
+ expect(grouping.groups.map(g=>[g.itemId,g.identityAgency,g.lineNumber,g.validRegisterChain,g.firstLineIndex,g.registerPosition])).toEqual([[null,'9','1',true,0,1]])
+ expect(request.parsed.lineGroups[0].itemId).toBeNull()
+ expect(await resolveBilateralSwitchBirthProfile({rawPayload,receivedAt})).toBeNull()
+ expect(await createInboundEdielMessage(request)).toBe(newId)
+ const writes=db.writes('ediel_messages');expect(writes).toHaveLength(1)
+ expect(writes[0].payload).toMatchObject({raw_payload:rawPayload,application_reference:'23-DDQ-PRODAT',metering_point_id:null,
+  processing_status:'manual_review',rule_profile_key:key})
+ for(const column of witnessColumns)expect(writes[0].payload).toHaveProperty(column)
+ expect(db.writes('outbound_requests')).toEqual([])
 })
