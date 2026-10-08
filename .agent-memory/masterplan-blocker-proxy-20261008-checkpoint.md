@@ -112,3 +112,72 @@ split authority. Access/probe cleanup is now owned by blocker f2af1426 under
 receipt d8861fba; original probe branch GET is404 in this session. No duplicate
 cleanup or foreign job. When custody/request gates remain unmet, document the
 exact blocked queue state without creating refs or inventing permission.
+
+## Current checkpoint / scheduled continuation — 2026-10-08
+
+Status: WAITING_CI, NOT_MERGED. PR709 source remains frozen da2ce7f43918114bd4a2698c3a4e50d9b865d61b.
+Six of eight applicable deterministic gates are SUCCESS; clean-migration-replay
+(job113249446960/run37758667777) and pr-certificate(job113253085706/run37758667813)
+remain in_progress after more than40 minutes. This is a pending observation,
+not evidence of failure or success. No rerun/cancel/native/capture/GEN duplication.
+
+The GitHub app log reader succeeds where gh's signed raw-log redirect returned403.
+Authentic quality-job113249447066 records945 PASS files /14913 PASS tests and
+successful build. Clean log snapshots match a partial early replay prefix ending
+09:46:49 at a CREATE TRIGGER; they do not establish actual current subphase or
+terminal native result. Never infer a hang/root cause/whole approval from this.
+Protected settings GET remains403; ordinary server merge policy must be respected.
+
+The last actualmain1c4980e6c4c69573c4968550c585998ed5fa9bae composition is
+independently APPROVE twice at treee8b7562d02bcde0b8ac912909db82c717cc760fe.
+Complete final delivery supplements follow below. Own source3 and foreign9437
+postimages are exact. Changed main/head requires fresh qualification.
+
+Continuation automation6ac770c2074481919fa15ee12a6ee548 is created/enabled and
+its saved schedule starts2026-10-08 13:32 Europe/Stockholm, recurring hourly.
+It preserves this exact fixed blocker role, packet/head/refs/receipt, full gate,
+review/currentmain/merge-role/normal merge/actualmain/release protocol, quiet
+unchanged-state behavior and original custody/withdrawn699 boundaries. It must
+pause after verified709 delivery/release and documented next queue status.
+No claim is made that a future run or merge has executed. No own merge role
+is held. Memory role was already exact owner DELETE/GET404, now foreign and
+untouched. Both file refs remain exact own74b4932 until actual delivery or an
+explicit blocked handover. No reservation expiry or ownership transfer occurs.
+
+Next action, same owner/automation: fresh read of main/head/CI/refs and latest
+owner/request board; once all eight current-source gates SUCCESS, get free atomic
+merge-role, normal expected-source merge, authenticate actual parents/tree/main,
+release merge-role FIRST, persist MERGED/RELEASE checkpoint/673 then release only
+own two exact file refs. Continue queue only after verified delivery: no P08 proxy
+refs without original cool-tesla handover and corrected whole-criterion request;
+699 fixture request is withdrawn; GEN/source work and cleanup stay with owners.
+
+### Independent delivery review1, latest main
+# Independent final freshness supplement
+
+APPROVE exact current-main `1c4980e6c4c69573c4968550c585998ed5fa9bae` plus unchanged reviewed source `da2ce7f43918114bd4a2698c3a4e50d9b865d61b`, normal composition tree `e8b7562d02bcde0b8ac912909db82c717cc760fe`. No actionable findings. Prior source/protocol and delivery reviews remain preserved.
+
+Independent real `git merge-tree --write-tree` exited0 and produced this exact tree with no conflicts. Complete immutable recursive tree comparison verified every one of9437 foreign paths has current main's exact mode/type/object-ID tuple and all three owned paths have reviewed source head's exact tuple. The exact change from main remains only reservations.md, agent-workflow.md and the unique own checkpoint. No foreign edits or omitted postimages occur.
+
+Since the previous delivery review, main added or changed seven disjoint ACK route/kernel/test paths through #704. Their complete postimages are preserved. AGENTS.md, operational reservation/workflow requirements and coverage have no intervening changes. The original owner authorization, foreign custody boundaries, exact-SHA requested release, no-expiry and security/review/current-head CI requirements therefore remain unchanged. No application or H/ACK technical custody is inferred.
+
+`git diff --check <current-main> <projection-tree>` exited0; source worktree remained clean. The supplied check snapshot is bound entirely to the unchanged source head: six SUCCESS, nine SKIPPED, two IN_PROGRESS. `clean-migration-replay` and `pr-certificate` remain running, so this supplement does not assert CI_GREEN or merge authorization while required checks are incomplete. No jobs, repository edits or external messages were performed.
+
+Verdict is limited to these exact main/head/tree objects. Ordinary current-head gates and guarded merge under an immediately free merge-role remain required; a subsequent main or source change needs fresh composition verification.
+
+### Independent delivery review2, latest main
+# Independent final freshness supplement
+
+Verdict: **APPROVE**, no findings for exact actual-main/source/normal-composition tuple:
+
+- Main `1c4980e6c4c69573c4968550c585998ed5fa9bae`
+- Source `da2ce7f43918114bd4a2698c3a4e50d9b865d61b`
+- Tree `e8b7562d02bcde0b8ac912909db82c717cc760fe`
+
+Independently compared complete recursive Git tree entries including mode/type/object ID. Main has9439 entries and the composed tree9440. Exactly the two claimed protocol documents and unique checkpoint differ from actual main, all three match the previously approved source head byte-for-byte, and every foreign main postimage is preserved exactly. `git diff --check <main> <tree>` exited0.
+
+Since the preceding reviewed main74bcd6d, the only net main changes are four Ediel ACK route/profile production files and three corresponding test files. I read the full production diff: it requires scoped tenant/process/family/code/environment ACK profile selection and rejects missing/ambiguous/mismatched profiles, carrying that basis through the outbound route path. This changes application routing, not the operational reservation contract. No agent-memory, AGENTS, proxy/custody policy or existing documentation source changes arose from this advance. Accordingly owner-comment6056938983, P08 original custody and #699 explicit-source-split obligations remain unchanged. All foreign route changes remain exactly intact in the proposed composition; this scoped supplement does not reapprove the foreign application's complete behavior or native acceptance.
+
+The supplied checks-current.json is bound to unchanged sourceda2ce7f4: six SUCCESS, nine prescribed SKIPPED, and two IN_PROGRESS (`clean-migration-replay`, `pr-certificate`). No CI_GREEN or merge completion is asserted by this review. Preserve the genuine running jobs and wait for ordinary required current-head gates and fresh actual-main verification before delivery.
+
+Prior review2.md and delivery-review2.md remain historical/source evidence. This is an exact-composition freshness supplement, not a rewritten source approval or permission bypass. Reviewer invoked no job, external message, native run, generator/capture or repository mutation and wrote only this /tmp report. Any further main/tree change requires fresh affected composition verification.
