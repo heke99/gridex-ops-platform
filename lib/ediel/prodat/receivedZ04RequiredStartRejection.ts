@@ -50,7 +50,7 @@ function bornWitness(source:EdielMessageRow):Witness|null {
 }
 /** Fresh authenticated READs bind the actual born original. The catalogue is
  * only a named grammar/guide comparison; no missing event time is substituted. */
-export async function assertReceivedZ04RequiredStartActor(source:EdielMessageRow,actor:string):Promise<boolean> {
+export async function assertReceivedZ04RequiredStartActor(source:Pick<EdielMessageRow,'company_id'>,actor:string):Promise<boolean> {
  if(!isEvidenceUuid(actor)||!isEvidenceUuid(source.company_id))return false
  // Only this actual current actor-check stage may classify a direct SQL denial.
  try{await assertEdielTenantActor({companyId:source.company_id,actorUserId:actor,permission:'communication.read'});return true}
@@ -65,15 +65,17 @@ export async function assertReceivedZ04RequiredStartActor(source:EdielMessageRow
 }
 export async function loadReceivedZ04RequiredStartRejection(source:EdielMessageRow,actor:string):Promise<ReceivedZ04RequiredStartRejection|null> {
  const started=Date.now()
- const sourceId=source.id,companyId=source.company_id,environment=source.environment
- const actorSource:EdielMessageRow={...source,company_id:companyId}
- // Freeze the READ principal before the actor await. An unavailable birth
- // identity must still leave the actual actor denial/quarantine first.
- let identity:string|null=null
- try{identity=bornIdentity(source)}catch{/* Refuse the unavailable birth after the actor check. */}
+ const companyId=source.company_id
+ const actorSource:Pick<EdielMessageRow,'company_id'>={company_id:companyId}
+ // Freeze only the READ principal before awaiting the actor. Unavailable birth
+ // fields refuse after actual actor denial/quarantine; unused getters stay unread.
+ let principal:{sourceId:EdielMessageRow['id'];environment:EdielMessageRow['environment'];identity:string|null}|null=null
+ try{principal={sourceId:source.id,environment:source.environment,identity:bornIdentity(source)}}
+ catch{/* Refuse the unavailable birth after the actor check. */}
  if(!await assertReceivedZ04RequiredStartActor(actorSource,actor))return null
  try{
-  if(!identity||!isEvidenceUuid(companyId))return null
+  if(!principal?.identity||!isEvidenceUuid(companyId))return null
+  const {sourceId,environment,identity}=principal
   const stored=await supabaseService.from('ediel_messages').select('*').eq('id',sourceId).eq('company_id',companyId).single()
   if(stored.error||bornIdentity(stored.data)!==identity)return null
   const original=stored.data as EdielMessageRow,witness=bornWitness(original)
