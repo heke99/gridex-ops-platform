@@ -78,3 +78,12 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
     `scripts/ediel-p-08-native.config.ts`, `.github/workflows/ediel-p08-native.yml` (pattern: ediel-sc064-native
     + gridex-aud-003-clean-replay.sh), optional tightening of the three unit tests above,
     coverage rows P-08/AT-P-08 only after native green.
+
+## 2026-10-08 ~10:00Z — P-08 reserved for bardeen; this agent stands down
+
+- Verified refs: id-P-08, id-AT-P-08 and the 3 file refs all point to receipt
+  `672e62bc169c9ee667c4f73a5f84a0dbe5567f5b` (base main 74bcd6d).
+- Receipt `agent: claude-ediel-20261008-bardeen`, `delegatedBy: codex-root-coordinator`. Not this agent.
+- Action: no P-08 implementation here. The read-only gap analysis above is available to bardeen.
+- Next: wait for a proxy reservation naming this agent for another eligible pair (AT-Z04L/LK after
+  #699, or TR-09/DB-01) or for a release; until then only read-only work.
