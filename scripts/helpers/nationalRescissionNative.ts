@@ -66,7 +66,9 @@ async function receivedHStart(){
  const body:Parts[]=[['BGM','Z04',refs.document,'9','AB'],['DTM',['137',refs.createdAt.toISOString().replace(/[-:T]/g,'').slice(0,12),'203']],['DTM',['ZZZ','1','805']],
   ...parts(originalAckLegalNadSegment('FR',parties.legalReceiver)+"'"),...parts(originalAckLegalNadSegment('DO',parties.legalSender)+"'"),
   line('1',f.external,undefined,'9'),qty('1000'),...common(f.external,'Synthetic',physical.start),
-  ...characteristic('Z07','Z12'),...characteristic('Z12','D',3),...characteristic('Z15','D'),
+  // Prospective synthetic incoming DSO declares daily balance settlement.
+  // Field254 uses Z32; the independent reporting frequency remains D.
+  ...characteristic('Z07','Z12'),...characteristic('Z12','D',3),...characteristic('Z15','Z32'),
   // Receiver-local declarations precede immutable public birth. They describe
   // future UTILTS only; no reading inventory or accepted policy fact is seeded.
   ...characteristic('Z02','1',3),...characteristic('Z05','6',3),...characteristic('Z16','111',3),
@@ -118,6 +120,11 @@ async function receivedHStart(){
   const installationValue=firstObject[firstObject.indexOf(installationCharacteristics[0])+1]
   expect(installationValue?.tag).toBe('CAV')
   expect(segmentComposite(installationValue,1,installationWire.una)).toEqual(['Z12'])
+  const settlementCharacteristics=firstObject.filter(s=>s.tag==='CCI'&&segmentComposite(s,2,installationWire.una)[0]==='Z15')
+  expect(settlementCharacteristics).toHaveLength(1)
+  const settlementValue=firstObject[firstObject.indexOf(settlementCharacteristics[0])+1]
+  expect(settlementValue?.tag).toBe('CAV')
+  expect(segmentComposite(settlementValue,1,installationWire.una)).toEqual(['Z32'])
  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from}),parsed=mail.parsed
  const [outboundMatch,meteringPointMatch]=await Promise.all([
   matchOutboundRequestForInbound({companyId:f.companyId,parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId}),
