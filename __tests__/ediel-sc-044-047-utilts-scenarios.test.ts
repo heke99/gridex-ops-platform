@@ -5,7 +5,7 @@
 import {afterEach,expect,it,vi} from 'vitest'
 import {resolveUtiltsTransactionDispositions,runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
-import {matchMeteringPointForEdielMessage,matchMeteringPointIdByIdentifier} from '@/lib/ediel/matching'
+import {matchMeteringPointIdByIdentifier} from '@/lib/ediel/matching'
 import {inboundLegalReceiverEdielId,resolveInboundTenantFromIdentifiers} from '@/lib/ediel/tenant/resolveInboundTenant'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {matchUtiltsTransactionsForTenant} from '@/lib/ediel/flows/utiltsDataRequest.part-1'
