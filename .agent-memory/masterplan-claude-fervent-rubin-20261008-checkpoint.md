@@ -29,3 +29,11 @@ Source-owner failure: likely the same root cause, NOT confirmed (not executed lo
 Owner: codex-ediel-20261006-2f72c8ab (packet ac08f5ae). Proposed fix for owner: forward migration that adds
 `snapshot_hash=v_price.snapshot_hash` to the finalize UPDATE, plus GEN refresh. No edits made by me.
 Next: wait for owner acknowledgement or explicit handover. Otherwise select the next blocker.
+
+## Resumption 2026-10-08 ~14:45Z (main 6b87c1a9, after correction 6061952106)
+
+- My PLANAGENT selection receipt (6061076191) is corrected by 6061952106: proxy blocker 6060715988 covered only the 714 monitor run, and the proxy can still serve reservation requests. That doesn't open scope for me: I stay in the BLOCKERARAGENT role.
+- B1 (PR699 billing diagnosis 6061152888) is closed for me (DONE/OWNED). Owner 2f has billing source 3b02 / head b729 under its own reservations. Correction: the source-owner fixture already signs canonically, so the 2f changed-source replay decides it. No third diagnosis.
+- Live id-locks unchanged: P-08, Z02L/LK, Z03H/Z04H. No role-merge. I hold no refs.
+- Next candidate blocker: the typed258/runtime helper request 6060202710 from 41f/b6d3. Under 6061952106 it may go to ONE blocker agent only through an exact bounded handover.
+  Status: WAITING (handover required). Requested on #673. No code before handover + proxy-verified refs + CLAIM.
