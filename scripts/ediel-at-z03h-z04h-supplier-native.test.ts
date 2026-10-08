@@ -7,6 +7,7 @@ import { createHash, createHmac, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { nationalRescissionNativeChain } from './helpers/nationalRescissionNative'
+import { assertInvalid306NativeContract } from './helpers/ediel-h-invalid306-native-assertions'
 import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
@@ -1066,8 +1067,8 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
   if(field==='202')expect(received.id,
     'CV-P-HEADER missing202 requires actual source-bound negative P-APERAK BGM27/ERC41/field202; public birth returned no source').not.toBeNull()
 }
-// Component: actual national value gate. This does not qualify prescribed
-// physical replies, their private bindings/outboxes, or processor replay.
+// Actual national value gate, followed by the separate physical/private/replay
+// contract only when every strict source-owned rejection assertion succeeds.
 async function actualIncomingInvalidInstallationStatusGate(f:Fixture,original:Original,complete:string,
   control:Awaited<ReturnType<typeof ready>>) {
   expect(control.message.raw_payload).toBe(complete)
@@ -1122,6 +1123,13 @@ async function actualIncomingInvalidInstallationStatusGate(f:Fixture,original:Or
   expect(matching.length).toBeGreaterThan(0)
   expect(errors).toEqual([expect.objectContaining({fieldCode:'306',ercCode:'42',text:'Felaktigt Installationsstatus E22',
     referenceNumber:f.external,lineItemReference:own(f,original).li})])
+  // Downstream physical/private/effect/replay contract runs only after every
+  // unchanged strict native invalid306 gate above has actually succeeded.
+  await assertInvalid306NativeContract({companyId:f.companyId,actorUserId:f.actorUserId,point:f.external,
+    li:own(f,original).li,source:message,decision,business:()=>business(f),
+    durable:()=>durable(f,original,control.message.id),sourceSeal:()=>sealed(message.id),
+    rereadControl:()=>reread(f,control),negativeAcknowledgement:()=>negativeAcknowledgement(f,message,decision,'306'),
+    smtpCalls:()=>smtp.send.mock.calls.length})
 }
 
 async function actualOutboundOmission(f:Fixture,original:Original,field:string,malformed:string) {
