@@ -31,7 +31,7 @@ describe('prospective ordinary Z04 input for cancellation prerequisites', () => 
     expect(prodatCharacteristicValues('223', own.segments, wire.una)).toEqual(['Z22'])
   })
 
-  it.each([['214', '1'], ['218', '6'], ['259', '111']])('retains one synthetic physical declaration %s without duplication', (field, value) => {
+  it.each([['214', '1'], ['218', '6'], ['259', '101']])('retains one synthetic physical declaration %s without duplication', (field, value) => {
     const { wire, own } = source()
     expect(prodatRegisterReadingState(field, own.segments, wire.una)).toMatchObject({ present: true, value })
     const descriptor = { '214': 'Z02', '218': 'Z05', '259': 'Z16' }[field]!
