@@ -1,3 +1,4 @@
+import {loadProdatOwnSourceReadingContext,type ProdatOwnSourceReadingContext} from './prodatOwnSourceRegisterReadingDeclarations'
 import {observeReceivedZ04HRegister,validateReceivedZ04HRegisterStructure,loadReceivedZ04HRegisterRejection,readReceivedZ04HRegisterWitness,ownReceivedZ04HRegisterRejection} from '@/lib/ediel/prodat/receivedZ04HRegisterRejection'
 import {loadReceivedZ14ReportingContext,receivedZ14ReportingContextForMessage,heldReceivedZ14ReportingContextForMessage,type ReceivedZ14ReportingContext} from '@/lib/ediel/prodat/receivedZ14ReportingContext'
 import {readPeriodicReasonAuthority,type PeriodicReasonAuthority} from '@/lib/ediel/utilts/periodicReasonAuthority'
@@ -438,7 +439,7 @@ export function resolveCanonicalRuntimeDecision(message:EdielMessageRow,facts:Ca
 /** Registry admission freezes the whole guide before consuming its actual
  * issuer owner. Explicit observed time and opaque source capabilities survive
  * that selection without caller-provided success facts. */
-function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{deferUtiltsRuntime?:boolean;receivedReportingContext?:ReceivedZ14ReportingContext;receivedReportingActorUserId?:string}):CanonicalRuntimeDecision {
+function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{deferUtiltsRuntime?:boolean;receivedReportingContext?:ReceivedZ14ReportingContext;receivedReportingActorUserId?:string;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string}):CanonicalRuntimeDecision {
   const syntax = message.message_standard === 'edifact'
     ? validateEdifactSyntax({ ...message, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null })
     : { ok: true, issues: [], declaredUntCount: null, actualMessageSegmentCount: null }
@@ -491,7 +492,11 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
 
   let policy: CanonicalEdielPolicy | null = null
   try {
-    policy = resolveCanonicalMessagePolicy(message, canonical,facts)
+    policy = resolveCanonicalMessagePolicy(message, canonical,{
+      get admissionAt(){return facts.admissionAt},get replayAt(){return facts.replayAt},
+      get prodatSourceCapability(){return facts.prodatSourceCapability},get deathStatusContext(){return facts.deathStatusContext},
+      ownSourceReadingContext:options?.ownSourceReadingContext,ownSourceReadingActorUserId:options?.ownSourceReadingActorUserId,
+    })
   } catch (error) {
     const description = error instanceof Error ? error.message : String(error)
     issues.push(issue({
@@ -738,13 +743,25 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
 export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts={}):Promise<CanonicalRuntimeDecision> {
   let receivedReportingContext:ReceivedZ14ReportingContext|undefined
   let receivedReportingActorUserId:string|undefined
+  let ownSourceReadingContext:ProdatOwnSourceReadingContext|null|undefined
+  let ownSourceReadingActorUserId:string|undefined
   // Caller facts stay lazy until syntax qualifies. Only this invocation's
   // fresh READ and captured actor can enter the private reporting-context port.
   if(validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}).ok){
     receivedReportingActorUserId=facts.actorUserId
     if(receivedReportingActorUserId)receivedReportingContext=await loadReceivedZ14ReportingContext(message,receivedReportingActorUserId)
+    if(receivedReportingActorUserId&&message.direction==='inbound'&&message.message_family==='PRODAT'&&message.message_code==='Z04'){
+      const canonical=parseCanonicalMessageRow(message)
+      if(canonical.family==='PRODAT'&&canonical.messageCode==='Z04'&&['L','LK','Z22','Z23'].includes(canonical.subtype??'')){
+        ownSourceReadingActorUserId=receivedReportingActorUserId
+        // Only this invocation's actual actor/source READ enters the internal port.
+        // Null stays unknown; ordinary/security errors keep the source gate closed.
+        ownSourceReadingContext=await loadProdatOwnSourceReadingContext(message,ownSourceReadingActorUserId)
+      }
+    }
   }
-  const options={deferUtiltsRuntime:message.direction==='inbound',receivedReportingContext,receivedReportingActorUserId}
+  const options={deferUtiltsRuntime:message.direction==='inbound',receivedReportingContext,receivedReportingActorUserId,
+    ownSourceReadingContext,ownSourceReadingActorUserId}
   let base=resolveCanonicalRuntimeDecisionCore(message,facts,options)
   // Never read a bilateral authority for an unknown or invalid full grammar.
   // A/D/H, or their reason code (Z26/Z70/Z25) where the national grammar has
