@@ -23,3 +23,9 @@ Verification pending: structural JSON, exact Markdown suffix/history inverse, sc
 Python structural/history verification exit0: all four Markdown files preserve original bytes as an exact suffix, new relative Markdown links resolve and code fences are balanced. Checkpoint's five original active fields are archived; inverse restores original JSON bytes exactly and all other fields, including runtime_accepted_sha, remain unchanged. Original JSON used escaped Unicode; first byte-inverse check detected rendering drift, then original serialization was restored and full check passed. Exact scope is five reserved docs plus this checkpoint; git diff --check exit0. No dependencies installed, product/native tests or producers run.
 
 Status: locally verified, two independent read-only reviews pending. ROOT receives exact local source/diff before draft PR publication. The published copyable plan/blocker prompts remain in the separate /tmp routing draft; no shared prompt/protocol/AGENTS edits. No merge or role release yet.
+
+## ROOT review correction
+
+ROOT found Important1: the queue attributed H87PASS/13FAIL to GEN235 although the supplied count was an earlier8f source observation. Removed that unsupported235 aggregate; retained only qualified235 H/cancellation failure status and actual typed73186PASS/14FAIL. No new native producer/log retrieval or other current-status updates. Next rerun structural/history/diff verification, freeze corrected source and notify both independent reviewers for bounded applicability comparison before publication.
+
+Corrected-source structural/history/Markdown scope verification and git diff --check exit0. Prior Markdown bytes and original checkpoint JSON inverse remain exact; only the finding correction and this own review record differ from5bc. Both independent reviews require this bounded comparison. No push/PR/merge yet; role/file receipts unchanged.

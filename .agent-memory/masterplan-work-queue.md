@@ -25,8 +25,8 @@ source reviews and green open PRs grant no additional coverage.
 [Current bounded source status6067137363](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067137363)
 records GEN235 and typed731 source publication. Neither PR is merged. Both retain
 current H/cancellation failures and pending clean/certificate checks at that
-observation. GEN235 H87PASS/13FAIL and typed731 H86PASS/14FAIL are different
-source results; do not combine or transplant them. Native-case PASS and source
+observation. GEN235 H/cancellation failures and typed731 H86PASS/14FAIL are
+source-specific observations; do not combine or transplant them. Native-case PASS and source
 approval are not whole-ID, resulting-main or clean/upgrade-parity approval.
 Current checks must be refreshed for delivery; these snapshots are not eternal
 blockers or automatic permission to merge.
