@@ -629,17 +629,23 @@ function retainedRows(before:FullRow[],after:FullRow[]){
  }
  return remaining
 }
-function fieldOmission(raw:string,field:'321'|'322'|'323'){
+function fieldOmission(raw:string,field:'222'|'321'|'322'|'323'|'326'){
  const original=tokenizeEdifact(raw),segments=original.segments
  expect(segments.filter(s=>s.tag==='LIN')).toHaveLength(1)
- const line=segments.findIndex(s=>s.tag==='LIN'),qualifier=field==='322'?'Z23':'Z24'
- const position=segments.findIndex((s,i)=>i>line&&(field==='321'
-  ?s.tag==='DTM'&&segmentComposite(s,1,original.una)[0]==='91'
-  :s.tag==='CCI'&&s.raw==='CCI++'+qualifier))
+ const line=segments.findIndex(s=>s.tag==='LIN'),date=field==='321'?'91':field==='326'?'693':null
+ const qualifier=field==='222'?'Z12':field==='322'?'Z23':'Z24'
+ const positions=segments.flatMap((s,i)=>i>line&&(date
+  ?s.tag==='DTM'&&segmentComposite(s,1,original.una)[0]===date
+  :s.tag==='CCI'&&s.raw==='CCI++'+qualifier)?[i]:[])
+ expect(positions).toHaveLength(1)
+ const position=positions[0]
  expect(position).toBeGreaterThan(line)
- const length=field==='321'?1:2
- if(field==='321')expect(segmentComposite(segments[position],1,original.una)).toEqual(['91',expect.stringMatching(/^\d{12}$/),'203'])
- else expect(segments[position+1].raw).toBe('CAV+'+(field==='322'?'A74':'B72'))
+ const length=date?1:2
+ if(date)expect(segmentComposite(segments[position],1,original.una)).toEqual([date,expect.stringMatching(/^\d{12}$/),'203'])
+ else if(field==='222'){
+  expect(segments[position+1].raw).toBe('CAV+:::D')
+  expect(segmentComposite(segments[position+1],1,original.una)).toEqual(['','','','D'])
+ }else expect(segments[position+1].raw).toBe('CAV+'+(field==='322'?'A74':'B72'))
  const result=omitZ14Field(raw,field),omitted=tokenizeEdifact(result)
  const expected=segments.filter((_,i)=>i<position||i>=position+length).map(s=>s.raw)
  const unh=expected.findIndex(s=>s.startsWith('UNH+')),unt=expected.findIndex(s=>s.startsWith('UNT+'))
@@ -654,7 +660,7 @@ function stableRefusalSource(row:FullRow){
   'parsed_at','validated_at','updated_at','updated_by'])delete projection[key]
  return projection
 }
-async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
+async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'|'326'){
  const {f,p,checkSentinel,objectAckProfile,contrlAckProfile}=await request(mode,true)
  for(const family of ['CONTRL','APERAK'] as const){
   const ack=await intake(f,p,counterpart(p,family))
@@ -673,7 +679,9 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
  const pending=sql<FullRow>(`SELECT to_jsonb(r) FROM public.metering_permissions r WHERE id=${lit(p.permissionId)} AND company_id=${lit(f.ids.company)}`)
  const before=producerState(f),ledger=refusalLedger(f),smtp=nativeEscoExternal.send.mock.calls.length
  const sourceBefore=(before.business.ediel_messages as FullRow[]).find(r=>r.id===source.id)!
- const code=field==='322'?'PRODAT_PERMISSION_322_MISSING':'PRODAT_RECEIVED_REPORTING_'+field+'_MISSING'
+ const codes={222:'FIELD_MATRIX_REQUIRED_FIELD_MISSING',321:'PRODAT_RECEIVED_REPORTING_321_MISSING',
+  322:'PRODAT_PERMISSION_322_MISSING',323:'PRODAT_RECEIVED_REPORTING_323_MISSING',326:'FIELD_MATRIX_REQUIRED_FIELD_MISSING'}
+ const code=codes[field]
  // First source/domain invocation is the public processor, never a preflight
  // assessment that could create the authority this test is meant to prove.
  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
@@ -683,6 +691,13 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
  expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code,
   prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field,errorKind:'missing',
    occurrence:expect.objectContaining({scope:'object',objectId:f.point,identityAgency:'9',lineItemReference:p.li})})})]))
+ const missingErrors=(decision.responsePlan.find(plan=>plan.family==='APERAK'&&plan.outcome==='negative')?.applicationErrors??[])
+  .filter(error=>error.prodatFieldDiagnostic?.kind==='field'&&error.prodatFieldDiagnostic.fieldNumber===field)
+ expect(missingErrors).toHaveLength(1)
+ expect(isQualifiedProdatApplicationError(missingErrors[0])).toBe(true)
+ expect(missingErrors[0]).toMatchObject({ercCode:'41',fieldCode:field,
+  prodatFieldDiagnostic:{kind:'field',fieldNumber:field,errorKind:'missing',
+   occurrence:{scope:'object',objectId:f.point,identityAgency:'9',lineItemReference:p.li}}})
  const canonicalEvidence=buildReceivedSourceValidationEvidence({original:source,validated:current,resolvedCompanyId:f.ids.company,decision})
  expect(canonicalEvidence,'complete actual source decision evidence').toBeTruthy()
  if(!canonicalEvidence)throw Error('native_refusal_complete_source_evidence_required')
@@ -705,7 +720,7 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
   if(reply.message_family==='CONTRL')expect(physical.acknowledgedReferences).toEqual([EdifactEnvelopeCodec.decode(wire).interchangeReference])
   else {
    expect(physical.acknowledgedReferences).toEqual([p.li])
-   expect(tokens.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,tokens.una)[0])).toEqual(['42'])
+   expect(tokens.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,tokens.una)[0])).toEqual(['41'])
    expect(tokens.segments.some(s=>s.tag==='FTX'&&segmentComposite(s,3,tokens.una).join(':')===field+'::260')).toBe(true)
    expect(tokens.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,tokens.una)[0]==='Z07')
     .map(s=>segmentComposite(s,1,tokens.una))).toEqual([['Z07',f.point]])
@@ -1050,6 +1065,11 @@ async function missingReportingField(mode:'V'|'VH',field:'321'|'322'|'323'){
 for(const [mode,field] of [['V','322'],['VH','322'],['VH','321'],['V','323']] as const){
  it(`${mode}: missing own reporting field ${field} is rejected without permission, supply or beneficiary effects; public replay`,async()=>{
   await missingReportingField(mode,field)
+ })
+}
+for(const field of ['222','326'] as const){
+ it(`V: missing own reporting field ${field} is rejected without permission, supply or beneficiary effects; public replay`,async()=>{
+  await missingReportingField('V',field)
  })
 }
 
