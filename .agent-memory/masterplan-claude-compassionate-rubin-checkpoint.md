@@ -180,3 +180,4 @@ release is recorded) or a released L/LK pair, once 2f72's #658/#699 is on main.
   4d3a73e into main 9c2c3658 (parents f851aad5 + 4d3a73e3). Main ledger 115 + 187 = 302/352.
 - RELEASE_REQUEST posted on #673: role-merge first, then the 5 refs on 52244e72.
 - Status: delivered. Next: verify all 6 refs are absent with ls-remote after the coordinator's release, then select the next packet.
+- 18:40Z: RELEASE_VERIFIED. All 6 refs are absent (ls-remote). Packet 3d94ea6c is closed. Next: select a new packet.
