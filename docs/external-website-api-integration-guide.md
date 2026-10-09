@@ -56,10 +56,10 @@ Record the Gridex `request_id` and your own correlation identifier for troublesh
 
 `GET /api/v1/website/public-contracts` returns an `ETag`. Send it back in `If-None-Match` to receive `304 Not Modified` when nothing changed.
 
-- The ETag identifies the representation for exactly your credential's tenant, the requested `customer_type`, the channel, the selected V1 contract profile and the server's representation revision. A release that changes the response body for the same publication produces a new ETag, so an old body is never confirmed with `304`. A documentation-only release does not change it.
+- The ETag identifies the representation for exactly your credential's organization, the requested `customer_type`, the channel, the selected V1 contract profile and the server's representation revision. A release that changes the response body for the same publication produces a new ETag, so an old body is never confirmed with `304`. A documentation-only release does not change it.
 - Matching follows RFC 9110 for GET: weak comparison (`W/"…"` matches the same tag), comma-separated lists and `*` are supported.
 - `If-None-Match` is evaluated only after authentication and scope checks; an invalid credential gets the normal error, never `304`.
-- Responses are `Cache-Control: private, no-store` with `Vary: Authorization`. Keep your own verified snapshot per tenant; never reuse a snapshot or ETag across tenants or customer types. Validate tenant, count and feed state on every `200`.
+- Responses are `Cache-Control: private, no-store` with `Vary: Authorization`. Keep your own verified snapshot per organization; never reuse a snapshot or ETag across organizations or customer types. Validate the organization reference, count and feed state on every `200`.
 
 ## Pricing acceptance and settlement
 
