@@ -1,0 +1,1 @@
+N+1 query budget passed: 0 awaited database calls inside loops across app/api/v1, lib/customer-portal, lib/pricing, lib/website.

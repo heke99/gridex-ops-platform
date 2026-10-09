@@ -1,0 +1,46 @@
+{
+  "read_only": true,
+  "project_id": "piidsfebjqjmnepdpnas",
+  "rows": [
+    {
+      "index_name": "customer_case_events_customer_idx",
+      "table_name": "customer_case_events",
+      "definition": "CREATE INDEX customer_case_events_customer_idx ON public.customer_case_events USING btree (customer_id)",
+      "bytes": 16384,
+      "idx_scan": 24,
+      "idx_tup_read": 91,
+      "idx_tup_fetch": 0,
+      "constraint_owner": false
+    },
+    {
+      "index_name": "customers_company_customer_number_uk",
+      "table_name": "customers",
+      "definition": "CREATE UNIQUE INDEX customers_company_customer_number_uk ON public.customers USING btree (company_id, customer_number) WHERE (customer_number IS NOT NULL)",
+      "bytes": 16384,
+      "idx_scan": 1,
+      "idx_tup_read": 7,
+      "idx_tup_fetch": 1,
+      "constraint_owner": false
+    },
+    {
+      "index_name": "idx_fk_customer_case_events_b634ce08bab5",
+      "table_name": "customer_case_events",
+      "definition": "CREATE INDEX idx_fk_customer_case_events_b634ce08bab5 ON public.customer_case_events USING btree (customer_id)",
+      "bytes": 16384,
+      "idx_scan": 115,
+      "idx_tup_read": 0,
+      "idx_tup_fetch": 0,
+      "constraint_owner": false
+    },
+    {
+      "index_name": "ux_customers_company_customer_number",
+      "table_name": "customers",
+      "definition": "CREATE UNIQUE INDEX ux_customers_company_customer_number ON public.customers USING btree (company_id, customer_number) WHERE (customer_number IS NOT NULL)",
+      "bytes": 16384,
+      "idx_scan": 2,
+      "idx_tup_read": 4,
+      "idx_tup_fetch": 0,
+      "constraint_owner": false
+    }
+  ]
+}

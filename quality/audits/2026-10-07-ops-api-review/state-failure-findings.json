@@ -1,0 +1,47 @@
+{
+  "source_head": "1aef94be4758260e134bdc195a69312901bf8cb2",
+  "report": "STATE-FAILURE-FINDINGS.md",
+  "tests": {
+    "runtime": "Node22.23.3",
+    "files": 3,
+    "passed": 8
+  },
+  "findings": [
+    {
+      "id": "F18",
+      "priority": "P1",
+      "summary": "Committed POA upload deleted after separate completion failure",
+      "status": "OPEN",
+      "verification": "Actual route/helper with synthetic state/fault ports and source/native review; no hosted mutation"
+    },
+    {
+      "id": "F19",
+      "priority": "P2",
+      "summary": "Lost completion acknowledgement downgrades completed to failed",
+      "status": "OPEN",
+      "verification": "Actual route/helper with synthetic state/fault ports and source/native review; no hosted mutation"
+    },
+    {
+      "id": "F20",
+      "priority": "P2",
+      "summary": "care_of changes disappear in samehash accepted facility update",
+      "status": "OPEN",
+      "verification": "Actual route/helper with synthetic state/fault ports and source/native review; no hosted mutation"
+    },
+    {
+      "id": "F21",
+      "priority": "P2",
+      "summary": "Samehash refresh downgrades address provenance and defeats later source-rank conflict",
+      "status": "OPEN",
+      "verification": "Actual route/helper with synthetic state/fault ports and source/native review; no hosted mutation"
+    },
+    {
+      "id": "F22",
+      "priority": "P2",
+      "summary": "Profile mutation precedes missing facility404",
+      "status": "OPEN",
+      "verification": "Actual route/helper with synthetic state/fault ports and source/native review; no hosted mutation"
+    }
+  ],
+  "production_changes": false
+}

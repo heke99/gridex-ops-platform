@@ -1,0 +1,16 @@
+[
+  {
+    "proname": "gridex_db4b_archive_customer_registry_row",
+    "arguments": "p_lookup text, p_email text, p_apply boolean, p_reason text",
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  },
+  {
+    "proname": "gridex_next_customer_number",
+    "arguments": "p_company_id uuid",
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  }
+]

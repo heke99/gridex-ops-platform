@@ -1,0 +1,66 @@
+{
+  "source_head": "1aef94be4758260e134bdc195a69312901bf8cb2",
+  "report": "EFFICIENCY-AND-FURTHER-FINDINGS.md",
+  "tests": {
+    "runtime": "Node22.23.3",
+    "files": 7,
+    "passed": 29
+  },
+  "findings": [
+    {
+      "id": "F13",
+      "priority": "P2",
+      "summary": "Partner returns replaced metering revisions",
+      "verification": "source+synthetic behavior; no authenticated live operations",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F14",
+      "priority": "P2",
+      "summary": "Partner measurement units/directions violate canonical response contract",
+      "verification": "source+synthetic behavior; no authenticated live operations",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F15",
+      "priority": "P2",
+      "summary": "Monthly consumption summaries are sums of truncated samples",
+      "verification": "source+synthetic behavior; no authenticated live operations",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F16",
+      "priority": "P2",
+      "summary": "Application schema release does not invalidate normalfeed ETag under unchanged DB fingerprint",
+      "verification": "source+synthetic behavior; no authenticated live operations",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F17",
+      "priority": "P3",
+      "summary": "Weak and wildcard If-None-Match fail to match GET representation",
+      "verification": "source+synthetic behavior; no authenticated live operations",
+      "remediation": "OPEN"
+    }
+  ],
+  "local_counts": {
+    "bundle_full_section_plan": {
+      "retention_rpc": 11,
+      "data_reads": 13
+    },
+    "bundle_core_and_invoice_plan": {
+      "retention_rpc": 7,
+      "data_reads": 7
+    },
+    "completed_poa_replay": {
+      "upload": 1,
+      "remove": 1,
+      "transferred_bytes": 131087
+    },
+    "fixed_resolver_fixture": {
+      "queries": 2
+    }
+  },
+  "production_latency": "NOT_MEASURED",
+  "production_changes": false
+}

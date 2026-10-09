@@ -1,0 +1,44 @@
+{
+  "confirmation": "Exact source SQL functions and customer SELECT policies executed in local PGlite; synthetic signed JWT validated locally; hosted gateway not tested",
+  "jwt_remaining_seconds": 299,
+  "states": [
+    {
+      "label": "baseline active Auth/profile/membership",
+      "session_allowed": true,
+      "tenant_ids_returned": 1,
+      "own_tenant_customer_rows": 1,
+      "staff_active_membership_rows": 1
+    },
+    {
+      "label": "Auth-only ban with previously verified unexpired JWT",
+      "session_allowed": true,
+      "tenant_ids_returned": 1,
+      "own_tenant_customer_rows": 1,
+      "staff_active_membership_rows": 0
+    },
+    {
+      "label": "Auth-only soft delete with previously verified unexpired JWT",
+      "session_allowed": true,
+      "tenant_ids_returned": 1,
+      "own_tenant_customer_rows": 1,
+      "staff_active_membership_rows": 0
+    },
+    {
+      "label": "synchronized profile disable denies stale JWT",
+      "session_allowed": false,
+      "tenant_ids_returned": 0,
+      "own_tenant_customer_rows": 0,
+      "staff_active_membership_rows": 0
+    },
+    {
+      "label": "membership revocation",
+      "session_allowed": true,
+      "tenant_ids_returned": 0,
+      "own_tenant_customer_rows": 0
+    },
+    {
+      "label": "hard delete with actual membership/profile CASCADE FKs",
+      "own_tenant_customer_rows": 0
+    }
+  ]
+}

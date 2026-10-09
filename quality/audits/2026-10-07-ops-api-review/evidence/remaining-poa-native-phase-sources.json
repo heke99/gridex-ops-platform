@@ -1,0 +1,13 @@
+{
+  "source": "supabase/schema.sql",
+  "native_insert_lines": [
+    75253,
+    75282
+  ],
+  "helper_lines": [
+    70715,
+    70753
+  ],
+  "normalization_materialization": "poa-live-normalization-catalog.json",
+  "scope": "Extracted exact native POA insertion phase, real native JSON insert helper and both live trigger definitions; minimal synthetic tables, two reference FKs; not full onboarding, other triggers omitted."
+}

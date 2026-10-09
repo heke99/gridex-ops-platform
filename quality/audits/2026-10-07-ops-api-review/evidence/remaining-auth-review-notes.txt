@@ -1,0 +1,26 @@
+Remaining Auth lifecycle review — 2026-10-07
+
+CONFIRMED LOCAL NATIVE BEHAVIOR (not a live intrusion)
+Exact source gridex_is_current_session_allowed, gridex_user_company_ids, gridex_user_is_platform_admin and gridex_staff_active_membership_v1 functions were installed in local PGlite with the actual customers permissive and restrictive SELECT policies. Only dependencies/rows are synthetic. A local ephemeral HS256 key signs a synthetic unexpired user token; its signature/expiry are verified before the claims become request.jwt.claims. No Supabase project signing key or production user is used.
+An Auth-only banned_until future or deleted_at soft deletion, with active user_profile and company_membership, still permits one own-tenant customer row through authenticated RLS. Other-tenant row remains hidden. The same exact native staff membership function returns zero eligible rows.
+This is a lifecycle invalidation gap for ordinary authenticated direct Data API access with a previously issued JWT and retained membership/profile. It does not establish that any real user has these states, that the hosted gateway accepts the particular stale token, or that an OPS HTTP handler with Auth.getUser revalidation can be bypassed. Parent owns live metadata corroboration.
+
+REFUTATIONS / LIMITS
+- Hard delete differs: company_memberships FK auth.users ON DELETE CASCADE (schema.sql153856) and user_profiles FK cascade (160359) remove authorization rows. The local cascade control returned zero customer rows. deleteUserCompletelyAction also deletes membership/profile before auth.admin.deleteUser (app/admin/users/actions.ts507–522).
+- Synchronized user_profile disabled returns session_allowed=false and customer rows zero.
+- Membership inactive/revoked returns company ids/customer rows zero even if session helper permits identity.
+- Staff active lookup independently checks Auth ban/delete (migration20261004085008:18–19); native probe confirms it denies both cases.
+- gridex_user_is_platform_admin additionally checks Auth state (schema.sql91379–91399). Our actor had no admin role; platform escalation is not asserted.
+- proxy.ts123 and lib/auth/currentUser.ts14 call Auth.getUser. Their handling of real banned/softdeleted existing tokens was not executed; keep them outside the proved direct-RLS path.
+- Repository search did not find a general auth.users UPDATE trigger synchronizing ban/delete to profiles. No conclusion about external operational workflows follows from that absence.
+- No production JWT TTL, custom Data API pre-request hook, Auth ban action, or deployed RLS behavior was exercised. Parent may inspect catalog settings without user reads.
+
+CURRENT SUPABASE DOCUMENTATION
+Retrieved using official supabase_search_docs; excerpts and URLs in remaining-auth-current-docs.json. User sessions docs explain stateless access JWT and suggest checking session_id against auth.sessions for strict post-logout invalidation. User Management docs explicitly state deleting an auth.users row does not automatically sign the user out and JWT remains valid until expiry. These explain why Auth lifecycle mutation alone need not invalidate a JWT at a Data API verifier; they do not prove the custom deployment gateway configuration or a ban-specific /auth/v1/user response.
+
+TARGETED FIX TO REVIEW
+Extend gridex_is_current_session_allowed to fail closed unless current auth.uid() has an existing Auth row with deleted_at IS NULL and (banned_until IS NULL OR banned_until <= current time), while preserving current profile checks. This centrally constrains gridex_user_company_ids and existing restrictive policies. If immediate sign-out/session revocation is also a product requirement, separately require a valid session_id in auth.sessions for user JWTs; do not assume token expiry alone provides immediate revocation. Add native controls for Auth-only ban, soft delete, profile disable, membership revoke and hard delete.
+
+REPRODUCE
+node quality/audits/2026-10-07-ops-api-review/evidence/remaining-auth-native-proof.mjs
+Executed successfully, exit0. Result in remaining-auth-native-results.json. Original exact SQL input in remaining-auth-native-inputs.json.

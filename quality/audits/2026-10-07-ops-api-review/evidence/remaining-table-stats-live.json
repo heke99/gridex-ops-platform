@@ -1,0 +1,45 @@
+{
+  "read_only": true,
+  "project_id": "piidsfebjqjmnepdpnas",
+  "rows": [
+    {
+      "relname": "customers",
+      "n_live_tup": 12,
+      "n_dead_tup": 43,
+      "seq_scan": 12670,
+      "seq_tup_read": 30502,
+      "idx_scan": 43028,
+      "n_tup_ins": 125,
+      "n_tup_upd": 260,
+      "n_tup_del": 122,
+      "last_analyze": null,
+      "last_autoanalyze": "2026-09-02 17:10:14.362481+00"
+    },
+    {
+      "relname": "customer_case_events",
+      "n_live_tup": 21,
+      "n_dead_tup": 0,
+      "seq_scan": 151,
+      "seq_tup_read": 0,
+      "idx_scan": 201,
+      "n_tup_ins": 21,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_analyze": null,
+      "last_autoanalyze": null
+    },
+    {
+      "relname": "inbound_operation_events",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "seq_scan": 8,
+      "seq_tup_read": 0,
+      "idx_scan": 4,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_analyze": null,
+      "last_autoanalyze": null
+    }
+  ]
+}

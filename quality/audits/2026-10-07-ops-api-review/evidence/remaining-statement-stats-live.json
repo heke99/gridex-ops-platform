@@ -1,0 +1,69 @@
+{
+  "read_only": true,
+  "project_id": "piidsfebjqjmnepdpnas",
+  "rows": [
+    {
+      "queryid": "8741626303588847389",
+      "calls": 1,
+      "total_exec_time": 83.036408,
+      "mean_exec_time": 83.036408,
+      "rows": 0
+    },
+    {
+      "queryid": "-4822465586521054768",
+      "calls": 1,
+      "total_exec_time": 2.121653,
+      "mean_exec_time": 2.121653,
+      "rows": 0
+    },
+    {
+      "queryid": "7991247799636095482",
+      "calls": 1,
+      "total_exec_time": 1.170239,
+      "mean_exec_time": 1.170239,
+      "rows": 1
+    },
+    {
+      "queryid": "6672670549677543997",
+      "calls": 1,
+      "total_exec_time": 0.628563,
+      "mean_exec_time": 0.628563,
+      "rows": 0
+    },
+    {
+      "queryid": "-7040711776550170637",
+      "calls": 1,
+      "total_exec_time": 0.546543,
+      "mean_exec_time": 0.546543,
+      "rows": 0
+    },
+    {
+      "queryid": "-5348405666693170238",
+      "calls": 1,
+      "total_exec_time": 0.524134,
+      "mean_exec_time": 0.524134,
+      "rows": 0
+    },
+    {
+      "queryid": "-2402591589194916112",
+      "calls": 1,
+      "total_exec_time": 0.506042,
+      "mean_exec_time": 0.506042,
+      "rows": 0
+    },
+    {
+      "queryid": "1691828676987562276",
+      "calls": 1,
+      "total_exec_time": 0.205261,
+      "mean_exec_time": 0.205261,
+      "rows": 1
+    },
+    {
+      "queryid": "-2035573441862858934",
+      "calls": 1,
+      "total_exec_time": 0.142665,
+      "mean_exec_time": 0.142665,
+      "rows": 0
+    }
+  ]
+}
