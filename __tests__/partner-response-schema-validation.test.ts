@@ -5,7 +5,7 @@
 // and location-output.probe.ts.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import Ajv2020 from 'ajv/dist/2020'
+import { compileSchema } from './helpers/miniJsonSchema'
 
 const m = vi.hoisted(() => ({
   areaName: 'Synthetic area' as string | null,
@@ -90,8 +90,8 @@ import { handleBusinessPartnerApi } from '@/lib/partner-api/business'
 import { partnerPublicOpenApi } from '@/lib/partner-api/businessOpenApi'
 
 const SPEC_ID = 'https://partner-spec.gridex.invalid/openapi.json'
-const ajv = new Ajv2020({ allErrors: true, strict: false, validateFormats: false })
-ajv.addSchema({ $id: SPEC_ID, components: JSON.parse(JSON.stringify(partnerPublicOpenApi.components)) })
+const specRoot = { components: JSON.parse(JSON.stringify(partnerPublicOpenApi.components)) }
+const ajv = { compile: (schema: { $ref: string }) => compileSchema(specRoot, { $ref: schema.$ref.replace(SPEC_ID, '') }) }
 
 type PathSpec = Record<string, Record<string, { responses: Record<string, { content?: Record<string, { schema: unknown }> }> }>>
 

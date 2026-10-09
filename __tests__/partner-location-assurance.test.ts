@@ -5,7 +5,7 @@
 // covered by __tests__/partner-response-schema-validation.test.ts.
 import { beforeEach, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import Ajv2020 from 'ajv/dist/2020'
+import { compileSchema } from './helpers/miniJsonSchema'
 
 const m = vi.hoisted(() => ({ stale: false, name: 'Synthetic area' as string | null, ambiguous: false, saved: [] as any[] }))
 vi.mock('@/lib/integrations/apiAuth', () => ({ requireIntegrationApiAccess: vi.fn(async () => ({ ok: true, client: { id: 'synthetic-client', company_id: 'synthetic-company' } })), logIntegrationApiRequest: vi.fn(async () => {}) }))
@@ -35,8 +35,7 @@ vi.mock('@/lib/supabase/service', () => ({
 import { handleBusinessPartnerApi } from '@/lib/partner-api/business'
 import { partnerPublicOpenApi } from '@/lib/partner-api/businessOpenApi'
 
-const ajv = new Ajv2020({ allErrors: true, strict: false, validateFormats: false })
-const validate = ajv.compile({ ...partnerPublicOpenApi.components.schemas.LocationResponse, components: partnerPublicOpenApi.components })
+const validate = compileSchema({ components: partnerPublicOpenApi.components }, partnerPublicOpenApi.components.schemas.LocationResponse as Record<string, unknown>)
 const request = (path = 'location', full = true) => new NextRequest('https://example.invalid/api/partner/v1/' + path + '?postal_code=12345' + (full ? '&address=Synthetic%201&city=Synthetic' : ''))
 beforeEach(() => { m.stale = false; m.name = 'Synthetic area'; m.ambiguous = false; m.saved = [] })
 

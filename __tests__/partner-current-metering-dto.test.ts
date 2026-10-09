@@ -1,7 +1,7 @@
 // ops-api-review: F13, F14
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import Ajv2020 from 'ajv/dist/2020'
+import { compileSchema } from './helpers/miniJsonSchema'
 
 type Row = Record<string, unknown>
 const m = vi.hoisted(() => ({ rows: [] as Record<string, unknown>[], limits: [] as number[], company: 'company_synthetic' }))
@@ -40,7 +40,7 @@ import { handleSimplePartnerApi } from '@/lib/partner-api/simple'
 import { partnerOpenApi } from '@/lib/partner-api/openApi'
 
 const schemas = JSON.parse(JSON.stringify(partnerOpenApi.components.schemas).replaceAll('#/components/schemas/', '#/$defs/'))
-const validate = new Ajv2020({ allErrors: true, strict: false, validateFormats: false }).compile({ $defs: schemas, $ref: '#/$defs/MeasurementResponse' })
+const validate = compileSchema({ $defs: schemas }, { $ref: '#/$defs/MeasurementResponse' })
 
 beforeEach(() => { m.rows = []; m.limits = []; m.company = 'company_synthetic' })
 
