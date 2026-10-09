@@ -20,6 +20,7 @@
 //
 // Manual e-mail is NOT Ediel: this never creates an ediel_outbox row.
 
+import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
@@ -37,6 +38,12 @@ import {
   hasExternallySendablePoa,
   poaMissingExternalFields,
 } from '@/lib/customers/poaReadiness'
+import {
+  MANUAL_POA_SELECT,
+  findGridOwnerManualContact,
+  manualPoaIsCurrentlyValid,
+  poaScopeAllows,
+} from '@/lib/customer-operations/manualGridOwnerSendGuards'
 
 type JsonRecord = Record<string, unknown>
 
@@ -234,7 +241,7 @@ async function findValidPowerOfAttorney(input: {
 }): Promise<JsonRecord | null> {
   const { data, error } = await supabaseService
     .from('powers_of_attorney')
-    .select('id,status,scope,scope_summary,site_id,customer_site_id,valid_until,fullmakt_snapshot,evidence_payload,document_id,document_path,reference,signer_name,signer_identity_number,method,accepted_at,signed_at,legal_text_version_id,source')
+    .select(MANUAL_POA_SELECT)
     .eq('company_id', input.companyId)
     .eq('customer_id', input.customerId)
     .in('status', ['signed', 'active', 'accepted'])
@@ -244,76 +251,20 @@ async function findValidPowerOfAttorney(input: {
     if (missingSchema(error)) return null
     throw error
   }
-  const rows = (data ?? []) as JsonRecord[]
-  const now = Date.now()
+  const rows = (data ?? []) as unknown as JsonRecord[]
+  const now = new Date()
   const match = rows.find((row) => {
     const rowSite = clean(row.site_id) ?? clean(row.customer_site_id)
     if (rowSite !== input.siteId) return false
-    const validUntil = clean(row.valid_until)
-    if (validUntil && Date.parse(validUntil) < now) return false
-    return scopeAllows(row, input.requiredScope)
+    // Canonical lifecycle: valid_from/valid_to/valid_until/expires_at,
+    // revoked_at and replacement all count, not only the status text.
+    if (!manualPoaIsCurrentlyValid(row, now)) return false
+    return poaScopeAllows(row, input.requiredScope)
   })
   return match ?? null
 }
 
-function scopeAllows(poa: JsonRecord, requiredScope: string): boolean {
-  const scopeText = clean(poa.scope)?.toLowerCase()
-  // supplier_switch implicitly covers facility_information_lookup for the switch.
-  const acceptable = new Set([requiredScope, 'supplier_switch', 'all'])
-  if (scopeText && acceptable.has(scopeText)) return true
-  const summary = poa.scope_summary
-  if (summary && typeof summary === 'object') {
-    const scopes = Array.isArray((summary as JsonRecord).scopes)
-      ? ((summary as JsonRecord).scopes as unknown[])
-      : Object.keys(summary as JsonRecord)
-    const values = scopes.map((value) => String(value).toLowerCase())
-    if (values.includes(requiredScope) || values.includes('supplier_switch')) return true
-    // boolean-keyed summaries: { facility_information_lookup: true }
-    if ((summary as JsonRecord)[requiredScope] === true) return true
-  }
-  return false
-}
-
-async function findContactChannelEmail(input: {
-  companyId: string
-  gridOwnerId: string
-  channelType: ManualInformationChannelType
-}): Promise<{ email: string; source: string; contactChannelId: string | null; isVerified: boolean } | null> {
-  const { data, error } = await supabaseService
-    .from('grid_owner_contact_channels')
-    .select('id,email,company_id,source,is_enabled,is_verified,verified_at')
-    .eq('grid_owner_id', input.gridOwnerId)
-    .eq('channel_type', input.channelType)
-    .eq('is_enabled', true)
-    .eq('is_verified', true)
-    .or(`company_id.is.null,company_id.eq.${input.companyId}`)
-    .order('verified_at', { ascending: false, nullsFirst: false })
-    .order('id', { ascending: true })
-  if (error) {
-    if (missingSchema(error)) return null
-    throw error
-  }
-  const rows = (data ?? []) as JsonRecord[]
-  // Tenant override (company_id set) takes precedence over platform default.
-  const sorted = rows
-    .filter((row) => clean(row.email) && row.is_verified === true)
-    .sort((a, b) => {
-      const tenantPriority = (a.company_id ? 0 : 1) - (b.company_id ? 0 : 1)
-      if (tenantPriority) return tenantPriority
-      const verifiedPriority = String(b.verified_at ?? '').localeCompare(String(a.verified_at ?? ''))
-      return verifiedPriority || String(a.id).localeCompare(String(b.id))
-    })
-  const chosen = sorted[0]
-  if (!chosen) return null
-  const samePriority = sorted.filter((row) => Boolean(row.company_id) === Boolean(chosen.company_id) && String(row.verified_at ?? '') === String(chosen.verified_at ?? ''))
-  if (samePriority.length > 1) throw new Error('Flera verifierade nätägarkontakter har samma prioritet. Markera en entydig kontaktväg.')
-  return {
-    email: String(chosen.email),
-    source: String(chosen.source ?? 'manual_admin'),
-    contactChannelId: clean(chosen.id),
-    isVerified: chosen.is_verified === true,
-  }
-}
+const findContactChannelEmail = findGridOwnerManualContact
 
 export type ManualRecipientResolutionMode =
   | 'real_grid_owner_contact'
@@ -340,7 +291,7 @@ export type ManualRecipientResolution = {
 // configured. The chosen recipient and WHY it was chosen is always recorded on
 // the outbox row and the request, so a test/staging safe recipient can never
 // be mistaken for a real grid-owner send (and vice versa).
-function resolveManualRecipient(contact: {
+export function resolveManualRecipient(contact: {
   email: string
   source: string
   contactChannelId: string | null
@@ -362,6 +313,23 @@ function resolveManualRecipient(contact: {
         ? 'MANUAL_GRID_OWNER_SAFE_RECIPIENT är satt i PRODUKTION: utskicket går till intern säker adress i stället för nätägarens riktiga kontakt.'
         : 'MANUAL_GRID_OWNER_SAFE_RECIPIENT är satt: test-/staging-utskick går till intern säker adress.',
       production_safe_override_warning: environment === 'production',
+      externally_sendable: false,
+    }
+  }
+  if (environment !== 'production') {
+    // Fail closed outside an explicit production deployment (previews, local,
+    // tests): never mail the real grid owner without a safe-recipient override.
+    return {
+      resolution_mode: 'missing_contact',
+      selected_to_email: null,
+      actual_grid_owner_contact_email: contact.email,
+      contact_source_table: 'grid_owner_contact_channels',
+      contact_source_id: contact.contactChannelId,
+      contact_source: contact.source,
+      contact_verified: contact.isVerified,
+      environment,
+      reason: 'Miljön är inte produktion och MANUAL_GRID_OWNER_SAFE_RECIPIENT saknas: nätägaren kontaktas inte från test-/förhandsmiljö.',
+      production_safe_override_warning: false,
       externally_sendable: false,
     }
   }
@@ -830,6 +798,7 @@ export async function requestMissingFacilityInformation(
       requires_poa: true,
       poa_id: clean(poa.id),
       recipient_email: contact.email,
+      recipient_contact_channel_id: contact.contactChannelId,
       from_email: senderFromEmail,
       reply_to: senderReplyTo,
       created_by: clean(input.actorUserId),
@@ -1031,69 +1000,128 @@ export async function requestMissingFacilityInformation(
 
   let emailOutboxId: string | null = null
   let alreadyQueued = false
+
+  // Existing outbox rows for this request decide whether a new e-mail may be
+  // queued. Only a queued/sending row means "already queued"; a sent, failed,
+  // blocked or uncertain row never silently masks the review signal.
+  const existingOutbox = await readRequestOutboxRows({ companyId: input.companyId, requestId })
+  const activeOutbox = existingOutbox.find((row) => ACTIVE_OUTBOX_STATUSES.has(String(row.status)))
+  const requestStatus = clean(request.status) ?? ''
+  if (!activeOutbox && CONVERSATION_STATUSES.has(requestStatus)) {
+    // The grid owner already has this request; the follow-up watchdog owns
+    // reminders. Never queue a duplicate from a repeated trigger.
+    return {
+      status: requestStatus === 'waiting_manual_response' ? 'waiting_manual_response' : 'manual_email_queued',
+      requestId, caseReference, channel: 'manual_email',
+      emailOutboxId: clean(existingOutbox[0]?.id), poaId: clean(poa.id),
+      nextAction: { code: 'manual_request_in_progress', message: 'Begäran är redan skickad till nätägaren. Invänta svar.' },
+      blockers: [],
+    }
+  }
+  const uncertainOutbox = existingOutbox.find((row) => String(row.status) === 'delivery_uncertain')
+  if (!activeOutbox && uncertainOutbox) {
+    const message = 'Det är oklart om tidigare utskick nådde nätägaren. Kontrollera providerstatus och köa om utskicket manuellt.'
+    await markRequestNeedsReview({
+      companyId: input.companyId, requestId, lastErrorCode: 'manual_email_delivery_uncertain', lastErrorMessage: message,
+      missingFields: [], baseMetadata: (request.metadata as JsonRecord | null) ?? null,
+    })
+    return {
+      status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: clean(uncertainOutbox.id),
+      poaId: clean(poa.id), nextAction: { code: 'manual_email_delivery_uncertain', message },
+      blockers: [{ code: 'manual_email_delivery_uncertain', message }],
+    }
+  }
+
   const recipientResolution = resolveManualRecipient(contact)
-  if (recipientResolution.environment === 'production' && !recipientResolution.externally_sendable) {
-    const message = 'Produktion är konfigurerad med intern säker mottagare. Begäran skickades inte till nätägaren.'
+  if (!activeOutbox && !recipientResolution.externally_sendable && (recipientResolution.environment === 'production' || !recipientResolution.selected_to_email)) {
+    const code = recipientResolution.environment === 'production' ? 'production_safe_recipient_override' : 'manual_ops_environment_not_production'
+    const message = recipientResolution.environment === 'production'
+      ? 'Produktion är konfigurerad med intern säker mottagare. Begäran skickades inte till nätägaren.'
+      : 'Miljön är inte produktion. Begäran skickades inte till nätägaren.'
     await markRequestNeedsReview({
       companyId: input.companyId,
       requestId,
-      lastErrorCode: 'production_safe_recipient_override',
+      lastErrorCode: code,
       lastErrorMessage: message,
       missingFields: [],
       baseMetadata: (request.metadata as JsonRecord | null) ?? null,
     })
     return {
       status: 'needs_review', requestId, caseReference, channel: 'manual_email', emailOutboxId: null,
-      poaId: clean(poa.id), nextAction: { code: 'production_safe_recipient_override', message },
-      blockers: [{ code: 'production_safe_recipient_override', message }],
+      poaId: clean(poa.id), nextAction: { code, message },
+      blockers: [{ code, message }],
     }
   }
-  const selectedToEmail = recipientResolution.selected_to_email ?? contact.email
-  const outboxInsert: Record<string, unknown> = {
-    company_id: input.companyId,
-    request_id: requestId,
-    to_email: selectedToEmail,
-    from_email: senderFromEmail,
-    reply_to: senderReplyTo,
-    subject: rendered.subject,
-    body_html: rendered.bodyHtml,
-    body_text: rendered.bodyText,
-    attachments,
-    status: 'queued',
-    provider: 'resend',
-    idempotency_key: idempotencyKey,
-    provider_idempotency_key: idempotencyKey,
-    actual_recipient_email: selectedToEmail,
-    external_delivery: true,
-    next_attempt_at: now,
-    queued_at: now,
-    recipient_resolution: recipientResolution,
-  }
-  const queued = await supabaseService
-    .from('manual_email_outbox')
-    .insert(outboxInsert)
-    .select('id')
-    .maybeSingle()
-  if (queued.error) {
-    if (isUniqueViolation(queued.error)) {
-      alreadyQueued = true
+  const selectedToEmail = clean(activeOutbox?.to_email) ?? recipientResolution.selected_to_email ?? contact.email
+
+  if (activeOutbox) {
+    alreadyQueued = true
+    emailOutboxId = clean(activeOutbox.id)
+  } else {
+    // First e-mail for the request keeps the historical key; an intentional
+    // resend (after failure/bounce/review with corrected data) gets a new key
+    // bound to the attempt number and recipient so it can actually be inserted.
+    const attempt = existingOutbox.length + 1
+    const outboxIdempotencyKey = attempt === 1
+      ? idempotencyKey
+      : `${idempotencyKey}:attempt:${attempt}:${createHash('sha256').update(selectedToEmail.toLowerCase()).digest('hex').slice(0, 16)}`
+    const outboxInsert: Record<string, unknown> = {
+      company_id: input.companyId,
+      request_id: requestId,
+      to_email: selectedToEmail,
+      from_email: senderFromEmail,
+      reply_to: senderReplyTo,
+      subject: rendered.subject,
+      body_html: rendered.bodyHtml,
+      body_text: rendered.bodyText,
+      attachments,
+      status: 'queued',
+      provider: 'resend',
+      idempotency_key: outboxIdempotencyKey,
+      provider_idempotency_key: outboxIdempotencyKey,
+      actual_recipient_email: selectedToEmail,
+      external_delivery: true,
+      next_attempt_at: now,
+      queued_at: now,
+      recipient_resolution: { ...recipientResolution, recipient_contact_channel_id: contact.contactChannelId, attempt },
+    }
+    const queued = await supabaseService
+      .from('manual_email_outbox')
+      .insert(outboxInsert)
+      .select('id')
+      .maybeSingle()
+    if (queued.error) {
+      if (!isUniqueViolation(queued.error)) throw queued.error
       const existing = await supabaseService
         .from('manual_email_outbox')
-        .select('id')
-        .eq('idempotency_key', idempotencyKey)
+        .select('id,status')
+        .eq('company_id', input.companyId)
+        .eq('idempotency_key', outboxIdempotencyKey)
         .maybeSingle()
+      if (existing.error) throw existing.error
+      const existingStatus = clean(existing.data?.status)
+      if (!existingStatus || !ACTIVE_OUTBOX_STATUSES.has(existingStatus)) {
+        // A concurrent writer won with a row that is not queued: keep the
+        // request where it is so the review signal stays visible.
+        const message = 'Ett tidigare utskick för ärendet är inte längre köat. Granska ärendet innan nytt utskick.'
+        return {
+          status: 'needs_review', requestId, caseReference, channel: 'manual_email',
+          emailOutboxId: clean(existing.data?.id), poaId: clean(poa.id),
+          nextAction: { code: 'manual_email_not_queued', message },
+          blockers: [{ code: 'manual_email_not_queued', message }],
+        }
+      }
+      alreadyQueued = true
       emailOutboxId = clean(existing.data?.id)
     } else {
-      throw queued.error
+      emailOutboxId = clean(queued.data?.id)
     }
-  } else {
-    emailOutboxId = clean(queued.data?.id)
   }
 
-  // Advance the request to manual_email_queued (idempotent; already-waiting
-  // conversations keep their status). Requests parked in needs_review or a
-  // persisted blocked_missing_* state advance too: all gates passed and an
-  // e-mail row is now queued, so leaving the old blocker status would lie.
+  // Advance the request to manual_email_queued only when a queued/sending
+  // outbox row backs it (fresh insert or an active row). Requests parked in
+  // needs_review or a persisted blocked_missing_* state advance too: all gates
+  // passed and an e-mail row is queued, so leaving the old blocker would lie.
   const requestUpdate = await supabaseService
     .from('grid_owner_information_requests')
     .update({
@@ -1103,6 +1131,7 @@ export async function requestMissingFacilityInformation(
       grid_area_code: clean(request.grid_area_code) ?? clean(site.grid_area_code),
       price_area: normalizePriceArea(request.price_area) ?? requestPriceArea,
       recipient_email: selectedToEmail,
+      recipient_contact_channel_id: contact.contactChannelId,
       from_email: senderFromEmail,
       reply_to: senderReplyTo,
       poa_id: clean(poa.id),
@@ -1119,7 +1148,7 @@ export async function requestMissingFacilityInformation(
     .eq('company_id', input.companyId)
     .eq('id', requestId)
     .in('status', [
-      'draft', 'ready_to_send', 'ready_to_send_manual_email', 'needs_review',
+      'draft', 'ready_to_send', 'ready_to_send_manual_email', 'needs_review', 'manual_email_queued',
       'blocked_missing_poa', 'blocked_missing_grid_owner_contact', 'blocked_missing_manual_mailbox',
     ])
     .select('id')
@@ -1148,7 +1177,9 @@ export async function requestMissingFacilityInformation(
         case_reference: caseReference,
         request_id: requestId,
         channel: 'manual_email',
-        to_email: contact.email,
+        to_email: selectedToEmail,
+        recipient_contact_channel_id: contact.contactChannelId,
+        email_outbox_id: emailOutboxId,
         attachment_kind: attachmentKind,
       },
       created_by: clean(input.actorUserId),
@@ -1193,7 +1224,7 @@ export async function requestMissingFacilityInformation(
       already_queued: alreadyQueued,
       recipient_resolution: recipientResolution,
     },
-    idempotencyKey: `manual_facility_request.queued:${input.companyId}:${input.siteId}:${idempotencyKey}`,
+    idempotencyKey: `manual_facility_request.queued:${input.companyId}:${input.siteId}:${idempotencyKey}:${emailOutboxId ?? "none"}`,
   }).catch(() => undefined)
 
   return {
@@ -1213,6 +1244,24 @@ export async function requestMissingFacilityInformation(
         }]
       : [],
   }
+}
+
+const ACTIVE_OUTBOX_STATUSES: ReadonlySet<string> = new Set(['queued', 'sending'])
+const CONVERSATION_STATUSES: ReadonlySet<string> = new Set(['manual_email_sent', 'waiting_manual_response', 'manual_response_received'])
+
+async function readRequestOutboxRows(input: { companyId: string; requestId: string }): Promise<JsonRecord[]> {
+  const { data, error } = await supabaseService
+    .from('manual_email_outbox')
+    .select('id,status,idempotency_key,to_email,created_at')
+    .eq('company_id', input.companyId)
+    .eq('request_id', input.requestId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+  if (error) {
+    if (missingSchema(error)) return []
+    throw error
+  }
+  return Array.isArray(data) ? (data as JsonRecord[]) : data ? [data as JsonRecord] : []
 }
 
 async function patchSiteNextAction(input: {
