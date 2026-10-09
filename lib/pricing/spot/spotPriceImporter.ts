@@ -58,6 +58,7 @@ async function emitMarketEvent(input: {
 }): Promise<void> {
   const { error } = await supabaseService.from('canonical_energy_flow_events').insert({
     event_type: input.eventType,
+    event_scope: 'platform',
     correlation_id: input.correlationId,
     source: PROVIDER,
     payload_version: '1',
