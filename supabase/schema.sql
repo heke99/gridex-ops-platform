@@ -127711,6 +127711,17 @@ ALTER TABLE ONLY public.duplicate_groups
     ADD CONSTRAINT duplicate_groups_pkey PRIMARY KEY (id);
 
 --
+-- Name: ediel_messages ediel_ack_business_legacy_scope_excl; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_messages
+    ADD CONSTRAINT ediel_ack_business_legacy_scope_excl EXCLUDE USING gist (company_id WITH =, direction WITH =, outbound_request_id WITH =, message_family WITH =, COALESCE(message_code, ''::text) WITH =, receiver_ediel_id WITH =, COALESCE(message_version, ''::text) WITH =, (
+CASE
+    WHEN (related_message_id IS NULL) THEN numrange(NULL::numeric, NULL::numeric, '()'::text)
+    ELSE numrange((((((((('x'::text || substr(replace((id)::text, '-'::text, ''::text), 1, 8)))::bit(32))::bigint)::numeric * '79228162514264337593543950336'::numeric) + ((((('x'::text || substr(replace((id)::text, '-'::text, ''::text), 9, 8)))::bit(32))::bigint)::numeric * '18446744073709551616'::numeric)) + ((((('x'::text || substr(replace((id)::text, '-'::text, ''::text), 17, 8)))::bit(32))::bigint)::numeric * ('4294967296'::bigint)::numeric)) + ((((('x'::text || substr(replace((id)::text, '-'::text, ''::text), 25, 8)))::bit(32))::bigint)::numeric * (1)::numeric)), (((((((('x'::text || substr(replace((id)::text, '-'::text, ''::text), 1, 8)))::bit(32))::bigint)::numeric * '79228162514264337593543950336'::numeric) + ((((('x'::text || substr(replace((id)::text, '-'::text, ''::text), 9, 8)))::bit(32))::bigint)::numeric * '18446744073709551616'::numeric)) + ((((('x'::text || substr(replace((id)::text, '-'::text, ''::text), 17, 8)))::bit(32))::bigint)::numeric * ('4294967296'::bigint)::numeric)) + ((((('x'::text || substr(replace((id)::text, '-'::text, ''::text), 25, 8)))::bit(32))::bigint)::numeric * (1)::numeric)), '[]'::text)
+END) WITH &&) WHERE (((direction = 'outbound'::text) AND (outbound_request_id IS NOT NULL) AND (message_family = ANY (ARRAY['APERAK'::text, 'CONTRL'::text, 'UTILTS_ERR'::text]))));
+
+--
 -- Name: ediel_ack_chains ediel_ack_chains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -141058,7 +141069,7 @@ CREATE UNIQUE INDEX ux_ediel_inbound_interchange ON public.ediel_messages USING 
 -- Name: ux_ediel_outbound_source; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX ux_ediel_outbound_source ON public.ediel_messages USING btree (company_id, direction, outbound_request_id, message_family, COALESCE(message_code, ''::text), receiver_ediel_id, COALESCE(message_version, ''::text)) WHERE ((direction = 'outbound'::text) AND (outbound_request_id IS NOT NULL));
+CREATE UNIQUE INDEX ux_ediel_outbound_source ON public.ediel_messages USING btree (company_id, direction, outbound_request_id, message_family, COALESCE(message_code, ''::text), receiver_ediel_id, COALESCE(message_version, ''::text)) WHERE ((direction = 'outbound'::text) AND (outbound_request_id IS NOT NULL) AND (NOT ((related_message_id IS NOT NULL) AND COALESCE((message_family = ANY (ARRAY['APERAK'::text, 'CONTRL'::text, 'UTILTS_ERR'::text])), false))));
 
 --
 -- Name: ux_inbound_email_messages_company_sender_interchange; Type: INDEX; Schema: public; Owner: -
