@@ -253,7 +253,7 @@ export class ResendEmailProvider implements EmailProvider {
               contentType: attachment.contentType ?? undefined,
             }))
           : undefined
-      const response = await resend.emails.send({
+      const payload = {
         from: input.from,
         to: input.to,
         subject: input.subject,
@@ -262,7 +262,12 @@ export class ResendEmailProvider implements EmailProvider {
         replyTo: input.replyTo,
         attachments,
         headers: safeMailHeaders(input.headers),
-      } as never, input.idempotencyKey ? { idempotencyKey: toResendIdempotencyKey(input.idempotencyKey) } : undefined)
+      } as never
+      // Resend only deduplicates when the key travels as the HTTP
+      // Idempotency-Key request header, i.e. the second send() argument.
+      const response = input.idempotencyKey
+        ? await resend.emails.send(payload, { idempotencyKey: toResendIdempotencyKey(input.idempotencyKey) })
+        : await resend.emails.send(payload)
 
       if (response.error || !response.data) throw response.error
 
