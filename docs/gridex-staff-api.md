@@ -112,6 +112,18 @@ Customer and case paths use opaque references returned by Gridex. Staff account 
 
 Attachments use a raw PDF, PNG or JPEG body of at most 4 MiB, plus an optional `x-file-name`. Set `x-attachment-visibility: internal` or `customer`; the default is `internal`. Uploaded content enters inspection. Only released attachments can be downloaded. Download responses use an attachment disposition and verify the stored SHA-256.
 
+## Replay, request IDs and storage project
+
+Every Staff write response, including staff-user invite, role change, disable and enable, carries `Idempotency-Replayed: true` when the stored result of an earlier identical operation is returned, and `false` for a new execution. Current authentication, scopes, permission and active membership are always checked before a stored result is replayed.
+
+Gridex issues one server request ID per call. The same value is returned in `request_id`, the `X-Request-ID` response header and the request log, on success and on error. Quote it to support. An inbound `X-Request-ID` is never used as the server ID; when it matches `^[A-Za-z0-9._:-]{1,128}$` it is retained only as a separate client correlation value.
+
+Send the optional `x-gridex-expected-project-ref: <20-character project ref>` header to make sure the call is served by the storage project you expect. A mismatch, or a malformed value, returns `412 storage_project_mismatch` before authentication, rate limiting, audit or any write. Responses from an identified project carry `X-Gridex-Project-Ref`. The OpenAPI text for these headers and the strict query profile follows in the next contract release; the runtime behaviour applies now.
+
+## Query parameters
+
+List endpoints (`/users`, `/customers`, `/cases`, case `/events` and `/attachments`) reject unknown parameters with 422. By default each endpoint keeps the parsing it has always accepted, so existing integrations are unaffected. Send `x-gridex-query-parsing: strict` to opt in to one rule for all of them: every parameter at most once, and `page`, `page_size` and `limit` only as plain decimal digits (no sign, whitespace, exponent, fraction, hexadecimal prefix or leading zero). Violations return `422 invalid_field` with `error.field` naming the parameter. New integrations should use the strict profile. Defaults: `page=1`, `page_size=25` (max 100); `limit` is 1–100. Organization selector fields such as `company_id` are never accepted; the organization always comes from the credential.
+
 ## Read complete case history
 
 Case detail contains initial events and attachments plus `events_page` and `attachments_page`. When `has_more` is true, call `GET /api/v1/staff/cases/{reference}/events` or `GET /api/v1/staff/cases/{reference}/attachments` with `cursor=next_cursor`. Each collection accepts `limit` from 1 to 100 (default 50). Follow the returned cursor until `has_more` is false; sign a fresh assertion for every page. Cursors are bound to the organization, customer and case and cannot select another resource.
@@ -143,6 +155,7 @@ Errors use the same closed envelope throughout this API:
 | 401 | `staff_assertion_missing`, `staff_assertion_signature_invalid`, `staff_assertion_issuer_mismatch`, `staff_assertion_audience_mismatch`, `staff_assertion_expired`, `staff_assertion_replayed` | Correct identity configuration or sign a fresh assertion; never fall back to another account |
 | 403 | `api_scope_missing`, `staff_provider_missing`, `staff_provider_invalid`, `staff_membership_inactive`, `staff_permission_denied`, `staff_role_ceiling_exceeded` | Correct configuration, active membership or authorized role |
 | 404 | `staff_user_not_found`, `customer_not_found`, case or attachment missing | Use a current reference from the same organization |
+| 412 | `storage_project_mismatch` | Call the deployment that serves the expected storage project; nothing was executed |
 | 409 | `version_conflict`, `staff_self_disable_forbidden`, `staff_last_admin_required`, `staff_invalid_user_state, staff_self_role_change_forbidden`, idempotency conflict | Reload state and reconcile the operation; preserve administrator safeguards |
 | 413 / 415 | Attachment size or content type | Use a supported file within the size limit |
 | 429 | Rate limit | Observe `Retry-After`, then use the same operation key with a fresh assertion |

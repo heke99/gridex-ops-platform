@@ -448,6 +448,8 @@ export async function logIntegrationApiRequest(input: {
   startedAt: number
   errorCode?: string | null
   metadata?: Record<string, unknown>
+  /** Server-issued id returned to the caller; falls back to the inbound header for legacy callers. */
+  requestId?: string | null
 }) {
   // Anonymous 401 traffic has no tenant-safe persistence target. Skipping the
   // database write also prevents unauthenticated requests from turning an
@@ -457,7 +459,7 @@ export async function logIntegrationApiRequest(input: {
   const payload = {
     company_id: input.client?.company_id ?? null,
     api_client_id: input.client?.id ?? null,
-    request_id: input.request.headers.get('x-request-id'),
+    request_id: input.requestId ?? input.request.headers.get('x-request-id'),
     method: input.request.method,
     route: input.request.nextUrl.pathname,
     status_code: input.statusCode,
