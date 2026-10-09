@@ -71,6 +71,7 @@ function envelope(f: Fixture, source: string, code: 'Z04' | 'Z05') {
 }
 function z04(f: Fixture, reason = 'Z22') {
   if (reason === 'Z22') return buildCancellationProspectiveZ04(f)
+  if (reason === 'Z24') return envelope(f, buildCancellationProspectiveZ04(f).replace('CAV+Z22', 'CAV+Z24'), 'Z04')
   const wire = ownerSource().raw_payload!.replaceAll(OWNER.external, f.external)
     .replaceAll('12345:160:SVK', `${f.receiver}:160:SVK`).replaceAll('54321:160:SVK', `${f.sender}:160:SVK`)
     .replaceAll('11111:160:SVK', `${f.brpEdielId}:160:SVK`).replaceAll('CUSTOMER-1::89', `${f.customerIdentity.id}:SE2:260`)
