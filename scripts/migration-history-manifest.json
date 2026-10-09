@@ -860,6 +860,7 @@
     "20261009090000_ops_api_exact_accepted_poa_document.sql": "432fff05071cc74d724bcf057ce23c7e4ccd53aa55e906c529a9fc49a48941d0",
     "20261009100000_ops_api_contract_confirmation_delivery_continuation.sql": "3d6751fd62678eb5fee7388cb0dcbffe0ba814615ee3d37a6d1c4329a33e45ba",
     "20261009110000_ops_api_session_guard_auth_revocation.sql": "87b4a5b48241eb3020f5b7d100cee30672114e864e59534abe75491b366641aa",
+    "20261009130000_portal_monthly_consumption_summary.sql": "9c51ec19ca8797b0cad7119a4faab17bbff8cc2e17f99a25dbeecfdceffb5d62",
     "20261009140000_customer_site_address_source_authority.sql": "b5fa1ee9cc67aa0aed62e98546ab575f68b8280d532f7c480fa0c8bb81a8c124",
     "20261009160000_ops_api_service_only_restore_grants.sql": "0fd5fcec634a2526324fbea0f4a3b83c21fead668eead0af87486cba3efa73d5",
     "20261009170000_ops_api_drop_duplicate_indexes.sql": "dfb44fb606f384887bd1ad8c56d8d7ea142d3ee48ec84970ba195fc9a0d8cb9a",
