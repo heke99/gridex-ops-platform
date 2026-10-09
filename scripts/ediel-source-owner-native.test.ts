@@ -12,7 +12,7 @@ import {compareUtiltsStructure} from '@/lib/ediel/utilts/structuralComparison'
 import {utiltsStructureWire as originalUtiltsStructureWire,STRUCTURE_POINT} from '../__tests__/helpers/structuralComparisonFixtures'
 import {priorE30PointWire as originalPriorE30PointWire} from '../__tests__/helpers/priorUtiltsStructureFixtures'
 import {priorE66MembershipWire as originalPriorE66MembershipWire} from '../__tests__/helpers/priorUtiltsStructureFixtures'
-import {ownerSource as originalOwnerSource} from '../__tests__/helpers/sourceOwnerFixtures'
+import {ownerSourceWithInstallationStatus as originalOwnerSource} from '../__tests__/helpers/sourceOwnerFixtures'
 import {utiltsNativeSourceFixture as originalUtiltsNativeSourceFixture} from '../__tests__/helpers/utiltsNativeSourceFixture'
 import {observationHandoffMessage as originalObservationHandoffMessage} from '../__tests__/helpers/utiltsObservationHandoff'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -138,7 +138,7 @@ async function seed(delegated=false, structural=false) {
   const p=(key:keyof typeof ids)=>literal(ids[key])
   const scope={external:native.external,sender:native.sender,receiver:native.receiver,caseReference:native.caseReference,
     customerIdentity:native.customerIdentity,requestedStartDate,gridArea:native.gridAreaCode,brpEdielId:native.brpEdielId}
-  const input=structural?structuralOwnerSource():ownerSource()
+  const input=structural?structuralOwnerSource():ownerSource('Z12')
   let wire=scopedWire(scope,String(input.raw_payload))
   if(!structural)wire=wire.replaceAll(`DTM+92:${S('2026-10-01').replaceAll('-','')}0000:203`,`DTM+92:${requestedStartDate.replaceAll('-','')}0000:203`)
   const transportEdiel=sql<string>(`SELECT to_jsonb(min(n)::text) FROM generate_series(90000,99999) n
@@ -189,10 +189,61 @@ async function prepare(f:Awaited<ReturnType<typeof seed>>) {
   expect(session).not.toBeNull()
   return {canonical,session:session!}
 }
+// Observe only literal qualification reasons from the actual Z04/L apply;
+// unknown values remain counted without printing source IDs or free-form text.
+const sourceOwnerSupplyReasons = [
+  'supply_execution_actor_unqualified',
+  'supply_frozen_legal_context_required',
+  'supply_complete_own_application_and_function_required',
+  'supply_complete_physical_partition_required',
+  'own_application_not_accepted',
+  'ambiguous_physical_supply_scope',
+  'own_supply_wire_or_legal_scope_unavailable',
+  'own_supply_business_unqualified',
+  'no_qualified_supply_objects',
+  'normal_z04_source_required',
+  'normal_z04_execution_actor_required',
+  'normal_z04_frozen_legal_context_required',
+  'normal_z04_canonical_leaf_ambiguous',
+  'normal_z04_canonical_source_not_accepted',
+  'normal_z04_whole_physical_scope_required',
+  'supply_original_cohort_changed',
+  'normal_z04_register_owner_scope_required',
+  'normal_z04_exact_sent_original_required',
+  'normal_z04_locked_original_scope_required',
+  'normal_z04_owned_signed_contract_scope_required',
+  'normal_z04_conflicting_supply_period',
+ ] as const
+function sourceOwnerSupplyDiagnostic(results: import('@/lib/ediel/flows/supplyMarketTransition').SupplyMarketResult[]) {
+ const refused=results.filter(result=>!result.applied)
+ const held=results.flatMap(result=>result.partition?.flatMap(entry=>entry.disposition==='held'?[entry.reason]:[])??[])
+ const known=(reason:string|null)=>sourceOwnerSupplyReasons.some(marker=>marker===reason)
+ return {
+  observedApplyCount:results.length,
+  appliedCount:results.filter(result=>result.applied).length,
+  primaryReasonCounts:Object.fromEntries(sourceOwnerSupplyReasons.map(marker=>[marker,refused.filter(result=>result.reason===marker).length])),
+  unknownPrimaryReasonCount:refused.filter(result=>!known(result.reason)).length,
+  heldReasonCounts:Object.fromEntries(sourceOwnerSupplyReasons.map(marker=>[marker,held.filter(reason=>reason===marker).length])),
+  unknownHeldReasonCount:held.filter(reason=>!known(reason)).length,
+ }
+}
 async function complete(f:Awaited<ReturnType<typeof seed>>,given?:Awaited<ReturnType<typeof prepare>>) {
   const prepared=given ?? await prepare(f)
-  const result=await applyInboundBusinessStateMachine({message:f.original,actorUserId:f.ids.actor,matchedSwitchRequestId:f.ids.switch,onSourceSwitchCommitted:prepared.session.onSwitchCommitted})
-  expect(result.outcome, JSON.stringify(result)).toBe('supplier_switch_accepted')
+  const supplyModule=await import('@/lib/ediel/flows/supplyMarketTransition')
+  // A default spy delegates to the existing real implementation; inspect its
+  // already-returned promise rather than executing another apply or replay.
+  const observedApply=vi.spyOn(supplyModule,'applySupplyMarketSource')
+  let result:Awaited<ReturnType<typeof applyInboundBusinessStateMachine>>
+  let sourceQualification:ReturnType<typeof sourceOwnerSupplyDiagnostic>
+  try{
+   result=await applyInboundBusinessStateMachine({message:f.original,actorUserId:f.ids.actor,matchedSwitchRequestId:f.ids.switch,onSourceSwitchCommitted:prepared.session.onSwitchCommitted})
+   const pending=observedApply.mock.results.flatMap((returned,index)=>{
+    const call=observedApply.mock.calls[index]?.[0]
+    return returned.type==='return'&&call?.message.company_id===f.ids.company&&call.message.id===f.ids.source&&call.actorUserId===f.ids.actor?[returned.value]:[]
+   })
+   sourceQualification=sourceOwnerSupplyDiagnostic(await Promise.all(pending))
+  }finally{observedApply.mockRestore()}
+  expect(result.outcome, JSON.stringify({...result,sourceQualification})).toBe('supplier_switch_accepted')
   return prepared.session.finish()
 }
 function stored(source:string) {
