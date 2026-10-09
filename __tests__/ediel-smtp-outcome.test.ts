@@ -76,3 +76,13 @@ describe('SMTP uncertainty at the outbox boundary', () => {
     expect(mocks.filters.at(-1)).toEqual(['current_send_attempt_id', 'attempt1'])
   })
 })
+
+describe('SmtpDeliveryUncertainError cause message', () => {
+  it('keeps a plain Supabase error code/message but never its details or hint', () => {
+    const error = new SmtpDeliveryUncertainError({ code: '23505', message: 'duplicate key value', details: 'Key (id)=(secret-row)', hint: 'private' }, '<m@x>')
+    expect(error.message).toBe('23505: duplicate key value')
+    expect(error.message).not.toMatch(/secret-row|private|object Object/)
+    expect(new SmtpDeliveryUncertainError(new Error('plain')).message).toBe('plain')
+    expect(new SmtpDeliveryUncertainError({ message: 'no code' }).message).toBe('no code')
+  })
+})
