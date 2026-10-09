@@ -52,23 +52,61 @@ export type InvoiceFileRow = {
   currency: string
   invoice_date: string
   due_date: string
-  lines: Array<{ description: string; quantity: number | null; unit: string | null; unit_price_ex_vat: number | null; amount_ex_vat: number }>
+  lines: Array<{ description: string; quantity: number | null; unit: string | null; unit_price_ex_vat: number | null; amount_ex_vat: number; line_type?: string | null; vat_rate?: number | null; vat_amount?: number | null; amount_inc_vat?: number | null }>
   /** Facility facts for electricity invoices (Nordfin's added fields). */
   electricity?: InvoiceFileElectricity | null
   /** Nordfin client id, fixed when the file is created. */
   nordfin_client_id?: string | null
 }
 
-export type InvoiceFileElectricity = {
+export type InvoiceFileFacility = {
   facility_id: string | null
   metering_point_id: string | null
   site_street: string | null
   site_postal_code: string | null
   site_city: string | null
+  price_area: string | null
   grid_area: string | null
   grid_owner: string | null
+  period_start: string | null
+  period_end: string | null
+  consumption_kwh: number
   estimated_annual_kwh: number | null
-  contract_name: string | null
+}
+
+export type InvoiceFileContract = {
+  name: string | null
+  number: string | null
+  type: string | null
+  start_date: string | null
+  binding_months: number | null
+  binding_end_date: string | null
+  binding_months_remaining: number | null
+  notice_months: number | null
+  auto_renew: boolean | null
+  fixed_price_ore_per_kwh: number | null
+  spot_markup_ore_per_kwh: number | null
+  monthly_fee_sek: number | null
+}
+
+export type InvoiceFileReconciliation = {
+  role: 'credit_preliminary' | 'charge_final'
+  reconciled_month: string | null
+  preliminary_kwh: number | null
+  final_kwh: number | null
+  difference_kwh: number | null
+}
+
+export type InvoiceFileElectricity = {
+  /** credit = the invoice credits an earlier (e.g. preliminary) charge. */
+  invoice_type: 'debit' | 'credit'
+  /** How the billed consumption was established. */
+  consumption_basis: 'measured' | 'estimated' | 'measured_with_estimate' | 'reconciliation'
+  reconciliation: InvoiceFileReconciliation | null
+  facility_count: number
+  facilities: InvoiceFileFacility[]
+  contract: InvoiceFileContract | null
+  average_price_ore_per_kwh: number | null
 }
 
 function text(value: unknown) {
@@ -174,27 +212,113 @@ export function buildInvoiceFileRow(input: {
         unit: text(line.unit),
         unit_price_ex_vat: num(line.unit_price_ex_vat) ?? num(line.unit_price),
         amount_ex_vat: money(line.amount_ex_vat),
+        line_type: text(line.line_type),
+        vat_rate: num(line.vat_rate),
+        vat_amount: num(line.vat_amount) === null ? null : money(line.vat_amount),
+        amount_inc_vat: num(line.amount_inc_vat) === null ? null : money(line.amount_inc_vat),
       })),
-    electricity: buildElectricity(input),
+    electricity: buildElectricity({ ...input, invoiceDate }),
     nordfin_client_id: input.nordfinClientId ?? null,
   }
 }
 
-function buildElectricity(input: { site?: Row | null; meteringPoint?: Row | null; contract?: Row | null }): InvoiceFileElectricity | null {
+function addMonths(date: string, months: number) {
+  const [y, m, d] = date.slice(0, 10).split('-').map(Number)
+  const target = new Date(Date.UTC(y, m - 1 + months, 1))
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate()
+  target.setUTCDate(Math.min(d, lastDay))
+  return target.toISOString().slice(0, 10)
+}
+
+/** Whole months left from `from` until `end` (0 when the binding has ended). */
+export function monthsRemaining(from: string, end: string) {
+  const [fy, fm, fd] = from.slice(0, 10).split('-').map(Number)
+  const [ey, em, ed] = end.slice(0, 10).split('-').map(Number)
+  const months = (ey - fy) * 12 + (em - fm) - (ed < fd ? 1 : 0)
+  return Math.max(0, months)
+}
+
+function buildContract(contract: Row | null, invoiceDate: string): InvoiceFileContract | null {
+  if (!contract) return null
+  const start = text(contract.actual_start_date) ?? text(contract.confirmed_start_date) ?? text(contract.starts_at)?.slice(0, 10) ?? null
+  const bindingMonths = num(contract.binding_months)
+  const explicitEnd = text(contract.ends_at)?.slice(0, 10) ?? null
+  const bindingEnd = bindingMonths && bindingMonths > 0 && start ? addMonths(start, bindingMonths) : explicitEnd
+  return {
+    name: text(contract.contract_name),
+    number: text(contract.contract_number),
+    type: text(contract.contract_type),
+    start_date: start,
+    binding_months: bindingMonths,
+    binding_end_date: bindingEnd,
+    binding_months_remaining: bindingEnd ? monthsRemaining(invoiceDate, bindingEnd) : null,
+    notice_months: num(contract.notice_months),
+    auto_renew: typeof contract.auto_renew_enabled === 'boolean' ? contract.auto_renew_enabled : null,
+    fixed_price_ore_per_kwh: num(contract.fixed_price_ore_per_kwh),
+    spot_markup_ore_per_kwh: num(contract.spot_markup_ore_per_kwh) ?? num(contract.markup_ore_per_kwh),
+    monthly_fee_sek: num(contract.monthly_fee_sek),
+  }
+}
+
+function consumptionBasis(underlay: Row): InvoiceFileElectricity['consumption_basis'] {
+  const source = text(underlay.source_system) ?? ''
+  if (source === 'consumption_estimate_reconciliation') return 'reconciliation'
+  if (source === 'consumption_estimate') return 'estimated'
+  if (source.includes('consumption_estimate')) return 'measured_with_estimate'
+  return 'measured'
+}
+
+function buildReconciliation(underlay: Row): InvoiceFileReconciliation | null {
+  const payload = (underlay.payload ?? {}) as Row
+  const role = text(payload.reconciliation_role)
+  if (role !== 'credit_preliminary' && role !== 'charge_final') return null
+  return {
+    role,
+    reconciled_month: text(payload.reconciled_month),
+    preliminary_kwh: num(payload.preliminary_kwh),
+    final_kwh: num(payload.final_kwh),
+    difference_kwh: num(payload.difference_kwh),
+  }
+}
+
+function buildElectricity(input: {
+  item: Row
+  invoice: Row
+  underlay: Row
+  site?: Row | null
+  meteringPoint?: Row | null
+  contract?: Row | null
+  invoiceDate: string
+}): InvoiceFileElectricity {
   const site = input.site ?? null
   const mp = input.meteringPoint ?? null
-  const contract = input.contract ?? null
-  if (!site && !mp && !contract) return null
-  return {
+  const kwh = num(input.item.total_kwh) ?? 0
+  const amountExVat = money(input.item.amount_ex_vat)
+  const credit = text(input.underlay.settlement_type) === 'credit_invoice' || text(input.underlay.energy_direction) === 'consumption_correction'
+  // One invoice covers one billing underlay, i.e. one facility; the list form also carries
+  // future consolidated invoices without changing the file layout.
+  const facilities: InvoiceFileFacility[] = [{
     facility_id: text(site?.facility_id) ?? text(mp?.site_facility_id),
     metering_point_id: text(mp?.metering_point_id) ?? text(mp?.ediel_metering_point_id),
     site_street: text(site?.street),
     site_postal_code: text(site?.postal_code),
     site_city: text(site?.city),
+    price_area: text(input.invoice.price_area_code) ?? text(input.underlay.price_area),
     grid_area: text(mp?.grid_area_code) ?? text(site?.grid_area_code),
     grid_owner: text(mp?.grid_owner_name),
+    period_start: text(input.item.period_start) ?? text(input.underlay.billing_period_start),
+    period_end: text(input.item.period_end) ?? text(input.underlay.billing_period_end),
+    consumption_kwh: kwh,
     estimated_annual_kwh: num(mp?.estimated_annual_consumption_kwh) ?? num(site?.annual_consumption_kwh),
-    contract_name: text(contract?.contract_name),
+  }]
+  return {
+    invoice_type: credit ? 'credit' : 'debit',
+    consumption_basis: consumptionBasis(input.underlay),
+    reconciliation: buildReconciliation(input.underlay),
+    facility_count: facilities.length,
+    facilities,
+    contract: buildContract(input.contract ?? null, input.invoiceDate),
+    average_price_ore_per_kwh: kwh !== 0 ? Math.round((amountExVat / kwh) * 10000) / 100 : null,
   }
 }
 
@@ -205,7 +329,7 @@ async function loadFacility(companyId: string, underlay: Row) {
   const [site, mp, contract] = await Promise.all([
     siteId ? tenantSelect(companyId, 'customer_sites', 'facility_id,street,postal_code,city,grid_area_code,annual_consumption_kwh').eq('id', siteId).maybeSingle() : null,
     mpId ? tenantSelect(companyId, 'metering_points', 'metering_point_id,ediel_metering_point_id,site_facility_id,grid_area_code,grid_owner_name,estimated_annual_consumption_kwh').eq('id', mpId).maybeSingle() : null,
-    contractId ? tenantSelect(companyId, 'customer_contracts', 'contract_name').eq('id', contractId).maybeSingle() : null,
+    contractId ? tenantSelect(companyId, 'customer_contracts', 'contract_name,contract_number,contract_type,actual_start_date,confirmed_start_date,starts_at,ends_at,binding_months,notice_months,auto_renew_enabled,fixed_price_ore_per_kwh,spot_markup_ore_per_kwh,markup_ore_per_kwh,monthly_fee_sek').eq('id', contractId).maybeSingle() : null,
   ])
   for (const result of [site, mp, contract]) if (result?.error) throw result.error
   return {

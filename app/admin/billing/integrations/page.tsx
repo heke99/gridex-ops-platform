@@ -146,7 +146,7 @@ export default async function BillingIntegrationsPage({
           <AdminDisclosurePanel id="billing-select-provider" title="Välj eller byt leverantör och miljö" defaultOpen={!selection?.invoice_export_target_system} className="mt-4 rounded-xl border border-slate-200 p-3"><form action={selectInvoiceProviderAction} className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,160px)_auto] lg:items-end">
             <fieldset className="grid gap-2">
               <legend className="text-sm font-medium text-slate-800">Leverantör</legend>
-              {catalog.map((entry) => (
+              {catalog.filter((entry) => entry.selectable || entry.provider === selection?.invoice_export_target_system).map((entry) => (
                 <label key={entry.provider} className={`flex items-start gap-3 rounded-2xl border p-3 text-sm ${entry.selectable ? 'border-slate-200' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
                   <input
                     type="radio"

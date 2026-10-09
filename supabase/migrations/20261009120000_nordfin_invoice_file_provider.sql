@@ -8,6 +8,12 @@ UPDATE public.invoice_provider_catalog
    SET selectable = true, unavailable_reason = NULL
  WHERE provider = 'nordfin';
 
+-- The invoice providers offered are Nordfin and Capway. The generic file export stays implemented
+-- for any company already on it but can no longer be newly selected.
+UPDATE public.invoice_provider_catalog
+   SET selectable = false, unavailable_reason = 'Välj Nordfin eller Capway.'
+ WHERE provider = 'file_export';
+
 ALTER TABLE public.invoice_export_files
   ADD COLUMN IF NOT EXISTS provider text NOT NULL DEFAULT 'file_export';
 ALTER TABLE public.invoice_export_files
