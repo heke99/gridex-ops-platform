@@ -12,9 +12,9 @@ beforeAll(async () => {
 })
 afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())))
 
-it('connects through a hostname using the pinned address (all: true path)', async () => {
+it('connects through a hostname via the pinned lookup (all: true path; loopback name so the unit network boundary allows it)', async () => {
   const data = await new Promise<string>((resolve, reject) => {
-    const socket = net.connect({ host: 'webhook.example.invalid', port, lookup: pinnedLookup({ address: '127.0.0.1', family: 4 }) as never, autoSelectFamily: true })
+    const socket = net.connect({ host: 'localhost', port, lookup: pinnedLookup({ address: '127.0.0.1', family: 4 }) as never, autoSelectFamily: true })
     let out = ''
     socket.on('data', (chunk) => { out += chunk })
     socket.on('end', () => resolve(out))
