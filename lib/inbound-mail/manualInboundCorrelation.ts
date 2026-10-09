@@ -365,6 +365,31 @@ function senderIsCredible(input: {
   })
 }
 
+const ENTITY_ONLY_EVIDENCE_SOURCES = new Set(['unique_facility', 'unique_metering_point', 'unique_customer_number'])
+
+function emailDomain(value: unknown): string | null {
+  const email = normalizeEmail(value)
+  const at = email?.lastIndexOf('@') ?? -1
+  return email && at > 0 ? email.slice(at + 1) : null
+}
+
+// True when the sender's domain equals the domain of a VERIFIED contact
+// channel of the grid owner. The request's own recipient address is not
+// enough: bare From equality with it is not sender evidence.
+async function senderSharesGridOwnerDomain(fromEmail: string | null, gridOwnerId: string | null): Promise<boolean> {
+  const senderDomain = emailDomain(fromEmail)
+  if (!senderDomain || !gridOwnerId) return false
+  const { data, error } = await supabaseService
+    .from('grid_owner_contact_channels')
+    .select('email')
+    .eq('grid_owner_id', gridOwnerId)
+    .eq('is_enabled', true)
+    .eq('is_verified', true)
+    .limit(50)
+  if (error) throw error
+  return ((data ?? []) as JsonRecord[]).some((row) => emailDomain(row.email) === senderDomain)
+}
+
 export async function resolveManualInboundCorrelation(input: {
   email: ManualInboundCorrelationEmail
   caseReference: string | null
@@ -375,10 +400,12 @@ export async function resolveManualInboundCorrelation(input: {
   const companyEvidence: CompanyEvidence[] = []
   let request: JsonRecord | null = null
   let hardAmbiguous = false
+  let exactCaseRequest: JsonRecord | null = null
 
   if (input.caseReference) {
     const caseMatch = await findRequestByCaseReference(input.caseReference)
     request = caseMatch.request
+    exactCaseRequest = caseMatch.request && !caseMatch.ambiguous ? caseMatch.request : null
     hardAmbiguous = hardAmbiguous || caseMatch.ambiguous
     evidence.case_reference = input.caseReference
     evidence.case_reference_matched = Boolean(caseMatch.request)
@@ -437,6 +464,25 @@ export async function resolveManualInboundCorrelation(input: {
   addCompanyEvidence(companyEvidence, 'unique_customer_number', uniqueCompanyId(customers), 75, customerNumber)
   if (!companyEvidence.length && senderTenantIds.length === 1) {
     addCompanyEvidence(companyEvidence, 'verified_sender_override', senderTenantIds[0], 60, normalizeEmail(input.email.fromEmail))
+  }
+
+  // An exact case reference from a sender credible for that request outweighs
+  // facility/metering/customer-number hits in other tenants (identifiers are
+  // not globally unique across tenants); keep them as evidence only.
+  const caseCompanyId = clean(exactCaseRequest?.company_id)
+  if (caseCompanyId && exactCaseRequest && senderIsCredible({
+    fromEmail: clean(input.email.fromEmail),
+    companyId: caseCompanyId,
+    gridOwnerId: clean(exactCaseRequest.grid_owner_id),
+    request: exactCaseRequest,
+    contacts: senderContacts,
+    requestBoundByReply,
+  })) {
+    const outweighed = companyEvidence.filter((row) => ENTITY_ONLY_EVIDENCE_SOURCES.has(row.source) && row.companyId !== caseCompanyId)
+    if (outweighed.length) {
+      evidence.case_reference_outweighed_evidence = outweighed
+      for (const row of outweighed) companyEvidence.splice(companyEvidence.indexOf(row), 1)
+    }
   }
 
   const strongCompanyEvidence = companyEvidence.filter((row) => row.strength >= 75)
@@ -546,8 +592,19 @@ export async function resolveManualInboundCorrelation(input: {
   let resolutionStatus: ManualInboundCorrelationResult['resolutionStatus']
   if (hardAmbiguous) resolutionStatus = 'ambiguous'
   else if (!companyId || (!requestId && !resolvedCustomerId && !resolvedSiteId && !meteringPointId)) resolutionStatus = 'unmatched'
-  else if (!senderCredible) resolutionStatus = 'ignored'
-  else resolutionStatus = 'matched'
+  else if (!senderCredible) {
+    // An exact case reference from an unregistered address of the grid owner's
+    // own domain is plausibly a real answer: surface it for review on the
+    // request (matched, sender not credible => never auto-applied) instead of
+    // silently ignoring it.
+    const reviewable = Boolean(exactCaseRequest)
+      && requestId === clean(exactCaseRequest?.id)
+      && companyId === clean(exactCaseRequest?.company_id)
+      && !evidence.sender_grid_owner_mismatch
+      && await senderSharesGridOwnerDomain(clean(input.email.fromEmail), gridOwnerId)
+    resolutionStatus = reviewable ? 'matched' : 'ignored'
+    if (reviewable) evidence.review_reason = 'case_reference_grid_owner_domain_sender'
+  } else resolutionStatus = 'matched'
 
   return {
     resolutionStatus,

@@ -8194,6 +8194,7 @@ export type Database = {
           event_type: string
           id: string
           occurred_at: string
+          processed_at: string | null
           provider: string
           provider_event_id: string | null
           provider_message_id: string | null
@@ -8206,6 +8207,7 @@ export type Database = {
           event_type: string
           id?: string
           occurred_at?: string
+          processed_at?: string | null
           provider?: string
           provider_event_id?: string | null
           provider_message_id?: string | null
@@ -8218,6 +8220,7 @@ export type Database = {
           event_type?: string
           id?: string
           occurred_at?: string
+          processed_at?: string | null
           provider?: string
           provider_event_id?: string | null
           provider_message_id?: string | null

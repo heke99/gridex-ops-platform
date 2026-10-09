@@ -1,5 +1,6 @@
 // Extracted from edielMailboxPoller.ts; keep public imports on the facade module.
 import { ImapFlow } from "imapflow"
+import { rawSourceToText } from "./mimeCharset"
 import { createHash } from "crypto"
 import { isDeliveryStatusNotification } from './dsnClassifier'
 
@@ -149,7 +150,13 @@ export async function storeMailboxFetchMessage(input: {
   message: Record<string, unknown>;
   actorUserId?:string|null;
 }): Promise<{ id: string; deduped: boolean }> {
-  const rawEmail = bufferToUtf8(input.message.source);
+  // Raw bytes are kept for parsing (per-part charset decoding); the stored text
+  // is UTF-8 when valid, else ISO-8859-1 so no byte becomes U+FFFD.
+  const sourceBytes =
+    Buffer.isBuffer(input.message.source) || input.message.source instanceof Uint8Array
+      ? Buffer.from(input.message.source)
+      : null;
+  const rawEmail = sourceBytes ? rawSourceToText(sourceBytes) : bufferToUtf8(input.message.source);
   const envelope = input.message.envelope as
     | Record<string, unknown>
     | null
@@ -191,7 +198,7 @@ export async function storeMailboxFetchMessage(input: {
     companyId: input.mailbox.company_id,
   });
   const parseSource = smime.decryptedText ?? rawEmail;
-  const parsedMime = splitMimeParts(parseSource);
+  const parsedMime = splitMimeParts(smime.decryptedText ?? sourceBytes ?? rawEmail);
 
   const stored = await storeInboundEmail({
     mailboxId: input.mailbox.id,
@@ -219,7 +226,7 @@ export async function storeMailboxFetchMessage(input: {
             {
               filename: "smime.p7m",
               mimeType: "application/pkcs7-mime",
-              sizeBytes: Buffer.byteLength(rawEmail ?? "", "utf8"),
+              sizeBytes: sourceBytes?.length ?? Buffer.byteLength(rawEmail ?? "", "utf8"),
               rawText: smime.decryptedText ?? null,
               isEdifactCandidate: Boolean(parsedMime.rawEdifactPayload),
               metadata: {
