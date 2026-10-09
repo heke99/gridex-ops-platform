@@ -31,7 +31,7 @@ function compare(a: unknown, b: string): number {
 }
 
 function term(row: Row, expression: string): boolean {
-  const group = /^(and|or)\((.*)\)$/s.exec(expression)
+  const group = /^(and|or)\(([\s\S]*)\)$/.exec(expression)
   if (group) {
     const parts = splitTop(group[2])
     return group[1] === 'and' ? parts.every((part) => term(row, part)) : parts.some((part) => term(row, part))

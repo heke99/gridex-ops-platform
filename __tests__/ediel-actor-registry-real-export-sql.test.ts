@@ -92,7 +92,7 @@ describe('real ediel.se export through the installed atomic registry owner', () 
   it('TXT after XML keeps roles and OrgNo (also in the current market source) and adds no actor/route', () => {
     // TXT only adds the foreign actors whose XML record was held for a market/postal country conflict.
     expect((proof.third as Row).created).toBe(proof.heldInXml)
-    expect((proof.afterTxt as Row).actors - (proof.afterFirst as Row).actors).toBe(proof.heldInXml)
+    expect(Number((proof.afterTxt as Row).actors) - Number((proof.afterFirst as Row).actors)).toBe(proof.heldInXml)
     expect(proof.changedExisting).toEqual([])
     expect(proof.alvesta).toMatchObject({ org_number: '5565256210', roles: ['grid_owner'], current_roles: ['grid_owner'] })
     expect(proof.dupRoutes).toBe(0); expect(proof.dupActors).toBe(0)

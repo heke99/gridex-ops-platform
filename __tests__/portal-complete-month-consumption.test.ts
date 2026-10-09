@@ -84,7 +84,7 @@ async function months(from: string, to: string, company = TENANT_A, customers = 
     'select * from public.gridex_portal_monthly_consumption_v1($1::uuid,$2::uuid[],$3::date,$4::date)',
     [company, customers, from, to],
   )
-  return result.rows.map((row) => ({ ...row, total_kwh: Number(row.total_kwh), value_count: Number(row.value_count), covered_seconds: Number(row.covered_seconds), expected_seconds: Number(row.expected_seconds) }))
+  return result.rows.map((row) => ({ ...row, month_key: String(row.month_key), total_kwh: Number(row.total_kwh), value_count: Number(row.value_count), covered_seconds: Number(row.covered_seconds), expected_seconds: Number(row.expected_seconds) }))
 }
 
 beforeAll(async () => {

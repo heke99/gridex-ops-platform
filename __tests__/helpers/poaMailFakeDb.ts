@@ -68,7 +68,7 @@ export function createFakeDb(seed: Record<string, Row[]> = {}): FakeDb {
         const list = (Array.isArray(payload) ? payload : [payload]) as Row[]
         const inserted: Row[] = []
         for (const item of list) {
-          const next = { id: randomUUID(), created_at: new Date().toISOString(), ...item }
+          const next: Record<string, unknown> = { id: randomUUID(), created_at: new Date().toISOString(), ...item }
           for (const column of db.unique[table] ?? []) {
             if (next[column] !== undefined && rows().some((r) => r[column] === next[column])) {
               const error = { code: '23505', message: `duplicate key value violates unique constraint on ${column}` }
