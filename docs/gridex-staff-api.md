@@ -1,10 +1,12 @@
-# Gridex Staff API — 2026-10-04.1
+# Gridex Staff API — 2026-10-09.1
 
 Use the Staff API from your backend to manage staff accounts and handle customer service in your own application.
 
+You do not need to match the latest documentation revision exactly to use a supported API version. Integrations built against 2026-10-04.1 keep working; see [docs/api-compatibility-policy.md](api-compatibility-policy.md) and [docs/api-migration-guide.md](api-migration-guide.md).
+
 - Base URL: `https://app.gridex.se/api/v1/staff`
 - Current OpenAPI: `https://app.gridex.se/api/v1/openapi/staff-v1.json`
-- Immutable OpenAPI: `https://app.gridex.se/api/v1/openapi/2026-10-04.1/staff-v1.json`
+- Immutable OpenAPI: `https://app.gridex.se/api/v1/openapi/2026-10-09.1/staff-v1.json`
 - Release manifest: `https://app.gridex.se/api/v1/openapi/release-manifest.json`
 - Public guide: `https://app.gridex.se/developers/staff-api`
 
@@ -150,7 +152,7 @@ Every Staff write response, including staff-user invite, role change, disable an
 
 Gridex issues one server request ID per call. The same value is returned in `request_id`, the `X-Request-ID` response header and the request log, on success and on error. Quote it to support. An inbound `X-Request-ID` is never used as the server ID; when it matches `^[A-Za-z0-9._:-]{1,128}$` it is retained only as a separate client correlation value.
 
-Send the optional `x-gridex-expected-project-ref: <20-character project ref>` header to make sure the call is served by the storage project you expect. A mismatch, or a malformed value, returns `412 storage_project_mismatch` before authentication, rate limiting, audit or any write. Responses from an identified project carry `X-Gridex-Project-Ref`. The OpenAPI text for these headers and the strict query profile follows in the next contract release; the runtime behaviour applies now.
+Send the optional `x-gridex-expected-project-ref: <20-character project ref>` header to make sure the call is served by the storage project you expect. A mismatch, or a malformed value, returns `412 storage_project_mismatch` before authentication, rate limiting, audit or any write. Responses from an identified project carry `X-Gridex-Project-Ref`. Release 2026-10-09.1 documents these headers, the strict query profile, `Idempotency-Replayed` and the server request id in the OpenAPI document; the behaviour itself is unchanged.
 
 ## Query parameters
 
@@ -177,7 +179,7 @@ Errors use the same closed envelope throughout this API:
   },
   "request_id": "request-reference",
   "correlation_id": "request-reference",
-  "contract_schema_version": "2026-10-04.1"
+  "contract_schema_version": "2026-10-09.1"
 }
 ```
 

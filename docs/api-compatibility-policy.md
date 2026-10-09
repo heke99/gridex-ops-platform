@@ -4,6 +4,8 @@
 
 You integrate against a supported **contract family** (currently `v1`) per API surface. New documentation revisions do not require you to update your integration. Backward-compatible updates keep working. New features may require new capabilities or scopes. Breaking changes get a separate contract version and a documented migration period.
 
+See the [API migration guide](api-migration-guide.md) for what each documentation revision adds and how to adopt optional additions.
+
 ## Terms
 
 | Term | Rule |
@@ -33,10 +35,10 @@ You integrate against a supported **contract family** (currently `v1`) per API s
 
 | Surface | Major | Supported profiles | Notes |
 |---|---|---|---|
-| Website | v1 | `2026-10-02.3` (minimum), `2026-10-04.1` (current) | Reference helper accepts any well-formed V1 revision and validates the business payload. |
-| Customer | v1 | `2026-10-02.3`, `2026-10-04.1` | |
-| Staff | v1 | `2026-10-04.1` | |
-| Staff onboarding | v1 | `2026-10-04.1` | Requires the external identity database objects (deployment preflight). |
+| Website | v1 | `2026-10-02.3` (minimum), `2026-10-04.1`, `2026-10-09.1` (current) | Reference helper accepts any well-formed V1 revision and validates the business payload. |
+| Customer | v1 | `2026-10-02.3`, `2026-10-04.1`, `2026-10-09.1` | |
+| Staff | v1 | `2026-10-04.1`, `2026-10-09.1` | |
+| Staff onboarding | v1 | `2026-10-04.1`, `2026-10-09.1` | Requires the external identity database objects (deployment preflight). |
 | Partner | v1 | runtime spec | Separate matrix; published with the Partner docs release. |
 
 The registry lives in `lib/integrations/apiContractCompatibility.ts`. A profile is listed only after its format has been proven against the current server; the release-classification label alone is not evidence.

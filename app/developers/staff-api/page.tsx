@@ -58,6 +58,7 @@ export default function StaffApiGuide() {
         <a className="underline" href="/developers/customer-portal-api">Gridex API documentation</a>
         <h1 className="text-4xl font-semibold text-slate-950">Gridex Staff API</h1>
         <p>Release {STAFF_API_CONTRACT_VERSION}. Manage staff accounts and customer service from your own backend.</p>
+        <p>You do not need to match the latest documentation revision exactly to use a supported API version. Integrations built against an earlier supported Staff revision keep working.</p>
         <p><a className="underline" href={STAFF_OPENAPI_URL}>Current OpenAPI</a> · <a className="underline" href={STAFF_VERSIONED_OPENAPI_URL}>Immutable release</a> · <a className="underline" href="/api/v1/openapi/release-manifest.json">Release manifest</a></p>
       </header>
       <section className="space-y-4">

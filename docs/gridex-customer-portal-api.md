@@ -1,6 +1,10 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-10-04.1**
+Current contract: **2026-10-09.1**
+
+You do not need to match the latest documentation revision exactly to use a supported API version. See the [compatibility policy](api-compatibility-policy.md) and the [migration guide](api-migration-guide.md).
+
+Release 2026-10-09.1 is documentation-only: the OpenAPI document now describes support message and attachment continuation (`X-Gridex-Next-Cursor` / `cursor`), closure-versus-replay precedence, `503 idempotency_completion_uncertain`, `409 idempotency_reconciliation_required` and that metering values are a bounded detail list rather than complete-month totals. Request requirements and response fields are unchanged.
 
 Release 2026-10-02.4 corrected the closed support-case detail schema so its existing `messages` field validates, and aligned the closed release-manifest schema with its response. Release 2026-10-04.1 adds the separate Staff API family and its manifest metadata. Customer portal request requirements and business response fields remain unchanged. Integrations using 2026-10-02.3 remain supported; strict schema snapshots must include the 2026-10-02.4 support-detail correction or a later release. Earlier immutable specifications retain their original bytes and document-version headers.
 

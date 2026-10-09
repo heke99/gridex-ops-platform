@@ -40,13 +40,26 @@ const CUSTOMER_CAPABILITIES = [
   'support.read', 'support.write', 'support.attachments',
 ] as const
 
+/**
+ * 2026-10-04.1 stays a supported profile after the documentation-only
+ * 2026-10-09.1 release; per surface the profiles are ordered oldest first so
+ * the last supported entry is the current release.
+ */
+export const STAFF_FIRST_RELEASE_REVISION = '2026-10-04.1' as const
+const STAFF_CAPABILITIES = ['users', 'customers', 'cases'] as const
+const STAFF_ONBOARDING_CAPABILITIES = ['independent_identity'] as const
+
 export const API_CONTRACT_PROFILE_REGISTRY: readonly ApiContractProfile[] = [
   { surface: 'website', major: 'v1', revision: MINIMUM_TENANT_INTEGRATION_VERSION, status: 'supported', capabilities: WEBSITE_CAPABILITIES },
+  { surface: 'website', major: 'v1', revision: STAFF_FIRST_RELEASE_REVISION, status: 'supported', capabilities: WEBSITE_CAPABILITIES },
   { surface: 'website', major: 'v1', revision: WEBSITE_INTEGRATION_CONTRACT_VERSION, status: 'supported', capabilities: WEBSITE_CAPABILITIES },
   { surface: 'customer', major: 'v1', revision: MINIMUM_TENANT_INTEGRATION_VERSION, status: 'supported', capabilities: CUSTOMER_CAPABILITIES },
+  { surface: 'customer', major: 'v1', revision: STAFF_FIRST_RELEASE_REVISION, status: 'supported', capabilities: CUSTOMER_CAPABILITIES },
   { surface: 'customer', major: 'v1', revision: WEBSITE_INTEGRATION_CONTRACT_VERSION, status: 'supported', capabilities: CUSTOMER_CAPABILITIES },
-  { surface: 'staff', major: 'v1', revision: WEBSITE_INTEGRATION_CONTRACT_VERSION, status: 'supported', capabilities: ['users', 'customers', 'cases'] },
-  { surface: 'staff_onboarding', major: 'v1', revision: WEBSITE_INTEGRATION_CONTRACT_VERSION, status: 'supported', capabilities: ['independent_identity'] },
+  { surface: 'staff', major: 'v1', revision: STAFF_FIRST_RELEASE_REVISION, status: 'supported', capabilities: STAFF_CAPABILITIES },
+  { surface: 'staff', major: 'v1', revision: WEBSITE_INTEGRATION_CONTRACT_VERSION, status: 'supported', capabilities: STAFF_CAPABILITIES },
+  { surface: 'staff_onboarding', major: 'v1', revision: STAFF_FIRST_RELEASE_REVISION, status: 'supported', capabilities: STAFF_ONBOARDING_CAPABILITIES },
+  { surface: 'staff_onboarding', major: 'v1', revision: WEBSITE_INTEGRATION_CONTRACT_VERSION, status: 'supported', capabilities: STAFF_ONBOARDING_CAPABILITIES },
 ]
 
 function defaultProfile(surface: ApiSurface, registry: readonly ApiContractProfile[]) {

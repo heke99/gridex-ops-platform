@@ -9,7 +9,7 @@ workflows, exposed to tenants through versioned HTTP APIs.
 The release manifest is the authority for the current contract version and the
 checksum of every published specification:
 `https://app.gridex.se/api/v1/openapi/release-manifest.json`
-(currently `2026-10-04.1`, source `docs/openapi/`). Frozen release bytes live in
+(currently `2026-10-09.1`, source `docs/openapi/`). Frozen release bytes live in
 `docs/openapi/releases/<version>/` and are never rewritten.
 
 | API | Current OpenAPI | Guide | Developer page |

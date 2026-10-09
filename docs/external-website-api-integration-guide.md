@@ -1,6 +1,10 @@
 # Gridex Website Integration API
 
-Current contract: **2026-10-04.1**
+Current contract: **2026-10-09.1**
+
+You do not need to match the latest documentation revision exactly to use a supported API version. See the [compatibility policy](api-compatibility-policy.md) and the [migration guide](api-migration-guide.md).
+
+Release 2026-10-09.1 is documentation-only: the OpenAPI document now describes `textVersionId` exactness (`409 power_of_attorney_offer_version_mismatch`), the `ETag` / `If-None-Match` / `Vary: Authorization` semantics of the offer feed, `422 energy_area_address_required` and provisional postal-code centroids. Request requirements and response fields are unchanged; integrations built for 2026-10-02.3 or 2026-10-04.1 keep working without changes.
 
 Release 2026-10-04.1 adds the separate Staff API family and its manifest metadata. Website request requirements and business response fields remain unchanged from 2026-10-02.4; existing immutable specifications retain their original bytes.
 
@@ -124,7 +128,7 @@ Before deploying an integration update, read:
 
 Verify that the release version, minimum supported integration version and SHA-256 digests match the OpenAPI documents you generated your client from. Immutable release URLs in the manifest can be retained for audit and reproducible builds.
 
-For contract **2026-10-04.1**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
+For contract **2026-10-09.1**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
 
 ## Production checklist
 
