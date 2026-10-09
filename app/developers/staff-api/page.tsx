@@ -46,6 +46,7 @@ const errors = [
   ['409', 'version_conflict, staff_self_disable_forbidden, staff_last_admin_required, staff_invalid_user_state, staff_self_role_change_forbidden, idempotency conflict', 'Reload and reconcile the operation without bypassing safeguards.'],
   ['413 / 415', 'Attachment size or type rejected', 'Use PDF, PNG or JPEG within 4 MiB.'],
   ['429', 'Rate limit exceeded', 'Observe Retry-After and sign a fresh assertion for the retry.'],
+  ['412', 'storage_project_mismatch', 'Use the deployment serving the expected project; nothing was executed.'],
   ['500 / 503', 'Processing or service unavailable', 'Keep the request ID; retry only when safe and retryable.'],
 ]
 
@@ -82,6 +83,13 @@ export default function StaffApiGuide() {
         <p>Every POST and PATCH requires Idempotency-Key. Reuse that key and unchanged body for a retry, with a fresh assertion and jti. Use a new key for a new logical operation. Contact updates require expectedUpdatedAt from the latest customer updated_at and at least one editable field. A version conflict requires reloading and reconciling state. Identity changes preserve customer approval and contract acceptance.</p>
         <p>Customer and case paths use opaque references; staff account operations use Gridex user UUIDs. Identity numbers are masked in customer responses. Internal notes and phone logs require staff access. Writes are audited with the acting staff identity, API credential and staff_api channel.</p>
         <p>Upload a raw PDF, PNG or JPEG body up to 4 MiB with x-file-name and optional x-attachment-visibility: internal or customer (default internal). Only released attachments can be downloaded; the stored hash is verified on download.</p>
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-2xl font-semibold">Replay, request IDs and storage project</h2>
+        <p>Every Staff write response, including staff-user invite, role change, disable and enable, carries Idempotency-Replayed: true when a stored result is returned and false for a new execution. Current authentication and permission are checked before any replay.</p>
+        <p>Gridex issues one server request ID per call and returns the same value in request_id, the X-Request-ID header and the request log, on success and on error. An inbound X-Request-ID is kept only as a separate client correlation value.</p>
+        <p>The optional x-gridex-expected-project-ref header pins the storage project; a mismatch returns 412 storage_project_mismatch before any authentication or write. Responses carry X-Gridex-Project-Ref.</p>
+        <p>Query parameters: existing parsing is kept by default. Send x-gridex-query-parsing: strict to require each parameter at most once and page, page_size and limit as plain decimal digits; violations return 422 invalid_field.</p>
       </section>
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Endpoints</h2>
