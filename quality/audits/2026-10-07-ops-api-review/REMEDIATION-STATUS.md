@@ -42,3 +42,10 @@ Kvarstår: riktig mailleverans till testmottagare och hosted replay; `database.t
 ## Paket 4 — kompatibilitet utan exakt docs-match
 
 DONE (runtime + policy): `lib/integrations/apiContractCompatibility.ts` (registry: minimum `2026-10-02.3` + aktuell `2026-10-04.1` för Website/Customer; Staff/Staff onboarding egna rader), `lib/integrations/apiContractProjection.ts` (explicit allowlist per profil, idag identitet; profilunik cache-nyckel). Referenshjälparen `refreshPublicContractFeed` kräver inte längre exakt `contract_schema_version`; nekar annan major, återanvänder aldrig annan tenants snapshot (304/last-known-good). `docs/api-compatibility-policy.md`. Tester: `__tests__/api-contract-compatibility-policy.test.ts`, `__tests__/api-legacy-client-profiles.test.ts`. Kvar: prov med verkliga tenant-SDK:er (inga tillgängliga här) och serverstyrd per-credentialprofil (behövs först när en profil får avvikande representation).
+
+## Paket 14 — F5, F44 (F29/F42 se Paket 5/2)
+
+| Fynd | Status | Bevis |
+|---|---|---|
+| F5 | FIXED (forward migration) | `20261009160000_ops_api_service_only_restore_grants.sql` återkallar authenticated/anon/public EXECUTE för `gridex_db4b_archive_customer_registry_row` och `gridex_next_customer_number`; service_role behålls. `__tests__/restore-service-only-grants.test.ts` (PGlite: snapshotens grants → migration → endast service_role). Live redan spärrad (oförändrat beteende). `schema.sql` uppdateras genom autentisk capture. |
+| F44 | QUALIFIED | `F44-SECURITY-DEFINER-INVENTORY.md`: 33 authenticated-körbara definer-funktioner klassade; ingen tenantläcka; en P3-rekommendation (behörighetsorakel). |
