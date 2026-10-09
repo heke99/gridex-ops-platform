@@ -246,15 +246,15 @@ async function recordRateLimitEvent(
 
   if (event.error && !missingSchema(event.error)) throw event.error
 
+  // Only scalar columns are written here. The rate-limit details live in
+  // integration_api_rate_limit_events; rewriting `metadata` from the stale
+  // authentication snapshot would clobber concurrent admin changes (for
+  // example lifecycle_status) and nothing reads a last_rate_limit key.
   await supabaseService
     .from('integration_api_clients')
     .update({
       rate_limited_until: cooldownUntil,
       updated_at: new Date().toISOString(),
-      metadata: {
-        ...(client.metadata ?? {}),
-        last_rate_limit: metadata,
-      },
     })
     .eq('id', client.id)
     .then((result) => {
