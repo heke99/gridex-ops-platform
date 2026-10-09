@@ -8,6 +8,7 @@ import {validateEdifactEnvelope,validateUnsmGrammar} from '@/lib/ediel/core/edif
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+import {readProdatParty} from '@/lib/ediel/prodat/prodatPartyFields'
 import {readSwitchCancellationSource} from '@/lib/ediel/production/switchCancellationSource'
 const io=vi.hoisted(()=>({rpc:vi.fn(),from:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:io}))
@@ -72,13 +73,24 @@ function originalWire(f:ReturnType<typeof fixture>,agreement='ORIGINAL:AGREEMENT
 }
 function declareOriginal(f:ReturnType<typeof fixture>,wire=originalWire(f)){
  f.basis.originalHash=createHash('sha256').update(wire).digest('hex')
+ // Declared protected-source DTO from this exact original at declaration time.
+ // The independent native source is mocked; later mutable row edits cannot
+ // replace its original wire, dated source or payload hash.
+ const sourceWire=tokenizeEdifact(wire),sourceUser=readProdatParty('UD',sourceWire.segments,sourceWire.una)
+ const originalMasterdata={nameParts:[...sourceUser.nameLines],streetParts:sourceUser.addressLines[0]==='.'?['',...sourceUser.addressLines.slice(1)]:[...sourceUser.addressLines],
+  postalCode:sourceUser.postalCode,city:sourceUser.city,country:sourceUser.country}
+
  reads=[]
  originals=[{id:f.basis.originalMessageId,company_id:f.basis.companyId,environment:f.basis.environment,
-  direction:'outbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z03',
+  direction:'outbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z03',customer_id:f.basis.customerId,intent_id:id(80),communication_route_id:id(81),created_by:f.actorUserId,
   immutable_rendered_at:'2026-10-06T12:00:00Z',immutable_payload_hash:f.basis.originalHash,raw_payload:wire}]
  switches=[{id:f.basis.switchRequestId,company_id:f.basis.companyId,customer_id:f.basis.customerId,site_id:f.basis.siteId,customer_site_id:f.basis.siteId,metering_point_id:f.basis.meteringPointId,contract_id:id(70),customer_contract_id:id(70)}]
  billing=[{id:id(70),company_id:f.basis.companyId,customer_id:f.basis.customerId,invoice_recipient:null,billing_street:null,billing_city:null,billing_postal_code:null,billing_country:null,billing_address_same_as_site:true}]
- io.rpc.mockResolvedValue({data:f.basis,error:null})
+ io.rpc.mockImplementation(async(name:string)=>{
+  if(name==='ediel_switch_cancellation_source_v1')return{data:f.basis,error:null}
+  if(name==='ediel_switch_cancellation_customer_masterdata_basis_v1')return{data:{status:'authorized',companyId:f.basis.companyId,customerId:f.basis.customerId,environment:f.basis.environment,asOf:'2026-10-06T12:00:00Z',sourceKind:'registered_customer_address',sourceReference:'synthetic-original-registered-address',sourceDigest:'b'.repeat(64),sourceContextId:id(71),customerIdentity:{id:f.basis.customerIdentity,qualifier:f.basis.customerQualifier,agency:'260'},endUserMasterdata:originalMasterdata,cancellationSourceBinding:{switchRequestId:f.basis.switchRequestId,actorUserId:f.actorUserId,originalMessageId:f.basis.originalMessageId,originalHash:f.basis.originalHash,environment:f.basis.environment,originalPreparerId:originals[0].created_by},messageBinding:{id:f.basis.originalMessageId,environment:f.basis.environment,intentId:id(80),routeId:id(81),payloadHash:f.basis.originalHash}},error:null}
+  throw Error('undeclared_rpc:'+name)
+ })
  io.from.mockImplementation((table:string)=>{
   if(!['ediel_messages','supplier_switch_requests','customer_contracts'].includes(table))throw Error('undeclared_table:'+table)
   const db=createFakeSupabase({tables:{ediel_messages:originals,supplier_switch_requests:switches,customer_contracts:billing}})
@@ -252,6 +264,7 @@ it('holds purged rows and a missing actual switch without adopting cached source
  declareOriginal(f);switches=[]
  expect(await readSwitchCancellationSource(scope(f))).toMatchObject({status:'held'})
 })
+
 it.each([false,true])('copies an original allowed-empty first UD street (wire dot) byte-identically, separate billing=%s',async separate=>{
  const f=fixture(),wire=originalWire(f).replace('+Original Street+','+.:Box 12+')
  declareOriginal(f,wire)

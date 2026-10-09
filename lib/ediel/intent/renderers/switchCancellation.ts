@@ -21,6 +21,7 @@ export async function buildSwitchCancellationDraft(input: { actorUserId: string;
   const version = await resolveCanonicalOutboundVersion({ family: 'PRODAT', code: 'Z03', standard: 'edifact', environment: b.environment, routeDefaultMessageVersion: route.defaultMessageVersion })
   if(!version||!i.operationId||i.companyId!==b.companyId||i.environment!==b.environment||i.messageCode!=='Z03'||i.transactionReference!==b.li||(b.operationId&&b.operationId!==i.operationId)) throw new Error('switch_cancellation_canonical_version_reference_required')
   const original = switchCancellationProjection(b,input.actorUserId)
+  if(!original.customerMasterdataContext)throw Error('switch_cancellation_customer_masterdata_source_required')
   const facts = original.facts
   const invoicee=original.invoicee
   const generatedAt=new Date()
@@ -57,5 +58,5 @@ export async function buildSwitchCancellationDraft(input: { actorUserId: string;
     rawPayload: raw, parsedPayload: { draftType:'switch_cancellation',actorRole:'supplier',
       prodatEngine: { ...rendered.diagnostics, registerEvidence: createProdatRegisterEvidence({ code: 'Z03', rawSegments:segments, facts }) } },
     subject: `PRODAT Z03 C ${i.interchangeReference}`, mimeType: 'application/edifact', ...ack, syntaxCheckStatus: 'not_checked', functionalCheckStatus: 'not_checked' }
-  return {draft}
+  return {draft,sourceCustomerMasterdataContext:original.customerMasterdataContext,dependentConditionFacts:facts}
 }

@@ -1,3 +1,6 @@
+import {loadSwitchCancellationCustomerMasterdataValidationContext,type CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
+import {customerMasterdataSendIssue,createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
+import type {EdielMessageRow} from '@/lib/ediel/types'
 import {readContractInvoicee,type ContractInvoiceeContext} from './contractInvoicee'
 import {createHash} from 'node:crypto'
 import {tenantDb} from '@/lib/supabase/tenantDb'
@@ -14,7 +17,7 @@ export type SwitchCancellationBasis={status:'authorized';companyId:string;enviro
  legalActorId:string;legalSenderId:string;legalReceiverId:string;pointId:string;identityAgency:'9'|'89';gridArea:string;li:string;startAt:string;originalSubtype:'L'|'LK';deadline:string;
  customerIdentity:string;customerQualifier:'SE1'|'SE2';customerName:string;sourceObject:Record<string,unknown>;requestedMethod:string}
 export type SwitchCancellationHeld={status:'held';missing:string[]}
-type Projection={agreementReference:string;customerName:string;customerNameLines:string[];customerAddressLines:string[];customerCity:string;customerPostalCode:string;customerCountry:string;balanceResponsibleId:string|null;invoicee:ContractInvoiceeContext|null;facts:ProdatDependentConditionFacts}
+type Projection={customerMasterdataContext:CustomerMasterdataValidationContext|null;agreementReference:string;customerName:string;customerNameLines:string[];customerAddressLines:string[];customerCity:string;customerPostalCode:string;customerCountry:string;balanceResponsibleId:string|null;invoicee:ContractInvoiceeContext|null;facts:ProdatDependentConditionFacts}
 const qualified=new WeakMap<SwitchCancellationBasis,{actorUserId:string;basisHash:string;projection:Projection}>()
 const digest=(value:string)=>createHash('sha256').update(value,'utf8').digest('hex')
 const held=():SwitchCancellationHeld=>({status:'held',missing:['qualified_immutable_original_cancellation_projection']})
@@ -24,7 +27,8 @@ type ScopedSelect=ReturnType<ReturnType<typeof supabaseService.from>['select']>
 export function switchCancellationProjection(basis:SwitchCancellationBasis,actorUserId:string):Projection{
  const q=qualified.get(basis)
  if(!q||q.actorUserId!==actorUserId||q.basisHash!==digest(JSON.stringify(basis)))throw Error('switch_cancellation_source_projection_unqualified')
- return structuredClone(q.projection)
+ const {customerMasterdataContext,...ordinary}=q.projection
+ return {...structuredClone(ordinary),customerMasterdataContext}
 }
 export async function readSwitchCancellationSource(input:{companyId:string;switchRequestId:string;actorUserId:string}):Promise<SwitchCancellationBasis|SwitchCancellationHeld>{
  input={companyId:input.companyId,switchRequestId:input.switchRequestId,actorUserId:input.actorUserId}
@@ -38,9 +42,10 @@ export async function readSwitchCancellationSource(input:{companyId:string;switc
   ||!['test','production'].includes(b.environment)||!['L','LK'].includes(b.originalSubtype)||!['9','89'].includes(b.identityAgency)
   ||typeof b.originalMessageId!=='string'||!b.originalMessageId||!/^[a-f0-9]{64}$/.test(b.originalHash))return held()
  const basisHash=digest(JSON.stringify(b))
- const{data:row,error:readError}=await (tenantDb(input.companyId).from('ediel_messages').select('id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload,immutable_rendered_at,immutable_payload_hash') as ScopedSelect).eq('id',b.originalMessageId).returns<Record<string,unknown>[]>().maybeSingle()
+ const{data:row,error:readError}=await (tenantDb(input.companyId).from('ediel_messages').select('id,company_id,environment,direction,message_standard,message_family,message_code,customer_id,intent_id,communication_route_id,created_by,raw_payload,immutable_rendered_at,immutable_payload_hash') as ScopedSelect).eq('id',b.originalMessageId).returns<Record<string,unknown>[]>().maybeSingle()
  if(readError)throw readError
  if(!row||row.id!==b.originalMessageId||row.company_id!==b.companyId||row.environment!==b.environment
+  ||row.customer_id!==b.customerId
   ||row.direction!=='outbound'||row.message_standard!=='edifact'||row.message_family!=='PRODAT'||row.message_code!=='Z03'
   ||!row.immutable_rendered_at||row.immutable_payload_hash!==b.originalHash||typeof row.raw_payload!=='string'||!row.raw_payload
   ||digest(row.raw_payload)!==b.originalHash)return held()
@@ -89,12 +94,18 @@ export async function readSwitchCancellationSource(input:{companyId:string;switc
   // street component; map it back to its source slot and require an exact round trip.
   const addressLines=user.addressLines[0]==='.'?['',...user.addressLines.slice(1)]:[...user.addressLines]
   if(addressLines.includes('.')||JSON.stringify(prodatEndUserAddressWireLines(addressLines))!==JSON.stringify(user.addressLines))return held()
-  projection={agreementReference,customerName:user.name,customerNameLines:user.nameLines,customerAddressLines:addressLines,
+  projection={customerMasterdataContext:null,agreementReference,customerName:user.name,customerNameLines:user.nameLines,customerAddressLines:addressLines,
    customerCity:user.city,customerPostalCode:user.postalCode,customerCountry:user.country,balanceResponsibleId:brp.id,invoicee:null,
    facts:{market:'electricity',endUserAddressObjects:[{meteringPointId:b.pointId,identityAgency:b.identityAgency,
     endUser:{id:user.id,qualifier:b.customerQualifier,agency:'260'},availability:'available',addressLines,
     source:{kind:'caller_selection',companyId:b.companyId,reference:`immutable-original:${b.originalMessageId}:${b.originalHash}`}}]}}
  }catch{return held()}
+ // Qualify the exact immutable original for this current preparer. The
+ // dedicated reader preserves prepare-only and different-creator eligibility.
+ const context=await loadSwitchCancellationCustomerMasterdataValidationContext(row as unknown as EdielMessageRow,b.switchRequestId,input.actorUserId)
+ if(!context||customerMasterdataSendIssue(row,context))return held()
+ projection.customerMasterdataContext=context
+ projection.facts.endUserAddressObjects=createCustomerMasterdataAddressFacts({projection:context.projection,meteringPointId:b.pointId,identityAgency:b.identityAgency})
  return qualifyBilling(b,input.actorUserId,projection,basisHash)
 }
 async function qualifyBilling(b:SwitchCancellationBasis,actorUserId:string,projection:Projection,basisHash:string):Promise<SwitchCancellationBasis|SwitchCancellationHeld>{

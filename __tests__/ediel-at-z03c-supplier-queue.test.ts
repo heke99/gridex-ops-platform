@@ -39,6 +39,8 @@ const reserved = (messageId: string | null = null) => ({ status: 'reserved', ope
 const writes = () => db.calls.filter(call => call.operation !== 'select')
 function assertNoQueue() { expect(io.queue).not.toHaveBeenCalled(); expect(writes()).toEqual([]) }
 
+const nativeOriginal=()=>({status:'authorized',companyId:own.company,customerId:basis.customerId,environment:'test',asOf:'2026-10-06T12:00:00Z',sourceKind:'registered_customer_address',sourceReference:'synthetic-original-registered-address',sourceDigest:'b'.repeat(64),sourceContextId:id(71),customerIdentity:{id:basis.customerIdentity,qualifier:basis.customerQualifier,agency:'260'},endUserMasterdata:{nameParts:[basis.customerName],streetParts:['Street'],postalCode:'12345',city:'City',country:'SE'},cancellationSourceBinding:{switchRequestId:own.switch,actorUserId:own.actor,originalMessageId:own.original,originalHash:basis.originalHash,environment:'test',originalPreparerId:tables.ediel_messages[0].created_by},messageBinding:{id:own.original,environment:'test',intentId:id(80),routeId:id(81),payloadHash:basis.originalHash}})
+
 beforeEach(() => {
   vi.resetAllMocks()
   vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-06T12:00:00Z'))
@@ -64,7 +66,7 @@ beforeEach(() => {
     application_reference: '23-DDQ-PRODAT', route_profile_id: id(14), interchange_reference: 'OWN-CANCEL-UNB',
     message_reference: '1', transaction_reference: basis.li, idempotency_key: 'OWN-CANCEL-INTENT',
     payload: { actorRole: 'supplier', transactionSubtype: 'C' }, render_status: 'not_rendered', outbox_status: 'not_queued' }],
-  ediel_messages: [{id:own.original,company_id:own.company,environment:'test',direction:'outbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z03',immutable_rendered_at:'2026-10-06T12:00:00Z',immutable_payload_hash:basis.originalHash,raw_payload:originalRaw}] }
+  ediel_messages: [{id:own.original,company_id:own.company,environment:'test',direction:'outbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z03',customer_id:basis.customerId,intent_id:id(80),communication_route_id:id(81),created_by:own.actor,immutable_rendered_at:'2026-10-06T12:00:00Z',immutable_payload_hash:basis.originalHash,raw_payload:originalRaw}] }
   db = createFakeSupabase({ tables })
   io.from.mockImplementation((table: string) => {
     if (!(table in tables)) throw Error(`undeclared_table:${table}`)
@@ -72,7 +74,17 @@ beforeEach(() => {
     return Object.assign(query, { returns: () => query })
   })
   reservations = [reserved(), reserved(own.message)]
-  io.rpc.mockImplementation(async (name: string) => {
+  io.rpc.mockImplementation(async (name: string,args:Record<string,unknown>) => {
+    if(name==='ediel_switch_cancellation_customer_masterdata_basis_v1'){
+      expect(args).toEqual({p_company_id:own.company,p_switch_id:own.switch,p_actor_user_id:own.actor})
+      return{data:nativeOriginal(),error:null}
+    }
+    if(name==='ediel_switch_cancellation_customer_masterdata_message_basis_v1'){
+      expect(args).toEqual({p_company_id:own.company,p_message_id:own.message,p_actor_user_id:own.actor})
+      const row=tables.ediel_messages.find(row=>row.id===own.message)!
+      return{data:{...nativeOriginal(),sourceContextId:id(72),messageBinding:{id:row.id,environment:row.environment,intentId:row.intent_id,routeId:row.communication_route_id,payloadHash:createHash('sha256').update(row.raw_payload as string).digest('hex')},cancellationBinding:{operationId:own.operation,switchRequestId:own.switch,actorUserId:own.actor,originalMessageId:own.original,originalHash:basis.originalHash,preparerId:row.created_by}},error:null}
+    }
+    if(name==='ediel_prepare_switch_cancellation_customer_masterdata_v1')return{data:{...nativeOriginal(),sourceContextId:id(72),cancellationBinding:{operationId:own.operation,switchRequestId:own.switch,actorUserId:own.actor,intentId:own.intent,routeId:input.routeContext.route.id,environment:'test',originalMessageId:own.original,originalHash:basis.originalHash,payloadHash:createHash('sha256').update(args.p_raw_payload as string).digest('hex')}},error:null}
     if (name === 'ediel_switch_cancellation_source_v1') return { data: basis, error: null }
     if (name !== 'ediel_reserve_switch_cancellation_v1' || !reservations.length) throw Error(`undeclared_rpc:${name}`)
     return { data: reservations.shift(), error: null }
@@ -110,7 +122,7 @@ describe('Z03C actual gateway component boundary', () => {
     expect(await renderAndQueueSwitchCancellation(input)).toEqual(held)
     expect(io.finalize).toHaveBeenCalledTimes(1); assertNoQueue()
     expect(io.rpc.mock.calls.map(call => call[0])).toEqual(['ediel_switch_cancellation_source_v1',
-      'ediel_reserve_switch_cancellation_v1', 'ediel_reserve_switch_cancellation_v1'])
+      'ediel_switch_cancellation_customer_masterdata_basis_v1','ediel_reserve_switch_cancellation_v1','ediel_prepare_switch_cancellation_customer_masterdata_v1', 'ediel_reserve_switch_cancellation_v1'])
   })
 
   it('reuses a sent bound original with a tenant-scoped read and no second render or enqueue', async () => {
@@ -138,7 +150,11 @@ describe('Z03C actual gateway component boundary', () => {
   it('recovers a unique race through the source reservation and queues only its bound draft', async () => {
     reservations = [reserved(), reserved(own.message), reserved(own.message)]
     tables.ediel_messages = [tables.ediel_messages[0],boundMessage()]
-    io.finalize.mockRejectedValue({ code: '23505' })
+    io.finalize.mockImplementation(async params=>{
+      const draft=params.draft
+      Object.assign(tables.ediel_messages[1],{created_by:own.actor,direction:'outbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z03',environment:draft.environment,customer_id:draft.customerId,intent_id:draft.intentId,communication_route_id:draft.communicationRouteId,original_message_id:draft.originalMessageId,switch_request_id:draft.switchRequestId,raw_payload:draft.rawPayload})
+      throw{code:'23505'}
+    })
     expect(await renderAndQueueSwitchCancellation(input)).toMatchObject({ status: 'queued', message: { id: own.message } })
     expect(io.queue).toHaveBeenCalledExactlyOnceWith({ actorUserId: own.actor, messageId: own.message,
       outboundRequestId: own.request, intentId: own.intent, payload: { switchCancellationOperationId: own.operation,
@@ -146,7 +162,10 @@ describe('Z03C actual gateway component boundary', () => {
     expect(tables.ediel_message_intents[0]).toMatchObject({ render_status: 'rendered', outbox_status: 'queued',
       ediel_message_id: own.message, outbound_request_id: own.request })
     expect(writes().every(call => call.table === 'ediel_message_intents' && call.operation === 'update')).toBe(true)
-    expect(io.rpc.mock.calls.every(call => call[1].p_company_id === own.company && call[1].p_switch_id === own.switch
+    expect(io.rpc.mock.calls.filter(call=>call[0]!=='ediel_switch_cancellation_customer_masterdata_basis_v1'&&call[0]!=='ediel_prepare_switch_cancellation_customer_masterdata_v1'&&call[0]!=='ediel_switch_cancellation_customer_masterdata_message_basis_v1').every(call => call[1].p_company_id === own.company && call[1].p_switch_id === own.switch
       && call[1].p_actor_user_id === own.actor)).toBe(true)
+    expect(io.rpc.mock.calls.filter(call=>call[0]==='ediel_switch_cancellation_customer_masterdata_basis_v1')).toEqual([['ediel_switch_cancellation_customer_masterdata_basis_v1',{p_company_id:own.company,p_switch_id:own.switch,p_actor_user_id:own.actor}]])
+    expect(io.rpc.mock.calls.filter(call=>call[0]==='ediel_prepare_switch_cancellation_customer_masterdata_v1')).toEqual([['ediel_prepare_switch_cancellation_customer_masterdata_v1',{p_company_id:own.company,p_operation_id:own.operation,p_actor_user_id:own.actor,p_intent_id:own.intent,p_route_id:input.routeContext.route.id,p_raw_payload:expect.any(String)}]])
+    expect(io.rpc.mock.calls.filter(call=>call[0]==='ediel_switch_cancellation_customer_masterdata_message_basis_v1')).toEqual([['ediel_switch_cancellation_customer_masterdata_message_basis_v1',{p_company_id:own.company,p_message_id:own.message,p_actor_user_id:own.actor}]])
   })
 })
