@@ -132,3 +132,18 @@ Livekontroll: `spot_price_intervals` 2026-10-09 SE1–SE4 = elprisetjustnu exakt
 | PDF-validering för strikt för verkliga PDF:er | FIXED | `__tests__/partner-poa-pdf-structure.test.ts`. |
 
 Full svit efter sammanslagning: 994 filer / 15 458 tester PASS; typecheck, API-gates och migrationskontroller PASS.
+
+## Paket 7, 17 och uppföljning (inkommande, betalning, fullmaktsmail)
+
+| Område | Status | Bevis |
+|---|---|---|
+| F6, F25 Partner-schema | FIXED | OpenAPI 3.1 null-unioner, stängda svarsobjekt; `__tests__/partner-response-schema-validation.test.ts` (Ajv 2020, ajv@8.17.1 exakt pinnad devDependency). |
+| Elpris P3 revisioner | FIXED | `updated_at` vid upsert, verifierat dygn nedgraderas inte, D-1 omverifieras. `__tests__/spot-price-import-refresh-safety.test.ts`. |
+| Paket 17 docsrelease | DONE | Ny fryst release `2026-10-09.1`; minimum oförändrat `2026-10-02.3`; `docs/api-migration-guide.md`; `__tests__/api-supported-client-release-matrix.test.ts`. |
+| Inkommande mail/Resend | FIXED | Monoton e-poststatus, 500 vid fel + `processed_at` (`20261009190000_…`), nästlad MIME, teckenkodning (UNOC/latin1), autosvar, dead-letter, 503 i manuell inkorg, omkörning av fastnade svar, sen studs öppnar inte avslutad förfrågan. `__tests__/inbound-review-*.test.ts`. |
+| Betalhändelser | FIXED | 503 för ej routad men signerad händelse, enhetlig 401 före signatur, villkorad statusuppdatering, övergångstabell, `paid_at`-validering (svensk tid). `__tests__/billing-provider-*.test.ts`. |
+| Personnummer/orgnr | FIXED (TS) / REMAINING (DB-backfill) | 422 vid ogiltigt; 12-siffrig normalisering. Befintliga 10-siffriga kundrader kräver separat backfill och dubblettstädning. |
+| Fullmaktsmail till nätägare | FIXED | Resend-idempotens som HTTP-option, fullmakt kontrolleras vid kö och före utskick (sista dagen giltig i svensk tid), ingen falsk "köad", 23514 terminal, påminnelse/eskalering (5/10 arbetsdagar), isolerade cron-steg, preview skickar inte till riktiga nätägare, egen Message-ID + matchning av svar, mottagare omvärderas vid utskick (ny nyckel vid byte), `recipient_contact_channel_id` sparas, PDF rensas efter utskick, kontaktkanaltrigger spärrar gateway-/nätägaradresser och overifierad verifiering (`20261009210000_…`). `__tests__/poa-mail-review-*.test.ts`, `__tests__/poa-valid-through-last-day.test.ts`. |
+| Nätägarnas kontaktadresser | ÅTGÄRD FÖR ÄGARE | 207 av 212 aktiva nätägare saknar verifierad kundtjänstadress; Ediel-filen (ediel.se 2026-10-09) innehåller endast EDIFACT-gateways. 57 avvikelser OPS ↔ Ediel-fil (bl.a. 5 Ediel-id som tillhör elhandelsbolag). |
+
+Full svit: 1012 filer / 15 591 tester PASS; typecheck, API-gates, migrationskontroller och N+1 PASS.
