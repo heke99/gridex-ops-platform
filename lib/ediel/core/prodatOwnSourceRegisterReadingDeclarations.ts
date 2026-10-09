@@ -22,6 +22,12 @@ export type ProdatOwnSourceReadingContext=Readonly<{[ownReadingBrand]:true}>
 type ReadingObjects=ProdatDependentConditionFacts['registerObjects']
 type SourceRead={identity:string;actor:string;source:EdielMessageRow;sourceEdition:string;projection:Record<string,unknown>}
 const reads=new WeakMap<ProdatOwnSourceReadingContext,SourceRead>()
+// P26.A §2.2 p20 / field 259: the Z04 column has one D condition for 214/218/259
+// with no transaction-reason split; only the own physical 259 tells the receiver
+// that readings follow in UTILTS. The same declaration therefore applies to C.
+const OWN_READING_REASONS={L:'Z22',LK:'Z23',C:'Z24'} as const
+type OwnReadingSubtype=keyof typeof OWN_READING_REASONS
+const isOwnReadingSubtype=(value:string|null):value is OwnReadingSubtype=>value!==null&&Object.hasOwn(OWN_READING_REASONS,value)
 const bornKeys=['version','contextOrigin','sourceMessageId','companyId','environment','messageCode','payloadHash','sourceReceivedAt','capturedAt']
 
 function sourceIdentity(source:EdielMessageRow):string|null {
@@ -59,10 +65,10 @@ function physicalSource(source:EdielMessageRow) {
   if(!first.length||grouped.groups.some(group=>group.messageIndex!==0||!group.validRegisterChain)
     ||first.some(group=>!group.itemId||!['9','89'].includes(group.identityAgency??'')))return null
   const reasons=first.map(group=>prodatRegisterReadingSubtype('Z04',group.segments,wire.una))
-  if(!reasons.every(reason=>reason==='L'||reason==='LK')||new Set(reasons).size!==1)return null
-  const subtype=reasons[0] as 'L'|'LK'
+  if(!reasons.every(isOwnReadingSubtype)||new Set(reasons).size!==1)return null
+  const subtype=reasons[0] as OwnReadingSubtype
   const canonical=parseCanonicalMessageRow(source)
-  if(canonical.family!=='PRODAT'||canonical.messageCode!=='Z04'||canonical.subtype!==(subtype==='L'?'Z22':'Z23')
+  if(canonical.family!=='PRODAT'||canonical.messageCode!=='Z04'||canonical.subtype!==OWN_READING_REASONS[subtype]
     ||canonical.applicationReference!==application[0]||canonical.version!=='E2SE6A')return null
   return {wire,first,groups:grouped.groups,subtype,canonical,interchange:interchanges[0]}
 }
@@ -91,7 +97,7 @@ export async function loadProdatOwnSourceReadingContext(source:EdielMessageRow,a
     ||parseSourceReceiptInstant(legal.sourceReceivedAt)!==received||typeof basis.sourceEdition!=='string'
     ||!/^[a-f0-9]{64}$/.test(basis.sourceEdition)||!isEvidenceRecord(projection)
     ||projection.family!=='PRODAT'||projection.code!=='Z04'||projection.subtype!==physical.subtype
-    ||projection.transactionReasonCode!==(physical.subtype==='L'?'Z22':'Z23')
+    ||projection.transactionReasonCode!==OWN_READING_REASONS[physical.subtype]
     ||!['inbound','both'].includes(String(projection.direction))
     ||!Array.isArray(projection.applicationReferences)||!projection.applicationReferences.includes(legal.applicationReference)
     ||!Array.isArray(projection.receiverRoles)||!projection.receiverRoles.some(role=>role==='supplier'||role==='electricity_supplier'))return null

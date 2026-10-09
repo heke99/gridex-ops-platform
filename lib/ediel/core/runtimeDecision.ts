@@ -756,7 +756,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
     if(receivedReportingActorUserId)receivedReportingContext=await loadReceivedZ14ReportingContext(message,receivedReportingActorUserId)
     if(receivedReportingActorUserId&&message.direction==='inbound'&&message.message_family==='PRODAT'&&message.message_code==='Z04'){
       const canonical=parseCanonicalMessageRow(message)
-      if(canonical.family==='PRODAT'&&canonical.messageCode==='Z04'&&['L','LK','Z22','Z23'].includes(canonical.subtype??'')){
+      if(canonical.family==='PRODAT'&&canonical.messageCode==='Z04'&&['L','LK','C','Z22','Z23','Z24'].includes(canonical.subtype??'')){
         ownSourceReadingActorUserId=receivedReportingActorUserId
         // Only this invocation's actual actor/source READ enters the internal port.
         // Null stays unknown; ordinary/security errors keep the source gate closed.
