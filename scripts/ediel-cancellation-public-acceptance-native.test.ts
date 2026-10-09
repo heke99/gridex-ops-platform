@@ -334,7 +334,9 @@ function positiveAperakCount(f: Fixture, sourceId: string) {
 type NativeAckErrorIdentity = { companyId: string; sourceId: string; actorUserId: string }
 type NativeAckErrorReturn = { value: string; shape: 'native_error' | 'plain_record' | 'string' | 'nullish' | 'other';
   sqlState: '23502' | '23503' | '23505' | '23514' | '42501' | '40001' | '42P01' | '42703' | '42883' | 'P0001' | 'unknown';
-  postgrestCode: 'PGRST116' | 'PGRST202' | 'PGRST204' | 'PGRST205' | 'unknown'; returnHash: string; returnLength: number }
+  postgrestCode: 'PGRST116' | 'PGRST202' | 'PGRST204' | 'PGRST205' | 'unknown';
+  uniqueConstraint: 'ux_ediel_outbound_source' | 'ux_ediel_ack_related' | 'ediel_messages_pkey' | 'ediel_messages_company_id_id_uidx' | 'unknown';
+  returnHash: string; returnLength: number }
 // Raw calls, returns and event identities remain private. Even one exact full
 // propagation match cannot establish causal ownership of a formatter input.
 function createNativeAckErrorObservation() {
@@ -344,7 +346,7 @@ function createNativeAckErrorObservation() {
     if (!value || typeof value !== 'object') return undefined
     try { return Object.getOwnPropertyDescriptor(value, key)?.value } catch { return undefined }
   }
-  const classify = (value: unknown): Pick<NativeAckErrorReturn, 'shape' | 'sqlState' | 'postgrestCode'> => {
+  const classify = (value: unknown): Pick<NativeAckErrorReturn, 'shape' | 'sqlState' | 'postgrestCode' | 'uniqueConstraint'> => {
     let shape: NativeAckErrorReturn['shape'] = 'other'
     try {
       if (value instanceof Error) shape = 'native_error'
@@ -355,8 +357,16 @@ function createNativeAckErrorObservation() {
     const code = data(value, 'code')
     const sqlStates = ['23502', '23503', '23505', '23514', '42501', '40001', '42P01', '42703', '42883', 'P0001'] as const
     const postgrestCodes = ['PGRST116', 'PGRST202', 'PGRST204', 'PGRST205'] as const
+    // Exact public PostgreSQL message templates only; details stay private.
+    // These fixed indexes are defined in the captured public schema. No name
+    // is inferred from a substring, arbitrary property or non-23505 error.
+    const uniqueConstraints = ['ux_ediel_outbound_source', 'ux_ediel_ack_related',
+      'ediel_messages_pkey', 'ediel_messages_company_id_id_uidx'] as const
+    const ownMessage = code === '23505' ? data(value, 'message') : undefined
+    const uniqueConstraint = code === '23505' ? uniqueConstraints.find(name =>
+      ownMessage === `duplicate key value violates unique constraint "${name}"`) : undefined
     return { shape, sqlState: sqlStates.find(state => state === code) ?? 'unknown',
-      postgrestCode: postgrestCodes.find(state => state === code) ?? 'unknown' }
+      postgrestCode: postgrestCodes.find(state => state === code) ?? 'unknown', uniqueConstraint: uniqueConstraint ?? 'unknown' }
   }
   const cardinality = (count: number): 'zero' | 'one' | 'multiple' => count === 0 ? 'zero' : count === 1 ? 'one' : 'multiple'
   const qualified = (row: unknown, identity: NativeAckErrorIdentity) => {
@@ -421,6 +431,7 @@ function createNativeAckErrorObservation() {
         formatterCardinality: cardinality(returns.length), receiptCardinality: cardinality(ownReceipts.length),
         candidateCardinality: cardinality(matchingCandidateCount), eventCardinality: cardinality(matchingEventCount),
         returns: returns.map((result, index) => ({ shape: result.shape, sqlState: result.sqlState, postgrestCode: result.postgrestCode,
+          uniqueConstraint: result.uniqueConstraint,
           returnHash: result.returnHash, returnLength: result.returnLength, persistedMatches: matchCounts[index] })) }
     },
   }
