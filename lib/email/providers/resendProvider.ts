@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { Resend } from 'resend'
 import type {
   CreateDomainResult,
@@ -30,6 +31,25 @@ export class EmailProviderSafeError extends Error {
     super(message)
     this.name = 'EmailProviderSafeError'
   }
+}
+
+/**
+ * Resend accepts idempotency keys of at most 256 characters and treats them as
+ * HTTP request metadata. Hash the internal key so tenant/site identifiers never
+ * leave the platform and the length limit always holds.
+ */
+export function toResendIdempotencyKey(key: string): string {
+  return `gx-${createHash('sha256').update(key).digest('hex')}`
+}
+
+const FORBIDDEN_MAIL_HEADERS = new Set(['idempotency-key'])
+
+function safeMailHeaders(headers: Record<string, string> | undefined) {
+  if (!headers) return undefined
+  const entries = Object.entries(headers).filter(
+    ([name, value]) => !FORBIDDEN_MAIL_HEADERS.has(name.toLowerCase()) && typeof value === 'string' && value.length > 0,
+  )
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined
 }
 
 function createResendClient() {
@@ -241,8 +261,8 @@ export class ResendEmailProvider implements EmailProvider {
         text: input.text,
         replyTo: input.replyTo,
         attachments,
-        headers: input.idempotencyKey ? { 'Idempotency-Key': input.idempotencyKey } : undefined,
-      } as never)
+        headers: safeMailHeaders(input.headers),
+      } as never, input.idempotencyKey ? { idempotencyKey: toResendIdempotencyKey(input.idempotencyKey) } : undefined)
 
       if (response.error || !response.data) throw response.error
 
