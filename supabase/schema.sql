@@ -141060,6 +141060,12 @@ CREATE UNIQUE INDEX ux_ediel_code_lists_name_code_market ON public.ediel_code_li
 CREATE UNIQUE INDEX ux_ediel_error_rules_key ON public.ediel_error_rules USING btree (COALESCE(company_id, '00000000-0000-0000-0000-000000000000'::uuid), message_family, COALESCE(message_code, ''::text), error_key, ack_family);
 
 --
+-- Name: ux_ediel_inbound_cases_message; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX ux_ediel_inbound_cases_message ON public.ediel_inbound_cases USING btree (ediel_message_id) WHERE (ediel_message_id IS NOT NULL);
+
+--
 -- Name: ux_ediel_inbound_interchange; Type: INDEX; Schema: public; Owner: -
 --
 
