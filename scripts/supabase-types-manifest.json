@@ -3,7 +3,7 @@
   "generated_at": "2026-10-07T05:54:47.682820+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run37576871152",
   "sha256": "d1d2dadbfd4e9341fe26404e5112e44cf34d674099aacddbfb9d53c631307e23",
-  "latest_migration": "20261009160000_ops_api_service_only_restore_grants.sql",
+  "latest_migration": "20261009171000_ops_api_inbound_events_policy_initplan.sql",
   "ops_api_confirmation_delivery_tail": {
     "migration": "20261009100000_ops_api_contract_confirmation_delivery_continuation.sql",
     "previous_generated_types_sha256": "575196e37d9da421d842ce34f92d434c83994ebc44a8a95254fed443d6b4ebd8",

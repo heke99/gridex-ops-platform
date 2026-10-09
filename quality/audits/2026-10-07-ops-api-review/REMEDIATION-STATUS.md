@@ -49,3 +49,14 @@ DONE (runtime + policy): `lib/integrations/apiContractCompatibility.ts` (registr
 |---|---|---|
 | F5 | FIXED (forward migration) | `20261009160000_ops_api_service_only_restore_grants.sql` återkallar authenticated/anon/public EXECUTE för `gridex_db4b_archive_customer_registry_row` och `gridex_next_customer_number`; service_role behålls. `__tests__/restore-service-only-grants.test.ts` (PGlite: snapshotens grants → migration → endast service_role). Live redan spärrad (oförändrat beteende). `schema.sql` uppdateras genom autentisk capture. |
 | F44 | QUALIFIED | `F44-SECURITY-DEFINER-INVENTORY.md`: 33 authenticated-körbara definer-funktioner klassade; ingen tenantläcka; en P3-rekommendation (behörighetsorakel). |
+
+## Paket 15 — F31–F38, F43 (mätstyrt)
+
+| Fynd | Status | Bevis / motivering |
+|---|---|---|
+| F31 | FIXED | `20261009170000_ops_api_drop_duplicate_indexes.sql` tar bort `ux_customers_company_customer_number` och `idx_fk_customer_case_events_b634ce08bab5` endast om tvillingen finns med identisk definition och ingen constraint äger indexet. `__tests__/duplicate-index-removal.test.ts` (unikhet kvar, idempotent, icke-identiskt index behålls). Vinsten är minskat skrivunderhåll; ingen latensvinst påstås (16 kB/index). |
+| F33 | FIXED (paritet bevisad) | `20261009171000_ops_api_inbound_events_policy_initplan.sql`: `auth.role()`/plattformsadmin som initplan; `__tests__/inbound-events-policy-initplan.test.ts` visar identiska läs/skrivbeslut före/efter. Tabellen hade 0 live-rader; latensvinst ej mätt. |
+| F37 | FIXED i Paket 1 | Räknas inte igen. |
+| F32, F34, F43 | QUALIFIED_NO_CHANGE | Advisor-signaler utan uppmätt arbetslast; inga index skapas/raderas blint (564 oanvända-kandidater lämnas). Kräver representativ last och EXPLAIN ANALYZE i disponibel miljö. |
+| F35 | QUALIFIED_NO_CHANGE | Auth connection cap 10; ingen anslutningsväntan uppmätt. Mät före poolkonfiguration. |
+| F36, F38 | QUALIFIED_NO_CHANGE | Optimeringskandidater (portal-sektioner via `include`, fixed-only-resolver). Ingen mätning av bytes/p95 möjlig här; ändring utan mätt vinst behålls inte enligt performance-regeln. |
