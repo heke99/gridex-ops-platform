@@ -71,3 +71,15 @@ A rejected file returns `422 attachment_rejected` and is never served. This is a
 **Side effects.** Opening a support case does not stop billing, onboarding, metering requests or switches.
 
 **Reference client.** `docs/examples/tenant-support-reference-client.mjs` is a synthetic, server-side reference integration for the support page. It is tested end to end against the mounted routes.
+
+## Profile and facility address updates (behaviour clarification, 2026-10-09)
+
+`POST /api/v1/customer/profile-update` (`customer_contact.write` and/or `customer_facility_data.write`). Request and response shapes are unchanged; this section documents the runtime semantics.
+
+**Validation before mutation.** Every referenced resource is resolved before anything is written. A `facility_data.facility_reference` that does not belong to the verified customer returns `404 resource_not_found` and the `profile` part of the same call is not applied. Later database failures are not covered by a cross-resource transaction: the profile part commits in its own transaction, and `address_result` reports the facility outcome.
+
+**Patch semantics.** Omitted profile fields stay untouched. `facility_data.address` is the complete physical address (street, postal code, city, optional country and apartment number). `care_of` is an informational recipient line; when it is omitted or empty the stored value is kept.
+
+**Same physical address.** The physical identity of a facility address excludes `care_of`. Sending the same physical address returns `address_result.status: "unchanged"`; a changed `care_of` is still saved and audited, and `address_result.reason` is then `care_of_updated` (additive field value). Grid owner, routing and verification are not invalidated by a `care_of` change. A same-address submission from the customer portal never replaces a stronger stored source (for example a grid-owner verified address); only the receipt time is updated.
+
+**Conflicts.** A different physical address for a facility whose address is verified by a stronger source returns `address_result.status: "conflict"` with `reason: "verified_address_conflict"`, and the completion is `submitted` for staff review instead of `accepted`. The same decision is repeated atomically when the address is committed, so a verification that lands concurrently still yields a conflict rather than an overwrite.
