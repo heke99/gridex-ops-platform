@@ -1,12 +1,21 @@
-// Supabase/PostgREST errors are plain objects; keep their fixed code and message
-// (never details/hint, which can carry row values) instead of "[object Object]".
+// Plain database messages can contain row values. Keep a closed code category
+// and the original cause; observation must not undo SMTP uncertainty.
 function smtpUncertainCauseMessage(cause: unknown): string {
-  if (cause instanceof Error) return cause.message
-  if (cause && typeof cause === 'object') {
-    const { code, message } = cause as { code?: unknown; message?: unknown }
-    if (typeof message === 'string') return typeof code === 'string' && code ? `${code}: ${message}` : message
+  try {
+    if (cause instanceof Error) {
+      const message: unknown = cause.message
+      return typeof message === 'string' ? message : 'ediel_smtp_uncertain_cause:unknown'
+    }
+    if (cause && typeof cause === 'object') {
+      const descriptor = Object.getOwnPropertyDescriptor(cause, 'code')
+      const code: unknown = descriptor && 'value' in descriptor ? descriptor.value : null
+      const known = ['23505', '23503', '23514', '23P01', '42501', '42P01', '42703', 'P0001', 'P0002', 'PGRST116', 'PGRST202', 'PGRST204']
+      return `ediel_smtp_uncertain_cause:${typeof code === 'string' && known.includes(code) ? code : 'unknown'}`
+    }
+    return String(cause)
+  } catch {
+    return 'ediel_smtp_uncertain_cause:unknown'
   }
-  return String(cause)
 }
 
 export class SmtpDeliveryUncertainError extends Error {

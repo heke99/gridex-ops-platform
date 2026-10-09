@@ -5,7 +5,7 @@
   "sha256": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
   "latest_migration": "20261009121545_ediel_source_bound_ack_origination_index.sql",
   "latest_migration_schema_effect": "Byte-exact authenticated bc index-source RAW3 capture; actual same-schema paired ACK79/sourcequal2 and Cpost47 finite qualification passed. Native/browser/type-schema/upgrade NOT_RUN flags remain unchanged; resulting-head mandatory gates and whole proof remain separate.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-09T19:48:37.117894+00:00",
@@ -10272,5 +10272,13 @@
     "C_postimage_checks": 47,
     "resulting_head_validation": "PENDING",
     "scope": "Index-source capture import only; all original NOT_RUN flags and histories preserved; dated16d pending entry retained as original source history; adoption commit recorded externally."
+  },
+  "help699_smtp_cases_capture_pending": {
+    "base_source": "df5a4a7ee06e38e5f3a650f4e268ddf51330e731",
+    "peer_source": "d5e5c59a9aa00f2b783fb40692e214cf2d7b57b0",
+    "latest_forward": "20261009201500_ediel_inbound_case_message_unique.sql",
+    "forward_sha256": "ebf3569b319d48eee36e7caca14d7b63ae6f0f0af6d9f6df0a757dd5013d8e7a",
+    "status": "AUTHENTIC_NEW_TAIL_CAPTURE_NOT_RUN",
+    "scope": "Existing genuine bc RAW3/origin and all prior histories remain unchanged. New case-index source requires one genuine existing capture and reviewed import; no capture, native or resulting-head/main acceptance is inferred."
   }
 }
