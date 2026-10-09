@@ -216,6 +216,49 @@ async function acknowledgements(i: Input, o: Observations) {
   // Guarded public reader is always authoritative; SQL only supplements it.
   const acks = await listBusinessAckMessagesForSource({ companyId: i.companyId, sourceMessageId: i.source.id,
     actorUserId: i.actorUserId, environment: 'test' })
+  if (!acks.some(a => a.message_family === 'APERAK')) {
+    // Only this original's already persisted ACK guard events. Log fixed
+    // classifications, never their messages, payloads or source identifiers.
+    const blocked = sql<Array<{ message: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',e.message)
+      ORDER BY e.created_at,e.id),'[]') FROM public.ediel_message_events e
+      WHERE e.company_id=${literal(i.companyId)} AND e.ediel_message_id=${literal(i.source.id)}
+        AND e.event_type='manual_note' AND e.event_status='warning'
+        AND e.event_payload->>'blockedBy'='canonical_inbound_ack_guard' AND e.event_payload->>'ackFamily'='APERAK'
+        AND e.event_payload->>'sourceMessageId'=${literal(i.source.id)}`)
+    const allowedGuards = ['ediel_existing_ack_original_read_unavailable', 'ediel_existing_ack_original_source_mismatch',
+      'ediel_source_rule_pack_basis_required', 'ediel_historical_rule_pack_basis_unavailable',
+      'prodat_bilateral_original_metadata_unqualified', 'prodat_bilateral_capability_required',
+      'canonical_ack_actual_original_mismatch', 'prodat_response_original_owner_unavailable',
+      'prodat_response_original_rule_witness_mismatch', 'prodat_response_frozen_owner_binding_unavailable',
+      'ediel_existing_ack_original_current_actor_required', 'ediel_existing_ack_original_read_scope_invalid',
+      'ediel_existing_ack_original_object_scope_unavailable', 'ediel_existing_ack_original_basis_unavailable',
+      'ediel_existing_ack_original_outcome_unavailable', 'ack_source_scope_unavailable',
+      'ack_actual_original_unavailable', 'historical_rule_pack_basis_unavailable',
+      'ack_source_owner_qualification_required', 'historical_rule_pack_guide_scope_unavailable',
+      'canonical_ack_original_family_mismatch', 'ack_original_application_reference_ambiguous',
+      'aperak_prodat_requested_scope_unqualified', 'aperak_prodat_document_reference_required',
+      'aperak_original_legal_party_projection_conflict', 'PRODAT_APERAK_TEXT_REVIEW_REQUIRED',
+      'APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH', 'APERAK_PRODAT_OBJECT_OUTCOME_MISSING',
+      'ack_correlation_envelope_invalid', 'ack_correlation_wire_context_invalid',
+      'ack_object_result_unavailable', 'ack_processed_negative_scope_unavailable',
+      'ack_prodat_original_object_scope_ambiguous', 'ack_prodat_original_object_scope_mismatch',
+      'ack_object_result_conflict', 'ack_correlation_outcome_invalid',
+      'ack_correlation_stored_family_mismatch', 'ack_correlation_original_document_required',
+      'canonical_ack_source_scope_mismatch', 'canonical_ack_draft_physical_outcome_mismatch',
+      'canonical_ack_draft_outcome_scope_mismatch', 'canonical_ack_prodat_source_code_profile_mismatch',
+      'canonical_ack_owner_scope_required', 'canonical_ack_physical_scope_required',
+      'canonical_ack_duplicate_scope_mismatch', 'canonical_ack_physical_scope_receipt_mismatch',
+      'canonical_ack_atomic_output_scope_mismatch', 'ediel_native_ack_guide_source_required',
+      'ediel_registered_original_guide_unavailable', 'prodat_response_native_scope_invalid',
+      'prodat_response_frozen_owner_binding_changed', 'prodat_response_established_original_changed',
+      'ediel_outbound_owner_witness_required', 'ediel_outbound_owner_witness_scope_invalid',
+      'prodat_domain_response_frozen_owner_required', 'ediel_historical_ack_guide_basis_unavailable',
+      'ediel_ack_guide_original_basis_changed', 'ediel_native_ack_guide_invalid'] as const
+    const guards = blocked.map(e => allowedGuards.find(guard => typeof e.message === 'string'
+      && e.message.startsWith('APERAK skapades inte: ') && e.message.slice('APERAK skapades inte: '.length).includes(guard)) ?? null)
+    console.error('H_NATIVE_INVALID306_ACK_GATE', JSON.stringify({ stage: 'invalid306_actual_negative_ack_missing',
+      blockedAckEventCount: blocked.length, guards, unknownGuardCount: guards.filter(guard => guard === null).length }))
+  }
   expect(acks.map(a => a.message_family).sort()).toEqual(['APERAK', 'CONTRL'])
   const source = tokenizeEdifact(i.source.raw_payload!), envelope = EdifactEnvelopeCodec.decode(i.source.raw_payload!)
   const sourceOne = (tag: string) => { const a = source.segments.filter(s => s.tag === tag); expect(a).toHaveLength(1); return a[0] }

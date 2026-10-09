@@ -326,9 +326,48 @@ function supplyBusinessState(f: Fixture) {
 function positiveAperakCount(f: Fixture, sourceId: string) {
   return sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(sourceId)} AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive';`)
 }
+// Refines peer donor6077035986: read the actual stored guard reason, then
+// emit only fixed classifications/counts. Original messages and IDs stay local.
+function aperakBlockedWarningDiagnostic(f: Fixture, sourceId: string, stage: 'sendOwnAcks' | 'concurrent601') {
+  const warnings = sql<Array<{ message: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',e.message)
+    ORDER BY e.created_at,e.id),'[]') FROM public.ediel_message_events e
+    WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(sourceId)}
+      AND e.event_type='manual_note' AND e.event_status='warning'
+      AND e.event_payload->>'blockedBy'='canonical_inbound_ack_guard' AND e.event_payload->>'ackFamily'='APERAK'
+      AND e.event_payload->>'sourceMessageId'=${literal(sourceId)};`)
+  const allowedGuards = ['ediel_existing_ack_original_read_unavailable', 'ediel_existing_ack_original_source_mismatch',
+    'ediel_source_rule_pack_basis_required', 'ediel_historical_rule_pack_basis_unavailable',
+    'prodat_bilateral_original_metadata_unqualified', 'prodat_bilateral_capability_required',
+    'canonical_ack_actual_original_mismatch', 'prodat_response_original_owner_unavailable',
+    'prodat_response_original_rule_witness_mismatch', 'prodat_response_frozen_owner_binding_unavailable',
+    'prodat_response_frozen_owner_binding_changed', 'prodat_response_established_original_changed',
+    'prodat_domain_response_frozen_owner_required', 'prodat_domain_response_frozen_owner_changed',
+    'prodat_domain_response_source_required', 'prodat_domain_response_scope_required',
+    'prodat_domain_response_own_effect_unavailable', 'prodat_domain_response_original_guide_unavailable',
+    'prodat_domain_response_own_plan_unavailable', 'prodat_domain_response_own_effect_required',
+    'prodat_structural_response_source_required', 'prodat_structural_response_scope_required',
+    'prodat_structural_response_own_effect_unavailable', 'historical_rule_pack_basis_unavailable',
+    'supply_final_response_scope_required', 'supply_final_response_source_changed',
+    'supply_final_response_admitted_canonical_required', 'supply_final_response_own_effect_required',
+    'supply_final_response_own_effect_uncommitted', 'ediel_existing_ack_original_object_scope_unavailable',
+    'ediel_existing_ack_original_basis_unavailable', 'ediel_existing_ack_original_outcome_unavailable',
+    'ack_source_scope_unavailable', 'ack_actual_original_unavailable',
+    'ack_source_owner_qualification_required', 'historical_rule_pack_guide_scope_unavailable',
+    'canonical_ack_original_family_mismatch', 'canonical_ack_source_scope_mismatch',
+    'canonical_ack_draft_physical_outcome_mismatch', 'canonical_ack_prodat_source_code_profile_mismatch',
+    'canonical_ack_owner_scope_required',
+    'ediel_historical_ack_guide_basis_unavailable', 'ediel_ack_guide_original_basis_changed', 'ediel_native_ack_guide_invalid'] as const
+  const prefix = 'APERAK skapades inte: '
+  const guards = warnings.map(event => allowedGuards.find(guard => typeof event.message === 'string'
+    && event.message.startsWith(prefix) && event.message.slice(prefix.length).includes(guard)) ?? null)
+  console.error('C_NATIVE_APERAK_ACK_GATE', JSON.stringify({ stage, blockedAckEventCount: warnings.length,
+    guardCounts: allowedGuards.map(guard => ({ guard, count: guards.filter(value => value === guard).length })),
+    unknownGuardCount: guards.filter(guard => guard === null).length }))
+}
 async function sendOwnAcks(f: Fixture, sourceId: string) {
   const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('company_id', f.companyId)
     .eq('related_message_id', sourceId).eq('direction', 'outbound').order('message_family')
+  if (!data?.some(row => row.message_family === 'APERAK' && row.ack_outcome === 'positive')) aperakBlockedWarningDiagnostic(f, sourceId, 'sendOwnAcks')
   expect(error).toBeNull(); expect(data?.map(row => [row.message_family, row.ack_outcome])).toEqual([['APERAK','positive'],['CONTRL','positive']])
   for (const ack of data ?? []) {
     await sendEdielMessageViaSmtp(ack as EdielMessageRow, { actorUserId: f.actorUserId, smtpMimeMode: 'nodemailer-attachment' })
@@ -597,6 +636,7 @@ describe('actual native supplier cancellation chains', () => {
       source_end_message_id:baseline.source_end_message_id,end_date:baseline.end_date,market_end_at:baseline.market_end_at,
       market_state_version:endingPeriod.market_state_version+1,metadata:{...baseline.metadata,endCancellationSource:continuation.id} })
     expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(continuation.id)} AND company_id=${literal(f.companyId)};`)).toBe(1)
+    if (positiveAperakCount(f, continuation.id) === 0) aperakBlockedWarningDiagnostic(f, continuation.id, 'concurrent601')
     expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('family',message_family,'outcome',ack_outcome) ORDER BY message_family,id),'[]') FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(continuation.id)} AND direction='outbound';`))
       .toEqual([{family:'APERAK',outcome:'positive'},{family:'CONTRL',outcome:'positive'}])
     expect(original(f)).toEqual(beforeOriginal); expect(endingHistory()).toEqual(historyBefore)
