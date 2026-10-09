@@ -102,6 +102,8 @@ During migration from older website integrations, accepted customer-identity ali
 
 Transitional public aliases may remain documented for migration compatibility, but new integrations should use the canonical fields from the current OpenAPI specification.
 
+Swedish identity numbers are validated before anything is stored. `customer.personal_number` must be a real personnummer or samordningsnummer (valid date and check digit) as 10 or 12 digits, with or without `-` or `+`; otherwise the request is rejected with `422` and error code `personal_number_invalid`. `customer.org_number` must be a valid organisationsnummer (a sole trader may send the owner's personnummer); otherwise the request is rejected with `422` and error code `org_number_invalid`. Both errors name the field in `field` and are not retryable: correct the value and submit again. Accepted values are normalized, so `811218-9876` and `198112189876` identify the same customer; a 10-digit personnummer gets its century from the birth date, and the `+` separator marks a person aged 100 or more.
+
 ## Asynchronous processing
 
 A successful customer-application response confirms what the response explicitly states; it does not imply that every downstream market operation has already completed.
