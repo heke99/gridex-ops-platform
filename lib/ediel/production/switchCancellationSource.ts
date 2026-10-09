@@ -5,7 +5,7 @@ import {tokenizeEdifact,segmentComposite,segmentOriginalRaw,type EdifactTokenize
 import {validateEdifactEnvelope,validateUnsmGrammar} from '@/lib/ediel/core/edifactValidation'
 import {readProdatParty} from '@/lib/ediel/prodat/prodatPartyFields'
 import {renderProdatDateField} from '@/lib/ediel/prodat/prodatDateFields'
-import type {ProdatDependentConditionFacts} from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import type {ProdatDependentConditionFacts} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {supabaseService} from '@/lib/supabase/service'
 import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 export type SwitchCancellationBasis={status:'authorized';companyId:string;environment:'test'|'production';switchRequestId:string;originalMessageId:string;originalHash:string;
