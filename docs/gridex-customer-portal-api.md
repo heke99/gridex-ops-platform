@@ -32,6 +32,8 @@ The organization's own support page uses these endpoints. The same cases are han
 
 **Writes.** Both POST endpoints require `Idempotency-Key`. The same key with the same payload replays the stored result. The same key with a different payload returns `409`. A closed case rejects new messages with `409 support_case_closed`.
 
+**Message history continuation.** `GET …/messages` and the case detail return the customer-visible history oldest first, at most 500 messages per response. Without `cursor` the response is the same first page as before. When later messages exist the response carries the header `X-Gridex-Next-Cursor`; call `GET …/messages?cursor=<value>` to read the next 500 (repeat until the header is absent). The response body shape is unchanged. The cursor is opaque and bound to the tenant, the verified customer and the case; a modified cursor, or one from another case, customer or tenant, returns `400 invalid_cursor`.
+
 ## Support attachments (2026-10-02.1)
 
 | Method | Path | Scope |
@@ -46,7 +48,7 @@ The organization's own support page uses these endpoints. The same cases are han
 - **Headers:** `Idempotency-Key` is required. `X-File-Name` (URL-encoded) is optional.
 - **Name and type:** the real file type is detected from the bytes, and the file name is sanitized. The name's extension always matches the detected type.
 - **Limit:** at most 20 attachments per customer per 24 hours (`429`).
-- **Closed case:** a closed case returns `409 support_case_closed`.
+- **Closed case:** a new upload on a closed case returns `409 support_case_closed`. Precedence: authentication, scope and case ownership are always checked first; then a retry with the same `Idempotency-Key` and the same bytes of an upload that already succeeded replays the original `201` result (`Idempotency-Replayed: true`, no new file) even if the case was closed in between. The same key with different bytes returns `409`.
 
 **Quarantine.** Every file is stored privately and starts quarantined. It is released only after a content check:
 - the real type must be one of PDF, PNG or JPEG;
@@ -54,6 +56,8 @@ The organization's own support page uses these endpoints. The same cases are han
 - PDFs must not be truncated.
 
 A rejected file returns `422 attachment_rejected` and is never served. This is a content check, not an antivirus scan.
+
+**List continuation.** The list returns released attachments oldest first, at most 100 per response. Without `cursor` the response is the same first page as before. When more exist the response carries `X-Gridex-Next-Cursor`; send it as `?cursor=` to continue. The cursor is bound to the tenant, customer and case; invalid or foreign cursors return `400 invalid_cursor`.
 
 **What the customer sees.** The list and download endpoints return only released attachments that are visible to the customer: the customer's own uploads, and files staff explicitly shared with the customer. Internal staff files are never returned.
 

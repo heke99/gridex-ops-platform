@@ -165,14 +165,22 @@ export const partnerOpenApi = {
     '/customer/{customer_id}/site/{site_id}/invoice': {
       get: {
         summary: 'List invoices for site',
+        description:
+          'Returns invoices of contracts belonging to the requested site, newest first (issued_at descending, invoices without issued_at last), at most 100 per page. The site filter is applied before the page limit. Without `cursor` the response is the first page, identical to earlier V1 behaviour. When more invoices exist the response carries `X-Gridex-Next-Cursor`; send it unchanged as `cursor` with the same from_date/to_date to continue. The cursor is opaque and bound to the API company, customer, site and date filter; a modified or foreign cursor returns 400 invalid_cursor.',
         parameters: [
           customerId,
           siteId,
           { name: 'from_date', in: 'query', schema: { type: 'string', format: 'date' } },
           { name: 'to_date', in: 'query', schema: { type: 'string', format: 'date' } },
+          { name: 'cursor', in: 'query', required: false, schema: { type: 'string' }, description: 'Opaque continuation value from X-Gridex-Next-Cursor of the previous page.' },
         ],
         responses: {
-          '200': { description: 'Invoices', content: { 'application/json': { schema: { $ref: '#/components/schemas/InvoiceList' } } } },
+          '200': {
+            description: 'Invoices',
+            headers: { 'X-Gridex-Next-Cursor': { description: 'Present only when another page exists.', schema: { type: 'string' } } },
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/InvoiceList' } } },
+          },
+          '400': errorResponse,
           '401': errorResponse,
           '403': errorResponse,
           '404': errorResponse,
