@@ -77,12 +77,12 @@
       "sha256": "8932c4a79fcdd9faea353c042d57caa599bc42d04571424296270cdaa929338b"
     },
     "function_grants": {
-      "count": 3665,
-      "sha256": "86b8449244c112898cb2cba51a03cc8f7d448e6348cb56dc84c1f68b714c5296"
+      "count": 3667,
+      "sha256": "2151fab49555accbac3a2cfa0bca4e2be1edbf72c972f8c85e2187048aad15ba"
     },
     "functions": {
-      "count": 2120,
-      "sha256": "e3af86f4dd7f4c7af6d9cff2060de6baa86563eb624f13d68962cdad4d184010"
+      "count": 2121,
+      "sha256": "b85bb9c313ec1c1c4fb4ca00d380055cb14d9f9c88ee681f1fb1a85186cfeda7"
     },
     "indexes": {
       "count": 2963,
@@ -109,9 +109,9 @@
       "sha256": "4dfbd3070774a591013a70772f68743cf0d289ddf2c5e222a5c726fa6cc503bd"
     },
     "triggers": {
-      "count": 1172,
-      "sha256": "5e7b471169c5ae68f3a230cf7d7f571ff1b334265f6d9f871e599cd5e36e86e3"
+      "count": 1173,
+      "sha256": "165a1ab638f2dd800e5a280b7644651dbc31ac2dfe500f3d5396eef34650c8ce"
     }
   },
-  "sha256": "07755fb7b3aac0d75e1ddb54bed0c61bd7cdbcd0a085c9828bbce9d6e9bb6452"
+  "sha256": "e6841f729d98b1148d4fd02f5c49e210d3d5503104d8836be2ee39da11aade21"
 }
