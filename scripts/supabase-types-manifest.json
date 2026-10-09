@@ -3,7 +3,7 @@
   "generated_at": "2026-10-07T05:54:47.682820+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run37576871152",
   "sha256": "93988358c0210e4d764491d63de5df56076ef0dab5de85f7413522969da8258e",
-  "latest_migration": "20261009190000_communication_log_events_processed_marker.sql",
+  "latest_migration": "20261009210000_poa_mail_stockholm_expiry_and_contact_channel_guard.sql",
   "ops_api_confirmation_delivery_tail": {
     "migration": "20261009100000_ops_api_contract_confirmation_delivery_continuation.sql",
     "previous_generated_types_sha256": "575196e37d9da421d842ce34f92d434c83994ebc44a8a95254fed443d6b4ebd8",
