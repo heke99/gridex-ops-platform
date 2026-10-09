@@ -1,4 +1,5 @@
 // masterplan: AT-Z03L-SUPPLIER, AT-Z03LK-SUPPLIER
+// Z04C own259 controls below are component evidence toward AT-Z04C-SUPPLIER only (not tagged/approved).
 // Finite source component only; whole acceptance and automatic consumer remain unproved.
 // These controls execute the real source loader, policy and field validator.
 // Only Supabase transport responses are synthetic. They do not prove native
@@ -30,7 +31,7 @@ const actor=id(3),point='735123456789012344',otherPoint='735123456789012351'
 const received='2026-10-01T12:01:00.123456Z'
 const hash=(raw:string)=>createHash('sha256').update(raw,'utf8').digest('hex')
 const fields=['214','218','259'] as const
-type Variant='L'|'LK'
+type Variant='L'|'LK'|'C'
 type FieldState='valid'|'missing'|'invalid'
 type Declaration='valid'|'missing'|'duplicate'|'malformed'|'misplaced'|'header'|'other-object'
 type FixtureOptions={variant?:Variant;constant?:FieldState;digits?:FieldState;declaration?:Declaration;value259?:string;poison?:boolean}
@@ -47,7 +48,7 @@ function fixture(options:FixtureOptions={}){
  const variant=options.variant??'L',kind=options.declaration??'valid'
  const bodyFor=(objectId:string,index:number,own259:Declaration):Parts[]=>[
   line(String(index+1),objectId,undefined,'9'),['DTM',['92','202610150000','203']],['DTM',['354','15','806']],qty('1000'),
-  ...characteristic('Z13',variant==='L'?'Z22':'Z23'),...characteristic('Z04','Z04'),...characteristic('Z07','Z12'),
+  ...characteristic('Z13',({L:'Z22',LK:'Z23',C:'Z24'} as const)[variant]),...characteristic('Z04','Z04'),...characteristic('Z07','Z12'),
   ...characteristic('Z12','D',3),...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3),
   ...reading('214',options.constant),...reading('218',options.digits),
   ...(own259==='valid'||own259==='duplicate'||own259==='misplaced'?reading('259','valid',options.value259):
@@ -104,7 +105,7 @@ function ownFact(row:EdielMessageRow,context:ProdatOwnSourceReadingContext,actor
 }
 
 const states=['valid','missing','invalid'] as const
-for(const variant of ['L','LK'] as const)for(const constant of states)for(const digits of states){
+for(const variant of ['L','LK','C'] as const)for(const constant of states)for(const digits of states){
  it(`${variant}: valid259 TRUE with214 ${constant} and218 ${digits}; typed diagnostics remain`,async()=>{
   const {row,context}=await loaded({variant,constant,digits}),selected=policy(row,context),canonical=parseCanonicalMessageRow(row)
   expect(selected.guide.guideRevision).toBe('26-A')
@@ -122,7 +123,7 @@ for(const variant of ['L','LK'] as const)for(const constant of states)for(const 
  })
 }
 
-for(const variant of ['L','LK'] as const)for(const declaration of ['missing','duplicate','malformed','misplaced','header','other-object'] as const){
+for(const variant of ['L','LK','C'] as const)for(const declaration of ['missing','duplicate','malformed','misplaced','header','other-object'] as const){
  it(`${variant}: ${declaration}259 cannot fill the own unknown declaration`,async()=>{
   const f=fixture({variant,declaration});install(f.row,f.variant)
   // SG14 placed after SG16 is invalid full UNSM grammar. That early refusal

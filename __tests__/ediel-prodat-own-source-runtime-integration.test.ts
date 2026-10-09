@@ -1,3 +1,4 @@
+// Z04C (Z24) shares the single P26.A Z04 214/218/259 condition; component evidence only.
 // Finite automatic L/LK source-declaration integration only. Real source,
 // actor/legal/reception readers, runtime/policy/field/register and registry gates
 // execute. Declared SDK catalogue refuses: no durable APP, ACK or whole proof.
@@ -22,7 +23,7 @@ vi.mock('@/lib/supabase/service',async()=>{
 const io=fixtureSdk.value!
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const actor=id(3),point='735123456789012344',otherPoint='735123456789012351'
-type Variant='L'|'LK'
+type Variant='L'|'LK'|'C'
 type State='valid'|'missing'|'invalid'
 type Declaration='valid'|'missing'|'duplicate'|'malformed'|'header'|'other-object'
 function fixture(options:{variant?:Variant;constant?:State;digits?:State;declaration?:Declaration;value259?:string;poison?:boolean}={}){
@@ -30,7 +31,7 @@ function fixture(options:{variant?:Variant;constant?:State;digits?:State;declara
  const reading=(qualifier:string,state:State='valid',value:string):Parts[]=>state==='missing'?[]:characteristic(qualifier,value,state==='invalid'?0:3)
  const bodyFor=(objectId:string,index:number,own259:Declaration):Parts[]=>[
   line(String(index+1),objectId,undefined,'9'),['DTM',['92','202610150000','203']],['DTM',['354','15','806']],qty('1000'),
-  ...characteristic('Z13',variant==='L'?'Z22':'Z23'),...characteristic('Z04','Z04'),...characteristic('Z07','Z12'),
+  ...characteristic('Z13',({L:'Z22',LK:'Z23',C:'Z24'} as const)[variant]),...characteristic('Z04','Z04'),...characteristic('Z07','Z12'),
   ...characteristic('Z12','D',3),...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3),
   ...reading('Z02',options.constant,'1'),...reading('Z05',options.digits,'6'),
   ...(own259==='valid'||own259==='duplicate'?reading('Z16','valid',options.value259??'101'):
@@ -64,7 +65,7 @@ beforeEach(()=>{
  })
 })
 const readingFields=['214','218','259']
-for(const variant of ['L','LK'] as const){
+for(const variant of ['L','LK','C'] as const){
  it(`${variant}: actual registry runtime freshly reads and redeems own259101 at compiled policy`,async()=>{
   const source=fixture({variant})
   expect(validateEdifactSyntax(source)).toMatchObject({ok:true,grammarQualification:'qualified'})
@@ -87,7 +88,7 @@ function noPrivateAuthority(decision:Awaited<ReturnType<typeof resolveCanonicalR
  expect(readReceivedCanonicalProdatApplicationObjects(decision,source)).toBeNull()
  expect(readReceivedCanonicalProdatSourceFunction(decision,source)).toBeNull()
 }
-for(const variant of ['L','LK'] as const){
+for(const variant of ['L','LK','C'] as const){
  for(const field of ['214','218'] as const)for(const state of ['missing','invalid'] as const){
   it(`${variant}: own259 TRUE preserves actual typed ${field} ${state} in its own physical scope`,async()=>{
    const source=fixture({variant,...(field==='214'?{constant:state}:{digits:state})})
