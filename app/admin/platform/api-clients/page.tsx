@@ -458,12 +458,22 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
                             <summary className="cursor-pointer text-center text-xs font-semibold text-slate-600">Säkerhetsåtgärder</summary>
                             <div className="mt-2 grid gap-2">
                               {client.status !== 'revoked' ? (
+                                <>
                                 <form action={setIntegrationApiClientStatusAction}>
                                   <input type="hidden" name="clientId" value={client.id} />
                                   <input type="hidden" name="status" value="revoked" />
-                                  <input type="hidden" name="reason" value="Återkallad från superadmin UI" />
-                                  <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">Återkalla nyckel</button>
+                                  <input type="hidden" name="revokeKind" value="key_rotation" />
+                                  <input type="hidden" name="reason" value="Nyckelrotation från superadmin UI" />
+                                  <button className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">Återkalla nyckel (rotation, webhooks behålls)</button>
                                 </form>
+                                <form action={setIntegrationApiClientStatusAction}>
+                                  <input type="hidden" name="clientId" value={client.id} />
+                                  <input type="hidden" name="status" value="revoked" />
+                                  <input type="hidden" name="revokeKind" value="security_revocation" />
+                                  <input type="hidden" name="reason" value="Säkerhetsåterkallelse från superadmin UI" />
+                                  <button className="w-full rounded-xl border border-red-300 bg-red-100 px-3 py-2 text-xs font-semibold text-red-900">Säkerhetsåterkalla och stoppa kopplade webhooks</button>
+                                </form>
+                                </>
                               ) : null}
                               {client.status === 'revoked' || client.status === 'expired' ? (
                                 <form action={deleteIntegrationApiClientAction}>

@@ -429,11 +429,33 @@ async function resolveIntegrationApiAccess(
 }
 
 
+const verifiedRequestAccess = new WeakMap<object, Map<string, Promise<IntegrationApiAuthResult>>>()
+
+function requestScopeKey(requirement: IntegrationScopeRequirement): string {
+  const scopes = splitScopeRequirement(requirement)
+  return JSON.stringify([[...new Set(scopes.requiredAll)].sort(), [...new Set(scopes.requiredAny)].sort()])
+}
+
 export async function requireIntegrationApiAccess(
   request: NextRequest,
   requiredScopes: IntegrationScopeRequirement,
 ): Promise<IntegrationApiAuthResult> {
-  const result = await resolveIntegrationApiAccess(request, requiredScopes)
+  // F4: one verified context per request object. A dispatcher preflight and
+  // the handler that serves the same request share one authentication and
+  // one rate-limit charge for the same scope requirement. The cache is keyed
+  // by the request instance (WeakMap), so nothing is reused across requests.
+  const scopeKey = requestScopeKey(requiredScopes)
+  let perRequest = verifiedRequestAccess.get(request)
+  if (!perRequest) {
+    perRequest = new Map()
+    verifiedRequestAccess.set(request, perRequest)
+  }
+  let pending = perRequest.get(scopeKey)
+  if (!pending) {
+    pending = resolveIntegrationApiAccess(request, requiredScopes)
+    perRequest.set(scopeKey, pending)
+  }
+  const result = await pending
   integrationApiResponseContext.enterWith({
     rateLimit: result.rateLimit,
     retryAfterSeconds: result.ok ? undefined : result.retryAfterSeconds,

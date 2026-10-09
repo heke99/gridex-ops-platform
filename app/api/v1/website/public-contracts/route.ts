@@ -12,13 +12,16 @@ import { scheduleUsageEvent } from '@/lib/audit/actionLogger'
 import { loadExternalTenantContext } from '@/lib/integrations/tenantContext'
 import { classifyPublicContractsError } from '@/lib/integrations/publicApiErrors'
 import {
+  buildPublicContractFeedEtag,
   buildPublicContractRepresentationEtag,
   ifNoneMatchMatches,
   loadPublicationRevision,
   parsePublicContractsQuery,
   PublicContractsQueryError,
+  PUBLIC_CONTRACT_REPRESENTATION_REVISION,
   PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
   requestId,
+  selectPublicContractProfile,
 } from '@/lib/website/publicContractApi'
 import { mapContractPublicationToPublicDto } from '@/lib/external-contracts/publicationDto'
 import { supabaseService } from '@/lib/supabase/service'
@@ -33,6 +36,9 @@ function responseHeaders(input: { etag?: string; limit: number; remaining: numbe
     'Cache-Control': 'private, no-store, max-age=0',
     Pragma: 'no-cache',
     Expires: '0',
+    // The representation depends on the credential (tenant/profile); shared
+    // caches must never reuse it across Authorization values.
+    Vary: 'Authorization',
     ...(input.etag ? { ETag: input.etag } : {}),
     'X-Gridex-Contract-Version': PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
     'X-Request-ID': input.requestId,
@@ -99,7 +105,18 @@ export async function GET(request: NextRequest) {
     if (!/^[a-f0-9]{32}$/.test(fingerprint)) {
       throw new Error('public_contract_feed_fingerprint_invalid')
     }
-    const fingerprintEtag = `"pcf-${fingerprint}"`
+    // F16: the cheap ETag binds tenant, customer type, channel, selected
+    // profile and representation revision, not only the DB fingerprint.
+    const profile = selectPublicContractProfile()
+    const fingerprintEtag = buildPublicContractFeedEtag({
+      companyId: auth.context.companyId,
+      customerType: query.customerType,
+      channel: 'website',
+      dbFingerprint: fingerprint,
+      profile,
+      contractSchemaVersion: PUBLIC_CONTRACT_RESPONSE_SCHEMA_VERSION,
+      representationRevision: PUBLIC_CONTRACT_REPRESENTATION_REVISION,
+    })
     const earlyHeaders = responseHeaders({
       etag: fingerprintEtag,
       limit: auth.rateLimit.limit,
@@ -113,7 +130,7 @@ export async function GET(request: NextRequest) {
         request,
         statusCode: 304,
         startedAt,
-        metadata: { request_id: currentRequestId, feed_fingerprint: fingerprint, timings_ms: timings },
+        metadata: { request_id: currentRequestId, feed_fingerprint: fingerprint, representation_etag: fingerprintEtag, contract_profile: profile.revision, timings_ms: timings },
       })
       return new NextResponse(null, { status: 304, headers: earlyHeaders })
     }
