@@ -356,10 +356,52 @@ function aperakBlockedWarningDiagnostic(f: Fixture, sourceId: string, stage: 'se
     'canonical_ack_original_family_mismatch', 'canonical_ack_source_scope_mismatch',
     'canonical_ack_draft_physical_outcome_mismatch', 'canonical_ack_prodat_source_code_profile_mismatch',
     'canonical_ack_owner_scope_required',
-    'ediel_historical_ack_guide_basis_unavailable', 'ediel_ack_guide_original_basis_changed', 'ediel_native_ack_guide_invalid'] as const
+    'ediel_historical_ack_guide_basis_unavailable', 'ediel_ack_guide_original_basis_changed', 'ediel_native_ack_guide_invalid',
+    // Exact b7 source-backed fresh/read/render/storage markers; this is finite diagnostic coverage.
+    'ediel_inbound_legal_context_required', 'ediel_historical_identity_basis_unavailable', 'ediel_ack_current_captured_role_unavailable',
+    'ediel_technical_endpoint_unqualified', 'ediel_ack_replay_actor_not_authorized', 'ediel_ack_replay_actual_source_unavailable',
+    'ediel_ack_replay_legal_scope_invalid', 'ediel_business_ack_current_actor_required', 'ediel_fresh_ack_envelope_invalid',
+    'ediel_message_reference_length_invalid', 'ediel_unh_unused_element', 'ediel_prodat_aperak_unused_document_element',
+    'ediel_native_ack_guide_source_required', 'ediel_registered_original_guide_unavailable', 'prodat_response_native_scope_invalid',
+    'ediel_ack_atomic_outcome_required', 'ediel_ack_atomic_wire_outcome_mismatch', 'ediel_ack_atomic_draft_whitelist_required',
+    'ediel_ack_atomic_wire_required', 'ediel_ack_atomic_wire_family_mismatch', 'ediel_ack_atomic_owner_scope_mismatch',
+    'ediel_ack_atomic_metadata_required', 'ediel_ack_atomic_route_changed', 'ediel_ack_atomic_foreign_source_resource',
+    'ediel_ack_atomic_postwrite_owner_mismatch', 'canonical_ack_route_profile_required', 'canonical_ack_atomic_output_scope_mismatch',
+    'canonical_ack_draft_outcome_scope_mismatch', 'canonical_ack_physical_scope_required', 'canonical_ack_duplicate_scope_mismatch',
+    'canonical_ack_physical_scope_receipt_mismatch', 'ediel_existing_ack_original_current_actor_required', 'ediel_existing_ack_original_read_scope_invalid',
+    'ack_source_qualification_scope_mismatch', 'ack_original_application_reference_ambiguous', 'aperak_prodat_document_reference_required',
+    'aperak_original_legal_party_projection_conflict', 'aperak_prodat_selected_scope_invalid', 'aperak_prodat_requested_scope_unqualified',
+    'aperak_prodat_own_line_reference_required', 'ediel_ack_route_profile_required', 'ediel_ack_route_profile_scope_mismatch',
+    'ediel_ack_route_profile_basis_required', 'canonical_route_environment_mismatch', 'canonical_route_profile_environment_mismatch',
+    'canonical_route_tenant_mismatch', 'ediel_tenant_actor_required', 'ediel_tenant_permission_required',
+    'ediel_tenant_actor_forbidden', 'ediel_tenant_permission_forbidden', 'blocked_final_ack_exists',
+    'outbound_ediel_canonical_policy_evidence_missing', 'ACK_GUIDE_ONE_MESSAGE_REQUIRED', 'ACK_ORIGINAL_TECHNICAL_ROUTE_MISMATCH',
+    'ACK_SOURCE_FAMILY_MISMATCH', 'ACK_APERAK_PROFILE_INVALID', 'ACK_APERAK_BGM_CARDINALITY',
+    'ACK_PRODAT_MESSAGE_FUNCTION_INVALID', 'ACK_PRODAT_UNUSED_DOCUMENT_ELEMENT', 'ACK_APERAK_DOCUMENT_DATE_INVALID',
+    'ACK_APERAK_LEGAL_PARTY_INVALID', 'ACK_APERAK_ERROR_GROUP_MISSING', 'ACK_APERAK_ACCEPTANCE_CODE_INVALID',
+    'ACK_APERAK_OWN_TEXT_INVALID', 'ACK_APERAK_POSITIVE_TEXT_INVALID', 'ACK_PRODAT_OWN_OBJECT_REFERENCE_INVALID',
+    'ACK_PRODAT_ORIGINAL_DOCUMENT_INVALID', 'ACK_PRODAT_ORIGINAL_DOCUMENT_MISMATCH', 'ACK_PRODAT_OWN_OBJECT_SCOPE_MISMATCH',
+    'ACK_PRODAT_OWN_OBJECT_REFERENCE_MISMATCH', 'ACK_PRODAT_OWN_OBJECT_OUTCOME_CONFLICT', 'ACK_APERAK_ORIGINAL_LEGAL_PARTY_MISMATCH',
+    'CANONICAL_PAYLOAD_REQUIRED', 'CANONICAL_PROCESS_GROUP_MISMATCH', 'CANONICAL_EVIDENCE_DIRECTION_REQUIRED',
+    'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE', 'CANONICAL_ACK_SOURCE_RULE_PACK_EVIDENCE_REQUIRED', 'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE',
+    // Additional exact SQL replay/owner/retention markers before ACK persistence.
+    'ediel_ack_replay_scope_required', 'ediel_ack_replay_own_response_ambiguous', 'ediel_ack_replay_private_own_wire_unavailable',
+    'ediel_ack_replay_original_basis_mismatch', 'ediel_ack_replay_physical_source_mismatch', 'ediel_ack_replay_physical_prodat_scope_required',
+    'ediel_historical_prodat_ack_scope_basis_unavailable', 'ediel_prodat_ack_scope_conflicting_outcome', 'ediel_prodat_ack_scope_partially_fixed',
+    'ediel_ack_actual_original_unavailable', 'ediel_original_bytes_retention_tombstoned', 'ediel_outbound_owner_witness_required',
+    'ediel_outbound_owner_actor_scope_required', 'ediel_outbound_owner_preparation_permission_required', 'ediel_prodat_ack_physical_scope_required',
+    'ediel_prodat_ack_contradictory_own_outcome', 'ediel_outbound_owner_witness_scope_invalid', 'ediel_historical_outbound_owner_witness_unavailable',
+    'ediel_outbound_owner_witness_already_consumed', 'ediel_business_ack_private_relation_changed', 'prodat_structural_response_frozen_binding_changed'] as const
   const prefix = 'APERAK skapades inte: '
-  const guards = warnings.map(event => allowedGuards.find(guard => typeof event.message === 'string'
-    && event.message.startsWith(prefix) && event.message.slice(prefix.length).includes(guard)) ?? null)
+  const guards = warnings.map(event => {
+    if (typeof event.message !== 'string' || !event.message.startsWith(prefix)) return null
+    const reason = event.message.slice(prefix.length)
+    // Only the actual leading reason or the exact canonical-policy wrapper supplies a code.
+    // Never reclassify a details/hint mention as the primary failure or emit an unknown token.
+    const reasonCode = /^([a-z][a-z0-9_]*)(?=$|[:\s])/.exec(reason)?.[1]
+      ?? /^Outbound APERAK APERAK blockerades av canonical Ediel-policy: ([A-Z][A-Z0-9_]*) - /.exec(reason)?.[1]
+    return allowedGuards.find(guard => guard === reasonCode) ?? null
+  })
   console.error('C_NATIVE_APERAK_ACK_GATE', JSON.stringify({ stage, blockedAckEventCount: warnings.length,
     guardCounts: allowedGuards.map(guard => ({ guard, count: guards.filter(value => value === guard).length })),
     unknownGuardCount: guards.filter(guard => guard === null).length }))
