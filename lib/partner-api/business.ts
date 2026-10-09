@@ -186,7 +186,13 @@ function publicLocation(input: LocationInput, resolved: EnergyResolverResult) {
         : 'unresolved'
   const provisional = !suggestedOnly && !assuranceUsable && assurance.status !== 'ambiguous' &&
     Boolean(resolved.gridAreaCode || resolved.gridOwnerName)
-  const needsAddress = status === 'ambiguous' || status === 'unresolved'
+  // A postal code spanning several grid areas never names a single grid owner
+  // (the resolver leaves the suggestion empty); an address is then required,
+  // as it is whenever the price-area assurance is not usable.
+  const multipleGridAreaCandidates = suggestedOnly &&
+    resolved.warnings.includes('postal_code_multiple_grid_area_candidates')
+  const needsAddress = status === 'ambiguous' || status === 'unresolved' ||
+    !assuranceUsable || multipleGridAreaCandidates
   return {
     postal_code: input.postalCode,
     city: input.city,

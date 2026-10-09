@@ -40,6 +40,10 @@ Persist the public offer, quote and application references returned by Gridex. D
 
 A website integration must not treat a postcode result, coordinate, candidate owner or other provisional geography as authority for an external grid-owner operation. Canonical grid-area and grid-owner determination after intake is handled internally by Gridex and can use additional verification without changing the public website contract.
 
+Send a full address (`street` + `city`), a `postal_code` or a `grid_area_code`. `facility_id` and `metering_point_id` are accepted only as references stored with the request; they never resolve a price area on their own. A request that contains only those identifiers is rejected with `422` and error code `energy_area_address_required`.
+
+A postal-code centroid that lies close to a price-area boundary is never returned as price-ready; send a full address in that case.
+
 This separation keeps checkout fast while preventing a provisional website lookup from becoming an external-send routing decision.
 
 Invoicing never re-resolves the price area. Billing uses the locked `price_area` from the quote/contract price snapshot, and the database also rejects direct writes of a billing underlay whose price area is missing or differs from that snapshot (`billing_contract_price_area_missing`, `billing_underlay_price_area_mismatch`).
