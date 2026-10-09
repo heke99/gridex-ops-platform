@@ -128,6 +128,26 @@ export async function assertPublicWebhookTarget(raw: string): Promise<URL> {
   return url
 }
 
+/**
+ * DNS lookup pinned to the already validated public address. Node 22 calls
+ * lookup with `{ all: true }` (autoSelectFamily) and then expects an array;
+ * answering with a single address made every hostname webhook fail with
+ * ERR_INVALID_IP_ADDRESS.
+ */
+export function pinnedLookup(pinned: { address: string; family: number }) {
+  return (
+    _hostname: string,
+    options: { all?: boolean } | number | undefined,
+    callback: (...args: any[]) => void,
+  ) => {
+    if (typeof options === 'object' && options?.all) {
+      callback(null, [{ address: pinned.address, family: pinned.family }])
+      return
+    }
+    callback(null, pinned.address, pinned.family)
+  }
+}
+
 export async function postPublicWebhook(input: {
   url: string
   headers: Headers
@@ -145,9 +165,7 @@ export async function postPublicWebhook(input: {
         method: 'POST',
         headers: Object.fromEntries(input.headers.entries()),
         signal: input.signal,
-        lookup: (_hostname, _options, callback) => {
-          callback(null, pinned.address, pinned.family)
-        },
+        lookup: pinnedLookup(pinned),
       },
       (response) => {
         const chunks: Buffer[] = []

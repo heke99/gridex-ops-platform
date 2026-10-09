@@ -1,7 +1,7 @@
 import "server-only";
 import { requireContractRecordsAvailable } from '@/lib/ediel/retention/customerRecordClasses';
 
-import { attemptContractConfirmationDelivery, listDueContractConfirmations } from "./confirmationDelivery";
+import { attemptContractConfirmationDelivery, listDueContractConfirmations, recordContractConfirmationFailure } from "./confirmationDelivery";
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { getBaseAppUrl } from "@/lib/auth/urls";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
@@ -688,28 +688,41 @@ export async function finalizeOnlineContractSignature(input: {
   return { receipt, deliveryError: delivery.error, confirmationState: delivery.state };
 }
 
-/** Retries pending signed-contract confirmations without signing again (F27). */
+/**
+ * Retries pending signed-contract confirmations without signing again (F27).
+ * Every row is isolated: a broken row records its own failure and never
+ * stops the remaining rows or the rest of the cron.
+ */
 export async function processPendingContractConfirmations(limit = 20) {
   const due = await listDueContractConfirmations(limit);
   const results: Array<{ signatureRequestId: string; state: string; error: string | null }> = [];
   for (const item of due) {
-    const request = await supabaseService
-      .from("customer_contract_signature_requests")
-      .select("token_hash,used_at")
-      .eq("id", item.signatureRequestId)
-      .eq("company_id", item.companyId)
-      .maybeSingle();
-    if (request.error) throw request.error;
-    if (!request.data?.used_at) continue;
-    const receiptResult = await supabaseService.rpc(
-      "gridex_get_customer_contract_signature_receipt_v1",
-      { p_token_hash: request.data.token_hash },
-    );
-    if (receiptResult.error) throw receiptResult.error;
-    const receipt = parseReceipt(receiptResult.data);
-    if (receipt.company_id !== item.companyId || receipt.request_id !== item.signatureRequestId) continue;
-    const delivery = await attemptContractConfirmationDelivery(receipt, deliverSignedContractReceipt);
-    results.push({ signatureRequestId: item.signatureRequestId, state: delivery.state, error: delivery.error });
+    const ref = { company_id: item.companyId, request_id: item.signatureRequestId };
+    try {
+      const request = await supabaseService
+        .from("customer_contract_signature_requests")
+        .select("token_hash,used_at")
+        .eq("id", item.signatureRequestId)
+        .eq("company_id", item.companyId)
+        .maybeSingle();
+      if (request.error) throw request.error;
+      if (!request.data?.used_at) throw new Error("signature_request_not_signed");
+      const receiptResult = await supabaseService.rpc(
+        "gridex_get_customer_contract_signature_receipt_v1",
+        { p_token_hash: request.data.token_hash },
+      );
+      if (receiptResult.error) throw receiptResult.error;
+      const receipt = parseReceipt(receiptResult.data);
+      if (receipt.company_id !== item.companyId || receipt.request_id !== item.signatureRequestId) {
+        throw new Error("signature_receipt_owner_mismatch");
+      }
+      const delivery = await attemptContractConfirmationDelivery(receipt, deliverSignedContractReceipt);
+      results.push({ signatureRequestId: item.signatureRequestId, state: delivery.state, error: delivery.error });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await recordContractConfirmationFailure(ref, item.attempts, message);
+      results.push({ signatureRequestId: item.signatureRequestId, state: "error", error: message });
+    }
   }
   return { processed: results.length, results };
 }

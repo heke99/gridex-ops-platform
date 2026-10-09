@@ -19,32 +19,39 @@ vi.mock('@/lib/supabase/service', () => ({
   supabaseService: {
     rpc: h.rpc,
     from: (table: string) => {
-      const filters: Record<string, unknown> = {}
+      const eq: Record<string, unknown> = {}
+      let lte: [string, string] | null = null
+      let patch: Record<string, unknown> | null = null
       let upsert: Record<string, unknown> | null = null
-      const rows = () => {
-        if (table === 'customer_contract_confirmation_deliveries') {
-          return [...h.deliveries.values()].filter((row) => Object.entries(filters).every(([k, v]) => k === 'lte' || row[k] === v))
+      let ignoreDuplicates = false
+      const store = table === 'customer_contract_confirmation_deliveries' ? h.deliveries : table === 'customer_contract_signature_requests' ? h.requests : null
+      const matches = (row: Record<string, unknown>) =>
+        Object.entries(eq).every(([k, v]) => row[k] === v) && (!lte || String(row[lte[0]] ?? '') <= lte[1])
+      const rows = () => store ? [...store.values()].filter(matches) : [{ document_sha256: null }]
+      const run = () => {
+        if (upsert) {
+          const key = String(upsert.signature_request_id)
+          if (!(ignoreDuplicates && h.deliveries.has(key))) {
+            h.deliveries.set(key, { state: 'pending', attempts: 0, next_attempt_at: '1970-01-01T00:00:00.000Z', ...(h.deliveries.get(key) ?? {}), ...upsert })
+          }
+          return { data: null, error: null }
         }
-        if (table === 'customer_contract_signature_requests') {
-          return [...h.requests.values()].filter((row) => Object.entries(filters).every(([k, v]) => row[k] === v))
+        if (patch && store) {
+          const hit = rows()
+          hit.forEach((row) => Object.assign(row, patch))
+          return { data: hit[0] ?? null, error: null }
         }
-        return [{ document_sha256: null }]
+        return { data: rows(), error: null }
       }
       const q: any = {
-        select: () => q, update: () => q, is: () => q, order: () => q, limit: () => q,
-        eq: (k: string, v: unknown) => { filters[k === 'id' ? 'id' : k] = v; return q },
-        lte: () => q,
-        upsert: (row: Record<string, unknown>) => { upsert = row; return q },
-        single: async () => ({ data: rows()[0] ?? null, error: null }),
-        maybeSingle: async () => ({ data: rows()[0] ?? null, error: null }),
-        then: (resolve: any, reject?: any) => {
-          if (upsert) {
-            const key = String(upsert.signature_request_id)
-            h.deliveries.set(key, { ...(h.deliveries.get(key) ?? {}), ...upsert })
-            return Promise.resolve({ data: null, error: null }).then(resolve, reject)
-          }
-          return Promise.resolve({ data: rows(), error: null }).then(resolve, reject)
-        },
+        select: () => q, is: () => q, order: () => q, limit: () => q,
+        eq: (k: string, v: unknown) => { eq[k] = v; return q },
+        lte: (k: string, v: string) => { lte = [k, v]; return q },
+        update: (row: Record<string, unknown>) => { patch = row; return q },
+        upsert: (row: Record<string, unknown>, options?: { ignoreDuplicates?: boolean }) => { upsert = row; ignoreDuplicates = Boolean(options?.ignoreDuplicates); return q },
+        single: async () => { const r = run(); return { data: Array.isArray(r.data) ? r.data[0] ?? null : r.data, error: null } },
+        maybeSingle: async () => { const r = run(); return { data: Array.isArray(r.data) ? r.data[0] ?? null : r.data, error: null } },
+        then: (resolve: any, reject?: any) => Promise.resolve(run()).then(resolve, reject),
       }
       return q
     },
@@ -63,7 +70,7 @@ beforeEach(() => {
     if (name === 'gridex_finalize_customer_contract_signature_v1') {
       h.signCount++
       // The signing transaction's trigger creates the pending continuation.
-      h.deliveries.set('request-1', { company_id: 'tenant-a', customer_contract_id: 'contract-1', signature_request_id: 'request-1', state: 'pending', attempts: 0 })
+      h.deliveries.set('request-1', { company_id: 'tenant-a', customer_contract_id: 'contract-1', signature_request_id: 'request-1', state: 'pending', attempts: 0, next_attempt_at: '1970-01-01T00:00:00.000Z' })
     }
     return { data: receipt, error: null }
   })
@@ -85,6 +92,7 @@ describe('F27: durable signed-contract confirmation continuation', () => {
   it('worker retry queues the confirmation without signing again, with a stable idempotency key', async () => {
     h.archive.mockRejectedValueOnce(new Error('synthetic_archive_unavailable'))
     await finalizeOnlineContractSignature({ token: 'a'.repeat(64) })
+    h.deliveries.get('request-1')!.next_attempt_at = '1970-01-01T00:00:00.000Z'
     const run = await processPendingContractConfirmations(10)
     expect(run.results).toEqual([{ signatureRequestId: 'request-1', state: 'queued', error: null }])
     expect(h.signCount).toBe(1)
@@ -103,9 +111,29 @@ describe('F27: durable signed-contract confirmation continuation', () => {
 
   it('stops retrying after the maximum attempts and reports failed', async () => {
     h.archive.mockRejectedValue(new Error('synthetic_permanent_failure'))
-    h.deliveries.set('request-1', { company_id: 'tenant-a', customer_contract_id: 'contract-1', signature_request_id: 'request-1', state: 'pending', attempts: 7 })
+    h.deliveries.set('request-1', { company_id: 'tenant-a', customer_contract_id: 'contract-1', signature_request_id: 'request-1', state: 'pending', attempts: 7, next_attempt_at: '1970-01-01T00:00:00.000Z' })
     const run = await processPendingContractConfirmations(10)
     expect(run.results[0]).toMatchObject({ state: 'failed' })
+  })
+})
+
+describe('bug-hunt: worker isolation and leases', () => {
+  it('a broken row records its own failure and does not stop the next row', async () => {
+    h.deliveries.set('broken', { company_id: 'tenant-a', customer_contract_id: 'contract-x', signature_request_id: 'broken', state: 'pending', attempts: 0, next_attempt_at: '1970-01-01T00:00:00.000Z' })
+    h.requests.set('broken', { id: 'broken', company_id: 'tenant-a', token_hash: 'e'.repeat(64), used_at: '2026-10-07T09:00:00Z' })
+    h.deliveries.set('request-1', { company_id: 'tenant-a', customer_contract_id: 'contract-1', signature_request_id: 'request-1', state: 'pending', attempts: 0, next_attempt_at: '1970-01-01T00:00:00.000Z' })
+    h.rpc.mockImplementation(async (_name: string, args: { p_token_hash?: string }) =>
+      args?.p_token_hash === 'e'.repeat(64) ? { data: { ...receipt, request_id: 'broken', customer_name: '' }, error: null } : { data: receipt, error: null })
+    const run = await processPendingContractConfirmations(10)
+    expect(run.results.map((r) => r.state).sort()).toEqual(['error', 'queued'])
+    expect(h.deliveries.get('broken')).toMatchObject({ state: 'pending', attempts: 1 })
+    expect(h.deliveries.get('request-1')).toMatchObject({ state: 'queued' })
+  })
+  it('a leased row is not delivered concurrently by the worker', async () => {
+    h.deliveries.set('request-1', { company_id: 'tenant-a', customer_contract_id: 'contract-1', signature_request_id: 'request-1', state: 'pending', attempts: 0, next_attempt_at: '2999-01-01T00:00:00.000Z' })
+    await processPendingContractConfirmations(10)
+    expect(h.archive).not.toHaveBeenCalled()
+    expect(h.send).not.toHaveBeenCalled()
   })
 })
 

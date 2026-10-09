@@ -85,7 +85,11 @@ async function run(request: NextRequest) {
     // time (F27). Retries never sign again; idempotency keys are stable.
     const contractConfirmations = await processPendingContractConfirmations(
       Math.min(requestedLimit, 50),
-    )
+    ).catch((error: unknown) => ({
+      processed: 0,
+      results: [],
+      error: error instanceof Error ? error.message : String(error),
+    }))
     const customerOperations = await processCustomerOperationJobs({
       workerId: `customer-operations-cron:${new Date().toISOString()}`,
       limit: requestedLimit,

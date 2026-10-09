@@ -180,7 +180,42 @@ export async function claimPortalWriteIdempotency(input: {
       409,
     )
   }
+  const startedAt = Date.parse(String(existing.data.started_at ?? ''))
+  if (Number.isFinite(startedAt) && Date.now() - startedAt > STALE_PROCESSING_MS) {
+    // The earlier attempt stopped without a confirmed result (crash, timeout
+    // or lost completion). Its business effect is unknown, so it is neither
+    // replayed nor re-executed.
+    throw new ApiInputError(
+      'Ett tidigare anrop med samma Idempotency-Key avbröts utan bekräftat resultat. Kontrollera resursens status innan en ny nyckel används.',
+      'idempotency_reconciliation_required',
+      409,
+    )
+  }
   throw new ApiInputError('Ett identiskt anrop behandlas redan.', 'idempotency_in_progress', 409)
+}
+
+const STALE_PROCESSING_MS = 10 * 60_000
+
+/**
+ * Thrown by an execute callback when it failed before any business mutation
+ * could have happened (e.g. a file upload). The claim is released so the
+ * client can retry with the same key.
+ */
+export class IdempotentWriteNotStartedError extends Error {
+  constructor(readonly cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause))
+    this.name = 'IdempotentWriteNotStartedError'
+  }
+}
+
+async function releasePortalWriteIdempotency(input: { recordId: string; companyId: string }): Promise<void> {
+  const { error } = await supabaseService
+    .from('customer_portal_write_idempotency')
+    .delete()
+    .eq('id', input.recordId)
+    .eq('company_id', input.companyId)
+    .eq('status', 'processing')
+  if (error) throw error
 }
 
 export async function completePortalWriteIdempotency(input: {
@@ -238,7 +273,7 @@ export class IdempotentWriteCompletionUncertainError extends ApiInputError {
 
   constructor() {
     super(
-      'Ändringen kan redan vara sparad men kvittensen kunde inte bekräftas. Försök igen med samma Idempotency-Key.',
+      'Ändringen kan redan vara sparad men kvittensen kunde inte bekräftas. Försök igen med samma Idempotency-Key; svarar API:t idempotency_reconciliation_required ska resursens status kontrolleras innan en ny nyckel används.',
       'idempotency_completion_uncertain',
       503,
     )
@@ -301,6 +336,10 @@ export async function executeIdempotentPortalWrite<T>(input: {
   try {
     result = await input.execute()
   } catch (error) {
+    if (error instanceof IdempotentWriteNotStartedError) {
+      await releasePortalWriteIdempotency({ recordId: claim.recordId, companyId: input.companyId }).catch(() => undefined)
+      throw customerPortalWriteError(error.cause)
+    }
     const writeError = customerPortalWriteError(error)
     const errorCode = writeError instanceof ApiInputError ? writeError.code : 'write_failed'
     await failPortalWriteIdempotency({

@@ -5,6 +5,7 @@ import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 import {
   ApiInputError,
   executeIdempotentPortalWrite,
+  IdempotentWriteNotStartedError,
   readJsonObject,
   requireIsoDate,
 } from '@/lib/api/strictRequest'
@@ -348,7 +349,14 @@ async function withStoredPoaPdf<R extends { error: unknown }>(
   file: PreparedPoaPdf | null,
   mutate: () => PromiseLike<R>,
 ): Promise<R> {
-  if (file) await storePoaPdf(file)
+  if (file) {
+    // Upload failure happens before any business write: release the key.
+    try {
+      await storePoaPdf(file)
+    } catch (error) {
+      throw new IdempotentWriteNotStartedError(error)
+    }
+  }
   const result = await mutate()
   if (result.error && file) await cleanupPoa(file.path)
   return result
