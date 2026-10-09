@@ -1,0 +1,27 @@
+{
+  "read_only_live_definitions_reviewed": true,
+  "no_live_writes": true,
+  "comparisons": [
+    {
+      "function": "canonical_onboard_customer_graph",
+      "poa_reference_validation_present": false
+    },
+    {
+      "function": "gridex_onboard_customer_graph",
+      "poa_reference_validation_present": false
+    },
+    {
+      "function": "gridex_onboard_customer_graph_core",
+      "live_poa_phase_lines": [
+        435,
+        462
+      ],
+      "exact_phase_equals_executed_sql": true
+    },
+    {
+      "function": "gridex_onboard_customer_graph_quote_commit_v2",
+      "poa_reference_validation_present": false
+    }
+  ],
+  "interpretation": "Live POA insertion expression byte-identical to executed native phase. Deployed wrappers contain no POA reference guards; quote wrapper binds contract quote legal bundle but does not compare chosen POA document. Native core records legal snapshot accepted bundle independently at live lines505-525."
+}

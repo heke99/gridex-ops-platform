@@ -1,0 +1,59 @@
+{
+  "read_only": true,
+  "project_id": "piidsfebjqjmnepdpnas",
+  "scope": "Shared public market price data only; no customer rows; not authenticated API verification.",
+  "rows": [
+    {
+      "source": "elprisetjustnu",
+      "price_area": "SE1",
+      "resolution": "quarter_hour",
+      "time_start": "2026-10-07 10:30:00+00",
+      "time_end": "2026-10-07 10:45:00+00",
+      "sek_per_kwh": "0.09113",
+      "status": "verified",
+      "provider_fetched_at": "2026-10-07 10:15:32.062+00",
+      "verified_at": "2026-10-07 10:15:32.062+00",
+      "summary_updated_at": "2026-10-07 10:15:32.062+00",
+      "checked_at": "2026-10-07 10:44:21.259745+00"
+    },
+    {
+      "source": "elprisetjustnu",
+      "price_area": "SE2",
+      "resolution": "quarter_hour",
+      "time_start": "2026-10-07 10:30:00+00",
+      "time_end": "2026-10-07 10:45:00+00",
+      "sek_per_kwh": "0.11712",
+      "status": "verified",
+      "provider_fetched_at": "2026-10-07 10:15:32.746+00",
+      "verified_at": "2026-10-07 10:15:32.746+00",
+      "summary_updated_at": "2026-10-07 10:15:32.746+00",
+      "checked_at": "2026-10-07 10:44:21.259745+00"
+    },
+    {
+      "source": "elprisetjustnu",
+      "price_area": "SE3",
+      "resolution": "quarter_hour",
+      "time_start": "2026-10-07 10:30:00+00",
+      "time_end": "2026-10-07 10:45:00+00",
+      "sek_per_kwh": "0.87509",
+      "status": "verified",
+      "provider_fetched_at": "2026-10-07 10:15:33.323+00",
+      "verified_at": "2026-10-07 10:15:33.323+00",
+      "summary_updated_at": "2026-10-07 10:15:33.323+00",
+      "checked_at": "2026-10-07 10:44:21.259745+00"
+    },
+    {
+      "source": "elprisetjustnu",
+      "price_area": "SE4",
+      "resolution": "quarter_hour",
+      "time_start": "2026-10-07 10:30:00+00",
+      "time_end": "2026-10-07 10:45:00+00",
+      "sek_per_kwh": "1.67401",
+      "status": "verified",
+      "provider_fetched_at": "2026-10-07 10:15:33.895+00",
+      "verified_at": "2026-10-07 10:15:33.895+00",
+      "summary_updated_at": "2026-10-07 10:15:33.895+00",
+      "checked_at": "2026-10-07 10:44:21.259745+00"
+    }
+  ]
+}

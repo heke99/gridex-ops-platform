@@ -1,0 +1,4 @@
+/tmp/gridex-api-review-node22/node_modules/.bin/node node_modules/vitest/vitest.mjs run --maxWorkers=4 __tests__/website-*.test.ts __tests__/partner-*.test.ts __tests__/customer-portal-*.test.ts __tests__/tenant*.test.ts __tests__/public-contract*.test.ts __tests__/public-website-quote.test.ts __tests__/idempotency.test.ts __tests__/usage-event-and-integration-idempotency.test.ts __tests__/customer-merge-partner-idempotency.test.ts __tests__/business-action-tenant-graph-hardening.test.ts
+
+Runtime: Node 22.23.3. Scope: Gridex OPS only.
+The 586 cases overlap some earlier Staff review cases; counts must not be summed as unique tests.
