@@ -9,6 +9,7 @@ import { archiveSignedCustomerContractPdf } from "@/lib/customer-contracts/docum
 import { sendCompanyEmail } from "@/lib/email/sendCompanyEmail";
 import { getSupabaseServiceEnv } from "@/lib/env/supabaseServer";
 import { supabaseService } from "@/lib/supabase/service";
+import { stockholmWithdrawalDeadlineDate } from "@/lib/time/stockholm";
 import { companyEmailContext } from "@/lib/website/customerApplicationCommunication";
 
 const SIGNATURE_TEMPLATE_KEY = "contract.signature_requested";
@@ -597,7 +598,9 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
     start_date: receipt.starts_at ?? "",
     support_email: company.supportEmail ?? company.replyTo ?? customerEmail,
     cancellation_deadline:
-      (receipt.withdrawal_deadline_at ?? contractState.withdrawal_deadline_at)?.slice(0, 10) ?? "",
+      stockholmWithdrawalDeadlineDate({
+        storedDeadlineAt: receipt.withdrawal_deadline_at ?? contractState.withdrawal_deadline_at,
+      }) ?? "",
     portal_url: company.portalUrl ?? getBaseAppUrl(),
   };
 
@@ -639,7 +642,7 @@ export async function deliverSignedContractReceipt(receipt: OnlineSignatureRecei
       to: customerEmail,
       legalOrCritical: true,
       idempotencyKey: `online_signature:${receipt.request_id}:cooling_off`,
-      variables: { ...variables, cancellation_deadline: withdrawalDeadline.slice(0, 10) },
+      variables: { ...variables, cancellation_deadline: stockholmWithdrawalDeadlineDate({ storedDeadlineAt: withdrawalDeadline }) ?? "" },
       metadata: {
         contract_id: receipt.contract_id,
         customer_number: customerNumber,

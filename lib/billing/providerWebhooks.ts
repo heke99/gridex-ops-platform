@@ -9,7 +9,6 @@ type JsonRecord = Record<string, unknown>
 export type BillingProviderWebhookResult = {
   provider: string
   eventId: string
-  companyId: string
   environment: 'test' | 'production'
   eventType: string
   signatureValid: true
@@ -24,9 +23,28 @@ export class BillingProviderWebhookAuthError extends Error {
   }
 }
 
+/**
+ * Non-retryable request/routing failure. Mapped to a 4xx response so providers
+ * stop retrying payloads that can never succeed (instead of a 500 retry loop).
+ */
+export class BillingProviderWebhookRequestError extends Error {
+  readonly status: 400 | 404 | 413 | 422
+  readonly code: string
+  constructor(status: 400 | 404 | 413 | 422, code: string, message: string) {
+    super(message)
+    this.name = 'BillingProviderWebhookRequestError'
+    this.status = status
+    this.code = code
+  }
+}
+
+function badRequest(message: string): BillingProviderWebhookRequestError {
+  return new BillingProviderWebhookRequestError(400, 'billing_webhook_invalid_payload', message)
+}
+
 function normalizedProvider(provider: string): string {
   const normalized = provider.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '')
-  if (!normalized) throw new Error('Provider saknas.')
+  if (!normalized) throw badRequest('Provider saknas.')
   return normalized
 }
 
@@ -44,14 +62,14 @@ function eventType(payload: JsonRecord): string {
 
 function eventId(payload: JsonRecord): string {
   const id = text(payload.id) ?? text(payload.event_id) ?? text(payload.eventId) ?? text(payload.webhook_id)
-  if (!id) throw new Error('Providerwebhooken saknar stabilt event-ID.')
-  if (id.length > 250) throw new Error('Providerwebhookens event-ID är för långt.')
+  if (!id) throw badRequest('Providerwebhooken saknar stabilt event-ID.')
+  if (id.length > 250) throw badRequest('Providerwebhookens event-ID är för långt.')
   return id
 }
 
 function invoiceGuid(payload: JsonRecord): string {
   const guid = text(payload.invoiceGuid) ?? text(payload.invoice_guid) ?? text(payload.provider_invoice_guid) ?? text(object(payload.invoice).invoiceGuid)
-  if (!guid) throw new Error('Providerwebhooken saknar invoiceGuid.')
+  if (!guid) throw badRequest('Providerwebhooken saknar invoiceGuid.')
   return guid
 }
 
@@ -64,9 +82,14 @@ function timestampSeconds(headers: Headers): number {
   return value
 }
 
-function verifySignature(input: { body: string; signature: string | null; timestamp: number; secret: string }): true {
-  const provided = input.signature?.replace(/^sha256=/i, '').trim() ?? ''
+function signatureHex(signature: string | null): string {
+  const provided = signature?.replace(/^sha256=/i, '').trim() ?? ''
   if (!/^[a-f0-9]{64}$/i.test(provided)) throw new BillingProviderWebhookAuthError('Providerwebhookens signaturformat är ogiltigt.')
+  return provided
+}
+
+function verifySignature(input: { body: string; signature: string; timestamp: number; secret: string }): true {
+  const provided = input.signature
   const expected = createHmac('sha256', input.secret).update(`${input.timestamp}.${input.body}`).digest('hex')
   const left = Buffer.from(expected, 'hex')
   const right = Buffer.from(provided, 'hex')
@@ -84,12 +107,19 @@ async function resolveTarget(input: { provider: string; invoiceGuid: string }) {
   const itemResult = await query
   if (itemResult.error) throw itemResult.error
   const items = (itemResult.data ?? []) as JsonRecord[]
-  if (items.length !== 1) throw new Error(items.length === 0 ? 'Providerfakturan kan inte kopplas till exakt en tenant.' : 'Providerfakturan matchar flera tenants.')
+  if (items.length === 0) {
+    throw new BillingProviderWebhookRequestError(404, 'billing_webhook_unknown_invoice', 'Providerfakturan kan inte kopplas till exakt en tenant.')
+  }
+  if (items.length !== 1) {
+    throw new BillingProviderWebhookRequestError(422, 'billing_webhook_unroutable', 'Providerfakturan matchar flera tenants.')
+  }
   const item = items[0]
   const companyId = text(item.company_id)
   const itemId = text(item.id)
   const environment = text(item.environment)
-  if (!companyId || !itemId || !['test', 'production'].includes(environment ?? '')) throw new Error('Providerfakturan saknar entydig tenant eller miljö.')
+  if (!companyId || !itemId || !['test', 'production'].includes(environment ?? '')) {
+    throw new BillingProviderWebhookRequestError(422, 'billing_webhook_unroutable', 'Providerfakturan saknar entydig tenant eller miljö.')
+  }
 
   const connectionResult = await supabaseService
     .from('billing_provider_connections')
@@ -101,12 +131,16 @@ async function resolveTarget(input: { provider: string; invoiceGuid: string }) {
     .limit(2)
   if (connectionResult.error) throw connectionResult.error
   const connections = (connectionResult.data ?? []) as JsonRecord[]
-  if (connections.length !== 1) throw new Error('Exakt en aktiv provideranslutning krävs för webhookens tenant och miljö.')
+  if (connections.length !== 1) {
+    throw new BillingProviderWebhookRequestError(422, 'billing_webhook_unroutable', 'Exakt en aktiv provideranslutning krävs för webhookens tenant och miljö.')
+  }
   const connection = connections[0]
   const secretReference = object(connection.secret_reference)
   const envName = text(secretReference.webhook_secret_env)
   const secret = envName ? process.env[envName] : null
-  if (!secret) throw new Error('Tenantens provideranslutning saknar webhook-hemlighet.')
+  if (!secret) {
+    throw new BillingProviderWebhookRequestError(422, 'billing_webhook_unroutable', 'Tenantens provideranslutning saknar webhook-hemlighet.')
+  }
   return {
     itemId,
     companyId,
@@ -122,25 +156,32 @@ export async function receiveBillingProviderWebhook(input: {
   headers: Headers
 }): Promise<BillingProviderWebhookResult> {
   await assertPlatformSchemaReady()
-  if (Buffer.byteLength(input.body, 'utf8') > 512_000) throw new Error('Providerwebhookens payload är för stor.')
+  if (Buffer.byteLength(input.body, 'utf8') > 512_000) {
+    throw new BillingProviderWebhookRequestError(413, 'billing_webhook_payload_too_large', 'Providerwebhookens payload är för stor.')
+  }
   let parsed: unknown
   try {
     parsed = JSON.parse(input.body)
   } catch {
-    throw new Error('Providerwebhookens JSON är ogiltig.')
+    throw badRequest('Providerwebhookens JSON är ogiltig.')
   }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Providerwebhookens payload måste vara ett objekt.')
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw badRequest('Providerwebhookens payload måste vara ett objekt.')
   const payload = parsed as JsonRecord
   const provider = normalizedProvider(input.provider)
   const externalEventId = eventId(payload)
   const providerInvoiceGuid = invoiceGuid(payload)
+  // Cheap, secret-independent checks (replay window, signature format) run
+  // before any database lookup so unsigned noise never touches the database.
+  const timestamp = timestampSeconds(input.headers)
+  const signature = signatureHex(
+    input.headers.get('x-gridex-signature') ?? input.headers.get('x-capway-signature') ?? input.headers.get('x-signature'),
+  )
   // Tenant claims in headers or payload are intentionally ignored. The tenant is
   // resolved exclusively from the persisted provider invoice relation.
   const target = await resolveTarget({ provider, invoiceGuid: providerInvoiceGuid })
-  const timestamp = timestampSeconds(input.headers)
   verifySignature({
     body: input.body,
-    signature: input.headers.get('x-gridex-signature') ?? input.headers.get('x-capway-signature') ?? input.headers.get('x-signature'),
+    signature,
     timestamp,
     secret: target.secret,
   })
@@ -209,7 +250,6 @@ export async function receiveBillingProviderWebhook(input: {
   return {
     provider,
     eventId: externalEventId,
-    companyId: target.companyId,
     environment: target.environment,
     eventType: normalizedEventType,
     signatureValid: true,
