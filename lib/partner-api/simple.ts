@@ -1,3 +1,4 @@
+import { inspectPdfStructure } from '@/lib/documents/pdfStructure'
 import { createHash, randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import {
@@ -379,8 +380,8 @@ function preparePoaPdf(companyId: string, value: unknown, extension: unknown) {
   if (!bytes.length || bytes.length > MAX_POA_BYTES) {
     throw new SimplePartnerApiError('Power of attorney PDF must be 5 MB or smaller.', 'poa_file_size_invalid', 413, 'file_base64')
   }
-  if (bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
-    throw new SimplePartnerApiError('The uploaded file is not a PDF.', 'poa_file_signature_invalid', 422, 'file_base64')
+  if (!inspectPdfStructure(bytes).ok) {
+    throw new SimplePartnerApiError('The uploaded file is not a PDF or is not a readable PDF document.', 'poa_file_signature_invalid', 422, 'file_base64')
   }
   const sha256 = createHash('sha256').update(bytes).digest('hex')
   const path = `partner-api/${companyId}/${randomUUID()}.pdf`

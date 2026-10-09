@@ -334,7 +334,7 @@ export const partnerOpenApi = {
         properties: {
           poa_type: { type: 'string', enum: ['WEB', 'PAPER', 'AUDIO'] },
           transaction_type: { type: 'string', enum: ['SWITCH', 'MOVE_OUT'] },
-          file_base64: { type: 'string', description: 'Signed PDF encoded as base64. Maximum decoded size 5 MB.' },
+          file_base64: { type: 'string', description: 'Signed PDF encoded as base64. Maximum decoded size 5 MB. The file must be a readable PDF document (header, cross-reference, catalog and at least one page); otherwise 422 poa_file_signature_invalid and nothing is stored. Structural validation does not verify a digital signature.' },
           file_extension: { type: 'string', enum: ['pdf'] },
         },
       },
