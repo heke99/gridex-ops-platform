@@ -39,9 +39,29 @@ type ProcessResult = {
   matchedManualOutboxId: string | null
   tracked: boolean
   known: boolean
-  // Non-fatal post-processing problems are reported here, never surfaced as an
-  // auth failure. The event is always stored once the signature is valid.
-  processingWarning: string | null
+  // True when the provider event was already stored AND fully processed; the
+  // replay is acknowledged without re-applying anything.
+  duplicate: boolean
+}
+
+export type ResendWebhookProcessingStage =
+  | 'communication_log_lookup_failed'
+  | 'manual_outbox_lookup_failed'
+  | 'event_store_failed'
+  | 'communication_status_failed'
+  | 'manual_outbox_status_failed'
+  | 'event_mark_processed_failed'
+
+// Thrown when a verified event could not be fully processed. The route turns it
+// into a 5xx so Resend retries; the stored-but-unprocessed event is then
+// re-processed on the retry. Only the stage code is exposed to the caller.
+export class ResendWebhookProcessingError extends Error {
+  stage: ResendWebhookProcessingStage
+  constructor(stage: ResendWebhookProcessingStage, cause: unknown) {
+    super(stage, { cause })
+    this.name = 'ResendWebhookProcessingError'
+    this.stage = stage
+  }
 }
 
 const KNOWN_EVENT_TYPES = new Set([
@@ -143,6 +163,34 @@ async function findCommunicationLog(providerMessageId: string | null): Promise<C
   return data as CommunicationLog | null
 }
 
+type StoredProviderEvent = { id: string; processed: boolean } | null
+
+// Returns the stored provider event (if any) and whether it was fully
+// processed. Pre-migration schemas without processed_at treat every stored
+// event as processed (legacy at-most-once behaviour).
+async function findStoredProviderEvent(providerEventId: string): Promise<StoredProviderEvent> {
+  const { data, error } = await supabaseService
+    .from('communication_log_events')
+    .select('id,processed_at')
+    .eq('provider', 'resend')
+    .eq('provider_event_id', providerEventId)
+    .maybeSingle()
+  if (error) {
+    if (!isMissingSchema(error)) throw error
+    const legacy = await supabaseService
+      .from('communication_log_events')
+      .select('id')
+      .eq('provider', 'resend')
+      .eq('provider_event_id', providerEventId)
+      .maybeSingle()
+    if (legacy.error) throw legacy.error
+    return legacy.data ? { id: String((legacy.data as { id: unknown }).id), processed: true } : null
+  }
+  if (!data) return null
+  const row = data as { id: unknown; processed_at?: unknown }
+  return { id: String(row.id), processed: Boolean(row.processed_at) }
+}
+
 async function storeProviderEvent(input: {
   event: WebhookEventPayload
   headers: ResendWebhookHeaders
@@ -151,22 +199,32 @@ async function storeProviderEvent(input: {
   // Fallback tenant when there is no communication_log (manual grid-owner email
   // matched only by provider_message_id in manual_email_outbox).
   fallbackCompanyId?: string | null
-}) {
-  const { data: existing, error: existingError } = await supabaseService
-    .from('communication_log_events')
-    .select('id')
-    .eq('provider', 'resend')
-    .eq('provider_event_id', input.headers.id)
-    .maybeSingle()
+  existing: StoredProviderEvent
+}): Promise<string | null> {
+  const companyId = input.log?.company_id ?? input.fallbackCompanyId ?? null
+  const logId = input.log?.id ?? null
 
-  if (existingError) throw existingError
-  if (existing) return
+  if (input.existing) {
+    // Stored by an earlier, failed delivery attempt: refresh the links that
+    // may have been unavailable then. Never overwrite existing links with null.
+    if (companyId || logId) {
+      const patch: Record<string, unknown> = {}
+      if (companyId) patch.company_id = companyId
+      if (logId) patch.communication_log_id = logId
+      const { error } = await supabaseService
+        .from('communication_log_events')
+        .update(patch)
+        .eq('id', input.existing.id)
+      if (error) throw error
+    }
+    return input.existing.id
+  }
 
-  const { error } = await supabaseService
+  const { data, error } = await supabaseService
     .from('communication_log_events')
     .insert({
-      company_id: input.log?.company_id ?? input.fallbackCompanyId ?? null,
-      communication_log_id: input.log?.id ?? null,
+      company_id: companyId,
+      communication_log_id: logId,
       provider: 'resend',
       provider_message_id: input.providerMessageId,
       provider_event_id: input.headers.id,
@@ -174,8 +232,25 @@ async function storeProviderEvent(input: {
       event_payload: input.event,
       occurred_at: input.event.created_at,
     })
+    .select('id')
+    .maybeSingle()
 
-  if (error && error.code !== '23505') throw error
+  if (error) {
+    if (error.code !== '23505') throw error
+    // A concurrent delivery stored it first; continue processing idempotently.
+    const raced = await findStoredProviderEvent(input.headers.id)
+    return raced?.id ?? null
+  }
+  return data ? String((data as { id: unknown }).id) : null
+}
+
+async function markProviderEventProcessed(eventRowId: string | null) {
+  if (!eventRowId) return
+  const { error } = await supabaseService
+    .from('communication_log_events')
+    .update({ processed_at: new Date().toISOString() })
+    .eq('id', eventRowId)
+  if (error && !isMissingSchema(error)) throw error
 }
 
 async function applyCommunicationStatus(event: WebhookEventPayload, log: CommunicationLog | null) {
@@ -248,27 +323,28 @@ async function applyManualOutboxStatus(
   const occurredAt = event.created_at ?? new Date().toISOString()
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
   let negativeDelivery = false
+  let target: ManualDeliveryStatus
 
   switch (eventType) {
     case 'email.sent':
-      update.delivery_status = 'sent'
+      target = 'sent'
       break
     case 'email.delivered':
-      update.delivery_status = 'delivered'
+      target = 'delivered'
       update.delivered_at = occurredAt
       break
     case 'email.delivery_delayed':
-      update.delivery_status = 'delivery_delayed'
+      target = 'delivery_delayed'
       break
     case 'email.bounced':
-      update.delivery_status = 'bounced'
+      target = 'bounced'
       update.bounced_at = occurredAt
       update.last_error_code = 'delivery_failed'
       update.last_error = eventErrorMessage(event)
       negativeDelivery = true
       break
     case 'email.complained':
-      update.delivery_status = 'complained'
+      target = 'complained'
       update.complained_at = occurredAt
       update.last_error_code = 'recipient_complaint'
       update.last_error = eventErrorMessage(event)
@@ -276,7 +352,7 @@ async function applyManualOutboxStatus(
       break
     case 'email.failed':
     case 'email.suppressed':
-      update.delivery_status = eventType === 'email.suppressed' ? 'suppressed' : 'failed'
+      target = eventType === 'email.suppressed' ? 'suppressed' : 'failed'
       update.failed_at = occurredAt
       update.last_error_code = 'delivery_failed'
       update.last_error = eventErrorMessage(event)
@@ -285,15 +361,48 @@ async function applyManualOutboxStatus(
     default:
       return row.id
   }
+  update.delivery_status = target
 
-  const result = await supabaseService.from('manual_email_outbox').update(update).eq('id', row.id)
-  if (result.error && !isMissingSchema(result.error)) throw result.error
+  // Monotonic guard: only move forward from an allowed predecessor so an
+  // out-of-order event never downgrades delivered/terminal state or clears an
+  // error. NULL (never reported) is always an allowed predecessor.
+  const result = await supabaseService
+    .from('manual_email_outbox')
+    .update(update)
+    .eq('id', row.id)
+    .or(`delivery_status.is.null,delivery_status.in.(${MANUAL_ALLOWED_PREDECESSORS[target].join(',')})`)
+    .select('id')
+  if (result.error) {
+    if (isMissingSchema(result.error)) return row.id
+    throw result.error
+  }
+  const transitioned = Array.isArray(result.data) && result.data.length > 0
 
-  if (negativeDelivery && row.request_id) {
+  if (transitioned && negativeDelivery && row.request_id) {
     await flagRequestDeliveryFailed(row.request_id, eventErrorMessage(event))
   }
 
   return row.id
+}
+
+type ManualDeliveryStatus =
+  | 'sent'
+  | 'delivery_delayed'
+  | 'delivered'
+  | 'bounced'
+  | 'complained'
+  | 'failed'
+  | 'suppressed'
+
+const MANUAL_NON_TERMINAL: ManualDeliveryStatus[] = ['sent', 'delivery_delayed', 'delivered']
+const MANUAL_ALLOWED_PREDECESSORS: Record<ManualDeliveryStatus, ManualDeliveryStatus[]> = {
+  sent: ['sent'],
+  delivery_delayed: ['sent', 'delivery_delayed'],
+  delivered: ['sent', 'delivery_delayed', 'delivered'],
+  bounced: [...MANUAL_NON_TERMINAL, 'bounced'],
+  complained: [...MANUAL_NON_TERMINAL, 'complained'],
+  failed: [...MANUAL_NON_TERMINAL, 'failed'],
+  suppressed: [...MANUAL_NON_TERMINAL, 'suppressed'],
 }
 
 async function flagRequestDeliveryFailed(requestId: string, message: string | null) {
@@ -349,6 +458,14 @@ function isMissingSchema(error: unknown): boolean {
   return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist/i.test(message)
 }
 
+async function stage<T>(name: ResendWebhookProcessingStage, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run()
+  } catch (error) {
+    throw new ResendWebhookProcessingError(name, error)
+  }
+}
+
 export async function processResendWebhookEvent(
   event: WebhookEventPayload,
   headers: ResendWebhookHeaders
@@ -357,49 +474,44 @@ export async function processResendWebhookEvent(
   const known = KNOWN_EVENT_TYPES.has(eventType)
   const providerMessageId = emailIdFromEvent(event)
 
-  let log: CommunicationLog | null = null
-  let processingWarning: string | null = null
-
-  try {
-    log = await findCommunicationLog(providerMessageId)
-  } catch (error) {
-    processingWarning = `communication_log_lookup_failed: ${error instanceof Error ? error.message : 'unknown'}`
+  const existing = await stage('event_store_failed', () => findStoredProviderEvent(headers.id))
+  if (existing?.processed) {
+    return {
+      ok: true,
+      eventType,
+      providerMessageId,
+      matchedLogId: null,
+      matchedManualOutboxId: null,
+      tracked: false,
+      known,
+      duplicate: true,
+    }
   }
 
+  // Lookup failures must NOT store an unlinked event and answer 200 (the event
+  // would be lost for good). They bubble up as a 5xx so Resend retries.
+  const log = await stage('communication_log_lookup_failed', () => findCommunicationLog(providerMessageId))
   // Resolve the manual outbox row up-front so the stored provider event can be
   // attributed to a company even when there is no communication_log.
-  let manualOutbox: ManualOutboxRow | null = null
-  try {
-    manualOutbox = await findManualOutboxByProviderMessageId(providerMessageId)
-  } catch (error) {
-    processingWarning = `manual_outbox_lookup_failed: ${error instanceof Error ? error.message : 'unknown'}`
-  }
+  const manualOutbox = await stage('manual_outbox_lookup_failed', () => findManualOutboxByProviderMessageId(providerMessageId))
 
-  // Always store the provider event idempotently first, even for unknown event
-  // types. Storage failure is the only thing that should bubble up.
-  await storeProviderEvent({
+  const eventRowId = await stage('event_store_failed', () => storeProviderEvent({
     event,
     headers,
     providerMessageId,
     log,
     fallbackCompanyId: manualOutbox?.company_id ?? null,
-  })
+    existing,
+  }))
 
-  // Post-processing (status application) must never turn a valid, stored event
-  // into an error response. Collect warnings instead.
+  // Status application is idempotent (monotonic guards), so a retry after a
+  // partial failure safely re-applies it. The processed marker is written last.
   let matchedManualOutboxId: string | null = null
   if (known) {
-    try {
-      await applyCommunicationStatus(event, log)
-    } catch (error) {
-      processingWarning = `communication_status_failed: ${error instanceof Error ? error.message : 'unknown'}`
-    }
-    try {
-      matchedManualOutboxId = await applyManualOutboxStatus(event, manualOutbox)
-    } catch (error) {
-      processingWarning = `manual_outbox_status_failed: ${error instanceof Error ? error.message : 'unknown'}`
-    }
+    await stage('communication_status_failed', () => applyCommunicationStatus(event, log))
+    matchedManualOutboxId = await stage('manual_outbox_status_failed', () => applyManualOutboxStatus(event, manualOutbox))
   }
+  await stage('event_mark_processed_failed', () => markProviderEventProcessed(eventRowId))
 
   return {
     ok: true,
@@ -409,7 +521,7 @@ export async function processResendWebhookEvent(
     matchedManualOutboxId,
     tracked: Boolean(log) || Boolean(matchedManualOutboxId),
     known,
-    processingWarning,
+    duplicate: false,
   }
 }
 
