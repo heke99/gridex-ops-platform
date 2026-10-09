@@ -34,6 +34,7 @@ function setup(scopes = ['staff_customers.read']) {
     loadOverrides: vi.fn(async () => []),
     consumeJti: vi.fn(async (_company, jti) => { if (seen.has(jti)) return false; seen.add(jti); return true }),
     validateBinding: vi.fn(async () => null),
+    isHistoricallyExternal: vi.fn(async () => false),
   }
   const resolve = createStaffApiContextResolver(ports)
   const call = (proof?: string, permission = 'customers.read') => resolve(new NextRequest('https://app.gridex.se/api/v1/staff/customers', { headers: proof ? { 'x-gridex-staff-assertion': proof, authorization: 'Bearer synthetic-api-key' } : {} }), { scopes: ['staff_customers.read'], permission })

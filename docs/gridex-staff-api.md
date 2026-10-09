@@ -39,6 +39,38 @@ The JWT must be a compact JWS signed with **RS256, PS256 or ES256**. `none` and 
 
 Each assertion is accepted **once**. Generate a new `jti` and sign a new assertion for reads, writes and retries. A valid signature never replaces membership or permission checks: Gridex requires an active staff membership in the organization associated with the API credential and calculates permissions from that person's role and overrides on the server.
 
+### Two identity flows
+
+Which claims you send depends on how your API client was registered:
+
+| Client type | Assertion claims | Where to start |
+| --- | --- | --- |
+| **Central (legacy) identity** — no independent staff registration | The table above. `sub` is the Gridex user UUID. | This page |
+| **Independent staff identity** — the client was registered for your own staff login | The table above **plus** `token_use: "staff_access"`, `company_id` (your organization UUID), `local_auth_issuer` (your auth issuer, `<your-auth-url>/auth/v1`), `local_auth_subject` (the user UUID in your auth), `staff_binding_id` and `staff_binding_version` returned by onboarding. `sub` stays the central Gridex user UUID. | [Independent staff onboarding](staff-api/independent-onboarding.md) |
+
+For independent identities every request checks the current binding. A binding that is revoked, rotated to a newer version or whose registration was removed is rejected (`401/403 staff_identity_binding_invalid` or `403 staff_identity_registration_removed`); removing the registration never falls back to the central flow. Banning, soft-deleting or deleting the user in Auth ends access on the next request, including for still-valid tokens.
+
+Example payload for an independent identity:
+
+```json
+{
+  "iss": "<configured staff issuer>",
+  "aud": "<configured staff audience>",
+  "sub": "<central Gridex user UUID>",
+  "iat": 1791540000,
+  "exp": 1791540300,
+  "jti": "<random UUID>",
+  "token_use": "staff_access",
+  "company_id": "<organization UUID>",
+  "local_auth_issuer": "https://<your-project>.supabase.co/auth/v1",
+  "local_auth_subject": "<user UUID in your auth>",
+  "staff_binding_id": "<binding id from onboarding>",
+  "staff_binding_version": 1
+}
+```
+
+Independent identities require the external identity objects to be deployed; operators verify this with `node scripts/check-ops-api-deployment-contract.cjs --url <db> --require staff_external_identity` before enabling the flow.
+
 This example uses RS256 and the built-in Node.js crypto library. Use your own configured issuer, audience and key ID. Keep the private PEM in your backend secret store.
 
 ```js

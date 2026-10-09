@@ -29,3 +29,12 @@ Kvarstår: autentisk `schema.sql`/fingerprint-capture och hosted clean/upgrade-r
 | F27 | FIXED (runtime + native trigger) | Migration `20261009100000_ops_api_contract_confirmation_delivery_continuation.sql`: tenantbunden `customer_contract_confirmation_deliveries` skapas i signeringstransaktionen (trigger på `used_at`). Retry-worker i `customer-operations`-cron; signeringssidan visar köad/förbereds/misslyckad. `__tests__/signed-contract-receipt-continuation.test.ts` (handler-fejk + PGlite-trigger, inkl. rollback och annan tenant). |
 
 Kvarstår: riktig mailleverans till testmottagare och hosted replay; `database.types.ts` utökad för- hand i typegen-format (`authentic_typegen_pending`).
+
+## Paket 5 — F1, F2, F29, F30
+
+| Fynd | Status | Bevis |
+|---|---|---|
+| F1 | FIXED (runtime) | `lib/staff-api/context.ts`: bestående externt ankare/bindning ger `403 staff_identity_registration_removed` även utan `staff_tenant_auth`-metadata (samma beslut som native skrivguard). Saknade externa tabeller (live idag) ⇒ legacy fortsatt tillåten; andra fel fail-closed. `__tests__/staff-historical-binding-required.test.ts`. |
+| F2 | FIXED (docs) | `docs/gridex-staff-api.md` + `app/developers/staff-api/page.tsx`: två identitetsflöden, externa claims, fungerande exempel, länk till onboarding. |
+| F29 | QUALIFIED — preflight införd, deploy kvarstår | `scripts/check-ops-api-deployment-contract.cjs` (static/catalog, per funktion, ACL-krav) + `__tests__/api-deployment-dependencies.test.ts`. Live omprov 2026-10-09 08:32 UTC: externa Staff-tabeller/RPC:er saknas fortfarande, senaste live-migration 20261005081122 ⇒ `staff_external_identity` BLOCKED. Ingen deploy gjord här; migrationskön (inkl. senare Ediel-migrationer) ska driftsättas via ordinarie releaseflöde. |
+| F30 | FIXED (native) | Migration `20261009110000_ops_api_session_guard_auth_revocation.sql`: `gridex_is_current_session_allowed()` kräver existerande, ej softdeletad, ej bannad Auth-användare. `__tests__/staff-session-auth-revocation.test.ts` (PGlite + RLS; rött utan migration 3/6). Hosted gateway/omedelbar logout-revoke kvar att prova i disponibel miljö. |

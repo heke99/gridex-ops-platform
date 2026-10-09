@@ -859,6 +859,7 @@
     "20261007051400_ediel_equivalent_prodat_canonical_replay.sql": "c7e5d652e87bc4c666a0c70388d15e13b01aaeed5168b006daab273f7b8f275f",
     "20261009090000_ops_api_exact_accepted_poa_document.sql": "432fff05071cc74d724bcf057ce23c7e4ccd53aa55e906c529a9fc49a48941d0",
     "20261009100000_ops_api_contract_confirmation_delivery_continuation.sql": "3d6751fd62678eb5fee7388cb0dcbffe0ba814615ee3d37a6d1c4329a33e45ba",
+    "20261009110000_ops_api_session_guard_auth_revocation.sql": "87b4a5b48241eb3020f5b7d100cee30672114e864e59534abe75491b366641aa",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

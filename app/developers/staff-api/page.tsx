@@ -67,6 +67,7 @@ export default function StaffApiGuide() {
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Sign each request</h2>
         <p>Send Authorization: Bearer &lt;GRIDEX_API_KEY&gt; and x-gridex-staff-assertion: &lt;SIGNED_JWT&gt; on every call. Supported algorithms are RS256, PS256 and ES256. The JWT requires the configured iss and aud, sub equal to the staff Gridex user UUID, integer iat and exp with a lifetime of at most 900 seconds, and a unique jti. Optional nbf controls the earliest valid time.</p>
+        <p>Clients registered for an independent staff identity additionally send token_use &quot;staff_access&quot;, company_id, local_auth_issuer, local_auth_subject, staff_binding_id and staff_binding_version from onboarding; sub stays the central Gridex user UUID. A removed or revoked registration is rejected and never falls back to the central flow. See the independent staff onboarding guide in docs/staff-api/independent-onboarding.md.</p>
         <p>Each assertion is accepted once. Generate a new assertion and jti for every attempt, including reads and retries. Gridex checks active organization membership and calculates the person&apos;s role permissions and overrides for every request.</p>
         <CopyCodeBlock code={signingExample} />
       </section>
