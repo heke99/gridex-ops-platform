@@ -1,7 +1,18 @@
+// Supabase/PostgREST errors are plain objects; keep their fixed code and message
+// (never details/hint, which can carry row values) instead of "[object Object]".
+function smtpUncertainCauseMessage(cause: unknown): string {
+  if (cause instanceof Error) return cause.message
+  if (cause && typeof cause === 'object') {
+    const { code, message } = cause as { code?: unknown; message?: unknown }
+    if (typeof message === 'string') return typeof code === 'string' && code ? `${code}: ${message}` : message
+  }
+  return String(cause)
+}
+
 export class SmtpDeliveryUncertainError extends Error {
   readonly code = 'ediel_delivery_uncertain'
   constructor(cause: unknown, readonly smtpMessageId: string | null = null) {
-    super(cause instanceof Error ? cause.message : String(cause), { cause })
+    super(smtpUncertainCauseMessage(cause), { cause })
     this.name = 'SmtpDeliveryUncertainError'
   }
 }
