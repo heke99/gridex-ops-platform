@@ -477,6 +477,19 @@ export async function createOrUpdateInboundProdatCase(params: {
     .select('*')
     .single()
 
+  // A concurrent invocation for the same message won the unique
+  // ediel_message_id slot: continue from its row instead of a second case.
+  if (error && (error as { code?: string }).code === '23505') {
+    const { data: winner, error: winnerError } = await supabaseService
+      .from('ediel_inbound_cases')
+      .select('*')
+      .eq('ediel_message_id', params.message.id)
+      .maybeSingle()
+    if (winnerError) throw winnerError
+    if (!winner) throw error
+    if ((winner as EdielInboundCaseRow).company_id !== companyId) throw new Error('TENANT_CONTEXT_MISMATCH')
+    return winner as EdielInboundCaseRow
+  }
   if (error) throw error
 
   await createEdielMessageEvent({
