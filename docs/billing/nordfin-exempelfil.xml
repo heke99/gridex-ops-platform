@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Invoices xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Inv>
+    <Customer>
+      <Customername>Test Testkund</Customername>
+      <CustomerNumber>31882</CustomerNumber>
+      <Customeradress>Testgatan 37</Customeradress>
+      <ZipCode>163 54</ZipCode>
+      <City>Spånga</City>
+      <OrganizationNumber>198001011234</OrganizationNumber>
+      <CustomerEmail>test@live.se</CustomerEmail>
+      <CustomerType>PRV</CustomerType>
+      <CoName />
+      <ClientId>48</ClientId>
+    </Customer>
+    <Invoice>
+      <InvoiceAmount>316.30</InvoiceAmount>
+      <RemainingAmount>316.30</RemainingAmount>
+      <AmountExclVat>253.04</AmountExclVat>
+      <InvoiceVATAmount>63.26</InvoiceVATAmount>
+      <BillDate>2026-11-01</BillDate>
+      <DueDate>2026-11-21</DueDate>
+      <Delivery>EMAIL</Delivery>
+      <InvoiceNumber>261000761</InvoiceNumber>
+      <PaymentReference />
+    </Invoice>
+    <Electricity>
+      <InvoiceType>DEBIT</InvoiceType>
+      <ConsumptionBasis>MEASURED</ConsumptionBasis>
+      <PriceArea>SE3</PriceArea>
+      <Period>2026-10-01-2026-10-31</Period>
+      <ConsumptionKwh>412.500</ConsumptionKwh>
+      <AveragePriceOrePerKwh>61.34</AveragePriceOrePerKwh>
+      <FacilityCount>1</FacilityCount>
+      <Facilities>
+        <Facility>
+          <FacilityId>735999100000000001</FacilityId>
+          <MeteringPointId>735999100000000001</MeteringPointId>
+          <FacilityAddress>Testgatan 37</FacilityAddress>
+          <FacilityZipCode>163 54</FacilityZipCode>
+          <FacilityCity>Spånga</FacilityCity>
+          <PriceArea>SE3</PriceArea>
+          <GridArea>STH</GridArea>
+          <GridOwner>Ellevio AB</GridOwner>
+          <Period>2026-10-01-2026-10-31</Period>
+          <ConsumptionKwh>412.500</ConsumptionKwh>
+          <EstimatedAnnualConsumptionKwh>5000.000</EstimatedAnnualConsumptionKwh>
+        </Facility>
+      </Facilities>
+      <Contract>
+        <ContractName>Rörligt 24 mån</ContractName>
+        <ContractNumber>K-1001</ContractNumber>
+        <ContractType>spot</ContractType>
+        <StartDate>2025-11-15</StartDate>
+        <BindingMonths>24</BindingMonths>
+        <BindingEndDate>2027-11-15</BindingEndDate>
+        <BindingMonthsRemaining>12</BindingMonthsRemaining>
+        <NoticeMonths>1</NoticeMonths>
+        <AutoRenew>true</AutoRenew>
+        <FixedPriceOrePerKwh />
+        <SpotMarkupOrePerKwh>4.9</SpotMarkupOrePerKwh>
+        <MonthlyFeeSek>39.00</MonthlyFeeSek>
+      </Contract>
+    </Electricity>
+    <InvoiceSpecification>
+      <InvoiceRowsSpecification>
+        <Period>2026-10-01-2026-10-31</Period>
+        <Description>Månadsavgift</Description>
+        <LineType>monthly_fee</LineType>
+        <Quantity>1</Quantity>
+        <Unit>st</Unit>
+        <UnitPrice>31.2</UnitPrice>
+        <Amount>31.20</Amount>
+        <Vat>25.000000</Vat>
+        <Total>39.00</Total>
+      </InvoiceRowsSpecification>
+      <InvoiceRowsSpecification>
+        <Period>2026-10-01-2026-10-31</Period>
+        <Description>Elpris (spot + påslag)</Description>
+        <LineType>energy</LineType>
+        <Quantity>412.5</Quantity>
+        <Unit>kWh</Unit>
+        <UnitPrice>0.5378</UnitPrice>
+        <Amount>221.84</Amount>
+        <Vat>25.000000</Vat>
+        <Total>277.30</Total>
+      </InvoiceRowsSpecification>
+    </InvoiceSpecification>
+  </Inv>
+  <Inv>
+    <Customer>
+      <Customername>Test Testkund</Customername>
+      <CustomerNumber>31882</CustomerNumber>
+      <Customeradress>Testgatan 37</Customeradress>
+      <ZipCode>163 54</ZipCode>
+      <City>Spånga</City>
+      <OrganizationNumber>198001011234</OrganizationNumber>
+      <CustomerEmail>test@live.se</CustomerEmail>
+      <CustomerType>PRV</CustomerType>
+      <CoName />
+      <ClientId>48</ClientId>
+    </Customer>
+    <Invoice>
+      <InvoiceAmount>-13.45</InvoiceAmount>
+      <RemainingAmount>-13.45</RemainingAmount>
+      <AmountExclVat>-10.76</AmountExclVat>
+      <InvoiceVATAmount>-2.69</InvoiceVATAmount>
+      <BillDate>2026-11-01</BillDate>
+      <DueDate>2026-11-21</DueDate>
+      <Delivery>EMAIL</Delivery>
+      <InvoiceNumber>261000762</InvoiceNumber>
+      <PaymentReference />
+    </Invoice>
+    <Electricity>
+      <InvoiceType>CREDIT</InvoiceType>
+      <ConsumptionBasis>RECONCILIATION</ConsumptionBasis>
+      <PriceArea>SE3</PriceArea>
+      <Period>2026-09-01-2026-09-30</Period>
+      <ConsumptionKwh>-20.000</ConsumptionKwh>
+      <AveragePriceOrePerKwh>53.80</AveragePriceOrePerKwh>
+      <Reconciliation>
+        <Role>CREDIT_PRELIMINARY</Role>
+        <ReconciledMonth>2026-09</ReconciledMonth>
+        <PreliminaryKwh>450.000</PreliminaryKwh>
+        <FinalKwh>430.000</FinalKwh>
+        <DifferenceKwh>-20.000</DifferenceKwh>
+      </Reconciliation>
+      <FacilityCount>1</FacilityCount>
+      <Facilities>
+        <Facility>
+          <FacilityId>735999100000000001</FacilityId>
+          <MeteringPointId>735999100000000001</MeteringPointId>
+          <FacilityAddress>Testgatan 37</FacilityAddress>
+          <FacilityZipCode>163 54</FacilityZipCode>
+          <FacilityCity>Spånga</FacilityCity>
+          <PriceArea>SE3</PriceArea>
+          <GridArea>STH</GridArea>
+          <GridOwner>Ellevio AB</GridOwner>
+          <Period>2026-09-01-2026-09-30</Period>
+          <ConsumptionKwh>-20.000</ConsumptionKwh>
+          <EstimatedAnnualConsumptionKwh>5000.000</EstimatedAnnualConsumptionKwh>
+        </Facility>
+      </Facilities>
+      <Contract>
+        <ContractName>Rörligt 24 mån</ContractName>
+        <ContractNumber>K-1001</ContractNumber>
+        <ContractType>spot</ContractType>
+        <StartDate>2025-11-15</StartDate>
+        <BindingMonths>24</BindingMonths>
+        <BindingEndDate>2027-11-15</BindingEndDate>
+        <BindingMonthsRemaining>12</BindingMonthsRemaining>
+        <NoticeMonths>1</NoticeMonths>
+        <AutoRenew>true</AutoRenew>
+        <FixedPriceOrePerKwh />
+        <SpotMarkupOrePerKwh>4.9</SpotMarkupOrePerKwh>
+        <MonthlyFeeSek>39.00</MonthlyFeeSek>
+      </Contract>
+    </Electricity>
+    <InvoiceSpecification>
+      <InvoiceRowsSpecification>
+        <Period>2026-09-01-2026-09-30</Period>
+        <Description>Avräkning september: preliminär 450 kWh, uppmätt 430 kWh</Description>
+        <LineType>energy_correction</LineType>
+        <Quantity>-20</Quantity>
+        <Unit>kWh</Unit>
+        <UnitPrice>0.538</UnitPrice>
+        <Amount>-10.76</Amount>
+        <Vat>25.000000</Vat>
+        <Total>-13.45</Total>
+      </InvoiceRowsSpecification>
+    </InvoiceSpecification>
+  </Inv>
+</Invoices>
