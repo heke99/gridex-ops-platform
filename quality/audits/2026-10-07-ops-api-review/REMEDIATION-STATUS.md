@@ -60,3 +60,14 @@ DONE (runtime + policy): `lib/integrations/apiContractCompatibility.ts` (registr
 | F32, F34, F43 | QUALIFIED_NO_CHANGE | Advisor-signaler utan uppmätt arbetslast; inga index skapas/raderas blint (564 oanvända-kandidater lämnas). Kräver representativ last och EXPLAIN ANALYZE i disponibel miljö. |
 | F35 | QUALIFIED_NO_CHANGE | Auth connection cap 10; ingen anslutningsväntan uppmätt. Mät före poolkonfiguration. |
 | F36, F38 | QUALIFIED_NO_CHANGE | Optimeringskandidater (portal-sektioner via `include`, fixed-only-resolver). Ingen mätning av bytes/p95 möjlig här; ändring utan mätt vinst behålls inte enligt performance-regeln. |
+
+## Paket 6 + 16 — F3, F11, F12, F39, F40, F41
+
+| Fynd | Status | Bevis |
+|---|---|---|
+| F3 | FIXED | Ett server-request-id per anrop i body/header/logg; klientens id loggas separat som `client_request_id`. `__tests__/staff-request-id-correlation.test.ts` (7 röda → 9/9). |
+| F11 | FIXED | `Idempotency-Replayed` på invite/change-role/disable/enable; auth före replay. `__tests__/staff-user-replay-header.test.ts` (8/8 röda → gröna). |
+| F12 | FIXED (guide) — spec i Paket 17 | `x-gridex-expected-project-ref`, `X-Gridex-Project-Ref`, `412 storage_project_mismatch` i guide/utvecklarsida. |
+| F39 | FIXED | README pekar på aktuell kontraktsinventering; hotfix-README arkiverad. `__tests__/readme-current-contract-entry.test.ts`. |
+| F40 | FIXED (opt-in) | `x-gridex-query-parsing: strict` (strikt decimal, inga dubbletter, 422 före DB); standard oförändrat för befintliga klienter. `__tests__/staff-query-parsing-policy.test.ts`. |
+| F41 | FIXED | N+1-skannern täcker `lib/staff-api`, `lib/tenant`, `lib/partner-api`; ett verkligt fall annoterat som begränsad fallback. `__tests__/n-plus-one-query-budget-scope.test.ts`. Steg-/p95-telemetri kvar. |
