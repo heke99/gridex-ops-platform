@@ -5,7 +5,7 @@
 // Historical L4/L3 and LK-1 native cancellation boundaries remain unproved.
 // Fresh Z03L origination requires 14 days; it cannot supply an L4 original.
 import { createHash, randomUUID } from 'node:crypto'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 const smtp = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp }) } }))
 import { seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
@@ -16,6 +16,8 @@ import { closureFixture, CLOSURE_OBJECT } from '../__tests__/helpers/closureWire
 import { supabaseService } from '@/lib/supabase/service'
 import { createMeteringPermissionDraft } from '@/lib/onboarding/infoRequests'
 import { getEdielMessageById } from '@/lib/ediel/db'
+import * as edielDb from '@/lib/ediel/db'
+import * as edielErrors from '@/lib/errors'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { prepareAndQueueSwitchCancellation } from '@/lib/ediel/flows/prodatSwitchCancellation'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
@@ -40,7 +42,8 @@ type Fixture = Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>> & { end
 type Period = { id: string; company_id: string; customer_id: string; metering_point_id: string;
   status: string; start_date: string; end_date: string | null; market_end_at: string | null;
   source_message_id: string; source_end_message_id: string | null; metadata: Record<string, unknown>; market_state_version: number }
-afterEach(() => { smtp.mockReset(); vi.unstubAllEnvs(); confirmedSupplyWitnesses.clear() })
+const ackErrorObservations = new Map<string, ReturnType<typeof createNativeAckErrorObservation>>()
+afterEach(() => { smtp.mockReset(); vi.unstubAllEnvs(); confirmedSupplyWitnesses.clear(); ackErrorObservations.clear() })
 function configureSmtp(email = 'recipient@example.invalid') {
   for (const [key, value] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid',
     EDIEL_APP_DKIM_ENABLED: 'false', EMAIL_PROVIDER: 'resend', EDIEL_SMTP_FROM: 'synthetic@example.invalid',
@@ -265,7 +268,9 @@ async function process(f: Fixture, source: EdielMessageRow) {
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source, { actorUserId: f.actorUserId })
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify({ phase: 'runtime_decision_'+source.message_code, source: source.id, issues: decision.issues }))
     .toEqual(['accepted', 'accepted', 'accepted'])
-  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: source.id })
+  const ackErrorObservation = createNativeAckErrorObservation()
+  await ackErrorObservation.run(() => processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: source.id }))
+  ackErrorObservations.set(source.id, ackErrorObservation)
   observeProcessedSource(f, source)
   return (await getEdielMessageById(source.id))!
 }
@@ -326,15 +331,118 @@ function supplyBusinessState(f: Fixture) {
 function positiveAperakCount(f: Fixture, sourceId: string) {
   return sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(sourceId)} AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive';`)
 }
+type NativeAckErrorIdentity = { companyId: string; sourceId: string; actorUserId: string }
+type NativeAckErrorReturn = { value: string; shape: 'native_error' | 'plain_record' | 'string' | 'nullish' | 'other';
+  sqlState: '23502' | '23503' | '23505' | '23514' | '42501' | '40001' | '42P01' | '42703' | '42883' | 'P0001' | 'unknown';
+  postgrestCode: 'PGRST116' | 'PGRST202' | 'PGRST204' | 'PGRST205' | 'unknown'; returnHash: string; returnLength: number }
+// Raw calls, returns and event identities remain private. Even one exact full
+// propagation match cannot establish causal ownership of a formatter input.
+function createNativeAckErrorObservation() {
+  let available = false, formatterCallCount = 0, formatterThrowCount = 0, eventCallCount = 0
+  let returns: NativeAckErrorReturn[] = [], receipts: unknown[] = []
+  const data = (value: unknown, key: string): unknown => {
+    if (!value || typeof value !== 'object') return undefined
+    try { return Object.getOwnPropertyDescriptor(value, key)?.value } catch { return undefined }
+  }
+  const classify = (value: unknown): Pick<NativeAckErrorReturn, 'shape' | 'sqlState' | 'postgrestCode'> => {
+    let shape: NativeAckErrorReturn['shape'] = 'other'
+    try {
+      if (value instanceof Error) shape = 'native_error'
+      else if (typeof value === 'string') shape = 'string'
+      else if (value == null) shape = 'nullish'
+      else if (typeof value === 'object' && [Object.prototype, null].includes(Object.getPrototypeOf(value))) shape = 'plain_record'
+    } catch { /* Unknown objects remain a fixed class. */ }
+    const code = data(value, 'code')
+    const sqlStates = ['23502', '23503', '23505', '23514', '42501', '40001', '42P01', '42703', '42883', 'P0001'] as const
+    const postgrestCodes = ['PGRST116', 'PGRST202', 'PGRST204', 'PGRST205'] as const
+    return { shape, sqlState: sqlStates.find(state => state === code) ?? 'unknown',
+      postgrestCode: postgrestCodes.find(state => state === code) ?? 'unknown' }
+  }
+  const cardinality = (count: number): 'zero' | 'one' | 'multiple' => count === 0 ? 'zero' : count === 1 ? 'one' : 'multiple'
+  const qualified = (row: unknown, identity: NativeAckErrorIdentity) => {
+    const payload = data(row, 'payload'), eventPayload = data(row, 'event_payload')
+    return data(row, 'company_id') === identity.companyId && data(row, 'ediel_message_id') === identity.sourceId
+      && data(row, 'message_id') === identity.sourceId && data(row, 'created_by') === identity.actorUserId
+      && data(row, 'event_type') === 'manual_note' && data(row, 'event_status') === 'warning'
+      && ['payload', 'event_payload'].every(column => {
+        const value = column === 'payload' ? payload : eventPayload
+        return data(value, 'blockedBy') === 'canonical_inbound_ack_guard' && data(value, 'ackFamily') === 'APERAK'
+          && data(value, 'sourceMessageId') === identity.sourceId
+      }) && typeof data(row, 'id') === 'string' && typeof data(row, 'message') === 'string'
+  }
+  return {
+    async run<T>(run: () => Promise<T>): Promise<T> {
+      let formatter: MockInstance<typeof edielErrors.formatErrorMessage> | undefined
+      let event: MockInstance<typeof edielDb.createEdielMessageEvent> | undefined
+      const restore = (spy: { mockRestore: () => void } | undefined) => {
+        try { spy?.mockRestore() } catch { available = false }
+      }
+      try {
+        formatter = vi.spyOn(edielErrors, 'formatErrorMessage')
+        event = vi.spyOn(edielDb, 'createEdielMessageEvent')
+      } catch { restore(event); restore(formatter); return await run() }
+      try { return await run() }
+      finally {
+        try {
+          formatterCallCount = formatter.mock.calls.length
+          formatterThrowCount = formatter.mock.results.filter(result => result.type === 'throw').length
+          returns = formatter.mock.results.flatMap((result, index) => result.type === 'return' && typeof result.value === 'string'
+            ? [{ value: result.value, ...classify(formatter.mock.calls[index]?.[0]),
+              returnHash: createHash('sha256').update(result.value).digest('hex'), returnLength: result.value.length }] : [])
+          eventCallCount = event.mock.calls.length
+          const settled = await Promise.allSettled(event.mock.results.filter(result => result.type === 'return').map(result => result.value))
+          receipts = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
+          available = true
+        } catch { available = false }
+        finally { restore(event); restore(formatter) }
+      }
+    },
+    diagnostic(identity: NativeAckErrorIdentity, readEvents: (ids: string[]) => unknown[]) {
+      let persisted: unknown[] = [], readable = available
+      const ownReceipts = receipts.filter(row => qualified(row, identity))
+      try {
+        if (readable && ownReceipts.length) {
+          const rows = readEvents(ownReceipts.map(row => data(row, 'id') as string))
+          persisted = rows.filter(row => qualified(row, identity) && ownReceipts.some(receipt =>
+            ['id', 'company_id', 'ediel_message_id', 'message_id', 'created_by', 'event_type', 'event_status', 'message']
+              .every(key => data(receipt, key) === data(row, key))))
+        }
+      } catch { readable = false; persisted = [] }
+      const matchCounts = returns.map(result => persisted.filter(row => data(row, 'message') === 'APERAK skapades inte: ' + result.value).length)
+      const matchingCandidateCount = matchCounts.filter(count => count > 0).length
+      const matchingEventCount = persisted.filter(row => returns.some(result => data(row, 'message') === 'APERAK skapades inte: ' + result.value)).length
+      const matchingPairCount = matchCounts.reduce((sum, count) => sum + count, 0)
+      const state = !readable ? 'unavailable' : matchingPairCount === 0 ? 'zero'
+        : returns.length === 1 && ownReceipts.length === 1 && matchingEventCount === 1 && matchingPairCount === 1 ? 'single_pair' : 'ambiguous'
+      return { state, causalOwnership: 'unestablished', formatterCallCount, formatterReturnCount: returns.length,
+        formatterThrowCount, eventCallCount, successfulEventReceiptCount: receipts.length,
+        qualifiedEventReceiptCount: ownReceipts.length, persistedEventCount: persisted.length,
+        matchingCandidateCount, matchingEventCount, matchingPairCount,
+        formatterCardinality: cardinality(returns.length), receiptCardinality: cardinality(ownReceipts.length),
+        candidateCardinality: cardinality(matchingCandidateCount), eventCardinality: cardinality(matchingEventCount),
+        returns: returns.map((result, index) => ({ shape: result.shape, sqlState: result.sqlState, postgrestCode: result.postgrestCode,
+          returnHash: result.returnHash, returnLength: result.returnLength, persistedMatches: matchCounts[index] })) }
+    },
+  }
+}
+function nativeAckErrorObservationDiagnostic(f: Fixture, sourceId: string, stage: 'sendOwnAcks' | 'concurrent601', events: unknown[]) {
+  const observation = ackErrorObservations.get(sourceId) ?? createNativeAckErrorObservation()
+  const diagnostic = observation.diagnostic({ companyId: f.companyId, sourceId, actorUserId: f.actorUserId }, () => events)
+  console.error('C_NATIVE_ACK_FORMAT_OBSERVATION', JSON.stringify({ stage, ...diagnostic }))
+}
+
 // Refines peer donor6077035986: read the actual stored guard reason, then
 // emit only fixed classifications/counts. Original messages and IDs stay local.
 function aperakBlockedWarningDiagnostic(f: Fixture, sourceId: string, stage: 'sendOwnAcks' | 'concurrent601') {
-  const warnings = sql<Array<{ message: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',e.message)
+  const warnings = sql<Array<{ message: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',e.message,'id',e.id,'company_id',e.company_id,
+    'ediel_message_id',e.ediel_message_id,'message_id',e.message_id,'created_by',e.created_by,
+    'event_type',e.event_type,'event_status',e.event_status,'payload',e.payload,'event_payload',e.event_payload)
     ORDER BY e.created_at,e.id),'[]') FROM public.ediel_message_events e
     WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(sourceId)}
       AND e.event_type='manual_note' AND e.event_status='warning'
       AND e.event_payload->>'blockedBy'='canonical_inbound_ack_guard' AND e.event_payload->>'ackFamily'='APERAK'
       AND e.event_payload->>'sourceMessageId'=${literal(sourceId)};`)
+  nativeAckErrorObservationDiagnostic(f, sourceId, stage, warnings)
   const allowedGuards = ['ediel_existing_ack_original_read_unavailable', 'ediel_existing_ack_original_source_mismatch',
     'ediel_source_rule_pack_basis_required', 'ediel_historical_rule_pack_basis_unavailable',
     'prodat_bilateral_original_metadata_unqualified', 'prodat_bilateral_capability_required',
@@ -654,7 +762,9 @@ describe('actual native supplier cancellation chains', () => {
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
     // Concurrent INVOCATION only: this does not attest observed lock overlap
     // or a transaction's final-write rollback boundary.
-    const settled = await Promise.allSettled([0,1].map(() => processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})))
+    const ackErrorObservation = createNativeAckErrorObservation()
+    const settled = await ackErrorObservation.run(() => Promise.allSettled([0,1].map(() => processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id}))))
+    ackErrorObservations.set(continuation.id, ackErrorObservation)
     const outcomes = settled.map(result => {
       if (result.status === 'fulfilled') return {status:result.status}
       const reason = result.reason as {code?:unknown;message?:unknown;details?:unknown} | null
