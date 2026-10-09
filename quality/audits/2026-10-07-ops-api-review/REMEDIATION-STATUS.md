@@ -91,3 +91,44 @@ DONE (runtime + policy): `lib/integrations/apiContractCompatibility.ts` (registr
 | F17 | FIXED | RFC 9110 `If-None-Match` (svag jämförelse, listor, `*`) efter auth. Samma testfil. |
 | F4 | FIXED | En autentisering/rate-limit-debitering per request (request-bunden WeakMap, ingen cross-request-cache). `__tests__/partner-single-auth-budget.test.ts` (4/5 röda → 5/5). |
 | F45 | FIXED | `lib/integrations/webhookCredentialPolicy.ts`: rotation behåller, säkerhetsrevokering/offboarding stoppar länkade prenumerationer före transport (även köade). `__tests__/webhook-revocation-policy.test.ts`; runbook uppdaterad. Öppet beslut: nycklar revokerade före ändringen saknar revoke-typ och fortsätter leverera (medvetet för att inte tyst stoppa produktion). |
+
+## Paket 8 + 9 — F7–F10, F13–F15
+
+| Fynd | Status | Bevis |
+|---|---|---|
+| F7 | FIXED | Anläggningsfilter i DB före limit. `__tests__/partner-site-invoice-pagination.test.ts`. |
+| F8, F9 | FIXED | Fortsättning via `X-Gridex-Next-Cursor` (krypterad, tenant/kund/resurs-bunden); första sidan oförändrad. `__tests__/support-history-continuation.test.ts`. |
+| F10 | FIXED (policy) | Auth/ägarskap först; lyckad upload replayas efter stängning; stängt ärende blockerar nya skrivningar i execute. `__tests__/support-attachment-replay-after-close.test.ts`. |
+| F13, F14 | FIXED | Aktuell revision före limit; `quantity_kwh` alltid kWh; netto utesluts dokumenterat ur simple V1. `__tests__/partner-current-metering-dto.test.ts`. |
+| F15 | FIXED (native) | `20261009130000_portal_monthly_consumption_summary.sql` (`gridex_portal_monthly_consumption_v1`, Stockholm-månad, DST, korrigeringar, service_role). `__tests__/portal-complete-month-consumption.test.ts` (744 = 744). |
+
+## Ny granskning 2026-10-09 (elpris, geo, bred buggjakt)
+
+Livekontroll: `spot_price_intervals` 2026-10-09 SE1–SE4 = elprisetjustnu exakt (96 kvartar, snitt och stickprov identiska).
+
+| Fynd | Status | Bevis |
+|---|---|---|
+| Elpris P1: höst-DST-dygnet förkastas (leverantörens fel `time_end`) | FIXED | `__tests__/spot-price-dst-provider-quirk.test.ts` med riktiga 2025-10-26-data (100 kvartar, 25 h). Nästa gång: 2026-10-25. |
+| Elpris P2: timavtal saknar pris efter 2025-10-01 | FIXED | Timpris = medel av fyra kvartar från samma källa. `__tests__/spot-price-hourly-from-quarters.test.ts`. |
+| Elpris P3: öre-flyttalsartefakter | FIXED | 6 decimaler. |
+| Elpris P3: ett område stoppar settlement-cron | FIXED | Per område, 500 + `failed_areas`. |
+| Elpris P3: revisioner av äldre dygn / statusnedgradering | REMAINING (P3) | Ej ändrat. |
+| Geo P2: Lantmäteriet substring-matchning | FIXED | `__tests__/lantmateriet-exact-address-match.test.ts`. |
+| Geo P2: centroid nära gräns prissatt | FIXED | `__tests__/postal-centroid-boundary-margin.test.ts`. |
+| Geo P3: ID-only-förfrågan 200 utan effekt | FIXED | 422 `energy_area_address_required`. `__tests__/energy-area-id-only-input.test.ts`. |
+| Geo P3: en nätägare för flernätägar-postnummer | FIXED | `__tests__/partner-location-multi-owner.test.ts`. |
+| Bug P1: webhooks via värdnamn misslyckas på Node 22 | FIXED | `__tests__/webhook-transport-pinned-lookup.test.ts` (riktig socket). |
+| Bug P1: en trasig bekräftelserad stoppar hela cron | FIXED | Per rad + lease. `__tests__/signed-contract-receipt-continuation.test.ts`. |
+| Bug P2: 503 med samma nyckel kunde aldrig lyckas / upload förbrukade nyckeln | FIXED | `idempotency_reconciliation_required`, nyckel frigörs. `__tests__/portal-idempotency-ack-loss.test.ts`. |
+| Bug P2: utkast-/misslyckade fakturor i Partner-API | FIXED | `__tests__/partner-invoice-visibility-and-stockholm-dates.test.ts`. |
+| Bug P2: mätdata tappar sista intervallet / UTC-dygn | FIXED | Samma testfil. |
+| Bug P2: ångerfristdatum en dag för kort | FIXED (visning) | `__tests__/withdrawal-deadline-stockholm.test.ts`. Lagrat värde oförändrat (accepted_at + 14 d). |
+| Bug P2: dubbel bekräftelseleverans (race) | FIXED | Lease i `confirmationDelivery.ts`. |
+| Bug P2: billing-webhook 500/läcker companyId | FIXED | `__tests__/billing-provider-webhook-status-mapping.test.ts`. |
+| Bug P2: rate-limit skriver över metadata | FIXED | `__tests__/integration-rate-limit-metadata-preserved.test.ts`. |
+| Bug P3: rullande avtalsperioder driver | FIXED | `__tests__/contract-lifecycle-rolling-terms.test.ts`. |
+| Bug P3: filterinjektion i juridisk slug | FIXED | `__tests__/public-legal-company-slug-filter.test.ts`. |
+| Bug P3: POA `accepted_at` 500 / UTC-fakturadatum | FIXED | Partner-testfilen ovan. |
+| PDF-validering för strikt för verkliga PDF:er | FIXED | `__tests__/partner-poa-pdf-structure.test.ts`. |
+
+Full svit efter sammanslagning: 994 filer / 15 458 tester PASS; typecheck, API-gates och migrationskontroller PASS.
