@@ -3,7 +3,14 @@
   "generated_at": "2026-10-07T05:54:47.682820+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run37576871152",
   "sha256": "575196e37d9da421d842ce34f92d434c83994ebc44a8a95254fed443d6b4ebd8",
-  "latest_migration": "20261007051400_ediel_equivalent_prodat_canonical_replay.sql",
+  "latest_migration": "20261009090000_ops_api_exact_accepted_poa_document.sql",
+  "ops_api_poa_exact_document_tail": {
+    "migration": "20261009090000_ops_api_exact_accepted_poa_document.sql",
+    "previous_latest_migration": "20261007051400_ediel_equivalent_prodat_canonical_replay.sql",
+    "public_types_effect": "none: only trigger functions (returns trigger) and triggers are added; generated types are byte-identical",
+    "schema_capture_pending": true,
+    "verification": "__tests__/website-poa-exact-accepted-document.test.ts (PGlite native phase); authentic schema.sql/fingerprint capture pending in CI replay"
+  },
   "latest_migration_schema_effect": "Byte-exact authenticated1099 source capture. Only the private canonical v6 function body changes from the prior1098 capture; all other schema blocks, public wrappers and grants remain identical. Capture-only NOT_RUN flags retain their original meaning.",
   "composition_capture_pending": false,
   "capture": {
