@@ -888,7 +888,7 @@ export async function CustomerAdminDetailPage({
         <SectionAnchor
           id="legal-readiness"
           title="Juridik och godkännanden"
-          description="Villkor, fullmakt, avtalssnapshot, dokument och blockerare i vanliga ord."
+          description="Villkor, fullmakt, dokument och det som saknas."
         >
           <CustomerLegalReadinessCard
             customerId={id}

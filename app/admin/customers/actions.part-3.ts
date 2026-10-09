@@ -215,7 +215,7 @@ export async function createCustomerAction(
       message:
         allWarnings.length > 0
           ? `${usedExistingCustomer ? "Befintlig kund uppdaterades" : "Kunden skapades"}. Kontrollera varningar: ${allWarnings.slice(0, 3).join(" ")}${documentSummary}`
-          : `${usedExistingCustomer ? "Befintlig kund uppdaterades" : `Kunden ${customer.customer_number ?? ""} skapades`} och eventuella saknade uppgifter ligger som blockerare/varningar.${documentSummary}`,
+          : `${usedExistingCustomer ? "Befintlig kund uppdaterades" : `Kunden ${customer.customer_number ?? ""} skapades`}. Eventuella saknade uppgifter visas på kundkortet.${documentSummary}`,
       fieldErrors: {},
       values: {
         country: "SE",

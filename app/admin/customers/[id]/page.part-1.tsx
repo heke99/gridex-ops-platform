@@ -390,7 +390,7 @@ export const CUSTOMER_WORKSPACE_TABS: Array<{
   {
     id: "legal-readiness",
     label: "Avtal & fullmakt",
-    description: "Villkor, fullmakt, snapshots, dokument och blockerare.",
+    description: "Villkor, fullmakt, dokument och det som saknas.",
     group: "Start",
   },
   {
@@ -743,7 +743,7 @@ export function buildCustomerLifecycleSummary(params: {
       primaryLabel: "Blockerade switchar",
       primaryHref: "/admin/operations/switches?stage=blocked",
       primaryDescription:
-        "Minst en anläggning stoppas av blockerare. Börja i blockerad kö eller öppna switchsektionen på kundkortet först.",
+        "Minst en anläggning saknar uppgifter för att bytet ska kunna fortsätta. Öppna leverantörsbytet nedan och komplettera.",
     };
   }
 
@@ -841,10 +841,10 @@ export function buildCustomerLifecycleSummary(params: {
     failed,
     completed,
     activeOpen,
-    primaryLabel: "Inga akuta switchblockerare",
+    primaryLabel: "Inget stoppar bytet",
     primaryHref: "/admin/customers",
     primaryDescription:
-      "Kundens switchflöde har inga tydliga akuta blockerare just nu. Fortsätt från kundkortet eller granska detaljer längre ner.",
+      "Inget stoppar kundens leverantörsbyte just nu. Du kan följa bytet längre ner.",
   };
 }
 

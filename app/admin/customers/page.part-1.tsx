@@ -275,7 +275,7 @@ export function buildCustomerOperationsSummary(params: {
  primaryHref: `/admin/customers/${customerId}#switch-operations`,
  primaryTone: lifecycleTone('blocked'),
  primaryDescription:
- 'Minst en site har blockerare och bör öppnas från kundkortet först.',
+ 'Minst en anläggning saknar uppgifter. Öppna kundkortet för att komplettera.',
  priorityRank: 1,
  priorityLabel: 'Högst prioritet',
  }
