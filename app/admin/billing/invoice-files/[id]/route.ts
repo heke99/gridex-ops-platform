@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
   const file = await loadInvoiceFile(scope.companyId, id)
   if (!file) return new NextResponse('Fakturafilen hittades inte.', { status: 404 })
 
-  const rendered = renderInvoiceFile(file, parseInvoiceFileFormat(request.nextUrl.searchParams.get('format')))
+  const rendered = renderInvoiceFile(file, parseInvoiceFileFormat(request.nextUrl.searchParams.get('format'), file.provider))
   const body = typeof rendered.body === 'string' ? rendered.body : new Blob([rendered.body as BlobPart], { type: rendered.contentType })
   return new NextResponse(body, {
     headers: {

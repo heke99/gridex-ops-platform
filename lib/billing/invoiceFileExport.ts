@@ -7,7 +7,8 @@ import {
   maybeLockCompleteMonth,
   updateLegacyProjection,
 } from '@/lib/billing/invoiceApprovedDispatch'
-import { InvoiceProviderConfigError, requireTenantInvoiceProvider, rpcError } from '@/lib/billing/providers/registry'
+import { renderNordfinInvoiceXml } from '@/lib/billing/nordfinInvoiceXml'
+import { InvoiceProviderConfigError, isFileProvider, loadNordfinClientId, requireTenantInvoiceProvider, rpcError, type FileProvider } from '@/lib/billing/providers/registry'
 import { buildXlsxWorkbook } from '@/lib/billing/xlsx'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
 import { supabaseService } from '@/lib/supabase/service'
@@ -22,7 +23,7 @@ import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
  * always rendered from the stored rows, so every download of a file is identical.
  */
 export const INVOICE_FILE_FORMAT_VERSION = 'gridex_invoice_file_v1'
-export type InvoiceFileFormat = 'csv' | 'xlsx' | 'json'
+export type InvoiceFileFormat = 'csv' | 'xlsx' | 'json' | 'nordfin_xml'
 
 type Row = Record<string, unknown>
 
@@ -52,6 +53,22 @@ export type InvoiceFileRow = {
   invoice_date: string
   due_date: string
   lines: Array<{ description: string; quantity: number | null; unit: string | null; unit_price_ex_vat: number | null; amount_ex_vat: number }>
+  /** Facility facts for electricity invoices (Nordfin's added fields). */
+  electricity?: InvoiceFileElectricity | null
+  /** Nordfin client id, fixed when the file is created. */
+  nordfin_client_id?: string | null
+}
+
+export type InvoiceFileElectricity = {
+  facility_id: string | null
+  metering_point_id: string | null
+  site_street: string | null
+  site_postal_code: string | null
+  site_city: string | null
+  grid_area: string | null
+  grid_owner: string | null
+  estimated_annual_kwh: number | null
+  contract_name: string | null
 }
 
 function text(value: unknown) {
@@ -114,6 +131,10 @@ export function buildInvoiceFileRow(input: {
   legacyItem: Row | null
   billingMonth: string
   now: Date
+  site?: Row | null
+  meteringPoint?: Row | null
+  contract?: Row | null
+  nordfinClientId?: string | null
 }): InvoiceFileRow {
   const itemId = text(input.item.id)
   if (!itemId) throw new Error('Fakturaposten saknar ID.')
@@ -154,6 +175,43 @@ export function buildInvoiceFileRow(input: {
         unit_price_ex_vat: num(line.unit_price_ex_vat) ?? num(line.unit_price),
         amount_ex_vat: money(line.amount_ex_vat),
       })),
+    electricity: buildElectricity(input),
+    nordfin_client_id: input.nordfinClientId ?? null,
+  }
+}
+
+function buildElectricity(input: { site?: Row | null; meteringPoint?: Row | null; contract?: Row | null }): InvoiceFileElectricity | null {
+  const site = input.site ?? null
+  const mp = input.meteringPoint ?? null
+  const contract = input.contract ?? null
+  if (!site && !mp && !contract) return null
+  return {
+    facility_id: text(site?.facility_id) ?? text(mp?.site_facility_id),
+    metering_point_id: text(mp?.metering_point_id) ?? text(mp?.ediel_metering_point_id),
+    site_street: text(site?.street),
+    site_postal_code: text(site?.postal_code),
+    site_city: text(site?.city),
+    grid_area: text(mp?.grid_area_code) ?? text(site?.grid_area_code),
+    grid_owner: text(mp?.grid_owner_name),
+    estimated_annual_kwh: num(mp?.estimated_annual_consumption_kwh) ?? num(site?.annual_consumption_kwh),
+    contract_name: text(contract?.contract_name),
+  }
+}
+
+async function loadFacility(companyId: string, underlay: Row) {
+  const siteId = text(underlay.customer_site_id) ?? text(underlay.site_id)
+  const mpId = text(underlay.metering_point_id)
+  const contractId = text(underlay.customer_contract_id) ?? text(underlay.contract_id)
+  const [site, mp, contract] = await Promise.all([
+    siteId ? tenantSelect(companyId, 'customer_sites', 'facility_id,street,postal_code,city,grid_area_code,annual_consumption_kwh').eq('id', siteId).maybeSingle() : null,
+    mpId ? tenantSelect(companyId, 'metering_points', 'metering_point_id,ediel_metering_point_id,site_facility_id,grid_area_code,grid_owner_name,estimated_annual_consumption_kwh').eq('id', mpId).maybeSingle() : null,
+    contractId ? tenantSelect(companyId, 'customer_contracts', 'contract_name').eq('id', contractId).maybeSingle() : null,
+  ])
+  for (const result of [site, mp, contract]) if (result?.error) throw result.error
+  return {
+    site: (site?.data ?? null) as Row | null,
+    meteringPoint: (mp?.data ?? null) as Row | null,
+    contract: (contract?.data ?? null) as Row | null,
   }
 }
 
@@ -167,20 +225,20 @@ async function loadSelection(companyId: string) {
   if (error) throw error
   const row = (data ?? {}) as Row
   const selected = requireTenantInvoiceProvider(row)
-  if (selected.provider !== 'file_export') {
+  if (!isFileProvider(selected.provider)) {
     throw new InvoiceProviderConfigError('invoice_file_provider_not_active', 'Bolaget skickar fakturor via API, inte via fil.')
   }
   if (row.invoice_export_enabled !== true) {
     throw new InvoiceProviderConfigError('invoice_file_provider_not_active', 'Filexport är inte aktiverad för bolaget.')
   }
-  return selected
+  return { provider: selected.provider as FileProvider, environment: selected.environment }
 }
 
 /** Approved, unsent invoices for the month that belong in the next file. */
-export async function listInvoiceFileCandidates(companyId: string, billingMonth: string, environment: string) {
+export async function listInvoiceFileCandidates(companyId: string, billingMonth: string, environment: string, provider: FileProvider = 'file_export') {
   const runs = await tenantSelect(companyId, 'invoice_export_runs', 'id')
     .eq('billing_month', billingMonth)
-    .eq('provider', 'file_export')
+    .eq('provider', provider)
     .eq('environment', environment)
   if (runs.error) throw runs.error
   const runIds = ((runs.data ?? []) as unknown as Row[]).map((row) => text(row.id)).filter((id): id is string => Boolean(id))
@@ -201,8 +259,12 @@ export async function createInvoiceFile(input: { companyId: string; billingMonth
   await requireCompanyOperationalForWrites(input.companyId)
   await assertOutboundAllowed({ companyId: input.companyId, channel: 'invoice_export' })
   const selected = await loadSelection(input.companyId)
-  const candidates = await listInvoiceFileCandidates(input.companyId, input.billingMonth, selected.environment)
+  const candidates = await listInvoiceFileCandidates(input.companyId, input.billingMonth, selected.environment, selected.provider)
   if (candidates.length === 0) throw new InvoiceProviderConfigError('invoice_file_empty', 'Det finns inga godkända fakturor att lägga i en fil.')
+  const nordfinClientId = selected.provider === 'nordfin' ? await loadNordfinClientId(input.companyId, selected.environment) : null
+  if (selected.provider === 'nordfin' && !nordfinClientId) {
+    throw new InvoiceProviderConfigError('nordfin_client_id_missing', 'Nordfins ClientId saknas för bolaget. Ange det under Fakturering → Integrationer.')
+  }
 
   const now = input.now ?? new Date()
   const rows: InvoiceFileRow[] = []
@@ -216,7 +278,10 @@ export async function createInvoiceFile(input: { companyId: string; billingMonth
       .eq('id', itemId)
       .maybeSingle()
     if (legacy.error) throw legacy.error
+    const facility = await loadFacility(input.companyId, context.underlay)
     rows.push(buildInvoiceFileRow({
+      ...facility,
+      nordfinClientId,
       item: context.item,
       invoice: context.invoice,
       customer: context.customer,
@@ -263,6 +328,7 @@ export type InvoiceFileRecord = {
   id: string
   billing_month: string
   environment: string
+  provider: FileProvider
   row_count: number
   total_inc_vat: number
   rows_sha256: string
@@ -270,7 +336,7 @@ export type InvoiceFileRecord = {
 }
 
 export async function listInvoiceFiles(companyId: string, limit = 24) {
-  const { data, error } = await tenantSelect(companyId, 'invoice_export_files', 'id,billing_month,environment,row_count,total_inc_vat,rows_sha256,created_at')
+  const { data, error } = await tenantSelect(companyId, 'invoice_export_files', 'id,billing_month,environment,provider,row_count,total_inc_vat,rows_sha256,created_at')
     .order('created_at', { ascending: false })
     .limit(limit)
   if (error) throw error
@@ -278,7 +344,7 @@ export async function listInvoiceFiles(companyId: string, limit = 24) {
 }
 
 export async function loadInvoiceFile(companyId: string, fileId: string) {
-  const { data, error } = await tenantSelect(companyId, 'invoice_export_files', 'id,billing_month,environment,row_count,total_inc_vat,rows,rows_sha256,created_at')
+  const { data, error } = await tenantSelect(companyId, 'invoice_export_files', 'id,billing_month,environment,provider,row_count,total_inc_vat,rows,rows_sha256,created_at')
     .eq('id', fileId)
     .maybeSingle()
   if (error) throw error
@@ -322,6 +388,13 @@ function csvCell(value: unknown) {
 
 export function renderInvoiceFile(file: { id: string; billing_month: string; rows: InvoiceFileRow[]; rows_sha256: string; created_at: string }, format: InvoiceFileFormat) {
   const base = `fakturor-${file.billing_month}-${file.id.slice(0, 8)}`
+  if (format === 'nordfin_xml') {
+    return {
+      fileName: `nordfin-${base}.xml`,
+      contentType: 'application/xml; charset=utf-8',
+      body: renderNordfinInvoiceXml(file.rows),
+    }
+  }
   if (format === 'json') {
     return {
       fileName: `${base}.json`,
@@ -349,6 +422,8 @@ export function renderInvoiceFile(file: { id: string; billing_month: string; row
   }
 }
 
-export function parseInvoiceFileFormat(value: string | null): InvoiceFileFormat {
-  return value === 'xlsx' || value === 'json' ? value : 'csv'
+/** A Nordfin file defaults to Nordfin XML; csv/xlsx/json stay available for review. */
+export function parseInvoiceFileFormat(value: string | null, provider: FileProvider = 'file_export'): InvoiceFileFormat {
+  if (value === 'xlsx' || value === 'json' || value === 'csv' || value === 'nordfin_xml') return value
+  return provider === 'nordfin' ? 'nordfin_xml' : 'csv'
 }
