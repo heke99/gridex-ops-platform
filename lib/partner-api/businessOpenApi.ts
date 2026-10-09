@@ -140,6 +140,7 @@ export const partnerPublicOpenApi = {
           grid_owner: {
             type: 'object',
             nullable: true,
+            description: 'Null when the postal code spans several grid areas/owners; send address and city to resolve it.',
             additionalProperties: false,
             required: ['name', 'verified'],
             properties: {
@@ -150,7 +151,7 @@ export const partnerPublicOpenApi = {
           confidence: { type: 'number', minimum: 0, maximum: 1 },
           price_area_confidence: { type: 'number', minimum: 0, maximum: 1 },
           resolution_method: nullableString,
-          requires_address: { type: 'boolean' },
+          requires_address: { type: 'boolean', description: 'True when the area is ambiguous or unresolved, when price-area assurance is not usable, or when the postal code spans several grid areas/owners.' },
           required_fields: { type: 'array', items: { type: 'string' } },
           warnings: { type: 'array', items: { type: 'string' } },
         },

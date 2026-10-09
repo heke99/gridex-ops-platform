@@ -20,6 +20,8 @@ const MIN_POSTAL_PRICE_ASSURANCE_CONFIDENCE = 0.8
 const MAX_POSTAL_CANDIDATES = 100
 const PAPILITE_DEFAULT_URL = 'https://api.papapi.se/lite/'
 const PAPILITE_POSTAL_CENTROID_CONFIDENCE = 0.7
+// Polygon lookups below this confidence lie near an area boundary.
+const POSTAL_CENTROID_MIN_POLYGON_MARGIN_CONFIDENCE = 0.95
 const PAPILITE_POSTAL_CACHE_TTL_DAYS = 90
 
 type Coordinates = {
@@ -573,7 +575,7 @@ async function lookupPapilitePostalCentroid(input: EnergyResolverInput): Promise
     }
 
     const { latitude, longitude } = coordinatesFromCandidate(candidate)
-    if (latitude === null || longitude === null) {
+    if (latitude === null || longitude === null || latitude < 54 || latitude > 70 || longitude < 10 || longitude > 25) {
       return {
         coordinates: null,
         warnings: ['papilite_invalid_response'],
@@ -797,8 +799,14 @@ async function priceAreaFromPostalCentroid(
     coordinates.confidence,
     Math.max(0, numberOrNull(row.confidence) ?? PAPILITE_POSTAL_CENTROID_CONFIDENCE),
   )
+  // The polygon lookup reports < 0.95 when the centroid lies close to an area
+  // boundary. A postal centroid is not the facility location, so a centroid
+  // near a boundary must not become price-ready assurance.
+  const polygonConfidence = numberOrNull(row.confidence)
+  const nearBoundary = polygonConfidence === null || polygonConfidence < POSTAL_CENTROID_MIN_POLYGON_MARGIN_CONFIDENCE
   const evidence = {
     postal_code: normalizePostalCode(input.postalCode),
+    polygon_confidence: polygonConfidence,
     coordinate_scope: 'postal_centroid',
     provider: 'papilite',
     coordinate_reference_system: 'EPSG:4326',
@@ -815,7 +823,7 @@ async function priceAreaFromPostalCentroid(
 
   return result(input, {
     priceArea,
-    priceAreaAssurance: !priceArea || geodata.stale
+    priceAreaAssurance: !priceArea || geodata.stale || nearBoundary
       ? unresolvedPriceAreaAssurance({
           priceArea,
           confidence,
@@ -840,7 +848,7 @@ async function priceAreaFromPostalCentroid(
     sourceChain,
     automationAllowed: false,
     geodataVersion: geodata.version,
-    nextRequiredAction: priceArea && !geodata.stale
+    nextRequiredAction: priceArea && !geodata.stale && !nearBoundary
       ? 'Elområdet är uppskattat från postnumrets centroid. Verifiera nätområde och nätägare via anläggningsdata eller manuell verifiering innan Ediel skickas.'
       : 'Elområdet kunde inte verifieras från postnumrets centroid. Komplettera platsdata eller uppdatera verifierad geodata.',
     warnings: [
@@ -848,6 +856,7 @@ async function priceAreaFromPostalCentroid(
       'postal_centroid_not_facility_location',
       ...(geodata.stale ? ['svk_geodata_stale_or_unverified'] : []),
       ...(!priceArea ? ['postal_centroid_price_area_unresolved'] : []),
+      ...(priceArea && nearBoundary ? ['postal_centroid_near_area_boundary'] : []),
     ],
     diagnostics: {
       ...lookup.diagnostics,
@@ -931,7 +940,12 @@ async function postalSuggestion(input: EnergyResolverInput): Promise<EnergyResol
       .filter((value): value is PriceArea => Boolean(value)),
   )]
   const source = exactCityRows.length > 0 ? 'postal_city_consensus' as const : 'postal_consensus' as const
-  const best = classified[0]
+  // A postal code spanning several grid areas must not name one of them as
+  // the grid owner; the caller has to supply a full address instead.
+  const multipleGridAreas = new Set(
+    classified.map((candidate) => candidate.gridAreaCode ?? '__unknown__'),
+  ).size > 1
+  const best = multipleGridAreas ? undefined : classified[0]
   const bestMaster = best?.gridAreaCode ? await findGridAreaByCode(best.gridAreaCode) : null
   const rawConfidence = classified.reduce((max, candidate) => Math.max(max, candidate.confidence), 0)
   const confidence = Math.min(exactCityRows.length > 0 ? 0.9 : 0.85, rawConfidence)
@@ -1339,10 +1353,13 @@ export async function publicPriceAreaByPostalCode(postalCodeRaw: string | null) 
       suggestion = await priceAreaFromPostalCentroid({ postalCode }, centroidLookup)
     }
   }
+  // Only usable (verified/estimated) assurance may expose a price area here.
+  const assuranceUsable = suggestion?.priceAreaAssurance.status === 'verified'
+    || suggestion?.priceAreaAssurance.status === 'estimated'
   return {
     postalCode,
-    priceArea: suggestion?.priceArea ?? null,
-    confidence: suggestion?.confidence ?? 0,
+    priceArea: assuranceUsable ? suggestion?.priceAreaAssurance.priceArea ?? null : null,
+    confidence: assuranceUsable ? suggestion?.priceAreaAssurance.confidence ?? 0 : 0,
     disclaimer: suggestion?.priceAreaAssurance.source === 'postal_centroid'
       ? 'Prisområdet är uppskattat från postnumrets geografiska centroid. Nätområde och nätägare verifieras separat och centroiden används aldrig som anläggningsposition.'
       : 'Prisområde från postnummer är preliminärt. Nätområdeskod och nätägare verifieras först via verifierad geodata, anläggningsdata och masterdata i OPS.',
