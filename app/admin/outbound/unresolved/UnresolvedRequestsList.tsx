@@ -292,12 +292,6 @@ export default function UnresolvedRequestsList({
  {primaryLink.label}
  </Link>
 
- <Link
- href="/admin/integrations/routes"
- className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 "
- >
- Communication routes
- </Link>
 
  <form action={updateOutboundRequestStatusAction}>
  <input type="hidden" name="outbound_request_id" value={request.id} />

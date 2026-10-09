@@ -384,7 +384,7 @@ export const CUSTOMER_WORKSPACE_TABS: Array<{
   {
     id: "overview",
     label: "Översikt",
-    description: "Status, readiness och rekommenderad nästa åtgärd.",
+    description: "Status, vad som saknas och rekommenderad nästa åtgärd.",
     group: "Start",
   },
   {
@@ -578,7 +578,7 @@ export function CustomerLookupProblem({
           {description}
         </p>
         <div className="mt-4 rounded-2xl border border-amber-200 bg-white px-4 py-3 font-mono text-xs text-slate-700 ">
-          Lookup-id: {lookupId}
+          Referens: {lookupId}
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
@@ -586,12 +586,6 @@ export function CustomerLookupProblem({
             className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 "
           >
             Till kundregistret
-          </Link>
-          <Link
-            href="/admin/ediel"
-            className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
-          >
-            Till Ediel
           </Link>
         </div>
       </section>

@@ -67,7 +67,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kundsupport via webb, telefon och OPS',
     items: [
       { key: 'customer_cases', label: 'Supportärenden', href: '/admin/customer-cases', description: 'Kundärenden, svar, interna anteckningar och samtal', pageKey: 'support.cases' },
-      { key: 'messages', label: 'Meddelanden', href: '/admin/messages', description: 'EDIEL-meddelanden, utskick och kommunikationshistorik', pageKey: 'operations.tasks' },
+      { key: 'messages', label: 'Meddelanden', href: '/admin/messages', description: 'Meddelanden till och från nätägare, utskick och historik', pageKey: 'operations.tasks' },
     ],
   },
   {
@@ -76,7 +76,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Underlag, export och fakturapartner',
     items: [
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag till fakturering/export', pageKey: 'billing.workspace' },
-      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Capway/Aptic, providerstatus och anslutningstest', pageKey: 'billing.workspace' },
+      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Koppling till ert faktureringssystem och test av anslutningen', pageKey: 'billing.workspace' },
     ],
   },
   {
@@ -97,7 +97,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Tenantens publicering och marknadsdatapolicy',
     items: [
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog, publicering och teckningsbarhet', pageKey: 'contracts.catalog' },
-      { key: 'market_sources', label: 'Marknadsdatapolicy', href: '/admin/pricing/market-sources', description: 'Interna källor för fakturering, avräkning och settlement', pageKey: 'pricing.engine' },
+      { key: 'market_sources', label: 'Marknadsdatapolicy', href: '/admin/pricing/market-sources', description: 'Vilka marknadspriser som används vid fakturering och avräkning', pageKey: 'pricing.engine' },
     ],
   },
   {
@@ -171,7 +171,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'metering', label: 'Mätvärdesåtkomst', href: '/admin/metering', description: 'Mätvärden och tillstånd', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analys', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag och exportberedskap', pageKey: 'billing.workspace' },
-      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Capway/Aptic, providerstatus och anslutningstest', pageKey: 'billing.workspace' },
+      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Koppling till ert faktureringssystem och test av anslutningen', pageKey: 'billing.workspace' },
       { key: 'partner_exports', label: 'Partnerexporter', href: '/admin/partner-exports', description: 'Exportkö och status mot faktureringspartner', pageKey: 'partner_exports.workspace' },
       { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Datakvalitet, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
     ],

@@ -144,7 +144,7 @@ export async function CustomerAdminDetailPage({
     return (
       <CustomerLookupProblem
         title="Kunden tillhör ett annat bolag"
-        description="Tenant-isoleringen blockerar kundkortet eftersom kunden inte tillhör ditt aktiva bolag."
+        description="Kunden tillhör inte ditt bolag och kan inte visas."
         lookupId={id}
       />
     );
