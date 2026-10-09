@@ -1,3 +1,6 @@
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import { renderProdat } from '@/lib/ediel/prodat/engine'
 import { prodatMessageTypeToken } from '@/lib/ediel/prodat/registry'
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
@@ -7,7 +10,7 @@ import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterE
 import type { EdielMessageIntent } from '@/lib/ediel/intent/types'
 import type { resolveCanonicalOutboundContext } from '@/lib/ediel/core/kernel'
 import type { CreateEdielMessageInput } from '@/lib/ediel/types'
-import {assertSwitchCancellationRoute,type SwitchCancellationBasis} from '@/lib/ediel/production/switchCancellationSource'
+import {assertSwitchCancellationRoute,switchCancellationProjection,type SwitchCancellationBasis} from '@/lib/ediel/production/switchCancellationSource'
 import {escapeEdifactValue} from '@/lib/ediel/core/edifactSerializer'
 
 export async function buildSwitchCancellationDraft(input: { actorUserId: string; basis: SwitchCancellationBasis; intent: EdielMessageIntent;
@@ -17,23 +20,33 @@ export async function buildSwitchCancellationDraft(input: { actorUserId: string;
   if(!b.requestedMethod)throw new Error('switch_cancellation_source_requested_method_required')
   const version = await resolveCanonicalOutboundVersion({ family: 'PRODAT', code: 'Z03', standard: 'edifact', environment: b.environment, routeDefaultMessageVersion: route.defaultMessageVersion })
   if(!version||!i.operationId||i.companyId!==b.companyId||i.environment!==b.environment||i.messageCode!=='Z03'||i.transactionReference!==b.li||(b.operationId&&b.operationId!==i.operationId)) throw new Error('switch_cancellation_canonical_version_reference_required')
-  const facts = {market:'electricity' as const}
-  const rendered = renderProdat({ code: 'Z03', variant: 'C', mode: b.environment,
+  const original = switchCancellationProjection(b,input.actorUserId)
+  const facts = original.facts
+  const invoicee=original.invoicee
+  const generatedAt=new Date()
+  const rendered = renderProdat({ code: 'Z03', variant: 'C', mode: b.environment, generatedAt,
     actor: { senderEdielId: route.senderEdielId, receiverEdielId: route.receiverEdielId },
     route: { applicationReference: i.applicationReference, senderSubAddress: route.senderSubAddress, receiverSubAddress: route.receiverMessageSubAddress ?? route.receiverSubAddress },
     version: { selectedVersion: version, messageTypeToken: prodatMessageTypeToken(version) },
     context: { code: 'Z03', bgmReference: i.interchangeReference, transactionReference: b.li,
       senderEdielId: route.senderEdielId, receiverEdielId: route.receiverEdielId, legalSenderId: b.legalSenderId, legalReceiverId: b.legalReceiverId,
-      customerName:b.customerName,customerId:b.customerIdentity,customerIdCodeListQualifier:b.customerQualifier,customerIdAgency:'260',meterPointId:b.pointId, meterPointIdAgency: b.identityAgency, gridAreaId: b.gridArea, reasonForTransaction:'Z24',startDate:b.startAt,
-      meteringMethod:b.requestedMethod,dependentConditionFacts: facts } })
+      customerName:original.customerName,customerNameLines:original.customerNameLines,customerAddressLines:original.customerAddressLines,customerCity:original.customerCity,customerPostalCode:original.customerPostalCode,customerCountry:original.customerCountry,powerOfAttorneyReference:'QUALIFIED_ORIGINAL',balanceResponsibleId:original.balanceResponsibleId,customerId:b.customerIdentity,customerIdCodeListQualifier:b.customerQualifier,customerIdAgency:'260',meterPointId:b.pointId, meterPointIdAgency: b.identityAgency, gridAreaId: b.gridArea, reasonForTransaction:'Z24',startDate:b.startAt,
+      meteringMethod:b.requestedMethod,invoicee,dependentConditionFacts: facts } })
   // The source owner's LI is an exact protocol identity. The ordinary renderer's
   // compact-reference helper must not rewrite an escaped existing identity.
-  const segments=rendered.segments.map(s=>s.startsWith('RFF+LI:')?`RFF+LI:${escapeEdifactValue(b.li)}`:s)
+  const segments=rendered.segments.map(s=>s.startsWith('RFF+LI:')?`RFF+LI:${escapeEdifactValue(b.li)}`:s.startsWith('RFF+ANJ:')?`RFF+ANJ:${escapeEdifactValue(original.agreementReference)}`:s)
+  // The ordinary text sanitizer is not a literal reference codec. Its bounded
+  // preimage above never leaves this builder: validate the actual exact source
+  // postimage against the whole canonical policy before returning draft bytes.
+  const policy=resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z03',subtypeOrReasonCode:'C',direction:'outbound',referenceDate:generatedAt.toISOString().slice(0,10),applicationReference:i.applicationReference,prodatDependentFacts:facts,mode:'parse'})
   const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z03' })
   const raw = EdifactEnvelopeCodec.encode({ sender: route.senderEdielId, receiver: route.receiverEdielId, senderSubAddress: route.senderSubAddress,
     receiverSubAddress: route.receiverMessageSubAddress ?? route.receiverSubAddress, interchangeReference: i.interchangeReference,
     applicationReference: i.applicationReference, environment: b.environment, acknowledgementRequest: ack.requiresContrl,
     messages: [{ messageReference: i.messageReference, messageTypeToken: prodatMessageTypeToken(version), businessSegments:segments }] })
+  const wire=tokenizeEdifact(raw)
+  const failures=validateCanonicalPolicyFields({policy,rawPayload:raw,rawSegments:wire.segments.map(segment=>segment.raw),una:wire.una}).filter(issue=>issue.blocking)
+  if(failures.length)throw Error('switch_cancellation_canonical_projection_invalid:'+failures.map(issue=>issue.code).join(','))
   const draft: CreateEdielMessageInput = { actorUserId: input.actorUserId, companyId: b.companyId, intentId: i.id, sourceOperationId:i.operationId,originalMessageId:b.originalMessageId,switchRequestId:b.switchRequestId,siteId:b.siteId,
     routeProfileId: i.routeProfileId, direction: 'outbound', messageStandard: 'edifact', messageFamily: 'PRODAT', messageCode: 'Z03', messageVersion: version,
     processType:'supplier_switch', environment: b.environment, testFlag: b.environment === 'test' ? 1 : 0, status: 'draft', transportType: 'smtp', mailbox: route.mailbox,

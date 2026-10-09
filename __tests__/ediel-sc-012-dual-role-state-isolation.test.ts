@@ -14,11 +14,12 @@ const port = vi.hoisted(() => ({
   tables: {} as Record<string, Row[]>, calls: [] as Array<{ name: string; args: Row }>, writes: [] as Array<{ table: string; value: Row }>,
   read: null as null | ((name: string, args: Row) => Promise<Reply>), source: {} as EdielMessageRow,
   facts: {} as Record<string, Row>, results: {} as Record<string, Row>, assessment: '',
+  ownSourceReadings:null as ProdatOwnSourceReadingSdk|null,
 }))
 
 // Finite Supabase transport only. Runtime, legal selection, coordinator,
 // source owner, domain adapters, SQL effects, ACK builder/kernel and writer run.
-vi.mock('@/lib/supabase/service', () => {
+vi.mock('@/lib/supabase/service', async () => {
   class Query {
     filters: Array<(row: Row) => boolean> = []; one = false; maximum = Infinity; operation = 'read'; value: Row = {}; exact = false
     constructor(readonly table: string) {}
@@ -64,21 +65,22 @@ vi.mock('@/lib/supabase/service', () => {
       }).then(done, failed)
     }
   }
-  return { supabaseService: {
+  return { supabaseService:(await import('./helpers/prodatOwnSourceReadingAdapter')).prodatOwnSourceReadingAdapter(()=>port.ownSourceReadings,{
     from: (table: string) => new Query(table),
     rpc: (name: string, args: Row) => {
       port.calls.push({ name, args: structuredClone(args) })
       const pending = Promise.resolve().then(() => { if (!port.read) throw Error('SC012 database not initialized'); return port.read(name, args) })
       return Object.assign(pending, { abortSignal: () => pending })
     },
-  } }
+  }) }
 })
 
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { permissionAckMessage, permissionAckObject } from './fixtures/prodat-permission-ack'
-import { OWNER, ownerId, ownerRows, ownerRulePack, ownerSource } from './helpers/sourceOwnerFixtures'
+import { OWNER, ownerId, ownerRows, ownerRulePack, ownerSourceWithInstallationStatus as ownerSource } from './helpers/sourceOwnerFixtures'
+import {createProdatOwnSourceReadingSdk,resetProdatOwnSourceReadingSdk,installProdatOwnSourceReadingFixture,type ProdatOwnSourceReadingSdk} from './helpers/prodatOwnSourceReadingFixture'
 import { PRODAT_FIXTURE_COMPANY, prodatFixtureSourceRpc, withProdatFixtureInsertContext } from './helpers/prodatInboundSourceFixture'
 
 const company = PRODAT_FIXTURE_COMPANY, actor = ownerId(2), foreignCompany = ownerId(200)
@@ -107,7 +109,7 @@ async function refreshBusiness() {
 
 function wire(code: 'Z13' | 'Z14' | 'Z03' | 'Z04', id: string): EdielMessageRow {
   const permission = code === 'Z13' || code === 'Z14', outbound = code === 'Z13' || code === 'Z03'
-  const base = permission ? permissionAckMessage(code, 'S17', code === 'Z14' ? 'A74' : null, null, undefined, permissionAckObject(code, 'S17', code === 'Z14' ? 'A74' : null, null, '1', 'SC012-DGI')) : ownerSource()
+  const base = permission ? permissionAckMessage(code, 'S17', code === 'Z14' ? 'A74' : null, null, undefined, permissionAckObject(code, 'S17', code === 'Z14' ? 'A74' : null, null, '1', 'SC012-DGI')) : code==='Z04'?ownerSource('Z12',{readingDeclarations:true,sourceCodes:{installationStatus:'Z12',settlementMethod:'Z32'}}):ownerSource('Z12')
   const body = tokenizeEdifact(base.raw_payload!).segments.filter(segment => !['UNA', 'UNB', 'UNH', 'UNT', 'UNZ'].includes(segment.tag)).map(segment => {
     let raw = segment.raw
     if (!permission) raw = raw.replace('BGM+Z04', `BGM+${code}`).replace('RFF+LI:CASE-1', 'RFF+LI:SC012-DDQ').replace('NAD+UD+CUSTOMER-1', 'NAD+UD+001')
@@ -230,6 +232,9 @@ afterAll(async () => { try { await fixture?.db.close() } finally { vi.unstubAllE
 async function receive(code: 'Z14' | 'Z04', id: string) {
   port.assessment = ownerId(code === 'Z14' ? 240 : 241)
   port.source = withProdatFixtureInsertContext(wire(code, id))
+  port.ownSourceReadings=null
+  if(code==='Z04'){port.ownSourceReadings=createProdatOwnSourceReadingSdk();resetProdatOwnSourceReadingSdk(port.ownSourceReadings)
+    installProdatOwnSourceReadingFixture(port.ownSourceReadings,port.source,'L',{actorUserId:actor,receivedAt:port.source.message_received_at!,mailId:port.source.inbound_email_message_id!,parseId:ownerId(61),receptionId:ownerId(62),legalActorId:OWNER.actor})}
   port.tables.ediel_messages.push(structuredClone(port.source) as unknown as Row)
   await insert('public.ediel_messages', { id, company_id: company, environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: code, raw_payload: port.source.raw_payload, application_reference: port.source.application_reference, status: 'received', customer_id: OWNER.customer, metering_point_id: OWNER.point, message_received_at: port.source.message_received_at, execution_context_snapshot: port.source.execution_context_snapshot })
   await insert('public.sc012_legal_port', { source_id: id, company_id: company, payload_hash: hash(port.source.raw_payload), basis: { companyId: company, legalActorId: OWNER.actor, legalEdielId: '54321', actorRole: code === 'Z14' ? 'energy_service_company' : 'electricity_supplier', environment: 'test', family: 'PRODAT', code } })

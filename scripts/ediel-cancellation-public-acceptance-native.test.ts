@@ -262,7 +262,7 @@ function observeProcessedSource(f: Fixture, source: EdielMessageRow) {
   console.info('C_NATIVE_OBSERVER', JSON.stringify(observation))
 }
 async function process(f: Fixture, source: EdielMessageRow) {
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source)
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source, { actorUserId: f.actorUserId })
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify({ phase: 'runtime_decision_'+source.message_code, source: source.id, issues: decision.issues }))
     .toEqual(['accepted', 'accepted', 'accepted'])
   await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: source.id })

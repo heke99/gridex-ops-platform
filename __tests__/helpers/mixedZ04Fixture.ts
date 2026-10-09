@@ -6,7 +6,7 @@ import {line,qty,common,characteristic,type Parts} from '../fixtures/prodat-regi
 // PRODAT D.97A LIN group order: CCI/CAV groups precede the RFF and NAD groups.
 function withCharacteristics(object:string,customer:string): Parts[] {
   const parts=common(object,customer),at=parts.findIndex(part=>part[0]==='RFF')
-  const extra=[...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3)]
+  const extra=[...characteristic('Z07','Z12'),...characteristic('Z12','D',3),...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3)]
   return [...parts.slice(0,at),...extra,...parts.slice(at)]
 }
 export function mixedZ04Parts(): Parts[] {
