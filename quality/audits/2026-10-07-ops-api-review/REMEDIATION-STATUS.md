@@ -71,3 +71,23 @@ DONE (runtime + policy): `lib/integrations/apiContractCompatibility.ts` (registr
 | F39 | FIXED | README pekar på aktuell kontraktsinventering; hotfix-README arkiverad. `__tests__/readme-current-contract-entry.test.ts`. |
 | F40 | FIXED (opt-in) | `x-gridex-query-parsing: strict` (strikt decimal, inga dubbletter, 422 före DB); standard oförändrat för befintliga klienter. `__tests__/staff-query-parsing-policy.test.ts`. |
 | F41 | FIXED | N+1-skannern täcker `lib/staff-api`, `lib/tenant`, `lib/partner-api`; ett verkligt fall annoterat som begränsad fallback. `__tests__/n-plus-one-query-budget-scope.test.ts`. Steg-/p95-telemetri kvar. |
+
+## Paket 10 + 11 — F20–F25
+
+| Fynd | Status | Bevis |
+|---|---|---|
+| F20 | FIXED | Ändrat `care_of` på samma fysiska adress sparas (`reason: care_of_updated`) utan att routing/verifiering nollställs. `__tests__/customer-profile-address-transaction.test.ts`. |
+| F21 | FIXED (TS + native) | Lägre källa sänker inte proveniens; `20261009140000_customer_site_address_source_authority.sql` upprepar konfliktbeslutet på låst rad (PGlite i samma testfil). |
+| F22 | FIXED | Anläggning valideras före profilmutation; 404 lämnar e-post orörd. |
+| F23 | FIXED | Partner `POST /price` använder API-kanalens readiness/publicering; Website-only ger 404. `__tests__/partner-api-channel-quote.test.ts`. Kvar: prov mot en verklig API-only-publicering i disponibel miljö. |
+| F24 | FIXED | `resolved`/`verified` kräver giltig assurance; stale ⇒ `partial`, `location_identifiers_provisional`, 422 för pris. `__tests__/partner-location-assurance.test.ts`. |
+| F25 | PARTIAL | Semantik fixad (postnummer-only provisoriskt); schemadelen görs i Paket 7. |
+
+## Paket 12 + 13 — F16, F17, F4, F45
+
+| Fynd | Status | Bevis |
+|---|---|---|
+| F16 | FIXED | ETag omfattar tenant, kundtyp, kanal, profil, schema- och representationsrevision; `Vary: Authorization`. `__tests__/public-contract-profile-etag.test.ts` (9/13 röda → 13/13). |
+| F17 | FIXED | RFC 9110 `If-None-Match` (svag jämförelse, listor, `*`) efter auth. Samma testfil. |
+| F4 | FIXED | En autentisering/rate-limit-debitering per request (request-bunden WeakMap, ingen cross-request-cache). `__tests__/partner-single-auth-budget.test.ts` (4/5 röda → 5/5). |
+| F45 | FIXED | `lib/integrations/webhookCredentialPolicy.ts`: rotation behåller, säkerhetsrevokering/offboarding stoppar länkade prenumerationer före transport (även köade). `__tests__/webhook-revocation-policy.test.ts`; runbook uppdaterad. Öppet beslut: nycklar revokerade före ändringen saknar revoke-typ och fortsätter leverera (medvetet för att inte tyst stoppa produktion). |
