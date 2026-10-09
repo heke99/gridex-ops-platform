@@ -95213,6 +95213,17 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_prepare_switch_cancellation_customer_masterdata_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_intent_id: string
+          p_operation_id: string
+          p_raw_payload: string
+          p_route_id: string
+        }
+        Returns: Json
+      }
       ediel_probe_source_rule_pack_capture_v1: {
         Args: { p_company_id: string; p_message_id: string }
         Returns: Json
@@ -96810,6 +96821,22 @@ export type Database = {
       ediel_supply_start_is_cancelled_v1: {
         Args: { p_company_id: string; p_switch_request_id: string }
         Returns: boolean
+      }
+      ediel_switch_cancellation_customer_masterdata_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
+      ediel_switch_cancellation_customer_masterdata_message_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
       }
       ediel_switch_cancellation_source_v1: {
         Args: {

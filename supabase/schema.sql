@@ -8852,7 +8852,7 @@ CREATE FUNCTION gridex_customer_masterdata.bind_original_v1() RETURNS trigger
  IF nullif(NEW.parsed_payload->>'customerMasterdataSourceContextId','') IS NULL THEN RAISE EXCEPTION 'customer_masterdata_protected_source_context_required';END IF;
  SELECT * INTO p FROM gridex_customer_masterdata.preparations WHERE id=(NEW.parsed_payload->>'customerMasterdataSourceContextId')::uuid AND company_id=NEW.company_id FOR SHARE;
  IF p.id IS NULL OR p.actor_user_id IS DISTINCT FROM NEW.created_by OR p.customer_id IS DISTINCT FROM NEW.customer_id OR (p.environment IS NOT NULL AND p.environment IS DISTINCT FROM NEW.environment) OR NEW.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(NEW.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'customer_masterdata_prepared_source_scope_required';END IF;
- IF gridex_ediel_retention.contract_copy_preparation_current_v1(NEW.company_id,p.id) IS NOT TRUE THEN RAISE EXCEPTION 'customer_masterdata_consumed_original_copy_tombstoned';END IF; PERFORM gridex_customer_masterdata.require_recovery_preparation_v1(p,NEW,NEW.created_by,'prepare'); b:=gridex_customer_masterdata.basis_v1(NEW.company_id,p.customer_id,p.actor_user_id,p.as_of,p.environment,'prepare',p.observed_at,p.basis#>'{sourceProof,sourceIds}');
+ IF gridex_ediel_retention.contract_copy_preparation_current_v1(NEW.company_id,p.id) IS NOT TRUE THEN RAISE EXCEPTION 'customer_masterdata_consumed_original_copy_tombstoned';END IF; PERFORM gridex_customer_masterdata.require_recovery_preparation_v1(p,NEW,NEW.created_by,'prepare'); PERFORM gridex_customer_masterdata.require_cancellation_preparation_v1(p,NEW,NEW.created_by,'prepare'); b:=gridex_customer_masterdata.basis_v1(NEW.company_id,p.customer_id,p.actor_user_id,p.as_of,p.environment,'prepare',p.observed_at,p.basis#>'{sourceProof,sourceIds}');
  IF b IS DISTINCT FROM p.basis OR ud IS NULL THEN RAISE EXCEPTION 'customer_masterdata_prepared_source_changed';END IF;
  FOR obj IN SELECT item FROM jsonb_array_elements(ud)item LOOP IF obj->'customerIdentity' IS DISTINCT FROM b->'customerIdentity' OR obj->'endUserMasterdata' IS DISTINCT FROM gridex_customer_masterdata.wire_masterdata_v1(b->'endUserMasterdata') THEN RAISE EXCEPTION 'customer_masterdata_actual_wire_changed';END IF;END LOOP;
  INSERT INTO gridex_customer_masterdata.originals(message_id,company_id,preparation_id,payload_hash) VALUES(NEW.id,NEW.company_id,p.id,NEW.immutable_payload_hash);RETURN NEW;
@@ -8914,33 +8914,7 @@ CREATE FUNCTION gridex_customer_masterdata.prelock_new_v1() RETURNS trigger
     AS $$DECLARE p gridex_customer_masterdata.preparations%rowtype;BEGIN
  IF NEW.direction='outbound' AND NEW.message_family='PRODAT' AND NEW.message_code IN('Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09') AND nullif(NEW.parsed_payload->>'customerMasterdataSourceContextId','') IS NOT NULL THEN
  SELECT * INTO p FROM gridex_customer_masterdata.preparations WHERE id=(NEW.parsed_payload->>'customerMasterdataSourceContextId')::uuid AND company_id=NEW.company_id;
- IF p.id IS NOT NULL THEN PERFORM m.id FROM public.ediel_messages m WHERE m.company_id=NEW.company_id AND m.id IN(SELECT value::uuid FROM jsonb_array_elements_text(p.basis#>'{sourceProof,sourceIds}')) ORDER BY m.id FOR UPDATE;END IF;END IF;RETURN NEW;END$$;
-
---
--- Name: require_current_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: gridex_customer_masterdata; Owner: -
---
-
-CREATE FUNCTION gridex_customer_masterdata.require_current_v1(c uuid, message uuid, actor uuid, phase text) RETURNS void
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog'
-    AS $$
-DECLARE m public.ediel_messages%rowtype;p gridex_customer_masterdata.preparations%rowtype;b jsonb;ud jsonb;obj jsonb;q jsonb;BEGIN PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
- SELECT * INTO m FROM public.ediel_messages WHERE id=message AND company_id=c FOR UPDATE;IF m.id IS NULL THEN RAISE EXCEPTION 'customer_masterdata_message_required';END IF;
- IF m.direction<>'outbound' OR m.message_family<>'PRODAT' OR (m.message_code IN('Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09')) IS NOT TRUE THEN RETURN;END IF;
- IF m.message_code NOT IN('Z01','Z03') AND nullif(m.parsed_payload->>'customerMasterdataSourceContextId','') IS NULL AND NOT EXISTS(SELECT FROM gridex_customer_masterdata.originals WHERE company_id=c AND message_id=m.id) THEN RETURN;END IF;
- ud:=gridex_customer_masterdata.wire_ud_v1(m.raw_payload);IF ud IS NOT NULL AND jsonb_array_length(ud)=0 AND NOT EXISTS(SELECT FROM gridex_customer_masterdata.originals WHERE company_id=c AND message_id=m.id) THEN RETURN;END IF;
- IF NOT EXISTS(SELECT FROM gridex_customer_masterdata.originals WHERE message_id=m.id AND company_id=c) THEN
-  PERFORM gridex_customer_life_events.require_actor_v1(c,actor,phase);
-  IF m.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId' IS NOT NULL AND m.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId' IS NULL THEN q:=gridex_negative_fixtures.require_positive_message_v1(c,m.id,m.message_code);
-  ELSIF m.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId' IS NOT NULL AND m.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId' IS NULL THEN q:=gridex_negative_fixtures.require_negative_message_v1(c,m.id,m.message_code);END IF;
-  IF q->>'authorizesBusinessEffect'='false' AND q->>'companyId'=c::text AND m.environment='test' THEN RETURN;END IF;
- END IF;
- SELECT prep.* INTO p FROM gridex_customer_masterdata.originals o JOIN gridex_customer_masterdata.preparations prep ON prep.id=o.preparation_id WHERE o.company_id=c AND o.message_id=m.id AND o.payload_hash=m.immutable_payload_hash FOR SHARE OF prep;
- IF p.id IS NULL OR p.customer_id IS DISTINCT FROM m.customer_id OR (p.environment IS NOT NULL AND p.environment IS DISTINCT FROM m.environment) OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'customer_masterdata_immutable_original_required';END IF;
- IF gridex_ediel_retention.contract_copy_preparation_current_v1(c,p.id) IS NOT TRUE THEN RAISE EXCEPTION 'customer_masterdata_consumed_original_copy_tombstoned';END IF; PERFORM gridex_customer_masterdata.require_recovery_preparation_v1(p,m,actor,phase); b:=gridex_customer_masterdata.basis_v1(c,p.customer_id,actor,p.as_of,p.environment,phase,p.observed_at,p.basis#>'{sourceProof,sourceIds}');
- IF b IS DISTINCT FROM p.basis OR ud IS NULL THEN RAISE EXCEPTION 'customer_masterdata_current_source_changed';END IF;
- FOR obj IN SELECT item FROM jsonb_array_elements(ud)item LOOP IF obj->'customerIdentity' IS DISTINCT FROM b->'customerIdentity' OR obj->'endUserMasterdata' IS DISTINCT FROM gridex_customer_masterdata.wire_masterdata_v1(b->'endUserMasterdata') THEN RAISE EXCEPTION 'customer_masterdata_actual_wire_changed';END IF;END LOOP;
-END$$;
+ IF p.cancellation_origin_id IS NOT NULL THEN PERFORM gridex_switch_cancellations.prelock_customer_source_v1(NEW.company_id,(SELECT o.switch_id FROM gridex_switch_cancellations.origins o WHERE o.company_id=NEW.company_id AND o.id=p.cancellation_origin_id));END IF; IF p.id IS NOT NULL THEN PERFORM m.id FROM public.ediel_messages m WHERE m.company_id=NEW.company_id AND m.id IN(SELECT value::uuid FROM jsonb_array_elements_text(p.basis#>'{sourceProof,sourceIds}')) ORDER BY m.id FOR UPDATE;END IF;END IF;RETURN NEW;END$$;
 
 --
 -- Name: preparations; Type: TABLE; Schema: gridex_customer_masterdata; Owner: -
@@ -8957,10 +8931,68 @@ CREATE TABLE gridex_customer_masterdata.preparations (
     basis jsonb NOT NULL,
     basis_hash text NOT NULL,
     recovery_operation_id uuid,
+    cancellation_origin_id uuid,
+    CONSTRAINT customer_masterdata_one_scoped_origin CHECK (((recovery_operation_id IS NULL) OR (cancellation_origin_id IS NULL))),
     CONSTRAINT preparations_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
 );
 
 ALTER TABLE ONLY gridex_customer_masterdata.preparations FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: require_cancellation_preparation_v1(gridex_customer_masterdata.preparations, public.ediel_messages, uuid, text); Type: FUNCTION; Schema: gridex_customer_masterdata; Owner: -
+--
+
+CREATE FUNCTION gridex_customer_masterdata.require_cancellation_preparation_v1(p gridex_customer_masterdata.preparations, m public.ediel_messages, actor uuid, phase text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE o gridex_switch_cancellations.origins%rowtype;source gridex_customer_masterdata.preparations%rowtype;q jsonb;w jsonb;
+BEGIN
+ IF p.cancellation_origin_id IS NULL THEN
+  IF p.recovery_operation_id IS NOT NULL THEN RETURN;END IF;
+  w:=gridex_received_sources.switch_origin_wire_v1(m.raw_payload);
+  IF EXISTS(SELECT FROM gridex_switch_cancellations.origins WHERE company_id=m.company_id AND (id::text=m.source_operation_id OR intent_id=m.intent_id OR message_id=m.id)) OR w#>>'{objects,0,reason}'='Z24' THEN RAISE EXCEPTION 'customer_masterdata_cancellation_fresh_preparation_required';END IF;
+  RETURN;
+ END IF;
+ q:=gridex_switch_cancellations.customer_draft_v1(m.company_id,p.cancellation_origin_id,actor,phase,m.intent_id,m.communication_route_id,m.raw_payload);
+ SELECT * INTO o FROM gridex_switch_cancellations.origins WHERE company_id=m.company_id AND id=p.cancellation_origin_id FOR SHARE;
+ SELECT * INTO source FROM gridex_customer_masterdata.preparations WHERE id=(q->>'sourceContextId')::uuid AND company_id=m.company_id FOR SHARE;
+ IF p.recovery_operation_id IS NOT NULL OR p.id=source.id OR p.actor_user_id IS DISTINCT FROM m.created_by OR p.customer_id IS DISTINCT FROM source.customer_id
+  OR p.environment IS DISTINCT FROM source.environment OR p.as_of IS DISTINCT FROM source.as_of OR p.observed_at IS DISTINCT FROM source.observed_at OR p.basis IS DISTINCT FROM source.basis OR p.basis_hash IS DISTINCT FROM source.basis_hash
+  OR m.source_operation_id IS DISTINCT FROM o.id::text OR m.original_message_id IS DISTINCT FROM o.original_message_id::text OR m.switch_request_id IS DISTINCT FROM o.switch_id
+  OR m.intent_id IS DISTINCT FROM o.intent_id OR m.outbound_request_id IS DISTINCT FROM o.outbound_request_id OR m.customer_id::text IS DISTINCT FROM o.basis->>'customerId'
+  OR m.site_id::text IS DISTINCT FROM o.basis->>'siteId' OR m.metering_point_id::text IS DISTINCT FROM o.basis->>'meteringPointId' OR m.environment IS DISTINCT FROM o.basis->>'environment'
+  OR m.direction IS DISTINCT FROM 'outbound' OR m.message_standard IS DISTINCT FROM 'edifact' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z03'
+  OR m.immutable_rendered_at IS NULL OR m.immutable_payload_hash IS DISTINCT FROM q#>>'{cancellationBinding,payloadHash}'
+  OR (o.message_id IS NOT NULL AND (o.message_id IS DISTINCT FROM m.id OR o.payload_hash IS DISTINCT FROM m.immutable_payload_hash))
+ THEN RAISE EXCEPTION 'customer_masterdata_cancellation_preparation_scope_required';END IF;
+END$$;
+
+--
+-- Name: require_current_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: gridex_customer_masterdata; Owner: -
+--
+
+CREATE FUNCTION gridex_customer_masterdata.require_current_v1(c uuid, message uuid, actor uuid, phase text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE m public.ediel_messages%rowtype;p gridex_customer_masterdata.preparations%rowtype;b jsonb;ud jsonb;obj jsonb;q jsonb;BEGIN PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ PERFORM gridex_switch_cancellations.prelock_customer_message_v1(c,message); SELECT * INTO m FROM public.ediel_messages WHERE id=message AND company_id=c FOR UPDATE;IF m.id IS NULL THEN RAISE EXCEPTION 'customer_masterdata_message_required';END IF;
+ IF m.direction<>'outbound' OR m.message_family<>'PRODAT' OR (m.message_code IN('Z01','Z02','Z03','Z04','Z05','Z06','Z08','Z09')) IS NOT TRUE THEN RETURN;END IF;
+ IF m.message_code NOT IN('Z01','Z03') AND nullif(m.parsed_payload->>'customerMasterdataSourceContextId','') IS NULL AND NOT EXISTS(SELECT FROM gridex_customer_masterdata.originals WHERE company_id=c AND message_id=m.id) THEN RETURN;END IF;
+ ud:=gridex_customer_masterdata.wire_ud_v1(m.raw_payload);IF ud IS NOT NULL AND jsonb_array_length(ud)=0 AND NOT EXISTS(SELECT FROM gridex_customer_masterdata.originals WHERE company_id=c AND message_id=m.id) THEN RETURN;END IF;
+ IF NOT EXISTS(SELECT FROM gridex_customer_masterdata.originals WHERE message_id=m.id AND company_id=c) THEN
+  PERFORM gridex_customer_life_events.require_actor_v1(c,actor,phase);
+  IF m.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId' IS NOT NULL AND m.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId' IS NULL THEN q:=gridex_negative_fixtures.require_positive_message_v1(c,m.id,m.message_code);
+  ELSIF m.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId' IS NOT NULL AND m.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId' IS NULL THEN q:=gridex_negative_fixtures.require_negative_message_v1(c,m.id,m.message_code);END IF;
+  IF q->>'authorizesBusinessEffect'='false' AND q->>'companyId'=c::text AND m.environment='test' THEN RETURN;END IF;
+ END IF;
+ SELECT prep.* INTO p FROM gridex_customer_masterdata.originals o JOIN gridex_customer_masterdata.preparations prep ON prep.id=o.preparation_id WHERE o.company_id=c AND o.message_id=m.id AND o.payload_hash=m.immutable_payload_hash FOR SHARE OF prep;
+ IF p.id IS NULL OR p.customer_id IS DISTINCT FROM m.customer_id OR (p.environment IS NOT NULL AND p.environment IS DISTINCT FROM m.environment) OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'customer_masterdata_immutable_original_required';END IF;
+ IF gridex_ediel_retention.contract_copy_preparation_current_v1(c,p.id) IS NOT TRUE THEN RAISE EXCEPTION 'customer_masterdata_consumed_original_copy_tombstoned';END IF; PERFORM gridex_customer_masterdata.require_recovery_preparation_v1(p,m,actor,phase); PERFORM gridex_customer_masterdata.require_cancellation_preparation_v1(p,m,actor,phase); b:=gridex_customer_masterdata.basis_v1(c,p.customer_id,actor,p.as_of,p.environment,phase,p.observed_at,p.basis#>'{sourceProof,sourceIds}');
+ IF b IS DISTINCT FROM p.basis OR ud IS NULL THEN RAISE EXCEPTION 'customer_masterdata_current_source_changed';END IF;
+ FOR obj IN SELECT item FROM jsonb_array_elements(ud)item LOOP IF obj->'customerIdentity' IS DISTINCT FROM b->'customerIdentity' OR obj->'endUserMasterdata' IS DISTINCT FROM gridex_customer_masterdata.wire_masterdata_v1(b->'endUserMasterdata') THEN RAISE EXCEPTION 'customer_masterdata_actual_wire_changed';END IF;END LOOP;
+END$$;
 
 --
 -- Name: require_recovery_preparation_v1(gridex_customer_masterdata.preparations, public.ediel_messages, uuid, text); Type: FUNCTION; Schema: gridex_customer_masterdata; Owner: -
@@ -32129,7 +32161,7 @@ DECLARE s public.supplier_switch_requests%rowtype;m public.ediel_messages%rowtyp
 BEGIN
  -- Discover only a selector. Recheck the parent after ordered genuine original,
  -- executor and parent locks; no public metadata constitutes source authority.
- SELECT outbound_z03_message_id INTO original_id FROM public.supplier_switch_requests WHERE id=sw AND company_id=c;
+ PERFORM gridex_switch_cancellations.prelock_customer_source_v1(c,sw); SELECT outbound_z03_message_id INTO original_id FROM public.supplier_switch_requests WHERE id=sw AND company_id=c;
  SELECT * INTO m FROM public.ediel_messages WHERE id=original_id AND company_id=c FOR UPDATE;
  IF prepare_execution IS NULL THEN RAISE EXCEPTION 'switch_cancellation_execution_phase_required';END IF;
  IF prepare_execution THEN
@@ -32182,6 +32214,100 @@ BEGIN
   'originalSubtype',CASE own->>'reason' WHEN 'Z22' THEN 'L' ELSE 'LK' END,'deadline',deadline,'customerIdentity',own->>'customerIdentity','customerQualifier',ud#>>'{elements,2,1}',
   'customerName',coalesce(ud#>>'{elements,4,0}',''),'sourceObject',own);
 END $$;
+
+--
+-- Name: customer_draft_v1(uuid, uuid, uuid, text, uuid, uuid, text); Type: FUNCTION; Schema: gridex_switch_cancellations; Owner: -
+--
+
+CREATE FUNCTION gridex_switch_cancellations.customer_draft_v1(c uuid, operation uuid, actor uuid, phase text, intent uuid, route uuid, raw text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE o gridex_switch_cancellations.origins%rowtype;i public.ediel_message_intents%rowtype;r public.outbound_requests%rowtype;q jsonb;b jsonb;w jsonb;own jsonb;tokens jsonb;original_tokens jsonb;unb jsonb;unh jsonb;unt jsonb;unz jsonb;ud jsonb;obj jsonb;source gridex_customer_masterdata.preparations%rowtype;
+BEGIN
+ SELECT * INTO o FROM gridex_switch_cancellations.origins WHERE company_id=c AND id=operation;
+ IF o.id IS NULL THEN RAISE EXCEPTION 'customer_masterdata_cancellation_private_origin_required';END IF;
+ PERFORM gridex_switch_cancellations.prelock_customer_source_v1(c,o.switch_id,o.message_id);
+ q:=gridex_switch_cancellations.customer_source_v1(c,o.switch_id,actor,phase);
+ b:=gridex_switch_cancellations.context_v1(c,o.switch_id,actor,phase='prepare');
+ SELECT * INTO o FROM gridex_switch_cancellations.origins WHERE company_id=c AND id=operation FOR SHARE;
+ SELECT * INTO i FROM public.ediel_message_intents WHERE company_id=c AND id=o.intent_id FOR SHARE;
+ SELECT * INTO r FROM public.outbound_requests WHERE company_id=c AND id=o.outbound_request_id FOR SHARE;
+ IF b->>'status' IS DISTINCT FROM 'authorized' OR (b-ARRAY['operationId','intentId','outboundRequestId','messageId']) IS DISTINCT FROM o.basis
+  OR o.original_message_id::text IS DISTINCT FROM q#>>'{cancellationSourceBinding,originalMessageId}' OR o.original_hash IS DISTINCT FROM q#>>'{cancellationSourceBinding,originalHash}'
+  OR o.intent_id IS DISTINCT FROM intent OR i.id IS NULL OR r.id IS NULL OR i.operation_id IS DISTINCT FROM operation OR i.communication_route_id IS DISTINCT FROM route
+  OR i.environment IS DISTINCT FROM b->>'environment' OR i.direction IS DISTINCT FROM 'outbound' OR i.message_family IS DISTINCT FROM 'PRODAT' OR i.message_code IS DISTINCT FROM 'Z03'
+  OR i.business_process IS DISTINCT FROM 'supplier_switch' OR i.validation_status IS DISTINCT FROM 'validated' OR i.customer_id::text IS DISTINCT FROM b->>'customerId'
+  OR i.metering_point_id IS DISTINCT FROM b->>'pointId' OR i.grid_area_code IS DISTINCT FROM b->>'gridArea' OR i.transaction_reference IS DISTINCT FROM b->>'li'
+  OR to_jsonb(i)-ARRAY['created_at','updated_at','validation_status','validation_report','render_status','outbox_status','ack_status','ediel_message_id','outbound_request_id'] IS DISTINCT FROM o.intent_binding
+  OR r.payload->>'environment' IS DISTINCT FROM b->>'environment' OR r.source_type IS DISTINCT FROM 'manual' OR r.source_id::text IS DISTINCT FROM i.id::text
+  OR r.request_type IS DISTINCT FROM 'supplier_switch' OR r.operation_id IS DISTINCT FROM operation OR r.customer_id::text IS DISTINCT FROM b->>'customerId'
+  OR r.site_id::text IS DISTINCT FROM b->>'siteId' OR r.metering_point_id::text IS DISTINCT FROM b->>'meteringPointId'
+ THEN RAISE EXCEPTION 'customer_masterdata_cancellation_private_scope_required';END IF;
+ w:=gridex_received_sources.switch_origin_wire_v1(raw);own:=w#>'{objects,0}';tokens:=gridex_received_sources.closure_wire_tokens_v2(raw);
+ SELECT t INTO unb FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB';
+ SELECT t INTO unh FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH';
+ SELECT t INTO unt FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNT';
+ SELECT t INTO unz FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNZ';
+ SELECT gridex_received_sources.closure_wire_tokens_v2(m.raw_payload) INTO original_tokens FROM public.ediel_messages m WHERE m.company_id=c AND m.id=o.original_message_id;
+ IF raw IS NULL OR w IS NULL OR w->>'code' IS DISTINCT FROM 'Z03' OR own->>'reason' IS DISTINCT FROM 'Z24'
+  OR own->>'li' IS DISTINCT FROM b->>'li' OR own->>'installationPoint' IS DISTINCT FROM b->>'pointId' OR own->>'installationAgency' IS DISTINCT FROM b->>'identityAgency'
+  OR own->>'customerIdentity' IS DISTINCT FROM b->>'customerIdentity' OR own->>'customerQualifier' IS DISTINCT FROM b->>'customerQualifier' OR own->>'customerAgency' IS DISTINCT FROM '260'
+  OR own->>'gridArea' IS DISTINCT FROM b->>'gridArea' OR own->>'start' IS DISTINCT FROM b#>>'{sourceObject,start}'
+  OR w->>'sender' IS DISTINCT FROM b->>'legalSenderId' OR w->>'receiver' IS DISTINCT FROM b->>'legalReceiverId'
+  OR w->>'bgmId' IS DISTINCT FROM i.interchange_reference OR unb#>>'{elements,2,0}' IS DISTINCT FROM i.sender_ediel_id OR unb#>>'{elements,3,0}' IS DISTINCT FROM i.receiver_ediel_id
+  OR coalesce(unb#>>'{elements,2,2}','') IS DISTINCT FROM coalesce(i.sender_subaddress,'') OR coalesce(unb#>>'{elements,3,2}','') IS DISTINCT FROM coalesce(i.receiver_subaddress,'')
+  OR unb#>>'{elements,5,0}' IS DISTINCT FROM i.interchange_reference OR unb#>>'{elements,7,0}' IS DISTINCT FROM i.application_reference
+  OR unh#>>'{elements,1,0}' IS DISTINCT FROM i.message_reference
+  OR unb->'index' >= unh->'index' OR unh->'index' >= unt->'index' OR unt->'index' >= unz->'index'
+  OR unt#>>'{elements,1,0}' IS DISTINCT FROM ((unt->>'index')::int-(unh->>'index')::int+1)::text
+  OR unt#>>'{elements,2,0}' IS DISTINCT FROM unh#>>'{elements,1,0}' OR unz#>>'{elements,1,0}' IS DISTINCT FROM '1' OR unz#>>'{elements,2,0}' IS DISTINCT FROM unb#>>'{elements,5,0}'
+  OR unb->'index' IS DISTINCT FROM (SELECT to_jsonb(min((t->>'index')::int)) FROM jsonb_array_elements(tokens)t)
+  OR unz->'index' IS DISTINCT FROM (SELECT to_jsonb(max((t->>'index')::int)) FROM jsonb_array_elements(tokens)t)
+  OR unh#>'{elements,2}' IS DISTINCT FROM (SELECT t#>'{elements,2}' FROM jsonb_array_elements(original_tokens)t WHERE t->>'tag'='UNH')
+  OR unb#>'{elements,1}' IS DISTINCT FROM (SELECT t#>'{elements,1}' FROM jsonb_array_elements(original_tokens)t WHERE t->>'tag'='UNB')
+  OR EXISTS(SELECT FROM unnest(ARRAY['UNB','UNH','BGM','UNT','UNZ']) tag WHERE (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'=tag)<>1)
+  OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ANJ')<>1
+  OR (SELECT t#>>'{elements,1,1}' FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ANJ') IS DISTINCT FROM (SELECT t#>>'{elements,1,1}' FROM jsonb_array_elements(original_tokens)t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ANJ')
+ THEN RAISE EXCEPTION 'customer_masterdata_cancellation_actual_wire_required';END IF;
+ PERFORM gridex_switch_cancellations.require_original_method_v1(c,o.original_message_id,o.original_hash,i.environment,raw);
+ ud:=gridex_customer_masterdata.wire_ud_v1(raw);
+ IF ud IS NULL OR jsonb_array_length(ud)<>1 THEN RAISE EXCEPTION 'customer_masterdata_cancellation_actual_wire_required';END IF;
+ FOR obj IN SELECT item FROM jsonb_array_elements(ud)item LOOP IF obj->'customerIdentity' IS DISTINCT FROM q->'customerIdentity' OR obj->'endUserMasterdata' IS DISTINCT FROM gridex_customer_masterdata.wire_masterdata_v1(q->'endUserMasterdata') THEN RAISE EXCEPTION 'customer_masterdata_cancellation_actual_wire_changed';END IF;END LOOP;
+ SELECT * INTO source FROM gridex_customer_masterdata.preparations WHERE id=(q->>'sourceContextId')::uuid AND company_id=c FOR SHARE;
+ IF source.id IS NULL OR source.cancellation_origin_id IS NOT NULL THEN RAISE EXCEPTION 'customer_masterdata_cancellation_original_scope_required';END IF;
+ RETURN q||jsonb_build_object('cancellationBinding',jsonb_build_object('operationId',o.id,'switchRequestId',o.switch_id,'actorUserId',actor,'intentId',i.id,'routeId',i.communication_route_id,'environment',i.environment,'originalMessageId',o.original_message_id,'originalHash',o.original_hash,'payloadHash',encode(sha256(convert_to(raw,'UTF8')),'hex')));
+END$$;
+
+--
+-- Name: customer_source_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: gridex_switch_cancellations; Owner: -
+--
+
+CREATE FUNCTION gridex_switch_cancellations.customer_source_v1(c uuid, sw uuid, actor uuid, phase text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE q jsonb;m public.ediel_messages%rowtype;p gridex_customer_masterdata.preparations%rowtype;b jsonb;
+BEGIN
+ IF phase NOT IN('prepare','send') OR phase IS NULL THEN RAISE EXCEPTION 'customer_masterdata_cancellation_phase_required';END IF;
+ PERFORM gridex_switch_cancellations.prelock_customer_source_v1(c,sw);
+ PERFORM gridex_customer_life_events.require_actor_v1(c,actor,phase);
+ q:=gridex_switch_cancellations.context_v1(c,sw,actor,phase='prepare');
+ IF q->>'status' IS DISTINCT FROM 'authorized' THEN RAISE EXCEPTION 'customer_masterdata_cancellation_source_held';END IF;
+ SELECT * INTO m FROM public.ediel_messages WHERE id=(q->>'originalMessageId')::uuid AND company_id=c FOR SHARE;
+ SELECT prep.* INTO p FROM gridex_customer_masterdata.originals o JOIN gridex_customer_masterdata.preparations prep ON prep.id=o.preparation_id WHERE o.company_id=c AND o.message_id=m.id AND o.payload_hash=m.immutable_payload_hash FOR SHARE OF prep;
+ IF p.id IS NULL OR p.actor_user_id IS DISTINCT FROM m.created_by OR p.customer_id IS DISTINCT FROM m.customer_id OR m.customer_id::text IS DISTINCT FROM q->>'customerId'
+  OR p.cancellation_origin_id IS NOT NULL OR (p.environment IS NOT NULL AND p.environment IS DISTINCT FROM m.environment)
+  OR m.immutable_payload_hash IS DISTINCT FROM q->>'originalHash' OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+  OR m.intent_id IS NULL OR m.communication_route_id IS NULL THEN RAISE EXCEPTION 'customer_masterdata_cancellation_original_scope_required';END IF;
+ -- This is a real prepare/current-source read. The ordinary SEND-only reader
+ -- remains unchanged; a prepare-only writer does not borrow SEND authority.
+ PERFORM gridex_customer_masterdata.require_current_v1(c,m.id,actor,phase);
+ b:=gridex_customer_masterdata.basis_v1(c,p.customer_id,actor,p.as_of,p.environment,phase,p.observed_at,p.basis#>'{sourceProof,sourceIds}');
+ IF b IS DISTINCT FROM p.basis THEN RAISE EXCEPTION 'customer_masterdata_cancellation_original_source_changed';END IF;
+ RETURN (b-'sourceProof')||jsonb_build_object('sourceContextId',p.id,'messageBinding',jsonb_build_object('id',m.id,'environment',m.environment,'intentId',m.intent_id,'routeId',m.communication_route_id,'payloadHash',m.immutable_payload_hash),
+  'cancellationSourceBinding',jsonb_build_object('switchRequestId',sw,'actorUserId',actor,'originalMessageId',m.id,'originalHash',m.immutable_payload_hash,'environment',m.environment,'originalPreparerId',p.actor_user_id));
+END$$;
 
 --
 -- Name: origin_immutable_v1(); Type: FUNCTION; Schema: gridex_switch_cancellations; Owner: -
@@ -32239,6 +32365,43 @@ BEGIN
   'requestedMethod',d.requested_method,'sourceReference',d.source_reference,'sourceVersion',d.source_version,'sourceDigest',d.source_sha256);
  IF binding.source_basis IS DISTINCT FROM frozen THEN RETURN NULL;END IF;
  RETURN method;
+END$$;
+
+--
+-- Name: prelock_customer_message_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_switch_cancellations; Owner: -
+--
+
+CREATE FUNCTION gridex_switch_cancellations.prelock_customer_message_v1(c uuid, message uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE sw uuid;
+BEGIN
+ SELECT o.switch_id INTO sw FROM gridex_switch_cancellations.origins o JOIN public.ediel_messages m ON m.company_id=o.company_id AND (m.id=o.message_id OR m.intent_id=o.intent_id) WHERE m.company_id=c AND m.id=message;
+ IF sw IS NOT NULL THEN PERFORM gridex_switch_cancellations.prelock_customer_source_v1(c,sw,message);END IF;
+END$$;
+
+--
+-- Name: prelock_customer_source_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_switch_cancellations; Owner: -
+--
+
+CREATE FUNCTION gridex_switch_cancellations.prelock_customer_source_v1(c uuid, sw uuid, message uuid DEFAULT NULL::uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE original uuid;customer uuid;after_original uuid;after_customer uuid;source_ids jsonb;after_sources jsonb;
+BEGIN
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ SELECT outbound_z03_message_id,customer_id INTO original,customer FROM public.supplier_switch_requests WHERE company_id=c AND id=sw;
+ SELECT coalesce(jsonb_agg(DISTINCT v.source_message_id ORDER BY v.source_message_id),'[]') INTO source_ids FROM gridex_customer_life_events.customer_versions v WHERE v.company_id=c AND v.customer_id=customer;
+ PERFORM m.id FROM public.ediel_messages m WHERE m.company_id=c AND m.id IN(
+  SELECT original UNION SELECT message UNION
+  SELECT v.source_message_id FROM gridex_customer_life_events.customer_versions v WHERE v.company_id=c AND v.customer_id=customer UNION
+  SELECT value::uuid FROM gridex_customer_masterdata.originals o JOIN gridex_customer_masterdata.preparations p ON p.id=o.preparation_id CROSS JOIN LATERAL jsonb_array_elements_text(p.basis#>'{sourceProof,sourceIds}') WHERE o.company_id=c AND o.message_id=original
+ ) ORDER BY m.id FOR UPDATE;
+ SELECT outbound_z03_message_id,customer_id INTO after_original,after_customer FROM public.supplier_switch_requests WHERE company_id=c AND id=sw;
+ SELECT coalesce(jsonb_agg(DISTINCT v.source_message_id ORDER BY v.source_message_id),'[]') INTO after_sources FROM gridex_customer_life_events.customer_versions v WHERE v.company_id=c AND v.customer_id=customer;
+ IF ROW(after_original,after_customer) IS DISTINCT FROM ROW(original,customer) OR after_sources IS DISTINCT FROM source_ids THEN RAISE EXCEPTION 'customer_masterdata_cancellation_source_epoch_changed' USING ERRCODE='40001';END IF;
 END$$;
 
 --
@@ -45265,7 +45428,7 @@ BEGIN
  PERFORM gridex_received_sources.require_recovery_execution_actor_v1(p_company_id,p_actor_user_id,'prepare');
  PERFORM gridex_received_sources.qualified_recovery_origin_v1(p_company_id,p_operation_id);
  INSERT INTO gridex_customer_masterdata.preparations(company_id,customer_id,environment,as_of,observed_at,actor_user_id,basis,basis_hash,recovery_operation_id) VALUES(p_company_id,source.customer_id,source.environment,source.as_of,source.observed_at,p_actor_user_id,b,encode(sha256(convert_to(b::text,'UTF8')),'hex'),op.id) ON CONFLICT DO NOTHING RETURNING * INTO prep;
- IF prep.id IS NULL THEN SELECT * INTO STRICT prep FROM gridex_customer_masterdata.preparations WHERE company_id=p_company_id AND customer_id=source.customer_id AND environment IS NOT DISTINCT FROM source.environment AND as_of=source.as_of AND actor_user_id=p_actor_user_id AND basis=b AND recovery_operation_id=op.id;END IF;
+ IF prep.id IS NULL THEN SELECT * INTO STRICT prep FROM gridex_customer_masterdata.preparations WHERE company_id=p_company_id AND customer_id=source.customer_id AND environment IS NOT DISTINCT FROM source.environment AND as_of=source.as_of AND actor_user_id=p_actor_user_id AND basis=b AND recovery_operation_id=op.id AND cancellation_origin_id IS NULL;END IF;
  IF prep.id=source.id THEN RAISE EXCEPTION 'customer_masterdata_recovery_fresh_preparation_required';END IF;
  RETURN (b-'sourceProof')||jsonb_build_object('sourceContextId',prep.id,'recoveryBinding',jsonb_build_object('operationId',op.id,'actorUserId',p_actor_user_id,'intentId',i.id,'routeId',i.communication_route_id,'environment',op.environment,'originalMessageId',op.original_message_id,'sourceOriginMessageId',m.id,'payloadHash',op.corrected_payload_hash));
 END$$;
@@ -45282,7 +45445,7 @@ DECLARE b jsonb;prep gridex_customer_masterdata.preparations%rowtype;BEGIN
  IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'customer_masterdata_service_required' USING ERRCODE='42501';END IF;
  b:=gridex_customer_masterdata.basis_v1(p_company_id,p_customer_id,p_actor_user_id,p_as_of,p_environment,'prepare');IF b->>'status' IS DISTINCT FROM 'authorized' THEN RETURN b;END IF;
  INSERT INTO gridex_customer_masterdata.preparations(company_id,customer_id,environment,as_of,observed_at,actor_user_id,basis,basis_hash) VALUES(p_company_id,p_customer_id,p_environment,p_as_of,statement_timestamp(),p_actor_user_id,b,encode(sha256(convert_to(b::text,'UTF8')),'hex')) ON CONFLICT DO NOTHING RETURNING * INTO prep;
- IF prep.id IS NULL THEN SELECT * INTO STRICT prep FROM gridex_customer_masterdata.preparations WHERE company_id=p_company_id AND customer_id=p_customer_id AND environment IS NOT DISTINCT FROM p_environment AND as_of=p_as_of AND actor_user_id=p_actor_user_id AND basis=b AND recovery_operation_id IS NULL;END IF;
+ IF prep.id IS NULL THEN SELECT * INTO STRICT prep FROM gridex_customer_masterdata.preparations WHERE company_id=p_company_id AND customer_id=p_customer_id AND environment IS NOT DISTINCT FROM p_environment AND as_of=p_as_of AND actor_user_id=p_actor_user_id AND basis=b AND recovery_operation_id IS NULL AND cancellation_origin_id IS NULL;END IF;
  RETURN (b-'sourceProof')||jsonb_build_object('sourceContextId',prep.id);
 END$$;
 
@@ -45396,6 +45559,28 @@ BEGIN
  IF oid IS NULL THEN RAISE EXCEPTION 'prodat_recovery_conflict';END IF;
  RETURN gridex_received_sources.qualify_established_recovery_source_v1(p_company_id,p_original_message_id,p_actor_user_id,oid,p_source_ack_message_id,p_previous_attempt_id,p_corrected_raw_payload);
 END $$;
+
+--
+-- Name: ediel_prepare_switch_cancellation_customer_masterdata_v1(uuid, uuid, uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_prepare_switch_cancellation_customer_masterdata_v1(p_company_id uuid, p_operation_id uuid, p_actor_user_id uuid, p_intent_id uuid, p_route_id uuid, p_raw_payload text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE q jsonb;source gridex_customer_masterdata.preparations%rowtype;prep gridex_customer_masterdata.preparations%rowtype;
+BEGIN
+ IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'customer_masterdata_service_required' USING ERRCODE='42501';END IF;
+ q:=gridex_switch_cancellations.customer_draft_v1(p_company_id,p_operation_id,p_actor_user_id,'prepare',p_intent_id,p_route_id,p_raw_payload);
+ SELECT * INTO STRICT source FROM gridex_customer_masterdata.preparations WHERE company_id=p_company_id AND id=(q->>'sourceContextId')::uuid FOR SHARE;
+ -- Recheck current execution permission after source/parent locks may wait.
+ PERFORM gridex_customer_life_events.require_actor_v1(p_company_id,p_actor_user_id,'prepare');
+ INSERT INTO gridex_customer_masterdata.preparations(company_id,customer_id,environment,as_of,observed_at,actor_user_id,basis,basis_hash,cancellation_origin_id)
+ VALUES(p_company_id,source.customer_id,source.environment,source.as_of,source.observed_at,p_actor_user_id,source.basis,source.basis_hash,p_operation_id) ON CONFLICT DO NOTHING RETURNING * INTO prep;
+ IF prep.id IS NULL THEN SELECT * INTO STRICT prep FROM gridex_customer_masterdata.preparations WHERE company_id=p_company_id AND customer_id=source.customer_id AND environment IS NOT DISTINCT FROM source.environment AND as_of=source.as_of AND observed_at=source.observed_at AND actor_user_id=p_actor_user_id AND basis=source.basis AND recovery_operation_id IS NULL AND cancellation_origin_id=p_operation_id;END IF;
+ IF prep.id=source.id THEN RAISE EXCEPTION 'customer_masterdata_cancellation_fresh_preparation_required';END IF;
+ RETURN (q-ARRAY['sourceContextId','messageBinding','cancellationSourceBinding'])||jsonb_build_object('sourceContextId',prep.id);
+END$$;
 
 --
 -- Name: ediel_probe_source_rule_pack_capture_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -47754,7 +47939,7 @@ CREATE FUNCTION public.ediel_require_switch_cancellation_source_current_v1(p_com
     AS $$
 DECLARE m public.ediel_messages%rowtype;o gridex_switch_cancellations.origins%rowtype;b jsonb;w jsonb;q jsonb;positive boolean;negative boolean;i public.ediel_message_intents%rowtype;r public.outbound_requests%rowtype;
 BEGIN
- SELECT * INTO m FROM public.ediel_messages WHERE id=p_message_id AND company_id=p_company_id FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'switch_cancellation_message_scope_required';END IF;
+ PERFORM gridex_switch_cancellations.prelock_customer_message_v1(p_company_id,p_message_id); SELECT * INTO m FROM public.ediel_messages WHERE id=p_message_id AND company_id=p_company_id FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'switch_cancellation_message_scope_required';END IF;
  SELECT * INTO o FROM gridex_switch_cancellations.origins WHERE message_id=m.id AND company_id=p_company_id;
  IF o.message_id IS NULL AND m.environment='test' AND m.direction='outbound' AND m.message_standard='edifact' AND m.message_family='PRODAT' AND m.message_code='Z03' THEN
   SELECT EXISTS(SELECT FROM gridex_negative_fixtures.positive_consumptions c WHERE c.message_id=m.id AND c.company_id=p_company_id),
@@ -49393,6 +49578,41 @@ CREATE FUNCTION public.ediel_supply_start_is_cancelled_v1(p_company_id uuid, p_s
     AS $$
  SELECT EXISTS(SELECT FROM public.supplier_switch_requests sw JOIN gridex_received_sources.supply_source_transitions tr ON tr.source_message_id=sw.inbound_z04_message_id AND tr.company_id=sw.company_id WHERE sw.id=p_switch_request_id AND sw.company_id=p_company_id AND sw.status='cancelled_before_start' AND sw.id=ANY(tr.qualified_switch_ids) AND tr.source_code='Z04' AND EXISTS(SELECT FROM jsonb_array_elements(tr.source_objects) o WHERE o->>'reason'='Z24'))
 $$;
+
+--
+-- Name: ediel_switch_cancellation_customer_masterdata_basis_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_switch_cancellation_customer_masterdata_basis_v1(p_company_id uuid, p_switch_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'customer_masterdata_service_required' USING ERRCODE='42501';END IF;
+ RETURN gridex_switch_cancellations.customer_source_v1(p_company_id,p_switch_id,p_actor_user_id,'prepare');
+END$$;
+
+--
+-- Name: ediel_switch_cancellation_customer_masterdata_message_basis_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_switch_cancellation_customer_masterdata_message_basis_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE m public.ediel_messages%rowtype;o gridex_switch_cancellations.origins%rowtype;p gridex_customer_masterdata.preparations%rowtype;
+BEGIN
+ IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'customer_masterdata_service_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_switch_cancellations.prelock_customer_message_v1(p_company_id,p_message_id);
+ SELECT * INTO m FROM public.ediel_messages WHERE company_id=p_company_id AND id=p_message_id FOR SHARE;
+ SELECT * INTO o FROM gridex_switch_cancellations.origins WHERE company_id=p_company_id AND message_id=m.id FOR SHARE;
+ IF m.id IS NULL OR o.id IS NULL OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z03' OR m.status IS DISTINCT FROM 'draft' THEN RAISE EXCEPTION 'customer_masterdata_cancellation_bound_draft_required';END IF;
+ PERFORM gridex_customer_masterdata.require_current_v1(p_company_id,m.id,p_actor_user_id,'prepare');
+ SELECT prep.* INTO p FROM gridex_customer_masterdata.originals original JOIN gridex_customer_masterdata.preparations prep ON prep.id=original.preparation_id WHERE original.company_id=p_company_id AND original.message_id=m.id AND original.payload_hash=m.immutable_payload_hash FOR SHARE OF prep;
+ IF p.id IS NULL OR p.cancellation_origin_id IS DISTINCT FROM o.id OR p.actor_user_id IS DISTINCT FROM m.created_by THEN RAISE EXCEPTION 'customer_masterdata_cancellation_bound_draft_required';END IF;
+ RETURN (p.basis-'sourceProof')||jsonb_build_object('sourceContextId',p.id,'messageBinding',jsonb_build_object('id',m.id,'environment',m.environment,'intentId',m.intent_id,'routeId',m.communication_route_id,'payloadHash',m.immutable_payload_hash),
+  'cancellationBinding',jsonb_build_object('operationId',o.id,'switchRequestId',o.switch_id,'actorUserId',p_actor_user_id,'originalMessageId',o.original_message_id,'originalHash',o.original_hash,'preparerId',p.actor_user_id));
+END$$;
 
 --
 -- Name: ediel_switch_cancellation_source_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -123134,7 +123354,7 @@ ALTER TABLE ONLY gridex_customer_life_events.transitions
 --
 
 ALTER TABLE ONLY gridex_customer_masterdata.preparations
-    ADD CONSTRAINT customer_masterdata_preparation_actor_operation_key UNIQUE NULLS NOT DISTINCT (company_id, customer_id, environment, as_of, actor_user_id, basis_hash, recovery_operation_id);
+    ADD CONSTRAINT customer_masterdata_preparation_actor_operation_key UNIQUE NULLS NOT DISTINCT (company_id, customer_id, environment, as_of, actor_user_id, basis_hash, recovery_operation_id, cancellation_origin_id);
 
 --
 -- Name: originals originals_pkey; Type: CONSTRAINT; Schema: gridex_customer_masterdata; Owner: -
@@ -152473,6 +152693,13 @@ ALTER TABLE ONLY gridex_customer_masterdata.originals
 
 ALTER TABLE ONLY gridex_customer_masterdata.preparations
     ADD CONSTRAINT preparations_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: preparations preparations_cancellation_origin_id_fkey; Type: FK CONSTRAINT; Schema: gridex_customer_masterdata; Owner: -
+--
+
+ALTER TABLE ONLY gridex_customer_masterdata.preparations
+    ADD CONSTRAINT preparations_cancellation_origin_id_fkey FOREIGN KEY (cancellation_origin_id) REFERENCES gridex_switch_cancellations.origins(id);
 
 --
 -- Name: preparations preparations_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_customer_masterdata; Owner: -
@@ -186744,16 +186971,22 @@ REVOKE ALL ON FUNCTION gridex_customer_masterdata.prelock_message_v1(c uuid, mes
 REVOKE ALL ON FUNCTION gridex_customer_masterdata.prelock_new_v1() FROM PUBLIC;
 
 --
--- Name: FUNCTION require_current_v1(c uuid, message uuid, actor uuid, phase text); Type: ACL; Schema: gridex_customer_masterdata; Owner: -
---
-
-REVOKE ALL ON FUNCTION gridex_customer_masterdata.require_current_v1(c uuid, message uuid, actor uuid, phase text) FROM PUBLIC;
-
---
 -- Name: TABLE preparations; Type: ACL; Schema: gridex_customer_masterdata; Owner: -
 --
 
 GRANT SELECT,UPDATE ON TABLE gridex_customer_masterdata.preparations TO gridex_ediel_retention_owner;
+
+--
+-- Name: FUNCTION require_cancellation_preparation_v1(p gridex_customer_masterdata.preparations, m public.ediel_messages, actor uuid, phase text); Type: ACL; Schema: gridex_customer_masterdata; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_customer_masterdata.require_cancellation_preparation_v1(p gridex_customer_masterdata.preparations, m public.ediel_messages, actor uuid, phase text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_current_v1(c uuid, message uuid, actor uuid, phase text); Type: ACL; Schema: gridex_customer_masterdata; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_customer_masterdata.require_current_v1(c uuid, message uuid, actor uuid, phase text) FROM PUBLIC;
 
 --
 -- Name: FUNCTION require_recovery_preparation_v1(p gridex_customer_masterdata.preparations, m public.ediel_messages, actor uuid, phase text); Type: ACL; Schema: gridex_customer_masterdata; Owner: -
@@ -191402,10 +191635,34 @@ REVOKE ALL ON FUNCTION gridex_switch_cancellations.bound_message_immutable_v1() 
 REVOKE ALL ON FUNCTION gridex_switch_cancellations.context_v1(c uuid, sw uuid, actor uuid, prepare_execution boolean) FROM PUBLIC;
 
 --
+-- Name: FUNCTION customer_draft_v1(c uuid, operation uuid, actor uuid, phase text, intent uuid, route uuid, raw text); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_switch_cancellations.customer_draft_v1(c uuid, operation uuid, actor uuid, phase text, intent uuid, route uuid, raw text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION customer_source_v1(c uuid, sw uuid, actor uuid, phase text); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_switch_cancellations.customer_source_v1(c uuid, sw uuid, actor uuid, phase text) FROM PUBLIC;
+
+--
 -- Name: FUNCTION original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
 --
 
 REVOKE ALL ON FUNCTION gridex_switch_cancellations.original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION prelock_customer_message_v1(c uuid, message uuid); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_switch_cancellations.prelock_customer_message_v1(c uuid, message uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION prelock_customer_source_v1(c uuid, sw uuid, message uuid); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_switch_cancellations.prelock_customer_source_v1(c uuid, sw uuid, message uuid) FROM PUBLIC;
 
 --
 -- Name: FUNCTION require_original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text, raw text); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
@@ -193166,6 +193423,13 @@ REVOKE ALL ON FUNCTION public.ediel_prepare_prodat_recovery_v1(p_company_id uuid
 GRANT ALL ON FUNCTION public.ediel_prepare_prodat_recovery_v1(p_company_id uuid, p_original_message_id uuid, p_actor_user_id uuid, p_operation_id uuid, p_source_ack_message_id uuid, p_previous_attempt_id uuid, p_corrected_raw_payload text) TO service_role;
 
 --
+-- Name: FUNCTION ediel_prepare_switch_cancellation_customer_masterdata_v1(p_company_id uuid, p_operation_id uuid, p_actor_user_id uuid, p_intent_id uuid, p_route_id uuid, p_raw_payload text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_prepare_switch_cancellation_customer_masterdata_v1(p_company_id uuid, p_operation_id uuid, p_actor_user_id uuid, p_intent_id uuid, p_route_id uuid, p_raw_payload text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_prepare_switch_cancellation_customer_masterdata_v1(p_company_id uuid, p_operation_id uuid, p_actor_user_id uuid, p_intent_id uuid, p_route_id uuid, p_raw_payload text) TO service_role;
+
+--
 -- Name: FUNCTION ediel_probe_source_rule_pack_capture_v1(p_company_id uuid, p_message_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -194514,6 +194778,20 @@ GRANT ALL ON FUNCTION public.ediel_supply_rescission_scope_v1(p_company_id uuid,
 
 REVOKE ALL ON FUNCTION public.ediel_supply_start_is_cancelled_v1(p_company_id uuid, p_switch_request_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_supply_start_is_cancelled_v1(p_company_id uuid, p_switch_request_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION ediel_switch_cancellation_customer_masterdata_basis_v1(p_company_id uuid, p_switch_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_switch_cancellation_customer_masterdata_basis_v1(p_company_id uuid, p_switch_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_switch_cancellation_customer_masterdata_basis_v1(p_company_id uuid, p_switch_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION ediel_switch_cancellation_customer_masterdata_message_basis_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_switch_cancellation_customer_masterdata_message_basis_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_switch_cancellation_customer_masterdata_message_basis_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION ediel_switch_cancellation_source_v1(p_company_id uuid, p_switch_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
