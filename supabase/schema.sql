@@ -45760,7 +45760,7 @@ CREATE FUNCTION public.ediel_project_accepted_source_state_v1(p_company_id uuid,
     AS $_$
 DECLARE m public.ediel_messages%rowtype;receipt jsonb;attempt_binding jsonb;technical_plan jsonb;technical_due timestamptz;technical_basis text:='current_final_or_not_required';expectations jsonb:='[]';e jsonb;observed timestamptz;business_due timestamptz;business_pending boolean:=false;
  r public.outbound_requests%rowtype;g public.grid_owner_data_requests%rowtype;c public.customer_info_requests%rowtype;
- terminal boolean;business_terminal boolean;business_watch_pending boolean;request_status text;data_status text;info_status text;
+ terminal boolean;business_terminal boolean;business_watch_pending boolean;request_status text;data_status text;info_status text;source_bound_ack boolean:=false;
 BEGIN
  IF p_company_id IS NULL OR p_actor_user_id IS NULL OR p_message_id IS NULL OR (p_environment IN('test','production')) IS NOT TRUE
   OR p_expected_original_hash IS NULL OR p_expected_original_hash !~ '^[a-f0-9]{64}$' THEN RAISE EXCEPTION 'ediel_source_projection_scope_required';END IF;
@@ -45781,6 +45781,7 @@ BEGIN
  ELSIF receipt->>'lane'='sealed_z08' THEN SELECT a.binding INTO attempt_binding FROM gridex_outbound_dispatch.attempts a WHERE a.id=(receipt->>'attemptId')::uuid AND a.company_id=m.company_id AND a.environment=m.environment AND a.message_id=m.id;
  ELSE RAISE EXCEPTION 'ediel_source_projection_accepted_lane_required';END IF;
  IF attempt_binding IS NULL OR attempt_binding->>'originalHash' IS DISTINCT FROM m.immutable_payload_hash THEN RAISE EXCEPTION 'ediel_source_projection_accepted_binding_required';END IF;
+ source_bound_ack:=CASE WHEN (m.message_standard='edifact' AND m.message_family IN('CONTRL','APERAK') AND m.related_message_id IS NOT NULL) IS TRUE THEN (gridex_ack_authority.wire_v1(m.raw_payload)->>'family'=m.message_family) IS TRUE ELSE false END;
  technical_plan:=attempt_binding->'technicalExpectationPlan';
  IF NOT terminal AND m.requires_contrl IS TRUE AND m.contrl_status IS DISTINCT FROM 'received' THEN
   IF technical_plan IS NULL OR technical_plan='null'::jsonb THEN
@@ -45809,11 +45810,11 @@ BEGIN
  END IF;
  -- Lock and qualify every actual consumer before the first source projection write. A bad final
  -- relation cannot leave half-repaired clocks/statuses in another source row.
- IF m.outbound_request_id IS NOT NULL THEN
+ IF NOT source_bound_ack AND m.outbound_request_id IS NOT NULL THEN
   SELECT * INTO r FROM public.outbound_requests WHERE id=m.outbound_request_id AND company_id=m.company_id FOR UPDATE;
   IF r.id IS NULL OR r.customer_id IS DISTINCT FROM m.customer_id OR r.site_id IS DISTINCT FROM m.site_id OR r.metering_point_id IS DISTINCT FROM m.metering_point_id THEN RAISE EXCEPTION 'ediel_source_projection_owned_outbound_request_required';END IF;
  END IF;
- IF m.grid_owner_data_request_id IS NOT NULL THEN
+ IF NOT source_bound_ack AND m.grid_owner_data_request_id IS NOT NULL THEN
   SELECT * INTO g FROM public.grid_owner_data_requests WHERE id=m.grid_owner_data_request_id AND company_id=m.company_id FOR UPDATE;
   IF g.id IS NULL OR g.customer_id IS DISTINCT FROM m.customer_id OR g.site_id IS DISTINCT FROM m.site_id OR g.metering_point_id IS DISTINCT FROM m.metering_point_id THEN RAISE EXCEPTION 'ediel_source_projection_owned_data_request_required';END IF;
  END IF;
@@ -45835,12 +45836,12 @@ BEGIN
   ack_due_at=CASE WHEN technical_basis='frozen_plan' THEN technical_due ELSE ack_due_at END,
   business_response_due_at=CASE WHEN NOT business_watch_pending THEN business_response_due_at ELSE business_due END,
   updated_by=p_actor_user_id,updated_at=now() WHERE id=m.id;
- IF r.id IS NOT NULL THEN
+ IF NOT source_bound_ack AND r.id IS NOT NULL THEN
   UPDATE public.outbound_requests SET status=CASE WHEN status IN('draft','queued','prepared') THEN 'sent' ELSE status END,sent_at=observed,
    failure_reason=CASE WHEN status IN('draft','queued','prepared') THEN NULL ELSE failure_reason END,updated_by=p_actor_user_id,updated_at=now()
   WHERE id=r.id RETURNING status INTO request_status;
  END IF;
- IF g.id IS NOT NULL THEN
+ IF NOT source_bound_ack AND g.id IS NOT NULL THEN
   UPDATE public.grid_owner_data_requests SET status=CASE WHEN status='pending' THEN 'sent' ELSE status END,sent_at=observed,
    failed_at=CASE WHEN status='pending' THEN NULL ELSE failed_at END,failure_reason=CASE WHEN status='pending' THEN NULL ELSE failure_reason END,updated_by=p_actor_user_id,updated_at=now()
   WHERE id=g.id RETURNING status INTO data_status;
