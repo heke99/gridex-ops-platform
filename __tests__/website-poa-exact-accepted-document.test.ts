@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // ops-api-review: F28, F42 (permanent regression from evidence/remaining-poa-native-phase.{sql,mjs})
 import fs from 'node:fs'
 import path from 'node:path'

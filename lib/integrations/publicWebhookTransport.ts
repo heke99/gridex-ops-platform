@@ -138,7 +138,7 @@ export function pinnedLookup(pinned: { address: string; family: number }) {
   return (
     _hostname: string,
     options: { all?: boolean } | number | undefined,
-    callback: (...args: any[]) => void,
+    callback: (error: NodeJS.ErrnoException | null, address: string | Array<{ address: string; family: number }>, family?: number) => void,
   ) => {
     if (typeof options === 'object' && options?.all) {
       callback(null, [{ address: pinned.address, family: pinned.family }])

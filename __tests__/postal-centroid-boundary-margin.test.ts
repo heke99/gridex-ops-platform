@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // Geolocation review: postal-centroid polygon margin and Sweden bounding box.
 // Real resolver with a synthetic Supabase port; only the HTTP/DB boundary is faked.
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'

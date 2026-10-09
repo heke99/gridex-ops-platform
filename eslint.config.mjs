@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     ".agents/**",
     // CommonJS regression scripts are executable Node utilities with their own checks.
     "scripts/**/*.cjs",
+    // Archived audit evidence probes are immutable review records, not active source.
+    "quality/audits/**/evidence/**",
   ]),
 ]);
 

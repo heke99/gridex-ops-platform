@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // ops-api-review: F27 (permanent regression from evidence/confirmation-signature.probe.ts)
 import fs from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'

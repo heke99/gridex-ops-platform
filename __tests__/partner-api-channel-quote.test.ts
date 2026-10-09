@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // ops-api-review: F23
 // From quality/audits/2026-10-07-ops-api-review/evidence/current-pricing.probe.ts.
 // Partner POST /price selects an API-only default offer and must quote it through

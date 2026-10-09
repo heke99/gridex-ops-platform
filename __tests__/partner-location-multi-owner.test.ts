@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // Geolocation review: a postal code spanning several grid areas/owners must not
 // name one grid owner, and must require an address.
 // Real Partner handler + real energy resolver with synthetic DB/auth ports.

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // ops-api-review: F18, F26, F37 (permanent regression from evidence/partner-completion-cleanup.probe.ts)
 import {it,expect,vi,beforeEach} from 'vitest'
 import {NextRequest} from 'next/server'

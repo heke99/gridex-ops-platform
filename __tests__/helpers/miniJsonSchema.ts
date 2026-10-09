@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 /**
  * Small JSON Schema 2020-12 subset validator for OpenAPI 3.1 response tests:
  * $ref (local JSON pointers), type (incl. arrays with "null"), enum, const,

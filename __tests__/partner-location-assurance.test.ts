@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // ops-api-review: F24, F25
 // From quality/audits/2026-10-07-ops-api-review/evidence/location-output.probe.ts.
 // Real Partner handler + real energy resolver with synthetic DB/auth ports.

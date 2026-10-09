@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // ops-api-review: F20, F21, F22
 // Permanent regressions from quality/audits/2026-10-07-ops-api-review/evidence/profile-address-state.probe.ts.
 // Real route + real address helper with synthetic DB/auth ports, plus the real

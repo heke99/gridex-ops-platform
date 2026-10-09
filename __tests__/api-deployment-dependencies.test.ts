@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose test doubles for Supabase/PostgREST ports */
 // ops-api-review: F29 (deployment dependency preflight)
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'

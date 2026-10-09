@@ -4,7 +4,8 @@ import { NextRequest } from 'next/server'
 const m=vi.hoisted(()=>({row:null as Record<string,unknown>|null,loseCompletionAck:true,updates:[] as Record<string,unknown>[],mutations:0}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from(table:string){
  if(table!=='customer_portal_write_idempotency')throw Error('unexpected table')
- let action='read',payload:Record<string,unknown>={},filters:Record<string,unknown>={}
+ let action='read',payload:Record<string,unknown>={}
+ const filters:Record<string,unknown>={}
  const terminal=async()=>{
   if(action==='insert'){
    if(m.row)return {data:null,error:{code:'23505'}}
