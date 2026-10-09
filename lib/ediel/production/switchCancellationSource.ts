@@ -4,6 +4,7 @@ import {tenantDb} from '@/lib/supabase/tenantDb'
 import {tokenizeEdifact,segmentComposite,segmentOriginalRaw,type EdifactTokenizedSegment} from '@/lib/ediel/core/edifactTokenizer'
 import {validateEdifactEnvelope,validateUnsmGrammar} from '@/lib/ediel/core/edifactValidation'
 import {readProdatParty} from '@/lib/ediel/prodat/prodatPartyFields'
+import {prodatEndUserAddressWireLines} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import {renderProdatDateField} from '@/lib/ediel/prodat/prodatDateFields'
 import type {ProdatDependentConditionFacts} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {supabaseService} from '@/lib/supabase/service'
@@ -84,10 +85,14 @@ export async function readSwitchCancellationSource(input:{companyId:string;switc
   // Reject a lossy legacy trim rather than silently changing original slots.
   if(parts(uds[0],4).join('|')!==user.nameLines.join('|')||parts(uds[0],5).join('|')!==user.addressLines.join('|')
    ||parts(uds[0],6).join('|')!==user.city||parts(uds[0],8).join('|')!==user.postalCode||parts(uds[0],9).join('|')!==user.country)return held()
-  projection={agreementReference,customerName:user.name,customerNameLines:user.nameLines,customerAddressLines:user.addressLines,
+  // P26.A: a first-slot '.' is only the wire marker for an allowed-empty first
+  // street component; map it back to its source slot and require an exact round trip.
+  const addressLines=user.addressLines[0]==='.'?['',...user.addressLines.slice(1)]:[...user.addressLines]
+  if(addressLines.includes('.')||JSON.stringify(prodatEndUserAddressWireLines(addressLines))!==JSON.stringify(user.addressLines))return held()
+  projection={agreementReference,customerName:user.name,customerNameLines:user.nameLines,customerAddressLines:addressLines,
    customerCity:user.city,customerPostalCode:user.postalCode,customerCountry:user.country,balanceResponsibleId:brp.id,invoicee:null,
    facts:{market:'electricity',endUserAddressObjects:[{meteringPointId:b.pointId,identityAgency:b.identityAgency,
-    endUser:{id:user.id,qualifier:b.customerQualifier,agency:'260'},availability:'available',addressLines:user.addressLines,
+    endUser:{id:user.id,qualifier:b.customerQualifier,agency:'260'},availability:'available',addressLines,
     source:{kind:'caller_selection',companyId:b.companyId,reference:`immutable-original:${b.originalMessageId}:${b.originalHash}`}}]}}
  }catch{return held()}
  return qualifyBilling(b,input.actorUserId,projection,basisHash)

@@ -252,3 +252,16 @@ it('holds purged rows and a missing actual switch without adopting cached source
  declareOriginal(f);switches=[]
  expect(await readSwitchCancellationSource(scope(f))).toMatchObject({status:'held'})
 })
+it.each([false,true])('copies an original allowed-empty first UD street (wire dot) byte-identically, separate billing=%s',async separate=>{
+ const f=fixture(),wire=originalWire(f).replace('+Original Street+','+.:Box 12+')
+ declareOriginal(f,wire)
+ if(separate)Object.assign(billing[0],{billing_address_same_as_site:false,billing_street:'Billing Street',billing_city:'Billing City',billing_postal_code:'99999',billing_country:'SE',invoice_recipient:'Actual invoicee'})
+ const basis=await readSwitchCancellationSource(scope(f));if(basis.status!=='authorized')throw Error('fixture_held');f.basis=basis
+ const {draft}=await buildSwitchCancellationDraft(f)
+ expect(draft.rawPayload).toContain('+.:Box 12+Original City++12345+SE')
+ expect(fullIssues(draft)).toEqual([])
+})
+it.each([['lone dot','+.+'],['dot with empty rest','+.::+'],['dot in later slot','+Box 12:.+']])('still holds a literal dot street that is not the empty-first marker (%s)',async(_,street)=>{
+ const f=fixture();declareOriginal(f,originalWire(f).replace('+Original Street+',street))
+ expect(await readSwitchCancellationSource(scope(f))).toMatchObject({status:'held'})
+})
