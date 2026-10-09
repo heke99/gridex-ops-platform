@@ -129,7 +129,7 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
   const family = canonical.family
   const messageCode = canonical.messageCode
   const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
-  const ownReadingsSource=family==='PRODAT'&&messageCode==='Z04'&&message.direction==='inbound'&&['L','LK','Z22','Z23'].includes(canonical.subtype??'')
+  const ownReadingsSource=family==='PRODAT'&&messageCode==='Z04'&&message.direction==='inbound'&&['L','LK','C','Z22','Z23','Z24'].includes(canonical.subtype??'')
   const candidate = (selectedGuideRevision?: string): CanonicalEdielPolicy => {
     const input = {
     selectedGuideRevision,

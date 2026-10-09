@@ -10,7 +10,34 @@ function smtpUncertainCauseMessage(cause: unknown): string {
       const descriptor = Object.getOwnPropertyDescriptor(cause, 'code')
       const code: unknown = descriptor && 'value' in descriptor ? descriptor.value : null
       const known = ['23505', '23503', '23514', '23P01', '42501', '42P01', '42703', 'P0001', 'P0002', 'PGRST116', 'PGRST202', 'PGRST204']
-      return `ediel_smtp_uncertain_cause:${typeof code === 'string' && known.includes(code) ? code : 'unknown'}`
+      const category = `ediel_smtp_uncertain_cause:${typeof code === 'string' && known.includes(code) ? code : 'unknown'}`
+      if (code !== 'P0001') return category
+      // Literal RAISE tags from ediel_project_accepted_source_state_v1 only.
+      // A token-shaped row value is still private and must not be copied.
+      const guards = [
+        'ediel_source_projection_scope_required',
+        'ediel_source_projection_original_changed',
+        'ediel_source_projection_accepted_receipt_required',
+        'ediel_source_projection_frozen_clock_required',
+        'ediel_source_projection_accepted_lane_required',
+        'ediel_source_projection_accepted_binding_required',
+        'ediel_source_projection_frozen_technical_plan_required',
+        'ediel_source_projection_technical_plan_invalid',
+        'ediel_source_projection_frozen_expectation_required',
+        'ediel_source_projection_expectation_clock_changed',
+        'ediel_source_projection_frozen_z02_deadline_required',
+        'ediel_source_projection_owned_outbound_request_required',
+        'ediel_source_projection_owned_data_request_required',
+        'ediel_source_projection_info_request_not_unique',
+        'ediel_source_projection_owned_info_request_required',
+      ]
+      try {
+        const messageDescriptor = Object.getOwnPropertyDescriptor(cause, 'message')
+        const raised: unknown = messageDescriptor && 'value' in messageDescriptor ? messageDescriptor.value : null
+        return typeof raised === 'string' && guards.includes(raised) ? `${category}:${raised}` : category
+      } catch {
+        return category
+      }
     }
     return String(cause)
   } catch {

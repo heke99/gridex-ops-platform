@@ -125,4 +125,28 @@ describe('SmtpDeliveryUncertainError cause message', () => {
     expect(error.smtpMessageId).toBe('<synthetic@example.test>')
     expect(error.code).toBe('ediel_delivery_uncertain')
   })
+  it('persists only an enumerated static P0001 guard while preserving uncertainty', async () => {
+    const tag = 'ediel_source_projection_owned_outbound_request_required'
+    const cause = { code: 'P0001', message: tag, details: 'synthetic-private' }
+    const error = new SmtpDeliveryUncertainError(cause, '<synthetic@example.test>')
+    mocks.send.mockRejectedValue(error)
+    expect(await send()).toMatchObject({ status: 'delivery_uncertain', messageId: '<synthetic@example.test>', error: `ediel_smtp_uncertain_cause:P0001:${tag}` })
+    expect(mocks.writes.at(-1)?.last_error).toBe(`delivery_uncertain_after_smtp_send: ediel_smtp_uncertain_cause:P0001:${tag}`)
+    expect(mocks.filters.at(-1)).toEqual(['current_send_attempt_id', 'attempt1'])
+    expect(error.cause).toBe(cause)
+  })
+  it.each(['customer_anna_svensson', 'ediel_unknown_guard', 'ediel_source_projection_owned_outbound_request_required:private'])('keeps unlisted P0001 text %s private', message => {
+    expect(new SmtpDeliveryUncertainError({ code: 'P0001', message }).message).toBe('ediel_smtp_uncertain_cause:P0001')
+  })
+  it.each(['23505', 'P0001'])('retains known code %s when the message descriptor is hostile', code => {
+    let reads = 0
+    const cause = new Proxy({ code }, { getOwnPropertyDescriptor(target, key) {
+      if (key === 'message') { reads++; throw new Error('private') }
+      return Reflect.getOwnPropertyDescriptor(target, key)
+    } })
+    const error = new SmtpDeliveryUncertainError(cause)
+    expect(error.message).toBe(`ediel_smtp_uncertain_cause:${code}`)
+    expect(reads).toBe(code === 'P0001' ? 1 : 0)
+    expect(error.cause).toBe(cause)
+  })
 })
