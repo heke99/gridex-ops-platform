@@ -5,7 +5,7 @@
   "sha256": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
   "latest_migration": "20261009082553_ediel_switch_cancellation_customer_masterdata_preparation.sql",
   "latest_migration_schema_effect": "Byte-exact authenticated ad0 SINGLE-D1 RAW3 capture; actual C captured postimage47 finite checks passed. Native/browser/type-schema/upgrade NOT_RUN flags remain unchanged; resulting-head mandatory gates and whole proof remain separate.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-09T18:38:42.281931+00:00",
@@ -10056,5 +10056,16 @@
     "C_postimage_checks": 47,
     "resulting_head_validation": "PENDING",
     "scope": "SINGLE-D1 capture import only; all original NOT_RUN flags and histories preserved; adoption commit recorded externally."
+  },
+  "help699_local51bf_index_only_capture_pending": {
+    "status": "PENDING_AUTHENTIC_INDEX_CHANGED_SOURCE_CAPTURE",
+    "owner": "codex-help699-delivery-20261009",
+    "published_baseline_head": "51bf3dc7d450810f60c360f3134c614915c52e41",
+    "previousCompositionCapturePending": false,
+    "source_migrations": {
+      "20261009121545_ediel_source_bound_ack_origination_index.sql": "0a97eea312399d620a1541db781c407ad088997b099f8877a931c3e7e3df605d"
+    },
+    "registered_inventory": "scripts/migration-history-manifest.json only;857->858",
+    "scope": "Current raw3, actual ad0 active GEN provenance, thirteen-field archive and all other histories retain their exact values. Only the selected ACK index source is pending; genuine new capture, paired ACK79/sourcequal2 and Cpost47 qualification, custody, actual current-head gates and GEN adoption remain separate. Native/browser/type-schema/upgrade NOT_RUN claims are preserved."
   }
 }
