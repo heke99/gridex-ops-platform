@@ -97,6 +97,13 @@ describe('SmtpDeliveryUncertainError cause message', () => {
     expect(mocks.filters.at(-1)).toEqual(['current_send_attempt_id', 'attempt1'])
     expect(error.cause).toBe(cause)
   })
+  it('appends only a fixed machine token from a P0001 RAISE', () => {
+    expect(new SmtpDeliveryUncertainError({ code: 'P0001', message: 'ediel_source_projection_owned_outbound_request_required' }).message)
+      .toBe('ediel_smtp_uncertain_cause:P0001:ediel_source_projection_owned_outbound_request_required')
+    for (const message of ['Customer Anna Svensson', 'token with space', 'ediel_x: 12345', 'a'.repeat(129), 'ediel_token\nsecret'])
+      expect(new SmtpDeliveryUncertainError({ code: 'P0001', message }).message).toBe('ediel_smtp_uncertain_cause:P0001')
+    expect(new SmtpDeliveryUncertainError({ code: '23505', message: 'ediel_looks_like_token' }).message).toBe('ediel_smtp_uncertain_cause:23505')
+  })
   it.each([{ code: 'PRIVATE', message: 'private' }, { code: 23505 }, { message: 'private' }])('does not promote unknown plain-object fields', (cause) => {
     const error = new SmtpDeliveryUncertainError(cause)
     expect(error.message).toBe('ediel_smtp_uncertain_cause:unknown')

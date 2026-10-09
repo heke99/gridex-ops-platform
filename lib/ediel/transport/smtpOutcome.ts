@@ -10,7 +10,12 @@ function smtpUncertainCauseMessage(cause: unknown): string {
       const descriptor = Object.getOwnPropertyDescriptor(cause, 'code')
       const code: unknown = descriptor && 'value' in descriptor ? descriptor.value : null
       const known = ['23505', '23503', '23514', '23P01', '42501', '42P01', '42703', 'P0001', 'P0002', 'PGRST116', 'PGRST202', 'PGRST204']
-      return `ediel_smtp_uncertain_cause:${typeof code === 'string' && known.includes(code) ? code : 'unknown'}`
+      const category = `ediel_smtp_uncertain_cause:${typeof code === 'string' && known.includes(code) ? code : 'unknown'}`
+      // A PL/pgSQL RAISE (P0001) whose whole message is a fixed machine token
+      // carries no row data; append only that closed token shape.
+      const messageDescriptor = Object.getOwnPropertyDescriptor(cause, 'message')
+      const raised: unknown = messageDescriptor && 'value' in messageDescriptor ? messageDescriptor.value : null
+      return code === 'P0001' && typeof raised === 'string' && /^[a-z][a-z0-9_]{0,127}$/.test(raised) ? `${category}:${raised}` : category
     }
     return String(cause)
   } catch {
