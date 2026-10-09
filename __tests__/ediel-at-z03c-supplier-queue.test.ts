@@ -89,7 +89,16 @@ beforeEach(() => {
     if (name !== 'ediel_reserve_switch_cancellation_v1' || !reservations.length) throw Error(`undeclared_rpc:${name}`)
     return { data: reservations.shift(), error: null }
   })
-  io.finalize.mockResolvedValue(boundMessage())
+  io.finalize.mockImplementation(async params=>{
+    const draft=params.draft
+    const message=boundMessage({created_by:own.actor,direction:draft.direction,message_standard:draft.messageStandard,message_family:draft.messageFamily,
+      message_code:draft.messageCode,environment:draft.environment,customer_id:draft.customerId,intent_id:draft.intentId,
+      communication_route_id:draft.communicationRouteId,original_message_id:draft.originalMessageId,switch_request_id:draft.switchRequestId,
+      raw_payload:draft.rawPayload,parsed_payload:draft.parsedPayload,immutable_rendered_at:'2026-10-06T12:00:00Z',
+      immutable_payload_hash:createHash('sha256').update(draft.rawPayload).digest('hex')})
+    tables.ediel_messages.push(message)
+    return message
+  })
   io.queue.mockResolvedValue(undefined)
 })
 afterEach(() => vi.useRealTimers())

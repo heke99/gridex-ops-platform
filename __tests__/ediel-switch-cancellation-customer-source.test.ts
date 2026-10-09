@@ -105,8 +105,41 @@ beforeEach(() => {
     if (name !== 'ediel_reserve_switch_cancellation_v1' || !reservations.length) throw Error(`undeclared_rpc:${name}`)
     return { data: reservations.shift(), error: null }
   })
-  io.finalize.mockResolvedValue(boundMessage())
+  io.finalize.mockImplementation(async params=>{
+    const message=winnerDraft(params.draft,{created_by:own.actor,parsed_payload:params.draft.parsedPayload,
+      immutable_rendered_at:'2026-10-06T12:00:00Z',immutable_payload_hash:createHash('sha256').update(params.draft.rawPayload).digest('hex')})
+    tables.ediel_messages.push(message)
+    return message
+  })
   io.queue.mockResolvedValue(undefined)
+})
+
+it('refuses a normally returned concurrent draft when its current protected customer source is invalid before queue',async()=>{
+ reservations=[reserved(),reserved(own.message)]
+ const original=structuredClone(tables.ediel_messages[0])
+ const previous=io.rpc.getMockImplementation()!
+ let winnerReturned=false
+ io.finalize.mockImplementation(async params=>{
+  const winner=winnerDraft(params.draft,{parsed_payload:params.draft.parsedPayload,immutable_rendered_at:'2026-10-06T12:00:00Z',
+   immutable_payload_hash:createHash('sha256').update(params.draft.rawPayload).digest('hex')})
+  tables.ediel_messages.push(winner)
+  winnerReturned=true
+  return winner
+ })
+ io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{
+  if(name==='ediel_switch_cancellation_customer_masterdata_message_basis_v1'){
+   expect(winnerReturned).toBe(true)
+   expect(args).toEqual({p_company_id:own.company,p_message_id:own.message,p_actor_user_id:own.actor})
+   return{data:null,error:Error('customer_masterdata_current_source_changed')}
+  }
+  return previous(name,args)
+ })
+ await expect(renderAndQueueSwitchCancellation(input)).rejects.toThrow('customer_masterdata_current_source_changed')
+ expect(io.finalize).toHaveBeenCalledOnce()
+ expect(io.rpc.mock.calls.filter(([name])=>name==='ediel_switch_cancellation_customer_masterdata_message_basis_v1')).toHaveLength(1)
+ expect(io.queue).not.toHaveBeenCalled()
+ expect(writes()).toEqual([])
+ expect(tables.ediel_messages[0]).toEqual(original)
 })
 afterEach(() => vi.useRealTimers())
 
@@ -213,7 +246,7 @@ it('continues a different creator bound draft using its preserved bytes and prep
  await renderAndQueueSwitchCancellation(input)
  const {draft}=io.finalize.mock.calls[0][0]
  const existing=boundMessage({created_by:id(90),direction:'outbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z03',environment:'test',customer_id:basis.customerId,intent_id:own.intent,communication_route_id:input.routeContext.route.id,original_message_id:own.original,switch_request_id:own.switch,raw_payload:draft.rawPayload,parsed_payload:draft.parsedPayload})
- tables.ediel_messages.push(existing);const before=structuredClone(existing)
+  tables.ediel_messages.splice(tables.ediel_messages.findIndex(row=>row.id===own.message),1,existing);const before=structuredClone(existing)
  reservations=[reserved(own.message)];io.finalize.mockClear();io.queue.mockClear();io.rpc.mockClear()
  vi.setSystemTime(new Date('2026-10-07T12:00:00Z'))
  expect(await renderAndQueueSwitchCancellation(input)).toMatchObject({status:'queued',message:{id:own.message,created_by:id(90),raw_payload:before.raw_payload}})

@@ -55,12 +55,12 @@ export async function renderAndQueueSwitchCancellation(input: { intentId: string
     const { data, error: readError } = await (tenantDb(input.companyId).from('ediel_messages').select('*') as ScopedSelect).eq('id', current.messageId).returns<EdielMessageRow[]>().maybeSingle()
     if (readError || !data) throw readError ?? error
     message = data as EdielMessageRow
-    if(message.status==='draft')await recheckBoundSwitchCancellationDraft(input,basis,message,intent.operationId,outboundRequestId)
   }
   reservation = await reserveSwitchCancellationSource({ ...source, intentId: intent.id, outboundRequestId: input.outboundRequestId })
   if (reservation.status === 'held') return reservation
   if (reservation.messageId !== message.id || message.intent_id !== intent.id || message.outbound_request_id !== outboundRequestId) throw new Error('switch_cancellation_final_message_unbound')
   if (message.status !== 'draft') return { status: 'existing' as const, message }
+  await recheckBoundSwitchCancellationDraft(input,basis,message,intent.operationId,outboundRequestId)
   return queueBoundSwitchCancellation(input,message,intent.operationId,outboundRequestId)
 }
 async function recheckBoundSwitchCancellationDraft(input:{companyId:string;intentId:string;actorUserId:string;routeContext:Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>},basis:SwitchCancellationBasis,message:EdielMessageRow,operationId:string,outboundRequestId:string){
