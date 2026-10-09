@@ -378,8 +378,8 @@ async function applyManualOutboxStatus(
   }
   const transitioned = Array.isArray(result.data) && result.data.length > 0
 
-  if (transitioned && negativeDelivery && row.request_id) {
-    await flagRequestDeliveryFailed(row.request_id, eventErrorMessage(event))
+  if (transitioned && negativeDelivery && row.request_id && row.company_id) {
+    await flagRequestDeliveryFailed(row.company_id, row.request_id, eventErrorMessage(event))
   }
 
   return row.id
@@ -405,14 +405,29 @@ const MANUAL_ALLOWED_PREDECESSORS: Record<ManualDeliveryStatus, ManualDeliverySt
   suppressed: [...MANUAL_NON_TERMINAL, 'suppressed'],
 }
 
-async function flagRequestDeliveryFailed(requestId: string, message: string | null) {
+// A negative delivery event only reopens a request that is still waiting on
+// this dispatch. A late bounce/complaint must never flip a completed, received
+// or already reviewed request, nor overwrite the site's facility state.
+const DELIVERY_FAILURE_FLAGGABLE_REQUEST_STATUSES = [
+  'queued',
+  'ready_to_send',
+  'sent',
+  'waiting_response',
+  'ready_to_send_manual_email',
+  'manual_email_queued',
+  'manual_email_sent',
+  'waiting_manual_response',
+]
+
+async function flagRequestDeliveryFailed(companyId: string, requestId: string, message: string | null) {
   const now = new Date().toISOString()
   const tenantMessage =
     'E-post till nätägaren kunde inte levereras. Kontrollera kontaktväg.'
 
   const { data, error } = await supabaseService
     .from('grid_owner_information_requests')
-    .select('id,company_id,customer_id,customer_site_id,metadata')
+    .select('id,company_id,customer_id,customer_site_id,metadata,status')
+    .eq('company_id', companyId)
     .eq('id', requestId)
     .maybeSingle()
   if (error) {
@@ -421,6 +436,7 @@ async function flagRequestDeliveryFailed(requestId: string, message: string | nu
   }
   const request = (data as Record<string, unknown> | null) ?? null
   if (!request) return
+  if (!DELIVERY_FAILURE_FLAGGABLE_REQUEST_STATUSES.includes(String(request.status ?? ''))) return
 
   const baseMetadata =
     request.metadata && typeof request.metadata === 'object' && !Array.isArray(request.metadata)
@@ -437,12 +453,19 @@ async function flagRequestDeliveryFailed(requestId: string, message: string | nu
       metadata: { ...baseMetadata, delivery_failed: true },
       updated_at: now,
     })
+    .eq('company_id', companyId)
     .eq('id', requestId)
-  if (update.error && !isMissingSchema(update.error)) throw update.error
+    .in('status', DELIVERY_FAILURE_FLAGGABLE_REQUEST_STATUSES)
+    .select('id')
+  if (update.error) {
+    if (isMissingSchema(update.error)) return
+    throw update.error
+  }
+  // Raced with a completion: the guard matched nothing, leave the site alone.
+  if (!Array.isArray(update.data) || update.data.length === 0) return
 
   const siteId = typeof request.customer_site_id === 'string' ? request.customer_site_id : null
-  const companyId = typeof request.company_id === 'string' ? request.company_id : null
-  if (siteId && companyId) {
+  if (siteId) {
     await supabaseService
       .from('customer_sites')
       .update({ facility_data_status: 'needs_review', next_action: tenantMessage, updated_at: now })

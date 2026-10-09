@@ -1,5 +1,6 @@
 // inbound-review: #1
 // inbound-review: #2
+// inbound-review: coordinator-6 (late bounce must not reopen completed requests)
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type Row = Record<string, unknown>
@@ -182,5 +183,34 @@ describe('#2 webhook processing failures are retried, never lost', () => {
     expect(JSON.stringify(body)).not.toContain('secret_table')
     errorSpy.mockRestore()
     vi.doUnmock('@/lib/email/resendWebhookEvents')
+  })
+})
+
+describe('coordinator #6 delivery failure flags only waiting requests of the same tenant', () => {
+  const seed = (status: string, requestCompany = 'co-1') => {
+    db.tables.communication_logs = []
+    db.tables.manual_email_outbox = [{ id: 'out-1', company_id: 'co-1', request_id: 'req-1', delivery_status: 'sent', provider_message_id: 'msg-1' }]
+    db.tables.grid_owner_information_requests = [{ id: 'req-1', company_id: requestCompany, customer_site_id: 'site-1', status, metadata: {} }]
+    db.tables.customer_sites = [{ id: 'site-1', company_id: requestCompany, facility_data_status: 'complete' }]
+  }
+
+  it('a late bounce does not reopen a completed request or touch its site', async () => {
+    seed('completed')
+    await processResendWebhookEvent(event('email.bounced', { bounce: { message: 'late' } }), headers('c1'))
+    expect(db.tables.grid_owner_information_requests[0].status).toBe('completed')
+    expect(db.tables.customer_sites[0].facility_data_status).toBe('complete')
+  })
+
+  it('a request of another tenant is never touched', async () => {
+    seed('waiting_manual_response', 'co-2')
+    await processResendWebhookEvent(event('email.bounced'), headers('c2'))
+    expect(db.tables.grid_owner_information_requests[0].status).toBe('waiting_manual_response')
+  })
+
+  it('a waiting request is flagged for review', async () => {
+    seed('waiting_manual_response')
+    await processResendWebhookEvent(event('email.bounced'), headers('c3'))
+    expect(db.tables.grid_owner_information_requests[0]).toMatchObject({ status: 'needs_review', dispatch_status: 'failed' })
+    expect(db.tables.customer_sites[0].facility_data_status).toBe('needs_review')
   })
 })
