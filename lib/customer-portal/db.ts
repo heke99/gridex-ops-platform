@@ -328,6 +328,54 @@ export async function listPortalMeteringValues(
   return (data ?? []) as CustomerPortalMeteringValueRow[]
 }
 
+/** Number of Europe/Stockholm calendar months shown on the portal consumption cards. */
+export const PORTAL_CONSUMPTION_MONTHS = 12
+
+function stockholmMonthStart(date: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Stockholm', year: 'numeric', month: '2-digit' }).formatToParts(date)
+  const year = parts.find((part) => part.type === 'year')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+  return `${year}-${month}-01`
+}
+
+/**
+ * Complete-month consumption totals from the native tenant/customer-bound aggregation. Every
+ * current consumption value of each Europe/Stockholm month is summed in the database, independent
+ * of the bounded detail list; corrections never double count.
+ */
+export async function listPortalMonthlyConsumption(
+  context: CustomerPortalContext,
+  options: { months?: number; now?: Date } = {}
+): Promise<CustomerConsumptionMonth[]> {
+  if (context.customerIds.length === 0 || !context.companyId) return []
+  const months = Math.min(Math.max(Math.trunc(options.months ?? PORTAL_CONSUMPTION_MONTHS), 1), 36)
+  const now = options.now ?? new Date()
+  const toMonth = stockholmMonthStart(now)
+  const [year, month] = toMonth.split('-').map(Number)
+  const from = new Date(Date.UTC(year, month - 1 - (months - 1), 1))
+  const fromMonth = `${from.getUTCFullYear()}-${String(from.getUTCMonth() + 1).padStart(2, '0')}-01`
+
+  const { data, error } = await supabaseService.rpc('gridex_portal_monthly_consumption_v1', {
+    p_company_id: context.companyId,
+    p_customer_ids: context.customerIds,
+    p_from_month: fromMonth,
+    p_to_month: toMonth,
+  })
+  if (error) throw error
+  type MonthRow = { month_key: string; total_kwh: number | string | null; value_count: number | string | null; is_complete: boolean | null }
+  return ((data ?? []) as MonthRow[]).map((row) => ({
+    monthKey: row.month_key,
+    label: monthLabel(row.month_key),
+    totalKwh: normalizeNumber(row.total_kwh),
+    valueCount: Number(row.value_count ?? 0),
+    complete: Boolean(row.is_complete),
+  }))
+}
+
+/**
+ * Sums only the rows passed in. Do not use for month cards fed by a limited detail list; use
+ * listPortalMonthlyConsumption for complete-month totals.
+ */
 export function summarizeConsumptionByMonth(
   values: CustomerPortalMeteringValueRow[]
 ): CustomerConsumptionMonth[] {
@@ -409,7 +457,7 @@ async function listPortalWebsiteApplicationsForDashboard(context: CustomerPortal
 export async function getPortalDashboardData() {
   const context = await getCustomerPortalContext()
 
-  const [invoices, sites, meteringValues, contracts, powersOfAttorney, legalAcceptances, websiteApplications] = await Promise.all([
+  const [invoices, sites, meteringValues, contracts, powersOfAttorney, legalAcceptances, websiteApplications, consumptionMonths] = await Promise.all([
     listPortalInvoices(context),
     listPortalSites(context),
     listPortalMeteringValues(context, { limit: 250 }),
@@ -417,6 +465,7 @@ export async function getPortalDashboardData() {
     listPortalPowersOfAttorneyForDashboard(context),
     listPortalLegalAcceptancesForDashboard(context),
     listPortalWebsiteApplicationsForDashboard(context),
+    listPortalMonthlyConsumption(context),
   ])
 
   const siteIds = sites.map((site) => site.id)
@@ -444,7 +493,7 @@ export async function getPortalDashboardData() {
     websiteApplications,
     customerStatus,
     portalDisplayName: displayNameFromCustomer(primaryCustomer as Record<string, unknown> | null, context.userEmail),
-    consumptionMonths: summarizeConsumptionByMonth(meteringValues),
+    consumptionMonths,
   }
 }
 

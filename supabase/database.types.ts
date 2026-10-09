@@ -99448,6 +99448,23 @@ export type Database = {
           source: string
         }[]
       }
+      gridex_portal_monthly_consumption_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_ids: string[]
+          p_from_month: string
+          p_to_month: string
+        }
+        Returns: {
+          covered_seconds: number
+          expected_seconds: number
+          is_complete: boolean
+          metering_point_count: number
+          month_key: string
+          total_kwh: number
+          value_count: number
+        }[]
+      }
       gridex_portfolio_actor_has_permission: {
         Args: {
           p_actor_user_id: string

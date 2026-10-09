@@ -24,6 +24,7 @@ const MAX_INVOICE_PDF_BYTES = 15 * 1024 * 1024
 const MAX_MEASUREMENT_DAYS = 366
 const MAX_MEASUREMENT_ROWS = 40_000
 const SITE_INVOICE_PAGE_SIZE = 100
+const SIMPLE_MEASUREMENT_DIRECTIONS = ['consumption', 'production'] as const
 /** Optional continuation for site invoice lists; the V1 body shape stays `{ invoices }`. */
 export const PARTNER_NEXT_CURSOR_HEADER = 'X-Gridex-Next-Cursor'
 const NULL_ISSUED_AT_CURSOR = 'issued_at:null'
@@ -1026,9 +1027,14 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
       : ['1h', 'PT1H', 'hourly']
     const result = await supabaseService
       .from('normalized_metering_values')
-      .select('period_start,quantity_kwh,unit,direction')
+      .select('period_start,quantity_kwh,direction')
       .eq('company_id', context.client.company_id)
       .eq('customer_site_id', site.id)
+      // Only the current revision; replaced/superseded/void corrections are filtered before the limit.
+      .eq('revision_status', 'current')
+      // V1 vocabulary is gross CONSUMPTION/PRODUCTION. Net series are not part of this response
+      // (they would otherwise be mislabelled or double counted against gross series).
+      .in('direction', [...SIMPLE_MEASUREMENT_DIRECTIONS])
       .gte('period_start', start.toISOString())
       .lte('period_start', end.toISOString())
       .in('resolution', resolutionValues)
@@ -1037,9 +1043,11 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
     if (result.error) throw result.error
     const measurements = (result.data ?? []).map((row) => ({
       timestamp: row.period_start,
-      value: row.quantity_kwh,
-      unit: row.unit ?? 'kWh',
-      type: String(row.direction ?? site.site_type ?? 'consumption').toUpperCase(),
+      // quantity_kwh is the canonical kWh amount normalized at ingest (source Wh/MWh already converted);
+      // the source unit column is provenance only and is never applied again.
+      value: row.quantity_kwh === null || row.quantity_kwh === undefined ? null : Number(row.quantity_kwh),
+      unit: 'kWh' as const,
+      type: String(row.direction).toUpperCase(),
     }))
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: 200, operation: 'measurement.list', id: context.id })
     return simpleJson({ site_id: site.facility_reference, measurements }, 200, context.id)

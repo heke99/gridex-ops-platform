@@ -216,6 +216,8 @@ export const partnerOpenApi = {
     '/customer/{customer_id}/site/{site_id}/measurement': {
       get: {
         summary: 'Get measurements',
+        description:
+          'Returns only the current revision of each interval (replaced, superseded and void corrections are excluded before the row limit), so a corrected interval appears once. `value` is always the canonical kWh quantity normalized at ingest (Wh/MWh sources are converted once at ingest and never again) and `unit` is always kWh. `type` is the gross direction CONSUMPTION or PRODUCTION; net series (net_consumption/net_production) are not part of this response, so they are never mislabelled as or added to gross values.',
         parameters: [
           customerId,
           siteId,

@@ -851,16 +851,17 @@
     "20261006221015_ediel_requested_change_owned_request_site.sql": "22dfab71b14ec3153a16e545975e791e3417644b42440f85507a8a8a9956d54b",
     "20261006225500_customer_info_requests_z01_status_compatibility.sql": "f7848962bfbee52b0da34eb0f293827f8d3a6d8f88751ccaf41b3dd6b33b4cca",
     "20261006231000_ediel_confirmed_death_final_response.sql": "8075ab1d97959b9a74df61a1d6bb83a9c157090494c0bcc0f5958588b3fbd47e",
-    "20261006235000_ediel_confirmed_death_application_scope.sql": "59dc29a939be1351f45581361076599e09619b09b1fc8510fcda17e03dbc91bd",
-    "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
-    "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
-    "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
-    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
     "20261006234527_ediel_z14_original_purpose_correspondence.sql": "10197f9880077561358483af089305f86df7f12b4b1b90d4a1516178902cd671",
+    "20261006235000_ediel_confirmed_death_application_scope.sql": "59dc29a939be1351f45581361076599e09619b09b1fc8510fcda17e03dbc91bd",
     "20261007000503_ediel_technical_ack_long_reference_prefix.sql": "2800d3c35da6edf5ef4f3715b2876bd96fe8d05fd55e921f8c7ca4704316d22e",
     "20261007010849_ediel_received_z14_reporting_source_basis.sql": "9f923e87cbf973441f934ac8a86924b5aa0586be741ceeb6949cce3d763cc4f1",
     "20261007035644_ediel_received_reporting_command_clock.sql": "d3959a96d7c7c1b8b38d322b8681be3244cfe4777904fc55d9189eaab546521c",
-    "20261007051400_ediel_equivalent_prodat_canonical_replay.sql": "c7e5d652e87bc4c666a0c70388d15e13b01aaeed5168b006daab273f7b8f275f"
+    "20261007051400_ediel_equivalent_prodat_canonical_replay.sql": "c7e5d652e87bc4c666a0c70388d15e13b01aaeed5168b006daab273f7b8f275f",
+    "20261009130000_portal_monthly_consumption_summary.sql": "9c51ec19ca8797b0cad7119a4faab17bbff8cc2e17f99a25dbeecfdceffb5d62",
+    "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
+    "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
+    "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
+    "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

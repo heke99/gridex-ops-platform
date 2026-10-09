@@ -75,3 +75,7 @@ A rejected file returns `422 attachment_rejected` and is never served. This is a
 **Side effects.** Opening a support case does not stop billing, onboarding, metering requests or switches.
 
 **Reference client.** `docs/examples/tenant-support-reference-client.mjs` is a synthetic, server-side reference integration for the support page. It is tested end to end against the mounted routes.
+
+## Metering values and month totals
+
+`metering_values` in the portal bundle and `GET /api/v1/customer/metering-values` are bounded detail lists of the latest values. Do not sum a detail page into a month total: a month of hourly values has 743–745 rows (Europe/Stockholm, DST) and quarter-hour data about four times as many. The OPS-hosted customer portal computes its month cards with a native aggregation over the complete Europe/Stockholm calendar month, bounded to the tenant and the verified customer, counting only the current revision of each value (corrected values are never counted twice) and only gross consumption. A month with missing intervals is shown as incomplete instead of as a complete total.

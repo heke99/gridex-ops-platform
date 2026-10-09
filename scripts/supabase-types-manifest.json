@@ -2,7 +2,7 @@
   "generated_types": "supabase/database.types.ts",
   "generated_at": "2026-10-07T05:54:47.682820+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run37576871152",
-  "sha256": "575196e37d9da421d842ce34f92d434c83994ebc44a8a95254fed443d6b4ebd8",
+  "sha256": "339f1380ef3b89cc107e8ab941c8fbe92b8bcdbb4c0eaa56526f8ff77571e431",
   "latest_migration": "20261007051400_ediel_equivalent_prodat_canonical_replay.sql",
   "latest_migration_schema_effect": "Byte-exact authenticated1099 source capture. Only the private canonical v6 function body changes from the prior1098 capture; all other schema blocks, public wrappers and grants remain identical. Capture-only NOT_RUN flags retain their original meaning.",
   "composition_capture_pending": false,

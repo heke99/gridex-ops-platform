@@ -985,6 +985,7 @@ async function measurements(request: NextRequest, siteReference: string) {
       .select('period_start,period_end,resolution,quantity_kwh,unit,direction,quality_status')
       .eq('company_id', context.client.company_id)
       .eq('customer_site_id', site.id)
+      .eq('revision_status', 'current')
       .gte('period_start', start.toISOString())
       .lte('period_end', end.toISOString())
       .in('resolution', resolutionValues)
@@ -995,8 +996,9 @@ async function measurements(request: NextRequest, siteReference: string) {
       timestamp: row.period_start,
       period_end: row.period_end,
       resolution,
+      // quantity_kwh is already normalized to kWh at ingest; the source unit is not re-applied.
       value: row.quantity_kwh,
-      unit: row.unit ?? 'kWh',
+      unit: 'kWh',
       type: String(row.direction ?? site.site_type ?? 'consumption').toUpperCase(),
       quality: row.quality_status ?? null,
     }))
