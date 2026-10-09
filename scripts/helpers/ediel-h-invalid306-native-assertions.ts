@@ -193,7 +193,11 @@ export function nativeAckBlockedReasonDiagnostic(message: unknown) {
   const machine=/^([a-z][a-z0-9_]*)(?=$|[:\s])/.exec(reason)?.[1]
   if(machine&&nativeAckMachineCodes.has(machine))return {kind:'machine_guard',codes:[machine],
     unknownCodeCount:0,reasonHash:hash(reason),reasonLength:reason.length}
-  return {kind:'unclassified',codes:[],unknownCodeCount:0,reasonHash:hash(reason),reasonLength:reason.length}
+  // Only fixed, source-backed enums leave this helper: a known SQLSTATE/PostgREST
+  // code and a schema-identifier constraint name. Free text stays hash/length only.
+  const sqlstate=/(?:^|[\s·(:])(23505|23503|23514|23P01|42501|P0001|40001|22023|42883|PGRST116|PGRST202)(?=$|[\s·),:])/.exec(reason)?.[1]??null
+  const constraint=/constraint "((?:ux|uq|ix|fk|pk|ck|chk)_[a-z0-9_]{1,60})"/.exec(reason)?.[1]??null
+  return {kind:'unclassified',codes:[],unknownCodeCount:0,reasonHash:hash(reason),reasonLength:reason.length,sqlstate,constraint}
 }
 function record(v: unknown): Row {
   expect(v).not.toBeNull(); expect(typeof v).toBe('object'); expect(Array.isArray(v)).toBe(false)
