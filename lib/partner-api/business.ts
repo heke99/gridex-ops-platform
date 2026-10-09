@@ -169,13 +169,23 @@ function publicLocation(input: LocationInput, resolved: EnergyResolverResult) {
   const gridOwnerName = suggestedOnly
     ? resolved.suggestedGridOwnerName ?? null
     : resolved.gridOwnerName
+  // F24: resolved/verified derive from the stored price-area assurance (which
+  // already accounts for geodata freshness), not from identifier presence.
+  // Last-known identifiers behind stale/unresolved assurance stay visible but
+  // are provisional: status `partial`, verified=false and an explicit warning.
+  // grid_owner.verified is geographic identity only, never Ediel/PRODAT
+  // routing readiness, which is decided separately downstream.
+  const assuranceUsable = assurance.status === 'verified' || assurance.status === 'estimated'
+  const identifiersComplete = Boolean(resolved.priceArea && !suggestedOnly && resolved.gridAreaCode && resolved.gridOwnerName)
   const status = assurance.status === 'ambiguous'
     ? 'ambiguous'
-    : resolved.priceArea && !suggestedOnly && resolved.gridAreaCode && resolved.gridOwnerName
+    : identifiersComplete && assuranceUsable
       ? 'resolved'
       : resolved.priceArea
         ? 'partial'
         : 'unresolved'
+  const provisional = !suggestedOnly && !assuranceUsable && assurance.status !== 'ambiguous' &&
+    Boolean(resolved.gridAreaCode || resolved.gridOwnerName)
   const needsAddress = status === 'ambiguous' || status === 'unresolved'
   return {
     postal_code: input.postalCode,
@@ -186,13 +196,13 @@ function publicLocation(input: LocationInput, resolved: EnergyResolverResult) {
       ? {
           code: gridAreaCode,
           name: suggestedOnly ? null : resolved.gridAreaName,
-          verified: !suggestedOnly && Boolean(resolved.gridAreaCode),
+          verified: !suggestedOnly && assuranceUsable && Boolean(resolved.gridAreaCode),
         }
       : null,
     grid_owner: gridOwnerName
       ? {
           name: gridOwnerName,
-          verified: !suggestedOnly && Boolean(resolved.gridOwnerId),
+          verified: !suggestedOnly && assuranceUsable && Boolean(resolved.gridOwnerId),
         }
       : null,
     confidence: resolved.confidence,
@@ -200,7 +210,9 @@ function publicLocation(input: LocationInput, resolved: EnergyResolverResult) {
     resolution_method: assurance.source ?? resolved.sourceChain.at(-1) ?? null,
     requires_address: needsAddress,
     required_fields: needsAddress ? ['address', 'city'] : [],
-    warnings: resolved.warnings,
+    warnings: provisional && !resolved.warnings.includes('location_identifiers_provisional')
+      ? [...resolved.warnings, 'location_identifiers_provisional']
+      : resolved.warnings,
   }
 }
 
@@ -579,6 +591,7 @@ async function createPrice(request: NextRequest) {
     const quote = await calculateOfferQuote({
       client: context.client,
       offerReference,
+      channel: 'api',
       resolutionId: resolved.resolutionId as string,
       resolutionBindingRequired: true,
       annualConsumptionKwh,

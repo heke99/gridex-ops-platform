@@ -203,20 +203,41 @@ export async function applyCustomerSiteAddressCandidate(input: {
   }
 
   const currentHash = clean(current.address_hash)
+  const currentSource = clean(current.address_source) as CustomerSiteAddressSource | null
+  const currentRank = sourceRank(currentSource ?? 'import')
+  const incomingRank = sourceRank(input.address.source)
   if (currentHash === address.hash) {
-    const unchanged = await supabaseService.from('customer_sites').update({
+    // Same physical address (F20/F21). The hash is the physical identity and
+    // deliberately excludes care_of: a changed recipient line must not
+    // invalidate grid context, routing or verification. It is still persisted
+    // as an informational field. An omitted/empty care_of keeps the stored one.
+    // A lower-ranked channel observing the same address never replaces the
+    // canonical (e.g. grid-owner verified) source; only receipt time moves.
+    const keepAuthority = typeof incomingRank === 'number' && typeof currentRank === 'number' && incomingRank < currentRank
+    const previousCareOf = clean(current.care_of)
+    const careOfChanged = Boolean(address.careOf) && address.careOf !== previousCareOf
+    const patch: JsonRecord = {
       address_received_at: now,
-      address_source: input.address.source,
-      address_source_reference: sourceReference,
       updated_at: now,
-    }).eq('id', input.siteId).eq('company_id', input.companyId)
+      ...(keepAuthority ? {} : { address_source: input.address.source, address_source_reference: sourceReference }),
+      ...(careOfChanged ? { care_of: address.careOf } : {}),
+    }
+    const unchanged = await supabaseService.from('customer_sites').update(patch).eq('id', input.siteId).eq('company_id', input.companyId)
     if (unchanged.error) throw unchanged.error
-    return { status: 'unchanged', siteId: input.siteId, addressHash: address.hash, normalized: address.normalized }
+    if (careOfChanged) {
+      await insertAddressHistory({ companyId: input.companyId, customerId: input.customerId, siteId: input.siteId, addressHash: address.hash, source: input.address.source, sourceReference, actorUserId: input.address.actorUserId ?? null, snapshot: { ...candidateSnapshot, informational_change: 'care_of', previous_care_of: previousCareOf } })
+    }
+    return {
+      status: 'unchanged',
+      siteId: input.siteId,
+      addressHash: address.hash,
+      normalized: address.normalized,
+      ...(careOfChanged ? { reason: 'care_of_updated' } : {}),
+    }
   }
 
-  const currentSource = clean(current.address_source) as CustomerSiteAddressSource | null
   const isVerified = Boolean(clean(current.address_verified_at)) || clean(current.address_verification_method) === 'grid_owner_response'
-  if (currentHash && isVerified && sourceRank(input.address.source) < sourceRank(currentSource ?? 'import')) {
+  const recordConflict = async (): Promise<CustomerSiteAddressResult> => {
     await createAddressConflict({
       companyId: input.companyId,
       customerId: input.customerId,
@@ -245,6 +266,9 @@ export async function applyCustomerSiteAddressCandidate(input: {
     })
     return { status: 'conflict', siteId: input.siteId, addressHash: address.hash, normalized: address.normalized, reason: 'verified_address_conflict' }
   }
+  if (currentHash && isVerified && incomingRank < currentRank) {
+    return recordConflict()
+  }
 
   const metadata = {
     ...asRecord(current.metadata),
@@ -271,6 +295,12 @@ export async function applyCustomerSiteAddressCandidate(input: {
     p_actor_user_id: input.address.actorUserId ?? null,
   })
   if (atomicCommit.error) {
+    // The native commit repeats the verified-source decision under the locked
+    // row (F21), so a concurrent verification between read and commit still
+    // becomes a reviewable conflict instead of a silent downgrade.
+    if (/verified_address_conflict/.test((atomicCommit.error as { message?: string }).message ?? '')) {
+      return recordConflict()
+    }
     if (missingSchema(atomicCommit.error)) {
       throw new Error('Adressflödets atomiska databasfunktion saknas. Kör den senaste OPS-migrationen innan adress eller nätägare kan ändras.')
     }
