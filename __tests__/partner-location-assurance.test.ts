@@ -1,11 +1,11 @@
 // ops-api-review: F24, F25
 // From quality/audits/2026-10-07-ops-api-review/evidence/location-output.probe.ts.
 // Real Partner handler + real energy resolver with synthetic DB/auth ports.
-// F25 here covers only the provisional/null semantics; the OpenAPI 3.1
-// nullable-vs-type-union schema correction is deferred (see report).
+// F25 provisional/null semantics; the OpenAPI 3.1 type-union schema part is
+// covered by __tests__/partner-response-schema-validation.test.ts.
 import { beforeEach, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import Ajv from 'ajv'
+import Ajv2020 from 'ajv/dist/2020'
 
 const m = vi.hoisted(() => ({ stale: false, name: 'Synthetic area' as string | null, ambiguous: false, saved: [] as any[] }))
 vi.mock('@/lib/integrations/apiAuth', () => ({ requireIntegrationApiAccess: vi.fn(async () => ({ ok: true, client: { id: 'synthetic-client', company_id: 'synthetic-company' } })), logIntegrationApiRequest: vi.fn(async () => {}) }))
@@ -35,7 +35,7 @@ vi.mock('@/lib/supabase/service', () => ({
 import { handleBusinessPartnerApi } from '@/lib/partner-api/business'
 import { partnerPublicOpenApi } from '@/lib/partner-api/businessOpenApi'
 
-const ajv = new Ajv({ allErrors: true, unknownFormats: 'ignore' } as any)
+const ajv = new Ajv2020({ allErrors: true, strict: false, validateFormats: false })
 const validate = ajv.compile({ ...partnerPublicOpenApi.components.schemas.LocationResponse, components: partnerPublicOpenApi.components })
 const request = (path = 'location', full = true) => new NextRequest('https://example.invalid/api/partner/v1/' + path + '?postal_code=12345' + (full ? '&address=Synthetic%201&city=Synthetic' : ''))
 beforeEach(() => { m.stale = false; m.name = 'Synthetic area'; m.ambiguous = false; m.saved = [] })

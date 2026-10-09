@@ -33,8 +33,9 @@ const cityParameter = {
   description: 'City. Recommended together with address.',
 }
 
-const nullableString = { type: 'string', nullable: true } as const
-const nullableNumber = { type: 'number', nullable: true } as const
+// OpenAPI 3.1 / JSON Schema 2020-12 null unions (never the OpenAPI 3.0 `nullable` keyword).
+const nullableString = { type: ['string', 'null'] } as const
+const nullableNumber = { type: ['number', 'null'] } as const
 
 export const partnerPublicOpenApi = {
   ...partnerOpenApi,
@@ -125,10 +126,10 @@ export const partnerPublicOpenApi = {
           postal_code: { type: 'string', pattern: '^\\d{5}$' },
           city: nullableString,
           status: { type: 'string', enum: ['resolved', 'partial', 'ambiguous', 'unresolved'] },
-          price_area: { type: 'string', nullable: true, enum: ['SE1', 'SE2', 'SE3', 'SE4'] },
+          price_area: { type: ['string', 'null'], enum: ['SE1', 'SE2', 'SE3', 'SE4', null], description: 'Null when the price area is ambiguous or unresolved.' },
           grid_area: {
-            type: 'object',
-            nullable: true,
+            type: ['object', 'null'],
+            description: 'Null when no grid area could be identified. `name` is null for postal-code-only (provisional) or partial results.',
             additionalProperties: false,
             required: ['code', 'name', 'verified'],
             properties: {
@@ -138,8 +139,7 @@ export const partnerPublicOpenApi = {
             },
           },
           grid_owner: {
-            type: 'object',
-            nullable: true,
+            type: ['object', 'null'],
             description: 'Null when the postal code spans several grid areas/owners; send address and city to resolve it.',
             additionalProperties: false,
             required: ['name', 'verified'],

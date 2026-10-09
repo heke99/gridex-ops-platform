@@ -314,10 +314,27 @@ export const partnerOpenApi = {
         },
       },
       Customer: {
-        allOf: [
-          { $ref: '#/components/schemas/CustomerInput' },
-          { $ref: '#/components/schemas/EntityResponse' },
+        type: 'object',
+        additionalProperties: false,
+        description: 'Customer as returned by GET. A closed response object: every field is always present; fields not stored for the customer are null.',
+        required: [
+          'entity_id', 'first_name', 'last_name', 'soc_id', 'customer_type', 'company_name',
+          'invoice_address', 'zip_code', 'city', 'country', 'email', 'cell_phone',
         ],
+        properties: {
+          entity_id: { type: 'string' },
+          first_name: { type: ['string', 'null'] },
+          last_name: { type: ['string', 'null'] },
+          soc_id: { type: ['string', 'null'], description: 'Personal identity number for PRIVATE or organisation number for COMPANY.' },
+          customer_type: { type: 'string', enum: ['PRIVATE', 'COMPANY'] },
+          company_name: { type: ['string', 'null'] },
+          invoice_address: { type: ['string', 'null'] },
+          zip_code: { type: ['string', 'null'] },
+          city: { type: ['string', 'null'] },
+          country: { type: ['string', 'null'] },
+          email: { type: ['string', 'null'] },
+          cell_phone: { type: ['string', 'null'] },
+        },
       },
       SiteInput: {
         type: 'object',
@@ -332,10 +349,18 @@ export const partnerOpenApi = {
         },
       },
       Site: {
-        allOf: [
-          { $ref: '#/components/schemas/SiteInput' },
-          { $ref: '#/components/schemas/EntityResponse' },
-        ],
+        type: 'object',
+        additionalProperties: false,
+        description: 'Site as returned by GET. A closed response object: every field is always present; address fields not stored for the site are null.',
+        required: ['entity_id', 'address', 'zip_code', 'city', 'country', 'site_electricity_type'],
+        properties: {
+          entity_id: { type: 'string' },
+          address: { type: ['string', 'null'] },
+          zip_code: { type: ['string', 'null'] },
+          city: { type: ['string', 'null'] },
+          country: { type: ['string', 'null'] },
+          site_electricity_type: { type: 'string', enum: ['CONSUMPTION', 'PRODUCTION'] },
+        },
       },
       PowerOfAttorneyInput: {
         type: 'object',
