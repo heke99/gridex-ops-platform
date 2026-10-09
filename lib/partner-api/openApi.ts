@@ -15,7 +15,7 @@ const idempotencyHeader = {
   in: 'header',
   required: true,
   schema: { type: 'string', minLength: 8, maxLength: 200 },
-  description: 'Unique key for the business write. Reuse the same key only when retrying the same request.',
+  description: 'Unique key for the business write. Reuse the same key only when retrying the same request. A completed write replays its stored result. `503 idempotency_completion_uncertain` means the write may already be saved: retry with the same key and payload, never with a new key.',
 }
 
 const customerId = { $ref: '#/components/parameters/CustomerId' }

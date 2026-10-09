@@ -305,7 +305,7 @@ async function resolveContract(companyId: string, reference: string) {
   return result.data
 }
 
-async function uploadPoaPdf(companyId: string, value: unknown, extension: unknown) {
+function preparePoaPdf(companyId: string, value: unknown, extension: unknown) {
   const raw = text(value)
   if (!raw) return null
   const ext = (text(extension) ?? 'pdf').toLowerCase().replace(/^\./, '')
@@ -324,12 +324,33 @@ async function uploadPoaPdf(companyId: string, value: unknown, extension: unknow
   }
   const digest = createHash('sha256').update(bytes).digest('hex')
   const path = `partner-api/${companyId}/${randomUUID()}.pdf`
-  const uploaded = await supabaseService.storage.from(POA_BUCKET).upload(path, bytes, {
+  return { path, sha256: digest, bytes }
+}
+
+type PreparedPoaPdf = { path: string; sha256: string; bytes: Buffer }
+
+/** Stores a prepared PDF only after the idempotency claim was won (F37). */
+async function storePoaPdf(file: PreparedPoaPdf) {
+  const result = await supabaseService.storage.from(POA_BUCKET).upload(file.path, file.bytes, {
     contentType: 'application/pdf',
     upsert: false,
   })
-  if (uploaded.error) throw uploaded.error
-  return { path, sha256: digest }
+  if (result.error) throw result.error
+}
+
+/**
+ * Uploads the PDF and runs the mutation that links it. The upload is removed
+ * only when the database definitively rejected the mutation; an exception
+ * leaves the commit outcome unknown, so the file is kept (F18).
+ */
+async function withStoredPoaPdf<R extends { error: unknown }>(
+  file: PreparedPoaPdf | null,
+  mutate: () => PromiseLike<R>,
+): Promise<R> {
+  if (file) await storePoaPdf(file)
+  const result = await mutate()
+  if (result.error && file) await cleanupPoa(file.path)
+  return result
 }
 
 async function cleanupPoa(path: string | null | undefined) {
@@ -555,7 +576,6 @@ function poaNormalized(body: Json) {
 async function createPowerOfAttorney(request: NextRequest) {
   const context = await auth(request, ['partner_power_of_attorney.write'])
   if (!context.ok) return context.response
-  let uploadedPath: string | null = null
   try {
     const body = await readJsonObject(request, 7 * 1024 * 1024)
     const normalized = poaNormalized(body)
@@ -572,8 +592,7 @@ async function createPowerOfAttorney(request: NextRequest) {
       }
       contractId = String(contract.id)
     }
-    const file = await uploadPoaPdf(context.client.company_id, body.file_base64, body.file_extension)
-    uploadedPath = file?.path ?? null
+    const file = preparePoaPdf(context.client.company_id, body.file_base64, body.file_extension)
     const idempotencyPayload = { ...body, file_base64: file ? `sha256:${file.sha256}` : null }
     const write = await executeIdempotentPortalWrite<Json>({
       request,
@@ -583,7 +602,7 @@ async function createPowerOfAttorney(request: NextRequest) {
       operation: '/api/partner/v1/powers-of-attorney',
       payload: idempotencyPayload,
       execute: async () => {
-        const result = await supabaseService
+        const result = await withStoredPoaPdf(file, () => supabaseService
           .from('powers_of_attorney')
           .insert({
             company_id: context.client.company_id,
@@ -612,16 +631,14 @@ async function createPowerOfAttorney(request: NextRequest) {
             external_customer_id: customer.external_customer_id,
           })
           .select('power_of_attorney_reference,status,signed_at,method')
-          .single()
+          .single())
         if (result.error) throw result.error
         return { statusCode: 201, body: { data: result.data } }
       },
     })
-    if (write.replayed && uploadedPath) await cleanupPoa(uploadedPath)
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: write.statusCode, operation: 'power_of_attorney.create', id: context.id })
     return partnerJson(write.body, write.statusCode, context.id)
   } catch (error) {
-    await cleanupPoa(uploadedPath)
     return failureResponse({ request, client: context.client, startedAt: context.startedAt, id: context.id, error })
   }
 }
@@ -629,7 +646,6 @@ async function createPowerOfAttorney(request: NextRequest) {
 async function createContract(request: NextRequest) {
   const context = await auth(request, ['partner_contracts.write'])
   if (!context.ok) return context.response
-  let uploadedPath: string | null = null
   try {
     const body = await readJsonObject(request, 7 * 1024 * 1024)
     ensureKeys(body, [
@@ -682,14 +698,15 @@ async function createContract(request: NextRequest) {
         throw new PartnerApiError('agreement.distance_agreement must be boolean.', 'agreement_distance_invalid', 422)
       }
     }
+    let poaFile: PreparedPoaPdf | null = null
     const poa = record(body.power_of_attorney)
     if (Object.keys(poa).length) {
       if (bool(poa.accepted) !== true) throw new PartnerApiError('power_of_attorney.accepted must be true.', 'power_of_attorney_not_accepted', 422)
       if (!text(poa.signer_name) || !text(poa.evidence_reference)) {
         throw new PartnerApiError('Power of attorney requires signer_name and evidence_reference.', 'power_of_attorney_evidence_required', 422)
       }
-      const file = await uploadPoaPdf(context.client.company_id, poa.file_base64, poa.file_extension)
-      uploadedPath = file?.path ?? null
+      const file = preparePoaPdf(context.client.company_id, poa.file_base64, poa.file_extension)
+      poaFile = file
       body.power_of_attorney = {
         ...poa,
         document_path: file?.path ?? null,
@@ -715,20 +732,18 @@ async function createContract(request: NextRequest) {
       operation: '/api/partner/v1/contracts',
       payload: idempotencyPayload,
       execute: async () => {
-        const result = await supabaseService.rpc('gridex_create_partner_contract_v1', {
+        const result = await withStoredPoaPdf(poaFile, () => supabaseService.rpc('gridex_create_partner_contract_v1', {
           p_company_id: context.client.company_id,
           p_api_client_id: context.client.id,
           p_payload: body,
-        })
+        }))
         if (result.error) throw result.error
         return { statusCode: 201, body: { data: result.data as unknown } }
       },
     })
-    if (write.replayed && uploadedPath) await cleanupPoa(uploadedPath)
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: write.statusCode, operation: 'contract.create', id: context.id })
     return partnerJson(write.body, write.statusCode, context.id)
   } catch (error) {
-    await cleanupPoa(uploadedPath)
     return failureResponse({ request, client: context.client, startedAt: context.startedAt, id: context.id, error })
   }
 }

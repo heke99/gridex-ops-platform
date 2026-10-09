@@ -30,7 +30,7 @@ The organization's own support page uses these endpoints. The same cases are han
 
 **References.** `case_reference` is an opaque public reference. It does not grant access: every lookup is bounded to the verified customer, and another customer receives `404`.
 
-**Writes.** Both POST endpoints require `Idempotency-Key`. The same key with the same payload replays the stored result. The same key with a different payload returns `409`. A closed case rejects new messages with `409 support_case_closed`.
+**Writes.** Both POST endpoints require `Idempotency-Key`. The same key with the same payload replays the stored result. The same key with a different payload returns `409`. A closed case rejects new messages with `409 support_case_closed`. `503 idempotency_completion_uncertain` means the write may already be saved but its receipt could not be confirmed: retry with the same key and payload, never with a new key. A stored success is never turned into a failure by a later retry.
 
 ## Support attachments (2026-10-02.1)
 

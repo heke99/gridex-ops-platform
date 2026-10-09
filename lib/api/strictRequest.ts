@@ -222,7 +222,42 @@ export async function failPortalWriteIdempotency(input: {
     })
     .eq('id', input.recordId)
     .eq('company_id', input.companyId)
+    // A completed ledger row holds the durable replay result and must never be
+    // downgraded by a later failure path (F19).
+    .eq('status', 'processing')
   if (error) throw error
+}
+
+/**
+ * Raised when the business mutation succeeded but its idempotency completion
+ * could not be confirmed. Callers must treat the mutation as committed: never
+ * delete resources it may reference. The client retries with the same key.
+ */
+export class IdempotentWriteCompletionUncertainError extends ApiInputError {
+  readonly businessCommitted = true
+
+  constructor() {
+    super(
+      'Ändringen kan redan vara sparad men kvittensen kunde inte bekräftas. Försök igen med samma Idempotency-Key.',
+      'idempotency_completion_uncertain',
+      503,
+    )
+    this.name = 'IdempotentWriteCompletionUncertainError'
+  }
+}
+
+async function readCompletedPortalWrite(input: {
+  recordId: string
+  companyId: string
+}): Promise<{ statusCode: number; responseBody: unknown } | null> {
+  const { data, error } = await supabaseService
+    .from('customer_portal_write_idempotency')
+    .select('id,status,response_status,response_body')
+    .eq('id', input.recordId)
+    .eq('company_id', input.companyId)
+    .maybeSingle()
+  if (error || !data || String(data.status) !== 'completed') return null
+  return { statusCode: Number(data.response_status ?? 200), responseBody: data.response_body }
 }
 
 export type IdempotentWriteResult<T> = {
@@ -262,15 +297,9 @@ export async function executeIdempotentPortalWrite<T>(input: {
     }
   }
 
+  let result: IdempotentWriteResult<T>
   try {
-    const result = await input.execute()
-    await completePortalWriteIdempotency({
-      recordId: claim.recordId,
-      companyId: input.companyId,
-      statusCode: result.statusCode,
-      responseBody: result.body,
-    })
-    return { ...result, replayed: false }
+    result = await input.execute()
   } catch (error) {
     const writeError = customerPortalWriteError(error)
     const errorCode = writeError instanceof ApiInputError ? writeError.code : 'write_failed'
@@ -281,4 +310,25 @@ export async function executeIdempotentPortalWrite<T>(input: {
     }).catch(() => undefined)
     throw writeError
   }
+
+  // The business mutation is committed from here on. A completion failure must
+  // not mark the ledger failed or let callers clean up committed resources (F18/F19).
+  const completion = {
+    recordId: claim.recordId,
+    companyId: input.companyId,
+    statusCode: result.statusCode,
+    responseBody: result.body,
+  }
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await completePortalWriteIdempotency(completion)
+      return { ...result, replayed: false }
+    } catch {
+      const stored = await readCompletedPortalWrite(completion).catch(() => null)
+      if (stored) {
+        return { statusCode: stored.statusCode, body: stored.responseBody as T, replayed: false }
+      }
+    }
+  }
+  throw new IdempotentWriteCompletionUncertainError()
 }
