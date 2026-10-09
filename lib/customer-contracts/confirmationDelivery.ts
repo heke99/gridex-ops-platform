@@ -57,7 +57,7 @@ export async function attemptContractConfirmationDelivery(
         customer_contract_id: receipt.contract_id,
         signature_request_id: receipt.request_id,
       },
-      { onConflict: "signature_request_id", ignoreDuplicates: true },
+      { onConflict: "company_id,signature_request_id", ignoreDuplicates: true },
     );
     if (created.error) throw created.error;
     claim = await claimDelivery(receipt);

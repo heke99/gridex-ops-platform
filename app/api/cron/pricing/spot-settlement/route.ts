@@ -53,7 +53,9 @@ export async function POST(request: NextRequest) {
           reason: 'monthly_settlement_cron',
         }))
       } catch (error) {
-        failedAreas.push({ price_area: priceArea, error: error instanceof Error ? error.message : String(error) })
+        // Return a code only; the detail goes to the server log.
+        console.error('[spot-settlement] area lock failed', { priceArea, billingMonth, error })
+        failedAreas.push({ price_area: priceArea, error: 'spot_settlement_area_lock_failed' })
       }
     }
     return NextResponse.json({

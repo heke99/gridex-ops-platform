@@ -143,9 +143,11 @@ describe('F27: continuation is created inside the signing transaction (native)',
     await db.exec(`
       create role anon; create role authenticated; create role service_role;
       create table public.companies(id uuid primary key);
+      create table public.platform_table_classification(table_name text primary key, kind text, rationale text, classified_by text);
       create table public.customer_contract_signature_requests(id uuid primary key, company_id uuid not null, customer_contract_id uuid not null, used_at timestamptz);
     `)
     await db.exec(fs.readFileSync('supabase/migrations/20261009100000_ops_api_contract_confirmation_delivery_continuation.sql', 'utf8'))
+    await db.exec(fs.readFileSync('supabase/migrations/20261009220000_classify_contract_confirmation_deliveries.sql', 'utf8'))
     await db.exec(`
       insert into companies values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'), ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
       insert into customer_contract_signature_requests values
