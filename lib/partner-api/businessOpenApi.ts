@@ -48,7 +48,7 @@ export const partnerPublicOpenApi = {
       get: {
         summary: 'Resolve electricity location',
         description:
-          'Resolves a Swedish postal code and optional address to price area, grid area and grid owner. A postal code that spans conflicting price areas is returned as ambiguous rather than guessed.',
+          'Resolves a Swedish postal code and optional address to price area, grid area and grid owner. A postal code that spans conflicting price areas is returned as ambiguous rather than guessed. `status: resolved` and `verified: true` require usable price-area assurance (fresh verified or estimated geodata). Last-known identifiers behind stale or unverified geodata are returned as provisional: `status: partial`, `verified: false` and the warning `location_identifiers_provisional`; such a location never yields a price. `grid_owner.verified` describes geographic identity only, not operational Ediel routing readiness.',
         parameters: [postalCodeParameter, addressParameter, cityParameter],
         responses: {
           '200': {
@@ -85,7 +85,7 @@ export const partnerPublicOpenApi = {
       post: {
         summary: 'Calculate customer price',
         description:
-          'Resolves location and the credential default offer, then calculates the quote with the same Gridex pricing engine used by Ops. Internal company, product, price-area, grid-owner and offer identifiers are never accepted.',
+          'Resolves location and the credential default offer, then calculates the quote with the same Gridex pricing engine used by Ops. Internal company, product, price-area, grid-owner and offer identifiers are never accepted. The default offer and the quote both use the API publication channel: an API-only offer is quoted, a Website-only offer is never used. The result is a total customer price estimate for the offer (spot or other base price plus the offer\'s supplier components, VAT included where stated); `/price/current` instead returns the bare market spot interval excluding VAT and all fees.',
         requestBody: {
           required: true,
           content: {

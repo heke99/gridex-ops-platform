@@ -83,3 +83,11 @@ A rejected file returns `422 attachment_rejected` and is never served. This is a
 **Same physical address.** The physical identity of a facility address excludes `care_of`. Sending the same physical address returns `address_result.status: "unchanged"`; a changed `care_of` is still saved and audited, and `address_result.reason` is then `care_of_updated` (additive field value). Grid owner, routing and verification are not invalidated by a `care_of` change. A same-address submission from the customer portal never replaces a stronger stored source (for example a grid-owner verified address); only the receipt time is updated.
 
 **Conflicts.** A different physical address for a facility whose address is verified by a stronger source returns `address_result.status: "conflict"` with `reason: "verified_address_conflict"`, and the completion is `submitted` for staff review instead of `accepted`. The same decision is repeated atomically when the address is committed, so a verification that lands concurrently still yields a conflict rather than an overwrite.
+
+## Related Partner API pricing and location semantics (2026-10-09)
+
+Documented in the Partner runtime specification (`/api/partner/v1/openapi.json`); response shapes are unchanged.
+
+- **Spot vs. customer quote.** `GET /api/partner/v1/price/current` returns the bare market spot interval (ex VAT, no supplier or grid fees). `POST /api/partner/v1/price` returns a total customer price estimate for the credential's default offer, calculated by the Gridex pricing engine.
+- **Channel.** The Partner API selects and quotes offers published on the API channel only. API-only offers are quotable; Website-only offers are never used by the Partner API.
+- **Assurance.** `location.status: "resolved"` and `verified: true` require usable price-area assurance. Identifiers behind stale or unverified geodata are provisional (`status: "partial"`, `verified: false`, warning `location_identifiers_provisional`) and never produce a price. `grid_owner.verified` is geographic identity, not Ediel routing readiness.
