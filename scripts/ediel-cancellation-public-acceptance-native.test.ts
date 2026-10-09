@@ -11,7 +11,7 @@ vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: sm
 import { seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { buildCancellationProspectiveZ04 } from './helpers/ediel-cancellation-prospective-source-2ea'
-import { ownerSource, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
+import { ownerSourceWithInstallationStatus, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
 import { closureFixture, CLOSURE_OBJECT } from '../__tests__/helpers/closureWireFixtures'
 import { supabaseService } from '@/lib/supabase/service'
 import { createMeteringPermissionDraft } from '@/lib/onboarding/infoRequests'
@@ -71,7 +71,7 @@ function envelope(f: Fixture, source: string, code: 'Z04' | 'Z05') {
 }
 function z04(f: Fixture, reason = 'Z22') {
   if (reason === 'Z22') return buildCancellationProspectiveZ04(f)
-  const wire = ownerSource().raw_payload!.replaceAll(OWNER.external, f.external)
+  const wire = ownerSourceWithInstallationStatus('Z12').raw_payload!.replaceAll(OWNER.external, f.external)
     .replaceAll('12345:160:SVK', `${f.receiver}:160:SVK`).replaceAll('54321:160:SVK', `${f.sender}:160:SVK`)
     .replaceAll('11111:160:SVK', `${f.brpEdielId}:160:SVK`).replaceAll('CUSTOMER-1::89', `${f.customerIdentity.id}:SE2:260`)
     .replaceAll('RFF+Z05:NET-1', `RFF+Z05:${f.gridAreaCode}`).replaceAll('RFF+LI:CASE-1', `RFF+LI:${f.caseReference}`)
