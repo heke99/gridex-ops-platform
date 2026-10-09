@@ -210,6 +210,23 @@ async function findRequestByOutboundReferences(references: string[]): Promise<{
   }
   const matchMethods: string[] = rowsById.size ? ['provider_message_id'] : []
 
+  // Outbound grid-owner mails carry our own Message-ID, stored lowercase
+  // without angle brackets in recipient_resolution.rfc_message_id.
+  const ownIds = unique(references.map(normalizeMessageId).filter((value): value is string => Boolean(value)))
+  if (ownIds.length) {
+    const ownResult = await supabaseService
+      .from('manual_email_outbox')
+      .select('id,company_id,request_id,provider_message_id')
+      .in('recipient_resolution->>rfc_message_id', ownIds)
+      .limit(10)
+    if (ownResult.error) throw ownResult.error
+    for (const row of (ownResult.data ?? []) as JsonRecord[]) {
+      const id = clean(row.id)
+      if (id) rowsById.set(id, row)
+    }
+    if ((ownResult.data ?? []).length) matchMethods.push('outbound_rfc_message_id')
+  }
+
   const resendProviderIds = await findResendProviderIdsByRfcMessageId(references)
   if (resendProviderIds.length) {
     const resendResult = await supabaseService

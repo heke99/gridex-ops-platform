@@ -140,6 +140,24 @@ function toDateOrNull(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
+/**
+ * A date-only validity end (YYYY-MM-DD) includes the whole day in Swedish
+ * time: the POA expires at the next Stockholm midnight. Timestamps are exact.
+ */
+function validThroughEnd(value: unknown): Date | null {
+  const cleaned = clean(value)
+  if (!cleaned) return null
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(cleaned)
+  if (!dateOnly) return toDateOrNull(cleaned)
+  const next = new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]) + 1, 12))
+  const ymd = next.toISOString().slice(0, 10)
+  // Offset of Europe/Stockholm at that date (+01:00 or +02:00).
+  const offsetName = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Stockholm', timeZoneName: 'shortOffset' })
+    .formatToParts(next).find((part) => part.type === 'timeZoneName')?.value ?? 'GMT+1'
+  const hours = Number(/GMT([+-]\d+)/.exec(offsetName)?.[1] ?? 1)
+  return new Date(Date.parse(`${ymd}T00:00:00Z`) - hours * 3_600_000)
+}
+
 export function derivePowerOfAttorneyLifecycleStatus(
   poa: PoaLike | null | undefined,
   options?: { now?: Date },
@@ -151,8 +169,8 @@ export function derivePowerOfAttorneyLifecycleStatus(
   if (status === 'revoked' || status === 'annulled' || clean(poa.revoked_at)) return 'revoked'
   if (status === 'replaced' || status === 'superseded' || clean(poa.replaced_by_id)) return 'replaced'
 
-  const validTo = toDateOrNull(poa.valid_to) ?? toDateOrNull(poa.valid_until)
-  if (status === 'expired' || (validTo && validTo < now)) return 'expired'
+  const validTo = validThroughEnd(poa.valid_to) ?? validThroughEnd(poa.valid_until)
+  if (status === 'expired' || (validTo && validTo <= now)) return 'expired'
 
   if (poaStatusIsAccepted(poa)) {
     // Accepted status without acceptance evidence is not provable — treat as

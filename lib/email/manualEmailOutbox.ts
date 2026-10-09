@@ -570,7 +570,15 @@ export async function processManualEmailOutbox(input?: {
         html: String(row.body_html ?? ''),
         text: clean(row.body_text) ?? undefined,
         attachments: toAttachments(row.attachments),
-        idempotencyKey: clean(row.provider_idempotency_key) ?? clean(row.idempotency_key) ?? undefined,
+        // The provider key is bound to the actual recipient: after a contact
+        // change at send time Resend must not return the earlier send.
+        idempotencyKey: (() => {
+          const base = clean(row.provider_idempotency_key) ?? clean(row.idempotency_key)
+          if (!base) return undefined
+          return recipientResolution.recipient_changed_at_send
+            ? `${base}:to:${createHash('sha256').update(toEmail.toLowerCase()).digest('hex').slice(0, 16)}`
+            : base
+        })(),
         headers: { 'Message-ID': rfcMessageId },
       })
       providerMessageId = clean(sent.providerMessageId)
