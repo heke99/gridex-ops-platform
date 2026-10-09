@@ -32,14 +32,18 @@ export async function POST(request: NextRequest, { params }: RouteProps) {
       })
     }
     if (error instanceof BillingProviderWebhookRequestError) {
-      // Non-retryable 4xx: providers must not retry payloads that can never succeed.
-      return internalApiError({
+      // 400/413 are permanent. 409/503 are only raised for signature-verified
+      // events that cannot be routed yet; they carry Retry-After so the
+      // provider redelivers instead of dropping the event.
+      const response = internalApiError({
         context: 'billing_webhook_failed',
         error,
         code: error.code,
         message: error.message,
         status: error.status,
       })
+      if (error.retryable) response.headers.set('Retry-After', '60')
+      return response
     }
     return internalApiError({
       context: 'billing_webhook_failed',

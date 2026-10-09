@@ -92,16 +92,18 @@ describe("billing provider webhook status mapping", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 404 for unknown invoice GUID", async () => {
+  // Superseded by inbound-review A/B: a verified but unknown GUID is retryable
+  // (503) and a request no secret can verify is always a uniform 401.
+  it("returns retryable 503 for a verified event with unknown invoice GUID", async () => {
     state.items = [];
     const res = await POST(request(validBody, signed(validBody)), ctx);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(503);
   });
 
-  it("returns 422 when the tenant connection has no webhook secret", async () => {
+  it("returns 401 when no webhook secret can verify the request", async () => {
     delete process.env.TEST_BILLING_WEBHOOK_SECRET;
     const res = await POST(request(validBody, signed(validBody)), ctx);
-    expect(res.status).toBe(422);
+    expect(res.status).toBe(401);
   });
 
   it("accepts a valid webhook without leaking the internal company id", async () => {

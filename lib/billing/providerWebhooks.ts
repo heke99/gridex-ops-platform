@@ -24,19 +24,27 @@ export class BillingProviderWebhookAuthError extends Error {
 }
 
 /**
- * Non-retryable request/routing failure. Mapped to a 4xx response so providers
- * stop retrying payloads that can never succeed (instead of a 500 retry loop).
+ * Request/routing failure raised only for bodies that cannot be parsed, or
+ * AFTER the signature was verified. 4xx (400/413) are permanent; 409/503 are
+ * retryable so a provider redelivers a verified event that cannot be routed
+ * yet (e.g. the webhook raced the persistence of provider_invoice_guid).
+ * Unsigned/unverifiable requests never reach this class: they always get the
+ * same BillingProviderWebhookAuthError (401) regardless of routing outcome.
  */
 export class BillingProviderWebhookRequestError extends Error {
-  readonly status: 400 | 404 | 413 | 422
+  readonly status: 400 | 409 | 413 | 503
   readonly code: string
-  constructor(status: 400 | 404 | 413 | 422, code: string, message: string) {
+  readonly retryable: boolean
+  constructor(status: 400 | 409 | 413 | 503, code: string, message: string) {
     super(message)
     this.name = 'BillingProviderWebhookRequestError'
     this.status = status
     this.code = code
+    this.retryable = status === 409 || status === 503
   }
 }
+
+const UNVERIFIED_MESSAGE = 'Providerwebhookens signatur kunde inte verifieras.'
 
 function badRequest(message: string): BillingProviderWebhookRequestError {
   return new BillingProviderWebhookRequestError(400, 'billing_webhook_invalid_payload', message)
@@ -88,66 +96,108 @@ function signatureHex(signature: string | null): string {
   return provided
 }
 
-function verifySignature(input: { body: string; signature: string; timestamp: number; secret: string }): true {
-  const provided = input.signature
+function signatureMatches(input: { body: string; signature: string; timestamp: number; secret: string }): boolean {
   const expected = createHmac('sha256', input.secret).update(`${input.timestamp}.${input.body}`).digest('hex')
   const left = Buffer.from(expected, 'hex')
-  const right = Buffer.from(provided, 'hex')
-  if (left.length !== right.length || !timingSafeEqual(left, right)) throw new BillingProviderWebhookAuthError('Providerwebhookens signatur kunde inte verifieras.')
-  return true
+  const right = Buffer.from(input.signature, 'hex')
+  return left.length === right.length && timingSafeEqual(left, right)
 }
 
-async function resolveTarget(input: { provider: string; invoiceGuid: string }) {
-  const query = supabaseService
+function connectionSecret(connection: JsonRecord): string | null {
+  const envName = text(object(connection.secret_reference).webhook_secret_env)
+  const secret = envName ? process.env[envName] : null
+  return secret || null
+}
+
+type ResolvedTarget = {
+  itemId: string
+  companyId: string
+  environment: 'test' | 'production'
+  connectionId: string
+  secret: string
+}
+
+/**
+ * Resolves the tenant target AND authenticates the request in one step, so the
+ * routing outcome is never observable before a valid signature:
+ *
+ * - routable invoice + exactly one active connection with a secret: verify
+ *   against that tenant secret only; mismatch -> uniform 401.
+ * - anything else (unknown GUID, ambiguous GUID, missing connection/secret):
+ *   the request is checked against every active connection secret of the
+ *   provider. No match -> the same uniform 401. Match -> the event is genuine
+ *   but cannot be routed yet, so a retryable 503 (409 for an ambiguous GUID)
+ *   makes the provider redeliver instead of dropping it permanently.
+ *
+ * At most two indexed lookups run before verification (the per-tenant secret
+ * design makes a pre-DB check impossible); their results are not reflected in
+ * any unauthenticated response.
+ */
+async function resolveVerifiedTarget(input: {
+  provider: string
+  invoiceGuid: string
+  body: string
+  signature: string
+  timestamp: number
+}): Promise<ResolvedTarget> {
+  const verify = (secret: string) => signatureMatches({ body: input.body, signature: input.signature, timestamp: input.timestamp, secret })
+  const itemResult = await supabaseService
     .from('invoice_export_items')
     .select('id,company_id,environment,provider,provider_invoice_guid')
     .eq('provider', input.provider)
     .eq('provider_invoice_guid', input.invoiceGuid)
     .limit(3)
-  const itemResult = await query
   if (itemResult.error) throw itemResult.error
   const items = (itemResult.data ?? []) as JsonRecord[]
+  let unroutable: { status: 409 | 503; code: string; message: string } | null = null
   if (items.length === 0) {
-    throw new BillingProviderWebhookRequestError(404, 'billing_webhook_unknown_invoice', 'Providerfakturan kan inte kopplas till exakt en tenant.')
-  }
-  if (items.length !== 1) {
-    throw new BillingProviderWebhookRequestError(422, 'billing_webhook_unroutable', 'Providerfakturan matchar flera tenants.')
-  }
-  const item = items[0]
-  const companyId = text(item.company_id)
-  const itemId = text(item.id)
-  const environment = text(item.environment)
-  if (!companyId || !itemId || !['test', 'production'].includes(environment ?? '')) {
-    throw new BillingProviderWebhookRequestError(422, 'billing_webhook_unroutable', 'Providerfakturan saknar entydig tenant eller miljö.')
+    unroutable = { status: 503, code: 'billing_webhook_target_pending', message: 'Providerfakturan är ännu inte kopplad; försök igen senare.' }
+  } else if (items.length !== 1) {
+    unroutable = { status: 409, code: 'billing_webhook_ambiguous_target', message: 'Providerfakturan matchar flera mål; händelsen kräver avstämning.' }
+  } else {
+    const item = items[0]
+    const companyId = text(item.company_id)
+    const itemId = text(item.id)
+    const environment = text(item.environment)
+    if (companyId && itemId && (environment === 'test' || environment === 'production')) {
+      const connectionResult = await supabaseService
+        .from('billing_provider_connections')
+        .select('id,company_id,provider,environment,status,settings,secret_reference')
+        .eq('company_id', companyId)
+        .eq('provider', input.provider)
+        .eq('environment', environment)
+        .eq('status', 'active')
+        .limit(2)
+      if (connectionResult.error) throw connectionResult.error
+      const connections = (connectionResult.data ?? []) as JsonRecord[]
+      const secret = connections.length === 1 ? connectionSecret(connections[0]) : null
+      if (secret) {
+        if (!verify(secret)) throw new BillingProviderWebhookAuthError(UNVERIFIED_MESSAGE)
+        return { itemId, companyId, environment, connectionId: String(connections[0].id), secret }
+      }
+    }
+    unroutable = { status: 503, code: 'billing_webhook_target_pending', message: 'Providerfakturans tenantanslutning är inte redo; försök igen senare.' }
   }
 
-  const connectionResult = await supabaseService
+  // Unroutable: authenticate against any active connection of this provider
+  // before revealing anything. Verified events are retried, never dropped.
+  const providerConnections = await supabaseService
     .from('billing_provider_connections')
-    .select('id,company_id,provider,environment,status,settings,secret_reference')
-    .eq('company_id', companyId)
+    .select('id,secret_reference')
     .eq('provider', input.provider)
-    .eq('environment', environment)
     .eq('status', 'active')
-    .limit(2)
-  if (connectionResult.error) throw connectionResult.error
-  const connections = (connectionResult.data ?? []) as JsonRecord[]
-  if (connections.length !== 1) {
-    throw new BillingProviderWebhookRequestError(422, 'billing_webhook_unroutable', 'Exakt en aktiv provideranslutning krävs för webhookens tenant och miljö.')
-  }
-  const connection = connections[0]
-  const secretReference = object(connection.secret_reference)
-  const envName = text(secretReference.webhook_secret_env)
-  const secret = envName ? process.env[envName] : null
-  if (!secret) {
-    throw new BillingProviderWebhookRequestError(422, 'billing_webhook_unroutable', 'Tenantens provideranslutning saknar webhook-hemlighet.')
-  }
-  return {
-    itemId,
-    companyId,
-    environment: environment as 'test' | 'production',
-    connectionId: String(connection.id),
-    secret,
-  }
+    .limit(200)
+  if (providerConnections.error) throw providerConnections.error
+  const authentic = ((providerConnections.data ?? []) as JsonRecord[]).some((connection) => {
+    const secret = connectionSecret(connection)
+    return secret ? verify(secret) : false
+  })
+  if (!authentic) throw new BillingProviderWebhookAuthError(UNVERIFIED_MESSAGE)
+  console.warn('[billing-webhook] verified event is not routable yet; provider will retry', {
+    provider: input.provider,
+    code: unroutable.code,
+  })
+  throw new BillingProviderWebhookRequestError(unroutable.status, unroutable.code, unroutable.message)
 }
 
 export async function receiveBillingProviderWebhook(input: {
@@ -178,13 +228,7 @@ export async function receiveBillingProviderWebhook(input: {
   )
   // Tenant claims in headers or payload are intentionally ignored. The tenant is
   // resolved exclusively from the persisted provider invoice relation.
-  const target = await resolveTarget({ provider, invoiceGuid: providerInvoiceGuid })
-  verifySignature({
-    body: input.body,
-    signature,
-    timestamp,
-    secret: target.secret,
-  })
+  const target = await resolveVerifiedTarget({ provider, invoiceGuid: providerInvoiceGuid, body: input.body, signature, timestamp })
   const normalizedEventType = eventType(payload)
   const idempotencyKey = `${provider}:${target.environment}:${externalEventId}`
   const now = new Date().toISOString()
