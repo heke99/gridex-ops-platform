@@ -1,6 +1,7 @@
 import "server-only";
 import { requireContractRecordsAvailable } from '@/lib/ediel/retention/customerRecordClasses';
 
+import { attemptContractConfirmationDelivery, listDueContractConfirmations } from "./confirmationDelivery";
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { getBaseAppUrl } from "@/lib/auth/urls";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
@@ -482,7 +483,7 @@ async function signedContractState(receipt: OnlineSignatureReceipt) {
   };
 }
 
-async function deliverSignedContractReceipt(receipt: OnlineSignatureReceipt) {
+export async function deliverSignedContractReceipt(receipt: OnlineSignatureReceipt) {
   await requireContractRecordsAvailable({ companyId: receipt.company_id, contractId: receipt.contract_id });
   if (!receipt.signed_at || !receipt.signature_snapshot_sha256) {
     throw new Error("signed_contract_receipt_evidence_missing");
@@ -672,17 +673,43 @@ export async function finalizeOnlineContractSignature(input: {
   const receipt = parseReceipt(data);
 
   await requireContractRecordsAvailable({ companyId: receipt.company_id, contractId: receipt.contract_id });
-  let deliveryError: string | null = null;
-  try {
-    await deliverSignedContractReceipt(receipt);
-  } catch (error) {
-    deliveryError = error instanceof Error ? error.message : String(error);
+  // The signing transaction already created a pending delivery continuation
+  // (F27). Attempt it now; a failure stays pending for the retry worker and
+  // never undoes or repeats the signature.
+  const delivery = await attemptContractConfirmationDelivery(receipt, deliverSignedContractReceipt);
+  if (delivery.error) {
     console.error("[online signature] post-sign receipt delivery failed", {
       contractId: receipt.contract_id,
       requestId: receipt.request_id,
-      error: deliveryError,
+      error: delivery.error,
     });
   }
 
-  return { receipt, deliveryError };
+  return { receipt, deliveryError: delivery.error, confirmationState: delivery.state };
+}
+
+/** Retries pending signed-contract confirmations without signing again (F27). */
+export async function processPendingContractConfirmations(limit = 20) {
+  const due = await listDueContractConfirmations(limit);
+  const results: Array<{ signatureRequestId: string; state: string; error: string | null }> = [];
+  for (const item of due) {
+    const request = await supabaseService
+      .from("customer_contract_signature_requests")
+      .select("token_hash,used_at")
+      .eq("id", item.signatureRequestId)
+      .eq("company_id", item.companyId)
+      .maybeSingle();
+    if (request.error) throw request.error;
+    if (!request.data?.used_at) continue;
+    const receiptResult = await supabaseService.rpc(
+      "gridex_get_customer_contract_signature_receipt_v1",
+      { p_token_hash: request.data.token_hash },
+    );
+    if (receiptResult.error) throw receiptResult.error;
+    const receipt = parseReceipt(receiptResult.data);
+    if (receipt.company_id !== item.companyId || receipt.request_id !== item.signatureRequestId) continue;
+    const delivery = await attemptContractConfirmationDelivery(receipt, deliverSignedContractReceipt);
+    results.push({ signatureRequestId: item.signatureRequestId, state: delivery.state, error: delivery.error });
+  }
+  return { processed: results.length, results };
 }

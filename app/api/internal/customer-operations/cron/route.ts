@@ -10,6 +10,7 @@ import { runZ01ResponseSlaWatchdog } from '@/lib/ediel/operations/z01ResponseSla
 import { expireOverduePowersOfAttorney } from '@/lib/operations/powerOfAttorneyExpiry'
 import { processReadySupplierSwitchActivations } from '@/lib/operations/supplierSwitchActivationSweep'
 import { reconcileCustomerApplicationContinuationJobs } from '@/lib/website/customerApplicationReconciliation'
+import { processPendingContractConfirmations } from '@/lib/customer-contracts/onlineSigning'
 import { reconcileLegacyFacilityRequestLinks } from '@/lib/website/legacyFacilityRequestReconciliation'
 import { processPendingExactAddressResolutions } from '@/lib/energy/pendingExactAddressResolution'
 import { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
@@ -80,6 +81,11 @@ async function run(request: NextRequest) {
     const customerApplicationReconciliation = await reconcileCustomerApplicationContinuationJobs({
       limit: Math.min(requestedLimit * 2, 100),
     })
+    // Signed contracts whose confirmation mail could not be queued at signing
+    // time (F27). Retries never sign again; idempotency keys are stable.
+    const contractConfirmations = await processPendingContractConfirmations(
+      Math.min(requestedLimit, 50),
+    )
     const customerOperations = await processCustomerOperationJobs({
       workerId: `customer-operations-cron:${new Date().toISOString()}`,
       limit: requestedLimit,
@@ -141,6 +147,7 @@ async function run(request: NextRequest) {
         exactAddressResolution,
         legacyFacilityRequestReconciliation,
         customerApplicationReconciliation,
+        contractConfirmations,
         customerOperations,
         z01ResponseSla,
         inboundAckSla,

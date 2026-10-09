@@ -20,3 +20,12 @@ Verifiering (Node 22.22.0): `typecheck` PASS; `api:docs`, `api:compatibility`, `
 | F42 | FIXED (versionsstyrd) | Livedefinitionen av `gridex_normalize_power_of_attorney_legal_reference` + trigger versionerad ordagrant i samma migration; tenant/modul/lås/FK-kontroller provade. |
 
 Kvarstår: autentisk `schema.sql`/fingerprint-capture och hosted clean/upgrade-replay (kräver CI/Supabase-replay; typer oförändrade, manifestet noterar `schema_capture_pending`). Website-OpenAPI-beskrivningen av `textVersionId` uppdateras i den samlade docsreleasen (Paket 17); att höja den frysta releasen nu skulle ändra `contract_schema_version` för alla klienter innan Paket 4:s kompatibilitetsregler finns.
+
+## Paket 3 — F26, F27
+
+| Fynd | Status | Bevis |
+|---|---|---|
+| F26 | FIXED (runtime) | `lib/documents/pdfStructure.ts` (header, startxref→xref, Catalog, Page, även komprimerade objektströmmar) i Partner simple + legacy. `__tests__/partner-poa-pdf-structure.test.ts`, F26-fallet i `__tests__/partner-poa-commit-ownership.test.ts` (fem byte `%PDF-` → 422, 0 upload, 0 POA). Validerar inte digital signatur. |
+| F27 | FIXED (runtime + native trigger) | Migration `20261009100000_ops_api_contract_confirmation_delivery_continuation.sql`: tenantbunden `customer_contract_confirmation_deliveries` skapas i signeringstransaktionen (trigger på `used_at`). Retry-worker i `customer-operations`-cron; signeringssidan visar köad/förbereds/misslyckad. `__tests__/signed-contract-receipt-continuation.test.ts` (handler-fejk + PGlite-trigger, inkl. rollback och annan tenant). |
+
+Kvarstår: riktig mailleverans till testmottagare och hosted replay; `database.types.ts` utökad för- hand i typegen-format (`authentic_typegen_pending`).

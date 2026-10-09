@@ -18040,6 +18040,66 @@ export type Database = {
           },
         ]
       }
+      customer_contract_confirmation_deliveries: {
+        Row: {
+          attempts: number
+          company_id: string
+          created_at: string
+          customer_contract_id: string
+          document_sha256: string | null
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          queued_at: string | null
+          signature_request_id: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          company_id: string
+          created_at?: string
+          customer_contract_id: string
+          document_sha256?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          queued_at?: string | null
+          signature_request_id: string
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          company_id?: string
+          created_at?: string
+          customer_contract_id?: string
+          document_sha256?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          queued_at?: string | null
+          signature_request_id?: string
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_signature_request_id_fkey"
+            columns: ["signature_request_id"]
+            isOneToOne: true
+            referencedRelation: "customer_contract_signature_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_contract_documents: {
         Row: {
           archived_at: string | null

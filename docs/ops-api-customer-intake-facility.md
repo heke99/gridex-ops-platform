@@ -424,6 +424,8 @@ metering_values.updated
 
 `contract.confirmation_sent` och `contract.cooling_off_sent` ska kopplas till faktisk kommunikations-/mailstatus, inte bara till att ansökan skapats.
 
+**Signering via säker länk (OPS).** Signeringstransaktionen skapar alltid en rad i `customer_contract_confirmation_deliveries` (`pending`). Arkivering av avtals-PDF och köning av bekräftelsemejl försöks direkt; lyckas det blir raden `queued`. Vid fel ligger raden kvar som `pending` och `customer-operations`-cron försöker igen med exponentiell backoff (5 min → max 6 h) och samma idempotensnycklar (`online_signature:<request_id>:confirmation`). Avtalet signeras aldrig om. Efter 8 misslyckade försök blir raden `failed` och kräver manuell åtgärd. Signeringssidan visar faktiskt läge (köad, förbereds eller misslyckad) i stället för att alltid lova mejl.
+
 ## Implementation files
 
 ```txt

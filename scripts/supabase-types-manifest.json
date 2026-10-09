@@ -2,8 +2,15 @@
   "generated_types": "supabase/database.types.ts",
   "generated_at": "2026-10-07T05:54:47.682820+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run37576871152",
-  "sha256": "575196e37d9da421d842ce34f92d434c83994ebc44a8a95254fed443d6b4ebd8",
-  "latest_migration": "20261009090000_ops_api_exact_accepted_poa_document.sql",
+  "sha256": "d1d2dadbfd4e9341fe26404e5112e44cf34d674099aacddbfb9d53c631307e23",
+  "latest_migration": "20261009100000_ops_api_contract_confirmation_delivery_continuation.sql",
+  "ops_api_confirmation_delivery_tail": {
+    "migration": "20261009100000_ops_api_contract_confirmation_delivery_continuation.sql",
+    "previous_generated_types_sha256": "575196e37d9da421d842ce34f92d434c83994ebc44a8a95254fed443d6b4ebd8",
+    "public_types_effect": "adds public.customer_contract_confirmation_deliveries Row/Insert/Update/Relationships, hand-authored in Supabase typegen format; trigger function excluded from types",
+    "authentic_typegen_pending": true,
+    "verification": "__tests__/signed-contract-receipt-continuation.test.ts (handler + PGlite trigger)"
+  },
   "ops_api_poa_exact_document_tail": {
     "migration": "20261009090000_ops_api_exact_accepted_poa_document.sql",
     "previous_latest_migration": "20261007051400_ediel_equivalent_prodat_canonical_replay.sql",
