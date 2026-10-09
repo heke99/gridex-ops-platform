@@ -20,8 +20,9 @@ vi.mock('@/lib/supabase/service', () => ({
         select: () => b,
         eq: (k: string, v: unknown) => { filters.push((row) => row[k] === v); return b },
         in: (k: string, values: unknown[]) => { filters.push((row) => values.includes(row[k])); return b },
-        gte: (k: string, v: string) => { filters.push((row) => String(row[k]) >= v); return b },
+        gte: (k: string, v: string) => { filters.push((row) => new Date(String(row[k])) >= new Date(v)); return b },
         lte: (k: string, v: string) => { filters.push((row) => String(row[k]) <= v); return b },
+        lt: (k: string, v: string) => { filters.push((row) => new Date(String(row[k])) < new Date(v)); return b },
         order: () => b,
         limit: (n: number) => { limit = n; m.limits.push(n); return b },
         async maybeSingle() {

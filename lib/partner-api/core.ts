@@ -15,6 +15,7 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import { PARTNER_API_VERSION, partnerOpenApi } from './openApi'
+import { PARTNER_VISIBLE_INVOICE_STATUSES, calendarDaysInclusive, stockholmDayStartUtc, stockholmNextDayStartUtc } from './partnerTime'
 
 const POA_BUCKET = 'customer-documents'
 const MAX_POA_BYTES = 5 * 1024 * 1024
@@ -543,13 +544,28 @@ function poaNormalized(body: Json) {
     customerReference,
     siteReference,
     contractReference: text(body.contract_reference),
-    acceptedAt: text(body.accepted_at) ?? new Date().toISOString(),
+    acceptedAt: acceptedAtValue(body.accepted_at),
     signerName,
     signerIdentityNumber: digits(body.signer_identity_number),
     poaType: lower(body.poa_type) ?? 'web',
     transactionType: (text(body.transaction_type) ?? 'SWITCH').toUpperCase(),
     evidenceReference,
   }
+}
+
+/** accepted_at must be an ISO 8601 timestamp with time zone that is not in the future. */
+function acceptedAtValue(value: unknown): string {
+  const raw = text(value)
+  if (!raw) return new Date().toISOString()
+  const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/
+  const parsed = new Date(raw)
+  if (!iso.test(raw) || Number.isNaN(parsed.getTime())) {
+    throw new PartnerApiError('accepted_at must be an ISO 8601 timestamp with time zone.', 'accepted_at_invalid', 422, 'accepted_at')
+  }
+  if (parsed.getTime() > Date.now() + 5 * 60_000) {
+    throw new PartnerApiError('accepted_at cannot be in the future.', 'accepted_at_invalid', 422, 'accepted_at')
+  }
+  return parsed.toISOString()
 }
 
 async function createPowerOfAttorney(request: NextRequest) {
@@ -871,10 +887,12 @@ async function invoicesForCustomer(request: NextRequest, customerReference: stri
       .select('invoice_reference,invoice_number,period_start,period_end,amount_inc_vat,currency,due_date,issued_at,paid_at,status')
       .eq('company_id', context.client.company_id)
       .eq('customer_id', customer.id)
+      .in('status', [...PARTNER_VISIBLE_INVOICE_STATUSES])
       .order('issued_at', { ascending: false, nullsFirst: false })
       .limit(100)
-    if (from) query = query.gte('issued_at', requireIsoDate(from, 'from_date'))
-    if (to) query = query.lte('issued_at', `${requireIsoDate(to, 'to_date')}T23:59:59.999Z`)
+    // Calendar dates are Europe/Stockholm days; the upper bound is half-open.
+    if (from) query = query.gte('issued_at', stockholmDayStartUtc(requireIsoDate(from, 'from_date')).toISOString())
+    if (to) query = query.lt('issued_at', stockholmNextDayStartUtc(requireIsoDate(to, 'to_date')).toISOString())
     const result = await query
     if (result.error) throw result.error
     const invoices = (result.data ?? []).map((row) => ({
@@ -902,6 +920,7 @@ async function resolveInvoice(companyId: string, reference: string) {
     .select('id,invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status')
     .eq('company_id', companyId)
     .eq('invoice_reference', reference)
+    .in('status', [...PARTNER_VISIBLE_INVOICE_STATUSES])
     .maybeSingle()
   if (result.error) throw result.error
   if (!result.data) throw new PartnerApiError('Invoice not found.', 'invoice_not_found', 404)
@@ -971,9 +990,9 @@ async function measurements(request: NextRequest, siteReference: string) {
     if (!['15m', '1h'].includes(resolution)) {
       throw new PartnerApiError('resolution must be 15m or 1h.', 'resolution_invalid', 422, 'resolution')
     }
-    const start = new Date(`${from}T00:00:00Z`)
-    const end = new Date(`${to}T23:59:59.999Z`)
-    const days = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1
+    // Europe/Stockholm calendar days, half-open on period_start; the last interval (ending at the
+    // next local midnight) is included and DST days have 23/25 hours.
+    const days = calendarDaysInclusive(from, to)
     if (days < 1 || days > MAX_MEASUREMENT_DAYS) {
       throw new PartnerApiError(`Date range must be 1-${MAX_MEASUREMENT_DAYS} days.`, 'measurement_range_invalid', 422)
     }
@@ -986,8 +1005,8 @@ async function measurements(request: NextRequest, siteReference: string) {
       .eq('company_id', context.client.company_id)
       .eq('customer_site_id', site.id)
       .eq('revision_status', 'current')
-      .gte('period_start', start.toISOString())
-      .lte('period_end', end.toISOString())
+      .gte('period_start', stockholmDayStartUtc(from).toISOString())
+      .lt('period_start', stockholmNextDayStartUtc(to).toISOString())
       .in('resolution', resolutionValues)
       .order('period_start', { ascending: true })
       .limit(MAX_MEASUREMENT_ROWS)

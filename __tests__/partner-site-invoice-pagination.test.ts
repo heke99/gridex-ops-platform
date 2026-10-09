@@ -27,8 +27,10 @@ vi.mock('@/lib/supabase/service', () => ({
       const builder: Record<string, unknown> = {
         select: () => builder,
         eq: (k: string, v: unknown) => { filters.push((row) => row[k] === v); return builder },
-        gte: (k: string, v: string) => { filters.push((row) => row[k] !== null && String(row[k]) >= v); return builder },
+        gte: (k: string, v: string) => { filters.push((row) => row[k] !== null && new Date(String(row[k])) >= new Date(v)); return builder },
         lte: (k: string, v: string) => { filters.push((row) => row[k] !== null && String(row[k]) <= v); return builder },
+        in: (k: string, values: unknown[]) => { filters.push((row) => values.includes(row[k])); return builder },
+        lt: (k: string, v: string) => { filters.push((row) => row[k] !== null && new Date(String(row[k])) < new Date(v)); return builder },
         or: (expression: string) => { filters.push(postgrestOr(expression)); return builder },
         order: (column: string, options?: { ascending?: boolean; nullsFirst?: boolean }) => { orders.push({ column, ascending: options?.ascending ?? true, nullsFirst: options?.nullsFirst }); return builder },
         limit: (n: number) => { limit = n; if (table === 'customer_invoices') m.limits.push(n); return builder },

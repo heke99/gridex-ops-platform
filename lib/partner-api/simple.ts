@@ -17,6 +17,7 @@ import { assertPublicWebhookTarget } from '@/lib/integrations/publicWebhookTrans
 import { supabaseService } from '@/lib/supabase/service'
 import { buildPortalDatabasePage, decodePortalCursor, PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { PARTNER_API_VERSION, partnerOpenApi } from './openApi'
+import { PARTNER_VISIBLE_INVOICE_STATUSES, calendarDaysInclusive, stockholmDayStartUtc, stockholmInvoiceDate, stockholmNextDayStartUtc } from './partnerTime'
 
 const POA_BUCKET = 'customer-documents'
 const MAX_POA_BYTES = 5 * 1024 * 1024
@@ -915,12 +916,14 @@ async function getInvoices(request: NextRequest, customerReference: string, site
       .select('id,invoice_reference,invoice_number,amount_inc_vat,currency,due_date,issued_at,status')
       .eq('company_id', context.client.company_id)
       .eq('customer_id', customer.id)
+      .in('status', [...PARTNER_VISIBLE_INVOICE_STATUSES])
       .or(keysetFilter ? `and(${siteFilter},${keysetFilter})` : siteFilter.slice(3, -1))
       .order('issued_at', { ascending: false, nullsFirst: false })
       .order('id', { ascending: false })
       .limit(SITE_INVOICE_PAGE_SIZE + 1)
-    if (from) query = query.gte('issued_at', `${from}T00:00:00.000Z`)
-    if (to) query = query.lte('issued_at', `${to}T23:59:59.999Z`)
+    // Calendar dates are Europe/Stockholm days; the upper bound is half-open.
+    if (from) query = query.gte('issued_at', stockholmDayStartUtc(from).toISOString())
+    if (to) query = query.lt('issued_at', stockholmNextDayStartUtc(to).toISOString())
     const result = await query
     if (result.error) throw result.error
     const page = buildPortalDatabasePage((result.data ?? []).map((row) => ({
@@ -930,7 +933,7 @@ async function getInvoices(request: NextRequest, customerReference: string, site
     const invoices = page.items.map((row) => ({
       entity_id: row.invoice_reference,
       invoice_number: row.invoice_number,
-      invoice_date: row.issued_at ? String(row.issued_at).slice(0, 10) : null,
+      invoice_date: stockholmInvoiceDate(row.issued_at),
       due_date: row.due_date,
       amount: row.amount_inc_vat,
       currency: row.currency ?? 'SEK',
@@ -949,6 +952,7 @@ async function resolveInvoice(companyId: string, invoiceReference: string) {
     .select('id,invoice_reference,invoice_number,amount_inc_vat,currency,due_date,issued_at,status')
     .eq('company_id', companyId)
     .eq('invoice_reference', invoiceReference)
+    .in('status', [...PARTNER_VISIBLE_INVOICE_STATUSES])
     .maybeSingle()
   if (result.error) throw result.error
   if (!result.data) throw new SimplePartnerApiError('Invoice not found.', 'invoice_not_found', 404)
@@ -964,7 +968,7 @@ async function getInvoice(request: NextRequest, invoiceReference: string) {
     return simpleJson({
       entity_id: invoice.invoice_reference,
       invoice_number: invoice.invoice_number,
-      invoice_date: invoice.issued_at ? String(invoice.issued_at).slice(0, 10) : null,
+      invoice_date: stockholmInvoiceDate(invoice.issued_at),
       due_date: invoice.due_date,
       amount: invoice.amount_inc_vat,
       currency: invoice.currency ?? 'SEK',
@@ -1016,9 +1020,8 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
     if (!['15m', '1h'].includes(resolution)) {
       throw new SimplePartnerApiError('resolution must be 15m or 1h.', 'resolution_invalid', 422, 'resolution')
     }
-    const start = new Date(`${from}T00:00:00Z`)
-    const end = new Date(`${to}T23:59:59.999Z`)
-    const days = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1
+    // Europe/Stockholm calendar days, half-open [from 00:00, day after to 00:00) — DST days have 23/25 h.
+    const days = calendarDaysInclusive(from, to)
     if (days < 1 || days > MAX_MEASUREMENT_DAYS) {
       throw new SimplePartnerApiError(`Date range must be 1-${MAX_MEASUREMENT_DAYS} days.`, 'measurement_range_invalid', 422)
     }
@@ -1035,8 +1038,8 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
       // V1 vocabulary is gross CONSUMPTION/PRODUCTION. Net series are not part of this response
       // (they would otherwise be mislabelled or double counted against gross series).
       .in('direction', [...SIMPLE_MEASUREMENT_DIRECTIONS])
-      .gte('period_start', start.toISOString())
-      .lte('period_start', end.toISOString())
+      .gte('period_start', stockholmDayStartUtc(from).toISOString())
+      .lt('period_start', stockholmNextDayStartUtc(to).toISOString())
       .in('resolution', resolutionValues)
       .order('period_start', { ascending: true })
       .limit(MAX_MEASUREMENT_ROWS)

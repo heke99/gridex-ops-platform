@@ -166,7 +166,7 @@ export const partnerOpenApi = {
       get: {
         summary: 'List invoices for site',
         description:
-          'Returns invoices of contracts belonging to the requested site, newest first (issued_at descending, invoices without issued_at last), at most 100 per page. The site filter is applied before the page limit. Without `cursor` the response is the first page, identical to earlier V1 behaviour. When more invoices exist the response carries `X-Gridex-Next-Cursor`; send it unchanged as `cursor` with the same from_date/to_date to continue. The cursor is opaque and bound to the API company, customer, site and date filter; a modified or foreign cursor returns 400 invalid_cursor.',
+          'Returns invoices of contracts belonging to the requested site, newest first (issued_at descending, invoices without issued_at last), at most 100 per page. The site filter is applied before the page limit. Without `cursor` the response is the first page, identical to earlier V1 behaviour. When more invoices exist the response carries `X-Gridex-Next-Cursor`; send it unchanged as `cursor` with the same from_date/to_date to continue. The cursor is opaque and bound to the API company, customer, site and date filter; a modified or foreign cursor returns 400 invalid_cursor. Only invoices with status issued, sent, paid, overdue, cancelled or credited are returned (drafts and failed invoices never are; the same applies to invoice detail and PDF). from_date/to_date and invoice_date are Europe/Stockholm calendar dates.',
         parameters: [
           customerId,
           siteId,
@@ -217,7 +217,7 @@ export const partnerOpenApi = {
       get: {
         summary: 'Get measurements',
         description:
-          'Returns only the current revision of each interval (replaced, superseded and void corrections are excluded before the row limit), so a corrected interval appears once. `value` is always the canonical kWh quantity normalized at ingest (Wh/MWh sources are converted once at ingest and never again) and `unit` is always kWh. `type` is the gross direction CONSUMPTION or PRODUCTION; net series (net_consumption/net_production) are not part of this response, so they are never mislabelled as or added to gross values.',
+          'Returns only the current revision of each interval (replaced, superseded and void corrections are excluded before the row limit), so a corrected interval appears once. `value` is always the canonical kWh quantity normalized at ingest (Wh/MWh sources are converted once at ingest and never again) and `unit` is always kWh. `type` is the gross direction CONSUMPTION or PRODUCTION; net series (net_consumption/net_production) are not part of this response, so they are never mislabelled as or added to gross values. from_date/to_date are Europe/Stockholm calendar days: intervals with period_start from 00:00 local on from_date up to (excluding) 00:00 local on the day after to_date, so the last interval of the day is included and DST days have 23 or 25 hourly values.',
         parameters: [
           customerId,
           siteId,
