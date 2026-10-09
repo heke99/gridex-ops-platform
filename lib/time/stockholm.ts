@@ -128,3 +128,37 @@ export function nextStockholmCalendarDate(now = new Date()): string {
 export function stockholmHourForInstant(now = new Date()): number {
   return partsFor(now).hour
 }
+
+const WITHDRAWAL_PERIOD_DAYS = 14
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function addCalendarDays(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const next = new Date(Date.UTC(year, month - 1, day + days))
+  return `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-${String(next.getUTCDate()).padStart(2, '0')}`
+}
+
+/**
+ * Customer-facing last day (inclusive, Europe/Stockholm) of the 14-day
+ * cooling-off period (ångerrätt): the period ends at the end of the Stockholm
+ * calendar day that is 14 days after the Stockholm signing date.
+ *
+ * Pass `acceptedAt` when known. Otherwise the stored `withdrawal_deadline_at`
+ * (= accepted_at + interval '14 days', computed in UTC by the database) is
+ * accepted and the signing instant is recovered from it.
+ */
+export function stockholmWithdrawalDeadlineDate(input: {
+  acceptedAt?: string | Date | null
+  storedDeadlineAt?: string | Date | null
+}): string | null {
+  let accepted: Date | null = null
+  if (input.acceptedAt) {
+    accepted = input.acceptedAt instanceof Date ? input.acceptedAt : new Date(input.acceptedAt)
+  } else if (input.storedDeadlineAt) {
+    const stored =
+      input.storedDeadlineAt instanceof Date ? input.storedDeadlineAt : new Date(input.storedDeadlineAt)
+    accepted = new Date(stored.getTime() - WITHDRAWAL_PERIOD_DAYS * DAY_MS)
+  }
+  if (!accepted || Number.isNaN(accepted.getTime())) return null
+  return addCalendarDays(stockholmDateForInstant(accepted), WITHDRAWAL_PERIOD_DAYS)
+}

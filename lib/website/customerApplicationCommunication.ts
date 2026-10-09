@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { supabaseService } from "@/lib/supabase/service";
+import { stockholmWithdrawalDeadlineDate } from "@/lib/time/stockholm";
 import { triggerEmailEvent } from "@/lib/email/emailEvents";
 import { legalAcceptanceTypeForModule, type PublicContractOffer } from "@/lib/website/publicContracts";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
@@ -81,7 +82,8 @@ export function eventVariables(input: {
     facility_id: input.facilityId ?? "",
     metering_point_id: input.meteringPointId ?? "",
     support_email: input.supportEmail ?? "",
-    cancellation_deadline: input.withdrawalDeadline?.slice(0, 10) ?? "",
+    cancellation_deadline:
+      stockholmWithdrawalDeadlineDate({ storedDeadlineAt: input.withdrawalDeadline }) ?? "",
     portal_url: input.portalUrl ?? "",
   };
 }
