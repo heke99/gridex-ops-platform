@@ -1,0 +1,707 @@
+Market;CompanyName;SvkId;EdielId;Address1;Address2;PostCode;Place;CountryCode;WebSiteAddress;Type PRODAT;SubAddress;CommunicationAddress;InterchangePartyId;PartyId;Type UTILTS;SubAddress;CommunicationAddress;InterchangePartyId;PartyId
+EL;1K5 EL AB;K5E;17640;Veterinärgränd 6;;12163;Johanneshov;SE;;PRODAT;;se.el@edilink.eu;17640;17640;UTILTS;;se.el@edilink.eu;17640;17640
+EL;7H Kraft Energiförmedling AB;7HK;60900;Box 25;;22100;LUND;SE;;PRODAT;;ediel@7Hkraft.se;60900;60900;UTILTS;;ediel@7Hkraft.se;60900;60900
+EL;A Metering AB;;92870;Stortorget 4F;;83130;Östersund;SE;
+EL;A/S Global Risk Management Ltd Holding;GRK;83090;Strandvejen 7;;5500;Middelfart;DK;
+EL;Aarhus Trading A/S;AAT;83610;Frederiksgade 74, 1. tv;;8000;Aarhus C;DK;
+EL;Affärsverken Elnät i Karlskrona AB;160;24200;Box 530;;37123;KARLSKRONA;SE;;PRODAT;;se.el@edilink.eu;24200;24200;UTILTS;;se.el@edilink.eu;24200;24200
+EL;Affärsverken Energi i Karlskrona AB;KKA;24210;Box 530;;37123;KARLSKRONA;SE;;PRODAT;;se.el@edilink.eu;24210;24210;UTILTS;;se.el@edilink.eu;24210;24210
+EL;AFRY Infrastructure AB;AFI;17180;Frösundaleden 2;;169 99;Stockholm;SE;;PRODAT;;17180@energipost.se;17180;17180;UTILTS;;17180@energipost.se;17180;17180
+EL;Ale El Elhandel AB;AEL;16610;Box 3004;;44914;Alafors;SE;;PRODAT;;se.el@edilink.eu;16610;16610;UTILTS;;se.el@edilink.eu;16610;16610
+EL;Ale El Elnät AB;146;16600;Box 3004;;44914;ALAFORS;SE;;PRODAT;;se.el@edilink.eu;16600;16600;UTILTS;;se.el@edilink.eu;16600;16600
+EL;Alingsås Energi Elhandel och Elproduktion AB;ALS;16710;Södra Strömgatan 6;;44181;ALINGSÅS;SE;;PRODAT;;ediel-e@alingsasenergi.se;16710;16710;UTILTS;;ediel-e@alingsasenergi.se;16710;16710
+EL;Alingsås Energi Elnät AB;084;16700;Södra Strömgatan 6;;44181;ALINGSÅS;SE;;PRODAT;;ediel-n@alingsasenergi.se;16700;16700;UTILTS;;ediel-n@alingsasenergi.se;16700;16700
+EL;Alpiq AG;AAG;89050;Bahnhofquai 12
+;;4600;Olten;CH;;PRODAT;PRODAT;edi02@energymarketservices.volue.com;89050;89050;UTILTS;;edi02@energymarketservices.volue.com;89050;89050
+EL;Alvesta Elnät AB;147;16900;c/o Alvesta Kommun;;342 80;ALVESTA;SE;;PRODAT;;16900@kalmarenergi.se;16900;16900;UTILTS;;16900@tvlab.se;16900;16900
+EL;AMP Algo s.r.o;ALG;85550;Václavská 2073/20;;120 00;Prague;CZ;
+EL;Aneo AS;TRK;81140;c/o TrønderEnergi Kraft A/S, Klaebuveien 118;;7031;Trondheim;NO;;PRODAT;;ediel@edi.compello.com;81140;81140;UTILTS;;ediel@edi.compello.com;81140;81140
+EL;Aneo Retail Sweden AB;OHM;17220;Klarabergsviadukten 63 C/O United Spaces, Box 190;;11164;STOCKHOLM;SE;;PRODAT;PRODAT;data_edi@storekeeper.info;17220;17220;UTILTS;;data_edi@storekeeper.info;17220;17220
+EL;Arise Elnät AB;518;51800;Linjegatan 7;;302 50;HALMSTAD;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;51800;51800;UTILTS;;ediel@kmv-rejlers.se;51800;51800
+EL;Aros Commodities A/S;ACS;83420;Sankt Clemenstorv 11;;8000;Aarhus C;DK;
+EL;Aros Commodities A/S (Systemleverantör);;92915;Søren Frichs Vej 42L;;8230;Åbyhøj;DK;
+EL;Arvika Elnät AB;148;17000;Box 945;;67129;ARVIKA;SE;;PRODAT;SCH;edi17000@extopmail.wm.net;17000;17000;UTILTS;;edi17000@extopmail.wm.net;17000;17000
+EL;Arvika Kraft AB;AAK;17010;12 Administration;;671 81;Arvika;SE;;PRODAT;SCH;edi17010@extopmail.wm.net;17010;17010;UTILTS;;edi17010@extopmail.wm.net;17010;17010
+EL;Ascend Group AB;ASC;21670;Stortorget 13B;;21122;Malmö;SE;
+EL;Atlas Energy DAC;AED;88760;32 Molesworth Street, D02;;Y512; Dublin;IE;
+EL;Atria Sverige AB;ATS;62110;;;697 80;Sköllersta;SE;;PRODAT;;edi@gasum.com;82150;62110;UTILTS;;edi@gasum.com;82150;62110
+EL;AxD Power Trading AB;AXD;21650;c/o Luvig & co Franzengatan 6;;11251;Stockholm;SE;
+EL;Axpo Nordic AS;AXN;18600;Dronning Eufemias Gate 6B;;0191;OSLO;NO;;PRODAT;PRODAT;edi02@energymarketservices.volue.com;18600;18600;UTILTS;;edi02@energymarketservices.volue.com;18600;18600
+EL;Axpo Sverige AB;HYK;14600;Stortorget 29;;21134;MALMÖ;SE;;PRODAT;PRODAT;edi02@energymarketservices.volue.com;14600;14600;UTILTS;;edi02@energymarketservices.volue.com;14600;14600
+EL;Batteryloop Technologies AB;;92040;Värmlandsgatan 2;;40032;Göteborg;SE;https://www.batteryloop.com/;PRODAT;;;;;UTILTS;;edieltest@batteryloop.com;92040;92040
+EL;BD Energy AS;BDE;83050;Mejlgade 47, 2tr;;8000;Aarhus C;DK;;PRODAT;;ediel@edi.compello.com;83050;83050;UTILTS;;ediel@edi.compello.com;83050;83050
+EL;Bengtsfors Energi AB;BEF;17310;Brogatan 8;;66631;BENGTSFORS;SE;;PRODAT;;ediel.bengtsfors@bengtsfors.se;17310;17310;UTILTS;;ediel.bengtsfors@bengtsfors.se;17310;17310
+EL;Bengtsfors Energi Nät AB;039;17300;Industrigatan 10;;66631;BENGTSFORS;SE;;PRODAT;;ediel.bengtsfors@bengtsfors.se;17300;17300;UTILTS;;ediel.bengtsfors@bengtsfors.se;17300;17300
+EL;Bergen Synergy AB;BER;18440;c/o Amesto Accountinghouse AB, Vasagatan 11, 1tr;;111 20;Stockholm;SE;;PRODAT;;ediel@metzum.no;18440;18440;UTILTS;;ediel@metzum.no;18440;18440
+EL;Bergs Tingslags Elektriska AB;043;17400;Olstavägen 26;;845 51;Åsarna;SE;;PRODAT;PRODAT;se.el@edilink.eu;17400;17400;UTILTS;;se.el@edilink.eu;17400;17400
+EL;Berry Energi AB;BRY;10730;Ekbacksvägen 28;;16869;Bromma;SE;;PRODAT;;se.el@edilink.eu;10730;10730;UTILTS;;se.el@edilink.eu;10730;10730
+EL;BestEl AB;BEL;61900;c/o Bjärke Energi, Energigatan 3;;441 74;SOLLEBRUNN;SE;;PRODAT;SCH;ediel@bestkraft.se;61900;61900;UTILTS;;ediel@bestkraft.se;61900;61900
+EL;Billerud Skog & Industri AB;053;44300;;;80181;GÄVLE;SE;;PRODAT;;;;;UTILTS;;ediel@kmv-rejlers.se;44300;44300
+EL;Billinge Energi AB;BIE;47700;Box 324;;53224;SKARA;SE;;PRODAT;PRODAT;ediel@skaraenergi.se;47700;47700;UTILTS;;ediel@skaraenergi.se;47700;47700
+EL;Bixia AB;OTK;48800;Box 1510;;58115;Linköping;SE;;PRODAT;PRODAT-SE;48800@tvlab.se;48800;48800;UTILTS;;48800@tvlab.se;48800;48800
+EL;Bjäre Kraft Elnät AB;276;17600;Box 1054;;26921;BÅSTAD;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;17600;17600;UTILTS;;ediel@kmv-rejlers.se;17600;17600
+EL;Bjäre kraft Energi AB;BEK;17610;Box 1054;;269 21;Båstad;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;17610;17610;UTILTS;;ediel@kmv-rejlers.se;17610;17610
+EL;Bjärke Energi ek för;277;17700;Energigatan 3;;441 74;SOLLEBRUNN;SE;;PRODAT;SCH;ediel@bestkraft.se;17700;17700;UTILTS;;ediel@bestkraft.se;17700;17700
+EL;Bliekevare Nät AB;517;51700;c/o Rabbalshede Kraft AB: Marknadsvägen 1;;45755;Rabbalshede;SE;;PRODAT;SCH;nordion@extopmail.wm.net;51700;51700;UTILTS;;nordion@extopmail.wm.net;51700;51700
+EL;Blåsjön Nät AB;003;14500;C/O Infram Sweden AB;;111 34;STOCKHOLM;SE;;PRODAT;;se.el@edilink.eu;14500;14500;UTILTS;;se.el@edilink.eu;14500;14500
+EL;Boda Nät ek för;383;18300;Bruksgatan 1;;54430;Hjo;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;18300;18300;UTILTS;;ediel@kmv-rejlers.se;18300;18300
+EL;Bodens Energi AB;BOD;17910;Slipvägen 7;;96138;BODEN;SE;;PRODAT;SCH;edi17900@extopmail.wm.net;17910;17910;UTILTS;;edi17900@extopmail.wm.net;17910;17910
+EL;Bodens Energi Nät AB;085;17900;Slipvägen 7;;96138;BODEN;SE;;PRODAT;SCH;edi17900@extopmail.wm.net;17900;17900;UTILTS;;edi17900@extopmail.wm.net;17900;17900
+EL;Boo Energi ek för;222;18100;Box 103;;13223;SALTSJÖ-BOO;SE;;PRODAT;;ediel@kmv-rejlers.se;18100;18100;UTILTS;;ediel@kmv-rejlers.se;18100;18100
+EL;Boo Energi Försäljnings AB;BOO;18110;Box 103;;13223;SALTSJÖ-BOO;SE;;PRODAT;;ediel@kmv-rejlers.se;18110;18110;UTILTS;;ediel@kmv-rejlers.se;18110;18110
+EL;Borgholm Energi Elnät AB;223;18200;Box 55;;38721;BORGHOLM;SE;;PRODAT;;18200@edi.borgholm.se;18200;18200;UTILTS;;18200@edi.borgholm.se;18200;18200
+EL;Borlänge Energi Elnät, AB;184;18400;Box 834;;78128;BORLÄNGE;SE;;PRODAT;;ediel@borlangestadsnat.se;18400;18400;UTILTS;;ediel@borlangestadsnat.se;18400;18400
+EL;Borlänge Energi, AB;BEA;18420;Box 834;;78128;BORLÄNGE;SE;;PRODAT;;ediel@borlangestadsnat.se;18420;18420;UTILTS;;ediel@borlangestadsnat.se;18420;18420
+EL;Borr Holding AB;BRR;28350;Spårvägen 2;;901 31;Umeå;SE;;PRODAT;;;;;UTILTS;;CGNEE-Prod@bradyplc.com;28350;28350
+EL;Borås Elhandel AB;BOR;62500;Box 373;;50312;BORÅS;SE;;PRODAT;PRODAT;62500@ediel.boraselhandel.se;62500;62500;UTILTS;;utilts@ediel.boraselhandel.se;62500;62500
+EL;Borås Energi och Miljö AB;BEM;62520;Box 902;;50110;Borås;SE;;PRODAT;;ediel@borasem.se;62520;62520;UTILTS;;ediel@borasem.se;62520;62520
+EL;BP Gas Marketing Ltd;BGM;10550;25 North Colonnade, Canary Wharf, 1st floor;;E14 5HZ;London;GB;;PRODAT;;se.el@edilink.eu;10550;10550;UTILTS;;se.el@edilink.eu;10550;10550
+EL;Brady Energy Norway AS;;92130;PO Box 154;;NO-1751;Halden;SE;www.bradyplc.com;PRODAT;;ediel@pomax.navita.com;92130;92130;UTILTS;;ediel@pomax.navita.com;92130;92130
+EL;Brittedals Elnät ek för;275;18700;Östra Järnvägsgatan 15;;28023;HÄSTVEDA;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;18700;18700;UTILTS;;ediel@kmv-rejlers.se;18700;18700
+EL;Brittedals Energi AB;BDL;18710;Östra Järnvägsgatan 15;;28023;Hästveda;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;18710;18710;UTILTS;;ediel@kmv-rejlers.se;18710;18710
+EL;Brobacken Nät AB;593;65930;Box 2299;;103 17;Stockholm;SE;;PRODAT;;ediel@kmv-rejlers.se;65930;65930;UTILTS;;ediel@kmv-rejlers.se;65930;65930
+EL;Bromölla Energi och Vatten AB;225;18800;Storgatan 40;;29531;BROMÖLLA;SE;;PRODAT;SCH;ediel@edi.compello.com;18800;18800;UTILTS;;ediel@edi.compello.com;18800;18800
+EL;Brännliden Nät AB;395;15700;c/o OX2, Box 2299;;103 17;Stockholm;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;15700;15700;UTILTS;;ediel@kmv-rejlers.se;15700;15700
+EL;Byhmgard Construct AB (Systemleverantör);;92855;Industrivägen 4;;302 41;Halmstad;SE;https://byhmgard.com/
+EL;C4 Elnät AB;087;24800;Box 2105;;29102;KRISTIANSTAD;SE;;PRODAT;;24800@c4energi.se;24800;24800;UTILTS;;24800@c4energi.se;24800;24800
+EL;C4 Energi AB;C4E;24810;Box 2105;;291 02;Kristianstad;SE;;PRODAT;;24810@c4energi.se;24810;24810;UTILTS;;24810@c4energi.se;24810;24810
+EL;CA Commodities A/S;CAC;83670;Inge Lehmanns Gade 10;;8000;Aarhus C;DK;;PRODAT;;;;;UTILTS;;ediel@cacommodities.eu;83670;83670
+EL;Cactos Energia Oy;CAS;82070;Kuortaneenkatu 2;;005 10;Helsingfors;FI;;PRODAT;;;;;UTILTS;;82070@ediel.cactos.fi;82070;82070
+EL;Capgemini Sverige AB;;92230;Box 825, Gustavslundsvägen 131;;16124;BROMMA;SE;www.se.capgemini.com
+EL;Carlfors Bruk KB;206;45800;Box 2077;;56102;HUSKVARNA;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;45800;45800;UTILTS;;ediel@kmv-rejlers.se;45800;45800
+EL;Centrica Energy Trading A/S;NJE;62350;Skelagervej 1;;9000;Aalborg;DK;;PRODAT;PRODAT;edi02@energymarketservices.volue.com;62350;62350;UTILTS;;edi02@energymarketservices.volue.com;62350;62350
+EL;CGI Sverige 92400;;92400;Östra Varvsgatan 2;;21175;Malmö;SE;www.cgi.se;PRODAT;;edi.92400@extopmail.wm.net;92400;92400;UTILTS;;edi.92400@extopmail.wm.net;92400;92400
+EL;CGI Sverige 92410;;92410;Östra Varvsgatan 2;;211 75;Malmö;SE;www.cgi.se;PRODAT;;edi.92410@extopmail.wm.net;92410;92410;UTILTS;;edi.92410@extopmail.wm.net;92410;92410
+EL;ChargeBuddy Energy AB;CBE;27890;Solna Strandväg 21;;17154;Solna;SE;;PRODAT;;se.el@edilink.eu;27890;27890;UTILTS;;se.el@edilink.eu;27890;27890
+EL;Cheap Energy AB;CEY;17560;Box 285;;244 02;Furulund;SE;;PRODAT;;17560@edieltrafik.se;17560;17560;UTILTS;;17560@edieltrafik.se;17560;17560
+EL;Checkwatt AB;CHT;17260;Gamlestadsvägen 18B;;415 02;GÖTEBORG;SE;;PRODAT;;;;;UTILTS;;ediel@energyinbalance.com;17260;17260
+EL;Checkwatt AB (Systemleverantör);;92660;Svärdsvägen 3b;;18233;Danderyd;SE;;PRODAT;;;;;UTILTS;;ediel@cnet.se;92660;92660
+EL;Coala AB;531;53200;Almnäs Bruk 1;;54494;Hjo;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;53200;53200;UTILTS;;ediel@kmv-rejlers.se;53200;53200
+EL;Controliq AB;CTA;17370;Forsåsen 110;;438 94;Härryda;SE;;PRODAT;;17370@ediel.controliq.eu;17370;17370;UTILTS;;17370@ediel.controliq.eu;17370;17370
+EL;Copenhagen Energy Trading A/S;CET;83020;Bag elefanterne 1;;1799;Copenhagen V;DK;
+EL;Copper Energy Systems ApS;;92635;Søndergade 43 2. tv;;8700;Horsens;DK;https://copper.energy/
+EL;Dala Energi Elnät AB;103;25800;Box 254;;79326;LEKSAND;SE;;PRODAT;SCH;nordion@extopmail.wm.net;25800;25800;UTILTS;;nordion@extopmail.wm.net;25800;25800
+EL;Dalakraft AB;DLK;13400;Riksvägen 15;;795 32;RÄTTVIK;SE;;PRODAT;;se.el@edilink.eu;13400;13400;UTILTS;;se.el@edilink.eu;13400;13400
+EL;Danske Commodities A/S;DAC;48400;Vaerkmestergade 3, 3rd floor;;8000;ÅRHUS;DK;;PRODAT;;ediel.se@danskecommodities.com;48400;48400;UTILTS;;ediel.se@danskecommodities.com;48400;48400
+EL;Deepgrid AB (Systemleverantör);;92735;Trymvägen 3;;182 68;Djursholm;SE;
+EL;Deepki SAS;DES;88910;111 Avenue Victor Hugo;;75116;Paris;FR;;PRODAT;;ediel@edi.compello.com;88910;88910;UTILTS;;ediel@edi.compello.com;88910;88910
+EL;Degerfors Elnät AB;066;18900;Box 1;;69321;DEGERFORS;SE;;PRODAT;SCH;edi18900@extopmail.wm.net;18900;18900;UTILTS;;edi18900@extopmail.wm.net;18900;18900
+EL;Digital Energy Solutions GmbH & Co. KG;;92850;Arnulfstraße 205;;DE-80634;München;DE;www.digital-energysolutions.de/;PRODAT;;test.edifact.sw@digital-energysolutions.de;92850;92850;UTILTS;;test.edifact.sw@digital-energysolutions.de;92850;92850
+EL;Digital Plattform Sverige AB;;92745;Industrigatan 14;;58255;Linköping;SE;https://digitalplattform.se
+EL;Disecta Software Services AB;DSS;18490;Hemvärnsgatan 11, 5 tr;;17154;Solna;SE;;PRODAT;;18490@disectaediel.se;18490;18490;UTILTS;;18490@disectaediel.se;18490;18490
+EL;Disecta Software Services AB (Systemleverantör);;92535;Hemvärnsgatan 11, 5tr;;171 54;Solna;SE;https://www.disecta.com/
+EL;Div3rsa AB Systemleverantör;;92825;Luftvärnsgatan 20;;58734 ;Linköping;SE;
+EL;Dragaliden Net AB;MBN;52100;Umestan Företagspark;;903 47;Umeå;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;52100;52100;UTILTS;;ediel@kmv-rejlers.se;52100;52100
+EL;Dummy Systemleverantör;;91999;Box 1200;;172 24;SUNDBYBERG;SE;;PRODAT;;ediel@ediutv.svk.se;91999;91999;UTILTS;;ediel@ediutv.svk.se;91999;91999
+EL;E.ON Energidistribution AB;017;16000;Carl Gustafs väg 1;;20509;MALMÖ;SE;;PRODAT;SCH;16000.eon.ediel@tix.tieto.com;16000;16000;UTILTS;;16000.eon.ediel@tix.tieto.com;16000;16000
+EL;E.ON Energilösningar AB;SKF;10901;;;20509;Malmö;SE;;PRODAT;SCH;10901.eon.ediel@tix.tieto.com;10901;10901;UTILTS;;10901.eon.ediel@tix.tieto.com;10901;10901
+EL;E.ON IT (EL);;92600;Carl Gustafs väg 1;;205 09;Malmö;SE;http://www.eon.se;PRODAT;SCH;testediel@eon.com;92600;92600;UTILTS;;ediel.test@sealsnet.tietoenator.com;92600;92600
+EL;E.ON IT (NÄT);;92500;Carl Gustafs väg 1;;205 09;Malmö;SE;www.eon.se;PRODAT;SCH;ediel.test@tix.tieto.com;92500;92500;UTILTS;;ediel.test@sealsnet.tietoenator.com;92500;92500
+EL;E.ON IT Sverige AB;;92510;Carl Gustafs väg 1;;205 09;Malmö;SE;;PRODAT;;edieltst@eon.com;92510;92510;UTILTS;;;92510;92510
+EL;E.ON Sverige AB;SK_;10900;Carl Gustafs väg 1;;20509;MALMÖ;SE;;PRODAT;;10900.eon.ediel@tix.tieto.com;10900;10900;UTILTS;;10900.eon.ediel@tix.tieto.com;10900;10900
+EL;Ecoguard AB;EGD;17290;Klerkgatan 18;;702 25;Örebro;SE;;PRODAT;PRODAT;ediel@email.ecoguard.se;17290;17290;UTILTS;;ediel@email.ecoguard.se;17290;17290
+EL;EG Software Sweden AB;ZAN;61700;Centralvägen 12;;171 68;Solna;SE;;PRODAT;;se.el@edilink.eu;61700;61700;UTILTS;;se.el@edilink.eu;61700;61700
+EL;EG Software Sweden AB (Systemleverantör);;92700;Centralvägen 12;;171 68;Solna;SE;;PRODAT;PRODAT;92700@zavann.se;92700;92700;UTILTS;;92700@zavann.se;92700;92700
+EL;EG Sverige AB;;92900;Fredsgatan 3;;411 07;Göteborg;SE;www.egsverige.se;PRODAT;;se.el@tgt.edilink.eu;92900;92900;UTILTS;;se.el@tgt.edilink.eu;92900;92900
+EL;EG Sverige AB;;92140;Sankt Göransgatan 57;;112 38;Stockholm;SE;www.eg.se;PRODAT;;se.el@development.edilink.eu;92140;92140;UTILTS;;se.el@development.edilink.eu;92140;92140
+EL;EG Sverige AB;;94000;Industrivej Syd 13C;;DK-7400;Herning Danmark;SE;;PRODAT;;se.el@edilink.eu;94000;94000;UTILTS;;se.el@edilink.eu;94000;94000
+EL;EG Utility (M2C) ;;92180;Lerkendal Stadion - Klæbuveien 124;;7031;Trondheim;SE;WWW.EGUTILITY.NO;PRODAT;PRODAT;ediel@ediel.metertocash.no;92180;92180;UTILTS;;ediel@ediel.metertocash.no;92180;92180
+EL;Eken Energi AB;EKA;21520;Döbelnsgatan 29A;;11358;Stockholm;SE;
+EL;Eken Energi AB (Systemleverantör);;92935;Döbelnsgatan 29A;;11358;Stockholm;SE;https://www.ekenenergi.com/
+EL;Eksjö Elnät AB;151;19400;Telegatan 8;;57580;EKSJÖ;SE;;PRODAT;SCH;ediel@eksjoenergi.se;19400;19400;UTILTS;;ediel@eksjoenergi.se;19400;19400
+EL;Eksjö Energi ELIT AB;ESJ;19410;Telegatan 8;;57580;EKSJÖ;SE;;PRODAT;SCH;ediel@eksjoenergi.se;19410;19410;UTILTS;;ediel@eksjoenergi.se;19410;19410
+EL;Elery Elhandel AB;ELY;13260;Norra Stationsgatan;;11361;Stockholm;SE;;PRODAT;;se.el@edilink.eu;13260;13260;UTILTS;;se.el@edilink.eu;13260;13260
+EL;Elexia Elpartner AB;EXP;10740;Jungmansgatan 12;;21111;Malmö;SE;;PRODAT;;se.el@edilink.eu;10740;10740;UTILTS;;se.el@edilink.eu;10740;10740
+EL;Elhjälpen Norden AB;ENN;13130;Varuvägen 9;;125 30;Älvsjö;SE;;PRODAT;;;;;UTILTS;;ediel13130@expektra.io;13130;13130
+EL;Eliq AB (systemleverantör);;92235;Stora Badhusgatan 18-20;;411 21;Göteborg;SE;
+EL;Elklart AB;SKL;17320;Wismarsvägen 11A;;18741;Täby;SE;;PRODAT;;se.el@edilink.eu;17320;17320;UTILTS;;se.el@edilink.eu;17320;17320
+EL;Elkraft Sverige AB;ELA;48700;BOX 42179;;126 17;STOCKHOLM;SE;;PRODAT;;se.el@edilink.eu;48700;48700;UTILTS;;se.el@edilink.eu;48700;48700
+EL;Ellevio AB;006;14900;;;11533;STOCKHOLM;SE;;PRODAT;PRODAT;se.el@edilink.eu;14900;14900;UTILTS;;se.el@edilink.eu;14900;14900
+EL;Elmarknad Sverige AB;;92030;Kocksgatan 5;;11624;Stockholm;SE;
+EL;Elmera Energy A/S;ELM;81450;Folke Bernadottes vei 38;;5147;Fyllingsdalen;NO;;PRODAT;;;;;UTILTS;;ediel@edi.compello.com;81450;81450
+EL;Elnor Elhandel AB;ELN;18480;Södra Allén 31;;702 24;Örebro;SE;;PRODAT;;18480@halal.elnor.se;18480;18480;UTILTS;;18480@halal.elnor.se;18480;18480
+EL;Elvy AB;ELV;10720;Jungfrugatan 6;;11444;STOCKHOLM;SE;;PRODAT;;ediel@elavtalsservice.se;10720;10720;UTILTS;;ediel@elavtalsservice.se;10720;10720
+EL;Emaldo Aps (Systemleverantör);;92355;Bygmarken 4a;;DK-3650;Ølstykke;SE;
+EL;Embriq AB;REJ;49000;Turbinvägen 8;;59161;MOTALA;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;49000;49000;UTILTS;;ediel@kmv-rejlers.se;49000;49000
+EL;Emmaboda Elnät AB;227;19500;Box 53;;36121;EMMABODA;SE;;PRODAT;;19500@kalmarenergi.se;19500;19500;UTILTS;;19500@kalmarenergi.se;19500;19500
+EL;Empir AB;;;N. Drottninggatan 26;;451 31;Uddevalla;SE;http://www.empir.se
+EL;ENA Energi AB;ENA;50100;Box 910;;74525;ENKÖPING;SE;;PRODAT;PRODAT;edi1@edi.voluemarketservices.com;42500;50100;UTILTS;;edi1@edi.voluemarketservices.com;42500;50100
+EL;Enerbis AB;EES;70400;Box 29;;83723;ÅRE;SE;;PRODAT;PRODAT;prodat@enerbis.net;70400;70400;UTILTS;;ediel@enerbis.se;70400;70400
+EL;Energetick ApS;AEA;83750;Orientkaj 4, 1.;;2150;Nordhavn;DK;
+EL;Energi2 Elhandel AB;EEH;17520;Box 2;;246 21;Löddeköpinge;SE;;PRODAT;;17520@edieltrafik.se;17520;17520;UTILTS;;17520@edieltrafik.se;17520;17520
+EL;Energidata A/S;ENG;83310;Centervej 5;;4600;KØGE;DK;;PRODAT;;ediel@ses.enity.io;83310;83310;UTILTS;;ediel@ses.enity.io;83310;83310
+EL;Energidata A/S (ESP);;94040;Centervej 5;;DK-4600;KØGE;DK;;PRODAT;;ediel@ses.enity.io;94040;94040;UTILTS;;ediel@ses.enity.io;94040;94040
+EL;Energidata A/S (Systemleverantör);;92485;Centervej 5;;4600;Køge;SE;;PRODAT;PRODAT;ediel@tobello.se;92485;92485;UTILTS;;;;
+EL;Energiföretagen Sverige - Swedenergy - AB;SVE;70800;Olof Palmes Gata 11;;10153;Stockholm;SE;;PRODAT;;;;;UTILTS;;ediel@tix.tieto.com;70800;70800
+EL;Energy Group ApS;EGA;83480;Røjelskær 11, 3;;2840;Holte;DK;;PRODAT;;;;;UTILTS;;;;
+EL;Energy Sourcing Technology Sweden AB;ESG;11660;Stenkumlaväg 3c;;621 46;VISBY;SE;;PRODAT;;ediel@edi.compello.com;11660;11660;UTILTS;;ediel@edi.compello.com;11660;11660
+EL;Enerim EH;;92186;Valimotie 16;;FI-00380;Helsinki;FI;www.enerim.com;PRODAT;SCH;ediel@kmv-rejlers.se;92186;92186;UTILTS;;test.cis.ddq.utilts@enerim.com;92186;92186
+EL;Enerim EN;;92185;Valimotie 16;;FI-00380;Helsinki;FI;www.enerim.com;PRODAT;PRODAT;test.cis.dso@enerim.com;92185;92185;UTILTS;;test.cis.dso.utilts@enerim.com;92185;92185
+EL;Enerim GH;;92188;Valimotie 16;;FI-00380;Helsinki;FI;www.enerim.com;PRODAT;;test.cis.gas.ddq@enerim.com;92188;92188;UTILTS;;;;
+EL;Enerim GN;;92187;Valimotie 16;;FI-00380;Helsinki;FI;www.enerim.com;PRODAT;;test.cis.gas.dso@enerim.com;92187;92187;UTILTS;;;;
+EL;Engelhart CTP Renewables GmbH;TRG;84250;Ernst Reuter Platz 6;;10587;Berlin;DE;;PRODAT;;trailstone.ediel@tix.tieto.com;84250;84250;UTILTS;;ediel@tix.tieto.com;84250;84250
+EL;Engrate AB;;92805;Klarabergsgatan 60;;111 21;Stockholm;SE;www.engrate.io
+EL;Enkel Energi ApS;EEN;83640;Nørre Volgade 48A;;1358;Köpenhamn;DK;;PRODAT;;;;;UTILTS;;ediel@esett.enkelenergi.dk;83640;83640
+EL;Enkel Energi ApS (Systemleverantör);;92775;Nørre Voldgade 48 A, 1. th;;1358;København;DK;
+EL;Enkla Elbolaget i Sverige AB;HYS;14610;Box 35;;37421;KARLSHAMN;SE;;PRODAT;;se.el@edilink.eu;14610;14610;UTILTS;;se.el@edilink.eu;14610;14610
+EL;Entelios AB;TGK;12300;Lilla Bantorget 15;;111 23;Stockholm;SE;;PRODAT;LEVPRODAT;ediel@edi.compello.com;12300;12300;UTILTS;;ediel@edi.compello.com;12300;12300
+EL;ENZEE Commodities A/S;ENZ;83720;Aaboulevarden 3, 1. th;;8000;Aarhus C;DK;
+EL;ENZEE Commodities A/S (Systemleverantör);;92815;Åboulevarden 3, 1.;;42676330;Aarhus C;DK;
+EL;Epiq Energy ApS;EPI;83440;Njalsgade 76, 3;;2300;Köpenhamn;DK;
+EL;eSett Oy;EST;71100;Läkkisepäntie 23;;00620;Helsinki;FI;;PRODAT;;;;;UTILTS;;inbox@service.esett.com;71100;71100
+EL;Esforin SE;ESF;84140;Ruhralle 201;;45136;Essen;DE;;PRODAT;;ediel@edi.compello.com;84140;84140;UTILTS;;ediel@edi.compello.com;84140;84140
+EL;Eskilstuna Energi & Miljö Elnät AB;029;19800;Kungsgatan 86;;63186;ESKILSTUNA;SE;;PRODAT;;ediel19800@eem.se;19800;19800;UTILTS;;ediel19800@eem.se;19800;19800
+EL;Eskilstuna Energi & Miljö Försäljning AB;ESK;19810;Kungsgatan 86;;63186;ESKILSTUNA;SE;;PRODAT;;ediel19800@eem.se;19810;19810;UTILTS;;ediel19800@eem.se;19810;19810
+EL;ETC Elhandel i Stockholm AB;ESA;66500;Box 4403;;102 68;Stockholm;SE;;PRODAT;;se.el@edilink.eu;66500;66500;UTILTS;;se.el@edilink.eu;66500;66500
+EL;Etha Energy Trading Oy;ETH;82060;c/o Etha Ab, Vaasanpuistikko 14 B 11;;65100;Vaasa;FI;;PRODAT;;;;;UTILTS;;edi@etha.tech;82060;82060
+EL;European Commodity Clearing Luxembourg S.àr.l;ECC;88500;Avenue J F Kennedy 42;;1855;Luxembourg;LU;
+EL;European Energy Exchange AG, Branch Finland;GSO;82140;Lautatarhankatu 6;;00580;Helsingfors;FI;;PRODAT;;;;;UTILTS;;edielcesar@messaging.grexel.com;82140;82140
+EL;Evikali A/S;EVI;83010;Bautavej 1A;;8210;Århus V;DK;;PRODAT;;;;;UTILTS;;ediel@ediel.evishine.se;83010;83010
+EL;EVLTA AB;EVL;18510;Tunavägen 257;;784 63;BORLÄNGE;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;18510;18510;UTILTS;;ediel@kmv-rejlers.se;18510;18510
+EL;Expektra AB;EXA;17230;Vendevägen 87;;182 32;Danderyd;SE;;PRODAT;;ediel17230@expektra.io;17230;17230;UTILTS;;ediel@expektra.se;17230;17230
+EL;Expektra AB (Systemleverantör);;92730;Vendevägen 87;;18232;Danderyd;SE;;PRODAT;;edieltest@expektra.io;92730;92730;UTILTS;;edieltest@expektra.io;92730;92730
+EL;Expisoft AB;;92920;Propellervägen 10;;18362;Täby;SE;https://eid.expisoft.se/
+EL;eZ-nergy;;92115;24 Rue de l'Est;;75020;Paris;FR;https://www.ez-nergy.com/
+EL;Falbygdens Energi Nät AB;229;39600;Box 684;;52121;FALKÖPING;SE;;PRODAT;;nordion@extopmail.wm.net;39600;39600;UTILTS;;nordion@extopmail.wm.net;39600;39600
+EL;Falkenberg Energi AB;FBG;39710;;;31180;Falkenberg;SE;;PRODAT;;ediel@kmv-rejlers.se;39710;39710;UTILTS;;ediel@kmv-rejlers.se;39710;39710
+EL;Falkenberg Energi Elnät AB;152;39700;;;31180;FALKENBERG;SE;;PRODAT;;ediel@kmv-rejlers.se;39700;39700;UTILTS;;ediel@kmv-rejlers.se;39700;39700
+EL;Falu Elnät AB;089;19200;Box 213;;79125;FALUN;SE;;PRODAT;;ediel@fev.se;19200;19200;UTILTS;;ediel@fev.se;19200;19200
+EL;Falu Energi & Vatten AB;FLN;19210;Box 213;;791 25;Falun;SE;;PRODAT;;ediel@fev.se;19210;19210;UTILTS;;ediel@fev.se;19210;19210
+EL;Filipstad Energinät AB;067;39900;Box 150;;68224;FILIPSTAD;SE;;PRODAT;SCH;edi39900@extopmail.wm.net;39900;39900;UTILTS;;edi39900@extopmail.wm.net;39900;39900
+EL;Finspång Tekniska Verk AB;FGT;66880;Norrköpingsvägen 32;;612 80;Finspång;SE;;PRODAT;;66880@ediel.props.se;66880;66880;UTILTS;;66880@ediel.props.se;66880;66880
+EL;Fjordkraft Företag AB;FJO;62730;Katarinavägen 20;;116 45;Stockholm;SE;;PRODAT;;ediel@metzum.no;62730;62730;UTILTS;;ediel@metzum.no;62730;62730
+EL;Flower Electricity Retail AB;FER;17410;Katarinavägen 15 C/O Technologies AB;;11645;STOCKHOLM;SE;;PRODAT;;se.el@edilink.eu;17410;17410;UTILTS;;se.el@edilink.eu;17410;17410
+EL;Flower Electricity Trading AB;FLO;18220;Katarinavägen 15 C/O Technologies AB;;11645;STOCKHOLM;SE;;PRODAT;;ediel@elavtalsservice.se;18220;18220;UTILTS;;ediel@elavtalsservice.se;18220;18220
+EL;Flower Infrastructure Technologies AB;KRH;17360;Katarinavägen 15;;11645;Stockholm;SE;;PRODAT;;ediel-brp@flowertech.se;17360;17360;UTILTS;;ediel-brp@flowertech.se;17360;17360
+EL;Fortum Markets AB;BKM;40910;Rättarvägen 3;;169 68;Solna;SE;;PRODAT;PRODAT;fortum.ediel@tix.tieto.com;40910;40910;UTILTS;;fortum.ediel@tix.tieto.com;40910;40910
+EL;Fortum Sverige AB;BKB;40900;Rättarvägen 3;;169 68;SOLNA;SE;;PRODAT;PRODAT;smtp_pomax@fortum.com;40900;40900;UTILTS;;fortum.ediel@tix.tieto.com;40900;40900
+EL;Forward Energy AB;FOE;17060;Box 3007;;16903;Solna;SE;;PRODAT;;se.el@edilink.eu;17060;17060;UTILTS;;se.el@edilink.eu;17060;17060
+EL;Fyrfasen Energi AB;FFN;60600;Box 83;;84121;ÅNGE;SE;;PRODAT;;se.el@edilink.eu;60600;60600;UTILTS;;se.el@edilink.eu;60600;60600
+EL;Fågelås Elhandel AB;ALH;16810;Box 66;;544 21;Hjo;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;16810;16810;UTILTS;;ediel@kmv-rejlers.se;16810;16810
+EL;Fågelås Elnät AB;037;16800;Box 66;;54421;HJO;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;16800;16800;UTILTS;;ediel@kmv-rejlers.se;16800;16800
+EL;Föreningsel Elhandel Sverige AB;KNE;17450;c/o Motala Energi, Box 154;;246 22;LÖDDEKÖPINGE;SE;;PRODAT;;17450@ediel.props.se;17450;17450;UTILTS;;17450@ediel.props.se;17450;17450
+EL;Företagsdata i Åhus AB;;92350;Nordanvägen 5;;29632;Åhus;SE;;PRODAT;;elvira@utv.elvira.se;92350;92350;UTILTS;;elvira@utv.elvira.se;92350;92350
+EL;Gabrielsberget Net AB;522;52200;Norra Obbolavägen 115;;904 22;UMEÅ;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;52200;52200;UTILTS;;ediel@kmv-rejlers.se;52200;52200
+EL;Gas Management Services Limited;;92495;Eastbrook Shaftesubry Road;;CB2 8DU;Cambridge;GB;
+EL;Gasum Oy;GAO;82150;Revontulenpuisto 2 C;;02100;Espoo;FI;;PRODAT;;edi@gasum.com;82150;82150;UTILTS;;edi@gasum.com;82150;82150
+EL;Gemit Solutions AB;GES;28260;Regeringsgatan 113;;11139;Stockholm;SE;;PRODAT;;edi@ediel.acurve.se;28260;28260;UTILTS;;edi@ediel.acurve.se;28260;28260
+EL;Gemit Solutions AB (Systemleverantör);;92695;Regeringsgatan 113;;11139;Stockholm;SE;https://www.gemit.se/
+EL;Gislaved Energi AB;GIV;19910;Box 181;;33224;GISLAVED;SE;;PRODAT;SCH;ediel@gislavedenergi.se;19910;19910;UTILTS;;ediel@gislavedenergi.se;19910;19910
+EL;Gislaved Energi Elnät AB;048;19900;Box 181;;33224;GISLAVED;SE;;PRODAT;SCH;ediel@gislavedenergi.se;19900;19900;UTILTS;;ediel@gislavedenergi.se;19900;19900
+EL;GITO Heavy Charging Solutions AB;GHC;13220;c/o Jönköping Energi AB, Box 5150;;550 05;Jönköping;SE;;PRODAT;;edi13220@extopmail.wm.net;13220;13220;UTILTS;;edi13220@extopmail.wm.net;13220;13220
+EL;GodEL i Sverige AB;GEL;63500;Landsvägen 50A;;172 63;Sundbyberg;SE;;PRODAT;;se.el@edilink.eu;63500;63500;UTILTS;;se.el@edilink.eu;63500;63500
+EL;Gotlands Elförsäljning AB;GTL;11210;Box 1095;;621 21;VISBY;SE;;PRODAT;;se.el@edilink.eu;11210;11210;UTILTS;;se.el@edilink.eu;11210;11210
+EL;Gotlands Elnät AB;220;11220;Box 1095;;621 21;VISBY;SE;;PRODAT;;se.el@edilink.eu;11220;11220;UTILTS;;se.el@edilink.eu;11220;11220
+EL;Green Hero Energy AB;GRH;21550;Hanögatan 2b;;21124;Malmö;SE;;PRODAT;;se.el@edilink.eu;21550;21550;UTILTS;;se.el@edilink.eu;21550;21550
+EL;Green Hero Energy AB (Systemleverantör);;92895;Hanögatan 2 B;;21124;Malmö;SE;http://www.greenhero.com/;PRODAT;;smtp-ediel@greenhero.com;92895;92895;UTILTS;;;;
+EL;Green Voltis Sweden AB;GVS;18450;United Space W, Klarabergsviadukten 63;;111 64;Stockholm;SE;;PRODAT;;18450@expektra.io;18450;18450;UTILTS;;18450@expektra.io;18450;18450
+EL;Green.ai ApS;GRN;83240;Jernbane Allé 24B 2tr.;;2720;Vanlöse;DK;
+EL;Greenely Premium AB;AKT;66840;Vasagatan 40;;111 20;Stockholm;SE;;PRODAT;PRODAT;66840@ediel.props.se;66840;66840;UTILTS;;66840@ediel.props.se;66840;66840
+EL;Grid Collective AB;GRC;21510;Heurlins Plats 1A;;41330;Göteborg;SE;;PRODAT;;edi@ediel.gridcollective.se;21510;21510;UTILTS;;edi@ediel.gridcollective.se;21510;21510
+EL;Grid Collective AB (Systemleverantör);;92875;Heurlins Plats 1A;;41330;Göteborg;SE;
+EL;Gridex EL AB;DVA;21660;Luftvärnsgatan 20;;587 34;Linköping;SE;;PRODAT;;ediel@gridex.se;21660;21660;UTILTS;;ediel@gridex.se;21660;21660
+EL;GRIDOS UTILITY AS;;92925;Ammerudveien 22;;0958;Oslo;NO;
+EL;Grästorp Energi AB;GTP;20310;Plogvägen 5;;467 39;GRÄSTORP;SE;;PRODAT;;ediel@grastorpenergi.se;20310;20310;UTILTS;;ediel@grastorpenergi.se;20310;20310
+EL;Grästorp Energi ek för;291;20300;Plogvägen 5;;467 30;GRÄSTORP;SE;;PRODAT;;ediel@grastorpenergi.se;20300;20300;UTILTS;;ediel@grastorpenergi.se;20300;20300
+EL;Gävle Energi Elnät AB;030;20400;Box 783;;80129;GÄVLE;SE;;PRODAT;SCH;20400@edi.gavleenergi.se;20400;20400;UTILTS;;20400@edi.gavleenergi.se;20400;20400
+EL;Gävle Energisystem AB;GVL;62800;Box 783;;80129;Gävle;SE;;PRODAT;SCH;62800@edi.gavleenergi.se;62800;62800;UTILTS;;62800@edi.gavleenergi.se;62800;62800
+EL;Göteborg Energi Din El AB;PLU;34100;Box 53;;40120;GÖTEBORG;SE;;PRODAT;SCH;dinel.ediel@tix.tieto.com;34100;34100;UTILTS;;dinel.ediel@tix.tieto.com;34100;34100
+EL;Göteborg Energi Nät AB;092;20500;Box 53;;40120;GÖTEBORG;SE;;PRODAT;SCH;20500.goteborgenergi.ediel@tix.tieto.com;20500;20500;UTILTS;;20500.goteborgenergi.ediel@tix.tieto.com;20500;20500
+EL;Götene Elförening ek för;068;20600;Box 81;;53321;GÖTENE;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;20600;20600;UTILTS;;ediel@kmv-rejlers.se;20600;20600
+EL;Habo Energi AB;HBO;46310;Box 202;;56624;HABO;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;46310;46310;UTILTS;;ediel@kmv-rejlers.se;46310;46310
+EL;Habo Energi Kraft AB;233;46300;Box 202;;56624;HABO;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;46300;46300;UTILTS;;ediel@kmv-rejlers.se;46300;46300
+EL;Hafslund Kraft AS;HAF;81160;Postboks 990 Skoyen;;0247;OSLO;NO;;PRODAT;;ediel@edi.compello.com;81160;81160;UTILTS;;edi@hafslundeco.no;81160;81160
+EL;Hallstaviks Elverk AB;HVI;21110;Lundåsvägen 6;;76330;HALLSTAVIK;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;21110;21110;UTILTS;;ediel@kmv-rejlers.se;21110;21110
+EL;Hallstaviks Elverk ek för;193;21100;Lundåsvägen 6;;76330;HALLSTAVIK;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;21100;21100;UTILTS;;ediel@kmv-rejlers.se;21100;21100
+EL;Halmstads Energi och Miljö AB;HMD;21210;Box 31;;30102;HALMSTAD;SE;;PRODAT;;21210@hemedi.se;21210;21210;UTILTS;;21210@hemedi.se;21210;21210
+EL;Halmstads Energi och Miljö Nät AB;094;21200;Box 31;;30102;HALMSTAD;SE;;PRODAT;;21200@hemedi.se;21200;21200;UTILTS;;21200@hemedi.se;21200;21200
+EL;Hansen Technologies Finland Oy  ;;92150;Isafjordsgatan 5;;164 40;Kista;SE;https://www.hansencx.com/solutions/generiscx;PRODAT;;edieltest.se@hansencx.com;92150;92150;UTILTS;;edieltest.se@hansencx.com;92150;92150
+EL;Hansen Technologies Sweden AB;;92640;Isafjordsgatan 5;;16440;KISTA;SE;https://www.hansencx.com/solutions/enorocx;PRODAT;PRODAT;enorocis.se.ediel@hansencx.com;92640;92640;UTILTS;;enorocis.se.ediel@hansencx.com;92640;92640
+EL;Havsnäs Vindkraft Elnät AB;520;52000;c/o Vasa Vind AB, Garvis Carlssons Gata 5;;16941;Solna;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;52000;52000;UTILTS;;ediel@kmv-rejlers.se;52000;52000
+EL;Hedemora Elhandel AB;HME;21410;Box 33;;776 21;Hedemora;SE;;PRODAT;;se.el@edilink.eu;21410;21410;UTILTS;;se.el@edilink.eu;21410;21410
+EL;Hedemora Energi AB;095;21400;Ivarshyttevägen 2;;77633;HEDEMORA;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;21400;21400;UTILTS;;ediel@kmv-rejlers.se;21400;21400
+EL;Helios Power Trading A/S;HPT;83830;Elmegårdsvej 38A;;8361;Hasselager;DK;
+EL;Hello Energy B.V.;HOE;88220;Delftsestraat 17C;;3013AC;Rotterdam;NL;
+EL;HelpVolt Instal srl (Systemleverantör);;92835;;;700273;Iasi;SE;
+EL;HEMAB Elförsäljning AB;HBE;22610;Box 304;;871 26;HÄRNÖSAND;SE;;PRODAT;;22610@hemab.se;22610;22610;UTILTS;;22610@hemab.se;22610;22610
+EL;Herrljunga Elnät AB;049;21600;Mariedalsgatan 3;;52431;HERRLJUNGA;SE;;PRODAT;;ediel@kmv-rejlers.se;21600;21600;UTILTS;;ediel@kmv-rejlers.se;21600;21600
+EL;Herrljunga Kraft Energiförmedling AB;HLJ;21610;Box 25;;22100;LUND;SE;;PRODAT;;ediel@kmv-rejlers.se;21610;21610;UTILTS;;ediel@kmv-rejlers.se;21610;21610
+EL;Hjo Elnät AB;050;21700;Box 66;;54421;HJO;SE;;PRODAT;;ediel@hjoenergi.se;21700;21700;UTILTS;;ediel@hjoenergi.se;21700;21700
+EL;Hjo Energi AB;HJO;21710;Box 66;;54421;HJO;SE;;PRODAT;;ediel@hjoenergi.se;21710;21710;UTILTS;;ediel@hjoenergi.se;21710;21710
+EL;Hjärtums Elförening ek för;279;21800;Sannersby 115;;46392;LILLA EDET;SE;;PRODAT;;ediel@bestkraft.se;21800;21800;UTILTS;;ediel@bestkraft.se;21800;21800
+EL;Holmen Energi AB;HLM;64900;Hörneborgsvägen 6;;891 80;Örnsköldsvik;SE;;PRODAT;;ediel@edi.compello.com;64900;64900;UTILTS;;ediel@edi.compello.com;64900;64900
+EL;Holmen Energi Elnät AB;649;64920;c/o Holmen Energi;;891 80;Örnsköldsvik;SE;;PRODAT;;ediel@edi.compello.com;81300;64920;UTILTS;;ediel@edi.compello.com;64920;64920
+EL;Hybrid Greentech Energy Trading (Systemleverantör);;92325;Høje Taastrup Boulevard 23, 2. tv.;;DK-2630;Taastrup;DK;
+EL;Hybrid Greentech Energy Trading ApS;HYB;83410;Høje Taastrup Boulevard 23, 2. tv.,;;2630;Taastrup;DK;;PRODAT;;prod@ediel.gridhub.dev;83410;83410;UTILTS;;prod@ediel.gridhub.dev;83410;83410
+EL;Hydro Energi AS;HYE;17550;Drammensvei 264;;N-0283;Oslo;NO;;PRODAT;;edielno.hysam@hydro.com;17550;17550;UTILTS;;edielno.hysam@hydro.com;17550;17550
+EL;Härjeåns Nät AB;027;43600;Box 72;;84121;ÅNGE;SE;;PRODAT;;se.el@edilink.eu;43600;43600;UTILTS;;se.el@edilink.eu;43600;43600
+EL;Härnösand Elnät AB;155;22600;Box 304;;87126;HÄRNÖSAND;SE;;PRODAT;SCH;22600@hemab.se;22600;22600;UTILTS;;22600@hemab.se;22600;22600
+EL;Härryda Energi AB;052;22700;;;435 80;Mölnlycke;SE;;PRODAT;;se.el@edilink.eu;22700;22700;UTILTS;;se.el@edilink.eu;22700;22700
+EL;Härryda Energi Elhandel AB;323;22710;;;43580;Mölnlycke;SE;;PRODAT;;se.el@edilink.eu;22710;22710;UTILTS;;se.el@edilink.eu;22710;22710
+EL;Höganäs Energi Elnät AB;099;22900;Verkstadsgatan 13C;;26382;HÖGANÄS;SE;;PRODAT;;ediel@kmv-rejlers.se;22900;22900;UTILTS;;ediel@kmv-rejlers.se;22900;22900
+EL;Höganäs Energi Handel AB;HEH;22910;;;263 82;Höganäs;SE;;PRODAT;;ediel.transfer@kmv-rejlers.se;22910;22910;UTILTS;;ediel.transfer@kmv-rejlers.se;22910;22910
+EL;IBITLY LTD;;92135;International House 64 Nile Street;;N1 7SR;London;GB;https://www.ibitly.io
+EL;iCore Solutions AB;;;Gårdatorget 1;;415 50;Göteborg;SE;http://www.icoresolutions.com/
+EL;In Commodities A/S;INC;83800;Tangen 6;;8200;Aarhus N;DK;;PRODAT;PRODAT;edi02@energymarketservices.volue.com;83800;83800;UTILTS;;edi02@energymarketservices.volue.com;83800;83800
+EL;In Commodities Asset Management AS;ICM;83360;Tangen 6;;8200;Aarhus N;DK;;PRODAT;PRODAT;edi02@energymarketservices.volue.com;83360;83360;UTILTS;;edi02@energymarketservices.volue.com;83360;83360
+EL;In Commodities Stack A/S;ICS;83790;Tangen 6;;8200;Aarhus;DK;
+EL;InConX AB;CCE;81300;Lindhagensgatan 94;;11218;Stockholm;SE;;PRODAT;;ediel@edi.compello.com;81300;81300;UTILTS;;ediel@edi.compello.com;81300;81300
+EL;InConX AB (Systemleverantör);;90008;c/o Visma;Västra Järnvägsgatan 7;11164;Stockholm;SE; https://amili.no/no/edi;PRODAT;;ediel@ipaas.edi.amili.no;90008;90008;UTILTS;;ediel@ipaas.edi.amili.no;90008;90008
+EL;Inductive Energy A/S;IND;83850;Åbogade;;8200;Aarhus N;DK;
+EL;Ingrid Capacity AB;ICY;13240;Drottninggatan 98;;111 60;Stockholm;SE;;PRODAT;;ingridcapacity.ediel@mdm.ingrid.delivery.hansencx.com;13240;13240;UTILTS;;ingridcapacity.ediel@mdm.ingrid.delivery.hansencx.com;13240;13240
+EL;Inobiz AB;;92580;Box 2067;;10312;STOCKHOLM;SE;http://www.inobiz.se
+EL;Insurino AB;;92035;Kyrkbacken 27;;169 62;Solna;SE;www.insurino.se;PRODAT;;support@insy.se;92035;92035;UTILTS;;;;
+EL;JoulX ApS;JOU;83620;Hammerensgade 1, 2. tv.;;1267;Köpenhamn K;DK;
+EL;Jukkasjärvi Energi AB;JUJ;23310;Kauppinen 181;;981 92;KIRUNA;SE;;PRODAT;;ediel@jbf.nu;23310;23310;UTILTS;;ediel@jbf.nu;23310;23310
+EL;Jukkasjärvi Sockens Belysningsförening, JBF;157;23300;Kauppinen 181;;981 92;KIRUNA;SE;;PRODAT;;ediel@jbf.nu;23300;23300;UTILTS;;ediel@jbf.nu;23300;23300
+EL;Junifer Systems Ltd (UK);;92320;83 Baker Street;;W1U 6AG;London;GB;;PRODAT;;ediel@junifersystems.com;92320;92320;UTILTS;;ediel@junifersystems.com;92320;92320
+EL;Jämtkraft AB;JKA;11400;Box 394;;83125;ÖSTERSUND;SE;;PRODAT;SCH;ediel@edi.jamtkraft.se;11400;11400;UTILTS;;ediel@edi.jamtkraft.se;11400;11400
+EL;Jämtkraft Elnät AB;008;42900;Box 394;;83125;ÖSTERSUND;SE;;PRODAT;;se.el@edilink.eu;42900;42900;UTILTS;;se.el@edilink.eu;42900;42900
+EL;Jönköping Energi AB;JNK;23610;Box 5150;;55005;JÖNKÖPING;SE;;PRODAT;;23610@ediel.props.se;23610;23610;UTILTS;;23610@ediel.props.se;23610;23610
+EL;Jönköping Energi Nät AB;158;23600;Box 5150;;55005;JÖNKÖPING;SE;;PRODAT;;23600@ediel.props.se;23600;23600;UTILTS;;23600@ediel.props.se;23600;23600
+EL;Kalmar Energi Elnät AB;101;23800;Box 822;;39239;KALMAR;SE;;PRODAT;;23800@kalmarenergi.se;23800;23800;UTILTS;;23800@kalmarenergi.se;23800;23800
+EL;Kalmar Energi Försäljning AB;SMF;13610;Box 822;;39239;KALMAR;SE;;PRODAT;;13610@kalmarenergi.se;13610;13610;UTILTS;;13610@kalmarenergi.se;13610;13610
+EL;Kamstrup AS;;92250;Teknologiveien 1;;4849;Arendal;SE;http://www.kamstrup.no;PRODAT;;;;;UTILTS;;ediel@fms.clientcomputing.no;92250;92250
+EL;Karlsborg Energi AB;KBG;23910;Västra Vägen 41;;54631;KARLSBORG;SE;;PRODAT;;ediel@karlsborgsenergi.se;23910;23910;UTILTS;;ediel@karlsborgsenergi.se;23910;23910
+EL;Karlsborgs Elnät AB;237;23900;Västra vägen 41;;54631;KARLSBORG;SE;;PRODAT;;ediel@karlsborgsenergi.se;23900;23900;UTILTS;;ediel@karlsborgsenergi.se;23900;23900
+EL;Karlshamn Elnät AB;M04;24000;Box 174;;37423;KARLSHAMN;SE;;PRODAT;;se.el@edilink.eu;24000;24000;UTILTS;;se.el@edilink.eu;24000;24000
+EL;Karlshamn Energi Elförsäljning AB;KHN;24010;Box 174;;37423;KARLSHAMN;SE;;PRODAT;;se.el@edilink.eu;24010;24010;UTILTS;;se.el@edilink.eu;24010;24010
+EL;Karlskoga Elnät AB;238;24100;Box 42;;69121;KARLSKOGA;SE;;PRODAT;SCH;se.el@edilink.eu;24100;24100;UTILTS;;se.el@edilink.eu;24100;24100
+EL;Karlskoga Energi & Miljö AB;KEN;24110;Box 42;;69121;Karlskoga;SE;;PRODAT;;se.el@edilink.eu;24110;24110;UTILTS;;se.el@edilink.eu;24110;24110
+EL;Karlstads Elnät AB;161;24300;Box 5050;;650 05;KARLSTAD;SE;;PRODAT;;edi24300@extopmail.wm.net;24300;24300;UTILTS;;edi24300@extopmail.wm.net;24300;24300
+EL;Karlstads Energi AB;KST;24310;;;65181;KARLSTAD;SE;;PRODAT;;edi24300@extopmail.wm.net;24310;24310;UTILTS;;edi24300@extopmail.wm.net;24310;24310
+EL;Karskruv Nät AB;740;47400;c/o OX2, Box 2299;;103 17;Stockholm;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;47400;47400;UTILTS;;ediel@kmv-rejlers.se;47400;47400
+EL;katshing Energy AB;EKN;17070;TILLGÄNGLIGHETEN 1;;417 10;Göteborg;SE;;PRODAT;;se.el@edilink.eu;17070;17070;UTILTS;;se.el@edilink.eu;17070;17070
+EL;Kinect Energy Sweden AB;BNE;48500;Box 14134;;16714;BROMMA;SE;;PRODAT;PRODAT;edi@bergen-energi.com;48500;48500;UTILTS;;edi@bergen-energi.com;48500;48500
+EL;Kinnekulle Energi AB;KIE;20620;Box 81;;533 21;Götene;SE;;PRODAT;;ediel@kmv-rejlers.se;20620;20620;UTILTS;;ediel@kmv-rejlers.se;20620;20620
+EL;Kiona Sweden AB;KIO;21380;Mölndals Bro 7;;431 30;Mölndal;SE;;PRODAT;;21380@ediel.kiona.io;21380;21380;UTILTS;;21380@ediel.kiona.io;21380;21380
+EL;Kiona Sweden AB (Systemleverantör);;92830;Mölndals Bro 7;;431 30;Mölndal;SE;https://www.kiona.com;PRODAT;;92830@ediel.egain.io;92830;92830;UTILTS;;92830@ediel.egain.io;92830;92830
+EL;Kouno;;92020;Hermodsvej 18A;;DK-8230;Aarhus V;SE;
+EL;Kraftbalans AB;;92245;Box 19;;13406;Ingarö;SE;
+EL;Kraftringen Energi AB;LND;24710;Box 25;;22100;LUND;SE;;PRODAT;SCH;ediel@edi.compello.com;24710;24710;UTILTS;;ediel@edi.compello.com;24710;24710
+EL;Kraftringen Nät AB;239;24700;Box 25;;221 00;Lund;SE;;PRODAT;;ediel@edi.compello.com;24700;24700;UTILTS;;ediel@edi.compello.com;24700;24700
+EL;Kristinehamns Elnät AB;070;24900;Varnumsleden 1;;68193;KRISTINEHAMN;SE;;PRODAT;;edi24900@extopmail.wm.net;24900;24900;UTILTS;;edi24900@extopmail.wm.net;24900;24900
+EL;Kristinehamns Energi AB;KSE;66940;Varnumsleden 1;;681 93;Kristinehamn;SE;;PRODAT;;edi66940@extopmail.wm.net;66940;66940;UTILTS;;edi66940@extopmail.wm.net;66940;66940
+EL;KTC Product AB;KTP;49340;Datavägen 14A;;436 32;Askim;SE;;PRODAT;;49340@mi.ktc.se;49340;49340;UTILTS;;49340@mi.ktc.se;49340;49340
+EL;Kungälv Energi AB;241;25200;Postbox 515;;442 15;KUNGÄLV;SE;;PRODAT;;se.el@edilink.eu;25200;25200;UTILTS;;se.el@edilink.eu;25200;25200
+EL;Kungälv Närenergi AB;521;25210;Postbox 515;;442 15;Kungälv;SE;;PRODAT;;se.el@edilink.eu;25210;25210;UTILTS;;se.el@edilink.eu;25210;25210
+EL;Kvarnforsen Nät AB;590;65900;c/o O2, Box 2299;;103 17;Stockholm;SE;;PRODAT;;ediel@kmv-rejlers.se;65900;65900;UTILTS;;ediel@kmv-rejlers.se;65900;65900
+EL;Kvasir Technologies Ltd;KTL;88620;71-75 Shelton Street, Covent Garden,;;WC2H 9JQ;London;GB;;PRODAT;;svk-ediel@energy.kvasir.ai;88620;88620;UTILTS;;svk-ediel@energy.kvasir.ai;88620;88620
+EL;Kvänum Energi AB;KVM;25510;Skaragatan 23;;53530;KVÄNUM;SE;;PRODAT;;ediel@kvanumenergi.se;25510;25510;UTILTS;;ediel@kvanumenergi.se;25510;25510
+EL;Kvänumbygdens Energi ek för;162;25500;Skaragatan 23;;53530;KVÄNUM;SE;;PRODAT;;ediel@kvanumenergi.se;25500;25500;UTILTS;;ediel@kvanumenergi.se;25500;25500
+EL;Kärnfull Future AB;KFU;21440;Rangelvägen 24;;475 35;Grötö;SE;;PRODAT;;se.el@edilink.eu;21440;21440;UTILTS;;se.el@edilink.eu;21440;21440
+EL;Landskrona Energi AB;188;25600;Box 226;;261 23;Landskrona;SE;;PRODAT;;25600@ediel.props.se;25600;25600;UTILTS;;25600@ediel.props.se;25600;25600
+EL;Landskrona Energi Kraft AB;LAK;25610;Box 227;;261 23;Landskrona;SE;;PRODAT;;25610@ediel.props.se;25610;25610;UTILTS;;25610@ediel.props.se;25610;25610
+EL;Lehtirova Nät AB;173;71730;Box 2299;;103 17;Stockholm;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;71730;71730;UTILTS;;ediel@kmv-rejlers.se;71730;71730
+EL;Lerum Elhandel AB;LME;25920;Elvägen 7;;443 61;Stenkullen;SE;;PRODAT;;se.el@edilink.eu;25920;25920;UTILTS;;se.el@edilink.eu;25920;25920
+EL;Lerum Nät AB;055;25900;Elvägen 7;;44361;STENKULLEN;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;25900;25900;UTILTS;;ediel@kmv-rejlers.se;25900;25900
+EL;LEVA Nät AB;072;27200;Box 36;;45321;LYSEKIL;SE;;PRODAT;;se.el@edilink.eu;27200;27200;UTILTS;;se.el@edilink.eu;27200;27200
+EL;Lidköping Elnät AB;071;26200;Skogvaktarevägen 7C;;531 53;LIDKÖPING;SE;;PRODAT;;se.el@edilink.eu;26200;26200;UTILTS;;se.el@edilink.eu;26200;26200
+EL;Linde Energi Elnät AB;243;26300;Box 77;;71122;LINDESBERG;SE;;PRODAT;;26300@lindeenergi.se;26300;26300;UTILTS;;26300@lindeenergi.se;26300;26300
+EL;Linde Energi Försäljning AB;LDB;26310;Skrinnargatan 6;;71134;LINDESBERG;SE;;PRODAT;;26310@lindeenergi.se;26310;26310;UTILTS;;26310@lindeenergi.se;26310;26310
+EL;Ljungby Energi AB;LJE;62570;Box 262;;341 25;Ljungby;SE;;PRODAT;;62570@ljungby-energi.se;62570;62570;UTILTS;;62570@ljungby-energi.se;62570;62570
+EL;Ljungby Energinät AB;106;26400;Box 262;;34125;LJUNGBY;SE;;PRODAT;;26400@ljungby-energi.se;26400;26400;UTILTS;;26400@ljungby-energi.se;26400;26400
+EL;Ljusdal Elnät AB;210;26500;Björkhamrevägen 2A;;82735;LJUSDAL;SE;;PRODAT;;edi26500@extopmail.wm.net;26500;26500;UTILTS;;edi26500@extopmail.wm.net;26500;26500
+EL;Ljusdal Energi Försäljning AB;LJD;26510;Björkhamrevägen 2A;;82735;LJUSDAL;SE;;PRODAT;;edi26510@extopmail.wm.net;26510;26510;UTILTS;;edi26510@extopmail.wm.net;26510;26510
+EL;LKAB Nät AB;294;13800;FK10;;98186;KIRUNA;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;13800;13800;UTILTS;;ediel@kmv-rejlers.se;13800;13800
+EL;Lovel AB;LOV;21360;Wismarsvägen 11A;;18741;Täby;SE;;PRODAT;;se.el@edilink.eu;21360;21360;UTILTS;;se.el@edilink.eu;21360;21360
+EL;Lowery Sverige AB;LOY;13230;Sylveniusgatan 5;;754 50;Uppsala;SE;;PRODAT;;ediel@ses.enity.io;13230;13230;UTILTS;;ediel@ses.enity.io;13230;13230
+EL;LRF Samköp AB;LRS;66590;Franzéngatan 6;;105 33;Stockholm;SE;;PRODAT;;se.el@edilink.eu;66590;66590;UTILTS;;se.el@edilink.eu;66590;66590
+EL;Luleå Energi AB;LUE;11610;Box 50100;;97323;LULEÅ;SE;;PRODAT;;ediel@edi.luleaenergi.se;11610;11610;UTILTS;;ediel@edi.luleaenergi.se;11610;11610
+EL;Luleå Energi Elnät AB;LUL;11600;Box 50100;;97323;LULEÅ;SE;;PRODAT;;ediel@edi.luleaenergi.se;11600;11600;UTILTS;;ediel@edi.luleaenergi.se;11600;11600
+EL;LUMA Energy AB;SBY;27800;Kungsgatan 111;;753 18;Uppsala;SE;;PRODAT;;ediel@ediel.powercloudplatform.com;27800;27800;UTILTS;;ediel@ediel.powercloudplatform.com;27800;27800
+EL;Lysekils Energi Vind AB;LEV;27210;Box 36;;453 21;Lysekil;SE;;PRODAT;;se.el@edilink.eu;27210;27210;UTILTS;;se.el@edilink.eu;27210;27210
+EL;MainOne AB;;92290;Kungsgatan 58 ;;111 22;Stockholm;SE;www.mainone.se;PRODAT;;smm1@mainone.se;92290;92290;UTILTS;;smm1@mainone.se;92290;92290
+EL;Malung-Sälens Elnät AB;246;27300;Box 4;;78221;MALUNG;SE;;PRODAT;SCH;edi27300@extopmail.wm.net;27300;27300;UTILTS;;edi27300@extopmail.wm.net;27300;27300
+EL;Marhult Nät AB;350;13500;c/o OX2, Box 2299;;103 17;Stockholm;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;13500;13500;UTILTS;;ediel@kmv-rejlers.se;13500;13500
+EL;Markbygden Net AB;693;15200;c/o BGC, BGC-id CDP1014;;106 43;Stockholm;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;15200;15200;UTILTS;;ediel@kmv-rejlers.se;15200;15200
+EL;Markbygden Net Väst AB;529;52900;Jägershillsgatan 18;;213 75;Malmö;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;52900;52900;UTILTS;;ediel@kmv-rejlers.se;52900;52900
+EL;Mars Trading A/S;MAT;83760;John F. Kennedys Plads 43, st.;;9000;Aalborg;DK;
+EL;Mellanskånes Kraft AB;MSK;27610;Bangårdsgatan 6;;243 32;Höör;SE;;PRODAT;;ediel@mskraft.se;27610;27610;UTILTS;;ediel@mskraft.se;27610;27610
+EL;Mellersta Skånes Kraft ek för;247;27600;Landsvägen 77;;24372;TJÖRNARP;SE;;PRODAT;;ediel@mskraft.se;27600;27600;UTILTS;;ediel@mskraft.se;27600;27600
+EL;Mer Sweden AB;CRS;13120;Berga allé 1;;254 52;Helsingborg;SE;;PRODAT;SCH;ediel@edi.jamtkraft.se;13120;13120;UTILTS;;ediel@edi.jamtkraft.se;13120;13120
+EL;Mestro AB;FLX;70300;KG10, 3tr. Kungsgatan 10;;111 43;Stockholm;SE;;PRODAT;;edi@mail.mestroedi.com;70300;70300;UTILTS;;edi@mail.mestroedi.com;70300;70300
+EL;Metry AB;ENC;66430;Kämpegatan 6;;411 04;Göteborg;SE;;PRODAT;PRODAT;ediel@robot.metry.io;66430;66430;UTILTS;;ediel@robot.metry.io;66430;66430
+EL;Metzum AS;;92365;Kalfarveien 74B;;NO-5022;Bergen;NO;https://metzum.no;PRODAT;;ediel@metzum.no;92365;92365;UTILTS;;ediel@metzum.no;92365;92365
+EL;MFT Energy A/S;MFE;83950;Margrethepladsen 4, 2-3 floor;;8000;Aarhus;DK;
+EL;Mind Energy AB;EFS;64700;Hyllie Boulevard 34;;215 32;Malmö;SE;;PRODAT;;ediel@energi-sverige.se;64700;64700;UTILTS;;ediel@energi-sverige.se;64700;64700
+EL;Mindmill AB;MIM;21390;Näckrosgatan 6;;46432;Mellerud;SE;;PRODAT;;ediel@ses.enity.io;21390;21390;UTILTS;;ediel@ses.enity.io;21390;21390
+EL;Mjölby Kraftnät AB;110;27700;Box 510;;59529;MJÖLBY;SE;;PRODAT;PRODAT;27700@tvlab.se;27700;27700;UTILTS;;27700@tvlab.se;27700;27700
+EL;Modity Energy Trading AB;KRF;42800;Box 1039;;22104;LUND;SE;;PRODAT;;edi42800@extopmail.wm.net;42800;42800;UTILTS;;edi42800@extopmail.wm.net;42800;42800
+EL;Momentum software AB;MOM;24470;Pelle Bergs Backe 3;;791 50;Falun;SE;;PRODAT;;edi.el@momentum.se;24470;24470;UTILTS;;edi.el@momentum.se;24470;24470
+EL;Momentum software AB (Systemleverantör);;82725;Pelle Bergs Backe 3;;791 50;Falun;SE;
+EL;Monsson Energy AB;MOE;19150;Klarabergsgatan 63;;10123;STOCKHOLM;SE;;PRODAT;PRODAT;edi02@energymarketservices.volue.com;19150;19150;UTILTS;;edi02@energymarketservices.volue.com;19150;19150
+EL;Motala Energi AB;EHN;21470;Box 154;;246 22;LÖDDEKÖPINGE;SE;;PRODAT;;21470@ediel.props.se;21470;21470;UTILTS;;21470@ediel.props.se;21470;21470
+EL;Mountain Energy AB;MOU;21370;Ekbacksvägen 28;;16869;Bromma;SE;;PRODAT;;se.el@edilink.eu;21370;21370;UTILTS;;se.el@edilink.eu;21370;21370
+EL;Mälarenergi AB;VEV;40100;Box 14;;72103;VÄSTERÅS;SE;;PRODAT;SCH;se.el@edilink.eu;40100;40100;UTILTS;;se.el@edilink.eu;40100;40100
+EL;Mälarenergi Elnät AB;393;39300;Box 924;;73129;KÖPING;SE;;PRODAT;SCH;se.el@edilink.eu;39300;39300;UTILTS;;se.el@edilink.eu;39300;39300
+EL;Mälarenergi Försäljning AB;MFA;60100;Box 14;;72103;Västerås;SE;;PRODAT;;se.el@edilink.eu;60100;60100;UTILTS;;se.el@edilink.eu;60100;60100
+EL;Mölndal Energi AB;MEA;38400;Box 34;;43121;MÖLNDAL;SE;;PRODAT;PRODAT;ediel@molndalenergi.se;38400;38400;UTILTS;;ediel@molndalenergi.se;38400;38400
+EL;Mölndal Energi Nät AB;112;28300;Box 34;;43121;MÖLNDAL;SE;;PRODAT;;ediel@molndalenergi.se;28300;28300;UTILTS;;ediel@molndalenergi.se;28300;28300
+EL;Nacka Energi AB;074;28500;Box 753;;13124;NACKA;SE;;PRODAT;;se.el@edilink.eu;28500;28500;UTILTS;;se.el@edilink.eu;28500;28500
+EL;Navcite Göteborg AB;;94030;Stora Åvägen 21;;43634;Askim;SE;https://www.navcite.com/;PRODAT;;;;;UTILTS;;ediel@navcite.se;94030;94030
+EL;Ngenic AB;;92050;Kungsgatan 41;;75321;Uppsala;SE;https://ngenic.se/
+EL;Nibela AB;NIB;10770;Stora torget 3;;582 19;Linköping;SE;;PRODAT;;se.el@edilink.eu;10770;10770;UTILTS;;se.el@edilink.eu;10770;10770
+EL;Nidaros Energy ApS;NIE;83730;Vendersgade 3, 1,;;8800;Viborg;DK;
+EL;Nidhog ApS;NID;83650;Niels Jernes Vej 10;;9220;Aalborg Öst;DK;;PRODAT;;it-integration@yco.dk;83650;83650;UTILTS;;it-integration@yco.dk;83650;83650
+EL;Njudung Energi Vetlanda AB;VTL;37710;Box 154;;57422;VETLANDA;SE;;PRODAT;;se.el@edilink.eu;37710;37710;UTILTS;;se.el@edilink.eu;37710;37710
+EL;Njudung Sävsjö Elnät AB;127;34400;Box 172;;57624;SÄVSJÖ;SE;;PRODAT;;se.el@edilink.eu;34400;34400;UTILTS;;se.el@edilink.eu;34400;34400
+EL;Njudung Vetlanda Elnät AB;266;37700;Box 154;;57422;VETLANDA;SE;;PRODAT;;se.el@edilink.eu;37700;37700;UTILTS;;se.el@edilink.eu;37700;37700
+EL;Nominergy;;92015;Föreningsgatan 217;;26151;Landskrona;SE;biogem.com;PRODAT;;test-nomnom@fremsyn.net;92015;92015;UTILTS;;test-nomnom@fremsyn.net;92015;92015
+EL;Nord Energy OY;NEO;82080;c/o Leinonen, Malminkaari 23A;;00700;Helsingfors;FI;;PRODAT;;;;;UTILTS;;services@nordenergy.eu;82080;82080
+EL;Nord Pool AB;NPL;10006;P.O. Box 121;;1325;Lysaker;NO;
+EL;Nord Pool Elbas;NPX;10005;Box 915;;101;HELSINGFORS;FI;
+EL;Nordic Best Energi AB;NBE;21330;Stortorget 13B;;21122;MALMÖ;SE;;PRODAT;;se.el@edilink.eu;21330;21330;UTILTS;;se.el@edilink.eu;21330;21330
+EL;Nordic Energy House ApS;NEH;83270;Østergade 27 3.th;;8000;Aarhus C.;DK;
+EL;NordPool European Market Coupling Operator AS;EMO;10007;Boks 121;;1325;Lysaker;NO;
+EL;Norrlands Miljökraft AB;NMK;10820;Box 6;;13921;Värmdö;SE;;PRODAT;;se.el@edilink.eu;10820;10820;UTILTS;;se.el@edilink.eu;10820;10820
+EL;Norrtälje Energi AB;114;29000;Box 216;;76123;NORRTÄLJE;SE;;PRODAT;;29000@norrtaljeenergi.se;29000;29000;UTILTS;;29000@norrtaljeenergi.se;29000;29000
+EL;Norrtälje Energi Försäljnings AB;NTE;29010;Box 216;;76123;NORRTÄLJE;SE;;PRODAT;;29000@norrtaljeenergi.se;29000;29010;UTILTS;;29000@norrtaljeenergi.se;29000;29010
+EL;Northpool B.V.;NBV;84190;Dellaertweg 5C;;2316WZ;Leiden;NL;
+EL;Nossebro Energi Försäljnings AB;NSB;29310;Liljegatan 15;;46530;NOSSEBRO;SE;;PRODAT;;ediel@nossebroenergi.se;29310;29310;UTILTS;;ediel@nossebroenergi.se;29310;29310
+EL;Nossebroortens Energi ek för;284;29300;Liljegatan 15;;46530;NOSSEBRO;SE;;PRODAT;;ediel@nossebroenergi.se;29300;29300;UTILTS;;ediel@nossebroenergi.se;29300;29300
+EL;NTE Energi AS;NEN;81120;Sjöfartsgate 3;;7736;Stenkjer;NO;;PRODAT;;;;;UTILTS;;ediel@edi.compello.com;81120;81120
+EL;Ntricity Market Services AB;NMS;27880;Box 716;;39127;Kalmar;SE;;PRODAT;;Ntricity-Prod@bradyplc.com;27880;27880;UTILTS;;Ntricity-Prod@bradyplc.com;27880;27880
+EL;NWRE;NWR;88950;34 Avenue Bosquet;;75007;Paris;FR;;PRODAT;;sweden.ediel.nwre@nw-groupe.com;88950;88950;UTILTS;;sweden.ediel.nwre@nw-groupe.com;88950;88950
+EL;NWRE (Systemleverantör);;92705;34 Avenue Bosquet;;75007;Paris;SE;
+EL;Nybro Elnät AB;115;29500;Dunderbergsgatan 2;;38280;NYBRO;SE;;PRODAT;PRODAT;29500@energi.nybro.se;29500;29500;UTILTS;;29500@energi.nybro.se;29500;29500
+EL;Nybro Energi AB;NYE;29510;Verktygsgatan 12;;382 37;Nybro;SE;;PRODAT;;29510@energi.nybro.se;29510;29510;UTILTS;;29510@energi.nybro.se;29510;29510
+EL;Nyköping Vattenkraft AB;NYV;66310;c/o Nyköpings Kommun, ekonomiavd;;61183;Nyköping;SE;;PRODAT;;ediel@elavtalsservice.se;66310;66310;UTILTS;;ediel@elavtalsservice.se;66310;66310
+EL;Näckåns Elnät AB;252;29800;Näckån 4;;68060;SYSSLEBÄCK;SE;;PRODAT;SCH;edi29800@extopmail.wm.net;29800;29800;UTILTS;;edi29800@extopmail.wm.net;29800;29800
+EL;Näckåns Energi AB;NCK;29810;Näckån 4;;68060;SYSSLEBÄCK;SE;;PRODAT;SCH;edi29800@extopmail.wm.net;29810;29810;UTILTS;;edi29800@extopmail.wm.net;29810;29810
+EL;Nässjö Affärsverk Elnät AB;309;10300;Tullgatan 2;;57180;NÄSSJÖ;SE;;PRODAT;;10300@nav.se;10300;10300;UTILTS;;10300@nav.se;10300;10300
+EL;Nätkraft Borås AB;NKB;10810;Majorsgatan 5;;50431;Borås;SE;;PRODAT;;11100@ediel.bornet.se;10810;10810;UTILTS;;11100@ediel.bornet.se;10810;10810
+EL;Nätkraft Borås Infra AB;086;11100;Box 1714;;50117;BORÅS;SE;;PRODAT;;11100@ediel.bornet.se;11100;11100;UTILTS;;11100@ediel.bornet.se;11100;11100
+EL;Odigo Energy ApS;ODG;84050;Kalkværksvej 20, 3;;8000;Aarhus C;DK;;PRODAT;;;;;UTILTS;;intraday@odigoenergy.com;84050;84050
+EL;Odigo Energy ApS (Systemleverantör);;92785;Kalkværksvej 20, 3.;;8000;Aarhus C;DK;
+EL;Olofströms Kraft Nät AB;031;30200;Box 303;;29324;OLOFSTRÖM;SE;;PRODAT;PRODAT;edi30200@extopmail.wm.net;30200;30200;UTILTS;;edi30200@extopmail.wm.net;30200;30200
+EL;Olseröds Elektriska Distributionsförening;060;30300;Sockenvägen 127;;29795;DEGEBERGA;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;30300;30300;UTILTS;;ediel@kmv-rejlers.se;30300;30300
+EL;Olseröds Energi AB;OEA;30310;Sockenvägen 524;;297 95;Degeberga;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;30310;30310;UTILTS;;ediel@kmv-rejlers.se;30310;30310
+EL;Only Boring Systems AB;;92905;Tegeluddsvägen 30;;11540;Stockholm;SE;
+EL;Oppy Balancing Services AB;OBG;13250;Trymvägen 3;;182 68;DJURSHOLM;SE;;PRODAT;;13250@edi.oppy.energy;13250;13250;UTILTS;;13250@edi.oppy.energy;13250;13250
+EL;Oppy Balancing Services AB (Systemleverantör);;92345;Sjöbrinken 15;;13251;Saltsjö-Boo;SE;;PRODAT;;testbalans@edi.oppy.energy;92345;92345;UTILTS;;testbalans@edi.oppy.energy;92345;92345
+EL;Optimax Energy GmbH;OPE;84220;Käthe-Kollwitz-strasse 1;;04109;Leipzig;DE;
+EL;OPTIMIZE POWER SRL;OPZ;89260;str. Chiciurei, nr. 31-37, ap. 29;;031872;Bukarest;RO;
+EL;OPTIMIZE POWER SRL (Systemleverantör);;92885;Chiciurei 31-37;;031872;Bucharest;RO;https://www.optimizepower.eu/index.html
+EL;Oskarshamn Energi AB;OHN;30510;Box 564;;57226;OSKARSHAMN;SE;;PRODAT;PRODAT;edi30500@extopmail.wm.net;30510;30510;UTILTS;;edi30500@extopmail.wm.net;30510;30510
+EL;Oskarshamn Energi Nät AB;116;30500;Box 564;;57226;OSKARSHAMN;SE;;PRODAT;PRODAT;edi30500@extopmail.wm.net;30500;30500;UTILTS;;edi30500@extopmail.wm.net;30500;30500
+EL;Ovako Sweden AB;285;44600;;;813 82;HOFORS;SE;;PRODAT;;;;;UTILTS;;ediel@kmv-rejlers.se;44600;44600
+EL;Oxelö Energi Nät AB;255;30600;Sjögatan 28;;61381;OXELÖSUND;SE;;PRODAT;;30600@ediel.props.se;30600;30600;UTILTS;;30600@ediel.props.se;30600;30600
+EL;P2 Energi AB;P2E;10160;Koppargatan 3;;602 23;Norrköping;SE;;PRODAT;;edi@edi.p2ab.se;10160;10160;UTILTS;;edi@edi.p2ab.se;10160;10160
+EL;Partille Energi AB;515;51510;Box 55100;;40053;Göteborg;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;51510;51510;UTILTS;;ediel@kmv-rejlers.se;51510;51510
+EL;Partille Energi Nät AB;296;51500;Box 53;;40120;Göteborg;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;51500;51500;UTILTS;;ediel@kmv-rejlers.se;51500;51500
+EL;Pite Energi Elnät AB;256;30800;Box 738;;94128;PITEÅ;SE;;PRODAT;SCH;ediel@edi.compello.com;30800;30800;UTILTS;;ediel@edi.compello.com;30800;30800
+EL;Pite Energi Handel AB;PIT;30810;Box 738;;94128;PITEÅ;SE;;PRODAT;SCH;ediel@edi.compello.com;30810;30810;UTILTS;;ediel@edi.compello.com;30810;30810
+EL;Power Factors AB;GRB;17160;Östra Hamngatan 16;;411 09;Göteborg;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;17160;17160;UTILTS;;ediel@kmv-rejlers.se;17160;17160
+EL;PowerMart ApS;PMA;10450;Åboulevarden 17, 3 tr.;;8000;Århus C;DK;;PRODAT;;;;;UTILTS;;operations.powermart@ez-operations.com;10450;10450
+EL;Powerworks Energy Sweden AB;PES;18470;Vasagatan 10;;11120;Stockholm;SE;;PRODAT;;;;;UTILTS;;ediel@mail.powerinsight.energy;18470;18470
+EL;Pragmatic Coders;;92670;ul. Zloty Róg 13/4;;30-095;Cracow;PL;;PRODAT;;;;;UTILTS;;;;
+EL;Produktionsbalans PBA AB;PBA;63000;Företagsenhet 2626;;96280;JOKKMOKK;SE;;PRODAT;SCH;vattenfall.vbsn.ediel@tix.tieto.com;63000;63000;UTILTS;;vattenfall.vbsn.ediel@tix.tieto.com;63000;63000
+EL;ProptechOS AB (Systemleverantör);;92755;Grev Turegatan 30;;11438 ;Stockholm;SE;
+EL;Publicism NITEK AB;;92860;Signalgatan 17;;21114;MALMÖ;SE;;PRODAT;PRODAT;staging@skynet.karnkraft.se;92860;92860;UTILTS;;staging@skynet.karnkraft.se;92860;92860
+EL;pure.energy GmbH;PUE;84450;Königsallee 88;;40212;Düsseldorf;DE;;PRODAT;;;;;UTILTS;;operations.pureenergy@ez-operations.com;84450;84450
+EL;Qurrent AB;URT;47340;Tomtebogatan 5;;113 39;Stockholm;SE;
+EL;Qurrent AB (Systemleverantör);;92715;Tomtebogatan 5;;113 39;Stockholm;SE;
+EL;Rebel Elhandel AB;MFT;24430;Sveavägen 39, 7tr;;111 34;Stockholm;SE;;PRODAT;;ediel@elavtalsservice.se;24430;24430;UTILTS;;ediel@elavtalsservice.se;24430;24430
+EL;Rebel Flex AB;RFX;22810;Sveavägen 39;;111 34;Stockholm;SE;;PRODAT;;ediel@elavtalsservice.se;22810;22810;UTILTS;;ediel@elavtalsservice.se;22810;22810
+EL;Reel Energy ApS;REA;83820;Frederiksholms Kanal 4, 1. ;;1220 ;Köpenhamn;DK;
+EL;RESPECT ENERGY SPÓLKA AKCYJNA;TOS;85250;ul. Bonifraterska 17;;00-203; Warszawa;PL;;PRODAT;;scheduling@respect.energy;85250;85250;UTILTS;;scheduling@respect.energy;85250;85250
+EL;Ronneby Miljöteknik Elnät AB;118;31100;Stadshuset;;37280;RONNEBY;SE;;PRODAT;PRODAT;31100@miljoteknik.ronneby.se;31100;31100;UTILTS;;31100@miljoteknik.ronneby.se;31100;31100
+EL;RWE Supply & Trading GmbH;RWE;84350;RWE Platz 6;;451 41;Essen;DE;
+EL;Rödeby Elverk ek för;286;31500;Karlskronavägen 38;;373 43;Rödeby;SE;;PRODAT;;ediel@rodebyelverk.net;31500;31500;UTILTS;;ediel@rodebyelverk.net;31500;31500
+EL;Rödeby Energi AB;RBE;31510;Karlskronavägen 38;;373 43;Rödeby;SE;;PRODAT;;ediel@rodebyelverk.net;31510;31510;UTILTS;;ediel@rodebyelverk.net;31510;31510
+EL;Sala-Heby Energi AB;SAH;31601;Box 34;;73321;SALA;SE;;PRODAT;;se.el@edilink.eu;31601;31601;UTILTS;;se.el@edilink.eu;31601;31601
+EL;Sala-Heby Energi Elnät AB;183;31600;Box 34;;73321;SALA;SE;;PRODAT;;se.el@edilink.eu;31600;31600;UTILTS;;se.el@edilink.eu;31600;31600
+EL;Sandhult-Sandareds Elhandel AB;SNT;31810;Hagavägen 11;;518 40;Sjömarken;SE;;PRODAT;;ediel@ssel.se;31810;31810;UTILTS;;ediel@ssel.se;31810;31810
+EL;Sandhult-Sandareds Elnät AB;287;31800;Hagavägen 11;;51840;SJÖMARKEN;SE;;PRODAT;;ediel@ssel.se;31800;31800;UTILTS;;ediel@ssel.se;31800;31800
+EL;Sandviken Energi AB;SDV;31910;Box 91;;81121;SANDVIKEN;SE;;PRODAT;SCH;31900@service.sandvikenenergi.se;31910;31910;UTILTS;;31900@service.sandvikenenergi.se;31910;31910
+EL;Sandviken Energi Elnät AB;119;31900;Box 91;;81121;SANDVIKEN;SE;;PRODAT;SCH;31900@service.sandvikenenergi.se;31900;31900;UTILTS;;31900@service.sandvikenenergi.se;31900;31900
+EL;Scalar Energy AS;SCY;81130;Schweigaards gate 14;;0185;Oslo;NO;
+EL;Scandinavia Energy System AB;SEY;17380;c/o Deloitte;;113 79;Stockholm;SE;;PRODAT;;se.el@edilink.eu;17380;17380;UTILTS;;se.el@edilink.eu;17380;17380
+EL;Second Foundation Trading AG;SFT;89010;Hinterbergstrasse 22;;6312;Steinhausen;CH;;PRODAT;PRODAT;edi02@energymarketservices.volue.com;89010;89010;UTILTS;;edi02@energymarketservices.volue.com;89010;89010
+EL;Second Foundation Trading AG (systemleverantör);;92725;Hinterbergstrasse 22;;6312;Steinhausen;CH;
+EL;SenseNode AB;SNO;18430;Ideon Sciencepark Alfa 5, Scheelevägen 15;;223 70;Lund;SE;;PRODAT;;;;;UTILTS;;18430@edi.sensenode.com;18430;18430
+EL;Sentera Oyj;;;Valimopolku 4 A ;;00380;HELSINKI;SE;www.sentera.fi
+EL;SEVAB Energiförsäljning AB;SVB;41710;Vältstigen 1;;64541;STRÄNGNÄS;SE;;PRODAT;;ediel@sevab.com;41710;41710;UTILTS;;ediel@sevab.com;41710;41710
+EL;SEVAB Nät AB;197;41700;Vältstigen 1;;64541;STRÄNGNÄS;SE;;PRODAT;;ediel@sevab.com;41700;41700;UTILTS;;ediel@sevab.com;41700;41700
+EL;SI Sustainable Intelligence Group AB;SIG;10170;Härdgatan 9;;43232;Varberg;SE;;PRODAT;PRODAT;ediel@wearesi.se;10170;10170;UTILTS;;ediel@wearesi.se;10170;10170
+EL;Sidensjö Vindkraft Elnät AB;528;52800;c/o Nordisk Vindkraft AB, Lilla Bommen 1;;411 04;Göteborg;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;52800;52800;UTILTS;;ediel@kmv-rejlers.se;52800;52800
+EL;Sjisjka Nät AB;523;52300;c/o O2, Box 2299;;10317;Stockholm;SE;;PRODAT;;;;;UTILTS;;ediel@kmv-rejlers.se;52300;52300
+EL;Sjogerstads Elektriska Distributionsförening;293;32300;Box 66;;54122;SKÖVDE;SE;;PRODAT;;ediel@sjogerstadsenergi.se;32300;32300;UTILTS;;ediel@sjogerstadsenergi.se;32300;32300
+EL;Sjogerstads Energi AB;SJO;32310;Box 66;;54122;SKÖVDE;SE;;PRODAT;;ediel@sjogerstadsenergi.se;32310;32310;UTILTS;;ediel@sjogerstadsenergi.se;32310;32310
+EL;Sjöbo Elnät AB;122;32400;Ommavägen 26;;275 39;SJÖBO;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;32400;32400;UTILTS;;ediel@kmv-rejlers.se;32400;32400
+EL;Skara Elnät AB;170;32500;;;53288;SKARA;SE;;PRODAT;PRODAT;ediel@skaraenergi.se;32500;32500;UTILTS;;ediel@skaraenergi.se;32500;32500
+EL;Skellefteå Kraft AB;SKV;13200;Box 395;;93124;SKELLEFTEÅ;SE;;PRODAT;SCH;skekraft.ediel@tix.tieto.com;13200;13200;UTILTS;;skekraft.ediel@tix.tieto.com;13200;13200
+EL;Skellefteå Kraft Elnät AB;013;10600;Box 802;;93180;SKELLEFTEÅ;SE;;PRODAT;SCH;skekraft.ediel@tix.tieto.com;10600;10600;UTILTS;;skekraft.ediel@tix.tieto.com;10600;10600
+EL;Skellefteälvens Vattenregleringsföretag;SVR;70600;Kanalgatan 71;;93180;Skellefteå;SE;;PRODAT;;;;;UTILTS;;;;
+EL;Skurups Elverk AB;258;32800;Mårtensgatan 3;;27435;SKURUP;SE;;PRODAT;SCH;ediel@skurup.se;32800;32800;UTILTS;;ediel@skurup.se;32800;32800
+EL;SKY QUANT sp. z o.o.;PSK;85450;Sterlinga 27/29 lok. 807;;90-212;Lódz;PL;;PRODAT;;;;;UTILTS;;ediel_dev@sky-quant.pl;85450;85450
+EL;Skye AB;SAB;21350;Sveavägen 24;;11157;Stockholm;SE;;PRODAT;;;;;UTILTS;;ediel@edi.skye.energy;21350;21350
+EL;Skye AB (Systemleverantör);;92685;Sveavägen 24;;111 57;Stockholm;SE;;PRODAT;;edi@systems.dev.skye.energy;92685;92685;UTILTS;;edi@systems.dev.skye.energy;92685;92685
+EL;Skyllberg Elnät AB;288;32900;Skyllbergsvägen 11;;694 99;Skyllberg;SE;;PRODAT;;se.el@edilink.eu;32900;32900;UTILTS;;se.el@edilink.eu;32900;32900
+EL;Skyllberg Energi AB;SKY;32920;Skyllbergsvägen 11;;694 99;SKYLLBERG;SE;;PRODAT;;se.el@edilink.eu;32920;32920;UTILTS;;se.el@edilink.eu;32920;32920
+EL;Skånska Energi AB;SKN;33010;Box 83;;24722;SÖDRA SANDBY;SE;;PRODAT;SCH;ediel@edi.compello.com;33010;33010;UTILTS;;ediel@edi.compello.com;33010;33010
+EL;Skånska Energi Nät AB;123;33000;Box 83;;24722;SÖDRA SANDBY;SE;;PRODAT;SCH;ediel@edi.compello.com;33000;33000;UTILTS;;ediel@edi.compello.com;33000;33000
+EL;Skövde Energi Elnät AB;423;42300;Box 128;;541 23;Skövde;SE;;PRODAT;;Ediel.Elvira@skovdeenergi.se;42300;42300;UTILTS;;Ediel.Elvira@skovdeenergi.se;42300;42300
+EL;Smart el i Sverige AB;SES;13210;KIVRA: 559358-9780;;10631;STOCKHOLM;SE;;PRODAT;;13210@edismpt.se;13210;13210;UTILTS;;13210@edismpt.se;13210;13210
+EL;Smart el i Sverige AB (Systemleverantör);;92285;KIVRA: 559358-9780;;10631;Stockholm;SE;https://smartareel.se/;PRODAT;;92285@edismpt.se;92285;92285;UTILTS;;92285@edismpt.se;92285;92285
+EL;Smartergy AB;SMY;17580;Turmalingatan 1A;;421 60;Västra Frölunda;SE;;PRODAT;;smartergy.svk@gmail.com;17580;17580;UTILTS;;smartergy.svk@gmail.com;17580;17580
+EL;Smedjebacken Energi Nät AB;259;33400;SN0001, Box 113;;777 34;SMEDJEBACKEN;SE;;PRODAT;;nordion@extopmail.wm.net;33400;33400;UTILTS;;nordion@extopmail.wm.net;33400;33400
+EL;Snackis AB;SNA;28720;Drottninggatan 18B;;70210;Örebro;SE;;PRODAT;;ediel@elavtalsservice.se;28720;28720;UTILTS;;ediel@elavtalsservice.se;28720;28720
+EL;Solfolket AB;JUE;17630;Årstaängsvägen 21C;;11743;Stockholm;SE;;PRODAT;;ediel@elavtalsservice.se;17630;17630;UTILTS;;ediel@elavtalsservice.se;17630;17630
+EL;Solitio AB;;92080;Fackelrosgatan 23;;65345;Karlstad;SE;https://www.solitio.se/
+EL;Sollentuna Elhandel AB;SOT;33510;c/o Sollentuna Energi och Miljö AB, Box 972;;19129;SOLLENTUNA;SE;;PRODAT;SCH;ediel@seom.se;33500;33510;UTILTS;;ediel@seom.se;33500;33510
+EL;Sollentuna Elnät AB;171;33500;Box 972;;19129;SOLLENTUNA;SE;;PRODAT;SCH;ediel@seom.se;33500;33500;UTILTS;;ediel@seom.se;33500;33500
+EL;Solteq Plc;;92070;Revontulenkuja 1;;FI-02100;Espoo;FI;https://www.solteq.com/
+EL;Sonlinc A/S;;92170;Hans Edvard Teglers Vej 5;;2920;Charlottenlund;SE;www.sonlinc.dk;PRODAT;PRODAT;sonwin.edi.test@gmail.com;92170;92170;UTILTS;;sonwin.edi.test@gmail.com;92170;92170
+EL;Sourceful Labs AB (Systemleverantör);;92865;Södra vägen 30;;39245;Kalmar;SE;https://www.sourceful.energy/sv;PRODAT;;ediel-test@sourceful-labs.com;92865;92865;UTILTS;;ediel-test@sourceful-labs.com;92865;92865
+EL;SR Vindparker AB;SRV;22850;Box 7123;;402 33;Göteborg;SE;;PRODAT;;srenergy.ediel@edm.srenergy.delivery.hansencx.com;22850;22850;UTILTS;;srenergy.ediel@edm.srenergy.delivery.hansencx.com;22850;22850
+EL;Staffanstorps Energi AB;260;33800;Box 74;;24521;STAFFANSTORP;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;33800;33800;UTILTS;;ediel@kmv-rejlers.se;33800;33800
+EL;Statens Energimyndighet;STA;66800;Box 310;;63104;Eskilstuna;SE;;PRODAT;;;;;UTILTS;;edielcesar@messaging.grexel.com;82140;66800
+EL;Statkraft Energi AS;SKM;62400;Postboks 200 Lilleaker;;0216;OSLO;NO;;PRODAT;PRODAT;prodat@sentral.statkraft.no;62400;62400;UTILTS;;62400@sentral.statkraft.no;62400;62400
+EL;Stefan Nilsson Consulting AB;;92930;Aberga Byväg 48;;72595;Västerås;SE;
+EL;Stensjön Kraft AB;015;15800;Box 33;;82010;ARBRÅ;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;15800;15800;UTILTS;;ediel@kmv-rejlers.se;15800;15800
+EL;Stockholm Exergi AB;BKV;62000;Lidingövägen 115;;11577;STOCKHOLM;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;62000;62000;UTILTS;;ediel@kmv-rejlers.se;62000;62000
+EL;Stockholms Elbolag AB;SEL;71900;Box 36;;246 21;LÖDDEKÖPINGE;SE;;PRODAT;PRODAT;71900@ediel.props.se;71900;71900;UTILTS;;71900@ediel.props.se;71900;71900
+EL;Storuman Energi AB;STE;49100;Blå Vägen 237;;92331;STORUMAN;SE;;PRODAT;PRODAT;49100@edi.storumanenergi.se;49100;49100;UTILTS;;49100@edi.storumanenergi.se;49100;49100
+EL;Sturefors Eldistribution AB;272;47000;Sturefors gård, kontoret;;589 64;STUREFORS;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;47000;47000;UTILTS;;ediel@kmv-rejlers.se;47000;47000
+EL;Sturefors Godsförvaltning AB;SFG;47010;Sturefors gård, kontoret;;589 64;STUREFORS;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;47010;47010;UTILTS;;ediel@kmv-rejlers.se;47010;47010
+EL;Sundsvall Elnät AB;126;11800;;;851 85;SUNDSVALL;SE;;PRODAT;SCH;edi11800@sundsvallelnat.se;11800;11800;UTILTS;;edi11800@sundsvallelnat.se;11800;11800
+EL;Sundsvall Energi AB;SSE;64500;;;851 85;Sundsvall;SE;;PRODAT;SCH;edi64500@sundsvallenergi.se;64500;64500;UTILTS;;edi64500@sundsvallenergi.se;64500;64500
+EL;Sunstreet Energy AB;SUT;28240;Flottiljgatan 67;;721 31;Västerås;SE;;PRODAT;;sunstreet_ediel@workcloud.se;28240;28240;UTILTS;;sunstreet_ediel@workcloud.se;28240;28240
+EL;Sustainable Intelligence group (Systemleverantör);;92795;Härdgatan 9;;432 32;Varberg;SE;
+EL;SVEA Solar Park Energy AB;SRP;27830;Sankt Eriksgatan 117;;11343;Stockholm;SE;;PRODAT;PRODAT;27830@ediel.props.se;27830;27830;UTILTS;;27830@ediel.props.se;27830;27830
+EL;Svealands Elbolag AB;SEA;27870;Box 37;;246 21;Löddeköpinge;SE;;PRODAT;;27870@ediel.props.se;27870;27870;UTILTS;;27870@ediel.props.se;27870;27870
+EL;Svekraft AB;SKR;65400;BOX 126;;246 22;Löddeköpinge;SE;;PRODAT;PRODAT;65400@ediel.props.se;65400;65400;UTILTS;;65400@ediel.props.se;65400;65400
+EL;Svensk Kraft AB;SKB;10710;Drottninggatan 26;;11151;STOCKHOLM;SE;;PRODAT;;10710@edieltrafik.se;10710;10710;UTILTS;;10710@edieltrafik.se;10710;10710
+EL;Svensk Kärnkraft AB;SKK;17090;c/o Ilan Sadé, Signalgatan 17;;211 14;Malmö;SE;;PRODAT;;17090@skynet.karnkraft.se;17090;17090;UTILTS;;17090@skynet.karnkraft.se;17090;17090
+EL;Svenska Elverket AB;SAE;21340;Stortorget 13B;;21122;MALMÖ;SE;;PRODAT;;se.el@edilink.eu;21340;21340;UTILTS;;se.el@edilink.eu;21340;21340
+EL;Svenska Energigruppen AB;SEG;70700;Box 2019;;750 02;Uppsala;SE;;PRODAT;;;;;UTILTS;;ediel@energiinfo.se;70700;70700
+EL;Svenska kraftnät;SVK;10000;Box 1200;;172 24;Sundbyberg;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;49000;10000;UTILTS;;ediel@ediel.svk.se;10000;10000
+EL;Swedavia AB;634;66340;;;190 45;Stockholm-Arlanda;SE;;PRODAT;;ediel@kmv-rejlers.se;66340;66340;UTILTS;;ediel@kmv-rejlers.se;66340;66340
+EL;Switch Nordic Green AB;HKK;46900;Box 4013;;102 61;Stockholm;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;46900;46900;UTILTS;;ediel@kmv-rejlers.se;46900;46900
+EL;Switchpoint Catalyst AB;SWC;21850;Dalvägen 10;;18731;Täby;SE;
+EL;Sydkraft Hydropower AB;SYV;61800;Box 850;;85124;SUNDSVALL;SE;;PRODAT;;;;;UTILTS;;uniper.ediel@tix.tieto.com;61800;61800
+EL;Sympower Sweden AB;SYP;17770;Långängsvägen 15A;;125 56;Älvsjö;SE;;PRODAT;;;;;UTILTS;;;;
+EL;Systemate A/S;;92575;Tangen 17, 2;;DK 8200;Aarhus;SE;;PRODAT;;settl-se-editest@Systemate.dk;92575;92575;UTILTS;;;;
+EL;Systemleverantör för 10450;;92940;Aaboulevarden 17,3;;DK-8000;Aarhus C;DK;www.powermart.eu
+EL;Systemleverantör för 14300;;92270;Box 224;;90105;UMEÅ;SE;
+EL;Systemleverantör för 14900;;92010;Valhallavägen 203;;11553;Stockholm;SE;
+EL;Systemleverantör för 17150;;92275;Box 278;;59123;MOTALA;SE;https://vimab-bess.com/
+EL;Systemleverantör för 17160;;92090;Östra Hamngatan 16;;41109;Göteborg;SE;https://www.greenbyte.com;PRODAT;;;;;UTILTS;;ediel@kmv-rejlers.se;92090;92090
+EL;Systemleverantör för 17220;;92125;Klarabergsviadukten 63 C/O United Spaces;;11164;Stockholm;SE;https://aneoretail.se/
+EL;Systemleverantör för 17270;;92840;Arenavägen 7;;121 88;Stockholm - Globen;SE;
+EL;Systemleverantör för 17290;;92225;Klerkgatan 18;;702 25;Örebro;SE;https://ecoguard.se/
+EL;Systemleverantör för 17360;;92265;Söder Mälarstrand 21;;118 20;Stockholm;SE;
+EL;Systemleverantör för 17370;;92075;Forsåsen 110;;438 94;Härryda;SE;https://www.controliq.se;PRODAT;;ediel@edielstage.controliq.eu;92075;92075;UTILTS;;ediel@edielstage.controliq.eu;92075;92075
+EL;Systemleverantör för 17580;;92545;Turmalingatan 1A;;421 60;Västra Frölunda;SE;https://smartergy.se/
+EL;Systemleverantör för 18430;;92475;Ideon Sciencepark Alfa 5, Scheelevägen 15;;223 70;Lund;SE;
+EL;Systemleverantör för 18450;;92455;Skogsbovägen 5;;134 30;Gustavsberg;SE;https://www.greenvoltis.com/sweden
+EL;Systemleverantör för 18470;;92555;Auroragränd 1;;12761;Skärholmen;SE;https://www.powerworks.energy/
+EL;Systemleverantör för 24430;;92890;Sveavägen 39;;11134;Stockholm;SE;https://www.easysystem.se/;PRODAT;;ediel@ediel.test.elavtalsservice.se;92890;92890;UTILTS;;ediel@ediel.test.elavtalsservice.se;92890;92890
+EL;Systemleverantör för 24470;;92665;Pelle Bergs Backe 3;;279 50;Falun;SE;
+EL;Systemleverantör för 27610;;92001;Box 112;;24040;TJÖRNARP;SE;;PRODAT;;;92001;92001;UTILTS;;;;
+EL;Systemleverantör för 27800;;92560;Björkgatan 4;;75328;Uppsala;SE;www.savebysolar.se
+EL;Systemleverantör för 28240;;92425;Flottiljgatan 67;;721 31;Västerås;SE;https://sunstreet.se/
+EL;Systemleverantör för 34100;;92006;;;40121;Göteborg;SE;;PRODAT;SCH;ediel.test@sealsnet.tietoenator.com;92006;92006;UTILTS;;ediel.test@sealsnet.tietoenator.com;92006;92006
+EL;Systemleverantör för 34810;;92004;Box 633;;15127;Södertälje;SE;;PRODAT;;;92004;92004;UTILTS;;;;
+EL;Systemleverantör för 40910;;92008;;;11577;STOCKHOLM;SE;
+EL;Systemleverantör för 42400;;92530;Box 53;;40120;Göteborg;SE;;PRODAT;;ediel.test@tix.tieto.com;92530;92530;UTILTS;;ediel.test@tix.tieto.com;92530;92530
+EL;Systemleverantör för 48500;;92005;Box 141 34;;16714;BROMMA;SE;;PRODAT;;edi@bergen-energi.com;92005;92005;UTILTS;;edi@bergen-energi.com;92005;92005
+EL;Systemleverantör för 49000;;92003;Turbinvägen 8;;59161;MOTALA;SE;;PRODAT;SCH;test@kmv-rejlers.se;92003;92003;UTILTS;;test@kmv-rejlers.se;92003;92003
+EL;Systemleverantör för 49100;;92310;Blåvägen 237;;92332;Storuman;SE;www.storumanenergi.se;PRODAT;PRODAT;test@edi.storumanenergi.se;92310;92310;UTILTS;;92310@edi.storumanenergi.se;92310;92310
+EL;Systemleverantör för 49340;;92175;Datavägen 14A;;43632;Askim;SE;
+EL;Systemleverantör för 62520;;92450;Box 1713, Västerlånggatan 10;;50117;BORÅS;SE;http://www.borasem.se/;PRODAT;;edielbem@gmail.com;92450;92450;UTILTS;;edielbem@gmail.com;92450;92450
+EL;Systemleverantör för 63000;;92680;Företagsenhet 2626;;96280;JOKKMOKK;SE;
+EL;Systemleverantör för 66430;;92390;Vera Sandbergs Allé 8;;411 33;Göteborg;SE;www.energimolnet.se;PRODAT;;;;;UTILTS;;ediel@robot.development.metry.io;92390;92390
+EL;Systemleverantör för 66800;;92625;Box 310;;631 04;Eskilstuna;SE;;PRODAT;;;;;UTILTS;;energimyndigheten.test@tix.tieto.com;92625;92625
+EL;Systemleverantör för 66930 ;;92590;Förmansvägen 21;;11759 ;Stockholm;SE;
+EL;Systemleverantör för 70300;;92305;Kungsgatan 10;;111 43;Stockholm;SE;
+EL;Systemleverantör för 70400;;92790;Box 29;;837 23;ÅRE;SE;www.enerbis.se;PRODAT;PRODAT;ediel92790@enerbis.net;92790;92790;UTILTS;;ediel92790@enerbis.net;92790;92790
+EL;Systemleverantör för 70700;;92330;Box 2019;;75002;UPPSALA;SE;www.svenskaenergigruppen.se;PRODAT;;;;;UTILTS;;ediel@energiinfo.se;70700;92330
+EL;Systemleverantör för 81130;;92525;Schewigaards gate 14;;0185;Oslo;NO;https://www.scalarenergy.no/
+EL;Systemleverantör för 82060;;92445;c/o Etha Ab, Vaasanpuistikko 14 B 11;;SF-65100;Vaasa;FI;
+EL;Systemleverantör för 82070;;92565;Kuortaneenkatu 2;;FI-005 10;Helsingfors;SE;https://cactos.com/
+EL;Systemleverantör för 82080 ;;92615;;;00700;Helsinki;FI;
+EL;Systemleverantör för 83010;;92540;Bautavej 1A;;8210;Aarhus V;SE;;PRODAT;;;;;UTILTS;;test@ediel.evishine.se;92540;92540
+EL;Systemleverantör för 83050;;92385;Mejlgade 47, 2;;DK-8000;Aarhus;SE;
+EL;Systemleverantör för 83090;;92395;Strandvejen 7;;DK-5500;Middelfart;DK;
+EL;Systemleverantör för 83240;;92095;Højbro Plads 10, 4, 404;;DK-1200;København K;DK;
+EL;Systemleverantör för 83610;;92645;Frederiksgade 74, 1. tv;;DK-8000;Aarhus C;DK;
+EL;Systemleverantör för 83620;;92675;Hammerensgade 1, 2. tv.;;1267;Köpenhamn K;DK;
+EL;Systemleverantör för 83650;;92970;Niels Jernes Vej 10;;DK-9220;Aalborg Øst;DK;http://www.nidhog.dk/
+EL;Systemleverantör för 83670;;92045;Inge Lehmanns gade 10;;8000;Aarhus C;DK;https://cacommodities.dk/
+EL;Systemleverantör för 83750;;92060;Orientkaj 4, 1.;;2150;Nordhavn;DK;
+EL;Systemleverantör för 83850;;92025;Åbogade 15;;8200;Aarhus N;DK;https://www.inductive-energy.com/
+EL;Systemleverantör för 83950;;92065;Margrethepladsen 4, 2-3 floor;;DK-8000;Aarhus;SE;www.mft-energy.com
+EL;Systemleverantör för 84140;;92605; Ruhralle 201;;45257;Essen;DE;
+EL;Systemleverantör för 84190;;92405;Dellaertweg 5C;;2316 WZ;Leiden;NL;https://www.northpool.nl/
+EL;Systemleverantör för 84350;;92780;Altenessener Str. 27;;45141;Essen;DE;
+EL;Systemleverantör för 85250;;92415;Ludwika Rydygiera 8,  ;;01-793;Warszawa;PL;https://respect.energy/
+EL;Systemleverantör för 85450;;92515;Sterlinga 27/29 lok. 807;;PL-90-212;Lódz;SE;
+EL;Systemleverantör för 88610;;92465;Suite 4, Queripel House, 1 Duke of York Square;;SW34LY ;London;GB;https://www.mobiuscarbon.com/;PRODAT;;;;;UTILTS;;ediel@navcite.se;92465;92465
+EL;Systemleverantör för 88620;;92585;71-75 Shelton Street, Covent Garden;;WC2H 9JQ;London;GB;;PRODAT;;svk-ediel-test@energy.kvasir.ai;92585;92585;UTILTS;;svk-ediel-test@energy.kvasir.ai;92585;92585
+EL;Systemleverantör för 89050;;92550;Bahnhofquai 12;;4600;Olten, Schweiz;SE;;PRODAT;;;;;UTILTS;;schedulingtest@alpiq.com;92550;92550
+EL;Systemleverantör för 89150;;92595;General-Guisan-Strasse 6;;CH-6300;Zug;CH;
+EL;Systemstøtte för Ediel;;91100;Nydalen Alle 33;;N-0484;Oslo;SE;www.ediel.se;PRODAT;PRODAT;91100@ediel.se;91100;91100;UTILTS;;91100@ediel.se;91100;91100
+EL;Systemstøtte för Ediel - test-balansansvarig;;91109;Postboks 5192 Majorstua;;N-0302;Oslo;SE;http://www.ediel.se
+EL;Söderhamn Elnät AB;128;34500;Stabbläggaregatan 11;;82637;SÖDERHAMN;SE;;PRODAT;SCH;se.el@edilink.eu;34500;34500;UTILTS;;se.el@edilink.eu;34500;34500
+EL;Södra Hallands Kraft ek för;129;34600;Box 63;;31221;LAHOLM;SE;;PRODAT;;34600@sodrahallandskraft.se;34600;34600;UTILTS;;34600@sodrahallandskraft.se;34600;34600
+EL;Södra Hallands Kraft Försäljning AB;SHK;34610;Box 63;;312 21;Laholm;SE;;PRODAT;;34610@sodrahallandskraft.se;34610;34610;UTILTS;;34610@sodrahallandskraft.se;34610;34610
+EL;Sölvesborgs Elnät AB;130;34700;;;29480;SÖLVESBORG;SE;;PRODAT;;se.el@edilink.eu;34700;34700;UTILTS;;se.el@edilink.eu;34700;34700
+EL;Sölvesborgs Energi AB;SBG;34710;;;29480;SÖLVESBORG;SE;;PRODAT;;se.el@edilink.eu;34710;34710;UTILTS;;se.el@edilink.eu;34710;34710
+EL;Sörbylunds Elnät HB;514;51400;Sörbylunds Kraftstation;;549 94;Skövde;SE;;PRODAT;;ediel@kmv-rejlers.se;51400;51400;UTILTS;;ediel@kmv-rejlers.se;51400;51400
+EL;Tekniska verken i Linköping AB, IT;;92205;Box 1500;;58115;Linköping;SE;;PRODAT;;92205@tvlab.se;92205;92205;UTILTS;;92205@tvlab.se;92205;92205
+EL;Tekniska verken Katrineholm Nät AB;519;51900;Djulögatan 17;;641 21;Katrineholm;SE;;PRODAT;PRODAT;51900@tvlab.se;51900;51900;UTILTS;;51900@tvlab.se;51900;51900
+EL;Tekniska verken Linköping Nät AB;105;11900;Box 1500;;58115;LINKÖPING;SE;;PRODAT;PRODAT-SE;11900@tvlab.se;11900;11900;UTILTS;;11900@tvlab.se;11900;11900
+EL;Telge Elnät AB;032;34800;Box 633;;15127;SÖDERTÄLJE;SE;;PRODAT;;se.el@edilink.eu;34800;34800;UTILTS;;se.el@edilink.eu;34800;34800
+EL;Telinet Energi AB;TEF;66700;Oxenstiernsgatan 15A;;115 27;Stockholm;SE;;PRODAT;;se.el@edilink.eu;66700;66700;UTILTS;;se.el@edilink.eu;66700;66700
+EL;Telinet Energi Konsument AB;FJK;28710;c/o Fjordkraft Företag AB, Katarinavägen 20;;11645;Stockholm;SE;;PRODAT;SCH;ediel@metzum.no;28710;28710;UTILTS;;ediel@metzum.no;28710;28710
+EL;Testaktör - sändarens ombud;;65999;;;111 11;Stockholm;SE;
+EL;THN Capital AG;THN;89150;General-Guisan-Strasse 6;;CH-6300;Zug;CH;
+EL;Thoryr AB;THO;21450;Grimmeryds By 13;;42670;Västra Frölunda;SE;;PRODAT;;;;;UTILTS;;ediel_prod@thoryr.eu;21450;21450
+EL;Thoryr AB (Systemleverantör);;92765;Grimmereds by 13;;426 70;Västra Frölunda;SE;
+EL;Tibber AB;TBR;66930;Vattugatan 17;;111 52;Stockholm;SE;;PRODAT;;edi.sweden@tibber.io;66930;66930;UTILTS;;edi.sweden@tibber.io;66930;66930
+EL;Tibber Norge AS;TIN;81150;Øyrane 12;;6800;FØRDE;NO;;PRODAT;;;;;UTILTS;;edi.sweden@tibber.io;81150;81150
+EL;Tibro Elnät AB;516;51600;Fabriksgatan 10;;54350;Tibro;SE;;PRODAT;;ediel@tibroenergi.se;51600;51600;UTILTS;;ediel@tibroenergi.se;51600;51600
+EL;Tibro Energi AB;TIB;34910;Fabriksgatan 10;;54350;TIBRO;SE;;PRODAT;;ediel@tibroenergi.se;34910;34910;UTILTS;;ediel@tibroenergi.se;34910;34910
+EL;Tidaholm Elnät AB;662;66200;Box 63;;52222;Tidaholm;SE;;PRODAT;;ediel@tidaholmsenergi.se;66200;66200;UTILTS;;ediel@tidaholmsenergi.se;66200;66200
+EL;Tidaholms Energi AB;TEA;66210;Box 63;;522 22;Tidaholm;SE;;PRODAT;;ediel@tidaholmsenergi.se;66210;66210;UTILTS;;ediel@tidaholmsenergi.se;66210;66210
+EL;Tieto Sweden AB (syst.);;92100;Kyrkgränd 5;;931 34;SKELLEFTEÅ;SE;www.tieto.se;PRODAT;;ediel.test@tix.tieto.com;92100;92100;UTILTS;;ediel.test@tix.tieto.com;92100;92100
+EL;Tieto Sweden AB (syst.);;92300;Box 44;;N-1751;Halden;SE;www.tieto.se;PRODAT;;ediel.test@sealsnet.tietoenator.com;92300;92300;UTILTS;;ediel.test@sealsnet.tietoenator.com;92300;92300
+EL;Tieto Sweden AB (syst.);;92190;Fjärde Bassängvägen 15;;11583;Stockholm;SE;www.tieto.se;PRODAT;PRODAT;ediel.test@sealsnet.tietoenator.com;92190;92190;UTILTS;;ediel.test@sealsnet.tietoenator.com;92190;92190
+EL;TietoEnator Production & Logistics AB (fd Tekla);;92110;Stenborgsgatan 4;;72120;Västerås;SE;www.tieto.se
+EL;Tietoevry AB;TTY;28230;GUSTAV III:S BOULEVARD 130;;169 74;Solna;SE;;PRODAT;;ediel@tix.tieto.com;28230;28230;UTILTS;;ediel@tix.tieto.com;28230;28230
+EL;Tietoevry AB (syst. BIX);;94010;Kyrkgränd 5;;931 34;Skellefteå;SE;www.tietoevry.com;PRODAT;;ediel@tix.tieto.com;94010;94010;UTILTS;;ediel@tix.tieto.com;94010;94010
+EL;Trafikverket;BAN;64600;;;78189;Borlänge;SE;;PRODAT;LEVPRODAT;ediel@edi.compello.com;12300;64600;UTILTS;;ediel@edi.compello.com;12300;64600
+EL;Tranås Energi AB;131;35300;Box 386;;57324;TRANÅS;SE;;PRODAT;;ediel@tranasenergi.se;35300;35300;UTILTS;;ediel@tranasenergi.se;35300;35300
+EL;Tranås Energi Elnät AB;352;35320;Box 386;;573 24;TRANÅS;SE;;PRODAT;;ediel@tranasenergi.se;35320;35320;UTILTS;;ediel@tranasenergi.se;35320;35320
+EL;Trelleborg Elnät AB;262;35400;c/o Trelleborg Kommun;;231 83;TRELLEBORG;SE;;PRODAT;;ediel@trelleborg.se;35400;35400;UTILTS;;ediel@trelleborg.se;35400;35400
+EL;Trelleborgs Energi AB;TBG;35410;Rådhuset;;23183;TRELLEBORG;SE;;PRODAT;;ediel@trelleborg.se;35410;35410;UTILTS;;ediel@trelleborg.se;35410;35410
+EL;Trollhättan Energi AB;075;35500;Box 933;;46129;TROLLHÄTTAN;SE;;PRODAT;;se.el@edilink.eu;35500;35500;UTILTS;;se.el@edilink.eu;35500;35500
+EL;Trollhättan Energi Elnät AB;508;50800;Box 933;;46129;TROLLHÄTTAN;SE;;PRODAT;;se.el@edilink.eu;50800;50800;UTILTS;;se.el@edilink.eu;50800;50800
+EL;Trygg Sverige Holding AB;TSH;13160;Svetsarvägen 7;;17141;Solna;SE;;PRODAT;;se.el@edilink.eu;13160;13160;UTILTS;;se.el@edilink.eu;13160;13160
+EL;Twig Energy ApS;TWE;83260;Overgaden Neden Vandet 17, 2;;1414;Copenhagen K;DK;;PRODAT;actor-prodat;scheduler@twig.energy;83260;83260;UTILTS;;scheduler@twig.energy;83260;83260
+EL;Twig Energy ApS (Systemleverantör);;92085;Overgaden Neden Vandet 17, 2, 1414 København;;DK-1414;Copenhagen;DK;http://www.twig.energy/
+EL;Töre Elförsäljning AB;TRE;35810;Hantverksvägen 14;;95040;TÖRE;SE;;PRODAT;;ediel@toreenergi.se;35810;35810;UTILTS;;ediel@toreenergi.se;35810;35810
+EL;Töre Energi ek för;175;35800;Hantverksvägen 14;;95040;TÖRE;SE;;PRODAT;;ediel@toreenergi.se;35800;35800;UTILTS;;ediel@toreenergi.se;35800;35800
+EL;UAB Vejomaina;VJM;86750;Raudondvario pl. 288C;;47164;Kaunas;LT;
+EL;UAB Vejomaina (Systemleverantör);;92845;Raudondvario pl. 288C;;47164;Kaunas;LT;
+EL;Uddevalla Energi AB;077;36000;Strömberget;;45181;UDDEVALLA;SE;;PRODAT;SCH;edi36000@extopmail.wm.net;36000;36000;UTILTS;;edi36000@extopmail.wm.net;36000;36000
+EL;Uddevalla Energi Elnät AB;360;36010;Strömberget;;45181;Uddevalla;SE;;PRODAT;SCH;edi36010@extopmail.wm.net;36010;36010;UTILTS;;edi36010@extopmail.wm.net;36010;36010
+EL;Ulricehamns Energi Elnät AB;263;36100;Box 123;;52323;Ulricehamn;SE;;PRODAT;SCH;ediel36100@ueab.se;36100;36100;UTILTS;;ediel36100@ueab.se;36100;36100
+EL;Umeå Energi Elhandel AB;UME;12110;Box 224;;90105;UMEÅ;SE;;PRODAT;SCH;ediel@mtc.umeaenergi.se;12110;12110;UTILTS;;ediel@mtc.umeaenergi.se;12110;12110
+EL;Umeå Energi Elnät AB;306;14300;Box 224;;90105;UMEÅ;SE;;PRODAT;SCH;ediel@mtc.umeaenergi.se;14300;14300;UTILTS;;ediel@mtc.umeaenergi.se;14300;14300
+EL;Umeå Kommun;UKN;14310;FE 3579;;83881;FRÖSÖN;SE;;PRODAT;;;;;UTILTS;;ediel@mtc.umeaenergi.se;12110;14310
+EL;Uniper Global Commodities SE;SET;49500;Holzstrasse 6;;402 21;Düsseldorf;DE;;PRODAT;;uniper.ediel@tix.tieto.com;49500;49500;UTILTS;;uniper.ediel@tix.tieto.com;49500;49500
+EL;Upplands Energi AB;BJL;17810;Ramsjövägen 46;;74363;BJÖRKLINGE;SE;;PRODAT;;se.el@edilink.eu;17810;17810;UTILTS;;se.el@edilink.eu;17810;17810
+EL;Upplands Energi ek för;192;17800;Ramsjövägen 46;;74363;BJÖRKLINGE;SE;;PRODAT;;se.el@edilink.eu;17800;17800;UTILTS;;se.el@edilink.eu;17800;17800
+EL;Vaggeryds Elverk AB;201;36400;Box 173;;56724;VAGGERYD;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;36400;36400;UTILTS;;ediel@kmv-rejlers.se;36400;36400
+EL;Vaggeryds Energi AB;VGD;36410;Box 173;;56724;VAGGERYD;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;36410;36410;UTILTS;;ediel@kmv-rejlers.se;36410;36410
+EL;Vallebygdens Elhandel AB;VEM;36510;Skaravägen 18;;53272;AXVALL;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;36510;36510;UTILTS;;ediel@kmv-rejlers.se;36510;36510
+EL;Vallebygdens Energi ek för;203;36500;Skaravägen 18;;53272;AXVALL;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;36500;36500;UTILTS;;ediel@kmv-rejlers.se;36500;36500
+EL;Valmet AB;VTA;66460;;;851 94;Sundsvall;SE;;PRODAT;;edi@gasum.com;82150;66460;UTILTS;;edi@gasum.com;82150;66460
+EL;Vara Energi ek för;204;41800;Box 51;;53421;VARA;SE;;PRODAT;SCH;ediel@bestkraft.se;41800;41800;UTILTS;;ediel@bestkraft.se;41800;41800
+EL;Varberg Energi Elnät AB;176;36800;Box 1043;;43213;VARBERG;SE;;PRODAT;SCH;ediel@varbergenergi.se;36800;36800;UTILTS;;ediel@varbergenergi.se;36800;36800
+EL;Varberg Energimarknad AB;VBG;36810;Box 1043;;43213;VARBERG;SE;;PRODAT;SCH;ediel@varbergenergi.se;36810;36810;UTILTS;;ediel@varbergenergi.se;36810;36810
+EL;Varbergsortens Elförsäljning AB;VBO;36910;Syllingevägen 17;;43020;VEDDIGE;SE;;PRODAT;;ediel@vbgelkraft.se;36910;36910;UTILTS;;ediel@vbgelkraft.se;36910;36910
+EL;Varbergsortens Elnät AB;177;36900;Syllingevägen 17;;43020;VEDDIGE;SE;;PRODAT;;ediel@vbgelkraft.se;36900;36900;UTILTS;;ediel@vbgelkraft.se;36900;36900
+EL;Vattenfall AB;VF_;11000;Företagsenheten 1028;;96280;Jokkmokk;SE;;PRODAT;SCH;vattenfall.vbsn.ediel@tix.tieto.com;11000;11000;UTILTS;;vattenfall.vbsn.ediel@tix.tieto.com;11000;11000
+EL;Vattenfall Eldistribution AB;040;16400;;;169 92;STOCKHOLM;SE;;PRODAT;SCH;vattenfall.vbsn.ediel@tix.tieto.com;16400;16400;UTILTS;;vattenfall.vbsn.ediel@tix.tieto.com;16400;16400
+EL;Vattenfall IT;;92220;;;16287;Stockholm;SE;;PRODAT;;ediel.test@sealsnet.tietoenator.com;92220;92220;UTILTS;;Ediel.Test@sealsnet.tietoenator.com;92220;92220
+EL;Vattenfall Kraftgården AB;VIN;16405;Vattenkraft;;84073;BISPGÅRDEN;SE;;PRODAT;;;;;UTILTS;;vattenfall.vbsn.ediel@tix.tieto.com;16400;16405
+EL;VENI Metering AB;ENE;70500;Norra Ågatan 32;;431 35;Mölndal;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;70500;70500;UTILTS;;ediel@kmv-rejlers.se;70500;70500
+EL;Vestas Wind Systems A/S;;92055;Hedeager 42;;8200;Aarhus;SE;https://www.vestas.com;PRODAT;;;;;UTILTS;;ediel-smtp@vestas.com;92055;92055
+EL;Via Energi AB;VIA;18460;Ryckelösa 3;;58561;Linghem;SE;;PRODAT;;ediel@elavtalsservice.se;18460;18460;UTILTS;;ediel@elavtalsservice.se;18460;18460
+EL;VIM Energy Systems AB;VIM;17150;Box 279;;59123;MOTALA;SE;;PRODAT;;17150@expektra.io;17150;17150;UTILTS;;17150@expektra.io;17150;17150
+EL;Vimmerby Energi Nät AB;792;37920;Förrådsgatan 2;;598 40;VIMMERBY;SE;;PRODAT;SCH;37920@vemab.se;37920;37920;UTILTS;;37920@vemab.se;37920;37920
+EL;Vimmerby Energiförsäljning AB;VBY;37910;Förrådsgatan 2;;59840;VIMMERBY;SE;;PRODAT;SCH;37910@vemab.se;37910;37910;UTILTS;;37910@vemab.se;37910;37910
+EL;Vindlänken Elnät AB;530;53100;Lilla Bommen 1;;411 04;Göteborg;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;53100;53100;UTILTS;;ediel@kmv-rejlers.se;53100;53100
+EL;Vindpark Vänern Drift AB;VPV;65800;c/o Ekologisk Energi Elfred AB, Glittne 2;;682 93;Nordmarkshyttan;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;65800;65800;UTILTS;;ediel@kmv-rejlers.se;65800;65800
+EL;Volta Energy DAC;VAE;88660;Custom House Plaza, Bl.6, International F S Centre;;D01 X9Y5; Dublin;IE;
+EL;Volton Power Management OÜ;VPM;86150;Ahtri tänav 6;;10151;Tallin;EE;
+EL;Volue EMS Sverige Filial (Systemleverantör, ESP);;92435;Sveavägen 17;;11157;STOCKHOLM;SE;https://www.volue.com/sv;PRODAT;PRODAT;edi02@energymarketservices.volue.com;92435;92435;UTILTS;;edi02@energymarketservices.volue.com;92435;92435
+EL;Volue Energy Market Services Sverige Filial;VDK;42500;Sveavägen 17;;11157;STOCKHOLM;SE;;PRODAT;PRODAT;edi1@edi.voluemarketservices.com;42500;42500;UTILTS;;edi1@edi.voluemarketservices.com;42500;42500
+EL;Volue Technology AS;;92260;Holtermanns veg 7;;N-7030;Trondheim;NO;www.volue.com;PRODAT;;;;;UTILTS;;powelnbs@gmail.com;92260;92260
+EL;VänerEl AB;MTE;60200;Box 102;;54221;MARIESTAD;SE;;PRODAT;;ediel@vanerenergi.se;60200;60200;UTILTS;;ediel@vanerenergi.se;60200;60200
+EL;VänerEnergi AB;073;27400;Box 102;;54221;MARIESTAD;SE;;PRODAT;;ediel@vanerenergi.se;27400;27400;UTILTS;;ediel@vanerenergi.se;27400;27400
+EL;Värnamo Elnät AB;137;38600;Box 2268;;33102;VÄRNAMO;SE;;PRODAT;;38600@varnamoenergi.se;38600;38600;UTILTS;;38600@varnamoenergi.se;38600;38600
+EL;Värnamo Energi AB;VMO;38610;Box 2268;;33102;VÄRNAMO;SE;;PRODAT;;38600@varnamoenergi.se;38610;38610;UTILTS;;38600@varnamoenergi.se;38610;38610
+EL;Västerbergslagens Elförsäljning AB;VBL;38710;Box 860;;77128;LUDVIKA;SE;;PRODAT;;se.el@edilink.eu;38710;38710;UTILTS;;se.el@edilink.eu;38710;38710
+EL;Västerbergslagens Elnät AB;024;38700;Box 860;;77128;LUDVIKA;SE;;PRODAT;;se.el@edilink.eu;38700;38700;UTILTS;;se.el@edilink.eu;38700;38700
+EL;Västerbergslagens Kraft AB;VBK;50000;Box 860;;77128;LUDVIKA;SE;;PRODAT;;;;;UTILTS;;se.el@edilink.eu;50000;50000
+EL;Västervik Miljö och Energi AB;VME;66970;Box 25;;59321;Västervik;SE;;PRODAT;;ediel@vmeab.se;66970;66970;UTILTS;;ediel@vmeab.se;66970;66970
+EL;Västerviks Kraft Elnät AB;139;38800;Box 25;;59321;VÄSTERVIK;SE;;PRODAT;SCH;ediel@vastervikskraft.se;38800;38800;UTILTS;;ediel@vastervikskraft.se;38800;38800
+EL;Västra Orusts Energitjänst ek för;061;39100;Glimsåsvägen 3;;474 32;ELLÖS;SE;;PRODAT;SCH;ediel@bestkraft.se;39100;39100;UTILTS;;ediel@bestkraft.se;39100;39100
+EL;Växjö Energi Elnät AB;181;39200;Kvarnvägen 35;;35241;VÄXJÖ;SE;;PRODAT;;edi39200@extopmail.wm.net;39200;39200;UTILTS;;edi39200@extopmail.wm.net;39200;39200
+EL;WSP Sverige AB;WSP;17270;Arenavägen 7;;121 88;Stockholm - Globen;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;17270;17270;UTILTS;;ediel@kmv-rejlers.se;17270;17270
+EL;X Commodities ApS;XCO;83740;Søndergade 4, 2. Sal mf;;8000;Aarhus C;DK;
+EL;Ystad Energi Elnät AB;141;40800;Fridhemsgatan 24;;27145;YSTAD;SE;;PRODAT;;40800@ystad.se;40800;40800;UTILTS;;40800@ystad.se;40800;40800
+EL;Ystad Energihandel AB;YDE;40810;Fridhemsgatan 24;;271 45;YSTAD;SE;;PRODAT;;40810@ystad.se;40810;40810;UTILTS;;40810@ystad.se;40810;40810
+EL;Yuso BV;YUS;88320;Vijfseweg 178;;8790;Waregem;BE;;PRODAT;;;;;UTILTS;;operations.yuso@ez-operations.com;88320;88320
+EL;Å Energi Vannkraft AS;AGD;89100;Postboks 603 Lundsiden;;4606;Kristiansand S;NO;;PRODAT;;edielaevk@aenergi.no;89100;89100;UTILTS;;edielaevk@aenergi.no;89100;89100
+EL;Ålem Energi Elnät AB;205;44900;Råsnäs 103;;38052;Timmernabben;SE;;PRODAT;;ediel@alemenergi.se;44900;44900;UTILTS;;ediel@alemenergi.se;44900;44900
+EL;Ålem Energi Kraft AB;AME;44910;Råsnäs 103;;384 71;TIMMERNABBEN;SE;;PRODAT;;ediel@alemenergi.se;44910;44910;UTILTS;;ediel@alemenergi.se;44910;44910
+EL;Ångermanälvens Vattenregleringsföretag;AVR;64100;Box 392;;83135;ÖSTERSUND;SE;;PRODAT;;;;;UTILTS;;;;
+EL;Årsunda Eldistribution AB;ARS;46610;Hedkarbyvägen 22;;81022;ÅRSUNDA;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;46610;46610;UTILTS;;ediel@kmv-rejlers.se;46610;46610
+EL;Årsunda Kraft o Belysningsf;290;46600;Hedkarbyvägen 22;;81022;ÅRSUNDA;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;46600;46600;UTILTS;;ediel@kmv-rejlers.se;46600;46600
+EL;Åsele Elnät AB;715;71500;Centralgatan 31;;919 31;Åsele;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;71500;71500;UTILTS;;ediel@kmv-rejlers.se;71500;71500
+EL;Åsele Kraft AB;ASL;44810;Box 34;;91931;ÅSELE;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;44810;44810;UTILTS;;ediel@kmv-rejlers.se;44810;44810
+EL;Åskälen Vindkraft Elnät AB;628;12800;c/o Vasa Vind AB, Garvis Carlssonsg 5, 11tr;;169 51;Solna;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;12800;12800;UTILTS;;ediel@kmv-rejlers.se;12800;12800
+EL;Öresundskraft Elnät AB;096;40400;Box 642;;25106;HELSINGBORG;SE;;PRODAT;SCH;40400@ediel.oresundskraft.se;40400;40400;UTILTS;;40400@ediel.oresundskraft.se;40400;40400
+EL;Öresundskraft Marknad AB;ORK;41900;Box 642;;25106;HELSINGBORG;SE;;PRODAT;;41900@ediel.oresundskraft.se;41900;41900;UTILTS;;41900@ediel.oresundskraft.se;41900;41900
+EL;Österlens Kraft AB;OLN;45310;Testgatan 3;;27236;Simrishamn;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;45310;45310;UTILTS;;ediel@kmv-rejlers.se;45310;45310
+EL;Österlens Kraft Elnät AB;121;32200;Testgatan 3;;27236;SIMRISHAMN;SE;;PRODAT;SCH;ediel@kmv-rejlers.se;32200;32200;UTILTS;;ediel@kmv-rejlers.se;32200;32200
+EL;Östra Kinds Elkraft;OKE;45510;Box 6004;;514 06;Dalstorp;SE;;PRODAT;;ediel@ostrakindselkraft.se;45510;45510;UTILTS;;ediel@ostrakindselkraft.se;45510;45510
+EL;Östra Kinds Elnät AB;057;45500;Box 6004;;51406;DALSTORP;SE;;PRODAT;;ediel@ostrakindselkraft.se;45500;45500;UTILTS;;ediel@ostrakindselkraft.se;45500;45500
+EL;Övertorneå Energi AB;527;52700;Älvvägen 13;;957 31;Övertorneå;SE;;PRODAT;;edi.energi@overtornea.se;52700;52700;UTILTS;;edi.energi@overtornea.se;52700;52700
+EL;Övertorneå Energi Försäljning AB;OAV;17240;Älvvägen 13;;957 31;Övertorneå;SE;;PRODAT;;edi.energi@overtornea.se;17240;17240;UTILTS;;edi.energi@overtornea.se;17240;17240
+EL;Övik Energi AB;OVK;45710;Box 380;;89128;ÖRNSKÖLDSVIK;SE;;PRODAT;SCH;45700@ovikenergi.se;45710;45710;UTILTS;;45700@ovikenergi.se;45710;45710
+EL;Övik Energi Nät AB;182;45700;Box 11;;891 21;ÖRNSKÖLDSVIK;SE;;PRODAT;SCH;45700@ovikenergi.se;45700;45700;UTILTS;;45700@ovikenergi.se;45700;45700
+GAS;ApportGas AB;APG;42600;Astrakanvägen 1;;22456;Lund;SE;;PRODAT;;ediel@edi.compello.com;42600;42600;UTILTS;;;;
+GAS;Axpo Sverige AB;HYK;14600;Stortorget 29;;21134;MALMÖ;SE;;PRODAT;PRODAT;edi02@energymarketservices.volue.com;14600;14600;UTILTS;;;;
+GAS;BioGem A/S;ASB;83470;Alsvej 21;;8940;Randers SV;DK;;PRODAT;;;;;UTILTS;;;;
+GAS;BioGem AB;BES;83450;Föreningsgatan 217;;261 51;Landskrona;SE;;PRODAT;;prod-nomnom@fremsyn.net;83450;83450;UTILTS;;;;
+GAS;CGI Sverige 92400;;92400;Östra Varvsgatan 2;;21175;Malmö;SE;www.cgi.se;PRODAT;;ediel.bfus.test1@utilitysmtp.wm.net;92400;92400;UTILTS;;;;
+GAS;CGI Sverige 92410;;92410;Östra Varvsgatan 2;;211 75;Malmö;SE;www.cgi.se;PRODAT;;ediel.bfus.test2@utilitysmtp.wm.net;92410;92410;UTILTS;;;;
+GAS;Deepki SAS;DES;88910;111 Avenue Victor Hugo;;75116;Paris;FR;;PRODAT;;;;;UTILTS;;;;
+GAS;Digital Plattform Sverige AB;;92745;Industrigatan 14;;58255;Linköping;SE;https://digitalplattform.se
+GAS;Driva Gas AB;SGS;60710;Råsundavägen 12;;169 67;SOLNA;SE;
+GAS;Driva Gasnät AB;607;60700;Råsundavägen 12;;169 67;SOLNA;SE;
+GAS;Dummy Systemleverantör;;91999;Box 1200;;172 24;SUNDBYBERG;SE;;PRODAT;;ediel@ediutv.svk.se;91999;91999;UTILTS;;ediel@ediutv.svk.se;91999;91999
+GAS;E.ON Energilösningar AB;SKF;10901;;;20509;Malmö;SE;;PRODAT;GAS;10901.eon.ediel@tix.tieto.com;10901;10901;UTILTS;;;;
+GAS;E.ON IT (EL);;92600;Carl Gustafs väg 1;;205 09;Malmö;SE;http://www.eon.se;PRODAT;;ediel.test@sealsnet.tietoenator.com;92600;92600;UTILTS;;;;
+GAS;E.ON IT (NÄT);;92500;Carl Gustafs väg 1;;205 09;Malmö;SE;www.eon.se;PRODAT;GAS;ediel.test@sealsnet.tietoenator.com;92500;92500;UTILTS;;;;
+GAS;E.ON Sverige AB;SK_;10900;Carl Gustafs väg 1;;20509;MALMÖ;SE;;PRODAT;GAS;10900.eon.ediel@tix.tieto.com;10900;10900;UTILTS;;;;
+GAS;EG Sverige AB;;92140;Sankt Göransgatan 57;;112 38;Stockholm;SE;www.eg.se;PRODAT;;xellent_edi_se@egdev.dk;92140;92140;UTILTS;;;;
+GAS;EG Sverige AB;;94000;Industrivej Syd 13C;;DK-7400;Herning Danmark;SE;;PRODAT;;se.gas@edilink.eu;94000;94000;UTILTS;;;;
+GAS;Gasum AB;GAA;63770;Gjuterigatan 1B;;582 73;Linköping;SE;;PRODAT;;edi-ng@gasum.com;63770;63770;UTILTS;;;;
+GAS;Gasum Clean Gas Solutions AB;GCG;17750;c/o Gasum AB, Gjuterigatan 5;;582 73;Linköping;SE;
+GAS;Göteborg Energi AB;GTB;42400;Box 53;;40120;GÖTEBORG;SE;;PRODAT;;42400.goteborgenergi.ediel@tix.tieto.com;42400;42400;UTILTS;;;;
+GAS;Göteborg Energi Gasnät AB;319;50600;c/o Göteborg Energi AB Box 53;;40120;GÖTEBORG;SE;;PRODAT;;50600.goteborgenergi.ediel@tix.tieto.com;50600;50600;UTILTS;;;;
+GAS;Hansen Technologies Finland Oy  ;;92150;Isafjordsgatan 5;;164 40;Kista;SE;https://www.hansencx.com/solutions/generiscx
+GAS;InConX AB;CCE;81300;Lindhagensgatan 94;;11218;Stockholm;SE;;PRODAT;;ediel@edi.compello.com;81300;81300;UTILTS;;;;
+GAS;InConX AB (Systemleverantör);;90008;c/o Visma;Västra Järnvägsgatan 7;11164;Stockholm;SE; https://amili.no/no/edi
+GAS;Kraftringen Energi AB;LND;24710;Box 25;;22100;LUND;SE;;PRODAT;SCH;ediel@edi.compello.com;24710;24710;UTILTS;;;;
+GAS;Kraftringen Nät AB;239;24700;Box 25;;221 00;Lund;SE;;PRODAT;;ediel@edi.compello.com;24700;24700;UTILTS;;;;
+GAS;Mind Energy A/S;EDA;83120;Tangen 29;;8200;Aarhus N;DK;;PRODAT;;edielgas@energi-sverige.se;83120;83120;UTILTS;;;;
+GAS;Mind Energy AB;EFS;64700;Hyllie Boulevard 34;;215 32;Malmö;SE;;PRODAT;;edielgas@energi-sverige.se;64700;64700;UTILTS;;;;
+GAS;Modity Energy Trading AB;KRF;42800;Box 1039;;22104;LUND;SE;;PRODAT;;edi42800@extopmail.wm.net;42800;42800;UTILTS;;;;
+GAS;Nominergy;;92015;Föreningsgatan 217;;26151;Landskrona;SE;biogem.com;PRODAT;;test-nomnom@fremsyn.net;92015;92015;UTILTS;;;;
+GAS;Solteq Plc;;92070;Revontulenkuja 1;;FI-02100;Espoo;FI;https://www.solteq.com/
+GAS;Swedegas AB;317;50400;Kilsgatan 4;;411 04;GÖTEBORG;SE;;PRODAT;;nordion@extopmail.wm.net;50400;50400;UTILTS;;;;
+GAS;Systemate A/S;;92575;Tangen 17, 2;;DK 8200;Aarhus;SE;;PRODAT;;settl-se-editest@systemate.dk;92575;92575;UTILTS;;;;
+GAS;Systemleverantör för 14600;;92630;Stortorget 29;;211 34;MALMÖ;SE;
+GAS;Systemleverantör för 49500;;92505;Holzstrasse 6;;DE-40221;Düsseldorf;DE;
+GAS;Systemstøtte för Ediel;;91100;Nydalen Alle 33;;N-0484;Oslo;SE;www.ediel.se;PRODAT;PRODAT;91100@ediel.se;91100;91100;UTILTS;;;;
+GAS;Tietoevry AB (syst. BIX);;94010;Kyrkgränd 5;;931 34;Skellefteå;SE;www.tietoevry.com;PRODAT;;ediel@tix.tieto.com;94010;94010;UTILTS;;test2016@test.se;94010;94010
+GAS;Uniper Global Commodities SE;SET;49500;Holzstrasse 6;;402 21;Düsseldorf;DE;;PRODAT;;edigas@uniper.energy;49500;49500;UTILTS;;;;
+GAS;Varberg Energi Infra AB;688;36880;Box 1043;;432 13;Varberg;SE;;PRODAT;;ediel@varbergenergi.se;36880;36880;UTILTS;;;;
+GAS;Varberg Energimarknad AB;VBG;36810;Box 1043;;43213;VARBERG;SE;;PRODAT;GAS;ediel@varbergenergi.se;36810;36810;UTILTS;;;;
+GAS;Volue EMS Sverige Filial (Systemleverantör, ESP);;92435;Sveavägen 17;;11157;STOCKHOLM;SE;https://www.volue.com/sv;PRODAT;PRODAT;edi02@energymarketservices.volue.com;92435;92435;UTILTS;;edi02@energymarketservices.volue.com;92435;92435
+GAS;Weum Gas AB;318;50500;Box 362;;201 23;Malmö;SE;;PRODAT;;nordion@extopmail.wm.net;50500;50500;UTILTS;;;;
+GAS;Öresundskraft Gasnät AB;448;40480;Box 642;;251 06;HELSINGBORG;SE;;PRODAT;;40480@edielgas.oresundskraft.se;40480;40480;UTILTS;;;;
+GAS;Öresundskraft Marknad AB;ORK;41900;Box 642;;25106;HELSINGBORG;SE;;PRODAT;;41900@edielgas.oresundskraft.se;41908;41900;UTILTS;;;;
+GAS;Ørsted;DOS;64200;Skomakaregatan 6-8;;211 34;Malmö;SE;;PRODAT;;orsted@extopmail.wm.net;64200;64200;UTILTS;;;;
+GAS;Ørsted Energy Salg & Service A/S;DON;83810;Kraftvaerksvej 53, Skaerbaek;;7000;Fredericia;DK;
+Data generated at:2026-10-09T10:02:18Z

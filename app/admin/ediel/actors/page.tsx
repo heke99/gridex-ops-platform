@@ -76,6 +76,28 @@ function previewValue(metadata: unknown, key: string): number | string {
   return typeof value === 'number' || typeof value === 'string' ? value : '—'
 }
 
+function gridOwnerCounts(metadata: unknown): Record<string, unknown> | null {
+  if (!isRecord(metadata)) return null
+  const plan = isRecord(metadata.gridOwnerPlan) ? metadata.gridOwnerPlan : null
+  if (plan && isRecord(plan.counts)) return { kind: 'plan', ...plan.counts }
+  const result = isRecord(metadata.gridOwnerResult) ? metadata.gridOwnerResult : null
+  if (result && isRecord(result.counts)) return { kind: 'result', ...result.counts, appliedUpdates: result.updated, appliedCreates: result.created, stale: Array.isArray(result.staleSkipped) ? result.staleSkipped.length : 0 }
+  return null
+}
+
+function gridOwnerFlags(metadata: unknown): Array<{ code: string; name: string; edielId: string | null }> {
+  if (!isRecord(metadata) || !isRecord(metadata.gridOwnerPlan) || !Array.isArray(metadata.gridOwnerPlan.flags)) return []
+  return metadata.gridOwnerPlan.flags.filter(isRecord).map(flag => ({ code: String(flag.code ?? ''), name: String(flag.name ?? ''), edielId: typeof flag.edielId === 'string' ? flag.edielId : null }))
+}
+
+function resultValue(metadata: unknown, key: string): number | string {
+  if (isRecord(metadata) && isRecord(metadata.result)) {
+    const value = metadata.result[key]
+    if (typeof value === 'number') return value
+  }
+  return previewValue(metadata, key === 'created' ? 'newActors' : key === 'updated' ? 'changedActors' : key === 'unchanged' ? 'unchangedActors' : key)
+}
+
 function importModeLabel(metadata: unknown, status: string | null | undefined) {
   if (isRecord(metadata) && metadata.mode === 'preview') return 'Förhandsgranskning klar'
   if (isRecord(metadata) && metadata.mode === 'apply') return status === 'completed' ? 'Importerad' : 'Importerad med granskning'
@@ -226,14 +248,16 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
             </div>
             <form action={importPlatformActorsAction} encType="multipart/form-data" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-700">
               <div className="font-black text-slate-950">Importera aktörsdata</div>
-              <p className="mt-1">Ladda upp companies.xml eller kompletterande CSV. Importen lägger nya och ändrade aktörer i granskning. Automatisk sändning är alltid av tills superadmin verifierar aktör och route.</p>
+              <p className="mt-1">Ladda upp companies.xml (rekommenderas), companies.txt eller kompletterande CSV. Importen lägger nya och ändrade aktörer i granskning. Automatisk sändning är alltid av tills superadmin verifierar aktör och route.</p>
               <div className="mt-3 grid gap-2">
-                <input type="file" name="actorImportFile" accept=".xml,.csv,text/xml,text/csv" required className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
+                <input type="file" name="actorImportFile" accept=".xml,.txt,.csv,text/xml,text/plain,text/csv" required className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
                 <select name="format" defaultValue="auto" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
                   <option value="auto">Auto</option>
                   <option value="xml">companies.xml</option>
+                  <option value="txt">companies.txt</option>
                   <option value="csv">CSV</option>
                 </select>
+                <label className="flex items-center gap-2"><input type="checkbox" name="syncGridOwners" value="on" defaultChecked /> Uppdatera även nätägarregistret (grid_owners) från filen</label>
                 <input type="hidden" name="source" value="actor_registry_ui" />
                 <button name="importMode" value="preview" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">Förhandsgranska diff</button>
                 <input name="confirmApply" placeholder="Skriv IMPORTERA för att godkänna" className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs" />
@@ -261,11 +285,35 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
                     <div className="mt-2 grid grid-cols-2 gap-1 text-[11px]">
                       <span>Rader: {run.records_seen}</span>
                       <span>Uppdaterade: {run.records_upserted}</span>
-                      <span>Nya: {previewValue(run.metadata, 'newActors')}</span>
-                      <span>Konflikter: {previewValue(run.metadata, 'conflicts')}</span>
+                      <span>Nya: {resultValue(run.metadata, 'created')}</span>
+                      <span>Ändrade: {resultValue(run.metadata, 'updated')}</span>
+                      <span>Oförändrade: {resultValue(run.metadata, 'unchanged')}</span>
+                      <span>Konflikter: {resultValue(run.metadata, 'conflicts')}</span>
                       <span>Nätägare: {previewValue(run.metadata, 'gridOwners')}</span>
                       <span>Routes: {previewValue(run.metadata, 'routesSeen')}</span>
                     </div>
+                    {(() => {
+                      const counts = gridOwnerCounts(run.metadata)
+                      if (!counts) return null
+                      const flags = gridOwnerFlags(run.metadata)
+                      return (
+                        <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-950">
+                          <div className="font-black">grid_owners {counts.kind === 'plan' ? '(förhandsgranskning)' : '(tillämpat)'}</div>
+                          <div className="grid grid-cols-2 gap-1">
+                            <span>Uppdateras: {String(counts.kind === 'plan' ? counts.updated : counts.appliedUpdates)}</span>
+                            <span>Nya: {String(counts.kind === 'plan' ? counts.created : counts.appliedCreates)}</span>
+                            <span>Oförändrade: {String(counts.unchanged)}</span>
+                            <span>Flaggade: {String(counts.flagged)}</span>
+                            {counts.kind === 'result' && Number(counts.stale) > 0 ? <span className="col-span-2 font-bold text-red-700">Hoppade över (ändrade under importen): {String(counts.stale)}</span> : null}
+                          </div>
+                          {flags.length > 0 ? (
+                            <details className="mt-1"><summary className="cursor-pointer font-semibold">Granskningspunkter ({flags.length})</summary>
+                              <ul className="mt-1 max-h-48 overflow-auto">{flags.map((flag, index) => <li key={index}>{flag.code} · {flag.name}{flag.edielId ? ` (${flag.edielId})` : ''}</li>)}</ul>
+                            </details>
+                          ) : null}
+                        </div>
+                      )
+                    })()}
                   </div>
                 ))}
               </div>
