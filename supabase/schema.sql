@@ -25647,7 +25647,7 @@ CREATE FUNCTION gridex_received_sources.other_supply_scope_effect_v1(p_company_i
     AS $$
 DECLARE m public.ediel_messages%rowtype;sp public.customer_supply_periods%rowtype;sw public.supplier_switch_requests%rowtype;origin public.ediel_messages%rowtype;
  prior gridex_received_sources.supply_source_transitions%rowtype;ground gridex_received_sources.regulated_supply_ground_versions%rowtype;
- wire jsonb;original jsonb;own jsonb;entry jsonb;plan jsonb;plans jsonb:='[]';before_states jsonb:='[]';previous_switches jsonb:='[]';after_states jsonb;old jsonb;
+ wire jsonb;sender_basis jsonb;original jsonb;own jsonb;entry jsonb;plan jsonb;plans jsonb:='[]';before_states jsonb:='[]';previous_switches jsonb:='[]';after_states jsonb;old jsonb;
  ids uuid[];point public.metering_points%rowtype;consumption public.metering_points%rowtype;legal_actor uuid;dso_actor uuid;
  event_at timestamptz;start_at timestamptz;reason text;period_id uuid;expected_version bigint;qualified boolean;
 BEGIN
@@ -25670,6 +25670,16 @@ BEGIN
  IF prior.source_message_id IS NOT NULL THEN
   IF wire->>'code'='Z04' AND reason IN('Z26','Z70') AND EXISTS(SELECT FROM jsonb_array_elements(prior.resulting_states) saved WHERE gridex_regulated_supply.ground_current_v1((saved#>>'{metadata,sourceGroundId}')::uuid,m.company_id,(saved->>'metering_point_id')::uuid,(saved->>'market_start_at')::timestamptz) IS NOT TRUE) THEN RETURN jsonb_build_object('applied',false,'reason','regulated_supply_current_ground_required');END IF;
   RETURN jsonb_build_object('applied',true,'idempotent',true,'periods',prior.resulting_states);
+ END IF;
+ -- Only a first Z05/C restoration requires today's actual sender registry.
+ -- Historical recorded outcomes returned above retain their original truth.
+ IF wire->>'code'='Z05' AND reason='Z24' THEN
+  sender_basis:=gridex_network_registry_sources.network_for_company_v1(m.company_id,wire->>'sender',m.environment);
+  IF sender_basis->>'status' IS DISTINCT FROM 'authorized'
+   OR sender_basis#>>'{basis,companyId}' IS DISTINCT FROM m.company_id::text
+   OR sender_basis#>>'{basis,environment}' IS DISTINCT FROM m.environment
+   OR sender_basis#>>'{basis,networkEdielId}' IS DISTINCT FROM wire->>'sender'
+   THEN RETURN jsonb_build_object('applied',false,'reason','z05c_current_sender_network_registry_required');END IF;
  END IF;
  PERFORM tp.id FROM public.tenant_ediel_profiles tp WHERE tp.company_id=m.company_id AND tp.environment=m.environment ORDER BY tp.id FOR SHARE;
  PERFORM i.id FROM public.tenant_actor_identifiers i WHERE i.company_id=m.company_id AND i.environment=m.environment ORDER BY i.id FOR SHARE;
