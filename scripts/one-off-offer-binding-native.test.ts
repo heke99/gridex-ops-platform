@@ -34,15 +34,25 @@ function chain(contractId: string): Chain {
     WHERE c.id=${literal(contractId)} AND c.company_id=${literal(f.companyId)}`)
 }
 
-function manualContract(status: 'draft' | 'pending_signature', actorUserId = f.actorUserId) {
-  return createCustomerContract({
+// Card create supplies the canonical array itself (TS binding). A draft that
+// later goes through the SQL signature/import consumers carries only the
+// contract's resolved price_area_used, which the materializer must bridge.
+async function manualContract(status: 'draft' | 'pending_signature', actorUserId = f.actorUserId) {
+  const contract = await createCustomerContract({
     companyId: f.companyId, customerId: f.customerId, siteId: f.siteId, meteringPointId: f.pointId,
     sourceType: 'manual_override', status, contractName: `Kundspecifikt ${randomUUID()}`,
     contractType: 'variable_hourly', energyDirection: 'consumption', spotMarkupOrePerKwh: 4, monthlyFeeSek: 49,
-    invoiceFeeSek: 19, priceSnapshot: { interval_resolution: 'hourly', price_areas: ['SE3'] },
+    invoiceFeeSek: 19,
+    priceSnapshot: status === 'draft' ? { interval_resolution: 'hourly' } : { interval_resolution: 'hourly', price_areas: ['SE3'] },
     // Future supply start: signing must still be possible today.
     greenFeeMode: 'none', startsAt: futureNativeSupplyDate(), actorUserId,
   })
+  if (status === 'draft') {
+    sql(`UPDATE public.customer_contracts SET price_area_used='SE3' WHERE id=${literal(contract.id)} AND company_id=${literal(f.companyId)};`)
+    expect(sql<boolean>(`SELECT to_jsonb(NOT (coalesce(price_snapshot,'{}'::jsonb) ? 'price_areas'))
+      FROM public.customer_contracts WHERE id=${literal(contract.id)}`)).toBe(true)
+  }
+  return contract
 }
 
 function expectBoundOneOff(contractId: string, status: string) {

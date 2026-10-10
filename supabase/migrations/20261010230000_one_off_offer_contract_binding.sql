@@ -89,10 +89,10 @@ begin
   if p_payload->'default_notice_months' is null and p_payload ? 'notice_months' then
     p_payload := p_payload || jsonb_build_object('default_notice_months',p_payload->'notice_months');
   end if;
-  -- Canonical pricing requires the price_areas array; those consumers send the
-  -- contract's single resolved price_area.
-  if coalesce(jsonb_array_length(case when jsonb_typeof(p_pricing_snapshot->'price_areas')='array'
-                                      then p_pricing_snapshot->'price_areas' end),0)=0
+  -- Canonical pricing requires the price_areas array; those consumers send only
+  -- the contract's single resolved price_area. Bridge only an absent canonical
+  -- key: an explicit (even malformed) price_areas keeps its normal refusal path.
+  if not (p_pricing_snapshot ? 'price_areas')
      and nullif(p_pricing_snapshot->>'price_area','') is not null then
     p_pricing_snapshot := p_pricing_snapshot
       || jsonb_build_object('price_areas',jsonb_build_array(p_pricing_snapshot->>'price_area'));

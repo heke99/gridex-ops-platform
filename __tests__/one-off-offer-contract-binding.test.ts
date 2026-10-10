@@ -214,6 +214,21 @@ describe('one-off offer contract binding', () => {
     expect(saved.rows[0].snapshot).toMatchObject({ price_areas: ['SE3'], one_off: true })
   })
 
+  it.each([
+    ['absent canonical key', { price_area: 'SE3' }, ['SE3']],
+    ['explicit empty array', { price_area: 'SE3', price_areas: [] }, []],
+    ['explicit null', { price_area: 'SE3', price_areas: null }, null],
+    ['explicit scalar', { price_area: 'SE3', price_areas: 'bogus' }, 'bogus'],
+    ['explicit different array', { price_area: 'SE3', price_areas: ['SE4'] }, ['SE4']],
+  ])('bridges price_area to price_areas only for an %s', async (_label, snapshot, expected) => {
+    const { rows } = await db.query<{ b: { contract_offer_id: string } }>(
+      `select public.gridex_prepare_manual_contract_binding($1::uuid, '{}'::jsonb, $2::jsonb, null) as b`,
+      [T1, JSON.stringify(snapshot)])
+    const saved = await db.query<{ areas: unknown }>(
+      `select snapshot->'price_areas' as areas from public.saved_offer_inputs where offer_id = $1`, [rows[0].b.contract_offer_id])
+    expect(saved.rows[0].areas).toEqual(expected)
+  })
+
   it('raises a publish refusal and leaves no reservation or archived offer', async () => {
     const T3 = '33333333-3333-4333-8333-333333333333'
     await db.query('insert into public.companies values ($1)', [T3])
