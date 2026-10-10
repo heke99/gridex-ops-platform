@@ -60755,7 +60755,8 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'company_not_found' USING ERRCODE = 'P0002';
   END IF;
-  IF c.invoice_export_target_system IS DISTINCT FROM 'file_export'
+  IF c.invoice_export_target_system IS NULL
+     OR c.invoice_export_target_system NOT IN ('file_export', 'nordfin')
      OR c.billing_provider_environment IS DISTINCT FROM p_environment
      OR c.invoice_export_enabled IS NOT TRUE THEN
     RAISE EXCEPTION 'invoice_file_provider_not_active' USING ERRCODE = '55000';
@@ -60774,7 +60775,7 @@ BEGIN
        AND i.status = 'pending'
        AND i.export_file_id IS NULL
        AND i.metadata->'approval'->>'status' = 'approved'
-       AND run.provider = 'file_export'
+       AND run.provider = c.invoice_export_target_system
        AND run.environment = p_environment
        AND run.billing_month = p_billing_month
      FOR UPDATE OF i
@@ -60785,8 +60786,8 @@ BEGIN
 
   SELECT coalesce(sum((x->>'amount_inc_vat')::numeric), 0) INTO v_total FROM jsonb_array_elements(p_rows) x;
 
-  INSERT INTO public.invoice_export_files (id, company_id, billing_month, environment, row_count, total_inc_vat, rows, rows_sha256, created_by)
-  VALUES (v_file_id, p_company_id, p_billing_month, p_environment, cardinality(v_ids), v_total, p_rows, p_rows_sha256, p_actor_user_id);
+  INSERT INTO public.invoice_export_files (id, company_id, billing_month, environment, provider, row_count, total_inc_vat, rows, rows_sha256, created_by)
+  VALUES (v_file_id, p_company_id, p_billing_month, p_environment, c.invoice_export_target_system, cardinality(v_ids), v_total, p_rows, p_rows_sha256, p_actor_user_id);
 
   FOR r IN SELECT * FROM jsonb_array_elements(p_rows) LOOP
     UPDATE public.invoice_export_items
@@ -60816,7 +60817,7 @@ BEGIN
                                  new_values, metadata, resource_type, resource_id)
   VALUES (p_company_id, p_actor_user_id, 'user', 'invoice_export_file', v_file_id::text, 'invoice_file_created',
           jsonb_build_object('billing_month', p_billing_month, 'row_count', cardinality(v_ids), 'total_inc_vat', v_total),
-          jsonb_build_object('environment', p_environment, 'rows_sha256', p_rows_sha256),
+          jsonb_build_object('environment', p_environment, 'provider', c.invoice_export_target_system, 'rows_sha256', p_rows_sha256),
           'invoice_export_file', v_file_id::text);
 
   RETURN v_file_id;
@@ -88505,7 +88506,7 @@ DECLARE
   cat record;
   v_open integer;
   v_connection_id uuid;
-  v_file boolean := p_provider = 'file_export';
+  v_file boolean := p_provider IN ('file_export', 'nordfin');
 BEGIN
   IF p_environment NOT IN ('test', 'production') THEN
     RAISE EXCEPTION 'invoice_provider_environment_invalid' USING ERRCODE = '22023';
@@ -118962,8 +118963,10 @@ CREATE TABLE public.invoice_export_files (
     rows_sha256 text NOT NULL,
     created_by uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    provider text DEFAULT 'file_export'::text NOT NULL,
     CONSTRAINT invoice_export_files_billing_month_check CHECK ((billing_month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text)),
     CONSTRAINT invoice_export_files_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT invoice_export_files_provider_check CHECK ((provider = ANY (ARRAY['file_export'::text, 'nordfin'::text]))),
     CONSTRAINT invoice_export_files_row_count_check CHECK ((row_count > 0)),
     CONSTRAINT invoice_export_files_rows_check CHECK ((jsonb_typeof(rows) = 'array'::text)),
     CONSTRAINT invoice_export_files_rows_sha256_check CHECK ((rows_sha256 ~ '^[0-9a-f]{64}$'::text))

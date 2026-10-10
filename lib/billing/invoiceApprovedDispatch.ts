@@ -1,5 +1,5 @@
 import { requireInvoiceSourceCopiesAvailable } from '@/lib/ediel/retention/financeCopyRetention'
-import { InvoiceProviderConfigError, loadTenantInvoiceProviderSelection, requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
+import { InvoiceProviderConfigError, isFileProvider, loadTenantInvoiceProviderSelection, requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
@@ -425,7 +425,7 @@ export async function sendApprovedInvoiceExportRun(input: { companyId: string; e
 export async function approveAndSendReadyInvoicesForMonth(input: { companyId: string; billingMonth: string; actorUserId: string }) {
   await requireCompanyOperationalForWrites(input.companyId)
   // A file provider receives approved invoices through an invoice file, not per-invoice sends.
-  const approveOnly = requireTenantInvoiceProvider((await loadTenantInvoiceProviderSelection(input.companyId)) ?? {}).provider === 'file_export'
+  const approveOnly = isFileProvider(requireTenantInvoiceProvider((await loadTenantInvoiceProviderSelection(input.companyId)) ?? {}).provider)
   const runs = await supabaseService.from('invoice_export_runs').select('id').eq('company_id', input.companyId).eq('billing_month', input.billingMonth).order('created_at', { ascending: true })
   if (runs.error) throw runs.error
   const runIds = (runs.data ?? []).map((row) => String(row.id))

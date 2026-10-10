@@ -25,14 +25,15 @@ describe('tenant invoice provider selection', () => {
       .toThrow(expect.objectContaining({ code: 'invoice_provider_environment_missing' }))
   })
 
-  it('refuses a provider without an integration (Nordfin)', () => {
-    expect(isDispatchImplemented('nordfin')).toBe(false)
-    expect(() => requireTenantInvoiceProvider({ invoice_export_target_system: 'nordfin', billing_provider_environment: 'test' }))
+  it('refuses a provider without an integration (Fortnox)', () => {
+    expect(isDispatchImplemented('fortnox')).toBe(false)
+    expect(isDispatchImplemented('nordfin')).toBe(true)
+    expect(() => requireTenantInvoiceProvider({ invoice_export_target_system: 'fortnox', billing_provider_environment: 'test' }))
       .toThrow(expect.objectContaining({ code: 'invoice_provider_not_available' }))
   })
 
   it('does not call the database when an unavailable provider is selected', async () => {
-    await expect(selectTenantInvoiceProvider({ companyId: 'c1', provider: 'nordfin', environment: 'test', actorUserId: 'u1' }))
+    await expect(selectTenantInvoiceProvider({ companyId: 'c1', provider: 'fortnox', environment: 'test', actorUserId: 'u1' }))
       .rejects.toBeInstanceOf(InvoiceProviderConfigError)
     expect(rpc).not.toHaveBeenCalled()
   })
