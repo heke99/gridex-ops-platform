@@ -32,10 +32,18 @@ create table gridex_one_off_offer_binding.reservations (
   offer_id uuid primary key references public.contract_offers(id) on delete cascade,
   company_id uuid not null references public.companies(id) on delete cascade,
   created_at timestamptz not null default now(),
-  consumed_contract_id uuid,
+  -- Set when the caller binds in a later transaction (customer-card create
+  -- preallocates its contract ID); only that contract may consume the offer.
+  intended_contract_id uuid,
+  -- The consuming contract is pinned: its ID cannot change while it holds
+  -- the reservation, and deleting it releases nothing (the row goes away).
+  consumed_contract_id uuid references public.customer_contracts(id)
+    on update restrict on delete cascade deferrable initially deferred,
   consumed_at timestamptz,
   constraint reservations_consumption_coherent
-    check ((consumed_contract_id is null) = (consumed_at is null))
+    check ((consumed_contract_id is null) = (consumed_at is null)),
+  constraint reservations_consumed_by_intended
+    check (intended_contract_id is null or consumed_contract_id is null or consumed_contract_id = intended_contract_id)
 );
 revoke all on table gridex_one_off_offer_binding.reservations from public, anon, authenticated, service_role;
 
@@ -45,6 +53,7 @@ create or replace function public.gridex_prepare_manual_contract_binding(p_compa
     AS $$
 declare
   v_identity uuid := gen_random_uuid();
+  v_intended_contract_id uuid := nullif(p_payload->>'intended_contract_id','')::uuid;
   v_saved jsonb;
   v_published jsonb;
   v_offer_id uuid;
@@ -57,7 +66,7 @@ begin
     raise exception using errcode='22023',message='company_required';
   end if;
 
-  p_payload := coalesce(p_payload,'{}'::jsonb) || jsonb_build_object(
+  p_payload := (coalesce(p_payload,'{}'::jsonb) - 'intended_contract_id') || jsonb_build_object(
     'name',coalesce(nullif(p_payload->>'name',''),'Kundspecifikt avtal'),
     'slug','one-off-' || replace(v_identity::text,'-',''),
     'status','active',
@@ -127,8 +136,8 @@ begin
   -- Only this materializer may make an archived offer bindable, and only for
   -- the tenant it was created for. The reservation is consumed by the first
   -- contract that binds it.
-  insert into gridex_one_off_offer_binding.reservations(offer_id,company_id)
-  values (v_offer_id,p_company_id);
+  insert into gridex_one_off_offer_binding.reservations(offer_id,company_id,intended_contract_id)
+  values (v_offer_id,p_company_id,v_intended_contract_id);
 
   return jsonb_build_object(
     'contract_offer_id',v_offer_id,
@@ -183,7 +192,8 @@ begin
     update gridex_one_off_offer_binding.reservations r
     set consumed_contract_id=new.id,consumed_at=coalesce(r.consumed_at,now())
     where r.offer_id=o.id and r.company_id=new.company_id
-      and (r.consumed_contract_id is null or r.consumed_contract_id=new.id);
+      and (r.consumed_contract_id is null or r.consumed_contract_id=new.id)
+      and (r.intended_contract_id is null or r.intended_contract_id=new.id);
     v_reserved_one_off:=found;
   end if;
 

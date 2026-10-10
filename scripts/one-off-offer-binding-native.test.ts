@@ -89,3 +89,12 @@ it('an actor without contract permissions creates no offer, publication or reser
   await expect(manualContract('pending_signature', outsider)).rejects.toMatchObject({ message: expect.stringContaining('contract_permission_denied') })
   expect([offers(), reservations()]).toEqual([beforeOffers, beforeReservations])
 })
+
+it('pins the consuming contract: its ID cannot be changed while it holds the one-off offer', async () => {
+  const contract = await manualContract('pending_signature')
+  expectBoundOneOff(contract.id, 'pending_signature')
+  const { error } = await supabaseService.from('customer_contracts').update({ id: randomUUID() })
+    .eq('id', contract.id).eq('company_id', f.companyId)
+  expect(error).not.toBeNull()
+  expectBoundOneOff(contract.id, 'pending_signature')
+})

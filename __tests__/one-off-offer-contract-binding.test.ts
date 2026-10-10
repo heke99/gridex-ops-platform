@@ -181,6 +181,23 @@ describe('one-off offer contract binding', () => {
     expect(await reservation(b.contract_offer_id)).toEqual({ consumed_contract_id: null })
   })
 
+  it('card-create: only the preallocated intended contract may consume the reservation', async () => {
+    const intended = '44444444-4444-4444-8444-444444444444'
+    const b = await bind(T1, { intended_contract_id: intended })
+    await expect(insertContract(T1, 'pending_signature', b.contract_offer_id))
+      .rejects.toThrow('contract_offer_not_available')
+    expect(await reservation(b.contract_offer_id)).toEqual({ consumed_contract_id: null })
+    await expect(insertContract(T1, 'pending_signature', b.contract_offer_id, intended)).resolves.toBe(intended)
+  })
+
+  it('pins the consuming contract identity: its ID cannot be changed afterwards', async () => {
+    const b = await bind()
+    const id = await insertContract(T1, 'draft', b.contract_offer_id)
+    await expect(db.query(`update public.customer_contracts set id = gen_random_uuid() where id = $1`, [id]))
+      .rejects.toThrow(/violates foreign key constraint/)
+    expect(await reservation(b.contract_offer_id)).toEqual({ consumed_contract_id: id })
+  })
+
   it('raises a publish refusal and leaves no reservation or archived offer', async () => {
     const T3 = '33333333-3333-4333-8333-333333333333'
     await db.query('insert into public.companies values ($1)', [T3])
