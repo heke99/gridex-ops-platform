@@ -77,6 +77,11 @@
   Local coverage --check exit 0 (304 approved). PR marked ready for review.
 - Release after delivery: exactly ffce8ee6 + 83b7d8b0 refs via proxy (GET_MATCH/DELETE/404).
 
+### 2026-10-10T23:37Z — #733 re-review C0/I0 + note ([6103368003](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103368003))
+- Head `5f0a6e6`: fixture-only fix (authentic Z10 reception chain); my earlier actor hypothesis was wrong.
+- Note: legacy Z10 M rows without reception rows become not_established; prod count not run (prod project unclear).
+- #736 `c59099f`: CI queued (22 queued, 0 failures).
+
 ## Next
 P-08: import capture for #736 → native + gates green → READY → 2 reviews → coverage → merge.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
