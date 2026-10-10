@@ -1,17 +1,24 @@
 # Checkpoint — claude-planagent-tr09db01-01U97c (PLANAGENT)
 
 - Packet `652df4db-6966-4b27-bcb8-c50bca0b737e`, branch `claude/tr09-db01-port-662`, base main `a5220cba`.
-- IDs: TR-09, DB-01, AT-TR-09, AT-DB-01. Request #673/6102138555 → RESERVED 6102213262 (receipt `57e7c6fb`, delegatedBy codex-help699-delivery-20261009) → own GET 33/33 MATCH → CLAIM 6102714145.
-- Source reused: released #662 `3a42fdde` (b6d3 RELEASE 6046524511). Six SQL + all lib corrections already on main (byte-identical; main config.ts newer, kept).
+- Reserved: TR-09, DB-01, AT-TR-09, AT-DB-01 + 29 files. RESERVED #673/6102213262 (receipt `57e7c6fb`, delegatedBy codex-help699-delivery-20261009); own GET 33/33; CLAIM 6102714145.
+- Source reused: released #662 `3a42fdde` (b6d3 RELEASE 6046524511). Six SQL + lib corrections already on main.
 
-## Done
-- Ported 15 #662-only files (6 __tests__, 6 scripts, 3 workflows) unchanged.
-- Vitest 11 TR-09/DB-01 files: 10 PASS / 1 FAIL (337/341). Coverage tool lists all four IDs as tagged-green candidates.
+## Decision (owner-directed correctness check, 2026-10-10)
+- DB-01 native proof pins kernel.ts/kernelLegacy.ts blobs; main drifted (600a327, 231b9ef) in the ACK route-profile path, which the DB-01 native test itself exercises (createCanonicalAckMessage CONTRL). A pin-only update is not proof → DB-01/AT-DB-01 not delivered here; RELEASE with remaining work.
+- Delivered scope: TR-09/AT-TR-09 only.
 
-## Blocker / open
-- `__tests__/ediel-db01-native-source-basis.test.ts` + `scripts/ediel-db01-current-native.config.ts` pin kernel.ts current blob `7b7b5978` and identical base/root deps; main now has kernel.ts `35cc6e4f` and kernelLegacy.ts drift vs BASE56. Needs re-pin after reviewing the kernel/kernelLegacy drift, then the native DB-01/TR-09 workflows run on the PR.
-- Literal effect mapping (condition/on_pass/on_failure, expected/prohibited) per ID not yet recorded; no coverage rows edited.
+## TR-09 effect → test
+- condition (only specified T exceptions, conditions/alarm, mandatory TLS): transport-exception-crl (prior signed CRL only within exact scope), tr-09-reserve-source-native (X.500 empty source / all-CDP-failed CRL, requireTLS+TLS1.2 asserted), tr09-current-stage-production (production plaintext refused).
+- on_pass (separate deviation journal + bounded operation): reserve-source-native journal prepared/entered/observed + administrator alarm; contrl-admission prepare/enter/observe/safe retry.
+- on_failure (no general plaintext switch, no invented exceptions): reserve-source-native rejects invented case/disable_tls/TLS downgrade/unbounded approval with zero effects; current-stage "does not invent operation or journal"; production-family-native.
+
+## Verification (local, head after this commit)
+- vitest 3 TR-09 unit files 120/120 PASS; typecheck:tests exit 0; masterplan coverage --check exit 0 (approved 304, tagged failing 0).
+- Native: `.github/workflows/ediel-tr09-current-native.yml` runs the three native suites on the PR against actual replay — pending CI.
+
+## DB-01 remaining (for next owner)
+- Port from #662: db01 native config/workflow/basis test + legacy-address-containment native test; re-establish kernel/kernelLegacy basis against current ACK route-profile selection (600a327/231b9ef) and rerun native; then map effects and approve AT-DB-01/DB-01.
 
 ## Next
-1. Review kernel.ts/kernelLegacy.ts drift since 5b150f18/56e58b95; re-pin DB-01 native basis; green the basis test.
-2. Effect→test map for the 4 IDs; open PR; READY on #673; reviews (C offered); native workflows green; coverage rows; merge per role-merge protocol (via proxy).
+PR → READY on #673 → two independent reviews → green gates incl. TR09 native → merge via role-merge (proxy) → MERGED/RELEASE.

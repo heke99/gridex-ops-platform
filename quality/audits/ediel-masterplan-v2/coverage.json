@@ -1348,8 +1348,22 @@
     {
       "id": "TR-09",
       "acceptance_id": "AT-TR-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/exception/source.ts",
+        "lib/ediel/transport/exception/previousCrl.ts",
+        "lib/ediel/config.ts",
+        "lib/ediel/sendContextConsistency.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "supabase/migrations/20261007154601_ediel_source_qualified_technical_contrl_admission.sql",
+        "__tests__/ediel-transport-exception-crl.test.ts",
+        "__tests__/ediel-tr09-current-stage-production.test.ts",
+        "__tests__/ediel-source-qualified-technical-contrl-admission.test.ts",
+        "scripts/ediel-tr-09-reserve-source-native.test.ts",
+        "scripts/ediel-tr09-production-family-native.test.ts",
+        ".github/workflows/ediel-tr09-current-native.yml"
+      ]
     },
     {
       "id": "TR-10",
@@ -3588,8 +3602,22 @@
     },
     {
       "id": "AT-TR-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/exception/source.ts",
+        "lib/ediel/transport/exception/previousCrl.ts",
+        "lib/ediel/config.ts",
+        "lib/ediel/sendContextConsistency.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "supabase/migrations/20261007154601_ediel_source_qualified_technical_contrl_admission.sql",
+        "__tests__/ediel-transport-exception-crl.test.ts",
+        "__tests__/ediel-tr09-current-stage-production.test.ts",
+        "__tests__/ediel-source-qualified-technical-contrl-admission.test.ts",
+        "scripts/ediel-tr-09-reserve-source-native.test.ts",
+        "scripts/ediel-tr09-production-family-native.test.ts",
+        ".github/workflows/ediel-tr09-current-native.yml"
+      ]
     },
     {
       "id": "AT-TR-10",
