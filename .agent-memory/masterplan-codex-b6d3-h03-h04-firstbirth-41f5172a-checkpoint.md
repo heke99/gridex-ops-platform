@@ -973,3 +973,23 @@ ROOT fixes ownbudget, rebases onto actualmain and publishes fresh source for
 existingcurrenthead native/ordinaryCI. WholeH duty and10ownrefs retained.
 NEXT ROOT qualify newmain delta against H paths, freshH execution/affectedreview;
 then onlyown2PASSED +finalheadreview/mandatoryCI beforemerge. No merge-role.
+
+
+## 2026-10-11 Stockholm — actual R2 currentmain source published
+
+PR737 exacthead `a6f7acab79de2fdea06fde28756dd7f8b4ff57f4`, incorporates actual
+main d5808b97/#732 by ordinarymainmerge preserving b61 history (notforcedrebase).
+Only ownsource delta vs deliveredmain: config8lines, fourfinite IDlines, Hnative
+IDline replacingONEemptyline, authenticb61baselineZIP +qualificationJSON.
+Every original nonempty Hnative line byteidentical to main; all assertions and
+fixtures preserved. `npm run quality:large-file-budget` exit0/1800cap unchanged;
+`git diff --check` exit0. Original239810byteb61 archive retainedexact with current
+input applicability explicitlyBASELINE (newmain signing/schema requires freshproof).
+Coverage unchangedNOT_EXECUTED/302of352. CurrentPRbody rewritten to actuala6.
+
+Existingnewhead H native run38095758584/job114341192257 queued; ordinaryOPS
+38095758609/quality114341243446 queued. This requiredchanged-source successor is
+soleproducer, no manualduplicate rerun/capture/GEN. Two independent source readers
+review exacta6/#732delta/baseline distinction; no newremote artifact downloads.
+NEXT ROOT currentnativeoriginal qualification/affectedwhole reviews, then own2
+coverage and finalexactheadgates/merge-role. Tenownresources retained; no merge-role.
