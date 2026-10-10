@@ -1452,7 +1452,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
     expect(await readSourceQualifiedProdatBilateralCapability((await getEdielMessageById(control.message.id))!)).toEqual(control.capability)
   })
-
   it.each(['point','grid'] as const)('fresh Z04 wrong own %s fails the current profile physical scope without business effects', async facet=>{
     const {f,original}=await sent(), clock=references(), control=await ready(f,original,reply(f,original,replyBody(f,original,clock),clock))
     const changed='735123456789012345'
