@@ -5,6 +5,7 @@ import {
 } from '@/lib/customer-contracts/onlineSigning'
 import { loadContractConfirmationState } from '@/lib/customer-contracts/confirmationDelivery'
 import { signContractAction } from './actions'
+import SignSubmitButton from './SignSubmitButton'
 
 const CONFIRMATION_TEXT = {
   queued: 'Avtalsbekräftelsen är köad för utskick till din e-postadress.',
@@ -42,16 +43,28 @@ function dateOnly(value: string | null | undefined) {
   }).format(date)
 }
 
+const CONTRACT_TYPE_LABELS: Record<string, string> = {
+  fixed: 'Fast pris',
+  variable: 'Rörligt pris',
+  spot: 'Timpris (spot)',
+  hourly: 'Timpris',
+  mixed: 'Mixat pris',
+  portfolio: 'Portföljpris',
+}
+
 function stringValue(value: unknown) {
   return typeof value === 'string' ? value : ''
 }
 
 export default async function ContractSigningPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>
+  searchParams?: Promise<{ error?: string }>
 }) {
   const { token } = await params
+  const signError = (searchParams ? await searchParams : {}).error === 'not_signed'
 
   let receipt: Awaited<ReturnType<typeof loadOnlineSignatureReceipt>> | null = null
   try {
@@ -89,7 +102,7 @@ export default async function ContractSigningPage({
           <p className="mt-3 text-sm leading-6 text-slate-700">
             {signed
               ? `Signeringen registrerades ${dateTime(receipt.signed_at)}.`
-              : 'Uppgifterna nedan är den frysta avtals-, pris- och villkorsversion som blir bindande när du trycker på Signera avtal.'}
+              : 'Här ser du avtalet, priset och villkoren som gäller när du trycker på Signera avtal.'}
           </p>
         </header>
 
@@ -114,7 +127,7 @@ export default async function ContractSigningPage({
             </div>
             <div>
               <dt className="text-slate-500">Avtalstyp</dt>
-              <dd className="mt-1 font-medium">{receipt.contract_type}</dd>
+              <dd className="mt-1 font-medium">{CONTRACT_TYPE_LABELS[receipt.contract_type] ?? receipt.contract_type}</dd>
             </div>
             <div>
               <dt className="text-slate-500">Elområde</dt>
@@ -136,15 +149,12 @@ export default async function ContractSigningPage({
           <p className="mt-3 text-sm leading-6 text-slate-800">
             {frozenPriceSummary(receipt.pricing_snapshot)}
           </p>
-          <p className="mt-3 break-all text-xs text-slate-500">
-            Prissnapshot SHA-256: {receipt.pricing_snapshot_sha256}
-          </p>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold">Villkor och juridiska dokument</h2>
           <p className="mt-2 text-sm leading-6 text-slate-700">
-            Följande exakta dokumentversioner hör till avtalet.
+            Det här är villkoren som hör till ditt avtal.
           </p>
           <div className="mt-4 space-y-3">
             {legalVersions.map((version, index) => {
@@ -163,7 +173,7 @@ export default async function ContractSigningPage({
                     </div>
                   ) : null}
                   {hash ? (
-                    <div className="mt-3 break-all text-xs text-slate-500">SHA-256: {hash}</div>
+                    <div className="mt-3 break-all text-xs text-slate-500">Kontrollkod: {hash}</div>
                   ) : null}
                 </details>
               )
@@ -175,27 +185,27 @@ export default async function ContractSigningPage({
           <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
             <h2 className="text-lg font-semibold text-emerald-950">Signeringen är registrerad</h2>
             <p className="mt-2 text-sm leading-6 text-emerald-900">
-              Avtalet, prisversionen och de juridiska dokumenten är nu versionslåsta. {CONFIRMATION_TEXT[confirmationState ?? 'unknown']}
+              Avtalet, priset och villkoren är nu sparade. {CONFIRMATION_TEXT[confirmationState ?? 'unknown']}
             </p>
             {receipt.signature_snapshot_sha256 ? (
               <p className="mt-3 break-all text-xs text-emerald-800">
-                Signaturbevis SHA-256: {receipt.signature_snapshot_sha256}
+                Kontrollkod för signeringen: {receipt.signature_snapshot_sha256}
               </p>
             ) : null}
           </section>
         ) : (
           <section className="rounded-3xl border border-slate-900 bg-slate-950 p-6 text-white shadow-sm">
             <p className="text-sm leading-6 text-slate-200">
-              När du trycker på knappen accepterar du avtalet och de exakta pris- och villkorsversioner som visas ovan. Signeringstid och tekniskt signaturbevis registreras av systemet.
+              När du trycker på knappen godkänner du avtalet med det pris och de villkor som visas ovan. Vi sparar tidpunkten för din signering som bevis.
             </p>
+            {signError ? (
+              <p role="alert" className="mt-4 rounded-2xl bg-red-100 p-3 text-sm text-red-900">
+                Avtalet kunde inte signeras och ingenting har sparats. Länken kan ha gått ut eller avtalet kan ha ändrats. Försök igen, eller kontakta din elhandlare för en ny länk.
+              </p>
+            ) : null}
             <form action={signContractAction} className="mt-5">
               <input type="hidden" name="token" value={token} />
-              <button
-                type="submit"
-                className="w-full rounded-2xl bg-white px-5 py-4 text-base font-semibold text-slate-950 hover:bg-slate-100"
-              >
-                Signera avtal
-              </button>
+              <SignSubmitButton />
             </form>
           </section>
         )}

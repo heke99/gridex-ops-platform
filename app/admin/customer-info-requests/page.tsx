@@ -16,6 +16,7 @@ import {
 } from '@/lib/onboarding/infoRequests'
 import {
   applyZ14SnapshotAction,
+  closeCustomerInfoRequestAction,
   createAuthorizationScopeAction,
   createCustomerInfoRequestAction,
   createMeteringPermissionDraftAction,
@@ -23,6 +24,9 @@ import {
   queueMeteringPermissionZ13Action,
 } from './actions'
 import { formatStatusLabel } from '@/lib/ui/format'
+import { canCloseInfoRequest } from '@/lib/onboarding/infoRequestClosure'
+import { listPortalRepliesForInfoRequests, type InfoRequestPortalReply } from '@/lib/onboarding/infoRequestPortalReplies'
+import CustomerResourceSelects from './CustomerResourceSelects'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +50,20 @@ function statusLabel(status: string): string {
     z02_received: 'Z02 mottagen',
     negative_aperak: 'Negativ APERAK',
     blocked: 'Blockerad',
+    ready_to_send: 'Redo att skicka',
+    sent_to_grid_owner: 'Skickad till nätägare',
+    waiting_for_contrl: 'Väntar på CONTRL',
+    waiting_for_aperak: 'Väntar på APERAK',
+    missing_binding_info: 'Saknar bindningsuppgifter',
+    missing_termination_info: 'Saknar uppsägningsuppgifter',
+    ready_for_switch: 'Redo för leverantörsbyte',
+    cancelled: 'Avbruten',
+    rejected: 'Avvisad',
+    completed: 'Klar',
+    active: 'Aktiv',
+    approved: 'Godkänd',
+    revoked: 'Återkallad',
+    sent: 'Skickad',
   }
   return labels[status] ?? status
 }
@@ -54,7 +72,17 @@ function requestTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     z01_customer_masterdata: 'Kund- och anläggningskontroll',
     current_supplier_contract_check: 'Kontroll hos nuvarande elhandlare',
+    current_supplier_contract: 'Kontroll hos nuvarande elhandlare',
     manual_customer_document_check: 'Manuell kunddokumentation',
+  }
+  return labels[type] ?? type
+}
+
+function scopeTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    customer_onboarding: 'Kundonboarding',
+    metering_data_access: 'Mätvärdesåtkomst',
+    supplier_contract_check: 'Kontroll hos nuvarande elhandlare',
   }
   return labels[type] ?? type
 }
@@ -98,30 +126,20 @@ function SelectCustomer({ customers, name = 'customer_id' }: { customers: Array<
 }
 
 
-function SelectSite({ sites }: { sites: Array<{ id: string; customerId: string; label: string; sublabel: string | null }> }) {
-  return (
-    <select name="site_id" aria-label="Anläggning" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
-      <option value="">Välj anläggning för Z01/Z02</option>
-      {sites.map((site) => (
-        <option key={site.id} value={site.id}>
-          {site.label}{site.sublabel ? ` — ${site.sublabel}` : ''}
-        </option>
-      ))}
-    </select>
-  )
+const PORTAL_REPLY_STATUS_LABELS: Record<string, string> = {
+  submitted: 'Inskickad',
+  in_review: 'Under granskning',
+  accepted: 'Godkänd',
+  rejected: 'Avvisad',
+  cancelled: 'Avbruten',
 }
 
-function SelectMeteringPoint({ meteringPoints }: { meteringPoints: Array<{ id: string; label: string; sublabel: string | null }> }) {
-  return (
-    <select name="metering_point_id" aria-label="Mätpunkt" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">
-      <option value="">Välj mätpunkt för Z01/Z02</option>
-      {meteringPoints.map((point) => (
-        <option key={point.id} value={point.id}>
-          {point.label}{point.sublabel ? ` — ${point.sublabel}` : ''}
-        </option>
-      ))}
-    </select>
-  )
+function portalReplySummary(reply: InfoRequestPortalReply): string {
+  const payload = reply.submitted_payload ?? {}
+  const message = ['message', 'comment', 'notes', 'description'].map((key) => payload[key]).find((value) => typeof value === 'string' && value.trim())
+  if (typeof message === 'string') return message.length > 240 ? `${message.slice(0, 240)}…` : message
+  const keys = Object.keys(payload).filter((key) => payload[key] !== null && payload[key] !== '')
+  return keys.length ? `Skickade uppgifter: ${keys.slice(0, 6).join(', ')}` : 'Inga uppgifter i svaret.'
 }
 
 function SelectGridOwner({ gridOwners }: { gridOwners: Array<{ id: string; label: string; sublabel: string | null }> }) {
@@ -137,7 +155,10 @@ function SelectGridOwner({ gridOwners }: { gridOwners: Array<{ id: string; label
   )
 }
 
-export default async function CustomerInfoRequestsPage() {
+export default async function CustomerInfoRequestsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
+  const resolvedSearch = searchParams ? await searchParams : {}
+  const successNotice = typeof resolvedSearch.success === 'string' ? resolvedSearch.success.slice(0, 300) : null
+  const errorNotice = typeof resolvedSearch.error === 'string' ? resolvedSearch.error.slice(0, 300) : null
   const admin = await requireAdminPageKeyAccess('customer.info_requests')
   const supabase = await createSupabaseServerClient()
   const {
@@ -160,6 +181,16 @@ export default async function CustomerInfoRequestsPage() {
         listCustomerInfoRequestResourceOptions(companyId),
       ])
     : [[], [], [], [], { sites: [], meteringPoints: [], gridOwners: [] }]
+
+  const canCloseRequests = currentWritable && admin.permissions.includes('customers.write')
+  let portalReplies = new Map<string, InfoRequestPortalReply[]>()
+  if (companyId && requests.length) {
+    try {
+      portalReplies = await listPortalRepliesForInfoRequests(companyId, requests.slice(0, 12))
+    } catch {
+      portalReplies = new Map()
+    }
+  }
 
   const processDecisions = new Map<string,EdielProcessNextAction>()
   let processReadUnavailable = false
@@ -202,6 +233,9 @@ export default async function CustomerInfoRequestsPage() {
           </section>
         ) : null}
 
+        {successNotice ? <section role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{successNotice}</section> : null}
+        {errorNotice ? <section role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{errorNotice}</section> : null}
+
         <section className="grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-4">
           <div className="min-w-0 break-words rounded-3xl border border-slate-200 bg-white p-3">
             <div className="min-w-0 break-words text-sm font-medium text-slate-700">Uppgiftsbegäran</div>
@@ -219,7 +253,7 @@ export default async function CustomerInfoRequestsPage() {
             <p className="mt-2 text-xs text-emerald-900">Z14-godkända anläggningar.</p>
           </div>
           <div className="min-w-0 break-words rounded-3xl border border-red-200 bg-red-50 p-3">
-            <div className="min-w-0 break-words text-sm font-medium text-red-800">Blockerade ärenden</div>
+            <div className="min-w-0 break-words text-sm font-medium text-red-800">Ärenden som väntar på åtgärd</div>
             <div className="mt-1 text-2xl font-semibold text-slate-950">{blockedRequests.length}</div>
             <p className="mt-2 text-xs text-red-900">Kräver manuell åtgärd.</p>
           </div>
@@ -231,9 +265,7 @@ export default async function CustomerInfoRequestsPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Z01/Z02 och avtalsdata</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">Använd för anläggningsuppgifter, nätområde, årsenergi och separat manuell kontroll av bindningstid/uppsägningstid.</p>
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
-              <SelectCustomer customers={customers} />
-              <SelectSite sites={resourceOptions.sites} />
-              <SelectMeteringPoint meteringPoints={resourceOptions.meteringPoints} />
+              <CustomerResourceSelects customers={customers} sites={resourceOptions.sites} meteringPoints={resourceOptions.meteringPoints} />
               <SelectGridOwner gridOwners={resourceOptions.gridOwners} />
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-xs leading-5 text-emerald-900">
                 För Z01/Z02 ska anläggning, mätpunkt och nätägare vara valda eller kunna härledas från kundens data. Annars blockeras begäran med tydlig åtgärd.
@@ -351,6 +383,34 @@ export default async function CustomerInfoRequestsPage() {
                       Kontrollera fullmakt och förbered Z01
                     </button>
                   </form>:null}
+                  {(portalReplies.get(request.id) ?? []).length ? (
+                    <div className="mt-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-950">
+                      <p className="font-semibold">Svar från kundportalen</p>
+                      <ul className="mt-2 space-y-2">
+                        {(portalReplies.get(request.id) ?? []).slice(0, 3).map((reply) => (
+                          <li key={reply.id}>
+                            <span className="font-semibold">{PORTAL_REPLY_STATUS_LABELS[reply.status] ?? reply.status}</span>
+                            {' · '}{new Date(reply.created_at).toLocaleString('sv-SE')}
+                            <p className="mt-1 break-words">{portalReplySummary(reply)}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {canCloseRequests && canCloseInfoRequest(request.status) ? (
+                    <details className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <summary className="cursor-pointer text-xs font-semibold text-slate-700">Stäng ärendet</summary>
+                      <form action={closeCustomerInfoRequestAction} className="mt-3 grid gap-2">
+                        <input type="hidden" name="request_id" value={request.id} />
+                        <select name="target_status" aria-label="Ny status" defaultValue="cancelled" className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs">
+                          <option value="cancelled">Avbryt ärendet</option>
+                          <option value="completed">Markera som slutfört</option>
+                        </select>
+                        <textarea name="reason" aria-label="Orsak" required minLength={3} maxLength={1000} rows={2} placeholder="Orsak (krävs)" className="rounded-lg border border-slate-300 px-3 py-2 text-xs" />
+                        <button className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white">Stäng ärendet</button>
+                      </form>
+                    </details>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -365,7 +425,7 @@ export default async function CustomerInfoRequestsPage() {
               {authorizationScopes.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Ingen omfattning sparad ännu.</div> : authorizationScopes.slice(0, 12).map((scopeRow) => (
                 <div key={scopeRow.id} className="rounded-2xl border border-slate-200 p-4">
                   <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(scopeRow.status)}`}>{formatStatusLabel(scopeRow.status)}</span>
-                  <div className="mt-3 text-sm font-semibold text-slate-950">{scopeRow.scope_type}</div>
+                  <div className="mt-3 text-sm font-semibold text-slate-950">{scopeTypeLabel(scopeRow.scope_type)}</div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-700">
                     {scopeRow.covers_grid_owner_data ? <span className="rounded-full bg-slate-100 px-2 py-1">Nätdata</span> : null}
                     {scopeRow.covers_current_supplier_contract ? <span className="rounded-full bg-slate-100 px-2 py-1">Bindning</span> : null}

@@ -1,6 +1,7 @@
 // Extracted from actions.ts; keep public imports on the facade module.
 
 
+import { catalogPricesOverridden, validateContractPricing } from "@/lib/customer-contracts/pricingValidation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 import { supabaseService } from "@/lib/supabase/service"
@@ -705,6 +706,30 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
   if (params.contractOfferId && !offer) {
     throw new Error("Det valda avtalet finns inte för bolaget. Välj avtal igen.");
   }
+  if (params.contractOfferId || params.contractTypeOverride) {
+    const pricingErrors = validateContractPricing({
+      contractType: params.contractTypeOverride ?? offer?.contract_type ?? "variable_hourly",
+      // Without a catalog offer every price is entered manually.
+      customPricing: !offer,
+      catalogOverridden: catalogPricesOverridden(offer, {
+        fixedPriceOrePerKwh: params.fixedPriceOrePerKwh,
+        spotMarkupOrePerKwh: params.spotMarkupOrePerKwh,
+        variableFeeOrePerKwh: params.variableFeeOrePerKwh,
+        monthlyFeeSek: params.monthlyFeeSek,
+        invoiceFeeSek: params.invoiceFeeSek,
+      }) || Boolean(offer && params.contractTypeOverride && params.contractTypeOverride !== offer.contract_type),
+      fixedPriceOrePerKwh: params.fixedPriceOrePerKwh,
+      spotMarkupOrePerKwh: params.spotMarkupOrePerKwh,
+      overrideReason: params.overrideReason,
+    });
+    const intakeFieldErrors: IntakeFieldErrors = {};
+    if (pricingErrors.fixedPriceOrePerKwh) intakeFieldErrors.fixedPriceOrePerKwh = pricingErrors.fixedPriceOrePerKwh;
+    if (pricingErrors.spotMarkupOrePerKwh) intakeFieldErrors.spotMarkupOrePerKwh = pricingErrors.spotMarkupOrePerKwh;
+    if (pricingErrors.overrideReason) intakeFieldErrors.overrideReason = pricingErrors.overrideReason;
+    if (Object.keys(intakeFieldErrors).length > 0) {
+      throw createValidationErrorFromFieldErrors(intakeFieldErrors);
+    }
+  }
   const hasContract = Boolean(params.contractOfferId || params.contractTypeOverride);
   const hasSignedAgreement = Boolean(params.signedAgreementFile);
   // Intake only creates draft or pending-signature contracts; "signed" requires
@@ -919,7 +944,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
             vatRate: offer?.vat_rate ?? 25,
             optionalFeeLines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
           },
-          valid_from: normalizeOptionalString(params.contractStartDate),
+          valid_from: normalizeOptionalString(params.contractStartDate) ?? normalizeOptionalString(params.confirmedStartDate) ?? normalizeOptionalString(params.expectedStartDate),
         }
       : null,
     legal: hasSignedAgreement || signedScopes.length > 0
@@ -942,7 +967,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
           valid_from: normalizeOptionalString(params.authorizationValidFrom),
           valid_to: normalizeOptionalString(params.authorizationValidTo),
           reference: `INTAKE-POA-${idempotencyKey.slice(-12)}`,
-          notes: "Signerad fullmakt registrerad genom kanoniskt kundintag.",
+          notes: "Signerad fullmakt registrerad genom kundintag.",
           signed_scopes: signedScopes,
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
@@ -986,7 +1011,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
       : null,
     info_request: params.postCreateAction === "request_data"
       ? {
-          request_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier_contract" : "z01_customer_masterdata",
+          request_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier_contract_check" : "z01_customer_masterdata",
           target_party_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier" : "grid_owner",
           grid_owner_id: normalizedGridOwnerId,
           current_supplier_name: params.currentSupplierUnknown ? "Okänd nuvarande leverantör" : normalizeOptionalString(params.currentSupplierName),

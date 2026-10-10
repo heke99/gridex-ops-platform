@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   getCustomerPortalContext,
@@ -9,6 +9,7 @@ import {
 import {
   PORTAL_COMPLETION_CUSTOMER_MISSING_MESSAGE,
   PORTAL_COMPLETION_EMPTY_MESSAGE,
+  PORTAL_COMPLETION_FAILED_MESSAGE,
 } from "@/lib/customer-portal/completionFlash";
 
 function text(formData: FormData, key: string): string {
@@ -44,20 +45,30 @@ export async function submitPortalCompletionAction(formData: FormData) {
     );
   }
 
-  await submitPortalCompletion({
-    context,
-    customerId,
-    completionType,
-    userId: user.id,
-    payload: {
-      message,
-      facilityId,
-      meterPointId,
-      phone,
-      email,
-      submittedAt: new Date().toISOString(),
-    },
-  });
+  try {
+    await submitPortalCompletion({
+      context,
+      customerId,
+      completionType,
+      userId: user.id,
+      payload: {
+        message,
+        facilityId,
+        meterPointId,
+        phone,
+        email,
+        submittedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("[portal-completion] submit_failed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    redirect(
+      `/portal/komplettera?status=blocked&message=${encodeURIComponent(PORTAL_COMPLETION_FAILED_MESSAGE)}`,
+    );
+  }
 
   redirect("/portal/komplettera?status=success");
 }

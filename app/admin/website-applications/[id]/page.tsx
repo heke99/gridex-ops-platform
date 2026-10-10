@@ -12,6 +12,7 @@ import {
 } from '@/lib/admin/websiteIntegrationOps'
 import {
   checkWebsiteApplicationReadinessAction,
+  createCustomerFromWebsiteApplicationAction,
   markWebsiteApplicationFacilityDataReceivedAction,
   requestWebsiteApplicationGridOwnerInfoAction,
   requeueWebsiteApplicationContinuationAction,
@@ -23,6 +24,22 @@ import {
   sourceLabel,
   gridOwnerVerificationLabel,
 } from '@/lib/customers/statusLabels'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { listGridOwners } from '@/lib/masterdata/db'
+
+const REVIEW_WRITE_PERMISSIONS = ['customers.write', 'switching.write', 'metering.write', 'poa.write']
+
+type GridOwnerOption = { id: string; name: string }
+
+async function loadGridOwnerOptions(): Promise<GridOwnerOption[]> {
+  try {
+    const supabase = await createSupabaseServerClient()
+    const rows = await listGridOwners(supabase, { customerFlowOnly: true })
+    return rows.map((row) => ({ id: row.id, name: row.name || row.owner_code || row.id }))
+  } catch {
+    return []
+  }
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -123,12 +140,13 @@ function compactObject(input: Record<string, unknown>) {
   return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== null && value !== undefined && value !== ''))
 }
 
-async function maybeById(table: string, id: string | null | undefined, select = '*') {
+async function maybeById(table: string, companyId: string, id: string | null | undefined, select = '*') {
   if (!id) return null
   const { data, error } = await supabaseService
     .from(table)
     .select(select)
     .eq('id', id)
+    .eq('company_id', companyId)
     .maybeSingle()
   if (error) {
     if (missingSchema(error)) return null
@@ -169,11 +187,11 @@ async function loadOperationalChain(item: WebsiteApplicationAdminRow) {
   const workflowId = typeof workflow?.id === 'string' ? workflow.id : null
 
   const [customer, site, meter, contract, gridOwnerRequest, customerInfoRequests, powerOfAttorneys, operationTasks, workflowEventsResult, workflowJobsResult] = await Promise.all([
-    maybeById('customers', item.customer_id, 'id,customer_number,status,full_name,company_name,email,phone,customer_type,source,intake_status,intake_missing_fields,intake_warnings,created_at,updated_at'),
-    maybeById('customer_sites', item.customer_site_id, 'id,status,site_name,facility_id,street,postal_code,city,grid_owner_id,grid_area_code,price_area_code,move_in_date,created_at,updated_at'),
-    maybeById('metering_points', item.metering_point_id, 'id,status,metering_point_id,meter_point_id,site_id,customer_site_id,site_facility_id,grid_area_code,price_area_code,verification_status,onboarding_status,created_at,updated_at'),
-    maybeById('customer_contracts', item.contract_id, 'id,status,contract_name,contract_type,source_type,agreement_channel,starts_at,requested_start_date,confirmed_start_date,actual_start_date,created_at,updated_at'),
-    maybeById('grid_owner_information_requests', item.grid_owner_information_request_id, 'id,status,dispatch_status,request_type,channel,grid_owner_id,grid_area_code,price_area,facility_id,metering_point_id,blocking_reasons,warnings,next_step,created_at,updated_at'),
+    maybeById('customers', item.company_id, item.customer_id, 'id,customer_number,status,full_name,company_name,email,phone,customer_type,source,intake_status,intake_missing_fields,intake_warnings,created_at,updated_at'),
+    maybeById('customer_sites', item.company_id, item.customer_site_id, 'id,status,site_name,facility_id,street,postal_code,city,grid_owner_id,grid_area_code,price_area_code,move_in_date,created_at,updated_at'),
+    maybeById('metering_points', item.company_id, item.metering_point_id, 'id,status,metering_point_id,meter_point_id,site_id,customer_site_id,site_facility_id,grid_area_code,price_area_code,verification_status,onboarding_status,created_at,updated_at'),
+    maybeById('customer_contracts', item.company_id, item.contract_id, 'id,status,contract_name,contract_type,source_type,agreement_channel,starts_at,requested_start_date,confirmed_start_date,actual_start_date,created_at,updated_at'),
+    maybeById('grid_owner_information_requests', item.company_id, item.grid_owner_information_request_id, 'id,status,dispatch_status,request_type,channel,grid_owner_id,grid_area_code,price_area,facility_id,metering_point_id,blocking_reasons,warnings,next_step,created_at,updated_at'),
     listByCustomer('customer_info_requests', item.company_id, item.customer_id, 'id,status,request_type,target_party_type,automation_origin,automation_key,created_at,updated_at', 8),
     listByCustomer('powers_of_attorney', item.company_id, item.customer_id, 'id,status,scope,source,created_at,signed_at,expires_at', 8),
     listByCustomer('customer_operation_tasks', item.company_id, item.customer_id, 'id,status,priority,task_type,title,description,created_at,updated_at', 8),
@@ -243,7 +261,7 @@ function JsonPanel({ title, value }: { title: string; value: unknown }) {
   )
 }
 
-function Timeline({ item, chain }: { item: WebsiteApplicationAdminRow; chain: Awaited<ReturnType<typeof loadOperationalChain>> }) {
+function Timeline({ item, chain, showTechnicalDetails }: { item: WebsiteApplicationAdminRow; chain: Awaited<ReturnType<typeof loadOperationalChain>>; showTechnicalDetails: boolean }) {
   const events = [
     { title: 'Ansökan mottagen', status: item.status, date: item.created_at, detail: item.next_step ?? 'Kontrollera ansökan.' },
     item.customer_id ? { title: 'Kund kopplad', status: String(chain.customer?.status ?? 'created'), date: String(chain.customer?.created_at ?? item.updated_at ?? item.created_at), detail: item.customer_id } : null,
@@ -255,7 +273,7 @@ function Timeline({ item, chain }: { item: WebsiteApplicationAdminRow; chain: Aw
       title: String(entry.label ?? entry.type ?? 'Händelse'),
       status: String(entry.type ?? item.status),
       date: String(entry.occurred_at ?? item.updated_at ?? item.created_at),
-      detail: isRecord(entry.metadata) ? JSON.stringify(entry.metadata) : '',
+      detail: showTechnicalDetails && isRecord(entry.metadata) ? JSON.stringify(entry.metadata) : '',
     } : null) : []),
   ].filter(Boolean) as Array<{ title: string; status: string; date: string; detail: string }>
 
@@ -278,7 +296,11 @@ function Timeline({ item, chain }: { item: WebsiteApplicationAdminRow; chain: Aw
   )
 }
 
-function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
+function ReviewForm({ item, isPlatformAdmin, canWrite, gridOwners }: { item: WebsiteApplicationAdminRow; isPlatformAdmin: boolean; canWrite: boolean; gridOwners: GridOwnerOption[] }) {
+  const currentGridOwnerId = item.grid_owner_id ?? firstPayloadValue(item.payload ?? {}, ['grid_owner_id', 'site.grid_owner_id']) ?? ''
+  const gridOwnerOptions = currentGridOwnerId && !gridOwners.some((owner) => owner.id === currentGridOwnerId)
+    ? [{ id: currentGridOwnerId, name: 'Nuvarande val (ej i listan)' }, ...gridOwners]
+    : gridOwners
   const payload = item.payload ?? {}
   const returnTo = `/admin/website-applications/${item.id}?source=${item.source_table ?? 'website_customer_applications'}`
   if (item.source_table === 'external_contract_intakes') {
@@ -291,6 +313,9 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
 
   return (
     <form action={updateWebsiteApplicationReviewAction} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      {!canWrite ? (
+        <p className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">Du har läsbehörighet. Åtgärder kräver skrivbehörighet för kunder.</p>
+      ) : null}
       <input type="hidden" name="application_id" value={item.id} />
       <input type="hidden" name="return_to" value={returnTo} />
       <div className="grid gap-4 md:grid-cols-3">
@@ -316,7 +341,12 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
         </label>
         <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
           Nätägare
-          <input name="grid_owner_id" defaultValue={item.grid_owner_id ?? firstPayloadValue(payload, ['grid_owner_id', 'site.grid_owner_id']) ?? ''} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900" />
+          <select name="grid_owner_id" defaultValue={currentGridOwnerId} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal normal-case tracking-normal text-slate-900">
+            <option value="">Välj nätägare</option>
+            {gridOwnerOptions.map((owner) => (
+              <option key={owner.id} value={owner.id}>{owner.name}</option>
+            ))}
+          </select>
         </label>
         <label className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">
           Nätområdeskod
@@ -345,14 +375,14 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
           Anläggningsuppgifter verifierade
         </label>
       </div>
-      <div className="mt-4 flex flex-wrap gap-3">
+      <fieldset disabled={!canWrite} className="mt-4 flex flex-wrap gap-3 disabled:opacity-60">
         <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Spara komplettering</button>
         <button formAction={resolveWebsiteApplicationEnergyAction} className="rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50">Kör adressmatchning</button>
         <button formAction={requestWebsiteApplicationGridOwnerInfoAction} className="rounded-2xl border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50">Begär uppgifter från nätägare</button>
         <button formAction={markWebsiteApplicationFacilityDataReceivedAction} className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">Markera mottaget</button>
         <button formAction={checkWebsiteApplicationReadinessAction} className="rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Kontrollera om redo</button>
-        <button formAction={requeueWebsiteApplicationContinuationAction} className="rounded-2xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-800 hover:bg-violet-50">Återkö automation</button>
-      </div>
+        {isPlatformAdmin ? <button formAction={requeueWebsiteApplicationContinuationAction} className="rounded-2xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-800 hover:bg-violet-50">Återkö automation</button> : null}
+      </fieldset>
     </form>
   )
 }
@@ -382,6 +412,8 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
   const { id } = await params
   const resolvedSearch = searchParams ? await searchParams : {}
   const source = typeof resolvedSearch.source === 'string' ? resolvedSearch.source : null
+  const errorMessage = typeof resolvedSearch.error === 'string' ? resolvedSearch.error.slice(0, 300) : null
+  const successMessage = typeof resolvedSearch.success === 'string' ? resolvedSearch.success.slice(0, 300) : null
   const access = await requireAdminPageAccess({
     anyOf: ['customers.read', 'customers.write', 'billing_underlay.read'],
   })
@@ -397,8 +429,10 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
   }
 
   const item: WebsiteApplicationAdminRow = maybeItem
-  const chain = await loadOperationalChain(item)
+  const [chain, gridOwners] = await Promise.all([loadOperationalChain(item), loadGridOwnerOptions()])
   const isPlatformAdmin = isPlatformAdminContext(access)
+  const canWrite = isPlatformAdmin || access.permissions.some((permission) => REVIEW_WRITE_PERMISSIONS.includes(permission))
+  const canCreateCustomer = isPlatformAdmin || access.permissions.includes('customers.write')
   const mirror = isRecord(item.response_payload?.external_contract_intake) ? item.response_payload.external_contract_intake : null
   const sourceFacts = compactObject({
     source_table: item.source_table,
@@ -416,13 +450,33 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
         {item.customer_id ? <Link href={`/admin/customers/${item.customer_id}`} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-emerald-800 hover:bg-emerald-100">Öppna kundkort</Link> : null}
       </div>
 
+      {successMessage ? (
+        <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{successMessage}</div>
+      ) : null}
+
+      {!item.customer_id && item.source_table !== 'external_contract_intakes' ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p>Ansökan är inte kopplad till någon kund ännu.{canCreateCustomer ? ' Skapa kunden från ansökans uppgifter för att gå vidare.' : ' En användare med skrivbehörighet för kunder behöver skapa kunden.'}</p>
+          {canCreateCustomer ? (
+            <form action={createCustomerFromWebsiteApplicationAction}>
+              <input type="hidden" name="application_id" value={item.id} />
+              <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Skapa kund från ansökan</button>
+            </form>
+          ) : null}
+        </div>
+      ) : null}
+
+      {errorMessage ? (
+        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{errorMessage}</div>
+      ) : null}
+
       <section className="rounded-[36px] border border-emerald-100 bg-white p-8 shadow-sm shadow-emerald-950/5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Webbansökan / intagskedja</p>
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">{customerName(item)}</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              Den här sidan visar hela kedjan från ansökan till kund, anläggning, avtal, fullmakt och uppgiftsbegäran. Den gör också tydlig skillnad mellan kanonisk webbansökan och teknisk external-intake-rad.
+              Den här sidan visar hela kedjan från ansökan till kund, anläggning, avtal, fullmakt och uppgiftsbegäran.
             </p>
           </div>
           <div className="space-y-2 text-right">
@@ -456,11 +510,11 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
         </div>
       </section>
 
-      <ReviewForm item={item} />
+      <ReviewForm item={item} isPlatformAdmin={isPlatformAdmin} canWrite={canWrite} gridOwners={gridOwners} />
 
       <section className="grid gap-5 lg:grid-cols-2">
-        <Timeline item={item} chain={chain} />
-        <JsonPanel title="Källstatus och idempotency" value={sourceFacts} />
+        <Timeline item={item} chain={chain} showTechnicalDetails={isPlatformAdmin} />
+        {isPlatformAdmin ? <JsonPanel title="Källstatus och idempotency" value={sourceFacts} /> : null}
       </section>
 
       <section className="grid gap-5 lg:grid-cols-2">
@@ -471,29 +525,31 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
           ['Status', 'status'], ['Anläggnings-ID', 'facility_id'], ['Adress', 'street'], ['Nätområde', 'grid_area_code'], ['Elområde', 'price_area_code'], ['Nätägare', 'grid_owner_id'],
         ]} />
         <ChainCard title="Mätpunkt" row={chain.meter} fields={[
-          ['Status', 'status'], ['Mätpunkt', 'metering_point_id'], ['Meter point', 'meter_point_id'], ['Anläggnings-ID', 'site_facility_id'], ['Verifiering', 'verification_status'], ['Onboarding', 'onboarding_status'],
+          ['Status', 'status'], ['Mätpunkt', 'metering_point_id'], ['Mätpunkts-ID (alternativt)', 'meter_point_id'], ['Anläggnings-ID', 'site_facility_id'], ['Verifiering', 'verification_status'], ['Onboarding', 'onboarding_status'],
         ]} />
         <ChainCard title="Avtal" row={chain.contract} href={item.customer_id && item.contract_id ? `/admin/customers/${item.customer_id}?tab=contracts` : undefined} fields={[
           ['Status', 'status'], ['Avtalsnamn', 'contract_name'], ['Typ', 'contract_type'], ['Källa', 'source_type'], ['Start', 'starts_at'], ['Önskad start', 'requested_start_date'],
         ]} />
-        <ChainCard title="Automationsworkflow" row={chain.workflow} fields={[
+        {isPlatformAdmin ? <ChainCard title="Automationsworkflow" row={chain.workflow} fields={[
           ['Status', 'state'], ['Nästa åtgärd', 'next_action'], ['Version', 'workflow_version'], ['Senaste övergång', 'last_transition_at'], ['Continuation-jobb', 'last_job_id'], ['Operation', 'operation_id'],
-        ]} />
+        ]} /> : null}
         <ChainCard title="Nätägarbegäran" row={chain.gridOwnerRequest} fields={[
           ['Status', 'status'], ['Dispatch', 'dispatch_status'], ['Typ', 'request_type'], ['Kanal', 'channel'], ['Nätområde', 'grid_area_code'], ['Elområde', 'price_area'],
         ]} />
-        <RelatedRows title="Customer info requests" rows={chain.customerInfoRequests} />
+        <RelatedRows title="Uppgiftsbegäranden" rows={chain.customerInfoRequests} />
         <RelatedRows title="Fullmakter" rows={chain.powerOfAttorneys} />
         <RelatedRows title="Operationsuppgifter" rows={chain.operationTasks} />
-        <RelatedRows title="Workflowhändelser" rows={chain.workflowEvents} />
-        <RelatedRows title="Workflowjobb" rows={chain.workflowJobs} />
+        {isPlatformAdmin ? <RelatedRows title="Workflowhändelser" rows={chain.workflowEvents} /> : null}
+        {isPlatformAdmin ? <RelatedRows title="Workflowjobb" rows={chain.workflowJobs} /> : null}
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-2">
-        <JsonPanel title="Payload" value={item.raw_payload ?? item.payload} />
-        <JsonPanel title="Response payload" value={item.response_payload} />
-        {mirror ? <JsonPanel title="External intake-spegel" value={mirror} /> : null}
-      </section>
+      {isPlatformAdmin ? (
+        <section className="grid gap-5 lg:grid-cols-2">
+          <JsonPanel title="Payload" value={item.raw_payload ?? item.payload} />
+          <JsonPanel title="Response payload" value={item.response_payload} />
+          {mirror ? <JsonPanel title="External intake-spegel" value={mirror} /> : null}
+        </section>
+      ) : null}
     </main>
   )
 }

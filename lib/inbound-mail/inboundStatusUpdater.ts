@@ -1,3 +1,4 @@
+import {createAssignedProdatHeaderNegativeSource,observeAssignedProdatHeaderNegativeField} from '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
 import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
 import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
 import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
@@ -12,6 +13,7 @@ import { resolveSupplierDataBirthProfile } from '@/lib/inbound-mail/supplierData
 import { resolveBilateralSwitchBirthProfile } from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
 import {captureBilateralSwitchBirthResources,resolveBilateralSwitchBirthResources} from '@/lib/inbound-mail/bilateralSwitchBirthResources'
 import { resolveRejectedBilateralSwitchBirthProfile } from '@/lib/inbound-mail/rejectedBilateralSwitchBirthProfile'
+import {resolveRejectedZ04HRequiredFieldBirthProfile} from '@/lib/inbound-mail/rejectedZ04HRequiredFieldBirthProfile'
 import { resolveSupplyEndBirthProfile } from '@/lib/inbound-mail/supplyEndBirthProfile'
 import { resolveCancellationBirthProfile } from '@/lib/inbound-mail/cancellationBirthProfile'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
@@ -335,6 +337,11 @@ export async function createInboundEdielMessage(input: {
   await assertEdielTenantActor({ companyId, actorUserId, permission: 'communication.write' })
   if (!sourcePrincipal.ok) throw sourcePrincipal.error
   const { inboundEmailMessageId, environment } = sourcePrincipal
+  if(input.parsed.messageFamily==='PRODAT'&&observeAssignedProdatHeaderNegativeField(input.parsed.rawPayload)){
+    if(environment!=='test'&&environment!=='production')throw new Error('ediel_inbound_duplicate_scope_required')
+    return createAssignedProdatHeaderNegativeSource({companyId,actorUserId,environment,inboundEmailMessageId,
+      parseResultId,rawPayload:input.parsed.rawPayload})
+  }
   const matchedOutboundRequestId =
     input.outboundMatch?.status === 'matched' && input.outboundMatch.entityType === 'outbound_request'
       ? input.outboundMatch.entityId
@@ -458,6 +465,7 @@ export async function createInboundEdielMessage(input: {
       ?await resolveBilateralSwitchBirthProfile({rawPayload:insertPayload.raw_payload,receivedAt:mailSource.received_at}):null
     const birthProfile = ordinaryProfile??bilateralProfile
       ?? await resolveRejectedBilateralSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+      ?? await resolveRejectedZ04HRequiredFieldBirthProfile({rawPayload:insertPayload.raw_payload,receivedAt:mailSource.received_at})
     if (birthProfile) Object.assign(insertPayload, birthProfile)
     if(bilateralProfile&&insertPayload.metering_point_id===null){
       if(!bilateralResources.ok)throw bilateralResources.error

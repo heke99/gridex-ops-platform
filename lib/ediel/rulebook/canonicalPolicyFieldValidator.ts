@@ -1,3 +1,4 @@
+import {validateReceivedZ04HAddressPresence} from '@/lib/ediel/core/receivedZ04HAddressAvailability'
 import {validateReceivedZ14ReportingContext,type ReceivedZ14ReportingContext} from '@/lib/ediel/prodat/receivedZ14ReportingContext'
 import {projectProdatSourceFunctionObjects,type ReceivedProdatSourceFunctionValidation} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
 import {prodatDateState} from '@/lib/ediel/prodat/prodatDateFields'
@@ -226,6 +227,8 @@ export function validateCanonicalPolicyFields(input: {
   })
   input.onRegisterValidation?.(registerEvidence)
   issues.push(...register.issues)
+  if(input.policy.direction==='inbound'&&input.policy.code==='Z04'&&input.policy.subtype==='H')
+    issues.push(...validateReceivedZ04HAddressPresence({policy:input.policy,rawPayload:input.rawPayload,rawSegments:input.rawSegments??[],una:input.una}))
   if(input.policy.direction==='outbound' && rules.some(rule=>rule.fieldNumber==='229')) issues.push(...validateProdatEndUserAddress({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts}))
 
   if(rules.some(rule=>INVOICEE_FIELDS.includes(rule.fieldNumber??''))) issues.push(...validateProdatInvoicee({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'}))

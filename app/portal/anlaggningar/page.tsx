@@ -1,3 +1,4 @@
+import { portalSiteStatusLabel } from '@/lib/customer-portal/labels'
 import { getCustomerPortalContext, listPortalMeteringPoints, listPortalSites } from '@/lib/customer-portal/db'
 
 export const dynamic = 'force-dynamic'
@@ -31,14 +32,14 @@ export default async function PortalSitesPage() {
             <article key={site.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-950">{site.site_name ?? site.facility_id ?? site.id}</h2>
+                  <h2 className="text-lg font-semibold text-slate-950">{site.site_name ?? site.facility_id ?? 'Anläggning'}</h2>
                   <p className="mt-1 text-sm text-slate-600">
                     {[site.street, site.postal_code, site.city].filter(Boolean).join(', ') || 'Ingen adress angiven'}
                   </p>
                 </div>
 
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
-                  {site.status ?? 'okänd status'}
+                  {portalSiteStatusLabel(site.status)}
                 </span>
               </div>
 
@@ -53,8 +54,8 @@ export default async function PortalSitesPage() {
                 <div className="mt-3 space-y-2">
                   {points.map((point) => (
                     <div key={point.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                      <div className="font-medium text-slate-950">{point.meter_point_id ?? point.id}</div>
-                      <div className="mt-1 text-xs text-slate-500">Status {point.status ?? '—'} · Prisområde {point.price_area_code ?? '—'}</div>
+                      <div className="font-medium text-slate-950">{point.meter_point_id ?? 'Mätpunkt (ID saknas ännu)'}</div>
+                      <div className="mt-1 text-xs text-slate-500">Status {portalSiteStatusLabel(point.status)} · Prisområde {point.price_area_code ?? '—'}</div>
                     </div>
                   ))}
 
@@ -69,7 +70,7 @@ export default async function PortalSitesPage() {
 
         {sites.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-            Inga anläggningar är kopplade till ditt konto ännu.
+            Inga anläggningar är kopplade till ditt konto ännu. När vi har fått uppgifterna från din nätägare visas de här. Saknar du en anläggning kan du skicka in anläggnings-ID under Komplettera.
           </div>
         ) : null}
       </section>

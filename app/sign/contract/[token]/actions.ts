@@ -1,8 +1,8 @@
 'use server'
 
 import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { finalizeOnlineContractSignature } from '@/lib/customer-contracts/onlineSigning'
+import { redirect, unstable_rethrow } from 'next/navigation'
+import { finalizeOnlineContractSignature, loadOnlineSignatureReceipt } from '@/lib/customer-contracts/onlineSigning'
 
 function firstForwardedIp(value: string | null): string | null {
   if (!value) return null
@@ -19,11 +19,24 @@ export async function signContractAction(formData: FormData) {
     null
   const userAgent = requestHeaders.get('user-agent')
 
-  await finalizeOnlineContractSignature({
-    token,
-    ipAddress,
-    userAgent,
-  })
+  try {
+    await finalizeOnlineContractSignature({
+      token,
+      ipAddress,
+      userAgent,
+    })
+  } catch (error) {
+    unstable_rethrow(error)
+    // The signature may already be committed (e.g. a double click, or only the
+    // confirmation e-mail failed afterwards); only report failure when it is not.
+    const receipt = await loadOnlineSignatureReceipt(token).catch(() => null)
+    if (!receipt?.signed_at) {
+      console.error('[contract-signing] finalize_failed', {
+        message: error instanceof Error ? error.message : String(error),
+      })
+      redirect(`/sign/contract/${token}?error=not_signed`)
+    }
+  }
 
   redirect(`/sign/contract/${token}?signed=1`)
 }

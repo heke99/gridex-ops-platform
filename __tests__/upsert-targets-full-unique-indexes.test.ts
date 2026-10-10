@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
-const migration = fs.readFileSync('supabase/migrations/20261010120000_upsert_targets_full_unique_indexes.sql', 'utf8')
+const migration = fs.readFileSync('supabase/migrations/20261010190000_upsert_targets_full_unique_indexes.sql', 'utf8')
 
 async function db() {
   const pg = new PGlite()
