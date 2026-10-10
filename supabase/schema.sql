@@ -27579,6 +27579,7 @@ CREATE FUNCTION gridex_received_sources.require_domain_response_at_birth_v1() RE
     AS $$
 DECLARE s public.ediel_messages%rowtype;initial jsonb;actual jsonb;final_facet jsonb;positive_indices integer[];w gridex_ediel_outbound_owner.witnesses%rowtype;
  existing gridex_ediel_ack_guide.prodat_structural_response_bindings%rowtype;facet_text text;facet_hash text;
+ common_witness gridex_ediel_common_header.negative_witnesses%rowtype;
 BEGIN
  IF NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_family IS DISTINCT FROM 'APERAK' OR NEW.raw_payload IS NULL
   OR(TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL) THEN RETURN NEW;END IF;
@@ -27586,6 +27587,20 @@ BEGIN
   AND direction='inbound' AND message_family='PRODAT' FOR SHARE;
  IF s.id IS NULL OR(s.message_code NOT IN('Z04','Z05','Z14','Z15') AND NOT(s.message_code='Z06' AND EXISTS(SELECT FROM gridex_requested_changes.confirmed_customer_versions v WHERE v.source_message_id=s.id AND v.company_id=s.company_id AND v.environment=s.environment AND v.event_id IS NOT NULL AND v.bilateral_artifact_id IS NULL))) THEN RETURN NEW;END IF;
  PERFORM src.source_message_id FROM gridex_received_sources.sources src WHERE src.source_message_id=s.id AND src.company_id=s.company_id AND src.environment=s.environment FOR UPDATE;
+ -- Assigned negative-only originals use their own frozen common-header owner,
+ -- not a domain-effect witness. Qualify its full private source/route/ACK proof
+ -- before birth; existing AFTER consumption still seals this exact ACK once.
+ IF NEW.execution_context_snapshot->>'prodatCommonHeaderNegativeWitnessId' IS NOT NULL
+  AND gridex_ediel_header_negative_birth.is_bound_v1(s,false) IS TRUE THEN
+  common_witness:=gridex_ediel_common_header.witness_v1(NEW);
+  IF common_witness.actor_user_id IS DISTINCT FROM NEW.created_by
+   OR (common_witness.evidence-'syntaxAssessmentId') IS DISTINCT FROM gridex_ediel_header_negative_birth.evidence_v1(s)
+   OR NEW.ack_outcome IS DISTINCT FROM 'negative'
+   OR NEW.execution_context_snapshot->>'outboundOwnerWitnessId' IS NOT NULL THEN
+   RAISE EXCEPTION 'prodat_domain_response_frozen_owner_required';
+  END IF;
+  RETURN NEW;
+ END IF;
  SELECT * INTO w FROM gridex_ediel_outbound_owner.witnesses WHERE id=(NEW.execution_context_snapshot->>'outboundOwnerWitnessId')::uuid FOR SHARE;
  IF w.id IS NULL OR w.company_id IS DISTINCT FROM NEW.company_id OR w.environment IS DISTINCT FROM NEW.environment OR w.related_message_id IS DISTINCT FROM s.id
   OR w.payload_sha256 IS DISTINCT FROM encode(sha256(convert_to(NEW.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'prodat_domain_response_frozen_owner_required';END IF;
