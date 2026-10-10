@@ -102,7 +102,7 @@ export function resetProdatZ10OwnSourceReadingSdk(io:ProdatZ10OwnSourceReadingSd
    const call:Call={kind:'table',name,args:{...filters}};io.calls.push(call);await io.afterRead?.(call)
    return {data,error:io.tableErrors[name]??null}
   }
-  const q={select:(_columns:string)=>q,eq:(key:string,value:unknown)=>{filters[key]=value;return q},
+  const q={select:()=>q,eq:(key:string,value:unknown)=>{filters[key]=value;return q},
    not:(key:string,op:string,value:unknown)=>{if(op!=='is'||value!==null)throw Error('UNEXPECTED_COMPONENT_NOT');notNull.push(key);return q},
    maybeSingle:read,single:read}
   return q
