@@ -890,3 +890,28 @@ birth-profile/intake tests; branch/source/history/negative vectors preserved.
 PR720 closure673/PRreceipt6103180052 and SOURCE2737comment6103188627 durable.
 NEXT ROOT publish actual3file-only RELEASE673; continue existing737Hnative
 job114335822220/sourceb61 and fullrequiredCI. No wholeapproval or nextpair.
+
+
+## 2026-10-11 Stockholm — current H proof preservation scope CLAIM
+
+Same1102 H acceptance packet, current sourceb61cd313, basea522. Both wholeID
+refs freshGET agent/packet MATCH. Added exactly TWO new unique evidence paths
+with receipt `b8ee1a95ee0406379a82a5db1165a14aece9f5d7`, sortedCREATE_IF_ABSENT and GET_MATCH bothPASS:
+- `quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/native-b61cd313.zip`
+- `quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/verification.json`
+No original artifact has been fetched yet; no proof file or coverage mutation.
+Existing H native38093935849/job114335822220 remains sole current-head producer.
+Currenthead verify/coverage/smoke/browser-public and several additional native
+checks succeeded; H/clean/upgrade/quality certificate still executing/pending.
+
+Private qualifier independent review first found C0I2: missing artifact/run/job
+provenance binding and nonclosed result markers. Both fixed before execution;
+independent rereview C0I0, qualifier SHA2563f86a6d0. Strict serverdigest/run/job/
+head/attempt, originalCRC/size, fulltrackedinputclosure, exact100named native
+cases/zeroerrors-skips/nested counters and closedfile/test summaries retained.
+No negative test/producer/gate weakened. Raw archive/members remain byteexact.
+
+NEXT ROOT publish verified2file CLAIM673 before preservation. After actual
+closednative job, fetch one original redacted artifact, qualify authentic inputs
+and effects, get final independent whole-criteria reviews, then onlyown2coverage
+rows and current-head mandatoryCI. NotCI_GREEN/whole-approved/merged/external.
