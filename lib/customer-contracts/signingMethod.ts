@@ -165,3 +165,21 @@ export const SIGNED_AGREEMENT_IMPORTED_MESSAGE =
   "Signerat avtal uppladdat – avtalet är registrerat som signerat.";
 export const SIGNED_AGREEMENT_IMPORT_FAILED_MESSAGE =
   "Avtalet skapades men det signerade avtalet kunde inte registreras, så avtalet är inte signerat. Kontrollera PDF-filen och försök igen eller kontakta support.";
+
+/**
+ * Document fields for an uploaded signed agreement. `uploaded_at` is the real
+ * upload time. The staff-declared signing date travels in metadata
+ * (`declaredSignedDate`); the canonical import command uses it as the
+ * contract's signed_at / original signature timestamp and records the import
+ * time separately. Without a declared date the import time is used.
+ */
+export function signedAgreementDocumentTiming(input: {
+  declaredSignedDate: string | null | undefined;
+  now?: Date;
+}): { uploaded_at: string; metadata: { declaredSignedDate?: string } } {
+  const declared = typeof input.declaredSignedDate === "string" ? input.declaredSignedDate.trim() : "";
+  return {
+    uploaded_at: (input.now ?? new Date()).toISOString(),
+    metadata: declared ? { declaredSignedDate: declared } : {},
+  };
+}

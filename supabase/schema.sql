@@ -67943,6 +67943,11 @@ declare
   v_acceptance jsonb;
   v_acceptance_hash text;
   v_event jsonb;
+  v_imported_at timestamptz := now();
+  v_declared_signed_text text;
+  v_declared_signed_date date;
+  v_original_signature_timestamp timestamptz;
+  v_timestamp_semantics text := 'administrative_import_time_original_signature_time_not_supplied';
 begin
   if new.document_type <> 'complete_agreement'
      or new.status <> 'active'
@@ -68349,7 +68354,43 @@ begin
       message = 'admin_signed_contract_import_customer_not_found';
   end if;
 
-  v_accepted_at := coalesce(new.uploaded_at, now());
+  -- Staff declare the signing date of the uploaded signed agreement. When it
+  -- is present it is the authoritative signing date; the import time is
+  -- recorded separately as imported_at. Without it, the legacy import-time
+  -- semantics apply unchanged.
+  v_declared_signed_text := nullif(btrim(coalesce(new.metadata->>'declaredSignedDate', '')), '');
+  if v_declared_signed_text is not null then
+    if v_declared_signed_text !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then
+      raise exception using
+        errcode = '22007',
+        message = 'admin_signed_contract_import_declared_signed_date_invalid';
+    end if;
+    begin
+      v_declared_signed_date := v_declared_signed_text::date;
+    exception when others then
+      raise exception using
+        errcode = '22007',
+        message = 'admin_signed_contract_import_declared_signed_date_invalid';
+    end;
+    if v_declared_signed_date < date '2000-01-01'
+       or v_declared_signed_date > (v_imported_at at time zone 'Europe/Stockholm')::date then
+      raise exception using
+        errcode = '22007',
+        message = 'admin_signed_contract_import_declared_signed_date_out_of_range';
+    end if;
+    -- Same convention as the staff form: today uses the import instant (never
+    -- a future instant); earlier dates use midday UTC so the calendar date is
+    -- stable in Swedish time.
+    v_accepted_at := case
+      when v_declared_signed_date = (v_imported_at at time zone 'Europe/Stockholm')::date
+        then v_imported_at
+      else (v_declared_signed_date::timestamp + time '12:00') at time zone 'UTC'
+    end;
+    v_original_signature_timestamp := v_accepted_at;
+    v_timestamp_semantics := 'staff_declared_signing_date_from_uploaded_signed_agreement';
+  else
+    v_accepted_at := coalesce(new.uploaded_at, v_imported_at);
+  end if;
   v_signature := jsonb_build_object(
     'schema', 'gridex_imported_signed_contract_v1',
     'company_id', v_contract.company_id,
@@ -68358,8 +68399,10 @@ begin
     'channel', 'admin',
     'signing_method', 'imported_signed_document',
     'recorded_at', v_accepted_at,
-    'original_signature_timestamp', null,
-    'timestamp_semantics', 'administrative_import_time_original_signature_time_not_supplied',
+    'original_signature_timestamp', v_original_signature_timestamp,
+    'declared_signed_date', v_declared_signed_date,
+    'imported_at', v_imported_at,
+    'timestamp_semantics', v_timestamp_semantics,
     'contract_number', v_contract.contract_number,
     'offer_reference', v_contract.offer_reference,
     'contract_publication_version_id', v_contract.contract_publication_version_id,
@@ -68487,8 +68530,10 @@ begin
     jsonb_build_object(
       'signing_method', 'imported_signed_document',
       'pricing_snapshot_sha256', v_price.snapshot_hash,
-      'original_signature_timestamp', null,
-      'timestamp_semantics', 'administrative_import_time_original_signature_time_not_supplied'
+      'original_signature_timestamp', v_original_signature_timestamp,
+      'declared_signed_date', v_declared_signed_date,
+      'imported_at', v_imported_at,
+      'timestamp_semantics', v_timestamp_semantics
     ),
     new.created_by,
     'Importerat signerat avtal verifierat mot uppladdat PDF-dokument och SHA-256.'
@@ -68525,8 +68570,10 @@ begin
         'signed_contract_document_id', v_contract_document_id,
         'signature_snapshot_sha256', v_signature_hash,
         'pricing_snapshot_sha256', v_price.snapshot_hash,
-        'original_signature_timestamp', null,
-        'timestamp_semantics', 'administrative_import_time_original_signature_time_not_supplied'
+        'original_signature_timestamp', v_original_signature_timestamp,
+        'declared_signed_date', v_declared_signed_date,
+        'imported_at', v_imported_at,
+        'timestamp_semantics', v_timestamp_semantics
       ),
       updated_by = new.created_by,
       updated_at = now()
