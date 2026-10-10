@@ -1,7 +1,18 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/customer-contracts/onlineSigning", () => ({
+  sendOnlineContractSignatureRequest: vi.fn(),
+}));
+vi.mock("@/lib/supabase/service", () => ({ supabaseService: {} }));
+
+import {
+  autoSendSigningLinkAfterCreate,
+  type AutoSendSigningLinkDeps,
+} from "@/lib/customer-contracts/autoSendSigningLink";
 
 import { signedAgreementDocumentTiming } from "@/lib/customer-contracts/signingMethod";
 
@@ -74,24 +85,49 @@ describe("admin signed agreement import: staff-declared signing date", () => {
   });
 });
 
-describe("canonical_onboard_customer_graph: one-off contracts keep pending_signature", () => {
-  const body = functionBody("canonical_onboard_customer_graph");
+describe("migration scope", () => {
+  it("leaves canonical_onboard_customer_graph unchanged (one-off contracts stay draft at INSERT)", () => {
+    expect(migration).not.toContain("create or replace function public.canonical_onboard_customer_graph(");
+  });
+});
 
-  it("no longer downgrades a requested one-off pending_signature to draft", () => {
-    expect(body).not.toContain("not v_has_catalog_offer and v_status = 'pending_signature'");
-    expect(body).not.toContain("'\"draft\"'::jsonb");
+describe("autoSendSigningLinkAfterCreate: draft one-off contracts", () => {
+  const input = {
+    companyId: "company-1",
+    customerId: "customer-1",
+    contractId: "contract-1",
+    actorUserId: "user-1",
+    actorCanWriteContracts: true,
+  };
+
+  function deps() {
+    return {
+      loadContract: vi.fn(async () => ({ status: "draft", signed_at: null })),
+      loadCustomerEmail: vi.fn(async () => "kund@example.se"),
+      hasActiveSignatureRequest: vi.fn(async () => false),
+      send: vi.fn(async () => undefined) as unknown as AutoSendSigningLinkDeps["send"],
+      logError: vi.fn(),
+    } satisfies AutoSendSigningLinkDeps;
+  }
+
+  it("sends for a draft contract when send-for-signing was explicitly requested", async () => {
+    const d = deps();
+    const result = await autoSendSigningLinkAfterCreate({ ...input, allowDraftWhenRequested: true }, d);
+    expect(result).toMatchObject({ status: "sent", email: "kund@example.se" });
+    expect(d.send).toHaveBeenCalledWith({
+      companyId: "company-1",
+      customerId: "customer-1",
+      contractId: "contract-1",
+      recipientEmail: "kund@example.se",
+      actorUserId: "user-1",
+      channel: "internal",
+    });
   });
 
-  it("still routes signed-document intake through the evidence import", () => {
-    expect(body).toContain("v_has_signed_document and v_status in ('signed', 'active')");
-    expect(body).toContain("case when v_has_catalog_offer then 'pending_signature' else 'draft' end");
-  });
-
-  it("preserves the ediel object-batch branch and grants", () => {
-    expect(body).toContain("return gridex_prodat_object_batch.onboard_v1(v_command);");
-    expect(body).toContain("return public.gridex_onboard_customer_graph(v_command);");
-    expect(migration).toContain(
-      "grant execute on function public.canonical_onboard_customer_graph(jsonb) to service_role;",
-    );
+  it("skips a draft contract without the explicit option", async () => {
+    const d = deps();
+    const result = await autoSendSigningLinkAfterCreate(input, d);
+    expect(result).toEqual({ status: "skipped", reason: "not_pending", message: null });
+    expect(d.send).not.toHaveBeenCalled();
   });
 });

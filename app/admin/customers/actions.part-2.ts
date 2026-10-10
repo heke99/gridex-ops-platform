@@ -1112,6 +1112,9 @@ export async function createCustomerGraph(
         contractId: result.contract_id,
         actorUserId: params.actorUserId,
         actorCanWriteContracts: options.autoSendSigningLink.actorCanWriteContracts,
+        // One-off/manual contracts are committed as draft; an explicit
+        // "send for signing" choice lets the prepare RPC bind and promote them.
+        allowDraftWhenRequested: resolvedChoice?.sendSigningLink === true,
       })
     : null;
 

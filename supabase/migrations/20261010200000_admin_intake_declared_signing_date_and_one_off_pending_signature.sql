@@ -1,61 +1,19 @@
--- Owner-approved corrections to admin contract intake.
+-- Owner-approved correction to admin contract intake.
 --
--- 1. Staff-uploaded signed agreements: the staff-declared signing date
---    (customer_authorization_documents.metadata.declaredSignedDate) becomes the
---    contract signed_at and original_signature_timestamp, with
---    timestamp_semantics 'staff_declared_signing_date_from_uploaded_signed_agreement'
---    and the import time recorded separately as imported_at. Without the
---    declared date the previous import-time semantics apply unchanged.
--- 2. One-off/manual contracts requested as pending_signature are no longer
---    downgraded to draft, so the signing link can be sent at creation. The
---    signing-request command materializes the publication chain itself.
+-- Staff-uploaded signed agreements: the staff-declared signing date
+-- (customer_authorization_documents.metadata.declaredSignedDate) becomes the
+-- contract signed_at and original_signature_timestamp, with
+-- timestamp_semantics 'staff_declared_signing_date_from_uploaded_signed_agreement'
+-- and the import time recorded separately as imported_at. Without the
+-- declared date the previous import-time semantics apply unchanged.
 --
--- Signatures, SECURITY DEFINER, search_path and grants are unchanged.
-
-create or replace function public.canonical_onboard_customer_graph(p_command jsonb)
-returns jsonb
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $function$
-declare
-  v_command jsonb := coalesce(p_command, '{}'::jsonb);
-  v_status text;
-  v_has_signed_document boolean;
-  v_has_catalog_offer boolean;
-begin
-  if v_command->>'channel' = 'admin' and jsonb_typeof(v_command->'contract') = 'object' then
-    v_status := nullif(v_command#>>'{contract,status}', '');
-    v_has_signed_document := coalesce((v_command#>>'{legal,acceptance_snapshot,signedAgreementUploaded}')::boolean, false);
-    v_has_catalog_offer := nullif(v_command#>>'{contract,contract_offer_id}', '') is not null;
-
-    -- A real signed document must be imported as evidence after the base graph
-    -- exists. Direct signed/active INSERT is deliberately forbidden by the
-    -- customer_contract state machine.
-    if v_has_signed_document and v_status in ('signed', 'active') then
-      v_command := jsonb_set(
-        v_command,
-        '{contract,status}',
-        to_jsonb(case when v_has_catalog_offer then 'pending_signature' else 'draft' end),
-        true
-      );
-      v_command := jsonb_set(v_command, '{contract,signed_at}', 'null'::jsonb, true);
-    end if;
-    -- A requested pending_signature is kept for one-off/manual contracts too.
-    -- Their exact canonical publication chain is materialized when the signing
-    -- request is prepared (gridex_prepare_customer_contract_signature_request_v1)
-    -- or a signed document is imported, before any signature evidence exists.
-  end if;
-
-  if v_command->>'channel'='ediel_inbound' and v_command#>>'{application,source_record_type}'='ediel_inbound_case' and strpos(coalesce(v_command#>>'{application,source_record_id}',''),':object:')>0 then
-    return gridex_prodat_object_batch.onboard_v1(v_command);
-  end if;
-  return public.gridex_onboard_customer_graph(v_command);
-end
-$function$;
-
-revoke all on function public.canonical_onboard_customer_graph(jsonb) from public, anon, authenticated;
-grant execute on function public.canonical_onboard_customer_graph(jsonb) to service_role;
+-- canonical_onboard_customer_graph is intentionally not changed: one-off/manual
+-- contracts are still inserted as draft (the canonical-binding INSERT trigger
+-- requires exact version IDs for non-draft rows). The send-for-signing path
+-- calls gridex_prepare_customer_contract_signature_request_v1 after commit,
+-- which materializes the chain and moves draft to pending_signature.
+--
+-- Signature, SECURITY DEFINER, search_path and grants are unchanged.
 
 create or replace function public.gridex_finalize_admin_imported_signed_agreement_v1()
 returns trigger
