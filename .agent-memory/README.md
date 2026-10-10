@@ -5,6 +5,8 @@ work. It records current state and resumability; code, live schema, forward
 migrations, executed tests, runtime evidence, OpenAPI and active architecture
 decisions remain higher-authority sources.
 
+Current entry: [masterplan-current-start.md](masterplan-current-start.md). Six startup paths below are concise compatibility wrappers; exact original bytes remain in [history](history/20261010-before-startup-cleanup/README.md). Read relevant historical owner/criterion material as needed, not all accumulated history at every start.
+
 ## Read order
 
 1. `current-state.md`
@@ -70,7 +72,7 @@ Customer and daily admin UI simplification (user-approved 2026-10-05) keeps its 
 - Append concise evidence to `verification-matrix.md` and `session-log.md`.
 - Archive superseded progress; do not run two current-task systems.
 - Resolve conflicts by inspecting implementation, schema, migrations and tests,
-  then mark stale memory `SUPERSEDED` and add a regression test.
+  then mark stale observations `SUPERSEDED`; preserve historical bytes and verify the affected invariants. Use meaningful regression tests for behavior changes.
 
 Allowed statuses: `NOT_STARTED`, `IN_PROGRESS`, `PARTIAL`, `BLOCKED`,
 `IMPLEMENTED_NOT_VERIFIED`, `VERIFIED`, `FAILED`, `SUPERSEDED`,

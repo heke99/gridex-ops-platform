@@ -333,5 +333,40 @@
       "assessmentRequiredBeforeResumption": true
     }
   ],
-  "completionReceipt": "https://github.com/heke99/gridex-ops-platform/pull/615#issuecomment-6015522225"
+  "completionReceipt": "https://github.com/heke99/gridex-ops-platform/pull/615#issuecomment-6015522225",
+  "startupCleanupObservation20261010": {
+    "observedAt": "2026-10-10T18:37:24.879816+00:00",
+    "main": "c5f5be2cf859a325c6782fe612157aad379ab6e8",
+    "queue": ".agent-memory/masterplan-work-queue.md",
+    "start": ".agent-memory/masterplan-current-start.md",
+    "remainingRequirementsComplete": false,
+    "existingEntriesPreserved": true,
+    "administrativeDispositions": [
+      {
+        "pr": 721,
+        "head": "9ddc10c52d89b12543c64b33355634f5ad26e060",
+        "state": "CLOSED_UNMERGED",
+        "administrativeDisposition": "SUPERSEDED_PROPOSAL",
+        "branch": "codex/root-core-blockers-20261008",
+        "branchRetained": true,
+        "completionClaim": false,
+        "remainingRequirementsComplete": false,
+        "receipt": "https://github.com/heke99/gridex-ops-platform/pull/721#issuecomment-6100857994",
+        "closedAt": "2026-10-10T18:35:45Z"
+      },
+      {
+        "pr": 666,
+        "head": "e43f11a591c016cec2d6f236644c9c3c3ec1e80b",
+        "state": "CLOSED_UNMERGED",
+        "administrativeDisposition": "SUPERSEDED_PROPOSAL",
+        "branch": "codex/shared-readiness-20261007",
+        "branchRetained": true,
+        "completionClaim": false,
+        "remainingRequirementsComplete": false,
+        "receipt": "https://github.com/heke99/gridex-ops-platform/pull/666#issuecomment-6100858665",
+        "closedAt": "2026-10-10T18:35:49Z"
+      }
+    ],
+    "meaning": "Original entries/body hashes/HOLD/PAUSED/criteria/evidenceAuthority remain untouched. Admin closure does not complete or discard requirements, release refs or deliver undelivered workflows."
+  }
 }

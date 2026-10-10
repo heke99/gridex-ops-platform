@@ -1,3 +1,24 @@
+# Current Masterplan owner actions — 2026-10-10
+
+Observed main `c5f5be2cf859a325c6782fe612157aad379ab6e8`. Refresh actual main/coverage, own checkpoint, #673, affected PR heads/checks and authenticated refs. This is a dated selection aid, never custody, approval or automatic chat launch. See [current start](masterplan-current-start.md) for delivery/proof limits and persistent roles. Ledger302/352;50 remain.
+
+| Retained owner / source | Exact continuation and dependency |
+| --- | --- |
+| Claude brave-newton, #718 | Retains DB-05/AT-DB-05/SC-070 HTTP/native/legal/coverage whole duty. Two transferred SQL components are delivered through #699, not a whole-duty release. Reconcile actual closed-tenant→same-tuple due-purge expected/prohibited effects and genuine retention/legal input. |
+| Claude Bardeen, #710 | Retains P-08/AT-P-08 signed/ceased/CONTRL/negative/revoked/replay/ACL and renderer/process-group/ACK accepted-scope proof. Continue exact owner checkpoint and source-bound native validation; one capture/forward producer. |
+| Codex b6d3 / 41f, #720 | Whole H criterion reconciliation remains. Compare old failures/fields to delivered #725 C30/H100 prerequisites; don't redo fixed258/306/address252 or borrow source counts as whole acceptance. |
+| Original Codex2f, #658 | Retained Z02L/LK original source/private/physical/native whole effects need exact criterion mapping against current main; delivered OwnSource components are prerequisites, not whole-duty release. |
+| Original C owner, #627/#676 | Reconcile whole C03/C05/related source duties and scope with existing2f owner. C217/masterdata/SENT/ACK correction is already delivered through #699/#725, not a pending new fix. |
+| Historical #662 owner + current overlapping2f | TR-09/DB-01 historical released lane and retained/overlapping whole effects need actual receipt/source reconciliation. #666 SQL delivery grants no whole-ID approval. |
+| Brave-planck, #729, observed41b22a8 | Active schema/upsert/migration/audit work: refresh exact current head, claimed files, genuine GEN/type/capture provenance and affected CI with its designated producer. Don't repeat old-head diagnosis or create overlapping producer. |
+| Original external input owners | TR-08: genuine provider/TLS/SPF/delivery-hop evidence. DB-05: authorized retention/legal classes plus actual purge effects. OPS-04: agreed counterparty/environment/incident/route/certificate/profile/tenant input and original LIVE mandate. #726 PaymentReference/OCR and #724 follow-up retain their own decision/input conditions. No invented evidence. |
+
+#699/#725/#727/#728 are delivered. #728 already removed its five generated `.tmp.mjs` native artifacts. #721/#666 are closed administratively as superseded proposals with branches/checkpoints and #666 unique undelivered workflow preserved. No foreign resource or retained duty is released by cleanup.
+
+Observed113 foreign ref/SHA pairs remain original custody; count alone never proves it. New identities need concrete authorized handover, producer stop and own verified exact refs before code. PLAN chooses eligible packets within its role; BLOCKER chooses one evidenced blocker; reviewers named READY. Every transition own checkpoint+#673. The original queue below is unchanged dated history, including old #699/nonmerged/failure statements; those are superseded observations, not current blockers.
+
+## Historical queue — exact prior bytes
+
 # Current Masterplan owner actions
 
 Observation: 2026-10-08T19:29:47.074092+00:00; actual main `1897ea4999ca93bf4631ee53f1cbe19de86d7dc3`.
