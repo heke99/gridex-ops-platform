@@ -82,6 +82,12 @@
 - Note: legacy Z10 M rows without reception rows become not_established; prod count not run (prod project unclear).
 - #736 `c59099f`: CI queued (22 queued, 0 failures).
 
+### 2026-10-10T23:58Z — #736 composed on main d5808b9; READY revised ([6103513553](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103513553))
+- D review C0/I0 on c59099f (6103458278).
+- Merged main d5808b9 (#732) → 370591c; generated files from main, checksum re-registered.
+- Composition capture run 38096321529 imported → head `b69b2aa` (tree 82caf51); db:migrations:check OK.
+- Next: CI green on b69b2aa, second review, role-merge, MERGED, release ffce8ee6 + 83b7d8b0.
+
 ## Next
 P-08: import capture for #736 → native + gates green → READY → 2 reviews → coverage → merge.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
