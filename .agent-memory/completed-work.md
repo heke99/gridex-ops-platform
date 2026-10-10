@@ -450,3 +450,8 @@ Kundportfölj RPCs and pages, white-label read-only overview, superadmin-only as
 
 ## 2026-10-05 — Customer and admin UI side track
 VERIFIED locally: compact customer register/card/contracts/intake, shared navigation, seven daily areas and all seven remaining operational groups. Reproduced CIS customer/audit binding and facility read-relation defects fixed. Final40 files/403 tests,42 browser interactions,112 responsive and56 axe states pass;actual scoped production database checked read-only,10 provider-SQL checks isolated. No authenticated live journey or publication. Evidence: quality/customer-ui/remaining-admin-verification-2026-10-05.md;workstream checkpoint: customer-ui-checkpoint.md.
+
+
+## 2026-10-10 — bounded startup cleanup / source-delivery reconciliation
+
+Agent codex-help699-delivery-20261009; packet 941f92a0-5eb2-4c8b-93f2-768efb3e5704; base c5f5be2cf859a325c6782fe612157aad379ab6e8. #699/#725 actual delivery, authentic dd8 C30/H100 and nine gates remain source-bound evidence; no current-main native execution or coverage promotion claimed. #721/#666 actual administrative closure retains branches/history/whole duties. Six old startup files archived byte-for-byte with SHA256/blob/source links; concise live routing installed. Existing legacy entries and historical queue/prompt bodies retained. Current source candidate review/CI/delivery are recorded in [own checkpoint](masterplan-cleanup-handoff-20261010-941f92a0-checkpoint.md) and #673; this entry does not claim cleanup merged or whole plan complete.
