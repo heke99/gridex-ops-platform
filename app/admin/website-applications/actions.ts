@@ -92,6 +92,11 @@ function safeReturnPath(formData: FormData, fallback: string): string {
   return fallback
 }
 
+function withErrorMessage(path: string, message: string): string {
+  const separator = path.includes('?') ? '&' : '?'
+  return `${path}${separator}error=${encodeURIComponent(message)}`
+}
+
 function revalidateWebsiteApplicationPaths(application: Pick<ApplicationRecord, 'id' | 'customer_id'>) {
   revalidatePath('/admin/website-applications')
   revalidatePath(websiteApplicationDetailPath(application.id))
@@ -583,7 +588,7 @@ async function planApplicationContract(application: ApplicationRecord, payload: 
     cleanReviewText(publicOffer.offer_reference)
 
   if (!isUuid(publicContractOfferId) || !offerReference) {
-    throw new Error('Webbansökan saknar exakt public_contract_offer_id eller offer_reference. Reparera ansökan mot den låsta publiceringsversionen innan avtal skapas.')
+    throw new Error('Ansökan saknar koppling till ett publicerat erbjudande. Kontrollera vilket erbjudande kunden valde innan avtal skapas.')
   }
 
   return {
@@ -1053,6 +1058,12 @@ export async function requeueWebsiteApplicationContinuationAction(formData: Form
   if (workflowResult.error) throw workflowResult.error
   const workflow = workflowResult.data as { id: string; state: string; last_job_id: string | null } | null
   if (!workflow) {
+    if (!isPlatformAdminContext(admin)) {
+      redirect(withErrorMessage(
+        safeReturnPath(formData, websiteApplicationDetailPath(application.id)),
+        'Automationen kan inte återköas för den här ansökan. Kontakta support om ärendet behöver åtgärdas.',
+      ))
+    }
     const platformAdmin = await requirePlatformAdminActionAccess()
     const { data: repair, error: repairError } = await supabaseService.rpc(
       'canonical_queue_customer_application_repair',
@@ -1087,7 +1098,7 @@ export async function requeueWebsiteApplicationContinuationAction(formData: Form
     redirect(safeReturnPath(formData, websiteApplicationDetailPath(application.id)))
   }
   if (['completed', 'cancelled'].includes(workflow.state)) {
-    throw new Error('Ett avslutat workflow kan inte återköras från denna åtgärd.')
+    throw new Error('Ansökan är redan avslutad och automationen kan inte köras igen.')
   }
 
   const jobResult = await supabaseService
@@ -1099,7 +1110,7 @@ export async function requeueWebsiteApplicationContinuationAction(formData: Form
     .maybeSingle()
   if (jobResult.error) throw jobResult.error
   const job = jobResult.data as { id: string; status: string; attempts: number; max_attempts: number } | null
-  if (!job) throw new Error('Continuation-jobb saknas. Kör reconciliation innan manuell återköning.')
+  if (!job) throw new Error('Det finns inget automationsjobb att köra igen för ansökan. Kontakta support.')
   if (job.status === 'running') throw new Error('Automationen körs redan och kan inte återköas parallellt.')
 
   const now = new Date().toISOString()

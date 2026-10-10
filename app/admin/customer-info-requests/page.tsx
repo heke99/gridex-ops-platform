@@ -46,6 +46,20 @@ function statusLabel(status: string): string {
     z02_received: 'Z02 mottagen',
     negative_aperak: 'Negativ APERAK',
     blocked: 'Blockerad',
+    ready_to_send: 'Redo att skicka',
+    sent_to_grid_owner: 'Skickad till nätägare',
+    waiting_for_contrl: 'Väntar på CONTRL',
+    waiting_for_aperak: 'Väntar på APERAK',
+    missing_binding_info: 'Saknar bindningsuppgifter',
+    missing_termination_info: 'Saknar uppsägningsuppgifter',
+    ready_for_switch: 'Redo för leverantörsbyte',
+    cancelled: 'Avbruten',
+    rejected: 'Avvisad',
+    completed: 'Klar',
+    active: 'Aktiv',
+    approved: 'Godkänd',
+    revoked: 'Återkallad',
+    sent: 'Skickad',
   }
   return labels[status] ?? status
 }
@@ -54,7 +68,17 @@ function requestTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     z01_customer_masterdata: 'Kund- och anläggningskontroll',
     current_supplier_contract_check: 'Kontroll hos nuvarande elhandlare',
+    current_supplier_contract: 'Kontroll hos nuvarande elhandlare',
     manual_customer_document_check: 'Manuell kunddokumentation',
+  }
+  return labels[type] ?? type
+}
+
+function scopeTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    customer_onboarding: 'Kundonboarding',
+    metering_data_access: 'Mätvärdesåtkomst',
+    supplier_contract_check: 'Kontroll hos nuvarande elhandlare',
   }
   return labels[type] ?? type
 }
@@ -219,7 +243,7 @@ export default async function CustomerInfoRequestsPage() {
             <p className="mt-2 text-xs text-emerald-900">Z14-godkända anläggningar.</p>
           </div>
           <div className="min-w-0 break-words rounded-3xl border border-red-200 bg-red-50 p-3">
-            <div className="min-w-0 break-words text-sm font-medium text-red-800">Blockerade ärenden</div>
+            <div className="min-w-0 break-words text-sm font-medium text-red-800">Ärenden som väntar på åtgärd</div>
             <div className="mt-1 text-2xl font-semibold text-slate-950">{blockedRequests.length}</div>
             <p className="mt-2 text-xs text-red-900">Kräver manuell åtgärd.</p>
           </div>
@@ -365,7 +389,7 @@ export default async function CustomerInfoRequestsPage() {
               {authorizationScopes.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Ingen omfattning sparad ännu.</div> : authorizationScopes.slice(0, 12).map((scopeRow) => (
                 <div key={scopeRow.id} className="rounded-2xl border border-slate-200 p-4">
                   <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(scopeRow.status)}`}>{formatStatusLabel(scopeRow.status)}</span>
-                  <div className="mt-3 text-sm font-semibold text-slate-950">{scopeRow.scope_type}</div>
+                  <div className="mt-3 text-sm font-semibold text-slate-950">{scopeTypeLabel(scopeRow.scope_type)}</div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-700">
                     {scopeRow.covers_grid_owner_data ? <span className="rounded-full bg-slate-100 px-2 py-1">Nätdata</span> : null}
                     {scopeRow.covers_current_supplier_contract ? <span className="rounded-full bg-slate-100 px-2 py-1">Bindning</span> : null}

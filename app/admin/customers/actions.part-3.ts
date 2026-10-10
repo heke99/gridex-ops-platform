@@ -58,6 +58,19 @@ export function buildAdminIntakeIdempotencyKey(
     params.expectedStartDate ?? "",
     params.duplicateResolution ?? "",
     params.existingCustomerId ?? "",
+    // Pricing/contract terms: a corrected special price must not be treated
+    // as a replay of the earlier submission.
+    params.contractTypeOverride ?? "",
+    params.contractStatus ?? "",
+    String(params.fixedPriceOrePerKwh ?? ""),
+    String(params.spotMarkupOrePerKwh ?? ""),
+    String(params.variableFeeOrePerKwh ?? ""),
+    params.greenFeeMode ?? "",
+    String(params.greenFeeValue ?? ""),
+    params.overrideReason ?? "",
+    String(params.bindingMonths ?? ""),
+    String(params.noticeMonths ?? ""),
+    JSON.stringify(params.optionalFeeLines ?? []),
   ].join("|");
   const digest = createHash("sha256").update(identity).digest("hex");
   return `customer_create:${params.companyId}:${digest}`;
@@ -92,7 +105,7 @@ export async function createCustomerAction(
       return {
         status: "success",
         message:
-          "Denna intagning är redan registrerad (idempotent återuppspelning). Ingen ny kund skapades.",
+          "Den här kunden och avtalet är redan registrerade.",
         fieldErrors: {},
         values: { country: "SE" },
         createdCustomerId:

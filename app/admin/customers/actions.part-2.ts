@@ -919,7 +919,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
             vatRate: offer?.vat_rate ?? 25,
             optionalFeeLines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
           },
-          valid_from: normalizeOptionalString(params.contractStartDate),
+          valid_from: normalizeOptionalString(params.contractStartDate) ?? normalizeOptionalString(params.confirmedStartDate) ?? normalizeOptionalString(params.expectedStartDate),
         }
       : null,
     legal: hasSignedAgreement || signedScopes.length > 0
@@ -942,7 +942,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
           valid_from: normalizeOptionalString(params.authorizationValidFrom),
           valid_to: normalizeOptionalString(params.authorizationValidTo),
           reference: `INTAKE-POA-${idempotencyKey.slice(-12)}`,
-          notes: "Signerad fullmakt registrerad genom kanoniskt kundintag.",
+          notes: "Signerad fullmakt registrerad genom kundintag.",
           signed_scopes: signedScopes,
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
@@ -986,7 +986,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
       : null,
     info_request: params.postCreateAction === "request_data"
       ? {
-          request_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier_contract" : "z01_customer_masterdata",
+          request_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier_contract_check" : "z01_customer_masterdata",
           target_party_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier" : "grid_owner",
           grid_owner_id: normalizedGridOwnerId,
           current_supplier_name: params.currentSupplierUnknown ? "Okänd nuvarande leverantör" : normalizeOptionalString(params.currentSupplierName),
