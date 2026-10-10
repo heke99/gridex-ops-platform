@@ -56421,6 +56421,7 @@ export type Database = {
           created_by: string
           environment: string
           id: string
+          provider: string
           row_count: number
           rows: Json
           rows_sha256: string
@@ -56433,6 +56434,7 @@ export type Database = {
           created_by: string
           environment: string
           id?: string
+          provider?: string
           row_count: number
           rows: Json
           rows_sha256: string
@@ -56445,6 +56447,7 @@ export type Database = {
           created_by?: string
           environment?: string
           id?: string
+          provider?: string
           row_count?: number
           rows?: Json
           rows_sha256?: string
@@ -94752,18 +94755,6 @@ export type Database = {
         }
         Returns: Json
       }
-      ediel_create_assigned_prodat_header_negative_v1: {
-        Args: {
-          p_actor_user_id: string
-          p_company_id: string
-          p_environment: string
-          p_expected_payload_hash: string
-          p_expected_raw_payload: string
-          p_inbound_email_message_id: string
-          p_parse_result_id: string
-        }
-        Returns: Json
-      }
       ediel_create_bilateral_prodat_original_v1: {
         Args: { p_actor_user_id: string; p_company_id: string; p_draft: Json }
         Returns: Json
@@ -95747,22 +95738,6 @@ export type Database = {
           p_company_id: string
           p_environment: string
           p_source_message_id: string
-        }
-        Returns: Json
-      }
-      ediel_read_prodat_customer_masterdata_original_v1: {
-        Args: {
-          p_actor_user_id: string
-          p_company_id: string
-          p_message_id: string
-        }
-        Returns: Json
-      }
-      ediel_read_prodat_h_accepted_original_v1: {
-        Args: {
-          p_actor_user_id: string
-          p_company_id: string
-          p_message_id: string
         }
         Returns: Json
       }

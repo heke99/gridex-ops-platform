@@ -8,7 +8,7 @@ import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/sto
 import { approveAndSendReadyInvoicesAction } from './actions'
 import { createInvoiceFileAction } from './invoice-files/actions'
 import { listInvoiceFileCandidates, listInvoiceFiles, type InvoiceFileRecord } from '@/lib/billing/invoiceFileExport'
-import { loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
+import { isFileProvider, loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
 import AdminActionsMenu from '@/components/admin/ui/AdminActionsMenu'
 
 export const dynamic = 'force-dynamic'
@@ -40,6 +40,7 @@ const FILE_ERRORS: Record<string, string> = {
   invoice_file_empty: 'Det finns inga godkända fakturor att lägga i en fil. Godkänn fakturorna först.',
   invoice_file_items_changed: 'Någon faktura ändrades medan filen skapades. Ingen fil skapades; försök igen.',
   invoice_file_provider_not_active: 'Filexport är inte vald och aktiverad under Fakturering → Integrationer.',
+  nordfin_client_id_missing: 'Nordfins ClientId saknas. Ange det under Fakturering → Integrationer.',
 }
 
 function money(value: number | null) {
@@ -87,11 +88,12 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
   const sendableCount = readyCount + approvedCount
   const missingMeterCount = allRows.filter((row) => row.status === 'missing_meter_values').length
   const providerSelection = companyId ? await loadTenantInvoiceProviderSelection(companyId).catch(() => null) : null
-  const fileMode = providerSelection?.invoice_export_target_system === 'file_export'
+  const fileProvider = isFileProvider(providerSelection?.invoice_export_target_system) ? providerSelection.invoice_export_target_system : null
+  const fileMode = fileProvider !== null
   const fileEnvironment = providerSelection?.billing_provider_environment ?? null
   const [fileCandidates, invoiceFiles] = companyId && fileMode && fileEnvironment
     ? await Promise.all([
-        listInvoiceFileCandidates(companyId, selectedMonth, fileEnvironment).catch(() => []),
+        listInvoiceFileCandidates(companyId, selectedMonth, fileEnvironment, fileProvider ?? undefined).catch(() => []),
         listInvoiceFiles(companyId).catch((): InvoiceFileRecord[] => []),
       ])
     : [[], [] as InvoiceFileRecord[]]
@@ -123,7 +125,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="invoice-file-heading">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h2 id="invoice-file-heading" className="font-semibold text-slate-950">Fakturafil till fakturaleverantör</h2>
+                <h2 id="invoice-file-heading" className="font-semibold text-slate-950">{fileProvider === 'nordfin' ? 'Fakturafil till Nordfin' : 'Fakturafil till fakturaleverantör'}</h2>
                 <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
                   Godkända fakturor läggs i en fil som du läser in hos fakturaleverantören. En faktura hamnar bara i en fil och markeras som skickad när filen skapas. Varje fil kan laddas ner igen med samma innehåll.
                 </p>
@@ -160,9 +162,9 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                       <span className="ml-2 text-xs text-slate-500">{new Date(file.created_at).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' })}{file.environment === 'test' ? ' · test' : ''}</span>
                     </span>
                     <AdminActionsMenu label="Ladda ner" ariaLabel={`Ladda ner fakturafil för ${file.billing_month}`}>
-                      {(['csv', 'xlsx', 'json'] as const).map((format) => (
+                      {(file.provider === 'nordfin' ? (['nordfin_xml', 'xlsx', 'csv'] as const) : (['csv', 'xlsx', 'json'] as const)).map((format) => (
                         <a key={format} href={`/admin/billing/invoice-files/${file.id}?format=${format}`} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">
-                          {format === 'xlsx' ? 'Excel' : format.toUpperCase()}
+                          {format === 'xlsx' ? 'Excel' : format === 'nordfin_xml' ? 'Nordfin XML' : format.toUpperCase()}
                         </a>
                       ))}
                     </AdminActionsMenu>
