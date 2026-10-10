@@ -11028,7 +11028,7 @@ DECLARE source public.ediel_messages%rowtype;scopes jsonb;a jsonb;scope jsonb;n 
  IF m.message_family IS DISTINCT FROM 'APERAK' OR a#>>'{type,2}' IS DISTINCT FROM '96A' OR a#>>'{type,4}' IS DISTINCT FROM 'E2SE6A' THEN RETURN;END IF;
  SELECT * INTO source FROM public.ediel_messages WHERE id=m.related_message_id AND direction='inbound' AND environment=m.environment AND (company_id=m.company_id OR company_id IS NULL) FOR SHARE;
  IF source.id IS NULL OR nullif(source.raw_payload,'') IS NULL THEN RAISE EXCEPTION 'ediel_ack_replay_actual_source_unavailable';END IF;
- scopes:=gridex_ediel_header_negative_birth.scopes_v1(m.raw_payload,source);
+ scopes:=gridex_ediel_ack_guide.prodat_original_outcomes_v1(m,source);
  SELECT count(*) INTO n FROM gridex_ediel_ack_guide.outbound_prodat_scopes WHERE ack_message_id=m.id;
  -- Older already consumed native originals are qualified from their protected
  -- source/witness/raw guide, without retroactive ledger INSERT or repair.
@@ -55513,6 +55513,19 @@ declare
   v_match_count integer;
 begin
   if tg_op='INSERT' and gridex_ediel_header_negative_birth.is_bound_v1(new,true) is true then return new;end if;
+  -- A consumed assigned negative may update public status/report projections
+  -- without acquiring a missing operational profile or changing its original.
+  if tg_op='UPDATE'
+     and gridex_ediel_header_negative_birth.is_bound_v1(old,false) is true
+     and gridex_ediel_header_negative_birth.is_bound_v1(new,false) is true
+     and ROW(new.id,new.company_id,new.environment,new.direction,new.message_standard,new.message_family,new.message_code,new.resolved_company_id,new.raw_payload,new.immutable_payload_hash,new.created_by,new.created_at,new.message_created_at,new.message_received_at,new.message_version,new.inbound_email_message_id,new.mailbox_message_id,new.sender_ediel_id,new.receiver_ediel_id,new.sender_sub_address,new.receiver_sub_address,new.parsed_unb_sender_ediel_id,new.parsed_unb_receiver_ediel_id,new.application_reference,new.interchange_reference,new.external_reference)
+         is not distinct from ROW(old.id,old.company_id,old.environment,old.direction,old.message_standard,old.message_family,old.message_code,old.resolved_company_id,old.raw_payload,old.immutable_payload_hash,old.created_by,old.created_at,old.message_created_at,old.message_received_at,old.message_version,old.inbound_email_message_id,old.mailbox_message_id,old.sender_ediel_id,old.receiver_ediel_id,old.sender_sub_address,old.receiver_sub_address,old.parsed_unb_sender_ediel_id,old.parsed_unb_receiver_ediel_id,old.application_reference,old.interchange_reference,old.external_reference)
+     and ROW(new.canonical_rule_pack_id,new.rule_profile_key,new.rule_profile_version_id,new.rule_profile_version,new.rule_pack_checksum,new.rule_pack_snapshot)
+         is not distinct from ROW(old.canonical_rule_pack_id,old.rule_profile_key,old.rule_profile_version_id,old.rule_profile_version,old.rule_pack_checksum,old.rule_pack_snapshot)
+     and gridex_ediel_header_negative_birth.evidence_v1(old) is not null
+     and gridex_ediel_header_negative_birth.evidence_v1(new)
+         is not distinct from gridex_ediel_header_negative_birth.evidence_v1(old)
+  then return new;end if;
   if new.direction <> 'inbound' or new.company_id is null or new.message_family not in ('PRODAT','UTILTS') then
     return new;
   end if;
