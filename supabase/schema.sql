@@ -109252,7 +109252,11 @@ CREATE TABLE public.customer_invoice_documents (
     mime_type text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     metadata jsonb DEFAULT '{}'::jsonb,
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    document_type text DEFAULT 'invoice_pdf'::text NOT NULL,
+    title text,
+    public_url text,
+    source_system text
 );
 
 --
@@ -132795,10 +132799,13 @@ CREATE INDEX customer_invoice_lines_company_idx ON public.customer_invoice_lines
 CREATE INDEX customer_invoices_company_customer_period_idx ON public.customer_invoices USING btree (company_id, customer_id, period_start DESC);
 
 --
--- Name: customer_invoices_company_export_item_uidx; Type: INDEX; Schema: public; Owner: -
+-- Name: customer_invoices_company_export_item_key; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX customer_invoices_company_export_item_uidx ON public.customer_invoices USING btree (company_id, invoice_export_item_id) WHERE (invoice_export_item_id IS NOT NULL);
+CREATE UNIQUE INDEX customer_invoice_documents_invoice_id_document_type_key ON public.customer_invoice_documents USING btree (invoice_id, document_type);
+
+
+CREATE UNIQUE INDEX customer_invoices_company_export_item_key ON public.customer_invoices USING btree (company_id, invoice_export_item_id);
 
 --
 -- Name: customer_invoices_company_id_id_uidx; Type: INDEX; Schema: public; Owner: -
@@ -134067,10 +134074,10 @@ CREATE INDEX ediel_high_risk_approvals_scope_idx ON public.ediel_high_risk_appro
 CREATE INDEX ediel_inbound_business_decisions_company_status_idx ON public.ediel_inbound_business_decisions USING btree (company_id, decision_status, created_at DESC);
 
 --
--- Name: ediel_inbound_business_decisions_message_uidx; Type: INDEX; Schema: public; Owner: -
+-- Name: ediel_inbound_business_decisions_message_key; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX ediel_inbound_business_decisions_message_uidx ON public.ediel_inbound_business_decisions USING btree (ediel_message_id) WHERE (ediel_message_id IS NOT NULL);
+CREATE UNIQUE INDEX ediel_inbound_business_decisions_message_key ON public.ediel_inbound_business_decisions USING btree (ediel_message_id);
 
 --
 -- Name: ediel_inbound_quarantine_review_idx; Type: INDEX; Schema: public; Owner: -
@@ -134097,10 +134104,10 @@ CREATE UNIQUE INDEX ediel_inbound_request_decisions_message_uidx ON public.ediel
 CREATE INDEX ediel_manual_review_items_company_status_idx ON public.ediel_manual_review_items USING btree (company_id, status, created_at DESC);
 
 --
--- Name: ediel_manual_review_items_message_issue_uidx; Type: INDEX; Schema: public; Owner: -
+-- Name: ediel_manual_review_items_message_issue_key; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX ediel_manual_review_items_message_issue_uidx ON public.ediel_manual_review_items USING btree (ediel_message_id, issue_type) WHERE (ediel_message_id IS NOT NULL);
+CREATE UNIQUE INDEX ediel_manual_review_items_message_issue_key ON public.ediel_manual_review_items USING btree (ediel_message_id, issue_type);
 
 --
 -- Name: ediel_masterdata_reconciliation_items_status_idx; Type: INDEX; Schema: public; Owner: -
