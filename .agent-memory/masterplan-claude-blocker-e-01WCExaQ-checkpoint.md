@@ -22,6 +22,15 @@
   `aa02493` checks in progress. Not Masterplan, not handed to E.
 - No handover to E received.
 
+### 2026-10-10T22:12Z — REVIEW #732 C0/I0 ([6102733554](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6102733554))
+- Head `859f378`: tenant binding, grants, declared-date validation, draft send path OK; 30/30 tests, tsc clean.
+  Not covered: capture bytes, current-head CI (author-owned producer).
+
+### 2026-10-10T22:20Z — P-08 diagnosis + handover request ([6102751498](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6102751498))
+- Both #710 defects persist on main `a5220cb` (renderer processType; confirm trigger on 'accepted').
+- Owner `claude-ediel-20261008-bardeen` (receipt `672e62bc`) asked for RESUME or scoped RELEASE/HANDOVER.
+- Other remaining rules: TR-09/DB-01 reserved (Claude PLANAGENT); DB-05 (#718) and TR-08/OPS-04 need external legal/provider input.
+
 ## Next
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
 for 6102293795; (c) explicit scoped handover to E. Otherwise remain BLOCKED; no polling, no native/GEN/capture.
