@@ -759,3 +759,33 @@ foreign H scope before using this takeover approval; preserve original source,
 failed proofs and other agents' work. Follow independent review, current-head CI
 and merge-lock requirements for any resulting PR. Publish this authorization
 and the exact checkpoint commit on #673 before implementation.
+
+
+## 2026-10-11 Stockholm — requested settings / H acceptance continuation
+
+CLAIM same H1102 packet, exact user-requested `.claude/settings.json` extension:
+receipt `a3f35c49fd13ddbd5636400db66429ebcee739f8`, `file-f27ac6f39d89fe021c56900069198aa7d9968f2cd6645c00b11ffd1b78fcf546`, actual main `a5220cba88c743ffc7fb3aaaf0ca093dda1f0638`;
+CREATE_IF_ABSENT and GET_MATCH verified. H ID receipts remain01f5; original3
+owned file refs remainb52. Branch `codex/ediel-h-acceptance-b6d3-41f5172a` starts
+from actual main in a separate own workspace, preserving old720/donor35 branches.
+Owner authorization receipt: https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6102902768.
+
+NEXT ROOT: publish this exact CLAIM before writing config; add the literal
+`Bash(git push origin *:refs/tags/agent-claims/masterplan/*)` and
+`Edit(quality/audits/ediel-masterplan-v2/coverage.json)` to `permissions.allow`.
+Validate JSON and exact retained rules. These are local Claude tool allowances,
+not replacement GitData custody or whole acceptance. No coverage mutation yet.
+
+Current full-main comparison to #725/dd8 finds unchanged H application/native
+source but later schema/types plus full-unique-index migration190000: source-bound
+H100 cannot be relabelled as fresh current-main native. Existing released H native
+file scope authenticated by #6736100244659; original donor21 remainsCORE39581.
+Two independent read-only requirement/path reviewers are mapping all literal
+H criteria and retained720 source against current main; no duplicate native/GEN
+producer or artifact download. Preliminary alternate delivered birth/rejection
+paths cover209/314/311; finish source qualification before administrative closure.
+Skill routing: using-superpowers, using-git-worktrees (already own isolation;
+new source frommain required), spec-to-code-compliance and requesting-code-review
+(two bounded independent readers), verification-before-completion. Conditional
+Supabase/native workflow and differential review as actual scope needs; skipped
+UI/performance/email/AWS groups because no changes there.
