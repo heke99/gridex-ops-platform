@@ -245,6 +245,12 @@ CREATE SCHEMA gridex_negative_fixtures;
 CREATE SCHEMA gridex_network_registry_sources;
 
 --
+-- Name: gridex_one_off_offer_binding; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_one_off_offer_binding;
+
+--
 -- Name: gridex_outbound_dispatch; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -66262,6 +66268,7 @@ declare
   o public.contract_offers%rowtype;
   v_count bigint;
   v_statuses text[]:=array['draft','pending_signature','signed','active'];
+  v_reserved_one_off boolean:=false;
 begin
   if new.status not in ('draft','pending_signature','signed','active') then
     return new;
@@ -66283,9 +66290,21 @@ begin
   end if;
 
   perform pg_advisory_xact_lock(hashtextextended(o.version_series_id::text,0));
-  if o.lifecycle_status<>'published' or not o.is_active
+
+  -- A materializer-reserved one-off offer is bindable only by the contract that
+  -- references it directly, in the same tenant, and only by one contract.
+  if o.id=new.contract_offer_id then
+    update gridex_one_off_offer_binding.reservations r
+    set consumed_contract_id=new.id,consumed_at=coalesce(r.consumed_at,now())
+    where r.offer_id=o.id and r.company_id=new.company_id
+      and (r.consumed_contract_id is null or r.consumed_contract_id=new.id);
+    v_reserved_one_off:=found;
+  end if;
+
+  if not v_reserved_one_off and (
+     o.lifecycle_status<>'published' or not o.is_active
      or (o.valid_from is not null and o.valid_from>current_date)
-     or (o.valid_to is not null and o.valid_to<current_date) then
+     or (o.valid_to is not null and o.valid_to<current_date)) then
     raise exception using errcode='23514',message='contract_offer_not_available';
   end if;
   if not exists(
@@ -79660,6 +79679,12 @@ begin
   update public.contract_offers
   set status='inactive',is_active=false,archived_at=coalesce(archived_at,now()),updated_at=now(),updated_by=p_actor_user_id
   where id=v_offer_id;
+
+  -- Only this materializer may make an archived offer bindable, and only for
+  -- the tenant it was created for. The reservation is consumed by the first
+  -- contract that binds it.
+  insert into gridex_one_off_offer_binding.reservations(offer_id,company_id)
+  values (v_offer_id,p_company_id);
 
   return jsonb_build_object(
     'contract_offer_id',v_offer_id,
@@ -101098,6 +101123,19 @@ CREATE TABLE gridex_network_registry_sources.revocations (
 );
 
 ALTER TABLE ONLY gridex_network_registry_sources.revocations FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: reservations; Type: TABLE; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+CREATE TABLE gridex_one_off_offer_binding.reservations (
+    offer_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    consumed_contract_id uuid,
+    consumed_at timestamp with time zone,
+    CONSTRAINT reservations_consumption_coherent CHECK (((consumed_contract_id IS NULL) = (consumed_at IS NULL)))
+);
 
 --
 -- Name: epoch; Type: TABLE; Schema: gridex_outbound_dispatch; Owner: -
@@ -125878,6 +125916,13 @@ ALTER TABLE ONLY gridex_network_registry_sources.reviews
 
 ALTER TABLE ONLY gridex_network_registry_sources.revocations
     ADD CONSTRAINT revocations_pkey PRIMARY KEY (target_kind, target_id);
+
+--
+-- Name: reservations reservations_pkey; Type: CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.reservations
+    ADD CONSTRAINT reservations_pkey PRIMARY KEY (offer_id);
 
 --
 -- Name: attempts attempts_pkey; Type: CONSTRAINT; Schema: gridex_outbound_dispatch; Owner: -
@@ -155907,6 +155952,20 @@ ALTER TABLE ONLY gridex_network_registry_sources.reviews
 
 ALTER TABLE ONLY gridex_network_registry_sources.reviews
     ADD CONSTRAINT reviews_reviewer_user_id_fkey FOREIGN KEY (reviewer_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: reservations reservations_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.reservations
+    ADD CONSTRAINT reservations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: reservations reservations_offer_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.reservations
+    ADD CONSTRAINT reservations_offer_id_fkey FOREIGN KEY (offer_id) REFERENCES public.contract_offers(id) ON DELETE CASCADE;
 
 --
 -- Name: attempts attempts_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_outbound_dispatch; Owner: -
