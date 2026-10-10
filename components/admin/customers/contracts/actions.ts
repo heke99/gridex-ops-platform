@@ -1,5 +1,6 @@
 'use server'
 
+import { catalogPricesOverridden, firstContractPricingError, validateContractPricing } from '@/lib/customer-contracts/pricingValidation'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
@@ -289,6 +290,14 @@ export async function createContractFromOfferAction(formData: FormData) {
   const overrideReason = parseStringOrNull(formData.get('override_reason'))
   const autoRenewEnabled = parseBoolean(formData.get('auto_renew_enabled'))
   const autoRenewTermMonths = parseIntOrNull(formData.get('auto_renew_term_months'))
+  const offerDateError = firstContractPricingError(validateContractPricing({
+    contractType: offer.contract_type,
+    customPricing: false,
+    catalogOverridden: false,
+    startsAt,
+    endsAt,
+  }))
+  if (offerDateError) throw new Error(offerDateError)
 
   const commercialModel = commercialModelFromSnapshot(
     offer.commercial_snapshot,
@@ -668,6 +677,20 @@ export async function createContractAction(formData: FormData) {
   const breakFeeSek = parseNumberOrNull(formData.get('break_fee_sek'))
   const vatRate = parseNumberOrNull(formData.get('vat_rate'))
 
+  // Manual contracts carry custom pricing: the price that matches the
+  // contract type is mandatory and the period must be ordered.
+  const manualPricingError = firstContractPricingError(validateContractPricing({
+    contractType,
+    customPricing: true,
+    catalogOverridden: false,
+    fixedPriceOrePerKwh,
+    spotMarkupOrePerKwh,
+    overrideReason,
+    startsAt,
+    endsAt,
+  }))
+  if (manualPricingError) throw new Error(manualPricingError)
+
   const contract = await createCustomerContract({
     companyId,
     customerId,
@@ -827,6 +850,19 @@ export async function updateContractAction(formData: FormData) {
   const adminFeeSek = parseNumberOrNull(formData.get('admin_fee_sek'))
   const breakFeeSek = parseNumberOrNull(formData.get('break_fee_sek'))
   const vatRate = parseNumberOrNull(formData.get('vat_rate'))
+
+  // Catalog-backed contracts need a documented reason when prices are changed.
+  const updatePricingError = firstContractPricingError(validateContractPricing({
+    contractType: parseContractType(formData.get('contract_type')),
+    customPricing: false,
+    catalogOverridden: before.contract_offer_id
+      ? catalogPricesOverridden(before, { fixedPriceOrePerKwh, spotMarkupOrePerKwh, variableFeeOrePerKwh, monthlyFeeSek, invoiceFeeSek })
+      : false,
+    overrideReason: getString(formData, 'override_reason') || null,
+    startsAt,
+    endsAt,
+  }))
+  if (updatePricingError) throw new Error(updatePricingError)
 
   const updated = await updateCustomerContract({
     id: contractId,

@@ -1,3 +1,4 @@
+import { portalCaseStatusLabel, portalInfoRequestStatusLabel, portalInfoRequestTypeLabel } from "@/lib/customer-portal/labels";
 import Link from "next/link";
 import {
   getCustomerPortalContext,
@@ -80,10 +81,10 @@ export default async function PortalStatusPage() {
                 className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-700"
               >
                 <div className="font-semibold text-slate-950">
-                  {request.request_type ?? "Uppgiftsbegäran"}
+                  {portalInfoRequestTypeLabel(request.request_type)}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
-                  Status {request.status ?? "—"} · Uppdaterad{" "}
+                  Status {portalInfoRequestStatusLabel(request.status)} · Uppdaterad{" "}
                   {formatDate(request.updated_at)}
                 </div>
                 {request.notes ? (
@@ -93,7 +94,7 @@ export default async function PortalStatusPage() {
             ))}
             {infoRequests.length === 0 ? (
               <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-slate-500">
-                Inga öppna uppgiftsbegäran.
+                Inga öppna uppgiftsbegäran. Vi hör av oss om vi behöver fler uppgifter från dig.
               </div>
             ) : null}
           </div>
@@ -113,14 +114,14 @@ export default async function PortalStatusPage() {
                   {item.title ?? "Ärende"}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
-                  Status {item.status ?? "—"} · Uppdaterat{" "}
+                  Status {portalCaseStatusLabel(item.status)} · Uppdaterat{" "}
                   {formatDate(item.updated_at)}
                 </div>
               </div>
             ))}
             {openCases.length === 0 ? (
               <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-slate-500">
-                Inga öppna ärenden.
+                Inga öppna ärenden just nu.
               </div>
             ) : null}
           </div>

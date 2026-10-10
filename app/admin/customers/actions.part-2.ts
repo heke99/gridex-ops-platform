@@ -1,6 +1,7 @@
 // Extracted from actions.ts; keep public imports on the facade module.
 
 
+import { catalogPricesOverridden, validateContractPricing } from "@/lib/customer-contracts/pricingValidation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 import { supabaseService } from "@/lib/supabase/service"
@@ -704,6 +705,30 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
   // fall back to a default contract.
   if (params.contractOfferId && !offer) {
     throw new Error("Det valda avtalet finns inte för bolaget. Välj avtal igen.");
+  }
+  if (params.contractOfferId || params.contractTypeOverride) {
+    const pricingErrors = validateContractPricing({
+      contractType: params.contractTypeOverride ?? offer?.contract_type ?? "variable_hourly",
+      // Without a catalog offer every price is entered manually.
+      customPricing: !offer,
+      catalogOverridden: catalogPricesOverridden(offer, {
+        fixedPriceOrePerKwh: params.fixedPriceOrePerKwh,
+        spotMarkupOrePerKwh: params.spotMarkupOrePerKwh,
+        variableFeeOrePerKwh: params.variableFeeOrePerKwh,
+        monthlyFeeSek: params.monthlyFeeSek,
+        invoiceFeeSek: params.invoiceFeeSek,
+      }) || Boolean(offer && params.contractTypeOverride && params.contractTypeOverride !== offer.contract_type),
+      fixedPriceOrePerKwh: params.fixedPriceOrePerKwh,
+      spotMarkupOrePerKwh: params.spotMarkupOrePerKwh,
+      overrideReason: params.overrideReason,
+    });
+    const intakeFieldErrors: IntakeFieldErrors = {};
+    if (pricingErrors.fixedPriceOrePerKwh) intakeFieldErrors.fixedPriceOrePerKwh = pricingErrors.fixedPriceOrePerKwh;
+    if (pricingErrors.spotMarkupOrePerKwh) intakeFieldErrors.spotMarkupOrePerKwh = pricingErrors.spotMarkupOrePerKwh;
+    if (pricingErrors.overrideReason) intakeFieldErrors.overrideReason = pricingErrors.overrideReason;
+    if (Object.keys(intakeFieldErrors).length > 0) {
+      throw createValidationErrorFromFieldErrors(intakeFieldErrors);
+    }
   }
   const hasContract = Boolean(params.contractOfferId || params.contractTypeOverride);
   const hasSignedAgreement = Boolean(params.signedAgreementFile);
