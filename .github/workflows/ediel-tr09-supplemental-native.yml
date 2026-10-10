@@ -1,0 +1,306 @@
+name: Ediel TR09 supplemental composed-stack native
+
+on:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'types/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '__tests__/helpers/**'
+      - '__tests__/fixtures/**'
+      - 'docs/ediel/**'
+      - 'package*.json'
+      - 'tsconfig*.json'
+      - '*.config.*'
+      - '.nvmrc'
+      - '.npmrc'
+      - '.github/workflows/ediel-tr09-supplemental-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-tr09-supplemental-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# BASE56 clean + two transport, delivered route contract and three profile
+# forwards is supplemental composition only.
+# Canonical current replay/capture/upgrade and ordinary checks remain unchanged.
+jobs:
+  tr09-composed-stack-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute BASE56 clean, two transport, delivered route contract, three profile and technical CONTRL forwards and all current TR21 cases
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          command -v psql
+          command -v openssl
+          export CURRENT_ROOT="$PWD"
+          export TR09_BASE_SHA=56e58b95518ec4d5eef210ba16ba46228afb40ac
+          export TR09_PRIVATE="$RUNNER_TEMP/tr09-supplemental-native"
+          mkdir -m 700 "$TR09_PRIVATE"
+          export TR09_RECEIPT="$TR09_PRIVATE/evidence/receipt.json"
+          export GRIDEX_NATIVE_STATUS="$TR09_PRIVATE/status.json"
+          export TR09_BASE_ROOT="$TR09_PRIVATE/base"
+          mkdir -p "$TR09_BASE_ROOT" "$TR09_PRIVATE/evidence"
+          # Original complete Git inventories precede the BASE replay's own
+          # temporary SQL/ledger marker substitution. No current input is waived.
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, sys
+          root = pathlib.Path(os.environ['CURRENT_ROOT']).resolve()
+          base_sha = os.environ['TR09_BASE_SHA']
+          head = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          subprocess.run(['git','merge-base','--is-ancestor',base_sha,head],check=True)
+          forwards = {
+            'supabase/migrations/20261006205324_ediel_production_all_family_smime.sql':
+              'de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36',
+            'supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql':
+              'd774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba',
+            'supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql':
+              '4ed3e1617e2b5d41a8eef18dfb95649fc036229ba03130304f6334931ebf7bb5',
+            'supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql':
+              'a389e31792d05b47052e3d0e61a19a3269d42b11c611315e68e1cd27136e514c',
+            'supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql':
+              'f9be8025dd32c2f3f4fe737cdeadc59318d74ffec1a265ff70f58228bdabecbc',
+            'supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql':
+              '38542d9a1e1553fb49ed71e6dc65080d5324f3b9d52378a470f92c820985e52b',
+            'supabase/migrations/20261007154601_ediel_source_qualified_technical_contrl_admission.sql':
+              '94d507202d25bb9fbc26a340c5872a62510c178ea9cc8d2f70255df969b0a232',
+          }
+          tests = ['scripts/ediel-transport-exception-native.test.ts',
+            'scripts/ediel-tr-09-reserve-source-native.test.ts',
+            'scripts/ediel-tr09-production-family-native.test.ts']
+          required = list(forwards) + tests + [
+            '.github/workflows/ediel-tr09-supplemental-native.yml',
+            '.github/workflows/ediel-tr09-current-native.yml','scripts/ediel-tr09-current-native.config.ts',
+            'scripts/helpers/ediel-native-permission-catalog.setup.ts',
+            'scripts/helpers/ediel-normal-switch-native-fixture.ts',
+            'scripts/helpers/originalMailboxNative.ts','scripts/helpers/syntheticCertificateTrust.ts',
+            'scripts/helpers/correctionContextNative.ts','scripts/helpers/native-fixture-company-identity.ts',
+            '__tests__/helpers/closureWireFixtures.ts','__tests__/helpers/utiltsNativeSourceFixture.ts',
+            'scripts/helpers/ediel-tr09-native-foreign-image.ts',
+            'lib/ediel/transport/exception/previousCrl.ts','lib/ediel/transport/exception/source.ts',
+            'lib/inbound-mail/edielMailboxPoller.ts', 'lib/inbound-mail/edielMailboxPoller.part-1.ts',
+              'lib/inbound-mail/edielMailboxPoller.part-2.ts', 'lib/inbound-mail/edielMailboxPoller.part-3.ts',
+              'lib/ediel/security/certificateTrust.ts','lib/ediel/security/outboundRecipientCertificate.ts',
+            'lib/ediel/transport/index.part-1.ts','lib/ediel/transport/index.part-2.ts',
+            'lib/ediel/config.ts','lib/ediel/sendContextConsistency.ts','lib/ediel/mailReadiness.ts',
+            'lib/ediel/db.ts','lib/ediel/flows/prodatSwitch.ts','lib/ediel/core/kernel.ts',
+            'lib/ediel/core/runtimeDecision.ts','lib/ediel/ack/technicalSyntaxAuthority.ts',
+            'scripts/gridex-aud-003-clean-replay.sh','scripts/gridex-redact-native-evidence.py',
+            'supabase/config.toml','supabase/schema.sql','package.json','package-lock.json',
+            'lib/ediel/productionReadiness.ts',
+            'lib/ediel/productionReadiness.part-1.ts',
+            'lib/ediel/productionReadiness.part-2.ts',
+            'lib/ediel/productionReadiness.part-3.ts',
+            'lib/ediel/productionReadinessTestAuthority.ts',
+            'lib/ediel/certificationEvidence.ts',
+            'lib/ediel/scopedCapabilityReadiness.ts',
+            'lib/ediel/operations/runtimeHealth.ts',
+            'lib/ediel/security/certificateStatus.ts',
+            'lib/ediel/actorTesting.ts',
+            'lib/tenant/operationPolicy.ts',
+            'docs/ediel/masterplan-v2/registers/rules.json',
+            'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
+          ]
+          base_required = ['scripts/gridex-aud-003-clean-replay.sh','supabase/config.toml',
+            'scripts/gridex-aud-003-main-ledger.json','scripts/migration-history-manifest.json',
+            'scripts/gridex-aud-003-schema-fingerprint.sql','package.json','package-lock.json']
+          def inventory(revision):
+              result = {}
+              entries = subprocess.check_output(['git','ls-tree','-r','-z','--full-tree',revision]).split(b'\0')
+              with subprocess.Popen(['git','cat-file','--batch'],stdin=subprocess.PIPE,stdout=subprocess.PIPE) as reader:
+                  for entry in filter(None,entries):
+                      metadata,name = entry.split(b'\t',1)
+                      mode,kind,oid = metadata.decode('ascii').split()
+                      path = name.decode('utf-8')
+                      if kind != 'blob' or mode not in {'100644','100755'} or path in result:
+                          raise RuntimeError('unsupported/duplicate Git source entry: '+path)
+                      reader.stdin.write((oid+'\n').encode()); reader.stdin.flush()
+                      actual,typ,size = reader.stdout.readline().decode().strip().split()
+                      content = reader.stdout.read(int(size))
+                      if actual != oid or typ != 'blob' or len(content) != int(size) or reader.stdout.read(1) != b'\n':
+                          raise RuntimeError('Git blob identity failed: '+path)
+                      result[path] = {'mode':mode,'git_blob_oid':oid,'sha256':hashlib.sha256(content).hexdigest()}
+                  reader.stdin.close()
+                  if reader.wait() != 0: raise RuntimeError('Git inventory reader failed')
+              return {'sha':revision,'tree':subprocess.check_output(['git','rev-parse',revision+'^{tree}'],text=True).strip(),'blobs':result}
+          current, baseline = inventory(head), inventory(base_sha)
+          if len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
+              raise RuntimeError('required current input missing or duplicated')
+          if len(base_required) != len(set(base_required)) or not set(base_required).issubset(baseline['blobs']):
+              raise RuntimeError('required BASE input missing or duplicated')
+          for path in required:
+              if hashlib.sha256((root/path).read_bytes()).hexdigest() != current['blobs'][path]['sha256']:
+                  raise RuntimeError('checked-out input differs from Git HEAD: '+path)
+          for path in ['package.json','package-lock.json','.nvmrc','.npmrc']:
+              if current['blobs'].get(path) != baseline['blobs'].get(path):
+                  raise RuntimeError('BASE/current dependency inputs differ: '+path)
+          for path, digest in forwards.items():
+              if current['blobs'][path]['sha256'] != digest:
+                  raise RuntimeError('immutable forward identity changed: '+path)
+          route_contract_path = 'supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql'
+          route_contract_revision = '01ecdb2a00a8426929bf3362ae42f86ad075b90b'
+          subprocess.run(['git','merge-base','--is-ancestor',route_contract_revision,head],check=True)
+          delivered_oid = subprocess.check_output(['git','rev-parse',route_contract_revision+':'+route_contract_path],text=True).strip()
+          if delivered_oid != 'c5ff03633279491dffcc478ef9678e03a1d66727' or current['blobs'][route_contract_path]['git_blob_oid'] != delivered_oid:
+              raise RuntimeError('delivered route contract source identity changed')
+          receipt = {'purpose':'TR09_supplemental_BASE56_plus_two_transport_delivered_route_contract_three_profile_and_technical_contrl_forwards_actual_native',
+            'root_path':str(root),'base_path':str(pathlib.Path(os.environ['TR09_BASE_ROOT']).resolve()),
+            'checkout_sha':head,'checkout_tree':current['tree'],'base_sha':base_sha,'base_tree':baseline['tree'],
+            'workflow_run_id':os.environ['GITHUB_RUN_ID'],
+            'input_authority':'complete_Git_objects_before_BASE_replay_substitution',
+            'root_source':current,'base_source':baseline,'required_input_paths':required,
+            'required_base_input_paths':base_required,
+            'composition':[{'path':p,**current['blobs'][p]} for p in forwards],
+            'delivered_route_contract_basis':{'source_revision':route_contract_revision,'path':route_contract_path,
+              'source':current['blobs'][route_contract_path]},
+            'phases':{p:{'status':'NOT_RUN','exit_code':None} for p in
+              ['baseline_clean','smime_forward','legacy_address_forward','supplier_route_contract_forward','profile_fields_forward','profile_replay_forward','profile_legal_forward','technical_contrl_forward','current_native','junit_qualification']},
+            'test_scope':tests,'expected_test_count':21,'native_exit_code':None,
+            'ordinary_required_gates':'NOT_REPLACED','canonical_current_clean':'NOT_RUN',
+            'canonical_current_schema_capture':'NOT_RUN','canonical_upgrade_parity':'NOT_RUN',
+            'authentic_market_or_external_issuer_evidence':'NOT_PROVIDED',
+            'tool_versions':{'python':sys.version.split()[0],
+              'node':subprocess.check_output(['node','--version'],text=True).strip(),
+              'git':subprocess.check_output(['git','--version'],text=True).strip(),
+              'supabase':subprocess.check_output(['supabase','--version'],text=True).strip(),
+              'psql':subprocess.check_output(['psql','--version'],text=True).strip(),
+              'openssl':subprocess.check_output(['openssl','version'],text=True).strip()}}
+          pathlib.Path(os.environ['TR09_RECEIPT']).write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          git archive "$TR09_BASE_SHA" | tar -x -C "$TR09_BASE_ROOT"
+          # Recorded identical dependency inputs qualify this installation.
+          # All native project aliases continue to resolve to CURRENT_ROOT.
+          ln -s "$CURRENT_ROOT/node_modules" "$TR09_BASE_ROOT/node_modules"
+          update_phase() {
+            TR09_PHASE="$1" TR09_EXIT="$2" python3 - <<'PY'
+          import json,os,pathlib
+          path=pathlib.Path(os.environ['TR09_RECEIPT']); receipt=json.loads(path.read_text())
+          phase=os.environ['TR09_PHASE']; code=int(os.environ['TR09_EXIT'])
+          receipt['phases'][phase]={'status':'RUNNING' if code==-1 else 'PASS' if code==0 else 'FAIL',
+            'exit_code':None if code==-1 else code}
+          if phase=='current_native' and code!=-1: receipt['native_exit_code']=code
+          path.write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          }
+          # Do not place this subshell in an OR-list: the unchanged BASE
+          # owner's errexit and real EXIT cleanup must stay effective.
+          set +e
+          (
+            set -euo pipefail
+            update_phase baseline_clean -1
+            cd "$TR09_BASE_ROOT"
+            source scripts/gridex-aud-003-clean-replay.sh > "$TR09_PRIVATE/baseline-clean.log" 2>&1
+            trap 'cd "$TR09_BASE_ROOT"; cleanup' EXIT
+            update_phase baseline_clean 0
+            supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+            cd "$CURRENT_ROOT"
+            update_phase smime_forward -1
+            forward_exit=0
+            psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 \
+              -f "$CURRENT_ROOT/supabase/migrations/20261006205324_ediel_production_all_family_smime.sql" \
+              > "$TR09_PRIVATE/forward-sql.log" 2>&1 || forward_exit=$?
+            update_phase smime_forward "$forward_exit"
+            if [[ "$forward_exit" != 0 ]]; then exit "$forward_exit"; fi
+            update_phase legacy_address_forward -1
+            forward_exit=0
+            psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 \
+              -f "$CURRENT_ROOT/supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql" \
+              >> "$TR09_PRIVATE/forward-sql.log" 2>&1 || forward_exit=$?
+            update_phase legacy_address_forward "$forward_exit"
+            if [[ "$forward_exit" != 0 ]]; then exit "$forward_exit"; fi
+            for phase in supplier_route_contract_forward profile_fields_forward profile_replay_forward profile_legal_forward technical_contrl_forward; do
+              case "$phase" in
+                supplier_route_contract_forward) forward=supabase/migrations/20261006213222_ediel_public_supplier_route_column_contract.sql ;;
+                profile_fields_forward) forward=supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql ;;
+                profile_replay_forward) forward=supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql ;;
+                profile_legal_forward) forward=supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql ;;
+                technical_contrl_forward) forward=supabase/migrations/20261007154601_ediel_source_qualified_technical_contrl_admission.sql ;;
+              esac
+              update_phase "$phase" -1
+              forward_exit=0
+              psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 \
+                -f "$CURRENT_ROOT/$forward" >> "$TR09_PRIVATE/forward-sql.log" 2>&1 || forward_exit=$?
+              update_phase "$phase" "$forward_exit"
+              if [[ "$forward_exit" != 0 ]]; then exit "$forward_exit"; fi
+            done
+            update_phase current_native -1
+            native_exit=0
+            npx vitest run --config scripts/ediel-tr09-current-native.config.ts \
+              --reporter=default --reporter=junit --outputFile="$TR09_PRIVATE/evidence/current-junit.xml" \
+              > "$TR09_PRIVATE/evidence/current-native.log" 2>&1 || native_exit=$?
+            update_phase current_native "$native_exit"
+            if [[ "$native_exit" != 0 ]]; then exit "$native_exit"; fi
+            update_phase junit_qualification -1
+            # Exit zero alone cannot replace all 21 original strict cases.
+            python3 - <<'PY'
+          import json,os,pathlib,xml.etree.ElementTree as ET
+          path=pathlib.Path(os.environ['TR09_RECEIPT']); receipt=json.loads(path.read_text())
+          try:
+              report=ET.parse(pathlib.Path(os.environ['TR09_PRIVATE'])/'evidence/current-junit.xml').getroot()
+              cases=report.findall('.//testcase')
+              summary={'tests':len(cases),'failures':len(report.findall('.//failure')),
+                'errors':len(report.findall('.//error')),'skipped':len(report.findall('.//skipped'))}
+              receipt['junit_summary']=summary
+              if summary!={'tests':21,'failures':0,'errors':0,'skipped':0}:
+                  raise ValueError('strict TR21 JUnit count/outcome mismatch')
+              receipt['phases']['junit_qualification']={'status':'PASS','exit_code':0}
+          except Exception as error:
+              receipt['phases']['junit_qualification']={'status':'FAIL','exit_code':1}
+              receipt['junit_qualification_error']=type(error).__name__
+              path.write_text(json.dumps(receipt,indent=2)+'\n')
+              raise SystemExit(1)
+          path.write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          ) > "$TR09_PRIVATE/driver.log" 2>&1
+          driver_exit=$?
+          set -e
+          export TR09_DRIVER_EXIT="$driver_exit"
+          python3 - <<'PY'
+          import json,os,pathlib
+          path=pathlib.Path(os.environ['TR09_RECEIPT']); receipt=json.loads(path.read_text())
+          code=int(os.environ['TR09_DRIVER_EXIT']); receipt['driver_exit_code']=code
+          for phase,state in receipt['phases'].items():
+              if state['status']=='RUNNING':
+                  receipt['phases'][phase]={'status':'FAIL','exit_code':code}
+          path.write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          # Replay, SQL, driver and status stay private. An earlier real guard
+          # failure remains a failure; no target outcome or native pass is minted.
+          if [[ -f "$GRIDEX_NATIVE_STATUS" ]]; then
+            python3 scripts/gridex-redact-native-evidence.py --local-secrets "$GRIDEX_NATIVE_STATUS" --root "$TR09_PRIVATE/evidence"
+          else
+            test ! -f "$TR09_PRIVATE/evidence/current-native.log"
+            python3 scripts/gridex-redact-native-evidence.py --root "$TR09_PRIVATE/evidence"
+          fi
+          mv "$TR09_PRIVATE/evidence" tr09-supplemental-native-evidence
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$driver_exit"
+      - name: Upload only redacted supplemental evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-tr09-supplemental-native-${{ github.event.pull_request.head.sha }}
+          path: tr09-supplemental-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
