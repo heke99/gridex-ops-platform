@@ -2,8 +2,8 @@
   "generated_types": "supabase/database.types.ts",
   "generated_at": "2026-10-10T15:32:20.744427+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38063748247",
-  "sha256": "4244012fc1d4068e7ccef51b413fee91bcfd09a2df622268ee2cbd53e6eb2a13",
-  "latest_migration": "20261010140411_ediel_common_header_negative_domain_owner_scope.sql",
+  "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
+  "latest_migration": "20261010190000_upsert_targets_full_unique_indexes.sql",
   "latest_migration_schema_effect": "Fresh genuine clean-replay capture of all1142 authenticated combined migrations, including actual-main420/#724 API and mail migrations and owned Ediel private forwards. Full generated artifacts are imported byte-exactly; independent whole-schema qualification preserves source-bound declarations, ACL, foreign changes and protected Ediel functions. The accepted-main manual generated baseline and prior genuine H2 capture are separately qualified by the attached reports.",
   "composition_capture_pending": false,
   "capture": {

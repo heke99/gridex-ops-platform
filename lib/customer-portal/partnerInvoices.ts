@@ -169,6 +169,8 @@ export async function upsertPartnerCustomerInvoice(input: PartnerInvoiceUpsertIn
       .from('customer_invoice_documents')
       .upsert(
         {
+          company_id: input.companyId,
+          customer_id: input.customerId,
           invoice_id: invoiceId,
           document_type: 'invoice_pdf',
           title: input.invoiceNumber ? `Faktura ${input.invoiceNumber}` : 'Faktura PDF',
