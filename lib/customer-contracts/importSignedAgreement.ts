@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
+import { signedAgreementDocumentTiming } from "@/lib/customer-contracts/signingMethod";
 import { saveCustomerAuthorizationDocument } from "@/lib/operations/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { supabaseService } from "@/lib/supabase/service";
@@ -12,8 +13,9 @@ import { supabaseService } from "@/lib/supabase/service";
  * authorization document. The insert fires the canonical DB import command
  * (gridex_finalize_admin_imported_signed_agreement_v1), which verifies the PDF
  * evidence, records the signature snapshot and moves the contract to `signed`
- * with signed_at = uploaded_at. Same bucket, table and metadata contract as
- * the admin customer intake upload.
+ * with signed_at = the staff-declared signing date (metadata.declaredSignedDate;
+ * import time when absent). uploaded_at is the real upload time. Same bucket,
+ * table and metadata contract as the admin customer intake upload.
  */
 
 const BUCKET = "customer-documents";
@@ -35,8 +37,7 @@ export async function importSignedAgreementForContract(input: {
   siteId: string | null;
   meteringPointId: string | null;
   file: File;
-  /** Acceptance time; null = import time. */
-  signedAtIso: string | null;
+  /** Staff-declared signing date (YYYY-MM-DD); null = import time. */
   declaredSignedDate: string | null;
 }): Promise<{ documentId: string }> {
   const buffer = Buffer.from(await input.file.arrayBuffer());
@@ -53,6 +54,7 @@ export async function importSignedAgreementForContract(input: {
 
   try {
     const supabase = await createSupabaseServerClient();
+    const timing = signedAgreementDocumentTiming({ declaredSignedDate: input.declaredSignedDate });
     const document = await saveCustomerAuthorizationDocument(supabase, {
       companyId: input.companyId,
       customer_id: input.customerId,
@@ -70,13 +72,13 @@ export async function importSignedAgreementForContract(input: {
       file_checksum: checksum,
       reference: `CONTRACT-${input.contractId.slice(0, 8)}`,
       notes: "Signerat avtal uppladdat när avtalet skapades.",
-      uploaded_at: input.signedAtIso,
+      uploaded_at: timing.uploaded_at,
       metadata: {
         // Required by the canonical import trigger.
         source: "customer_intake",
         documentRole: "signed_agreement",
         channel: "admin_contract_create",
-        ...(input.declaredSignedDate ? { declaredSignedDate: input.declaredSignedDate } : {}),
+        ...timing.metadata,
       },
     });
     return { documentId: document.id };

@@ -17,6 +17,7 @@ import type { IntakeActionState, IntakeField, IntakeFieldErrors, IntakeFormValue
 import { getContractOfferById } from "@/lib/customer-contracts/db"
 
 import { saveCustomerAuthorizationDocument } from "@/lib/operations/db"
+import { signedAgreementDocumentTiming } from "@/lib/customer-contracts/signingMethod"
 
 
 import { processManualCustomerIntake, processPdfCustomerIntake } from "@/lib/customer-operations/customerIntakeOrchestrator"
@@ -37,8 +38,6 @@ export async function uploadCustomerIntakeDocuments(params: {
   existingAuthorizationDocumentId: string | null;
   signedScopes: string[];
   signedAgreementFile: File | null;
-  /** Acceptance time for the canonical import (uploaded_at); null = now. */
-  signedAgreementSignedAt?: string | null;
   signedAgreementDeclaredDate?: string | null;
   signedPowerOfAttorneyFile: File | null;
   gridInvoiceFile: File | null;
@@ -174,6 +173,9 @@ export async function uploadCustomerIntakeDocuments(params: {
       params.signedAgreementFile,
       "complete_agreement",
     );
+    const signedAgreementTiming = signedAgreementDocumentTiming({
+      declaredSignedDate: params.signedAgreementDeclaredDate,
+    });
 
     const document = await saveCustomerAuthorizationDocument(supabase, {
       companyId: params.companyId,
@@ -194,14 +196,13 @@ export async function uploadCustomerIntakeDocuments(params: {
         ? `CONTRACT-${params.contractId.slice(0, 8)}`
         : null,
       notes: "Uppladdat vid kundskapande.",
-      // The canonical import trigger uses uploaded_at as the acceptance time.
-      uploaded_at: params.signedAgreementSignedAt ?? null,
+      // Real upload time; the canonical import uses metadata.declaredSignedDate
+      // as the signing date and records the import time separately.
+      uploaded_at: signedAgreementTiming.uploaded_at,
       metadata: {
         source: "customer_intake",
         documentRole: "signed_agreement",
-        ...(params.signedAgreementDeclaredDate
-          ? { declaredSignedDate: params.signedAgreementDeclaredDate }
-          : {}),
+        ...signedAgreementTiming.metadata,
       },
     });
 
@@ -1071,7 +1072,6 @@ export async function createCustomerGraph(
     existingAuthorizationDocumentId: result.authorization_document_id,
     signedScopes,
     signedAgreementFile: params.signedAgreementFile,
-    signedAgreementSignedAt: resolvedChoice?.signedAtIso ?? null,
     signedAgreementDeclaredDate: resolvedChoice?.signedDate ?? null,
     signedPowerOfAttorneyFile: params.signedPowerOfAttorneyFile,
     gridInvoiceFile: params.gridInvoiceFile,

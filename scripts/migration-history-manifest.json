@@ -901,6 +901,7 @@
     "20261010124755_ediel_assigned_negative_ack_arrival_date_scope.sql": "8a12e539c58ede63b61105bcff6c94ae63c6d22927362f53cc1c823a02267158",
     "20261010140411_ediel_common_header_negative_domain_owner_scope.sql": "e615bbf4d0c4a46628284a6dcdb84d973b6732c9d0662f7e20fa52925df51457",
     "20261010190000_upsert_targets_full_unique_indexes.sql": "ce5cfe5d03162c4eb29460c9029878a00e271fb6e577dafdf5ab72e69804cb0a",
+    "20261010200000_admin_intake_declared_signing_date_and_one_off_pending_signature.sql": "ac84ad95a93c3fe0c84e4af4e79a7806c7c3e19a122f59e58f3bf785e153d78d",
     "20261010233000_ediel_production_contract_ack_received_confirmation.sql": "0e33a83717f7b432bcf80a9f78b43975a90f739fbca97b3a7a2913818458b09d",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",

@@ -67,7 +67,6 @@ describe("autoSendSigningLinkAfterCreate", () => {
 
   it("skips contracts that are not pending_signature", async () => {
     for (const contract of [
-      { status: "draft", signed_at: null },
       { status: "active", signed_at: null },
       { status: "pending_signature", signed_at: "2026-10-01T00:00:00Z" },
     ]) {

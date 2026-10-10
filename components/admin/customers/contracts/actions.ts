@@ -259,7 +259,6 @@ async function completeContractSigningChoice(input: {
         siteId: input.siteId,
         meteringPointId: input.meteringPointId,
         file: input.file,
-        signedAtIso: input.choice.signedAtIso,
         declaredSignedDate: input.choice.signedDate,
       })
     } catch (error) {

@@ -18,6 +18,9 @@ export const SIGNING_LINK_FAILED_MESSAGE =
 export const SIGNING_LINK_NOT_PERMITTED_MESSAGE =
   "Avtalet skapades. Signeringslänken skickades inte automatiskt (behörighet contracts.write saknas) – skicka den från avtalets signeringssida.";
 
+export const SIGNING_LINK_DRAFT_MESSAGE =
+  "Avtalet sparades som utkast. Signeringslänk för engångsavtal kan inte skickas automatiskt ännu.";
+
 export function signingLinkSentMessage(email: string) {
   return `Signeringslänk skickad till ${email}`;
 }
@@ -110,6 +113,9 @@ export async function autoSendSigningLinkAfterCreate(
   try {
     const contract = await d.loadContract(input);
     if (!contract) return { status: "skipped", reason: "contract_not_found", message: null };
+    if (contract.status === "draft" && !contract.signed_at) {
+      return { status: "skipped", reason: "not_pending", message: SIGNING_LINK_DRAFT_MESSAGE };
+    }
     if (contract.status !== "pending_signature" || contract.signed_at) {
       return { status: "skipped", reason: "not_pending", message: null };
     }
