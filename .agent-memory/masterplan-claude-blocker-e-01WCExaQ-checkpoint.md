@@ -49,6 +49,15 @@
 - Atomic lease-delete of Bardeen's 7 refs: HTTP 403 (hosted session cannot write tags). 152 refs verified unchanged.
 - Waiting for proxy to delete 7 refs + create 7 refs at receipt 0e02c9f6.
 
+### 2026-10-10T23:00Z — CLAIM (OWNER_OVERRIDE) P-08/AT-P-08 + draft PR #736
+- Owner: "Om du ej fått den, så får du ta de enligt mig som projektet ägare..." → CLAIM 6103034892, receipt `0e02c9f6`.
+  Bardeen's 7 tags remain at 672e62bc/704c969f (tag writes 403); superseded by owner decision, documented.
+- PR #736 head `697450f`: renderer processType masterdata; forward migration 20261010233000 (acknowledged +
+  aperak received + positive APERAK scope_outcome, no negative); #710 native test/config/workflow ported.
+- Local: 284/284 related unit tests, tsc clean, migration integrity OK; db:types:check pending capture.
+- Shared generated files now in E scope for this source (6103059115).
+
 ## Next
+P-08: import capture for #736 → native + gates green → READY → 2 reviews → coverage → merge.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
 for 6102293795; (c) explicit scoped handover to E. Otherwise remain BLOCKED; no polling, no native/GEN/capture.
