@@ -1,3 +1,4 @@
+import { portalInvoiceLineTypeLabel, portalInvoiceTitle } from '@/lib/customer-portal/labels'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getCustomerPortalContext, getPortalInvoiceDetail } from '@/lib/customer-portal/db'
@@ -46,7 +47,7 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
               {invoiceStatusLabel(invoice.status)}
             </span>
             <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950">
-              Faktura {invoice.invoice_number ?? invoice.partner_invoice_reference ?? invoice.id}
+              {portalInvoiceTitle(invoice)}
             </h1>
             <p className="mt-3 text-sm text-slate-500">
               Period {formatPeriod(invoice.period_start, invoice.period_end)} · Förfallodatum {formatDate(invoice.due_date)}
@@ -71,7 +72,7 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
                 <div>
                   <div className="font-medium text-slate-950">{line.description}</div>
                   <div className="mt-1 text-xs text-slate-500">
-                    {line.quantity ?? '—'} {line.unit ?? ''} · {line.line_type}
+                    {line.quantity ?? '—'} {line.unit ?? ''} · {portalInvoiceLineTypeLabel(line.line_type)}
                   </div>
                 </div>
                 <div className="text-sm text-slate-600">Á-pris {formatSek(line.unit_price)}</div>
@@ -81,7 +82,7 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
 
             {lines.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
-                Partnern har inte skickat fakturarader ännu.
+                Fakturaraderna är inte tillgängliga ännu.
               </div>
             ) : null}
           </div>
@@ -101,9 +102,9 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
           </div>
 
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-950">PDF från partner</h2>
+            <h2 className="text-lg font-semibold text-slate-950">Faktura-PDF</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              PDF:en visas när fakturapartnern skickat tillbaka en publik/signerad länk.
+              PDF:en visas här så snart den är tillgänglig.
             </p>
 
             {pdfHref || documentPdfHref ? (
@@ -112,11 +113,11 @@ export default async function PortalInvoiceDetailPage({ params }: PageProps) {
               </a>
             ) : invoice.pdf_path || documentPdf?.file_path ? (
               <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                PDF finns lagrad, men ingen publik/signerad länk är skapad ännu.
+                PDF:en förbereds och blir tillgänglig inom kort.
               </div>
             ) : (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                Ingen PDF har importerats ännu.
+                Ingen PDF finns för fakturan ännu. Kontakta kundservice om du behöver en kopia.
               </div>
             )}
           </div>

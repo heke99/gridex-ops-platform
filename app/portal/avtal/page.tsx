@@ -1,3 +1,4 @@
+import { portalContractTypeLabel } from "@/lib/customer-portal/labels";
 import {
   getCustomerPortalContext,
   listPortalContracts,
@@ -15,8 +16,9 @@ function contractStatusLabel(status: string | null) {
     active: "Aktivt",
     terminated: "Avslutat",
     expired: "Utgånget",
+    cancelled: "Avbrutet",
   };
-  return map[String(status ?? "")] ?? status ?? "Okänd status";
+  return map[String(status ?? "")] ?? "Under handläggning";
 }
 
 export default async function PortalContractsPage() {
@@ -47,7 +49,7 @@ export default async function PortalContractsPage() {
                   {contract.contract_name ?? "Elavtal"}
                 </h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  {contract.contract_type ?? "Avtalstyp saknas"} · Start{" "}
+                  {portalContractTypeLabel(contract.contract_type)} · Start{" "}
                   {formatDate(contract.starts_at)} · Slut{" "}
                   {formatDate(contract.ends_at)}
                 </p>
@@ -101,7 +103,7 @@ export default async function PortalContractsPage() {
 
         {contracts.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-            Inga avtal är kopplade till ditt kundkonto ännu.
+            Inga avtal är kopplade till ditt kundkonto ännu. Har du nyss tecknat ett avtal kan det ta en liten stund innan det syns här.
           </div>
         ) : null}
       </section>

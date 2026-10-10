@@ -19,6 +19,10 @@ import {
   recordFacilityDataIssue,
   type FacilityBusinessErrorCode,
 } from '@/lib/energy/facilityDataErrors'
+import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
+import { websiteApplicationPayloadToIntakeRow } from '@/lib/website/applicationCustomerIntakeRow'
+import { buildCustomerParamsFromImportRow } from '@/app/admin/customers/actions.part-3'
+import { createCustomerGraph } from '@/app/admin/customers/actions.part-2'
 
 const WRITE_PERMISSIONS = { anyOf: ['customers.write', 'switching.write', 'metering.write', 'poa.write'] }
 
@@ -1161,3 +1165,73 @@ export async function requeueWebsiteApplicationContinuationAction(formData: Form
   redirect(safeReturnPath(formData, websiteApplicationDetailPath(application.id)))
 }
 
+
+// "Skapa kund från ansökan": an application without a linked customer is
+// otherwise a dead end. Reuses the canonical admin intake onboarding path
+// (buildCustomerParamsFromImportRow -> createCustomerGraph -> onboardCustomerGraph)
+// scoped to the application's own company, then links the customer.
+export async function createCustomerFromWebsiteApplicationAction(formData: FormData) {
+  const applicationId = text(formData, 'application_id') ?? ''
+  if (!applicationId) throw new Error('Kundansökan saknas.')
+  const application = await loadApplication(applicationId)
+  const admin = await requireCompanyScopedActionAccess(application.company_id, { anyOf: ['customers.write'] })
+  const detailPath = websiteApplicationDetailPath(application.id)
+
+  if (application.customer_id) {
+    redirect(withErrorMessage(detailPath, 'Ansökan är redan kopplad till en kund.'))
+  }
+
+  let customerId: string
+  try {
+    await requireCompanyOperationalForWrites(application.company_id)
+    const params = await buildCustomerParamsFromImportRow({
+      actorUserId: admin.userId,
+      companyId: application.company_id,
+      row: websiteApplicationPayloadToIntakeRow(application.payload ?? application.raw_payload, application),
+    })
+    const customer = await createCustomerGraph({ ...params, postCreateAction: 'open_customer' })
+    customerId = customer.id
+
+    const { data: linked, error: linkError } = await supabaseService
+      .from('website_customer_applications')
+      .update({
+        customer_id: customerId,
+        updated_at: new Date().toISOString(),
+        timeline: [...asArray(application.timeline), timelineEvent('customer_created_from_application', 'Kund skapad från ansökan', { customer_id: customerId })],
+        audit_log: [...asArray(application.audit_log), auditEvent('website_application.customer_created', admin.userId, { customer_id: null }, { customer_id: customerId })],
+      })
+      .eq('id', application.id)
+      .eq('company_id', application.company_id)
+      .is('customer_id', null)
+      .select('id')
+    if (linkError) throw linkError
+    if (!linked || linked.length === 0) {
+      throw new Error('Ansökan kopplades till en annan kund samtidigt. Ladda om sidan och kontrollera kundkopplingen.')
+    }
+  } catch (error) {
+    if (isRedirectLikeError(error)) throw error
+    const message = error instanceof Error && error.message ? error.message : 'Kunden kunde inte skapas från ansökan.'
+    redirect(withErrorMessage(detailPath, `Kunden kunde inte skapas: ${message}`))
+  }
+
+  await logAdminActionAndUsage({
+    companyId: application.company_id,
+    actorUserId: admin.userId,
+    customerId,
+    entityType: 'website_customer_application',
+    entityId: application.id,
+    action: 'website_application.customer_created',
+    label: 'Skapade kund från webbansökan',
+    source: 'website_application_review',
+    billable: false,
+    metadata: { customer_id: customerId },
+  })
+
+  revalidateWebsiteApplicationPaths({ id: application.id, customer_id: customerId })
+  redirect(`${detailPath}?success=${encodeURIComponent('Kunden skapades och kopplades till ansökan.')}`)
+}
+
+function isRedirectLikeError(error: unknown): boolean {
+  const digest = (error as { digest?: unknown } | null)?.digest
+  return typeof digest === 'string' && (digest.startsWith('NEXT_REDIRECT') || digest.startsWith('NEXT_HTTP_ERROR_FALLBACK'))
+}

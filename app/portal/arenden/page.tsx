@@ -1,3 +1,4 @@
+import { portalCaseStatusLabel } from "@/lib/customer-portal/labels";
 import {
   getCustomerPortalContext,
   listPortalCases,
@@ -49,7 +50,7 @@ export default async function PortalCasesPage() {
               <span
                 className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone(item.status)}`}
               >
-                {item.status ?? "okänd status"}
+                {portalCaseStatusLabel(item.status)}
               </span>
             </div>
             {item.description ? (
@@ -67,7 +68,7 @@ export default async function PortalCasesPage() {
 
         {cases.length === 0 ? (
           <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
-            Inga ärenden finns för ditt kundkonto.
+            Inga ärenden finns för ditt kundkonto. Behöver du hjälp eller vill skicka in uppgifter kan du göra det under Komplettera.
           </div>
         ) : null}
       </section>
