@@ -57,6 +57,11 @@
 - Local: 284/284 related unit tests, tsc clean, migration integrity OK; db:types:check pending capture.
 - Shared generated files now in E scope for this source (6103059115).
 
+### 2026-10-10T23:00Z — reviews while #736 CI queued
+- #735 TR-09 at `2e1a68f`: C0/I0 (6103081898); tr09-current-native SUCCESS, rest running.
+- #734 one-off binding at `18a27a4`: C0/I0 + note on pre-existing one-off offers without reservation (6103086218).
+- #736: capture + p08-native running/queued.
+
 ## Next
 P-08: import capture for #736 → native + gates green → READY → 2 reviews → coverage → merge.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
