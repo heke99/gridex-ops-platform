@@ -2,7 +2,13 @@
 import { revalidatePath } from "next/cache"
 import { createHash } from "node:crypto"
 
-import { requireAdminActionAccess, requireCompanyScopedActionAccess } from "@/lib/admin/guards"
+import { isPlatformAdminContext, requireAdminActionAccess, requireCompanyScopedActionAccess, type GuardResult } from "@/lib/admin/guards"
+import { hasPermissionRequirement } from "@/lib/admin/accessModel"
+
+// Mirrors the manual signing-link action's contracts.write requirement.
+function canWriteContracts(guard: GuardResult): boolean {
+  return isPlatformAdminContext(guard) || hasPermissionRequirement(guard.permissions, { allOf: ["contracts.write"] })
+}
 import { supabaseService } from "@/lib/supabase/service"
 import { requireOperationalCompanyId } from "@/lib/tenant/scope"
 import { requireCompanyOperationalForWrites } from "@/lib/tenant/governance"
@@ -81,7 +87,7 @@ export async function createCustomerAction(
   formData: FormData,
 ): Promise<IntakeActionState> {
   try {
-    await requireAdminActionAccess({ allOf: ["customers.write"] });
+    const guard = await requireAdminActionAccess({ allOf: ["customers.write"] });
     const actorUserId = await getActorUserId();
     const companyId = await requireOperationalCompanyId(actorUserId);
     await requireCompanyOperationalForWrites(companyId);
@@ -170,7 +176,9 @@ export async function createCustomerAction(
 
     let customer: CustomerGraphResult;
     try {
-      customer = await createCustomerGraph(params);
+      customer = await createCustomerGraph(params, {
+        autoSendSigningLink: { actorCanWriteContracts: canWriteContracts(guard) },
+      });
     } catch (graphError) {
       if (intake) {
         await failCustomerApplicationIntake({
@@ -222,13 +230,16 @@ export async function createCustomerAction(
       uploadedDocumentLabels.length > 0
         ? ` Dokument sparade: ${uploadedDocumentLabels.join(", ")}.`
         : "";
+    const signingSummary = customer.__signingLink?.message
+      ? ` ${customer.__signingLink.message}`
+      : "";
 
     return {
       status: "success",
       message:
         allWarnings.length > 0
-          ? `${usedExistingCustomer ? "Befintlig kund uppdaterades" : "Kunden skapades"}. Kontrollera varningar: ${allWarnings.slice(0, 3).join(" ")}${documentSummary}`
-          : `${usedExistingCustomer ? "Befintlig kund uppdaterades" : `Kunden ${customer.customer_number ?? ""} skapades`}. Eventuella saknade uppgifter visas på kundkortet.${documentSummary}`,
+          ? `${usedExistingCustomer ? "Befintlig kund uppdaterades" : "Kunden skapades"}. Kontrollera varningar: ${allWarnings.slice(0, 3).join(" ")}${documentSummary}${signingSummary}`
+          : `${usedExistingCustomer ? "Befintlig kund uppdaterades" : `Kunden ${customer.customer_number ?? ""} skapades`}. Eventuella saknade uppgifter visas på kundkortet.${documentSummary}${signingSummary}`,
       fieldErrors: {},
       values: {
         country: "SE",

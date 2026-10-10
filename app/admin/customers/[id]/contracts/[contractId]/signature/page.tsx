@@ -26,7 +26,7 @@ export default async function ContractSignatureAdminPage({
   searchParams,
 }: {
   params: Promise<{ id: string; contractId: string }>
-  searchParams: Promise<{ sent?: string; error?: string }>
+  searchParams: Promise<{ sent?: string; error?: string; notice?: string; warning?: string }>
 }) {
   const { id: customerId, contractId } = await params
   const query = await searchParams
@@ -88,6 +88,16 @@ export default async function ContractSignatureAdminPage({
       {query.sent === '1' ? (
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
           Signeringslänken har köats via tenantens e-postflöde. En tidigare oanvänd länk har samtidigt återkallats.
+        </div>
+      ) : null}
+      {query.notice ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          {query.notice}
+        </div>
+      ) : null}
+      {query.warning ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          {query.warning}
         </div>
       ) : null}
       {query.error ? (

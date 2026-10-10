@@ -5,6 +5,7 @@ import { normalizeGridOwnerIdToOps } from '@/lib/grid-owners/platformGridOwnerRe
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdminAccess, requireCompanyScopedActionAccess, requirePlatformAdminActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
+import { hasPermissionRequirement } from '@/lib/admin/accessModel'
 import { supabaseService } from '@/lib/supabase/service'
 import { logAdminActionAndUsage, logUsageEvent } from '@/lib/audit/actionLogger'
 import { assessWebsiteApplicationReadiness, cleanReviewText, customerIntakeStatusForReadiness } from '@/lib/website/applicationReview'
@@ -1182,6 +1183,7 @@ export async function createCustomerFromWebsiteApplicationAction(formData: FormD
   }
 
   let customerId: string
+  let signingLinkMessage: string | null = null
   try {
     await requireCompanyOperationalForWrites(application.company_id)
     const params = await buildCustomerParamsFromImportRow({
@@ -1189,8 +1191,18 @@ export async function createCustomerFromWebsiteApplicationAction(formData: FormD
       companyId: application.company_id,
       row: websiteApplicationPayloadToIntakeRow(application.payload ?? application.raw_payload, application),
     })
-    const customer = await createCustomerGraph({ ...params, postCreateAction: 'open_customer' })
+    const customer = await createCustomerGraph(
+      { ...params, postCreateAction: 'open_customer' },
+      {
+        autoSendSigningLink: {
+          actorCanWriteContracts:
+            isPlatformAdminContext(admin) ||
+            hasPermissionRequirement(admin.permissions, { allOf: ['contracts.write'] }),
+        },
+      },
+    )
     customerId = customer.id
+    signingLinkMessage = customer.__signingLink?.message ?? null
 
     const { data: linked, error: linkError } = await supabaseService
       .from('website_customer_applications')
@@ -1228,7 +1240,8 @@ export async function createCustomerFromWebsiteApplicationAction(formData: FormD
   })
 
   revalidateWebsiteApplicationPaths({ id: application.id, customer_id: customerId })
-  redirect(`${detailPath}?success=${encodeURIComponent('Kunden skapades och kopplades till ansökan.')}`)
+  const successMessage = ['Kunden skapades och kopplades till ansökan.', signingLinkMessage].filter(Boolean).join(' ')
+  redirect(`${detailPath}?success=${encodeURIComponent(successMessage)}`)
 }
 
 function isRedirectLikeError(error: unknown): boolean {

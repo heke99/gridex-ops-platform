@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { redirect } from 'next/navigation'
+import { autoSendSigningLinkAfterCreate } from '@/lib/customer-contracts/autoSendSigningLink'
 import {
   addCustomerContractEvent,
   createCustomerContract,
@@ -211,6 +213,31 @@ function parseCreateContractStatus(formData: FormData): CustomerContractRow['sta
   return (CREATE_CONTRACT_STATUSES as readonly string[]).includes(raw)
     ? (raw as CustomerContractRow['status'])
     : 'pending_signature'
+}
+
+// Runs after the contract (and its events) are committed. Never throws for a
+// send failure: the result is shown as a notice on the signature page.
+async function autoSendSigningLinkAndRedirect(input: {
+  companyId: string
+  customerId: string
+  contractId: string
+  actorUserId: string
+  status: string
+}) {
+  if (input.status !== 'pending_signature') return
+  const result = await autoSendSigningLinkAfterCreate({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    contractId: input.contractId,
+    actorUserId: input.actorUserId,
+    // Both create actions already require contracts.write via the guard.
+    actorCanWriteContracts: true,
+  })
+  if (!result.message) return
+  const signaturePath = `/admin/customers/${input.customerId}/contracts/${input.contractId}/signature`
+  revalidatePath(signaturePath)
+  const param = result.status === 'sent' ? 'notice' : 'warning'
+  redirect(`${signaturePath}?${param}=${encodeURIComponent(result.message)}`)
 }
 
 export async function logContractEventAction(formData: FormData) {
@@ -616,6 +643,13 @@ export async function createContractFromOfferAction(formData: FormData) {
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  await autoSendSigningLinkAndRedirect({
+    companyId,
+    customerId,
+    contractId: contract.id,
+    actorUserId: user.id,
+    status,
+  })
 }
 
 export async function createContractAction(formData: FormData) {
@@ -789,6 +823,13 @@ export async function createContractAction(formData: FormData) {
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  await autoSendSigningLinkAndRedirect({
+    companyId,
+    customerId,
+    contractId: contract.id,
+    actorUserId: user.id,
+    status,
+  })
 }
 
 export async function updateContractAction(formData: FormData) {

@@ -5,6 +5,7 @@ import { catalogPricesOverridden, validateContractPricing } from "@/lib/customer
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 import { supabaseService } from "@/lib/supabase/service"
+import { autoSendSigningLinkAfterCreate, type AutoSendSigningLinkResult } from "@/lib/customer-contracts/autoSendSigningLink"
 
 
 
@@ -660,9 +661,23 @@ export type CustomerGraphResult = CustomerGraphRow & {
   __createdPowerOfAttorneyId: string | null
   __createdCurrentSupplierName: string | null
   __uploadedDocumentLabels?: string[]
+  /** Outcome of the automatic signing-link send; null when not requested or no contract. */
+  __signingLink?: AutoSendSigningLinkResult | null
 }
 
-export async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<CustomerGraphResult> {
+export type CreateCustomerGraphOptions = {
+  /**
+   * Send the online signing link after commit when the graph created a
+   * pending_signature contract. Opt-in so bulk imports and test tooling do
+   * not email customers.
+   */
+  autoSendSigningLink?: { actorCanWriteContracts: boolean }
+}
+
+export async function createCustomerGraph(
+  params: CreateCustomerGraphParams,
+  options: CreateCustomerGraphOptions = {},
+): Promise<CustomerGraphResult> {
   const fieldErrors = validateCreateCustomerParams(params);
   if (Object.keys(fieldErrors).length > 0) {
     throw createValidationErrorFromFieldErrors(fieldErrors);
@@ -1072,8 +1087,20 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
     throw new Error(`Kundnummer saknas efter commit. Referens: ${result.correlation_id}.`);
   }
 
+  // After commit: a send failure is reported, never thrown (no rollback).
+  const signingLink = options.autoSendSigningLink && result.contract_id
+    ? await autoSendSigningLinkAfterCreate({
+        companyId: params.companyId,
+        customerId: result.customer_id,
+        contractId: result.contract_id,
+        actorUserId: params.actorUserId,
+        actorCanWriteContracts: options.autoSendSigningLink.actorCanWriteContracts,
+      })
+    : null;
+
   return {
     ...(customer as CustomerGraphRow),
+    __signingLink: signingLink,
     __duplicateWarnings: duplicateWarnings,
     __duplicateReviewRequired: params.duplicateResolution === "create_new_pending_review",
     __createdNewCustomer: result.created_new_customer,
