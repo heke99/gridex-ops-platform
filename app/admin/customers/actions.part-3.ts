@@ -68,6 +68,8 @@ export function buildAdminIntakeIdempotencyKey(
     // as a replay of the earlier submission.
     params.contractTypeOverride ?? "",
     params.contractStatus ?? "",
+    params.contractSigningMethod ?? "",
+    params.contractSignedDate ?? "",
     String(params.fixedPriceOrePerKwh ?? ""),
     String(params.spotMarkupOrePerKwh ?? ""),
     String(params.variableFeeOrePerKwh ?? ""),

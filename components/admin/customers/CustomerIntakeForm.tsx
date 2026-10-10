@@ -1,6 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  CONTRACT_SIGNING_METHOD_LABELS,
+  SIGNED_AGREEMENT_ACCEPT,
+  parseContractSigningMethod,
+  todayInStockholm,
+} from "@/lib/customer-contracts/signingMethod";
 import CustomerActionsMenu from "./CustomerActionsMenu";
 import Link from "next/link";
 import CustomerIntakeEnhancer from "@/components/admin/customers/CustomerIntakeEnhancer";
@@ -73,6 +79,63 @@ function inputClassName(
   return `min-w-0 w-full rounded-2xl border bg-white px-4 py-3 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 ${
     hasError ? "border-red-500 bg-red-50 text-red-950 " : "border-slate-300 "
   }${span === "full" ? " md:col-span-2" : ""}`;
+}
+
+function ContractSigningMethodFields({ state }: { state: IntakeActionState }) {
+  const [method, setMethod] = useState<string>(
+    parseContractSigningMethod(state.values.contractSigningMethod) ?? "",
+  );
+  return (
+    <fieldset className="grid min-w-0 grid-cols-1 gap-2 text-sm md:col-span-2">
+      <legend className="text-slate-700">Hur signeras avtalet? (krävs när avtal väljs)</legend>
+      {(["uploaded_signed", "send_for_signing", "draft"] as const).map((value) => (
+        <label key={value} className="flex items-start gap-2">
+          <input
+            type="radio"
+            name="contractSigningMethod"
+            value={value}
+            checked={method === value}
+            onChange={() => setMethod(value)}
+            className="mt-1"
+          />
+          <span>{CONTRACT_SIGNING_METHOD_LABELS[value]}</span>
+        </label>
+      ))}
+      <FieldError state={state} name="contractSigningMethod" />
+      {method === "uploaded_signed" ? (
+        <div className="grid min-w-0 grid-cols-1 gap-3 rounded-2xl border border-slate-200 p-3 md:grid-cols-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1">
+            <span className="text-slate-700">Signerat avtal (PDF, max 10 MB)</span>
+            <input
+              type="file"
+              name="signedAgreementFile"
+              accept={SIGNED_AGREEMENT_ACCEPT}
+              required
+              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3"
+            />
+            <FieldError state={state} name="signedAgreementFile" />
+          </label>
+          <label className="grid min-w-0 grid-cols-1 gap-1">
+            <span className="text-slate-700">Signeringsdatum</span>
+            <input
+              type="date"
+              name="contractSignedDate"
+              defaultValue={state.values.contractSignedDate ?? todayInStockholm()}
+              max={todayInStockholm()}
+              required
+              className={inputClassName(state, "contractSignedDate")}
+            />
+            <FieldError state={state} name="contractSignedDate" />
+          </label>
+        </div>
+      ) : null}
+      {method === "send_for_signing" ? (
+        <span className="text-xs text-slate-600">
+          Avtalet sparas som Väntar signering och signeringslänken skickas automatiskt till kundens e-post.
+        </span>
+      ) : null}
+    </fieldset>
+  );
 }
 
 function FieldError({
@@ -868,18 +931,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="contractStartDate" />
           </label>
 
-          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
-            <span className="text-slate-700">Avtalsstatus</span>
-            <select
-              name="contractStatus"
-              defaultValue={state.values.contractStatus ?? "pending_signature"}
-              className={inputClassName(state, "contractStatus")}
-            >
-              <option value="draft">Förbereds</option>
-              <option value="pending_signature">Väntar signering</option>
-            </select>
-            <FieldError state={state} name="contractStatus" />
-          </label>
+          <ContractSigningMethodFields state={state} />
 
           <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Förväntat startdatum</span>
@@ -1208,21 +1260,8 @@ export default function CustomerIntakeForm({
 
         <Section
           title="5. Dokument och fullmakt"
-          description="Ladda upp signerat avtal och signerad fullmakt direkt vid kundskapande."
+          description="Ladda upp signerad fullmakt och elnätsfaktura direkt vid kundskapande. Signerat avtal laddas upp under avtalsval."
         >
-          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
-            <span className="text-slate-700">Signerat avtal</span>
-            <input
-              type="file"
-              name="signedAgreementFile"
-              accept="application/pdf,image/png,image/jpeg,image/webp"
-              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3"
-            />
-            <span className="text-xs text-slate-600">
-              Kopplas till kund, anläggning, mätpunkt och avtal om dessa finns.
-            </span>
-          </label>
-
           <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">Signerad fullmakt</span>
             <input
