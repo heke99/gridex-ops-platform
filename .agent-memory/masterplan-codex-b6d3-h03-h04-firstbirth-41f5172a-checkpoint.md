@@ -993,3 +993,17 @@ soleproducer, no manualduplicate rerun/capture/GEN. Two independent source reade
 review exacta6/#732delta/baseline distinction; no newremote artifact downloads.
 NEXT ROOT currentnativeoriginal qualification/affectedwhole reviews, then own2
 coverage and finalexactheadgates/merge-role. Tenownresources retained; no merge-role.
+
+
+## 2026-10-11 Stockholm — affected R2 source reviews closed
+
+Two independent exacta6 affectedsource reviews C0I0, e3fc04bf anddd3766a5
+private reportSHA256s. Actual full712line#732migration and canonical H invoice
+signing→actual archived document→contracthash/current-profile readiness path
+reviewed: no literalHdefect, fresha6native stillrequired. Original assertions/
+nonblank native lines and1800cap unchanged; coverageNOT_EXECUTED/main302.
+PRbody actualREST PATCH/readbackMATCH (oldghGraphQL projectCards editfailed;
+ordinaryREST update succeeded, no changedsource). Currentverify SUCCESS,
+H38095758584/job114341192257 and remainingordinarygates QUEUED/noHsteps.
+NEXT ROOT existingcurrentheadproducer/nativeoriginal qualification and final
+coverage/evidence reviews; no duplicateexecutor or merge-role. Retain10ownrefs.
