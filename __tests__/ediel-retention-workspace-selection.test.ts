@@ -28,3 +28,22 @@ it('the company list is an actual authenticated native read and accepts only own
  io.rpc.mockResolvedValue({data:[{companyId:company,name:'Own archived fixture',status:'archived',permissions:rights}],error:null});expect((await requireRetentionCompanies()).companies).toEqual([{companyId:company,name:'Own archived fixture',status:'archived',permissions:rights}]);expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_current_retention_companies_v1',{})
  io.rpc.mockResolvedValue({data:[{companyId:foreign,name:'Hostile',status:'deleted',permissions:rights}],error:null});await expect(requireRetentionCompanies()).rejects.toBeDefined()
 })
+it('a native closed company does not prevent listing an active company in the same authenticated workspace',async()=>{
+ io.rpc.mockResolvedValue({data:[
+  {companyId:company,name:'Own active fixture',status:'active',permissions:rights},
+  {companyId:foreign,name:'Own closed fixture',status:'closed',permissions:['ediel.retention.read','ediel.retention.legal_history']},
+ ],error:null})
+ const result=await requireRetentionCompanies()
+ expect(result.userId).toBe(actor)
+ expect(result.companies).toEqual([
+  {companyId:company,name:'Own active fixture',status:'active',permissions:['ediel.retention.review','ediel.retention.legal_history']},
+  {companyId:foreign,name:'Own closed fixture',status:'closed',permissions:['ediel.retention.read','ediel.retention.legal_history']},
+ ])
+ expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_current_retention_companies_v1',{})
+ expect(io.set).not.toHaveBeenCalled()
+})
+it('allowing native closed companies still rejects an unknown company status',async()=>{
+ io.rpc.mockResolvedValue({data:[{companyId:company,name:'Invalid status fixture',status:'deleted_test_only',permissions:rights}],error:null})
+ await expect(requireRetentionCompanies()).rejects.toBeDefined()
+ expect(io.set).not.toHaveBeenCalled()
+})
