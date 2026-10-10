@@ -169,6 +169,11 @@ begin
          where con.contype = 'f'
            and con.confrelid in ('public.companies'::regclass, 'public.customers'::regclass))
   loop
+    -- Prod: Ediel-tabeller ägs av egna roller (t.ex. gridex_ediel_retention.record_decisions); de får skyddet i Ediel-releasen.
+    if (select pg_get_userbyid(relowner) from pg_class where oid = t) <> current_user then
+      raise notice 'hoppar över % (annan ägare)', t;
+      continue;
+    end if;
     execute format('drop trigger if exists gridex_history_truncate_guard on %s', t);
     execute format('create trigger gridex_history_truncate_guard before truncate on %s for each statement execute function public.gridex_guard_history_truncate_v1()', t);
   end loop;
