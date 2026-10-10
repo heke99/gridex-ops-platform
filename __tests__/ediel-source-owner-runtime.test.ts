@@ -1,8 +1,9 @@
 import {beforeEach,expect,it,vi} from 'vitest'
-import {OWNER,ownerId,ownerRows,ownerSource} from './helpers/sourceOwnerFixtures'
-const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false}))
+import {OWNER,ownerId,ownerRows,ownerSourceWithInstallationStatus as ownerSource} from './helpers/sourceOwnerFixtures'
+import {createProdatOwnSourceReadingSdk,resetProdatOwnSourceReadingSdk,installProdatOwnSourceReadingFixture,type ProdatOwnSourceReadingSdk} from './helpers/prodatOwnSourceReadingFixture'
+const io=vi.hoisted(()=>({rows:{} as Record<string,Record<string,unknown>[]>,calls:[] as {name:string;args:Record<string,unknown>}[],badReceipt:'',badCount:false,failTable:'',hideSupply:false,message:undefined as ReturnType<typeof ownerSource>|undefined,ownSourceReadings:null as ProdatOwnSourceReadingSdk|null}))
 vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/sourceOwnerTestDatabase')).sourceOwnerTestDatabase(io)}))
-vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:async()=>null}))
+vi.mock('@/lib/ediel/db',async importOriginal=>({...await importOriginal<typeof import('@/lib/ediel/db')>(),createEdielMessageEvent:async()=>null}))
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
@@ -14,8 +15,12 @@ import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receive
 import {timelineAssessment,timelineBody,timelineReceipt,timelineSource,timelineScope} from './helpers/sourceDecisionTimelineFixtures'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 
-const record=async(row=ownerSource())=>{
- const decision=await resolveCanonicalRuntimeDecisionWithRegistry(row)
+const record=async(row=ownerSource('Z12',{readingDeclarations:true,sourceCodes:{installationStatus:'Z12',settlementMethod:'Z32'}}),configure?:(sdk:ProdatOwnSourceReadingSdk)=>void)=>{
+ io.message=structuredClone(row)
+ io.ownSourceReadings=createProdatOwnSourceReadingSdk();resetProdatOwnSourceReadingSdk(io.ownSourceReadings)
+ installProdatOwnSourceReadingFixture(io.ownSourceReadings,row,'L',{actorUserId:ownerId(50),receivedAt:row.message_received_at!,mailId:row.inbound_email_message_id!,parseId:ownerId(61),receptionId:ownerId(62),legalActorId:OWNER.actor})
+ configure?.(io.ownSourceReadings)
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(row,{actorUserId:ownerId(50)})
  const receipt=await recordReceivedSourceValidation({original:row,validated:row,resolvedCompanyId:OWNER.company,decision})
  return {row,decision,receipt,session:createReceivedSourceOwnerSession(receipt)}
 }
@@ -25,16 +30,30 @@ const apply=async(state:Awaited<ReturnType<typeof record>>)=>{
  return state.session.finish()
 }
 const objectFacts=()=>JSON.parse(String(io.calls.find(c=>c.name==='gridex_record_source_object_decisions_v1')?.args.p_facts_text??'null'))
-beforeEach(()=>{io.rows=ownerRows();io.calls=[];io.badReceipt='';io.badCount=false;io.failTable='';io.hideSupply=false})
+beforeEach(()=>{io.rows=ownerRows();io.calls=[];io.badReceipt='';io.badCount=false;io.failTable='';io.hideSupply=false;io.message=undefined;io.ownSourceReadings=null})
 it('uses a real fully accepted canonical register source as the positive oracle',async()=>{
  const {decision,receipt}=await record()
  expect(decision.issues).toEqual([])
+ expect(io.ownSourceReadings?.calls.some(call=>call.name==='ediel_inbound_reception_request_v1')).toBe(true)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
  expect(decision.validationReport.rulePackEvidence).toMatchObject({profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:'PRODAT:Z04:L:26.A:r3'})
  expect(io.calls[0]).toEqual({name:'resolve_canonical_ediel_rule_pack_with_witness_v1',args:{p_market:'electricity',p_family:'PRODAT',p_message_code:'Z04',p_transaction_subtype:'L',p_direction:'inbound',p_business_date:'2026-09-22'}})
  expect(JSON.parse(String(io.calls[1].args.p_facts_text)).rulePackEvidence).toMatchObject({profileKey:'PRODAT:Z04:L:26.A:r3',version:'26.A:r3',snapshot:{rulePack:{id:ownerId(12)},messageProfile:{id:ownerId(11),rule_pack_id:ownerId(12)}}})
  const full=JSON.parse(String(io.calls[1].args.p_object_facts_text));expect(full).toMatchObject({sharedAccepted:true,objects:[{objectId:OWNER.external,identityAgency:'9',firstLineIndex:0,lineItemReference:'CASE-1',disposition:'accepted',reasons:[],negativeFields:[]}]});expect(io.calls.filter(c=>c.name==='gridex_record_prodat_object_validation_v1')).toHaveLength(0)
  expect(decision.issues).toEqual([]);expect(decision.prodatRegisterValidation?.objects[0].disposition).toBe('accepted');expect(receipt.status).toBe('recorded')
+})
+it.each(['initial','final'] as const)('a %s source READ permission denial cannot borrow the still-authorized business writer',async phase=>{
+ await expect(record(undefined,sdk=>{if(phase==='initial')sdk.permissions.clear();else sdk.revokeAfter=2})).rejects.toThrow('ediel_tenant_permission_forbidden')
+ expect(io.calls.some(call=>['gridex_record_prodat_source_validation_v6','ediel_apply_supply_source_v1','gridex_record_source_object_decisions_v1'].includes(call.name))).toBe(false)
+ expect(io.rows.supplier_switch_requests[0].status).toBe('draft')
+ if(phase==='final')expect(io.ownSourceReadings?.calls.some(call=>call.name==='ediel_inbound_reception_request_v1')).toBe(true)
+})
+it('a missing stored original keeps public false reading hints UNKNOWN and cannot establish an own source',async()=>{
+ const state=await record(undefined,sdk=>{sdk.rows.ediel_messages=[]})
+ expect(state.row.parsed_payload).toMatchObject({prodatDependentFacts:{meterReadingsSentInUtilts:false}})
+ expect(state.decision.prodatRegisterValidation?.objects[0].disposition).toBe('unavailable')
+ expect(await state.session!.finish()).toMatchObject({sourceDisposition:'not_established'})
+ expect(io.calls.some(call=>call.name==='ediel_apply_supply_source_v1')).toBe(false)
 })
 it('composes the real canonical, tenant, selected-party and committed Z04 owners, then witnesses separately',async()=>{
  const state=await record();const receipt=await apply(state)
@@ -92,7 +111,8 @@ for(const mutation of ['none','foreign-business','foreign-party','missing-owner'
  if(mutation==='missing-owner')facts.objects[0].party=null
  const factsText=JSON.stringify(facts),at=receipt.availableAt
  const assessment=timelineAssessment(31,null,{canonicalAssessmentId:ownerId(30),assessedAt:at,availableAt:at,availabilityWitnessId:receipt.witnessId,factsText,factsHash:evidenceHash(factsText)})
- const body=timelineBody([timelineSource({assessments:[assessment]})],{cutoffAt:at,capturedAt:at})
+ const rawPayload=io.message!.raw_payload!
+ const body=timelineBody([timelineSource({rawPayload,payloadHash:evidenceHash(rawPayload),assessments:[assessment]})],{cutoffAt:at,capturedAt:at})
  const result=inspectReceivedSourceDecisionTimeline({...timelineScope,cutoffAt:at},timelineReceipt(body))
  expect(result).toMatchObject({authorityStatus:'not_established',selection:'not_performed',marketSupersession:'not_performed'})
  if(mutation==='none'){

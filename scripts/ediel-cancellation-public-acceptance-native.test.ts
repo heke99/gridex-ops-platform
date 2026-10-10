@@ -5,7 +5,7 @@
 // Historical L4/L3 and LK-1 native cancellation boundaries remain unproved.
 // Fresh Z03L origination requires 14 days; it cannot supply an L4 original.
 import { createHash, randomUUID } from 'node:crypto'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 const smtp = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp }) } }))
 import { seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
@@ -16,6 +16,8 @@ import { closureFixture, CLOSURE_OBJECT } from '../__tests__/helpers/closureWire
 import { supabaseService } from '@/lib/supabase/service'
 import { createMeteringPermissionDraft } from '@/lib/onboarding/infoRequests'
 import { getEdielMessageById } from '@/lib/ediel/db'
+import * as edielDb from '@/lib/ediel/db'
+import * as edielErrors from '@/lib/errors'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
 import { prepareAndQueueSwitchCancellation } from '@/lib/ediel/flows/prodatSwitchCancellation'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/flows/prodatSwitch'
@@ -40,7 +42,8 @@ type Fixture = Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>> & { end
 type Period = { id: string; company_id: string; customer_id: string; metering_point_id: string;
   status: string; start_date: string; end_date: string | null; market_end_at: string | null;
   source_message_id: string; source_end_message_id: string | null; metadata: Record<string, unknown>; market_state_version: number }
-afterEach(() => { smtp.mockReset(); vi.unstubAllEnvs(); confirmedSupplyWitnesses.clear() })
+const ackErrorObservations = new Map<string, ReturnType<typeof createNativeAckErrorObservation>>()
+afterEach(() => { smtp.mockReset(); vi.unstubAllEnvs(); confirmedSupplyWitnesses.clear(); ackErrorObservations.clear() })
 function configureSmtp(email = 'recipient@example.invalid') {
   for (const [key, value] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid',
     EDIEL_APP_DKIM_ENABLED: 'false', EMAIL_PROVIDER: 'resend', EDIEL_SMTP_FROM: 'synthetic@example.invalid',
@@ -68,6 +71,7 @@ function envelope(f: Fixture, source: string, code: 'Z04' | 'Z05') {
 }
 function z04(f: Fixture, reason = 'Z22') {
   if (reason === 'Z22') return buildCancellationProspectiveZ04(f)
+  if (reason === 'Z24') return envelope(f, buildCancellationProspectiveZ04(f).replace('CAV+Z22', 'CAV+Z24'), 'Z04')
   const wire = ownerSource().raw_payload!.replaceAll(OWNER.external, f.external)
     .replaceAll('12345:160:SVK', `${f.receiver}:160:SVK`).replaceAll('54321:160:SVK', `${f.sender}:160:SVK`)
     .replaceAll('11111:160:SVK', `${f.brpEdielId}:160:SVK`).replaceAll('CUSTOMER-1::89', `${f.customerIdentity.id}:SE2:260`)
@@ -262,10 +266,12 @@ function observeProcessedSource(f: Fixture, source: EdielMessageRow) {
   console.info('C_NATIVE_OBSERVER', JSON.stringify(observation))
 }
 async function process(f: Fixture, source: EdielMessageRow) {
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source)
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source, { actorUserId: f.actorUserId })
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify({ phase: 'runtime_decision_'+source.message_code, source: source.id, issues: decision.issues }))
     .toEqual(['accepted', 'accepted', 'accepted'])
-  await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: source.id })
+  const ackErrorObservation = createNativeAckErrorObservation()
+  await ackErrorObservation.run(() => processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: source.id }))
+  ackErrorObservations.set(source.id, ackErrorObservation)
   observeProcessedSource(f, source)
   return (await getEdielMessageById(source.id))!
 }
@@ -326,9 +332,204 @@ function supplyBusinessState(f: Fixture) {
 function positiveAperakCount(f: Fixture, sourceId: string) {
   return sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(sourceId)} AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive';`)
 }
+type NativeAckErrorIdentity = { companyId: string; sourceId: string; actorUserId: string }
+type NativeAckErrorReturn = { value: string; shape: 'native_error' | 'plain_record' | 'string' | 'nullish' | 'other';
+  sqlState: '23502' | '23503' | '23505' | '23514' | '42501' | '40001' | '42P01' | '42703' | '42883' | 'P0001' | 'unknown';
+  postgrestCode: 'PGRST116' | 'PGRST202' | 'PGRST204' | 'PGRST205' | 'unknown';
+  uniqueConstraint: 'ux_ediel_outbound_source' | 'ux_ediel_ack_related' | 'ediel_messages_pkey' | 'ediel_messages_company_id_id_uidx' | 'unknown';
+  returnHash: string; returnLength: number }
+// Raw calls, returns and event identities remain private. Even one exact full
+// propagation match cannot establish causal ownership of a formatter input.
+function createNativeAckErrorObservation() {
+  let available = false, formatterCallCount = 0, formatterThrowCount = 0, eventCallCount = 0
+  let returns: NativeAckErrorReturn[] = [], receipts: unknown[] = []
+  const data = (value: unknown, key: string): unknown => {
+    if (!value || typeof value !== 'object') return undefined
+    try { return Object.getOwnPropertyDescriptor(value, key)?.value } catch { return undefined }
+  }
+  const classify = (value: unknown): Pick<NativeAckErrorReturn, 'shape' | 'sqlState' | 'postgrestCode' | 'uniqueConstraint'> => {
+    let shape: NativeAckErrorReturn['shape'] = 'other'
+    try {
+      if (value instanceof Error) shape = 'native_error'
+      else if (typeof value === 'string') shape = 'string'
+      else if (value == null) shape = 'nullish'
+      else if (typeof value === 'object' && [Object.prototype, null].includes(Object.getPrototypeOf(value))) shape = 'plain_record'
+    } catch { /* Unknown objects remain a fixed class. */ }
+    const code = data(value, 'code')
+    const sqlStates = ['23502', '23503', '23505', '23514', '42501', '40001', '42P01', '42703', '42883', 'P0001'] as const
+    const postgrestCodes = ['PGRST116', 'PGRST202', 'PGRST204', 'PGRST205'] as const
+    // Exact public PostgreSQL message templates only; details stay private.
+    // These fixed indexes are defined in the captured public schema. No name
+    // is inferred from a substring, arbitrary property or non-23505 error.
+    const uniqueConstraints = ['ux_ediel_outbound_source', 'ux_ediel_ack_related',
+      'ediel_messages_pkey', 'ediel_messages_company_id_id_uidx'] as const
+    const ownMessage = code === '23505' ? data(value, 'message') : undefined
+    const uniqueConstraint = code === '23505' ? uniqueConstraints.find(name =>
+      ownMessage === `duplicate key value violates unique constraint "${name}"`) : undefined
+    return { shape, sqlState: sqlStates.find(state => state === code) ?? 'unknown',
+      postgrestCode: postgrestCodes.find(state => state === code) ?? 'unknown', uniqueConstraint: uniqueConstraint ?? 'unknown' }
+  }
+  const cardinality = (count: number): 'zero' | 'one' | 'multiple' => count === 0 ? 'zero' : count === 1 ? 'one' : 'multiple'
+  const qualified = (row: unknown, identity: NativeAckErrorIdentity) => {
+    const payload = data(row, 'payload'), eventPayload = data(row, 'event_payload')
+    return data(row, 'company_id') === identity.companyId && data(row, 'ediel_message_id') === identity.sourceId
+      && data(row, 'message_id') === identity.sourceId && data(row, 'created_by') === identity.actorUserId
+      && data(row, 'event_type') === 'manual_note' && data(row, 'event_status') === 'warning'
+      && ['payload', 'event_payload'].every(column => {
+        const value = column === 'payload' ? payload : eventPayload
+        return data(value, 'blockedBy') === 'canonical_inbound_ack_guard' && data(value, 'ackFamily') === 'APERAK'
+          && data(value, 'sourceMessageId') === identity.sourceId
+      }) && typeof data(row, 'id') === 'string' && typeof data(row, 'message') === 'string'
+  }
+  return {
+    async run<T>(run: () => Promise<T>): Promise<T> {
+      let formatter: MockInstance<typeof edielErrors.formatErrorMessage> | undefined
+      let event: MockInstance<typeof edielDb.createEdielMessageEvent> | undefined
+      const restore = (spy: { mockRestore: () => void } | undefined) => {
+        try { spy?.mockRestore() } catch { available = false }
+      }
+      try {
+        formatter = vi.spyOn(edielErrors, 'formatErrorMessage')
+        event = vi.spyOn(edielDb, 'createEdielMessageEvent')
+      } catch { restore(event); restore(formatter); return await run() }
+      try { return await run() }
+      finally {
+        try {
+          formatterCallCount = formatter.mock.calls.length
+          formatterThrowCount = formatter.mock.results.filter(result => result.type === 'throw').length
+          returns = formatter.mock.results.flatMap((result, index) => result.type === 'return' && typeof result.value === 'string'
+            ? [{ value: result.value, ...classify(formatter.mock.calls[index]?.[0]),
+              returnHash: createHash('sha256').update(result.value).digest('hex'), returnLength: result.value.length }] : [])
+          eventCallCount = event.mock.calls.length
+          const settled = await Promise.allSettled(event.mock.results.filter(result => result.type === 'return').map(result => result.value))
+          receipts = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
+          available = true
+        } catch { available = false }
+        finally { restore(event); restore(formatter) }
+      }
+    },
+    diagnostic(identity: NativeAckErrorIdentity, readEvents: (ids: string[]) => unknown[]) {
+      let persisted: unknown[] = [], readable = available
+      const ownReceipts = receipts.filter(row => qualified(row, identity))
+      try {
+        if (readable && ownReceipts.length) {
+          const rows = readEvents(ownReceipts.map(row => data(row, 'id') as string))
+          persisted = rows.filter(row => qualified(row, identity) && ownReceipts.some(receipt =>
+            ['id', 'company_id', 'ediel_message_id', 'message_id', 'created_by', 'event_type', 'event_status', 'message']
+              .every(key => data(receipt, key) === data(row, key))))
+        }
+      } catch { readable = false; persisted = [] }
+      const matchCounts = returns.map(result => persisted.filter(row => data(row, 'message') === 'APERAK skapades inte: ' + result.value).length)
+      const matchingCandidateCount = matchCounts.filter(count => count > 0).length
+      const matchingEventCount = persisted.filter(row => returns.some(result => data(row, 'message') === 'APERAK skapades inte: ' + result.value)).length
+      const matchingPairCount = matchCounts.reduce((sum, count) => sum + count, 0)
+      const state = !readable ? 'unavailable' : matchingPairCount === 0 ? 'zero'
+        : returns.length === 1 && ownReceipts.length === 1 && matchingEventCount === 1 && matchingPairCount === 1 ? 'single_pair' : 'ambiguous'
+      return { state, causalOwnership: 'unestablished', formatterCallCount, formatterReturnCount: returns.length,
+        formatterThrowCount, eventCallCount, successfulEventReceiptCount: receipts.length,
+        qualifiedEventReceiptCount: ownReceipts.length, persistedEventCount: persisted.length,
+        matchingCandidateCount, matchingEventCount, matchingPairCount,
+        formatterCardinality: cardinality(returns.length), receiptCardinality: cardinality(ownReceipts.length),
+        candidateCardinality: cardinality(matchingCandidateCount), eventCardinality: cardinality(matchingEventCount),
+        returns: returns.map((result, index) => ({ shape: result.shape, sqlState: result.sqlState, postgrestCode: result.postgrestCode,
+          uniqueConstraint: result.uniqueConstraint,
+          returnHash: result.returnHash, returnLength: result.returnLength, persistedMatches: matchCounts[index] })) }
+    },
+  }
+}
+function nativeAckErrorObservationDiagnostic(f: Fixture, sourceId: string, stage: 'sendOwnAcks' | 'concurrent601', events: unknown[]) {
+  const observation = ackErrorObservations.get(sourceId) ?? createNativeAckErrorObservation()
+  const diagnostic = observation.diagnostic({ companyId: f.companyId, sourceId, actorUserId: f.actorUserId }, () => events)
+  console.error('C_NATIVE_ACK_FORMAT_OBSERVATION', JSON.stringify({ stage, ...diagnostic }))
+}
+
+// Refines peer donor6077035986: read the actual stored guard reason, then
+// emit only fixed classifications/counts. Original messages and IDs stay local.
+function aperakBlockedWarningDiagnostic(f: Fixture, sourceId: string, stage: 'sendOwnAcks' | 'concurrent601') {
+  const warnings = sql<Array<{ message: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',e.message,'id',e.id,'company_id',e.company_id,
+    'ediel_message_id',e.ediel_message_id,'message_id',e.message_id,'created_by',e.created_by,
+    'event_type',e.event_type,'event_status',e.event_status,'payload',e.payload,'event_payload',e.event_payload)
+    ORDER BY e.created_at,e.id),'[]') FROM public.ediel_message_events e
+    WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(sourceId)}
+      AND e.event_type='manual_note' AND e.event_status='warning'
+      AND e.event_payload->>'blockedBy'='canonical_inbound_ack_guard' AND e.event_payload->>'ackFamily'='APERAK'
+      AND e.event_payload->>'sourceMessageId'=${literal(sourceId)};`)
+  nativeAckErrorObservationDiagnostic(f, sourceId, stage, warnings)
+  const allowedGuards = ['ediel_existing_ack_original_read_unavailable', 'ediel_existing_ack_original_source_mismatch',
+    'ediel_source_rule_pack_basis_required', 'ediel_historical_rule_pack_basis_unavailable',
+    'prodat_bilateral_original_metadata_unqualified', 'prodat_bilateral_capability_required',
+    'canonical_ack_actual_original_mismatch', 'prodat_response_original_owner_unavailable',
+    'prodat_response_original_rule_witness_mismatch', 'prodat_response_frozen_owner_binding_unavailable',
+    'prodat_response_frozen_owner_binding_changed', 'prodat_response_established_original_changed',
+    'prodat_domain_response_frozen_owner_required', 'prodat_domain_response_frozen_owner_changed',
+    'prodat_domain_response_source_required', 'prodat_domain_response_scope_required',
+    'prodat_domain_response_own_effect_unavailable', 'prodat_domain_response_original_guide_unavailable',
+    'prodat_domain_response_own_plan_unavailable', 'prodat_domain_response_own_effect_required',
+    'prodat_structural_response_source_required', 'prodat_structural_response_scope_required',
+    'prodat_structural_response_own_effect_unavailable', 'historical_rule_pack_basis_unavailable',
+    'supply_final_response_scope_required', 'supply_final_response_source_changed',
+    'supply_final_response_admitted_canonical_required', 'supply_final_response_own_effect_required',
+    'supply_final_response_own_effect_uncommitted', 'ediel_existing_ack_original_object_scope_unavailable',
+    'ediel_existing_ack_original_basis_unavailable', 'ediel_existing_ack_original_outcome_unavailable',
+    'ack_source_scope_unavailable', 'ack_actual_original_unavailable',
+    'ack_source_owner_qualification_required', 'historical_rule_pack_guide_scope_unavailable',
+    'canonical_ack_original_family_mismatch', 'canonical_ack_source_scope_mismatch',
+    'canonical_ack_draft_physical_outcome_mismatch', 'canonical_ack_prodat_source_code_profile_mismatch',
+    'canonical_ack_owner_scope_required',
+    'ediel_historical_ack_guide_basis_unavailable', 'ediel_ack_guide_original_basis_changed', 'ediel_native_ack_guide_invalid',
+    // Exact b7 source-backed fresh/read/render/storage markers; this is finite diagnostic coverage.
+    'ediel_inbound_legal_context_required', 'ediel_historical_identity_basis_unavailable', 'ediel_ack_current_captured_role_unavailable',
+    'ediel_technical_endpoint_unqualified', 'ediel_ack_replay_actor_not_authorized', 'ediel_ack_replay_actual_source_unavailable',
+    'ediel_ack_replay_legal_scope_invalid', 'ediel_business_ack_current_actor_required', 'ediel_fresh_ack_envelope_invalid',
+    'ediel_message_reference_length_invalid', 'ediel_unh_unused_element', 'ediel_prodat_aperak_unused_document_element',
+    'ediel_native_ack_guide_source_required', 'ediel_registered_original_guide_unavailable', 'prodat_response_native_scope_invalid',
+    'ediel_ack_atomic_outcome_required', 'ediel_ack_atomic_wire_outcome_mismatch', 'ediel_ack_atomic_draft_whitelist_required',
+    'ediel_ack_atomic_wire_required', 'ediel_ack_atomic_wire_family_mismatch', 'ediel_ack_atomic_owner_scope_mismatch',
+    'ediel_ack_atomic_metadata_required', 'ediel_ack_atomic_route_changed', 'ediel_ack_atomic_foreign_source_resource',
+    'ediel_ack_atomic_postwrite_owner_mismatch', 'canonical_ack_route_profile_required', 'canonical_ack_atomic_output_scope_mismatch',
+    'canonical_ack_draft_outcome_scope_mismatch', 'canonical_ack_physical_scope_required', 'canonical_ack_duplicate_scope_mismatch',
+    'canonical_ack_physical_scope_receipt_mismatch', 'ediel_existing_ack_original_current_actor_required', 'ediel_existing_ack_original_read_scope_invalid',
+    'ack_source_qualification_scope_mismatch', 'ack_original_application_reference_ambiguous', 'aperak_prodat_document_reference_required',
+    'aperak_original_legal_party_projection_conflict', 'aperak_prodat_selected_scope_invalid', 'aperak_prodat_requested_scope_unqualified',
+    'aperak_prodat_own_line_reference_required', 'ediel_ack_route_profile_required', 'ediel_ack_route_profile_scope_mismatch',
+    'ediel_ack_route_profile_basis_required', 'canonical_route_environment_mismatch', 'canonical_route_profile_environment_mismatch',
+    'canonical_route_tenant_mismatch', 'ediel_tenant_actor_required', 'ediel_tenant_permission_required',
+    'ediel_tenant_actor_forbidden', 'ediel_tenant_permission_forbidden', 'blocked_final_ack_exists',
+    'outbound_ediel_canonical_policy_evidence_missing', 'ACK_GUIDE_ONE_MESSAGE_REQUIRED', 'ACK_ORIGINAL_TECHNICAL_ROUTE_MISMATCH',
+    'ACK_SOURCE_FAMILY_MISMATCH', 'ACK_APERAK_PROFILE_INVALID', 'ACK_APERAK_BGM_CARDINALITY',
+    'ACK_PRODAT_MESSAGE_FUNCTION_INVALID', 'ACK_PRODAT_UNUSED_DOCUMENT_ELEMENT', 'ACK_APERAK_DOCUMENT_DATE_INVALID',
+    'ACK_APERAK_LEGAL_PARTY_INVALID', 'ACK_APERAK_ERROR_GROUP_MISSING', 'ACK_APERAK_ACCEPTANCE_CODE_INVALID',
+    'ACK_APERAK_OWN_TEXT_INVALID', 'ACK_APERAK_POSITIVE_TEXT_INVALID', 'ACK_PRODAT_OWN_OBJECT_REFERENCE_INVALID',
+    'ACK_PRODAT_ORIGINAL_DOCUMENT_INVALID', 'ACK_PRODAT_ORIGINAL_DOCUMENT_MISMATCH', 'ACK_PRODAT_OWN_OBJECT_SCOPE_MISMATCH',
+    'ACK_PRODAT_OWN_OBJECT_REFERENCE_MISMATCH', 'ACK_PRODAT_OWN_OBJECT_OUTCOME_CONFLICT', 'ACK_APERAK_ORIGINAL_LEGAL_PARTY_MISMATCH',
+    'CANONICAL_PAYLOAD_REQUIRED', 'CANONICAL_PROCESS_GROUP_MISMATCH', 'CANONICAL_EVIDENCE_DIRECTION_REQUIRED',
+    'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE', 'CANONICAL_ACK_SOURCE_RULE_PACK_EVIDENCE_REQUIRED', 'CANONICAL_RULE_PACK_EVIDENCE_NOT_ACTIVE',
+    // Additional exact SQL replay/owner/retention markers before ACK persistence.
+    'ediel_ack_replay_scope_required', 'ediel_ack_replay_own_response_ambiguous', 'ediel_ack_replay_private_own_wire_unavailable',
+    'ediel_ack_replay_original_basis_mismatch', 'ediel_ack_replay_physical_source_mismatch', 'ediel_ack_replay_physical_prodat_scope_required',
+    'ediel_historical_prodat_ack_scope_basis_unavailable', 'ediel_prodat_ack_scope_conflicting_outcome', 'ediel_prodat_ack_scope_partially_fixed',
+    'ediel_ack_actual_original_unavailable', 'ediel_original_bytes_retention_tombstoned', 'ediel_outbound_owner_witness_required',
+    'ediel_outbound_owner_actor_scope_required', 'ediel_outbound_owner_preparation_permission_required', 'ediel_prodat_ack_physical_scope_required',
+    'ediel_prodat_ack_contradictory_own_outcome', 'ediel_outbound_owner_witness_scope_invalid', 'ediel_historical_outbound_owner_witness_unavailable',
+    'ediel_outbound_owner_witness_already_consumed', 'ediel_business_ack_private_relation_changed', 'prodat_structural_response_frozen_binding_changed'] as const
+  const prefix = 'APERAK skapades inte: '
+  const guards = warnings.map(event => {
+    if (typeof event.message !== 'string' || !event.message.startsWith(prefix)) return null
+    const reason = event.message.slice(prefix.length)
+    // Only the actual leading reason or the exact canonical-policy wrapper supplies a code.
+    // Never reclassify a details/hint mention as the primary failure or emit an unknown token.
+    const reasonCode = /^([a-z][a-z0-9_]*)(?=$|[:\s])/.exec(reason)?.[1]
+      ?? /^Outbound APERAK APERAK blockerades av canonical Ediel-policy: ([A-Z][A-Z0-9_]*) - /.exec(reason)?.[1]
+    return allowedGuards.find(guard => guard === reasonCode) ?? null
+  })
+  console.error('C_NATIVE_APERAK_ACK_GATE', JSON.stringify({ stage, blockedAckEventCount: warnings.length,
+    guardCounts: allowedGuards.map(guard => ({ guard, count: guards.filter(value => value === guard).length })),
+    unknownGuardCount: guards.filter(guard => guard === null).length }))
+}
 async function sendOwnAcks(f: Fixture, sourceId: string) {
   const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('company_id', f.companyId)
     .eq('related_message_id', sourceId).eq('direction', 'outbound').order('message_family')
+  if (!data?.some(row => row.message_family === 'APERAK' && row.ack_outcome === 'positive')) aperakBlockedWarningDiagnostic(f, sourceId, 'sendOwnAcks')
   expect(error).toBeNull(); expect(data?.map(row => [row.message_family, row.ack_outcome])).toEqual([['APERAK','positive'],['CONTRL','positive']])
   for (const ack of data ?? []) {
     await sendEdielMessageViaSmtp(ack as EdielMessageRow, { actorUserId: f.actorUserId, smtpMimeMode: 'nodemailer-attachment' })
@@ -573,7 +774,9 @@ describe('actual native supplier cancellation chains', () => {
     const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
     // Concurrent INVOCATION only: this does not attest observed lock overlap
     // or a transaction's final-write rollback boundary.
-    const settled = await Promise.allSettled([0,1].map(() => processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})))
+    const ackErrorObservation = createNativeAckErrorObservation()
+    const settled = await ackErrorObservation.run(() => Promise.allSettled([0,1].map(() => processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id}))))
+    ackErrorObservations.set(continuation.id, ackErrorObservation)
     const outcomes = settled.map(result => {
       if (result.status === 'fulfilled') return {status:result.status}
       const reason = result.reason as {code?:unknown;message?:unknown;details?:unknown} | null
@@ -597,6 +800,7 @@ describe('actual native supplier cancellation chains', () => {
       source_end_message_id:baseline.source_end_message_id,end_date:baseline.end_date,market_end_at:baseline.market_end_at,
       market_state_version:endingPeriod.market_state_version+1,metadata:{...baseline.metadata,endCancellationSource:continuation.id} })
     expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(continuation.id)} AND company_id=${literal(f.companyId)};`)).toBe(1)
+    if (positiveAperakCount(f, continuation.id) === 0) aperakBlockedWarningDiagnostic(f, continuation.id, 'concurrent601')
     expect(sql(`SELECT coalesce(jsonb_agg(jsonb_build_object('family',message_family,'outcome',ack_outcome) ORDER BY message_family,id),'[]') FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND related_message_id=${literal(continuation.id)} AND direction='outbound';`))
       .toEqual([{family:'APERAK',outcome:'positive'},{family:'CONTRL',outcome:'positive'}])
     expect(original(f)).toEqual(beforeOriginal); expect(endingHistory()).toEqual(historyBefore)

@@ -92,6 +92,22 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/ediel-prodat-mixed-native.test.ts') {
     const originalDigest = '2fcdfcd2da03577614814c9d7b2d90886eb4e0a0bf8906defd6920ee2e2486a6'
     if (sha256(bytes) === originalDigest) return bytes
+    // Reverse only the exact current fixture prerequisite correction inside
+    // this historical finite Git port; current native proof remains separate.
+    if (sha256(bytes) === '19d419cfc725193a95f0820584bf3ce9df1d5d19560be83971614feb23830ac8') {
+      const prerequisiteCorrection: [string, string][] = [
+        [" const wire=mixedProdatNativeWire({...f,startMinute:nativeWire.objects[0].start,negativePoint:'735123456789012345',ownReadingDeclarations:true})\n const receivedAt=new Date().toISOString()\n const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,receivedAt,smtpFrom:smtp.from})\n", " const wire=mixedProdatNativeWire({...f,startMinute:nativeWire.objects[0].start,negativePoint:'735123456789012345'})\n const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:smtp.from})\n"],
+        [" SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},'{\"subtype\":\"L\",\"prodatDependentFacts\":{\"market\":\"electricity\",\"meterReadingsSentInUtilts\":false}}',${literal(receivedAt)}::timestamptz,'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},${literal(mail.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)\n", " SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},'{\"subtype\":\"L\",\"prodatDependentFacts\":{\"market\":\"electricity\",\"meterReadingsSentInUtilts\":false}}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},${literal(mail.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)\n"],
+        [" const source=data as EdielMessageRow,decision=await resolveCanonicalRuntimeDecisionWithRegistry(source,{actorUserId:f.actorUserId})\n", " const source=data as EdielMessageRow,decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)\n"],
+      ]
+      let restored = bytes.toString('utf8')
+      for (const [current, previous] of prerequisiteCorrection) {
+        if (restored.split(current).length !== 2) throw Error('fixture_reviewed_ddq_prerequisite_inverse_not_exact')
+        restored = restored.replace(current, previous)
+      }
+      bytes = Buffer.from(restored)
+      if (sha256(bytes) !== '44e2460177e5516944d1a9ddf47e8b5c03d03b997fdd6af8739e5f413737ede4') throw Error('fixture_reviewed_ddq_prerequisite_inverse_digest_mismatch')
+    }
     if (sha256(bytes) !== '44e2460177e5516944d1a9ddf47e8b5c03d03b997fdd6af8739e5f413737ede4') throw Error('fixture_reviewed_ddq_source_unavailable')
     const corrections: [string, string][] = [
       ["import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'\n", ""],
@@ -106,6 +122,26 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
     const restored = Buffer.from(original)
     if (sha256(restored) !== originalDigest) throw Error('fixture_reviewed_ddq_original_digest_mismatch')
     return restored
+  }
+  // Model the exact historical mixed-wire helper, retaining the old source
+  // pin; the new prospective reading declaration is not native qualification.
+  if (file === 'scripts/helpers/ediel-mixed-prodat-native-wire.ts') {
+    const originalDigest = '205e06a7d4a94aeabd4ef9e64c8b0953a558a8fea0844a96213a322eb968126a'
+    if (sha256(bytes) === originalDigest) return bytes
+    if (sha256(bytes) !== 'feee1e96025abba121e3dab8f7e93897b4298dbb34acbd23809bf64af7a7fabd') throw Error('fixture_reviewed_ddq_wire_source_unavailable')
+    const corrections: [string, string][] = [
+      ["export function mixedProdatNativeWire(input:{external:string;sender:string;receiver:string;customerIdentity:{id:string;qualifier:string;agency:string};caseReference:string;startMinute:string;negativePoint:string;ownReadingDeclarations?:boolean}){\n // Positive native sources opt in before original birth. Default hold-only\n // sources retain their literal wire; later registers still lack their own213.\n const readings=():Parts[]=>input.ownReadingDeclarations===true?[\n  ...characteristic('Z02','1',3),...characteristic('Z05','6',3),...characteristic('Z16','111',3)\n ]:[]\n", "export function mixedProdatNativeWire(input:{external:string;sender:string;receiver:string;customerIdentity:{id:string;qualifier:string;agency:string};caseReference:string;startMinute:string;negativePoint:string}){\n"],
+      ["  ...readings(),\n  ...characteristic('Z07','Z12'),...characteristic('Z12','D',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],\n", "  ...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],\n"],
+      ["  ...block('1',input.negativePoint,'NEGATIVE-OWN','1'),line('2',input.negativePoint,'2','9'),...readings(),...block('3',input.external,input.caseReference)] as Parts[]\n", "  ...block('1',input.negativePoint,'NEGATIVE-OWN','1'),line('2',input.negativePoint,'2','9'),...block('3',input.external,input.caseReference)] as Parts[]\n"],
+    ]
+    let restored = bytes.toString('utf8')
+    for (const [current, previous] of corrections) {
+      if (restored.split(current).length !== 2) throw Error('fixture_reviewed_ddq_wire_inverse_not_exact')
+      restored = restored.replace(current, previous)
+    }
+    bytes = Buffer.from(restored)
+    if (sha256(bytes) !== originalDigest) throw Error('fixture_reviewed_ddq_wire_inverse_digest_mismatch')
+    return bytes
   }
   // Model only the original reviewed SC005 input, never admission of the
   // current optional custody/termination fixture or its unexecuted new cases.
@@ -612,6 +648,39 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 })
 
 // Exercise the actual finite port, including its whole-byte admission guards.
+// The historical DDQ port restores known bytes only; it does not run native cases.
+it('historical DDQ finite port restores only the exact reviewed source prerequisites', () => {
+  const source = readFileSync('scripts/ediel-prodat-mixed-native.test.ts')
+  expect(sha256(source)).toBe('19d419cfc725193a95f0820584bf3ce9df1d5d19560be83971614feb23830ac8')
+  expect(sha256(reviewedProducerFixture('scripts/ediel-prodat-mixed-native.test.ts', source)))
+    .toBe('2fcdfcd2da03577614814c9d7b2d90886eb4e0a0bf8906defd6920ee2e2486a6')
+})
+it.each([
+  ['unknown suffix', (source: string) => source + '\n// unknown source\n'],
+  ['changed actor', (source: string) => source.replace('source,{actorUserId:f.actorUserId}', 'source,{actorUserId:undefined}')],
+  ['duplicate inverse anchor', (source: string) => source + ' const receivedAt=new Date().toISOString()\n'],
+])('historical DDQ finite port refuses %s without admitting current native proof', (_name, mutate) => {
+  const source = readFileSync('scripts/ediel-prodat-mixed-native.test.ts', 'utf8')
+  expect(() => reviewedProducerFixture('scripts/ediel-prodat-mixed-native.test.ts', Buffer.from(mutate(source))))
+    .toThrow('fixture_reviewed_ddq_source_unavailable')
+})
+
+it('historical DDQ wire port restores only the exact reviewed helper', () => {
+  const source = readFileSync('scripts/helpers/ediel-mixed-prodat-native-wire.ts')
+  expect(sha256(source)).toBe('feee1e96025abba121e3dab8f7e93897b4298dbb34acbd23809bf64af7a7fabd')
+  expect(sha256(reviewedProducerFixture('scripts/helpers/ediel-mixed-prodat-native-wire.ts', source)))
+    .toBe('205e06a7d4a94aeabd4ef9e64c8b0953a558a8fea0844a96213a322eb968126a')
+})
+it.each([
+  ['unknown suffix', (source: string) => source + '\n// unknown source\n'],
+  ['changed reading declaration', (source: string) => source.replace("characteristic('Z16','111',3)", "characteristic('Z16','101',3)")],
+  ['duplicate inverse anchor', (source: string) => source + ' const readings=():Parts[]=>input.ownReadingDeclarations===true?[\n'],
+])('historical DDQ wire port refuses %s without admitting current native proof', (_name, mutate) => {
+  const source = readFileSync('scripts/helpers/ediel-mixed-prodat-native-wire.ts', 'utf8')
+  expect(() => reviewedProducerFixture('scripts/helpers/ediel-mixed-prodat-native-wire.ts', Buffer.from(mutate(source))))
+    .toThrow('fixture_reviewed_ddq_wire_source_unavailable')
+})
+
 it('historical ESCO finite port restores only the exact reviewed role extraction', () => {
   const source = readFileSync('scripts/fixtures/ediel-service-evidence-native.ts')
   expect(['09b779f3e803d1e541f167d4bdb7b700e29a884c7356700dba3d1e565a4a6931',

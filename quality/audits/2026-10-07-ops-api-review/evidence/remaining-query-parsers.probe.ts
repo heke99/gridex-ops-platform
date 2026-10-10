@@ -1,9 +1,13 @@
+type StaffUsersFixturePort = (...args: Required<Parameters<typeof import('@/lib/tenant/staffCommands').listStaff>>) => Promise<{ items: unknown[] }>
+type StaffCasesFixturePort = (...args: Parameters<typeof import('@/lib/staff-api/cases').listStaffCases>) => Promise<{ items: unknown[]; page: Record<string, unknown> }>
+type StaffCustomersFixturePort = (...args: Parameters<typeof import('@/lib/customers/getCustomers').listCustomersPageForCompany>) => Promise<{ rows: unknown[]; total: number; page: number; pageSize: number; totalPages: number }>
+type StaffContextFixture = Pick<import('@/lib/staff-api/context').StaffApiContext, 'companyId' | 'actorUserId' | 'apiClientId' | 'permissions'>
 import { beforeEach, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-const m=vi.hoisted(()=>({users:vi.fn(async()=>({items:[]})),cases:vi.fn(async()=>({items:[],page:{}})),customers:vi.fn(async()=>({rows:[],total:0,page:1,pageSize:25,totalPages:0}))}))
+const m=vi.hoisted(()=>({users:vi.fn<StaffUsersFixturePort>(async()=>({items:[]})),cases:vi.fn<StaffCasesFixturePort>(async()=>({items:[],page:{}})),customers:vi.fn<StaffCustomersFixturePort>(async()=>({rows:[],total:0,page:1,pageSize:25,totalPages:0}))}))
 vi.mock('server-only',()=>({}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{}}))
-vi.mock('@/lib/staff-api/http',()=>({withStaffApi:async(_r:unknown,_o:unknown,fn:any)=>fn({companyId:'synthetic-company',actorUserId:'synthetic-actor',apiClientId:'synthetic-client',permissions:[]}),staffApiJson:(body:unknown)=>Response.json(body)}))
+vi.mock('@/lib/staff-api/http',()=>({withStaffApi:async(_r:unknown,_o:unknown,fn:(context:StaffContextFixture)=>Promise<Response>)=>fn({companyId:'synthetic-company',actorUserId:'synthetic-actor',apiClientId:'synthetic-client',permissions:[]}),staffApiJson:(body:unknown)=>Response.json(body)}))
 vi.mock('@/lib/tenant/staffCommands',()=>({listStaff:m.users,inviteStaff:vi.fn(),disableStaff:vi.fn(),reactivateStaff:vi.fn(),changeStaffRole:vi.fn(),listStaffRoles:vi.fn()}))
 vi.mock('@/lib/staff-api/cases',async original=>({...await original<object>(),listStaffCases:m.cases}))
 vi.mock('@/lib/customers/getCustomers',()=>({listCustomersPageForCompany:m.customers}))
