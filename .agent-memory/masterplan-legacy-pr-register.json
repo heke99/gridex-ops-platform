@@ -331,6 +331,660 @@
       "headRetained": true,
       "completionClaim": false,
       "assessmentRequiredBeforeResumption": true
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 627,
+      "state": "OPEN",
+      "head": "ac26467f2285a0f6c738e8ebbfbc55a495363272",
+      "branch": "codex/ediel-codex-20261006T134154Z-c3ae376b9893-native",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/627",
+      "disposition": "RETAINED_UNDELIVERED_ASSETS",
+      "existingScope": "KEEP: dedicated C supplier native workflow/config/suite and checkpoint carrier are absent from main and are not reused by 733/737; 699/725 do not deliver this unique proposal. Original C whole-effect criteria remain unapproved.",
+      "remainingCriteria": [
+        "Whole immutable own SENT and cancellation metering method, original source/correlation/role authority, conditional factual authority and every literal C effect/prohibited effect; fresh source-bound whole proof remains separate from delivered C30 component suite."
+      ],
+      "originalBodySha256": "03c330a77bddbdd12a71dde3861f6fc06cb6bfeb41e1b23f35555ea3af47d798",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".github/workflows/ediel-z03c-z05c-native.yml",
+          "blob": "3360c787bb0b9233ba3a1d3c704eb8149cfc8518"
+        },
+        {
+          "path": "scripts/ediel-at-z03c-z05c-supplier-native.config.ts",
+          "blob": "12ef472c27e4e72fc9ab3db6013b2499488b2557"
+        },
+        {
+          "path": "scripts/ediel-at-z03c-z05c-supplier-native.test.ts",
+          "blob": "df0c96df2756b7e141734972288115fab07fd112"
+        }
+      ]
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 630,
+      "state": "CLOSED_UNMERGED",
+      "head": "70c4a2bdd44f246c1f0890649771093213e86edd",
+      "branch": "codex/ediel-z04a-native-2f72c8ab",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/630",
+      "disposition": "SUPERSEDED_PROPOSAL",
+      "existingScope": "RETIRE_PROPOSAL: all19 paths present;7 exact blob matches,11 relevant implementation/test/native paths continued by main,1 unique historical checkpoint append retained on original branch. Both original whole contracts are already PASSED; bounded19-path comparison finds no missing relevant old scenario. This supports administrative closure only, preserving branch, historical diagnostic oracles/checkpoint and all custody.",
+      "remainingCriteria": [
+        "No additional AT-Z04A/D code-acceptance duty inferred: canonical rows already PASSED. Historical native failures, exact old earlier/later refusal diagnostic oracles and checkpoint append remain preserved on original branch. External activation/counterparty gates remain separate."
+      ],
+      "originalBodySha256": "62b1ee65990faae0ad9446cf3909b1cb66a711db2e9019b0f463a388acb29dd0",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "closedAt": "2026-10-10T23:26:23Z",
+      "administrativeReceipt": "https://github.com/heke99/gridex-ops-platform/pull/630#issuecomment-6103302049"
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 635,
+      "state": "OPEN",
+      "head": "bb2dfea62659282b77c080b7508cef3505afc3ad",
+      "branch": "codex/ediel-z03l-z03lk-c3ae376b9893",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/635",
+      "disposition": "RETAINED_UNDELIVERED_ASSETS",
+      "existingScope": "KEEP: dedicated L/LK native workflow/config/suite/observations and two unit proof files remain absent. Main reuses or evolves selected runtime/components, but not all27 proposal paths; whole supplier L/LK criteria still NOT_EXECUTED.",
+      "remainingCriteria": [
+        "Own actor-bound readings and one-use protected source, genuine healthy confirmation, APERAK/receipt/replay and selected correlation-negative cause; map actual main against frozen whole L/LK contracts before importing old source."
+      ],
+      "originalBodySha256": "4ab9b2cffd067a9f7708479acd0d078d739bde1d7ba1e76cff56009e1d735f0b",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".github/workflows/ediel-z03l-z03lk-native.yml",
+          "blob": "8d0fc523334c6808e6da3e385d3dec607ab86b46"
+        },
+        {
+          "path": "__tests__/ediel-prodat-own-source-register-reading-declarations.test.ts",
+          "blob": "225110bb638b44eee19e52953d7d1ace4facc8d3"
+        },
+        {
+          "path": "__tests__/ediel-public-supplier-route-column-contract.test.ts",
+          "blob": "da0a42c0a0d6128ed3819f8dd66f202e656e0c5e"
+        },
+        {
+          "path": "scripts/ediel-at-z03l-z03lk-supplier-native.config.ts",
+          "blob": "f3c1ecc296c5b9b53c308b8601778a6e61cd90cc"
+        },
+        {
+          "path": "scripts/ediel-at-z03l-z03lk-supplier-native.test.ts",
+          "blob": "dbe1d70d7828b7696fc023cf9fa32132ac6f207d"
+        },
+        {
+          "path": "scripts/helpers/ediel-z03-native-supply-observation.ts",
+          "blob": "0987b25fa48760af8742cf20abc98800012cb48a"
+        }
+      ]
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 638,
+      "state": "OPEN",
+      "head": "438917c3cbb7ada5f71705be7bccfd70456dc238",
+      "branch": "codex/ediel-z01-native-24fa8502b8",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/638",
+      "disposition": "RETAINED_UNDELIVERED_ASSETS",
+      "existingScope": "KEEP: Z01 workflow/native/config/four native helpers/compatibility probe remain absent. Current authorization component reuse alone does not deliver original own-request/reply/correlation/activation scope; whole supplier Z01 L/LK still NOT_EXECUTED.",
+      "remainingCriteria": [
+        "Own request→queue/worker→physical reply correlation, current actor authorization and supply activation boundaries; old 90/94 native failures are historical, not assumed current."
+      ],
+      "originalBodySha256": "fe87715864898e6675311a4215e15066c2f7e389bc3a15e4b943a4d464109838",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".github/workflows/ediel-z01-supplier-native.yml",
+          "blob": "59f122609edbc657510c0890c016a041eaab9149"
+        },
+        {
+          "path": "scripts/ediel-at-z01-supplier-native.test.ts",
+          "blob": "c2951c61957669a8c8fddb6592c732d07af7766b"
+        },
+        {
+          "path": "scripts/ediel-z01-supplier-native.config.ts",
+          "blob": "9990e045de5355d1e55eafc081ca305af345f56a"
+        },
+        {
+          "path": "scripts/helpers/ediel-z01-field-refusal-native.ts",
+          "blob": "0b572086487cb0513c9e4bf2f20c604a27625bff"
+        },
+        {
+          "path": "scripts/helpers/ediel-z01-info-request-native-fixture.ts",
+          "blob": "ac34822d2e885aa5e48e3b98f489f6e4d30ec4e3"
+        },
+        {
+          "path": "scripts/helpers/ediel-z01-info-request-native-wire.ts",
+          "blob": "c9ffad4d59d614404430fccccb9637381e2f5cb9"
+        },
+        {
+          "path": "scripts/helpers/ediel-z01-proof-observations-native.ts",
+          "blob": "e514c99597e590608a8fdab45e9115b4b1be2482"
+        },
+        {
+          "path": "scripts/test-ediel-z01-info-request-status-compatibility.cjs",
+          "blob": "fdc5817c8847ac882ddcdbca996f96f0a3d06ba1"
+        }
+      ]
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 658,
+      "state": "OPEN",
+      "head": "87778063e3819d0a1b069c9e517459f8288ba350",
+      "branch": "codex/ediel-z02l-z02lk-2f72c8ab-ac08f5ae",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/658",
+      "disposition": "RETAINED_UNDELIVERED_ASSETS",
+      "existingScope": "KEEP: three SQL forwards are exact on main, but received-Z02 source/classification modules, their unit tests, native workflow/config/test/helpers are absent. No successor #735/#736/#737 ports this Z02 L/LK scope.",
+      "remainingCriteria": [
+        "AT-Z02L/LK: original own correlated Z01, physical customer/point/grid/LI/source qualification, application23-DDQ-PRODAT/BGMZ02/223Z22orZ23, physical CONTRL/applicable APERAK, verified data storage and separately ready Z03 command; no supply activation.",
+        "Wrong role/direction, missing R/D fields, wrong correlation and mutation refuse durable effects. Reconcile original89-case proof against actual current changes; old69PASS20FAIL is source877 evidence, not a current-main failure or new green.",
+        "Compare unique original assets with the delivered OwnSource path before porting. Fresh scope custody, exact-source whole native evidence/review/gates and own coverage remain."
+      ],
+      "originalBodySha256": "7c16cdc6ae7e9bdc5ffe49a3b9368b127be30d40d7d374b0255c607bd8e9c76b",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".github/workflows/ediel-z02-schema-capture.yml",
+          "blob": "3933fe6679dcb84a3a96ddc942934a0e0d967a93"
+        },
+        {
+          "path": ".github/workflows/ediel-z02-supplier-native.yml",
+          "blob": "ae6f6f23cde301e4a0ad0732ce481227a34e69a1"
+        },
+        {
+          "path": "__tests__/ediel-received-z02-end-user-address-context.test.ts",
+          "blob": "cb8b4ff5a81149042b2eb4eecdbf3c44b7dc78ab"
+        },
+        {
+          "path": "__tests__/ediel-received-z02-end-user-address-runtime.test.ts",
+          "blob": "9615ee789e2c10107219da3f9fe6dd53085e004f"
+        },
+        {
+          "path": "__tests__/ediel-z02-enqueue-failure-classification.test.ts",
+          "blob": "aab3e9770339cb159cac3ffa419a9cbc669975d2"
+        },
+        {
+          "path": "__tests__/ediel-z02-held-history-producer.test.ts",
+          "blob": "613446a8259db7b15806db231878d9c5f2a1ee48"
+        },
+        {
+          "path": "__tests__/ediel-z02-physical-metering-point-match.test.ts",
+          "blob": "2a398b8714cea2c376b89b118c8f2b0dbdb34749"
+        },
+        {
+          "path": "lib/ediel/prodat/receivedZ02EndUserAddressContext.ts",
+          "blob": "c0daec4c5db372110dccd5a84b5409dd3f107c01"
+        },
+        {
+          "path": "lib/onboarding/z02EnqueueFailureClassification.ts",
+          "blob": "477f545f2b0f3a387501a1dfe57d45aa2bb9ec2a"
+        },
+        {
+          "path": "scripts/ediel-at-z02-supplier-native.config.ts",
+          "blob": "03e9d6cf5a28e7636b7dfe32e003c465f653d284"
+        },
+        {
+          "path": "scripts/ediel-at-z02-supplier-native.test.ts",
+          "blob": "c530a363fa360a52b144a0ef9a9fba4cf1220fbb"
+        },
+        {
+          "path": "scripts/helpers/ediel-z02-supplier-field-refusal-native.ts",
+          "blob": "0b572086487cb0513c9e4bf2f20c604a27625bff"
+        },
+        {
+          "path": "scripts/helpers/ediel-z02-supplier-native-fixture.ts",
+          "blob": "12e40bcda3dc11f7b931eccc7e88f57e54c39cdf"
+        },
+        {
+          "path": "scripts/helpers/ediel-z02-supplier-native-observations.ts",
+          "blob": "e0146675d3582e20043410f62690a5b0f7994ef1"
+        },
+        {
+          "path": "scripts/helpers/ediel-z02-supplier-native-wire.ts",
+          "blob": "1826a31a3fcfdc64ba0669b88b9c73d18ea1ff35"
+        },
+        {
+          "path": "scripts/test-ediel-z02-end-user-address-source.cjs",
+          "blob": "ebb23d9e52a1c6b7ce822a5e904abc433edef589"
+        }
+      ]
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 662,
+      "state": "CLOSED_UNMERGED",
+      "head": "3a42fddeeb75ce9170215ffb0b76004e44e67dfc",
+      "branch": "codex/ediel-trdb-b6d3-5e3d5751787b",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/662",
+      "disposition": "SUPERSEDED_PROPOSAL",
+      "existingScope": "The broad old proposal can be archived as a released reusable predecessor: six SQL forwards and six affected library files are exact on main, the config delta clauses remain on main, and six narrow TR-09 proof/admission paths are exact in open #735. This is partial supersession with explicit DB-01/unported assets retained, not whole completion.",
+      "remainingCriteria": [
+        "TR-09/AT-TR-09: only prescribed T exceptions with exact conditions/alarm and mandatory TLS; separate deviation journal/bounded action; no general unprotected switch/invented exception. #735 current-source whole proof, independent reviews, mandatory gates and delivery must finish; proposed branch coverage does not change main.",
+        "DB-01/AT-DB-01: existing authoritative table for each datum; expand/backfill/validate then contract; no parallel customer/rule/route authority. Port the four named DB-01 basis/config/workflow/native assets to a properly reserved current-main successor.",
+        "Re-establish historical/current ACK kernel basis against the changed createCanonicalAckMessage CONTRL route-profile path. Mere kernel.ts/kernelLegacy.ts re-pinning is not proof. Preserve original positive/negative, retired-address, private actor/tenant and effect/history oracles; qualify fresh source-bound DB-01 proof, review/gates and whole coverage.",
+        "Retain original checkpoint and all unported actor-profile/configuration tests, supplemental TR workflow and original failed proof/history. None is marked DONE or discarded by administrative retirement.",
+        "DB01 exact2 IDs+23 files actually released6103215297;8 TR09 resources retained. New owner requires fresh eligibility/scope and verified claim; closure grants nothing."
+      ],
+      "originalBodySha256": "588ca8ea01d3df5eb0319d45c728460850960b04825ed97e0c6ac27cf4e9b868",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".agent-memory/masterplan-codex-b6d3a0172885-trdb-checkpoint.md",
+          "blob": "ae4782b5d9fc085e93e7aa8bc549563c4fc20875"
+        },
+        {
+          "path": ".github/workflows/ediel-db01-current-native.yml",
+          "blob": "cf6e5baf0cdf912a3273a49ddae84442efe3df54"
+        },
+        {
+          "path": ".github/workflows/ediel-tr09-supplemental-native.yml",
+          "blob": "215650ed7e49013050e15646d70c5519481b1cbc"
+        },
+        {
+          "path": "__tests__/ediel-actor-profile-current-authority.test.ts",
+          "blob": "5af1c83aefde0c00d151cd235f25ab59c8ee7413"
+        },
+        {
+          "path": "__tests__/ediel-actor-profile-expansion-fingerprint.test.ts",
+          "blob": "5105594d6e98c1696e65bf6bf8fe420099ca1f45"
+        },
+        {
+          "path": "__tests__/ediel-checked-production-capability-convergence.test.ts",
+          "blob": "8f59a8544c648b6f19a1d49165a8cd5c0fd51edc"
+        },
+        {
+          "path": "__tests__/ediel-db01-native-source-basis.test.ts",
+          "blob": "b7aa6e7106da0764250cda589fea5a22010320ad"
+        },
+        {
+          "path": "__tests__/ediel-test-configuration-route-source.test.ts",
+          "blob": "8d55a58e0ea31bcc66864fca0dd73670d02d3fe0"
+        },
+        {
+          "path": "scripts/ediel-db01-current-native.config.ts",
+          "blob": "ae6500d2008b643e2455ad94fdc9be11ae0eeb54"
+        },
+        {
+          "path": "scripts/ediel-db01-legacy-address-containment-native.test.ts",
+          "blob": "86f0caf023b9a9b4beeaac1b67d5be0c28d82b05"
+        }
+      ],
+      "preservedUnportedAssets": [
+        ".agent-memory/masterplan-codex-b6d3a0172885-trdb-checkpoint.md",
+        ".github/workflows/ediel-db01-current-native.yml",
+        ".github/workflows/ediel-tr09-supplemental-native.yml",
+        "__tests__/ediel-actor-profile-current-authority.test.ts",
+        "__tests__/ediel-actor-profile-expansion-fingerprint.test.ts",
+        "__tests__/ediel-checked-production-capability-convergence.test.ts",
+        "__tests__/ediel-db01-native-source-basis.test.ts",
+        "__tests__/ediel-test-configuration-route-source.test.ts",
+        "scripts/ediel-db01-current-native.config.ts",
+        "scripts/ediel-db01-legacy-address-containment-native.test.ts"
+      ],
+      "successorPortPaths": [
+        ".github/workflows/ediel-tr09-current-native.yml",
+        "__tests__/ediel-source-qualified-technical-contrl-admission.test.ts",
+        "scripts/ediel-actor-profile-expansion-fingerprint.py",
+        "scripts/ediel-tr-09-reserve-source-native.test.ts",
+        "scripts/ediel-tr09-current-native.config.ts",
+        "scripts/ediel-tr09-production-family-native.test.ts"
+      ],
+      "successor": {
+        "number": 735,
+        "url": "https://github.com/heke99/gridex-ops-platform/pull/735",
+        "state": "OPEN",
+        "delivered": false
+      },
+      "closedAt": "2026-10-10T23:26:29Z",
+      "administrativeReceipt": "https://github.com/heke99/gridex-ops-platform/pull/662#issuecomment-6103302725",
+      "custodyReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103215297"
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 665,
+      "state": "OPEN",
+      "head": "9c1c668f344bb7fd1d34b552885938c1b908bf75",
+      "branch": "codex/ediel-h05h08-c65-c857b6f1",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/665",
+      "disposition": "RETAINED_UNDELIVERED_ASSETS",
+      "existingScope": "KEEP: unique H05/H08 workflow/native/config/field-omission unit+helper remain absent. 725 H100 and 737 H03/H04 do not prove or explicitly reuse these distinct H05/H08 whole-effect assets; both IDs still NOT_EXECUTED.",
+      "remainingCriteria": [
+        "Public H04 confirmed own period as H05/H08 precondition; whole commercial end/billing/request/watch/physical ACK/replay and all original93 assertions plus source declarations; no borrowed H03/H04 whole approval."
+      ],
+      "originalBodySha256": "f4ee931dd9cb09e6b0acc47affb54abf29faca025f434680bc04a0e0333c9c54",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".github/workflows/ediel-z05h-z08h-supplier-native.yml",
+          "blob": "12a262601847501dffa68b4f11b401c7b9eeaf9d"
+        },
+        {
+          "path": "__tests__/ediel-supply-end-field-omissions.test.ts",
+          "blob": "a17d9c3eabac734bd99ce8fb56be04b05c043649"
+        },
+        {
+          "path": "scripts/ediel-at-z05h-z08h-supplier-native.test.ts",
+          "blob": "7992ec704654c464ea5351f54b6b70b32c4b0551"
+        },
+        {
+          "path": "scripts/ediel-z05h-z08h-supplier-native.config.ts",
+          "blob": "a5328d04de12bf4447d746a24d3bf291652b24d4"
+        },
+        {
+          "path": "scripts/helpers/ediel-supply-end-field-omissions.ts",
+          "blob": "c9d01596c82566542f5964a1968a240d6e7e4c68"
+        }
+      ]
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 674,
+      "state": "OPEN",
+      "head": "004cfeaf2a79e352ba23db230a73bb40879cf89c",
+      "branch": "codex/ediel-cm-source-24fa-004c-20261007",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/674",
+      "disposition": "RETAINED_UNDELIVERED_ASSETS",
+      "existingScope": "KEEP: all5 proposed diagnostic/native/checkpoint paths are absent. 733 is a separate M runtime-reader integration with six different changed paths and explicit whole-M limits; it does not import or explicitly dispose of this retained M2 workflow or failed native scenarios.",
+      "remainingCriteria": [
+        "Whole Z04C/Z10M apply, history, ACK, snapshot and replay effects; 733 only wires M reader. Original failed M2 own-application-guard cases remain historical."
+      ],
+      "originalBodySha256": "d6b61d12049386bbdec610bd5011edb7597d6fa0f759f2d51b80ae33dd5127b4",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".github/workflows/ediel-z10m-supplier-native.yml",
+          "blob": "efe4ac97521ca23b7f9ac191f0a267279ae8f38f"
+        },
+        {
+          "path": "__tests__/ediel-at-z10m-application-read-refusal.test.ts",
+          "blob": "a0f6088162cd8767174e419359d7bd8eafa5af27"
+        },
+        {
+          "path": "scripts/ediel-at-z10m-supplier-acceptance-native.config.ts",
+          "blob": "2491ab363c1848e79250bb26ab3cc670cb153a5b"
+        },
+        {
+          "path": "scripts/ediel-at-z10m-supplier-acceptance-native.test.ts",
+          "blob": "6a4ebbb2d4b5f0b0c28bdb7c95d9c8b7d9f5bb5e"
+        }
+      ]
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 676,
+      "state": "OPEN",
+      "head": "1b4be1fb5b78a6ef357f16b304f112ad939ab6ed",
+      "branch": "codex/z03c-z05c-95bc-20261007-97ab54ac",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/676",
+      "disposition": "RETAINED_UNDELIVERED_ASSETS",
+      "existingScope": "KEEP: original-method workflow/config/native suite remain absent, while original-method SQL and SQL regression are byte-identical on main. Public C native workflow/test continue with different blobs. Preserve distinct diagnostic assets and unapproved C whole effects rather than infer supersession of all13 paths.",
+      "remainingCriteria": [
+        "Actual unchanged complete C03/C05 effect contracts, healthy own-source timing/original SENT authority, all public negative branches and exact current-source mandatory/native proof; old checksum/GEN failure status is historical after699/725."
+      ],
+      "originalBodySha256": "8653c7d64061d54b98c5a4179fd77a74744ed522f9e5567fe8cd98445607f440",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".github/workflows/ediel-cancellation-original-method-native.yml",
+          "blob": "4bed4d79411b9720388569742397b38f319ea5ce"
+        },
+        {
+          "path": "scripts/ediel-cancellation-original-method-native.config.ts",
+          "blob": "6bc3c2f52beba603e00c6ddd840102d6ca1946be"
+        },
+        {
+          "path": "scripts/ediel-cancellation-original-method-native.test.ts",
+          "blob": "313829f522f9efdd02df4b7279500b37638a58a1"
+        }
+      ]
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 687,
+      "state": "OPEN",
+      "head": "254972f66843bc6f31db40f64a4f6b2024c8a9a4",
+      "branch": "codex/ediel-z13-request-ack-b6d3-41f5172a",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/687",
+      "disposition": "RETAINED_UNDELIVERED_ASSETS",
+      "existingScope": "KEEP: waiting-transition SQL and its focused SQL test are exact on main, but the30-case native workflow/config/test are absent. No listed current successor delivers remaining request→ACK→Z14/beneficiary full-chain proof.",
+      "remainingCriteria": [
+        "AT-Z13V/VH-ESCO: own23-DGI-PRODAT/BGMZ13/223S17orS18; request physical CONTRL/APERAK followed by Z14/Z14N; object/beneficiary rights only after positive correlatedZ14; no supply effect.",
+        "Preserve wrong-role/direction/missingR-D/correlation/mutation negatives, durable no-effects/history/replay. Old2549 native24PASS6FAIL and locally reviewed014b successor are preserved; neither is a genuine current-main30-case green.",
+        "Old selected-GEN/clean-parity blocker is partly superseded by actual699/725 delivery, but the chosen current composition/source applicability and frozen begäran normative disposition still require explicit qualification. Finish small reserved successor, whole native proof, review/mandatory gates and own coverage."
+      ],
+      "originalBodySha256": "24a8924d7930af45dbe65f412fa7917fd952baac5a99349bda65947808d02131",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".agent-memory/masterplan-codex-b6d3-z13v-z13vh-41f5172a-checkpoint.md",
+          "blob": "ff3f5d64912d2f2957d91b80be715390abd3bc8b"
+        },
+        {
+          "path": ".github/workflows/ediel-z13v-z13vh-request-ack-native.yml",
+          "blob": "7798ecd6e0ad9e66e68b2c737af5ccb2ee7f2b13"
+        },
+        {
+          "path": "scripts/ediel-z13v-z13vh-request-ack-native.config.ts",
+          "blob": "176db3f6f42aa7c2991ad9574dcadda7d40415e7"
+        },
+        {
+          "path": "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+          "blob": "3cdbd93d7f311e577568a237d21eb5c3d8333b7b"
+        }
+      ]
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 710,
+      "state": "CLOSED_UNMERGED",
+      "head": "06a5287cc58981353364a4fb2bb90fb76d0fe0c0",
+      "branch": "claude/trusting-bardeen-mtmjqx",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/710",
+      "disposition": "SUPERSEDED_PROPOSAL",
+      "existingScope": "All three original technical additions are exact blob-identical in the open draft current-main successor #736. Archive only the old proposal while retaining original checkpoint, branch, red native evidence and P-08/AT-P-08 requirements.",
+      "remainingCriteria": [
+        "P-08 literal: 210 XOR211, never216 replacement; build own92or93; on valid receipt update the correct production relation; both210/211 requires P-APERAK40/109 and no generic157.",
+        "Successor #736 must prove signed/ceased own-event production-contract delivery and final positive APERAK confirmation, CONTRL-alone refusal, negative40/109 refusal, revoked refusal, tenant/binding/immutable/replay/ACL effects against its actual source.",
+        "Successor declared generated capture/import, applicable native/gates, two independent reviews and whole coverage remain pending. OPEN successor is not main delivery."
+      ],
+      "originalBodySha256": "5c39947087d6065510306fc0e017a4ffadf718fb7661f8c5f99fb2fc8a608cac",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".agent-memory/masterplan-p08-claude-bardeen-checkpoint.md",
+          "blob": "13cd317cdb132a59ccee65bb8046d3f45bec7690"
+        }
+      ],
+      "preservedUnportedAssets": [
+        ".agent-memory/masterplan-p08-claude-bardeen-checkpoint.md"
+      ],
+      "successorPortPaths": [
+        ".github/workflows/ediel-p08-native.yml",
+        "scripts/ediel-p-08-native.config.ts",
+        "scripts/ediel-p-08-production-contract-native.test.ts"
+      ],
+      "successor": {
+        "number": 736,
+        "url": "https://github.com/heke99/gridex-ops-platform/pull/736",
+        "state": "OPEN",
+        "delivered": false
+      },
+      "closedAt": "2026-10-10T23:26:35Z",
+      "administrativeReceipt": "https://github.com/heke99/gridex-ops-platform/pull/710#issuecomment-6103303326",
+      "custodyReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103269637",
+      "sharedOutputReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103294221",
+      "producerStop": "Original Bardeen producer stopped by explicit owner takeover6102855884/6103034892; current E custody separately verified, not granted by closure."
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 718,
+      "state": "OPEN",
+      "head": "371bd3a3228a4dd6078890af6caf334b1cb1b999",
+      "branch": "claude/brave-newton-ebsg8i",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/718",
+      "disposition": "RETAINED_UNDELIVERED_ASSETS",
+      "existingScope": "KEEP: both DB05 SQL forwards are exact on main, but retentionHttp closed-enum correction is not on main, and native/workflow/config/tests/finding/retention wrapper are absent. No current successor #735/#736/#737 covers DB-05.",
+      "remainingCriteria": [
+        "DB-05/AT-DB-05 distinguishes operational close/access revoke/person-data purge and required journal/settlement retention, uses authorized grounds/workflow per decided class, rejects blind CASCADE and indefinite retention without legal basis.",
+        "SC-070 requires actual offboarding, revoked rights, permitted deletion/pseudonymisation with traceable retained legal class and no blind loss of meter/invoice/ACK history.",
+        "Use existing owner checkpoint and current-main narrow correction/source proof for closed-tenant same-tuple due-purge, HTTP selection, permissions/exclusions/history/replay. Genuine authorized legal/retention input, exact-source native/review/gates and whole coverage remain."
+      ],
+      "originalBodySha256": "8db77cc8949b3454d33dae1d0698f942e1ca89cee12e1fe3e702b6632011b7c0",
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "preservedUniqueAssets": [
+        {
+          "path": ".agent-memory/masterplan-claude-brave-newton-20261008-checkpoint.md",
+          "blob": "20ed97cdd6c382e926f759d7938abeb7b861a50b"
+        },
+        {
+          "path": ".github/workflows/ediel-db05-native.yml",
+          "blob": "d62226d31e0f8d1649a4c4545f881e69f2deaa30"
+        },
+        {
+          "path": "__tests__/db-05-closed-tenant-retention.test.ts",
+          "blob": "2d449684e543f21ac5da7564c19c5b16242b0916"
+        },
+        {
+          "path": "__tests__/db-05-hard-delete-guard.test.ts",
+          "blob": "876485e5ffb854f4ffe46b04d700abffb1a64bbb"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/db05/FINDING-F-DB-05-01.md",
+          "blob": "1c6f638046a9b3df2fd19d659e1a69ebe798ee5a"
+        },
+        {
+          "path": "scripts/db-05-hard-delete-guard-native.test.ts",
+          "blob": "1b79bc3180b2450aeeb2993419ddbe70d64050d6"
+        },
+        {
+          "path": "scripts/db-05-native.config.ts",
+          "blob": "a5f95baa6d6d855c9464d8362a24007926b1cba1"
+        },
+        {
+          "path": "scripts/db-05-tenant-offboarding-native.test.ts",
+          "blob": "08802eb9f83afd0fbd2b9a0284c64e1c7a96323c"
+        },
+        {
+          "path": "scripts/test-ediel-db-05-retention.cjs",
+          "blob": "33173a7d86b762db9687fc9bcda8873c003bc840"
+        }
+      ]
+    },
+    {
+      "repo": "heke99/gridex-ops-platform",
+      "number": 720,
+      "state": "CLOSED_UNMERGED",
+      "head": "8c4a38a9d07796f7b3027067230fe912c4490021",
+      "branch": "codex/ediel-h-missing314-b6d3-41f5172a",
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/720",
+      "disposition": "SUPERSEDED_PROPOSAL",
+      "existingScope": "Original three-file catalog proposal is behaviorally superseded by distinct delivered main source paths; original owner explicitly resumes whole H on current-main successor737. This is not bytewise delivery of720.",
+      "remainingCriteria": [
+        "AT-Z03H-SUPPLIER/AT-Z04H-SUPPLIER whole expected/prohibited effects, changed current-main native qualification, independent final-head review, currentmandatory gates, own coverage approval and actual delivery remain b6d3/H1102 in737. Closing720 transfers/releases no refs or IDs."
+      ],
+      "originalBodySha256": null,
+      "branchRetained": true,
+      "headRetained": true,
+      "completionClaim": false,
+      "coverageCredit": 0,
+      "assessmentRequiredBeforeResumption": true,
+      "assessedAgainstMain": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+      "assessmentDate": "2026-10-11",
+      "evidenceAuthority": "Bounded current-main exact-path/blob triage; current custody must independently reconcile refs, retained duties and explicit handovers.",
+      "successor": {
+        "number": 737,
+        "url": "https://github.com/heke99/gridex-ops-platform/pull/737",
+        "state": "OPEN",
+        "delivered": false
+      },
+      "administrativeReceipt": "https://github.com/heke99/gridex-ops-platform/pull/720#issuecomment-6103180052",
+      "custodyReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103211625"
     }
   ],
   "completionReceipt": "https://github.com/heke99/gridex-ops-platform/pull/615#issuecomment-6015522225",
@@ -368,5 +1022,32 @@
       }
     ],
     "meaning": "Original entries/body hashes/HOLD/PAUSED/criteria/evidenceAuthority remain untouched. Admin closure does not complete or discard requirements, release refs or deliver undelivered workflows."
+  },
+  "latestRetainedPrAssessment": {
+    "recordedAt": "2026-10-10T23:27:51.369783+00:00",
+    "main": "a5220cba88c743ffc7fb3aaaf0ca093dda1f0638",
+    "approvedIds": 302,
+    "totalIds": 352,
+    "remainingIds": 50,
+    "administrativeClosed": [
+      630,
+      662,
+      710,
+      720
+    ],
+    "keepOpen": [
+      627,
+      635,
+      638,
+      658,
+      665,
+      674,
+      676,
+      687,
+      718
+    ],
+    "noCoverageOrCustodyFromClosure": true,
+    "sharedOutputWriter": "E P08 current five-file slot6103283264/6103294221; other source/test/review work continues, later SQL outputs require serial handoff and actual delivered-main composition.",
+    "sourceComparisons": "13 exact-branch/path/blob triages verified; remaining assets and criteria retained below. No new native/capture/GEN/artifact execution."
   }
 }
