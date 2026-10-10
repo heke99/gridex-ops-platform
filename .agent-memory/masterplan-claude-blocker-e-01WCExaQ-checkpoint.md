@@ -2,7 +2,7 @@
 
 - Agent: `claude-blocker-e-session_01WCExaQJ8GurBiuazNaHXKh`
 - Role: BLOCKERARAGENT E (fixed). Branch: `claude/blocker-e-01WCExaQ` (checkpoint only).
-- Custody: P-08/AT-P-08 takeover owner-approved; refs pending proxy (see log). No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
+- Custody: P-08/AT-P-08 + 10 files, receipts ffce8ee6 / 83b7d8b0 (verified). No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
 
 ## Log
 
@@ -69,6 +69,13 @@
   fix proposed to Codex B.
 - #735: quality-release-gates red = 3 timeouts in unrelated tests; owner to re-run once.
 - #732: no failures, 2 running.
+
+### 2026-10-10T23:36Z — custody verified, READY #736 ([6103359133](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103359133), [6103362564](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103362564))
+- Proxy transfer done: 7 refs at receipt `ffce8ee6dfd960e23e573cc7ae0039a2fe7c5749` (P-08, AT-P-08 + 5 files) and
+  shared five at `83b7d8b041c81044bab8e01e06aac5465831f45f`; independently GET-verified. Old 0e02/672e/704c historical.
+- #736 head `c59099f` (tree 40e4711): fixes + capture import + coverage P-08 VERIFIED / AT-P-08 PASSED.
+  Local coverage --check exit 0 (304 approved). PR marked ready for review.
+- Release after delivery: exactly ffce8ee6 + 83b7d8b0 refs via proxy (GET_MATCH/DELETE/404).
 
 ## Next
 P-08: import capture for #736 → native + gates green → READY → 2 reviews → coverage → merge.
