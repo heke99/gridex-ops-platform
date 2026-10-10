@@ -843,7 +843,14 @@
           "path": "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
           "blob": "3cdbd93d7f311e577568a237d21eb5c3d8333b7b"
         }
-      ]
+      ],
+      "preservedSuccessor": {
+        "branch": "codex/esco-014b-preserved-b6d3-41f5172a",
+        "head": "014b23784bf6a3fd4df0d60e33e0605d92f3f6c9",
+        "delivered": false,
+        "releaseReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6059127086",
+        "meaning": "Preserved alternative source and original proof/failed history; not contained in original PR head2549 and not whole approval. Apply the actual scoped historical release instead of treating stale PR-body retained text as custody; fresh whole-duty/scope qualification before reuse."
+      }
     },
     {
       "repo": "heke99/gridex-ops-platform",
@@ -968,7 +975,7 @@
       "remainingCriteria": [
         "AT-Z03H-SUPPLIER/AT-Z04H-SUPPLIER whole expected/prohibited effects, changed current-main native qualification, independent final-head review, currentmandatory gates, own coverage approval and actual delivery remain b6d3/H1102 in737. Closing720 transfers/releases no refs or IDs."
       ],
-      "originalBodySha256": null,
+      "originalBodySha256": "85d60ba2d433d585e2c27a0b349643e9e66ea28a82f2b02b4ee37ea526fe7f9b",
       "branchRetained": true,
       "headRetained": true,
       "completionClaim": false,
@@ -984,7 +991,49 @@
         "delivered": false
       },
       "administrativeReceipt": "https://github.com/heke99/gridex-ops-platform/pull/720#issuecomment-6103180052",
-      "custodyReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103211625"
+      "custodyReceipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103211625",
+      "originalAssetsPreserved": {
+        "branch": "codex/ediel-h-missing314-b6d3-41f5172a",
+        "checkpoint": ".agent-memory/masterplan-codex-b6d3-h03-h04-firstbirth-41f5172a-checkpoint.md",
+        "checkpointCommit": "a4528dbe86e392afbc7249e6c072b7ec6ff46411",
+        "uniqueFiles": [
+          "lib/inbound-mail/rejectedBilateralSwitchBirthProfile.ts",
+          "__tests__/ediel-rejected-bilateral-switch-birth-profile.test.ts",
+          "__tests__/ediel-rejected-bilateral-switch-intake.test.ts"
+        ],
+        "remainingAssets": "All older meaningful REDs, immutable source/failed native observations, additional refusal vectors and checkpoints remain preserved on original source; they are not declared ported or no longer valuable."
+      },
+      "supersessionEvidence": [
+        {
+          "purpose": "missing209/314 birth",
+          "file": "lib/inbound-mail/rejectedZ04HRequiredFieldBirthProfile.ts",
+          "blob": "5063749a87abc85c4a6b19a7a93d9065379b6b9f",
+          "lines": "29-44 current actual malformed fields;56-65 dated six-witness result"
+        },
+        {
+          "purpose": "public creator connection",
+          "file": "lib/inbound-mail/inboundStatusUpdater.ts",
+          "blob": "0c83e2acccf97eb18a370f46263b23f1d5cb2155",
+          "lines": "461-469 actual creator fallback"
+        },
+        {
+          "purpose": "replacement component assertions",
+          "file": "__tests__/ediel-rejected-h-required-field-birth.test.ts",
+          "blob": "3b9bb843324efb337158ca0966c1e247c31703b7",
+          "lines": "28-45 raw/malformed/catalog invariants;69 onward actual public creator on finite boundary"
+        },
+        {
+          "purpose": "missing311 permanently negative header birth",
+          "file": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "blob": "7bba19fa06cef4d8c60abb4349ed3c4f5a7a1320",
+          "lines": "46-56 physical311classification;106-114 requiredNULLcatalog/resourcefields;248-255 sameNULLACK"
+        }
+      ],
+      "ownerEvidence": [
+        "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103146798",
+        "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103173866",
+        "https://github.com/heke99/gridex-ops-platform/pull/737"
+      ]
     }
   ],
   "completionReceipt": "https://github.com/heke99/gridex-ops-platform/pull/615#issuecomment-6015522225",
