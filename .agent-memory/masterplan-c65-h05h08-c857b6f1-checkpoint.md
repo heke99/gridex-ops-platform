@@ -1,0 +1,38 @@
+# H05/H08 native and source-declaration continuation
+
+Agent/session: codex-20261007T101310Z-c65h-c857b6f1; packet c857b6f1-056e-4626-9562-93f72b0ee064; branch codex/ediel-h05h08-c65-c857b6f1; own worktree /workspace/gridex-c65-h05h08-c857b6f1; exactbase c401ae989f8add2f73912746936ced6be2d02708.
+
+Status PREPARED_NOT_CLAIMED. Previous c65 SC014/V14 delivered #647/#644 and metadata #661; ALL36 original resources actually released #5306035222232, current ownCP19ca62c8/#5306035674793. Currentmain coverage298/352, both selected H contracts unapproved and explicitly FULLRELEASED by originalowner #5306034839762. Original #654 source96fd8e681871671a7eb9c1bcecd9b4102e3e319a retained: 93strict native identities/oracles, original2source-onlyPASS91FAIL at H04 unknown214/218/259, downstreamNOTREACHED. Existing source birth delivered #660/main1aef, preserved actualmainc401; do not redo.
+
+Skill routing: existing using-superpowers/executing-plans/worktrees/TDD/systematic-debugging/spec-to-code-compliance/code-review/requesting-review/verification-before-completion remain relevant; Supabase/native database proof applies to genuine local isolated or originalCI execution; no UI/NextReact/payment/email delivery authoring/security-wide refactor. This is bounded source-preserving native and real execution path work, not a repository-wide audit. Fresh AGENTS/orderedmemory/workflow/reservations/currentcoverage/legacy/530/openPRs/current live refs read.
+
+Constructive source diagnosis supersedes earlier overbroad oldfixture-datum prerequisite: a truthful SYNTHETIC public wire fixture is lawful CODE input after this pair claim; external market agreement or another agent's previously published meterreading datum is not required. Both independent imp05 and transport source reviews confirm adding proper own214/218/259 in SG14 before SG16/17 using fourthCAVcomponent is legitimate;259 declares FUTUREUTILTS TRUE only, not currentreceivedreadings/inventory. Preserve actual no259 oldsource as UNKNOWN/manualhold/noeffects control and allstrict93whole assertions. Currentmain has no declaration-only helper; current95 candidate only immutable-regulated A/D. Genuine H opaque owner immutable-bilateral-prodat-profile-v1/processnormal_start_h already supplied by protected public source RPC; tiny separate H declaration branch +same-guide policy consumption is held95, no root file takeover.
+
+Prepared exactfile scope: scripts/ediel-at-z05h-z08h-supplier-native.test.ts; scripts/ediel-z05h-z08h-supplier-native.config.ts; .github/workflows/ediel-z05h-z08h-supplier-native.yml. Implementation starts ONLYafter twoID/threeFILE tags create-if-absent+officialallGETMATCH, this owncheckpoint normalpush and CLAIM#530/readback. Newsourceproduction95/commonGEN2f/sharedmemory93e stayforeign, coverageall352unchanged.
+
+Next root: acquire5resources on unique JSONreceipt actualmainexacttree/singleparent, confirm, publishCLAIM/physicalRED plan; reuse ONLYoriginal3nativepaths, create faithfulsource-own reading fixture+unknowncontrast. Run exacttypes/lint and genuine originalnative expectedRED at samepublicreceive/process. Record exactfield/outcomes/nativeinputs/run/authenticatedZIP; coordinate95 separate H declaration-only branch or exactboundedhandoff. Original strictwhole/native/ACK/end/watch/timers/tenant/replay remain required before ownedcoverage promotion and twofinalreviews/currentmandatorygreen/normalexpectedheadmerge. Oneactivepair only.
+
+
+## CLAIM confirmed before source authoring
+
+Receipt75b25c73a7b5edd2c282d4f6912b801f5f76a18a/all5 sorted NONFORCE TAG atomiccreates EXIT0/officialGETMATCH, checkpointc14c7c7119851328dd79da51b430a6dca294e373 actualbranchpush/GETMATCH. CLAIM #5306035827017 actual posted and reread exactreceipt. ExactlyoneHpair; rootheld native/config/workflow only. Latest constructive feasibility receipt transporta4508406a9aa02d832afc32703361c8a41c52071d8281d0e056be97c34787216 confirms annexliteral259 futureTRUE/214+218/SG14 exactscope; impindependentmatches. Next preserve original3 sourcepaths/strict93, build truthful positive declaration wire and no259held contrast; coordinate95 separate protectedH declaration-only hook undertheirlocks.
+
+
+## Reusable original support prerequisite extension BEFORE authoring
+
+Native3 exactoriginal copied only under original5confirmedCLAIM. Read-only comparison finds original654 depends on its unique optional signed-source input extension (bindingMonths/billingAddress before signing/PDF archive) in sharednormalfixture and absent original field-omission helper/unit. Current other3same helpers byteexactold; no maincore import. Fresh3file refs FREE. Extensionreceipt e1e07c16d0fc6ae761e96680e1ecaa9bcfd71a78 actualmainc401 exacttree/singleparent; sorted3 NONFORCE TAG atomiccreates trueEXIT0; officialGETMATCH pending so NO edits of these3paths yet. Exact3paths: scripts/helpers/ediel-normal-switch-native-fixture.ts, scripts/helpers/ediel-supply-end-field-omissions.ts, __tests__/ediel-supply-end-field-omissions.test.ts. Changes will reuse entire originally reviewed oldpostimages with default unchanged and no acceptedprivatefacts. Next officialall8 resource readback, currentcp normalpush, CLAIM_EXTEND#530 before anysupportsource edit.
+
+
+## Installed truthful public source producer; genuine execution pending
+
+All8 officialMATCH/extensionCLAIM6035896568 and ownCP0bedc405/readback confirmed BEFORE support authoring. Original654 normalfixture optional18-line signed-source delta and absentomissionhelper/unit exactpostimage reused; default unchanged. Original native93 downstream assertionbody+two birthprobes byteexact from anchor throughEOF, no oracle/timeout/provider/authority/gate edits. Config/workflow/supportunit/helper exactoldbytes; newPUBLIC H04 prep physicallydeclares own214=1/218=6/259=111 fourthCAVcomponents orderedbeforeSG16/17; source-native producer observesactualparser before actualprocess. Separate no259 andmalformedCAV controls keep originalunknown/malformed source and actualownREG unavailable/rejected/noeffects/no positiveAPERAK/retry. Newpositive stillrequiresactual committedsame-sourceperiod. Added3 declared/absent/malformed cases: intended96 total; actualnative census NOT_RUN. No production source/SQL/GEN/coverage edits. Next canonicaltypes/scopedlint/actualomissionunits/two independent exact SOURCEreviews then draftpublication andgenuine originalnativeRED;95 ownsH protected readingdecl port.
+
+
+## Independent review finding and exact next correction
+
+At451 scripts NONincrementalTSC true0/emptylog e3b0c442. Gov SOURCE_APP; imp SOURCE_CHANGES_REQUIRED for NEWnegative technicalstatusregex /review|held|failed/: original authentic96 unknownH04 statusvalidated and ownREG unavailable/APPheld/noeffects is legitimate. Current ownAPPguard returns technicalmessage unchanged; headerstatus is not ownREG/effectacceptance. Before correction recorded #530 actualstructuredprogress receipt. Replace only inventednewstatus assertion with immutablepersistedsource/raw/hash observation, retainallnewownREG/nonmutation/positiveACK/provider/replay and alloriginal93. No frozenrequiredoracle/gate/product change; successor needs2exactsource reviews and actualnative96/currentgates.
+
+
+## Installed bounded review correction
+
+BEFORE correction #5306036010669. Only NEWnegative inventedtechnicalstatusregex replacedby exactpersistedcompany/environment/direction/raw/hash proof; technicalstatus remains observed in ownREG refusal diagnostic. OwnREG nonaccepted/absent unavailable/noeffects/no positiveAPERAK/provider/exactretry and alloriginal93 preserved. No production or frozenrequiredoracle weakened. Source451 scriptsTSC0 staysoldhead evidence; correctedsuccessor freshchecks/two reviews/nativepending.

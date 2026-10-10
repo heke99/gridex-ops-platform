@@ -68,6 +68,49 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
   if (file === 'scripts/helpers/ediel-normal-switch-native-fixture.ts') {
     const originalDigest = 'b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc'
     if (sha256(bytes) === originalDigest) return bytes
+    // The expanded native output buffer retains every original row. Model
+    // only its exact known source back to the reviewed H fixture bytes.
+    if (sha256(bytes) === '15937e871370531980c596e93027530932814d82b0746527a88b0e80a23c8eb3') {
+      const expanded = 'maxBuffer:64*1024*1024'
+      const current = bytes.toString('utf8')
+      if (current.split(expanded).length !== 2) throw Error('fixture_reviewed_normal_correction_not_unique')
+      bytes = Buffer.from(current.replace(expanded, 'maxBuffer:2_000_000'))
+      if (sha256(bytes) !== '3e581711df5f7e509df93101ba4e83d414c711662a85ec9b11d2622286776623') throw Error('fixture_reviewed_normal_original_digest_mismatch')
+    }
+    // Model only the exact retained H binding/address fixture as its reviewed
+    // historical default. Optional inputs do not admit current H proof.
+    if (sha256(bytes) === '3e581711df5f7e509df93101ba4e83d414c711662a85ec9b11d2622286776623') {
+      const corrections: [string, string][] = [
+        [
+          "export type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string;bindingMonths?:number;billingAddress?:{street:string;postalCode:string;city:string;country:string}}\n",
+          "type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string}\n"
+        ],
+        [
+          " const bindingMonths=input.bindingMonths??0\n if(!Number.isInteger(bindingMonths)||bindingMonths<0)throw Error('native_switch_binding_months_invalid')\n if(input.billingAddress&&Object.values(input.billingAddress).some(value=>!value.trim()))throw Error('native_switch_billing_address_incomplete')\n",
+          ""
+        ],
+        [
+          "  terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:bindingMonths,\n",
+          "  terms_version:'test-v1',spot_markup_ore_per_kwh:4,monthly_fee_sek:49,invoice_fee_sek:19,default_binding_months:0,\n"
+        ],
+        [
+          "   ${bindingMonths},1,true,12,'active','both',true,false,${literal(actorUserId)}\n",
+          "   0,1,true,12,'active','both',true,false,${literal(actorUserId)}\n"
+        ],
+        [
+          " // Optional synthetic source inputs belong to the original draft, before\n // canonical signature, price snapshot and PDF/POA capture. Never change a\n // signed contract to manufacture a conditional native branch.\n if(input.billingAddress){\n  const address=input.billingAddress\n  sql(`UPDATE public.customer_contracts SET billing_address_same_as_site=false,\n   billing_street=${literal(address.street)},billing_postal_code=${literal(address.postalCode)},\n   billing_city=${literal(address.city)},billing_country=${literal(address.country)}\n   WHERE id=${literal(contractId)} AND company_id=${literal(companyId)} AND status='draft';`)\n  expect(sql(`SELECT jsonb_build_object('street',billing_street,'postalCode',billing_postal_code,'city',billing_city,'country',billing_country)\n   FROM public.customer_contracts WHERE id=${literal(contractId)} AND status='draft'`)).toEqual(address)\n }\n",
+          ""
+        ]
+      ]
+      let original = bytes.toString('utf8')
+      for (const [current, previous] of corrections) {
+        if (original.split(current).length !== 2) throw Error('fixture_reviewed_normal_correction_not_unique')
+        original = original.replace(current, previous)
+      }
+      const restored = Buffer.from(original)
+      if (sha256(restored) !== originalDigest) throw Error('fixture_reviewed_normal_original_digest_mismatch')
+      return restored
+    }
     if (sha256(bytes) !== '72f50e5a064f5416ef707daa06d567ede4bcb8d7a11e9ad70fc4fffc4751f28c') throw Error('fixture_reviewed_normal_source_unavailable')
     const corrections: [string, string][] = [
       ["export type NormalSwitchNativeRequestInput=Omit<NormalSwitchStageNativeFixture,'switchId'>&{invoiceeSnapshot:Record<string,unknown>}\n", ""],
