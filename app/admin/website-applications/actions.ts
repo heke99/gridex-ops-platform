@@ -1189,6 +1189,9 @@ export async function createCustomerFromWebsiteApplicationAction(formData: FormD
       companyId: application.company_id,
       row: websiteApplicationPayloadToIntakeRow(application.payload ?? application.raw_payload, application),
     })
+    // Never auto-send a signing link here: website customers sign on the
+    // website itself (gridex_finalize_website_contract_signature), and this
+    // intake row carries no contract fields, so no contract is created.
     const customer = await createCustomerGraph({ ...params, postCreateAction: 'open_customer' })
     customerId = customer.id
 

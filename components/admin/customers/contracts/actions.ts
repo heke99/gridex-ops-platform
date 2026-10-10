@@ -5,6 +5,15 @@ import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { supabaseService } from '@/lib/supabase/service'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { redirect } from 'next/navigation'
+import { autoSendSigningLinkAfterCreate } from '@/lib/customer-contracts/autoSendSigningLink'
+import { importSignedAgreementForContract } from '@/lib/customer-contracts/importSignedAgreement'
+import {
+  SIGNED_AGREEMENT_IMPORTED_MESSAGE,
+  SIGNED_AGREEMENT_IMPORT_FAILED_MESSAGE,
+  resolveContractSigningChoice,
+  type ResolvedSigningChoice,
+} from '@/lib/customer-contracts/signingMethod'
 import {
   addCustomerContractEvent,
   createCustomerContract,
@@ -202,15 +211,104 @@ async function emitLifecycleEventsForStatus(params: {
   }
 }
 
-// New contracts can only start as draft or pending signature; a signed or
-// active contract requires a recorded signature, never a form choice.
-const CREATE_CONTRACT_STATUSES = ['draft', 'pending_signature'] as const
+// Staff must choose how a new contract is signed. New rows only start as
+// draft or pending_signature; "already signed" goes through the canonical
+// signed-agreement import after the row exists, never a raw signed insert.
+function parseCreateSigningChoice(
+  formData: FormData,
+  uploadedCreateStatus: 'draft' | 'pending_signature',
+) {
+  const raw = formData.get('signed_agreement_file')
+  const file = raw instanceof File && raw.size > 0 ? raw : null
+  const choice = resolveContractSigningChoice({
+    method: getString(formData, 'signing_method'),
+    file,
+    signedDate: getString(formData, 'signed_date'),
+    uploadedCreateStatus,
+  })
+  if (!choice.ok) {
+    throw new Error(Object.values(choice.errors)[0] ?? 'Välj hur avtalet ska signeras.')
+  }
+  return { choice, file }
+}
 
-function parseCreateContractStatus(formData: FormData): CustomerContractRow['status'] {
-  const raw = getString(formData, 'status')
-  return (CREATE_CONTRACT_STATUSES as readonly string[]).includes(raw)
-    ? (raw as CustomerContractRow['status'])
-    : 'pending_signature'
+type ResolvedCreateSigningChoice = Extract<ResolvedSigningChoice, { ok: true }>
+
+// Runs after the contract (and its events) are committed: imports the signed
+// agreement or sends the signing link, then shows the outcome on the
+// signature page. Never throws for an import/send failure.
+async function completeContractSigningChoice(input: {
+  companyId: string
+  customerId: string
+  contractId: string
+  siteId: string | null
+  meteringPointId: string | null
+  actorUserId: string
+  choice: ResolvedCreateSigningChoice
+  file: File | null
+}) {
+  const signaturePath = `/admin/customers/${input.customerId}/contracts/${input.contractId}/signature`
+  if (input.choice.importSignedAgreement && input.file) {
+    let param: 'notice' | 'warning' = 'notice'
+    let message = SIGNED_AGREEMENT_IMPORTED_MESSAGE
+    try {
+      await importSignedAgreementForContract({
+        companyId: input.companyId,
+        customerId: input.customerId,
+        contractId: input.contractId,
+        siteId: input.siteId,
+        meteringPointId: input.meteringPointId,
+        file: input.file,
+        signedAtIso: input.choice.signedAtIso,
+        declaredSignedDate: input.choice.signedDate,
+      })
+    } catch (error) {
+      console.error('[contracts] signed agreement import failed', {
+        companyId: input.companyId,
+        contractId: input.contractId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      param = 'warning'
+      message = SIGNED_AGREEMENT_IMPORT_FAILED_MESSAGE
+    }
+    revalidatePath(`/admin/customers/${input.customerId}`)
+    revalidatePath(signaturePath)
+    redirect(`${signaturePath}?${param}=${encodeURIComponent(message)}`)
+  }
+  if (input.choice.sendSigningLink) {
+    await autoSendSigningLinkAndRedirect({
+      companyId: input.companyId,
+      customerId: input.customerId,
+      contractId: input.contractId,
+      actorUserId: input.actorUserId,
+      status: input.choice.createStatus,
+    })
+  }
+}
+
+// Runs after the contract (and its events) are committed. Never throws for a
+// send failure: the result is shown as a notice on the signature page.
+async function autoSendSigningLinkAndRedirect(input: {
+  companyId: string
+  customerId: string
+  contractId: string
+  actorUserId: string
+  status: string
+}) {
+  if (input.status !== 'pending_signature') return
+  const result = await autoSendSigningLinkAfterCreate({
+    companyId: input.companyId,
+    customerId: input.customerId,
+    contractId: input.contractId,
+    actorUserId: input.actorUserId,
+    // Both create actions already require contracts.write via the guard.
+    actorCanWriteContracts: true,
+  })
+  if (!result.message) return
+  const signaturePath = `/admin/customers/${input.customerId}/contracts/${input.contractId}/signature`
+  revalidatePath(signaturePath)
+  const param = result.status === 'sent' ? 'notice' : 'warning'
+  redirect(`${signaturePath}?${param}=${encodeURIComponent(result.message)}`)
 }
 
 export async function logContractEventAction(formData: FormData) {
@@ -276,14 +374,15 @@ export async function createContractFromOfferAction(formData: FormData) {
     throw new Error('Avtalsmallen är inte aktiv eller tillhör inte valt bolag.')
   }
 
-  const status = parseCreateContractStatus(formData)
+  const { choice: signingChoice, file: signedAgreementFile } = parseCreateSigningChoice(formData, 'pending_signature')
+  const status: CustomerContractRow['status'] = signingChoice.createStatus
   const siteId = parseStringOrNull(formData.get('site_id'))
   const meteringPointId = parseStringOrNull(formData.get('metering_point_id'))
   await assertCustomerSiteTenant({ companyId, customerId, siteId })
   await assertMeteringPointTenant({ companyId, customerId, siteId, meteringPointId })
 
   const startsAt = parseStringOrNull(formData.get('starts_at'))
-  const signedAt = parseStringOrNull(formData.get('signed_at'))
+  const signedAt: string | null = null
   const endsAt = parseStringOrNull(formData.get('ends_at'))
   const terminationNoticeDate = parseStringOrNull(formData.get('termination_notice_date'))
   const terminationReason = parseTerminationReason(formData.get('termination_reason'))
@@ -509,10 +608,7 @@ export async function createContractFromOfferAction(formData: FormData) {
           contract_name: offer.name,
           starts_at: startsAt,
           ends_at: endsAt,
-          signed_at:
-            status === 'signed' || status === 'active'
-              ? signedAt ?? startsAt
-              : null,
+          signed_at: null,
           termination_notice_date: terminationNoticeDate,
           termination_reason: terminationReason,
           auto_renew_enabled: autoRenewEnabled,
@@ -571,7 +667,8 @@ export async function createContractFromOfferAction(formData: FormData) {
       })) ?? offer.optional_fee_lines ?? [],
     startsAt,
     endsAt,
-    signedAt: status === 'signed' || status === 'active' ? signedAt ?? startsAt : null,
+    // Never signed at insert; see parseCreateSigningChoice.
+    signedAt: null,
     terminationNoticeDate,
     terminationReason,
     autoRenewEnabled,
@@ -602,7 +699,8 @@ export async function createContractFromOfferAction(formData: FormData) {
     actorUserId: user.id,
   })
 
-  await emitLifecycleEventsForStatus({
+  // An imported signed agreement records its own 'signed' event in the DB.
+  if (!signingChoice.importSignedAgreement) await emitLifecycleEventsForStatus({
     companyId,
     customerId,
     contractId: contract.id,
@@ -616,6 +714,16 @@ export async function createContractFromOfferAction(formData: FormData) {
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  await completeContractSigningChoice({
+    companyId,
+    customerId,
+    contractId: contract.id,
+    siteId,
+    meteringPointId,
+    actorUserId: user.id,
+    choice: signingChoice,
+    file: signedAgreementFile,
+  })
 }
 
 export async function createContractAction(formData: FormData) {
@@ -642,7 +750,8 @@ export async function createContractAction(formData: FormData) {
     throw new Error('Avtalsnamn krävs')
   }
 
-  const status = parseCreateContractStatus(formData)
+  const { choice: signingChoice, file: signedAgreementFile } = parseCreateSigningChoice(formData, 'draft')
+  const status: CustomerContractRow['status'] = signingChoice.createStatus
   const siteId = parseStringOrNull(formData.get('site_id'))
   const meteringPointId = parseStringOrNull(formData.get('metering_point_id'))
   await assertCustomerSiteTenant({ companyId, customerId, siteId })
@@ -651,7 +760,7 @@ export async function createContractAction(formData: FormData) {
   const contractType = parseContractType(formData.get('contract_type'))
   const startsAt = parseStringOrNull(formData.get('starts_at'))
   const endsAt = parseStringOrNull(formData.get('ends_at'))
-  const signedAt = parseStringOrNull(formData.get('signed_at'))
+  const signedAt: string | null = null
   const terminationNoticeDate = parseStringOrNull(formData.get('termination_notice_date'))
   const terminationReason = parseTerminationReason(formData.get('termination_reason'))
   const overrideReason = parseStringOrNull(formData.get('override_reason'))
@@ -747,7 +856,8 @@ export async function createContractAction(formData: FormData) {
     optionalFeeLines: [],
     startsAt,
     endsAt,
-    signedAt: status === 'signed' || status === 'active' ? signedAt ?? startsAt : null,
+    // Never signed at insert; see parseCreateSigningChoice.
+    signedAt: null,
     terminationNoticeDate,
     terminationReason,
     autoRenewEnabled,
@@ -775,7 +885,8 @@ export async function createContractAction(formData: FormData) {
     actorUserId: user.id,
   })
 
-  await emitLifecycleEventsForStatus({
+  // An imported signed agreement records its own 'signed' event in the DB.
+  if (!signingChoice.importSignedAgreement) await emitLifecycleEventsForStatus({
     companyId,
     customerId,
     contractId: contract.id,
@@ -789,6 +900,16 @@ export async function createContractAction(formData: FormData) {
   })
 
   revalidatePath(`/admin/customers/${customerId}`)
+  await completeContractSigningChoice({
+    companyId,
+    customerId,
+    contractId: contract.id,
+    siteId,
+    meteringPointId,
+    actorUserId: user.id,
+    choice: signingChoice,
+    file: signedAgreementFile,
+  })
 }
 
 export async function updateContractAction(formData: FormData) {

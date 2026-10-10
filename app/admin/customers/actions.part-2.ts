@@ -5,6 +5,7 @@ import { catalogPricesOverridden, validateContractPricing } from "@/lib/customer
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 import { supabaseService } from "@/lib/supabase/service"
+import { autoSendSigningLinkAfterCreate, type AutoSendSigningLinkResult } from "@/lib/customer-contracts/autoSendSigningLink"
 
 
 
@@ -22,7 +23,7 @@ import { processManualCustomerIntake, processPdfCustomerIntake } from "@/lib/cus
 import { canonicalIdempotencyKey, onboardCustomerGraph, signedAuthorizationScopes } from "@/lib/customers/canonicalOnboarding"
 import { createTenantContext } from "@/lib/tenant/context"
 import type { CreateCustomerGraphParams, IntakeDocumentUploadResult } from './actions.part-1'
-import { IntakeValidationError, buildBillingAddressSnapshot, buildCustomerDocumentPath, checksumFile, createValidationErrorFromFieldErrors, insertAuditLog, normalizeCountryCode, normalizeOptionalString, validateCreateCustomerParams } from './actions.part-1'
+import { IntakeValidationError, buildBillingAddressSnapshot, buildCustomerDocumentPath, checksumFile, createValidationErrorFromFieldErrors, insertAuditLog, normalizeCountryCode, normalizeOptionalString, resolveIntakeSigningChoice, validateCreateCustomerParams } from './actions.part-1'
 import { buildAdminIntakeIdempotencyKey } from './actions.part-3'
 
 export async function uploadCustomerIntakeDocuments(params: {
@@ -36,6 +37,9 @@ export async function uploadCustomerIntakeDocuments(params: {
   existingAuthorizationDocumentId: string | null;
   signedScopes: string[];
   signedAgreementFile: File | null;
+  /** Acceptance time for the canonical import (uploaded_at); null = now. */
+  signedAgreementSignedAt?: string | null;
+  signedAgreementDeclaredDate?: string | null;
   signedPowerOfAttorneyFile: File | null;
   gridInvoiceFile: File | null;
   authorizationValidFrom: string | null;
@@ -190,9 +194,14 @@ export async function uploadCustomerIntakeDocuments(params: {
         ? `CONTRACT-${params.contractId.slice(0, 8)}`
         : null,
       notes: "Uppladdat vid kundskapande.",
+      // The canonical import trigger uses uploaded_at as the acceptance time.
+      uploaded_at: params.signedAgreementSignedAt ?? null,
       metadata: {
         source: "customer_intake",
         documentRole: "signed_agreement",
+        ...(params.signedAgreementDeclaredDate
+          ? { declaredSignedDate: params.signedAgreementDeclaredDate }
+          : {}),
       },
     });
 
@@ -660,9 +669,23 @@ export type CustomerGraphResult = CustomerGraphRow & {
   __createdPowerOfAttorneyId: string | null
   __createdCurrentSupplierName: string | null
   __uploadedDocumentLabels?: string[]
+  /** Outcome of the automatic signing-link send; null when not requested or no contract. */
+  __signingLink?: AutoSendSigningLinkResult | null
 }
 
-export async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<CustomerGraphResult> {
+export type CreateCustomerGraphOptions = {
+  /**
+   * Send the online signing link after commit when the graph created a
+   * pending_signature contract. Opt-in so bulk imports and test tooling do
+   * not email customers.
+   */
+  autoSendSigningLink?: { actorCanWriteContracts: boolean }
+}
+
+export async function createCustomerGraph(
+  params: CreateCustomerGraphParams,
+  options: CreateCustomerGraphOptions = {},
+): Promise<CustomerGraphResult> {
   const fieldErrors = validateCreateCustomerParams(params);
   if (Object.keys(fieldErrors).length > 0) {
     throw createValidationErrorFromFieldErrors(fieldErrors);
@@ -732,9 +755,14 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
   }
   const hasContract = Boolean(params.contractOfferId || params.contractTypeOverride);
   const hasSignedAgreement = Boolean(params.signedAgreementFile);
+  // Staff signing choice (form intake). Already validated above.
+  const signingChoice = resolveIntakeSigningChoice(params);
+  const resolvedChoice = signingChoice?.ok ? signingChoice : null;
   // Intake only creates draft or pending-signature contracts; "signed" requires
   // the signed agreement file. Activation happens later in the contract flow.
-  const requestedStatus = params.contractStatus === "draft" ? "draft" : "pending_signature";
+  const requestedStatus = resolvedChoice
+    ? resolvedChoice.createStatus
+    : params.contractStatus === "draft" ? "draft" : "pending_signature";
   const contractStatus = hasSignedAgreement ? "signed" : requestedStatus;
   const contractType = params.contractTypeOverride ?? offer?.contract_type ?? "variable_hourly";
   const signedScopes = params.signedPowerOfAttorneyFile
@@ -1043,6 +1071,8 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
     existingAuthorizationDocumentId: result.authorization_document_id,
     signedScopes,
     signedAgreementFile: params.signedAgreementFile,
+    signedAgreementSignedAt: resolvedChoice?.signedAtIso ?? null,
+    signedAgreementDeclaredDate: resolvedChoice?.signedDate ?? null,
     signedPowerOfAttorneyFile: params.signedPowerOfAttorneyFile,
     gridInvoiceFile: params.gridInvoiceFile,
     authorizationValidFrom: params.authorizationValidFrom,
@@ -1072,8 +1102,22 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
     throw new Error(`Kundnummer saknas efter commit. Referens: ${result.correlation_id}.`);
   }
 
+  // After commit: a send failure is reported, never thrown (no rollback).
+  // Only the "send for signing" choice sends a link; uploaded/draft never do.
+  const signingLink = options.autoSendSigningLink && result.contract_id &&
+    (resolvedChoice ? resolvedChoice.sendSigningLink : true)
+    ? await autoSendSigningLinkAfterCreate({
+        companyId: params.companyId,
+        customerId: result.customer_id,
+        contractId: result.contract_id,
+        actorUserId: params.actorUserId,
+        actorCanWriteContracts: options.autoSendSigningLink.actorCanWriteContracts,
+      })
+    : null;
+
   return {
     ...(customer as CustomerGraphRow),
+    __signingLink: signingLink,
     __duplicateWarnings: duplicateWarnings,
     __duplicateReviewRequired: params.duplicateResolution === "create_new_pending_review",
     __createdNewCustomer: result.created_new_customer,

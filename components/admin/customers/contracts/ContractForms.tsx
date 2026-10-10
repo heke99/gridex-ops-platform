@@ -18,6 +18,12 @@ import {
 } from "./helpers";
 import { commercialModelFromSnapshot } from "@/lib/pricing/commercialModel";
 import {
+  CONTRACT_SIGNING_METHOD_LABELS,
+  CONTRACT_SIGNING_METHODS,
+  SIGNED_AGREEMENT_ACCEPT,
+  todayInStockholm,
+} from "@/lib/customer-contracts/signingMethod";
+import {
   createContractAction,
   createContractFromOfferAction,
   logContractEventAction,
@@ -675,16 +681,7 @@ function ManualCoreFields({
           <input name="contract_name" className={inputClassName()} />
         </Field>
 
-        <Field label="Status">
-          <select
-            name="status"
-            defaultValue="draft"
-            className={inputClassName()}
-          >
-            <option value="draft">Utkast</option>
-            <option value="pending_signature">Väntar signering</option>
-          </select>
-        </Field>
+        <SigningMethodFieldset />
 
         <Field label="Anläggning">
           <select name="site_id" defaultValue="" className={inputClassName()}>
@@ -728,10 +725,6 @@ function ManualCoreFields({
 
         <Field label="Startdatum">
           <input type="date" name="starts_at" className={inputClassName()} />
-        </Field>
-
-        <Field label="Signerat datum">
-          <input type="date" name="signed_at" className={inputClassName()} />
         </Field>
 
         <Field label="Slutdatum">
@@ -1049,16 +1042,7 @@ export function CreateFromOfferForm({
 
         <SectionCard title="Grunduppgifter">
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Status">
-              <select
-                name="status"
-                defaultValue="pending_signature"
-                className={inputClassName()}
-              >
-                <option value="draft">Utkast</option>
-                <option value="pending_signature">Väntar signering</option>
-              </select>
-            </Field>
+            <SigningMethodFieldset />
 
             <Field label="Anläggning">
               <select
@@ -1094,14 +1078,6 @@ export function CreateFromOfferForm({
               <input
                 type="date"
                 name="starts_at"
-                className={inputClassName()}
-              />
-            </Field>
-
-            <Field label="Signerat datum">
-              <input
-                type="date"
-                name="signed_at"
                 className={inputClassName()}
               />
             </Field>
@@ -1184,5 +1160,40 @@ export function CreateManualContractForm({
         </button>
       </form>
     </div>
+  );
+}
+
+// Required staff choice of how a new contract is signed. The server validates
+// the choice, the PDF and the date (resolveContractSigningChoice).
+function SigningMethodFieldset() {
+  const today = todayInStockholm();
+  return (
+    <fieldset className="space-y-2 text-sm md:col-span-2">
+      <legend className="font-medium text-slate-700">Hur signeras avtalet?</legend>
+      {CONTRACT_SIGNING_METHODS.map((value) => (
+        <label key={value} className="flex items-start gap-2">
+          <input type="radio" name="signing_method" value={value} required className="mt-1" />
+          <span>{CONTRACT_SIGNING_METHOD_LABELS[value]}</span>
+        </label>
+      ))}
+      <div className="grid gap-3 rounded-2xl border border-slate-200 p-3 md:grid-cols-2">
+        <label className="grid gap-1">
+          <span className="text-slate-700">Signerat avtal (PDF, max 10 MB)</span>
+          <input
+            type="file"
+            name="signed_agreement_file"
+            accept={SIGNED_AGREEMENT_ACCEPT}
+            className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3"
+          />
+        </label>
+        <label className="grid gap-1">
+          <span className="text-slate-700">Signeringsdatum</span>
+          <input type="date" name="signed_date" defaultValue={today} max={today} className={inputClassName()} />
+        </label>
+        <p className="text-xs text-slate-600 md:col-span-2">
+          Fil och datum krävs endast när kunden redan har signerat. &quot;Skicka avtal för signering&quot; skickar signeringslänken automatiskt till kundens e-post.
+        </p>
+      </div>
+    </fieldset>
   );
 }
