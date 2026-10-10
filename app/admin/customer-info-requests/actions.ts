@@ -136,7 +136,7 @@ export async function queueCustomerInfoRequestAction(formData: FormData) {
   const actor = await currentActor();
   const requestId = text(formData, "request_id");
 
-  if (!requestId) throw new Error("request_id saknas.");
+  if (!requestId) throw new Error("Ärendet kunde inte identifieras. Ladda om sidan och försök igen.");
 
   await queueCustomerInfoRequestForDispatch({
     companyId: actor.companyId,
@@ -154,7 +154,7 @@ export async function queueMeteringPermissionZ13Action(formData: FormData) {
   const actor = await currentActor();
   const permissionId = text(formData, "permission_id");
 
-  if (!permissionId) throw new Error("permission_id saknas.");
+  if (!permissionId) throw new Error("Mätvärdesbehörigheten kunde inte identifieras. Ladda om sidan och försök igen.");
 
   await queueMeteringPermissionForZ13({
     companyId: actor.companyId,
@@ -173,7 +173,7 @@ export async function applyZ14SnapshotAction(formData: FormData) {
   const actor = await currentActor();
   const permissionId = text(formData, "permission_id");
 
-  if (!permissionId) throw new Error("permission_id saknas.");
+  if (!permissionId) throw new Error("Mätvärdesbehörigheten kunde inte identifieras. Ladda om sidan och försök igen.");
 
   await applyZ14SnapshotToMeteringPermission({
     companyId: actor.companyId,

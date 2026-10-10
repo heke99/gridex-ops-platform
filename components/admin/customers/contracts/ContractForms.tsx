@@ -683,8 +683,6 @@ function ManualCoreFields({
           >
             <option value="draft">Utkast</option>
             <option value="pending_signature">Väntar signering</option>
-            <option value="signed">Signerat</option>
-            <option value="active">Aktivt</option>
           </select>
         </Field>
 
@@ -1059,8 +1057,6 @@ export function CreateFromOfferForm({
               >
                 <option value="draft">Utkast</option>
                 <option value="pending_signature">Väntar signering</option>
-                <option value="signed">Signerat</option>
-                <option value="active">Aktivt</option>
               </select>
             </Field>
 

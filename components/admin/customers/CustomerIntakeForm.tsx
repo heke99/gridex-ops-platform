@@ -877,8 +877,6 @@ export default function CustomerIntakeForm({
             >
               <option value="draft">Förbereds</option>
               <option value="pending_signature">Väntar signering</option>
-              <option value="signed">Signerat</option>
-              <option value="active">Aktivt</option>
             </select>
             <FieldError state={state} name="contractStatus" />
           </label>
@@ -930,7 +928,7 @@ export default function CustomerIntakeForm({
                 Svar från gammal leverantör
               </option>
               <option value="grid_owner_response">Svar från nätägare</option>
-              <option value="ediel_prodat">Svar från nätägaren</option>
+              <option value="ediel_prodat">Bekräftat via Ediel (PRODAT)</option>
               <option value="manual_override">Manuell justering</option>
             </select>
             <FieldError state={state} name="startDateSource" />
@@ -985,24 +983,28 @@ export default function CustomerIntakeForm({
             name="fixedPriceOrePerKwh"
             defaultValue={state.values.fixedPriceOrePerKwh ?? ""}
             placeholder="Fast pris öre/kWh"
+            aria-label="Fast pris öre/kWh"
             className={inputClassName(state, "fixedPriceOrePerKwh")}
           />
           <input
             name="spotMarkupOrePerKwh"
             defaultValue={state.values.spotMarkupOrePerKwh ?? ""}
             placeholder="Spotpåslag öre/kWh"
+            aria-label="Spotpåslag öre/kWh"
             className={inputClassName(state, "spotMarkupOrePerKwh")}
           />
           <input
             name="variableFeeOrePerKwh"
             defaultValue={state.values.variableFeeOrePerKwh ?? ""}
             placeholder="Rörlig avgift öre/kWh"
+            aria-label="Rörlig avgift öre/kWh"
             className={inputClassName(state, "variableFeeOrePerKwh")}
           />
           <input
             name="monthlyFeeSek"
             defaultValue={state.values.monthlyFeeSek ?? ""}
             placeholder="Månadsavgift kr"
+            aria-label="Månadsavgift kr"
             className={inputClassName(state, "monthlyFeeSek")}
           />
           <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
