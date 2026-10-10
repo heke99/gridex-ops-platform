@@ -43,6 +43,12 @@
 - Proxy asked to DELETE old ID refs (GET_MATCH) and CREATE new receipt agent=E/delegatedBy=proxy for IDs + 5 files.
 - Not yet custody: no product code until RESERVED + own GET + CLAIM.
 
+### 2026-10-10T22:45Z — self-reservation attempt BLOCKED_AUTH ([6102882045](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6102882045))
+- Owner said: take reservation if none. Receipt `0e02c9f6462c8121d8c8bc2d5f7fdd9a34e14293` pushed to branch
+  `claude/p08-takeover-e-receipt`. Migration path now `20261010233000_ediel_production_contract_ack_received_confirmation.sql`.
+- Atomic lease-delete of Bardeen's 7 refs: HTTP 403 (hosted session cannot write tags). 152 refs verified unchanged.
+- Waiting for proxy to delete 7 refs + create 7 refs at receipt 0e02c9f6.
+
 ## Next
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
 for 6102293795; (c) explicit scoped handover to E. Otherwise remain BLOCKED; no polling, no native/GEN/capture.
