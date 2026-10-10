@@ -1,0 +1,149 @@
+name: Ediel DB05 tenant lifecycle and retention native
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/db-05-hard-delete-guard-native.test.ts'
+      - 'scripts/db-05-tenant-offboarding-native.test.ts'
+      - 'scripts/db-05-native.config.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/migration-history-manifest*.json'
+      - 'lib/ediel/retention/**'
+      - 'supabase/migrations/**'
+      - 'supabase/schema.sql'
+      - '.github/workflows/ediel-db05-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-db05-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental feedback only. All ordinary OPS clean/upgrade/native/browser
+# and parity gates remain mandatory; this does not approve any rule card.
+jobs:
+  db05-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Prove DB-05 guard and tenant close after canonical disposable clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p db05-native-working
+          # The existing owner keeps its EXIT cleanup trap. Replay/status
+          # output can contain disposable credentials and is never uploaded.
+          native_tests=(scripts/db-05-hard-delete-guard-native.test.ts scripts/db-05-tenant-offboarding-native.test.ts)
+          export DB05_NATIVE_TEST_SCOPE
+          DB05_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
+          export DB05_INPUT_RECEIPT="$RUNNER_TEMP/db05-inputs.json"
+          # Hash the actual checkout before canonical replay temporarily stages
+          # CLI ledger marker migrations; those staged bytes are not source.
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          test_scope = os.environ['DB05_NATIVE_TEST_SCOPE'].splitlines()
+          tracked = subprocess.check_output(['git','ls-files','-z'],text=True).split('\0')
+          exact = {
+              '.github/workflows/ediel-db05-native.yml',
+              'scripts/db-05-native.config.ts',
+              'scripts/ediel-source-owner-native.config.ts',
+              'scripts/gridex-aud-003-clean-replay.sh',
+              'scripts/gridex-redact-native-evidence.py',
+              'scripts/migration-history-manifest.json',
+              'scripts/migration-history-manifest.additions.json',
+              'scripts/migration-history-manifest.runtime.additions.json',
+              'scripts/supabase-types-manifest.json',
+              'supabase/schema.sql', 'package.json', 'package-lock.json',
+              'vitest.config.ts', '__tests__/setup.ts',
+              '__tests__/db-05-closed-tenant-retention.test.ts', '__tests__/db-05-hard-delete-guard.test.ts',
+          }
+          prefixes = ('lib/', 'supabase/', 'scripts/helpers/',
+                      'scripts/fixtures/', '__tests__/helpers/', '__tests__/fixtures/', 'config/',
+                      'docs/ediel/masterplan-v2/registers/', 'scripts/sql/',
+                      'scripts/lib/', 'scripts/gridex-aud-003-', 'tsconfig')
+          paths = sorted(set(test_scope) | exact | {p for p in tracked if p and p.startswith(prefixes)})
+          missing = [p for p in paths if not pathlib.Path(p).is_file()]
+          if missing: raise RuntimeError('required_native_input_missing:' + ','.join(missing))
+          pathlib.Path(os.environ['DB05_INPUT_RECEIPT']).write_text(json.dumps({p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},sort_keys=True)+'\n')
+          PY
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/db05-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/db05-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/db-05-native.config.ts \
+            "${native_tests[@]}" \
+            --reporter=default --reporter=junit \
+            --outputFile=db05-native-working/native-junit.xml \
+            > db05-native-working/native.log 2>&1 || native_exit=$?
+          export DB05_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          test_scope = os.environ['DB05_NATIVE_TEST_SCOPE'].splitlines()
+          receipt = {
+              'purpose': 'supplemental_actual_native_db05_lifecycle',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'native_exit_code': int(os.environ['DB05_NATIVE_EXIT']),
+              'input_sha256': json.loads(pathlib.Path(os.environ['DB05_INPUT_RECEIPT']).read_text()),
+              'test_scope': test_scope,
+              'test_data': 'SYNTHETIC_ROLLED_BACK',
+              'business_source_acceptance': 'NOT_PROVIDED',
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('db05-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root db05-native-working
+          python3 - <<'PY'
+          import importlib.util, json, os, pathlib, re
+          spec = importlib.util.spec_from_file_location('canonical_redactor', 'scripts/gridex-redact-native-evidence.py')
+          redactor = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(redactor)
+          status = json.loads(pathlib.Path(os.environ['GRIDEX_NATIVE_STATUS']).read_text())
+          extra = [str(value).encode() for key, value in status.items()
+                   if key.lower() in ('secret_key', 'db_url') and isinstance(value, str)]
+          extra.append(b'postgresql://postgres:postgres@127.0.0.1:54322/postgres')
+          remaining = re.compile(rb'\b(?:eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+)\b|postgres(?:ql)?://[^/\s:]+:[^@\s]+@')
+          for path in pathlib.Path('db05-native-working').rglob('*'):
+              if path.is_file():
+                  data = path.read_bytes()
+                  tokens = re.findall(rb'\bsb_secret_[A-Za-z0-9_-]+\b', data)
+                  data = redactor.scrub(data, secrets=extra + tokens)
+                  if remaining.search(data): raise SystemExit('db05_redaction_incomplete_no_artifact_published')
+                  path.write_bytes(data)
+          PY
+          # Only successfully redacted files enter the uploaded directory.
+          # Receipt/redaction failure leaves no artifact directory to upload.
+          mv db05-native-working db05-native-evidence
+          cat db05-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-db05-native-${{ github.event.pull_request.head.sha }}
+          path: db05-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
