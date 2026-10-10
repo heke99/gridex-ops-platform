@@ -48,7 +48,7 @@ print(json.dumps({'root':n['required'],'base':n['required_base']}))`], {cwd: roo
   const historical = {kind: 'reconstructed_public_births', default_alias: 'BASE56',
     module_overrides: [{specifier: '@/lib/ediel/testing/agtEngine', path: producer, source: 'ROOT', revision: git('rev-parse', 'HEAD').trim(), ...rootInputs[producer]}],
     canonical_dependency_identity: identities,
-    kernel_basis: {source_revision: '5b150f18adaf0b8d82ba2651696421d3e34884fe', path: kernel,
+    kernel_basis: {source_revision: '231b9ef84e5a9c5e737c44dc9d72dd33edb0b56c', path: kernel,
       historical_alias: 'BASE56', current_alias: 'ROOT', ...identities[kernel]},
     public_creator_input: {source: 'BASE56', port: 'createEdielMessage', field: 'partyAddressId', when: 'historical_AGT_Z09_L7_before_INSERT',
       value_origin: 'existing_prospective_legacy_fixture_UUID', mutation: 'ONLY_partyAddressId',
@@ -84,7 +84,7 @@ it('refuses a different adopted revision and a changed non-kernel dependency', a
   const basis = receipt.historical_source_basis as {kernel_basis: {source_revision: string}}
   basis.kernel_basis.source_revision = baseRevision
   await expect(load('current')).rejects.toThrow('db01_native_exact_kernel_basis_required')
-  basis.kernel_basis.source_revision = '5b150f18adaf0b8d82ba2651696421d3e34884fe'
+  basis.kernel_basis.source_revision = '231b9ef84e5a9c5e737c44dc9d72dd33edb0b56c'
   identities[dependencies[1]].root.sha256 = 'f'.repeat(64)
   await expect(load('current')).rejects.toThrow('db01_native_BASE_canonical_dependency_mismatch')
 })

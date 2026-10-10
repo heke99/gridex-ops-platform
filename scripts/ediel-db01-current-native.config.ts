@@ -63,11 +63,11 @@ if (receipt.required_input_paths?.length !== 40 || new Set(receipt.required_inpu
   throw new Error('db01_native_reconstructed_birth_basis_required')
 }
 const kernelPath = 'lib/ediel/core/kernel.ts'
-const kernelRevision = '5b150f18adaf0b8d82ba2651696421d3e34884fe'
+const kernelRevision = '231b9ef84e5a9c5e737c44dc9d72dd33edb0b56c'
 const expectedBaseKernel: GitInput = {mode: '100644', git_blob_oid: 'e768195621f24838e59274ea09b50031d00a978f',
   sha256: 'e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1'}
-const expectedCurrentKernel: GitInput = {mode: '100644', git_blob_oid: '7b7b5978863269f9ce437f13826d96c4368f6fef',
-  sha256: '6142231362e96ea47479911dd69cc0fb48a6363f03ba2a5742b60bc9640f6eb4'}
+const expectedCurrentKernel: GitInput = {mode: '100644', git_blob_oid: '35cc6e4f3f60fe2893f13aa145260181def1aba9',
+  sha256: '3273e28234a17da8da4bd0d0326b22d14a9ec7cb361ccf34d4391e013167a931'}
 const kernelBasis = basis.kernel_basis
 if (!kernelBasis || Object.keys(kernelBasis).length !== 6 || kernelBasis.source_revision !== kernelRevision ||
     kernelBasis.path !== kernelPath || kernelBasis.historical_alias !== 'BASE56' || kernelBasis.current_alias !== 'ROOT' ||
