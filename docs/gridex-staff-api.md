@@ -1,10 +1,12 @@
-# Gridex Staff API — 2026-10-04.1
+# Gridex Staff API — 2026-10-09.1
 
 Use the Staff API from your backend to manage staff accounts and handle customer service in your own application.
 
+You do not need to match the latest documentation revision exactly to use a supported API version. Integrations built against 2026-10-04.1 keep working; see [docs/api-compatibility-policy.md](api-compatibility-policy.md) and [docs/api-migration-guide.md](api-migration-guide.md).
+
 - Base URL: `https://app.gridex.se/api/v1/staff`
 - Current OpenAPI: `https://app.gridex.se/api/v1/openapi/staff-v1.json`
-- Immutable OpenAPI: `https://app.gridex.se/api/v1/openapi/2026-10-04.1/staff-v1.json`
+- Immutable OpenAPI: `https://app.gridex.se/api/v1/openapi/2026-10-09.1/staff-v1.json`
 - Release manifest: `https://app.gridex.se/api/v1/openapi/release-manifest.json`
 - Public guide: `https://app.gridex.se/developers/staff-api`
 
@@ -38,6 +40,38 @@ The JWT must be a compact JWS signed with **RS256, PS256 or ES256**. `none` and 
 | `nbf` | Optional earliest valid Unix timestamp |
 
 Each assertion is accepted **once**. Generate a new `jti` and sign a new assertion for reads, writes and retries. A valid signature never replaces membership or permission checks: Gridex requires an active staff membership in the organization associated with the API credential and calculates permissions from that person's role and overrides on the server.
+
+### Two identity flows
+
+Which claims you send depends on how your API client was registered:
+
+| Client type | Assertion claims | Where to start |
+| --- | --- | --- |
+| **Central (legacy) identity** — no independent staff registration | The table above. `sub` is the Gridex user UUID. | This page |
+| **Independent staff identity** — the client was registered for your own staff login | The table above **plus** `token_use: "staff_access"`, `company_id` (your organization UUID), `local_auth_issuer` (your auth issuer, `<your-auth-url>/auth/v1`), `local_auth_subject` (the user UUID in your auth), `staff_binding_id` and `staff_binding_version` returned by onboarding. `sub` stays the central Gridex user UUID. | [Independent staff onboarding](staff-api/independent-onboarding.md) |
+
+For independent identities every request checks the current binding. A binding that is revoked, rotated to a newer version or whose registration was removed is rejected (`401/403 staff_identity_binding_invalid` or `403 staff_identity_registration_removed`); removing the registration never falls back to the central flow. Banning, soft-deleting or deleting the user in Auth ends access on the next request, including for still-valid tokens.
+
+Example payload for an independent identity:
+
+```json
+{
+  "iss": "<configured staff issuer>",
+  "aud": "<configured staff audience>",
+  "sub": "<central Gridex user UUID>",
+  "iat": 1791540000,
+  "exp": 1791540300,
+  "jti": "<random UUID>",
+  "token_use": "staff_access",
+  "company_id": "<organization UUID>",
+  "local_auth_issuer": "https://<your-project>.supabase.co/auth/v1",
+  "local_auth_subject": "<user UUID in your auth>",
+  "staff_binding_id": "<binding id from onboarding>",
+  "staff_binding_version": 1
+}
+```
+
+Independent identities require the external identity objects to be deployed; operators verify this with `node scripts/check-ops-api-deployment-contract.cjs --url <db> --require staff_external_identity` before enabling the flow.
 
 This example uses RS256 and the built-in Node.js crypto library. Use your own configured issuer, audience and key ID. Keep the private PEM in your backend secret store.
 
@@ -112,6 +146,18 @@ Customer and case paths use opaque references returned by Gridex. Staff account 
 
 Attachments use a raw PDF, PNG or JPEG body of at most 4 MiB, plus an optional `x-file-name`. Set `x-attachment-visibility: internal` or `customer`; the default is `internal`. Uploaded content enters inspection. Only released attachments can be downloaded. Download responses use an attachment disposition and verify the stored SHA-256.
 
+## Replay, request IDs and storage project
+
+Every Staff write response, including staff-user invite, role change, disable and enable, carries `Idempotency-Replayed: true` when the stored result of an earlier identical operation is returned, and `false` for a new execution. Current authentication, scopes, permission and active membership are always checked before a stored result is replayed.
+
+Gridex issues one server request ID per call. The same value is returned in `request_id`, the `X-Request-ID` response header and the request log, on success and on error. Quote it to support. An inbound `X-Request-ID` is never used as the server ID; when it matches `^[A-Za-z0-9._:-]{1,128}$` it is retained only as a separate client correlation value.
+
+Send the optional `x-gridex-expected-project-ref: <20-character project ref>` header to make sure the call is served by the storage project you expect. A mismatch, or a malformed value, returns `412 storage_project_mismatch` before authentication, rate limiting, audit or any write. Responses from an identified project carry `X-Gridex-Project-Ref`. Release 2026-10-09.1 documents these headers, the strict query profile, `Idempotency-Replayed` and the server request id in the OpenAPI document; the behaviour itself is unchanged.
+
+## Query parameters
+
+List endpoints (`/users`, `/customers`, `/cases`, case `/events` and `/attachments`) reject unknown parameters with 422. By default each endpoint keeps the parsing it has always accepted, so existing integrations are unaffected. Send `x-gridex-query-parsing: strict` to opt in to one rule for all of them: every parameter at most once, and `page`, `page_size` and `limit` only as plain decimal digits (no sign, whitespace, exponent, fraction, hexadecimal prefix or leading zero). Violations return `422 invalid_field` with `error.field` naming the parameter. New integrations should use the strict profile. Defaults: `page=1`, `page_size=25` (max 100); `limit` is 1–100. Organization selector fields such as `company_id` are never accepted; the organization always comes from the credential.
+
 ## Read complete case history
 
 Case detail contains initial events and attachments plus `events_page` and `attachments_page`. When `has_more` is true, call `GET /api/v1/staff/cases/{reference}/events` or `GET /api/v1/staff/cases/{reference}/attachments` with `cursor=next_cursor`. Each collection accepts `limit` from 1 to 100 (default 50). Follow the returned cursor until `has_more` is false; sign a fresh assertion for every page. Cursors are bound to the organization, customer and case and cannot select another resource.
@@ -133,7 +179,7 @@ Errors use the same closed envelope throughout this API:
   },
   "request_id": "request-reference",
   "correlation_id": "request-reference",
-  "contract_schema_version": "2026-10-04.1"
+  "contract_schema_version": "2026-10-09.1"
 }
 ```
 
@@ -143,6 +189,7 @@ Errors use the same closed envelope throughout this API:
 | 401 | `staff_assertion_missing`, `staff_assertion_signature_invalid`, `staff_assertion_issuer_mismatch`, `staff_assertion_audience_mismatch`, `staff_assertion_expired`, `staff_assertion_replayed` | Correct identity configuration or sign a fresh assertion; never fall back to another account |
 | 403 | `api_scope_missing`, `staff_provider_missing`, `staff_provider_invalid`, `staff_membership_inactive`, `staff_permission_denied`, `staff_role_ceiling_exceeded` | Correct configuration, active membership or authorized role |
 | 404 | `staff_user_not_found`, `customer_not_found`, case or attachment missing | Use a current reference from the same organization |
+| 412 | `storage_project_mismatch` | Call the deployment that serves the expected storage project; nothing was executed |
 | 409 | `version_conflict`, `staff_self_disable_forbidden`, `staff_last_admin_required`, `staff_invalid_user_state, staff_self_role_change_forbidden`, idempotency conflict | Reload state and reconcile the operation; preserve administrator safeguards |
 | 413 / 415 | Attachment size or content type | Use a supported file within the size limit |
 | 429 | Rate limit | Observe `Retry-After`, then use the same operation key with a fresh assertion |

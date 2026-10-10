@@ -3,6 +3,8 @@
 import { createHash } from "node:crypto";
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { supabaseService } from "@/lib/supabase/service";
+import { stockholmWithdrawalDeadlineDate } from "@/lib/time/stockholm";
+import { canonicalSwedishOrganizationNumber, canonicalSwedishPersonalNumber } from "@/lib/validation/customerFields";
 import { triggerEmailEvent } from "@/lib/email/emailEvents";
 import { legalAcceptanceTypeForModule, type PublicContractOffer } from "@/lib/website/publicContracts";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
@@ -81,7 +83,8 @@ export function eventVariables(input: {
     facility_id: input.facilityId ?? "",
     metering_point_id: input.meteringPointId ?? "",
     support_email: input.supportEmail ?? "",
-    cancellation_deadline: input.withdrawalDeadline?.slice(0, 10) ?? "",
+    cancellation_deadline:
+      stockholmWithdrawalDeadlineDate({ storedDeadlineAt: input.withdrawalDeadline }) ?? "",
     portal_url: input.portalUrl ?? "",
   };
 }
@@ -660,14 +663,20 @@ export async function loadExistingIdentity(
     });
   }
 
+  // Compare canonical identities so a legacy 10-digit stored value matches the
+  // canonical 12-digit form the application now carries.
+  const legalId = (value: string | null | undefined) =>
+    customerInput.customer_type === "business"
+      ? canonicalSwedishOrganizationNumber(value) ?? digits(value)
+      : canonicalSwedishPersonalNumber(value) ?? digits(value);
   const requestedLegalId =
     customerInput.customer_type === "business"
-      ? digits(customerInput.org_number)
-      : digits(customerInput.personal_number);
+      ? legalId(customerInput.org_number)
+      : legalId(customerInput.personal_number);
   const storedLegalId =
     customerInput.customer_type === "business"
-      ? digits(customer.org_number)
-      : digits(customer.personal_number);
+      ? legalId(customer.org_number)
+      : legalId(customer.personal_number);
   const requestedEmail = normalizedEmail(customerInput.email);
   const storedEmail = normalizedEmail(customer.email);
   const conflicts = [

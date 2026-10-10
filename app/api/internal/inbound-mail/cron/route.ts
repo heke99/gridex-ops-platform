@@ -37,11 +37,6 @@ function safeInboundErrorCode(error: unknown): string {
   return 'inbound_mail_processing_failed'
 }
 
-function safeInboundErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error ?? '')
-  return message.replace(/[\r\n]+/g, ' ').replace(/(password|secret|token|key)=\S+/gi, '$1=[redacted]').slice(0, 220)
-}
-
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
@@ -77,7 +72,7 @@ export async function POST(request: NextRequest) {
     const code = safeInboundErrorCode(error)
     console.error('[inbound-mail-cron] Run failed', { traceId, environment, mailboxId, code, error })
     return NextResponse.json(
-      { ok: false, error: 'Inbound mail engine failed.', code, message: safeInboundErrorMessage(error), trace_id: traceId, environment, mailbox_id: mailboxId ?? null },
+      { ok: false, error: 'Inbound mail engine failed.', code, trace_id: traceId, environment, mailbox_id: mailboxId ?? null },
       { status: 500 }
     )
   }

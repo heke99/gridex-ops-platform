@@ -33,8 +33,9 @@ const cityParameter = {
   description: 'City. Recommended together with address.',
 }
 
-const nullableString = { type: 'string', nullable: true } as const
-const nullableNumber = { type: 'number', nullable: true } as const
+// OpenAPI 3.1 / JSON Schema 2020-12 null unions (never the OpenAPI 3.0 `nullable` keyword).
+const nullableString = { type: ['string', 'null'] } as const
+const nullableNumber = { type: ['number', 'null'] } as const
 
 export const partnerPublicOpenApi = {
   ...partnerOpenApi,
@@ -48,7 +49,7 @@ export const partnerPublicOpenApi = {
       get: {
         summary: 'Resolve electricity location',
         description:
-          'Resolves a Swedish postal code and optional address to price area, grid area and grid owner. A postal code that spans conflicting price areas is returned as ambiguous rather than guessed.',
+          'Resolves a Swedish postal code and optional address to price area, grid area and grid owner. A postal code that spans conflicting price areas is returned as ambiguous rather than guessed. `status: resolved` and `verified: true` require usable price-area assurance (fresh verified or estimated geodata). Last-known identifiers behind stale or unverified geodata are returned as provisional: `status: partial`, `verified: false` and the warning `location_identifiers_provisional`; such a location never yields a price. `grid_owner.verified` describes geographic identity only, not operational Ediel routing readiness.',
         parameters: [postalCodeParameter, addressParameter, cityParameter],
         responses: {
           '200': {
@@ -85,7 +86,7 @@ export const partnerPublicOpenApi = {
       post: {
         summary: 'Calculate customer price',
         description:
-          'Resolves location and the credential default offer, then calculates the quote with the same Gridex pricing engine used by Ops. Internal company, product, price-area, grid-owner and offer identifiers are never accepted.',
+          'Resolves location and the credential default offer, then calculates the quote with the same Gridex pricing engine used by Ops. Internal company, product, price-area, grid-owner and offer identifiers are never accepted. The default offer and the quote both use the API publication channel: an API-only offer is quoted, a Website-only offer is never used. The result is a total customer price estimate for the offer (spot or other base price plus the offer\'s supplier components, VAT included where stated); `/price/current` instead returns the bare market spot interval excluding VAT and all fees.',
         requestBody: {
           required: true,
           content: {
@@ -125,10 +126,10 @@ export const partnerPublicOpenApi = {
           postal_code: { type: 'string', pattern: '^\\d{5}$' },
           city: nullableString,
           status: { type: 'string', enum: ['resolved', 'partial', 'ambiguous', 'unresolved'] },
-          price_area: { type: 'string', nullable: true, enum: ['SE1', 'SE2', 'SE3', 'SE4'] },
+          price_area: { type: ['string', 'null'], enum: ['SE1', 'SE2', 'SE3', 'SE4', null], description: 'Null when the price area is ambiguous or unresolved.' },
           grid_area: {
-            type: 'object',
-            nullable: true,
+            type: ['object', 'null'],
+            description: 'Null when no grid area could be identified. `name` is null for postal-code-only (provisional) or partial results.',
             additionalProperties: false,
             required: ['code', 'name', 'verified'],
             properties: {
@@ -138,8 +139,8 @@ export const partnerPublicOpenApi = {
             },
           },
           grid_owner: {
-            type: 'object',
-            nullable: true,
+            type: ['object', 'null'],
+            description: 'Null when the postal code spans several grid areas/owners; send address and city to resolve it.',
             additionalProperties: false,
             required: ['name', 'verified'],
             properties: {
@@ -150,7 +151,7 @@ export const partnerPublicOpenApi = {
           confidence: { type: 'number', minimum: 0, maximum: 1 },
           price_area_confidence: { type: 'number', minimum: 0, maximum: 1 },
           resolution_method: nullableString,
-          requires_address: { type: 'boolean' },
+          requires_address: { type: 'boolean', description: 'True when the area is ambiguous or unresolved, when price-area assurance is not usable, or when the postal code spans several grid areas/owners.' },
           required_fields: { type: 'array', items: { type: 'string' } },
           warnings: { type: 'array', items: { type: 'string' } },
         },

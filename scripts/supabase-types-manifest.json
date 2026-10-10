@@ -2,7 +2,7 @@
   "generated_types": "supabase/database.types.ts",
   "generated_at": "2026-10-10T10:59:24.949059+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38046230753",
-  "sha256": "cc686ccf001d7f735e91066bc248173fb086e095322ff845ad45670da595d1fe",
+  "sha256": "fbe1c48db6714421610875867735617ec0b7666807e1d0e620d24c6200c8d4b8",
   "latest_migration": "20261010100000_nordfin_invoice_file_provider.sql",
   "latest_migration_schema_effect": "Byte-exact authentic capture-only run adding the Nordfin invoice file provider: invoice_export_files.provider column and check, catalog update, and file-provider aware select/create-file functions. Capture-only NOT_RUN flags retain their original meaning.",
   "composition_capture_pending": false,

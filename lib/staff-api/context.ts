@@ -85,6 +85,35 @@ async function consumeStaffJti(companyId: string, jti: string, expiresAt: Date):
   throw error
 }
 
+function missingRelation(error: unknown) {
+  const code = String((error as { code?: string } | null)?.code ?? '')
+  return code === '42P01' || code === 'PGRST205'
+}
+
+/**
+ * A durable external anchor or binding classifies an actor as externally bound
+ * regardless of current client metadata (F1). Deleting the registration must
+ * deny access, never fall back to the legacy central flow. Where the external
+ * identity tables are not deployed no external identity can exist, so the
+ * legacy flow stays available; any other error fails closed.
+ */
+async function historicallyExternalActor(companyId: string, apiClientId: string, actorUserId: string): Promise<boolean> {
+  const db = tenantDb(companyId).unscoped()
+  const anchor = await db.from('tenant_staff_actor_anchors').select('actor_user_id').eq('actor_user_id', actorUserId).limit(1)
+  if (anchor.error) {
+    if (missingRelation(anchor.error)) return false
+    throw anchor.error
+  }
+  if ((anchor.data ?? []).length > 0) return true
+  const binding = await db.from('tenant_staff_identity_bindings').select('id')
+    .eq('company_id', companyId).eq('api_client_id', apiClientId).eq('actor_user_id', actorUserId).limit(1)
+  if (binding.error) {
+    if (missingRelation(binding.error)) return false
+    throw binding.error
+  }
+  return (binding.data ?? []).length > 0
+}
+
 export type StaffContextDependencies = {
   apiAccess: typeof requireIntegrationApiAccess
   loadProvider: typeof loadStaffIdentityProvider
@@ -92,11 +121,13 @@ export type StaffContextDependencies = {
   loadOverrides: typeof permissionOverrides
   consumeJti: typeof consumeStaffJti
   validateBinding: typeof validateCurrentStaffIdentityBinding
+  isHistoricallyExternal: typeof historicallyExternalActor
 }
 const dependencies: StaffContextDependencies = {
   apiAccess: requireIntegrationApiAccess, loadProvider: loadStaffIdentityProvider,
   loadMembership: activeMembership, loadOverrides: permissionOverrides, consumeJti: consumeStaffJti,
   validateBinding: validateCurrentStaffIdentityBinding,
+  isHistoricallyExternal: historicallyExternalActor,
 }
 
 export function createStaffApiContextResolver(ports: StaffContextDependencies) {
@@ -144,6 +175,9 @@ export function createStaffApiContextResolver(ports: StaffContextDependencies) {
       if (!binding || binding.actor_user_id !== assertion.subject || binding.binding_id !== expectedBinding.binding_id || binding.binding_version !== expectedBinding.binding_version) {
         throw new ApiInputError('The independent staff binding is no longer active.', 'staff_identity_binding_invalid', 403)
       }
+    } else if (await ports.isHistoricallyExternal(auth.client.company_id, auth.client.id, assertion.subject)) {
+      // Same decision as the native write guard gridex_staff_assert_external_actor_v1.
+      throw new ApiInputError('The independent staff registration was removed.', 'staff_identity_registration_removed', 403)
     }
     const membership = await ports.loadMembership(auth.client.company_id, assertion.subject)
     if (!membership || membership.user_id !== assertion.subject || membership.status !== 'active' || membership.is_active !== true) {

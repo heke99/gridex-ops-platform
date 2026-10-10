@@ -23,7 +23,7 @@ function checksum(value: string): string {
   return createHash('sha256').update(value).digest('hex')
 }
 
-function toIntervalRow(row: SpotPriceInterval) {
+function toIntervalRow(row: SpotPriceInterval, updatedAt: string) {
   return {
     source: row.source,
     price_area: row.priceArea,
@@ -34,6 +34,8 @@ function toIntervalRow(row: SpotPriceInterval) {
     exchange_rate: row.exchangeRate,
     resolution: row.resolution,
     source_payload: row.sourcePayload ?? {},
+    // Upserts that overwrite an existing interval must move updated_at too.
+    updated_at: updatedAt,
   }
 }
 
@@ -205,10 +207,36 @@ export async function importSpotPricesForDayArea(input: {
     const sourceChecksum = checksum(coverage.sourceChecksumInput)
     const fetchedAt = new Date().toISOString()
 
+    // A (forced) refresh that returns an incomplete payload must never
+    // downgrade or partially overwrite a day that is already verified: keep
+    // the verified intervals and summary, and record the failed refresh.
+    if (coverage.status !== 'complete' && existing?.status === 'verified') {
+      const message = `Ofullständig intervalldata vid omläsning; verifierad dag behålls: ${coverage.issues.map((issue) => issue.code).join(', ') || 'okänd kvalitetsbrist'}`
+      await failSpotImportJob({
+        jobId: job.id,
+        errorCode: 'market_price_incomplete_refresh_kept_verified',
+        message,
+        retryable: true,
+        attemptCount: job.attemptCount,
+      })
+      await emitMarketEvent({
+        eventType: 'market_price.import.failed',
+        correlationId: job.correlationId,
+        payload: { provider: PROVIDER, price_area: input.priceArea, calendar_date: input.calendarDate, error_code: 'market_price_incomplete_refresh_kept_verified', kept_source_checksum: existing.source_checksum ?? null, quality_issues: coverage.issues },
+      })
+      console.warn('[spot-price-import] incomplete refresh ignored; verified day kept', {
+        provider: PROVIDER,
+        priceArea: input.priceArea,
+        calendarDate: input.calendarDate,
+        correlationId: job.correlationId,
+      })
+      return { imported: 0, status: 'verified', error: message }
+    }
+
     if (intervals.length > 0) {
       const { error: intervalError } = await supabaseService
         .from('spot_price_intervals')
-        .upsert(intervals.map(toIntervalRow), { onConflict: 'source,price_area,time_start,time_end' })
+        .upsert(intervals.map((row) => toIntervalRow(row, fetchedAt)), { onConflict: 'source,price_area,time_start,time_end' })
       if (intervalError) throw intervalError
     }
 

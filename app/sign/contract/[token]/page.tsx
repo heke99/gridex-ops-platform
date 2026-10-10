@@ -3,7 +3,15 @@ import {
   frozenPriceSummary,
   loadOnlineSignatureReceipt,
 } from '@/lib/customer-contracts/onlineSigning'
+import { loadContractConfirmationState } from '@/lib/customer-contracts/confirmationDelivery'
 import { signContractAction } from './actions'
+
+const CONFIRMATION_TEXT = {
+  queued: 'Avtalsbekräftelsen är köad för utskick till din e-postadress.',
+  pending: 'Avtalsbekräftelsen förbereds och skickas till din e-postadress så snart den är klar. Signeringen är giltig.',
+  failed: 'Avtalsbekräftelsen kunde inte skickas automatiskt. Signeringen är giltig. Kontakta din elhandlare om du inte får bekräftelsen.',
+  unknown: 'Avtalsbekräftelsen skickas till din e-postadress.',
+} as const
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -62,6 +70,12 @@ export default async function ContractSigningPage({
   }
 
   const signed = Boolean(receipt.signed_at)
+  const confirmationState = signed
+    ? await loadContractConfirmationState({
+        companyId: receipt.company_id,
+        signatureRequestId: receipt.request_id,
+      }).catch(() => null)
+    : null
   const legalVersions = receipt.legal_versions
 
   return (
@@ -161,7 +175,7 @@ export default async function ContractSigningPage({
           <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6">
             <h2 className="text-lg font-semibold text-emerald-950">Signeringen är registrerad</h2>
             <p className="mt-2 text-sm leading-6 text-emerald-900">
-              Avtalet, prisversionen och de juridiska dokumenten är nu versionslåsta. Avtalsbekräftelsen skickas till din e-postadress.
+              Avtalet, prisversionen och de juridiska dokumenten är nu versionslåsta. {CONFIRMATION_TEXT[confirmationState ?? 'unknown']}
             </p>
             {receipt.signature_snapshot_sha256 ? (
               <p className="mt-3 break-all text-xs text-emerald-800">

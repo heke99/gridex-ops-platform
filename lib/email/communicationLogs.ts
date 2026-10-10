@@ -159,100 +159,95 @@ export async function findCommunicationLogByIdempotencyKey(companyId: string, id
   return data as CommunicationLog | null
 }
 
-export async function markCommunicationSent(logId: string, providerMessageId: string) {
+// Delivery state is monotonic. Resend webhooks may arrive out of order (a
+// late `email.sent` after `email.bounced`, `email.delivered` after a
+// complaint), so every transition is guarded by its allowed predecessor
+// statuses. Terminal states (failed, bounced, complained, cancelled) are never
+// left again and an error message is never cleared by a downgrade.
+export const COMMUNICATION_TERMINAL_STATUSES = ['failed', 'bounced', 'complained', 'cancelled'] as const
+
+const ALLOWED_PREDECESSORS: Record<'sent' | 'delivered' | 'failed' | 'bounced' | 'complained', CommunicationLog['status'][]> = {
+  sent: ['queued', 'sent'],
+  delivered: ['queued', 'sent', 'delivered'],
+  failed: ['queued', 'sent', 'delivered', 'failed'],
+  bounced: ['queued', 'sent', 'delivered', 'bounced'],
+  complained: ['queued', 'sent', 'delivered', 'complained'],
+}
+
+async function loadCommunicationLog(logId: string): Promise<CommunicationLog> {
   const { data, error } = await supabaseService
     .from('communication_logs')
-    .update({
-      status: 'sent',
-      provider_message_id: providerMessageId,
-      sent_at: new Date().toISOString(),
-      error_message: null,
-    })
-    .eq('id', logId)
     .select('*')
+    .eq('id', logId)
     .single()
-
   if (error) throw error
   return data as CommunicationLog
+}
+
+async function guardedStatusUpdate(
+  logId: string,
+  target: keyof typeof ALLOWED_PREDECESSORS,
+  patch: Record<string, unknown>,
+): Promise<CommunicationLog> {
+  const { data, error } = await supabaseService
+    .from('communication_logs')
+    .update({ ...patch, status: target })
+    .eq('id', logId)
+    .in('status', ALLOWED_PREDECESSORS[target])
+    .select('*')
+    .maybeSingle()
+
+  if (error) throw error
+  // No row matched the predecessor guard: the log is already in a later or
+  // terminal state. Keep it untouched and return the current row.
+  return (data as CommunicationLog | null) ?? loadCommunicationLog(logId)
+}
+
+export async function markCommunicationSent(logId: string, providerMessageId: string) {
+  return guardedStatusUpdate(logId, 'sent', {
+    provider_message_id: providerMessageId,
+    sent_at: new Date().toISOString(),
+    error_message: null,
+  })
 }
 
 export async function markCommunicationFailed(logId: string, errorMessage: string) {
-  const { data, error } = await supabaseService
-    .from('communication_logs')
-    .update({
-      status: 'failed',
-      error_message: errorMessage,
-      failed_at: new Date().toISOString(),
-    })
-    .eq('id', logId)
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return data as CommunicationLog
+  return guardedStatusUpdate(logId, 'failed', {
+    error_message: errorMessage,
+    failed_at: new Date().toISOString(),
+  })
 }
 
 export async function markCommunicationDelivered(logId: string, occurredAt: string) {
-  const { data, error } = await supabaseService
-    .from('communication_logs')
-    .update({
-      status: 'delivered',
-      delivered_at: occurredAt,
-      error_message: null,
-    })
-    .eq('id', logId)
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return data as CommunicationLog
+  return guardedStatusUpdate(logId, 'delivered', {
+    delivered_at: occurredAt,
+    error_message: null,
+  })
 }
 
 export async function markCommunicationBounced(logId: string, errorMessage: string, occurredAt: string) {
-  const { data, error } = await supabaseService
-    .from('communication_logs')
-    .update({
-      status: 'bounced',
-      error_message: errorMessage,
-      bounced_at: occurredAt,
-    })
-    .eq('id', logId)
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return data as CommunicationLog
+  return guardedStatusUpdate(logId, 'bounced', {
+    error_message: errorMessage,
+    bounced_at: occurredAt,
+  })
 }
 
 export async function markCommunicationComplained(logId: string, errorMessage: string, occurredAt: string) {
   // Complaints get their own timestamp — bounced_at must only ever mean
   // bounce, otherwise reporting conflates the two failure modes.
-  const { data, error } = await supabaseService
-    .from('communication_logs')
-    .update({
-      status: 'complained',
+  try {
+    return await guardedStatusUpdate(logId, 'complained', {
       error_message: errorMessage,
       complained_at: occurredAt,
     })
-    .eq('id', logId)
-    .select('*')
-    .single()
-
-  if (error) {
+  } catch (error) {
+    const code = (error as { code?: unknown } | null)?.code
     // Pre-migration schema without complained_at: keep the status transition.
-    if (error.code === '42703' || error.code === 'PGRST204') {
-      const { data: fallback, error: fallbackError } = await supabaseService
-        .from('communication_logs')
-        .update({ status: 'complained', error_message: errorMessage })
-        .eq('id', logId)
-        .select('*')
-        .single()
-      if (fallbackError) throw fallbackError
-      return fallback as CommunicationLog
+    if (code === '42703' || code === 'PGRST204') {
+      return guardedStatusUpdate(logId, 'complained', { error_message: errorMessage })
     }
     throw error
   }
-  return data as CommunicationLog
 }
 
 export async function getCustomerCommunicationLogs(companyId: string, customerId: string): Promise<CommunicationLog[]> {

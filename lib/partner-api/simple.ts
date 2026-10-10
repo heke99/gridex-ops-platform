@@ -1,8 +1,10 @@
+import { inspectPdfStructure } from '@/lib/documents/pdfStructure'
 import { createHash, randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   ApiInputError,
   executeIdempotentPortalWrite,
+  IdempotentWriteNotStartedError,
   readJsonObject,
   requireIdempotencyKey,
   requireIsoDate,
@@ -15,13 +17,20 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { assertPublicWebhookTarget } from '@/lib/integrations/publicWebhookTransport'
 import { supabaseService } from '@/lib/supabase/service'
+import { buildPortalDatabasePage, decodePortalCursor, PortalCursorError } from '@/lib/customer-portal/keysetPagination'
 import { PARTNER_API_VERSION, partnerOpenApi } from './openApi'
+import { PARTNER_VISIBLE_INVOICE_STATUSES, calendarDaysInclusive, stockholmDayStartUtc, stockholmInvoiceDate, stockholmNextDayStartUtc } from './partnerTime'
 
 const POA_BUCKET = 'customer-documents'
 const MAX_POA_BYTES = 5 * 1024 * 1024
 const MAX_INVOICE_PDF_BYTES = 15 * 1024 * 1024
 const MAX_MEASUREMENT_DAYS = 366
 const MAX_MEASUREMENT_ROWS = 40_000
+const SITE_INVOICE_PAGE_SIZE = 100
+const SIMPLE_MEASUREMENT_DIRECTIONS = ['consumption', 'production'] as const
+/** Optional continuation for site invoice lists; the V1 body shape stays `{ invoices }`. */
+export const PARTNER_NEXT_CURSOR_HEADER = 'X-Gridex-Next-Cursor'
+const NULL_ISSUED_AT_CURSOR = 'issued_at:null'
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const SIMPLE_WEBHOOK_EVENTS = {
@@ -119,7 +128,7 @@ function assertOpaquePublicPayload(value: unknown, path = '$') {
   }
 }
 
-function simpleJson(body: Json, status: number, id: string): NextResponse {
+function simpleJson(body: Json, status: number, id: string, extraHeaders: Record<string, string> = {}): NextResponse {
   if (status < 400) assertOpaquePublicPayload(body)
   const payload = status >= 400
     ? { ...body, request_id: id }
@@ -127,6 +136,7 @@ function simpleJson(body: Json, status: number, id: string): NextResponse {
   return NextResponse.json(payload, {
     status,
     headers: {
+      ...extraHeaders,
       'Cache-Control': 'no-store',
       'X-Request-ID': id,
       'X-Gridex-API-Version': PARTNER_API_VERSION,
@@ -136,6 +146,7 @@ function simpleJson(body: Json, status: number, id: string): NextResponse {
 
 function normalizedError(error: unknown): { status: number; code: string; message: string; field?: string } {
   if (error instanceof SimplePartnerApiError) return error
+  if (error instanceof PortalCursorError) return { status: 400, code: error.code, message: error.message, field: error.field }
   if (error instanceof ApiInputError) {
     return {
       status: error.status,
@@ -365,7 +376,7 @@ async function requireCustomerSite(companyId: string, customerReference: string,
   return { customer, site }
 }
 
-async function uploadPoaPdf(companyId: string, value: unknown, extension: unknown) {
+function preparePoaPdf(companyId: string, value: unknown, extension: unknown) {
   const raw = text(value)
   if (!raw) throw new SimplePartnerApiError('file_base64 is required.', 'poa_file_required', 422, 'file_base64')
   const ext = (text(extension) ?? 'pdf').toLowerCase().replace(/^\./, '')
@@ -379,17 +390,45 @@ async function uploadPoaPdf(companyId: string, value: unknown, extension: unknow
   if (!bytes.length || bytes.length > MAX_POA_BYTES) {
     throw new SimplePartnerApiError('Power of attorney PDF must be 5 MB or smaller.', 'poa_file_size_invalid', 413, 'file_base64')
   }
-  if (bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
-    throw new SimplePartnerApiError('The uploaded file is not a PDF.', 'poa_file_signature_invalid', 422, 'file_base64')
+  if (!inspectPdfStructure(bytes).ok) {
+    throw new SimplePartnerApiError('The uploaded file is not a PDF or is not a readable PDF document.', 'poa_file_signature_invalid', 422, 'file_base64')
   }
   const sha256 = createHash('sha256').update(bytes).digest('hex')
   const path = `partner-api/${companyId}/${randomUUID()}.pdf`
-  const result = await supabaseService.storage.from(POA_BUCKET).upload(path, bytes, {
+  return { path, sha256: sha256, bytes }
+}
+
+type PreparedPoaPdf = { path: string; sha256: string; bytes: Buffer }
+
+/** Stores a prepared PDF only after the idempotency claim was won (F37). */
+async function storePoaPdf(file: PreparedPoaPdf) {
+  const result = await supabaseService.storage.from(POA_BUCKET).upload(file.path, file.bytes, {
     contentType: 'application/pdf',
     upsert: false,
   })
   if (result.error) throw result.error
-  return { path, sha256 }
+}
+
+/**
+ * Uploads the PDF and runs the mutation that links it. The upload is removed
+ * only when the database definitively rejected the mutation; an exception
+ * leaves the commit outcome unknown, so the file is kept (F18).
+ */
+async function withStoredPoaPdf<R extends { error: unknown }>(
+  file: PreparedPoaPdf | null,
+  mutate: () => PromiseLike<R>,
+): Promise<R> {
+  if (file) {
+    // Upload failure happens before any business write: release the key.
+    try {
+      await storePoaPdf(file)
+    } catch (error) {
+      throw new IdempotentWriteNotStartedError(error)
+    }
+  }
+  const result = await mutate()
+  if (result.error && file) await cleanupPoa(file.path)
+  return result
 }
 
 async function cleanupPoa(path: string | null | undefined) {
@@ -605,7 +644,6 @@ async function createSite(request: NextRequest, customerReference: string) {
 async function createPowerOfAttorney(request: NextRequest, customerReference: string, siteReference: string) {
   const context = await auth(request, ['partner_power_of_attorney.write'])
   if (!context.ok) return context.response
-  let uploadedPath: string | null = null
   try {
     const body = await readJsonObject(request, 7 * 1024 * 1024)
     assertNoTenantSelectors(body)
@@ -613,8 +651,7 @@ async function createPowerOfAttorney(request: NextRequest, customerReference: st
     const { customer, site } = await requireCustomerSite(context.client.company_id, customerReference, siteReference)
     const poaType = normalizePoaType(body.poa_type)
     const transactionType = normalizeTransactionType(body.transaction_type)
-    const file = await uploadPoaPdf(context.client.company_id, body.file_base64, body.file_extension)
-    uploadedPath = file.path
+    const file = preparePoaPdf(context.client.company_id, body.file_base64, body.file_extension)
     const signerName = text(`${customer.first_name ?? ''} ${customer.last_name ?? ''}`)
       ?? text(customer.company_name)
       ?? 'Customer'
@@ -631,7 +668,7 @@ async function createPowerOfAttorney(request: NextRequest, customerReference: st
       operation: '/api/partner/v1/customer/{customer_id}/site/{site_id}/powerofattorney',
       payload: idempotencyPayload,
       execute: async () => {
-        const result = await supabaseService
+        const result = await withStoredPoaPdf(file, () => supabaseService
           .from('powers_of_attorney')
           .insert({
             company_id: context.client.company_id,
@@ -658,16 +695,14 @@ async function createPowerOfAttorney(request: NextRequest, customerReference: st
             external_customer_id: customer.external_customer_id,
           })
           .select('power_of_attorney_reference')
-          .single()
+          .single())
         if (result.error) throw result.error
         return { statusCode: 201, body: { entity_id: result.data.power_of_attorney_reference } }
       },
     })
-    if (write.replayed && uploadedPath) await cleanupPoa(uploadedPath)
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: write.statusCode, operation: 'power_of_attorney.create', id: context.id })
     return simpleJson(write.body, write.statusCode, context.id)
   } catch (error) {
-    await cleanupPoa(uploadedPath)
     return failureResponse({ request, client: context.client, startedAt: context.startedAt, id: context.id, error })
   }
 }
@@ -675,7 +710,6 @@ async function createPowerOfAttorney(request: NextRequest, customerReference: st
 async function createContract(request: NextRequest) {
   const context = await auth(request, ['partner_contracts.write'])
   if (!context.ok) return context.response
-  let uploadedPath: string | null = null
   try {
     const body = await readJsonObject(request, 7 * 1024 * 1024)
     assertNoTenantSelectors(body)
@@ -690,15 +724,16 @@ async function createContract(request: NextRequest) {
     const externalCustomerId = stableExternalCustomerId(context.client.id, request)
     const offerReference = await defaultOfferReference(context.client, customer.customerType)
 
+    let poaFile: PreparedPoaPdf | null = null
     let poaPayload: Json | undefined
     let poaIdempotency: Json | undefined
     if (Object.keys(poaBody).length) {
       ensureKeys(poaBody, ['poa_type', 'transaction_type', 'file_base64', 'file_extension'])
       const poaType = normalizePoaType(poaBody.poa_type)
       const transactionType = normalizeTransactionType(poaBody.transaction_type)
-      const file = await uploadPoaPdf(context.client.company_id, poaBody.file_base64, poaBody.file_extension)
-      uploadedPath = file.path
-      const signerName = customer.customerType === 'private'
+      const file = preparePoaPdf(context.client.company_id, poaBody.file_base64, poaBody.file_extension)
+      poaFile = file
+        const signerName = customer.customerType === 'private'
         ? `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim()
         : customer.companyName ?? 'Customer'
       poaPayload = {
@@ -761,11 +796,11 @@ async function createContract(request: NextRequest) {
         ...(poaIdempotency ? { power_of_attorney: poaIdempotency } : {}),
       },
       execute: async () => {
-        const result = await supabaseService.rpc('gridex_create_partner_contract_v1', {
+        const result = await withStoredPoaPdf(poaFile, () => supabaseService.rpc('gridex_create_partner_contract_v1', {
           p_company_id: context.client.company_id,
           p_api_client_id: context.client.id,
           p_payload: rpcPayload,
-        })
+        }))
         if (result.error) throw result.error
         const data = record(result.data)
         return {
@@ -781,11 +816,9 @@ async function createContract(request: NextRequest) {
         }
       },
     })
-    if (write.replayed && uploadedPath) await cleanupPoa(uploadedPath)
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: write.statusCode, operation: 'contract.create', id: context.id })
     return simpleJson(write.body, write.statusCode, context.id)
   } catch (error) {
-    await cleanupPoa(uploadedPath)
     return failureResponse({ request, client: context.client, startedAt: context.startedAt, id: context.id, error })
   }
 }
@@ -870,6 +903,17 @@ async function getInvoices(request: NextRequest, customerReference: string, site
   if (!context.ok) return context.response
   try {
     const { customer, site } = await requireCustomerSite(context.client.company_id, customerReference, siteReference)
+    const fromDate = request.nextUrl.searchParams.get('from_date')
+    const toDate = request.nextUrl.searchParams.get('to_date')
+    const from = fromDate ? requireIsoDate(fromDate, 'from_date') : null
+    const to = toDate ? requireIsoDate(toDate, 'to_date') : null
+    // The cursor is encrypted and bound to tenant, customer, site and the date filter.
+    const cursorScope = {
+      companyId: context.client.company_id,
+      customerId: customer.id,
+      resource: `partner_site_invoices:${site.id}:${from ?? ''}:${to ?? ''}`,
+    }
+    const cursor = decodePortalCursor({ ...cursorScope, cursor: request.nextUrl.searchParams.get('cursor') })
     const contracts = await supabaseService
       .from('customer_contracts')
       .select('id')
@@ -877,37 +921,50 @@ async function getInvoices(request: NextRequest, customerReference: string, site
       .eq('customer_id', customer.id)
       .eq('customer_site_id', site.id)
     if (contracts.error) throw contracts.error
-    const contractIds = new Set((contracts.data ?? []).map((row) => String(row.id)))
-    const fromDate = request.nextUrl.searchParams.get('from_date')
-    const toDate = request.nextUrl.searchParams.get('to_date')
+    const contractIds = Array.from(new Set((contracts.data ?? []).map((row) => String(row.id)))).filter((id) => UUID_PATTERN.test(id))
+    if (contractIds.length === 0) {
+      await successLog({ request, client: context.client, startedAt: context.startedAt, status: 200, operation: 'invoice.list', id: context.id })
+      return simpleJson({ invoices: [] }, 200, context.id)
+    }
+    // Site filter runs in the database before the limit: customer_contract_id wins, contract_id is the legacy fallback.
+    const ids = contractIds.join(',')
+    const siteFilter = `or(customer_contract_id.in.(${ids}),and(customer_contract_id.is.null,contract_id.in.(${ids})))`
+    let keysetFilter: string | null = null
+    if (cursor) {
+      keysetFilter = cursor.orderValue === NULL_ISSUED_AT_CURSOR
+        ? `and(issued_at.is.null,id.lt.${cursor.id})`
+        : `or(issued_at.lt.${cursor.orderValue},and(issued_at.eq.${cursor.orderValue},id.lt.${cursor.id}),issued_at.is.null)`
+    }
     let query = supabaseService
       .from('customer_invoices')
-      .select('invoice_reference,invoice_number,amount_inc_vat,currency,due_date,issued_at,status,contract_id,customer_contract_id')
+      .select('id,invoice_reference,invoice_number,amount_inc_vat,currency,due_date,issued_at,status')
       .eq('company_id', context.client.company_id)
       .eq('customer_id', customer.id)
+      .in('status', [...PARTNER_VISIBLE_INVOICE_STATUSES])
+      .or(keysetFilter ? `and(${siteFilter},${keysetFilter})` : siteFilter.slice(3, -1))
       .order('issued_at', { ascending: false, nullsFirst: false })
-      .limit(200)
-    if (fromDate) query = query.gte('issued_at', `${requireIsoDate(fromDate, 'from_date')}T00:00:00.000Z`)
-    if (toDate) query = query.lte('issued_at', `${requireIsoDate(toDate, 'to_date')}T23:59:59.999Z`)
+      .order('id', { ascending: false })
+      .limit(SITE_INVOICE_PAGE_SIZE + 1)
+    // Calendar dates are Europe/Stockholm days; the upper bound is half-open.
+    if (from) query = query.gte('issued_at', stockholmDayStartUtc(from).toISOString())
+    if (to) query = query.lt('issued_at', stockholmNextDayStartUtc(to).toISOString())
     const result = await query
     if (result.error) throw result.error
-    const invoices = (result.data ?? [])
-      .filter((row) => {
-        const contractId = row.customer_contract_id ?? row.contract_id
-        return contractId ? contractIds.has(String(contractId)) : false
-      })
-      .slice(0, 100)
-      .map((row) => ({
-        entity_id: row.invoice_reference,
-        invoice_number: row.invoice_number,
-        invoice_date: row.issued_at ? String(row.issued_at).slice(0, 10) : null,
-        due_date: row.due_date,
-        amount: row.amount_inc_vat,
-        currency: row.currency ?? 'SEK',
-        status: row.status,
-      }))
+    const page = buildPortalDatabasePage((result.data ?? []).map((row) => ({
+      ...row,
+      cursor_order_value: row.issued_at ? String(row.issued_at) : NULL_ISSUED_AT_CURSOR,
+    })), { ...cursorScope, limit: SITE_INVOICE_PAGE_SIZE, orderColumn: 'cursor_order_value' })
+    const invoices = page.items.map((row) => ({
+      entity_id: row.invoice_reference,
+      invoice_number: row.invoice_number,
+      invoice_date: stockholmInvoiceDate(row.issued_at),
+      due_date: row.due_date,
+      amount: row.amount_inc_vat,
+      currency: row.currency ?? 'SEK',
+      status: row.status,
+    }))
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: 200, operation: 'invoice.list', id: context.id })
-    return simpleJson({ invoices }, 200, context.id)
+    return simpleJson({ invoices }, 200, context.id, page.page.next_cursor ? { [PARTNER_NEXT_CURSOR_HEADER]: page.page.next_cursor } : {})
   } catch (error) {
     return failureResponse({ request, client: context.client, startedAt: context.startedAt, id: context.id, error })
   }
@@ -919,6 +976,7 @@ async function resolveInvoice(companyId: string, invoiceReference: string) {
     .select('id,invoice_reference,invoice_number,amount_inc_vat,currency,due_date,issued_at,status')
     .eq('company_id', companyId)
     .eq('invoice_reference', invoiceReference)
+    .in('status', [...PARTNER_VISIBLE_INVOICE_STATUSES])
     .maybeSingle()
   if (result.error) throw result.error
   if (!result.data) throw new SimplePartnerApiError('Invoice not found.', 'invoice_not_found', 404)
@@ -934,7 +992,7 @@ async function getInvoice(request: NextRequest, invoiceReference: string) {
     return simpleJson({
       entity_id: invoice.invoice_reference,
       invoice_number: invoice.invoice_number,
-      invoice_date: invoice.issued_at ? String(invoice.issued_at).slice(0, 10) : null,
+      invoice_date: stockholmInvoiceDate(invoice.issued_at),
       due_date: invoice.due_date,
       amount: invoice.amount_inc_vat,
       currency: invoice.currency ?? 'SEK',
@@ -986,9 +1044,8 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
     if (!['15m', '1h'].includes(resolution)) {
       throw new SimplePartnerApiError('resolution must be 15m or 1h.', 'resolution_invalid', 422, 'resolution')
     }
-    const start = new Date(`${from}T00:00:00Z`)
-    const end = new Date(`${to}T23:59:59.999Z`)
-    const days = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1
+    // Europe/Stockholm calendar days, half-open [from 00:00, day after to 00:00) — DST days have 23/25 h.
+    const days = calendarDaysInclusive(from, to)
     if (days < 1 || days > MAX_MEASUREMENT_DAYS) {
       throw new SimplePartnerApiError(`Date range must be 1-${MAX_MEASUREMENT_DAYS} days.`, 'measurement_range_invalid', 422)
     }
@@ -997,20 +1054,27 @@ async function getMeasurements(request: NextRequest, customerReference: string, 
       : ['1h', 'PT1H', 'hourly']
     const result = await supabaseService
       .from('normalized_metering_values')
-      .select('period_start,quantity_kwh,unit,direction')
+      .select('period_start,quantity_kwh,direction')
       .eq('company_id', context.client.company_id)
       .eq('customer_site_id', site.id)
-      .gte('period_start', start.toISOString())
-      .lte('period_start', end.toISOString())
+      // Only the current revision; replaced/superseded/void corrections are filtered before the limit.
+      .eq('revision_status', 'current')
+      // V1 vocabulary is gross CONSUMPTION/PRODUCTION. Net series are not part of this response
+      // (they would otherwise be mislabelled or double counted against gross series).
+      .in('direction', [...SIMPLE_MEASUREMENT_DIRECTIONS])
+      .gte('period_start', stockholmDayStartUtc(from).toISOString())
+      .lt('period_start', stockholmNextDayStartUtc(to).toISOString())
       .in('resolution', resolutionValues)
       .order('period_start', { ascending: true })
       .limit(MAX_MEASUREMENT_ROWS)
     if (result.error) throw result.error
     const measurements = (result.data ?? []).map((row) => ({
       timestamp: row.period_start,
-      value: row.quantity_kwh,
-      unit: row.unit ?? 'kWh',
-      type: String(row.direction ?? site.site_type ?? 'consumption').toUpperCase(),
+      // quantity_kwh is the canonical kWh amount normalized at ingest (source Wh/MWh already converted);
+      // the source unit column is provenance only and is never applied again.
+      value: row.quantity_kwh === null || row.quantity_kwh === undefined ? null : Number(row.quantity_kwh),
+      unit: 'kWh' as const,
+      type: String(row.direction).toUpperCase(),
     }))
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: 200, operation: 'measurement.list', id: context.id })
     return simpleJson({ site_id: site.facility_reference, measurements }, 200, context.id)

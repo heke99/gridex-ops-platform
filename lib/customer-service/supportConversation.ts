@@ -211,20 +211,45 @@ export async function findCustomerSupportCase(scope: CustomerScope, caseReferenc
   throw new SupportConversationError('support_case_not_found', 'Ärendet hittades inte.', 404)
 }
 
+/** Historical V1 page size of the customer message history (oldest first). */
+export const SUPPORT_MESSAGE_PAGE_SIZE = 500
+
 /** Customer-visible messages only, filtered in the database before limiting. */
 export async function listCustomerSupportMessages(scope: CustomerScope, caseId: string) {
-  const { data, error } = await tenantSelect(scope.companyId, 'customer_case_events', 'id,customer_case_id,event_type,message,payload,created_by,created_at')
+  return (await listCustomerSupportMessagesPage(scope, caseId)).items
+}
+
+/**
+ * Oldest-first customer message history with an optional continuation cursor. Without a cursor the
+ * first page is identical to the historical V1 response (oldest 500). The cursor is encrypted and
+ * bound to tenant, customer and case; a cursor of another case/customer/tenant is rejected.
+ */
+export async function listCustomerSupportMessagesPage(scope: CustomerScope, caseId: string, input: { cursor?: string | null } = {}) {
+  const resource = `support_messages:${caseId}`
+  const cursor = decodePortalCursor({ cursor: input.cursor, companyId: scope.companyId, customerId: scope.customerId, resource })
+  let query = tenantSelect(scope.companyId, 'customer_case_events', 'id,customer_case_id,event_type,message,payload,created_by,created_at')
     .eq('customer_id', scope.customerId)
     .eq('customer_case_id', caseId)
     .in('event_type', [...CUSTOMER_VISIBLE_SUPPORT_EVENT_TYPES])
     .eq('payload->>visibility', 'customer')
+  if (cursor) query = query.or(`created_at.gt.${cursor.orderValue},and(created_at.eq.${cursor.orderValue},id.gt.${cursor.id})`)
+  const { data, error } = await query
     .order('created_at', { ascending: true })
-    .limit(500)
+    .order('id', { ascending: true })
+    .limit(SUPPORT_MESSAGE_PAGE_SIZE + 1)
   if (error) throw error
+  const built = buildPortalDatabasePage((data ?? []) as unknown as Array<SupportEventRow & Record<string, unknown>>, {
+    limit: SUPPORT_MESSAGE_PAGE_SIZE,
+    companyId: scope.companyId,
+    customerId: scope.customerId,
+    resource,
+    orderColumn: 'created_at',
+  })
   // Defence in depth: re-check visibility after the query.
-  return ((data ?? []) as unknown as SupportEventRow[])
-    .filter(isCustomerVisible)
-    .map((row) => publicSupportMessage(scope.companyId, row))
+  return {
+    items: (built.items as SupportEventRow[]).filter(isCustomerVisible).map((row) => publicSupportMessage(scope.companyId, row)),
+    nextCursor: built.page.next_cursor,
+  }
 }
 
 async function insertSupportEvent(input: {

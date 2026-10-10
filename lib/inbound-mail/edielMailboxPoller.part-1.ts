@@ -2,6 +2,7 @@
 
 import { createHash } from "crypto"
 import { isDeliveryStatusNotification } from './dsnClassifier'
+import { binaryToBuffer, decodeTextBytes, decodeTransferEncoding, rawSourceToText, toBinaryString } from './mimeCharset'
 import { extractEdifactPayload, parseEdifactPayload, normalizeEdifactMessageCode } from "@/lib/inbound-mail/edielEmailParser"
 
 
@@ -687,25 +688,25 @@ export function envInt(name: string, fallback: number): number {
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-export function decodeQuotedPrintable(input: string): string {
-  return input
-    .replace(/=\r?\n/g, "")
-    .replace(/=([0-9A-F]{2})/gi, (_match, hex: string) =>
-      String.fromCharCode(Number.parseInt(hex, 16)),
-    );
+// Quoted-printable decodes to BYTES; the result is interpreted with the given
+// charset (default: UTF-8 when valid, else ISO-8859-1).
+export function decodeQuotedPrintable(input: string, charset?: string | null): string {
+  return decodeTextBytes(decodeTransferEncoding(input, "quoted-printable"), charset);
 }
 
-export function decodeMimePart(body: string, transferEncoding: string | null): string {
-  const encoding = transferEncoding?.toLowerCase();
-  if (encoding === "base64") {
+export function decodeMimePart(
+  body: string,
+  transferEncoding: string | null,
+  charset?: string | null,
+): string {
+  const encoding = transferEncoding?.trim().toLowerCase();
+  if (encoding === "base64" || encoding === "quoted-printable") {
     try {
-      return Buffer.from(body.replace(/\s+/g, ""), "base64").toString("utf8");
+      return decodeTextBytes(decodeTransferEncoding(body, encoding), charset);
     } catch {
       return body;
     }
   }
-
-  if (encoding === "quoted-printable") return decodeQuotedPrintable(body);
   return body;
 }
 
@@ -741,13 +742,38 @@ export function sha256(value: string | Buffer): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-export function splitMimeParts(rawEmail: string | null): {
+// Decodes one MIME part body. `binaryBody` is a byte-preserving latin1 string
+// of the part bytes. Transfer-encoded parts and raw 8-bit Buffer sources are
+// decoded by the part charset / EDIFACT UNB syntax identifier; a JS string
+// source is already characters and is returned as such.
+function decodeSplitPart(
+  binaryBody: string,
+  transferEncoding: string | null,
+  charset: string | null,
+  sourceIsBytes: boolean,
+): { text: string; sizeBytes: number } {
+  const encoding = transferEncoding?.trim().toLowerCase() ?? null;
+  let bytes: Buffer;
+  try {
+    bytes = decodeTransferEncoding(binaryBody, encoding);
+  } catch {
+    bytes = binaryToBuffer(binaryBody);
+  }
+  const transferEncoded = encoding === "base64" || encoding === "quoted-printable";
+  const text =
+    transferEncoded || sourceIsBytes
+      ? decodeTextBytes(bytes, charset)
+      : bytes.toString("utf8");
+  return { text, sizeBytes: bytes.length };
+}
+
+export function splitMimeParts(rawEmail: string | Buffer | Uint8Array | null): {
   bodyText: string | null;
   bodyHtml: string | null;
   attachments: InboundEmailAttachmentInput[];
   rawEdifactPayload: string | null;
 } {
-  if (!rawEmail)
+  if (!rawEmail || (typeof rawEmail !== "string" && rawEmail.length === 0))
     return {
       bodyText: null,
       bodyHtml: null,
@@ -755,14 +781,20 @@ export function splitMimeParts(rawEmail: string | null): {
       rawEdifactPayload: null,
     };
 
-  if (isDeliveryStatusNotification(rawEmail)) {
+  const sourceIsBytes = typeof rawEmail !== "string";
+  const rawText = rawSourceToText(rawEmail) ?? "";
+  // Structure is parsed on the raw bytes (one char per byte) so each part can
+  // be decoded with its own charset.
+  const binary = toBinaryString(rawEmail);
+
+  if (isDeliveryStatusNotification(rawText)) {
     // Keep the complete MIME envelope available for transport review, including
     // after S/MIME unpacking, without creating business payload candidates.
-    return { bodyText: rawEmail, bodyHtml: null, attachments: [], rawEdifactPayload: null };
+    return { bodyText: rawText, bodyHtml: null, attachments: [], rawEdifactPayload: null };
   }
 
-  const firstBlank = rawEmail.search(/\r?\n\r?\n/);
-  const rootHeader = firstBlank >= 0 ? rawEmail.slice(0, firstBlank) : "";
+  const firstBlank = binary.search(/\r?\n\r?\n/);
+  const rootHeader = firstBlank >= 0 ? binary.slice(0, firstBlank) : "";
   const rootHeaders = parseHeaderBlock(rootHeader);
   const boundary = headerParam(rootHeaders["content-type"], "boundary");
 
@@ -771,11 +803,13 @@ export function splitMimeParts(rawEmail: string | null): {
   const attachments: InboundEmailAttachmentInput[] = [];
 
   if (!boundary) {
-    const body = firstBlank >= 0 ? rawEmail.slice(firstBlank).trim() : rawEmail;
-    const decoded = decodeMimePart(
+    const body = firstBlank >= 0 ? binary.slice(firstBlank).trim() : binary;
+    const decoded = decodeSplitPart(
       body,
-      extractHeader(rawEmail, "Content-Transfer-Encoding"),
-    );
+      rootHeaders["content-transfer-encoding"] ?? null,
+      headerParam(rootHeaders["content-type"], "charset"),
+      sourceIsBytes,
+    ).text;
     const payload = extractEdifactPayload(decoded);
     return {
       bodyText: decoded,
@@ -786,7 +820,7 @@ export function splitMimeParts(rawEmail: string | null): {
   }
 
   const delimiter = `--${boundary}`;
-  const rawParts = rawEmail
+  const rawParts = binary
     .split(delimiter)
     .slice(1)
     .filter((part) => !part.trim().startsWith("--"));
@@ -808,7 +842,12 @@ export function splitMimeParts(rawEmail: string | null): {
     const transferEncoding = headers["content-transfer-encoding"] ?? null;
     const filename =
       headerParam(disposition, "filename") ?? headerParam(contentType, "name");
-    const decoded = decodeMimePart(bodyBlock, transferEncoding);
+    const { text: decoded, sizeBytes } = decodeSplitPart(
+      bodyBlock,
+      transferEncoding,
+      headerParam(contentType, "charset"),
+      sourceIsBytes,
+    );
     const lowerFilename = filename?.toLowerCase() ?? "";
     const isAttachment = /attachment/i.test(disposition) || Boolean(filename);
     const isEdifactCandidate =
@@ -819,7 +858,7 @@ export function splitMimeParts(rawEmail: string | null): {
       attachments.push({
         filename,
         mimeType: contentType.split(";")[0]?.trim() || null,
-        sizeBytes: Buffer.byteLength(decoded, "utf8"),
+        sizeBytes,
         rawText: decoded,
         isEdifactCandidate,
         metadata: { contentType, disposition, transferEncoding },
@@ -837,7 +876,7 @@ export function splitMimeParts(rawEmail: string | null): {
       .map((a) => a.rawText ?? ""),
     ...bodies,
     ...htmlBodies,
-    rawEmail,
+    rawText,
   ];
   const rawEdifactPayload =
     allText

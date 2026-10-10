@@ -1,5 +1,11 @@
 'use server'
 
+import {
+  formatRevokeReason,
+  isCredentialRevokeKind,
+  stopCredentialLinkedWebhooks,
+  type CredentialRevokeKind,
+} from '@/lib/integrations/webhookCredentialPolicy'
 import { revalidatePath } from 'next/cache'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
@@ -283,10 +289,19 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
     updated_at: new Date().toISOString(),
   }
 
-  if (status === 'revoked') {
+  // F45: every new revocation records its kind. Key rotation keeps linked
+  // webhooks; security revocation and tenant offboarding stop them.
+  const rawRevokeKind = text(formData, 'revokeKind')
+  const revokeKind: CredentialRevokeKind | null = status === 'revoked'
+    ? (isCredentialRevokeKind(rawRevokeKind) ? rawRevokeKind : null)
+    : null
+  if (status === 'revoked' && !revokeKind) {
+    throw new Error('Välj återkallelsetyp: key_rotation, security_revocation eller tenant_offboarding.')
+  }
+  if (status === 'revoked' && revokeKind) {
     payload.revoked_by = context.userId
     payload.revoked_at = new Date().toISOString()
-    payload.revoke_reason = reason
+    payload.revoke_reason = formatRevokeReason(revokeKind, reason)
   }
 
   if (status === 'active') {
@@ -307,6 +322,15 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
 
   if (error) throw error
 
+  const stoppedWebhooks = revokeKind
+    ? await stopCredentialLinkedWebhooks({
+        companyId: current.company_id,
+        clientId,
+        kind: revokeKind,
+        actorUserId: context.userId,
+      })
+    : 0
+
   const readiness = status === 'active'
     ? await reconcileAndPersistTenantWebsiteClientReadiness({
         clientId,
@@ -322,6 +346,8 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
     metadata: {
       previous_status: current.status,
       reason,
+      revoke_kind: revokeKind,
+      stopped_webhook_subscriptions: stoppedWebhooks,
       launch_ready: readiness?.complete_tenant_website_ready ?? false,
       readiness_blockers: readiness?.blockers ?? [],
     },

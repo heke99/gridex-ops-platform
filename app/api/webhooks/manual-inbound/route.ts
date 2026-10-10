@@ -2,6 +2,7 @@ import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { ingestManualInboundEmail, type ManualInboundEmail } from '@/lib/inbound-mail/manualInboundIngestion'
 import { supabaseService } from '@/lib/supabase/service'
+import { normalizeAutoReplyHeaders } from '@/lib/inbound-mail/autoReply'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,6 +11,10 @@ const MAX_BODY_BYTES = 2_000_000
 const MAX_ATTACHMENTS = 10
 const MAX_ATTACHMENT_TEXT_BYTES = 200_000
 const MAX_REFERENCES = 50
+
+// Payload/validation problems are permanent (422); anything else is treated as
+// temporary (503) so the provider retries instead of dropping the mail.
+class ManualInboundPayloadError extends Error {}
 
 function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -46,12 +51,12 @@ function verifyRequest(request: NextRequest, rawBody: string) {
 
 function attachments(value: unknown): unknown[] {
   if (!Array.isArray(value)) return []
-  if (value.length > MAX_ATTACHMENTS) throw new Error('För många bilagor i inkommande e-post.')
+  if (value.length > MAX_ATTACHMENTS) throw new ManualInboundPayloadError('För många bilagor i inkommande e-post.')
   return value.map((entry) => {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error('Ogiltigt bilageformat.')
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new ManualInboundPayloadError('Ogiltigt bilageformat.')
     const row = entry as Record<string, unknown>
     const content = clean(row.content ?? row.text)
-    if (content && Buffer.byteLength(content, 'utf8') > MAX_ATTACHMENT_TEXT_BYTES) throw new Error('En bilaga är för stor.')
+    if (content && Buffer.byteLength(content, 'utf8') > MAX_ATTACHMENT_TEXT_BYTES) throw new ManualInboundPayloadError('En bilaga är för stor.')
     return row
   })
 }
@@ -108,10 +113,10 @@ async function resolveWebhookMailboxCompanyId(mailbox: string): Promise<string |
 
 function toInboundEmail(body: Record<string, unknown>): ManualInboundEmail {
   const providerMessageId = clean(body.message_id ?? body.messageId ?? body.provider_message_id ?? body.id)
-  if (!providerMessageId || providerMessageId.length > 500) throw new Error('Stabilt provider-message-ID krävs.')
+  if (!providerMessageId || providerMessageId.length > 500) throw new ManualInboundPayloadError('Stabilt provider-message-ID krävs.')
   const mailbox = normalizeMailboxAddress(body.mailbox ?? body.to ?? body.recipient)
   const fromEmail = clean(body.from ?? body.from_email ?? body.sender)
-  if (!mailbox || !fromEmail) throw new Error('Mailbox och avsändaradress krävs.')
+  if (!mailbox || !fromEmail) throw new ManualInboundPayloadError('Mailbox och avsändaradress krävs.')
 
   const inReplyTo = clean(body.in_reply_to ?? body.inReplyTo)
   return {
@@ -127,6 +132,10 @@ function toInboundEmail(body: Record<string, unknown>): ManualInboundEmail {
     inReplyTo,
     references: messageReferences(body.references ?? body.reference_message_ids ?? body.referenceMessageIds),
     attachments: attachments(body.attachments),
+    autoReplyHeaders: {
+      ...normalizeAutoReplyHeaders(body.headers),
+      ...(clean(body.auto_submitted ?? body.autoSubmitted) ? { 'auto-submitted': String(body.auto_submitted ?? body.autoSubmitted) } : {}),
+    },
   }
 }
 
@@ -151,16 +160,28 @@ export async function POST(request: NextRequest) {
     }, { status: unavailable ? 503 : 401 })
   }
 
+  let inboundEmail: ManualInboundEmail
   try {
-    const parsed = JSON.parse(rawBody) as unknown
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('JSON payload måste vara ett objekt.')
-    const inboundEmail = toInboundEmail(parsed as Record<string, unknown>)
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(rawBody)
+    } catch {
+      throw new ManualInboundPayloadError('Ogiltig JSON.')
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new ManualInboundPayloadError('JSON payload måste vara ett objekt.')
+    inboundEmail = toInboundEmail(parsed as Record<string, unknown>)
+  } catch (error) {
+    if (!(error instanceof ManualInboundPayloadError)) throw error
+    return NextResponse.json({ ok: false, error: 'Ogiltig payload för inkommande e-post.', code: 'manual_inbound_invalid_payload' }, { status: 422 })
+  }
+
+  try {
     inboundEmail.mailboxCompanyId = await resolveWebhookMailboxCompanyId(inboundEmail.mailbox ?? '')
     const result = await ingestManualInboundEmail(inboundEmail)
     return NextResponse.json({ ok: true, source: 'manual_inbound_webhook', result })
   } catch (error) {
     const traceId = randomUUID()
     console.error('[manual-inbound-webhook] Ingestion failed', { traceId, error })
-    return NextResponse.json({ ok: false, error: 'Inkommande e-post kunde inte hanteras.', code: 'manual_inbound_processing_failed', trace_id: traceId }, { status: 422 })
+    return NextResponse.json({ ok: false, error: 'Inkommande e-post kunde inte hanteras.', code: 'manual_inbound_processing_failed', trace_id: traceId }, { status: 503, headers: { 'Retry-After': '60' } })
   }
 }

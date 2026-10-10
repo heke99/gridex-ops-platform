@@ -46,6 +46,7 @@ const errors = [
   ['409', 'version_conflict, staff_self_disable_forbidden, staff_last_admin_required, staff_invalid_user_state, staff_self_role_change_forbidden, idempotency conflict', 'Reload and reconcile the operation without bypassing safeguards.'],
   ['413 / 415', 'Attachment size or type rejected', 'Use PDF, PNG or JPEG within 4 MiB.'],
   ['429', 'Rate limit exceeded', 'Observe Retry-After and sign a fresh assertion for the retry.'],
+  ['412', 'storage_project_mismatch', 'Use the deployment serving the expected project; nothing was executed.'],
   ['500 / 503', 'Processing or service unavailable', 'Keep the request ID; retry only when safe and retryable.'],
 ]
 
@@ -57,6 +58,7 @@ export default function StaffApiGuide() {
         <a className="underline" href="/developers/customer-portal-api">Gridex API documentation</a>
         <h1 className="text-4xl font-semibold text-slate-950">Gridex Staff API</h1>
         <p>Release {STAFF_API_CONTRACT_VERSION}. Manage staff accounts and customer service from your own backend.</p>
+        <p>You do not need to match the latest documentation revision exactly to use a supported API version. Integrations built against an earlier supported Staff revision keep working.</p>
         <p><a className="underline" href={STAFF_OPENAPI_URL}>Current OpenAPI</a> · <a className="underline" href={STAFF_VERSIONED_OPENAPI_URL}>Immutable release</a> · <a className="underline" href="/api/v1/openapi/release-manifest.json">Release manifest</a></p>
       </header>
       <section className="space-y-4">
@@ -67,6 +69,7 @@ export default function StaffApiGuide() {
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Sign each request</h2>
         <p>Send Authorization: Bearer &lt;GRIDEX_API_KEY&gt; and x-gridex-staff-assertion: &lt;SIGNED_JWT&gt; on every call. Supported algorithms are RS256, PS256 and ES256. The JWT requires the configured iss and aud, sub equal to the staff Gridex user UUID, integer iat and exp with a lifetime of at most 900 seconds, and a unique jti. Optional nbf controls the earliest valid time.</p>
+        <p>Clients registered for an independent staff identity additionally send token_use &quot;staff_access&quot;, company_id, local_auth_issuer, local_auth_subject, staff_binding_id and staff_binding_version from onboarding; sub stays the central Gridex user UUID. A removed or revoked registration is rejected and never falls back to the central flow. See the independent staff onboarding guide in docs/staff-api/independent-onboarding.md.</p>
         <p>Each assertion is accepted once. Generate a new assertion and jti for every attempt, including reads and retries. Gridex checks active organization membership and calculates the person&apos;s role permissions and overrides for every request.</p>
         <CopyCodeBlock code={signingExample} />
       </section>
@@ -81,6 +84,13 @@ export default function StaffApiGuide() {
         <p>Every POST and PATCH requires Idempotency-Key. Reuse that key and unchanged body for a retry, with a fresh assertion and jti. Use a new key for a new logical operation. Contact updates require expectedUpdatedAt from the latest customer updated_at and at least one editable field. A version conflict requires reloading and reconciling state. Identity changes preserve customer approval and contract acceptance.</p>
         <p>Customer and case paths use opaque references; staff account operations use Gridex user UUIDs. Identity numbers are masked in customer responses. Internal notes and phone logs require staff access. Writes are audited with the acting staff identity, API credential and staff_api channel.</p>
         <p>Upload a raw PDF, PNG or JPEG body up to 4 MiB with x-file-name and optional x-attachment-visibility: internal or customer (default internal). Only released attachments can be downloaded; the stored hash is verified on download.</p>
+      </section>
+      <section className="space-y-3">
+        <h2 className="text-2xl font-semibold">Replay, request IDs and storage project</h2>
+        <p>Every Staff write response, including staff-user invite, role change, disable and enable, carries Idempotency-Replayed: true when a stored result is returned and false for a new execution. Current authentication and permission are checked before any replay.</p>
+        <p>Gridex issues one server request ID per call and returns the same value in request_id, the X-Request-ID header and the request log, on success and on error. An inbound X-Request-ID is kept only as a separate client correlation value.</p>
+        <p>The optional x-gridex-expected-project-ref header pins the storage project; a mismatch returns 412 storage_project_mismatch before any authentication or write. Responses carry X-Gridex-Project-Ref.</p>
+        <p>Query parameters: existing parsing is kept by default. Send x-gridex-query-parsing: strict to require each parameter at most once and page, page_size and limit as plain decimal digits; violations return 422 invalid_field.</p>
       </section>
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Endpoints</h2>

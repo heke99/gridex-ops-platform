@@ -194,15 +194,20 @@ function mapCompanyRow(row: Record<string, unknown>): PublicLegalCompany {
   };
 }
 
+const PUBLIC_COMPANY_SLUG = /^[a-z0-9-]{1,100}$/;
+
 export async function loadCompanyBySlug(
   slug: string,
 ): Promise<PublicLegalCompany | null> {
   const cleaned = slug.trim().toLowerCase();
-  if (!cleaned) return null;
+  // The slug comes from the public URL and is interpolated into a PostgREST
+  // `or` filter; anything beyond [a-z0-9-] could inject filter syntax.
+  if (!PUBLIC_COMPANY_SLUG.test(cleaned)) return null;
   const { data, error } = await supabaseService
     .from("companies")
     .select(COMPANY_PUBLIC_LEGAL_COLUMNS)
     .or(`slug.eq.${cleaned},company_slug.eq.${cleaned}`)
+    .eq("status", "active")
     .limit(1)
     .maybeSingle();
   if (error || !data) return null;

@@ -3,6 +3,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { normalizeCapwayFinanceStatus, normalizeCapwayInvoiceStatus } from '@/lib/integrations/billing/capway/statusMapper'
 import { emitDomainEvent } from '@/lib/events/domainEvents'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import { stockholmLocalToUtc } from '@/lib/time/stockholm'
 
 type JsonRecord = Record<string, unknown>
 
@@ -59,18 +60,93 @@ const EVENT_TYPE_STATE_MAP: Record<string, ProviderInvoiceState> = {
   registered: 'registered',
 }
 
-const STATE_RANK: Record<ProviderInvoiceState, number> = {
-  unknown: -1,
-  registered: 0,
-  unpaid: 1,
-  partially_paid: 2,
-  overdue: 3,
-  reminder_sent: 4,
-  collection: 5,
-  paid: 10,
-  disputed: 11,
-  cancelled: 12,
-  credited: 13,
+/**
+ * Allowed provider-state transitions (current -> next). Replaces the former
+ * total rank order, which blocked legitimate moves such as disputed -> paid
+ * after a dispute is resolved or overdue -> partially_paid.
+ *
+ * - A repeat of the current state is always allowed (idempotent refresh and
+ *   completion of a half-applied earlier attempt).
+ * - Open states (registered/unpaid/partially_paid) may move to any later state.
+ * - Dunning (overdue -> reminder_sent -> collection) only escalates, but a
+ *   (partial) payment, credit, cancellation or dispute can arrive at any step.
+ * - paid may only be credited or disputed (chargeback); it never regresses to
+ *   unpaid/overdue.
+ * - disputed is resolved to any outcome state.
+ * - credited and cancelled are terminal.
+ * - unknown (never set) accepts anything.
+ * Transitions outside the table, and events whose provider timestamp is older
+ * than the last applied one, are recorded as stale and ignored.
+ */
+const SETTLEMENT_STATES: ProviderInvoiceState[] = ['partially_paid', 'paid', 'credited', 'cancelled', 'disputed']
+export const PROVIDER_STATE_TRANSITIONS: Record<ProviderInvoiceState, readonly ProviderInvoiceState[]> = {
+  unknown: ['registered', 'unpaid', 'partially_paid', 'overdue', 'reminder_sent', 'collection', 'paid', 'credited', 'cancelled', 'disputed'],
+  registered: ['unpaid', 'partially_paid', 'overdue', 'reminder_sent', 'collection', 'paid', 'credited', 'cancelled', 'disputed'],
+  unpaid: ['partially_paid', 'overdue', 'reminder_sent', 'collection', 'paid', 'credited', 'cancelled', 'disputed'],
+  partially_paid: ['overdue', 'reminder_sent', 'collection', 'paid', 'credited', 'cancelled', 'disputed'],
+  overdue: ['reminder_sent', 'collection', ...SETTLEMENT_STATES],
+  reminder_sent: ['collection', ...SETTLEMENT_STATES],
+  collection: [...SETTLEMENT_STATES],
+  paid: ['credited', 'disputed'],
+  disputed: ['unpaid', 'partially_paid', 'overdue', 'reminder_sent', 'collection', 'paid', 'credited', 'cancelled'],
+  credited: [],
+  cancelled: [],
+}
+
+export function isAllowedProviderTransition(current: ProviderInvoiceState, next: ProviderInvoiceState): boolean {
+  if (next === 'unknown') return false
+  if (current === next) return true
+  return (PROVIDER_STATE_TRANSITIONS[current] ?? PROVIDER_STATE_TRANSITIONS.unknown).includes(next)
+}
+
+function knownState(value: unknown): ProviderInvoiceState {
+  const raw = text(value)
+  return raw && raw in PROVIDER_STATE_TRANSITIONS ? raw as ProviderInvoiceState : 'unknown'
+}
+
+const OFFSET_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:?\d{2})$/i
+const LOCAL_ISO = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?)?$/
+
+/**
+ * Parses a provider timestamp (paid_at, event time). ISO 8601 with an explicit
+ * offset (or Z) is taken as-is. A date or date-time WITHOUT offset is
+ * interpreted as Europe/Stockholm local time (Swedish providers report civil
+ * time). Anything else, including impossible calendar dates and local times
+ * that do not exist in Stockholm (DST gap), returns null.
+ */
+export function parseProviderTimestamp(value: unknown): string | null {
+  const raw = text(value)
+  if (!raw) return null
+  if (OFFSET_ISO.test(raw)) {
+    const date = new Date(raw)
+    if (Number.isNaN(date.getTime())) return null
+    const [y, m, d] = raw.slice(0, 10).split('-').map(Number)
+    const civil = new Date(Date.UTC(y, m - 1, d))
+    if (civil.getUTCFullYear() !== y || civil.getUTCMonth() + 1 !== m || civil.getUTCDate() !== d) return null
+    return date.toISOString()
+  }
+  const match = LOCAL_ISO.exec(raw)
+  if (!match) return null
+  try {
+    return stockholmLocalToUtc({
+      year: Number(match[1]),
+      month: Number(match[2]),
+      day: Number(match[3]),
+      hour: match[4] ? Number(match[4]) : 0,
+      minute: match[5] ? Number(match[5]) : 0,
+      second: match[6] ? Number(match[6]) : 0,
+    }).toISOString()
+  } catch {
+    return null
+  }
+}
+
+function present(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== ''
+}
+
+function providerEventOccurredAt(payload: JsonRecord): unknown {
+  return payload.occurred_at ?? payload.occurredAt ?? payload.event_time ?? payload.eventTime ?? payload.created_at ?? payload.createdAt ?? payload.timestamp
 }
 
 export function resolveProviderInvoiceState(eventType: string | null, payload: JsonRecord): ProviderInvoiceState {
@@ -143,6 +219,7 @@ async function upsertPortalInvoice(input: {
   item: JsonRecord
   state: ProviderInvoiceState
   payload: JsonRecord
+  paidAt: string | null
 }) {
   const status = portalInvoiceStatus(input.state)
   if (!status) return
@@ -155,9 +232,7 @@ async function upsertPortalInvoice(input: {
   }
   const metadata = object(input.item.metadata)
   const billingMonth = text(metadata.billing_month)
-  const paidAt = input.state === 'paid'
-    ? text(input.payload.paid_at) ?? text(input.payload.paidAt) ?? new Date().toISOString()
-    : null
+  const paidAt = input.state === 'paid' ? input.paidAt : null
   const response = await supabaseService
     .from('customer_invoices')
     .upsert({
@@ -249,48 +324,104 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
     await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'unknown_provider_state' })
     return { eventId, outcome: 'needs_review', reason: 'unknown_provider_state' }
   }
-  const currentProviderState = (text(item.provider_status) as ProviderInvoiceState | null) ?? 'unknown'
-  if (STATE_RANK[state] < STATE_RANK[currentProviderState]) {
-    await markEvent({ eventId, companyId, token, status: 'processed', reason: 'stale_provider_state_ignored' })
-    return { eventId, outcome: 'processed', reason: 'stale_provider_state_ignored' }
+
+  // Validate everything that can fail BEFORE any write, so an event is never
+  // half-applied (item updated, portal mirror not) by a bad payload.
+  let paidAt: string | null = null
+  if (state === 'paid') {
+    const rawPaidAt = payload.paid_at ?? payload.paidAt
+    if (present(rawPaidAt)) {
+      paidAt = parseProviderTimestamp(rawPaidAt)
+      if (!paidAt) {
+        await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'invalid_paid_at' })
+        return { eventId, outcome: 'needs_review', reason: 'invalid_paid_at' }
+      }
+    } else {
+      // Deterministic across retries: the time the event was received.
+      paidAt = parseProviderTimestamp(event.received_at) ?? new Date().toISOString()
+    }
+  }
+  const rawOccurredAt = providerEventOccurredAt(payload)
+  const occurredAt = present(rawOccurredAt) ? parseProviderTimestamp(rawOccurredAt) : null
+  if (present(rawOccurredAt) && !occurredAt) {
+    await markEvent({ eventId, companyId, token, status: 'needs_review', reason: 'invalid_provider_event_time' })
+    return { eventId, outcome: 'needs_review', reason: 'invalid_provider_event_time' }
   }
 
-  const currentStatus = String(item.status ?? '')
-  const nextStatus = exportItemStatus(state, currentStatus)
-  const statusPayload = object(item.status_payload)
-  const update: JsonRecord = {
-    provider_status: state,
-    status_payload: {
-      ...statusPayload,
-      last_provider_event_id: eventId,
-      last_provider_event_type: text(event.event_type),
-      last_provider_state: state,
-      last_provider_event_at: new Date().toISOString(),
-    },
-    last_reconciled_at: new Date().toISOString(),
-    reconciliation_status: 'matched',
-    updated_at: new Date().toISOString(),
+  // Optimistic concurrency: the update only applies while provider_status is
+  // still the value this decision was based on. On a lost race the row is
+  // re-read and the transition re-evaluated, so a concurrent paid can never be
+  // overwritten by an overdue that read the older state.
+  let current = item
+  let applied: { update: JsonRecord; nextStatus: string | null; currentStatus: string } | null = null
+  for (let attempt = 0; attempt < 5 && !applied; attempt += 1) {
+    const currentProviderState = knownState(current.provider_status)
+    const statusPayload = object(current.status_payload)
+    const lastOccurredAt = parseProviderTimestamp(statusPayload.last_provider_event_occurred_at)
+    const staleByTime = Boolean(occurredAt && lastOccurredAt && Date.parse(occurredAt) < Date.parse(lastOccurredAt))
+    if (staleByTime || !isAllowedProviderTransition(currentProviderState, state)) {
+      await markEvent({ eventId, companyId, token, status: 'processed', reason: 'stale_provider_state_ignored' })
+      return { eventId, outcome: 'processed', reason: 'stale_provider_state_ignored' }
+    }
+    const currentStatus = String(current.status ?? '')
+    const nextStatus = exportItemStatus(state, currentStatus)
+    const nowIso = new Date().toISOString()
+    const update: JsonRecord = {
+      provider_status: state,
+      status_payload: {
+        ...statusPayload,
+        last_provider_event_id: eventId,
+        last_provider_event_type: text(event.event_type),
+        last_provider_state: state,
+        last_provider_event_at: nowIso,
+        ...(occurredAt ? { last_provider_event_occurred_at: occurredAt } : {}),
+      },
+      last_reconciled_at: nowIso,
+      reconciliation_status: 'matched',
+      updated_at: nowIso,
+    }
+    if (nextStatus) update.status = nextStatus
+    const financeStatus = text(payload.finance_status) ?? text(payload.financeStatus)
+    if (financeStatus) update.purchase_status = normalizeCapwayFinanceStatus(financeStatus)
+    const providerInvoiceNumber = text(payload.invoice_number) ?? text(payload.invoiceNumber)
+    if (providerInvoiceNumber) update.provider_invoice_number = providerInvoiceNumber
+    const providerOcr = text(payload.ocr) ?? text(payload.payment_reference) ?? text(payload.paymentReference)
+    if (providerOcr) update.provider_ocr = providerOcr
+
+    const baseQuery = supabaseService
+      .from('invoice_export_items')
+      .update(update)
+      .eq('company_id', companyId)
+      .eq('id', itemId)
+      .eq('provider_invoice_guid', invoiceGuid)
+    const readProviderStatus = text(current.provider_status)
+    const guardedQuery = readProviderStatus === null
+      ? baseQuery.is('provider_status', null)
+      : baseQuery.eq('provider_status', readProviderStatus)
+    const itemUpdate = await guardedQuery.select('id').maybeSingle()
+    if (itemUpdate.error) throw itemUpdate.error
+    if (itemUpdate.data) {
+      applied = { update, nextStatus, currentStatus }
+      break
+    }
+    const reread = await supabaseService
+      .from('invoice_export_items')
+      .select('*')
+      .eq('id', itemId)
+      .eq('company_id', companyId)
+      .eq('provider_invoice_guid', invoiceGuid)
+      .maybeSingle()
+    if (reread.error) throw reread.error
+    if (!reread.data) throw new Error('Providerstatus kunde inte uppdateras tenant-säkert.')
+    current = reread.data as JsonRecord
   }
-  if (nextStatus) update.status = nextStatus
-  const financeStatus = text(payload.finance_status) ?? text(payload.financeStatus)
-  if (financeStatus) update.purchase_status = normalizeCapwayFinanceStatus(financeStatus)
-  const providerInvoiceNumber = text(payload.invoice_number) ?? text(payload.invoiceNumber)
-  if (providerInvoiceNumber) update.provider_invoice_number = providerInvoiceNumber
-  const providerOcr = text(payload.ocr) ?? text(payload.payment_reference) ?? text(payload.paymentReference)
-  if (providerOcr) update.provider_ocr = providerOcr
+  if (!applied) throw new Error('Providerstatus ändrades samtidigt för många gånger; händelsen försöks igen.')
+  const { update, nextStatus, currentStatus } = applied
 
-  const itemUpdate = await supabaseService
-    .from('invoice_export_items')
-    .update(update)
-    .eq('company_id', companyId)
-    .eq('id', itemId)
-    .eq('provider_invoice_guid', invoiceGuid)
-    .select('id')
-    .maybeSingle()
-  if (itemUpdate.error) throw itemUpdate.error
-  if (!itemUpdate.data) throw new Error('Providerstatus kunde inte uppdateras tenant-säkert.')
-
-  await upsertPortalInvoice({ companyId, item: { ...item, ...update }, state, payload })
+  // Idempotent upsert keyed on (company_id, invoice_export_item_id). If it
+  // fails, the event is marked failed and a retry re-applies the same state
+  // (same-state transitions are allowed) and completes the mirror.
+  await upsertPortalInvoice({ companyId, item: { ...current, ...update }, state, payload, paidAt })
   await markEvent({ eventId, companyId, token, status: 'processed' })
   await emitDomainEvent({
     companyId,

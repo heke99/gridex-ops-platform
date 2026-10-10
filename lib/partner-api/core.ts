@@ -1,9 +1,11 @@
+import { inspectPdfStructure } from '@/lib/documents/pdfStructure'
 import { createHash, randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 import {
   ApiInputError,
   executeIdempotentPortalWrite,
+  IdempotentWriteNotStartedError,
   readJsonObject,
   requireIsoDate,
 } from '@/lib/api/strictRequest'
@@ -15,6 +17,7 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import { PARTNER_API_VERSION, partnerOpenApi } from './openApi'
+import { PARTNER_VISIBLE_INVOICE_STATUSES, calendarDaysInclusive, stockholmDayStartUtc, stockholmNextDayStartUtc } from './partnerTime'
 
 const POA_BUCKET = 'customer-documents'
 const MAX_POA_BYTES = 5 * 1024 * 1024
@@ -305,7 +308,7 @@ async function resolveContract(companyId: string, reference: string) {
   return result.data
 }
 
-async function uploadPoaPdf(companyId: string, value: unknown, extension: unknown) {
+function preparePoaPdf(companyId: string, value: unknown, extension: unknown) {
   const raw = text(value)
   if (!raw) return null
   const ext = (text(extension) ?? 'pdf').toLowerCase().replace(/^\./, '')
@@ -319,17 +322,45 @@ async function uploadPoaPdf(companyId: string, value: unknown, extension: unknow
   if (!bytes.length || bytes.length > MAX_POA_BYTES) {
     throw new PartnerApiError('Power of attorney PDF must be between 1 byte and 5 MB.', 'poa_file_size_invalid', 413, 'file_base64')
   }
-  if (bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
-    throw new PartnerApiError('The uploaded document is not a PDF.', 'poa_file_signature_invalid', 422, 'file_base64')
+  if (!inspectPdfStructure(bytes).ok) {
+    throw new PartnerApiError('The uploaded document is not a PDF or is not a readable PDF document.', 'poa_file_signature_invalid', 422, 'file_base64')
   }
   const digest = createHash('sha256').update(bytes).digest('hex')
   const path = `partner-api/${companyId}/${randomUUID()}.pdf`
-  const uploaded = await supabaseService.storage.from(POA_BUCKET).upload(path, bytes, {
+  return { path, sha256: digest, bytes }
+}
+
+type PreparedPoaPdf = { path: string; sha256: string; bytes: Buffer }
+
+/** Stores a prepared PDF only after the idempotency claim was won (F37). */
+async function storePoaPdf(file: PreparedPoaPdf) {
+  const result = await supabaseService.storage.from(POA_BUCKET).upload(file.path, file.bytes, {
     contentType: 'application/pdf',
     upsert: false,
   })
-  if (uploaded.error) throw uploaded.error
-  return { path, sha256: digest }
+  if (result.error) throw result.error
+}
+
+/**
+ * Uploads the PDF and runs the mutation that links it. The upload is removed
+ * only when the database definitively rejected the mutation; an exception
+ * leaves the commit outcome unknown, so the file is kept (F18).
+ */
+async function withStoredPoaPdf<R extends { error: unknown }>(
+  file: PreparedPoaPdf | null,
+  mutate: () => PromiseLike<R>,
+): Promise<R> {
+  if (file) {
+    // Upload failure happens before any business write: release the key.
+    try {
+      await storePoaPdf(file)
+    } catch (error) {
+      throw new IdempotentWriteNotStartedError(error)
+    }
+  }
+  const result = await mutate()
+  if (result.error && file) await cleanupPoa(file.path)
+  return result
 }
 
 async function cleanupPoa(path: string | null | undefined) {
@@ -543,7 +574,7 @@ function poaNormalized(body: Json) {
     customerReference,
     siteReference,
     contractReference: text(body.contract_reference),
-    acceptedAt: text(body.accepted_at) ?? new Date().toISOString(),
+    acceptedAt: acceptedAtValue(body.accepted_at),
     signerName,
     signerIdentityNumber: digits(body.signer_identity_number),
     poaType: lower(body.poa_type) ?? 'web',
@@ -552,10 +583,24 @@ function poaNormalized(body: Json) {
   }
 }
 
+/** accepted_at must be an ISO 8601 timestamp with time zone that is not in the future. */
+function acceptedAtValue(value: unknown): string {
+  const raw = text(value)
+  if (!raw) return new Date().toISOString()
+  const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[+-]\d{2}:\d{2})$/
+  const parsed = new Date(raw)
+  if (!iso.test(raw) || Number.isNaN(parsed.getTime())) {
+    throw new PartnerApiError('accepted_at must be an ISO 8601 timestamp with time zone.', 'accepted_at_invalid', 422, 'accepted_at')
+  }
+  if (parsed.getTime() > Date.now() + 5 * 60_000) {
+    throw new PartnerApiError('accepted_at cannot be in the future.', 'accepted_at_invalid', 422, 'accepted_at')
+  }
+  return parsed.toISOString()
+}
+
 async function createPowerOfAttorney(request: NextRequest) {
   const context = await auth(request, ['partner_power_of_attorney.write'])
   if (!context.ok) return context.response
-  let uploadedPath: string | null = null
   try {
     const body = await readJsonObject(request, 7 * 1024 * 1024)
     const normalized = poaNormalized(body)
@@ -572,8 +617,7 @@ async function createPowerOfAttorney(request: NextRequest) {
       }
       contractId = String(contract.id)
     }
-    const file = await uploadPoaPdf(context.client.company_id, body.file_base64, body.file_extension)
-    uploadedPath = file?.path ?? null
+    const file = preparePoaPdf(context.client.company_id, body.file_base64, body.file_extension)
     const idempotencyPayload = { ...body, file_base64: file ? `sha256:${file.sha256}` : null }
     const write = await executeIdempotentPortalWrite<Json>({
       request,
@@ -583,7 +627,7 @@ async function createPowerOfAttorney(request: NextRequest) {
       operation: '/api/partner/v1/powers-of-attorney',
       payload: idempotencyPayload,
       execute: async () => {
-        const result = await supabaseService
+        const result = await withStoredPoaPdf(file, () => supabaseService
           .from('powers_of_attorney')
           .insert({
             company_id: context.client.company_id,
@@ -612,16 +656,14 @@ async function createPowerOfAttorney(request: NextRequest) {
             external_customer_id: customer.external_customer_id,
           })
           .select('power_of_attorney_reference,status,signed_at,method')
-          .single()
+          .single())
         if (result.error) throw result.error
         return { statusCode: 201, body: { data: result.data } }
       },
     })
-    if (write.replayed && uploadedPath) await cleanupPoa(uploadedPath)
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: write.statusCode, operation: 'power_of_attorney.create', id: context.id })
     return partnerJson(write.body, write.statusCode, context.id)
   } catch (error) {
-    await cleanupPoa(uploadedPath)
     return failureResponse({ request, client: context.client, startedAt: context.startedAt, id: context.id, error })
   }
 }
@@ -629,7 +671,6 @@ async function createPowerOfAttorney(request: NextRequest) {
 async function createContract(request: NextRequest) {
   const context = await auth(request, ['partner_contracts.write'])
   if (!context.ok) return context.response
-  let uploadedPath: string | null = null
   try {
     const body = await readJsonObject(request, 7 * 1024 * 1024)
     ensureKeys(body, [
@@ -682,14 +723,15 @@ async function createContract(request: NextRequest) {
         throw new PartnerApiError('agreement.distance_agreement must be boolean.', 'agreement_distance_invalid', 422)
       }
     }
+    let poaFile: PreparedPoaPdf | null = null
     const poa = record(body.power_of_attorney)
     if (Object.keys(poa).length) {
       if (bool(poa.accepted) !== true) throw new PartnerApiError('power_of_attorney.accepted must be true.', 'power_of_attorney_not_accepted', 422)
       if (!text(poa.signer_name) || !text(poa.evidence_reference)) {
         throw new PartnerApiError('Power of attorney requires signer_name and evidence_reference.', 'power_of_attorney_evidence_required', 422)
       }
-      const file = await uploadPoaPdf(context.client.company_id, poa.file_base64, poa.file_extension)
-      uploadedPath = file?.path ?? null
+      const file = preparePoaPdf(context.client.company_id, poa.file_base64, poa.file_extension)
+      poaFile = file
       body.power_of_attorney = {
         ...poa,
         document_path: file?.path ?? null,
@@ -715,20 +757,18 @@ async function createContract(request: NextRequest) {
       operation: '/api/partner/v1/contracts',
       payload: idempotencyPayload,
       execute: async () => {
-        const result = await supabaseService.rpc('gridex_create_partner_contract_v1', {
+        const result = await withStoredPoaPdf(poaFile, () => supabaseService.rpc('gridex_create_partner_contract_v1', {
           p_company_id: context.client.company_id,
           p_api_client_id: context.client.id,
           p_payload: body,
-        })
+        }))
         if (result.error) throw result.error
         return { statusCode: 201, body: { data: result.data as unknown } }
       },
     })
-    if (write.replayed && uploadedPath) await cleanupPoa(uploadedPath)
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: write.statusCode, operation: 'contract.create', id: context.id })
     return partnerJson(write.body, write.statusCode, context.id)
   } catch (error) {
-    await cleanupPoa(uploadedPath)
     return failureResponse({ request, client: context.client, startedAt: context.startedAt, id: context.id, error })
   }
 }
@@ -871,10 +911,12 @@ async function invoicesForCustomer(request: NextRequest, customerReference: stri
       .select('invoice_reference,invoice_number,period_start,period_end,amount_inc_vat,currency,due_date,issued_at,paid_at,status')
       .eq('company_id', context.client.company_id)
       .eq('customer_id', customer.id)
+      .in('status', [...PARTNER_VISIBLE_INVOICE_STATUSES])
       .order('issued_at', { ascending: false, nullsFirst: false })
       .limit(100)
-    if (from) query = query.gte('issued_at', requireIsoDate(from, 'from_date'))
-    if (to) query = query.lte('issued_at', `${requireIsoDate(to, 'to_date')}T23:59:59.999Z`)
+    // Calendar dates are Europe/Stockholm days; the upper bound is half-open.
+    if (from) query = query.gte('issued_at', stockholmDayStartUtc(requireIsoDate(from, 'from_date')).toISOString())
+    if (to) query = query.lt('issued_at', stockholmNextDayStartUtc(requireIsoDate(to, 'to_date')).toISOString())
     const result = await query
     if (result.error) throw result.error
     const invoices = (result.data ?? []).map((row) => ({
@@ -902,6 +944,7 @@ async function resolveInvoice(companyId: string, reference: string) {
     .select('id,invoice_reference,invoice_number,period_start,period_end,total_kwh,amount_ex_vat,vat_amount,amount_inc_vat,currency,due_date,issued_at,paid_at,status')
     .eq('company_id', companyId)
     .eq('invoice_reference', reference)
+    .in('status', [...PARTNER_VISIBLE_INVOICE_STATUSES])
     .maybeSingle()
   if (result.error) throw result.error
   if (!result.data) throw new PartnerApiError('Invoice not found.', 'invoice_not_found', 404)
@@ -971,9 +1014,9 @@ async function measurements(request: NextRequest, siteReference: string) {
     if (!['15m', '1h'].includes(resolution)) {
       throw new PartnerApiError('resolution must be 15m or 1h.', 'resolution_invalid', 422, 'resolution')
     }
-    const start = new Date(`${from}T00:00:00Z`)
-    const end = new Date(`${to}T23:59:59.999Z`)
-    const days = Math.floor((end.getTime() - start.getTime()) / 86_400_000) + 1
+    // Europe/Stockholm calendar days, half-open on period_start; the last interval (ending at the
+    // next local midnight) is included and DST days have 23/25 hours.
+    const days = calendarDaysInclusive(from, to)
     if (days < 1 || days > MAX_MEASUREMENT_DAYS) {
       throw new PartnerApiError(`Date range must be 1-${MAX_MEASUREMENT_DAYS} days.`, 'measurement_range_invalid', 422)
     }
@@ -985,8 +1028,9 @@ async function measurements(request: NextRequest, siteReference: string) {
       .select('period_start,period_end,resolution,quantity_kwh,unit,direction,quality_status')
       .eq('company_id', context.client.company_id)
       .eq('customer_site_id', site.id)
-      .gte('period_start', start.toISOString())
-      .lte('period_end', end.toISOString())
+      .eq('revision_status', 'current')
+      .gte('period_start', stockholmDayStartUtc(from).toISOString())
+      .lt('period_start', stockholmNextDayStartUtc(to).toISOString())
       .in('resolution', resolutionValues)
       .order('period_start', { ascending: true })
       .limit(MAX_MEASUREMENT_ROWS)
@@ -995,8 +1039,9 @@ async function measurements(request: NextRequest, siteReference: string) {
       timestamp: row.period_start,
       period_end: row.period_end,
       resolution,
+      // quantity_kwh is already normalized to kWh at ingest; the source unit is not re-applied.
       value: row.quantity_kwh,
-      unit: row.unit ?? 'kWh',
+      unit: 'kWh',
       type: String(row.direction ?? site.site_type ?? 'consumption').toUpperCase(),
       quality: row.quality_status ?? null,
     }))

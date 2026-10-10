@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ ctx: { companyId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', actorUserId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', apiClientId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', permissions: ['users.write', 'users.read'] }, write: vi.fn(), invite: vi.fn(), disable: vi.fn(), enable: vi.fn(), list: vi.fn(), change: vi.fn() }))
-vi.mock('@/lib/staff-api/http', () => ({ withStaffApi: async (_request: unknown, _options: unknown, handler: (ctx: unknown) => Promise<Response>) => handler(mocks.ctx), staffApiJson: (body: unknown, status = 200) => Response.json(body, { status }) }))
+vi.mock('@/lib/staff-api/http', () => ({ withStaffApi: async (_request: unknown, _options: unknown, handler: (ctx: unknown) => Promise<Response>) => handler(mocks.ctx), staffApiJson: (body: unknown, init: number | ResponseInit = 200) => Response.json(body, typeof init === 'number' ? { status: init } : init) }))
 vi.mock('@/lib/tenant/staffCommands', () => ({ inviteStaff: mocks.invite, disableStaff: mocks.disable, reactivateStaff: mocks.enable, listStaff: mocks.list, changeStaffRole: mocks.change, listStaffRoles: vi.fn() }))
 vi.mock('@/lib/api/strictRequest', async importOriginal => {
   const actual = await importOriginal<typeof import('@/lib/api/strictRequest')>()

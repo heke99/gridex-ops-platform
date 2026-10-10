@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
 
     const results = []
     for (const calendarDate of dates) {
+      const previousDay = calendarDate === previousStockholmCalendarDate(now)
       const currentDay = calendarDate === currentStockholmCalendarDate(now)
       const nextDay = calendarDate === nextStockholmCalendarDate(now)
       results.push(await importSpotPricesForDay({
@@ -73,7 +74,10 @@ export async function POST(request: NextRequest) {
         priceAreas,
         // Current and next day are refreshed so source_as_of represents real
         // provider evidence rather than a preview recalculation timestamp.
-        force: force || currentDay || nextDay,
+        // Yesterday (D-1) is re-verified once per run so late provider
+        // corrections are picked up; an incomplete refresh never downgrades
+        // an already verified day (see importSpotPricesForDayArea).
+        force: force || (!requestedDate && previousDay) || currentDay || nextDay,
       }))
     }
 

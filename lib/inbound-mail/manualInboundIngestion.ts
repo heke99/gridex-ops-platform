@@ -7,6 +7,7 @@ import {
 } from '@/lib/customer-operations/manualFacilityResponseParser'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { resolveManualInboundCorrelation } from '@/lib/inbound-mail/manualInboundCorrelation'
+import { autoReplyReason } from '@/lib/inbound-mail/autoReply'
 
 type JsonRecord = Record<string, unknown>
 
@@ -24,6 +25,8 @@ export type ManualInboundEmail = {
   inReplyTo?: string | null
   references?: string[] | null
   attachments?: unknown[]
+  // Root headers relevant to RFC 3834 auto-reply detection (lower-case names).
+  autoReplyHeaders?: Record<string, string> | null
 }
 
 export type ManualInboundResult = {
@@ -259,6 +262,14 @@ function resultFromExisting(existing: JsonRecord, caseReference: string | null):
   }
 }
 
+const NON_TERMINAL_PROCESSING_STATES = new Set(['received', 'normalized', 'matched'])
+
+function isReprocessable(existing: JsonRecord): boolean {
+  if (clean(existing.resolution_status) === 'unmatched') return true
+  const state = clean(existing.processing_state)
+  return state === null || NON_TERMINAL_PROCESSING_STATES.has(state)
+}
+
 export async function ingestManualInboundEmail(email: ManualInboundEmail): Promise<ManualInboundResult> {
   await assertPlatformSchemaReady()
 
@@ -269,9 +280,40 @@ export async function ingestManualInboundEmail(email: ManualInboundEmail): Promi
 
   // A terminal correlation is idempotent. Unmatched rows are intentionally
   // re-evaluated because new tenant/customer masterdata may have arrived since
-  // the first attempt.
-  if (raw.existing && clean(raw.existing.resolution_status) !== 'unmatched') {
+  // the first attempt, and so is a row whose processing never reached a
+  // terminal state (e.g. matched, but applying the response threw). Every step
+  // below is an idempotent update/upsert keyed by the inbound row.
+  if (raw.existing && !isReprocessable(raw.existing)) {
     return resultFromExisting(raw.existing, caseReference)
+  }
+
+  // Auto-replies (out-of-office, bulk, delivery reports) quote the case
+  // reference but are no answer: classify before anything is applied so the
+  // request keeps waiting for the real response.
+  const autoReply = autoReplyReason(email.autoReplyHeaders)
+  if (autoReply) {
+    const ignoredUpdate = await supabaseService
+      .from('manual_inbound_messages')
+      .update({
+        resolution_status: 'ignored',
+        processing_state: 'ignored',
+        intent: 'auto_reply',
+        correlation_evidence: { classification: 'ignored_auto_reply', auto_reply_reason: autoReply, case_reference: caseReference },
+      })
+      .eq('id', raw.inboundId)
+      .select('id')
+      .maybeSingle()
+    if (ignoredUpdate.error) throw ignoredUpdate.error
+    return {
+      inboundId: raw.inboundId,
+      resolutionStatus: 'ignored',
+      requestId: null,
+      caseReference,
+      companyId: null,
+      intent: 'auto_reply',
+      processingState: 'ignored_auto_reply',
+      parse: null,
+    }
   }
 
   const normalizedText = buildNormalizedManualInboundText(email)

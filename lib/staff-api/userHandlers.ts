@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'
 import type { StaffApiContext } from '@/lib/staff-api/context'
 import { staffApiJson, withStaffApi } from '@/lib/staff-api/http'
+import { applyStaffQueryPolicy } from '@/lib/staff-api/queryPolicy'
 import { changeStaffRole, disableStaff, inviteStaff, listStaff, listStaffRoles, reactivateStaff, type StaffCommandContext } from '@/lib/tenant/staffCommands'
 
 const inviteSchema = z.object({ email: z.string().email().max(320), full_name: z.string().trim().max(200).nullable().optional(), role_key: z.string().min(1).max(80) }).strict()
@@ -29,11 +30,12 @@ async function write<T>(request: NextRequest, ctx: StaffApiContext, operation: s
     operation, payload: { actor_user_id: ctx.actorUserId, data: payload },
     execute: async () => ({ statusCode: status, body: { data: await execute(commandIdempotencyKey(ctx, operation, rawKey)) } }),
   })
-  return staffApiJson(result.body, result.statusCode)
+  return staffApiJson(result.body, { status: result.statusCode, headers: { 'Idempotency-Replayed': String(result.replayed) } })
 }
 
 export async function getStaffUsers(request: NextRequest) {
   return withStaffApi(request, { scopes: ['staff_users.read'], permission: 'users.read' }, async ctx => {
+    applyStaffQueryPolicy(request, ['page', 'page_size'])
     const query = parse(listSchema, Object.fromEntries(request.nextUrl.searchParams))
     return staffApiJson(await listStaff(commandContext(ctx), { page: query.page, pageSize: query.page_size, status: query.status }))
   })

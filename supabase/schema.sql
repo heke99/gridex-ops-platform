@@ -52833,6 +52833,62 @@ begin
 end $$;
 
 --
+-- Name: gridex_assert_onboarding_poa_matches_accepted_bundle(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_assert_onboarding_poa_matches_accepted_bundle() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  if new.power_of_attorney_id is null or new.legal_bundle_version_id is null then
+    return new;
+  end if;
+  if exists (
+    select 1
+      from public.powers_of_attorney poa
+      join public.legal_bundle_version_documents d
+        on d.id = poa.legal_bundle_version_document_id
+     where poa.id = new.power_of_attorney_id
+       and poa.company_id = new.company_id
+       and d.legal_bundle_version_id is distinct from new.legal_bundle_version_id
+  ) then
+    raise exception 'power_of_attorney_offer_version_mismatch' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+--
+-- Name: gridex_assert_poa_legal_snapshot_matches_bundle(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_assert_poa_legal_snapshot_matches_bundle() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_bundle_id uuid;
+begin
+  if new.legal_snapshot_id is null or new.legal_bundle_version_document_id is null then
+    return new;
+  end if;
+  select s.legal_bundle_version_id into v_bundle_id
+    from public.customer_onboarding_legal_snapshots s
+   where s.id = new.legal_snapshot_id
+     and s.company_id = new.company_id;
+  if v_bundle_id is not null and exists (
+    select 1 from public.legal_bundle_version_documents d
+     where d.id = new.legal_bundle_version_document_id
+       and d.legal_bundle_version_id is distinct from v_bundle_id
+  ) then
+    raise exception 'power_of_attorney_offer_version_mismatch' using errcode = '23514';
+  end if;
+  return new;
+end;
+$$;
+
+--
 -- Name: gridex_assert_portfolio_permission(uuid, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -57062,18 +57118,44 @@ declare
   v_address_id uuid;
   v_now timestamptz := now();
   v_address_changed boolean;
+  v_previous_source text;
+  v_previous_verified boolean;
+  v_previous_rank integer;
+  v_incoming_rank integer;
+  v_keep_authority boolean;
 begin
-  select address_hash into v_previous_hash
+  select address_hash, address_source,
+         (address_verified_at is not null or address_verification_method = 'grid_owner_response')
+    into v_previous_hash, v_previous_source, v_previous_verified
     from public.customer_sites
    where id = p_site_id and company_id = p_company_id and customer_id = p_customer_id
    for update;
   if not found then raise exception 'customer_site_not_found' using errcode = 'P0002'; end if;
   if nullif(btrim(p_address_hash), '') is null then raise exception 'address_hash_required' using errcode = '22023'; end if;
 
+  -- Source authority mirrors lib/customer-sites/addressIntake.ts sourceRank().
+  -- Unknown stored/incoming values never trigger a conflict (rank NULL).
+  v_previous_rank := case coalesce(v_previous_source, 'import')
+    when 'grid_owner_response' then 70 when 'superadmin' then 60 when 'tenant_api' then 50
+    when 'manual_intake' then 40 when 'website' then 30 when 'customer_portal' then 20 when 'import' then 10 end;
+  v_incoming_rank := case p_source
+    when 'grid_owner_response' then 70 when 'superadmin' then 60 when 'tenant_api' then 50
+    when 'manual_intake' then 40 when 'website' then 30 when 'customer_portal' then 20 when 'import' then 10 end;
+
   -- NULL -> canonical hash is the first canonicalization of the address already
   -- present on the site. It is not a later customer address change and must not
   -- stale jobs, requests, grid context or metering context.
   v_address_changed := v_previous_hash is not null and v_previous_hash is distinct from p_address_hash;
+
+  -- F21: repeat the verified-address conflict decision atomically under the
+  -- locked row. A lower-ranked source may not replace a verified address.
+  if v_address_changed and coalesce(v_previous_verified, false) and v_incoming_rank < v_previous_rank then
+    raise exception 'verified_address_conflict' using errcode = 'P0001',
+      detail = 'A lower-ranked address source cannot replace a verified facility address.';
+  end if;
+  -- Same physical address from a lower-ranked source keeps the canonical
+  -- source, reference and verification; only receipt/informational fields move.
+  v_keep_authority := not v_address_changed and v_previous_hash is not null and v_incoming_rank < v_previous_rank;
 
   if v_address_changed then
     update public.customer_operation_jobs
@@ -57111,12 +57193,13 @@ begin
      set street = p_street, postal_code = p_postal_code, city = p_city, country = p_country,
          care_of = p_care_of, apartment_number = p_apartment_number,
          address_normalized = p_address_normalized, address_hash = p_address_hash,
-         address_source = p_source, address_source_reference = p_source_reference,
+         address_source = case when v_keep_authority then address_source else p_source end,
+         address_source_reference = case when v_keep_authority then address_source_reference else p_source_reference end,
          address_received_at = v_now,
-         address_verified_at = case when p_source = 'grid_owner_response' then v_now else null end,
-         address_verification_method = case when p_source = 'grid_owner_response' then 'grid_owner_response' else null end,
-         address_confidence = case when p_source = 'grid_owner_response' then 1 else null end,
-         address_status = case when p_source = 'grid_owner_response' then 'verified' else 'candidate' end,
+         address_verified_at = case when v_keep_authority then address_verified_at when p_source = 'grid_owner_response' then v_now else null end,
+         address_verification_method = case when v_keep_authority then address_verification_method when p_source = 'grid_owner_response' then 'grid_owner_response' else null end,
+         address_confidence = case when v_keep_authority then address_confidence when p_source = 'grid_owner_response' then 1 else null end,
+         address_status = case when v_keep_authority then address_status when p_source = 'grid_owner_response' then 'verified' else 'candidate' end,
          address_quality_status = 'complete', address_quality_warnings = '[]'::jsonb,
          -- Canonical grid context is always derived by the resolver or a verified
          -- grid-owner response. Claimed values remain evidence in metadata only.
@@ -57128,7 +57211,7 @@ begin
          resolution_id = case when v_address_changed then null else resolution_id end,
          resolution_status = case when v_address_changed then 'pending_resolution' else resolution_status end,
          resolution_confidence = case when v_address_changed then null else resolution_confidence end,
-         facility_data_status = case when p_source = 'grid_owner_response' then 'verified' when v_address_changed then 'unverified' else facility_data_status end,
+         facility_data_status = case when v_keep_authority then facility_data_status when p_source = 'grid_owner_response' then 'verified' when v_address_changed then 'unverified' else facility_data_status end,
          metadata = coalesce(metadata,'{}'::jsonb) || coalesce(p_metadata,'{}'::jsonb), updated_at = v_now
    where id = p_site_id and company_id = p_company_id and customer_id = p_customer_id;
 
@@ -66258,6 +66341,25 @@ end;
 $$;
 
 --
+-- Name: gridex_enqueue_contract_confirmation_delivery(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_enqueue_contract_confirmation_delivery() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  insert into public.customer_contract_confirmation_deliveries(
+    company_id, customer_contract_id, signature_request_id
+  ) values (
+    new.company_id, new.customer_contract_id, new.id
+  )
+  on conflict (company_id, signature_request_id) do nothing;
+  return new;
+end;
+$$;
+
+--
 -- Name: gridex_enqueue_signed_contract_operation_v1(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -66974,6 +67076,7 @@ CREATE FUNCTION public.gridex_expire_overdue_powers_of_attorney_v1(p_limit integ
 declare
   v_limit integer := least(greatest(coalesce(p_limit, 100), 1), 500);
   v_expired integer := 0;
+  v_stockholm_today date := (now() at time zone 'Europe/Stockholm')::date;
 begin
   if auth.role() <> 'service_role' then
     raise exception using errcode = '42501', message = 'poa_expiry_service_role_required';
@@ -66984,7 +67087,7 @@ begin
     from public.powers_of_attorney
     where status in ('signed', 'active', 'accepted', 'sent', 'draft')
       and valid_to is not null
-      and valid_to < current_date
+      and valid_to < v_stockholm_today
     order by valid_to, id
     limit v_limit
     for update skip locked
@@ -66999,7 +67102,7 @@ begin
   events as (
     insert into public.power_of_attorney_events (company_id, power_of_attorney_id, event_type, payload)
     select company_id, id, 'expired',
-           jsonb_build_object('valid_to', valid_to, 'source', 'customer_operations_cron')
+           jsonb_build_object('valid_to', valid_to, 'source', 'customer_operations_cron', 'calendar', 'Europe/Stockholm')
     from expired
     returning 1
   )
@@ -70931,6 +71034,74 @@ end
 $$;
 
 --
+-- Name: gridex_guard_grid_owner_contact_channel_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_guard_grid_owner_contact_channel_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_email text;
+  v_privileged boolean;
+  v_verification_change boolean;
+begin
+  new.email := nullif(btrim(coalesce(new.email, '')), '');
+  v_email := lower(new.email);
+
+  if v_email is not null
+     and v_email !~ '^[^[:space:]@<>(),;:"]+@[^[:space:]@<>(),;:"]+\.[^[:space:]@<>(),;:"]+$' then
+    raise exception using
+      errcode = '23514',
+      message = 'grid_owner_contact_channel_invalid_email';
+  end if;
+
+  if coalesce(new.is_verified, false) is not true then
+    new.verified_at := null;
+    return new;
+  end if;
+
+  v_verification_change := tg_op = 'INSERT'
+    or coalesce(old.is_verified, false) is not true
+    or lower(coalesce(old.email, '')) is distinct from coalesce(v_email, '');
+
+  if v_verification_change then
+    v_privileged := coalesce(auth.role(), '') = 'service_role'
+      or coalesce(public.gridex_user_is_platform_admin(), false);
+    if not v_privileged then
+      raise exception using
+        errcode = '42501',
+        message = 'grid_owner_contact_channel_verification_requires_platform_admin';
+    end if;
+    new.verified_at := now();
+  elsif new.verified_at is null then
+    new.verified_at := coalesce(old.verified_at, now());
+  end if;
+
+  if v_email is not null and coalesce(new.channel_type, '') <> 'ediel' then
+    if exists (
+      select 1
+      from public.grid_owners g
+      where lower(btrim(coalesce(g.communication_email, ''))) = v_email
+         or lower(btrim(coalesce(g.contact_email, ''))) = v_email
+         or lower(btrim(coalesce(g.email, ''))) = v_email
+    ) or exists (
+      select 1
+      from public.ediel_mailboxes m
+      where lower(btrim(coalesce(m.email_address, ''))) = v_email
+    ) then
+      raise exception using
+        errcode = '23514',
+        message = 'grid_owner_contact_channel_shared_ediel_gateway',
+        detail = 'A verified manual grid-owner contact must not be an Ediel/EDIFACT gateway address shared through grid_owners or ediel_mailboxes.';
+    end if;
+  end if;
+
+  return new;
+end
+$_$;
+
+--
 -- Name: gridex_guard_history_truncate_v1(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -72481,6 +72652,15 @@ declare
   v_disabled_at timestamptz;
 begin
   if v_user_id is null then
+    return false;
+  end if;
+  if not exists (
+    select 1
+      from auth.users u
+     where u.id = v_user_id
+       and u.deleted_at is null
+       and (u.banned_until is null or u.banned_until <= now())
+  ) then
     return false;
   end if;
   if to_regclass('public.user_profiles') is null then
@@ -75929,6 +76109,92 @@ end
 $_$;
 
 --
+-- Name: gridex_normalize_power_of_attorney_legal_reference(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_normalize_power_of_attorney_legal_reference() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $_$
+declare
+  v_candidate uuid;
+  v_candidate_text text;
+  v_document_company_id uuid;
+  v_module_key text;
+  v_locked_at timestamptz;
+  v_linked_legacy_id uuid;
+  v_legacy_exists boolean := false;
+begin
+  if new.legal_text_version_id is not null then
+    select exists (
+      select 1 from public.legal_text_versions legacy
+      where legacy.id = new.legal_text_version_id
+    ) into v_legacy_exists;
+  end if;
+
+  v_candidate := new.legal_bundle_version_document_id;
+
+  -- Compatibility path for the website onboarding RPC that historically
+  -- transported the canonical legal document id through legal_text_version_id.
+  if v_candidate is null
+     and new.legal_text_version_id is not null
+     and not v_legacy_exists then
+    v_candidate := new.legal_text_version_id;
+    new.legal_text_version_id := null;
+  end if;
+
+  -- Other canonical writers already persist the immutable document id in their
+  -- captured evidence/snapshot. Normalize those writes into the first-class
+  -- column without changing their external behavior.
+  if v_candidate is null then
+    v_candidate_text := coalesce(
+      nullif(new.evidence_payload->>'legal_bundle_version_document_id', ''),
+      nullif(new.fullmakt_snapshot->>'legal_bundle_version_document_id', ''),
+      nullif(new.metadata->>'legal_bundle_document_id', '')
+    );
+    if v_candidate_text is not null
+       and v_candidate_text ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' then
+      v_candidate := v_candidate_text::uuid;
+    end if;
+  end if;
+
+  if v_candidate is null then
+    return new;
+  end if;
+
+  select lbv.company_id, d.module_key, lbv.locked_at, d.legacy_legal_text_version_id
+    into v_document_company_id, v_module_key, v_locked_at, v_linked_legacy_id
+    from public.legal_bundle_version_documents d
+    join public.legal_bundle_versions lbv
+      on lbv.id = d.legal_bundle_version_id
+   where d.id = v_candidate;
+
+  if not found then
+    new.legal_bundle_version_document_id := v_candidate;
+    return new; -- declarative FK returns the canonical 23503
+  end if;
+
+  if new.company_id is null or v_document_company_id is distinct from new.company_id then
+    raise exception 'power_of_attorney_legal_document_tenant_mismatch' using errcode = '23514';
+  end if;
+  if v_module_key is distinct from 'power_of_attorney' then
+    raise exception 'power_of_attorney_legal_document_type_mismatch' using errcode = '23514';
+  end if;
+  if v_locked_at is null then
+    raise exception 'power_of_attorney_legal_document_not_locked' using errcode = '23514';
+  end if;
+
+  if new.legal_text_version_id is not null
+     and v_linked_legacy_id is distinct from new.legal_text_version_id then
+    raise exception 'power_of_attorney_legal_reference_mismatch' using errcode = '23514';
+  end if;
+
+  new.legal_bundle_version_document_id := v_candidate;
+  return new;
+end;
+$_$;
+
+--
 -- Name: gridex_normalize_public_offer_code(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -78488,6 +78754,98 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_point_to_grid_area(p_x numeric, p_y numeric) IS 'Matches one point to exactly one active SVK grid area. Confidence is boundary-distance based: >=1.5 km is the default high-confidence Papilite threshold; exact-address callers may still use lower-confidence matches for review.';
+
+--
+-- Name: gridex_portal_monthly_consumption_v1(uuid, uuid[], date, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_portal_monthly_consumption_v1(p_company_id uuid, p_customer_ids uuid[], p_from_month date, p_to_month date) RETURNS TABLE(month_key text, total_kwh numeric, value_count bigint, metering_point_count bigint, covered_seconds bigint, expected_seconds bigint, is_complete boolean)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public'
+    AS $$
+declare
+  v_from timestamptz;
+  v_to timestamptz;
+begin
+  if p_company_id is null
+     or p_customer_ids is null
+     or cardinality(p_customer_ids) = 0
+     or cardinality(p_customer_ids) > 50
+     or array_position(p_customer_ids, null) is not null then
+    raise exception 'portal_consumption_scope_invalid' using errcode = '22023';
+  end if;
+  if p_from_month is null or p_to_month is null or p_from_month > p_to_month
+     or p_to_month > (p_from_month + interval '36 months')::date then
+    raise exception 'portal_consumption_period_invalid' using errcode = '22023';
+  end if;
+  -- Every requested customer must belong to the requested tenant.
+  if exists (
+    select 1
+      from unnest(p_customer_ids) as requested(customer_id)
+     where not exists (
+       select 1 from public.customers c
+        where c.id = requested.customer_id and c.company_id = p_company_id
+     )
+  ) then
+    raise exception 'portal_consumption_customer_scope_invalid' using errcode = '42501';
+  end if;
+
+  v_from := date_trunc('month', p_from_month::timestamp) at time zone 'Europe/Stockholm';
+  v_to := (date_trunc('month', p_to_month::timestamp) + interval '1 month') at time zone 'Europe/Stockholm';
+
+  return query
+  with current_values as (
+    select
+      to_char(date_trunc('month', mv.period_start at time zone 'Europe/Stockholm'), 'YYYY-MM') as month_key,
+      coalesce(mv.metering_point_id::text, '') as metering_point,
+      mv.value_kwh,
+      case when mv.period_end > mv.period_start
+           then extract(epoch from (mv.period_end - mv.period_start))
+           else 0 end as seconds
+    from public.metering_values mv
+    where mv.company_id = p_company_id
+      and mv.customer_id = any(p_customer_ids)
+      and mv.period_start >= v_from
+      and mv.period_start < v_to
+      and mv.is_current
+      and mv.revision_status = 'current'
+      and mv.direction = 'consumption'
+      and mv.value_kwh is not null
+  ),
+  months as (
+    select
+      cv.month_key,
+      sum(cv.value_kwh)::numeric as total_kwh,
+      count(*)::bigint as value_count,
+      count(distinct cv.metering_point)::bigint as metering_point_count,
+      sum(cv.seconds)::bigint as covered_seconds
+    from current_values cv
+    group by cv.month_key
+  )
+  select
+    m.month_key,
+    m.total_kwh,
+    m.value_count,
+    m.metering_point_count,
+    m.covered_seconds,
+    (m.metering_point_count * extract(epoch from (
+      ((to_date(m.month_key, 'YYYY-MM') + interval '1 month')::timestamp at time zone 'Europe/Stockholm')
+      - (to_date(m.month_key, 'YYYY-MM')::timestamp at time zone 'Europe/Stockholm')
+    )))::bigint as expected_seconds,
+    m.covered_seconds >= (m.metering_point_count * extract(epoch from (
+      ((to_date(m.month_key, 'YYYY-MM') + interval '1 month')::timestamp at time zone 'Europe/Stockholm')
+      - (to_date(m.month_key, 'YYYY-MM')::timestamp at time zone 'Europe/Stockholm')
+    )))::bigint as is_complete
+  from months m
+  order by m.month_key desc;
+end;
+$$;
+
+--
+-- Name: FUNCTION gridex_portal_monthly_consumption_v1(p_company_id uuid, p_customer_ids uuid[], p_from_month date, p_to_month date); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.gridex_portal_monthly_consumption_v1(p_company_id uuid, p_customer_ids uuid[], p_from_month date, p_to_month date) IS 'OPS portal: complete Europe/Stockholm month consumption totals per tenant/customer set; current revision and gross consumption only; service_role only.';
 
 --
 -- Name: gridex_portfolio_actor_has_permission(uuid, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -106530,8 +106888,15 @@ CREATE TABLE public.communication_log_events (
     event_type text NOT NULL,
     event_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
     occurred_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    processed_at timestamp with time zone
 );
+
+--
+-- Name: COLUMN communication_log_events.processed_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.communication_log_events.processed_at IS 'Set when all status effects of the provider event were applied. NULL means stored but not yet fully processed; a provider retry re-processes it.';
 
 --
 -- Name: communication_logs; Type: TABLE; Schema: public; Owner: -
@@ -107982,6 +108347,34 @@ CREATE TABLE public.customer_contract_acceptances (
     acceptance_sha256 text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+--
+-- Name: customer_contract_confirmation_deliveries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_contract_confirmation_deliveries (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_contract_id uuid NOT NULL,
+    signature_request_id uuid NOT NULL,
+    state text DEFAULT 'pending'::text NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    last_error text,
+    next_attempt_at timestamp with time zone DEFAULT now() NOT NULL,
+    queued_at timestamp with time zone,
+    document_sha256 text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT customer_contract_confirmation_deliveries_attempts_chk CHECK ((attempts >= 0)),
+    CONSTRAINT customer_contract_confirmation_deliveries_queued_chk CHECK (((state = 'queued'::text) = (queued_at IS NOT NULL))),
+    CONSTRAINT customer_contract_confirmation_deliveries_state_chk CHECK ((state = ANY (ARRAY['pending'::text, 'queued'::text, 'failed'::text])))
+);
+
+--
+-- Name: TABLE customer_contract_confirmation_deliveries; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.customer_contract_confirmation_deliveries IS 'Durable continuation for the signed-contract confirmation mail (F27). Service-role only.';
 
 --
 -- Name: customer_contract_documents; Type: TABLE; Schema: public; Owner: -
@@ -127250,6 +127643,20 @@ ALTER TABLE ONLY public.customer_contract_acceptances
     ADD CONSTRAINT customer_contract_acceptances_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_contract_confirmation_deliveries customer_contract_confirmation_deliveries_company_request_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_contract_confirmation_deliveries
+    ADD CONSTRAINT customer_contract_confirmation_deliveries_company_request_key UNIQUE (company_id, signature_request_id);
+
+--
+-- Name: customer_contract_confirmation_deliveries customer_contract_confirmation_deliveries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_contract_confirmation_deliveries
+    ADD CONSTRAINT customer_contract_confirmation_deliveries_pkey PRIMARY KEY (id);
+
+--
 -- Name: customer_contract_documents customer_contract_documents_customer_contract_id_document_t_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -131990,6 +132397,18 @@ CREATE INDEX customer_communications_company_customer_idx ON public.customer_com
 --
 
 CREATE INDEX customer_contract_acceptances_contract_idx ON public.customer_contract_acceptances USING btree (customer_contract_id, accepted_at DESC);
+
+--
+-- Name: customer_contract_confirmation_deliveries_company_contract_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_contract_confirmation_deliveries_company_contract_idx ON public.customer_contract_confirmation_deliveries USING btree (company_id, customer_contract_id);
+
+--
+-- Name: customer_contract_confirmation_deliveries_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_contract_confirmation_deliveries_due_idx ON public.customer_contract_confirmation_deliveries USING btree (next_attempt_at) WHERE (state = 'pending'::text);
 
 --
 -- Name: customer_contract_documents_contract_idx; Type: INDEX; Schema: public; Owner: -
@@ -141022,12 +141441,6 @@ CREATE UNIQUE INDEX ux_customer_sites_company_facility ON public.customer_sites 
 CREATE UNIQUE INDEX ux_customer_supply_periods_company_meter_start_active ON public.customer_supply_periods USING btree (company_id, metering_point_id, start_date) WHERE (status = ANY (ARRAY['active'::text, 'confirmed_by_grid_owner'::text]));
 
 --
--- Name: ux_customers_company_customer_number; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX ux_customers_company_customer_number ON public.customers USING btree (company_id, customer_number) WHERE (customer_number IS NOT NULL);
-
---
 -- Name: ux_customers_company_org_number; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -147325,6 +147738,12 @@ CREATE TRIGGER customer_contract_evidence_immutable BEFORE DELETE OR UPDATE ON p
 CREATE TRIGGER customer_contract_quote_binding_v2 BEFORE INSERT OR UPDATE OF company_id, quote_reference, contract_product_id, contract_product_version_id, contract_publication_version_id, price_plan_id, price_plan_version_id, price_book_id, legal_bundle_version_id, energy_direction ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION public.gridex_enforce_quote_binding_v2();
 
 --
+-- Name: customer_contract_signature_requests customer_contract_signature_requests_confirmation_delivery_tg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_contract_signature_requests_confirmation_delivery_tg AFTER UPDATE OF used_at ON public.customer_contract_signature_requests FOR EACH ROW WHEN (((old.used_at IS NULL) AND (new.used_at IS NOT NULL))) EXECUTE FUNCTION public.gridex_enqueue_contract_confirmation_delivery();
+
+--
 -- Name: customer_contract_signature_requests customer_contract_signature_requests_email_readiness_tg; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -147461,6 +147880,12 @@ CREATE TRIGGER customer_match_review_cases_validate_tg BEFORE INSERT OR UPDATE O
 --
 
 CREATE TRIGGER customer_onboarding_legal_snapshots_immutable_tg BEFORE DELETE OR UPDATE ON public.customer_onboarding_legal_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.record_ab5a459d757699cefc9f_guard_v1();
+
+--
+-- Name: customer_onboarding_legal_snapshots customer_onboarding_legal_snapshots_poa_bundle_guard_tg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_onboarding_legal_snapshots_poa_bundle_guard_tg BEFORE INSERT OR UPDATE OF power_of_attorney_id, legal_bundle_version_id ON public.customer_onboarding_legal_snapshots FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_onboarding_poa_matches_accepted_bundle();
 
 --
 -- Name: customers customer_personal_fields_tombstone; Type: TRIGGER; Schema: public; Owner: -
@@ -148213,6 +148638,12 @@ CREATE TRIGGER gridex_customers_hard_delete_guard BEFORE DELETE ON public.custom
 --
 
 CREATE TRIGGER gridex_ediel_route_profile_history_trg AFTER INSERT OR UPDATE ON public.ediel_route_profiles FOR EACH ROW EXECUTE FUNCTION public.gridex_capture_ediel_route_profile_history();
+
+--
+-- Name: grid_owner_contact_channels gridex_guard_grid_owner_contact_channel; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER gridex_guard_grid_owner_contact_channel BEFORE INSERT OR UPDATE ON public.grid_owner_contact_channels FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_grid_owner_contact_channel_v1();
 
 --
 -- Name: actor_test_attempt_evidence gridex_history_truncate_guard; Type: TRIGGER; Schema: public; Owner: -
@@ -150613,6 +151044,18 @@ CREATE TRIGGER portfolio_settlement_audit_immutable BEFORE DELETE OR UPDATE ON p
 --
 
 CREATE TRIGGER portfolio_settlement_invoice_bindings_guard BEFORE DELETE OR UPDATE ON public.portfolio_settlement_invoice_bindings FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.finance_guard_v1_7ddb10144d6f8333b9c1b21ecec204e6();
+
+--
+-- Name: powers_of_attorney powers_of_attorney_legal_reference_normalize_tg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER powers_of_attorney_legal_reference_normalize_tg BEFORE INSERT OR UPDATE ON public.powers_of_attorney FOR EACH ROW EXECUTE FUNCTION public.gridex_normalize_power_of_attorney_legal_reference();
+
+--
+-- Name: powers_of_attorney powers_of_attorney_legal_snapshot_bundle_guard_tg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER powers_of_attorney_legal_snapshot_bundle_guard_tg BEFORE UPDATE OF legal_snapshot_id, legal_bundle_version_document_id ON public.powers_of_attorney FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_poa_legal_snapshot_matches_bundle();
 
 --
 -- Name: powers_of_attorney powers_of_attorney_materialize_scopes_tg; Type: TRIGGER; Schema: public; Owner: -
@@ -158744,6 +159187,20 @@ ALTER TABLE ONLY public.customer_contract_acceptances
 
 ALTER TABLE ONLY public.customer_contract_acceptances
     ADD CONSTRAINT customer_contract_acceptances_customer_contract_id_fkey FOREIGN KEY (customer_contract_id) REFERENCES public.customer_contracts(id) ON DELETE RESTRICT;
+
+--
+-- Name: customer_contract_confirmation_deliveries customer_contract_confirmation_delive_signature_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_contract_confirmation_deliveries
+    ADD CONSTRAINT customer_contract_confirmation_delive_signature_request_id_fkey FOREIGN KEY (signature_request_id) REFERENCES public.customer_contract_signature_requests(id) ON DELETE RESTRICT;
+
+--
+-- Name: customer_contract_confirmation_deliveries customer_contract_confirmation_deliveries_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_contract_confirmation_deliveries
+    ADD CONSTRAINT customer_contract_confirmation_deliveries_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
 
 --
 -- Name: customer_contract_documents customer_contract_documents_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -168370,6 +168827,12 @@ ALTER TABLE public.customer_contract_acceptances ENABLE ROW LEVEL SECURITY;
 CREATE POLICY customer_contract_acceptances_tenant_read ON public.customer_contract_acceptances FOR SELECT TO authenticated USING ((public.gridex_user_is_platform_admin() OR public.gridex_can_read_company(company_id)));
 
 --
+-- Name: customer_contract_confirmation_deliveries; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_contract_confirmation_deliveries ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: customer_contract_documents; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -176592,13 +177055,13 @@ ALTER TABLE public.inbound_operation_events ENABLE ROW LEVEL SECURITY;
 -- Name: inbound_operation_events inbound_operation_events_read; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY inbound_operation_events_read ON public.inbound_operation_events FOR SELECT USING (((auth.role() = 'service_role'::text) OR public.gridex_user_is_platform_admin() OR ((company_id IS NOT NULL) AND public.gridex_can_read_company(company_id))));
+CREATE POLICY inbound_operation_events_read ON public.inbound_operation_events FOR SELECT USING (((( SELECT auth.role() AS role) = 'service_role'::text) OR ( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND public.gridex_can_read_company(company_id))));
 
 --
 -- Name: inbound_operation_events inbound_operation_events_write; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY inbound_operation_events_write ON public.inbound_operation_events USING (((auth.role() = 'service_role'::text) OR public.gridex_user_is_platform_admin())) WITH CHECK (((auth.role() = 'service_role'::text) OR public.gridex_user_is_platform_admin()));
+CREATE POLICY inbound_operation_events_write ON public.inbound_operation_events USING (((( SELECT auth.role() AS role) = 'service_role'::text) OR ( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin))) WITH CHECK (((( SELECT auth.role() AS role) = 'service_role'::text) OR ( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)));
 
 --
 -- Name: inbound_processing_jobs; Type: ROW SECURITY; Schema: public; Owner: -
@@ -195300,6 +195763,20 @@ REVOKE ALL ON FUNCTION public.gridex_assert_no_public_offer_fk_references(p_publ
 GRANT ALL ON FUNCTION public.gridex_assert_no_public_offer_fk_references(p_public_offer_ids uuid[]) TO service_role;
 
 --
+-- Name: FUNCTION gridex_assert_onboarding_poa_matches_accepted_bundle(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_assert_onboarding_poa_matches_accepted_bundle() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_assert_onboarding_poa_matches_accepted_bundle() TO service_role;
+
+--
+-- Name: FUNCTION gridex_assert_poa_legal_snapshot_matches_bundle(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_assert_poa_legal_snapshot_matches_bundle() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_assert_poa_legal_snapshot_matches_bundle() TO service_role;
+
+--
 -- Name: FUNCTION gridex_assert_portfolio_permission(p_actor_user_id uuid, p_permission text, p_company_id uuid, p_portfolio_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -196440,7 +196917,6 @@ GRANT ALL ON FUNCTION public.gridex_db1_try_exec(p_area text, p_object text, p_s
 --
 
 REVOKE ALL ON FUNCTION public.gridex_db4b_archive_customer_registry_row(p_lookup text, p_email text, p_apply boolean, p_reason text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_db4b_archive_customer_registry_row(p_lookup text, p_email text, p_apply boolean, p_reason text) TO authenticated;
 GRANT ALL ON FUNCTION public.gridex_db4b_archive_customer_registry_row(p_lookup text, p_email text, p_apply boolean, p_reason text) TO service_role;
 
 --
@@ -196789,6 +197265,13 @@ GRANT ALL ON FUNCTION public.gridex_enforce_supplier_switch_z04_confirmation_v1(
 GRANT ALL ON FUNCTION public.gridex_enforce_supplier_utilts_outbound_v1() TO service_role;
 
 --
+-- Name: FUNCTION gridex_enqueue_contract_confirmation_delivery(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_enqueue_contract_confirmation_delivery() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_enqueue_contract_confirmation_delivery() TO service_role;
+
+--
 -- Name: FUNCTION gridex_enqueue_signed_contract_operation_v1(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -197106,6 +197589,13 @@ GRANT ALL ON FUNCTION public.gridex_guard_company_white_label_platform() TO serv
 --
 
 REVOKE ALL ON FUNCTION public.gridex_guard_customer_hard_delete_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION gridex_guard_grid_owner_contact_channel_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_guard_grid_owner_contact_channel_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_guard_grid_owner_contact_channel_v1() TO service_role;
 
 --
 -- Name: FUNCTION gridex_guard_history_truncate_v1(); Type: ACL; Schema: public; Owner: -
@@ -197627,7 +198117,6 @@ GRANT ALL ON FUNCTION public.gridex_next_contract_number(p_company_id uuid, p_cu
 --
 
 REVOKE ALL ON FUNCTION public.gridex_next_customer_number(p_company_id uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_next_customer_number(p_company_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.gridex_next_customer_number(p_company_id uuid) TO service_role;
 
 --
@@ -197748,6 +198237,12 @@ GRANT ALL ON FUNCTION public.gridex_normalize_postal_code(p_value text) TO servi
 GRANT ALL ON FUNCTION public.gridex_normalize_postal_code(p_value text, p_country_code text) TO anon;
 GRANT ALL ON FUNCTION public.gridex_normalize_postal_code(p_value text, p_country_code text) TO authenticated;
 GRANT ALL ON FUNCTION public.gridex_normalize_postal_code(p_value text, p_country_code text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_normalize_power_of_attorney_legal_reference(); Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON FUNCTION public.gridex_normalize_power_of_attorney_legal_reference() TO service_role;
 
 --
 -- Name: FUNCTION gridex_normalize_public_offer_code(p_value text); Type: ACL; Schema: public; Owner: -
@@ -197923,6 +198418,13 @@ GRANT ALL ON FUNCTION public.gridex_platform_default_legal_templates_set_updated
 
 REVOKE ALL ON FUNCTION public.gridex_point_to_grid_area(p_x numeric, p_y numeric) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_point_to_grid_area(p_x numeric, p_y numeric) TO service_role;
+
+--
+-- Name: FUNCTION gridex_portal_monthly_consumption_v1(p_company_id uuid, p_customer_ids uuid[], p_from_month date, p_to_month date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_portal_monthly_consumption_v1(p_company_id uuid, p_customer_ids uuid[], p_from_month date, p_to_month date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_portal_monthly_consumption_v1(p_company_id uuid, p_customer_ids uuid[], p_from_month date, p_to_month date) TO service_role;
 
 --
 -- Name: FUNCTION gridex_portfolio_actor_has_permission(p_actor_user_id uuid, p_permission text, p_company_id uuid, p_portfolio_id uuid); Type: ACL; Schema: public; Owner: -
@@ -201152,6 +201654,12 @@ GRANT ALL ON TABLE public.customer_contacts TO service_role;
 GRANT ALL ON TABLE public.customer_contract_acceptances TO authenticated;
 GRANT ALL ON TABLE public.customer_contract_acceptances TO service_role;
 GRANT SELECT,UPDATE ON TABLE public.customer_contract_acceptances TO gridex_ediel_retention_owner;
+
+--
+-- Name: TABLE customer_contract_confirmation_deliveries; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_contract_confirmation_deliveries TO service_role;
 
 --
 -- Name: TABLE customer_contract_documents; Type: ACL; Schema: public; Owner: -

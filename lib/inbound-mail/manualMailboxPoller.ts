@@ -12,6 +12,10 @@
 //   * reuses the env-only secret-reference + stale-lock patterns from Ediel.
 
 import { ImapFlow } from 'imapflow'
+import { createHash } from 'node:crypto'
+import { inspectMimeStructure, mimeParameter } from '@/lib/inbound-mail/mimeStructure'
+import { binaryToBuffer, decodeTextBytes, toBinaryString } from '@/lib/inbound-mail/mimeCharset'
+import { extractAutoReplyHeaders } from '@/lib/inbound-mail/autoReply'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { resolveManualMailboxSecret } from '@/lib/email/manualOperationsMailbox'
@@ -33,6 +37,7 @@ export type ManualMailboxPollResult = {
   unmatched: number
   ignored: number
   skipped: number
+  deadLettered: number
   errors: string[]
 }
 
@@ -49,20 +54,6 @@ function envInt(name: string, fallback: number): number {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback
 }
 
-function decodeQuotedPrintable(value: string): string {
-  return value
-    .replace(/=\r?\n/g, '')
-    .replace(/=([A-Fa-f0-9]{2})/g, (_match, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)))
-}
-
-function decodeMimeBody(value: string, encoding: string | null): string {
-  if (encoding === 'base64') {
-    try { return Buffer.from(value.replace(/\s+/g, ''), 'base64').toString('utf8') } catch { return '' }
-  }
-  if (encoding === 'quoted-printable') return decodeQuotedPrintable(value)
-  return value
-}
-
 function parseMessageHeaderValues(headerText: string): { inReplyTo: string | null; references: string[] } {
   const unfolded = headerText.replace(/\r?\n[ \t]+/g, ' ')
   const inReplyTo = clean(/^in-reply-to:\s*(.+)$/im.exec(unfolded)?.[1])
@@ -73,51 +64,53 @@ function parseMessageHeaderValues(headerText: string): { inReplyTo: string | nul
   return { inReplyTo, references }
 }
 
-// Small deterministic MIME reader for manual replies. It decodes plain text,
-// HTML and text attachments without executing or opening binary content.
-function parseMimeSource(source: unknown): {
+// Small deterministic MIME reader for manual replies. It walks nested
+// multipart structures (multipart/mixed > multipart/alternative, forwarded
+// message/rfc822) and decodes text by each part's own charset without
+// executing or opening binary content.
+export function parseMimeSource(source: unknown): {
   bodyText: string | null
   bodyHtml: string | null
   attachments: unknown[]
   inReplyTo: string | null
   references: string[]
+  autoReplyHeaders: Record<string, string>
 } {
-  if (!source) return { bodyText: null, bodyHtml: null, attachments: [], inReplyTo: null, references: [] }
-  const raw = Buffer.isBuffer(source) ? source.toString('utf8') : String(source)
-  const [headerText, ...bodyParts] = raw.split(/\r?\n\r?\n/)
+  const empty = { bodyText: null, bodyHtml: null, attachments: [], inReplyTo: null, references: [], autoReplyHeaders: {} }
+  if (!source) return empty
+  const binary = Buffer.isBuffer(source) || source instanceof Uint8Array ? toBinaryString(source) : toBinaryString(String(source))
+  const separator = binary.search(/\r?\n\r?\n/)
+  const headerText = separator >= 0 ? binary.slice(0, separator) : binary
   const replyHeaders = parseMessageHeaderValues(headerText)
-  const body = bodyParts.join('\n\n')
-  const contentType = /content-type:\s*([^;\r\n]+)/i.exec(headerText)?.[1]?.toLowerCase() ?? 'text/plain'
-  const boundary = /boundary="?([^";\r\n]+)"?/i.exec(headerText)?.[1] ?? null
-  const encoding = /content-transfer-encoding:\s*([^\r\n]+)/i.exec(headerText)?.[1]?.trim().toLowerCase() ?? null
-  if (!boundary) {
-    const decoded = decodeMimeBody(body, encoding)
-    return contentType.includes('html')
-      ? { bodyText: null, bodyHtml: clean(decoded), attachments: [], ...replyHeaders }
-      : { bodyText: clean(decoded), bodyHtml: null, attachments: [], ...replyHeaders }
-  }
+  const autoReplyHeaders = extractAutoReplyHeaders(headerText)
 
+  const { entities } = inspectMimeStructure(binary, { preserveBytes: true })
   const text: string[] = []
   const html: string[] = []
   const attachments: unknown[] = []
-  for (const rawPart of body.split(`--${boundary}`)) {
-    if (!rawPart.trim() || rawPart.trim() === '--') continue
-    const [partHeaders, ...partBodyParts] = rawPart.replace(/^\r?\n/, '').split(/\r?\n\r?\n/)
-    const partBody = partBodyParts.join('\n\n').replace(/\r?\n--$/, '')
-    const partType = /content-type:\s*([^;\r\n]+)/i.exec(partHeaders)?.[1]?.toLowerCase() ?? 'text/plain'
-    const partEncoding = /content-transfer-encoding:\s*([^\r\n]+)/i.exec(partHeaders)?.[1]?.trim().toLowerCase() ?? null
-    const filename = /filename="?([^";\r\n]+)"?/i.exec(partHeaders)?.[1] ?? /name="?([^";\r\n]+)"?/i.exec(partHeaders)?.[1] ?? null
-    const decoded = decodeMimeBody(partBody, partEncoding)
-    if (filename) {
-      attachments.push({ filename, contentType: partType, text: partType.startsWith('text/') ? decoded.slice(0, 200_000) : null })
-    } else if (partType.includes('html')) html.push(decoded)
-    else if (partType.startsWith('text/')) text.push(decoded)
+  for (const entity of entities) {
+    if (entity.mediaType.startsWith('multipart/') || entity.mediaType === 'message/rfc822' || entity.mediaType === 'message/global') continue
+    const disposition = entity.headers.get('content-disposition')?.[0] ?? ''
+    const filename = mimeParameter(disposition, 'filename') ?? mimeParameter(entity.contentType, 'name')
+    const bytes = binaryToBuffer(entity.body)
+    const isText = entity.mediaType.startsWith('text/')
+    const decoded = isText ? decodeTextBytes(bytes, mimeParameter(entity.contentType, 'charset')) : null
+    if (filename || /^attachment/i.test(disposition)) {
+      attachments.push({
+        filename,
+        contentType: entity.mediaType,
+        sizeBytes: bytes.length,
+        text: decoded ? decoded.slice(0, 200_000) : null,
+      })
+    } else if (entity.mediaType === 'text/html') html.push(decoded ?? '')
+    else if (isText) text.push(decoded ?? '')
   }
   return {
     bodyText: clean(text.join('\n')),
     bodyHtml: clean(html.join('\n')),
     attachments,
     ...replyHeaders,
+    autoReplyHeaders,
   }
 }
 
@@ -130,7 +123,7 @@ function envelopeAddress(list: unknown): { address: string | null; name: string 
 async function listActiveManualMailboxes(environment?: string | null): Promise<JsonRecord[]> {
   let query = supabaseService
     .from('manual_communication_mailboxes')
-    .select('id,company_id,environment,imap_host,imap_port,imap_username,imap_secret_reference,imap_folder,imap_secure,from_email,locked_at,locked_by,poll_interval_minutes,last_polled_at,is_verified')
+    .select('id,company_id,environment,imap_host,imap_port,imap_username,imap_secret_reference,imap_folder,imap_secure,from_email,metadata,locked_at,locked_by,poll_interval_minutes,last_polled_at,is_verified')
     .eq('is_active', true)
     .eq('is_verified', true)
     .not('imap_host', 'is', null)
@@ -163,8 +156,42 @@ async function claimMailbox(mailboxId: string, workerId: string): Promise<boolea
   return Boolean(data?.id)
 }
 
-async function finishMailbox(mailboxId: string, ok: boolean, errorMessage?: string | null): Promise<void> {
+type MessageAttempt = { attempts: number; last_attempt_at: string; dead_lettered_at?: string; uid?: number | null }
+
+const MAX_TRACKED_MESSAGE_ATTEMPTS = 500
+
+function readMessageAttempts(metadata: unknown): Record<string, MessageAttempt> {
+  const root = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? (metadata as JsonRecord) : {}
+  const stored = root.message_attempts
+  if (!stored || typeof stored !== 'object' || Array.isArray(stored)) return {}
+  const attempts: Record<string, MessageAttempt> = {}
+  for (const [key, value] of Object.entries(stored as JsonRecord)) {
+    const count = Number((value as JsonRecord | null)?.attempts)
+    if (Number.isFinite(count) && count > 0) attempts[key] = { ...(value as MessageAttempt), attempts: Math.floor(count) }
+  }
+  return attempts
+}
+
+function withMessageAttempts(metadata: unknown, attempts: Record<string, MessageAttempt>): JsonRecord {
+  const root = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? (metadata as JsonRecord) : {}
+  const newestFirst = Object.entries(attempts)
+    .sort(([, a], [, b]) => String(b.last_attempt_at).localeCompare(String(a.last_attempt_at)))
+    .slice(0, MAX_TRACKED_MESSAGE_ATTEMPTS)
+  return { ...root, message_attempts: Object.fromEntries(newestFirst) }
+}
+
+// Stable per-message dedup key: the RFC Message-ID, else the SHA-256 of the
+// raw source so mail without a Message-ID is still deduplicated on retry.
+export function manualMessageDedupKey(messageId: string | null, source: unknown): string | null {
+  if (messageId) return messageId
+  if (Buffer.isBuffer(source) || source instanceof Uint8Array) return `sha256:${createHash('sha256').update(source).digest('hex')}`
+  if (typeof source === 'string' && source) return `sha256:${createHash('sha256').update(source, 'utf8').digest('hex')}`
+  return null
+}
+
+async function finishMailbox(mailboxId: string, ok: boolean, errorMessage?: string | null, metadata?: JsonRecord): Promise<void> {
   const patch: JsonRecord = { locked_at: null, locked_by: null, updated_at: nowIso() }
+  if (metadata) patch.metadata = metadata
   if (ok) {
     patch.last_successful_poll_at = nowIso()
     patch.last_error = null
@@ -224,6 +251,8 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
   })
 
   const maxMessages = envInt('MANUAL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX', 25)
+  const maxAttempts = envInt('MANUAL_INBOUND_MAX_ATTEMPTS_PER_MESSAGE', 5)
+  const attempts = readMessageAttempts(mailbox.metadata)
   try {
     await client.connect()
     const folder = clean(mailbox.imap_folder) ?? 'INBOX'
@@ -239,8 +268,10 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
         const from = envelopeAddress(envelope.from)
         const to = envelopeAddress(envelope.to)
         const subject = clean(envelope.subject)
-        const parsedMime = parseMimeSource((message as { source?: unknown }).source)
+        const source = (message as { source?: unknown }).source
+        const parsedMime = parseMimeSource(source)
         const envelopeInReplyTo = clean(envelope.inReplyTo)
+        const dedupKey = manualMessageDedupKey(clean(envelope.messageId), source)
 
         const email: ManualInboundEmail = {
           mailbox: clean(mailbox.from_email) ?? username,
@@ -251,34 +282,52 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
           subject,
           bodyText: parsedMime.bodyText,
           bodyHtml: parsedMime.bodyHtml,
-          providerMessageId: clean(envelope.messageId),
+          providerMessageId: dedupKey,
           threadId: envelopeInReplyTo ?? parsedMime.inReplyTo,
           inReplyTo: parsedMime.inReplyTo ?? envelopeInReplyTo,
           references: parsedMime.references,
           attachments: parsedMime.attachments,
+          autoReplyHeaders: parsedMime.autoReplyHeaders,
         }
+        const uid = (message as { uid?: unknown }).uid
 
         try {
           const ingestResult: ManualInboundResult = await ingestManualInboundEmail(email)
           result.ingested += 1
           countResolution(result, ingestResult)
-          const uid = (message as { uid?: unknown }).uid
+          if (dedupKey) delete attempts[dedupKey]
           if (typeof uid === 'number') await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true })
         } catch (ingestError) {
-          // Do not mark failed messages as Seen. The next poll may retry after a
-          // transient DB/schema/provider issue and raw mail is never discarded.
+          // A failed message stays unseen so the next poll retries a transient
+          // DB/schema/provider issue. After maxAttempts it is dead-lettered
+          // (marked Seen, recorded on the mailbox) so a poison message can never
+          // starve newer mail once failures fill the per-poll message limit.
           result.errors.push(`ingest ${mailboxId}: ${ingestError instanceof Error ? ingestError.message : String(ingestError)}`)
+          if (dedupKey) {
+            const previous = attempts[dedupKey]
+            const count = (previous?.attempts ?? 0) + 1
+            const deadLetter = count >= maxAttempts
+            attempts[dedupKey] = {
+              attempts: count,
+              last_attempt_at: nowIso(),
+              ...(deadLetter ? { dead_lettered_at: nowIso(), uid: typeof uid === 'number' ? uid : null } : {}),
+            }
+            if (deadLetter) {
+              result.deadLettered += 1
+              if (typeof uid === 'number') await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true }).catch(() => undefined)
+            }
+          }
         }
       }
     } finally {
       lock.release()
       await client.logout().catch(() => undefined)
     }
-    await finishMailbox(mailboxId, true)
+    await finishMailbox(mailboxId, true, null, withMessageAttempts(mailbox.metadata, attempts))
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Okänt manuellt pollingfel.'
     result.errors.push(`mailbox ${mailboxId}: ${message}`)
-    await finishMailbox(mailboxId, false, message)
+    await finishMailbox(mailboxId, false, message, withMessageAttempts(mailbox.metadata, attempts))
   }
 }
 
@@ -299,6 +348,7 @@ export async function runManualInboundMailEngine(input?: {
     unmatched: 0,
     ignored: 0,
     skipped: 0,
+    deadLettered: 0,
     errors: [],
   }
   const workerId = `manual-inbound:${nowIso()}`

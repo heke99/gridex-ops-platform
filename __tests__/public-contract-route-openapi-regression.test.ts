@@ -199,7 +199,7 @@ describe('real public contracts route against published OpenAPI', () => {
     expect(runtimeResponse.headers.get('x-gridex-contract-version')).toBe(
       WEBSITE_INTEGRATION_CONTRACT_VERSION,
     )
-    expect(runtimeResponse.headers.get('etag')).toBe(`"pcf-${'a'.repeat(32)}"`)
+    expect(runtimeResponse.headers.get('etag')).toMatch(/^"pcf-[a-f0-9]{32}"$/)
     expect(runtimeResponse.headers.get('cache-control')).toBe(
       'private, no-store, max-age=0',
     )

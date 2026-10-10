@@ -1,6 +1,10 @@
 # Gridex Website Integration API
 
-Current contract: **2026-10-04.1**
+Current contract: **2026-10-09.1**
+
+You do not need to match the latest documentation revision exactly to use a supported API version. See the [compatibility policy](api-compatibility-policy.md) and the [migration guide](api-migration-guide.md).
+
+Release 2026-10-09.1 is documentation-only: the OpenAPI document now describes `textVersionId` exactness (`409 power_of_attorney_offer_version_mismatch`), the `ETag` / `If-None-Match` / `Vary: Authorization` semantics of the offer feed, `422 energy_area_address_required` and provisional postal-code centroids. Request requirements and response fields are unchanged; integrations built for 2026-10-02.3 or 2026-10-04.1 keep working without changes.
 
 Release 2026-10-04.1 adds the separate Staff API family and its manifest metadata. Website request requirements and business response fields remain unchanged from 2026-10-02.4; existing immutable specifications retain their original bytes.
 
@@ -40,6 +44,10 @@ Persist the public offer, quote and application references returned by Gridex. D
 
 A website integration must not treat a postcode result, coordinate, candidate owner or other provisional geography as authority for an external grid-owner operation. Canonical grid-area and grid-owner determination after intake is handled internally by Gridex and can use additional verification without changing the public website contract.
 
+Send a full address (`street` + `city`), a `postal_code` or a `grid_area_code`. `facility_id` and `metering_point_id` are accepted only as references stored with the request; they never resolve a price area on their own. A request that contains only those identifiers is rejected with `422` and error code `energy_area_address_required`.
+
+A postal-code centroid that lies close to a price-area boundary is never returned as price-ready; send a full address in that case.
+
 This separation keeps checkout fast while preventing a provisional website lookup from becoming an external-send routing decision.
 
 Invoicing never re-resolves the price area. Billing uses the locked `price_area` from the quote/contract price snapshot, and the database also rejects direct writes of a billing underlay whose price area is missing or differs from that snapshot (`billing_contract_price_area_missing`, `billing_underlay_price_area_mismatch`).
@@ -51,6 +59,15 @@ Use stable idempotency keys for logical write operations. Send a stable `Idempot
 For network failures or retryable server responses, retry with bounded exponential backoff and preserve the original idempotency key. Do not automatically retry validation errors or other responses explicitly marked non-retryable.
 
 Record the Gridex `request_id` and your own correlation identifier for troubleshooting. Do not log API credentials, identity numbers or unnecessary personal data.
+
+## Conditional requests for public contracts
+
+`GET /api/v1/website/public-contracts` returns an `ETag`. Send it back in `If-None-Match` to receive `304 Not Modified` when nothing changed.
+
+- The ETag identifies the representation for exactly your credential's organization, the requested `customer_type`, the channel, the selected V1 contract profile and the server's representation revision. A release that changes the response body for the same publication produces a new ETag, so an old body is never confirmed with `304`. A documentation-only release does not change it.
+- Matching follows RFC 9110 for GET: weak comparison (`W/"…"` matches the same tag), comma-separated lists and `*` are supported.
+- `If-None-Match` is evaluated only after authentication and scope checks; an invalid credential gets the normal error, never `304`.
+- Responses are `Cache-Control: private, no-store` with `Vary: Authorization`. Keep your own verified snapshot per organization; never reuse a snapshot or ETag across organizations or customer types. Validate the organization reference, count and feed state on every `200`.
 
 ## Pricing acceptance and settlement
 
@@ -83,11 +100,13 @@ Public `market_reference` contains public pricing evidence only. Internal source
 
 When a published agreement requires power of attorney, send the structured `powerOfAttorney` object documented by the canonical developer guide and OpenAPI contract.
 
-Bind acceptance to the authoritative legal text through `textVersionId`. Do not submit client-authored legal text as the contractual source. The resulting public `power_of_attorney` block exposes `externally_sendable` so the integration can distinguish a complete authorization from one that still requires customer completion.
+Bind acceptance to the authoritative legal text through `textVersionId`. It must be the `primary_document_id` of the `power_of_attorney` requirement in the same accepted legal bundle as `offer_reference`, or be omitted so Gridex binds that document. Another document id returns `409 power_of_attorney_offer_version_mismatch` and nothing is stored; the database enforces the same rule. The legal document version is unrelated to the API documentation revision: integrations do not need to follow documentation releases, but the signed legal document must match exactly. Do not submit client-authored legal text as the contractual source. The resulting public `power_of_attorney` block exposes `externally_sendable` so the integration can distinguish a complete authorization from one that still requires customer completion.
 
 During migration from older website integrations, accepted customer-identity aliases can include `personal_identity_number` and `organisationsnummer`. These are transitional compatibility aliases; new implementations should use the canonical customer fields defined by the current OpenAPI specification rather than inventing additional aliases.
 
 Transitional public aliases may remain documented for migration compatibility, but new integrations should use the canonical fields from the current OpenAPI specification.
+
+Swedish identity numbers are validated before anything is stored. `customer.personal_number` must be a real personnummer or samordningsnummer (valid date and check digit) as 10 or 12 digits, with or without `-` or `+`; otherwise the request is rejected with `422` and error code `personal_number_invalid`. `customer.org_number` must be a valid organisationsnummer (a sole trader may send the owner's personnummer); otherwise the request is rejected with `422` and error code `org_number_invalid`. Both errors name the field in `field` and are not retryable: correct the value and submit again. Accepted values are normalized, so `811218-9876` and `198112189876` identify the same customer; a 10-digit personnummer gets its century from the birth date, and the `+` separator marks a person aged 100 or more.
 
 ## Asynchronous processing
 
@@ -111,7 +130,7 @@ Before deploying an integration update, read:
 
 Verify that the release version, minimum supported integration version and SHA-256 digests match the OpenAPI documents you generated your client from. Immutable release URLs in the manifest can be retained for audit and reproducible builds.
 
-For contract **2026-10-04.1**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
+For contract **2026-10-09.1**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
 
 ## Production checklist
 
