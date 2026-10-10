@@ -151,7 +151,25 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
     : exactCatalogPriceComponents ?? compatibilitySnapshot.priceComponents;
   const quoteSnapshot = input.websiteQuote?.quote_snapshot ?? null;
   const legalSnapshot = websiteLegalVersionsSnapshot(input.legalVersions);
-  const poaLegal = input.legalVersions.find((version) => version.type === "power_of_attorney") ?? null;
+  // The accepted offer's POA document is authoritative (F28). A supplied
+  // textVersionId must name exactly that document; it never selects another.
+  const poaLegal = input.legalVersions.find(
+    (version) => (version.module_key ?? version.type) === "power_of_attorney",
+  ) ?? null;
+  const suppliedPoaDocumentId = input.structuredPoa?.accepted ? input.structuredPoa.textVersionId ?? null : null;
+  if (suppliedPoaDocumentId && poaLegal && suppliedPoaDocumentId !== poaLegal.id) {
+    throw new WebsiteApplicationError({
+      message: "Angiven fullmaktsversion matchar inte fullmakten i det accepterade offer_reference.",
+      status: 409,
+      code: "power_of_attorney_offer_version_mismatch",
+      field: "powerOfAttorney.textVersionId",
+      stage: "power_of_attorney",
+      details: {
+        expected_document_id: poaLegal.id,
+        received_document_id: suppliedPoaDocumentId,
+      },
+    });
+  }
   const siteInput = input.body.site;
   const meterInput = input.body.metering_point;
   const normalizedFacilityId = normalizeFacilityId(siteInput?.facility_id) ??
@@ -474,7 +492,7 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
           signed_at: input.structuredPoa.acceptedAt ?? now,
           accepted_at: input.structuredPoa.acceptedAt ?? now,
           valid_from: (input.structuredPoa.acceptedAt ?? now).slice(0, 10),
-          legal_text_version_id: input.structuredPoa.textVersionId ?? poaLegal?.id ?? null,
+          legal_text_version_id: poaLegal?.id ?? input.structuredPoa.textVersionId ?? null,
           signer_name: input.structuredPoa.signerName,
           signer_identity_number: input.structuredPoa.signerIdentityNumber,
           method: input.structuredPoa.method,

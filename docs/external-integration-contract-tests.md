@@ -86,6 +86,10 @@ No secrets in this file — env var *names* only.
 - Retries: max 8 attempts, backoff; unique `idempotency_key` per delivery
 - Consumer contract: verify signature; respond 2xx within timeout
 - Automated: `npm run gridex:website-api-webhook-regression`
+- Credential lifecycle: key rotation keeps linked webhooks; security revocation
+  and tenant offboarding stop them before transport, including queued
+  deliveries (`__tests__/webhook-revocation-policy.test.ts`; policy table in
+  `docs/ops-api-customer-intake-facility.md`).
 
 ## 8. Inbound webhooks
 

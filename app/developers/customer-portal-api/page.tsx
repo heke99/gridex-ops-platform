@@ -321,6 +321,9 @@ export default function CustomerPortalApiDocumentationPage() {
               Gridex provides published offers, pricing, legal documents, customer and contract lifecycle state,
               customer portal data and signed webhooks. Your integration stays focused on the customer experience.
             </p>
+            <p className="max-w-4xl text-base leading-7 text-slate-700">
+              You do not need to match the latest documentation revision exactly to use a supported API version. Earlier supported V1 revisions keep working; see the compatibility policy and migration guide.
+            </p>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
                 <strong>Website & Customer Portal API</strong><br />

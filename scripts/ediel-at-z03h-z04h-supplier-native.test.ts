@@ -997,7 +997,17 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
       expect(originalProjection(sealed(message.id))).toEqual(originalProjection(sourceAfter))
       assertUnchangedCriticalRefusalGraph(after,criticalRefusalGraph(f,original,control.message.id))
     } else if(requiredPhysical||requiredHNegative) {
-      await observedStage(`critical_negative_${field}_assert_negative_ack`,()=>negativeAcknowledgement(f,message,decision,field))
+      // The actual processor commits syntax before the protected common READ.
+      // For R311, check that same genuine source after this required phase.
+      let actualReplyDecision=decision
+      if(field==='311') {
+        const actualSource=(await observedStage('critical_negative_311_post_processor_source',()=>getEdielMessageById(message.id,{companyId:f.companyId})))!
+        expect(actualSource).toMatchObject({id:message.id,company_id:f.companyId,environment:'test',direction:'inbound',raw_payload:malformed,inbound_email_message_id:received.mailbox.inboundEmailMessageId})
+        expect(record(actualSource).immutable_payload_hash).toBe(digest(malformed))
+        actualReplyDecision=await observedStage('critical_negative_311_post_processor_canonical_decision',()=>resolveCanonicalRuntimeDecisionWithRegistry(actualSource,{actorUserId:f.actorUserId}))
+        expect(actualReplyDecision).toMatchObject({policy:null,syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:'not_applicable'})
+      }
+      await observedStage(`critical_negative_${field}_assert_negative_ack`,()=>negativeAcknowledgement(f,message,actualReplyDecision,field))
     } else {
       const acks=await observedStage(`critical_negative_${field}_list_physical_ack`,()=>listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'}))
       expect(acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
@@ -1218,7 +1228,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     await expect(originate(f)).rejects.toThrow('bilateral_prodat_switch_current_profile_required')
     expect(business(f)).toEqual(before); expect(rows('gridex_bilateral_prodat.profile_versions',f.companyId)).toEqual([])
   })
-
   it('rejected separate review authorizes no default H business transition', async () => {
     const f = await createBilateralProdatGroundNativeFixture(await prospective()), a = await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()})
     const rejected = await reviewBilateralProdatGround({companyId:f.companyId,actorUserId:f.reviewer,artifactId:String(a.artifactId),
@@ -1227,7 +1236,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     const before = business(f); await expect(originate(f)).rejects.toThrow('bilateral_prodat_switch_current_profile_required')
     expect(business(f)).toEqual(before); expect(rows('gridex_bilateral_prodat.profile_versions',f.companyId)).toEqual([])
   })
-
   for (const code of ['Z03','Z04'] as const) it.each(required[code])(`${code} R%s missing is a native registry field refusal with no business/provider effects`, async field => {
     const { f, original } = await sent(), baselineRaw = code === 'Z03' ? original.raw_payload! : reply(f,original)
     // This native negative seam is the actual selected registry field consumer.
@@ -1249,7 +1257,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
       if(field==='306')await actualIncomingInvalidInstallationStatusGate(f,original,baselineRaw,baseline)
     } else await actualOutboundOmission(f,original,field,malformed)
   })
-
   it.each(['250','251','252','253','317','318'])('selected actual Z04 IV parent activates child %s and refuses its omission', async field => {
     const {f,original}=await sent(true), selectedOriginal=await selectedInvoiceeOriginal(f,original), refs=references(), complete=reply(f,original,replyBody(f,original,refs,true),refs)
     const baseline=await ready(f,original,complete)
@@ -1262,7 +1269,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     await actualIncomingOmission(f,original,field,complete,baseline)
     expect(await selectedInvoiceeOriginal(f,original)).toEqual(selectedOriginal)
   })
-
   it.each(['233','234'])('actual source-selected Z03 IT makes child %s mandatory before another original can persist',async field=>{
     const {f,original}=await sent(false,true), body=rawParts(original.raw_payload!)
     const it=body.filter(p=>p[0]==='NAD'&&component(p,1)==='IT')
@@ -1329,7 +1335,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     await negativeAcknowledgement(f,message,decision,'258')
     expect(business(f)).toEqual(before); await reread(f,control)
   })
-
   it('fresh incoming H from a genuinely known SUPPLIER issuer cannot borrow the original DSO scope',async()=>{
     const {f,original}=await sent(), refs=references(), control=await ready(f,original,reply(f,original,replyBody(f,original,refs),refs))
     const supplier=await resolveCanonicalTenantEdielIdentityWithEvidence({companyId:f.companyId,environment:'test',requireExactCounts:true})
@@ -1379,7 +1384,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(currentDso()).toEqual(dso)
     expect(await readRegistryDispatchSource(dispatchScope)).toBeNull()
   })
-
   it('expiry of the actual SUPPLIER recipient role before a fresh H birth cannot rewrite the old ready source or authorize a new effect',async()=>{
     const {f,original}=await sent(), control=await ready(f,original), immutable=sealed(control.message.id)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.tenant_actor_roles WHERE company_id=${literal(f.companyId)} AND environment='test'
@@ -1396,7 +1400,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     }
     expect(business(f)).toEqual(before); expect(sealed(control.message.id)).toEqual(immutable)
   })
-
   it.each(['raw_payload','direction','environment'] as const)('rejects immutable original %s mutation at its actual public SQL guard', async field => {
     const {f,original}=await sent(), before=business(f), immutable=sealed(original.id)
     const result=await supabaseService.from('ediel_messages').update({[field]:field==='raw_payload'?original.raw_payload+' ':field==='direction'?'inbound':'production'}).eq('id',original.id)
@@ -1404,13 +1407,11 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
       :{code:'P0001',message:'switch_original_bound_message_immutable'})
     expect(sealed(original.id)).toEqual(immutable); expect(business(f)).toEqual(before)
   })
-
   it('a genuine outbound original is never interpreted as the incoming H confirmation', async () => {
     const {f,original}=await sent(), before=business(f), immutable=sealed(original.id)
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:original.id})
     expect(business(f)).toEqual(before); expect(sealed(original.id)).toEqual(immutable)
   })
-
   it('the same archived test profile cannot authorize a production-environment original', async()=>{
     const f=await authorized(), before=business(f), sends=smtp.send.mock.calls.length
     const scope={companyId:f.companyId,switchId:f.switchId,actorUserId:f.actorUserId,environment:'test' as const}
@@ -1431,7 +1432,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(rows('public.ediel_outbox',f.companyId)).toEqual([]);expect(rows('gridex_ediel_transport.attempts',f.companyId)).toEqual([])
     expect(smtp.send.mock.calls.length).toBe(sends)
   })
-
   it.each(['LI','customer','start'] as const)('fresh Z04 with wrong own %s cannot borrow the accepted H original', async facet=>{
     const {f,original}=await sent(), clock=references(), control=await ready(f,original,reply(f,original,replyBody(f,original,clock),clock))
     const wrongLi='WRONG-'+own(f,original).li.slice(0,29)

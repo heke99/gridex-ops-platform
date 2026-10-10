@@ -8194,6 +8194,7 @@ export type Database = {
           event_type: string
           id: string
           occurred_at: string
+          processed_at: string | null
           provider: string
           provider_event_id: string | null
           provider_message_id: string | null
@@ -8206,6 +8207,7 @@ export type Database = {
           event_type: string
           id?: string
           occurred_at?: string
+          processed_at?: string | null
           provider?: string
           provider_event_id?: string | null
           provider_message_id?: string | null
@@ -8218,6 +8220,7 @@ export type Database = {
           event_type?: string
           id?: string
           occurred_at?: string
+          processed_at?: string | null
           provider?: string
           provider_event_id?: string | null
           provider_message_id?: string | null
@@ -18055,6 +18058,171 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_customer_contracts_missing_price_snapshot_v"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_contract_confirmation_deliveries: {
+        Row: {
+          attempts: number
+          company_id: string
+          created_at: string
+          customer_contract_id: string
+          document_sha256: string | null
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          queued_at: string | null
+          signature_request_id: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          company_id: string
+          created_at?: string
+          customer_contract_id: string
+          document_sha256?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          queued_at?: string | null
+          signature_request_id: string
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          company_id?: string
+          created_at?: string
+          customer_contract_id?: string
+          document_sha256?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          queued_at?: string | null
+          signature_request_id?: string
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contract_confirmation_delive_signature_request_id_fkey"
+            columns: ["signature_request_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contract_signature_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -94755,18 +94923,6 @@ export type Database = {
         }
         Returns: Json
       }
-      ediel_create_assigned_prodat_header_negative_v1: {
-        Args: {
-          p_actor_user_id: string
-          p_company_id: string
-          p_environment: string
-          p_expected_payload_hash: string
-          p_expected_raw_payload: string
-          p_inbound_email_message_id: string
-          p_parse_result_id: string
-        }
-        Returns: Json
-      }
       ediel_create_bilateral_prodat_original_v1: {
         Args: { p_actor_user_id: string; p_company_id: string; p_draft: Json }
         Returns: Json
@@ -95750,22 +95906,6 @@ export type Database = {
           p_company_id: string
           p_environment: string
           p_source_message_id: string
-        }
-        Returns: Json
-      }
-      ediel_read_prodat_customer_masterdata_original_v1: {
-        Args: {
-          p_actor_user_id: string
-          p_company_id: string
-          p_message_id: string
-        }
-        Returns: Json
-      }
-      ediel_read_prodat_h_accepted_original_v1: {
-        Args: {
-          p_actor_user_id: string
-          p_company_id: string
-          p_message_id: string
         }
         Returns: Json
       }
@@ -99536,6 +99676,23 @@ export type Database = {
           grid_owner_name: string
           price_area: string
           source: string
+        }[]
+      }
+      gridex_portal_monthly_consumption_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_ids: string[]
+          p_from_month: string
+          p_to_month: string
+        }
+        Returns: {
+          covered_seconds: number
+          expected_seconds: number
+          is_complete: boolean
+          metering_point_count: number
+          month_key: string
+          total_kwh: number
+          value_count: number
         }[]
       }
       gridex_portfolio_actor_has_permission: {

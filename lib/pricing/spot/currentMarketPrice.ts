@@ -2,6 +2,11 @@ import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { loadPricingEnergyResolution } from '@/lib/energy/resolutionBinding'
 import { loadMarketPriceSourcePolicies, policySupports } from '@/lib/pricing/marketPriceSources'
 import { supabaseService } from '@/lib/supabase/service'
+
+/** SEK/kWh → öre/kWh without binary float artefacts (0.29 → 29, not 28.999999999999996). */
+function sekToOre(sek: number): number {
+  return Math.round(sek * 100 * 1e6) / 1e6
+}
 import { stockholmDateForInstant } from '@/lib/time/stockholm'
 
 export type CurrentMarketPrice = {
@@ -219,9 +224,9 @@ export async function loadCurrentMarketPrice(input: {
     time_start: timeStart,
     time_end: timeEnd,
     price_sek_per_kwh: price,
-    price_ore_per_kwh: price * 100,
+    price_ore_per_kwh: sekToOre(price),
     price_ex_vat_sek_per_kwh: price,
-    price_ex_vat_ore_per_kwh: price * 100,
+    price_ex_vat_ore_per_kwh: sekToOre(price),
     includes_vat: false,
     includes_supplier_fees: false,
     includes_grid_fees: false,

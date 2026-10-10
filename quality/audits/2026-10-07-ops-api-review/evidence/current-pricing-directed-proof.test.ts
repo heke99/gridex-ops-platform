@@ -69,6 +69,6 @@ import {fetchElprisetJustNuDay} from '@/lib/pricing/spot/elprisetJustNuClient'
 it('provider loader preserves SEKperKWh and DST offsetinterval exactly',async()=>{
  const fetcher=vi.fn<typeof fetch>(async()=>new Response(JSON.stringify([{SEK_per_kWh:-0.25,time_start:'2026-10-25T02:00:00+02:00',time_end:'2026-10-25T02:15:00+02:00'},{SEK_per_kWh:0.5,time_start:'2026-10-25T02:00:00+01:00',time_end:'2026-10-25T02:15:00+01:00'}]),{headers:{'content-type':'application/json'}}))
  const intervals=await fetchElprisetJustNuDay({date:'2026-10-25',priceArea:'SE3',fetchImpl:fetcher})
- expect(fetcher.mock.calls[0][0]).toBe('https://www.elprisetjustnu.se/api/v1/prices/2026/10-25_SE3.json')
+ expect((fetcher.mock.calls[0] as unknown[])[0]).toBe('https://www.elprisetjustnu.se/api/v1/prices/2026/10-25_SE3.json')
  expect(intervals.map(r=>[r.timeStart,r.sekPerKwh,r.resolution])).toEqual([['2026-10-25T00:00:00.000Z',-0.25,'quarter_hour'],['2026-10-25T01:00:00.000Z',0.5,'quarter_hour']])
 })

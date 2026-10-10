@@ -5,12 +5,20 @@ const fs = require('node:fs')
 const path = require('node:path')
 const ts = require('typescript')
 
-const root = path.resolve(__dirname, '..')
+// `--root=<dir>` lets regression tests run the unchanged rules against an isolated fixture.
+const rootArgument = process.argv.slice(2).find((argument) => argument.startsWith('--root='))
+const root = rootArgument ? path.resolve(rootArgument.slice('--root='.length)) : path.resolve(__dirname, '..')
+// Staff/Partner handler helpers are included (ops-api-review F41). This is a
+// direct awaited select-in-loop check per file; it is not an indirect helper/RPC
+// waterfall analysis and a green result must not be presented as one.
 const sourceRoots = [
   'app/api/v1',
   'lib/customer-portal',
   'lib/pricing',
   'lib/website',
+  'lib/staff-api',
+  'lib/tenant',
+  'lib/partner-api',
 ]
 const violations = []
 

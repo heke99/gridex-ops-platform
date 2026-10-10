@@ -258,7 +258,10 @@ export async function calculateOfferQuote(input: {
   selectedComponentReferences?: string[];
   adminSelectedComponentReferences?: string[];
   siteCount?: number;
+  /** Publication/sales channel. Defaults to `website`; Partner API passes `api`. */
+  channel?: "website" | "api";
 }) {
+  const channel = input.channel ?? "website";
   const offerReference = input.offerReference.trim();
   if (!offerReference)
     throw new OfferQuoteError(
@@ -352,6 +355,7 @@ export async function calculateOfferQuote(input: {
     client: input.client,
     offerReference,
     customerType,
+    channel,
   });
   if (!offer)
     throw new OfferQuoteError(
@@ -437,7 +441,7 @@ export async function calculateOfferQuote(input: {
         annualConsumptionKwh,
         siteCount,
         startDate,
-        salesChannel: "website",
+        salesChannel: channel,
       });
     } catch (error) {
       if (error instanceof CommercialSelectionError) {

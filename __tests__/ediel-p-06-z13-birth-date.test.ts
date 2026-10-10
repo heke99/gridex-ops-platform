@@ -50,7 +50,7 @@ it('the actual manual information workflow routes a protected identity to blocke
  port.rows={
   customer_sites:{id:'site-1',company_id:'co-1',customer_id:'cu-1',grid_owner_id:'go-1',address_hash:'h1',grid_area_code:'ABC',protected_identity:false},
   customers:{id:'cu-1',company_id:'co-1',protected_identity:true,customer_number:'K1',full_name:'Skyddad Person'},
-  powers_of_attorney:[{id:'poa-1',status:'signed',scope:'facility_information_lookup',site_id:'site-1'}],
+  powers_of_attorney:[{id:'poa-1',status:'signed',scope:'facility_information_lookup',site_id:'site-1',accepted_at:'2026-09-01T10:00:00Z'}],
   grid_owner_contact_channels:[{id:'cc-1',email:'grid@example.invalid',company_id:null,source:'platform',is_enabled:true,is_verified:true}],
  }
  const result=await requestMissingFacilityInformation({companyId:'co-1',customerId:'cu-1',siteId:'site-1',actorUserId:'u-1'} as never)

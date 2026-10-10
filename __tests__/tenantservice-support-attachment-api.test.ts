@@ -97,6 +97,7 @@ vi.mock('@/lib/supabase/service', () => ({
 vi.mock('@/lib/customer-portal/keysetPagination', () => ({
   portalPageLimit: (value?: number | null) => Math.min(Math.max(Math.trunc(value ?? 50), 1), 100),
   decodePortalCursor: () => null,
+  PortalCursorError: class PortalCursorError extends Error {},
   buildPortalDatabasePage: (rows: Row[], input: { limit: number }) => ({
     items: rows.slice(0, input.limit),
     page: { limit: input.limit, offset: 0, returned: Math.min(rows.length, input.limit), has_more: rows.length > input.limit, next_cursor: null },

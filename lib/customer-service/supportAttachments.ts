@@ -174,6 +174,29 @@ export async function listSupportAttachments(scope: CaseScope & { audience: 'sta
   return (data ?? []) as unknown as SupportAttachmentRow[]
 }
 
+/** Historical V1 page size of the customer attachment list (oldest first). */
+export const SUPPORT_ATTACHMENT_LIST_PAGE_SIZE = 100
+
+/**
+ * Oldest-first attachment list with an optional continuation cursor. Without a cursor the first page
+ * equals the historical V1 response (oldest 100). The cursor is bound to tenant, customer, case and
+ * audience; filters (released + customer visibility for customers) are applied before the limit.
+ */
+export async function listSupportAttachmentsContinuation(scope: CaseScope & { audience: 'staff' | 'customer' }, input: { cursor?: string | null } = {}) {
+  const resource = `support_attachments_asc:${scope.caseId}:${scope.audience}`
+  const cursor = decodePortalCursor({ cursor: input.cursor, companyId: scope.companyId, customerId: scope.customerId, resource })
+  let query = tenantSelect(scope.companyId, 'customer_case_attachments', COLUMNS)
+    .eq('customer_id', scope.customerId).eq('customer_case_id', scope.caseId)
+  if (scope.audience === 'customer') query = query.eq('visibility', 'customer').eq('scan_status', 'released')
+  if (cursor) query = query.or(`created_at.gt.${cursor.orderValue},and(created_at.eq.${cursor.orderValue},id.gt.${cursor.id})`)
+  const { data, error } = await query.order('created_at', { ascending: true }).order('id', { ascending: true }).limit(SUPPORT_ATTACHMENT_LIST_PAGE_SIZE + 1)
+  if (error) throw error
+  const page = buildPortalDatabasePage((data ?? []) as unknown as Array<SupportAttachmentRow & Record<string, unknown>>, {
+    limit: SUPPORT_ATTACHMENT_LIST_PAGE_SIZE, companyId: scope.companyId, customerId: scope.customerId, resource, orderColumn: 'created_at',
+  })
+  return { items: page.items as SupportAttachmentRow[], nextCursor: page.page.next_cursor }
+}
+
 /** Addressable history for staff API clients; no silent fixed-size truncation. */
 export async function listSupportAttachmentsPage(scope: CaseScope & { audience: 'staff' | 'customer' }, input: { limit?: number | null; cursor?: string | null } = {}) {
   const limit = portalPageLimit(input.limit)

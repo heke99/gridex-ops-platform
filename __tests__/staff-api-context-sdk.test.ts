@@ -95,6 +95,10 @@ beforeEach(() => {
       consumedJtis.add(jti)
       return new Response(null, { status: 201 })
     }
+    // F1: durable external anchors/bindings are checked for unregistered clients.
+    if ((url.pathname === '/rest/v1/tenant_staff_actor_anchors' || url.pathname === '/rest/v1/tenant_staff_identity_bindings') && request.method === 'GET') {
+      return json([])
+    }
     const error = rpcErrors.get(url.pathname)
     if (error) return json(error, 503)
     if (url.pathname === membershipRpc && request.method === 'POST') return json(memberships)
@@ -113,7 +117,8 @@ describe('default staff context with the installed Supabase SDK', () => {
       { path: overridesRpc, method: 'POST', body: { p_company_id: company, p_user_id: actor } },
     ])
     expect(requests.map(request => request.url.pathname)).toEqual([
-      '/rest/v1/tenant_customer_identity_providers', '/rest/v1/tenant_staff_assertion_replays', membershipRpc, overridesRpc,
+      '/rest/v1/tenant_customer_identity_providers', '/rest/v1/tenant_staff_assertion_replays',
+      '/rest/v1/tenant_staff_actor_anchors', '/rest/v1/tenant_staff_identity_bindings', membershipRpc, overridesRpc,
     ])
     expect(requests[0].url.searchParams.get('company_id')).toBe(`eq.${company}`)
     expect(requests[0].url.searchParams.get('purpose')).toBe('eq.staff')
