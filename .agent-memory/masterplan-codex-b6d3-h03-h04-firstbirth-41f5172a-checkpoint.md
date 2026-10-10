@@ -957,3 +957,19 @@ OnlyownH2 rows may becomePASSED; foreign302credit stays unchanged. NEXT ROOT
 writeown2coverage+qualification descriptor, isolateexactdiff/inputclosure, commit
 and publish finalhead for two independent delta reviews and mandatorycurrentCI.
 No externalmarket/liveissuer/SMTP/activation/deployment claim or merge-role.
+
+
+## 2026-10-11 Stockholm — actual quality failure and main732 delta
+
+Currentb61 quality-release-gates FAILED: native H file1801lines exceeds unchanged
+1800budget. Cause own ID-comment insertion; no behavioral test failure. Correction
+within own native3392/2450 custody removes exactlyoneblankline, preserves every
+assertion/fixture/securityrequirement and the1800cap. Before correction/nextcoverage
+actualmain nowd5808b97e9767a6ab7899d2ff35b5202f6155e3d (#732 signing-date
+source/schema/migration delivery); fresh relevant input closure is required.
+Prior b61 authenticnative100 stays retained, not relabelled d5808execution.
+Two whole proof approvals apply tob61; proposedcoverage edit deferred while
+ROOT fixes ownbudget, rebases onto actualmain and publishes fresh source for
+existingcurrenthead native/ordinaryCI. WholeH duty and10ownrefs retained.
+NEXT ROOT qualify newmain delta against H paths, freshH execution/affectedreview;
+then onlyown2PASSED +finalheadreview/mandatoryCI beforemerge. No merge-role.
