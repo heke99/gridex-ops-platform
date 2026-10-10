@@ -38918,11 +38918,12 @@ begin
         true
       );
       v_command := jsonb_set(v_command, '{contract,signed_at}', 'null'::jsonb, true);
+    elsif not v_has_catalog_offer and v_status = 'pending_signature' then
+      -- One-off/manual contracts need their exact canonical publication chain
+      -- materialized before they can enter pending_signature.
+      v_command := jsonb_set(v_command, '{contract,status}', '"draft"'::jsonb, true);
+      v_command := jsonb_set(v_command, '{contract,signed_at}', 'null'::jsonb, true);
     end if;
-    -- A requested pending_signature is kept for one-off/manual contracts too.
-    -- Their exact canonical publication chain is materialized when the signing
-    -- request is prepared (gridex_prepare_customer_contract_signature_request_v1)
-    -- or a signed document is imported, before any signature evidence exists.
   end if;
 
   if v_command->>'channel'='ediel_inbound' and v_command#>>'{application,source_record_type}'='ediel_inbound_case' and strpos(coalesce(v_command#>>'{application,source_record_id}',''),':object:')>0 then
