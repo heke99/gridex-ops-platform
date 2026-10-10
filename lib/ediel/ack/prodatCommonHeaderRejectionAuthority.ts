@@ -40,7 +40,7 @@ export function commonHeaderReplyApplicationReference(e:ProdatCommonHeaderReject
   ||p.tableIndex!==105||p.page!==120||p.fieldCode!=='311'||p.originalApplicationReference!==null
   ||p.expectedApplicationReference!==reply||p.actorRole!=='electricity_supplier'||p.market!=='electricity'
   ||p.processEdition!=='111385d7f0a83dd865de369ccee9aae3dc52098a5d3105cb3bacb4070ff7579b'
-  ||p.sourceEdition!=='068e8f82c082c2d3513ead62f4833fa89884488cbd0347fa499a0949a4c9e3c6'||projection?.family!=='PRODAT'||projection.code!=='Z04'||projection.subtype!=='H'
+  ||p.sourceEdition!=='362242319584246d24507e2a3c7aa6530dfda17a5aa7b0ed4f8f7d7390f66dd0'||projection?.family!=='PRODAT'||projection.code!=='Z04'||projection.subtype!=='H'
   ||projection.transactionReasonCode!=='Z25'||!Array.isArray(projection.receiverRoles)||projection.receiverRoles.length!==1||projection.receiverRoles[0]!=='supplier'
   ||!Array.isArray(projection.applicationReferences)||projection.applicationReferences.length!==1||projection.applicationReferences[0]!==reply)
   throw Error('ediel_common_header_application_correction_required')

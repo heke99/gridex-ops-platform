@@ -16,6 +16,7 @@ import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
 import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition';
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft';
+import {readRetainedProdatDocumentHold} from '@/lib/ediel/ack/retainedProdatDocumentHold';
 import {readUnattributedTechnicalIntake} from '@/lib/ediel/inbound/receptions';
 import {createReceivedErrApplicationAcks} from '@/lib/ediel/flows/receivedErrApplicationAcks';
 import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource';
@@ -155,6 +156,7 @@ async function createAckIfMissing(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null;
   utiltsHeaderRejected?: boolean;
   relatedTransactionReference?:string;
+  onProtectedExisting?:()=>void;
 }) {
   const prepared=await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,
     ackFamily:params.ackFamily,outcome:params.outcome??(params.ackFamily==='UTILTS_ERR'?'negative':'positive'),
@@ -162,7 +164,7 @@ async function createAckIfMissing(params: {
     utiltsHeaderRejected:params.utiltsHeaderRejected,relatedTransactionReference:params.relatedTransactionReference});
   // A protected immutable original is returned without outbox repair or a new
   // blocked-event audit. A separately authorized fresh repair has its own port.
-  if(prepared.kind==='existing')return prepared.message;
+  if(prepared.kind==='existing'){params.onProtectedExisting?.();return prepared.message;}
   const ack = await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
@@ -926,6 +928,7 @@ export async function processInboundEdielMessage(params: {
   // Syntax belongs to the actual wire and transport endpoint. It precedes
   // legal tenant routing and grants no business attribution or guide approval.
   let acceptedTechnicalAcknowledgementCompanyId: string | null = null;
+  let retainedAcceptedTechnicalAcknowledgement = false;
   // A grammar-qualified physical A210 refusal must precede even diagnostic
   // tenant writes. NULL technical endpoints remain lawful for other sources;
   // this current actor READ grants no response or business capability.
@@ -952,7 +955,9 @@ export async function processInboundEdielMessage(params: {
         await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
           syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code),execution:{actorUserId,phase:'prepare'}});
         const capturedSyntax=await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id,{actorUserId,phase:'prepare'});
-        const technicalAck=await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative'});
+        let protectedExistingTechnicalAck=false;
+        const technicalAck=await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative',
+          onProtectedExisting:()=>{protectedExistingTechnicalAck=true;}});
         const qualifiedSyntax=technicalSyntaxAckQualification({evidence:capturedSyntax,companyId:endpoint.companyId,
           environment:endpoint.environment,sourceMessageId:message.id});
         // Automatic test communication needs both the protected syntax owner
@@ -963,6 +968,7 @@ export async function processInboundEdielMessage(params: {
           && technicalAck.direction==='outbound' && technicalAck.message_family==='CONTRL'
           && technicalAck.related_message_id===message.id && typeof technicalAck.raw_payload==='string' && technicalAck.raw_payload.length>0) {
           acceptedTechnicalAcknowledgementCompanyId=endpoint.companyId;
+          retainedAcceptedTechnicalAcknowledgement=protectedExistingTechnicalAck;
         }
       }
     } catch(error) {
@@ -972,6 +978,12 @@ export async function processInboundEdielMessage(params: {
         reason:formatErrorMessage(error,'Teknisk kvittens kunde inte kvalificeras.')});
     }
   }
+
+  // Only this invocation's protected existing CONTRL read selects replay. A
+  // freshly created first reply keeps the ordinary tenant/validation path.
+  // Actor/source refusals propagate outside the technical diagnostic catch.
+  if(retainedAcceptedTechnicalAcknowledgement
+    &&await readRetainedProdatDocumentHold({actorUserId,sourceMessage:message,syntax:selectedSyntax}))return message;
 
   if(protectedIntake) {
     await createEdielMessageEvent({actorUserId,edielMessageId:message.id,eventType:'manual_note',eventStatus:'warning',

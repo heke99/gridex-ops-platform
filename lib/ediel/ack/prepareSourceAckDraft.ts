@@ -8,10 +8,17 @@ import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenize
 import {prodatDocumentState} from '@/lib/ediel/prodat/prodatDocumentFields'
 import {prodatAckObjectScopes,resolveProdatAckMessageFunction} from '@/lib/ediel/prodat/prodatAckMessageFunction'
 
+const protectedDocumentReferenceHolds=new WeakSet<Error>()
+/** Only this exact post-replay guard error qualifies the retained hold. A copied
+ * message, RPC refusal or caller-created Error cannot provide that provenance. */
+export function isProtectedProdatDocumentReferenceHold(error:unknown):boolean{
+ return error instanceof Error&&protectedDocumentReferenceHolds.has(error)
+}
+
 /** Operational construction follows protected replay first, then the actual
  * immutable source capability. The public synchronous builder remains a pure
  * observational renderer and cannot provide this original authority itself. */
-export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraftForSource>[0]&{actorUserId:string}):Promise<
+export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraftForSource>[0]&{actorUserId:string;onDocumentReferenceHold?:(hold:Error)=>void}):Promise<
  {kind:'existing';message:EdielMessageRow}|{kind:'draft';draft:CreateEdielMessageInput}
 >{
  let references:string[],scope:'interchange'|'message'|'transaction'|'object'
@@ -34,7 +41,12 @@ export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraf
   // protected replay reads and their actor/source refusals before this fresh
   // correlation hold; present invalid IDs retain their existing path.
   const document=prodatDocumentState('203',sourceWire.segments,sourceWire.una)
-  if(!document.present)throw new Error('aperak_prodat_document_reference_required')
+  if(!document.present){
+   const hold=new Error('aperak_prodat_document_reference_required')
+   protectedDocumentReferenceHolds.add(hold)
+   input.onDocumentReferenceHold?.(hold)
+   throw hold
+  }
   const fn=resolveProdatAckMessageFunction({sourceWire,hasProdatWire:true,messageCode:input.sourceMessage.message_code,outcome:input.outcome??'positive',applicationErrors:input.applicationErrors})
   if(fn==='34'&&referenceError)throw referenceError
   if(fn==='34'&&!objects.length)throw new Error('aperak_prodat_requested_scope_unqualified')

@@ -6,6 +6,7 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {ownerSource,ownerRulePack,ownerId} from '@/__tests__/helpers/sourceOwnerFixtures'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {readSourceQualifiedProdatBilateralCapability} from '@/lib/ediel/core/prodatBilateralSourceCapability'
@@ -487,4 +488,71 @@ it.each(['ordinary','denied'] as const)('actual accepted H original READ %s fail
  const error=await resolveCanonicalRuntimeDecisionWithRegistry(f.source,{actorUserId:actor}).catch(error=>error)
  if(adverse==='ordinary')expect(error).toBe(io.errorValue)
  else expect(error).toMatchObject({disposition:{kind:'security_quarantine',code:'EDIEL_ADDRESS_SOURCE_READ_FORBIDDEN'}})
+})
+
+/** Finite codec/READ probe only. Physical original bytes use the actual codec's
+ * omitted-qualifier default; table/RPC results remain explicitly mocked READs.
+ * No new public authority, source-approved flag or native receipt is invented. */
+function actualCodecTransportFixture(adverse?:'qualifier'|'subaddress') {
+ const original=EdifactEnvelopeCodec.decode(f.original.raw_payload!),incoming=EdifactEnvelopeCodec.decode(f.source.raw_payload!)
+ const body=(raw:string)=>{
+  const segments=tokenizeEdifact(raw).segments,start=segments.findIndex(row=>row.tag==='UNH'),end=segments.findIndex(row=>row.tag==='UNT')
+  expect(start).toBeGreaterThanOrEqual(0);expect(end).toBeGreaterThan(start)
+  return segments.slice(start+1,end).map(row=>row.raw)
+ }
+ // Actual normal-switch rendering omits both qualifiers; the codec writes ZZ.
+ const originalRaw=EdifactEnvelopeCodec.encode({sender:original.sender!,receiver:original.receiver!,
+  senderSubAddress:'ORIGINAL-SENDER',receiverSubAddress:'ORIGINAL-RECEIVER',
+  interchangeReference:original.interchangeReference!,applicationReference:original.applicationReference,
+  acknowledgementRequest:original.acknowledgementRequest==='1',environment:'test',createdAt:new Date('2026-09-17T10:00:00Z'),
+  messages:[{messageReference:'M',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:body(f.original.raw_payload!)}]})
+ const actual=EdifactEnvelopeCodec.decode(originalRaw)
+ expect(actual.senderQualifier).toBe('ZZ');expect(actual.receiverQualifier).toBe('ZZ')
+ const sourceRaw=EdifactEnvelopeCodec.encode({sender:actual.receiver!,receiver:actual.sender!,
+  senderQualifier:adverse==='qualifier'?'14':actual.receiverQualifier,
+  receiverQualifier:adverse==='qualifier'?'14':actual.senderQualifier,
+  senderSubAddress:adverse==='subaddress'?null:actual.receiverSubAddress,
+  receiverSubAddress:adverse==='subaddress'?null:actual.senderSubAddress,
+  interchangeReference:incoming.interchangeReference!,applicationReference:incoming.applicationReference,
+  acknowledgementRequest:incoming.acknowledgementRequest==='1',environment:'test',createdAt:new Date('2026-09-17T10:00:00Z'),
+  messages:[{messageReference:'M',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:body(f.source.raw_payload!)}]})
+ // Preserve the fixture's declared independent READ custody for its new bytes.
+ // These are mocked projections, never writes to an installed receipt owner.
+ const originalHash=evidenceHash(originalRaw),sourceHash=evidenceHash(sourceRaw)
+ f.original.raw_payload=originalRaw;(f.original as unknown as Row).immutable_payload_hash=originalHash
+ io.rows.ediel_messages[1]=structuredClone(f.original) as unknown as Row
+ io.originalCapability!.payloadHash=originalHash;io.accepted!.originalHash=originalHash
+ ;(io.accepted!.messageBinding as Row).payloadHash=originalHash
+ ;(io.customer!.messageBinding as Row).payloadHash=originalHash
+ f.source.raw_payload=sourceRaw;(f.source as unknown as Row).immutable_payload_hash=sourceHash
+ ;((f.source.execution_context_snapshot as Row).receivedProdatContext as Row).payloadHash=sourceHash
+ io.rows.ediel_messages[0]=structuredClone(f.source) as unknown as Row
+ io.sourceCapability!.sourcePayloadHash=sourceHash
+ io.reception!.canonicalPayloadHash=sourceHash;io.reception!.receivedPayloadHash=sourceHash
+ io.rows.inbound_email_messages[0].raw_edifact_payload=sourceRaw
+ io.rows.inbound_ediel_parse_results[0].raw_payload=sourceRaw
+}
+it.each([['UD','229'],['IV','252']] as const)('actual-codec ZZ original with reversed qualified transport retains own %s%s rejection',async(role,field)=>{
+ actualCodecTransportFixture()
+ const q=await qualified(),token=await loadReceivedZ04HAddressContext(f.source,actor,q)
+ expect(token).not.toBeNull()
+ const selected=policy(q,token),raw=omitted(f.source.raw_payload!,role),t=tokenizeEdifact(raw)
+ const issues=validateCanonicalPolicyFields({policy:selected,rawPayload:raw,rawSegments:t.segments.map(row=>row.raw),una:t.una})
+ expect(projectProdatDiagnostics(issues).applicationErrors.filter(error=>error.fieldCode===field)).toMatchObject([
+  {fieldCode:field,ercCode:'41',referenceNumber:ownPoint,lineItemReference:ownLI,
+   prodatOccurrence:{scope:'object',lineIndex:0,objectId:ownPoint,identityAgency:'9',lineItemReference:ownLI}},
+ ])
+ expect(io.rpc.some(read=>read.name==='ediel_read_prodat_h_accepted_original_v1')).toBe(true)
+ expect(io.rpc.some(read=>read.name==='ediel_read_prodat_customer_masterdata_original_v1')).toBe(true)
+})
+it.each([
+ ['qualifier','UD','229'],['qualifier','IV','252'],
+ ['subaddress','UD','229'],['subaddress','IV','252'],
+] as const)('actual-codec original with mismatched %s holds own %s%s before original READ',async(adverse,role,_field)=>{
+ actualCodecTransportFixture(adverse)
+ const q=await qualified(),token=await loadReceivedZ04HAddressContext(f.source,actor,q)
+ expect(observe(policy(q,token),omitted(f.source.raw_payload!,role))).toEqual([])
+ expect(io.rpc.some(read=>read.name==='ediel_read_bilateral_prodat_outbound_original_v1')).toBe(false)
+ expect(io.rpc.some(read=>read.name==='ediel_read_prodat_h_accepted_original_v1')).toBe(false)
+ expect(io.rpc.some(read=>read.name==='ediel_read_prodat_customer_masterdata_original_v1')).toBe(false)
 })

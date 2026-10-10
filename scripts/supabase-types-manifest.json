@@ -5,7 +5,7 @@
   "sha256": "d7e97a0e14146082d81ef900eb1d7c649ab6e77d87fb6daa45f877d63d12c893",
   "latest_migration": "20261010120209_ediel_consumed_header_update_and_ack_scope_replay.sql",
   "latest_migration_schema_effect": "Authentic capture changes precisely two existing function bodies: consumed header binder UPDATE qualification and protected readonly ACK scope projection. Full schema byte inverse restores the prior genuine293626 schema; function declarations, ACLs, objects, foreign bytes and types remain unchanged. Native and current-head delivery gates are separate.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-10T12:19:46.462916+00:00",
@@ -13387,5 +13387,19 @@
     "full_schema_inverse_sha256": "e6f70ed27e1d4c0844a59442294623eb22873904d111f00c33e620b177e7bc47",
     "resulting_head_validation": "PENDING",
     "scope": "New two-function tail capture; all original histories and NOT_RUN retained. Finite SQL uses prior genuine schema and declared ports, not fresh-capture/native evidence. Adoption commit recorded externally."
+  },
+  "ediel_h6_arrival_guard_source_pending": {
+    "purpose": "pending_genuine_capture_after_new_append_only_H6_forward",
+    "previous_authentic_capture_source": "158de387a8031a9b5a0cde277ac09dda2f729f2d",
+    "current_working_base": "136614de95b923982c8b8c0264fc3d155ff5d43d",
+    "latest_migration": "20261010124755_ediel_assigned_negative_ack_arrival_date_scope.sql",
+    "migration_sha256": "8a12e539c58ede63b61105bcff6c94ae63c6d22927362f53cc1c823a02267158",
+    "single_function": "gridex_ediel_header_negative_birth.assert_ack_v1(public.ediel_messages,jsonb)",
+    "preimage_prosrc_sha256": "de028c4468dab67f1481c8d3509771cf6dd4a01da38201bd81d57007cef872ed",
+    "postimage_prosrc_sha256": "2dd44334566e9e0d4fae7ee4afd227906f2a53c00ae053fc136d3d2c2ea51435",
+    "raw3": "prior_authentic_964d_d7e97_7cacc_bytes_unchanged_until_new_genuine_capture",
+    "current_head_native_and_nine_gates": "PENDING",
+    "fresh_capture_finite_sql": "NOT_RUN",
+    "whole_ID_coverage_promotion": false
   }
 }

@@ -52,7 +52,6 @@ import { resolveCanonicalTenantEdielIdentityWithEvidence } from '@/lib/ediel/ten
 import { readRegistryDispatchSource } from '@/lib/actor-registry/registryMarketSource'
 import { guideOrderedFixtureBody } from '../__tests__/helpers/prodatGuideOrderedFixture'
 import { characteristic, common, line, qty, type Parts } from '../__tests__/fixtures/prodat-register'
-
 const smtp = vi.hoisted(() => ({ send: vi.fn() }))
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp.send }) } }))
 const sourceSession: { client: SupabaseClient | null } = { client: null }
@@ -76,7 +75,6 @@ beforeEach(() => {
     messageId: `<synthetic-${randomUUID()}@example.invalid>`, response: '250 explicitly synthetic SMTP acceptance' }))
 })
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks() })
-
 function assertFirstHBusinessDelta(f: Fixture, original: Original, sourceId: string, raw: string,
   before: ReturnType<typeof business>, after: ReturnType<typeof business>, startedAt: number, completedAt: number) {
   for (const key of ['customers', 'sites', 'points', 'contracts', 'permissions', 'activations'] as const)
@@ -233,7 +231,14 @@ function replyBody(f: Fixture, original: Original, refs = references(), invoicee
 }
 function reply(f: Fixture, original: Original, body = replyBody(f, original), refs = references(), environment: 'test' | 'production' = 'test') {
   const envelope = EdifactEnvelopeCodec.decode(original.raw_payload!)
-  return frame(body, envelope.receiver!, envelope.sender!, refs, environment)
+  // A prospective reply reverses the actual original transport namespace and
+  // subaddresses; it cannot substitute fixture-default UNB qualifiers.
+  return EdifactEnvelopeCodec.encode({ sender: envelope.receiver!, receiver: envelope.sender!,
+    senderQualifier: envelope.receiverQualifier, receiverQualifier: envelope.senderQualifier,
+    senderSubAddress: envelope.receiverSubAddress, receiverSubAddress: envelope.senderSubAddress,
+    interchangeReference: refs.interchange, applicationReference: '23-DDQ-PRODAT', acknowledgementRequest: true,
+    environment, createdAt: refs.createdAt, messages: [{ messageReference: refs.message,
+      messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A', businessSegments: body.map(render) }] })
 }
 async function selectedInvoiceeProfile() {
   const staged=await prospective()
@@ -539,7 +544,6 @@ async function acknowledgements(f: Fixture, original: Original, sourceId: string
   }
   return acks
 }
-
 // Independent frozen field list, not generated from implementation descriptors.
 async function negativeAcknowledgement(f:Fixture,source:Original,decision:Awaited<ReturnType<typeof resolveCanonicalRuntimeDecisionWithRegistry>>,field:string) {
   const plans=decision.responsePlan.filter(p=>p.family==='APERAK'&&p.outcome==='negative')
@@ -602,7 +606,6 @@ async function negativeAcknowledgement(f:Fixture,source:Original,decision:Awaite
     const nad=wire.segments.filter(t=>t.tag==='NAD'&&segmentComposite(t,1,wire.una)[0]===role)
     expect(nad).toHaveLength(1); expect(segmentComposite(nad[0],2,wire.una)).toEqual(party.identityComponents)
   }
-
   if(field==='226') {
     // The genuine own point can identify this error; the physically absent LI
     // cannot be inherited from the positive control or outgoing original.
@@ -631,7 +634,6 @@ async function negativeAcknowledgement(f:Fixture,source:Original,decision:Awaite
     }
   }
 }
-
 const required = { Z03: ['311','312','202','203','313','205','206','207','208','314','209','210','217','223','260','261','226','227','228','231','232','316','262'],
   Z04: ['311','312','202','203','313','205','206','207','208','314','209','210','508','213','217','306','222','223','254','242','224','260','226','227','228','231','232','316','233','234','262'] } as const
 const chars: Record<string, string> = { '217': 'Z04', '223': 'Z13', '306': 'Z07', '222': 'Z12', '254': 'Z15', '242': 'Z14' }
@@ -1084,7 +1086,6 @@ async function actualIncomingInvalidInstallationStatusGate(f:Fixture,original:Or
     rereadControl:()=>reread(f,control),negativeAcknowledgement:()=>negativeAcknowledgement(f,message,decision,'306'),
     smtpCalls:()=>smtp.send.mock.calls.length})
 }
-
 async function actualOutboundOmission(f:Fixture,original:Original,field:string,malformed:string) {
   const qualified=await qualifyPersistedBilateralProdatOutboundOriginal(original,f.actorUserId)
   const context=await loadCustomerMasterdataValidationContext(original,f.actorUserId)
@@ -1109,7 +1110,6 @@ async function actualOutboundOmission(f:Fixture,original:Original,field:string,m
   expect(business(f)).toEqual(before); expect(sealed(original.id)).toEqual(originalBefore)
   expect(rows('public.ediel_messages',f.companyId)).toEqual(messages); expect(rows('public.ediel_outbox',f.companyId)).toEqual(outboxes)
 }
-
 describe('actual native H catalog component only; no admission or bilateral authority',()=>{
   const input=(multipleRegisters=false)=>{
     const refs=references(), body:Parts[]=[['BGM','Z04',refs.document,'9','AB'],line('1','735123456789012345',multipleRegisters?'1':undefined,'9'),
@@ -1148,7 +1148,6 @@ describe('actual native H catalog component only; no admission or bilateral auth
       .rejects.toThrow('bilateral_switch_birth_association_mismatch')
   })
 })
-
 describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
   it('applies only the archived own H transition after SMTP request acceptance, then physical ACK and durable replay', async () => {
     const { f, original } = await sent(), received = await ready(f, original), before = business(f)
@@ -1205,14 +1204,12 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(outcomes.filter(o => o.status === 'rejected'), JSON.stringify(outcomes)).toEqual([])
     expect(durable(f,original,received.message.id)).toEqual(frozen)
   })
-
   it('known Z25 and catalog alone cannot originate an H request without the actual archived profile', async () => {
     const f = await prospective(), before = business(f), sends = smtp.send.mock.calls.length
     await expect(originate(f)).rejects.toThrow('bilateral_prodat_switch_current_profile_required')
     expect(business(f)).toEqual(before); expect(smtp.send.mock.calls.length).toBe(sends)
     expect(rows('public.ediel_messages',f.companyId)).toEqual([])
   })
-
   it('archive without independent review remains unable to originate the H request', async () => {
     const f = await createBilateralProdatGroundNativeFixture(await prospective())
     const archived = await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()})

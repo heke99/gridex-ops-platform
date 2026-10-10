@@ -113,7 +113,7 @@ function protectedSource(raw:string,field:string){
   guide:Object.fromEntries(Object.entries(guide).sort(([a],[b])=>a.localeCompare(b))),
   familyEdition:{version:'26.A:r3',rulePack:{id:'declared-real-family-catalog-port'},guideSources:[],sourceProjection:{actual:'declared-private-source-port'}},
   identities:originalAckPartyIdentities({rawPayload:raw}),replyApplicationReference:'23-DDQ-PRODAT',authorizesBusinessEffect:false,
-  ...(field==='311'?{applicationReferenceCorrection:{sourceEdition:'068e8f82c082c2d3513ead62f4833fa89884488cbd0347fa499a0949a4c9e3c6',
+  ...(field==='311'?{applicationReferenceCorrection:{sourceEdition:'362242319584246d24507e2a3c7aa6530dfda17a5aa7b0ed4f8f7d7390f66dd0',
     sourceSha256:'83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95',tableIndex:105,page:120,fieldCode:'311',
     originalApplicationReference:null,expectedApplicationReference:'23-DDQ-PRODAT',processEdition:'111385d7f0a83dd865de369ccee9aae3dc52098a5d3105cb3bacb4070ff7579b',
     canonicalProjection:{family:'PRODAT',code:'Z04',subtype:'H',transactionReasonCode:'Z25',receiverRoles:['supplier'],applicationReferences:['23-DDQ-PRODAT']},
@@ -265,4 +265,70 @@ it.each(['202','311','223'])('takes the actual runtime negative%s owner before a
  expect(decision.responsePlan.filter(plan=>plan.family==='APERAK')).toEqual([expect.objectContaining({outcome:'negative',
   applicationErrors:observeReceivedProdatHeaderRejection(raw)})])
  expect(io.rpc).toHaveBeenCalledTimes(1)
+})
+
+
+// Component ports above are synthetic private READ responses. These checks run
+// the actual decoder/loader/runtime and ACK constructor; ROOT separately runs
+// real captured SQL in its declared controlled receipt fixture, then native H.
+it('uses the actual common-header362 source edition for311 and refuses the distinct assigned-guide068 edition',async()=>{
+ const raw=payload('311'),genuine=protectedSource(raw,'311')
+ expect(genuine.evidence.applicationReferenceCorrection!.sourceEdition)
+  .toBe('362242319584246d24507e2a3c7aa6530dfda17a5aa7b0ed4f8f7d7390f66dd0')
+ io.rpc.mockResolvedValue({data:genuine,error:null})
+ const {evidence}=await readProdatCommonHeaderRejectionEvidence({companyId:company,environment:'test',sourceMessageId:source,
+  expectedRawPayload:raw,actorUserId:actor})
+ expect(commonHeaderReplyApplicationReference(evidence)).toBe('23-DDQ-PRODAT')
+ const foreign=protectedSource(raw,'311')
+ foreign.evidence.applicationReferenceCorrection!.sourceEdition='068e8f82c082c2d3513ead62f4833fa89884488cbd0347fa499a0949a4c9e3c6'
+ io.rpc.mockResolvedValue({data:foreign,error:null})
+ await expect(readProdatCommonHeaderRejectionEvidence({companyId:company,environment:'test',sourceMessageId:source,
+  expectedRawPayload:raw,actorUserId:actor})).rejects.toThrow('ediel_common_header_application_correction_required')
+ expect(await loadReceivedProdatHeaderRejection(born(raw),actor)).toBeNull()
+})
+it.each([
+ ['202','2026-07-15T10:20:45Z','202607151120'],
+ ['223','2026-07-15T10:20:45Z','202607151120'],
+ ['311','2026-07-15T10:20:45Z','202607151120'],
+ ['202','2026-12-31T23:50:45Z','202701010050'],
+ ['223','2026-12-31T23:50:45Z','202701010050'],
+ ['311','2026-12-31T23:50:45Z','202701010050'],
+] as const)('renders%s A901 from its retained receipt%s at fixedUTC+1, preserving own negative scope',async(field,instant,expected)=>{
+ vi.useFakeTimers();vi.setSystemTime(new Date('2027-01-01T12:00:00Z'))
+ try{
+  const raw=payload(field),data=protectedSource(raw,field)
+  data.sourceMessage.message_received_at=instant;data.evidence.sourceReceivedAt=instant
+  data.sourceMessage.execution_context_snapshot=JSON.parse(JSON.stringify(data.sourceMessage.execution_context_snapshot).replaceAll(received,instant))
+  io.rpc.mockResolvedValue({data,error:null})
+  const {sourceMessage,evidence}=await readProdatCommonHeaderRejectionEvidence({companyId:company,environment:'test',sourceMessageId:source,
+   expectedRawPayload:raw,actorUserId:actor})
+  const errors=observeReceivedProdatHeaderRejection(raw),original=JSON.stringify(sourceMessage)
+  const draft=buildAckDraftForSource({sourceMessage,ackFamily:'APERAK',outcome:'negative',applicationErrors:errors,
+   ...(field==='311'?{prodatCommonHeaderRejectionEvidence:evidence}:{} )}),wire=tokenizeEdifact(draft.rawPayload!)
+  const dates=wire.segments.filter(row=>row.tag==='DTM').map(row=>segmentComposite(row,1,wire.una))
+  expect(dates).toEqual([['137','202701011300','203'],['178',expected,'203']])
+  const unb=segmentComposite(tokenizeEdifact(raw).segments.find(row=>row.tag==='UNB'),4,wire.una)
+  expect(expected).not.toBe('20'+unb[0]+unb[1])
+  expect(segmentComposite(wire.segments.find(row=>row.tag==='BGM'),3,wire.una)).toEqual([field==='223'?'34':'27'])
+  expect(wire.segments.filter(row=>row.tag==='ERC').map(row=>segmentComposite(row,1,wire.una))).toEqual([['41','','260']])
+  expect(wire.segments.filter(row=>row.tag==='FTX').map(row=>segmentComposite(row,3,wire.una))).toEqual([[field,'','260']])
+  expect(wire.segments.filter(row=>row.tag==='RFF').map(row=>segmentComposite(row,1,wire.una)))
+   .toEqual(expect.arrayContaining([['ACW',parseEdifactPayload(raw).bgmReference]]))
+  if(field==='223')expect(wire.segments.filter(row=>row.tag==='RFF').map(row=>segmentComposite(row,1,wire.una)))
+   .toEqual(expect.arrayContaining([['LI','OWN'],['Z07','735123456789012345']]))
+  expect(draft.applicationReference).toBe('23-DDQ-PRODAT')
+  expect(sourceMessage.application_reference).toBe(field==='311'?null:'23-DDQ-PRODAT')
+  expect(JSON.stringify(sourceMessage)).toBe(original)
+ }finally{vi.useRealTimers()}
+})
+it.each([null,'invalid-retained-clock'] as const)('omits optional PRODAT178 for unavailable retained receipt%s without substituting UNB creation',instant=>{
+ vi.useFakeTimers();vi.setSystemTime(new Date('2027-01-01T12:00:00Z'))
+ try{
+  const raw=payload('202'),sourceMessage=born(raw);sourceMessage.message_received_at=instant
+  const draft=buildAckDraftForSource({sourceMessage,ackFamily:'APERAK',outcome:'negative',applicationErrors:observeReceivedProdatHeaderRejection(raw)})
+  const wire=tokenizeEdifact(draft.rawPayload!)
+  expect(wire.segments.filter(row=>row.tag==='DTM').map(row=>segmentComposite(row,1,wire.una)))
+   .toEqual([['137','202701011300','203']])
+  expect(segmentComposite(wire.segments.find(row=>row.tag==='BGM'),3,wire.una)).toEqual(['27'])
+ }finally{vi.useRealTimers()}
 })
