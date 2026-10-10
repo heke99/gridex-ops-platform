@@ -1,24 +1,24 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-10T15:32:20.744427+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38063748247",
+  "generated_at": "2026-10-10T23:13:23.608775+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38093136799",
   "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
-  "latest_migration": "20261010190000_upsert_targets_full_unique_indexes.sql",
-  "latest_migration_schema_effect": "Fresh genuine clean-replay capture of all1142 authenticated combined migrations, including actual-main420/#724 API and mail migrations and owned Ediel private forwards. Full generated artifacts are imported byte-exactly; independent whole-schema qualification preserves source-bound declarations, ACL, foreign changes and protected Ediel functions. The accepted-main manual generated baseline and prior genuine H2 capture are separately qualified by the attached reports.",
+  "latest_migration": "20261010233000_ediel_production_contract_ack_received_confirmation.sql",
+  "latest_migration_schema_effect": "Replaces gridex_received_sources.confirm_production_contract_on_ack_v1 and its trigger (P-08 positive APERAK confirmation on acknowledged); generated artifacts imported byte-exactly from capture run 38093136799.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-10T15:32:20.744427+00:00",
-    "checkout_sha": "cc2929876ba152712fee0f30cfcb3d2ee6d524a0",
-    "checkout_tree": "88545714786192b02fb52652c8e87a1853fd6f61",
-    "workflow_run_id": "38063748247",
+    "captured_at": "2026-10-10T23:13:23.608775+00:00",
+    "checkout_sha": "697450fd2ee3c7228d662695931959c717a1d6af",
+    "checkout_tree": "4adac179b127469c7e3c3e6dea25939ce9db9f47",
+    "workflow_run_id": "38093136799",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
     "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
     "latest_replay_migration": {
-      "name": "20261010140411_ediel_common_header_negative_domain_owner_scope.sql",
-      "sha256": "e615bbf4d0c4a46628284a6dcdb84d973b6732c9d0662f7e20fa52925df51457"
+      "name": "20261010233000_ediel_production_contract_ack_received_confirmation.sql",
+      "sha256": "0e33a83717f7b432bcf80a9f78b43975a90f739fbca97b3a7a2913818458b09d"
     },
     "schema_names": [
       "gridex_ack_authority",
@@ -80,18 +80,18 @@
       "gridex_utilts_issuer",
       "public"
     ],
-    "schema_fingerprint": "f543c3cda4a75a86aa4516043a21a1894daf334bb96c21bb0f0dfcbee14ce99e",
+    "schema_fingerprint": "f79681aab4ee75fe57c24513397d9920ac13f59b11f17ab3cfffb2466239a425",
     "artifact_sha256": {
-      "database.types.ts": "4244012fc1d4068e7ccef51b413fee91bcfd09a2df622268ee2cbd53e6eb2a13",
-      "schema.sql": "b45fc347ef6a27a0605344156d9d79b2a50e3fc5e305cfccab0a2944944c8a5e",
-      "schema.fingerprint.json": "7fb38d69b3511964e490dd4c50b0804534e4fd97c070e8f22f7675b379451dec"
+      "database.types.ts": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
+      "schema.sql": "3299f90b8a5276d5818e4e8e98e7987026d81168da6e0ba56df9188e52faf68d",
+      "schema.fingerprint.json": "9bbae1cedf316d59033510a28315ccaf4a578f74751d17a5f895805748ee502d"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
-      "scripts/migration-history-manifest.json": "d85caa552fc740125ad638d7c7a991ab62baeeefd0ead99776499257884c5a1d",
+      "scripts/migration-history-manifest.json": "3ffcb933b876493729f617d6caf66da6c8aa4298f02236a8f3bb1c0cb8d5fa70",
       "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
       "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
-      "scripts/supabase-types-manifest.json": "d1994c9dc8c30cbbbabf9f549a105ebe21e40e837c12dad57f6031242db42de6",
+      "scripts/supabase-types-manifest.json": "7f6b37a61d7babd955c1ae8fce5e6d4ac74447d8954c5fc1f8d2f2a8e5a28ac3",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
