@@ -1,24 +1,24 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-10T09:17:27.365367+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38040161060",
-  "sha256": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
-  "latest_migration": "20261009215000_ediel_source_bound_ack_projection.sql",
-  "latest_migration_schema_effect": "Byte-exact authentic capture-only run of main plus the platform-scope trigger on canonical_energy_flow_events (one trigger function, one BEFORE INSERT trigger, its ACL). Generated types unchanged from main; schema.sql and fingerprint gain only these objects. Capture-only NOT_RUN flags retain their original meaning.",
-  "composition_capture_pending": true,
+  "generated_at": "2026-10-10T11:22:27.134309+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38048009055",
+  "sha256": "d7e97a0e14146082d81ef900eb1d7c649ab6e77d87fb6daa45f877d63d12c893",
+  "latest_migration": "20261010102455_ediel_prodat_customer_masterdata_original_read.sql",
+  "latest_migration_schema_effect": "Authentic combined C/H capture retains actualmain517 including its energy-event trigger. Sixteen existing function bodies change and twenty new functions, one private schema, two FORCE-RLS tables and four triggers are added. Three public RPC type blocks are genuinely generated. Full captured schema inverse and same-captured-schema finite qualifiers passed. Native/current-head/upgrade/browser acceptance remains separate.",
+  "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-10T09:17:27.365367+00:00",
-    "checkout_sha": "6337cb00ff6783e5e848f61ca4d84eab34e1f6fa",
-    "checkout_tree": "a88bc3514e109343ad9b0f5ad94d9999ac547b2b",
-    "workflow_run_id": "38040161060",
+    "captured_at": "2026-10-10T11:22:27.134309+00:00",
+    "checkout_sha": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+    "checkout_tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+    "workflow_run_id": "38048009055",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
     "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
     "latest_replay_migration": {
-      "name": "20261009215000_ediel_source_bound_ack_projection.sql",
-      "sha256": "b6b6daa1aa74c7314b71f7c6cc068e53301808a55386fcf95831f9ad28feacfc"
+      "name": "20261010102455_ediel_prodat_customer_masterdata_original_read.sql",
+      "sha256": "3e22786c3c3c7ea329ecba218bbfa7ec70dfd7b8124f8db867e639e8e9e7b91f"
     },
     "schema_names": [
       "gridex_ack_authority",
@@ -42,6 +42,7 @@
       "gridex_ediel_common_header",
       "gridex_ediel_duplicate_responses",
       "gridex_ediel_exports",
+      "gridex_ediel_header_negative_birth",
       "gridex_ediel_inbound_context",
       "gridex_ediel_inbound_receptions",
       "gridex_ediel_legacy_archive",
@@ -79,18 +80,18 @@
       "gridex_utilts_issuer",
       "public"
     ],
-    "schema_fingerprint": "496cfd42c27cbedd1181ea22b19676d91db5f4fd6dcde0a34ad42ea248aeb1d0",
+    "schema_fingerprint": "c4713a63af251a8b4568f270ad5543832f3db0311cae2e14f9e0e6731cf1f488",
     "artifact_sha256": {
-      "database.types.ts": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
-      "schema.sql": "c0b1253888b77dd9858ac1747d0bf9913298297801548bad805f2c22e851760e",
-      "schema.fingerprint.json": "706eeb86168031800f69580052235d4cd3be00550f35f37cb7fff3fc930bac85"
+      "database.types.ts": "d7e97a0e14146082d81ef900eb1d7c649ab6e77d87fb6daa45f877d63d12c893",
+      "schema.sql": "293626da3345a2eb4d8b1762cb005804c22d57aa6ef03f9df32e5192e8e28d6a",
+      "schema.fingerprint.json": "1b2930f5efde8b9973510d777f6dd8499d58d737782f0390476cf5285ea589e6"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
-      "scripts/migration-history-manifest.json": "7a671e6d0425223093152f03f3e2f9fca52927324b72f1c35165b683ce5506b0",
+      "scripts/migration-history-manifest.json": "af15f4ab63f8e4c9b36e369105f48de5a0bdaddcd5f30553cea0a0a3a9448f10",
       "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
       "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
-      "scripts/supabase-types-manifest.json": "e8b2ca6b0b1c50adc49b9454b360038f2f21b70e844b202e11dc50d7239fec4b",
+      "scripts/supabase-types-manifest.json": "b211b6e8b26b57f8733c31b642f4aa9c9dd67caa655097e0b9f6ecef608edb8d",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
@@ -101,7 +102,7 @@
     "upgrade_parity": "NOT_RUN",
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
-  "composition_note": "Previous thirteen active fields and authentic be951 origin are archived under pre_help699_source_bound_ack_projector_capture_root_20261009 with a full actual pending metadata byte inverse. All be951/bc/ad0/b82 archives and dated pending history remain unchanged. RAW3 is copied only from the genuine original new-source artifact.",
+  "composition_note": "The complete thirteen previous active fields and sourceb211 manifest origin are archived under pre_ediel_final_combined_capture_root_20261010 with a full original byte inverse. Every other historical field and dated pending entry remains unchanged. RAW3 is copied byte-exactly from the original authenticated combined C/H artifact.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -111,64 +112,1506 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-    "kind": "authentic_help699_source_bound_ack_projector_capture",
-    "source_head": "700eab0effc87390b961dd76c1fad2f857665609",
-    "source_tree": "677b3a999f59905463a6ad89a8dc44486f258c41",
-    "actual_capture_run": 37997669775,
+    "kind": "authentic_ediel_final_combined_capture",
+    "source_head": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+    "source_tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+    "actual_capture_run": "38048009055",
     "status": "AUTHENTIC_CAPTURE_IMPORTED_CURRENT_RESULTING_HEAD_GATES_PENDING",
-    "canonical_manifest_rows": 860,
-    "physical_SQL_files": 1122,
+    "sender_postimage": {
+      "source": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+      "tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+      "command": [
+        "/tmp/gridex-help-typed258-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+        "/workspace/gridex-ediel-final-fixes-wt-20261010/scripts/ediel-z05c-current-sender-sql-regression.mjs"
+      ],
+      "cwd": "/workspace/gridex-ediel-final-fixes-20261010/combined-captured-repository",
+      "explicit_environment": {
+        "EDIEL_SQL_REPOSITORY": "/workspace/gridex-ediel-final-fixes-20261010/combined-captured-repository",
+        "EDIEL_PGLITE_MODULE": "/workspace/gridex-ediel-final-fixes-wt-20261010/node_modules/@electric-sql/pglite/dist/index.js"
+      },
+      "started_at": "2026-10-10T11:26:37.024981+00:00",
+      "finished_at": "2026-10-10T11:26:40.377938+00:00",
+      "exit_code": 0,
+      "schema_sha256": "293626da3345a2eb4d8b1762cb005804c22d57aa6ef03f9df32e5192e8e28d6a",
+      "runner_sha256": "a26ee52b9cd64e173a57e0997c87c0a699efac03032cefb335c2e5db866a8ce9",
+      "stdout_sha256": "5bfdc8419010dd316f497ea91cf1ddfe8535fa6fdad7e56e92c0d81facb58960",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": {
+        "checks": [
+          "authorized sender restores its exact ending",
+          "revoked physical sender grid role holds with no domain effects",
+          "expired physical sender verified identifier holds with no effects",
+          "current reviewer permission deny holds with no effects",
+          "actual original artifact withdrawal holds with no effects",
+          "unqualified current network representation holds with no effects",
+          "physical sender with no original registry holds with no effects",
+          "same sender authority in another environment holds with no effects",
+          "metering actor permission deny remains held before sender admission",
+          "retained same-source receipt replay preserves existing no-write behavior",
+          "synthetic owner output companyId mismatch holds with no effects",
+          "synthetic owner output environment mismatch holds with no effects",
+          "synthetic owner output networkEdielId mismatch holds with no effects",
+          "unknown installed predecessor fails closed before changing function"
+        ],
+        "failures": 0,
+        "migrationApplication": "already_captured_postimage",
+        "installedBodySha256": "aab2d2f6dcbfe17e31f92c07a70c9f9346396a2c1435a5976b1d70c8e58cb2b7",
+        "metadataPreserved": true,
+        "proofLimits": {
+          "nativeConcurrency": "NOT_EXERCISED",
+          "wholeScenario": "NOT_APPROVED",
+          "publicSupplyEntrypoint": "NOT_EXERCISED",
+          "rls": "NOT_EXERCISED",
+          "registryQueries": "ACTUAL_SQL",
+          "issuer": "SYNTHETIC",
+          "canonicalAdmission": "FINITE_DECLARED_FACET",
+          "globalGraphLock": "FINITE_NO_OP",
+          "priorEndingReceipt": "SYNTHETIC_RETAINED_STATE",
+          "bindingOutputFaults": "THREE_SEPARATE_SYNTHETIC_PROPERTY_CASES"
+        }
+      }
+    },
+    "combined_finite": {
+      "status": "PASS",
+      "source": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+      "tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+      "schema_sha256": "293626da3345a2eb4d8b1762cb005804c22d57aa6ef03f9df32e5192e8e28d6a",
+      "scope": "Actual combined captured schema; sender14 already_captured_postimage, complete C declarations/ACL18 and composition27 plus READ37, identity29. No executed header58/captured backend OID/native concurrency/whole-rule or current-head CI acceptance inferred. All runner declared external ports preserved.",
+      "results": {
+        "sender": {
+          "execution_sha256": "6442e01c6e8a12b9217eaa167cacc99058f728c797b8fda3aaaa8fa982f19483",
+          "execution": {
+            "source": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+            "tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+            "command": [
+              "/tmp/gridex-help-typed258-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+              "/workspace/gridex-ediel-final-fixes-wt-20261010/scripts/ediel-z05c-current-sender-sql-regression.mjs"
+            ],
+            "cwd": "/workspace/gridex-ediel-final-fixes-20261010/combined-captured-repository",
+            "explicit_environment": {
+              "EDIEL_SQL_REPOSITORY": "/workspace/gridex-ediel-final-fixes-20261010/combined-captured-repository",
+              "EDIEL_PGLITE_MODULE": "/workspace/gridex-ediel-final-fixes-wt-20261010/node_modules/@electric-sql/pglite/dist/index.js"
+            },
+            "started_at": "2026-10-10T11:26:37.024981+00:00",
+            "finished_at": "2026-10-10T11:26:40.377938+00:00",
+            "exit_code": 0,
+            "schema_sha256": "293626da3345a2eb4d8b1762cb005804c22d57aa6ef03f9df32e5192e8e28d6a",
+            "runner_sha256": "a26ee52b9cd64e173a57e0997c87c0a699efac03032cefb335c2e5db866a8ce9",
+            "stdout_sha256": "5bfdc8419010dd316f497ea91cf1ddfe8535fa6fdad7e56e92c0d81facb58960",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "result": {
+              "checks": [
+                "authorized sender restores its exact ending",
+                "revoked physical sender grid role holds with no domain effects",
+                "expired physical sender verified identifier holds with no effects",
+                "current reviewer permission deny holds with no effects",
+                "actual original artifact withdrawal holds with no effects",
+                "unqualified current network representation holds with no effects",
+                "physical sender with no original registry holds with no effects",
+                "same sender authority in another environment holds with no effects",
+                "metering actor permission deny remains held before sender admission",
+                "retained same-source receipt replay preserves existing no-write behavior",
+                "synthetic owner output companyId mismatch holds with no effects",
+                "synthetic owner output environment mismatch holds with no effects",
+                "synthetic owner output networkEdielId mismatch holds with no effects",
+                "unknown installed predecessor fails closed before changing function"
+              ],
+              "failures": 0,
+              "migrationApplication": "already_captured_postimage",
+              "installedBodySha256": "aab2d2f6dcbfe17e31f92c07a70c9f9346396a2c1435a5976b1d70c8e58cb2b7",
+              "metadataPreserved": true,
+              "proofLimits": {
+                "nativeConcurrency": "NOT_EXERCISED",
+                "wholeScenario": "NOT_APPROVED",
+                "publicSupplyEntrypoint": "NOT_EXERCISED",
+                "rls": "NOT_EXERCISED",
+                "registryQueries": "ACTUAL_SQL",
+                "issuer": "SYNTHETIC",
+                "canonicalAdmission": "FINITE_DECLARED_FACET",
+                "globalGraphLock": "FINITE_NO_OP",
+                "priorEndingReceipt": "SYNTHETIC_RETAINED_STATE",
+                "bindingOutputFaults": "THREE_SEPARATE_SYNTHETIC_PROPERTY_CASES"
+              }
+            }
+          }
+        },
+        "read": {
+          "execution_sha256": "f15c6316a5c094ef98e13db9d6bc68bc7dcff5a7343498ebf4855f3f4e94e28a",
+          "execution": {
+            "source": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+            "tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+            "command": [
+              "/tmp/gridex-help-typed258-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+              "/workspace/gridex-ediel-final-fixes-wt-20261010/scripts/ediel-prodat-customer-masterdata-original-read-sql-regression.mjs"
+            ],
+            "cwd": "/workspace/gridex-ediel-final-fixes-20261010/combined-captured-repository",
+            "explicit_environment": {
+              "EDIEL_SQL_REPOSITORY": "/workspace/gridex-ediel-final-fixes-20261010/combined-captured-repository",
+              "EDIEL_PGLITE_MODULE": "/workspace/gridex-ediel-final-fixes-wt-20261010/node_modules/@electric-sql/pglite/dist/index.js"
+            },
+            "started_at": "2026-10-10T11:26:37.025730+00:00",
+            "finished_at": "2026-10-10T11:26:41.510672+00:00",
+            "exit_code": 0,
+            "schema_sha256": "293626da3345a2eb4d8b1762cb005804c22d57aa6ef03f9df32e5192e8e28d6a",
+            "runner_sha256": "a2891e4493b3c86272ba4acace4b7bbdd3001100823af9a9e600aa756d1cff70",
+            "stdout_sha256": "d185e1a20293d0078612f7fb99e9252ade45df11fe81d8bf0edaa7e46a86d939",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "identity": {
+          "execution_sha256": "ddc20a20a654fb15688fe201b35c7c3e6f6ad88c18b43d1f23586ea98ea0ea26",
+          "execution": {
+            "source": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+            "tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+            "command": [
+              "/tmp/gridex-help-typed258-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+              "/workspace/gridex-ediel-final-fixes-wt-20261010/node_modules/vitest/vitest.mjs",
+              "run",
+              "--config",
+              "/workspace/gridex-ediel-final-fixes-wt-20261010/vitest.config.ts",
+              "--root",
+              "/workspace/gridex-ediel-final-fixes-20261010/combined-captured-repository",
+              "--maxWorkers=1",
+              "__tests__/ediel-rejected-z04h-identity-scope.test.ts"
+            ],
+            "cwd": "/workspace/gridex-ediel-final-fixes-20261010/combined-captured-repository",
+            "explicit_environment": {
+              "EDIEL_SQL_REPOSITORY": "/workspace/gridex-ediel-final-fixes-20261010/combined-captured-repository",
+              "EDIEL_PGLITE_MODULE": "/workspace/gridex-ediel-final-fixes-wt-20261010/node_modules/@electric-sql/pglite/dist/index.js"
+            },
+            "started_at": "2026-10-10T11:26:40.403073+00:00",
+            "finished_at": "2026-10-10T11:26:47.401743+00:00",
+            "exit_code": 0,
+            "schema_sha256": "293626da3345a2eb4d8b1762cb005804c22d57aa6ef03f9df32e5192e8e28d6a",
+            "runner_sha256": "39db22f579acf5639bbb17a261408debbde03f4692c0c439e77e7f13aeba74d6",
+            "stdout_sha256": "9d18d9caefafbd4394ce856041baabb621c3813d2510215c6bc7b5da43a5e004",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        }
+      },
+      "counts": {
+        "sender": 14,
+        "C_declaration_ACL": 18,
+        "C_composition": 27,
+        "original_READ": 37,
+        "identity": 29
+      }
+    },
+    "schema_inverse": {
+      "status": "PASS",
+      "reviewer": "/root/main_ci_verify",
+      "role": "GRANSKARE",
+      "scope": "Independent original artifact origin, exact source-bound RAW3 schema/type delta and whole byte inverses; no SQL/native/producer/GEN execution",
+      "reviewed_at": "2026-10-10T11:30:58.781584+00:00",
+      "source": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+      "source_tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+      "tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+      "actual_main_baseline": "517792481bca95817cda010b2426cfc4ffcb7851",
+      "schema_sha256": "293626da3345a2eb4d8b1762cb005804c22d57aa6ef03f9df32e5192e8e28d6a",
+      "baseline_schema_sha256": "c0b1253888b77dd9858ac1747d0bf9913298297801548bad805f2c22e851760e",
+      "full_schema_byte_inverse": true,
+      "full_inverse": true,
+      "inverse_schema_sha256": "c0b1253888b77dd9858ac1747d0bf9913298297801548bad805f2c22e851760e",
+      "types_sha256": "d7e97a0e14146082d81ef900eb1d7c649ab6e77d87fb6daa45f877d63d12c893",
+      "baseline_types_sha256": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
+      "full_types_byte_inverse": true,
+      "fingerprint_file_sha256": "1b2930f5efde8b9973510d777f6dd8499d58d737782f0390476cf5285ea589e6",
+      "canonical_fingerprint_sha256": "c4713a63af251a8b4568f270ad5543832f3db0311cae2e14f9e0e6731cf1f488",
+      "capture_receipt_sha256": "8629c5ab09c012a5a3d9ac8774eb82a084f552a1d2b8005165bc3f0b72779f0b",
+      "official_zip_sha256": "26d12e2d42619facacc9ffd1b82ac80b86b821bf39ab7198c6a85de267a37028",
+      "official_zip_bytes": 1687365,
+      "origin": {
+        "run_id": 38048009055,
+        "run_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38048009055",
+        "attempt": 1,
+        "workflow_id": 374495306,
+        "workflow_path": ".github/workflows/staff-api-schema-capture.yml",
+        "workflow_source_sha256": "5675989bfc158868e2c2a8508c74c5a05043052934dd1f7f79da8df06e272adf",
+        "greatest_source_run_number": 268,
+        "source_filtered_run_count": 1,
+        "job_id": 114201347474,
+        "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38048009055/job/114201347474",
+        "all_12_steps_success": true,
+        "artifact_id": 11668781212,
+        "artifact_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11668781212",
+        "complete_job_and_artifact_pages": true,
+        "source8_exact": true,
+        "complete_1127_migration_blobs_exact": true,
+        "tail": {
+          "name": "20261010102455_ediel_prodat_customer_masterdata_original_read.sql",
+          "sha256": "3e22786c3c3c7ea329ecba218bbfa7ec70dfd7b8124f8db867e639e8e9e7b91f"
+        },
+        "original_zip_single_ROOT_download_reused": true,
+        "original_members_crc_and_extracted_bytes_match": true,
+        "captured_at_within_actual_capture_step": true
+      },
+      "unchanged_declarations": true,
+      "unchanged_existing_ACL": true,
+      "unchanged_foreign_bytes": true,
+      "unchanged_baseline_block_count": 16262,
+      "baseline_object_block_count": 16278,
+      "actual_object_block_count": 16334,
+      "new_qualified_object_block_count": 56,
+      "modified_existing_function_count": 16,
+      "new_function_count": 20,
+      "modified_existing_functions": [
+        {
+          "signature": "public.gridex_bind_inbound_ediel_rule_pack_evidence()",
+          "preimage_sha256": "f14af8ea448b37db8a6ed2a0d92889930da95ff2f9c34b4c21f4e38b277affb9",
+          "postimage_sha256": "b0773e5506090d50768e4cf7ad336f49515206e1357d84f6da02d6714f26651d",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_common_header.capture_source()",
+          "preimage_sha256": "3e52b4ec869c50789f559f214e1a7296b269f362c425676fb53227e13451a993",
+          "postimage_sha256": "2122ea50ee16ba1b18f3fc50aca084ff59434fdb359dbf11974eead0c6d6fa5e",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_common_header.assert_ack_v1(public.ediel_messages,jsonb)",
+          "preimage_sha256": "ef64ba91ce4ee85f8255a7c28900b76a9424e1fe564668ee18e6414e092b5df4",
+          "postimage_sha256": "3a7f87953d6979c8c8aafbbdeec6a070ce9f73780e18f11e1c0f01f24bfa19a3",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_common_header.require_current_scope_v1(jsonb)",
+          "preimage_sha256": "260268258aa40427c2fd8dd329ef265a0b9378d5f715e7689e27c6500816b8ed",
+          "postimage_sha256": "05f9a3bf4e132922e70b9af9fccd63c91d324cea47b96e05da511a0d86234116",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_technical_ack.select_configured_reply_route_v2(uuid,jsonb,text,text,text,integer)",
+          "preimage_sha256": "2f18db5ee43b16cbe5a69e7bcdf579d4771ba0f870b8279edb209e0d4e17d911",
+          "postimage_sha256": "e5ded00091d4cf50ff80ef6cc92ca1d352b2b19c7795e9491dcef874950a5fd1",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_ack_guide.validate_response_for_message_v1(public.ediel_messages,public.ediel_messages,jsonb)",
+          "preimage_sha256": "4427ea1ef069870fd68bcf320345a464d00653a9c1e711048ef98a42d4fd783f",
+          "postimage_sha256": "6621b89df8f294129d90f263030d4e3dfb544f34a313baa2278996e9d6547bf0",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_ack_guide.prodat_original_outcomes_v1(public.ediel_messages,public.ediel_messages)",
+          "preimage_sha256": "ce04c5ef24950fcdd2eb01eb3211bd91729e51ebb1e90787e459e2246078aed2",
+          "postimage_sha256": "8bd7ddfc3382ee5949e2943e23553abdce66f1ce5a9d37cc06d97d378e6c97a7",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ack_authority.read_outbound_originals_v1(uuid,text)",
+          "preimage_sha256": "5f23be0938cae8be01971b12688ab8f313205fd5f02324887f6cf765d08d52d9",
+          "postimage_sha256": "142f25b2cfdb260e7183a2ceb5fcb309498bd0bc9b86ce297738743f9434707e",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_ack_replay.read_scope_v2(uuid,text,uuid,text,uuid,text,text)",
+          "preimage_sha256": "a3e5a15e923db9c88e4bbc2e24e356e6da839608defd92916fbb8a70ef346748",
+          "postimage_sha256": "82bbf47f8d02f428178ac0cb1caf4613f3364d01a5cfbcb857af478ead05a349",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_ack_replay.create_scope_v2(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb)",
+          "preimage_sha256": "687c6d6b860436cfcd99993209360508cdfe948d74d3d482400e7f990c526357",
+          "postimage_sha256": "7d8a69eca294252fb3245ce789a1df31bbf651434d1ea56d5ab99b88db76d854",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_ack_replay.read_exact_v2(uuid,text,uuid,uuid,text,uuid)",
+          "preimage_sha256": "437b397f9e99496bad725ac563fc2d19bdeabc9daab8d4ea5730df58859697c2",
+          "postimage_sha256": "17dcd4a63fd77dc71c70df714740fb58325f44f600a6501e4a526a515bbf3702",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_ack_guide.require_registered_basis_v1(public.ediel_messages,text,jsonb,jsonb)",
+          "preimage_sha256": "24ee9b0424081c78ead6ca250270a80554cc29a8d49d2ffd4060470a738884d9",
+          "postimage_sha256": "f4accf3447e1cacda8b6482273acf55b242e238117018219901ace16e6fcd9e8",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_ack_replay.require_common_guide_v2(public.ediel_messages,jsonb)",
+          "preimage_sha256": "62760d411bb7b354aba8be0b9fb59542d3149778c69bb0c72f3a809d9711285c",
+          "postimage_sha256": "f1d41fab30a94537a7b27343a064c3dc18bfa136a7fd45bdf6048f82486d46aa",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_ediel_ack_replay.require_readonly_prodat_ledger_v2(public.ediel_messages)",
+          "preimage_sha256": "9da31cffc2d663353698995e1769e3c87ab0167f2f9cb990bad95f188bebcc9f",
+          "postimage_sha256": "0689be7506e4d163895ce4904a1a52c8bb95debf53e1807ab9c33a40990d3774",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_received_sources.append_validation_before_reference_profile_v1(uuid,text,uuid,text,text)",
+          "preimage_sha256": "f487a3c60c8c0bdfe0be3786d50662ea7d3abb6df8214be573f9d76a176ca6bf",
+          "postimage_sha256": "dba263aae82c1c4f54147d3f35d32518092a25e3ffc9e454657f1cb7f897481d",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        },
+        {
+          "signature": "gridex_received_sources.other_supply_scope_effect_v1(uuid,uuid,uuid,jsonb,uuid[],uuid)",
+          "preimage_sha256": "d2fd0bf5d193b6888d5a41c064a24e5b020446b3b5332493963fa1dedee3e5a9",
+          "postimage_sha256": "aab2d2f6dcbfe17e31f92c07a70c9f9346396a2c1435a5976b1d70c8e58cb2b7",
+          "declaration_byte_identical": true,
+          "full_definition_inverse": true
+        }
+      ],
+      "new_functions": [
+        {
+          "signature": "gridex_ediel_header_negative_birth.classify_v1(text)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "b7a68fdba4e148c4fce4f7903e342686ce902027419d655b42f55a12b6c69085",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "caace179e2df897cb0c96a085995ce90b3da7c52e0ac74f0f30904f94f732793"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.family_basis_v1(uuid,text,text,timestamp with time zone,timestamp with time zone,jsonb)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "2521961a7689d7ce2198abba6f1fefdba7eb72776158c8fd348dea41ac50ffad",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "cd5133cda1154c29d6efa5beed7f1701148ab199ef54493ab408d45f53f8dc81"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.is_bound_v1(public.ediel_messages,boolean)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "6c7da3256dc17fe810cdaa5885e85716ae7ffb50ab4829c6695cafc3adb3fe38",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "0961ded2e64cc3a79b9e4ae5085911e10b58b544f2bac29c50958af7a5abc983"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.receipt_guard_v1()",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "8990bd0604235ae0cc9702bf04e58d6304dbe5182a17bea585717f6e87dfbc0d",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "dd4af5b884148397bd1ec44119e5abee72912a400b580c409ec61bec15b3be31"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.complete_v1()",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "d8fb78fc47db3203423e6c466d0dd73bcf150182b1ed038655266e66d7adf0b3",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "b45844d874975d9188032263f4eebe4726609f93e1f839d6a2a47ff68b1a26f2"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.immutable_guide_v1()",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "251718746c429727640fcdd6c04f1e62bd45bc971756a85b184d0fdeb716cb55",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "609fbe09919a25502555933623a6054b2df031e2b4e3858c522ce58653171660"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.original_guard_v1()",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "dd0100273c8c8947fa0236a684be920092bfc19d8222b7724a611c2d6f7357ad",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "871f69895cc512aa9b8ed7f3d1bc79addd16fdb0190e0649763a87553b726dae"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.create_v1(uuid,text,uuid,uuid,uuid,text,text)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "99dd40174d470674696f103d6aff4fd05a89e77f593f685e3ae7da8a5d88e406",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "96040bed8919ee630a82715f1eea6dbfd0c5258783f2fae1f095f17739ca6b0e"
+        },
+        {
+          "signature": "public.ediel_create_assigned_prodat_header_negative_v1(uuid,text,uuid,uuid,uuid,text,text)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "4498d8f01692ab79917934a9e0676e436a16c6a714bb45fac8492362e6c097ba",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "ac75dd6d9c7a9a3e39a9594894c115dc65fc6c2cfa2ac63ff0fa50517118da77"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.evidence_v1(public.ediel_messages)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "cc29b4668c2724093ee7ace8fc347334c1bedf39b2b172ef3f4bd3c0cb4b5ca2",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "b9e63f92e27133971c96c356eb8e8940d29d98b6382f9803a0f8fa783fd3be77"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.reply_application_v1(public.ediel_messages,jsonb)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "1e67515166180cc5b0ff427e5e0346691e74c012e10a11a3a195bd259ad0eabc",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "ce24fd6d5dbbee56e0232c6fc5450ff06410468bf828a3f9387e66504560c1c1"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.require_fresh_reply_process_v1(public.ediel_messages,jsonb)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "f4c98a0dac104a8871b9c25b9b4844474f47321f15f624a3d2e87395250dc5c1",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "e919db5a0b850eea76404e2657965e7f6610c0151afb1f5a0600d15287264901"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.source_wire_v1(public.ediel_messages)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "b971c92f51031f639d857cab7b19a3aa62062f4f5170cf2d9494377932986bdd",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "4fde5be7d30fd4c493f78be0ce6f0ddd87f7c89eb4d07a19cc85fe6c452fca28"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.assert_ack_v1(public.ediel_messages,jsonb)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "de028c4468dab67f1481c8d3509771cf6dd4a01da38201bd81d57007cef872ed",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "1d9733188063dec23e2905a3d9e779018267bcfbcdad06cd3d48aa8f3d4ff3fb"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.source_matches_v1(jsonb,jsonb,public.ediel_messages)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "e27c2c26ce2c10ce8cb85c96a341c2d06bc0ac6c7da3bf2652925db5c0824162",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "57120d40fddb8ef0ce8a153ecf91a347ccb19427e55bd8ec882524e8271b6c2f"
+        },
+        {
+          "signature": "gridex_ediel_header_negative_birth.scopes_v1(text,public.ediel_messages)",
+          "source_migration": "supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+          "body_sha256": "003480b916c932721413efee2626cba02abb3b13249a89286b071ef29fab0c3f",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "01320ade55de35c6dc146022c696a0dda54bf56a8568edc5018f49fb3c96549f"
+        },
+        {
+          "signature": "gridex_received_sources.rejected_z04h_raw_segment_v1(text,integer)",
+          "source_migration": "supabase/migrations/20261010102411_ediel_rejected_z04h_identity_scope.sql",
+          "body_sha256": "6ce4bd796cf12102872bcb40e0879107f55cc7ee57b4b839bbcfeb40301feac7",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "afec19a7932d131cef6dccc6792c2bb3387e3525b2b0129c5379492ceb5fd078"
+        },
+        {
+          "signature": "gridex_received_sources.rejected_z04h_identity_scope_v1(text,jsonb)",
+          "source_migration": "supabase/migrations/20261010102411_ediel_rejected_z04h_identity_scope.sql",
+          "body_sha256": "597b4da76130070d862e95903bd41ab82cb513eac9efc8486e3c90af0ca93450",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "b9e46bfa719d8547c0cf096d403fc0338a47d77f3b36e726e9e3a1e14114e171"
+        },
+        {
+          "signature": "public.ediel_read_prodat_h_accepted_original_v1(uuid,uuid,uuid)",
+          "source_migration": "supabase/migrations/20261010102455_ediel_prodat_customer_masterdata_original_read.sql",
+          "body_sha256": "2524cfcb92c77cb3d6d54c4c8dc55203ebc7f70680c5f13ecccc75ac7c921ed6",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "88f1a959829158a1ef97dae31c4597e60e1e9f3dbbcc7f1063a0ffdf8823ee55"
+        },
+        {
+          "signature": "public.ediel_read_prodat_customer_masterdata_original_v1(uuid,uuid,uuid)",
+          "source_migration": "supabase/migrations/20261010102455_ediel_prodat_customer_masterdata_original_read.sql",
+          "body_sha256": "90dc1ca9e4d43b84e96acf4b46e9d4c83206ca710eb82ae747a427352e0a6334",
+          "arguments_defaults_returns_security_volatility_search_path_match": true,
+          "actual_definition_sha256": "26874ee47c35757edceeb8cb585350e375bb9c1da9fc8a2475b71054fb2589f0"
+        }
+      ],
+      "new_object_blocks": [
+        {
+          "object": [
+            "gridex_ediel_header_negative_birth",
+            "SCHEMA",
+            "-",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "a13109fff681055b85128cec03798a61c2edf0038283c12edcb860b13e215424",
+          "bytes": 137,
+          "source_qualified": true,
+          "SQL": "CREATE SCHEMA gridex_ediel_header_negative_birth;"
+        },
+        {
+          "object": [
+            "assert_ack_v1(public.ediel_messages, jsonb)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "da2d435aaf0a166e438ad2db7538f4d5ee204156a98ac5d2d31e7fa725291ed7",
+          "bytes": 6610,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "classify_v1(text)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "e45e1a23979b9b904b3b53f9dbf02bc82613b9a5226b27ba393810f17728bf16",
+          "bytes": 4589,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "complete_v1()",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "236157a3ea7efde9b2776fd3784c0e83b9f1dcacceeee46ef9ac8bb27faf2232",
+          "bytes": 629,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "create_v1(uuid, text, uuid, uuid, uuid, text, text)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "eddbdc0447d1c95079adfcedd2a1c1f9f58bda9e96ede02d727a6478981976c8",
+          "bytes": 7119,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "evidence_v1(public.ediel_messages)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "76e472445be503b4dca8afc7511ba15a2daeaf4df013526b0445635137e86474",
+          "bytes": 599,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "family_basis_v1(uuid, text, text, timestamp with time zone, timestamp with time zone, jsonb)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "f15c2fca66e65ce9c0a87713f4d6f64b3b7a4550607f63f0455a3315f77e08fa",
+          "bytes": 8433,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "immutable_guide_v1()",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "35ed3db6c4b9686d6e8cde8572af2144970b64f098e40adc3aa817bff847eb3f",
+          "bytes": 344,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "is_bound_v1(public.ediel_messages, boolean)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "57a28df610edf56b9f15641ae03561956a0eecc27f6696e5d8d8d3e6d4c39b39",
+          "bytes": 1881,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "original_guard_v1()",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "48435418053de87fd03e20db8282c365c6501265739e7d0c9c2066097bf1fe58",
+          "bytes": 1306,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "receipt_guard_v1()",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "927c70420704906bc3b317315572bed3a199fd5d7be7dd0ee8f12ecb9446a663",
+          "bytes": 708,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "reply_application_v1(public.ediel_messages, jsonb)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "776300e6a7dc761369e0f44c5bc7e1c15794fc3aa9d0e39fdadbb30e4e350a11",
+          "bytes": 1867,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "require_fresh_reply_process_v1(public.ediel_messages, jsonb)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "8f8102cdc3affa2332ec31f7112184a075cbde1b10f6f039f62f4b700aa5b7c4",
+          "bytes": 2742,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "scopes_v1(text, public.ediel_messages)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "b7263497b445debc2b6e45ec42d4644621331877d6afd618870b0bc00fbc8c1d",
+          "bytes": 1111,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "source_matches_v1(jsonb, jsonb, public.ediel_messages)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "a3ce81370f79fbe5f5b2edd26a47dd6233fac3fc3525851e975f4acaeb4a4300",
+          "bytes": 1012,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "source_wire_v1(public.ediel_messages)",
+            "FUNCTION",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "73b0dc0ba9cc62ec037dbf71a393c36df7ba4da093ab69604e57a620ce3fc86f",
+          "bytes": 1792,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "rejected_z04h_identity_scope_v1(text, jsonb)",
+            "FUNCTION",
+            "gridex_received_sources",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "5132a94c3a28bc49d221d34fc0646fdd5c9894fe7775adaeb04c2dc473ad3076",
+          "bytes": 5492,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "rejected_z04h_raw_segment_v1(text, integer)",
+            "FUNCTION",
+            "gridex_received_sources",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "15d65d4693e138edf513dffff464a30493059fb5c5e19ef8cfae5b6e0cfe73e4",
+          "bytes": 1175,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "ediel_create_assigned_prodat_header_negative_v1(uuid, text, uuid, uuid, uuid, text, text)",
+            "FUNCTION",
+            "public",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "dfae141656f54d4a0a9fbf828819796cd1844f11047e71f4e96aba32a290ffb2",
+          "bytes": 681,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "ediel_read_prodat_customer_masterdata_original_v1(uuid, uuid, uuid)",
+            "FUNCTION",
+            "public",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "24aebbd90aec4ab21ad7822013aab7492d69576d07134886e0d7ace92d628049",
+          "bytes": 2429,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "ediel_read_prodat_h_accepted_original_v1(uuid, uuid, uuid)",
+            "FUNCTION",
+            "public",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "9cf978859a325ef8ca3a640f4bec9c88523c760488992f638ae90782d9a0a275",
+          "bytes": 4176,
+          "source_qualified": true,
+          "SQL": null
+        },
+        {
+          "object": [
+            "guide_extensions",
+            "TABLE",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "b3140dc7e66a52fa9c5efd2949d28ebd85aa1fc12ed5e9f84b9d3c6d31c381c2",
+          "bytes": 322,
+          "source_qualified": true,
+          "SQL": "CREATE TABLE gridex_ediel_header_negative_birth.guide_extensions (\n    version text NOT NULL,\n    evidence jsonb NOT NULL\n);\n\nALTER TABLE ONLY gridex_ediel_header_negative_birth.guide_extensions FORCE ROW LEVEL SECURITY;"
+        },
+        {
+          "object": [
+            "receipts",
+            "TABLE",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "156ffa39292cabcbeab754cfc13e3bee66722c0dee91490e512a1a52a0fc1785",
+          "bytes": 1031,
+          "source_qualified": true,
+          "SQL": "CREATE TABLE gridex_ediel_header_negative_birth.receipts (\n    source_message_id uuid NOT NULL,\n    company_id uuid NOT NULL,\n    environment text NOT NULL,\n    actor_user_id uuid NOT NULL,\n    inbound_email_message_id uuid NOT NULL,\n    parse_result_id uuid NOT NULL,\n    payload_sha256 text NOT NULL,\n    source_received_at timestamp with time zone NOT NULL,\n    observed_at timestamp with time zone NOT NULL,\n    creation_txid bigint NOT NULL,\n    status text NOT NULL,\n    source_facts jsonb NOT NULL,\n    evidence jsonb NOT NULL,\n    CONSTRAINT receipts_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),\n    CONSTRAINT receipts_payload_sha256_check CHECK ((payload_sha256 ~ '^[a-f0-9]{64}$'::text)),\n    CONSTRAINT receipts_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'consumed'::text])))\n);\n\nALTER TABLE ONLY gridex_ediel_header_negative_birth.receipts FORCE ROW LEVEL SECURITY;"
+        },
+        {
+          "object": [
+            "guide_extensions guide_extensions_pkey",
+            "CONSTRAINT",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "dd9df62dadec4c3f3494034f6faaa0993948dbc52acf052867a010f8fbadc71c",
+          "bytes": 261,
+          "source_qualified": true,
+          "SQL": "ALTER TABLE ONLY gridex_ediel_header_negative_birth.guide_extensions\n    ADD CONSTRAINT guide_extensions_pkey PRIMARY KEY (version);"
+        },
+        {
+          "object": [
+            "receipts receipts_inbound_email_message_id_key",
+            "CONSTRAINT",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "99bbb3115a457262b2b1cdd8bc26014cccdb8a8b8f3145ab1c65186e5b84ba01",
+          "bytes": 289,
+          "source_qualified": true,
+          "SQL": "ALTER TABLE ONLY gridex_ediel_header_negative_birth.receipts\n    ADD CONSTRAINT receipts_inbound_email_message_id_key UNIQUE (inbound_email_message_id);"
+        },
+        {
+          "object": [
+            "receipts receipts_parse_result_id_key",
+            "CONSTRAINT",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "ed1280b779e8ba6fad2cdd32c1401e1b41a5f03dcb55706e526ee681d306a3df",
+          "bytes": 262,
+          "source_qualified": true,
+          "SQL": "ALTER TABLE ONLY gridex_ediel_header_negative_birth.receipts\n    ADD CONSTRAINT receipts_parse_result_id_key UNIQUE (parse_result_id);"
+        },
+        {
+          "object": [
+            "receipts receipts_pkey",
+            "CONSTRAINT",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "ea7ee52ef4b5c39fdb2f70df96e77845216c3b551c5e7cb9c339803be83aa861",
+          "bytes": 239,
+          "source_qualified": true,
+          "SQL": "ALTER TABLE ONLY gridex_ediel_header_negative_birth.receipts\n    ADD CONSTRAINT receipts_pkey PRIMARY KEY (source_message_id);"
+        },
+        {
+          "object": [
+            "receipts complete_birth",
+            "TRIGGER",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "e79da545fb226fc5e4d41a790e29763f9889b7e3583dbe14bffec32f60566e40",
+          "bytes": 321,
+          "source_qualified": true,
+          "SQL": "CREATE CONSTRAINT TRIGGER complete_birth AFTER INSERT ON gridex_ediel_header_negative_birth.receipts DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION gridex_ediel_header_negative_birth.complete_v1();"
+        },
+        {
+          "object": [
+            "guide_extensions immutable_guide",
+            "TRIGGER",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "b7a0f479160d601b7ecbd593050349d5fc648bc5c28f22c26ac7671727f45fed",
+          "bytes": 316,
+          "source_qualified": true,
+          "SQL": "CREATE TRIGGER immutable_guide BEFORE DELETE OR UPDATE ON gridex_ediel_header_negative_birth.guide_extensions FOR EACH ROW EXECUTE FUNCTION gridex_ediel_header_negative_birth.immutable_guide_v1();"
+        },
+        {
+          "object": [
+            "receipts immutable_receipt",
+            "TRIGGER",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "39bfc8255ba62fb1967fbd7875fbdb3658633dfc1524ea51da98588882677a8b",
+          "bytes": 302,
+          "source_qualified": true,
+          "SQL": "CREATE TRIGGER immutable_receipt BEFORE DELETE OR UPDATE ON gridex_ediel_header_negative_birth.receipts FOR EACH ROW EXECUTE FUNCTION gridex_ediel_header_negative_birth.receipt_guard_v1();"
+        },
+        {
+          "object": [
+            "ediel_messages assigned_prodat_negative_original_immutable",
+            "TRIGGER",
+            "public",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "b33f55a21c5234463ebf6df11adfce25b66187f51515b085ff40b0ad10018b9d",
+          "bytes": 311,
+          "source_qualified": true,
+          "SQL": "CREATE TRIGGER assigned_prodat_negative_original_immutable BEFORE DELETE OR UPDATE ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_header_negative_birth.original_guard_v1();"
+        },
+        {
+          "object": [
+            "receipts receipts_inbound_email_message_id_fkey",
+            "FK CONSTRAINT",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "eb50f9968e6b25c4cbb38a52d8538457f6429030f2549c4c2c25734984c703b9",
+          "bytes": 344,
+          "source_qualified": true,
+          "SQL": "ALTER TABLE ONLY gridex_ediel_header_negative_birth.receipts\n    ADD CONSTRAINT receipts_inbound_email_message_id_fkey FOREIGN KEY (inbound_email_message_id) REFERENCES public.inbound_email_messages(id);"
+        },
+        {
+          "object": [
+            "receipts receipts_parse_result_id_fkey",
+            "FK CONSTRAINT",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "37b5388ccf782ed4b19492bbd230d68b1a9eee90be44fd58cfb92125b137d04c",
+          "bytes": 322,
+          "source_qualified": true,
+          "SQL": "ALTER TABLE ONLY gridex_ediel_header_negative_birth.receipts\n    ADD CONSTRAINT receipts_parse_result_id_fkey FOREIGN KEY (parse_result_id) REFERENCES public.inbound_ediel_parse_results(id);"
+        },
+        {
+          "object": [
+            "receipts receipts_source_message_id_fkey",
+            "FK CONSTRAINT",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "e855c9e63e76b1e5068cff375bf413fa1f8ffd9633acf38ad5168245476095c3",
+          "bytes": 345,
+          "source_qualified": true,
+          "SQL": "ALTER TABLE ONLY gridex_ediel_header_negative_birth.receipts\n    ADD CONSTRAINT receipts_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id) DEFERRABLE INITIALLY DEFERRED;"
+        },
+        {
+          "object": [
+            "guide_extensions",
+            "ROW SECURITY",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "69a2fdfca26498213a54387cbc052b84467ac98fa2b3f89c535c57bc44f6aeb7",
+          "bytes": 199,
+          "source_qualified": true,
+          "SQL": "ALTER TABLE gridex_ediel_header_negative_birth.guide_extensions ENABLE ROW LEVEL SECURITY;"
+        },
+        {
+          "object": [
+            "receipts",
+            "ROW SECURITY",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "bc53d14303f6d1c3f25a50f186abe8d7199bf78c903a550be08ba1448c25f2ab",
+          "bytes": 183,
+          "source_qualified": true,
+          "SQL": "ALTER TABLE gridex_ediel_header_negative_birth.receipts ENABLE ROW LEVEL SECURITY;"
+        },
+        {
+          "object": [
+            "FUNCTION assert_ack_v1(m public.ediel_messages, e jsonb)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "d2100be0fc2dcc856c27512619ce733608d60698089deabaf534dd5dab28217e",
+          "bytes": 258,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.assert_ack_v1(m public.ediel_messages, e jsonb) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION classify_v1(raw text)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "2281e75d3bc448b6cd7b27c24d6981847468797436c9bcc56caff7c6d29817c5",
+          "bytes": 206,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.classify_v1(raw text) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION complete_v1()",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "241995647e0d73df42c0ebda0582d97add003d76264ac13cdd93495e12a51acd",
+          "bytes": 190,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.complete_v1() FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION create_v1(c uuid, env text, actor uuid, mail_id uuid, parse_id uuid, expected_raw text, expected_hash text)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "3606ac5a3741f6693f24f532d2e61248860420fe603335161fca3ca87ea24e94",
+          "bytes": 378,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.create_v1(c uuid, env text, actor uuid, mail_id uuid, parse_id uuid, expected_raw text, expected_hash text) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION evidence_v1(m public.ediel_messages)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "29e43b82044d445f08b75099f114795a044b274a538992400227466e6f018ed9",
+          "bytes": 236,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.evidence_v1(m public.ediel_messages) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION family_basis_v1(c uuid, env text, raw text, received_at timestamp with time zone, observed timestamp with time zone, classification jsonb)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "502f6e3e62e9e9145ddad84d70b42f6325104b81e612e4aa7ac963156c6bb006",
+          "bytes": 440,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.family_basis_v1(c uuid, env text, raw text, received_at timestamp with time zone, observed timestamp with time zone, classification jsonb) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION immutable_guide_v1()",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "d2f02b2b0a9ff0b6af3519c6ca926dcccf20d0d10f8613a21c86725486bf513e",
+          "bytes": 204,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.immutable_guide_v1() FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION is_bound_v1(m public.ediel_messages, pending boolean)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "cb4feff312bb04f03fd9091d5b53a933cfcc454b356c792f1f0ffb7d6c559b53",
+          "bytes": 270,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.is_bound_v1(m public.ediel_messages, pending boolean) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION original_guard_v1()",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "9eef13981c1d05482df6fc1b13b3cafd6a02f506d2151f4d0909760bb5514cb7",
+          "bytes": 202,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.original_guard_v1() FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION receipt_guard_v1()",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "deb8d2bf584ee6677e0c96bb797b5bebdd8bcd124efa6d59c99ea34bad1276a0",
+          "bytes": 200,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.receipt_guard_v1() FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION reply_application_v1(m public.ediel_messages, e jsonb)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "59e348377e642ed4d3ecade7366c98beb470d5f74dd866b0a7cfa1af427aacb7",
+          "bytes": 272,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.reply_application_v1(m public.ediel_messages, e jsonb) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION require_fresh_reply_process_v1(m public.ediel_messages, e jsonb)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "aab41bfefc796332b84dfdb3df1395d261b49515279bebe6d02018589a4712dd",
+          "bytes": 292,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.require_fresh_reply_process_v1(m public.ediel_messages, e jsonb) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION scopes_v1(raw text, source public.ediel_messages)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "cd9834a61ab896bac558dbee30520a29fff1dd502646cba42adb4987cb88ed6f",
+          "bytes": 262,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.scopes_v1(raw text, source public.ediel_messages) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION source_matches_v1(a jsonb, s jsonb, source public.ediel_messages)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "4f346eedbf81fe0b7d6dcbd509dc43f469377e790a43972b1c42067acf273095",
+          "bytes": 294,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.source_matches_v1(a jsonb, s jsonb, source public.ediel_messages) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION source_wire_v1(m public.ediel_messages)",
+            "ACL",
+            "gridex_ediel_header_negative_birth",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "7c539207c21e07c29cc3a29e1a2d861d5c207f7bbfdcc67bb55cb5ef8d86ef81",
+          "bytes": 242,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_ediel_header_negative_birth.source_wire_v1(m public.ediel_messages) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION rejected_z04h_identity_scope_v1(raw text, object_scope jsonb)",
+            "ACL",
+            "gridex_received_sources",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "0a41e94bdc544468b349f1551962af771bc8e43c6787e0e7b213b0d5bd59c828",
+          "bytes": 264,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_received_sources.rejected_z04h_identity_scope_v1(raw text, object_scope jsonb) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION rejected_z04h_raw_segment_v1(raw text, wanted integer)",
+            "ACL",
+            "gridex_received_sources",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "bbbb68e4df424c64a08dde7d50786cff861167aa70a9c1eaa17b0321fdccb528",
+          "bytes": 250,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION gridex_received_sources.rejected_z04h_raw_segment_v1(raw text, wanted integer) FROM PUBLIC;"
+        },
+        {
+          "object": [
+            "FUNCTION ediel_create_assigned_prodat_header_negative_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_inbound_email_message_id uuid, p_parse_result_id uuid, p_expected_raw_payload text, p_expected_payload_hash text)",
+            "ACL",
+            "public",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "6b3b2cd59af383f032140008c5953a975d0ea2a0be85314032235a8cd411f040",
+          "bytes": 827,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION public.ediel_create_assigned_prodat_header_negative_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_inbound_email_message_id uuid, p_parse_result_id uuid, p_expected_raw_payload text, p_expected_payload_hash text) FROM PUBLIC;\nGRANT ALL ON FUNCTION public.ediel_create_assigned_prodat_header_negative_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_inbound_email_message_id uuid, p_parse_result_id uuid, p_expected_raw_payload text, p_expected_payload_hash text) TO service_role;"
+        },
+        {
+          "object": [
+            "FUNCTION ediel_read_prodat_customer_masterdata_original_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid)",
+            "ACL",
+            "public",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "4015cc1d01c4ef6d50a56cd9711cc1ed8bc4ba6ad58b9aa3c5e6996897cceeda",
+          "bytes": 482,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION public.ediel_read_prodat_customer_masterdata_original_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid) FROM PUBLIC;\nGRANT ALL ON FUNCTION public.ediel_read_prodat_customer_masterdata_original_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid) TO service_role;"
+        },
+        {
+          "object": [
+            "FUNCTION ediel_read_prodat_h_accepted_original_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid)",
+            "ACL",
+            "public",
+            "-",
+            0
+          ],
+          "whole_block_sha256": "c5d3937f16fe02c135ec484c6597955b8f536e5d42d26460fc63498e60977fec",
+          "bytes": 455,
+          "source_qualified": true,
+          "SQL": "REVOKE ALL ON FUNCTION public.ediel_read_prodat_h_accepted_original_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid) FROM PUBLIC;\nGRANT ALL ON FUNCTION public.ediel_read_prodat_h_accepted_original_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid) TO service_role;"
+        }
+      ],
+      "main723_energy_preserved_blocks": [
+        {
+          "object": [
+            "gridex_canonical_energy_event_platform_scope_v1()",
+            "FUNCTION",
+            "public",
+            "-",
+            0
+          ],
+          "sha256": "68e9f9608f6af42b25a4e787c58cde9463afbf410313c3192f34a985abc7bdd6"
+        },
+        {
+          "object": [
+            "canonical_energy_flow_events canonical_energy_flow_events_platform_scope",
+            "TRIGGER",
+            "public",
+            "-",
+            0
+          ],
+          "sha256": "5af163a80e4bf56aef61918a9da99b0ac6a669729c0bd49c4e9440326efe1e01"
+        },
+        {
+          "object": [
+            "FUNCTION gridex_canonical_energy_event_platform_scope_v1()",
+            "ACL",
+            "public",
+            "-",
+            0
+          ],
+          "sha256": "f59c57b24c16c20dcbf0f251e20c8cc8e5c5a964a987eed8692a9883fdb7c818"
+        }
+      ],
+      "fingerprint_deltas": {
+        "columns": {
+          "before_count": 14449,
+          "actual_count": 14464,
+          "delta": 15,
+          "before_sha256": "26c529e9817819265020bbe6c23599957c53ccbfd753912d032c436e55832d6b",
+          "actual_sha256": "28772f64c476dde966dbaf474317cd3d855bc727c9415cf7dee6ea2b6333e2d0",
+          "unchanged": false
+        },
+        "constraints": {
+          "before_count": 4586,
+          "actual_count": 4597,
+          "delta": 11,
+          "before_sha256": "343d6748865339f55ef30694e0806e6a203cb8914c420ce33d138e81de3247d5",
+          "actual_sha256": "3135330557556dc8ed792ab87e0ed7d4b876c553405184bea6b680ad02074166",
+          "unchanged": false
+        },
+        "enums": {
+          "before_count": 4,
+          "actual_count": 4,
+          "delta": 0,
+          "before_sha256": "e4e1406f2879720d7bec4e002e1bb62cbb3160f29ccc84e90ea8ec388cc6e629",
+          "actual_sha256": "e4e1406f2879720d7bec4e002e1bb62cbb3160f29ccc84e90ea8ec388cc6e629",
+          "unchanged": true
+        },
+        "extensions": {
+          "before_count": 8,
+          "actual_count": 8,
+          "delta": 0,
+          "before_sha256": "8932c4a79fcdd9faea353c042d57caa599bc42d04571424296270cdaa929338b",
+          "actual_sha256": "8932c4a79fcdd9faea353c042d57caa599bc42d04571424296270cdaa929338b",
+          "unchanged": true
+        },
+        "function_grants": {
+          "before_count": 3692,
+          "actual_count": 3715,
+          "delta": 23,
+          "before_sha256": "fe8faf77b13f476e680d9b87f0d2ffddda4bdbc75334408fc4b5ad04c4703b4f",
+          "actual_sha256": "777278a8b9e49930c255f82bbfd5990e257cfd0e5a7dc33cb51e8a19ec90e588",
+          "unchanged": false
+        },
+        "functions": {
+          "before_count": 2140,
+          "actual_count": 2160,
+          "delta": 20,
+          "before_sha256": "bf65a102e98b991f0c45626c1cf84ae606201da9e4cc21249cef11ca5116cbda",
+          "actual_sha256": "5fcfb2129e301080d5ded0d88b42478982cc61ff360a21de1284700ea7464452",
+          "unchanged": false
+        },
+        "indexes": {
+          "before_count": 2965,
+          "actual_count": 2969,
+          "delta": 4,
+          "before_sha256": "81cc3666d3d3112576a5ee638cabf58829191926d71d3e96c52e63e62998b728",
+          "actual_sha256": "e3e6eeac047e353373e559b90f3498d9d8bd2e89e73156ec61c8d0a89b3f19b0",
+          "unchanged": false
+        },
+        "policies": {
+          "before_count": 2560,
+          "actual_count": 2560,
+          "delta": 0,
+          "before_sha256": "dbdecc17a06a4f5737a341249abf72b77d129761e043f8c162a5eb10e532bac6",
+          "actual_sha256": "dbdecc17a06a4f5737a341249abf72b77d129761e043f8c162a5eb10e532bac6",
+          "unchanged": true
+        },
+        "relation_grants": {
+          "before_count": 16691,
+          "actual_count": 16707,
+          "delta": 16,
+          "before_sha256": "95086e2161c38f4c3ceec99110f5878710a4ec7decc6efaf881f8b2a7b717f9f",
+          "actual_sha256": "0832ee2abe32a63778200c2afe414e60de6ac98fc43253e29ffb9e6479883d05",
+          "unchanged": false
+        },
+        "relations": {
+          "before_count": 977,
+          "actual_count": 979,
+          "delta": 2,
+          "before_sha256": "c3f866c342b8c118ac02767ad84a83dbe3da14f354601f6f442d1691fb1f81fb",
+          "actual_sha256": "024d537350414165539cdc8f2318ec187fe1fef1cadb8545ebc7d118c4c58cca",
+          "unchanged": false
+        },
+        "schema_grants": {
+          "before_count": 162,
+          "actual_count": 164,
+          "delta": 2,
+          "before_sha256": "c04720d6f2a3745995b178640f1b8fb7e85da9468fc95057891f08d005059df6",
+          "actual_sha256": "b8f20600cedf1c0118549259707f21bd4cb8beaa04dc7772d723c16cd110f88c",
+          "unchanged": false
+        },
+        "schemas": {
+          "before_count": 57,
+          "actual_count": 58,
+          "delta": 1,
+          "before_sha256": "4dfbd3070774a591013a70772f68743cf0d289ddf2c5e222a5c726fa6cc503bd",
+          "actual_sha256": "25137dd710074bcb9e8dfae2ba01bb269ec1bd447ab86fae4325b163043bb5be",
+          "unchanged": false
+        },
+        "triggers": {
+          "before_count": 1631,
+          "actual_count": 1635,
+          "delta": 4,
+          "before_sha256": "d42676fbd0551b94e1f5ebf116262f157c568563af0d4b745b9af86bc509ad9e",
+          "actual_sha256": "bc6c9fb17091e6c88f382ec64edc2c7625b7d3d2544ff5674bb4e6e832784c49",
+          "unchanged": false
+        }
+      },
+      "expected_schema_names": [
+        "gridex_ack_authority",
+        "gridex_ai_processing",
+        "gridex_ai_purpose_sources",
+        "gridex_bilateral_customer_sources",
+        "gridex_bilateral_prodat",
+        "gridex_billing_source",
+        "gridex_brp_changes",
+        "gridex_brp_declaration_intake",
+        "gridex_brp_sources",
+        "gridex_business_expectations",
+        "gridex_certificate_trust",
+        "gridex_contract_source_intake",
+        "gridex_correction_process",
+        "gridex_customer_life_events",
+        "gridex_customer_masterdata",
+        "gridex_ediel_ack_guide",
+        "gridex_ediel_ack_replay",
+        "gridex_ediel_business_incidents",
+        "gridex_ediel_common_header",
+        "gridex_ediel_duplicate_responses",
+        "gridex_ediel_exports",
+        "gridex_ediel_header_negative_birth",
+        "gridex_ediel_inbound_context",
+        "gridex_ediel_inbound_receptions",
+        "gridex_ediel_legacy_archive",
+        "gridex_ediel_outbound_owner",
+        "gridex_ediel_readiness",
+        "gridex_ediel_retention",
+        "gridex_ediel_services",
+        "gridex_ediel_source_rules",
+        "gridex_ediel_technical_ack",
+        "gridex_ediel_transport",
+        "gridex_ediel_wire_namespace",
+        "gridex_internal",
+        "gridex_metering_method_changes",
+        "gridex_method_expectations",
+        "gridex_negative_fixtures",
+        "gridex_network_registry_sources",
+        "gridex_outbound_dispatch",
+        "gridex_private",
+        "gridex_prodat_object_batch",
+        "gridex_received_err_response",
+        "gridex_received_reading_expectations",
+        "gridex_received_sources",
+        "gridex_registry_import",
+        "gridex_regulated_supply",
+        "gridex_requested_changes",
+        "gridex_requested_customer_changes",
+        "gridex_requested_method_watches",
+        "gridex_service_administration",
+        "gridex_service_permission",
+        "gridex_supply_rescission",
+        "gridex_switch_cancellations",
+        "gridex_transport_exception",
+        "gridex_unattributed_intake",
+        "gridex_utilts_binding",
+        "gridex_utilts_issuer",
+        "public"
+      ],
+      "actual_public_types": [
+        {
+          "name": "ediel_create_assigned_prodat_header_negative_v1",
+          "signature": "public.ediel_create_assigned_prodat_header_negative_v1(uuid,text,uuid,uuid,uuid,text,text)",
+          "actual_block_sha256": "1357684717b11b8971f1bf1392867605fa31941a4402d548a2de408ad8487e77",
+          "Args": {
+            "p_actor_user_id": "string",
+            "p_company_id": "string",
+            "p_environment": "string",
+            "p_expected_payload_hash": "string",
+            "p_expected_raw_payload": "string",
+            "p_inbound_email_message_id": "string",
+            "p_parse_result_id": "string"
+          },
+          "all_arguments_required": true,
+          "Returns": "Json",
+          "actual_block": "      ediel_create_assigned_prodat_header_negative_v1: {\n        Args: {\n          p_actor_user_id: string\n          p_company_id: string\n          p_environment: string\n          p_expected_payload_hash: string\n          p_expected_raw_payload: string\n          p_inbound_email_message_id: string\n          p_parse_result_id: string\n        }\n        Returns: Json\n      }\n"
+        },
+        {
+          "name": "ediel_read_prodat_h_accepted_original_v1",
+          "signature": "public.ediel_read_prodat_h_accepted_original_v1(uuid,uuid,uuid)",
+          "actual_block_sha256": "580f3d263f165f8fbb97b58c32bd82e7086eb0a6ee0031cf7969686786c3e56e",
+          "Args": {
+            "p_actor_user_id": "string",
+            "p_company_id": "string",
+            "p_message_id": "string"
+          },
+          "all_arguments_required": true,
+          "Returns": "Json",
+          "actual_block": "      ediel_read_prodat_h_accepted_original_v1: {\n        Args: {\n          p_actor_user_id: string\n          p_company_id: string\n          p_message_id: string\n        }\n        Returns: Json\n      }\n"
+        },
+        {
+          "name": "ediel_read_prodat_customer_masterdata_original_v1",
+          "signature": "public.ediel_read_prodat_customer_masterdata_original_v1(uuid,uuid,uuid)",
+          "actual_block_sha256": "95fb150a872f654e34145049de5e2726783f0ae68fc04cca86b23fbe4d78c8bb",
+          "Args": {
+            "p_actor_user_id": "string",
+            "p_company_id": "string",
+            "p_message_id": "string"
+          },
+          "all_arguments_required": true,
+          "Returns": "Json",
+          "actual_block": "      ediel_read_prodat_customer_masterdata_original_v1: {\n        Args: {\n          p_actor_user_id: string\n          p_company_id: string\n          p_message_id: string\n        }\n        Returns: Json\n      }\n"
+        }
+      ],
+      "three_actual_public_types": true,
+      "source_contract_sha256": "a37a62d223eed12092aaf0989383933557d463ff96eb3b111b8ae1a211a1b0dc",
+      "parser_sha256": "9558b996fa11c9927ac6998c2e0793012a8a6fcbac667accb01407bf2bbbc269",
+      "qualifier_sha256": "6af88237fd2a9e83bf52210c17c61c96632f39c3151d971533248faec325f62b",
+      "original_capture_flags": {
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN"
+      },
+      "limitations": [
+        "Fingerprint individual section row digests cannot be recomputed from summary-only artifacts; canonical total, exact schema dump, source-bound object inventory and unchanged sections are independently verified. No live catalog OID/owner values claimed.",
+        "Schema-only capture does not prove guide_extensions seed row data or runtime behavior; genuine captured sender/header/identity/READ finite/native checks remain ROOT-owned separate evidence.",
+        "This qualification does not supply resulting-head mandatory nine or native C/H checks and does not edit original NOT_RUN capture flags."
+      ],
+      "no_mutations": {
+        "source": true,
+        "refs": true,
+        "CI": true,
+        "native_or_SQL_producer": true,
+        "artifact_download": true,
+        "GEN_constructor": true
+      }
+    },
     "native": "NOT_RUN",
     "browser": "NOT_RUN",
     "type_schema_comparison": "NOT_RUN",
     "upgrade_parity": "NOT_RUN",
-    "ACK_postimage": {
-      "source_mode": "already_captured_postimage",
-      "source_qualification": "already_captured_postimage",
-      "finite_checks": 79,
-      "source_qualification_checks": 2,
-      "runner_sha256": "0d227e1f35e2d4d29c8e23ab4febcaadd6a9d5a96238133a06a14ca805a6fa45",
-      "source_schema_sha256": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
-      "result_stdout_sha256": "26f9c2c4d163e052a44ae0f51e035977fd3a0a5811c07c62f87367d192292c61",
-      "execution_receipt_sha256": "30507e13ac0d55a4c72e35b95f008dd824e5ba9c87b38dcfe77be933fdd7af34",
-      "native_dependency_evidence": "successful_genuine_producer_executed_projector_tail_after_preserved_guarded_ACK_index",
-      "native_concurrency": "NOT_RUN"
-    },
-    "C_postimage": {
-      "source_qualification": "already_captured_postimage",
-      "finite_checks": 47,
-      "runner_sha256": "9cf63f4b02e765fa64b283092632439121a546e969e511d8175c02611a626160",
-      "source_schema_sha256": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
-      "stdout_sha256": "38d01447055f7c879c19be56a26d368a79f6fbd6147c3d966041f2dc6008fd4d",
-      "result_sha256": "553ccd086c87299ad1102838f7eb61e33ee943f85c892de9bb18a714acaa9ba6",
-      "scope": "Actual captured C postimage finite qualification; no native acceptance."
-    },
-    "new_projector_source_catalog": {
-      "status": "ACTUAL_CAPTURED_PROJECTOR_FULLBODY_SCHEMA_INVERSE_MATCH",
-      "sourceSchemaSha256": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
-      "preSchemaSha256": "d9b58b4a7998284aa38d3997311f1bd26706aaa5b4356d53fc30a49f12a8d707",
-      "migrationSha256": "b6b6daa1aa74c7314b71f7c6cc068e53301808a55386fcf95831f9ad28feacfc",
-      "preimageProsrcSha256": "01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379",
-      "postimageProsrcSha256": "66d86e98130ca6f5e64ae966d710f35bce86204452febe714684025943a81f17",
-      "actualCompleteDefinitionSha256": "f15e2a1b121356a4196993309a2428b02941f99e3f9b5ab4e898f06ae40756f5",
-      "fullGenuineSchemaByteInverse": true,
-      "allOtherSchemaAndAclBytesUnchanged": true,
-      "function": "public.ediel_project_accepted_source_state_v1",
-      "native": "NOT_RUN",
-      "wholeBusinessAcceptance": "NOT_RUN",
-      "scope": "Exact lexically visible actual pg_dump declaration/body and complete baseline schema byte inverse only."
-    },
-    "projector_postimage": {
-      "source_mode": "actual_postimage",
-      "finite_checks": 64,
-      "runner_sha256": "3aa7ca71589bedde1e88ab0b2cafa0f9f6b398b524f5e8943c46aab880d09317",
-      "source_schema_sha256": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
-      "pre_schema_sha256": "d9b58b4a7998284aa38d3997311f1bd26706aaa5b4356d53fc30a49f12a8d707",
-      "stdout_sha256": "cac06ccea51a39d02963db8a74af585a3d8b0ad1b6a6dc7543b380f73ce2ba2a",
-      "execution_receipt_sha256": "34112ae4e797792efe22de69d07dcaf2698964665e17c23f3e02842b985b32d3",
-      "scope": "Actual captured projector finite behavior with declared synthetic ports; no native or whole acceptance."
-    },
-    "scope": "Actual capture/source/full projector inverse/catalog/finite qualifications only; whole acceptance and current CI remain separate."
+    "scope": "Finite actual SQL with declared external ports; no whole rule, native concurrency, public runtime or current-head CI approval."
   },
   "superseded_capture": {
     "purpose": "capture_only",
@@ -263,28 +1706,27 @@
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
   "capture_artifact": {
-    "run_id": 37997669775,
-    "job_id": 114047740013,
-    "attempt": 1,
-    "artifact_id": 11647616985,
-    "name": "staff-schema-capture-700eab0effc87390b961dd76c1fad2f857665609",
-    "archive_size_bytes": 1675461,
-    "archive_sha256": "d5c45b944500d6a5242bc45b0e6ee8f5a34f86e819091e26c557142b965d3e1e",
-    "official_digest": "sha256:d5c45b944500d6a5242bc45b0e6ee8f5a34f86e819091e26c557142b965d3e1e",
-    "receipt_sha256": "f97448c39d028e10baa710809321fa16cd10c332fb2cc408afc1a576766a44cd",
+    "run_id": "38048009055",
+    "job_id": "114201347474",
+    "attempt": "1",
+    "artifact_id": "11668781212",
+    "name": "staff-schema-capture-b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+    "archive_size_bytes": 1687365,
+    "archive_sha256": "26d12e2d42619facacc9ffd1b82ac80b86b821bf39ab7198c6a85de267a37028",
+    "official_digest": "sha256:26d12e2d42619facacc9ffd1b82ac80b86b821bf39ab7198c6a85de267a37028",
+    "receipt_sha256": "8629c5ab09c012a5a3d9ac8774eb82a084f552a1d2b8005165bc3f0b72779f0b",
     "metadata_sha256": {
-      "artifact": "c84b3614bde77d4305ef297b6c7c218886b521090f54c5ad7cc73e2320fe1b79",
-      "run": "89d6557e2f7c79d271022c7dda1c7b497f1d12d4f87cf700656ae39f8321d133",
-      "jobs": "f526cde7ac30dcbb73b963cdd201598a4338da48d6bd7a37fd133429e6fb1c70"
+      "artifact": "287a16e9818f3394e469219e52a086380662215dbc9eda65f6c662a5f5a29855",
+      "run": "bb103a54764b4ed16392d7443669dbcf1f31e510fc9c620cc2f80676cd010c51",
+      "jobs": "60eede16839bbb46c3bdbcb739f27f5c9204d3321bf5cfa5ce8fa18e73d2421f"
     },
     "raw_heads": {
-      "artifact": "700eab0effc87390b961dd76c1fad2f857665609",
-      "job": "700eab0effc87390b961dd76c1fad2f857665609",
-      "run": "700eab0effc87390b961dd76c1fad2f857665609"
+      "artifact": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+      "job": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+      "run": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d"
     },
-    "qualification_result_sha256": "ea2d24eab6c109cdc3999bd8940207e9ea1cc7a44e122a04784a96d8183d111b",
     "raw3": "BYTE_EXACT_ORIGINAL_CAPTURE_ONLY",
-    "scope": "Actual new-source artifact; finite/catalog evidence does not establish native concurrency or whole acceptance."
+    "scope": "Actual original combined C/H capture; independent origin qualification and final native/main checks remain separate."
   },
   "inherited_main7edef_current_prefix_verification": {
     "kind": "mandatory_actual_composed_head_proof",
@@ -337,7 +1779,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "True for the four remaining C/H forwards on actual main517 after PR723. RAW3 is copied byte-exactly from actual main as a pending baseline; no new combined capture, native or current-head CI is credited.",
+  "composition_capture_pending_scope": "False only for this genuine combined C/H capture import. Historical pending and NOT_RUN values remain intact; resulting-head mandatory/native checks remain pending.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -792,7 +2234,7 @@
     "path": "quality/staff-api/tenant-classification-evidence-20261005/preimport-complete-types-manifest-a315.json",
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
-  "source_latest_migration": "20261009215000_ediel_source_bound_ack_projection.sql",
+  "source_latest_migration": "20261010102455_ediel_prodat_customer_masterdata_original_read.sql",
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
     "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
@@ -1525,26 +2967,32 @@
     "scope": "Exact authentic staff/P08 current-main origin, preserved historically while new composition capture is pending."
   },
   "active_generated_outputs_origin": {
-    "source_head": "700eab0effc87390b961dd76c1fad2f857665609",
-    "source_tree": "677b3a999f59905463a6ad89a8dc44486f258c41",
-    "run_id": 37997669775,
-    "artifact_id": 11647616985,
-    "raw3_sha256": {
-      "database.types.ts": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
-      "schema.sql": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
-      "schema.fingerprint.json": "9d60a59249e3c8651ce4a706e362392ed05555e418e576442786292b9b8deb21"
-    },
-    "input_sha256": {
+    "method": "BYTE_EXACT_AUTHENTIC_RAW3_IMPORT",
+    "source_head": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+    "source_tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+    "capture_run": "38048009055",
+    "artifact_id": "11668781212",
+    "source8_input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
-      "scripts/migration-history-manifest.json": "c55e443a569facdecdafd9bc262532a3010a4d100e119c935744cba210a77add",
+      "scripts/migration-history-manifest.json": "af15f4ab63f8e4c9b36e369105f48de5a0bdaddcd5f30553cea0a0a3a9448f10",
       "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
       "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
-      "scripts/supabase-types-manifest.json": "33c320b0a5fa6b86fb5095331319e88194aab6977ff7b88a15e8fc658077361f",
+      "scripts/supabase-types-manifest.json": "b211b6e8b26b57f8733c31b642f4aa9c9dd67caa655097e0b9f6ecef608edb8d",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
     },
-    "scope": "Genuine new-source capture; actual finite/catalog qualification passed, resulting-head validation pending."
+    "raw3_sha256": {
+      "database.types.ts": "d7e97a0e14146082d81ef900eb1d7c649ab6e77d87fb6daa45f877d63d12c893",
+      "schema.sql": "293626da3345a2eb4d8b1762cb005804c22d57aa6ef03f9df32e5192e8e28d6a",
+      "schema.fingerprint.json": "1b2930f5efde8b9973510d777f6dd8499d58d737782f0390476cf5285ea589e6"
+    },
+    "original_capture_flags": {
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN"
+    }
   },
   "pre_intake_export_capture_manifest": {
     "commit": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
@@ -11373,5 +12821,235 @@
     "native_tests": "NOT_RUN",
     "schema_types_import": "NOT_RUN",
     "scope": "One existing source-bound capture producer for the final C/H/main517 union; original source captures and dated pending records remain historical, not promoted."
+  },
+  "pre_ediel_final_combined_capture_root_20261010": {
+    "input_commit": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+    "input_tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+    "input_manifest_blob": "ebf0e571c6c55808ad7f927fdf1a17e801342cdb",
+    "input_manifest_sha256": "b211b6e8b26b57f8733c31b642f4aa9c9dd67caa655097e0b9f6ecef608edb8d",
+    "active_fields": {
+      "generated_at": "2026-10-10T09:17:27.365367+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38040161060",
+      "sha256": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
+      "latest_migration": "20261009215000_ediel_source_bound_ack_projection.sql",
+      "latest_migration_schema_effect": "Byte-exact authentic capture-only run of main plus the platform-scope trigger on canonical_energy_flow_events (one trigger function, one BEFORE INSERT trigger, its ACL). Generated types unchanged from main; schema.sql and fingerprint gain only these objects. Capture-only NOT_RUN flags retain their original meaning.",
+      "composition_capture_pending": true,
+      "capture": {
+        "purpose": "capture_only",
+        "captured_at": "2026-10-10T09:17:27.365367+00:00",
+        "checkout_sha": "6337cb00ff6783e5e848f61ca4d84eab34e1f6fa",
+        "checkout_tree": "a88bc3514e109343ad9b0f5ad94d9999ac547b2b",
+        "workflow_run_id": "38040161060",
+        "workflow_run_attempt": "1",
+        "supabase_cli_version": "2.101.0",
+        "postgres_server_version": "17.6",
+        "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+        "latest_replay_migration": {
+          "name": "20261009215000_ediel_source_bound_ack_projection.sql",
+          "sha256": "b6b6daa1aa74c7314b71f7c6cc068e53301808a55386fcf95831f9ad28feacfc"
+        },
+        "schema_names": [
+          "gridex_ack_authority",
+          "gridex_ai_processing",
+          "gridex_ai_purpose_sources",
+          "gridex_bilateral_customer_sources",
+          "gridex_bilateral_prodat",
+          "gridex_billing_source",
+          "gridex_brp_changes",
+          "gridex_brp_declaration_intake",
+          "gridex_brp_sources",
+          "gridex_business_expectations",
+          "gridex_certificate_trust",
+          "gridex_contract_source_intake",
+          "gridex_correction_process",
+          "gridex_customer_life_events",
+          "gridex_customer_masterdata",
+          "gridex_ediel_ack_guide",
+          "gridex_ediel_ack_replay",
+          "gridex_ediel_business_incidents",
+          "gridex_ediel_common_header",
+          "gridex_ediel_duplicate_responses",
+          "gridex_ediel_exports",
+          "gridex_ediel_inbound_context",
+          "gridex_ediel_inbound_receptions",
+          "gridex_ediel_legacy_archive",
+          "gridex_ediel_outbound_owner",
+          "gridex_ediel_readiness",
+          "gridex_ediel_retention",
+          "gridex_ediel_services",
+          "gridex_ediel_source_rules",
+          "gridex_ediel_technical_ack",
+          "gridex_ediel_transport",
+          "gridex_ediel_wire_namespace",
+          "gridex_internal",
+          "gridex_metering_method_changes",
+          "gridex_method_expectations",
+          "gridex_negative_fixtures",
+          "gridex_network_registry_sources",
+          "gridex_outbound_dispatch",
+          "gridex_private",
+          "gridex_prodat_object_batch",
+          "gridex_received_err_response",
+          "gridex_received_reading_expectations",
+          "gridex_received_sources",
+          "gridex_registry_import",
+          "gridex_regulated_supply",
+          "gridex_requested_changes",
+          "gridex_requested_customer_changes",
+          "gridex_requested_method_watches",
+          "gridex_service_administration",
+          "gridex_service_permission",
+          "gridex_supply_rescission",
+          "gridex_switch_cancellations",
+          "gridex_transport_exception",
+          "gridex_unattributed_intake",
+          "gridex_utilts_binding",
+          "gridex_utilts_issuer",
+          "public"
+        ],
+        "schema_fingerprint": "496cfd42c27cbedd1181ea22b19676d91db5f4fd6dcde0a34ad42ea248aeb1d0",
+        "artifact_sha256": {
+          "database.types.ts": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
+          "schema.sql": "c0b1253888b77dd9858ac1747d0bf9913298297801548bad805f2c22e851760e",
+          "schema.fingerprint.json": "706eeb86168031800f69580052235d4cd3be00550f35f37cb7fff3fc930bac85"
+        },
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
+          "scripts/migration-history-manifest.json": "7a671e6d0425223093152f03f3e2f9fca52927324b72f1c35165b683ce5506b0",
+          "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
+          "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
+          "scripts/supabase-types-manifest.json": "e8b2ca6b0b1c50adc49b9454b360038f2f21b70e844b202e11dc50d7239fec4b",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
+      },
+      "composition_note": "Previous thirteen active fields and authentic be951 origin are archived under pre_help699_source_bound_ack_projector_capture_root_20261009 with a full actual pending metadata byte inverse. All be951/bc/ad0/b82 archives and dated pending history remain unchanged. RAW3 is copied only from the genuine original new-source artifact.",
+      "current_prefix_verification": {
+        "kind": "authentic_help699_source_bound_ack_projector_capture",
+        "source_head": "700eab0effc87390b961dd76c1fad2f857665609",
+        "source_tree": "677b3a999f59905463a6ad89a8dc44486f258c41",
+        "actual_capture_run": 37997669775,
+        "status": "AUTHENTIC_CAPTURE_IMPORTED_CURRENT_RESULTING_HEAD_GATES_PENDING",
+        "canonical_manifest_rows": 860,
+        "physical_SQL_files": 1122,
+        "native": "NOT_RUN",
+        "browser": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "ACK_postimage": {
+          "source_mode": "already_captured_postimage",
+          "source_qualification": "already_captured_postimage",
+          "finite_checks": 79,
+          "source_qualification_checks": 2,
+          "runner_sha256": "0d227e1f35e2d4d29c8e23ab4febcaadd6a9d5a96238133a06a14ca805a6fa45",
+          "source_schema_sha256": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
+          "result_stdout_sha256": "26f9c2c4d163e052a44ae0f51e035977fd3a0a5811c07c62f87367d192292c61",
+          "execution_receipt_sha256": "30507e13ac0d55a4c72e35b95f008dd824e5ba9c87b38dcfe77be933fdd7af34",
+          "native_dependency_evidence": "successful_genuine_producer_executed_projector_tail_after_preserved_guarded_ACK_index",
+          "native_concurrency": "NOT_RUN"
+        },
+        "C_postimage": {
+          "source_qualification": "already_captured_postimage",
+          "finite_checks": 47,
+          "runner_sha256": "9cf63f4b02e765fa64b283092632439121a546e969e511d8175c02611a626160",
+          "source_schema_sha256": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
+          "stdout_sha256": "38d01447055f7c879c19be56a26d368a79f6fbd6147c3d966041f2dc6008fd4d",
+          "result_sha256": "553ccd086c87299ad1102838f7eb61e33ee943f85c892de9bb18a714acaa9ba6",
+          "scope": "Actual captured C postimage finite qualification; no native acceptance."
+        },
+        "new_projector_source_catalog": {
+          "status": "ACTUAL_CAPTURED_PROJECTOR_FULLBODY_SCHEMA_INVERSE_MATCH",
+          "sourceSchemaSha256": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
+          "preSchemaSha256": "d9b58b4a7998284aa38d3997311f1bd26706aaa5b4356d53fc30a49f12a8d707",
+          "migrationSha256": "b6b6daa1aa74c7314b71f7c6cc068e53301808a55386fcf95831f9ad28feacfc",
+          "preimageProsrcSha256": "01a18718d1d55c93238f2f9a8cfcb44da7cd5b35dbee96af964066a1848b7379",
+          "postimageProsrcSha256": "66d86e98130ca6f5e64ae966d710f35bce86204452febe714684025943a81f17",
+          "actualCompleteDefinitionSha256": "f15e2a1b121356a4196993309a2428b02941f99e3f9b5ab4e898f06ae40756f5",
+          "fullGenuineSchemaByteInverse": true,
+          "allOtherSchemaAndAclBytesUnchanged": true,
+          "function": "public.ediel_project_accepted_source_state_v1",
+          "native": "NOT_RUN",
+          "wholeBusinessAcceptance": "NOT_RUN",
+          "scope": "Exact lexically visible actual pg_dump declaration/body and complete baseline schema byte inverse only."
+        },
+        "projector_postimage": {
+          "source_mode": "actual_postimage",
+          "finite_checks": 64,
+          "runner_sha256": "3aa7ca71589bedde1e88ab0b2cafa0f9f6b398b524f5e8943c46aab880d09317",
+          "source_schema_sha256": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
+          "pre_schema_sha256": "d9b58b4a7998284aa38d3997311f1bd26706aaa5b4356d53fc30a49f12a8d707",
+          "stdout_sha256": "cac06ccea51a39d02963db8a74af585a3d8b0ad1b6a6dc7543b380f73ce2ba2a",
+          "execution_receipt_sha256": "34112ae4e797792efe22de69d07dcaf2698964665e17c23f3e02842b985b32d3",
+          "scope": "Actual captured projector finite behavior with declared synthetic ports; no native or whole acceptance."
+        },
+        "scope": "Actual capture/source/full projector inverse/catalog/finite qualifications only; whole acceptance and current CI remain separate."
+      },
+      "capture_artifact": {
+        "run_id": 37997669775,
+        "job_id": 114047740013,
+        "attempt": 1,
+        "artifact_id": 11647616985,
+        "name": "staff-schema-capture-700eab0effc87390b961dd76c1fad2f857665609",
+        "archive_size_bytes": 1675461,
+        "archive_sha256": "d5c45b944500d6a5242bc45b0e6ee8f5a34f86e819091e26c557142b965d3e1e",
+        "official_digest": "sha256:d5c45b944500d6a5242bc45b0e6ee8f5a34f86e819091e26c557142b965d3e1e",
+        "receipt_sha256": "f97448c39d028e10baa710809321fa16cd10c332fb2cc408afc1a576766a44cd",
+        "metadata_sha256": {
+          "artifact": "c84b3614bde77d4305ef297b6c7c218886b521090f54c5ad7cc73e2320fe1b79",
+          "run": "89d6557e2f7c79d271022c7dda1c7b497f1d12d4f87cf700656ae39f8321d133",
+          "jobs": "f526cde7ac30dcbb73b963cdd201598a4338da48d6bd7a37fd133429e6fb1c70"
+        },
+        "raw_heads": {
+          "artifact": "700eab0effc87390b961dd76c1fad2f857665609",
+          "job": "700eab0effc87390b961dd76c1fad2f857665609",
+          "run": "700eab0effc87390b961dd76c1fad2f857665609"
+        },
+        "qualification_result_sha256": "ea2d24eab6c109cdc3999bd8940207e9ea1cc7a44e122a04784a96d8183d111b",
+        "raw3": "BYTE_EXACT_ORIGINAL_CAPTURE_ONLY",
+        "scope": "Actual new-source artifact; finite/catalog evidence does not establish native concurrency or whole acceptance."
+      },
+      "composition_capture_pending_scope": "True for the four remaining C/H forwards on actual main517 after PR723. RAW3 is copied byte-exactly from actual main as a pending baseline; no new combined capture, native or current-head CI is credited.",
+      "source_latest_migration": "20261009215000_ediel_source_bound_ack_projection.sql",
+      "active_generated_outputs_origin": {
+        "source_head": "700eab0effc87390b961dd76c1fad2f857665609",
+        "source_tree": "677b3a999f59905463a6ad89a8dc44486f258c41",
+        "run_id": 37997669775,
+        "artifact_id": 11647616985,
+        "raw3_sha256": {
+          "database.types.ts": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
+          "schema.sql": "3e5f608e01360f2233e0606648a817c5ebed999b6a1a508a204aa7319646a8d7",
+          "schema.fingerprint.json": "9d60a59249e3c8651ce4a706e362392ed05555e418e576442786292b9b8deb21"
+        },
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
+          "scripts/migration-history-manifest.json": "c55e443a569facdecdafd9bc262532a3010a4d100e119c935744cba210a77add",
+          "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
+          "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
+          "scripts/supabase-types-manifest.json": "33c320b0a5fa6b86fb5095331319e88194aab6977ff7b88a15e8fc658077361f",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "scope": "Genuine new-source capture; actual finite/catalog qualification passed, resulting-head validation pending."
+      }
+    }
+  },
+  "ediel_final_combined_capture_root_adoption": {
+    "capture_source_head": "b9b7f4874f5821804cbfd0bd2147c16c718d9c4d",
+    "capture_source_tree": "4105ce965530c7996c2a7ab1317133c56e9d3dc5",
+    "capture_input_manifest_sha256": "b211b6e8b26b57f8733c31b642f4aa9c9dd67caa655097e0b9f6ecef608edb8d",
+    "method": "BYTE_EXACT_AUTHENTIC_RAW3_IMPORT",
+    "sender_postimage_checks": 14,
+    "combined_finite_receipt_sha256": "6862936998fbcdd674fa000e13a2221636b09557905daf37063ef4819884ba89",
+    "same_captured_schema_execution_sha256": "6442e01c6e8a12b9217eaa167cacc99058f728c797b8fda3aaaa8fa982f19483",
+    "full_schema_inverse_sha256": "0dd4d5a09db090be0349849bde28c1bcf87ec1cc2b206105170463a860f42919",
+    "resulting_head_validation": "PENDING",
+    "scope": "Combined C/H captured prefix; every original historical NOT_RUN and dated pending record preserved. Adoption commit is recorded externally."
   }
 }
