@@ -1,13 +1,15 @@
 import {it,expect,vi} from 'vitest'
+type PortalProbeResult = { data: Record<string, unknown>[]; error: null }
+type PortalProbeQuery = { select: () => PortalProbeQuery; eq: () => PortalProbeQuery; in: () => PortalProbeQuery; or: () => PortalProbeQuery; neq: () => PortalProbeQuery; order: () => PortalProbeQuery; limit: (n: number) => PortalProbeQuery; then: (f: (result: PortalProbeResult) => unknown) => unknown }
 const m=vi.hoisted(()=>({rows:[] as Array<Record<string,unknown>>,rpc:vi.fn(async()=>({data:null,error:null})),queries:[] as string[]}))
 vi.mock('server-only',()=>({}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:vi.fn()}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:m.rpc,from:(table:string)=>{m.queries.push(table);let cap=Infinity;const b:any={select:()=>b,eq:()=>b,in:()=>b,or:()=>b,neq:()=>b,order:()=>b,limit:(n:number)=>{cap=n;return b},then:(f:any)=>f({data:(table==='metering_values'?m.rows:[]).slice(0,cap),error:null})};return b}}}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:m.rpc,from:(table:string)=>{m.queries.push(table);let cap=Infinity;const b: PortalProbeQuery={select:()=>b,eq:()=>b,in:()=>b,or:()=>b,neq:()=>b,order:()=>b,limit:(n:number)=>{cap=n;return b},then:(f)=>f({data:(table==='metering_values'?m.rows:[]).slice(0,cap),error:null})};return b}}}))
 import {listPortalMeteringValues,summarizeConsumptionByMonth} from '@/lib/customer-portal/db'
 import * as api from '@/lib/customer-portal/apiData'
 it('monthly card totals silently sum250 or500 from744 complete hourly readings',async()=>{
  m.rows=Array.from({length:744},(_,i)=>({id:String(i),value_kwh:1,period_start:new Date(Date.UTC(2026,7,1)+i*3600000).toISOString()}));
- const ctx={companyId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',customerIds:['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb']} as any;
+ const ctx={companyId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',customerIds:['bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb']} as Parameters<typeof listPortalMeteringValues>[0];
  const dashboard=summarizeConsumptionByMonth(await listPortalMeteringValues(ctx,{limit:250}));
  const consumption=summarizeConsumptionByMonth(await listPortalMeteringValues(ctx,{limit:500}));
  expect(dashboard[0].totalKwh).toBe(250);expect(consumption[0].totalKwh).toBe(500);expect(m.rows.reduce((n,r)=>n+Number(r.value_kwh),0)).toBe(744)

@@ -1,14 +1,9 @@
 import {bindDeathStatusSourceContext,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {deathRaw,deathSelection} from './fixtures/prodat-death-status'
 import {source as prodatSource} from './fixtures/prodat-identity'
-import {describe,it,expect,vi} from 'vitest'
-vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async importOriginal=>{
-  const actual=await importOriginal<typeof import('@/lib/ediel/rulebook/canonicalRulePackRegistry')>()
-  const rulePackId='00000000-0000-4000-8000-000000000012',messageProfileId='00000000-0000-4000-8000-000000000011',profileKey='PRODAT:Z04:L:26.A:r3',sourceHash='a'.repeat(64)
-  return {...actual,resolveCanonicalRulePack:async()=>({profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:profileKey,sourceHash,messageProfileId,rulePackId,
-    originalVersion:'26.A:r3',originalSnapshot:{rulePack:{id:rulePackId,guide_version:'26.A',guide_revision:'3',source_hash:sourceHash},
-      messageProfile:{id:messageProfileId,rule_pack_id:rulePackId,profile_key:profileKey},guideSources:[]}})}
-})
+import {describe,it,expect,vi,beforeEach} from 'vitest'
+const io=vi.hoisted(()=>({database:null as ReturnType<typeof prodatOwnSourceReadingFixtureDatabase>|null}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>io.database!.rpc(name,args),from:(table:string)=>io.database!.from(table)}}))
 import {resolveCanonicalRuntimeDecision,resolveCanonicalRuntimeDecisionWithRegistry,readReceivedCanonicalProdatApplicationObjects} from '@/lib/ediel/core/runtimeDecision'
 import {projectProdatApplicationObjects,bindReceivedProdatApplicationObjects,qualifyReceivedProdatApplicationObject} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
 import {projectProdatRegisterValidation} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
@@ -16,9 +11,15 @@ import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/pr
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
-import {ownerSource} from './helpers/sourceOwnerFixtures'
+import {ownerSourceWithInstallationStatus as ownerSource,ownerId,OWNER} from './helpers/sourceOwnerFixtures'
+import {createProdatOwnSourceReadingSdk,resetProdatOwnSourceReadingSdk,installProdatOwnSourceReadingFixture,prodatOwnSourceReadingMessage} from './helpers/prodatOwnSourceReadingFixture'
+import {prodatOwnSourceReadingFixtureDatabase,finiteProdatRulePack} from './helpers/prodatOwnSourceReadingAdapter'
 import {raw,line,input} from './fixtures/prodat-register'
 import {head} from './fixtures/prodat-identity'
+
+const reads=createProdatOwnSourceReadingSdk()
+beforeEach(()=>{resetProdatOwnSourceReadingSdk(reads);io.database=prodatOwnSourceReadingFixtureDatabase(reads,()=>[finiteProdatRulePack('Z04','L','Z22')])})
+const install=(message:ReturnType<typeof ownerSource>)=>installProdatOwnSourceReadingFixture(reads,message,'L',{actorUserId:ownerId(50),receivedAt:message.message_received_at!,mailId:message.inbound_email_message_id!,parseId:ownerId(61),receptionId:ownerId(62),legalActorId:OWNER.actor})
 
 function pure(){
   const source=raw([...head(),line('1','A',undefined,'9'),line('2','B',undefined,'9')]),wire=tokenizeEdifact(source)
@@ -60,7 +61,8 @@ describe('complete same-invocation PRODAT application scope',()=>{
 // Only registry IO is synthetic. Actual syntax, full field owner and immutable
 // source handoff run together; this is not a native original/registry proof.
 it('actual full canonical owner marks its application facet and refuses copied authority',async()=>{
-  const message=ownerSource(),decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+  const message=ownerSource('Z12',{readingDeclarations:true,sourceCodes:{installationStatus:'Z12',settlementMethod:'Z32'}});install(message)
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:ownerId(50)})
   const facet=readReceivedCanonicalProdatApplicationObjects(decision,message)
   expect(facet?.objects.map(o=>o.applicationDecision)).toEqual(['accepted'])
   const evidence=buildReceivedSourceValidationEvidence({original:message,validated:message,resolvedCompanyId:message.company_id,decision})
@@ -72,12 +74,12 @@ it('actual full canonical owner marks its application facet and refuses copied a
 })
 
 it('actual complete invocation accepts the good object while rejecting a sibling missing its own quantity',async()=>{
-  const message=ownerSource(),wire=tokenizeEdifact(message.raw_payload!),first=wire.segments.findIndex(t=>t.tag==='LIN'),end=wire.segments.findIndex(t=>t.tag==='UNT')
+  const template=ownerSource('Z12',{readingDeclarations:true,sourceCodes:{installationStatus:'Z12',settlementMethod:'Z32'}}),wire=tokenizeEdifact(template.raw_payload!),first=wire.segments.findIndex(t=>t.tag==='LIN'),end=wire.segments.findIndex(t=>t.tag==='UNT')
   const body=wire.segments.slice(first,end).map(t=>t.raw),second=body.map(segment=>segment.replace('LIN+1+','LIN+2+').replaceAll('735123456789012345','735123456789012346').replaceAll('CASE-1','CASE-2'))
   const all=[...wire.segments.slice(0,first).map(t=>t.raw),...body.filter(segment=>!segment.startsWith('QTY+31')), ...second]
   const unh=all.findIndex(segment=>segment.startsWith('UNH+')),rawPayload="UNA:+.? '"+all.join("'")+"'UNT+"+(all.length-unh+1)+"+M'UNZ+1+I'"
-  message.raw_payload=rawPayload
-  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message),facet=readReceivedCanonicalProdatApplicationObjects(decision,message)
+  const message=prodatOwnSourceReadingMessage(rawPayload);install(message)
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:ownerId(50)}),facet=readReceivedCanonicalProdatApplicationObjects(decision,message)
   expect(decision.applicationDecision).toBe('rejected')
   expect(facet?.headerDecision).toBe('accepted')
   expect(facet?.objects.map(o=>[o.objectId,o.applicationDecision])).toEqual([['735123456789012345','rejected'],['735123456789012346','accepted']])
@@ -96,7 +98,7 @@ it('qualified death context enters the same full field invocation; copies and se
   expect(resolveCanonicalRuntimeDecision({...message,parsed_payload:{deathStatusContext:context,deathStatus:context.selection}}).policy?.prodatDependentFacts?.deathStatus).toBeUndefined()
 })
 it('syntax rejection runs before any supplied death context access',()=>{
-  const message={...ownerSource(),raw_payload:ownerSource().raw_payload!.replace(/UNT\+[0-9]+/, 'UNT+999')}
+  const message={...ownerSource('Z12'),raw_payload:ownerSource('Z12').raw_payload!.replace(/UNT\+[0-9]+/, 'UNT+999')}
   const facts={get deathStatusContext():never{throw Error('must not read context before syntax')}}
   expect(resolveCanonicalRuntimeDecision(message,facts).syntaxDecision).toBe('rejected')
 })

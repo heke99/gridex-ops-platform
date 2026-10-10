@@ -1,0 +1,19 @@
+# ROOT GEN19 adoption — 2026-10-08
+
+Agent `codex-root-core-blockers-20261008`, packet `d30a49b1-fea8-49f6-92bb-98744f2aacdc`; branch `codex/root-gen19-adoption-20261008`, isolated checkout `/workspace/gridex-root-gen19-adoption-20261008`. Source `2fe8ee35940f42af762741bbf1eef58e47263cf5`, tree `c3973f4a9540330c6b698cbe784339a7ab67d7cb`; actual main `1897ea4999ca93bf4631ee53f1cbe19de86d7dc3`.
+
+ROOT retains the four GEN paths under verified receipt `6a5c1337daccfc4e5a9e97bd2b12008e38fc3147`: `scripts/supabase-types-manifest.json`, `supabase/database.types.ts`, `supabase/schema.sql`, `supabase/schema.fingerprint.json`. This uniquely named checkpoint requires no shared lock. Original [claim6064441704](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6064441704) and [SQL19 owner invitation6067762442](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067762442) preserve the actual scope; whole SQL/native/IDs remain with their owners.
+
+Status: IMPLEMENTING. Sole artifact reader qualified the existing automatic [capture run37834226993](https://github.com/heke99/gridex-ops-platform/actions/runs/37834226993), attempt1/job113507047007/artifact11575081972, against exact source, archive digest, all8 input pins, RAW3 digests and full fingerprint. SQL1118/ledger856+265+143 checksum union matches. No new producer or native run. Original native/browser/type-schema/upgrade flags remain NOT_RUN.
+
+Baseline Node22 maintained generated-types checker exited1 for the genuine SQL19 migration tail mismatch. Next: byte-exact original RAW3 adoption, reversible13-active-field manifest archive preserving all GEN17/earlier history, meaningful maintained checker/app nonincremental typecheck/scoped lint/diff, then two independent bounded source reviews and self-review. No commit, push, external receipt, merge or whole approval is authorized in this local step.
+
+Skills: Supabase and cloud-environment runtime/networking govern existing-artifact access; using-git-worktrees governs explicit isolation, verification-before-completion and code/differential review govern current affected-source evidence. The dispatched-subagent exception applies to using-superpowers. Architecture brainstorming, UI/performance overlays and broad scans have no trigger in this byte-exact generated-output adoption.
+
+## Locally verified bounded source
+
+Status: REVIEW_READY, uncommitted. Genuine original RAW3 is installed byte-exact. The maintained Node22 GEN checker reproduced RED1 on the original source and passes GREEN0 after adoption; app nonincremental typecheck, generated-types scoped ESLint and `git diff --check` each exited0. The lint log contains only Babel's large-file styling notice. Verification receipts are local at `/tmp/gridex-gen19-genuine-recovery-20261008/verification-results.json`.
+
+All9480 source entries remain: only the four reserved GEN paths differ, while9476 foreign modes/OIDs are preserved; the unique checkpoint is the sole new source path. The old75-key manifest has an exact byte inverse via13 archived active fields;62 other keys, GEN17 and earlier nested histories remain unchanged. Original capture native/browser/type-schema/upgrade NOT_RUN flags stay unchanged. All1118 SQL bytes and their supported checksum manifests are preserved. No source selection, artifact transport or local typecheck establishes clean/upgrade parity, native acceptance, wholeDB05, coverage, merge or resulting-main execution.
+
+Self-review: C0/I0 for this bounded source adoption, receipt qualification, history inverse and normal unchanged2fe composition. Next ROOT: obtain two independent bounded source reviews of the frozen local postimages; bind any later commit to those exact bytes, then separately authorize publication/current-head CI. Do not commit/push/post/merge during this local preparation. Whole #699/native/parity and typed258 delivery remain separate current-head requirements.
