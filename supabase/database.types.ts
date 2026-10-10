@@ -56421,6 +56421,7 @@ export type Database = {
           created_by: string
           environment: string
           id: string
+          provider: string
           row_count: number
           rows: Json
           rows_sha256: string
@@ -56433,6 +56434,7 @@ export type Database = {
           created_by: string
           environment: string
           id?: string
+          provider?: string
           row_count: number
           rows: Json
           rows_sha256: string
@@ -56445,6 +56447,7 @@ export type Database = {
           created_by?: string
           environment?: string
           id?: string
+          provider?: string
           row_count?: number
           rows?: Json
           rows_sha256?: string
