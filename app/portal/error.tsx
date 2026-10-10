@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect } from 'react'
+
 export default function PortalError({
   error,
   reset,
@@ -7,11 +9,16 @@ export default function PortalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    // Technical details go to the log, never to the customer.
+    console.error('[portal] render_failed', { digest: error.digest })
+  }, [error.digest])
+
   return (
     <section className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-900">
-      <h1 className="text-xl font-semibold">Kundportalen kunde inte laddas</h1>
+      <h1 className="text-xl font-semibold">Vi kunde inte visa sidan just nu</h1>
       <p className="mt-2 text-sm">
-        {error.message || 'Ett tillfälligt fel uppstod. Försök igen.'}
+        Något gick tillfälligt fel när vi hämtade dina uppgifter. Försök igen om en stund. Fungerar det fortfarande inte, kontakta kundservice.
       </p>
       <button
         type="button"
