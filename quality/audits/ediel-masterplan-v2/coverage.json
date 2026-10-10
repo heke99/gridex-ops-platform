@@ -1348,7 +1348,7 @@
     {
       "id": "TR-09",
       "acceptance_id": "AT-TR-09",
-      "status": "VERIFIED",
+      "status": "PARTIAL",
       "evidence": [
         "lib/ediel/transport/exception/source.ts",
         "lib/ediel/transport/exception/previousCrl.ts",
@@ -3602,7 +3602,7 @@
     },
     {
       "id": "AT-TR-09",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "lib/ediel/transport/exception/source.ts",
         "lib/ediel/transport/exception/previousCrl.ts",

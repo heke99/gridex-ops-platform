@@ -22,3 +22,8 @@
 
 ## Next
 PR → READY on #673 → two independent reviews → green gates incl. TR09 native → merge via role-merge (proxy) → MERGED/RELEASE.
+
+## 2026-10-10T23:45Z — review D Important finding (PR735 #6103378754)
+- Confirmed: T A.3.2.1 requires an administrator alarm for both reserve cases. Alarms are only inserted into private `gridex_transport_exception.alarms`; read RPC `ediel_transport_exception_alarms_v1` (actor_v1 communication.write, service_role) has no product consumer.
+- Action: TR-09/AT-TR-09 rows set to PARTIAL (not VERIFIED/PASSED) in PR735; PR now delivers the ported native proofs only.
+- Next (same TR-09 IDs, new file custody via proxy): tenant-scoped administrator alarm feed calling the existing RPC with current actor; tests for both reserve cases, foreign/unauthorized denial, retry no duplicate, atomic failure; then approve.
