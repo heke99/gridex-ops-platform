@@ -55480,6 +55480,24 @@ CREATE FUNCTION public.gridex_can_write_company(p_company_id uuid) RETURNS boole
 $$;
 
 --
+-- Name: gridex_canonical_energy_event_platform_scope_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_canonical_energy_event_platform_scope_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+begin
+  if new.company_id is null
+     and new.event_scope = 'tenant'
+     and (new.event_type like 'market_price.%' or new.event_type like 'energy_geodata.%') then
+    new.event_scope := 'platform';
+  end if;
+  return new;
+end;
+$$;
+
+--
 -- Name: gridex_canonicalize_company_org_number(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -147022,6 +147040,12 @@ CREATE TRIGGER canonical_command_results_request_hash_guard BEFORE INSERT OR UPD
 CREATE TRIGGER canonical_ediel_test_run_authoritative_status_guard BEFORE UPDATE OF status ON public.ediel_test_runs FOR EACH ROW EXECUTE FUNCTION public.canonical_guard_ediel_test_run_authoritative_status();
 
 --
+-- Name: canonical_energy_flow_events canonical_energy_flow_events_platform_scope; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER canonical_energy_flow_events_platform_scope BEFORE INSERT ON public.canonical_energy_flow_events FOR EACH ROW EXECUTE FUNCTION public.gridex_canonical_energy_event_platform_scope_v1();
+
+--
 -- Name: company_invitations canonical_enqueue_invitation_delivery_job; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -195558,6 +195582,13 @@ GRANT ALL ON FUNCTION public.gridex_can_read_company(p_company_id uuid) TO servi
 REVOKE ALL ON FUNCTION public.gridex_can_write_company(p_company_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_can_write_company(p_company_id uuid) TO authenticated;
 GRANT ALL ON FUNCTION public.gridex_can_write_company(p_company_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_canonical_energy_event_platform_scope_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_canonical_energy_event_platform_scope_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_canonical_energy_event_platform_scope_v1() TO service_role;
 
 --
 -- Name: FUNCTION gridex_canonicalize_company_org_number(); Type: ACL; Schema: public; Owner: -
