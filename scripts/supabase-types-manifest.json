@@ -5,7 +5,7 @@
   "sha256": "d7e97a0e14146082d81ef900eb1d7c649ab6e77d87fb6daa45f877d63d12c893",
   "latest_migration": "20261010102455_ediel_prodat_customer_masterdata_original_read.sql",
   "latest_migration_schema_effect": "Authentic combined C/H capture retains actualmain517 including its energy-event trigger. Sixteen existing function bodies change and twenty new functions, one private schema, two FORCE-RLS tables and four triggers are added. Three public RPC type blocks are genuinely generated. Full captured schema inverse and same-captured-schema finite qualifiers passed. Native/current-head/upgrade/browser acceptance remains separate.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-10T11:22:27.134309+00:00",
@@ -13051,5 +13051,14 @@
     "full_schema_inverse_sha256": "0dd4d5a09db090be0349849bde28c1bcf87ec1cc2b206105170463a860f42919",
     "resulting_head_validation": "PENDING",
     "scope": "Combined C/H captured prefix; every original historical NOT_RUN and dated pending record preserved. Adoption commit is recorded externally."
+  },
+  "ediel_final_native_forward_capture_pending": {
+    "new_tail": "20261010120209_ediel_consumed_header_update_and_ack_scope_replay.sql",
+    "sha256": "a4d898895b04153e463712272e7d6dff525f312784fdce86e9fa2482d2f29191",
+    "status": "PENDING_FRESH_AUTHENTIC_CAPTURE",
+    "prior_active_capture_preserved": true,
+    "source_native_H": "93/100 historical sourceb9b7; resulting head NOT_RUN",
+    "source_native_C": "30/30 historical sourceb9b7; resulting head NOT_RUN",
+    "scope": "Fresh two-function forward; RAW3 remains exact previous genuine combined capture, no current types/schema/upgrade/native acceptance"
   }
 }

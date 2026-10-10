@@ -119,7 +119,7 @@ function setFixture(sibling=false){
  io.sourceCapability={version:1,owner:'immutable-bilateral-prodat-profile-v1',companyId:company,environment:'test',sourceMessageId:sourceId,sourcePayloadHash:evidenceHash(raw),messageCode:'Z04',subtype:'H',objects}
  io.originalCapability={version:1,owner:'immutable-bilateral-prodat-outbound-profile-v1',companyId:company,environment:'test',actorUserId:actor,originalActorUserId:ownerId(91),payloadHash:evidenceHash(originalRaw),messageCode:'Z03',objects:[{...objects[0],rulePackId:ownerId(12),messageProfileId:ownerId(13),pointId,customerId,siteId,contractId,contractHash:'e'.repeat(64),eventAt:'2026-10-01T00:00:00Z',switchId}]}
  io.legal={basisKind:'observed_source_persistence',companyId:company,environment:'test',direction:'inbound',legalActorId:ownerId(9),legalEdielId:'54321',actorRole:'electricity_supplier',transportActorId:ownerId(9),transportEdielId:'54321',applicationReference:'23-DDQ-PRODAT',observedAt:receivedAt,sourceReceivedAt:receivedAt,family:'PRODAT',code:'Z04',subtype:'H',sourceEdition:'f'.repeat(64),canonicalProjection:{family:'PRODAT',code:'Z04',subtype:'H',transactionReasonCode:'Z25',direction:'inbound',receiverRoles:['supplier'],applicationReferences:['23-DDQ-PRODAT']}}
- io.reception={companyId:company,sourceMessageId:sourceId,inboundEmailMessageId:ownerId(60),parseResultId:ownerId(61),receptionId:ownerId(62),classification:'first_reception',isReplay:false,receivedAt,canonicalPayloadHash:evidenceHash(raw),receivedPayloadHash:evidenceHash(raw),responseRequestId:null,status:'observed',reason:null,businessEffectAuthorized:false}
+ io.reception={companyId:company,sourceMessageId:sourceId,inboundEmailMessageId:ownerId(60),parseResultId:ownerId(61),receptionId:ownerId(62),classification:'first_reception',isReplay:true,receivedAt,canonicalPayloadHash:evidenceHash(raw),receivedPayloadHash:evidenceHash(raw),responseRequestId:null,status:'observed',reason:null,businessEffectAuthorized:false}
  io.accepted={version:1,owner:'immutable-prodat-h-accepted-original-read-v1',actorUserId:actor,originalActorUserId:ownerId(91),messageBinding:{id:originalId,environment:'test',intentId:ownerId(71),routeId:ownerId(72),payloadHash:evidenceHash(originalRaw)},status:'accepted_projection',companyId:company,environment:'test',messageId:originalId,originalHash:evidenceHash(originalRaw),observedAt:'2026-09-20T00:00:00.123455Z',authorizesProviderEntry:false,deliveryProven:false}
  io.customer={version:1,owner:'immutable-prodat-customer-masterdata-original-read-v1',actorUserId:actor,originalActorUserId:ownerId(91),status:'authorized',companyId:company,customerId,environment:'test',asOf:'2026-09-19T00:00:00Z',sourceKind:'registered_customer_address',sourceReference:'DECLARED_UNIT_ORIGINAL_CUSTOMER_BASIS',sourceDigest:'b'.repeat(64),sourceContextId:ownerId(73),customerIdentity:{id:'5561111111',qualifier:'SE1',agency:'260'},endUserMasterdata:{nameParts:['Synthetic'],streetParts:['Street'],city:'City',postalCode:'12345',country:'SE'},messageBinding:{id:originalId,environment:'test',intentId:ownerId(71),routeId:ownerId(72),payloadHash:evidenceHash(originalRaw)}}
  io.rpc=[];io.queries=[];io.permission=true;io.errorRpc='';io.errorValue=null;io.actorHook=null;io.originalHook=null;io.customerHook=null;io.acceptedHook=null
@@ -173,6 +173,32 @@ it('a dot-only original street cannot create private229 availability',async()=>{
  const q=await qualified()
  await expect(loadReceivedZ04HAddressContext(f.source,actor,q)).rejects.toThrow('customer_masterdata_original_read_result_invalid')
  expect(observe(policy(q),omitted(f.source.raw_payload!,'UD'))).toEqual([])
+})
+it.each([['UD','229'],['IV','252']] as const)('a protected first-reception READ replay flag preserves own %s%s missing-address rejection',async(role,field)=>{
+ // The installed READ marks a lookup of the recorded reception as isReplay.
+ // This says nothing about the physical classification of that reception.
+ io.reception!.isReplay=true
+ const q=await qualified(),token=await loadReceivedZ04HAddressContext(f.source,actor,q)
+ expect(token).not.toBeNull()
+ const selected=policy(q,token),raw=omitted(f.source.raw_payload!,role),t=tokenizeEdifact(raw)
+ const issues=validateCanonicalPolicyFields({policy:selected,rawPayload:raw,rawSegments:t.segments.map(row=>row.raw),una:t.una})
+ expect(projectProdatDiagnostics(issues).applicationErrors.filter(error=>error.fieldCode===field)).toMatchObject([
+  {fieldCode:field,ercCode:'41',referenceNumber:ownPoint,lineItemReference:ownLI,
+   prodatOccurrence:{scope:'object',lineIndex:0,objectId:ownPoint,identityAgency:'9',lineItemReference:ownLI}},
+ ])
+})
+it.each([
+ ['protocol_duplicate','UD','229'],['protocol_duplicate','IV','252'],
+ ['identity_conflict','UD','229'],['identity_conflict','IV','252'],
+] as const)('a held %s READ cannot select own %s%s address availability',async(classification,role,_field)=>{
+ io.reception={...io.reception,classification,isReplay:true,status:'held',responseRequestId:ownerId(105),
+  reason:classification==='protocol_duplicate'?'authentic_duplicate_transport_response_policy_required':'same_identity_different_original_requires_review',
+  receivedPayloadHash:classification==='identity_conflict'?evidenceHash('DECLARED_DIFFERENT_PHYSICAL_RECEPTION'):io.reception!.canonicalPayloadHash}
+ const q=await qualified();io.queries=[]
+ const token=await loadReceivedZ04HAddressContext(f.source,actor,q)
+ expect(token).toBeNull()
+ expect(io.queries.some(query=>query.table==='supplier_switch_requests')).toBe(false)
+ expect(observe(policy(q,token),omitted(f.source.raw_payload!,role))).toEqual([])
 })
 it.each([['UD','229'],['IV','252']] as const)('actual private source/own original issues scoped %s%s ERC41 on a derivative only after binding',async(role,field)=>{
  expect(validateEdifactSyntax({...f.source,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}).ok).toBe(true)

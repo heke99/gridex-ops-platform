@@ -796,7 +796,7 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
   const malformed=omit(freshPhysicalIdentity(complete),field), before=business(f),
     refusalBefore=field==='202'||field==='203'||syntaxField||requiredPhysical?criticalRefusalGraph(f,original,control.message.id):null,
     received=await observedStage(`critical_negative_${field}_public_intake`,()=>intake(f,malformed,'test',field==='312'))
-  if(field==='202')expect(received.id).toBeNull()
+  if(field==='202')expect(received.id).not.toBeNull()
   if(syntaxField||field==='203')expect(received.id).not.toBeNull()
   if(received.id===null) {
     console.error('H_NATIVE_FAILURE_STAGE',JSON.stringify({stage:'critical_negative_public_intake_returned_no_source',field,
@@ -877,6 +877,19 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
     const message=(await observedStage(`critical_negative_${field}_read_born_message`,()=>getEdielMessageById(received.id!)))!
     expect(message.raw_payload).toBe(malformed); expect(record(message).immutable_payload_hash).toBe(digest(malformed))
     if(requiredPhysical)expect(message).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',inbound_email_message_id:received.mailbox.inboundEmailMessageId})
+    if(field==='202') {
+      const physical=tokenizeEdifact(message.raw_payload!),bgm=physical.segments.filter(segment=>segment.tag==='BGM')
+      expect(bgm).toHaveLength(1);expect(segmentComposite(bgm[0],1,physical.una)).toEqual([''])
+      expect(message).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',message_code:'PRODAT_UNKNOWN',
+        inbound_email_message_id:received.mailbox.inboundEmailMessageId})
+      expect(received.mailbox.parsed).toMatchObject({messageFamily:'PRODAT',messageCode:'PRODAT_UNKNOWN',rawPayload:malformed})
+      expect(message.parsed_payload).toEqual(received.mailbox.parsed)
+      expect(sql(`SELECT jsonb_build_object('bound',gridex_ediel_header_negative_birth.is_bound_v1(m,false),
+        'status',r.status,'field',r.evidence#>>'{negativeField,fieldCode}','authorizesBusinessEffect',r.evidence->'authorizesBusinessEffect')
+        FROM public.ediel_messages m JOIN gridex_ediel_header_negative_birth.receipts r ON r.source_message_id=m.id
+        WHERE m.id=${literal(message.id)} AND m.company_id=${literal(f.companyId)}`))
+        .toEqual({bound:true,status:'consumed',field:'202',authorizesBusinessEffect:false})
+    }
     const sourceBefore=syntaxField||field==='203'?sealed(message.id):null
     const decision=await observedStage(`critical_negative_${field}_canonical_decision`,()=>resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.actorUserId}))
     expect(decision.applicationDecision,JSON.stringify(decision)).not.toBe('accepted')
@@ -980,7 +993,7 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
       expect(await observedStage('critical_negative_203_replay_physical_ack',()=>listBusinessAckMessagesForSource({
         companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'}))).toEqual(acks)
       expect(originalProjection(sealed(message.id))).toEqual(originalProjection(sourceAfter))
-      assertUnchangedCriticalRefusalGraph(after,criticalRefusalGraph(f,original,control.message.id),[message.id])
+      assertUnchangedCriticalRefusalGraph(after,criticalRefusalGraph(f,original,control.message.id))
     } else if(requiredPhysical||requiredHNegative) {
       await observedStage(`critical_negative_${field}_assert_negative_ack`,()=>negativeAcknowledgement(f,message,decision,field))
     } else {

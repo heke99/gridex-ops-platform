@@ -112,7 +112,9 @@ async function readBornSource(source:EdielMessageRow,actor:string,qualification:
   ||!Array.isArray(projection.receiverRoles)||!projection.receiverRoles.some(role=>['supplier','electricity_supplier'].includes(String(role)))
   ||!Array.isArray(projection.applicationReferences)||!projection.applicationReferences.includes(legal.applicationReference))return null
  const reception=await protectedRead(()=>readInboundReceptionRequest({companyId,messageId:sourceId,inboundEmailMessageId:stored.inbound_email_message_id!,actorUserId:actor}))
- if(!reception||reception.classification!=='first_reception'||reception.status!=='observed'||reception.isReplay
+ // The protected READ marks rereading an existing reception as isReplay.
+ // Physical duplicate/conflict custody is determined by its classification.
+ if(!reception||reception.classification!=='first_reception'||reception.status!=='observed'
   ||!isEvidenceUuid(reception.receptionId)||!isEvidenceUuid(reception.parseResultId)||reception.businessEffectAuthorized!==false
   ||reception.responseRequestId!==null||reception.reason!==null||reception.canonicalPayloadHash!==evidenceHash(stored.raw_payload!)
   ||reception.receivedPayloadHash!==reception.canonicalPayloadHash||parseSourceReceiptInstant(reception.receivedAt)!==received)return null
