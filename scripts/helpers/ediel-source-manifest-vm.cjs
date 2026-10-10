@@ -63,6 +63,7 @@ function sourceRuntimeBoundary(request, modules, parent) {
     },
     '@/lib/cis/db-shared': { getCustomerExportContext: deny, requireContextCompanyId: deny },
     '@/lib/supabase/service': { supabaseService: { from: deny, rpc: deny, schema: deny } },
+    '@/lib/supabase/tenantQuery': { tenantSelect: deny },
     '@/lib/masterdata/db': { getGridOwnerById: deny, getCustomerSiteById: deny, getMeteringPointById: deny },
     '@/lib/cis/db': { cancelSupplierSwitchOutboundAttemptsForReplacement: deny, createOutboundRequest: deny, findOpenOutboundBySource: deny, repairOutboundRequestCommunicationRoute: deny, updateOutboundRequestStatus: deny },
     '@/lib/cis/db-routes': { findBestCommunicationRoute: deny },

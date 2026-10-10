@@ -1,6 +1,7 @@
 // Normal async M runtime integration. Only Supabase SDK transport is synthetic;
 // protected readers/policy/validators are real and the catalogue refuses custody.
 import {beforeEach,expect,it,vi} from 'vitest'
+import {execFileSync} from 'node:child_process'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {resolveCanonicalRuntimeDecisionWithRegistry,resolveCanonicalRuntimeDecision,
  readReceivedCanonicalProdatResponseValidation,readReceivedCanonicalProdatApplicationObjects,
@@ -202,4 +203,23 @@ it('each real invocation reads fresh authority after a previous token was consum
  expect(first.policy?.prodatDependentFacts?.registerObjects?.[0]?.meterReadingsSentInUtilts).toBe(true)
  io.permissions.clear()
  await expect(resolveCanonicalRuntimeDecisionWithRegistry(source,{actorUserId:actor})).rejects.toMatchObject({disposition:{kind:'security_quarantine'}})
+})
+it('source-only VM links the typed tenant READ port but records and denies its use',()=>{
+ execFileSync(process.execPath,['--experimental-vm-modules','-e',`
+  const assert=require('node:assert/strict');
+  const {SourceTextModule}=require('node:vm');
+  const boundary=require('./scripts/helpers/ediel-source-manifest-vm.cjs');
+  (async()=>{
+   const parent=new SourceTextModule('');
+   const modules=new Map();
+   const port=boundary.sourceRuntimeBoundary('@/lib/supabase/tenantQuery',modules,parent);
+   assert(port,'typed tenant READ must link without enabling I/O');
+   await port.link(()=>{throw Error('UNEXPECTED_PORT_DEPENDENCY')});
+   await port.evaluate();
+   boundary.assertNoSourceBoundaryAttempts();
+   assert.throws(()=>port.namespace.tenantSelect('tenant','ediel_messages'),/Unexpected external operation/);
+   assert.throws(()=>boundary.assertNoSourceBoundaryAttempts(),/Source-only test attempted external/);
+   assert.equal(boundary.sourceRuntimeBoundary('unknown-external-module',modules,parent),null);
+  })().catch(error=>{console.error(error);process.exitCode=1});
+ `],{cwd:process.cwd(),stdio:'pipe'})
 })
