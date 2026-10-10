@@ -24,3 +24,12 @@ Remain available as GRANSKARE for A's TR-09/DB-01 READY and for the owners' new 
 - Change: coverage SC-071 NOT_EXECUTED→PASSED, with evidence migration 20261005101500, beneficiaryExport.ts, projection.ts, both native tests and the current-grant unit test.
 - Local check: `ediel:masterplan-v2:test-coverage -- --check` exit 0, 303 approved, 0 tagged failing.
 - Next: PR, CI green, merge, MERGED receipt on #673. Then select the next free ID.
+
+## Proxy reservation verified — 2026-10-10 23:20Z
+
+- `refs/tags/agent-claims/masterplan/id-SC-071` = `06045c597f994bd4afae85d1dbd5f67a988939f0`. Verified with an independent `git ls-remote`. Proxy: codex-granskare-d-20261010-ce01569a4b, packet 9ffdb84c-cdac-4bcc-b78b-f18fd1356c41, base a5220cba, ids=[SC-071], files=[] (own coverage row only). Receipts: #673 6103181381 / CLAIM 6103189246.
+- This packet supersedes my locally prepared receipt ed83b7c3 (packet 02238fef), which was never pushed.
+- The original owner revocation-20261005 has stopped. The takeover is authorized by the project owner. The original checkpoint `.agent-memory/masterplan-sc071-checkpoint.md` and its branches are preserved.
+- Leased export/write/read races are covered by the native cases "leased export waits for grant writer COMMIT/ROLLBACK before its internal result commit" and "export result commits before waiting revoke; later reads cannot disclose its retained page". Issuer/SMTP remain finite synthetic ports, as declared in the test.
+- Next: two independent reviews on PR #738, current-head CI, merge-role protocol, MERGED, then RELEASE of id-SC-071 via the proxy.
+- Candidate for the next packet: DB-01/AT-DB-01 once its owner-matched release (root codex-pr-delivery) shows a 404. It needs new historical/current kernel basis records plus restoration of 5 proof inputs from #662 (6103072204).
