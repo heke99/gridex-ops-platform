@@ -27,7 +27,7 @@ export async function requireRetentionCompanies(){
  if(auth.error||!auth.data.user||auth.data.user.user_metadata?.must_change_password===true)throw Error('retention_http_authenticated_actor_required')
  const {data,error}=await client.rpc('ediel_current_retention_companies_v1',{})
  if(error)throw Error('retention_http_current_company_list_required')
- const companies=z.array(z.object({companyId:uuid,name:z.string(),status:z.enum(['active','archived','pending_deletion']),permissions:z.array(z.string())})).max(1000).parse(data)
+ const companies=z.array(z.object({companyId:uuid,name:z.string(),status:z.enum(['active','archived','pending_deletion','closed']),permissions:z.array(z.string())})).max(1000).parse(data)
  return {userId:auth.data.user.id,client,companies}
 }
 export async function retentionHttp(requiredPermissions:readonly string[],handler:(scope:Awaited<ReturnType<typeof requireRetentionScope>>)=>Promise<NextResponse>){
