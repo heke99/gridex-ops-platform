@@ -52,7 +52,6 @@ import { resolveCanonicalTenantEdielIdentityWithEvidence } from '@/lib/ediel/ten
 import { readRegistryDispatchSource } from '@/lib/actor-registry/registryMarketSource'
 import { guideOrderedFixtureBody } from '../__tests__/helpers/prodatGuideOrderedFixture'
 import { characteristic, common, line, qty, type Parts } from '../__tests__/fixtures/prodat-register'
-
 const smtp = vi.hoisted(() => ({ send: vi.fn() }))
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp.send }) } }))
 const sourceSession: { client: SupabaseClient | null } = { client: null }
@@ -76,7 +75,6 @@ beforeEach(() => {
     messageId: `<synthetic-${randomUUID()}@example.invalid>`, response: '250 explicitly synthetic SMTP acceptance' }))
 })
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks() })
-
 function assertFirstHBusinessDelta(f: Fixture, original: Original, sourceId: string, raw: string,
   before: ReturnType<typeof business>, after: ReturnType<typeof business>, startedAt: number, completedAt: number) {
   for (const key of ['customers', 'sites', 'points', 'contracts', 'permissions', 'activations'] as const)
@@ -233,7 +231,14 @@ function replyBody(f: Fixture, original: Original, refs = references(), invoicee
 }
 function reply(f: Fixture, original: Original, body = replyBody(f, original), refs = references(), environment: 'test' | 'production' = 'test') {
   const envelope = EdifactEnvelopeCodec.decode(original.raw_payload!)
-  return frame(body, envelope.receiver!, envelope.sender!, refs, environment)
+  // A prospective reply reverses the actual original transport namespace and
+  // subaddresses; it cannot substitute fixture-default UNB qualifiers.
+  return EdifactEnvelopeCodec.encode({ sender: envelope.receiver!, receiver: envelope.sender!,
+    senderQualifier: envelope.receiverQualifier, receiverQualifier: envelope.senderQualifier,
+    senderSubAddress: envelope.receiverSubAddress, receiverSubAddress: envelope.senderSubAddress,
+    interchangeReference: refs.interchange, applicationReference: '23-DDQ-PRODAT', acknowledgementRequest: true,
+    environment, createdAt: refs.createdAt, messages: [{ messageReference: refs.message,
+      messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A', businessSegments: body.map(render) }] })
 }
 async function selectedInvoiceeProfile() {
   const staged=await prospective()
@@ -539,7 +544,6 @@ async function acknowledgements(f: Fixture, original: Original, sourceId: string
   }
   return acks
 }
-
 // Independent frozen field list, not generated from implementation descriptors.
 async function negativeAcknowledgement(f:Fixture,source:Original,decision:Awaited<ReturnType<typeof resolveCanonicalRuntimeDecisionWithRegistry>>,field:string) {
   const plans=decision.responsePlan.filter(p=>p.family==='APERAK'&&p.outcome==='negative')
@@ -569,7 +573,28 @@ async function negativeAcknowledgement(f:Fixture,source:Original,decision:Awaite
   if(field==='209') {
     const customer=original.segments.filter(t=>t.tag==='NAD'&&segmentComposite(t,1,original.una)[0]==='UD')
     expect(customer).toHaveLength(1); const id=segmentComposite(customer[0],2,original.una)[0]
-    expect(id).not.toBe(''); for(const error of expected) { expect(error.text).toContain(`kundid=${id}`); expect(error.referenceNumber??'').toBe('') }
+    expect(id).not.toBe('')
+    const ownLines=original.segments.filter(t=>t.tag==='LIN');expect(ownLines).toHaveLength(1)
+    const identity=segmentComposite(ownLines[0],3,original.una)
+    expect(identity[0]).toBe('')
+    for(const error of expected) {
+      // P94 requires kundid for an actual ERC41 missing reference. A submitted
+      // C212 with empty id but retained agency is the existing typed ERC42
+      // invalid composite; retain its real failed value and exact own evidence.
+      if(error.ercCode==='41') {
+        expect(error.text).toContain(`kundid=${id}`)
+        expect(error.prodatFieldDiagnostic).toMatchObject({kind:'field',fieldNumber:'209',errorKind:'missing'})
+      } else {
+        expect(error.ercCode).toBe('42');expect(identity).toHaveLength(4)
+        expect(identity.slice(1,3)).toEqual(['','']);expect(['9','89']).toContain(identity[3])
+        expect(error.text).toBe(`Felaktigt Anläggnings-id ${identity.join(':')}`)
+        const diagnostic=error.prodatFieldDiagnostic
+        expect(diagnostic).toMatchObject({kind:'field',fieldNumber:'209',errorKind:'invalid'})
+        if(diagnostic?.kind!=='field')throw Error('actual_209_field_diagnostic_required')
+        expect(diagnostic.failureEvidence).toEqual([{raw:ownLines[0].raw,locator:'LIN',content:identity.join(':')}])
+      }
+      expect(error.referenceNumber??'').toBe('')
+    }
     expect(wire.segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,wire.una)[0]==='Z07')).toEqual([])
   }
   expect(ack).toMatchObject({related_message_id:source.id,immutable_payload_hash:digest(ack.raw_payload!)})
@@ -581,7 +606,6 @@ async function negativeAcknowledgement(f:Fixture,source:Original,decision:Awaite
     const nad=wire.segments.filter(t=>t.tag==='NAD'&&segmentComposite(t,1,wire.una)[0]===role)
     expect(nad).toHaveLength(1); expect(segmentComposite(nad[0],2,wire.una)).toEqual(party.identityComponents)
   }
-
   if(field==='226') {
     // The genuine own point can identify this error; the physically absent LI
     // cannot be inherited from the positive control or outgoing original.
@@ -610,7 +634,6 @@ async function negativeAcknowledgement(f:Fixture,source:Original,decision:Awaite
     }
   }
 }
-
 const required = { Z03: ['311','312','202','203','313','205','206','207','208','314','209','210','217','223','260','261','226','227','228','231','232','316','262'],
   Z04: ['311','312','202','203','313','205','206','207','208','314','209','210','508','213','217','306','222','223','254','242','224','260','226','227','228','231','232','316','233','234','262'] } as const
 const chars: Record<string, string> = { '217': 'Z04', '223': 'Z13', '306': 'Z07', '222': 'Z12', '254': 'Z15', '242': 'Z14' }
@@ -775,7 +798,7 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
   const malformed=omit(freshPhysicalIdentity(complete),field), before=business(f),
     refusalBefore=field==='202'||field==='203'||syntaxField||requiredPhysical?criticalRefusalGraph(f,original,control.message.id):null,
     received=await observedStage(`critical_negative_${field}_public_intake`,()=>intake(f,malformed,'test',field==='312'))
-  if(field==='202')expect(received.id).toBeNull()
+  if(field==='202')expect(received.id).not.toBeNull()
   if(syntaxField||field==='203')expect(received.id).not.toBeNull()
   if(received.id===null) {
     console.error('H_NATIVE_FAILURE_STAGE',JSON.stringify({stage:'critical_negative_public_intake_returned_no_source',field,
@@ -856,6 +879,19 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
     const message=(await observedStage(`critical_negative_${field}_read_born_message`,()=>getEdielMessageById(received.id!)))!
     expect(message.raw_payload).toBe(malformed); expect(record(message).immutable_payload_hash).toBe(digest(malformed))
     if(requiredPhysical)expect(message).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',inbound_email_message_id:received.mailbox.inboundEmailMessageId})
+    if(field==='202') {
+      const physical=tokenizeEdifact(message.raw_payload!),bgm=physical.segments.filter(segment=>segment.tag==='BGM')
+      expect(bgm).toHaveLength(1);expect(segmentComposite(bgm[0],1,physical.una)).toEqual([''])
+      expect(message).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',message_code:'PRODAT_UNKNOWN',
+        inbound_email_message_id:received.mailbox.inboundEmailMessageId})
+      expect(received.mailbox.parsed).toMatchObject({messageFamily:'PRODAT',messageCode:'PRODAT_UNKNOWN',rawPayload:malformed})
+      expect(message.parsed_payload).toEqual(received.mailbox.parsed)
+      expect(sql(`SELECT jsonb_build_object('bound',gridex_ediel_header_negative_birth.is_bound_v1(m,false),
+        'status',r.status,'field',r.evidence#>>'{negativeField,fieldCode}','authorizesBusinessEffect',r.evidence->'authorizesBusinessEffect')
+        FROM public.ediel_messages m JOIN gridex_ediel_header_negative_birth.receipts r ON r.source_message_id=m.id
+        WHERE m.id=${literal(message.id)} AND m.company_id=${literal(f.companyId)}`))
+        .toEqual({bound:true,status:'consumed',field:'202',authorizesBusinessEffect:false})
+    }
     const sourceBefore=syntaxField||field==='203'?sealed(message.id):null
     const decision=await observedStage(`critical_negative_${field}_canonical_decision`,()=>resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.actorUserId}))
     expect(decision.applicationDecision,JSON.stringify(decision)).not.toBe('accepted')
@@ -959,9 +995,19 @@ async function actualIncomingOmission(f:Fixture,original:Original,field:string,c
       expect(await observedStage('critical_negative_203_replay_physical_ack',()=>listBusinessAckMessagesForSource({
         companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'}))).toEqual(acks)
       expect(originalProjection(sealed(message.id))).toEqual(originalProjection(sourceAfter))
-      assertUnchangedCriticalRefusalGraph(after,criticalRefusalGraph(f,original,control.message.id),[message.id])
+      assertUnchangedCriticalRefusalGraph(after,criticalRefusalGraph(f,original,control.message.id))
     } else if(requiredPhysical||requiredHNegative) {
-      await observedStage(`critical_negative_${field}_assert_negative_ack`,()=>negativeAcknowledgement(f,message,decision,field))
+      // The actual processor commits syntax before the protected common READ.
+      // For R311, check that same genuine source after this required phase.
+      let actualReplyDecision=decision
+      if(field==='311') {
+        const actualSource=(await observedStage('critical_negative_311_post_processor_source',()=>getEdielMessageById(message.id,{companyId:f.companyId})))!
+        expect(actualSource).toMatchObject({id:message.id,company_id:f.companyId,environment:'test',direction:'inbound',raw_payload:malformed,inbound_email_message_id:received.mailbox.inboundEmailMessageId})
+        expect(record(actualSource).immutable_payload_hash).toBe(digest(malformed))
+        actualReplyDecision=await observedStage('critical_negative_311_post_processor_canonical_decision',()=>resolveCanonicalRuntimeDecisionWithRegistry(actualSource,{actorUserId:f.actorUserId}))
+        expect(actualReplyDecision).toMatchObject({policy:null,syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:'not_applicable'})
+      }
+      await observedStage(`critical_negative_${field}_assert_negative_ack`,()=>negativeAcknowledgement(f,message,actualReplyDecision,field))
     } else {
       const acks=await observedStage(`critical_negative_${field}_list_physical_ack`,()=>listBusinessAckMessagesForSource({companyId:f.companyId,sourceMessageId:message.id,actorUserId:f.actorUserId,environment:'test'}))
       expect(acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
@@ -1050,7 +1096,6 @@ async function actualIncomingInvalidInstallationStatusGate(f:Fixture,original:Or
     rereadControl:()=>reread(f,control),negativeAcknowledgement:()=>negativeAcknowledgement(f,message,decision,'306'),
     smtpCalls:()=>smtp.send.mock.calls.length})
 }
-
 async function actualOutboundOmission(f:Fixture,original:Original,field:string,malformed:string) {
   const qualified=await qualifyPersistedBilateralProdatOutboundOriginal(original,f.actorUserId)
   const context=await loadCustomerMasterdataValidationContext(original,f.actorUserId)
@@ -1075,7 +1120,6 @@ async function actualOutboundOmission(f:Fixture,original:Original,field:string,m
   expect(business(f)).toEqual(before); expect(sealed(original.id)).toEqual(originalBefore)
   expect(rows('public.ediel_messages',f.companyId)).toEqual(messages); expect(rows('public.ediel_outbox',f.companyId)).toEqual(outboxes)
 }
-
 describe('actual native H catalog component only; no admission or bilateral authority',()=>{
   const input=(multipleRegisters=false)=>{
     const refs=references(), body:Parts[]=[['BGM','Z04',refs.document,'9','AB'],line('1','735123456789012345',multipleRegisters?'1':undefined,'9'),
@@ -1114,7 +1158,6 @@ describe('actual native H catalog component only; no admission or bilateral auth
       .rejects.toThrow('bilateral_switch_birth_association_mismatch')
   })
 })
-
 describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
   it('applies only the archived own H transition after SMTP request acceptance, then physical ACK and durable replay', async () => {
     const { f, original } = await sent(), received = await ready(f, original), before = business(f)
@@ -1171,14 +1214,12 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(outcomes.filter(o => o.status === 'rejected'), JSON.stringify(outcomes)).toEqual([])
     expect(durable(f,original,received.message.id)).toEqual(frozen)
   })
-
   it('known Z25 and catalog alone cannot originate an H request without the actual archived profile', async () => {
     const f = await prospective(), before = business(f), sends = smtp.send.mock.calls.length
     await expect(originate(f)).rejects.toThrow('bilateral_prodat_switch_current_profile_required')
     expect(business(f)).toEqual(before); expect(smtp.send.mock.calls.length).toBe(sends)
     expect(rows('public.ediel_messages',f.companyId)).toEqual([])
   })
-
   it('archive without independent review remains unable to originate the H request', async () => {
     const f = await createBilateralProdatGroundNativeFixture(await prospective())
     const archived = await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()})
@@ -1187,7 +1228,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     await expect(originate(f)).rejects.toThrow('bilateral_prodat_switch_current_profile_required')
     expect(business(f)).toEqual(before); expect(rows('gridex_bilateral_prodat.profile_versions',f.companyId)).toEqual([])
   })
-
   it('rejected separate review authorizes no default H business transition', async () => {
     const f = await createBilateralProdatGroundNativeFixture(await prospective()), a = await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()})
     const rejected = await reviewBilateralProdatGround({companyId:f.companyId,actorUserId:f.reviewer,artifactId:String(a.artifactId),
@@ -1196,7 +1236,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     const before = business(f); await expect(originate(f)).rejects.toThrow('bilateral_prodat_switch_current_profile_required')
     expect(business(f)).toEqual(before); expect(rows('gridex_bilateral_prodat.profile_versions',f.companyId)).toEqual([])
   })
-
   for (const code of ['Z03','Z04'] as const) it.each(required[code])(`${code} R%s missing is a native registry field refusal with no business/provider effects`, async field => {
     const { f, original } = await sent(), baselineRaw = code === 'Z03' ? original.raw_payload! : reply(f,original)
     // This native negative seam is the actual selected registry field consumer.
@@ -1218,7 +1257,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
       if(field==='306')await actualIncomingInvalidInstallationStatusGate(f,original,baselineRaw,baseline)
     } else await actualOutboundOmission(f,original,field,malformed)
   })
-
   it.each(['250','251','252','253','317','318'])('selected actual Z04 IV parent activates child %s and refuses its omission', async field => {
     const {f,original}=await sent(true), selectedOriginal=await selectedInvoiceeOriginal(f,original), refs=references(), complete=reply(f,original,replyBody(f,original,refs,true),refs)
     const baseline=await ready(f,original,complete)
@@ -1231,7 +1269,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     await actualIncomingOmission(f,original,field,complete,baseline)
     expect(await selectedInvoiceeOriginal(f,original)).toEqual(selectedOriginal)
   })
-
   it.each(['233','234'])('actual source-selected Z03 IT makes child %s mandatory before another original can persist',async field=>{
     const {f,original}=await sent(false,true), body=rawParts(original.raw_payload!)
     const it=body.filter(p=>p[0]==='NAD'&&component(p,1)==='IT')
@@ -1298,7 +1335,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     await negativeAcknowledgement(f,message,decision,'258')
     expect(business(f)).toEqual(before); await reread(f,control)
   })
-
   it('fresh incoming H from a genuinely known SUPPLIER issuer cannot borrow the original DSO scope',async()=>{
     const {f,original}=await sent(), refs=references(), control=await ready(f,original,reply(f,original,replyBody(f,original,refs),refs))
     const supplier=await resolveCanonicalTenantEdielIdentityWithEvidence({companyId:f.companyId,environment:'test',requireExactCounts:true})
@@ -1348,7 +1384,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(currentDso()).toEqual(dso)
     expect(await readRegistryDispatchSource(dispatchScope)).toBeNull()
   })
-
   it('expiry of the actual SUPPLIER recipient role before a fresh H birth cannot rewrite the old ready source or authorize a new effect',async()=>{
     const {f,original}=await sent(), control=await ready(f,original), immutable=sealed(control.message.id)
     expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.tenant_actor_roles WHERE company_id=${literal(f.companyId)} AND environment='test'
@@ -1365,7 +1400,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     }
     expect(business(f)).toEqual(before); expect(sealed(control.message.id)).toEqual(immutable)
   })
-
   it.each(['raw_payload','direction','environment'] as const)('rejects immutable original %s mutation at its actual public SQL guard', async field => {
     const {f,original}=await sent(), before=business(f), immutable=sealed(original.id)
     const result=await supabaseService.from('ediel_messages').update({[field]:field==='raw_payload'?original.raw_payload+' ':field==='direction'?'inbound':'production'}).eq('id',original.id)
@@ -1373,13 +1407,11 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
       :{code:'P0001',message:'switch_original_bound_message_immutable'})
     expect(sealed(original.id)).toEqual(immutable); expect(business(f)).toEqual(before)
   })
-
   it('a genuine outbound original is never interpreted as the incoming H confirmation', async () => {
     const {f,original}=await sent(), before=business(f), immutable=sealed(original.id)
     await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:original.id})
     expect(business(f)).toEqual(before); expect(sealed(original.id)).toEqual(immutable)
   })
-
   it('the same archived test profile cannot authorize a production-environment original', async()=>{
     const f=await authorized(), before=business(f), sends=smtp.send.mock.calls.length
     const scope={companyId:f.companyId,switchId:f.switchId,actorUserId:f.actorUserId,environment:'test' as const}
@@ -1400,7 +1432,6 @@ describe('H actual public chain proposals; whole NOT_EXECUTED', () => {
     expect(rows('public.ediel_outbox',f.companyId)).toEqual([]);expect(rows('gridex_ediel_transport.attempts',f.companyId)).toEqual([])
     expect(smtp.send.mock.calls.length).toBe(sends)
   })
-
   it.each(['LI','customer','start'] as const)('fresh Z04 with wrong own %s cannot borrow the accepted H original', async facet=>{
     const {f,original}=await sent(), clock=references(), control=await ready(f,original,reply(f,original,replyBody(f,original,clock),clock))
     const wrongLi='WRONG-'+own(f,original).li.slice(0,29)

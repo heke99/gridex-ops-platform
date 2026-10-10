@@ -1,3 +1,4 @@
+import {hasReceivedZ04HStructuralFieldRejection} from '@/lib/ediel/prodat/receivedZ04HStructuralFieldRejection'
 import {hasReceivedZ04HRequiredFieldRejection} from '@/lib/ediel/prodat/receivedZ04HRequiredFieldRejection'
 import {hasReceivedZ04HRegisterRejection} from '@/lib/ediel/prodat/receivedZ04HRegisterRejection';
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages';
@@ -15,6 +16,7 @@ import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
 import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition';
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft';
+import {readRetainedProdatDocumentHold} from '@/lib/ediel/ack/retainedProdatDocumentHold';
 import {readUnattributedTechnicalIntake} from '@/lib/ediel/inbound/receptions';
 import {createReceivedErrApplicationAcks} from '@/lib/ediel/flows/receivedErrApplicationAcks';
 import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource';
@@ -25,6 +27,7 @@ import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMar
 import {publishSourceSwitchCommit} from '@/lib/ediel/flows/sourceSwitchCommit';
 import {createReceivedProdatCommittedEffectAcks} from '@/lib/ediel/flows/receivedProdatStructuralAcks';
 // lib/ediel/flows/inboundProcessing.ts
+import {hasReceivedProdatHeaderRejection} from '@/lib/ediel/prodat/receivedProdatHeaderRejection';
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 import {prodatHeaderFieldRejection} from "@/lib/ediel/prodat/prodatHeaderDateRejection";
 import {tokenizeEdifact} from "@/lib/ediel/core/edifactTokenizer";
@@ -153,6 +156,7 @@ async function createAckIfMissing(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null;
   utiltsHeaderRejected?: boolean;
   relatedTransactionReference?:string;
+  onProtectedExisting?:()=>void;
 }) {
   const prepared=await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,
     ackFamily:params.ackFamily,outcome:params.outcome??(params.ackFamily==='UTILTS_ERR'?'negative':'positive'),
@@ -160,7 +164,7 @@ async function createAckIfMissing(params: {
     utiltsHeaderRejected:params.utiltsHeaderRejected,relatedTransactionReference:params.relatedTransactionReference});
   // A protected immutable original is returned without outbox repair or a new
   // blocked-event audit. A separately authorized fresh repair has its own port.
-  if(prepared.kind==='existing')return prepared.message;
+  if(prepared.kind==='existing'){params.onProtectedExisting?.();return prepared.message;}
   const ack = await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
@@ -375,12 +379,14 @@ async function applyCanonicalRuntimeDecision(params: {
     receivedOriginalRulePackWitness(decision.validationReport.rulePackEvidence)===null;
   const protectedPhysicalRejection=hasReceivedZ04RequiredStartRejection(decision,params.message,params.actorUserId)
     ||hasReceivedZ04HRegisterRejection(decision,params.message,params.actorUserId)
-    ||hasReceivedZ04HRequiredFieldRejection(decision,params.message,params.actorUserId);
+    ||hasReceivedZ04HRequiredFieldRejection(decision,params.message,params.actorUserId)
+    ||hasReceivedZ04HStructuralFieldRejection(decision,params.message,params.actorUserId);
   if(params.message.message_family==='PRODAT' && decision.syntaxDecision==='accepted' && (decision.policy||protectedPhysicalRejection) && !registryIncidentReview) {
     if(sourceValidationEvidence.status!=='recorded')throw new Error('prodat_canonical_source_validation_unconfirmed');
     await captureFreshEdielSourceRulePackEvidence(params.resolvedCompanyId,params.message.id);
   }
-  const sourceOwnerSession = protectedPhysicalRejection?null:createReceivedSourceOwnerSession(sourceValidationEvidence);
+  const sourceOwnerSession = protectedPhysicalRejection||hasReceivedProdatHeaderRejection(decision,params.message,params.actorUserId)
+    ?null:createReceivedSourceOwnerSession(sourceValidationEvidence);
   const now = new Date().toISOString();
   const parsedPayloadBeforeRuntime = params.message.parsed_payload ?? {};
   const validationReportBeforeRuntime = params.message.validation_report ?? {};
@@ -922,6 +928,7 @@ export async function processInboundEdielMessage(params: {
   // Syntax belongs to the actual wire and transport endpoint. It precedes
   // legal tenant routing and grants no business attribution or guide approval.
   let acceptedTechnicalAcknowledgementCompanyId: string | null = null;
+  let retainedAcceptedTechnicalAcknowledgement = false;
   // A grammar-qualified physical A210 refusal must precede even diagnostic
   // tenant writes. NULL technical endpoints remain lawful for other sources;
   // this current actor READ grants no response or business capability.
@@ -948,7 +955,9 @@ export async function processInboundEdielMessage(params: {
         await recordEdielTechnicalSyntaxDecision({companyId:endpoint.companyId,sourceMessageId:message.id,sourceHash:endpoint.sourceHash,
           syntaxDecision:syntax.ok?'accepted':'rejected',reasonCodes:syntax.issues.filter(issue=>issue.severity==='error').map(issue=>issue.code),execution:{actorUserId,phase:'prepare'}});
         const capturedSyntax=await captureEdielTechnicalSyntaxAckEvidence(endpoint.companyId,message.id,{actorUserId,phase:'prepare'});
-        const technicalAck=await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative'});
+        let protectedExistingTechnicalAck=false;
+        const technicalAck=await createAckIfMissing({actorUserId,sourceMessage:message,ackFamily:'CONTRL',outcome:syntax.ok?'positive':'negative',
+          onProtectedExisting:()=>{protectedExistingTechnicalAck=true;}});
         const qualifiedSyntax=technicalSyntaxAckQualification({evidence:capturedSyntax,companyId:endpoint.companyId,
           environment:endpoint.environment,sourceMessageId:message.id});
         // Automatic test communication needs both the protected syntax owner
@@ -959,6 +968,7 @@ export async function processInboundEdielMessage(params: {
           && technicalAck.direction==='outbound' && technicalAck.message_family==='CONTRL'
           && technicalAck.related_message_id===message.id && typeof technicalAck.raw_payload==='string' && technicalAck.raw_payload.length>0) {
           acceptedTechnicalAcknowledgementCompanyId=endpoint.companyId;
+          retainedAcceptedTechnicalAcknowledgement=protectedExistingTechnicalAck;
         }
       }
     } catch(error) {
@@ -968,6 +978,12 @@ export async function processInboundEdielMessage(params: {
         reason:formatErrorMessage(error,'Teknisk kvittens kunde inte kvalificeras.')});
     }
   }
+
+  // Only this invocation's protected existing CONTRL read selects replay. A
+  // freshly created first reply keeps the ordinary tenant/validation path.
+  // Actor/source refusals propagate outside the technical diagnostic catch.
+  if(retainedAcceptedTechnicalAcknowledgement
+    &&await readRetainedProdatDocumentHold({actorUserId,sourceMessage:message,syntax:selectedSyntax}))return message;
 
   if(protectedIntake) {
     await createEdielMessageEvent({actorUserId,edielMessageId:message.id,eventType:'manual_note',eventStatus:'warning',
@@ -1026,9 +1042,11 @@ export async function processInboundEdielMessage(params: {
   // Only this same-invocation negative owner may precede the unavailable
   // bilateral automatic policy. Real canonical capture above and the normal
   // protected negative ACK gateway remain mandatory; no business path follows.
-  if(hasReceivedZ04RequiredStartRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
+  if(hasReceivedProdatHeaderRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
+    ||hasReceivedZ04RequiredStartRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
     ||hasReceivedZ04HRegisterRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
-    ||hasReceivedZ04HRequiredFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
+    ||hasReceivedZ04HRequiredFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
+    ||hasReceivedZ04HStructuralFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
     const plan=canonicalRuntime.decision.responsePlan.find(plan=>plan.family==='APERAK'&&plan.outcome==='negative');
     if(!plan?.applicationErrors?.length)throw new Error('prodat_required_start_negative_owner_unavailable');
     await createAckIfMissing({actorUserId,sourceMessage:runtimeMessage,ackFamily:'APERAK',outcome:'negative',
