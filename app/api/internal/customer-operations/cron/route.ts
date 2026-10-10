@@ -14,6 +14,7 @@ import { reconcileLegacyFacilityRequestLinks } from '@/lib/website/legacyFacilit
 import { processPendingExactAddressResolutions } from '@/lib/energy/pendingExactAddressResolution'
 import { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
 import { sweepEdielBusinessExpectations } from '@/lib/ediel/operations/businessExpectationSweep'
+import { runOptionalStep } from '@/lib/customer-operations/optionalCronStep'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -87,20 +88,20 @@ async function run(request: NextRequest) {
     // PRODAT Z01 has two independent 30-minute watches from the actual
     // message_sent_at: technical CONTRL and business Z02/negative APERAK.
     // The watchdog only escalates; it never creates or resends a Z01.
-    const z01ResponseSla = await runZ01ResponseSlaWatchdog({
+    const z01ResponseSla = await runOptionalStep('z01ResponseSla', () => runZ01ResponseSlaWatchdog({
       limit: Math.min(requestedLimit * 2, 100),
-    })
+    }), {} as Awaited<ReturnType<typeof runZ01ResponseSlaWatchdog>>)
     const inboundAckSla = automationUserConfig.ok && automationUserConfig.userId
-      ? await checkAckDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit * 2, 100) })
+      ? await runOptionalStep('inboundAckSla', () => checkAckDeadlines({ actorUserId: automationUserConfig.userId!, limit: Math.min(requestedLimit * 2, 100) }), { warning: 0, critical: 0, expired: 0, updated: 0 })
       : { warning: 0, critical: 0, expired: 0, updated: 0, configurationBlocked: true }
     const permissionMarketDeadlines = automationUserConfig.ok && automationUserConfig.userId
-      ? await advancePermissionMarketDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit, 100) })
+      ? await runOptionalStep('permissionMarketDeadlines', () => advancePermissionMarketDeadlines({ actorUserId: automationUserConfig.userId!, limit: Math.min(requestedLimit, 100) }), { updated: 0 })
       : { updated: 0, configurationBlocked: true }
     const supplyMarketDeadlines = automationUserConfig.ok && automationUserConfig.userId
-      ? await advanceSupplyMarketDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit, 100) })
+      ? await runOptionalStep('supplyMarketDeadlines', () => advanceSupplyMarketDeadlines({ actorUserId: automationUserConfig.userId!, limit: Math.min(requestedLimit, 100) }), { updated: 0 })
       : { updated: 0, configurationBlocked: true }
     const businessExpectations = automationUserConfig.ok && automationUserConfig.userId
-      ? await sweepEdielBusinessExpectations({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit * 2, 100) })
+      ? await runOptionalStep('businessExpectations', () => sweepEdielBusinessExpectations({ actorUserId: automationUserConfig.userId!, limit: Math.min(requestedLimit * 2, 100) }), { scopes: 0, observed: 0, manualReview: 0, fulfilled: 0, rejected: 0, nextActions: [], blocked: [] })
       : { scopes: 0, observed: 0, configurationBlocked: true }
     const facilityLookupDispatch = await processReadyFacilityLookupEdifactDispatches({
       limit: Math.min(requestedLimit, 25),

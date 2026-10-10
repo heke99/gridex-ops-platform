@@ -37,7 +37,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <AdminHeader title="Support" subtitle="Tenant-isolerade supportärenden från API, kundportal och intern handläggning." userEmail={context.email} />
+      <AdminHeader title="Support" subtitle="Ert bolags supportärenden från API, kundportal och intern handläggning." userEmail={context.email} />
       <main className="space-y-4 p-4 lg:p-6">
         <section className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="flex min-w-0 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4"><p className="min-w-0 break-words text-sm text-slate-600">Öppna supportärenden</p><p className="text-2xl font-semibold">{open.length}</p></div>

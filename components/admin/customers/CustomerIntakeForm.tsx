@@ -162,9 +162,9 @@ function CreatedCustomerNextSteps({ state }: { state: IntakeActionState }) {
       >
         <p className="font-semibold text-slate-950">Begär uppgifter direkt</p>
         <p className="mt-1 text-xs leading-5 text-slate-700">
-          Välj mottagare och skapa begäran utan att leta i kundkortet. Saknas
-          signerad fullmakt stoppar systemet utskicket och lägger en tydlig
-          blockerare på kunden.
+          Välj mottagare och skicka begäran direkt. Saknas signerad fullmakt
+          skickas inget – ladda upp fullmakten så kan du begära uppgifterna
+          från kundkortet.
         </p>
 
         <form
@@ -311,9 +311,8 @@ export default function CustomerIntakeForm({
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-lg font-semibold text-slate-950">Registrera kund</h2>
       <p className="mt-1 text-sm leading-6 text-slate-700">
-        Skapa kunden även när data saknas. Systemet sparar kunden och lägger
-        saknade uppgifter, möjliga dubbletter och spärrar som blockerare på
-        kundkortet.
+        Du kan spara kunden även om alla uppgifter inte finns ännu. Det som
+        saknas visas på kundkortet så att du enkelt kan komplettera senare.
       </p>
 
       {state.status === "success" && state.message ? (
@@ -365,7 +364,7 @@ export default function CustomerIntakeForm({
 
         <Section
           title="1. Kund"
-          description="Minsta möjliga kunddata. Saknas något skapas blockerare i stället för totalstopp."
+          description="Fyll i det du har. Saknade uppgifter kan kompletteras senare på kundkortet."
         >
           <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Kundtyp</span>
@@ -536,7 +535,7 @@ export default function CustomerIntakeForm({
 
         <Section
           title="2. Anläggning"
-          description="Anläggning och mätpunkt skapas om information finns. Saknade uppgifter blir blockerare."
+          description="Fyll i anläggningsuppgifter om du har dem. Det som saknas kan kompletteras senare."
         >
           <label
             className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2"
@@ -638,7 +637,7 @@ export default function CustomerIntakeForm({
               className={inputClassName(state, "gridOwnerId")}
             >
               <option value="">
-                Välj verifierad nätägare eller låt systemet begära uppgifter
+                Välj nätägare (eller lämna tomt om du inte vet)
               </option>
               {gridOwners.map((owner) => (
                 <option key={owner.id} value={owner.id}>
@@ -651,13 +650,12 @@ export default function CustomerIntakeForm({
 
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 md:col-span-2 text-sm text-sky-950">
             <p className="font-semibold">
-              Nätägare hanteras som verifierad masterdata
+              Hittar du inte nätägaren?
             </p>
             <p className="mt-1 text-xs leading-5 text-sky-900">
-              Vanliga elbolagsadmin kan inte skapa nätägare, Ediel-ID, subadress
-              eller route från kundintaget. Saknas nätägaren i listan ska
-              ärendet skickas till superadmin/importflödet och leverantörsbyte
-              blockeras tills aktören är verifierad.
+              Lämna fältet tomt och spara kunden. Kontakta supporten så lägger vi
+              till nätägaren. Leverantörsbytet kan starta när nätägaren finns i
+              listan.
             </p>
           </div>
 
@@ -776,7 +774,7 @@ export default function CustomerIntakeForm({
             <input
               name="currentSupplierName"
               defaultValue={state.values.currentSupplierName ?? ""}
-              placeholder="Endast som kunduppgift, inte verifierad masterdata"
+              placeholder="Om leverantören inte finns i listan"
               className={inputClassName(state, "currentSupplierName")}
             />
             <FieldError state={state} name="currentSupplierName" />
@@ -798,10 +796,9 @@ export default function CustomerIntakeForm({
               Leverantörer skapas inte från kundintaget
             </p>
             <p className="mt-1 text-xs leading-5 text-sky-900">
-              Välj en verifierad elleverantör om den finns. Fritextfältet ovan
-              sparas bara som kundens uppgift och får inte användas som
-              Ediel-/marknadsidentitet. Superadmin ansvarar för aktörsregister,
-              Ediel-ID och routes.
+              Välj elleverantören i listan om den finns. Finns den inte kan du
+              skriva namnet i fritextfältet ovan – kontakta supporten om
+              leverantören behöver läggas till.
             </p>
           </div>
 
@@ -933,7 +930,7 @@ export default function CustomerIntakeForm({
                 Svar från gammal leverantör
               </option>
               <option value="grid_owner_response">Svar från nätägare</option>
-              <option value="ediel_prodat">Ediel/PRODAT-svar</option>
+              <option value="ediel_prodat">Svar från nätägaren</option>
               <option value="manual_override">Manuell justering</option>
             </select>
             <FieldError state={state} name="startDateSource" />
@@ -1233,8 +1230,8 @@ export default function CustomerIntakeForm({
               className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3"
             />
             <span className="text-xs text-slate-600">
-              Skapar signerad fullmakt och tar bort blockerare för saknad
-              fullmakt i nästa steg.
+              När fullmakten är uppladdad kan uppgifter begäras och bytet
+              fortsätta.
             </span>
           </label>
 
@@ -1249,9 +1246,8 @@ export default function CustomerIntakeForm({
               className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3"
             />
             <span className="text-xs text-slate-600">
-              Sparas bara som föreslagen data. Anläggnings-ID, nätägare och
-              nätområde blir verifierade först efter
-              Ediel/nätägare/adminbekräftelse.
+              Uppgifterna i fakturan används som förslag. Anläggnings-ID,
+              nätägare och nätområde bekräftas sedan med nätägaren.
             </span>
           </label>
 
@@ -1313,7 +1309,7 @@ export default function CustomerIntakeForm({
 
         <Section
           title="6. Dubblett och granskning"
-          description="Möjlig dubblett sparas som blockerare och stoppar inte kundskapandet."
+          description="Om kunden kanske redan finns sparas den ändå – du får en påminnelse att kontrollera."
         >
           <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">
@@ -1416,9 +1412,9 @@ export default function CustomerIntakeForm({
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:col-span-2">
             <p className="font-semibold text-slate-950">Så fungerar det</p>
             <p className="mt-1">
-              Kunden sparas alltid först. Om du begär uppgifter direkt
-              kontrollerar systemet signerad fullmakt. Saknas fullmakt skapas en
-              blockerare i stället för att något skickas.
+              Kunden sparas alltid först. Vill du begära uppgifter direkt behöver
+              kunden ha en signerad fullmakt. Saknas den visas det på kundkortet
+              och du kan ladda upp fullmakten där.
             </p>
           </div>
         </Section>
@@ -1426,7 +1422,7 @@ export default function CustomerIntakeForm({
         <CustomerIntakeEnhancer offers={contractOffers} values={state.values} />
 
         <div className="sticky bottom-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <p className="text-xs text-slate-600">Ofullständiga uppgifter sparas med blockerare.</p>
+          <p className="text-xs text-slate-600">Ofullständiga uppgifter kan kompletteras senare.</p>
           <div className="ml-auto flex items-center gap-2">
             <button type="submit" name="intakeCreateMode" value="create" disabled={isPending} className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
               {isPending ? "Skapar…" : "Skapa kund"}

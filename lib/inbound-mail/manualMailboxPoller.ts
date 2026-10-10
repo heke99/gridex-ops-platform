@@ -216,6 +216,11 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
     secure: mailbox.imap_secure !== false,
     auth: { user: username, pass: password },
     logger: false,
+    // Bounded so a stalled IMAP server fails this mailbox (recorded in
+    // last_error) instead of hanging the cron until the 300s platform limit.
+    connectionTimeout: 30_000,
+    greetingTimeout: 15_000,
+    socketTimeout: 90_000,
   })
 
   const maxMessages = envInt('MANUAL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX', 25)

@@ -229,7 +229,6 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
               <p className="mt-1 text-xs text-slate-500">Flaggade kunder skickas aldrig med i batchen.</p>
             </div>
             <AdminActionsMenu label="Inställningar">
-              <Link href="/admin/pricing" className="hover:text-slate-950">Prismotor</Link>
               <Link href="/admin/billing/integrations" className="hover:text-slate-950">Teknisk integration</Link>
             </AdminActionsMenu>
           </div>
