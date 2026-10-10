@@ -685,3 +685,77 @@ FRESH_OWNER_EVENT / current blockers reconciled — SAME H1102/b6d3; published S
 Fresh remote main1897/coverage302of352 unchanged. #721 now actual9ddc10c52d89b12543c64b33355634f5ad26e060/tree1f65c20a6513cd6d312b9869af9eb62a2e37fad4 (previous7319 preserved). Compared complete one-commit delta: existing runtimeDecision/messagePolicy L-LK freshactor/oneuse reading integration +new finite integrationtest+ownCOREcheckpoint only; no donor306/229/252 adoption or claimed wholeH effect. Owner reports514finite/NI/lint/source2; this is owner source proof, not ROOT freshnative/currentCI approval. Current9dd verify/smoke/browserSUCCESS, targeted-regressions andprodat-response-hold-native FAILURE; requiredquality/coverage/clean/upgrade andHnative stillIN_PROGRESS at observation. ROOT downloaded no logs/artifacts and ran no competingnative/GEN; rightfulCORE owner qualifies actual failures/exactsource. CORE's currentPRbody names existing sole GEN19 capture37834226993 being prepared byitsone delegatedreader; noROOTcapture orold17 relabel.
 
 #6992fe8ee35 and#7208c remainopen/unmerged.720nine mandatorySUCCESS remainhead8c, original11570116577 stillnoACK/materializedbytes/qualification; existingtransport6066367326 andprivatephysicalnegative owner duties persist. No source-only306handoffACK appeared after6068459232 in fresh673read. NEXT2f72/CORE: exact21sourceACK then own integration/freshnative/current-headgates; NEXTtransportoperator: singleACK+genuineoriginalZIP; NEXTROOT: exactscope release/404 afterACK then recipientCLAIM, or strict solearchivequalification afteractualbytes. RetainbothH IDs/original3/source21 onlyforthese named resumptionevents. No newpair/wholeapproval/coverage orforeignscope edit; no further independent owned implementation iscurrentlyproved executable. Sharedsummary owner consumes this receipt underitsownrole/files.
+
+
+## 2026-10-10 UTC / 2026-10-11 Stockholm — written project-owner authorization
+
+Coordination marker: `OWNER_AUTHORIZATION_B6_H_20261010`. This is a new
+owner-authorization/resumption record; preserve the preceding dated observations.
+
+The project owner gave written approval in this Codex chat:
+
+> Du har tillgång att ta över och säg fick skriftligt godkännande från ägaren av projektet . Dokumentera
+
+I have received written project-owner approval to take over the remaining H
+work necessary to finish this chat's existing packet. The authorization source
+is the user's quoted message in this chat, not an invented ACK from another
+agent or a claimed GitHub identity. Technical access and transferred reservations
+must be established separately by actual GitData operations/readbacks.
+
+Role remains PLANAGENT implementer, agent `codex-ediel-20261007-b6d3-41f5172a`,
+session `41f5172a-512b-4e05-b84d-53e6772e7254`, packet
+`1102ed76-cc69-452b-a20d-92f34cfda805`. Bounded continuation:
+`AT-Z03H-SUPPLIER` and `AT-Z04H-SUPPLIER`, original bilateral-profile contracts
+in `docs/ediel/masterplan-v2/registers/acceptance_tests.json` and annex D.
+Reconcile source-bound acknowledgement, business flow, exact fields/timers and
+prohibited wrong-role/direction/missing-R-D/correlation/mutation effects against
+actual main. No automatic standard effect without an established bilateral
+transition profile. The takeover approval does not supply a counterparty
+agreement/profile or market/LIVE evidence.
+
+Fresh main is `a5220cba88c743ffc7fb3aaaf0ca093dda1f0638`. #699 is actually merged
+at `6cba584708be48a5c07980e40abdab83afe99a1d`; #725 is actually merged at
+`a2cdf6101effcadef0e797b057acae66018b09b7`, reviewed source
+`dd8d88f7a185795e791aea8bc7102d4e047fe2d8`. #725 records authentic final-source
+C30 30/30 and H100 100/100, two independent affected reviews and nine mandatory
+gates. These are that delivery's proofs, not a new native run on current main or
+whole H acceptance. Current main field306 already allows Z11/Z12. The old
+#699/#721/306 integration blocker observation is superseded; reuse delivered
+work. #721 is closed unmerged as SUPERSEDED_PROPOSAL; #720 is still open at
+`8c4a38a9d07796f7b3027067230fe912c4490021` and must be reconciled before reuse.
+
+Actual custody: exact GETs confirm the two H ID refs still equal original receipt
+`01f5d60da3589230c7bd2a5694ebb11e1efba7ff` and these three file refs still equal
+`b52ffc36e2cdd8e392033cca5b7e1b0cfcff2a01`:
+
+- `__tests__/ediel-rejected-bilateral-switch-birth-profile.test.ts`
+- `lib/inbound-mail/rejectedBilateralSwitchBirthProfile.ts`
+- `__tests__/ediel-rejected-bilateral-switch-intake.test.ts`
+
+The old 21-path source306 donor is now foreign custody under receipt
+`39581d1191bdb9892dfae056d6f53f5fd1e4df86`, original CORE agent
+`codex-root-core-blockers-20261008`, packet
+`6ee2f18c-47d2-4887-b988-04b7aee57997`. Its actual receipt documents authorized
+handover of frozen source `35cbe0bd22667c04844ac3cdafa312ed8a1a4ef0` via
+#673 comment6068459232 and explicitly retains this agent's whole H duty and five
+refs. The preceding claim of 26 retained own refs is dated history: today five
+are ours, 21 are the recipient's. No foreign ref is overwritten/deleted, no
+foreign file is edited, and no technical transfer is claimed by this entry.
+A future necessary H source takeover must name exact owner/receipt, files,
+remaining criteria, stopped producer and custody reconciliation before editing.
+Unrelated P08, DB01, SQL/GEN/schema, other owners' whole duties and merge/shared
+memory roles are outside this authorization's recorded scope.
+
+Coverage remains 115/121 rules +187/231 contracts =302/352. Both owned H rows
+remain NOT_EXECUTED with empty evidence. No source count, authorization, local
+check, open PR or merge is relabelled as whole acceptance. No merge-role is held;
+role-memory is unused because this is the uniquely owned checkpoint only.
+
+NEXT — this agent: map each literal H criterion to delivered main and retained
+#720 evidence, identify any actually missing result/profile input with its owner
+and resumption condition, then reserve only an exact uncovered source/evidence
+scope if needed. Obtain explicit producer stop/custody reconciliation for any
+foreign H scope before using this takeover approval; preserve original source,
+failed proofs and other agents' work. Follow independent review, current-head CI
+and merge-lock requirements for any resulting PR. Publish this authorization
+and the exact checkpoint commit on #673 before implementation.
