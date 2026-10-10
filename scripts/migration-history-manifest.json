@@ -878,6 +878,7 @@
     "20261008160000_db05_closed_tenant_retention_scope.sql": "25fbb60e3b9de22a2a7300ac5eeb27a38033be4e57fb6c1b8c3dd3327c8e50bb",
     "20261009082553_ediel_switch_cancellation_customer_masterdata_preparation.sql": "d1d5ed8a3731f281826de39e4ebd4868a3090016dfef4544d6964352242cf351",
     "20261009090000_ops_api_exact_accepted_poa_document.sql": "432fff05071cc74d724bcf057ce23c7e4ccd53aa55e906c529a9fc49a48941d0",
+    "20261009093000_canonical_energy_platform_event_scope.sql": "562de293ed4cd26a1d615b980182e4df7d6b277ec4f22c1ce8efdb27428d34b5",
     "20261009100000_ops_api_contract_confirmation_delivery_continuation.sql": "3d6751fd62678eb5fee7388cb0dcbffe0ba814615ee3d37a6d1c4329a33e45ba",
     "20261009110000_ops_api_session_guard_auth_revocation.sql": "87b4a5b48241eb3020f5b7d100cee30672114e864e59534abe75491b366641aa",
     "20261009121545_ediel_source_bound_ack_origination_index.sql": "0a97eea312399d620a1541db781c407ad088997b099f8877a931c3e7e3df605d",

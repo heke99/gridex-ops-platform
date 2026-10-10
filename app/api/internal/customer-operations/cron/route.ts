@@ -16,6 +16,7 @@ import { processPendingExactAddressResolutions } from '@/lib/energy/pendingExact
 import { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
 import { sweepEdielBusinessExpectations } from '@/lib/ediel/operations/businessExpectationSweep'
 import { runManualGridOwnerFollowUpWatchdog } from '@/lib/customer-operations/manualGridOwnerFollowUps'
+import { isUndeployedSchemaError } from '@/lib/customer-operations/optionalCronStep'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,6 +49,7 @@ function limit(value: string | null) {
 }
 
 type CronStepFailure = { failed: true; code: 'customer_operation_step_failed'; trace_id: string }
+type CronStepSkipped = { skippedReason: 'schema_not_deployed' }
 
 async function run(request: NextRequest) {
   if (!authorized(request)) return NextResponse.json({ ok: false, error: 'Unauthorized.' }, { status: 401 })
@@ -56,10 +58,19 @@ async function run(request: NextRequest) {
 
   // Every step is isolated: one throwing step is reported and the remaining
   // steps (POA expiry, Z01 SLA, switch activation...) still run.
-  async function step<T>(name: string, fn: () => Promise<T>): Promise<T | CronStepFailure> {
+  // A step whose database objects are not deployed yet is skipped and
+  // reported, not counted as a failure.
+  async function step<T>(name: string, fn: () => Promise<T>): Promise<T | CronStepFailure | CronStepSkipped> {
     try {
       return await fn()
     } catch (error) {
+      if (isUndeployedSchemaError(error)) {
+        console.warn('[customer-operations-cron] step skipped: schema not deployed', {
+          step: name,
+          code: (error as { code?: string }).code,
+        })
+        return { skippedReason: 'schema_not_deployed' }
+      }
       const traceId = randomUUID()
       console.error('[customer-operations-cron] step failed', { step: name, traceId, error })
       failedSteps.push({ step: name, trace_id: traceId })
@@ -72,7 +83,7 @@ async function run(request: NextRequest) {
   // processing — jobs that need the actor fail fast with a typed
   // missing_automation_user configuration blocker instead of retrying.
   const validatedConfig = await step('automationUserConfig', () => validateAutomationUserConfig())
-  const automationUserConfig = 'failed' in validatedConfig
+  const automationUserConfig = 'failed' in validatedConfig || 'skippedReason' in validatedConfig
     ? { ok: false as const, issue: 'validation_failed', message: null, userId: null }
     : validatedConfig
   if (!automationUserConfig.ok) {

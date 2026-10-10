@@ -45,7 +45,7 @@ export async function AdminCustomersPage({
  <div className="min-h-screen">
  <AdminHeader
  title="Kundregister"
- subtitle="Kundregistret kräver en aktiv bolagskoppling för tenant-användare."
+ subtitle="Ditt konto är inte kopplat till något bolag. Kontakta din administratör."
  userEmail={context.email}
  workspaceName={tenantScope.isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
  workspaceMode={tenantScope.isPlatformAdmin ? 'platform' : 'tenant'}

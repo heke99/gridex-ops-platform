@@ -361,6 +361,11 @@ export async function pollEdielMailbox(input: {
         pass: password,
       },
       logger: false,
+      // Bounded so a stalled IMAP server fails this mailbox (recorded in
+      // last_error) instead of hanging the cron until the 300s platform limit.
+      connectionTimeout: 30_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 90_000,
     });
 
     await client.connect();

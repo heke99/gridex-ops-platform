@@ -41,11 +41,12 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
   {
     key: 'overview',
     title: 'Översikt',
-    description: 'Daglig drift och blockerare',
+    description: 'Daglig drift och att göra',
     items: [
       { key: 'dashboard', label: 'Översikt', href: '/admin', description: 'Status, arbetskö och nästa åtgärd', pageKey: 'dashboard' },
       { key: 'work_queue', label: 'Arbetskö', href: '/admin/work-queue', description: 'Kunder och driftuppgifter som kräver åtgärd', pageKey: 'operations.tasks' },
       { key: 'events', label: 'Händelser', href: '/admin/events', description: 'Samlad kund-, anläggnings- och automationshistorik', pageKey: 'operations.tasks' },
+      { key: 'customer_portfolio', label: 'Portföljöversikt', href: '/admin/analytics/portfolio', description: 'Kunder, fullmakter och förbrukningsprognos för ert bolag', pageKey: 'analytics.workspace' },
     ],
   },
   {
@@ -66,10 +67,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kundsupport via webb, telefon och OPS',
     items: [
       { key: 'customer_cases', label: 'Supportärenden', href: '/admin/customer-cases', description: 'Kundärenden, svar, interna anteckningar och samtal', pageKey: 'support.cases' },
-      { key: 'messages', label: 'Meddelanden', href: '/admin/messages', description: 'EDIEL-meddelanden, utskick och kommunikationshistorik', pageKey: 'operations.tasks' },
-      { key: 'ediel.requested_change_sources', label: 'Ändringsunderlag', href: '/admin/ediel/requested-changes', description: 'Original, separat granskning och begäran för dödsfall eller avtalad mätning', requiredPermissions: ['communication.read'] },
-      { key: 'ediel.regulated_supply_sources', label: 'Reglerad leveransgrund', href: '/admin/ediel/regulated-supply', description: 'Arkiverade original och separat granskad leveransgrund', requiredPermissions: ['communication.read'] },
-      { key: 'ediel.bilateral_customer_sources', label: 'Bilateralt kundunderlag', href: '/admin/ediel/customer-source-agreements', description: 'Arkiverat original för mottagen kundändring', requiredPermissions: ['communication.read'] },
+      { key: 'messages', label: 'Meddelanden', href: '/admin/messages', description: 'Meddelanden till och från nätägare, utskick och historik', pageKey: 'operations.tasks' },
     ],
   },
   {
@@ -78,7 +76,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Underlag, export och fakturapartner',
     items: [
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag till fakturering/export', pageKey: 'billing.workspace' },
-      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Capway/Aptic, providerstatus och anslutningstest', pageKey: 'billing.workspace' },
+      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Koppling till ert faktureringssystem och test av anslutningen', pageKey: 'billing.workspace' },
     ],
   },
   {
@@ -89,7 +87,6 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'switches', label: 'Leverantörsbyten', href: '/admin/operations/switches', description: 'Start, status och slutförande', pageKey: 'operations.switches' },
       { key: 'metering', label: 'Mätvärden', href: '/admin/metering', description: 'Mätvärdesrequests och inkomna värden', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analys', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
-      { key: 'customer_portfolio', label: 'Kundportfölj', href: '/admin/analytics/portfolio', description: 'Nya och lämnade kunder, fullmakter och förbrukningsprognos', pageKey: 'analytics.workspace' },
       { key: 'outbound', label: 'Utskick', href: '/admin/outbound', description: 'Extern kommunikation i affärsspråk', pageKey: 'outbound.queue' },
       { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Datakvalitet, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
     ],
@@ -100,7 +97,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Tenantens publicering och marknadsdatapolicy',
     items: [
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog, publicering och teckningsbarhet', pageKey: 'contracts.catalog' },
-      { key: 'market_sources', label: 'Marknadsdatapolicy', href: '/admin/pricing/market-sources', description: 'Interna källor för fakturering, avräkning och settlement', pageKey: 'pricing.engine' },
+      { key: 'market_sources', label: 'Marknadsdatapolicy', href: '/admin/pricing/market-sources', description: 'Vilka marknadspriser som används vid fakturering och avräkning', pageKey: 'pricing.engine' },
     ],
   },
   {
@@ -118,10 +115,10 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     title: 'White-label',
     description: 'Egna bolag, go-live och aktörstester',
     items: [
-      { key: 'whitelabel.portfolio', label: 'Portföljöversikt', href: '/admin/whitelabel/portfolio', description: 'Kunder, fullmakter och prognos per bolag (läsbehörighet)', requiredPermissions: ['whitelabel.read'] },
-      { key: 'whitelabel.companies', label: 'Mina bolag', href: '/admin/whitelabel/companies', description: 'Bolag under din white-label-plattform', requiredPermissions: ['whitelabel.read'] },
-      { key: 'whitelabel.go_live', label: 'Go-live', href: '/admin/whitelabel/go-live', description: 'Produktionsförberedelser per bolag', requiredPermissions: ['whitelabel.read'] },
-      { key: 'whitelabel.actor_testing', label: 'Aktörstester', href: '/admin/whitelabel/actor-testing', description: 'Teststatus för dina bolag', requiredPermissions: ['whitelabel.read'] },
+      { key: 'whitelabel.portfolio', label: 'Portföljöversikt', href: '/admin/whitelabel/portfolio', description: 'Kunder, fullmakter och prognos per bolag (läsbehörighet)', requiredPermissions: ['whitelabel.read'], requiredRoles: ['white_label_platform_admin'] },
+      { key: 'whitelabel.companies', label: 'Mina bolag', href: '/admin/whitelabel/companies', description: 'Bolag under din white-label-plattform', requiredPermissions: ['whitelabel.read'], requiredRoles: ['white_label_platform_admin'] },
+      { key: 'whitelabel.go_live', label: 'Go-live', href: '/admin/whitelabel/go-live', description: 'Produktionsförberedelser per bolag', requiredPermissions: ['whitelabel.read'], requiredRoles: ['white_label_platform_admin'] },
+      { key: 'whitelabel.actor_testing', label: 'Aktörstester', href: '/admin/whitelabel/actor-testing', description: 'Teststatus för dina bolag', requiredPermissions: ['whitelabel.read'], requiredRoles: ['white_label_platform_admin'] },
     ],
   },
 ]
@@ -156,7 +153,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Kundregister, intag och prisvillkor',
     items: [
       { key: 'customers.list', label: 'Kunder', href: '/admin/customers', description: 'Sök kunder och öppna kundkort', pageKey: 'customers.list' },
-      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Externa kundansökningar från hemsida/API, blockerare och redo-kontroll', pageKey: 'customers.list' },
+      { key: 'customer_applications', label: 'Nya webbansökningar', href: '/admin/website-applications', description: 'Kundansökningar från hemsida och API', pageKey: 'customers.list' },
       { key: 'customers.intake', label: 'Kundintag', href: '/admin/customers/intake', description: 'Skapa kund, anläggning och fullmakt', pageKey: 'customers.intake' },
       { key: 'contracts', label: 'Avtal', href: '/admin/contracts', description: 'Avtalskatalog och kampanjer', pageKey: 'contracts.catalog' },
       { key: 'portfolio', label: 'Portfölj', href: '/admin/pricing/portfolio-settlements', description: 'Månadspris per tenant, portfölj och elområde', pageKey: 'pricing.engine', platformOnly: true, requiredRoles: ['super_admin'] },
@@ -173,9 +170,8 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'facility_requests', label: 'Anläggningsuppgifter', href: '/admin/facility-requests', description: 'Saknade anläggnings-ID, mätpunkter och nätägaruppgifter', pageKey: 'operations.tasks' },
       { key: 'metering', label: 'Mätvärdesåtkomst', href: '/admin/metering', description: 'Mätvärden och tillstånd', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analys', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
-      { key: 'customer_portfolio', label: 'Kundportfölj', href: '/admin/analytics/portfolio', description: 'Nya och lämnade kunder, fullmakter och förbrukningsprognos', pageKey: 'analytics.workspace' },
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag och exportberedskap', pageKey: 'billing.workspace' },
-      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Capway/Aptic, providerstatus och anslutningstest', pageKey: 'billing.workspace' },
+      { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Koppling till ert faktureringssystem och test av anslutningen', pageKey: 'billing.workspace' },
       { key: 'partner_exports', label: 'Partnerexporter', href: '/admin/partner-exports', description: 'Exportkö och status mot faktureringspartner', pageKey: 'partner_exports.workspace' },
       { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Datakvalitet, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
     ],
@@ -197,14 +193,24 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'ediel.ai_purpose_sources', label: 'AI-ändamålsunderlag', href: '/admin/ediel/ai-purpose-sources', description: 'Original och separat granskning av listornas ändamål', requiredPermissions: ['communication.read'] },
       { key: 'ediel.bilateral_prodat_sources', label: 'Bilaterala PRODAT-underlag', href: '/admin/ediel/bilateral-prodat-sources', description: 'Original och separat granskning av eget meddelandescope', requiredPermissions: ['communication.read'] },
       { key: 'ediel.customer_record_retention', label: 'Klassbunden gallring', href: '/retention/customer-records', description: 'Separata gallringsunderlag för kundens uppgiftsklasser', requiredPermissions: ['ediel.retention.submit'] },
-      { key: 'ediel.message_content_retention', label: 'Meddelande- och MIME-gallring', href: '/retention/message-content', description: 'Separata källbundna gallringsunderlag för meddelandebyte', requiredPermissions: ['ediel.retention.submit'] },
-      { key: 'ediel.process_journal_retention', label: 'Processjournaler', href: '/retention/process-journals', description: 'Separata källbundna gallringsunderlag för processjournaler', requiredPermissions: ['ediel.retention.submit'] },
-      { key: 'ediel.finance_copy_retention', label: 'Ekonomiska kopior', href: '/retention/finance-copies', description: 'Separata gallringsunderlag för avslutade ekonomiska uppgiftsklasser', requiredPermissions: ['ediel.retention.submit'] },
-      { key: 'ediel.network_registry_sources', label: 'Nätregisterunderlag', href: '/admin/ediel/network-registry-sources', description: 'Daterade nätoriginal och separat granskning', requiredPermissions: ['communication.read', 'customers.read', 'contracts.read'] },
-      { key: 'ediel.business_incidents', label: 'Affärsfel efter kvittens', href: '/admin/ediel/business-incidents', description: 'Nya observationer med bevarade originalkvittensers scope', requiredPermissions: ['communication.read'] },
-      { key: 'ediel.process_watches', label: 'Processbevakning', href: '/admin/ediel/process-watches', description: 'Tidsfrister och nästa åtgärd för granskade ändringsunderlag', requiredPermissions: ['communication.read'] },
-      { key: 'ediel.ai_list', label: 'AI-lista', href: '/admin/ediel/ai-list', description: 'AI/BI-listor och avvikelsekontroll', requiredPermissions: ['communication.read', 'customers.read'] },
       { key: 'ediel.agt', label: 'Aktörstester', href: '/admin/ediel/agt', description: 'AGT-status och testpaket', pageKey: 'platform.actor_testing', platformOnly: true },
+    ],
+  },
+  {
+    key: 'ediel_sources',
+    title: 'Ediel-underlag',
+    description: 'Tekniska underlag som hanteras av plattformen',
+    items: [
+      { key: 'ediel.requested_change_sources', label: 'Ändringsunderlag', href: '/admin/ediel/requested-changes', description: 'Original, separat granskning och begäran för dödsfall eller avtalad mätning', requiredPermissions: ['communication.read'], platformOnly: true },
+      { key: 'ediel.regulated_supply_sources', label: 'Reglerad leveransgrund', href: '/admin/ediel/regulated-supply', description: 'Arkiverade original och separat granskad leveransgrund', requiredPermissions: ['communication.read'], platformOnly: true },
+      { key: 'ediel.bilateral_customer_sources', label: 'Bilateralt kundunderlag', href: '/admin/ediel/customer-source-agreements', description: 'Arkiverat original för mottagen kundändring', requiredPermissions: ['communication.read'], platformOnly: true },
+      { key: 'ediel.message_content_retention', label: 'Meddelande- och MIME-gallring', href: '/retention/message-content', description: 'Separata källbundna gallringsunderlag för meddelandebyte', requiredPermissions: ['ediel.retention.submit'], platformOnly: true },
+      { key: 'ediel.process_journal_retention', label: 'Processjournaler', href: '/retention/process-journals', description: 'Separata källbundna gallringsunderlag för processjournaler', requiredPermissions: ['ediel.retention.submit'], platformOnly: true },
+      { key: 'ediel.finance_copy_retention', label: 'Ekonomiska kopior', href: '/retention/finance-copies', description: 'Separata gallringsunderlag för avslutade ekonomiska uppgiftsklasser', requiredPermissions: ['ediel.retention.submit'], platformOnly: true },
+      { key: 'ediel.network_registry_sources', label: 'Nätregisterunderlag', href: '/admin/ediel/network-registry-sources', description: 'Daterade nätoriginal och separat granskning', requiredPermissions: ['communication.read', 'customers.read', 'contracts.read'], platformOnly: true },
+      { key: 'ediel.business_incidents', label: 'Affärsfel efter kvittens', href: '/admin/ediel/business-incidents', description: 'Nya observationer med bevarade originalkvittensers scope', requiredPermissions: ['communication.read'], platformOnly: true },
+      { key: 'ediel.process_watches', label: 'Processbevakning', href: '/admin/ediel/process-watches', description: 'Tidsfrister och nästa åtgärd för granskade ändringsunderlag', requiredPermissions: ['communication.read'], platformOnly: true },
+      { key: 'ediel.ai_list', label: 'AI-lista', href: '/admin/ediel/ai-list', description: 'AI/BI-listor och avvikelsekontroll', requiredPermissions: ['communication.read', 'customers.read'], platformOnly: true },
     ],
   },
   {

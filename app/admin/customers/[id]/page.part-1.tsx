@@ -384,13 +384,13 @@ export const CUSTOMER_WORKSPACE_TABS: Array<{
   {
     id: "overview",
     label: "Översikt",
-    description: "Status, readiness och rekommenderad nästa åtgärd.",
+    description: "Status, vad som saknas och rekommenderad nästa åtgärd.",
     group: "Start",
   },
   {
     id: "legal-readiness",
     label: "Avtal & fullmakt",
-    description: "Villkor, fullmakt, snapshots, dokument och blockerare.",
+    description: "Villkor, fullmakt, dokument och det som saknas.",
     group: "Start",
   },
   {
@@ -578,7 +578,7 @@ export function CustomerLookupProblem({
           {description}
         </p>
         <div className="mt-4 rounded-2xl border border-amber-200 bg-white px-4 py-3 font-mono text-xs text-slate-700 ">
-          Lookup-id: {lookupId}
+          Referens: {lookupId}
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
@@ -586,12 +586,6 @@ export function CustomerLookupProblem({
             className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 "
           >
             Till kundregistret
-          </Link>
-          <Link
-            href="/admin/ediel"
-            className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
-          >
-            Till Ediel
           </Link>
         </div>
       </section>
@@ -743,7 +737,7 @@ export function buildCustomerLifecycleSummary(params: {
       primaryLabel: "Blockerade switchar",
       primaryHref: "/admin/operations/switches?stage=blocked",
       primaryDescription:
-        "Minst en anläggning stoppas av blockerare. Börja i blockerad kö eller öppna switchsektionen på kundkortet först.",
+        "Minst en anläggning saknar uppgifter för att bytet ska kunna fortsätta. Öppna leverantörsbytet nedan och komplettera.",
     };
   }
 
@@ -841,10 +835,10 @@ export function buildCustomerLifecycleSummary(params: {
     failed,
     completed,
     activeOpen,
-    primaryLabel: "Inga akuta switchblockerare",
+    primaryLabel: "Inget stoppar bytet",
     primaryHref: "/admin/customers",
     primaryDescription:
-      "Kundens switchflöde har inga tydliga akuta blockerare just nu. Fortsätt från kundkortet eller granska detaljer längre ner.",
+      "Inget stoppar kundens leverantörsbyte just nu. Du kan följa bytet längre ner.",
   };
 }
 

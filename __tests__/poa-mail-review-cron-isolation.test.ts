@@ -3,10 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const { calls, stepFn } = vi.hoisted(() => {
-  const calls = { ran: [] as string[], fail: new Set<string>() }
+  const calls = { ran: [] as string[], fail: new Set<string>(), undeployed: new Set<string>() }
   const stepFn = (name: string, value: unknown = { ok: true }) => async () => {
     calls.ran.push(name)
     if (calls.fail.has(name)) throw new Error(`${name} exploded`)
+    if (calls.undeployed.has(name)) throw Object.assign(new Error('function does not exist'), { code: 'PGRST202' })
     return value
   }
   return { calls, stepFn }
@@ -49,6 +50,8 @@ function call() {
 beforeEach(() => {
   calls.ran = []
   calls.fail = new Set()
+  calls.undeployed = new Set()
+  vi.spyOn(console, 'warn').mockImplementation(() => undefined)
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
 })
 
@@ -71,5 +74,14 @@ describe('#9 cron steps are isolated', () => {
     expect(body.result.poaExpiry).toEqual({ ok: true })
     expect(body.result.customerOperations).toMatchObject({ failed: true, code: 'customer_operation_step_failed' })
     expect(JSON.stringify(body)).not.toContain('exploded')
+  })
+
+  it('a step whose schema is not deployed is skipped, not a failure', async () => {
+    calls.undeployed.add('businessExpectations')
+    const response = await call()
+    expect(calls.ran).toEqual(ALL)
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.result.businessExpectations).toEqual({ skippedReason: 'schema_not_deployed' })
   })
 })

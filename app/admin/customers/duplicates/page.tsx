@@ -37,7 +37,7 @@ export default async function CustomerDuplicatesPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Möjliga dubbletter</h2>
-              <p className="mt-1 text-sm text-slate-700">Systemet föreslår grupper utifrån e-post, personnummer, organisationsnummer och namn inom rätt tenant.</p>
+              <p className="mt-1 text-sm text-slate-700">Systemet föreslår grupper utifrån e-post, personnummer, organisationsnummer och namn inom ert bolag.</p>
             </div>
             <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900">{groups.length} grupper</span>
           </div>

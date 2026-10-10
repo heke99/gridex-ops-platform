@@ -38,7 +38,7 @@ afterEach(()=>vi.useRealTimers())
 describe('OPS02 actual customer-info server view',()=>{
   it('renders independently qualified business wait after CONTRL and suppresses repeated Z01 preparation',async()=>{
     const html=renderToStaticMarkup(await Page())
-    expect(html).toContain('Nästa processåtgärd');expect(html).toContain('Z02 eller negativ APERAK');expect(html).toContain('Ansvar');expect(html).toContain('Tidsgrund');expect(html).toContain('Blockerare');expect(html).toContain('Tillåtna åtgärder')
+    expect(html).toContain('Nästa processåtgärd');expect(html).toContain('Z02 eller negativ APERAK');expect(html).toContain('Ansvar');expect(html).toContain('Tidsgrund');expect(html).toContain('Hinder');expect(html).toContain('Tillåtna åtgärder')
     expect(html).not.toContain('Kontrollera fullmakt och förbered Z01');expect(io.rpc).toHaveBeenCalledTimes(4)
   })
   it('actual fulfilled/rejected outcome changes displayed next action without following the old waiting status',async()=>{
