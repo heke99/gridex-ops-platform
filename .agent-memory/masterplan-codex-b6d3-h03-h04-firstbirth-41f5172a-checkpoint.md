@@ -871,3 +871,22 @@ no longer motivated by737's exact code path. Preserve two wholeH01f5 IDs and
 current config1/test5 refs; release ONLY those3 after exactGET_MATCH/DELETE404.
 No entire-packet RELEASE or newpair. NEXT ROOT actual release/readback +673,
 then current737 original native/fullrequiredCI closure before owncoverage approval.
+
+
+## 2026-10-11 Stockholm — actual superseded component owner-only RELEASE
+
+Original3 b52 file refs actually released GET_MATCH→DELETEsuccess→GET404;
+whole H2 IDs01f5 and current config1/test5 refs retained (8 own refs). Original
+21-source donor remainsforeignCORE39581; no foreign or role ref changed.
+An initial automatic approval review rejected DELETE because SHA match alone
+was not proof of agent ownership; that command made zero mutations. Independent
+actual GitData originalb52 receipt then confirmed exactTHIS agent/session/packet,
+originalPR720 branch/checkpoint and all3 paths. Retried same bounded action with
+complete ownership, closedoriginalPR/head and every freshref assertions; admitted
+and all3absence checks PASS. No circumvention or new user permission was needed.
+
+Released component files: rejectedBilateralSwitchBirthProfile.ts plus its existing
+birth-profile/intake tests; branch/source/history/negative vectors preserved.
+PR720 closure673/PRreceipt6103180052 and SOURCE2737comment6103188627 durable.
+NEXT ROOT publish actual3file-only RELEASE673; continue existing737Hnative
+job114335822220/sourceb61 and fullrequiredCI. No wholeapproval or nextpair.
