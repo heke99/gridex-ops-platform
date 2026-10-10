@@ -1,4 +1,3 @@
-import { supabaseService } from '@/lib/supabase/service'
 import { isPlatformAdminRole, normalizeRoleKey } from '@/lib/rbac/roleKeys'
 
 export const DEFAULT_STAFF_LANDING = '/dashboard'
@@ -19,6 +18,9 @@ type RoleRow = string | { role_key?: string | null; key?: string | null; code?: 
 /** Fails open to staff access so a lookup error never strands staff in the portal. */
 export async function userHasStaffAccess(userId: string): Promise<boolean> {
   try {
+    // Loaded lazily: the service client throws at import when its key is absent,
+    // which must not break rendering the public login page.
+    const { supabaseService } = await import('@/lib/supabase/service')
     const memberships = await supabaseService
       .from('company_memberships')
       .select('company_id')
