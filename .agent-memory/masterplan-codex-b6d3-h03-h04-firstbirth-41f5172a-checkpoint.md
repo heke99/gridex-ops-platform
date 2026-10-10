@@ -789,3 +789,35 @@ new source frommain required), spec-to-code-compliance and requesting-code-revie
 (two bounded independent readers), verification-before-completion. Conditional
 Supabase/native workflow and differential review as actual scope needs; skipped
 UI/performance/email/AWS groups because no changes there.
+
+
+## 2026-10-11 Stockholm — settings delivered locally; H test scope CLAIM
+
+Requested exact two allowances are installed/readback-verified in primary project
+and own current-main worktree `.claude/settings.json`; source commit `46ec3b5c372937bc70bfed1c0dfa1d3eb7a434a5`.
+No previous config existed; JSON roundtrip/exact-once allow list and diff check PASS.
+Published preimplementation CLAIM6736103128886; current
+coverage unchanged302/352. No tag capability/coverage approval inferred from config.
+
+Both independent readers completed bounded H/current-main and old720 mapping:
+no literal CODE defect established; incoming209/314 alternate structural owner and
+311 early permanent-negative-header source replace old720 catalog changes. Preserve
+original oldPR/branch and hostile vectors; do not restore incompatible catalog birth.
+H full effects asserted by actual native100, synthetic external ports declared;
+market/counterparty testing separate under AGENTS350-351. Fresh current-head native
+still needed because later schema/type/unique-index input closure changed.
+
+CLAIM exact FIVE existing behavioral suite tags, sameH1102, receipt `2450d55151dd590c37ee1006a39ff1a2a82d6229`
+ALL5 CREATE_IF_ABSENT/GET_MATCH (source-native scope released #7256100244659):
+- `__tests__/ediel-bilateral-prodat-outbound-draft.test.ts`
+- `__tests__/ediel-bilateral-prodat-supply-consumer.test.ts`
+- `__tests__/ediel-bilateral-prodat-switch-preparation.test.ts`
+- `__tests__/ediel-prodat-bilateral-source-capability.test.ts`
+- `scripts/ediel-at-z03h-z04h-supplier-native.test.ts`
+
+NEXT ROOT publish this verified extension before tags; add Z03-only outgoing
+preparation/draft, Z04-only source/consumer, bothIDs full native tag. Assertions,
+fixtures/SQL and production stay unchanged. Run finite suites once using own prior
+node_modules (package/package-lock byte-identical), publish small current-main PR
+with config/testtags; existing workflow sole producer qualifies fresh H100/current
+mandatory CI. Coverage remains unapproved until whole criterion source/native proof.
