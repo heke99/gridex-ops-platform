@@ -3,6 +3,7 @@ import {readExistingAckBeforeDraft} from '@/lib/ediel/core/ackDraftSource'
 import {readSourceBoundOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import type {CreateEdielMessageInput,EdielMessageRow} from '@/lib/ediel/types'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {prodatDocumentState} from '@/lib/ediel/prodat/prodatDocumentFields'
 import {prodatAckObjectScopes,resolveProdatAckMessageFunction} from '@/lib/ediel/prodat/prodatAckMessageFunction'
 
 /** Operational construction follows protected replay first, then the actual
@@ -27,6 +28,11 @@ export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraf
    const original=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:input.sourceMessage,ackFamily:'APERAK',outcome:input.outcome,ackScope:'object',acknowledgedReferences:references,acknowledgedProdatObjects:objects})
    if(original)return {kind:'existing',message:original}
   }
+  // A255 cannot copy an absent physical header BGM/1004. Preserve both
+  // protected replay reads and their actor/source refusals before this fresh
+  // correlation hold; present invalid IDs retain their existing path.
+  const document=prodatDocumentState('203',sourceWire.segments,sourceWire.una)
+  if(!document.present)throw new Error('aperak_prodat_document_reference_required')
   const fn=resolveProdatAckMessageFunction({sourceWire,hasProdatWire:true,messageCode:input.sourceMessage.message_code,outcome:input.outcome??'positive',applicationErrors:input.applicationErrors})
   if(fn==='34'&&referenceError)throw referenceError
   if(fn==='34'&&!objects.length)throw new Error('aperak_prodat_requested_scope_unqualified')

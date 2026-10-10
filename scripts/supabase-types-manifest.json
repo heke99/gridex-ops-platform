@@ -5,7 +5,7 @@
   "sha256": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
   "latest_migration": "20261009215000_ediel_source_bound_ack_projection.sql",
   "latest_migration_schema_effect": "Authentic source-bound ACK projector source RAW3; same-schema paired ACK79/sourcequal2, Cpost47 and full actual projector definition/schema inverse and source-bound projector finite qualified. Resulting-head/native/whole acceptance remains separate.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-09T22:13:07.753367+00:00",
@@ -10746,5 +10746,12 @@
     "projector_postimage_source_mode": "actual_postimage",
     "resulting_head_validation": "PENDING",
     "scope": "Temporary genuine-data import candidate only; historical metadata and NOT_RUN values preserved."
+  },
+  "remaining_ediel_sender_capture_pending": {
+    "source_migration": "20261010101233_ediel_z05c_current_sender_registry.sql",
+    "source_sha256": "2b621dd20d451f99f78131e34853cdd829a6b37d587a704ca82ae22c52ad0d93",
+    "status": "PENDING_AUTHENTIC_CAPTURE",
+    "native_tests": "NOT_RUN",
+    "schema_types_import": "NOT_RUN"
   }
 }
