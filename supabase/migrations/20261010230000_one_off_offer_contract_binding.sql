@@ -56,6 +56,7 @@ declare
   v_intended_contract_id uuid := nullif(p_payload->>'intended_contract_id','')::uuid;
   v_saved jsonb;
   v_published jsonb;
+  v_key text;
   v_offer_id uuid;
   v_publication_id uuid;
   v_publication public.contract_publication_versions%rowtype;
@@ -66,7 +67,38 @@ begin
     raise exception using errcode='22023',message='company_required';
   end if;
 
-  p_payload := (coalesce(p_payload,'{}'::jsonb) - 'intended_contract_id') || jsonb_build_object(
+  p_payload := coalesce(p_payload,'{}'::jsonb) - 'intended_contract_id';
+  p_pricing_snapshot := coalesce(p_pricing_snapshot,'{}'::jsonb);
+
+  -- The signature-request and signed-import consumers pass the contract's
+  -- commercial terms only in the pricing snapshot, while the offer save reads
+  -- them from the payload. Fill each missing payload value from that
+  -- server-side snapshot; explicitly supplied payload values always win.
+  foreach v_key in array array[
+    'pricing_model','fixed_price_ore_per_kwh','spot_markup_ore_per_kwh','variable_fee_ore_per_kwh',
+    'monthly_fee_sek','invoice_fee_sek','green_fee_mode','green_fee_value','discount_value',
+    'discount_unit','start_fee_sek','admin_fee_sek','break_fee_sek','vat_rate'
+  ] loop
+    if p_payload->v_key is null and jsonb_typeof(p_pricing_snapshot->v_key) <> 'null' then
+      p_payload := p_payload || jsonb_build_object(v_key,p_pricing_snapshot->v_key);
+    end if;
+  end loop;
+  if p_payload->'default_binding_months' is null and p_payload ? 'binding_months' then
+    p_payload := p_payload || jsonb_build_object('default_binding_months',p_payload->'binding_months');
+  end if;
+  if p_payload->'default_notice_months' is null and p_payload ? 'notice_months' then
+    p_payload := p_payload || jsonb_build_object('default_notice_months',p_payload->'notice_months');
+  end if;
+  -- Canonical pricing requires the price_areas array; those consumers send the
+  -- contract's single resolved price_area.
+  if coalesce(jsonb_array_length(case when jsonb_typeof(p_pricing_snapshot->'price_areas')='array'
+                                      then p_pricing_snapshot->'price_areas' end),0)=0
+     and nullif(p_pricing_snapshot->>'price_area','') is not null then
+    p_pricing_snapshot := p_pricing_snapshot
+      || jsonb_build_object('price_areas',jsonb_build_array(p_pricing_snapshot->>'price_area'));
+  end if;
+
+  p_payload := p_payload || jsonb_build_object(
     'name',coalesce(nullif(p_payload->>'name',''),'Kundspecifikt avtal'),
     'slug','one-off-' || replace(v_identity::text,'-',''),
     'status','active',
@@ -84,7 +116,7 @@ begin
     'valid_from',case when nullif(p_payload->>'valid_from','')::date > current_date
                       then current_date::text else p_payload->>'valid_from' end
   );
-  p_pricing_snapshot := coalesce(p_pricing_snapshot,'{}'::jsonb) || jsonb_build_object(
+  p_pricing_snapshot := p_pricing_snapshot || jsonb_build_object(
     'one_off',true,
     'one_off_identity',v_identity,
     'source_of_truth','price_plan_versions'

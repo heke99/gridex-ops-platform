@@ -39,7 +39,7 @@ function manualContract(status: 'draft' | 'pending_signature', actorUserId = f.a
     companyId: f.companyId, customerId: f.customerId, siteId: f.siteId, meteringPointId: f.pointId,
     sourceType: 'manual_override', status, contractName: `Kundspecifikt ${randomUUID()}`,
     contractType: 'variable_hourly', energyDirection: 'consumption', spotMarkupOrePerKwh: 4, monthlyFeeSek: 49,
-    invoiceFeeSek: 19, priceSnapshot: { interval_resolution: 'hourly' },
+    invoiceFeeSek: 19, priceSnapshot: { interval_resolution: 'hourly', price_areas: ['SE3'] },
     // Future supply start: signing must still be possible today.
     greenFeeMode: 'none', startsAt: futureNativeSupplyDate(), actorUserId,
   })

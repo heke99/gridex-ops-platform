@@ -63,6 +63,7 @@ beforeAll(async () => {
     create table public.customer_contracts(id uuid primary key default gen_random_uuid(), company_id uuid, status text,
       contract_offer_id uuid, contract_product_id uuid, contract_product_version_id uuid);
 
+    create table public.saved_offer_inputs(offer_id uuid primary key, payload jsonb, snapshot jsonb);
     -- Mirrors production: saving is always a draft, inactive offer; only the
     -- publish command promotes it and opens its internal channel.
     create function public.gridex_upsert_internal_contract_offer(p_company uuid, p_id uuid, p_payload jsonb, p_snap jsonb, p_actor uuid)
@@ -72,6 +73,7 @@ beforeAll(async () => {
       insert into public.contract_product_versions values (v_pv, gen_random_uuid(), 'draft', null, '{}');
       insert into public.contract_offers(company_id, status, is_active, lifecycle_status, valid_from, contract_product_version_id)
       values (p_company, 'draft', false, 'draft', nullif(p_payload->>'valid_from', '')::date, v_pv) returning id into v_id;
+      insert into public.saved_offer_inputs values (v_id, p_payload, p_snap);
       return jsonb_build_object('offer', jsonb_build_object('id', v_id));
     end $$;
     create table public.publish_refusals(company_id uuid primary key, code text);
@@ -196,6 +198,20 @@ describe('one-off offer contract binding', () => {
     await expect(db.query(`update public.customer_contracts set id = gen_random_uuid() where id = $1`, [id]))
       .rejects.toThrow(/violates foreign key constraint/)
     expect(await reservation(b.contract_offer_id)).toEqual({ consumed_contract_id: id })
+  })
+
+  it('fills missing offer terms from the consumer snapshot without overriding explicit payload values', async () => {
+    const { rows } = await db.query<{ b: { contract_offer_id: string } }>(
+      `select public.gridex_prepare_manual_contract_binding($1::uuid, $2::jsonb, $3::jsonb, null) as b`,
+      [T1, JSON.stringify({ monthly_fee_sek: 59, binding_months: 12, notice_months: 1 }),
+        JSON.stringify({ invoice_fee_sek: 19, monthly_fee_sek: 49, spot_markup_ore_per_kwh: 4, price_area: 'SE3', vat_rate: null })])
+    const saved = await db.query<{ payload: Record<string, unknown>; snapshot: Record<string, unknown> }>(
+      'select payload, snapshot from public.saved_offer_inputs where offer_id = $1', [rows[0].b.contract_offer_id])
+    expect(saved.rows[0].payload).toMatchObject({ invoice_fee_sek: 19, monthly_fee_sek: 59, spot_markup_ore_per_kwh: 4,
+      default_binding_months: 12, default_notice_months: 1 })
+    expect(saved.rows[0].payload).not.toHaveProperty('vat_rate')
+    expect(saved.rows[0].payload).not.toHaveProperty('intended_contract_id')
+    expect(saved.rows[0].snapshot).toMatchObject({ price_areas: ['SE3'], one_off: true })
   })
 
   it('raises a publish refusal and leaves no reservation or archived offer', async () => {
