@@ -195,8 +195,8 @@ BEGIN
   INSERT INTO public.companies(id,name,status) VALUES(c,'Provider synthetic','active');
 
   BEGIN
-    PERFORM public.gridex_select_invoice_provider_v1(c, 'nordfin', 'test', actor);
-    RAISE EXCEPTION 'provider: nordfin must not be selectable';
+    PERFORM public.gridex_select_invoice_provider_v1(c, 'file_export', 'test', actor);
+    RAISE EXCEPTION 'provider: generic file export must not be newly selectable';
   EXCEPTION WHEN invalid_parameter_value THEN
     IF SQLERRM <> 'invoice_provider_not_available' THEN RAISE; END IF;
   END;
@@ -238,15 +238,15 @@ BEGIN
   RAISE NOTICE 'tenant invoice provider selection native regression passed';
 END $$;
 
--- Invoice file export: file provider is ready without credentials; file creation fails closed.
+-- Invoice file export (Nordfin file provider): ready without credentials; file creation fails closed.
 DO $$
 DECLARE
   c uuid := gen_random_uuid();
   actor uuid := gen_random_uuid();
 BEGIN
   INSERT INTO public.companies(id,name,status) VALUES(c,'File export synthetic','active');
-  PERFORM public.gridex_select_invoice_provider_v1(c, 'file_export', 'test', actor);
-  IF (SELECT status FROM public.billing_provider_connections WHERE company_id = c AND provider = 'file_export' AND environment = 'test') <> 'ready' THEN
+  PERFORM public.gridex_select_invoice_provider_v1(c, 'nordfin', 'test', actor);
+  IF (SELECT status FROM public.billing_provider_connections WHERE company_id = c AND provider = 'nordfin' AND environment = 'test') <> 'ready' THEN
     RAISE EXCEPTION 'file export: connection should be ready without credentials';
   END IF;
 
