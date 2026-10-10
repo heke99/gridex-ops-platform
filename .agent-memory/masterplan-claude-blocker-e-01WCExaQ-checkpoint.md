@@ -62,6 +62,14 @@
 - #734 one-off binding at `18a27a4`: C0/I0 + note on pre-existing one-off offers without reservation (6103086218).
 - #736: capture + p08-native running/queued.
 
+### 2026-10-10T23:20Z — #736 capture imported; CI diagnoses ([6103226549](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103226549))
+- #736: imported capture run 38093136799 byte-exact (hashes match receipt); db:migrations:check OK; p08-native SUCCESS on 697450f.
+  New head `b9f1693`, CI running.
+- #733: revised own review to I1 — 3 Z10/E58 native failures in ediel-source-owner-native (structural review not_established);
+  fix proposed to Codex B.
+- #735: quality-release-gates red = 3 timeouts in unrelated tests; owner to re-run once.
+- #732: no failures, 2 running.
+
 ## Next
 P-08: import capture for #736 → native + gates green → READY → 2 reviews → coverage → merge.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
