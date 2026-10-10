@@ -297,7 +297,7 @@ export default async function AdminDashboardPage() {
  <div className="min-h-screen">
  <AdminHeader
  title="Driftöversikt"
- subtitle="Samlad översikt för Ediel, kunder, fullmakter, operations, mätvärden, faktureringsunderlag och tenant-säkerhet."
+ subtitle={isPlatformAdmin ? 'Samlad översikt för Ediel, kunder, fullmakter, drift, mätvärden, faktureringsunderlag och tenant-säkerhet.' : 'Samlad översikt över kunder, fullmakter, leverantörsbyten, mätvärden och fakturaunderlag.'}
  userEmail={context.email}
  workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
  workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
@@ -381,7 +381,7 @@ export default async function AdminDashboardPage() {
 <WorkAreaCard
 eyebrow="Dagens åtgärder"
 title="Det som behöver hanteras"
-text="Här ser bolagsanvändaren praktiska uppgifter: kunder som saknar data, negativa kvittenser som kräver åtgärd och mätvärden som saknas. Rå Ediel-teknik ligger i superadmin."
+text="Kunder som saknar uppgifter, svar från nätägare som kräver åtgärd och mätvärden som saknas."
 href="/admin/work-queue"
 cta="Öppna åtgärder"
 >
@@ -470,7 +470,7 @@ cta="Öppna åtgärder"
  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
- <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Tenantprofil</p>
+ <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">{isPlatformAdmin ? 'Tenantprofil' : 'Bolagsprofil'}</p>
  <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">
  {companyScope.companyName ?? 'Bolagskoppling saknas'} · {actor?.actor_name ?? 'Ediel-profil saknas'}
  </h2>
@@ -480,8 +480,8 @@ cta="Öppna åtgärder"
  </div>
 
  <div className="flex flex-wrap gap-2">
- <Pill tone={companyId ? 'emerald' : 'red'}>{companyId ? 'Company ID finns' : 'Company ID saknas'}</Pill>
- <Pill tone={actor?.actor_ediel_id ? 'emerald' : 'red'}>{actor?.actor_ediel_id ? 'Ediel-id finns' : 'Ediel-id saknas'}</Pill>
+ <Pill tone={companyId ? 'emerald' : 'red'}>{companyId ? 'Bolag kopplat' : 'Bolagskoppling saknas'}</Pill>
+ <Pill tone={actor?.actor_ediel_id ? 'emerald' : 'red'}>{actor?.actor_ediel_id ? 'Marknadsidentitet finns' : 'Marknadsidentitet saknas'}</Pill>
  <Pill tone={productionActor ? 'emerald' : testActor ? 'amber' : 'red'}>
  {productionActor ? 'Produktion aktiv' : testActor ? 'Endast testprofil' : 'Ingen aktörsprofil'}
  </Pill>
@@ -489,13 +489,15 @@ cta="Öppna åtgärder"
  </div>
 
  <div className="mt-5 flex flex-wrap gap-3">
- <Link href="/admin/ediel/settings" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800">
- Hantera tenantprofil
+ <Link href={isPlatformAdmin ? '/admin/ediel/settings' : '/admin/company-settings'} className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800">
+ {isPlatformAdmin ? 'Hantera tenantprofil' : 'Hantera bolagsprofil'}
  </Link>
  <AdminActionsMenu label="Fler verktyg">
+ {isPlatformAdmin ? (
  <Link href="/admin/ediel/routes" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-900 transition hover:bg-slate-50">
  Kontrollera routes
  </Link>
+ ) : null}
  <Link href="/admin/controltower" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-900 transition hover:bg-slate-50">
  Öppna Control Tower
  </Link>

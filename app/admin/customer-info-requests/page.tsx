@@ -75,7 +75,7 @@ function ProcessNextActionDetails({ decision }: { decision: EdielProcessNextActi
     <p className="font-semibold">Nästa åtgärd</p><p className="mt-1">{decision.summary}</p>
     <dl className="mt-2 space-y-1"><div><dt className="font-semibold">Väntar på</dt><dd>{decision.waitingFor.length?decision.waitingFor.map(value=>waitingLabels[value]??value).join(', '):'Inget automatiskt externt steg'}</dd></div>
       <div><dt className="font-semibold">Ansvar</dt><dd>{decision.responsibility==='counterparty'?'Motpartens svar; eget bolag bevakar':'Eget bolag granskar'}</dd></div>
-      <div><dt className="font-semibold">Blockerare</dt><dd>{decision.blockers.length?decision.blockers.map(value=>blockerLabels[value]??'Källbeslutet kräver granskning').join(', '):'Ingen aktuell blockerare i detta källbeslut'}</dd></div>
+      <div><dt className="font-semibold">Hinder</dt><dd>{decision.blockers.length?decision.blockers.map(value=>blockerLabels[value]??'Källbeslutet kräver granskning').join(', '):'Inget hinder just nu'}</dd></div>
       <div><dt className="font-semibold">Tidsgrund</dt><dd>{decision.timeBasis.anchor==='z09_validity_day'?`Originalets giltighetsdag ${decision.timeBasis.validityDay??'saknas'}, bevakningsdag ${decision.timeBasis.dueDay??'saknas'}. Faktisk SMTP-acceptans ${decision.timeBasis.actualAcceptedAt??'saknas'} prövas separat.`:`Egen uppföljning från SMTP-acceptans ${decision.timeBasis.anchorAt??'saknar kvalificerad tidsgrund'}.`} Motpartens mottagningstid är inte känd.</dd></div>
       <div><dt className="font-semibold">Affärsbevakning till</dt><dd>{decision.timeBasis.businessDueAt??'Ingen numerisk tidsgräns i källbeslutet'}</dd></div>
       <div><dt className="font-semibold">Teknisk bevakning till</dt><dd>{decision.timeBasis.technicalDueAt??'Ingen aktiv teknisk tidsgräns'}</dd></div>
@@ -279,7 +279,7 @@ export default async function CustomerInfoRequestsPage() {
           <AdminDisclosurePanel id="create-authorization-scope" title="Dokumentera fullmaktsomfattning" className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
           <form action={createAuthorizationScopeAction} className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Fullmaktsmotor</p>
-            <p className="mt-2 text-sm leading-6 text-slate-700">Fullmakten ska visa vad bolaget får begära och mot vem. Den här posten används som blockerare innan Z01/Z13-flöden körs.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">Fullmakten ska visa vad bolaget får begära och mot vem. Fullmakten måste vara klar innan uppgifter kan begäras från nätägaren.</p>
             <div className="mt-4 grid min-w-0 grid-cols-1 gap-3">
               <SelectCustomer customers={customers} />
               <select name="scope_type" aria-label="Fullmaktsomfattning" defaultValue="customer_onboarding" className="h-11 rounded-2xl border border-slate-300 bg-white px-4 text-sm">

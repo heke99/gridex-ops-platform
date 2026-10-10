@@ -453,7 +453,7 @@ export default async function AdminWorkQueuePage() {
     if (!customer) continue
     items.push({
       id: String(row.id),
-      source: 'Blockerare',
+      source: 'Saknas',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
       title: textValue(row.title) ?? taskTypeLabel(row.blocker_type),
@@ -543,7 +543,7 @@ export default async function AdminWorkQueuePage() {
       priority: failed ? 'high' : status === 'ready_to_send' ? 'normal' : 'low',
       createdAt: dateValue(row.updated_at) ?? dateValue(row.created_at),
       href: `/admin/customers/${customer.id}?tab=data-requests`,
-      actionLabel: failed ? 'Granska blockerare' : 'Öppna kundkort',
+      actionLabel: failed ? 'Se vad som saknas' : 'Öppna kundkort',
     })
   }
 
@@ -607,7 +607,7 @@ export default async function AdminWorkQueuePage() {
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="Arbetskö"
-        subtitle="Endast blockerare och manuella uppgifter. Följ automatiska och klara steg under Händelser."
+        subtitle="Det som behöver din åtgärd. Allt som sker automatiskt syns under Händelser."
         userEmail={context.email}
         workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
         workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
@@ -635,7 +635,7 @@ export default async function AdminWorkQueuePage() {
             <div className="px-6 py-12 text-center">
               <h3 className="text-lg font-bold text-slate-950">Inga aktiva driftuppgifter hittades</h3>
               <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                Det betyder att det inte finns öppna blockerare, uppgiftsbegäran eller leverantörsbyten kopplade till synliga kunder.
+                Det betyder att det inte finns något som behöver åtgärdas, inga uppgiftsbegäran eller leverantörsbyten kopplade till synliga kunder.
                 Gamla testdata och orphans visas inte här.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">

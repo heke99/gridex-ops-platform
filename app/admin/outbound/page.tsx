@@ -104,8 +104,8 @@ function buildPrimaryDetailLink(
 
  if (linkedMessage) {
  return {
- href: `/admin/ediel/messages/${linkedMessage.id}`,
- label: 'Öppna Ediel message detail',
+ href: `/admin/messages/${linkedMessage.id}`,
+ label: 'Öppna meddelande',
  }
  }
 
@@ -419,12 +419,6 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  >
  Bulk: redo för byte
  </Link>
- <Link
- href="/admin/integrations/routes"
- className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 "
- >
- Communication routes
- </Link>
 </AdminActionsMenu></div>
 
  <div className="space-y-3">
@@ -615,11 +609,11 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Ediel message</div>
+ <div className="text-slate-700 ">Meddelande</div>
  <div className="mt-1 font-medium text-slate-900 ">
  {linkedMessage ? (
  <Link
- href={`/admin/ediel/messages/${linkedMessage.id}`}
+ href={`/admin/messages/${linkedMessage.id}`}
  className="text-emerald-700 underline-offset-2 hover:underline "
  >
  {linkedMessage.message_family} {linkedMessage.message_code} ·{' '}

@@ -49,7 +49,7 @@ export async function resolveDataQualityIssue(issueId: string, companyId?: strin
 export async function scanMeteringPointDataQuality(companyId: string, meteringPointId: string): Promise<number> {
   const { data: mp, error } = await supabaseService
     .from('metering_points')
-    .select('id, customer_id, site_id, status, bidding_zone_code, grid_owner_id, estimated_annual_consumption_kwh, start_date, customer:customers(id,status)')
+    .select('id, customer_id, site_id, status, bidding_zone_code, grid_owner_id, estimated_annual_consumption_kwh, start_date, customer:customers!metering_points_company_customer_fk(id,status)')
     .eq('company_id', companyId)
     .eq('id', meteringPointId)
     .maybeSingle()

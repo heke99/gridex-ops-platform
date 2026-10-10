@@ -122,7 +122,7 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
         </div>
         {loadWarnings.length > 0 ? (
           <section role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <h2 className="font-semibold">Kundintag laddades med begränsad masterdata</h2>
+            <h2 className="font-semibold">Vissa grunduppgifter (till exempel nätägare) kunde inte laddas</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5">{loadWarnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
           </section>
         ) : null}
@@ -130,7 +130,7 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
           <summary className="cursor-pointer font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
             Automatiska utskick: {goLiveSummary?.status === "ready" ? "Redo" : goLiveSummary?.status === "manual_review_required" ? "Kräver granskning" : "Blockerade / inställningar saknas"}
           </summary>
-          <p className="mt-3 leading-6">Kunden sparas även om uppgifter saknas. Blockerare stoppar senare uppgiftsbegäran, leverantörsbyte eller export tills uppgifterna är kompletta.</p>
+          <p className="mt-3 leading-6">Kunden sparas även om uppgifter saknas. Saknade uppgifter stoppar senare uppgiftsbegäran, leverantörsbyte eller export tills uppgifterna är kompletta.</p>
           {goLiveSummary ? <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-4">
             <div><dt>Ediel-ID</dt><dd className="mt-1 font-semibold">{goLiveSummary.edielId ?? "–"}</dd></div>
             <div><dt>Mottagare</dt><dd className="mt-1 font-semibold">{goLiveSummary.routeResolutionMode === "automatic" ? "Automatiskt" : "Granska"}</dd></div>
