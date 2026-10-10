@@ -1,3 +1,9 @@
+type SignatureQueryResult = { data: null; error: null }
+type SignatureDocumentResult = { data: { document_sha256: null }; error: null }
+type SignatureQuery = {
+ select: () => SignatureQuery; update: () => SignatureQuery; eq: () => SignatureQuery; is: () => SignatureQuery
+ single: () => Promise<SignatureDocumentResult>; then: (resolve: (result: SignatureQueryResult) => unknown) => unknown
+}
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 const h = vi.hoisted(() => ({ archive:vi.fn(), send:vi.fn(), rpc:vi.fn(), redirect:vi.fn(), committed:false }))
 vi.mock('server-only',()=>({}))
@@ -6,7 +12,7 @@ vi.mock('@/lib/customer-contracts/documents',()=>({archiveSignedCustomerContract
 vi.mock('@/lib/customer-contracts/agreementPdf',()=>({buildAgreementPdfAttachment:()=>({content:Buffer.from('synthetic-pdf').toString('base64'),contentType:'application/pdf',filename:'agreement.pdf'})}))
 vi.mock('@/lib/email/sendCompanyEmail',()=>({sendCompanyEmail:h.send}))
 vi.mock('@/lib/website/customerApplicationCommunication',()=>({companyEmailContext:vi.fn(async()=>({name:'Tenant A',legalName:'Tenant A AB',snapshotSha256:'c'.repeat(64),supportEmail:'support@example.invalid'}))}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:h.rpc,from:()=>{const q:any={select:()=>q,update:()=>q,eq:()=>q,is:()=>q,single:async()=>({data:{document_sha256:null},error:null}),then:(resolve:any)=>resolve({data:null,error:null})};return q}}}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:h.rpc,from:()=>{const q:SignatureQuery={select:()=>q,update:()=>q,eq:()=>q,is:()=>q,single:async()=>({data:{document_sha256:null},error:null}),then:(resolve)=>resolve({data:null,error:null})};return q}}}))
 vi.mock('next/headers',()=>({headers:async()=>new Headers()}))
 vi.mock('next/navigation',()=>({redirect:h.redirect}))
 import {finalizeOnlineContractSignature} from '@/lib/customer-contracts/onlineSigning'

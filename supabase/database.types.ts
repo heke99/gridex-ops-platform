@@ -8618,6 +8618,8 @@ export type Database = {
           billing_terms_summary: string | null
           branding: Json
           brp_ediel_id: string | null
+          brp_name: string | null
+          brp_status: string | null
           city: string | null
           closed_at: string | null
           closed_by: string | null
@@ -8674,6 +8676,7 @@ export type Database = {
           ediel_production_status: string
           ediel_route_resolution_mode: string
           ediel_shared_transport_mode: string
+          esett_status: string | null
           external_tenant_reference: string
           id: string
           industry: string
@@ -8692,6 +8695,7 @@ export type Database = {
           live_approved_by: string | null
           live_blocked_reason: string | null
           live_ediel_enabled: boolean
+          market_role: string | null
           metadata: Json
           name: string
           normalized_org_number: string | null
@@ -8727,6 +8731,8 @@ export type Database = {
           suspended_at: string | null
           suspended_by: string | null
           technical_contact: Json
+          technical_contact_email: string | null
+          technical_contact_name: string | null
           test_application_reference: string | null
           test_counterparty_ediel_id: string | null
           test_ediel_id: string | null
@@ -8759,6 +8765,8 @@ export type Database = {
           billing_terms_summary?: string | null
           branding?: Json
           brp_ediel_id?: string | null
+          brp_name?: string | null
+          brp_status?: string | null
           city?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -8815,6 +8823,7 @@ export type Database = {
           ediel_production_status?: string
           ediel_route_resolution_mode?: string
           ediel_shared_transport_mode?: string
+          esett_status?: string | null
           external_tenant_reference?: string
           id?: string
           industry?: string
@@ -8833,6 +8842,7 @@ export type Database = {
           live_approved_by?: string | null
           live_blocked_reason?: string | null
           live_ediel_enabled?: boolean
+          market_role?: string | null
           metadata?: Json
           name: string
           normalized_org_number?: string | null
@@ -8868,6 +8878,8 @@ export type Database = {
           suspended_at?: string | null
           suspended_by?: string | null
           technical_contact?: Json
+          technical_contact_email?: string | null
+          technical_contact_name?: string | null
           test_application_reference?: string | null
           test_counterparty_ediel_id?: string | null
           test_ediel_id?: string | null
@@ -8900,6 +8912,8 @@ export type Database = {
           billing_terms_summary?: string | null
           branding?: Json
           brp_ediel_id?: string | null
+          brp_name?: string | null
+          brp_status?: string | null
           city?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -8956,6 +8970,7 @@ export type Database = {
           ediel_production_status?: string
           ediel_route_resolution_mode?: string
           ediel_shared_transport_mode?: string
+          esett_status?: string | null
           external_tenant_reference?: string
           id?: string
           industry?: string
@@ -8974,6 +8989,7 @@ export type Database = {
           live_approved_by?: string | null
           live_blocked_reason?: string | null
           live_ediel_enabled?: boolean
+          market_role?: string | null
           metadata?: Json
           name?: string
           normalized_org_number?: string | null
@@ -9009,6 +9025,8 @@ export type Database = {
           suspended_at?: string | null
           suspended_by?: string | null
           technical_contact?: Json
+          technical_contact_email?: string | null
+          technical_contact_name?: string | null
           test_application_reference?: string | null
           test_counterparty_ediel_id?: string | null
           test_ediel_id?: string | null
@@ -95195,6 +95213,17 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_prepare_switch_cancellation_customer_masterdata_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_intent_id: string
+          p_operation_id: string
+          p_raw_payload: string
+          p_route_id: string
+        }
+        Returns: Json
+      }
       ediel_probe_source_rule_pack_capture_v1: {
         Args: { p_company_id: string; p_message_id: string }
         Returns: Json
@@ -96793,6 +96822,22 @@ export type Database = {
         Args: { p_company_id: string; p_switch_request_id: string }
         Returns: boolean
       }
+      ediel_switch_cancellation_customer_masterdata_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
+      ediel_switch_cancellation_customer_masterdata_message_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
       ediel_switch_cancellation_source_v1: {
         Args: {
           p_actor_user_id: string
@@ -97166,6 +97211,8 @@ export type Database = {
           billing_terms_summary: string | null
           branding: Json
           brp_ediel_id: string | null
+          brp_name: string | null
+          brp_status: string | null
           city: string | null
           closed_at: string | null
           closed_by: string | null
@@ -97222,6 +97269,7 @@ export type Database = {
           ediel_production_status: string
           ediel_route_resolution_mode: string
           ediel_shared_transport_mode: string
+          esett_status: string | null
           external_tenant_reference: string
           id: string
           industry: string
@@ -97240,6 +97288,7 @@ export type Database = {
           live_approved_by: string | null
           live_blocked_reason: string | null
           live_ediel_enabled: boolean
+          market_role: string | null
           metadata: Json
           name: string
           normalized_org_number: string | null
@@ -97275,6 +97324,8 @@ export type Database = {
           suspended_at: string | null
           suspended_by: string | null
           technical_contact: Json
+          technical_contact_email: string | null
+          technical_contact_name: string | null
           test_application_reference: string | null
           test_counterparty_ediel_id: string | null
           test_ediel_id: string | null
@@ -97603,6 +97654,10 @@ export type Database = {
       gridex_company_legal_profile_defaults: {
         Args: { p_company: Json }
         Returns: Json
+      }
+      gridex_company_retained_history_v1: {
+        Args: { p_company_id: string }
+        Returns: string[]
       }
       gridex_complete_facility_response: {
         Args: {
@@ -98577,6 +98632,10 @@ export type Database = {
       }
       gridex_ediel_positive_fixture_read_v1: {
         Args: { p_context: Json }
+        Returns: Json
+      }
+      gridex_ediel_received_z02_address_source_basis_v1: {
+        Args: { p_actor_user_id: string; p_source_message_id: string }
         Returns: Json
       }
       gridex_ediel_received_z14_reporting_source_basis_v1: {

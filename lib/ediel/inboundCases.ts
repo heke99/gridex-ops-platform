@@ -448,8 +448,7 @@ export async function createOrUpdateInboundProdatCase(params: {
     throw existingError
   }
 
-  if (existing) {
-    const saved = existing as EdielInboundCaseRow
+  const preserveOrUpdateExisting = async (saved: EdielInboundCaseRow): Promise<EdielInboundCaseRow> => {
     if (saved.company_id !== companyId) throw new Error('TENANT_CONTEXT_MISMATCH')
     if (saved.review_decision?.objectApplication || ['applied','approved','rejected'].includes(saved.status)) return saved
     const update = supabaseService
@@ -464,9 +463,26 @@ export async function createOrUpdateInboundProdatCase(params: {
       .select('*')
       .maybeSingle()
     if (error) throw error
-    if (!data) throw new Error('PRODAT_INBOUND_CASE_CHANGED')
+    if (!data) {
+      // Another invocation may have persisted this identical source payload.
+      // Re-read within the same tenant/source/id; do not overwrite manual review.
+      const currentQuery = supabaseService.from('ediel_inbound_cases').select('*')
+        .eq('id', saved.id).eq('ediel_message_id', params.message.id)
+      const currentScoped = companyId === null ? currentQuery.is('company_id', null) : currentQuery.eq('company_id', companyId)
+      const { data: current, error: currentError } = await currentScoped.maybeSingle()
+      if (currentError) throw currentError
+      const fresh = current as EdielInboundCaseRow | null
+      if (!fresh || fresh.id !== saved.id || fresh.ediel_message_id !== params.message.id || fresh.company_id !== companyId) {
+        throw new Error('PRODAT_INBOUND_CASE_CHANGED')
+      }
+      if (fresh.review_decision?.objectApplication || ['applied', 'approved', 'rejected'].includes(fresh.status)) return fresh
+      const persisted = fresh as unknown as Record<string, unknown>
+      if (Object.entries(payload).every(([key, value]) => isDeepStrictEqual(persisted[key], value))) return fresh
+      throw new Error('PRODAT_INBOUND_CASE_CHANGED')
+    }
     return data as EdielInboundCaseRow
   }
+  if (existing) return preserveOrUpdateExisting(existing as EdielInboundCaseRow)
 
   const { data, error } = await supabaseService
     .from('ediel_inbound_cases')
@@ -477,6 +493,24 @@ export async function createOrUpdateInboundProdatCase(params: {
     .select('*')
     .single()
 
+  // A concurrent invocation for the same message won the unique
+  // ediel_message_id slot: continue from its row instead of a second case.
+  const conflict = error as { code?: unknown; constraint?: unknown; message?: unknown } | null
+  if (conflict?.code === '23505' && (
+    conflict.constraint === 'ux_ediel_inbound_cases_message' ||
+    conflict.message === 'duplicate key value violates unique constraint "ux_ediel_inbound_cases_message"'
+  )) {
+    const { data: winner, error: winnerError } = await supabaseService
+      .from('ediel_inbound_cases')
+      .select('*')
+      .eq('ediel_message_id', params.message.id)
+      .maybeSingle()
+    if (winnerError) throw winnerError
+    if (!winner) throw error
+    if ((winner as EdielInboundCaseRow).company_id !== companyId) throw new Error('TENANT_CONTEXT_MISMATCH')
+    if ((winner as EdielInboundCaseRow).ediel_message_id !== params.message.id) throw error
+    return preserveOrUpdateExisting(winner as EdielInboundCaseRow)
+  }
   if (error) throw error
 
   await createEdielMessageEvent({

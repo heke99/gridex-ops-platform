@@ -1,3 +1,4 @@
+import {sourceProdatOwnRegisterReadingDeclarations,type ProdatOwnSourceReadingContext} from './prodatOwnSourceRegisterReadingDeclarations'
 import {assertDeathStatusContextMatches,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
@@ -119,7 +120,7 @@ function readStringFact(message: EdielMessageRow, key: string): string | undefin
   return typeof value === 'string' ? value.trim() : undefined
 }
 
-export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions & {deathStatusContext?:DeathStatusValidationContext} = {}): CanonicalEdielPolicy | null {
+export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions & {deathStatusContext?:DeathStatusValidationContext;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string} = {}): CanonicalEdielPolicy | null {
   if (canonical.family !== 'PRODAT' && canonical.family !== 'UTILTS' && canonical.family !== 'UTILTS_ERR' && canonical.family !== 'APERAK' && canonical.family !== 'CONTRL') return null
   if (!canonical.messageCode) throw new Error(`canonical_policy_message_code_missing:${canonical.family}`)
 
@@ -128,6 +129,7 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
   const family = canonical.family
   const messageCode = canonical.messageCode
   const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
+  const ownReadingsSource=family==='PRODAT'&&messageCode==='Z04'&&message.direction==='inbound'&&['L','LK','C','Z22','Z23','Z24'].includes(canonical.subtype??'')
   const candidate = (selectedGuideRevision?: string): CanonicalEdielPolicy => {
     const input = {
     selectedGuideRevision,
@@ -145,7 +147,7 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
       market: 'electricity' as const,
       ...(deathStatusContext?{deathStatus:deathStatusContext.selection,businessContext:deathStatusContext.businessContext}:{}),
       customerKind: readStringFact(message, 'customerKind') as 'private' | 'business' | undefined,
-      meterReadingsSentInUtilts: readBooleanFact(message, 'meterReadingsSentInUtilts'),
+      meterReadingsSentInUtilts: ownReadingsSource?undefined:readBooleanFact(message, 'meterReadingsSentInUtilts'),
       multipleMeterRegisters: readBooleanFact(message, 'multipleMeterRegisters'),
       endUserAddressAvailable: readBooleanFact(message, 'endUserAddressAvailable'),
       invoiceeAddressDiffersFromEndUser: readBooleanFact(message, 'invoiceeAddressDiffersFromEndUser'),
@@ -155,6 +157,8 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
     }
     const selected=resolveCanonicalEdielPolicy(input)
     const registerObjects=sourceProdatRegisterReadingDeclarations({message,qualification:options.prodatSourceCapability,policy:selected,admissionAt:options.admissionAt})
+      ??(ownReadingsSource?sourceProdatOwnRegisterReadingDeclarations({message,actorUserId:options.ownSourceReadingActorUserId,
+        context:options.ownSourceReadingContext,policy:selected,admissionAt:options.admissionAt}):null)
     // Resolve final conditions from the same selected guide and exact object
     // declarations. Root hints cannot fill an object's unknown source fact.
     const policy=registerObjects?resolveCanonicalEdielPolicy({...input,selectedGuideRevision:selected.guide.guideRevision,

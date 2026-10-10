@@ -1,9 +1,12 @@
-// Disposable D input producer. Existing L readings=false remains an explicitly
-// declared synthetic PRECONDITION, never authenticated receiver-reading proof.
-// New D source intake has no added dependency flags or private ready receipts.
+// Disposable D input producer. Its positive consumption precondition declares
+// a new active installation and one untimed cumulative import register.
+// Original actor/mail/reception READs qualify the prospective source input.
 import { createHash, createHmac, randomUUID } from 'node:crypto'
 import { expect } from 'vitest'
 import { ownerSource } from '../../__tests__/helpers/sourceOwnerFixtures'
+import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatRegisterReadingState } from '@/lib/ediel/prodat/prodatRegisterReadings'
+import { prodatCharacteristicValues } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { guideOrderedFixtureRaw } from '../../__tests__/helpers/prodatGuideOrderedFixture'
 import { characteristic, line, qty, type Parts } from '../../__tests__/fixtures/prodat-register'
 import { seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal, nativeActorRoleSql, normalSwitchNetworkRegistry } from './ediel-normal-switch-native-fixture'
@@ -49,15 +52,21 @@ function stampOriginal(wire: string, sender: string, receiver: string, document:
     .replace('BGM+Z04+D+', `BGM+Z04+${document}+`)
 }
 
-/** All public source/validation/application owners run. Only the pre-existing
- * ownerSource parsed-payload control supplies its declared local readings fact.
+/** All public source/validation/application owners run. Complete physical
+ * input precedes original birth and the actor's fresh source READ.
  * No private context, validation, source witness or period is inserted. */
 export async function createConsumptionPrecondition(provider: Provider) {
   return acceptConsumptionPrecondition(await seedNormalSwitchNativeFixture({ requestedStartDate: futureNativeSupplyDate(), external: freshGsrn(), provider }))
 }
 
 async function acceptConsumptionPrecondition(f: Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>>) {
-  const retained = ownerSource(), sourceId = randomUUID(), document = `L${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
+  const retained = ownerSource({ readingDeclarations: true, environment: 'test',
+    sourceCodes: { installationStatus: 'Z12', settlementMethod: 'Z32' } }),
+    sourceId = randomUUID(), document = `L${randomUUID().replaceAll('-', '').slice(0, 12).toUpperCase()}`
+  // Explicit NEW RKv1.7 cumulative active-import counter: one untimed tariff
+  // covering all hours/days/months, constant1/digits6. The shared synthetic111
+  // default remains unchanged and supplies no qualified register fact.
+  expect(retained.raw_payload!.split("CCI++Z16'CAV+:::111'")).toHaveLength(2)
   const raw = retained.raw_payload!
     .replaceAll('735123456789012345', f.external)
     .replaceAll('12345:14', `${f.receiver}:14`).replaceAll('54321:14', `${f.sender}:14`)
@@ -69,6 +78,21 @@ async function acceptConsumptionPrecondition(f: Awaited<ReturnType<typeof seedNo
     .replace("+23-DDQ-PRODAT'", "+23-DDQ-PRODAT++1++1'")
     .replace('+I++23-DDQ-PRODAT', `+${document}++23-DDQ-PRODAT`).replace("UNZ+1+I'", `UNZ+1+${document}'`)
     .replace('UNH+M+', `UNH+${document}+`).replace(/UNT\+(\d+)\+M'/, `UNT+$1+${document}'`).replace('BGM+Z04+D+', `BGM+Z04+${document}+`)
+    .replace("CCI++Z16'CAV+:::111'", "CCI++Z16'CAV+:::101'")
+  // Inspect the actual prospective returned wire before any immutable birth.
+  const physical = tokenizeEdifact(raw), grouped = prodatRegisterGroups(physical.segments, physical.una, 'Z04')
+  expect(grouped.problems).toEqual([]); expect(grouped.groups).toHaveLength(1)
+  const own = grouped.groups[0]
+  expect(own).toMatchObject({ itemId: f.external, identityAgency: '9', registerPosition: 1, validRegisterChain: true })
+  for (const [field, value] of [['214', '1'], ['218', '6'], ['259', '101']] as const)
+    expect(prodatRegisterReadingState(field, own.segments, physical.una)).toEqual({ present: true, value, malformed: false })
+  for (const [field, value] of [['217', 'Z03'], ['223', 'Z22'], ['306', 'Z12'], ['254', 'Z32']] as const)
+    expect(prodatCharacteristicValues(field, own.segments, physical.una)).toEqual([value])
+  const customers = own.segments.filter(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, physical.una)[0] === 'UD')
+  expect(customers).toHaveLength(1)
+  expect(segmentComposite(customers[0], 2, physical.una)).toEqual([f.customerIdentity.id, f.customerIdentity.qualifier, f.customerIdentity.agency])
+  const cases = own.segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, physical.una)[0] === 'LI')
+  expect(cases).toHaveLength(1); expect(segmentComposite(cases[0], 1, physical.una)).toEqual(['LI', f.caseReference])
   const receivedAt = new Date().toISOString()
   const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw, receivedAt, smtpFrom: assertEdielSmtpReadiness().from })
   sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,
@@ -81,7 +105,7 @@ async function acceptConsumptionPrecondition(f: Awaited<ReturnType<typeof seedNo
   await recordOriginalMailboxNativeReception({ ...mail, companyId: f.companyId, sourceMessageId: sourceId, actorUserId: f.actorUserId })
   const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', sourceId).single()
   expect(error).toBeNull()
-  const original = data as EdielMessageRow, decision = await resolveCanonicalRuntimeDecisionWithRegistry(original)
+  const original = data as EdielMessageRow, decision = await resolveCanonicalRuntimeDecisionWithRegistry(original, { actorUserId: f.actorUserId })
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision], JSON.stringify(decision.issues)).toEqual(['accepted', 'accepted', 'accepted'])
   const validation = await recordReceivedSourceValidation({ original, validated: original, resolvedCompanyId: f.companyId, decision })
   expect(validation).toMatchObject({ status: 'recorded' })
