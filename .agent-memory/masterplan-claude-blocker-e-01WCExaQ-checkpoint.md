@@ -31,6 +31,12 @@
 - Owner `claude-ediel-20261008-bardeen` (receipt `672e62bc`) asked for RESUME or scoped RELEASE/HANDOVER.
 - Other remaining rules: TR-09/DB-01 reserved (Claude PLANAGENT); DB-05 (#718) and TR-08/OPS-04 need external legal/provider input.
 
+### 2026-10-10T22:30Z — reviews ([6102829893](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6102829893), [6102832360](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6102832360))
+- Withdrew own #732 C0/I0 at 859f (missed draft-send archived-offer defect found by D 6102749022).
+- #732 re-review at `421b69b`: C0/I0 (draft send path removed; 14/14 tests).
+- #733 AT-Z10M at `3997913`: C0/I0, second independent final-source review (219/219 tests). CI 0 failures, some running.
+- P-08 handover request 6102751498: no answer yet.
+
 ## Next
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
 for 6102293795; (c) explicit scoped handover to E. Otherwise remain BLOCKED; no polling, no native/GEN/capture.
