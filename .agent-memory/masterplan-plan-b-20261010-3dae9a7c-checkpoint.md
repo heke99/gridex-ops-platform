@@ -94,7 +94,7 @@ Run relevant new normal-runtime cases plus unchanged M declaration30 tests, L/LK
 Whole-M stays NOT_EXECUTED until actual two-register review/apply, old/new meter/version boundary, prior readings and relevant UTILTS provenance/storage, correlation/tenant/role/replay negatives, final physical CONTRL+APERAK, and actual DSO tenth Swedish-business-day SEND/calendar are independently proved. This bounded source packet can deliver a prerequisite with unchanged coverage; do not present it as whole M completion. Normal expected-head delivery uses fresh role-merge, main/head/composition/dependencies and actual merge proof, role FIRST release, then version-bound MERGED and exact owner-only resource release. Do not start another packet while this own responsibility is retained or unresolved.
 
 
-## Durable continuation checkpoint — 21:31 UTC, BLOCKED_AUTH
+## Durable continuation checkpoint — 21:29 UTC, BLOCKED_AUTH
 
 Own plan/checkpoint publication c585346efd3d7490b3b1c8c8b0516e5a15a023ca, tree562809cef3e9a9dcbe93b1cc5a5df9291081fe7e, single parent actualmaina5220cba88c743ffc7fb3aaaf0ca093dda1f0638 was authenticated by GET and complete file-byte comparison. Local metadata synchronization needed depth2 because the depth1 shallow boundary hid the parent. First offline promisor READ failed without network; later FF initially refused unrelated shallow history. Own untracked checkpoint was immediately restored from its byte-verified /tmp backup; depth2 anonymous read fetch established ancestry and exact checkpoint-only diff, then FF succeeded. No foreign/source files changed. Published c585 checkpoint is 20,558 UTF-8 bytes; earlier Python character count20,518 was not its byte count.
 
