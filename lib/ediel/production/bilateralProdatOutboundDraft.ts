@@ -6,6 +6,8 @@ import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 declare const bilateralDraftBrand:unique symbol
 type Own=Readonly<{objectId:string;identityAgency:'9'|'89';firstLineIndex:number;lineItemReference:string;profileVersionId?:string;mandateId?:string;process:'normal_start_h'|'closure_request_lk'|'national_supply_rescission';sourceHash:string;sourceGrammarHash:string;rulePackId:string;messageProfileId:string;pointId:string;customerId:string;siteId:string;contractId:string;contractHash:string;eventAt:string}>
 export type QualifiedBilateralProdatOutboundDraft=Readonly<{version:1;owner:'immutable-bilateral-prodat-outbound-profile-v1'|'immutable-national-supply-rescission-original-v1';companyId:string;environment:'test'|'production';actorUserId:string;payloadHash:string;messageCode:'Z03'|'Z08';objects:readonly Own[];[bilateralDraftBrand]:true}>
+declare const originalReadBrand:unique symbol
+export type ReadQualifiedBilateralProdatOutboundOriginal=Readonly<Omit<QualifiedBilateralProdatOutboundDraft,typeof bilateralDraftBrand>&{[originalReadBrand]:true}>
 const issued=new WeakMap<QualifiedBilateralProdatOutboundDraft,{raw:string}>()
 const record=(x:unknown):Record<string,unknown>|null=>x&&typeof x==='object'&&!Array.isArray(x)?x as Record<string,unknown>:null
 const uuid=(x:unknown):x is string=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(x)
@@ -34,14 +36,14 @@ export function requiresNationalSupplyRescissionOwner(draft:Pick<CreateEdielMess
 }
 /** Read-only qualification. Native persistence independently derives the
  * profile under the current authorization graph in its INSERT transaction. */
-async function qualifyNative(input:{draft:CreateEdielMessageInput;actorUserId:string;sourceMessageId?:string}):Promise<QualifiedBilateralProdatOutboundDraft|null>{
+async function qualifyNative(input:{draft:CreateEdielMessageInput;actorUserId:string;sourceMessageId?:string;purpose?:'read'}):Promise<QualifiedBilateralProdatOutboundDraft|null>{
  const {draft,actorUserId}=input
  if(!requiresBilateralProdatOutboundOwner(draft))return null
  if(draft.direction!=='outbound'||draft.messageFamily!=='PRODAT'||!uuid(draft.companyId)||!uuid(actorUserId)||!['test','production'].includes(draft.environment??''))throw Error('bilateral_prodat_outbound_actual_scope_required')
  const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
  const national=requiresNationalSupplyRescissionOwner(draft)
  if(national&&!input.sourceMessageId&&!uuid(draft.sourceOperationId))throw Error('supply_rescission_actual_mandate_required')
- const {data,error}=input.sourceMessageId?await rpc('ediel_qualify_persisted_prodat_outbound_source_v1',{p_company_id:draft.companyId,p_actor_user_id:actorUserId,p_message_id:input.sourceMessageId}):national?await rpc('ediel_qualify_supply_rescission_draft_v1',{p_company_id:draft.companyId,p_actor_user_id:actorUserId,p_environment:draft.environment,p_raw_payload:draft.rawPayload,p_mandate_id:draft.sourceOperationId}):await rpc('ediel_qualify_bilateral_prodat_outbound_draft_v1',{p_company_id:draft.companyId,p_actor_user_id:actorUserId,p_environment:draft.environment,p_raw_payload:draft.rawPayload})
+ const {data,error}=input.sourceMessageId?await rpc(input.purpose==='read'?'ediel_read_bilateral_prodat_outbound_original_v1':'ediel_qualify_persisted_prodat_outbound_source_v1',{p_company_id:draft.companyId,p_actor_user_id:actorUserId,p_message_id:input.sourceMessageId}):national?await rpc('ediel_qualify_supply_rescission_draft_v1',{p_company_id:draft.companyId,p_actor_user_id:actorUserId,p_environment:draft.environment,p_raw_payload:draft.rawPayload,p_mandate_id:draft.sourceOperationId}):await rpc('ediel_qualify_bilateral_prodat_outbound_draft_v1',{p_company_id:draft.companyId,p_actor_user_id:actorUserId,p_environment:draft.environment,p_raw_payload:draft.rawPayload})
  if(error)throw error
  const r=record(data)
  if(!r)throw Error('bilateral_prodat_outbound_current_profile_required')
@@ -55,7 +57,8 @@ async function qualifyNative(input:{draft:CreateEdielMessageInput;actorUserId:st
   if(!o||g.messageIndex!==0||o.objectId!==g.itemId||o.identityAgency!==g.identityAgency||o.firstLineIndex!==g.firstLineIndex||o.lineItemReference!==li||!li||o.process!==(national?'national_supply_rescission':r.messageCode==='Z03'?'normal_start_h':'closure_request_lk')||![(national?'mandateId':'profileVersionId'),'rulePackId','messageProfileId','pointId','customerId','siteId','contractId'].every(k=>uuid(o[k]))||!['sourceHash','sourceGrammarHash','contractHash'].every(k=>hash(o[k]))||typeof o.eventAt!=='string'||!Number.isFinite(Date.parse(o.eventAt)))throw Error('bilateral_prodat_outbound_own_scope_required')
  }
  const q=Object.freeze({...r,objects:Object.freeze(r.objects.map(o=>Object.freeze({...record(o)!})))}) as unknown as QualifiedBilateralProdatOutboundDraft
- issued.set(q,{raw:draft.rawPayload!});return q
+ // A READ projection must never redeem at the outbound sender/draft boundary.
+ if(input.purpose!=='read')issued.set(q,{raw:draft.rawPayload!});return q
 }
 export const qualifyBilateralProdatOutboundDraft=(input:{draft:CreateEdielMessageInput;actorUserId:string})=>qualifyNative(input)
 export async function qualifyPersistedBilateralProdatOutboundOriginal(message:EdielMessageRow,executionActorUserId?:string){
@@ -64,6 +67,17 @@ export async function qualifyPersistedBilateralProdatOutboundOriginal(message:Ed
  if(!uuid(actorUserId))throw Error('supply_rescission_current_execution_actor_required')
  const draft:CreateEdielMessageInput={actorUserId,companyId:message.company_id,environment:message.environment,direction:message.direction,messageStandard:message.message_standard,messageFamily:message.message_family,messageCode:message.message_code,rawPayload:message.raw_payload??'',sourceOperationId:message.source_operation_id??undefined}
  return {draft,actorUserId,qualification:await qualifyNative({draft,actorUserId,sourceMessageId:message.id})}
+}
+/** Current READ qualification of the recorded immutable original. Reuse the
+ * existing actor-bound reader RPC and the exact same source/wire checks. */
+export async function readSourceQualifiedBilateralProdatOutboundOriginal(message:EdielMessageRow,actorUserId:string):Promise<ReadQualifiedBilateralProdatOutboundOriginal|null>{
+ if(message.direction!=='outbound'||message.message_standard!=='edifact'||message.message_family!=='PRODAT'||message.message_code!=='Z03')return null
+ if(!uuid(message.created_by)||!uuid(message.id))throw Error('bilateral_prodat_outbound_original_provenance_required')
+ const draft:CreateEdielMessageInput={actorUserId,companyId:message.company_id,environment:message.environment,direction:message.direction,
+  messageStandard:message.message_standard,messageFamily:message.message_family,messageCode:message.message_code,rawPayload:message.raw_payload??''}
+ const read=await qualifyNative({draft,actorUserId,sourceMessageId:message.id,purpose:'read'})
+ if(read&&record(read)?.originalActorUserId!==message.created_by)throw Error('bilateral_prodat_outbound_original_provenance_required')
+ return read as unknown as ReadQualifiedBilateralProdatOutboundOriginal|null
 }
 export function bilateralProdatOutboundDraftQualified(input:{draft:CreateEdielMessageInput;actorUserId:string;qualification?:QualifiedBilateralProdatOutboundDraft|null}):boolean{
  const q=input.qualification,w=q?issued.get(q):null

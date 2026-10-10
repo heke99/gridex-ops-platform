@@ -27,7 +27,9 @@ vi.mock('@/lib/ediel/ack/technicalSyntaxRoute',()=>({readTechnicalSyntaxAckRoute
 vi.mock('@/lib/ediel/utilts/positiveAckAuthority',()=>({assertUtiltsPositiveAckSourceAuthority:vi.fn()}))
 vi.mock('@/lib/ediel/testing/negativeFixtureAuthority',()=>({readSourceQualifiedNegativeFixtureDraft:io.negativeRead,sourceQualifiedNegativeFixtureMatchesDraft:io.negativeMatch,prepareSourceQualifiedNegativeFixtureWitness:io.negativePrepare}))
 vi.mock('@/lib/ediel/testing/positiveFixtureAuthority',()=>({readSourceQualifiedPositiveFixtureDraft:io.positiveRead,sourceQualifiedPositiveFixtureMatchesDraft:io.positiveMatch,prepareSourceQualifiedPositiveFixtureWitness:io.positivePrepare}))
-vi.mock('@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority',()=>({readProdatCommonHeaderRejectionEvidence:io.commonRead,prepareProdatCommonHeaderNegativeAckWitness:io.commonPrepare}))
+// This gateway probe supplies a declared qualification, not the private reader's
+// branded evidence. Its reply APP port retains that same declared identity.
+vi.mock('@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority',()=>({readProdatCommonHeaderRejectionEvidence:io.commonRead,prepareProdatCommonHeaderNegativeAckWitness:io.commonPrepare,commonHeaderReplyApplicationReference:(e:{identities:{applicationReference:string}})=>e.identities.applicationReference}))
 vi.mock('@/lib/ediel/ack/prodatCommonHeaderNegativeAckRoute',()=>({readProdatCommonHeaderNegativeAckRoute:io.commonRoute}))
 vi.mock('@/lib/ediel/aiListOrigination',()=>({qualifyAiListProspectiveOriginal:io.aiOriginal}))
 vi.mock('@/lib/ediel/core/versionRegistry',()=>({resolveCanonicalOutboundVersion:io.version}))

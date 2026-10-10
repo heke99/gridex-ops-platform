@@ -12,6 +12,9 @@ const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
 const { test, after } = require('node:test')
 const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 const root = path.resolve(__dirname, '..')
+// Load the genuine pure header intake observer; external operations remain denied.
+const headerNegativeIntake = '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
+const headerNegativeIntakeFile = path.join(root, 'lib/inbound-mail/prodatAssignedHeaderRejectionIntake.ts')
 const NOW = '2026-09-20T12:00:00.000Z'
 
 async function loadRuntime() {
@@ -58,10 +61,10 @@ async function loadRuntime() {
     if (sourceData) return sourceData
     if (boundaries.has(name)) return boundaries.get(name)
     if (name === 'crypto' || name === 'node:crypto') return crypto
-    assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
+    assert(name.startsWith('@/lib/ediel/') || name === headerNegativeIntake || name.startsWith('.'), `Unexpected dependency: ${name}`)
     const base = name.startsWith('@/') ? path.join(root, name.slice(2)) : path.resolve(path.dirname(parent.identifier), name)
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
-    assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
+    assert(file && (file.startsWith(path.join(root, 'lib/ediel/')) || file === headerNegativeIntakeFile), `Not a real Ediel source: ${name}`)
     if (!modules.has(file)) modules.set(file, new SourceTextModule(
       stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
       { context, identifier: file }))

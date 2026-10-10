@@ -1,3 +1,4 @@
+import {commonHeaderOriginalSource,commonHeaderRejectionField,commonHeaderReplyApplicationReference,prodatCommonHeaderRejectionQualification,type ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {tokenizeEdifact,observeCompletedEdifactSegments,segmentComposite,type EdifactTokenizedSegment} from '@/lib/ediel/core/edifactTokenizer'
 import {parseUna,type EdifactServiceStringAdvice} from '@/lib/ediel/core/una'
 import type {CanonicalEdielPolicy} from './canonicalEdielPolicy'
@@ -71,7 +72,7 @@ function dateTime(value:string){
  * authority. Full UNSM structure remains a separate source/evidence requirement.
  * Optional original bytes qualify conditional references; a parsed JSON marker
  * or a sibling ERC can never supply an own-object/transaction reference. */
-export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;rawSegments?:readonly string[]|null;rawPayload?:string|null;una?:EdifactServiceStringAdvice;sourceRawPayload?:string|null;technicalOriginal?:TechnicalSyntaxAckEvidence}):EdielRulebookIssue[]{
+export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;rawSegments?:readonly string[]|null;rawPayload?:string|null;una?:EdifactServiceStringAdvice;sourceRawPayload?:string|null;technicalOriginal?:TechnicalSyntaxAckEvidence;commonHeaderOriginal?:ProdatCommonHeaderRejectionEvidence}):EdielRulebookIssue[]{
  if(!['CONTRL','APERAK','UTILTS_ERR'].includes(input.policy.family))return []
  const una=input.una??parseUna(null),wire=tokenizeEdifact(`${una.raw}${(input.rawSegments??[]).join(una.segmentTerminator)}${una.segmentTerminator}`),issues:EdielRulebookIssue[]=[]
  issues.push(...validateEdifactHeaderGuide({direction:input.policy.direction as 'inbound'|'outbound',rawPayload:input.rawPayload,rawSegments:input.rawSegments,una}))
@@ -80,10 +81,20 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
  if(all('UNH').length!==1)add('ACK_GUIDE_ONE_MESSAGE_REQUIRED','Kvittensen ska avse ett eget fysiskt meddelande.','UNH')
  if(input.sourceRawPayload){
   const source=input.policy.family==='CONTRL'?observeCompletedEdifactSegments(input.sourceRawPayload):tokenizeEdifact(input.sourceRawPayload),originals=source.segments.filter(t=>t.tag==='UNB'),original=originals[0],outgoing=all('UNB')[0]
+  const supplied=input.commonHeaderOriginal
+  const evidence=supplied?prodatCommonHeaderRejectionQualification({evidence:supplied,companyId:supplied.companyId,environment:supplied.environment}):null
+  const field=evidence?commonHeaderRejectionField(evidence):null
+  const corrected=Boolean(evidence&&field?.fieldCode==='311'&&field.ercCode==='41'&&input.policy.family==='APERAK'
+    &&commonHeaderOriginalSource(evidence)?.raw_payload===input.sourceRawPayload
+    &&all('BGM').length===1&&value(wire,all('BGM')[0],3)==='27'&&all('ERC').length===1&&all('FTX').length===1
+    &&equal(segmentComposite(all('ERC')[0],1,wire.una),['41','','260'])
+    &&equal(segmentComposite(all('FTX')[0],3,wire.una),['311','','260'])
+    &&equal(segmentComposite(all('FTX')[0],4,wire.una),[field.text]))
+  const expectedApplication=corrected?[commonHeaderReplyApplicationReference(evidence!)??'']:segmentComposite(original,7,source.una)
   if(originals.length!==1||all('UNB').length!==1
    ||!equal(segmentComposite(outgoing,2,wire.una),segmentComposite(original,3,source.una))
    ||!equal(segmentComposite(outgoing,3,wire.una),segmentComposite(original,2,source.una))
-   ||!equal(segmentComposite(outgoing,7,wire.una),segmentComposite(original,7,source.una))
+   ||!equal(segmentComposite(outgoing,7,wire.una),expectedApplication)
    ||!equal(segmentComposite(outgoing,11,wire.una),segmentComposite(original,11,source.una)))add('ACK_ORIGINAL_TECHNICAL_ROUTE_MISMATCH','Kvittensens tekniska UNB-parter, application reference och miljö ska spegla det faktiska originalet.','UNB')
   if(input.policy.family==='UTILTS_ERR'&&value(source,source.segments.find(t=>t.tag==='UNH'),2)!=='UTILTS')add('ACK_SOURCE_FAMILY_MISMATCH','UTILTS-ERR måste tillhöra ett verkligt UTILTS-ursprung.','UNH')
  }

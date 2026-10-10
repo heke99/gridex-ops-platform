@@ -291,6 +291,11 @@ beforeEach(async () => {
   for (const name of ['public.gridex_normalize_org_number(', 'public.gridex_new_external_tenant_reference(']) await db.exec(definition('FUNCTION', name))
   await db.exec(definition('TYPE', 'public.ediel_environment_type AS ENUM ('))
   for (const table of tables) await db.exec(definition('TABLE', `public.${table} (`))
+  // Install genuine empty private receipt readers used by current source guards.
+  // These fixtures create no assigned negative birth or header authority.
+  await db.exec('create schema gridex_ediel_header_negative_birth')
+  await db.exec(definition('TABLE', 'gridex_ediel_header_negative_birth.receipts ('))
+  for (const name of ['gridex_ediel_header_negative_birth.is_bound_v1(', 'gridex_ediel_header_negative_birth.evidence_v1(']) await db.exec(definition('FUNCTION', name))
   // Real rowtypes required by the current configured-route owner, followed by
   // the real ordinary-reception owner used only for known-company fixtures.
   for (const table of ['receptions', 'response_requests', 'technical_mailbox_births']) await db.exec(definition('TABLE', `gridex_ediel_inbound_receptions.${table} (`))

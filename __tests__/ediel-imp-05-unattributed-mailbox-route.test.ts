@@ -19,6 +19,7 @@ const hash = createHash('sha256').update(wire).digest('hex')
 const schema = readFileSync('supabase/schema.sql', 'utf8')
 const intake = readFileSync('supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql', 'utf8')
 const forward = readFileSync('supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql', 'utf8')
+const headerNegativeForward = readFileSync('supabase/migrations/20261010102349_ediel_assigned_prodat_header_negative_birth.sql', 'utf8')
 // Exercise the real migration boundary even after the combined schema capture
 // includes that migration. These two byte-exact source definitions match the
 // admitted pre-forward main; the rest of the fixture uses the current schema.
@@ -45,6 +46,12 @@ function definition(kind: 'TABLE' | 'FUNCTION' | 'TYPE', name: string, source = 
 }
 async function installForward() {
   await db.exec(forward)
+  // Replay the later real selector upgrade after the IMP05 boundary. Its
+  // exact pre/post guards and the full captured-body assertions remain active.
+  const selectorUpgrades = [...headerNegativeForward.matchAll(/DO \$assigned_birth_upgrade\$[\s\S]*?END \$assigned_birth_upgrade\$;/g)]
+    .filter(match => match[0].includes("target_oid:='gridex_ediel_technical_ack.select_configured_reply_route_v2(uuid,jsonb,text,text,text,integer)'::regprocedure;"))
+  expect(selectorUpgrades).toHaveLength(1)
+  await db.exec(selectorUpgrades[0][0])
   // The modeled predecessor must migrate to the actual captured current body.
   // A stale snapshot or a different production correction fails this binding.
   for (const [name, identity] of forwardFunctions) {
@@ -83,6 +90,13 @@ beforeEach(async () => {
     'ediel_mailboxes', 'tenant_actor_identifiers', 'tenant_counterparty_relations', 'platform_actor_identifiers',
     'ediel_actor_settings', 'ediel_route_profiles', 'companies', 'company_memberships', 'user_profiles',
     'communication_routes', 'ediel_transport_profiles']) await db.exec(definition('TABLE', `public.${table} (`))
+  // Install genuine empty private receipt readers used by current source guards.
+  // These fixtures create no assigned negative birth or header authority.
+  await db.exec('create schema gridex_ediel_header_negative_birth')
+  await db.exec('create schema gridex_ediel_common_header')
+  await db.exec(definition('TABLE', 'gridex_ediel_common_header.sources ('))
+  await db.exec(definition('TABLE', 'gridex_ediel_header_negative_birth.receipts ('))
+  for (const name of ['gridex_ediel_header_negative_birth.is_bound_v1(', 'gridex_ediel_header_negative_birth.evidence_v1(']) await db.exec(definition('FUNCTION', name))
   for (const name of ['wire_tokens_bounded_v1', 'closure_wire_tokens_v1', 'source_wire_point_v1']) await db.exec(definition('FUNCTION', `gridex_received_sources.${name}(`))
   for (const table of ['gridex_ediel_technical_ack.sources', 'gridex_ediel_technical_ack.replies',
     'gridex_ediel_technical_ack.syntax_facets', 'gridex_received_sources.validation_assessments',
@@ -154,9 +168,8 @@ async function admit({ legacy = false, mailboxAddress = smtp, payload = wire, co
 }
 
 async function installCommonSourceProducer() {
-  await db.exec('create schema gridex_ediel_common_header')
   for (const table of ['public.ediel_rule_packs', 'public.ediel_rule_pack_sources',
-    'gridex_ediel_common_header.source_editions', 'gridex_ediel_common_header.sources']) await db.exec(definition('TABLE', `${table} (`))
+    'gridex_ediel_common_header.source_editions']) await db.exec(definition('TABLE', `${table} (`))
   for (const name of ['capture_source', 'require_v1', 'require_current_scope_v1', 'read_negative_route_v1']) await db.exec(definition('FUNCTION', `gridex_ediel_common_header.${name}(`))
   // Exact existing source-generated national catalog, never test-issued common
   // evidence. The current trigger below owns common source birth.
