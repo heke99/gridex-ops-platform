@@ -1,10 +1,15 @@
 -- One-off/manual contract offers can be bound to the contract they were made for.
 --
--- gridex_prepare_manual_contract_binding creates a one-off offer, publishes its
--- exact chain and immediately archives the offer (is_active=false) so it never
--- appears in a catalog. The customer_contracts availability trigger rejected
--- every archived offer, so all three consumers failed with
--- 23514 contract_offer_not_available:
+-- gridex_prepare_manual_contract_binding saves a one-off offer and archives it
+-- (is_active=false) so it never appears in a catalog. Two defects made every
+-- consumer fail:
+--   1. The save is always a draft, and ensure_internal_contract_publication
+--      only mirrors the offer state, so the chain stayed draft/unlocked
+--      (one_off_publication_not_locked / internal_offer_not_canonical_ready).
+--      The materializer now publishes through the existing permission- and
+--      readiness-gated gridex_publish_internal_contract_version first.
+--   2. The customer_contracts availability trigger rejected the archived
+--      offer with 23514 contract_offer_not_available. Affected consumers:
 --   * signature request preparation (draft -> pending_signature),
 --   * the admin signed-agreement import trigger,
 --   * customer-card manual non-draft create (createCustomerContract).
@@ -41,6 +46,7 @@ create or replace function public.gridex_prepare_manual_contract_binding(p_compa
 declare
   v_identity uuid := gen_random_uuid();
   v_saved jsonb;
+  v_published jsonb;
   v_offer_id uuid;
   v_publication_id uuid;
   v_publication public.contract_publication_versions%rowtype;
@@ -74,6 +80,21 @@ begin
   v_offer_id := nullif(v_saved#>>'{offer,id}','')::uuid;
   if v_offer_id is null then
     raise exception using errcode='P0001',message='one_off_offer_creation_failed';
+  end if;
+
+  -- The save above is always a draft. Publish it through the same permission-
+  -- and readiness-gated command staff use for catalog versions; it promotes the
+  -- pricing, materializes the legal bundle and locks the internal publication.
+  -- A structured refusal is raised with its code and blockers.
+  v_published := public.gridex_publish_internal_contract_version(
+    p_company_id,v_offer_id,p_actor_user_id
+  );
+  if not coalesce((v_published->>'ok')::boolean,false) then
+    raise exception using
+      errcode='23514',
+      message='one_off_publication_refused',
+      detail=coalesce(v_published->>'code','unknown'),
+      hint=coalesce(v_published->'blockers','[]'::jsonb)::text;
   end if;
 
   v_publication_id := public.gridex_ensure_internal_contract_publication(

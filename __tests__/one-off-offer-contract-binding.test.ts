@@ -3,11 +3,11 @@ import fs from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-// Executes the real forward migration in PostgreSQL. Only the two unchanged
-// upstream materializers (offer upsert and publication) are finite stand-ins
-// that create a published, active one-off offer with a locked chain and an
-// active internal channel, exactly what gridex_prepare_manual_contract_binding
-// receives from them in production.
+// Executes the real forward migration in PostgreSQL. The three unchanged
+// upstream commands (save, publish, publication mirror) are finite stand-ins
+// that follow production semantics: save yields a draft, inactive offer, and
+// only a successful publish yields a locked chain and an active channel. The
+// complete real chain is executed by scripts/one-off-offer-binding-native.test.ts.
 const MIGRATION = 'supabase/migrations/20261010230000_one_off_offer_contract_binding.sql'
 const T1 = '11111111-1111-4111-8111-111111111111'
 const T2 = '22222222-2222-4222-8222-222222222222'
@@ -63,25 +63,43 @@ beforeAll(async () => {
     create table public.customer_contracts(id uuid primary key default gen_random_uuid(), company_id uuid, status text,
       contract_offer_id uuid, contract_product_id uuid, contract_product_version_id uuid);
 
+    -- Mirrors production: saving is always a draft, inactive offer; only the
+    -- publish command promotes it and opens its internal channel.
     create function public.gridex_upsert_internal_contract_offer(p_company uuid, p_id uuid, p_payload jsonb, p_snap jsonb, p_actor uuid)
     returns jsonb language plpgsql as $$
-    declare v_pv uuid := gen_random_uuid(); v_id uuid; v_a uuid;
+    declare v_pv uuid := gen_random_uuid(); v_id uuid;
     begin
-      insert into public.contract_product_versions values (v_pv, gen_random_uuid(), 'approved', now(), '{}');
+      insert into public.contract_product_versions values (v_pv, gen_random_uuid(), 'draft', null, '{}');
       insert into public.contract_offers(company_id, status, is_active, lifecycle_status, valid_from, contract_product_version_id)
-      values (p_company, 'active', true, 'published', nullif(p_payload->>'valid_from', '')::date, v_pv) returning id into v_id;
+      values (p_company, 'draft', false, 'draft', nullif(p_payload->>'valid_from', '')::date, v_pv) returning id into v_id;
+      return jsonb_build_object('offer', jsonb_build_object('id', v_id));
+    end $$;
+    create table public.publish_refusals(company_id uuid primary key, code text);
+    create function public.gridex_publish_internal_contract_version(p_company uuid, p_offer uuid, p_actor uuid)
+    returns jsonb language plpgsql as $$
+    declare v_pv uuid; v_a uuid; v_code text;
+    begin
+      select code into v_code from public.publish_refusals where company_id = p_company;
+      if v_code is not null then
+        return jsonb_build_object('ok', false, 'code', v_code, 'blockers', jsonb_build_array(jsonb_build_object('code', v_code)));
+      end if;
+      update public.contract_offers set lifecycle_status = 'published', status = 'active', is_active = true
+      where id = p_offer and company_id = p_company returning contract_product_version_id into v_pv;
+      update public.contract_product_versions set status = 'approved', locked_at = now() where id = v_pv;
       insert into public.tenant_contract_assignments(company_id, contract_product_version_id, status, internal_sales_allowed, website_publication_allowed)
       values (p_company, v_pv, 'active', true, false) returning id into v_a;
       insert into public.tenant_contract_channels values (v_a, 'internal', 'active', null, null);
-      return jsonb_build_object('offer', jsonb_build_object('id', v_id));
+      return jsonb_build_object('ok', true, 'mode', 'published');
     end $$;
     create function public.gridex_ensure_internal_contract_publication(p_company uuid, p_offer uuid, p_actor uuid)
     returns uuid language plpgsql as $$
     declare v uuid := gen_random_uuid(); l uuid := gen_random_uuid();
     begin
       insert into public.legal_bundle_versions values (l, 'published', now(), '{}', '{}');
+      -- Like production, an inactive/draft offer only yields a draft, unlocked version.
       insert into public.contract_publication_versions
-      select v, 'published', now(), o.contract_product_version_id, null, null, null, l, 'REF'
+      select v, case when o.is_active then 'published' else 'draft' end, case when o.is_active then now() end,
+        o.contract_product_version_id, null, null, null, l, 'REF'
       from public.contract_offers o where o.id = p_offer;
       return v;
     end $$;
@@ -161,6 +179,17 @@ describe('one-off offer contract binding', () => {
     await expect(insertContract(T1, 'pending_signature', b.contract_offer_id))
       .rejects.toThrow('contract_channel_not_available')
     expect(await reservation(b.contract_offer_id)).toEqual({ consumed_contract_id: null })
+  })
+
+  it('raises a publish refusal and leaves no reservation or archived offer', async () => {
+    const T3 = '33333333-3333-4333-8333-333333333333'
+    await db.query('insert into public.companies values ($1)', [T3])
+    await db.query(`insert into public.publish_refusals values ($1, 'contract_version_not_publishable')`, [T3])
+    await expect(bind(T3)).rejects.toThrow('one_off_publication_refused')
+    const { rows } = await db.query<{ n: number }>(
+      `select (select count(*) from gridex_one_off_offer_binding.reservations where company_id = $1)::int
+            + (select count(*) from public.contract_offers where company_id = $1)::int as n`, [T3])
+    expect(rows[0].n).toBe(0)
   })
 
   it('denies API roles any access to the reservation registry', async () => {
