@@ -891,7 +891,8 @@
     "20261010102411_ediel_rejected_z04h_identity_scope.sql": "7bf7da027646624e2916ca038e4a5ad3aba959cc70962b1a873b91db5e503b4c",
     "20261010102455_ediel_prodat_customer_masterdata_original_read.sql": "3e22786c3c3c7ea329ecba218bbfa7ec70dfd7b8124f8db867e639e8e9e7b91f",
     "20261010120209_ediel_consumed_header_update_and_ack_scope_replay.sql": "a4d898895b04153e463712272e7d6dff525f312784fdce86e9fa2482d2f29191",
-    "20261010124755_ediel_assigned_negative_ack_arrival_date_scope.sql": "8a12e539c58ede63b61105bcff6c94ae63c6d22927362f53cc1c823a02267158"
+    "20261010124755_ediel_assigned_negative_ack_arrival_date_scope.sql": "8a12e539c58ede63b61105bcff6c94ae63c6d22927362f53cc1c823a02267158",
+    "20261010140411_ediel_common_header_negative_domain_owner_scope.sql": "e615bbf4d0c4a46628284a6dcdb84d973b6732c9d0662f7e20fa52925df51457"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

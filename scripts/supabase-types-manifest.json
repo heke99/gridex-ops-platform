@@ -4,8 +4,8 @@
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38056372722",
   "sha256": "49471663fa202ca3c378e7602855de838005dc0078ae325601f605de6f9e68de",
   "latest_migration": "20261010124755_ediel_assigned_negative_ack_arrival_date_scope.sql",
-  "latest_migration_schema_effect": "Authentic complete capture relative to actual main a61: 16 existing function bodies, 20 new functions and 56 new object blocks. Full schema and three-public-RPC type byte inverses restore actual main. Existing declarations, ACL and foreign #723/#726 bytes are preserved. Native and resulting-head gates remain separate.",
-  "composition_capture_pending": false,
+  "latest_migration_schema_effect": "New source-only one-function common-header negative domain-birth owner qualification. Captured RAW3 stays genuine sourcea9; new function body capture and resulting-head gates pending. Original ordinary domain/effect guards, declaration/ACL/ABI and AFTER single-use consumption are preserved.",
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-10T13:40:30.074201+00:00",
@@ -102,7 +102,7 @@
     "upgrade_parity": "NOT_RUN",
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
-  "composition_note": "All thirteen prior active fields and source 6f25923a manifest origin are archived under pre_ediel_h6_final_capture_root_20261010 with a complete original byte inverse. All91 other historical fields, pending entries and original NOT_RUN flags remain unchanged. RAW3 is copied byte-exactly from this original authenticated artifact.",
+  "composition_note": "All13 preceding genuine H6 active fields archived exactly; all93 other historical fields unchanged. RAW3 remains originalH6 capture, no predicted generation. Fresh new-tail capture required.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -112,58 +112,41 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-    "kind": "authentic_ediel_h6_final_capture",
-    "source_head": "a9feca09d08823e59d16fb1ca7b02097726ded1e",
-    "source_tree": "0a5ff72816f47ba250ddf77b0962fb6b30c9a047",
-    "actual_capture_run": "38056372722",
-    "status": "AUTHENTIC_CAPTURE_IMPORTED_CURRENT_RESULTING_HEAD_GATES_PENDING",
-    "schema_inverse": {
-      "proof_sha256": "67edc7ffb88158915c929908033a946de11fbedb0b8cf7e036a99ab2b39233da",
-      "full_schema_byte_inverse": true,
-      "full_types_byte_inverse": true,
-      "actual_main": "a61d014b3cefeddd7deb338a4c597ee853072b05",
-      "modified_existing_functions": 16,
-      "new_functions": 20,
-      "new_object_blocks": 56,
-      "unchanged_existing_ACL": true,
-      "unchanged_foreign_bytes": true
+    "status": "SOURCE_ONLY_H2_DOMAIN_OWNER_CAPTURE_PENDING",
+    "prior_genuine_capture_source": "a9feca09d08823e59d16fb1ca7b02097726ded1e",
+    "prior_generated_outputs_sha256": {
+      "database.types.ts": "49471663fa202ca3c378e7602855de838005dc0078ae325601f605de6f9e68de",
+      "schema.sql": "52eeb72f98a331fbf5caf378770a555cc9efd176f912ff45f0c4823b6088a63d",
+      "schema.fingerprint.json": "e3438e7ef770159bbafaf228cef9719fd7315b99a24979c26b885129046d45cc"
     },
-    "prior_schema_controlled_sql": {
-      "checks": 90,
-      "execution_receipt_sha256": "e4798015ec6a21a754c050d6e8e640f85132c971a1a50b846fb052f3110142c9",
-      "stdout_sha256": "d5c4aa3718abd316e554346e3a4fbd580673ee26843841758188a079d76b0b12",
-      "runner_sha256": "508d1c577dc04ddd1e8ee8b36a85357b9122baddce21e04b93bbf4c39773c739",
-      "prior_schema_sha256": "964d3e7cbd90b1b45f544c412276e38244a3c3f18509b2912a33ac530a9f3308",
-      "source": "158de387a8031a9b5a0cde277ac09dda2f729f2d",
-      "relevant_function_and_module_comparison_sha256": "08c1389f9e657bee53ee5cac15252835829fd1880a939b277b74facb35cab488",
-      "fresh_capture_execution": "NOT_RUN",
-      "scope": "Prior genuine964d plus exact forward, declared consumed receipt/syntax/actor/witness ports. Matching seventeen actual captured definitions qualifies applicability, not a fresh rerun or actual public birth/full runtime/backend OID."
-    },
-    "source_native": {
+    "proposed_forward_sha256": "e615bbf4d0c4a46628284a6dcdb84d973b6732c9d0662f7e20fa52925df51457",
+    "original_source_H100": "98/100; R311/R223 frozen-owner failures remain actual baseline",
+    "H2_finite_execution": {
+      "status": "PASS_BOUNDED_CONTROLLED_DOMAIN_BIRTH_FIXTURE",
+      "checks": 79,
       "source": "a9feca09d08823e59d16fb1ca7b02097726ded1e",
-      "C30": {
-        "run": "38056372699",
-        "job": "114225627260",
-        "status": "SUCCESS",
-        "passed": 30,
-        "total": 30
-      },
-      "H100": {
-        "run": "38056372693",
-        "job": "114225629142",
-        "status": "FAILURE",
-        "passed": 98,
-        "failed": 2,
-        "total": 100,
-        "remaining": "R311/R223 prodat_domain_response_frozen_owner_required; fix pending"
-      },
-      "resulting_head_native": "PENDING"
+      "schema_sha256": "52eeb72f98a331fbf5caf378770a555cc9efd176f912ff45f0c4823b6088a63d",
+      "runner_sha256": "57c482e44f6acd08dffe37a1503355169bedea47b63af14011e1e38b772ebe9c",
+      "execution_receipt_sha256": "6ef7505b30502f7c7b272d2baea96b7f00c5468ee6098867f4b99a5f2217b102",
+      "stdout_sha256": "e75dec12c76c8f843157e9e7855564f8233508bf1a1b27b1130c2885374344e7",
+      "declared_ports_and_limits": [
+        "Actual genuine52eeb capture definitions are extracted and hash-bound; assert_ack/scopes/source_match/is_bound/evidence/witness_before_route/witness/current identity/current endpoint/consume/domain birth are never replaced by success stubs.",
+        "Public.ediel_messages is a controlled minimal rowtype. Consumed inbound receipt, syntax and technical/common source rows are seeded ports, not an actual public ingress or native processor execution.",
+        "Private negative witness/route/consumption and ordinary owner/structural binding table shapes use captured CREATE TABLE definitions and their captured primary keys. Witnesses are prepared by captured prepare_with_route_v2 using real require/read/assert; the registered-guide binder and actor authorization are declared exact fixture adapters.",
+        "Captured require_current_scope_v1 and require_current_endpoint_v1 run against controlled tenant/platform identity rows. Full configured-route selection is a declared exact company/source/SMTP/technical evidence route-table port; any missing/mismatched row fails.",
+        "Actual outbound_owner.consume runs as AFTER INSERT and invokes actual common consume. Its following guide boundary is a declared strict adapter calling actual common require_ack_v1 and assigned scopes. The complete registered-guide/mixed/business scope dependency graph is not installed or proved.",
+        "Ordinary domain birth branch cases run with AFTER owner dispatcher disabled only inside rollback-only fixture transactions. Exact captured prodat_wire_responses runs against a declared domain-facet table adapter; full ordinary outbound owner consumption/business producers are not exercised.",
+        "The first NULL-to-raw UPDATE fixture disables AFTER only to admit its raw-null placeholder, then reenables the genuine dispatcher for the tested transition with a fresh prepared witness. Production placeholder admission and global guide duplicate-scope reservation are not proved.",
+        "Actual immutable a9 TypeScript renderer/codec/private loader modules resolve from the frozen current Git-blob bundle. Only exact private READ and tenant actor RPC adapters are supplied. No actual public ACK constructor/full runtime resolver/native H100 is claimed.",
+        "Unknown-preimage atomicity and full pg_proc-minus-prosrc/OID/ACL/inverse checks concern disposable PGlite only, not authentic backend object provenance or concurrency.",
+        "The qualified-retention-transition port returns false and authorizes no retention. Retention paths and full production table/RLS/admission are outside this finite scope.",
+        "No install/download/network/process fallback. ROOT alone executes and preserves first stdout/stderr/execution receipt. This authored runner and syntax check establish no SQL/native result."
+      ],
+      "scope": "Actual captured definitions and prepared/rendered source fixture, with labelled lower configured-route/full-guide/fixture ports; not authentic public ingress/full ordinary producer/native/backend OID provenance."
     },
-    "native": "NOT_RUN",
-    "browser": "NOT_RUN",
-    "type_schema_comparison": "NOT_RUN",
-    "upgrade_parity": "NOT_RUN",
-    "scope": "Original capture flags stay NOT_RUN. Actual source native results are separately qualified and do not approve resulting GEN head or whole IDs."
+    "H2_new_capture": "PENDING",
+    "resulting_head_native_and_nine_gates": "PENDING",
+    "scope": "No postcapture/native/whole-ID approval from source proposal or prior results."
   },
   "superseded_capture": {
     "purpose": "capture_only",
@@ -331,7 +314,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "False only for this genuine new-tail capture import. Original pending/history flags remain archived; resulting-head C30/H100, nine gates and main delivery are pending.",
+  "composition_capture_pending_scope": "True for new H2 domain-birth forward only; exact sourcea9 original RAW3 and capture flags remain historical evidence until genuine new-tail capture. Native C30/H100 and current nine delivery gates remain pending.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -786,7 +769,7 @@
     "path": "quality/staff-api/tenant-classification-evidence-20261005/preimport-complete-types-manifest-a315.json",
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
-  "source_latest_migration": "20261010124755_ediel_assigned_negative_ack_arrival_date_scope.sql",
+  "source_latest_migration": "20261010140411_ediel_common_header_negative_domain_owner_scope.sql",
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
     "main_head": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
@@ -13957,5 +13940,230 @@
     "full_schema_inverse_sha256": "67edc7ffb88158915c929908033a946de11fbedb0b8cf7e036a99ab2b39233da",
     "resulting_head_validation": "PENDING",
     "scope": "Fresh H6 arrival-guard complete capture; all original histories and NOT_RUN retained. Finite SQL uses prior genuine schema and declared ports, not fresh-capture/native evidence. Adoption commit recorded externally."
+  },
+  "pre_ediel_h2_domain_owner_source_pending_20261010": {
+    "input_commit": "873f997c2960c2e9f94cb577da84cae9b4b0907d",
+    "input_manifest_blob": "dfd82a07fd90f59ca994bc68202c67aab903367e",
+    "input_manifest_sha256": "376d3ac320ec171a1f9f848cb0f6c24c515c2d484e2040bc74793edfcdd00988",
+    "active_fields": {
+      "generated_at": "2026-10-10T13:40:30.074201+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38056372722",
+      "sha256": "49471663fa202ca3c378e7602855de838005dc0078ae325601f605de6f9e68de",
+      "latest_migration": "20261010124755_ediel_assigned_negative_ack_arrival_date_scope.sql",
+      "latest_migration_schema_effect": "Authentic complete capture relative to actual main a61: 16 existing function bodies, 20 new functions and 56 new object blocks. Full schema and three-public-RPC type byte inverses restore actual main. Existing declarations, ACL and foreign #723/#726 bytes are preserved. Native and resulting-head gates remain separate.",
+      "composition_capture_pending": false,
+      "capture": {
+        "purpose": "capture_only",
+        "captured_at": "2026-10-10T13:40:30.074201+00:00",
+        "checkout_sha": "a9feca09d08823e59d16fb1ca7b02097726ded1e",
+        "checkout_tree": "0a5ff72816f47ba250ddf77b0962fb6b30c9a047",
+        "workflow_run_id": "38056372722",
+        "workflow_run_attempt": "1",
+        "supabase_cli_version": "2.101.0",
+        "postgres_server_version": "17.6",
+        "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+        "latest_replay_migration": {
+          "name": "20261010124755_ediel_assigned_negative_ack_arrival_date_scope.sql",
+          "sha256": "8a12e539c58ede63b61105bcff6c94ae63c6d22927362f53cc1c823a02267158"
+        },
+        "schema_names": [
+          "gridex_ack_authority",
+          "gridex_ai_processing",
+          "gridex_ai_purpose_sources",
+          "gridex_bilateral_customer_sources",
+          "gridex_bilateral_prodat",
+          "gridex_billing_source",
+          "gridex_brp_changes",
+          "gridex_brp_declaration_intake",
+          "gridex_brp_sources",
+          "gridex_business_expectations",
+          "gridex_certificate_trust",
+          "gridex_contract_source_intake",
+          "gridex_correction_process",
+          "gridex_customer_life_events",
+          "gridex_customer_masterdata",
+          "gridex_ediel_ack_guide",
+          "gridex_ediel_ack_replay",
+          "gridex_ediel_business_incidents",
+          "gridex_ediel_common_header",
+          "gridex_ediel_duplicate_responses",
+          "gridex_ediel_exports",
+          "gridex_ediel_header_negative_birth",
+          "gridex_ediel_inbound_context",
+          "gridex_ediel_inbound_receptions",
+          "gridex_ediel_legacy_archive",
+          "gridex_ediel_outbound_owner",
+          "gridex_ediel_readiness",
+          "gridex_ediel_retention",
+          "gridex_ediel_services",
+          "gridex_ediel_source_rules",
+          "gridex_ediel_technical_ack",
+          "gridex_ediel_transport",
+          "gridex_ediel_wire_namespace",
+          "gridex_internal",
+          "gridex_metering_method_changes",
+          "gridex_method_expectations",
+          "gridex_negative_fixtures",
+          "gridex_network_registry_sources",
+          "gridex_outbound_dispatch",
+          "gridex_private",
+          "gridex_prodat_object_batch",
+          "gridex_received_err_response",
+          "gridex_received_reading_expectations",
+          "gridex_received_sources",
+          "gridex_registry_import",
+          "gridex_regulated_supply",
+          "gridex_requested_changes",
+          "gridex_requested_customer_changes",
+          "gridex_requested_method_watches",
+          "gridex_service_administration",
+          "gridex_service_permission",
+          "gridex_supply_rescission",
+          "gridex_switch_cancellations",
+          "gridex_transport_exception",
+          "gridex_unattributed_intake",
+          "gridex_utilts_binding",
+          "gridex_utilts_issuer",
+          "public"
+        ],
+        "schema_fingerprint": "c6c51504041edcbd1406afe89cd74e3364cbe80c9e79faaf2e474ab3e448f81b",
+        "artifact_sha256": {
+          "database.types.ts": "49471663fa202ca3c378e7602855de838005dc0078ae325601f605de6f9e68de",
+          "schema.sql": "52eeb72f98a331fbf5caf378770a555cc9efd176f912ff45f0c4823b6088a63d",
+          "schema.fingerprint.json": "e3438e7ef770159bbafaf228cef9719fd7315b99a24979c26b885129046d45cc"
+        },
+        "input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
+          "scripts/migration-history-manifest.json": "685837e35114d1ee83d25b7deb2f9e8aba979ca169905b7c5ef6c375c9134596",
+          "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
+          "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
+          "scripts/supabase-types-manifest.json": "6f25923a5a23d2e6c267f782a80a4994d0e0c8088fd7001ffd54045ec919f1ea",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "native_tests": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
+      },
+      "composition_note": "All thirteen prior active fields and source 6f25923a manifest origin are archived under pre_ediel_h6_final_capture_root_20261010 with a complete original byte inverse. All91 other historical fields, pending entries and original NOT_RUN flags remain unchanged. RAW3 is copied byte-exactly from this original authenticated artifact.",
+      "current_prefix_verification": {
+        "kind": "authentic_ediel_h6_final_capture",
+        "source_head": "a9feca09d08823e59d16fb1ca7b02097726ded1e",
+        "source_tree": "0a5ff72816f47ba250ddf77b0962fb6b30c9a047",
+        "actual_capture_run": "38056372722",
+        "status": "AUTHENTIC_CAPTURE_IMPORTED_CURRENT_RESULTING_HEAD_GATES_PENDING",
+        "schema_inverse": {
+          "proof_sha256": "67edc7ffb88158915c929908033a946de11fbedb0b8cf7e036a99ab2b39233da",
+          "full_schema_byte_inverse": true,
+          "full_types_byte_inverse": true,
+          "actual_main": "a61d014b3cefeddd7deb338a4c597ee853072b05",
+          "modified_existing_functions": 16,
+          "new_functions": 20,
+          "new_object_blocks": 56,
+          "unchanged_existing_ACL": true,
+          "unchanged_foreign_bytes": true
+        },
+        "prior_schema_controlled_sql": {
+          "checks": 90,
+          "execution_receipt_sha256": "e4798015ec6a21a754c050d6e8e640f85132c971a1a50b846fb052f3110142c9",
+          "stdout_sha256": "d5c4aa3718abd316e554346e3a4fbd580673ee26843841758188a079d76b0b12",
+          "runner_sha256": "508d1c577dc04ddd1e8ee8b36a85357b9122baddce21e04b93bbf4c39773c739",
+          "prior_schema_sha256": "964d3e7cbd90b1b45f544c412276e38244a3c3f18509b2912a33ac530a9f3308",
+          "source": "158de387a8031a9b5a0cde277ac09dda2f729f2d",
+          "relevant_function_and_module_comparison_sha256": "08c1389f9e657bee53ee5cac15252835829fd1880a939b277b74facb35cab488",
+          "fresh_capture_execution": "NOT_RUN",
+          "scope": "Prior genuine964d plus exact forward, declared consumed receipt/syntax/actor/witness ports. Matching seventeen actual captured definitions qualifies applicability, not a fresh rerun or actual public birth/full runtime/backend OID."
+        },
+        "source_native": {
+          "source": "a9feca09d08823e59d16fb1ca7b02097726ded1e",
+          "C30": {
+            "run": "38056372699",
+            "job": "114225627260",
+            "status": "SUCCESS",
+            "passed": 30,
+            "total": 30
+          },
+          "H100": {
+            "run": "38056372693",
+            "job": "114225629142",
+            "status": "FAILURE",
+            "passed": 98,
+            "failed": 2,
+            "total": 100,
+            "remaining": "R311/R223 prodat_domain_response_frozen_owner_required; fix pending"
+          },
+          "resulting_head_native": "PENDING"
+        },
+        "native": "NOT_RUN",
+        "browser": "NOT_RUN",
+        "type_schema_comparison": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "scope": "Original capture flags stay NOT_RUN. Actual source native results are separately qualified and do not approve resulting GEN head or whole IDs."
+      },
+      "capture_artifact": {
+        "run_id": "38056372722",
+        "job_id": "114225627186",
+        "attempt": "1",
+        "artifact_id": "11671497437",
+        "name": "staff-schema-capture-a9feca09d08823e59d16fb1ca7b02097726ded1e",
+        "archive_size_bytes": 1688314,
+        "archive_sha256": "2b91de034e018bd9d99c58e14097fa00db348d7760a2abd98041fc3930ab6831",
+        "official_digest": "sha256:2b91de034e018bd9d99c58e14097fa00db348d7760a2abd98041fc3930ab6831",
+        "receipt_sha256": "0522ce58a31b304701bf8ee8321ad34b2a4b1b212f4ba378b32de7f85ecbed5d",
+        "metadata_sha256": {
+          "artifact": "9cdee6b8b2f315736cf3f03a062e1a6dd5d89bd9ca1347be3a16bad4558a0519",
+          "run": "c48a9179157de8fd429f046587c492ad1f89063732acb622777eb9b6e394e59e",
+          "jobs": "a1d6802c9547fc0d559ea84d0b24d66a4454ee6464997857074f5fc0e362837a"
+        },
+        "raw_heads": {
+          "artifact": "a9feca09d08823e59d16fb1ca7b02097726ded1e",
+          "job": "a9feca09d08823e59d16fb1ca7b02097726ded1e",
+          "run": "a9feca09d08823e59d16fb1ca7b02097726ded1e"
+        },
+        "raw3": "BYTE_EXACT_ORIGINAL_CAPTURE_ONLY",
+        "scope": "Original exact-source capture; independent origin/GEN and current native/gates/main approval remain separate."
+      },
+      "composition_capture_pending_scope": "False only for this genuine new-tail capture import. Original pending/history flags remain archived; resulting-head C30/H100, nine gates and main delivery are pending.",
+      "source_latest_migration": "20261010124755_ediel_assigned_negative_ack_arrival_date_scope.sql",
+      "active_generated_outputs_origin": {
+        "method": "BYTE_EXACT_AUTHENTIC_RAW3_IMPORT",
+        "source_head": "a9feca09d08823e59d16fb1ca7b02097726ded1e",
+        "source_tree": "0a5ff72816f47ba250ddf77b0962fb6b30c9a047",
+        "capture_run": "38056372722",
+        "artifact_id": "11671497437",
+        "source8_input_sha256": {
+          "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
+          "scripts/migration-history-manifest.json": "685837e35114d1ee83d25b7deb2f9e8aba979ca169905b7c5ef6c375c9134596",
+          "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
+          "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
+          "scripts/supabase-types-manifest.json": "6f25923a5a23d2e6c267f782a80a4994d0e0c8088fd7001ffd54045ec919f1ea",
+          "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+          "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+          "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+        },
+        "raw3_sha256": {
+          "database.types.ts": "49471663fa202ca3c378e7602855de838005dc0078ae325601f605de6f9e68de",
+          "schema.sql": "52eeb72f98a331fbf5caf378770a555cc9efd176f912ff45f0c4823b6088a63d",
+          "schema.fingerprint.json": "e3438e7ef770159bbafaf228cef9719fd7315b99a24979c26b885129046d45cc"
+        },
+        "original_capture_flags": {
+          "native_tests": "NOT_RUN",
+          "browser_tests": "NOT_RUN",
+          "type_schema_comparison": "NOT_RUN",
+          "upgrade_parity": "NOT_RUN"
+        }
+      }
+    }
+  },
+  "ediel_h2_domain_owner_capture_pending": {
+    "source_parent": "873f997c2960c2e9f94cb577da84cae9b4b0907d",
+    "fresh_migration": "20261010140411_ediel_common_header_negative_domain_owner_scope.sql",
+    "migration_sha256": "e615bbf4d0c4a46628284a6dcdb84d973b6732c9d0662f7e20fa52925df51457",
+    "capture": "PENDING_ROOT_SOLE_PRODUCER",
+    "schema_types_fingerprint": "PRESERVE_GENUINE_PRIOR_CAPTURE_PENDING_NEW_TAIL",
+    "whole_ID_coverage": "NOT_PROMOTED"
   }
 }
