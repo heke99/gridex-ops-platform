@@ -1,3 +1,4 @@
+// masterplan: AT-Z03H-SUPPLIER, AT-Z04H-SUPPLIER
 // Executable H proposals, NOT whole acceptance. Synthetic issuer configuration
 // and counterparty/SMTP ports are GIVEN; archive, review, original, mail birth,
 // current capability, kernel, effect receipts and ACK originals are real.
