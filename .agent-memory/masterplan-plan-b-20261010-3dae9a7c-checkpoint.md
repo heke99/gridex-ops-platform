@@ -107,3 +107,21 @@ Concrete blocker/output: GitHubCLI original GitData access returned401 before it
 If another producer is formally assigned, transfer this exact proposal and pre-code plan through a new documented identity/scope/custody action; no implementation reservation may be inherited from this metadata branch. Continue this PLANAGENT B identity/packet after the named resume event. Coverage302/352 remains unchanged and whole M remains NOT_APPROVED. Do not advance to another packet while this proposal's coordination is unresolved. Final source evidence is prepared for review; implementation is blocked, not delivered or green.
 
 Version-bound independent PLAN_APPROVE received for corrected source-plan SHA256fc97d5c4a7c96b05e54b73545739aaf06b886b7596ff471445384c39face5a9e. Final independent report SHA256ae8d656209ee74cbae6e075acba89d33d0550e2c7b6f892b2a5a42b7c0807130. Plan-only approval against exact unchanged a522 production source; no ownership, code or whole-criterion approval.
+
+## Resume — 2026-10-10T21:42Z
+
+Supported authenticated CLI actualmain GET now succeeds at a522; fresh146refs contain none of requested5. Existing proxy request6102293795 withdrawn publicly before direct acquisition. Original401 logs preserved separately. Next: original direct5 CREATE_IF_ABSENT/GET_MATCH and own CLAIM, then actual RED/GREEN. No code before custody.
+
+## Own atomic CLAIM — 2026-10-10T21:44Z
+
+Direct receipt cd124e56c5018de1347ccbc549380ac0eab0fbf2 created on exact maina522/tree4fa/singleparent. All5 CREATE_IF_ABSENT and final GET_MATCH, independently connector-reverified. Foreign146pairs unchanged;151total. Published own CLAIM before source/test writes. Proxy6102293795 withdrawn by6102478499 first. Next actual behavioral RED on unchanged production, minimum private M wire, affected Node22 checks/two final source reviews. Whole M/coverage unchanged.
+
+## Source repair and behavioral verification — 2026-10-10T21:47Z
+
+Own CLAIM673/6102484863 GET/body verified before code. SupportedNode22.23.0 npmci succeeded with existing lock unchanged. New real normal-runtime assertion on unchanged productiona522 failed as expected: registerObjects undefined instead of literal own TRUE. Additional caller/root-hint contrasts also failed (true/false retained). Logs red.log/red-hints.log contain authentic assertion failures, not setup/import failures.
+
+Minimum two-product-path wire loads existing M reader at syntax-qualified inbound Z10/E58 with captured invocation actor, passes a distinct private token/actor through internal core options, redeems once at internally selected compiled guide, and retains immutable own TRUE|null declarations. Public CanonicalRuntimeSourceFacts gains no token field. M reading scalar and exact reading cell keys214/218/259 discarded, unrelated210/242/254 and non-PRODAT getter behavior preserved. No loader/oracle/schema/native/workflow/coverage changes.
+
+Initial3/3 GREEN, expanded36/37 exposed a synthetic fixture error: absent reception had been represented as malformed {} and the real wrapper correctly threw ediel_reception_result_invalid. SDK fixture corrected to return actual null for absence; no production catch/oracle weakening. Final37/37 new tests and unchanged M30/old own-source46 total113/113 pass, plus18 affected suites671/671 pass. Distinct source/tenant/legal/reception/mail/parse refusal, SDK failure, permission/revocation/await mutation, original microsecond mismatch, preview/public facts, unknown/header/nonlocal/invalid chain/later missing scopes are exercised. Catalogue SDK explicitly refuses private witness; no application/response/source-function authority or whole/native proof granted. Combined actual784 passing tests.
+
+App/tests/scripts semantic compilations and scopedlint in progress, not yet credited. Read-only z06e_z09e_review checking mandatory/native applicability against unchanged workflows; no duplicate source producer/native/full/artifact work. Next: actual semantic results, self-review, one exact candidate commit, two independent final-code/current-composition reviews, published PR/READY and actual applicable checks, ordinary serial expected-head delivery. Coverage302/352 and whole-M NOT_APPROVED unchanged.

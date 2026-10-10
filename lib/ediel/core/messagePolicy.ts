@@ -1,5 +1,6 @@
 import {bindReceivedZ04HAddressPolicy,type ReceivedZ04HAddressContext} from '@/lib/ediel/core/receivedZ04HAddressAvailability'
 import {sourceProdatOwnRegisterReadingDeclarations,type ProdatOwnSourceReadingContext} from './prodatOwnSourceRegisterReadingDeclarations'
+import {sourceProdatZ10OwnRegisterReadingDeclarations,type ProdatZ10OwnSourceReadingContext} from './prodatZ10OwnSourceRegisterReadingDeclarations'
 import {assertDeathStatusContextMatches,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
@@ -121,7 +122,7 @@ function readStringFact(message: EdielMessageRow, key: string): string | undefin
   return typeof value === 'string' ? value.trim() : undefined
 }
 
-export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions & {deathStatusContext?:DeathStatusValidationContext;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string;receivedZ04HAddressContext?:ReceivedZ04HAddressContext|null;receivedZ04HAddressActorUserId?:string} = {}): CanonicalEdielPolicy | null {
+export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions & {deathStatusContext?:DeathStatusValidationContext;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string;ownZ10SourceReadingContext?:ProdatZ10OwnSourceReadingContext|null;ownZ10SourceReadingActorUserId?:string;receivedZ04HAddressContext?:ReceivedZ04HAddressContext|null;receivedZ04HAddressActorUserId?:string} = {}): CanonicalEdielPolicy | null {
   if (canonical.family !== 'PRODAT' && canonical.family !== 'UTILTS' && canonical.family !== 'UTILTS_ERR' && canonical.family !== 'APERAK' && canonical.family !== 'CONTRL') return null
   if (!canonical.messageCode) throw new Error(`canonical_policy_message_code_missing:${canonical.family}`)
 
@@ -131,6 +132,12 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
   const messageCode = canonical.messageCode
   const timeAnchors = resolveEdielMessageTimeAnchors(message, canonical, options)
   const ownReadingsSource=family==='PRODAT'&&messageCode==='Z04'&&message.direction==='inbound'&&['L','LK','C','Z22','Z23','Z24'].includes(canonical.subtype??'')
+  const ownZ10ReadingsSource=family==='PRODAT'&&messageCode==='Z10'&&message.direction==='inbound'&&['M','E58'].includes(canonical.subtype??'')
+  const cellFacts=family==='PRODAT'?readObjectFact(message,'byCell'):undefined
+  // Reading conditions use only the original per-object declarations. Keep
+  // unrelated M conditions (210/242/254) and every other subtype unchanged.
+  const byCell=ownZ10ReadingsSource&&cellFacts?Object.fromEntries(Object.entries(cellFacts)
+    .filter(([key])=>!['Z10:214','Z10:218','Z10:259'].includes(key))):cellFacts
   const candidate = (selectedGuideRevision?: string): CanonicalEdielPolicy => {
     const input = {
     selectedGuideRevision,
@@ -148,11 +155,11 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
       market: 'electricity' as const,
       ...(deathStatusContext?{deathStatus:deathStatusContext.selection,businessContext:deathStatusContext.businessContext}:{}),
       customerKind: readStringFact(message, 'customerKind') as 'private' | 'business' | undefined,
-      meterReadingsSentInUtilts: ownReadingsSource?undefined:readBooleanFact(message, 'meterReadingsSentInUtilts'),
+      meterReadingsSentInUtilts: ownReadingsSource||ownZ10ReadingsSource?undefined:readBooleanFact(message, 'meterReadingsSentInUtilts'),
       multipleMeterRegisters: readBooleanFact(message, 'multipleMeterRegisters'),
       endUserAddressAvailable: readBooleanFact(message, 'endUserAddressAvailable'),
       invoiceeAddressDiffersFromEndUser: readBooleanFact(message, 'invoiceeAddressDiffersFromEndUser'),
-      byCell: readObjectFact(message, 'byCell'),
+      byCell,
     } : null,
     mode: 'parse' as const,
     }
@@ -160,6 +167,9 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
     const registerObjects=sourceProdatRegisterReadingDeclarations({message,qualification:options.prodatSourceCapability,policy:selected,admissionAt:options.admissionAt})
       ??(ownReadingsSource?sourceProdatOwnRegisterReadingDeclarations({message,actorUserId:options.ownSourceReadingActorUserId,
         context:options.ownSourceReadingContext,policy:selected,admissionAt:options.admissionAt}):null)
+      ??(ownZ10ReadingsSource&&options.ownZ10SourceReadingActorUserId?sourceProdatZ10OwnRegisterReadingDeclarations({message,
+        actorUserId:options.ownZ10SourceReadingActorUserId,context:options.ownZ10SourceReadingContext,
+        policy:selected,admissionAt:options.admissionAt}):null)
     // Resolve final conditions from the same selected guide and exact object
     // declarations. Root hints cannot fill an object's unknown source fact.
     const policy=registerObjects?resolveCanonicalEdielPolicy({...input,selectedGuideRevision:selected.guide.guideRevision,
