@@ -884,7 +884,10 @@
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
-    "20261010101233_ediel_z05c_current_sender_registry.sql": "2b621dd20d451f99f78131e34853cdd829a6b37d587a704ca82ae22c52ad0d93"
+    "20261010101233_ediel_z05c_current_sender_registry.sql": "2b621dd20d451f99f78131e34853cdd829a6b37d587a704ca82ae22c52ad0d93",
+    "20261010102349_ediel_assigned_prodat_header_negative_birth.sql": "0c745ddeef89c0ca3021ad73354bc0cc16b32b2ae4cb99b171003538bf26c372",
+    "20261010102411_ediel_rejected_z04h_identity_scope.sql": "7bf7da027646624e2916ca038e4a5ad3aba959cc70962b1a873b91db5e503b4c",
+    "20261010102455_ediel_prodat_customer_masterdata_original_read.sql": "3e22786c3c3c7ea329ecba218bbfa7ec70dfd7b8124f8db867e639e8e9e7b91f"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1

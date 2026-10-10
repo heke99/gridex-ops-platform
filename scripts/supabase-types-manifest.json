@@ -5,7 +5,7 @@
   "sha256": "30d338c9ab6f3f525ed0b33b296e52719dd4ecac8c12dacba4c75bdcaf6ec8a2",
   "latest_migration": "20261010101233_ediel_z05c_current_sender_registry.sql",
   "latest_migration_schema_effect": "Authentic sender-only capture changes only the private current-sender restore function body; public generated types are byte-identical. Full actual schema inverse and fourteen same-captured-schema finite SQL checks passed. Native/current-head/upgrade/browser acceptance remains separate.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-10T10:29:59.071977+00:00",
@@ -356,7 +356,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "False only for this genuine sender-only capture import. Historical pending and NOT_RUN values remain intact; resulting-head mandatory/native checks remain pending.",
+  "composition_capture_pending_scope": "True for the three new H forwards pending authentic source-bound H capture. Existing RAW3 and their exact sender-only sourcea6ca origin are preserved; no H GEN/native/current-head approval is inferred.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -11007,5 +11007,24 @@
     "full_schema_inverse_sha256": "321af6ae9c05c0c3fb870901764951d7742eae38742895f2a39f58d73c4b337a",
     "resulting_head_validation": "PENDING",
     "scope": "Sender-only captured prefix; every original historical NOT_RUN and dated pending record preserved. Adoption commit is recorded externally."
+  },
+  "remaining_ediel_h_capture_pending": {
+    "migrations": [
+      {
+        "name": "20261010102349_ediel_assigned_prodat_header_negative_birth.sql",
+        "sha256": "0c745ddeef89c0ca3021ad73354bc0cc16b32b2ae4cb99b171003538bf26c372"
+      },
+      {
+        "name": "20261010102411_ediel_rejected_z04h_identity_scope.sql",
+        "sha256": "7bf7da027646624e2916ca038e4a5ad3aba959cc70962b1a873b91db5e503b4c"
+      },
+      {
+        "name": "20261010102455_ediel_prodat_customer_masterdata_original_read.sql",
+        "sha256": "3e22786c3c3c7ea329ecba218bbfa7ec70dfd7b8124f8db867e639e8e9e7b91f"
+      }
+    ],
+    "status": "PENDING_AUTHENTIC_CAPTURE",
+    "native_tests": "NOT_RUN",
+    "schema_types_import": "NOT_RUN"
   }
 }

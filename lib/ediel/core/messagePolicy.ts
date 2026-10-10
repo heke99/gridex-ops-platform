@@ -1,3 +1,4 @@
+import {bindReceivedZ04HAddressPolicy,type ReceivedZ04HAddressContext} from '@/lib/ediel/core/receivedZ04HAddressAvailability'
 import {sourceProdatOwnRegisterReadingDeclarations,type ProdatOwnSourceReadingContext} from './prodatOwnSourceRegisterReadingDeclarations'
 import {assertDeathStatusContextMatches,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import { requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
@@ -120,7 +121,7 @@ function readStringFact(message: EdielMessageRow, key: string): string | undefin
   return typeof value === 'string' ? value.trim() : undefined
 }
 
-export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions & {deathStatusContext?:DeathStatusValidationContext;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string} = {}): CanonicalEdielPolicy | null {
+export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonical: CanonicalEdielMessage = parseCanonicalMessageRow(message), options: EdielMessageTimeOptions & {deathStatusContext?:DeathStatusValidationContext;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string;receivedZ04HAddressContext?:ReceivedZ04HAddressContext|null;receivedZ04HAddressActorUserId?:string} = {}): CanonicalEdielPolicy | null {
   if (canonical.family !== 'PRODAT' && canonical.family !== 'UTILTS' && canonical.family !== 'UTILTS_ERR' && canonical.family !== 'APERAK' && canonical.family !== 'CONTRL') return null
   if (!canonical.messageCode) throw new Error(`canonical_policy_message_code_missing:${canonical.family}`)
 
@@ -163,7 +164,9 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
     // declarations. Root hints cannot fill an object's unknown source fact.
     const policy=registerObjects?resolveCanonicalEdielPolicy({...input,selectedGuideRevision:selected.guide.guideRevision,
       prodatDependentFacts:{...input.prodatDependentFacts,meterReadingsSentInUtilts:undefined,registerObjects}}):selected
-    return Object.freeze({...policy,timeAnchors})
+    const final=Object.freeze({...policy,timeAnchors})
+    bindReceivedZ04HAddressPolicy(final,message,options.receivedZ04HAddressActorUserId,options.receivedZ04HAddressContext)
+    return final
   }
   const current = candidate()
   if (family !== 'UTILTS' || message.direction !== 'inbound' || !current.previousGuideGraceActive) return current

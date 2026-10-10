@@ -1,3 +1,5 @@
+import {readProdatCommonHeaderRejectionEvidence,type ProdatCommonHeaderRejectionEvidence} from './prodatCommonHeaderRejectionAuthority'
+import {observeAssignedProdatHeaderNegativeField} from '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
 import {buildAckDraftForSource,getUtiltsAckTransactionTargets} from '@/lib/ediel/ack'
 import {readExistingAckBeforeDraft} from '@/lib/ediel/core/ackDraftSource'
 import {readSourceBoundOutboundAckRulePackEvidence} from '@/lib/ediel/core/ackSourceRulePackEvidence'
@@ -48,5 +50,12 @@ export async function prepareSourceAckDraft(input:Parameters<typeof buildAckDraf
  const companyId=input.sourceMessage.company_id
  if(needsOriginal&&!companyId)throw new Error('canonical_ack_source_scope_mismatch')
  const ackSourceQualification=needsOriginal?await readSourceBoundOutboundAckRulePackEvidence({companyId:companyId!,environment:input.sourceMessage.environment,sourceMessageId:input.sourceMessage.id}):input.ackSourceQualification
- return {kind:'draft',draft:buildAckDraftForSource({...input,ackScope:scope,ackSourceQualification})}
+ let commonEvidence:ProdatCommonHeaderRejectionEvidence|undefined
+ if(input.ackFamily==='APERAK'&&input.outcome==='negative'&&input.sourceMessage.raw_payload
+   &&observeAssignedProdatHeaderNegativeField(input.sourceMessage.raw_payload)==='311'){
+   if(!companyId)throw new Error('canonical_ack_source_scope_mismatch')
+   commonEvidence=(await readProdatCommonHeaderRejectionEvidence({companyId,environment:input.sourceMessage.environment,
+     sourceMessageId:input.sourceMessage.id,expectedRawPayload:input.sourceMessage.raw_payload,actorUserId:input.actorUserId})).evidence
+ }
+ return {kind:'draft',draft:buildAckDraftForSource({...input,ackScope:scope,ackSourceQualification,prodatCommonHeaderRejectionEvidence:commonEvidence})}
 }

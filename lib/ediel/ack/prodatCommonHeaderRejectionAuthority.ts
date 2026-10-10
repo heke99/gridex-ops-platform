@@ -10,21 +10,52 @@ import type {OriginalAckPartyIdentities} from '@/lib/ediel/core/originalAckParty
 export type ProdatCommonHeaderRejectionEvidence=Readonly<{
  kind:'prodat_common_header_rejection';version:1;companyId:string;environment:'test'|'production'
  sourceMessageId:string;sourceHash:string;sourceReceivedAt:string;observedAt:string;syntaxAssessmentId:string
- field202:{fieldCode:'202';ercCode:'41'|'42';text:string};guide:AuthoritativeEdielGuide
+ field202?:{fieldCode:'202';ercCode:'41'|'42';text:string}
+ negativeField?:{fieldCode:'202'|'311'|'223';ercCode:'41'|'42';text:string}
+ replyApplicationReference?:string|null
+ applicationReferenceCorrection?:Readonly<{sourceEdition:string;sourceSha256:string;tableIndex:105;page:120;fieldCode:'311';
+  originalApplicationReference:null;expectedApplicationReference:'23-DDQ-PRODAT';processEdition:string;canonicalProjection:Record<string,unknown>;
+  actorRole:'electricity_supplier';market:'electricity'}>
+ guide:AuthoritativeEdielGuide
  familyEdition:{version:string;rulePack:Record<string,unknown>;guideSources:readonly Record<string,unknown>[];sourceProjection:Record<string,unknown>}
  identities:OriginalAckPartyIdentities;authorizesBusinessEffect:false
 }>
 const evidenceSources=new WeakMap<object,EdielMessageRow>()
+export function commonHeaderRejectionField(e:ProdatCommonHeaderRejectionEvidence){
+ const field=e.negativeField??e.field202
+ if(!field||!['202','311','223'].includes(field.fieldCode)||!['41','42'].includes(field.ercCode)||!field.text
+  ||e.field202&&JSON.stringify(e.field202)!==JSON.stringify(field))return null
+ return field
+}
+/** Only the frozen private source READ can qualify the P page120 field311
+ * exception. The original APP stays physically absent. Ordinary replies copy it. */
+export function commonHeaderReplyApplicationReference(e:ProdatCommonHeaderRejectionEvidence):string|null {
+ const qualified=evidenceSources.has(e),field=commonHeaderRejectionField(e)
+ if(!qualified||!field)throw Error('ediel_common_header_rejection_basis_required')
+ const actual=e.identities.applicationReference,reply=e.replyApplicationReference??actual
+ if(reply===actual)return actual
+ const p=e.applicationReferenceCorrection,projection=p?.canonicalProjection
+ if(field.fieldCode!=='311'||field.ercCode!=='41'||actual!==null||reply!=='23-DDQ-PRODAT'||!p
+  ||p.sourceSha256!=='83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95'
+  ||p.tableIndex!==105||p.page!==120||p.fieldCode!=='311'||p.originalApplicationReference!==null
+  ||p.expectedApplicationReference!==reply||p.actorRole!=='electricity_supplier'||p.market!=='electricity'
+  ||p.processEdition!=='111385d7f0a83dd865de369ccee9aae3dc52098a5d3105cb3bacb4070ff7579b'
+  ||p.sourceEdition!=='068e8f82c082c2d3513ead62f4833fa89884488cbd0347fa499a0949a4c9e3c6'||projection?.family!=='PRODAT'||projection.code!=='Z04'||projection.subtype!=='H'
+  ||projection.transactionReasonCode!=='Z25'||!Array.isArray(projection.receiverRoles)||projection.receiverRoles.length!==1||projection.receiverRoles[0]!=='supplier'
+  ||!Array.isArray(projection.applicationReferences)||projection.applicationReferences.length!==1||projection.applicationReferences[0]!==reply)
+  throw Error('ediel_common_header_application_correction_required')
+ return reply
+}
 function freeze<T>(value:T):T{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value)}return value}
 function decode(result:unknown,input:{companyId:string;environment:'test'|'production';sourceMessageId?:string;expectedRawPayload?:string}){
  const value=result as {version?:unknown;sourceMessage?:EdielMessageRow;evidence?:ProdatCommonHeaderRejectionEvidence}|null
- const source=value?.sourceMessage,e=value?.evidence
+ const source=value?.sourceMessage,e=value?.evidence,field=e?commonHeaderRejectionField(e):null
  if(value?.version!==1||!source||!e||e.kind!=='prodat_common_header_rejection'||e.version!==1||e.companyId!==input.companyId||e.environment!==input.environment
   ||e.sourceMessageId!==source.id||(input.sourceMessageId&&e.sourceMessageId!==input.sourceMessageId)||source.direction!=='inbound'||source.environment!==e.environment
   ||(source.company_id!==null&&source.company_id!==e.companyId)||typeof source.raw_payload!=='string'||(input.expectedRawPayload!==undefined&&source.raw_payload!==input.expectedRawPayload)
-  ||!e.field202||!e.guide||!e.identities||!e.familyEdition||e.sourceHash!==evidenceHash(source.raw_payload)||e.sourceReceivedAt!==source.message_received_at||!e.syntaxAssessmentId||e.field202.fieldCode!=='202'||!['41','42'].includes(e.field202.ercCode)
-  ||e.guide.family!=='PRODAT'||e.identities.family!=='PRODAT'||e.authorizesBusinessEffect!==false||!e.familyEdition.version||!e.field202.text)throw Error('ediel_common_header_rejection_basis_required')
- freeze(e);freeze(source);evidenceSources.set(e,source);return {sourceMessage:source,evidence:e}
+  ||!field||!e.guide||!e.identities||!e.familyEdition||e.sourceHash!==evidenceHash(source.raw_payload)||e.sourceReceivedAt!==source.message_received_at||!e.syntaxAssessmentId
+  ||e.guide.family!=='PRODAT'||e.identities.family!=='PRODAT'||e.authorizesBusinessEffect!==false||!e.familyEdition.version)throw Error('ediel_common_header_rejection_basis_required')
+ freeze(e);freeze(source);evidenceSources.set(e,source);try{commonHeaderReplyApplicationReference(e)}catch(error){evidenceSources.delete(e);throw error}return {sourceMessage:source,evidence:e}
 }
 export function prodatCommonHeaderRejectionQualification(input:{evidence:unknown;companyId:string;environment:'test'|'production';sourceMessageId?:string}){
  if(!input.evidence||typeof input.evidence!=='object'||!evidenceSources.has(input.evidence))return null

@@ -1,3 +1,4 @@
+import {qualifyAssignedProdatHeaderNegativeAck} from '@/lib/ediel/ack/prodatAssignedHeaderNegativeAckValidation'
 import {requiresBilateralProdatOutboundOwner,qualifyPersistedBilateralProdatOutboundOriginal,bilateralProdatOutboundDraftQualified,type QualifiedBilateralProdatOutboundDraft} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
 import {technicalSyntaxAckQualification,readPersistedEdielTechnicalContrlBasis,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {commonHeaderOriginalSource,prodatCommonHeaderRejectionQualification,readPersistedProdatCommonHeaderNegativeAckBasis,type ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
@@ -539,6 +540,9 @@ function qualifyCommonHeaderNegativeAck(input:RulebookValidationInput,result:Rul
   const evidence=input.environment==='test'||input.environment==='production'?prodatCommonHeaderRejectionQualification({evidence:input.prodatCommonHeaderRejectionEvidence,companyId:input.companyId??'',environment:input.environment}):null
   const unavailable=()=>({...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_COMMON_HEADER_SOURCE_REQUIRED',title:'Skyddat nationellt meddelandehuvud saknas',description:'En fält202-kvittens kräver den prospektivt frysta originalauktoriteten och faktiskt fastställd syntax.'})]})
   if(!evidence||input.direction!=='outbound'||input.mode!=='send'||result.family!=='APERAK'||!input.rawPayload||!result.parsed)return unavailable()
+  const extended=qualifyAssignedProdatHeaderNegativeAck(input,result,evidence)
+  if(extended)return extended
+  if(!evidence.field202)return unavailable()
   const source=commonHeaderOriginalSource(evidence)
   if(!source?.raw_payload)return unavailable()
   const template=resolveCanonicalEdielPolicy({family:'APERAK',messageCode:'APERAK',direction:'outbound',referenceDate:stockholmBusinessDate(new Date(evidence.sourceReceivedAt)),associationAssignedCode:evidence.guide.associationAssignedCode,applicationReference:evidence.identities.applicationReference,mode:'parse'})

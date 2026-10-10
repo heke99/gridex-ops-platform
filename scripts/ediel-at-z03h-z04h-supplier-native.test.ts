@@ -569,7 +569,28 @@ async function negativeAcknowledgement(f:Fixture,source:Original,decision:Awaite
   if(field==='209') {
     const customer=original.segments.filter(t=>t.tag==='NAD'&&segmentComposite(t,1,original.una)[0]==='UD')
     expect(customer).toHaveLength(1); const id=segmentComposite(customer[0],2,original.una)[0]
-    expect(id).not.toBe(''); for(const error of expected) { expect(error.text).toContain(`kundid=${id}`); expect(error.referenceNumber??'').toBe('') }
+    expect(id).not.toBe('')
+    const ownLines=original.segments.filter(t=>t.tag==='LIN');expect(ownLines).toHaveLength(1)
+    const identity=segmentComposite(ownLines[0],3,original.una)
+    expect(identity[0]).toBe('')
+    for(const error of expected) {
+      // P94 requires kundid for an actual ERC41 missing reference. A submitted
+      // C212 with empty id but retained agency is the existing typed ERC42
+      // invalid composite; retain its real failed value and exact own evidence.
+      if(error.ercCode==='41') {
+        expect(error.text).toContain(`kundid=${id}`)
+        expect(error.prodatFieldDiagnostic).toMatchObject({kind:'field',fieldNumber:'209',errorKind:'missing'})
+      } else {
+        expect(error.ercCode).toBe('42');expect(identity).toHaveLength(4)
+        expect(identity.slice(1,3)).toEqual(['','']);expect(['9','89']).toContain(identity[3])
+        expect(error.text).toBe(`Felaktigt Anläggnings-id ${identity.join(':')}`)
+        const diagnostic=error.prodatFieldDiagnostic
+        expect(diagnostic).toMatchObject({kind:'field',fieldNumber:'209',errorKind:'invalid'})
+        if(diagnostic?.kind!=='field')throw Error('actual_209_field_diagnostic_required')
+        expect(diagnostic.failureEvidence).toEqual([{raw:ownLines[0].raw,locator:'LIN',content:identity.join(':')}])
+      }
+      expect(error.referenceNumber??'').toBe('')
+    }
     expect(wire.segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,wire.una)[0]==='Z07')).toEqual([])
   }
   expect(ack).toMatchObject({related_message_id:source.id,immutable_payload_hash:digest(ack.raw_payload!)})

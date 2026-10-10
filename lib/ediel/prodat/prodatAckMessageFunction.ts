@@ -1,3 +1,5 @@
+import {observeAssignedProdatHeaderNegativeField} from '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
+import {qualifiedReceivedProdatHeaderRejectionErrors} from './receivedProdatHeaderRejection'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatRegisterGroups,prodatRegisterMessageSegments,type ProdatRegisterGroup} from './prodatRegisterGroups'
 import {isQualifiedProdatApplicationError} from './prodatDiagnosticProjection'
@@ -32,6 +34,10 @@ export function resolveProdatAckMessageFunction(params:{
   // P26.A §2.2 and §3.3: source-owned invalid 202/204 or missing/invalid 313/205/206 in the actual
   // header rejects the entire message. The inbound consumer uses this same
   // qualification before entering any case or business writer.
+  const missing311=sourceWire&&observeAssignedProdatHeaderNegativeField(sourceWire.una.raw+sourceWire.segments.map(row=>row.raw).join(sourceWire.una.segmentTerminator)+sourceWire.una.segmentTerminator)==='311'
+  const header311=Boolean(missing311&&params.outcome==='negative'&&qualifiedReceivedProdatHeaderRejectionErrors(
+    sourceWire!.una.raw+sourceWire!.segments.map(row=>row.raw).join(sourceWire!.una.segmentTerminator)+sourceWire!.una.segmentTerminator,params.applicationErrors))
+  if(missing311&&!header311)throw new Error('aperak_prodat_header_311_response_unqualified')
   const header202=hasProdatWire ? prodatHeaderFieldRejection({field:'202',sourceWire,errors:params.applicationErrors}) : null
   const header204=hasProdatWire ? prodatHeaderFieldRejection({field:'204',sourceWire,errors:params.applicationErrors}) : null
   const header313=hasProdatWire ? prodatHeaderFieldRejection({field:'313',sourceWire,errors:params.applicationErrors}) : null
@@ -70,7 +76,7 @@ export function resolveProdatAckMessageFunction(params:{
         occurrence.messageReference === messageReference)
     })
   ))) throw new Error('aperak_prodat_sequence_response_unqualified')
-  return sequenceProblems.length || header202?.qualified || header204?.qualified || header313?.qualified || header205?.qualified || header206?.qualified ? '27' : '34'
+  return sequenceProblems.length || header311 || header202?.qualified || header204?.qualified || header313?.qualified || header205?.qualified || header206?.qualified ? '27' : '34'
 }
 
 /** Selected positive objects are named by their actual first LIN token index,

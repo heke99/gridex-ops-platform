@@ -1,3 +1,4 @@
+import {hasReceivedZ04HStructuralFieldRejection} from '@/lib/ediel/prodat/receivedZ04HStructuralFieldRejection'
 import {hasReceivedZ04HRequiredFieldRejection} from '@/lib/ediel/prodat/receivedZ04HRequiredFieldRejection'
 import {hasReceivedZ04HRegisterRejection} from '@/lib/ediel/prodat/receivedZ04HRegisterRejection';
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages';
@@ -25,6 +26,7 @@ import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMar
 import {publishSourceSwitchCommit} from '@/lib/ediel/flows/sourceSwitchCommit';
 import {createReceivedProdatCommittedEffectAcks} from '@/lib/ediel/flows/receivedProdatStructuralAcks';
 // lib/ediel/flows/inboundProcessing.ts
+import {hasReceivedProdatHeaderRejection} from '@/lib/ediel/prodat/receivedProdatHeaderRejection';
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 import {prodatHeaderFieldRejection} from "@/lib/ediel/prodat/prodatHeaderDateRejection";
 import {tokenizeEdifact} from "@/lib/ediel/core/edifactTokenizer";
@@ -375,12 +377,14 @@ async function applyCanonicalRuntimeDecision(params: {
     receivedOriginalRulePackWitness(decision.validationReport.rulePackEvidence)===null;
   const protectedPhysicalRejection=hasReceivedZ04RequiredStartRejection(decision,params.message,params.actorUserId)
     ||hasReceivedZ04HRegisterRejection(decision,params.message,params.actorUserId)
-    ||hasReceivedZ04HRequiredFieldRejection(decision,params.message,params.actorUserId);
+    ||hasReceivedZ04HRequiredFieldRejection(decision,params.message,params.actorUserId)
+    ||hasReceivedZ04HStructuralFieldRejection(decision,params.message,params.actorUserId);
   if(params.message.message_family==='PRODAT' && decision.syntaxDecision==='accepted' && (decision.policy||protectedPhysicalRejection) && !registryIncidentReview) {
     if(sourceValidationEvidence.status!=='recorded')throw new Error('prodat_canonical_source_validation_unconfirmed');
     await captureFreshEdielSourceRulePackEvidence(params.resolvedCompanyId,params.message.id);
   }
-  const sourceOwnerSession = protectedPhysicalRejection?null:createReceivedSourceOwnerSession(sourceValidationEvidence);
+  const sourceOwnerSession = protectedPhysicalRejection||hasReceivedProdatHeaderRejection(decision,params.message,params.actorUserId)
+    ?null:createReceivedSourceOwnerSession(sourceValidationEvidence);
   const now = new Date().toISOString();
   const parsedPayloadBeforeRuntime = params.message.parsed_payload ?? {};
   const validationReportBeforeRuntime = params.message.validation_report ?? {};
@@ -1026,9 +1030,11 @@ export async function processInboundEdielMessage(params: {
   // Only this same-invocation negative owner may precede the unavailable
   // bilateral automatic policy. Real canonical capture above and the normal
   // protected negative ACK gateway remain mandatory; no business path follows.
-  if(hasReceivedZ04RequiredStartRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
+  if(hasReceivedProdatHeaderRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
+    ||hasReceivedZ04RequiredStartRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
     ||hasReceivedZ04HRegisterRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
-    ||hasReceivedZ04HRequiredFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
+    ||hasReceivedZ04HRequiredFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
+    ||hasReceivedZ04HStructuralFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
     const plan=canonicalRuntime.decision.responsePlan.find(plan=>plan.family==='APERAK'&&plan.outcome==='negative');
     if(!plan?.applicationErrors?.length)throw new Error('prodat_required_start_negative_owner_unavailable');
     await createAckIfMissing({actorUserId,sourceMessage:runtimeMessage,ackFamily:'APERAK',outcome:'negative',

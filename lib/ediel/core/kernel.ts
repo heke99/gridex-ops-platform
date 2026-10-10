@@ -34,7 +34,8 @@ import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {createHash} from 'node:crypto'
 import {readEdielTechnicalSourceEndpoint,requireEdielTechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {readTechnicalSyntaxAckRoute} from '@/lib/ediel/ack/technicalSyntaxRoute'
-import {readProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
+import {observeAssignedProdatHeaderNegativeField} from '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
+import {readProdatCommonHeaderRejectionEvidence,commonHeaderReplyApplicationReference} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {readProdatCommonHeaderNegativeAckRoute} from '@/lib/ediel/ack/prodatCommonHeaderNegativeAckRoute'
 import {qualifyAiListProspectiveOriginal} from '@/lib/ediel/aiListOrigination'
 import {prepareCustomerLifeEventCertificationDraftContext,prepareCustomerEventTestOriginal,isQualifiedCustomerEventTestOriginal} from '@/lib/ediel/production/lifeEventCertificationSource'
@@ -453,14 +454,15 @@ export async function createCanonicalAckMessage(params: {
     return persistAck(input,{from:route.senderEmail,host:route.smtpHost,port:route.smtpPort})
   }
 
-  if(params.ackFamily==='APERAK' && prodatWire && !isListedProdatDocumentCode(prodatDocumentValue('202',prodatWire.segments,prodatWire.una))) {
+  if(params.ackFamily==='APERAK' && prodatWire && (!isListedProdatDocumentCode(prodatDocumentValue('202',prodatWire.segments,prodatWire.una))
+    ||observeAssignedProdatHeaderNegativeField(params.sourceMessage.raw_payload))) {
     if(params.outcome!=='negative' || allowSequencedTransactionAck)throw new Error('canonical_common_header_negative_only')
     const {sourceMessage,evidence}=await readProdatCommonHeaderRejectionEvidence({companyId,environment,
       sourceMessageId:params.sourceMessage.id,expectedRawPayload:params.sourceMessage.raw_payload!,actorUserId})
     const syntax=await requireEdielTechnicalSyntaxAckEvidence(companyId,sourceMessage.id,{actorUserId,phase:'prepare'})
     if(syntax.environment!==environment || syntax.sourceHash!==evidence.sourceHash || syntax.syntaxAssessmentId!==evidence.syntaxAssessmentId
       || syntax.syntaxDecision!=='accepted' || syntax.originalUNB.interchangeReference!==evidence.identities.transport.interchangeReference
-      || syntax.originalUNB.applicationReference!==evidence.identities.applicationReference
+      || syntax.originalUNB.applicationReference!==(evidence.identities.applicationReference??'')
       || JSON.stringify(syntax.originalUNB.sender)!==JSON.stringify(evidence.identities.transport.senderComponents)
       || JSON.stringify(syntax.originalUNB.receiver)!==JSON.stringify(evidence.identities.transport.receiverComponents))
       throw new Error('canonical_common_header_technical_source_mismatch')
@@ -470,7 +472,7 @@ export async function createCanonicalAckMessage(params: {
       messageFamily:'APERAK',messageCode:params.draft.messageCode,communicationRouteId:route.route.id,routeProfileId:route.routeRuntime.route_profile_id,
       senderEdielId:route.senderEdielId,senderSubAddress:route.senderSubAddress,senderEmail:route.senderEmail,
       receiverEdielId:route.receiverEdielId,receiverSubAddress:route.receiverSubAddress,receiverEmail:route.receiverEmail,
-      mailbox:route.mailbox,applicationReference:evidence.identities.applicationReference,relatedMessageId:sourceMessage.id,
+      mailbox:route.mailbox,applicationReference:commonHeaderReplyApplicationReference(evidence),relatedMessageId:sourceMessage.id,
       sourceOperationId:`ediel_ack:${sourceMessage.id}:APERAK:message`,ackOutcome:'negative',
       externalReference:params.draft.externalReference ?? refs.externalReference,transactionReference:params.draft.transactionReference ?? refs.transactionReference,
       correlationReference:params.draft.correlationReference ?? refs.correlationReference,canonicalRulePackId:null,
