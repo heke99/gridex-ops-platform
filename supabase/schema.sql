@@ -133484,6 +133484,12 @@ CREATE INDEX customer_info_requests_reference_match_idx ON public.customer_info_
 CREATE INDEX customer_internal_notes_company_customer_created_idx ON public.customer_internal_notes USING btree (company_id, customer_id, created_at DESC);
 
 --
+-- Name: customer_invoice_documents_invoice_id_document_type_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_invoice_documents_invoice_id_document_type_key ON public.customer_invoice_documents USING btree (invoice_id, document_type);
+
+--
 -- Name: customer_invoice_lines_company_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -133498,9 +133504,6 @@ CREATE INDEX customer_invoices_company_customer_period_idx ON public.customer_in
 --
 -- Name: customer_invoices_company_export_item_key; Type: INDEX; Schema: public; Owner: -
 --
-
-CREATE UNIQUE INDEX customer_invoice_documents_invoice_id_document_type_key ON public.customer_invoice_documents USING btree (invoice_id, document_type);
-
 
 CREATE UNIQUE INDEX customer_invoices_company_export_item_key ON public.customer_invoices USING btree (company_id, invoice_export_item_id);
 

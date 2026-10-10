@@ -22025,39 +22025,51 @@ export type Database = {
           company_id: string | null
           created_at: string
           customer_id: string | null
+          document_type: string
           file_name: string | null
           file_path: string | null
           id: string
           invoice_id: string | null
           metadata: Json | null
           mime_type: string | null
+          public_url: string | null
+          source_system: string | null
           storage_bucket: string | null
+          title: string | null
           updated_at: string | null
         }
         Insert: {
           company_id?: string | null
           created_at?: string
           customer_id?: string | null
+          document_type?: string
           file_name?: string | null
           file_path?: string | null
           id?: string
           invoice_id?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          public_url?: string | null
+          source_system?: string | null
           storage_bucket?: string | null
+          title?: string | null
           updated_at?: string | null
         }
         Update: {
           company_id?: string | null
           created_at?: string
           customer_id?: string | null
+          document_type?: string
           file_name?: string | null
           file_path?: string | null
           id?: string
           invoice_id?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          public_url?: string | null
+          source_system?: string | null
           storage_bucket?: string | null
+          title?: string | null
           updated_at?: string | null
         }
         Relationships: [
