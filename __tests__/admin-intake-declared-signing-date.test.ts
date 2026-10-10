@@ -11,6 +11,7 @@ vi.mock("@/lib/supabase/service", () => ({ supabaseService: {} }));
 
 import {
   autoSendSigningLinkAfterCreate,
+  SIGNING_LINK_DRAFT_MESSAGE,
   type AutoSendSigningLinkDeps,
 } from "@/lib/customer-contracts/autoSendSigningLink";
 
@@ -110,24 +111,14 @@ describe("autoSendSigningLinkAfterCreate: draft one-off contracts", () => {
     } satisfies AutoSendSigningLinkDeps;
   }
 
-  it("sends for a draft contract when send-for-signing was explicitly requested", async () => {
-    const d = deps();
-    const result = await autoSendSigningLinkAfterCreate({ ...input, allowDraftWhenRequested: true }, d);
-    expect(result).toMatchObject({ status: "sent", email: "kund@example.se" });
-    expect(d.send).toHaveBeenCalledWith({
-      companyId: "company-1",
-      customerId: "customer-1",
-      contractId: "contract-1",
-      recipientEmail: "kund@example.se",
-      actorUserId: "user-1",
-      channel: "internal",
-    });
-  });
-
-  it("skips a draft contract without the explicit option", async () => {
+  it("skips a draft one-off contract with the Swedish not-sent-automatically notice", async () => {
     const d = deps();
     const result = await autoSendSigningLinkAfterCreate(input, d);
-    expect(result).toEqual({ status: "skipped", reason: "not_pending", message: null });
+    expect(result).toEqual({
+      status: "skipped",
+      reason: "not_pending",
+      message: SIGNING_LINK_DRAFT_MESSAGE,
+    });
     expect(d.send).not.toHaveBeenCalled();
   });
 });

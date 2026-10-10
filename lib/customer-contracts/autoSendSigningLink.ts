@@ -18,6 +18,9 @@ export const SIGNING_LINK_FAILED_MESSAGE =
 export const SIGNING_LINK_NOT_PERMITTED_MESSAGE =
   "Avtalet skapades. Signeringslänken skickades inte automatiskt (behörighet contracts.write saknas) – skicka den från avtalets signeringssida.";
 
+export const SIGNING_LINK_DRAFT_MESSAGE =
+  "Avtalet sparades som utkast. Signeringslänk för engångsavtal kan inte skickas automatiskt ännu.";
+
 export function signingLinkSentMessage(email: string) {
   return `Signeringslänk skickad till ${email}`;
 }
@@ -38,12 +41,6 @@ export type AutoSendSigningLinkInput = {
   actorUserId: string;
   /** Mirrors the manual action's `contracts.write` requirement. */
   actorCanWriteContracts: boolean;
-  /**
-   * Set only when staff explicitly chose "send for signing". One-off/manual
-   * contracts are committed as draft; the prepare RPC materializes their
-   * canonical chain and moves draft to pending_signature. Default: false.
-   */
-  allowDraftWhenRequested?: boolean;
 };
 
 export type AutoSendSigningLinkDeps = {
@@ -116,10 +113,10 @@ export async function autoSendSigningLinkAfterCreate(
   try {
     const contract = await d.loadContract(input);
     if (!contract) return { status: "skipped", reason: "contract_not_found", message: null };
-    const sendableStatus =
-      contract.status === "pending_signature" ||
-      (input.allowDraftWhenRequested === true && contract.status === "draft");
-    if (!sendableStatus || contract.signed_at) {
+    if (contract.status === "draft" && !contract.signed_at) {
+      return { status: "skipped", reason: "not_pending", message: SIGNING_LINK_DRAFT_MESSAGE };
+    }
+    if (contract.status !== "pending_signature" || contract.signed_at) {
       return { status: "skipped", reason: "not_pending", message: null };
     }
 
