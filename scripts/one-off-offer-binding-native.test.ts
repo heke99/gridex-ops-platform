@@ -39,11 +39,17 @@ function manualContract(status: 'draft' | 'pending_signature', actorUserId = f.a
     companyId: f.companyId, customerId: f.customerId, siteId: f.siteId, meteringPointId: f.pointId,
     sourceType: 'manual_override', status, contractName: `Kundspecifikt ${randomUUID()}`,
     contractType: 'variable_hourly', energyDirection: 'consumption', spotMarkupOrePerKwh: 4, monthlyFeeSek: 49,
+    invoiceFeeSek: 19, priceSnapshot: { interval_resolution: 'hourly' },
+    // Future supply start: signing must still be possible today.
     greenFeeMode: 'none', startsAt: futureNativeSupplyDate(), actorUserId,
   })
 }
 
 function expectBoundOneOff(contractId: string, status: string) {
+  // Supply still starts in the future; only the one-off offer is sellable today.
+  expect(sql<boolean>(`SELECT to_jsonb(c.starts_at::date > current_date AND o.valid_from <= current_date)
+    FROM public.customer_contracts c JOIN public.contract_offers o ON o.id=c.contract_offer_id
+    WHERE c.id=${literal(contractId)}`)).toBe(true)
   const c = chain(contractId)
   expect(c).toMatchObject({ status, offer_active: false, offer_lifecycle: 'published', publication_status: 'published',
     publication_locked: true, legal_locked: true, reserved_for: contractId })
@@ -97,4 +103,16 @@ it('pins the consuming contract: its ID cannot be changed while it holds the one
     .eq('id', contract.id).eq('company_id', f.companyId)
   expect(error).not.toBeNull()
   expectBoundOneOff(contract.id, 'pending_signature')
+})
+
+it('signed-PDF import: a draft one-off contract is bound and finalized by the real import trigger', async () => {
+  const contract = await manualContract('draft')
+  const checksum = 'b'.repeat(64)
+  sql(`INSERT INTO public.customer_authorization_documents(company_id,customer_id,site_id,metering_point_id,customer_contract_id,
+    document_type,status,title,mime_type,storage_bucket,file_path,file_checksum,uploaded_at,created_by,metadata)
+    VALUES(${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},${literal(contract.id)},
+    'complete_agreement','active','Synthetic signed one-off','application/pdf','customer-documents',
+    ${literal(`${f.companyId}/${contract.id}/signed.pdf`)},${literal(checksum)},now(),${literal(f.actorUserId)},
+    '{"source":"customer_intake","documentRole":"signed_agreement","channel":"admin_contract_create"}'::jsonb);`)
+  expectBoundOneOff(contract.id, 'signed')
 })

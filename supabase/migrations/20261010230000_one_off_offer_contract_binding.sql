@@ -75,7 +75,14 @@ begin
     'contract_type',coalesce(nullif(p_payload->>'contract_type',''),'variable_hourly'),
     'campaign_code',coalesce(nullif(p_payload->>'campaign_code',''),'ONE_OFF'),
     'campaign_version',coalesce(nullif(p_payload->>'campaign_version',''),'v1'),
-    'terms_version',coalesce(nullif(p_payload->>'terms_version',''),'canonical')
+    'terms_version',coalesce(nullif(p_payload->>'terms_version',''),'canonical'),
+    -- A one-off offer is sold (signed) now for a supply that may start later.
+    -- The canonical sync keeps a future-valid offer's channel paused, which
+    -- would block signing, so its sellable window opens today. The contract's
+    -- own starts_at keeps the supply start; the price plan, valid from today,
+    -- covers it.
+    'valid_from',case when nullif(p_payload->>'valid_from','')::date > current_date
+                      then current_date::text else p_payload->>'valid_from' end
   );
   p_pricing_snapshot := coalesce(p_pricing_snapshot,'{}'::jsonb) || jsonb_build_object(
     'one_off',true,
