@@ -2,7 +2,7 @@
 
 - Agent: `claude-blocker-e-session_01WCExaQJ8GurBiuazNaHXKh`
 - Role: BLOCKERARAGENT E (fixed). Branch: `claude/blocker-e-01WCExaQ` (checkpoint only).
-- Custody: none. No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
+- Custody: P-08/AT-P-08 takeover owner-approved; refs pending proxy (see log). No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
 
 ## Log
 
@@ -36,6 +36,12 @@
 - #732 re-review at `421b69b`: C0/I0 (draft send path removed; 14/14 tests).
 - #733 AT-Z10M at `3997913`: C0/I0, second independent final-source review (219/219 tests). CI 0 failures, some running.
 - P-08 handover request 6102751498: no answer yet.
+
+### 2026-10-10T22:37Z — OWNER_AUTHORIZED_TAKEOVER P-08/AT-P-08 ([6102855884](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6102855884))
+- Project owner (heke99) gave written approval in this session to take over P-08/AT-P-08 from
+  `claude-ediel-20261008-bardeen` (#710 `06a5287`, receipt `672e62bc`). Producer stop declared for Bardeen.
+- Proxy asked to DELETE old ID refs (GET_MATCH) and CREATE new receipt agent=E/delegatedBy=proxy for IDs + 5 files.
+- Not yet custody: no product code until RESERVED + own GET + CLAIM.
 
 ## Next
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
