@@ -660,16 +660,18 @@
     {
       "id": "P-08",
       "acceptance_id": "AT-P-08",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
+        "lib/ediel/intent/renderers/productionContract.ts",
+        "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+        "supabase/migrations/20261010233000_ediel_production_contract_ack_received_confirmation.sql",
         "__tests__/ediel-prodat-date-boundaries.test.ts",
         "__tests__/ediel-prodat-field-identity.test.ts",
         "__tests__/ediel-prodat-date-events.test.ts",
         "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
         "__tests__/ediel-prodat-date-fields.test.ts",
-        "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
-        "scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs",
-        "scripts/test-ediel-p-08-production-contract-confirmation.cjs"
+        "scripts/ediel-p-08-production-contract-native.test.ts",
+        ".github/workflows/ediel-p08-native.yml"
       ]
     },
     {
@@ -3071,16 +3073,18 @@
     },
     {
       "id": "AT-P-08",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "lib/ediel/intent/renderers/productionContract.ts",
+        "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+        "supabase/migrations/20261010233000_ediel_production_contract_ack_received_confirmation.sql",
         "__tests__/ediel-prodat-date-boundaries.test.ts",
         "__tests__/ediel-prodat-field-identity.test.ts",
         "__tests__/ediel-prodat-date-events.test.ts",
         "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
         "__tests__/ediel-prodat-date-fields.test.ts",
-        "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
-        "scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs",
-        "scripts/test-ediel-p-08-production-contract-confirmation.cjs"
+        "scripts/ediel-p-08-production-contract-native.test.ts",
+        ".github/workflows/ediel-p08-native.yml"
       ]
     },
     {
