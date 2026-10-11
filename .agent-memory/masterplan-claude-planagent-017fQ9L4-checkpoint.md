@@ -33,3 +33,9 @@ Remain available as GRANSKARE for A's TR-09/DB-01 READY and for the owners' new 
 - Leased export/write/read races are covered by the native cases "leased export waits for grant writer COMMIT/ROLLBACK before its internal result commit" and "export result commits before waiting revoke; later reads cannot disclose its retained page". Issuer/SMTP remain finite synthetic ports, as declared in the test.
 - Next: two independent reviews on PR #738, current-head CI, merge-role protocol, MERGED, then RELEASE of id-SC-071 via the proxy.
 - Candidate for the next packet: DB-01/AT-DB-01 once its owner-matched release (root codex-pr-delivery) shows a 404. It needs new historical/current kernel basis records plus restoration of 5 proof inputs from #662 (6103072204).
+
+## 2026-10-11T08:20Z — CLAIM SC-054 (owner-authorized)
+- Packet 44718156-4dba-48ec-ad4c-faf6a34eefde, receipt c7f8037d (main 0383068 tree), branch claude/sc054-storage-failure.
+- Direct tag push failed (sideband disconnect); proxy asked to create id-SC-054 + 2 file tags. CLAIM: https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6107009213
+- Parallel: PR #744 (SC-053) waits on capture import for ed4affe (reminder 08:31Z).
+- Next: write SC-054 asserting tests (U-14: no positive APERAK before durable commit; failure+deadline monitored; queue ≠ storage).
