@@ -279,8 +279,12 @@ export async function originateZ01SupplierRequest(f: Z01SupplierNativeFixture) {
  * The result includes the actual decision, including honest held outcomes.
  */
 export async function receiveZ01SupplierReply(f: Z01SupplierNativeFixture, raw: string) {
-  const mailbox = await seedOriginalMailboxNative(sql, literal, {companyId: f.companyId, environment: 'test', raw,
-    smtpFrom: edielSmtpConfig().from, senderEmail: 'recipient@example.invalid'})
+  // Match the service-only prospective public raw-mail writer, without
+  // modifying the shared SQL helper or manufacturing private custody rows.
+  const mailbox = await seedOriginalMailboxNative(
+    <T = unknown>(statement: string): T => sql<T>(`BEGIN;\nSET LOCAL ROLE service_role;\n${statement}\nCOMMIT;`),
+    literal, {companyId: f.companyId, environment: 'test', raw,
+      smtpFrom: edielSmtpConfig().from, senderEmail: 'recipient@example.invalid'})
   const parsed = mailbox.parsed
   const [match, pointMatch] = await Promise.all([
     matchOutboundRequestForInbound({companyId: f.companyId, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId}),

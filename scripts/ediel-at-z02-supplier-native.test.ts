@@ -596,8 +596,12 @@ async function stage(f: Fixture, rawPayload: string, environment: 'test' | 'prod
     tenant: Awaited<ReturnType<typeof resolveInboundTenantFromIdentifiers>>;
     match: Awaited<ReturnType<typeof matchOutboundRequestForInbound>>;
     pointMatch: Awaited<ReturnType<typeof matchMeteringPointForInbound>> }) => Promise<void>) {
-  const mailbox = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment, raw: rawPayload,
-    smtpFrom: edielSmtpConfig().from, senderEmail: 'recipient@example.invalid' })
+  // The prospective public raw INSERT must run in an actual service session.
+  // Keep the shared input/parser helper and all custody triggers unchanged.
+  const mailbox = await seedOriginalMailboxNative(
+    <T = unknown>(statement: string): T => sql<T>(`BEGIN;\nSET LOCAL ROLE service_role;\n${statement}\nCOMMIT;`),
+    literal, { companyId: f.companyId, environment, raw: rawPayload,
+      smtpFrom: edielSmtpConfig().from, senderEmail: 'recipient@example.invalid' })
   const parsed = mailbox.parsed
   const [match, pointMatch] = await Promise.all([
     matchOutboundRequestForInbound({ companyId: f.companyId, parsed, inboundEmailMessageId: mailbox.inboundEmailMessageId, parseResultId: mailbox.parseResultId }),
