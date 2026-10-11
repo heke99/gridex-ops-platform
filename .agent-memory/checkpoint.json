@@ -21,7 +21,7 @@
     "queue": ".agent-memory/masterplan-work-queue.md",
     "workflow": ".agent-memory/masterplan-agent-workflow.md",
     "reservations": ".agent-memory/masterplan-reservations.md",
-    "checkpoint": "Use the implementing or reviewing session’s own uniquely named checkpoint; no other identity is inherited.",
+    "checkpoint": "Use the implementing or reviewing session\u2019s own uniquely named checkpoint; no other identity is inherited.",
     "current_start": ".agent-memory/masterplan-current-start.md"
   },
   "custody": "Refresh authenticated Git refs and original retained-duty/release receipts before action. H737 owner-only role-FIRST/all11ref404 is documented6736104364113/6104375333; no foreign duty is released by this update.",
@@ -1261,5 +1261,20 @@
     "own_resources": 20,
     "status": "CURRENT_MAIN_REVIEW_PENDING",
     "next": "ROOT currenthead twoFINAL/statics/20refs before one successor90; then full national14 system flows"
+  },
+  "own_esco_national_matcher_prestate": {
+    "status": "SOURCE_FINITE_PREREQUISITE_ONLY",
+    "helper_sha256": "b28d05a66f36916b9468ec0ede89b8ee06daa44772f4adee36064b85e62f672e",
+    "lines": 117,
+    "finite_positive": 14,
+    "finite_negative_vectors": 468,
+    "finite_uppercase_uuid_negative": 1,
+    "omission_primitive_inverse": "PASS",
+    "preserved_wire_positive": 14,
+    "preserved_wire_negative": 98,
+    "actual_sql_and_matcher": "NOT_RUN",
+    "national_native104": "NOT_RUN",
+    "current_published_native90": "IN_PROGRESS_AT_744",
+    "limits": "2026-10-11 own e13 national PRE matcher prerequisite: same AT-Z13V-ESCO/AT-Z13VH-ESCO,20 resources+memory-role988a original full receipts verified08:24:24/currentmain0383; before-code CP37016b5b/6736107026778. Owned national helper now117lines adds independent full scoped customer/point/three process-journal READ capture and closed exact customer-only180 expectation; literal actual status/null/site/process/source references preserved, no actual matcher result used as oracle. Competing UUID references use PostgreSQL case-insensitive UUID equality; original negative case failed before correction and is preserved. Local Node24 scriptsTSC/scopedlint/linebudget/diff PASS, declaredPRE14positive468negative vectors plus uppercaseUUID competing-customer negative PASS, old national wire14positive98negative preserved. Full old53line omission primitive byte-inverse PASS; first private inverse added extra newline and failed before summary mutation, corrected exact inverse only. No native hook/case/fixture/SQL/production/coverage changes: native1800/all90 names preserved. These are declared-input/read-port finite checks only, no actual SQL/matcher/native104/publicdomain/whole proof. Published744 sole run38123848090/a1/job114423972024 IN_PROGRESS; frozen744/all9837 and originalfd09 qualified90 separate. Next ROOT two independent exact-source FINAL reviews, then complete remaining canonical diagnostic/207syntax/208tenant/ACK127queue42/event/replay closure; collect original744 terminal once before successor publication. Foreign742 rightful strictinverse adoption6106164385 or exacthandoff/writerstop and heke99/P-TEN-ESCO business-request disposition remain; no merge lock or whole approval."
   }
 }

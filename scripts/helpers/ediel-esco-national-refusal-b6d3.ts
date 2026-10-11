@@ -4,6 +4,8 @@ import {expect} from 'vitest'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {serializeUna} from '@/lib/ediel/core/una'
 import {omitPermissionField} from './ediel-permission-field-omissions'
+import type {EdielMessageRow} from '@/lib/ediel/types'
+import type {EdielBusinessMatchResult} from '@/lib/ediel/matching/matchingTypes'
 
 export type EscoNationalField='203'|'205'|'206'|'207'|'208'|'313'|'322'
 export function omitEscoNationalField(raw:string,field:EscoNationalField,input:{sender:string;receiver:string;li:string;status:'A13'|'A76'}){
@@ -50,4 +52,66 @@ export function omitEscoNationalField(raw:string,field:EscoNationalField,input:{
  expect(actual.segments.filter(row=>row.tag==='LIN').map(row=>({raw:row.raw,index:row.index})))
   .toEqual([{raw:'LIN'+e+'1',index:field==='205'||field==='206'?6:7}])
  return result
+}
+
+type Row=Record<string,unknown>
+type MatchedNationalField=Exclude<EscoNationalField,'208'>
+type NationalUniverse={customers:Row[];points:Row[];switches:Row[];facilities:Row[];customerInfo:Row[]}
+type NationalMatchInput={source:EdielMessageRow;companyId:string;customerId:string;li:string;field:MatchedNationalField}
+const clean=(value:unknown)=>typeof value==='string'&&value.trim()?value.trim():null
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+// PRE-state only: this never calls the matcher to manufacture its expected result.
+export function qualifyEscoNationalMatcherPrestate(universe:NationalUniverse,input:NationalMatchInput):EdielBusinessMatchResult{
+ const {source,companyId,customerId,li,field}=input
+ expect(['203','205','206','207','313','322']).toContain(field)
+ expect(source).toMatchObject({company_id:companyId,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z14',
+  customer_id:customerId,metering_point_id:null,switch_request_id:null,grid_owner_data_request_id:null})
+ for(const column of ['site_id','process_type','transaction_reference'] as const){
+  expect(Object.hasOwn(source,column)).toBe(true);expect(source[column]===null||typeof source[column]==='string').toBe(true)
+ }
+ expect(source.raw_payload).toBeTruthy();const wire=tokenizeEdifact(source.raw_payload!),s=wire.segments,u=wire.una
+ expect(s.filter(row=>row.tag==='UNH')).toHaveLength(1);expect(s.filter(row=>row.tag==='LIN').map(row=>row.raw)).toEqual(['LIN+1'])
+ const refs=s.filter(row=>row.tag==='RFF').map(row=>segmentComposite(row,1,u))
+ expect(refs).toEqual([['LI',li]])
+ expect(s.filter(row=>row.tag==='NAD'&&['UD','IT'].includes((segmentComposite(row,1,u)[0]??'').toUpperCase()))).toEqual([])
+ const bgm=s.filter(row=>row.tag==='BGM');expect(bgm).toHaveLength(1)
+ expect(segmentComposite(bgm[0],1,u)).toEqual(['Z14'])
+ const document=segmentComposite(bgm[0],2,u)[0]||null
+ expect(clean(source.external_reference)).toBe(document);expect(document===null).toBe(field==='203')
+ const reasons=s.flatMap((row,i)=>row.tag==='CCI'&&segmentComposite(row,2,u)[0]==='Z13'?[i]:[])
+ expect(reasons).toHaveLength(1);expect(s[reasons[0]+1].raw).toBe('CAV+Z96')
+ expect(Object.keys(universe).sort()).toEqual(['customerInfo','customers','facilities','points','switches'])
+ for(const rows of Object.values(universe))for(const row of rows)expect(row.company_id).toBe(companyId)
+ const customerColumns=['id','company_id','customer_number','personal_number','org_number','email','status']
+ for(const row of universe.customers)for(const column of customerColumns)expect(Object.hasOwn(row,column)).toBe(true)
+ const searchedValues=[clean(source.external_reference),clean(source.customer_id)].filter((value):value is string=>value!==null)
+ // Literal public loose-identifier domains, including UUID-only row IDs.
+ const matches=universe.customers.filter(row=>searchedValues.some(value=>
+  ['customer_number','personal_number','org_number','email'].some(column=>row[column]===value)||
+  (uuid.test(value)&&typeof row.id==='string'&&row.id.toLowerCase()===value.toLowerCase())))
+ expect(matches).toHaveLength(1);const customer=matches[0];expect(customer.id).toBe(customerId)
+ expect(typeof customer.status==='string'||customer.status===null).toBe(true)
+ const pointValues=[...new Set([clean(source.metering_point_id),clean(source.external_reference),clean(source.transaction_reference),li]
+  .filter((value):value is string=>value!==null))]
+ const normalized=[...new Set(pointValues.map(value=>value.replace(/[^0-9A-Za-z]/g,'').toUpperCase()).filter(Boolean))]
+ for(const row of universe.points){
+  for(const column of ['meter_point_id','metering_point_id','site_facility_id','ediel_reference','normalized_metering_point_id'])expect(Object.hasOwn(row,column)).toBe(true)
+  expect(pointValues.some(value=>['meter_point_id','metering_point_id','site_facility_id','ediel_reference'].some(column=>row[column]===value))).toBe(false)
+  expect(typeof row.normalized_metering_point_id==='string'&&normalized.includes(row.normalized_metering_point_id)).toBe(false)
+ }
+ // Fresh synthetic tenant: empty complete journals also exclude payload and
+ // site/grid-owner context matches, not just exact random document references.
+ expect(universe.switches).toEqual([]);expect(universe.facilities).toEqual([]);expect(universe.customerInfo).toEqual([])
+ return {confidence:'high',customerId,siteId:source.site_id??null,meteringPointId:null,processId:null,processType:source.process_type,
+  permissionId:null,candidates:[{entityType:'customer',entityId:customerId,confidence:'high',score:180,reason:'customer_id_already_set',
+   details:{companyId,customerNumber:customer.customer_number,status:customer.status,searchedValues}}],
+  reasons:['customer_id_already_set:180'],warnings:[],manualReviewReason:null}
+}
+export function captureEscoNationalMatcherPrestate(sql:<T>(query:string)=>T,lit:(value:string)=>string,input:NationalMatchInput){
+ const tables={customers:'public.customers',points:'public.metering_points',switches:'public.supplier_switch_requests',
+  facilities:'public.grid_owner_information_requests',customerInfo:'public.customer_info_requests'} as const
+ const universe=sql<NationalUniverse>(`SELECT jsonb_build_object(${Object.entries(tables).map(([key,table])=>
+  `'${key}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r WHERE company_id=${lit(input.companyId)})`).join(',')})`)
+ const expected=qualifyEscoNationalMatcherPrestate(universe,input)
+ return {source:structuredClone(input.source),universe:structuredClone(universe),expected:structuredClone(expected)}
 }
