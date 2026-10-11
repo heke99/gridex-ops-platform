@@ -1737,6 +1737,8 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
     const linked=rows.filter(row=>row.event_type==='linked');expect(linked).toHaveLength(1)
     expect(linked[0]).toMatchObject({event_status:'success',message:'Inbound Ediel tenant resolved before runtime/business matching.',
      payload:{companyId:f.ids.company,tenantResolution:replayTenant},event_payload:{companyId:f.ids.company,tenantResolution:replayTenant}})
+    expect(linked[0].payload).toEqual({companyId:f.ids.company,tenantResolution:replayTenant})
+    expect(linked[0].event_payload).toEqual({companyId:f.ids.company,tenantResolution:replayTenant})
     expect(rows.filter(row=>row.message==='Egna objekt och deras slutliga svar följer beständiga skrivkvitton.')).toHaveLength(1)
     const domain=rows.find(row=>row.message==='Egna objekt och deras slutliga svar följer beständiga skrivkvitton.')!
     expect(domain.event_status).toBe('success');expect(domain.payload).toMatchObject({idempotent:true,createdAckMessageIds:[objectReply.id],fullyApplied:true,reviewRequired:false})
