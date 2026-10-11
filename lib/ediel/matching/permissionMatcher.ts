@@ -18,7 +18,10 @@ export async function matchPermissionForAutomation(input: EdielMatchInput): Prom
     .eq('company_id', companyId)
     .limit(20)
 
-  query = query.or(`permission_reference.eq.${permissionId},external_permission_id.eq.${permissionId},id.eq.${permissionId}`)
+  // National RFF+Z09 values are text references, not necessarily row UUIDs.
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(permissionId)
+  query = query.or([`permission_reference.eq.${permissionId}`, `external_permission_id.eq.${permissionId}`,
+    ...(uuid ? [`id.eq.${permissionId}`] : [])].join(','))
 
   const { data, error } = await query
   if (error) throw error

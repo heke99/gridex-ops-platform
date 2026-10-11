@@ -317,8 +317,14 @@ export async function findCustomersByIdentifierValues(input: {
   const orParts: string[] = []
   for (const value of values) {
     const escaped = value.replace(/"/g, '\\"')
-    for (const column of input.columns) orParts.push(`${column}.eq.${escaped}`)
+    for (const column of input.columns) {
+      // Loose national identifiers remain searchable in text columns. UUID
+      // casts must not invalidate the entire OR when an external ID is text.
+      if (column === 'id' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) continue
+      orParts.push(`${column}.eq.${escaped}`)
+    }
   }
+  if (orParts.length === 0) return []
 
   let query = supabaseService
     .from('customers')
