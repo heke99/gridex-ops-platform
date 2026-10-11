@@ -1,7 +1,7 @@
 {
   "project": "gridex-ops-platform",
   "schema": "distributed-startup-v1",
-  "observed_at": "2026-10-11T06:53:54.017037+00:00",
+  "observed_at": "2026-10-11T06:55:13.643867+00:00",
   "observed_main": "da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32",
   "status": "IN_PROGRESS",
   "active_item": "Distributed fixed-role continuation; no inherited shared technical packet",
@@ -98,7 +98,7 @@
     "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104406090",
     "status": "ENERGY3_IMPLEMENTED_FINAL_SOURCE_REVIEW_PENDING",
     "coverage": "UNCHANGED",
-    "next_action": "ROOT close FINAL90source reviews/statics, qualify current69sole89 terminal original with cleanfrozen69 first; then reviewed successor oneautomatic90. Continue remaining independent samepair effects; no wholepromotion/duplicateproducer/foreignwrite/merge-role.",
+    "next_action": "ROOT two FINAL exact90source and truth summaries reviews/custody+main preflight; publish one reviewed successor90 after current69 original89 qualified; allsource-schema28/VHNULLend new assertions NOT_RUN. Continue independentremainingwithinpair, no coveragepromotion/foreignwrite/merge-role.",
     "pr": 745,
     "native_observation": {
       "status": "QUALIFIED_BOUND_NATIVE62",
@@ -668,7 +668,8 @@
       "runtime": "NEW90_NOT_RUN",
       "final_reviews": "PENDING",
       "local_statics": "NODE24_SCRIPTS_TSC_LINT_BUDGET_DIFF_AND_WORKFLOW90_FINITE_PASS",
-      "whole_card_approval": "NOT_PROVIDED"
+      "whole_card_approval": "NOT_PROVIDED",
+      "source_pre_summary_update": "bf247c175c4029b97d15b47582150485d71382c4"
     },
     "previous_native_observations": [
       {
@@ -1009,14 +1010,21 @@
       }
     },
     "current_native89_observation": {
+      "status": "QUALIFIED_BOUND_NATIVE89",
       "head": "69d3764c35dc652ebf7c41b0ea1f3647d04295ae",
       "tree": "e9c4174549a5fba81e0971bd1c720323c1a4688f",
       "run": 38118647068,
       "attempt": 1,
       "job": 114408614203,
-      "status": "IN_PROGRESS_NOT_VERIFIED",
-      "frozen_clean_worktree": "/workspace/gridex-ediel-b6d3-89-frozen-41f5172a",
-      "collector": "ROOT_ONLY"
+      "artifact": 11694771953,
+      "tests": 89,
+      "passed": 89,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "original_zip_sha256": "e7edf16da6390626b6ba717b778094ecfea4f780fa0ddb1919d451870c5df725",
+      "collector": "ROOT_ONCE_ONLY",
+      "frozen_clean_worktree": "/workspace/gridex-ediel-b6d3-89-frozen-41f5172a"
     },
     "additional_source_reviews": {
       "schema7_c1df": {
@@ -1031,6 +1039,44 @@
       "receipt": "fb037179d1a2f0f22cbb969f7846bba6fc933802",
       "resource": "file-7a32e0137117121c2aefe900380dad79a39d796ee4bd0c3438999ccfdd382020",
       "claim": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106390584"
+    },
+    "qualified_native89": {
+      "status": "QUALIFIED_BOUND_NATIVE89",
+      "head": "69d3764c35dc652ebf7c41b0ea1f3647d04295ae",
+      "tree": "e9c4174549a5fba81e0971bd1c720323c1a4688f",
+      "run": 38118647068,
+      "attempt": 1,
+      "job": 114408614203,
+      "artifact": 11694771953,
+      "zip_bytes": 1550011,
+      "zip_sha256": "e7edf16da6390626b6ba717b778094ecfea4f780fa0ddb1919d451870c5df725",
+      "crc": "PASS",
+      "full_git_catalog_inputs": 9824,
+      "full_catalog": "ALL_ORIGINAL_GIT_MODE_OID_SHA256_EQUAL",
+      "tests": 89,
+      "passed": 89,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "closed_log_summary": "PASS",
+      "original89_identities": "EXACT_UNIQUE_SET",
+      "member_sha256": {
+        "frozen-source.json": "b3c03992ff4a14fb46347a98f078d36ff970a1b1ab25ff85f57be63b71f2d587",
+        "native.log": "bbc7e46b265d95e985836b33a2d65c3dbadc29e64f953ecdda85e9c98f582a37",
+        "native-junit.xml": "242792991d67f6efc4dd59470101eb3771c356075e4f57233ac9118c4ded9684",
+        "receipt.json": "7cfacd9d985446ce16aa4775b87d62a18b31205ff11b13eede52a6c6711326ca"
+      },
+      "qualifier_sha256": "5f272be604370632f2726fbb9cccd84470e0938536a7bf87f8932816e8eb5cc6",
+      "boundaries": {
+        "canonical_sql_execution_inventory": "NOT_REPORTED_BY_THIS_RECEIPT",
+        "ordinary_required_gates": "NOT_REPLACED",
+        "schema_capture": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "authentic_market_evidence": "NOT_PROVIDED",
+        "whole_card_approval": "NOT_PROVIDED"
+      },
+      "qualification_scope": "Public ESCO89 component evidence at exact executed source; no whole acceptance, latest-main native or external-market approval."
     }
   },
   "additional_deliveries": [
