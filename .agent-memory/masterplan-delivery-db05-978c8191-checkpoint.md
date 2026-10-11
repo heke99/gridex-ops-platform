@@ -1,5 +1,11 @@
 # Fixed E delivery preflight and DB05 component qualification
 
+## Actual seven-resource custody — 2026-10-11 14:13 UTC
+
+TAKEN/DONE: supplemental GEN5 receipt c951accc287b2465be6e5f7ef47d1265d83f0e16 is actuald00main exacttree1139a38b8b878433404cff3d99ce621117c383d0/singleparent/literalJSON GET_MATCH. All five sorted resources were actually CREATE_IF_ABSENT then independently literal GET_MATCHc951; original two remain GET_MATCH8d. Supplemental CLAIM6109920094 independently fullbodyGET_MATCH before any import. Seven resources are now E-owned under two exact receipts. E's unaccepted helper request6109182486 is explicitly WITHDRAWN/fullbodyGET_MATCH, so there is one designated765reader/importer: E. No C queue/whole/native duty transfer, no oldref inheritance and no locked-file override.
+
+NEXT: existing automaticcapture38145633287/attempt1/current18764532 is actuallyQUEUED; no archive downloaded or native/manualproducer run. Qualify/import that exact output when available, preserve all historical capture attribution, update generated manifest and source checkpoint together, independent affected GEN/source reviews and mandatory CI, then normal delivery/role-FIRST and all7receipt-bound deletes/404. Two composition readers independently cover currentfour-file source; one has finishedSOURCE_APPROVE C0/I0/M0. Cleanup helper prepares cancellations only for superseded automatic runs of this own PR, preserving every current18764532 run and original completed evidence.
+
 ## Eligible GEN extension of the same DB05 packet — 2026-10-11 14:11 UTC
 
 CORRECTION: reread actual C RELEASE6109615519: the original implementation packet is explicitly complete and all seven exact files, including all GEN5, actually released after role-FIRST. The accepted next C queue names744/753/755/760, not765. No765adoption/newC5packet/CLAIM exists in qualified board delta through14:09:58. E's own unaccepted765request designated a proposed helper, not permanent custody after C's actual release. The older assertion that this alone transferred retained765GEN duty to C was too strong. No whole ID/native/legal responsibility is being taken over. Explicit exact release needs no repeat informal permission underAGENTS.
