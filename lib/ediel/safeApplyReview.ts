@@ -8,6 +8,7 @@ import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
 import {applyConfirmedCustomerSource,isConfirmedCustomerSourceCandidate} from '@/lib/ediel/production/confirmedCustomerSource'
 import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
 import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
+import {guardReceivedProdatMeterExchangeApply} from '@/lib/ediel/sources/receivedProdatMeterExchangeApplyGuard'
 
 export type EdielSafeApplyReviewStatus = 'pending' | 'partially_applied' | 'applied' | 'rejected' | 'no_changes'
 
@@ -166,6 +167,7 @@ export async function approveSafeMasterdataChanges(params: {
     return {messageId:message.id,status:'applied',appliedCount:receipt.appliedCount,skippedCount:0,summary:'En daterad kundversion har källbunden livshändelsehistorik.'}
   }
   await assertEdielTenantActor({ companyId: message.company_id, actorUserId: params.actorUserId, permission: 'metering.write' })
+  await guardReceivedProdatMeterExchangeApply(message,params.objectLineIndices)
   const { data, error } = await supabaseService.rpc('ediel_apply_reviewed_structure_objects_v2', {
     p_company_id: message.company_id, p_source_message_id: message.id, p_actor_user_id: params.actorUserId,p_object_line_indices:params.objectLineIndices??null,
   })

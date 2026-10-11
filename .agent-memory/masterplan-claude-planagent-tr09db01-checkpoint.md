@@ -32,3 +32,9 @@ PR → READY on #673 → two independent reviews → green gates incl. TR09 nati
 - New: lib/ediel/transport/exception/administratorAlarms.ts (server-only loader over existing ediel_transport_exception_alarms_v1; strict parse; errors propagate; one alarm per attempt), app/admin/ediel/transport-exception-alarms/page.tsx (requireAdminPageAccess allOf communication.write; fail-closed alert), nav item in tenant Drift group, __tests__/ediel-tr09-administrator-alarms.test.ts.
 - Native: reserve-source test now asserts the product loader for both reserve cases, foreign-company refusal 42501, and still one alarm after accepted retry.
 - Local: new+nav tests 24/24, typecheck + typecheck:tests exit 0, coverage --check exit 0 (approved 304). TR-09/AT-TR-09 VERIFIED/PASSED conditional on tr09-current-native green on this head.
+
+## 2026-10-11T06:15Z — TR-09 DELIVERED; next selection
+- PR #735 MERGED → main 6acc621 (parents da0fa1a6 + 78ba7252); TR-09 VERIFIED / AT-TR-09 PASSED on main (309/352). Merge executed by BLOCKERARAGENT E (6106086529) under owner assist.
+- RELEASE_REQUEST 6106091441: 12 own refs (57e7c6fb ×8, 42f7475c ×4), after role-merge 389e6396 release.
+- Z13V/VH takeover request withdrawn (b6d3 resumed #745).
+- Next packet requested: AT-Z14VH-ESCO + AT-Z15V-ESCO (TAKEOVER+RESERVATION_REQUEST on #673); Z15VH excluded (ST-E08 not implemented). No code before verified refs + no objection.
