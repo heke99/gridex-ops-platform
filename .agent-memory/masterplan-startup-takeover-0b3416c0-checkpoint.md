@@ -890,3 +890,89 @@ Onlyoneactualliteralguide reader eff_mandate assigned afterpublicTAKEN; no
 newsource/code/GEN/native/claims/refs. Root+samesourceexcerptboundedreview
 later; original017f/Cduties retained. OriginalmainCIpacketfullyDONE5/5; actual
 mainGREEN receipt6112231421 and18:25freshmain/body/fullreadback recordedabove.
+
+## Exact-original locator scope clarification — 2026-10-11T18:45:12.262842+00:00
+
+TAKEN bounded prerequisite extension within existing readonly744 packet a2c9ea29:
+root personally verified dated historical-source-discovery literal exact catalog
+URL and SHA babe21a5; previous auto-review inventedURL premise contradicted by
+actual provenance. Previous denied command NEVER executed; net/download/PDF0.
+Explicitly authorize sole existing reader eff_mandate ONE actual documented
+official catalog metadata read only to locate selected U filename0524c18f/135p;
+one directly exposed exact original read may verify SHA/pagecount then p97/table.
+No other catalogs/searches/editions/sourceaudit or parallel original reader.
+Scope proof /tmp/gridex-efficiency-20261011/744-U97-literal-source/root-authorized-exact-catalog-metadata-scope.json
+SHA256 5adc72e36e006c1b064b0db76b1649d5b8e7f811edfd90175e21aca92ed25e5c. No normative-validity/source2/whole/coverage conclusion
+from metadata; stop precisely if link unavailable or actual review rejects again.
+Existing UNDECIDABLE packet9a5bd497 remains dated immutable no-original-read proof.
+Own refs/roles/resources0;017f source/native/whole and C-GEN duties retained.
+NEXT same sole reader provides exact metadata result/locator or precise missing
+output; bounded independent review consumes produced cache only.
+
+## Actual guide-gap continuation and closing guards — 2026-10-11T18:49:36.642573+00:00
+
+DONE same sole reader continuation dedcdaaa109bc3df1eef6b2792806614493bc8faceb672bf39b4e25fd64882c3:
+ONE authorized genuinecatalogGET HTTP200/no redirects,58897metadata bytes
+SHA60bd6df8e7873e2c47f5b1393eb9f297b46bdce8388290c253dabb459a518a94;
+exactselectedfilename0 occurrences/directhref0. SOURCE_LOCATOR_NOT_EXPOSED;
+0PDF/download/originalguide reads. Initial9a5bd/e945 datedpacket preserved.
+Previous catalog rejection overcome by explicit safe scope/provenanceproof,
+not remaining approvalblock. No further catalog/scripts/provider/search/edition
+lookup from this boundedcomponent. SelectedU0524c/135pages prior identity
+remains dated; originalp97/table currentlyNOT_AVAILABLE, normativeUNDECIDABLE
+valid/invalidNULL. Bothinitialroot/full11inputchecks andactualcontinuation
+rawmetadata boundchecks PASS; independentinitialreview879413c0 C0/I0/M0,
+separate continuationreview pending. No SOURCE2/whole/coverage/testcredit.
+
+ACTUAL two necessary closingmetadata guards18:48:10: currentmain9adbMATCH
+qualifiedGREEN baseline, PR744OPEN/notdraft/main/head95bc unchanged,updatedAt
+18:20:06 unchanged. GuardpacketSHAc5788c87559be48fb0461c7add661886d45a12d72a28759d42d01464a8f819c9;
+no CI/sourcecontent/review/native/artifact/remote reservation recollection.
+NEXT sourcegap component finished after boundedcontinuationreview + ONE766
+REVIEW_DONE/handoffunderlag/fullGET; exactselectedoriginal0524c locator/bytes
+needed before p97/table inspection and017f documentednormativedisposition.
+Source017f/native/whole,adaptera481 andC-GENqueue retained, source95bcmissing
+main-C094500/E121542 INPUTS_CHANGED reused04b1b56. No administrative source/
+GENhandoff/CLAIM/producer/edit; allroottechnicalresources0. Then normalFF
+ownCP/fullremoteref+byteauth. MainGREEN receipt6112231421 remains actualdone.
+
+DONE independent finalboundedcontinuation review C0/I0/M0 SHA256
+34cb9c32bf8f01a2d7dfadb7d8663f7b6355b5d6445fb4ba5804a0057d6f61e5.
+Root personally accepted SAME authenticcontinuationdedc/rawHTML60bd/oneGET
+and no guide/normative/sourcehandoff/whole credit. Root prepared exactone766
+REVIEW_DONE/HANDOFF_UNDERLAG bodySHA8ad0cbb71435d53f55e069ed95a3ca1c8f6c5542fae2e687a50a63ff9e76fda0;
+actualpublication/fullreadback next. Selectedsource017f/C retained; owns0.
+
+## Actual bounded source-gap handback complete
+
+DONE actual #766 REVIEW_DONE/HANDOFF_UNDERLAG6112469588, exact full body GET MATCH:
+https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6112469588
+body SHA8ad0cbb71435d53f55e069ed95a3ca1c8f6c5542fae2e687a50a63ff9e76fda0;
+actual state SHA65ca56dcdedfd514b16ad1b9c978f7a5e4e516060217e65958c860c9c529c184.
+One POST/exact-ID GET, no body/source/ref/CI/native mutation. Reader/reviewer/root
+component closed; root technical IDs/files/refs/roles0, no technical release needed.
+All original017f SQL/TS/tests/runtime/native/whole/PRdelivery, C-GENqueue and
+a481adapter duties retained; no inferred private STOP or actual source handoff.
+
+Current exact external prerequisite: authenticated recoverable locator or existing
+bytes for selected260331_Ediel_UTILTS-APERAK_Anvisning_version_25-A-4.pdf,
+SHA2560524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be,
+135pages (dated identity; not current original certification). Then actual U97/SG11
+segment/repetition table with physical/printed mapping, SAME-excerpt independent
+review,017f documented normative disposition/consumer outcome. UNDECIDABLE remains
+valid/invalid NULL; catalog actual SOURCE_LOCATOR_NOT_EXPOSED. No broader search/
+new edition/catch-omit/national code. Current744 source95bc/updated18:20 same at
+18:48:10; main9adb likewise current MATCH/qualified GREEN9S10K/public6112231421.
+313/352;39remain, ledger697955/bytes162806 unchanged. Separate current-main
+input basis04b1b560 reused:95bc lacksC094500/E121542; no GENtakeover/
+source adoption/capture import/code work until actual newH/mandate/prerequisites.
+
+Own main packet/five coordination-and-delivery parts DONE: actual PR deliveries,
+current-main CI/independent review,766 routing/body/final GREEN receipt, own actual
+release/cleanup and operational remoteFULLcheckpoint. Original-owner scopes
+are not bulk-taken/deleted. NEXT relevant event is exact-original locator/bytes
+or017f normative owner output; bounded744 readonly component explicitly handed
+back, no idle own custody. Future code requires actual precise handoff, own verified
+reservation+CLAIM and implementer-owned tests/currentCI/review/merge/release.
+
+Actual local documentation at 2026-10-11T18:52:50.983725+00:00
