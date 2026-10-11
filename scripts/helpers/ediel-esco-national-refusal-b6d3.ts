@@ -6,6 +6,7 @@ import {serializeUna} from '@/lib/ediel/core/una'
 import {omitPermissionField} from './ediel-permission-field-omissions'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {EdielBusinessMatchResult} from '@/lib/ediel/matching/matchingTypes'
+import type {EdielSyntaxValidationResult} from '@/lib/ediel/core/syntaxValidator'
 
 export type EscoNationalField='203'|'205'|'206'|'207'|'208'|'313'|'322'
 export function omitEscoNationalField(raw:string,field:EscoNationalField,input:{sender:string;receiver:string;li:string;status:'A13'|'A76'}){
@@ -116,4 +117,20 @@ export function captureEscoNationalMatcherPrestate(sql:<T>(query:string)=>T,lit:
   `'${key}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r WHERE company_id=${lit(input.companyId)})`).join(',')})`)
  const expected=qualifyEscoNationalMatcherPrestate(universe,input)
  return {source:structuredClone(input.source),universe:structuredClone(universe),expected:structuredClone(expected)}
+}
+
+// Literal selected D.97A originals; never copy the validator's returned source
+// or issue vector into its expected value. The closed N wire has 13 UNH..UNT
+// segments, less the one omitted DTM or the two own status segments.
+export function qualifyEscoNationalSyntax(actual:EdielSyntaxValidationResult,field:EscoNationalField){
+ expect(['203','205','206','207','208','313','322']).toContain(field)
+ const rejected=field==='207'||field==='208',count=field==='205'||field==='206'?12:field==='322'?11:13
+ expect(actual).toEqual({ok:!rejected,issues:rejected?[{code:'UNSM_MANDATORY_ELEMENT_MISSING',severity:'error',
+  title:'Full versionsbunden UNSM-grammatik',description:'PRODAT:D:97A:UN: obligatoriskt NAD/C082/3039[1] saknas.'}]:[],
+  declaredUntCount:count,actualMessageSegmentCount:count,grammarQualification:'qualified',grammarSources:[{messageIndex:1,
+   key:'PRODAT:D:97A:UN',archiveSha256:'4a8fbe74935a140b0982f9b555571831e7b9d90311acdbf195ae481e2fe705a8',members:[
+    {archiveMember:'EDIFACT/D97ADISK/EDMD.ZIP!EDIFACT/DIRECTOR/TRMD/PRODAT_D.97A',sha256:'f6d6258573235c642889c2d7404774d1fc642db4cb70c46ef7bb93a1c95f6cf9'},
+    {archiveMember:'EDIFACT/D97ADISK/EDSD.ZIP!EDIFACT/DIRECTOR/TRSD/EDSD.97A',sha256:'f8e67ec915604e16768b153cd6b837ab47e0fb31265e4cfc154db246bf6d7c11'},
+    {archiveMember:'EDIFACT/D97ADISK/EDCD.ZIP!EDIFACT/DIRECTOR/TRCD/EDCD.97A',sha256:'545aba5d4df750784d023633685835385b2fdbb49853769b2c79bbd1b7ccf2c1'},
+   ]}]})
 }
