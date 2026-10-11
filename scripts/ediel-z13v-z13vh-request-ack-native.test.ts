@@ -1286,6 +1286,23 @@ async function refuseMissingProducerSource(mode:'V'|'VH',field:'217'|'261'|'222'
  expect(await f.command(command)).toEqual(held)
  expect(producerState(f)).toEqual(before)
  expect(currentProducerReviews(f,reviewed)).toEqual(reviews)
+ if(field==='222'){
+  const invalid:[string,unknown,string,(string|number)[]][]=[
+   ['product_ids',undefined,'invalid_type',['fields','product_ids']],['product_ids',[],'too_small',['fields','product_ids']],
+   ['product_ids',[''],'too_small',['fields','product_ids',0]],['product_ids',null,'invalid_type',['fields','product_ids']],
+   ['data_start',undefined,'invalid_type',['fields','data_start']],['data_start',null,'invalid_type',['fields','data_start']],
+   ['data_start','','invalid_string',['fields','data_start']]]
+  const from=vi.spyOn(supabaseService,'from'),rpc=vi.spyOn(supabaseService,'rpc')
+  try{for(const[key,value,code,path]of invalid){
+   const fields:Record<string,unknown>={...f.fields};if(value===undefined)delete fields[key];else fields[key]=value
+   const malformed={action:'create_assignment',commandId:randomUUID(),fields}
+   for(let retry=0;retry<2;retry++){
+    await expect(f.command(malformed)).rejects.toMatchObject({name:'ZodError',issues:[{code,path}]})
+    expect(from).not.toHaveBeenCalled();expect(rpc).not.toHaveBeenCalled()
+    expect(producerState(f)).toEqual(before);expect(nativeEscoExternal.send).not.toHaveBeenCalled()
+   }
+  }}finally{from.mockRestore();rpc.mockRestore()}
+ }
  checkSentinel();expect(nativeEscoExternal.send).not.toHaveBeenCalled()
 }
 

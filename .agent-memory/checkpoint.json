@@ -1,7 +1,7 @@
 {
   "project": "gridex-ops-platform",
   "schema": "distributed-startup-v1",
-  "observed_at": "2026-10-11T06:02:15.837389+00:00",
+  "observed_at": "2026-10-11T06:43:02.132253+00:00",
   "observed_main": "da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32",
   "status": "IN_PROGRESS",
   "active_item": "Distributed fixed-role continuation; no inherited shared technical packet",
@@ -98,7 +98,7 @@
     "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104406090",
     "status": "ENERGY3_IMPLEMENTED_FINAL_SOURCE_REVIEW_PENDING",
     "coverage": "UNCHANGED",
-    "next_action": "ROOT exact89 independent source2/statics/descriptor and reviewed strict fixtureinverse handoff742; qualify authentic85 using separate clean frozen84c before normal reviewed same745 push/soleautomatic89; continue remaining withinpair without wholecoverage promotion",
+    "next_action": "ROOT complete two FINAL successor exactsource reviews and descriptor/statics; qualify current69 terminal original89 from frozencleanworktree first, then only one reviewed successor publication; continue remaining withinpair. No wholepromotion/foreignquiettake/merge-role.",
     "pr": 745,
     "native_observation": {
       "status": "QUALIFIED_BOUND_NATIVE62",
@@ -654,22 +654,19 @@
       "coverage_artifact": "NOT_FETCHED"
     },
     "current_subtask": {
-      "cases": 4,
+      "status": "IMPLEMENTED_NOT_VERIFIED",
+      "public_schema_inputs": 7,
+      "native_refused_calls": 28,
+      "additional_native_case_identities": 0,
       "total_native_cases": 89,
-      "status": "IMPLEMENTED_NOT_RUN",
-      "fields": [
-        "V222",
-        "VH222",
-        "V323",
-        "VH323"
-      ],
-      "source": "WORKING_SOURCE_BASE_84C1_NOT_COMMITTED",
-      "before_code_receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106046636",
-      "final_reviews": "PENDING",
+      "native_lines": 1797,
+      "source": "WORKING_SOURCE_NOT_COMMITTED",
+      "before_code_receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106321515",
+      "plan_review_sha256": "7747306df36eecc828a475bb7a39cc8fd98b7d942ba1786c7f5440d8316ff487",
       "local_statics": "NODE24_SCRIPTS_TSC_LINT_BUDGET_DIFF_PASS",
-      "native_lines": 1780,
-      "producer_guards": "FULL_EXISTING_REAL_PENDING_LINK_TIMING_GLOBAL_FOREIGN_CURRENT5_REVIEW_ARCHIVE_NULL_TERMS_RETRY_NO_WIRE_NO_RIGHTS",
-      "new_fixture_inverse": "REQUIRES_EXACT_REVIEWED_HANDOFF_TO_OCCUPIED742"
+      "finite": "ACTUAL_UNCHANGED_FACADE_28_REFUSALS_2_POSITIVE_PORT_CONTROLS_AND_INSTALLED_MATCHER_EXTRA_ISSUE_REJECTION_PASS",
+      "native": "SUCCESSOR_NOT_RUN",
+      "final_reviews": "PENDING"
     },
     "previous_native_observations": [
       {
@@ -896,6 +893,24 @@
         "helper_lines": 196,
         "reference_guard": "EXACT24_LINE_BODY_PRESERVED_IN_NON_TEST_HELPER",
         "owner_ledger_scope": "FULL_GLOBAL12_AND8_WITH_LITERAL_GENERIC_ENERGY_OR_REPORTING_REASON_XID_VISIBILITY_CHAIN_AND_FOUR_FROZEN_RELATIONS"
+      },
+      {
+        "cases": 4,
+        "total_native_cases": 89,
+        "status": "IMPLEMENTED_NOT_RUN",
+        "fields": [
+          "V222",
+          "VH222",
+          "V323",
+          "VH323"
+        ],
+        "source": "WORKING_SOURCE_BASE_84C1_NOT_COMMITTED",
+        "before_code_receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106046636",
+        "final_reviews": "PENDING",
+        "local_statics": "NODE24_SCRIPTS_TSC_LINT_BUDGET_DIFF_PASS",
+        "native_lines": 1780,
+        "producer_guards": "FULL_EXISTING_REAL_PENDING_LINK_TIMING_GLOBAL_FOREIGN_CURRENT5_REVIEW_ARCHIVE_NULL_TERMS_RETRY_NO_WIRE_NO_RIGHTS",
+        "new_fixture_inverse": "REQUIRES_EXACT_REVIEWED_HANDOFF_TO_OCCUPIED742"
       }
     ],
     "qualified_native82": {
@@ -945,20 +960,46 @@
         "quality-release-gates",
         "targeted-regressions"
       ],
-      "logs": "NOT_COLLECTED_FOR_CURRENT84C1",
+      "logs": "AUTHENTIC_ORIGINAL84C1_QUALITY_AND_TARGETED_LOGS_QUALIFIED_SEPARATE_SOURCE",
       "approval": "NOT_GREEN",
       "old_logs": "PRESERVED_SEPARATE_SOURCE_BOUND"
     },
     "current_native85_observation": {
+      "observed_at": "2026-10-11T06:36:22.646169+00:00",
+      "status": "AUTHENTIC_TERMINAL_CANCELLED_NO_ARTIFACT_NO_AVAILABLE_LOG_NOT_NATIVE_PASS",
       "head": "84c1a982d9618f91760c67534bd5331a27a5b77f",
       "tree": "5aef3e70a568a5acb91821c6322bbcb8ce273bdc",
       "run": 38115424005,
       "attempt": 1,
       "job": 114399256932,
+      "started_at": "2026-10-11T05:38:17Z",
+      "completed_at": "2026-10-11T06:33:17Z",
+      "configured_timeout_minutes": 45,
+      "elapsed_seconds": 3300,
+      "artifact_count": 0,
+      "terminal_first_party_log_read": "404 BlobNotFound",
+      "cancellation_by_this_agent": false,
+      "cancellation_actor_and_cause": "NOT_ESTABLISHED",
+      "tests": "UNOBSERVED",
+      "native85_qualified": false,
+      "next_owned_source": "69d3764c35dc652ebf7c41b0ea1f3647d04295ae",
+      "input_evidence_sha256": {
+        "esco-energy85-current-native.json": "6c13a242b744ea3f29edf833706d423c47e594eb48768fd70429da7589b6c136",
+        "esco-energy85-current-job.json": "17b2f8caa3804befd05047ac185caa9f567b9e4d327e094910dce65e4dcebe62",
+        "esco-energy85-terminal-artifacts-api.json": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+        "esco-energy85-terminal-artifacts-mcp.json": "fb09a9699b26ad536855bb4263ff01baa31a107d9af48b348e96cb4a9eb2b8d9",
+        "esco-energy85-terminal-log-unavailability.json": "d11db4d692096e1088be70cb35f3ab281a0ebee90312ceb5050b9a9698eac969"
+      }
+    },
+    "current_native89_observation": {
+      "head": "69d3764c35dc652ebf7c41b0ea1f3647d04295ae",
+      "tree": "e9c4174549a5fba81e0971bd1c720323c1a4688f",
+      "run": 38118647068,
+      "attempt": 1,
+      "job": 114408614203,
       "status": "IN_PROGRESS_NOT_VERIFIED",
-      "frozen_clean_worktree": "/workspace/gridex-ediel-b6d3-85-frozen-41f5172a",
-      "collector": "ROOT_ONLY",
-      "log_read": "RUNNING_BLOB_NOT_AVAILABLE_404_NO_FAILURE_INFERRED"
+      "frozen_clean_worktree": "/workspace/gridex-ediel-b6d3-89-frozen-41f5172a",
+      "collector": "ROOT_ONLY"
     }
   },
   "additional_deliveries": [
