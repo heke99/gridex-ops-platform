@@ -22,6 +22,8 @@ import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPol
 import { tokenizeEdifact, segmentComposite, segmentElementCount } from '@/lib/ediel/core/edifactTokenizer'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
+import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
+import { prodatRegisterFieldState } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { prodatNowDate203 } from '@/lib/ediel/prodat/render/dates'
 import { originalAckPartyIdentities } from '@/lib/ediel/core/originalAckPartyIdentities'
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
@@ -1047,6 +1049,133 @@ async function currentMissingGuideRefusal(f: Fixture, original: Original, comple
   } finally { rmSync(directory, { recursive: true, force: true }) }
 }
 
+async function currentMalformedObjectBirthRefusal(f: Fixture, original: Original, complete: string, omitted: string, field: '209' | '314') {
+  physicalOmission(complete, omitted, field)
+  const full = tokenizeEdifact(complete), missing = tokenizeEdifact(omitted)
+  expect(segmentComposite(missing.segments.find(s => s.tag === 'UNH')!, 2, missing.una))
+    .toEqual(segmentComposite(full.segments.find(s => s.tag === 'UNH')!, 2, full.una))
+  expect(parseCanonicalEdielPayload({ rawPayload: omitted, direction: 'inbound', standardHint: 'edifact' }).version).toBe('E2SE6A')
+  const groups = prodatRegisterGroups(missing.segments, missing.una, 'Z02')
+  expect(groups.groups).toHaveLength(1)
+  if (field === '314') {
+    expect(groups.problems).toEqual([expect.objectContaining({ fieldNumber: '314', reason: 'global_sequence_must_increment_from_one' })])
+  } else {
+    const identity = prodatRegisterFieldState('209', groups.groups[0].segments, missing.una)
+    expect(!identity?.present || identity.malformed).toBe(true)
+    expect(groups.problems).toEqual([])
+  }
+  // Distinct envelope IDs prevent the public positive control becoming the
+  // malformed reply's duplicate. The exact complete twin is never persisted;
+  // its real birth witness is read at the actual negative mail's receipt clock.
+  const control = await sourceControl(f, original, reply(f, original))
+  const directory = mkdtempSync(join(tmpdir(), 'ediel-z02-current-object-birth-'))
+  const path = (name: string) => join(directory, name)
+  let observed = false
+  let expectedBirthMessage: string | undefined
+  try {
+    copyCompleteRows(path('authority-before'), preBirthAuthorityTables)
+    copyCompleteRows(path('ingress-before'), stageIngressTables)
+    const sends = smtp.send.mock.calls.length
+    const staged = await stage(f, omitted, 'test', async ({ mailbox, tenant, match, pointMatch }) => {
+      expect(observed).toBe(false)
+      expect(tenant).toMatchObject({ status: 'resolved', companyId: f.companyId })
+      expect(mailbox.parsed.rawPayload).toBe(omitted)
+      expect(mailbox.sourcePayloadHash).toBe(hash(omitted))
+      const retained = sql<Row>(`SELECT jsonb_build_object('mail',to_jsonb(m),'mailbox',to_jsonb(b),'parse',to_jsonb(p),
+        'rawBirth',to_jsonb(r),'technicalMailboxBirth',to_jsonb(t),'parseBirth',to_jsonb(pb),
+        'actualRawHash',gridex_unattributed_intake.raw_hash_v1(m),'actualParseHash',gridex_unattributed_intake.parse_hash_v1(p),
+        'actualAttachmentSet',gridex_unattributed_intake.attachment_set_v1(m.id),'actualSelection',gridex_unattributed_intake.selection_v1(p))
+        FROM public.inbound_email_messages m JOIN public.ediel_mailboxes b ON b.id=m.mailbox_id
+        JOIN public.inbound_ediel_parse_results p ON p.id=${literal(mailbox.parseResultId)} AND p.inbound_email_message_id=m.id
+        LEFT JOIN gridex_unattributed_intake.raw_births r ON r.inbound_email_message_id=m.id
+        LEFT JOIN gridex_ediel_inbound_receptions.technical_mailbox_births t ON t.inbound_email_message_id=m.id
+        LEFT JOIN gridex_unattributed_intake.parse_births pb ON pb.parse_result_id=p.id
+        WHERE m.id=${literal(mailbox.inboundEmailMessageId)}`)
+      expect(retained).toBeDefined()
+      expect(retained.mail).toMatchObject({ id: mailbox.inboundEmailMessageId, company_id: f.companyId,
+        mailbox_id: mailbox.mailboxId, environment: 'test', raw_edifact_payload: omitted, body_text: omitted, has_attachments: false })
+      expect(retained.mailbox).toMatchObject({ id: mailbox.mailboxId, company_id: f.companyId,
+        environment: 'test', is_active: true, is_shared_platform_mailbox: false, email_address: edielSmtpConfig().from })
+      expect(retained.parse).toMatchObject({ id: mailbox.parseResultId, inbound_email_message_id: mailbox.inboundEmailMessageId,
+        company_id: f.companyId, raw_payload: omitted, message_family: 'PRODAT', message_code: 'Z02' })
+      const attempts = sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY id),'[]')
+        FROM public.inbound_ediel_match_attempts a WHERE inbound_email_message_id=${literal(mailbox.inboundEmailMessageId)}`)
+      expect(attempts).toHaveLength(2)
+      const outboundAttemptType = match.entityType === 'ediel_message' ? 'outbound_ediel_message' : 'outbound_request'
+      for (const [type, result] of [[outboundAttemptType, match], ['metering_point', pointMatch]] as const) {
+        const own = attempts.filter(a => a.match_type === type)
+        expect(own).toHaveLength(1)
+        expect(own[0]).toMatchObject({ company_id: f.companyId, inbound_email_message_id: mailbox.inboundEmailMessageId,
+          parse_result_id: mailbox.parseResultId, match_status: result.status,
+          matched_entity_type: result.entityType, matched_entity_id: result.entityId,
+          reasons: result.reasons, candidates: result.candidates })
+        expect(Number(own[0].confidence)).toBe(result.confidence)
+      }
+      expect(retained.rawBirth).toMatchObject({ inbound_email_message_id: mailbox.inboundEmailMessageId, snapshot_hash: retained.actualRawHash })
+      expect(retained.technicalMailboxBirth).toMatchObject({ inbound_email_message_id: mailbox.inboundEmailMessageId,
+        raw_snapshot_hash: retained.actualRawHash, mailbox_id: mailbox.mailboxId, environment: 'test',
+        mailbox_company_id: f.companyId, mailbox_shared: false, smtp_address: edielSmtpConfig().from,
+        observed_at: record(retained.rawBirth).observed_at })
+      expect(typeof retained.actualSelection).toBe('boolean')
+      expect(retained.parseBirth).toMatchObject({ parse_result_id: mailbox.parseResultId,
+        inbound_email_message_id: mailbox.inboundEmailMessageId, snapshot_hash: retained.actualParseHash,
+        attachment_set_hash: retained.actualAttachmentSet, selection_qualified: retained.actualSelection })
+      const birth = await resolveSupplierDataBirthProfile({ rawPayload: complete, receivedAt: String(record(retained.mail).received_at) })
+      expect(birth).not.toBeNull()
+      for (const key of ['canonical_rule_pack_id', 'rule_profile_key', 'rule_profile_version_id', 'rule_profile_version', 'rule_pack_checksum', 'rule_pack_snapshot'] as const) {
+        expect(birth![key]).toEqual(control.row[key])
+      }
+      const actualClock = String(record(retained.mail).received_at)
+      expect(await resolveSupplierDataBirthProfile({ rawPayload: omitted, receivedAt: actualClock })).toBeNull()
+      // Both genuine subtype witnesses identify the exact fallback composition;
+      // neither is an admission or a fabricated malformed-message profile.
+      const other = await resolveSupplierDataBirthProfile({ rawPayload: reply(f, original, {
+        reason: original.wire.reason === 'Z22' ? 'Z23' : 'Z22',
+      }), receivedAt: actualClock })
+      expect(other).not.toBeNull()
+      expect(other!.rule_profile_version_id).not.toBe(birth!.rule_profile_version_id)
+      const fallback = sql<Row>(`SELECT jsonb_build_object('effectiveDate',m.received_at::date,'profiles',
+        (SELECT jsonb_agg(jsonb_build_object('profile',to_jsonb(mp),'pack',to_jsonb(rp)) ORDER BY mp.id)
+          FROM public.ediel_message_profiles mp JOIN public.ediel_rule_packs rp ON rp.id=mp.rule_pack_id
+          WHERE mp.is_enabled=true AND mp.profile->>'family'='PRODAT' AND mp.message_code='Z02'
+            AND mp.direction IN ('inbound','both') AND rp.status IN ('active','future')
+            AND rp.valid_from<=m.received_at::date AND (rp.valid_to IS NULL OR rp.valid_to>=m.received_at::date)))
+        FROM public.inbound_email_messages m WHERE m.id=${literal(mailbox.inboundEmailMessageId)}`)
+      expect(typeof fallback.effectiveDate).toBe('string')
+      expect(String(fallback.effectiveDate)).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      const profiles = fallback.profiles as Row[]
+      expect(profiles).toHaveLength(2)
+      expect(profiles.map(row => record(row.profile).id).sort())
+        .toEqual([birth!.rule_profile_version_id, other!.rule_profile_version_id].sort())
+      for (const witness of [birth!, other!]) {
+        const entry = profiles.find(row => record(row.profile).id === witness.rule_profile_version_id)!
+        expect(entry.profile).toMatchObject({ id: witness.rule_profile_version_id, rule_pack_id: witness.canonical_rule_pack_id,
+          profile_key: witness.rule_profile_key, message_code: 'Z02', is_enabled: true, profile: { family: 'PRODAT' } })
+        expect(entry.pack).toMatchObject({ id: witness.canonical_rule_pack_id, source_hash: witness.rule_pack_checksum })
+        expect(`${record(entry.pack).guide_version}:r${record(entry.pack).guide_revision}`).toBe(witness.rule_profile_version)
+      }
+      expectedBirthMessage = `canonical_inbound_rule_profile_resolution_failed:PRODAT:Z02:${fallback.effectiveDate}:2`
+      copyCompleteRows(path('authority-staged'), preBirthAuthorityTables)
+      unchangedCompleteRows(path('authority-before'), path('authority-staged'), '209/314 staging preserves all existing authority/business rows')
+      copyCompleteRows(path('old-ingress-staged'), stageIngressTables, mailbox)
+      unchangedCompleteRows(path('ingress-before'), path('old-ingress-staged'), '209/314 staging adds only its declared retained ingress')
+      // Mailbox configuration bookkeeping is an actual declared stage effect.
+      // Freeze its complete rows here; do not call it unchanged before stage.
+      copyCompleteRows(path('birth-boundary-before'), [...preBirthAuthorityTables, ...stageIngressTables, ...stageConfigurationTables])
+      observed = true
+    })
+    expect(staged.id).toBeNull()
+    expect(staged.birthErrors).toHaveLength(1)
+    expect(expectedBirthMessage).toBeDefined()
+    expect(staged.birthErrors[0]).toMatchObject({ code: '23514', message: expectedBirthMessage })
+    expect(observed, '209/314 must qualify actual retained ingress, structural cause and exact current profiles first').toBe(true)
+    copyCompleteRows(path('birth-boundary-after'), [...preBirthAuthorityTables, ...stageIngressTables, ...stageConfigurationTables])
+    unchangedCompleteRows(path('birth-boundary-before'), path('birth-boundary-after'), '209/314 creates no source/reception/assessment/business/ACK authority or retained-input mutation')
+    expect(smtp.send.mock.calls.length).toBe(sends)
+    await rereadControl(f, original, control)
+  } finally { rmSync(directory, { recursive: true, force: true }) }
+}
+
 // Frozen Z02 R22; "23-DDQ-PRODAT" is the application reference, not R23.
 // Field229 is dependent; UD and IT are independently mandatory parents.
 const required: readonly Z02OmittableField[] = ['311', '312', '202', '203', '313', '205', '206', '207', '208',
@@ -1232,6 +1361,8 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
       const before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id)
       if (field === '312') {
         await currentMissingGuideRefusal(f, original, complete, rawPayload)
+      } else if (field === '209' || field === '314') {
+        await currentMalformedObjectBirthRefusal(f, original, complete, rawPayload, field)
       } else {
         const staged = await stage(f, rawPayload)
         if (field === '229') {
