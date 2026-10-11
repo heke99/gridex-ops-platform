@@ -1,5 +1,13 @@
 # Fixed E delivery preflight and DB05 component qualification
 
+## Actual conditional workflow qualification and final tool rebind — 2026-10-11 15:25 UTC
+
+DONE/EVIDENCE: actual finalb454 SMOKE114499874922/run38148643222 completedSUCCESS, collector15:17:46 and root same-metadata-file readback; the old GEN-tail failure is genuinely green on currenthead. At15:23:14 observed24SUCCESS/10conditionalSKIP/2IN_PROGRESS/0FAIL, allnativefeedback and OPSupgradeSUCCESS; coverage/cleanreplay and dependentPRcertificate remain. No oldfdce failurecause retroactively invented.
+
+CORRECTION before tool use: actual zero-admin crawler workflow itself reports completedSKIP because its sole job is conditionalSKIP with no approval-label. Expect23qualifiedruns=22SUCCESS+1thatqualifiedSKIP, not forced23SUCCESS. Only this exact path/completed/noapproval/knownownsync-event/run/PR/head/app/suite/officialjob-check binding allows workflowSKIP; all other22 requireSUCCESS. All37job gates remain27SUCCESS+10qualifiedSKIP. No productionlabel, producer, workflow/checker/testoraclerelaxation or extra archive/log/native operation.
+
+Final preparedpreflightSHA09ddfd96abeba4af28664265352f9584c68d42b689c23ba9b557e74e5d09e3bf; roleSHAca6ff0ed5c1ecaeee6aaa52feef94e44c797dbb4721782f1d9a4463a0283a19e (primaryCP now actualsourcebranch file; separateoperationalCP gives its actualdocsbranch/path), matrix8ade2054unchanged. Independent affected designrebind86a9c525c8b8c4105801e1ee1a57f339ca92b7b7729def774828ad8f300b8cdb remainingC0/I0/M0, syntaxPASS. Source b454/treeace8 remainsclean/unchanged and A/Bsource2 C0I0M0 unchanged. Tools stillUNEXECUTED, no role/merge/delete. SoleCIwatcher continuesbounded15:20–15:30; root takes fresh runtime preflight/delivery only on genuine allgates and currentmain/board handback. Same7resources retained; no next implementationpacket.
+
 ## Delivery controls independently corrected before use — 2026-10-11 15:16 UTC
 
 DONE: independent A control-design review identified three prepared-preflight Important gaps (full applicable workflow/job presence and context binding; newest relevant execution rather than historical failure blocking; closing current head/main/attempt freshness) and two affected follow-up gaps (additional latest external app/context checks and strict literal role-receipt message). All accepted and fixed BEFORE execution. Final control-design review4fd890a77c6d4f837fad9287799f12633ffaccab95504b92555d7f51be3d8301 C0/I0/M0 is bounded static design approval; final source A/B approval remains unchanged.
