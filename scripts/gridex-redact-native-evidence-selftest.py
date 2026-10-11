@@ -147,6 +147,23 @@ for name, payload in [
 ]:
     check(name, b'OPAQUE_SHADOWED_HEADER' not in module.scrub(payload))
 
+# Public fake token spellings: preserve the original bytes-regex boundaries,
+# earliest non-overlapping span and trailing '-' outside the matched token.
+for name, payload, expected in [
+    ('jwt_after_hyphen', b'prefix-eyJx.a.b', b'prefix-' + module.REDACTED.encode()),
+    ('jwt_word_prefix_refused', b'AeyJx.a.b', b'AeyJx.a.b'),
+    ('jwt_underscore_prefix_refused', b'_eyJx.a.b', b'_eyJx.a.b'),
+    ('jwt_trailing_hyphens_retained', b'eyJx.a.b---', module.REDACTED.encode() + b'---'),
+    ('jwt_overlapping_three_run_windows', b'safe.eyJx.a.b', b'safe.' + module.REDACTED.encode()),
+    ('jwt_third_run_all_hyphens_refused', b'eyJx.a.---', b'eyJx.a.---'),
+    ('jwt_fourth_segment_retained', b'eyJx.a.b.c', module.REDACTED.encode() + b'.c'),
+    ('jwt_adjacent_global_spans', b'eyJx.a.b/eyJy.c.d', module.REDACTED.encode() + b'/' + module.REDACTED.encode()),
+    ('jwt_non_utf8_boundaries', b'\xffeyJx.a.b\xfe', b'\xff' + module.REDACTED.encode() + b'\xfe'),
+    ('jwt_incomplete_prefix_storm_identity', b'eyJ-' * 4096, b'eyJ-' * 4096),
+]:
+    check(name, module.scrub(payload) == expected)
+
+
 failed = [name for name, okay in checks if not okay]
 for name in failed:
     print('NATIVE_EVIDENCE_SELFTEST_FAIL: ' + name)

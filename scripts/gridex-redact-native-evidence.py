@@ -12,6 +12,37 @@ SENSITIVE = {'password', 'access_token', 'refresh_token', 'id_token', 'authoriza
 REDACTED = '[REDACTED_LOCAL_CREDENTIAL]'
 JWT = re.compile(rb'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b')
 EMBEDDED_ZIP = re.compile(rb'data:application/zip;base64,([A-Za-z0-9+/=]+)')
+JWT_RUN = re.compile(rb'[A-Za-z0-9_-]+')
+JWT_START = re.compile(rb'\beyJ[A-Za-z0-9_-]')
+
+
+def scrub_jwts(data):
+    # Without the original matcher's required prefix there is no JWT span.
+    if JWT_START.search(data) is None:
+        return data
+    # A candidate can start after '-' inside an ASCII token run. Scanning the
+    # same remaining run at every such start makes incomplete tokens quadratic.
+    # Visit each three-run window once, then use the original JWT matcher for
+    # its exact span (including its trailing word-boundary/backtracking rule).
+    runs = iter(JWT_RUN.finditer(data))
+    first = next(runs, None)
+    second = next(runs, None)
+    output = []
+    cursor = 0
+    for third in runs:
+        if (data[first.end():second.start()] == b'.'
+                and data[second.end():third.start()] == b'.'
+                and third.group().rstrip(b'-')):
+            start = JWT_START.search(data, max(cursor, first.start()), first.end())
+            match = JWT.match(data, start.start()) if start is not None else None
+            if match is not None:
+                output.extend((data[cursor:match.start()], REDACTED.encode()))
+                cursor = match.end()
+        first, second = second, third
+    if not output:
+        return data
+    output.append(data[cursor:])
+    return b''.join(output)
 
 
 def scrub(data, secrets=()):
@@ -24,7 +55,7 @@ def scrub(data, secrets=()):
     original = data
     for secret in secrets:
         data = data.replace(secret, REDACTED.encode())
-    data = JWT.sub(REDACTED.encode(), data)
+    data = scrub_jwts(data)
     data = EMBEDDED_ZIP.sub(lambda m: b'data:application/zip;base64,' + base64.b64encode(scrub(base64.b64decode(m[1]), secrets)), data)
     try:
         text = data.decode('utf-8')
