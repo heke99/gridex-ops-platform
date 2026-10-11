@@ -70,29 +70,33 @@ async function cardCreate(actorUserId = f.actorUserId) {
     p_actor_user_id: actorUserId,
   })
   if (error) throw new Error(error.message)
-  const b = data as Record<string, string>
-  sql(`INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,status,source_type,contract_name,
-    contract_type,energy_direction,spot_markup_ore_per_kwh,monthly_fee_sek,invoice_fee_sek,green_fee_mode,starts_at,price_snapshot,
-    contract_offer_id,contract_product_id,contract_product_version_id,contract_publication_version_id,price_plan_id,
-    price_plan_version_id,price_book_id,legal_bundle_version_id,offer_reference,commercial_snapshot,legal_snapshot,created_by,updated_by)
-    VALUES(${literal(id)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},'pending_signature',
-    'manual_override',${literal(b.offer_reference)},'variable_hourly','consumption',4,49,19,'none',${literal(futureNativeSupplyDate())},
-    ${literal({ ...pricing, price_areas: ['SE3'] })},${literal(b.contract_offer_id)},${literal(b.contract_product_id)},
-    ${literal(b.contract_product_version_id)},${literal(b.contract_publication_version_id)},${literal(b.price_plan_id)},
-    ${literal(b.price_plan_version_id)},${literal(b.price_book_id)},${literal(b.legal_bundle_version_id)},${literal(b.offer_reference)},
-    ${literal(b.commercial_snapshot)},${literal(b.legal_snapshot)},${literal(actorUserId)},${literal(actorUserId)});`)
+  const b = data as Record<string, unknown>
+  const inserted = await supabaseService.from('customer_contracts').insert({
+    id, company_id: f.companyId, customer_id: f.customerId, site_id: f.siteId, metering_point_id: f.pointId,
+    status: 'pending_signature', source_type: 'manual_override', contract_name: b.offer_reference,
+    contract_type: 'variable_hourly', energy_direction: 'consumption', spot_markup_ore_per_kwh: 4, monthly_fee_sek: 49,
+    invoice_fee_sek: 19, green_fee_mode: 'none', starts_at: futureNativeSupplyDate(), price_snapshot: { ...pricing, price_areas: ['SE3'] },
+    contract_offer_id: b.contract_offer_id, contract_product_id: b.contract_product_id,
+    contract_product_version_id: b.contract_product_version_id, contract_publication_version_id: b.contract_publication_version_id,
+    price_plan_id: b.price_plan_id, price_plan_version_id: b.price_plan_version_id, price_book_id: b.price_book_id,
+    legal_bundle_version_id: b.legal_bundle_version_id, offer_reference: b.offer_reference,
+    commercial_snapshot: b.commercial_snapshot, legal_snapshot: b.legal_snapshot, created_by: actorUserId, updated_by: actorUserId,
+  })
+  if (inserted.error) throw new Error(inserted.error.message)
   return { id }
 }
 
 // An intake draft: no binding yet, only the contract's resolved price_area_used.
-function draft(snapshot: Record<string, unknown> = pricing) {
+async function draft(snapshot: Record<string, unknown> = pricing) {
   const id = randomUUID()
-  sql(`INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,status,source_type,contract_name,
-    contract_type,energy_direction,spot_markup_ore_per_kwh,monthly_fee_sek,invoice_fee_sek,green_fee_mode,starts_at,price_area_used,
-    price_snapshot,created_by,updated_by)
-    VALUES(${literal(id)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},'draft',
-    'manual_override',${literal(`Kundspecifikt ${id}`)},'variable_hourly','consumption',4,49,19,'none',${literal(futureNativeSupplyDate())},
-    'SE3',${literal(snapshot)},${literal(f.actorUserId)},${literal(f.actorUserId)});`)
+  const { error } = await supabaseService.from('customer_contracts').insert({
+    id, company_id: f.companyId, customer_id: f.customerId, site_id: f.siteId, metering_point_id: f.pointId,
+    status: 'draft', source_type: 'manual_override', contract_name: `Kundspecifikt ${id}`, contract_type: 'variable_hourly',
+    energy_direction: 'consumption', spot_markup_ore_per_kwh: 4, monthly_fee_sek: 49, invoice_fee_sek: 19, green_fee_mode: 'none',
+    starts_at: futureNativeSupplyDate(), price_area_used: 'SE3', price_snapshot: snapshot,
+    created_by: f.actorUserId, updated_by: f.actorUserId,
+  })
+  if (error) throw new Error(error.message)
   if (snapshot === pricing) expect(sql<boolean>(`SELECT to_jsonb(NOT (price_snapshot ? 'price_areas')) FROM public.customer_contracts WHERE id=${literal(id)}`)).toBe(true)
   return { id }
 }
@@ -115,7 +119,7 @@ it('customer-card create: a non-draft one-off contract publishes, locks, archive
 })
 
 it('signature preparation: a draft one-off contract is bound and moved to pending_signature by the real RPC', async () => {
-  const contract = draft()
+  const contract = await draft()
   expect(chain(contract.id)).toMatchObject({ status: 'draft', contract_offer_id: null })
   const { data, error } = await supabaseService.rpc('gridex_prepare_customer_contract_signature_request_v1', {
     p_company_id: f.companyId, p_customer_id: f.customerId, p_contract_id: contract.id,
@@ -157,32 +161,52 @@ it('pins the consuming contract: its ID cannot be changed while it holds the one
   expectBoundOneOff(contract.id, 'pending_signature')
 })
 
-it('signed-PDF import: a draft one-off contract is bound and finalized by the real import trigger', async () => {
-  const contract = draft()
-  const checksum = 'b'.repeat(64)
-  sql(`INSERT INTO public.customer_authorization_documents(company_id,customer_id,site_id,metering_point_id,customer_contract_id,
-    document_type,status,title,mime_type,storage_bucket,file_path,file_checksum,uploaded_at,created_by,metadata)
-    VALUES(${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},${literal(contract.id)},
-    'complete_agreement','active','Synthetic signed one-off','application/pdf','customer-documents',
-    ${literal(`${f.companyId}/${contract.id}/signed.pdf`)},${literal(checksum)},now(),${literal(f.actorUserId)},
-    '{"source":"customer_intake","documentRole":"signed_agreement","channel":"admin_contract_create"}'::jsonb);`)
-  expectBoundOneOff(contract.id, 'signed')
-})
+// Same service-role route as the admin import (saveCustomerAuthorizationDocument),
+// so the real permission gate sees a service_role JWT and the actual actor.
+function importSignedAgreement(contractId: string) {
+  return supabaseService.from('customer_authorization_documents').insert({
+    company_id: f.companyId, customer_id: f.customerId, site_id: f.siteId, metering_point_id: f.pointId,
+    customer_contract_id: contractId, document_type: 'complete_agreement', status: 'active', title: 'Synthetic signed one-off',
+    mime_type: 'application/pdf', storage_bucket: 'customer-documents', file_path: `${f.companyId}/${contractId}/signed.pdf`,
+    file_checksum: 'b'.repeat(64), uploaded_at: new Date().toISOString(), created_by: f.actorUserId,
+    metadata: { source: 'customer_intake', documentRole: 'signed_agreement', channel: 'admin_contract_create' },
+  })
+}
 
-it('signature preparation refuses an explicit price_areas list without the contract area, with no effect', async () => {
-  const contract = draft({ ...pricing, price_areas: ['SE4'] })
-  const counts = () => sql<number[]>(`SELECT jsonb_build_array(
+function effectCounts(contractId: string) {
+  return sql<number[]>(`SELECT jsonb_build_array(
     (SELECT count(*) FROM public.contract_offers WHERE company_id=${literal(f.companyId)}),
     (SELECT count(*) FROM gridex_one_off_offer_binding.reservations WHERE company_id=${literal(f.companyId)}),
     (SELECT count(*) FROM public.contract_publication_versions v JOIN public.contract_publications p ON p.id=v.contract_publication_id
-       JOIN public.tenant_contract_assignments a ON a.id=p.assignment_id WHERE a.company_id=${literal(f.companyId)}))`)
-  const before = counts()
+       JOIN public.tenant_contract_assignments a ON a.id=p.assignment_id WHERE a.company_id=${literal(f.companyId)}),
+    (SELECT count(*) FROM public.customer_authorization_documents WHERE customer_contract_id=${literal(contractId)}))`)
+}
+
+it('signed-PDF import: a draft one-off contract is bound and finalized by the real import trigger', async () => {
+  const contract = await draft()
+  const { error } = await importSignedAgreement(contract.id)
+  expect(error, JSON.stringify(error)).toBeNull()
+  expectBoundOneOff(contract.id, 'signed')
+})
+
+it('signed-PDF import refuses an explicit price_areas list without the contract area, with no effect', async () => {
+  const contract = await draft({ ...pricing, price_areas: ['SE4'] })
+  const before = effectCounts(contract.id)
+  const { error } = await importSignedAgreement(contract.id)
+  expect(error).toMatchObject({ code: '23514', message: 'one_off_price_area_not_in_price_areas' })
+  expect(effectCounts(contract.id)).toEqual(before)
+  expect(chain(contract.id)).toMatchObject({ status: 'draft', contract_offer_id: null })
+})
+
+it('signature preparation refuses an explicit price_areas list without the contract area, with no effect', async () => {
+  const contract = await draft({ ...pricing, price_areas: ['SE4'] })
+  const before = effectCounts(contract.id)
   const { error } = await supabaseService.rpc('gridex_prepare_customer_contract_signature_request_v1', {
     p_company_id: f.companyId, p_customer_id: f.customerId, p_contract_id: contract.id,
     p_token_hash: 'c'.repeat(64), p_recipient_email: `synthetic-${randomUUID()}@example.invalid`,
     p_expires_at: new Date(Date.now() + 72 * 3_600_000).toISOString(), p_actor_user_id: f.actorUserId, p_channel: 'internal',
   })
-  expect(error?.message).toContain('one_off_price_area_not_in_price_areas')
-  expect(counts()).toEqual(before)
+  expect(error).toMatchObject({ code: '23514', message: 'one_off_price_area_not_in_price_areas' })
+  expect(effectCounts(contract.id)).toEqual(before)
   expect(chain(contract.id)).toMatchObject({ status: 'draft', contract_offer_id: null })
 })
