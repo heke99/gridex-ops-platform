@@ -35019,6 +35019,20 @@ BEGIN
 END $$;
 
 --
+-- Name: transaction_version_state_v1(uuid, uuid, text); Type: FUNCTION; Schema: gridex_utilts_binding; Owner: -
+--
+
+CREATE FUNCTION gridex_utilts_binding.transaction_version_state_v1(p_company uuid, p_source uuid, p_transaction text) RETURNS text
+    LANGUAGE sql STABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT CASE WHEN s.is_current IS FALSE AND s.version_no>1 AND s.supersedes_series_id IS NULL THEN 'late_older_history' ELSE 'current' END
+ FROM public.ediel_ack_transaction_results a
+ JOIN public.meter_reading_series s ON s.id=a.persisted_series_id AND s.company_id=a.company_id
+ WHERE a.company_id=p_company AND a.source_message_id=p_source AND a.source_transaction_id=p_transaction AND a.persistence_status='persisted'
+$$;
+
+--
 -- Name: unowned_regulating_object_v1(jsonb, text); Type: FUNCTION; Schema: gridex_utilts_binding; Owner: -
 --
 
@@ -59408,7 +59422,7 @@ CREATE FUNCTION public.gridex_consume_utilts_billing_v1(p_company_id uuid, p_sou
     SET "TimeZone" TO 'UTC'
     AS $$
 DECLARE v_transaction text; v_contract jsonb; v_context jsonb; v_contracts jsonb:='[]'; v_total numeric:=0; v_ordinal jsonb;
- v_result public.billing_underlays%rowtype; v_source public.ediel_messages%rowtype;
+ v_result public.billing_underlays%rowtype; v_source public.ediel_messages%rowtype; v_late_older boolean:=false;
 BEGIN
  SELECT s.* INTO v_source FROM public.ediel_messages s WHERE s.id=p_source_message_id AND s.company_id=p_company_id FOR SHARE;
  IF NOT FOUND THEN RAISE EXCEPTION 'utilts_consumption_source_unavailable' USING ERRCODE='P0U01'; END IF;
@@ -59416,6 +59430,9 @@ BEGIN
  FOR v_transaction IN SELECT a.source_transaction_id FROM public.ediel_ack_transaction_results a
   WHERE a.source_message_id=p_source_message_id AND a.company_id=p_company_id AND a.environment=v_source.environment
   AND a.disposition='accepted' AND a.persistence_status='persisted' ORDER BY a.source_transaction_id LOOP
+  -- SC-046: late older history is never a billing contribution.
+  IF gridex_utilts_binding.transaction_version_state_v1(p_company_id,p_source_message_id,v_transaction)='late_older_history' THEN
+   v_late_older:=true; CONTINUE; END IF;
   v_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,p_source_message_id,v_transaction);
   IF v_contract#>>'{billing,capability}' IS DISTINCT FROM 'write' THEN RAISE EXCEPTION 'utilts_consumption_billing_context_mismatch' USING ERRCODE='P0U01'; END IF;
   IF v_context IS NULL THEN v_context:=v_contract->'billing';
@@ -59425,6 +59442,8 @@ BEGIN
   END LOOP;
   v_contracts:=v_contracts||jsonb_build_array(v_contract);
  END LOOP;
+ -- SC-046: a source holding only late older history creates no underlay.
+ IF v_context IS NULL AND v_late_older THEN RETURN NULL; END IF;
  IF v_context IS NULL THEN RAISE EXCEPTION 'utilts_consumption_billing_missing' USING ERRCODE='P0U01'; END IF;
  IF jsonb_typeof(p_expected_contracts) IS DISTINCT FROM 'array' THEN RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
  IF (SELECT jsonb_agg(e.value ORDER BY e.value->>'transactionId') FROM jsonb_array_elements(p_expected_contracts) e) IS DISTINCT FROM v_contracts THEN
@@ -59464,6 +59483,8 @@ CREATE FUNCTION public.gridex_consume_utilts_metering_v1(p_company_id uuid, p_so
     AS $$
 DECLARE v_contract jsonb; v_attribution jsonb; v_observation jsonb; v_key text; v_payload jsonb; v_result public.metering_values%rowtype;
 BEGIN
+ -- SC-046: late older history never writes or conflicts with current metering.
+ IF gridex_utilts_binding.transaction_version_state_v1(p_company_id,p_source_message_id,p_transaction_id)='late_older_history' THEN RETURN NULL; END IF;
  v_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,p_source_message_id,p_transaction_id);
  IF p_expected_contract IS DISTINCT FROM v_contract THEN RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
  v_attribution:=v_contract->'metering';
@@ -79174,6 +79195,12 @@ BEGIN
  -- Same check applies to immutable replay: history cannot be disclosed or used
  -- for new sink/ACK effects after this operator's current grant was revoked.
  result:=gridex_utilts_binding.persist_consumption_before_actor_v1(p_company_id,p_environment,p_source_message_id,p_message_code,p_raw_payload,p_transactions);
+ -- SC-046: every persisted row states whether its stored series is current
+ -- data or late older history, so bound sinks never consume the latter.
+ SELECT coalesce(jsonb_agg(CASE WHEN e.r->>'persistenceStatus'='persisted'
+   THEN e.r||jsonb_build_object('versionState',gridex_utilts_binding.transaction_version_state_v1(p_company_id,p_source_message_id,e.r->>'transactionId'))
+   ELSE e.r END ORDER BY e.o),'[]'::jsonb)
+  INTO result FROM jsonb_array_elements(result) WITH ORDINALITY e(r,o);
  -- The preserved owner may wait on its source/advisory locks. Expiry during
  -- that wait rejects the result and rolls back every mutation in this call.
  PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company_id,p_actor_user_id);
@@ -193579,6 +193606,12 @@ REVOKE ALL ON FUNCTION gridex_utilts_binding.stored_contract_v1(p_company uuid, 
 --
 
 REVOKE ALL ON FUNCTION gridex_utilts_binding.supported_point_v1(tokens jsonb, transaction_id text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION transaction_version_state_v1(p_company uuid, p_source uuid, p_transaction text); Type: ACL; Schema: gridex_utilts_binding; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_utilts_binding.transaction_version_state_v1(p_company uuid, p_source uuid, p_transaction text) FROM PUBLIC;
 
 --
 -- Name: FUNCTION unowned_regulating_object_v1(tokens jsonb, transaction_id text); Type: ACL; Schema: gridex_utilts_binding; Owner: -
