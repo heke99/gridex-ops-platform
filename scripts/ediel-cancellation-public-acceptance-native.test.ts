@@ -101,7 +101,8 @@ function z15cForSupplier(f: Fixture) {
       reasonForTransaction:'Z24',permissionStatus:'A74',permissionId:'NO-ESCO-'+reference,
       permissionEndDate:f.endMinute,permissionEndReason:'E37'} })
   expect(rendered.issues.filter(issue => issue.severity==='error' && !/_UNDETERMINED$/.test(issue.code))).toEqual([])
-  expect(rendered.diagnostics.profileKey).toBe('PRODAT:Z15:C:26.A:r3')
+  expect(rendered.diagnostics).toMatchObject({profileKey:'prodat_z15_permission_ended',
+    code:'Z15',variant:'C',rulebookApplicationReference:'23-DGI-PRODAT'})
   return EdifactEnvelopeCodec.encode({sender:f.receiver,receiver:f.sender,senderQualifier:'14',receiverQualifier:'14',
     applicationReference:'23-DGI-PRODAT',environment:'test',acknowledgementRequest:true,
     interchangeReference:randomUUID().replaceAll('-','').slice(0,14),messages:[{
