@@ -57,3 +57,8 @@ Precise requested2f output after existing headerrejection and BEFORE bilateral n
 
 Six-file own proofworker is preparing original66596 +2strictH209tails, noL/Z22privateauthorityexpansion; originalnegative/end/watch/replaycases preserved. The native/workflow files are still uncommitted and no nativejob exists. Prepared helper/test/checkpoint will be published separately for exact ownerhandoff, not markedREADY/CI_GREEN or merged while requiredruntimeconnection missing.
 
+
+## Published precise helper output / owner connection required
+
+Prepared source `3aa1c748d06caf6a251915d8dabc46cdf907f923` remotebranch GET MATCH and helperfullbytes MATCH; all11ownrefs MATCH. Actualcurrentruntime privateWeakMap connection remains current2f-owned3afd2. Exact import/call/register/return snippet supplied on#673 against immutablehelper, no foreign runtimeedit. Root owns ingress extension55af3 and original HIDs/helper/testa592; native6extension exactstate. Existing headerroute priority must stay beforehelper; helper precedes bilateralcapabilityearlyreturn. No newnative/workflow PR publication yet. Next own ingressguard behavioralcorrection and6assetprep; actualhook first event then whole current-source/nativeverification.
+
