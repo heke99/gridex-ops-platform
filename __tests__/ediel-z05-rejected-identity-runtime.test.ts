@@ -21,6 +21,7 @@ import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {resolveReceivedZ05RejectedIdentityRuntime} from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRuntime'
+import * as rejectedIdentityRuntime from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRuntime'
 import {hasReceivedZ05RejectedIdentityRejection} from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRejection'
 
 type Row = Record<string, unknown>
@@ -195,6 +196,27 @@ it('serialized decisions and changed original rows cannot redeem the runtime res
   decision.responsePlan = []
   expect(response(decision)).toBeNull()
   expect(hasReceivedZ05RejectedIdentityRejection(decision, io.source, actor)).toBe(false)
+})
+
+it('a caller row changed at the async helper return cannot gain the earlier private response facet', async () => {
+  const original = structuredClone(io.source)
+  const actualHelper = rejectedIdentityRuntime.resolveReceivedZ05RejectedIdentityRuntime
+  // Declared local scheduling seam only. The real helper performs every actor,
+  // original, legal, catalog, structural and renderer check before returning.
+  // This test grants no database, ACK, transport or business execution credit.
+  vi.spyOn(rejectedIdentityRuntime, 'resolveReceivedZ05RejectedIdentityRuntime').mockImplementation(async (...args) => {
+    const result = await actualHelper(...args)
+    expect(result).not.toBeNull()
+    expect(hasReceivedZ05RejectedIdentityRejection(result!.decision, original, actor)).toBe(true)
+    io.source.raw_payload = original.raw_payload! + ' '
+    return result
+  })
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(io.source, {actorUserId: actor})
+  expect(io.rows.ediel_messages[0]).toEqual(original)
+  expect(hasReceivedZ05RejectedIdentityRejection(decision, io.source, actor)).toBe(false)
+  expect(readReceivedCanonicalProdatResponseValidation(decision, io.source)).toBeNull()
+  expect(readReceivedCanonicalProdatApplicationObjects(decision, io.source)).toBeNull()
+  expect(readReceivedCanonicalProdatSourceFunction(decision, io.source)).toBeNull()
 })
 
 it.each(['invalid', 'absent'] as const)('independent helper supplies a private %s rejection facet without impersonating runtime ownership', async kind => {
