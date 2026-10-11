@@ -88,6 +88,12 @@
 - Composition capture run 38096321529 imported → head `b69b2aa` (tree 82caf51); db:migrations:check OK.
 - Next: CI green on b69b2aa, second review, role-merge, MERGED, release ffce8ee6 + 83b7d8b0.
 
+### 2026-10-11T00:20Z — two reviews on #736; #735 delta; #734 coordination
+- #736 b69b2aa: D C0/I0 (6103578918) + second independent C0/I0 (6103649355). Waiting on CI (runners queued).
+- #735 delta 2e1a68f→f04c5f3 (admin alarm feed): C0/I0 (6103670262), 13/13 tests.
+- #734 wrote shared generated files on its branch after slot directive; proposed order #736 first, then release
+  83b7d8b0, #734 recomposes (6103673054).
+
 ## Next
 P-08: import capture for #736 → native + gates green → READY → 2 reviews → coverage → merge.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
