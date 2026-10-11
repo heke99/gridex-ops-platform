@@ -94,6 +94,11 @@
 - #734 wrote shared generated files on its branch after slot directive; proposed order #736 first, then release
   83b7d8b0, #734 recomposes (6103673054).
 
+### 2026-10-11T01:00Z — delivery preflight #736 ([6103988141](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103988141))
+- main now 622ccfb (#738 SC-071; coverage row + checkpoint only). No new capture needed.
+- merge-tree 622ccfb+b69b2aa → tree 8c696c16, no conflict, coverage 305/352.
+- CI b69b2aa: 20 success / 0 failure / 5 pending. Two C0/I0 reviews done.
+
 ## Next
 P-08: import capture for #736 → native + gates green → READY → 2 reviews → coverage → merge.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
