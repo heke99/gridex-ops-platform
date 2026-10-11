@@ -4,6 +4,9 @@
 // createUtiltsRuntimeAcks → ACK finalization). Only the database persistence
 // RPC answers versionState 'late_older_history', as the forward SQL does; the
 // harness mocks are those of ediel-utilts-persistence-processor.test.ts.
+// createCanonicalAckMessage is mocked here; the real kernel, positive authority,
+// atomic ACK creation and receipt finalization are proven in
+// __tests__/ediel-utilts-err-gateway.test.ts (SC-046 cases).
 // Not native replay or market evidence.
 import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource as registerFixtureSource, currentUtiltsActorQuery, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -81,7 +84,7 @@ function lateOlder(field: '512' | '532') {
   return message
 }
 
-describe('SC-046 late older E66 keeps its positive APERAK through production processing', () => {
+describe('SC-046 late older E66 is planned for a positive APERAK with no sink effect (ACK kernel mocked)', () => {
   it.each([['512', 'registrationDate', '2026-06-30T22:20:00.000Z'], ['532', 'latestUpdateDate', '2026-06-30T22:21:00.000Z']] as const)(
     'own %s (%s) late older version: positive APERAK finalized, no sink effect, no ERR', async (field, key, instant) => {
       const message = declaredTestSource(lateOlder(field)); io.get.mockResolvedValue(message)

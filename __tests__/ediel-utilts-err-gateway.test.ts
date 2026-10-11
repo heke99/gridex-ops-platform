@@ -1,4 +1,4 @@
-// masterplan: U-13, AT-U-13, SC-045, SC-047, SC-048
+// masterplan: U-13, AT-U-13, SC-045, SC-046, SC-047, SC-048
 import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
@@ -11,6 +11,7 @@ import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdiel
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import { recountEdifactUnt as recount } from './helpers/recountEdifactUnt'
 
 // Modeled transport configuration only; no outbox/provider/send is exercised.
 vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:()=>({from:'gridex@example.invalid',host:'smtp.example.invalid',port:587})}))
@@ -18,7 +19,7 @@ vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:()=>({from:'g
 type Row = Record<string, unknown>
 const database = vi.hoisted(() => ({ tables: new Map<string, Row[]>(), failErrReference: null as string | null,
   raceErrReference: null as string | null, raceCommitted: false, sourceBases:new Map<string,Row>(),bornOriginals:new Map<string,Row>(),
-  sourceBasisMode:'valid' as 'valid'|'missing'|'changed_raw', sourceBasisReads:[] as Row[] }))
+  sourceBasisMode:'valid' as 'valid'|'missing'|'changed_raw', sourceBasisReads:[] as Row[], authorityCalls:[] as Row[] }))
 vi.mock('@/lib/supabase/service', () => {
   const value = (row: Row, key: string) => {
     const [base, member] = key.split('->>')
@@ -177,6 +178,7 @@ vi.mock('@/lib/supabase/service', () => {
           .map(row=>({status:'qualified',message:structuredClone(row),payloadHash:createHash('sha256').update(String(row.raw_payload)).digest('hex')}))}}
       }
       if (name !== 'gridex_require_utilts_positive_ack_authority_v1') throw Error(`unexpected_rpc:${name}`)
+      database.authorityCalls.push(structuredClone(args))
       // Adapter-only harness: model an already committed consumer reservation.
       // Actual receipt/series/contract proof stays in the native suite.
       const source = database.tables.get('ediel_messages')!.find(row => row.id === args.p_source_message_id &&
@@ -199,6 +201,7 @@ beforeEach(() => {
   database.raceCommitted = false
   database.sourceBasisMode = 'valid'
   database.sourceBasisReads = []
+  database.authorityCalls = []
   vi.stubGlobal('fetch', () => { throw Error('external_network_forbidden') })
 })
 afterEach(() => {
@@ -612,4 +615,46 @@ it('SC-047 an object known only in another tenant is unknown here: the real look
  const own=await matchUtiltsTransactionsForTenant({message:f.source,facts:f.runtime.facts})
  expect(own[0]).toMatchObject({meteringPointId:'own-point',matchStatus:'matched'})
  expect(runUtiltsRuntimeForMessage({...source,parsed_payload:{...(f.source.parsed_payload??{}),utiltsTransactionMatches:own}} as EdielMessageRow,{referenceDate:'2026-10-01',canonicalPolicy:policy}).ackPlan.utiltsErrCodes).toEqual([])
+})
+
+// SC-046: a late OLDER version (own 512 = transaction DTM+597, own 532 = DTM+368,
+// older than the newer stored version) is persisted as non-current history and
+// still answered with a positive APERAK. The real kernel, positive authority
+// gateway, atomic ACK creation and receipt finalization run against the stateful
+// tables above. The real SQL authority ignores is_current for this reason
+// (require_positive_storage_authority_v1); the unchanged newer metering value and
+// single billing underlay are proven by scripts/ediel-sc-046-late-older-sink-sql-regression.mjs.
+it.each([
+ ['512', 'registrationTime', "DTM+597:202607010016:203'", (raw: string) => raw.replace("DTM+597:202607010020:203'", "DTM+597:202607010016:203'")],
+ ['532', 'latestUpdateTime', "DTM+368:202607010017:203'", (raw: string) => raw.replace("DTM+597:202607010020:203'", "DTM+597:202607010020:203'\nDTM+368:202607010017:203'")],
+] as const)('SC-046 a late older version with own %s gets one real same-source positive APERAK, a finalized receipt, no ERR and no replay duplicate', async (_field, fact, own, transform) => {
+ const f = seed([{ reference: 'SC046-OLDER', outcome: 'accepted' }], '2026-10-01', raw => recount(transform(raw)))
+ expect(f.source.raw_payload).toContain(own)
+ // The own version time is parsed from the transaction itself.
+ expect((f.runtime.facts.transactions[0] as unknown as Record<string, unknown>)[fact]).toBeTruthy()
+ expect(f.runtime.transactionDispositions).toEqual([expect.objectContaining({ transactionId: 'SC046-OLDER', disposition: 'accepted', responseType: 'positive_aperak' })])
+ // Persisted late-older history: accepted, stored, planned positive APERAK.
+ Object.assign(f.reservations[0], { disposition: 'accepted', persistence_status: 'persisted', persisted_series_id: randomUUID() })
+ await f.finalize()
+ // The real positive authority gate ran for exactly this source and transaction.
+ expect(database.authorityCalls).toEqual([expect.objectContaining({ p_company_id: f.source.company_id, p_environment: 'test', p_source_message_id: f.source.id, p_transaction_id: 'SC046-OLDER', p_ack_message_id: null })])
+ // One stored APERAK bound to the same source and transaction, positive.
+ const aperaks = f.acks().filter(row => row.message_family === 'APERAK')
+ expect(aperaks).toHaveLength(1)
+ expect(aperaks[0]).toMatchObject({ company_id: f.source.company_id, environment: 'test', related_message_id: f.source.id, ack_outcome: 'positive',
+  parsed_payload: expect.objectContaining({ relatedTransactionReference: 'SC046-OLDER', ackScope: 'transaction' }) })
+ const wire = EdifactEnvelopeCodec.decode(String(aperaks[0].raw_payload))
+ expect(segmentComposite(wire.segments.find(s => s.tag === 'BGM')!, 1, wire.una)[0]).toBe('312')
+ expect(wire.segments.filter(s => s.tag === 'RFF').map(s => segmentComposite(s, 1, wire.una)).filter(c => c[0] === 'ACW').map(c => c[1])).toEqual(['SC046-OLDER'])
+ // Durable finalized receipt, read back through the filtered table query.
+ const receipt = database.tables.get('ediel_ack_transaction_results')!.filter(row => row.company_id === f.source.company_id && row.environment === 'test'
+  && row.source_message_id === f.source.id && row.source_transaction_id === 'SC046-OLDER')
+ expect(receipt).toEqual([expect.objectContaining({ final_response_type: 'positive_aperak', response_message_id: aperaks[0].id, finalized_at: expect.any(String) })])
+ // No ERR and no negative response of any family.
+ expect(f.acks().filter(row => row.message_family === 'UTILTS_ERR')).toEqual([])
+ expect(f.acks().filter(row => row.ack_outcome === 'negative')).toEqual([])
+ // Replay: no duplicate ACK and an unchanged receipt.
+ const before = structuredClone({ acks: f.acks(), receipt })
+ await f.finalize()
+ expect({ acks: f.acks(), receipt: database.tables.get('ediel_ack_transaction_results')!.filter(row => row.source_message_id === f.source.id) }).toEqual(before)
 })
