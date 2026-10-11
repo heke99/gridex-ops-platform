@@ -1065,3 +1065,18 @@ privateh-final-review1.json +h-final-review2.json retained. No source defect.
 NEXT ROOT existing current-head requiredCI closure, freshmaincomposition, normal
 expectedheadmerge under role-merge then actualmainreceipt/roleFIRST/11ownresource
 release. Source/native proof approved; no CI_GREEN/MERGED/externalclaim or role.
+
+
+## 2026-10-11 Stockholm — actual foreign SC071 delivery and H applicability
+
+Actual main622ccfb72f104e7cf4a668980f5aa8b5a59cae40 mergesPR738; onlyforeign
+SC071 coverage and its own checkpoint changed. Ledger115VERIFIED+188PASSED=303
+of352; H own2remain NOT_EXECUTED onmain/open PASSED proposal3bc76d51.
+Normal projectedtree ad22a651f90486ad019f92f4de36093865e7113a preserves ALL
+foreigncurrentmain rows, including SC071. All4592original R2inputhashes unchanged
+in projection; prior100native/fullH/finite89proof applies, no latestmain native
+run or SC071 credit claimed by ROOT. Both bounded independent main622 projection rebindings APPROVED C0I0;
+private h-main622-review1.json/h-main622-review2.json retained. No code/headchange, exactcurrentheadCI continues. Current
+quality/upgrade/z05 native SUCCESS; remainingrequiredgates stillpending.
+NEXT ROOT close currentCI, freshmainpreflight/free
+merge-role/expectedheadordinarydelivery. Elevenownrefs retained, no role.
