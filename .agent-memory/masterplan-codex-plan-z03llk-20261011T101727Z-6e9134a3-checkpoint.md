@@ -1,6 +1,6 @@
 # Own PLANAGENT checkpoint — Z03L/Z03LK
 
-Status: SOURCE_REVIEW_READY at PR #759 exact head `c27c169bc3d858001079f805a2d4b36e2505b719`; both independent affected five-file source reviews approve that head with C0/I0/M0. Same packet retains all seven verified resource refs. One named current-head native CI producer is QUEUED; no native case or mandatory-green conclusion exists. Whole IDs remain unapproved, coverage unchanged. No merge authorization or merge-role acquired. Routine checkpoint is published on separate own checkpoint branch to preserve PR/native identity.
+Status: RESUMED original active source owner; same packet and all seven verified refs retained. Actual native18PASS/16FAIL; minimal owned explicit-Z12 fixture correction pending source qualification/edit. Coverage unchanged, whole IDs unapproved; no merge authorization or merge-role.
 
 Identity: `codex-plan-z03llk-20261011T101727Z-6e9134a3`; packet `6e9134a3-e363-4d8a-9d35-a9be2c2b8b60`; branch `codex/plan-z03llk-6e9134a3`; isolated workspace `/tmp/gridex-plan-z03llk-6e9134a3`.
 
@@ -93,3 +93,9 @@ Source publication receipt POST and authenticated GET byte-verified: https://git
 ## Skill routing
 
 using-superpowers subagent STOP; using-git-worktrees for authorized isolated checkout; TDD/systematic-debugging for genuine missing-hook red-first diagnosis; writing-good-tests for real accepted/prohibited behavior; literal spec-to-code tracing; verification-before-completion; requesting-code-review for two independent affected-source reviews. Supabase guidance applies to disposable native proof only; no production/schema mutation. Complete architecture/UI/performance/security/provider/email-design audits are not triggered by this bounded acceptance source packet.
+
+## Original-owner resumption — 2026-10-11T11:56:08.481651+00:00
+
+Original agent `codex-plan-z03llk-20261011T101727Z-6e9134a3` is active in the original live collaboration tree; same packet, original575ad/ec08 receipts and all7refs freshly GETMATCH. No silence release or takeover. Responding to https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6108701313. Actual main `d426a7ee439af5cca5d96d5858f4a835754f51e4`, PR759 exactheadc27c. Real own native38133882001/attempt1 FAILURE18PASS/16FAIL replaces the earlier queued observation; previous failures and all34original causal/negative assertions remain history/required. Coverage unchanged, both whole IDs unapproved.
+
+Next before any source edit: publish/GET-verify RESUMED response with this checkpoint. Then qualify current-main source closure and independently reviewed minimal two-line explicit Z12 constructor correction in owned `scripts/ediel-at-z03l-z03lk-supplier-native.test.ts`; preserve every assertion. Proposal https://github.com/heke99/gridex-ops-platform/pull/759#issuecomment-6108731771. Reuse already-collected nativefailure/proposal records; no duplicate native/GEN/capture/artifact collector. After source qualification, publish one substantive source correction, obtain two applicable independent affected reviews, and follow its single canonical native workflow. No mainmerge or merge-role while explicit merge boundary remains unanswered.
