@@ -85,15 +85,15 @@ async function cardCreate(actorUserId = f.actorUserId) {
 }
 
 // An intake draft: no binding yet, only the contract's resolved price_area_used.
-function draft() {
+function draft(snapshot: Record<string, unknown> = pricing) {
   const id = randomUUID()
   sql(`INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,status,source_type,contract_name,
     contract_type,energy_direction,spot_markup_ore_per_kwh,monthly_fee_sek,invoice_fee_sek,green_fee_mode,starts_at,price_area_used,
     price_snapshot,created_by,updated_by)
     VALUES(${literal(id)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},'draft',
     'manual_override',${literal(`Kundspecifikt ${id}`)},'variable_hourly','consumption',4,49,19,'none',${literal(futureNativeSupplyDate())},
-    'SE3',${literal(pricing)},${literal(f.actorUserId)},${literal(f.actorUserId)});`)
-  expect(sql<boolean>(`SELECT to_jsonb(NOT (price_snapshot ? 'price_areas')) FROM public.customer_contracts WHERE id=${literal(id)}`)).toBe(true)
+    'SE3',${literal(snapshot)},${literal(f.actorUserId)},${literal(f.actorUserId)});`)
+  if (snapshot === pricing) expect(sql<boolean>(`SELECT to_jsonb(NOT (price_snapshot ? 'price_areas')) FROM public.customer_contracts WHERE id=${literal(id)}`)).toBe(true)
   return { id }
 }
 
@@ -167,4 +167,22 @@ it('signed-PDF import: a draft one-off contract is bound and finalized by the re
     ${literal(`${f.companyId}/${contract.id}/signed.pdf`)},${literal(checksum)},now(),${literal(f.actorUserId)},
     '{"source":"customer_intake","documentRole":"signed_agreement","channel":"admin_contract_create"}'::jsonb);`)
   expectBoundOneOff(contract.id, 'signed')
+})
+
+it('signature preparation refuses an explicit price_areas list without the contract area, with no effect', async () => {
+  const contract = draft({ ...pricing, price_areas: ['SE4'] })
+  const counts = () => sql<number[]>(`SELECT jsonb_build_array(
+    (SELECT count(*) FROM public.contract_offers WHERE company_id=${literal(f.companyId)}),
+    (SELECT count(*) FROM gridex_one_off_offer_binding.reservations WHERE company_id=${literal(f.companyId)}),
+    (SELECT count(*) FROM public.contract_publication_versions v JOIN public.contract_publications p ON p.id=v.contract_publication_id
+       JOIN public.tenant_contract_assignments a ON a.id=p.assignment_id WHERE a.company_id=${literal(f.companyId)}))`)
+  const before = counts()
+  const { error } = await supabaseService.rpc('gridex_prepare_customer_contract_signature_request_v1', {
+    p_company_id: f.companyId, p_customer_id: f.customerId, p_contract_id: contract.id,
+    p_token_hash: 'c'.repeat(64), p_recipient_email: `synthetic-${randomUUID()}@example.invalid`,
+    p_expires_at: new Date(Date.now() + 72 * 3_600_000).toISOString(), p_actor_user_id: f.actorUserId, p_channel: 'internal',
+  })
+  expect(error?.message).toContain('one_off_price_area_not_in_price_areas')
+  expect(counts()).toEqual(before)
+  expect(chain(contract.id)).toMatchObject({ status: 'draft', contract_offer_id: null })
 })

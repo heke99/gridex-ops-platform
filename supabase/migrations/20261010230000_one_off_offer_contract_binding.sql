@@ -97,6 +97,19 @@ begin
     p_pricing_snapshot := p_pricing_snapshot
       || jsonb_build_object('price_areas',jsonb_build_array(p_pricing_snapshot->>'price_area'));
   end if;
+  -- The contract's resolved price_area is authoritative for what it is billed
+  -- on. An explicit canonical list that does not contain it would publish an
+  -- offer for other areas, which no downstream check compares, so refuse it.
+  -- A valid multi-area list that contains the resolved area stays eligible.
+  if nullif(p_pricing_snapshot->>'price_area','') is not null
+     and jsonb_typeof(p_pricing_snapshot->'price_areas')='array'
+     and jsonb_array_length(p_pricing_snapshot->'price_areas')>0
+     and not (p_pricing_snapshot->'price_areas' @> jsonb_build_array(p_pricing_snapshot->>'price_area')) then
+    raise exception using
+      errcode='23514',
+      message='one_off_price_area_not_in_price_areas',
+      detail=p_pricing_snapshot->>'price_area';
+  end if;
 
   p_payload := p_payload || jsonb_build_object(
     'name',coalesce(nullif(p_payload->>'name',''),'Kundspecifikt avtal'),

@@ -219,7 +219,8 @@ describe('one-off offer contract binding', () => {
     ['explicit empty array', { price_area: 'SE3', price_areas: [] }, []],
     ['explicit null', { price_area: 'SE3', price_areas: null }, null],
     ['explicit scalar', { price_area: 'SE3', price_areas: 'bogus' }, 'bogus'],
-    ['explicit different array', { price_area: 'SE3', price_areas: ['SE4'] }, ['SE4']],
+    ['explicit multi-area array containing it', { price_area: 'SE3', price_areas: ['SE3', 'SE4'] }, ['SE3', 'SE4']],
+    ['explicit array without a resolved area', { price_areas: ['SE4'] }, ['SE4']],
   ])('bridges price_area to price_areas only for an %s', async (_label, snapshot, expected) => {
     const { rows } = await db.query<{ b: { contract_offer_id: string } }>(
       `select public.gridex_prepare_manual_contract_binding($1::uuid, '{}'::jsonb, $2::jsonb, null) as b`,
@@ -227,6 +228,18 @@ describe('one-off offer contract binding', () => {
     const saved = await db.query<{ areas: unknown }>(
       `select snapshot->'price_areas' as areas from public.saved_offer_inputs where offer_id = $1`, [rows[0].b.contract_offer_id])
     expect(saved.rows[0].areas).toEqual(expected)
+  })
+
+  it('refuses an explicit price_areas list that omits the resolved price_area, with no effect', async () => {
+    const T4 = '55555555-5555-4555-8555-555555555555'
+    await db.query('insert into public.companies values ($1)', [T4])
+    await expect(db.query(
+      `select public.gridex_prepare_manual_contract_binding($1::uuid, '{}'::jsonb, $2::jsonb, null)`,
+      [T4, JSON.stringify({ price_area: 'SE3', price_areas: ['SE4'] })])).rejects.toThrow('one_off_price_area_not_in_price_areas')
+    const { rows } = await db.query<{ n: number }>(
+      `select (select count(*) from public.contract_offers where company_id = $1)::int
+            + (select count(*) from gridex_one_off_offer_binding.reservations where company_id = $1)::int as n`, [T4])
+    expect(rows[0].n).toBe(0)
   })
 
   it('raises a publish refusal and leaves no reservation or archived offer', async () => {
