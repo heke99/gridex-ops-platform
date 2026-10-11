@@ -1,8 +1,10 @@
 # Masterplan administrative cleanup #635 checkpoint
 
+**Current result: DONE — administrative CLOSED_UNMERGED only.** Actual635 closed `2026-10-11T16:17:10Z` at unchanged `bb2dfea62659282b77c080b7508cef3505afc3ad`; [preservation receipt](https://github.com/heke99/gridex-ops-platform/pull/635#issuecomment-6111062625). Whole L/LK remain NOT_APPROVED/NOT_EXECUTED with current6e913/#759.
+
 Agent `codex-cleanup635-20261011T160103Z-07cc4bf4`; session `cleanup635-20261011T160103Z-07cc4bf4`; packet `4463086f-aaa7-4dc4-b92d-3ede04b3d4ef`. Authorized role: bounded administrative cleanup helper delegated by parent baseline session c1837eca; sole active item #635. Branch `codex/cleanup635-20261011T160103Z-07cc4bf4`, worktree `/workspace/gridex-cleanup635-07cc4bf4`, base actual main `9d58d0b6a12e67ed26cd4395658a46ca805bb888`. Own checkpoint path `.agent-memory/masterplan-cleanup635-20261011T160103Z-07cc4bf4-checkpoint.md` needs no shared file lock under reservations §Atomic3.
 
-## Status: preflight READY, not closed
+## Historical preflight: READY before closure
 
 Taken: old #635 administrative superseded proposal only, plus one explanatory PR receipt. User explicitly authorized PR/draft cleanup; parent delegated this exact single item after the qualified report SHA256 `996376c1500c01cd56ff926f496285f6b0db32045df29f60d2bb9e6e9b2518da`. No technical IDs/files or shared docs/coverage are acquired; no merge/memory/resource lock or inherited packet exists. #674 and every other PR are excluded.
 
@@ -29,3 +31,15 @@ Actual main advanced to `12f9368f8966055d1b20317538e84875936c47d2` while this ch
 ## Actual TAKEN / before administrative close
 
 Own preflight checkpoint `904c2bc15329431820972be937f1f2b3a4268ab5` was actually pushed and authenticated remote branch/blob/fullbytes MATCH. Exact own TAKEN [6111011781](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6111011781) is published on766 with complete body readback MATCH; no duplicate technical or parentTAKEN. All7 successor refs were fresh individuallyGET_MATCH before TAKEN; all3 original uniqueunit/checkpoint paths were freshly SHA-authenticated at oldbb. No close has occurred. Next self: fresh head/state/branch/owner/7ref/no competing closingTAKEN gate and one durable structured stateclosed operation, reconcile any ambiguity without retry, then preservation receipt/DONE.
+
+## Actual administrative completion and preservation
+
+One state-only structured REST PATCH635 was executed after verified own TAKEN6111011781 / published personalCP163307e03e6697906b8fc188e35972675aa8d15a and fresh main12f, oldbbbranch/head/state, successor a493head/body/branch/all7ref SHA checks/no competing closeTAKEN. Durable request/intent/return/readback preserved; PATCHexit0, authenticatedCLOSED_UNMERGED `2026-10-11T16:17:10Z`/mergedfalse/merged_atnull/exactoldbb. REST has no documented expectedHead close parameter; this was guarded exact preflight, not a claimed serverCAS. No retry.
+
+Afterward authenticated oldbranch stillbb; #759 stillOPEN/a493/bodyhash308406a52 and all7refs MATCH575ad1/ec08; actualmainstill12f. All3 unique oldunit/CP paths were freshly contentSHA-authenticated at preservedbb beforeclose; no deletion. One PR [6111062625](https://github.com/heke99/gridex-ops-platform/pull/635#issuecomment-6111062625) was then posted and fullbody readbackMATCH. Original20PASS14FAIL/34 and all source/reviews/checkpoints/native evidence records remain source-bound history. No producer/native/test/log/artifact/GEN/capture/coverage/source mutation, technical merge or whole acceptance was performed. No own technical/role refs existed to release; successor7 protected refs were left untouched.
+
+Independent bounded preservation reader `delivery_triage_8165013f` found scope, original20/14,34criteria,two unportedunits+CP,7refs and current6e913 whole NOTapproved consistent. Its sole factual correction (0b must acquire+verify its future sharedrole/file rather than assuming currentownership) was applied before publishingCP/TAKEN. This is metadata preservation reading, not executed tests or formal technical/GitHub approval. Selfreview finalreceipt/onlyownCP diffs and exact actual API guards/readbacks complete.
+
+Final coordination: SELF publishes concise DONE on active766 with actualCLOSED/time/head, PRreceipt6111062625, exact final personalCPcommit after push/readback, plus protected continuation/owner. No other PR cleanup is authorized for this packet. Shared remaining action OWNER `codex-blocker-20261008-0b3416c0`: acquire and verify its own role-memory and exact legacy-register file, mirror635CLOSED_UNMERGED/SUPERSEDED_PROPOSAL without dropping originalcriteria, branches, unportedunits/checkpoints/history or crediting wholeapproval. Parentroot continues its independent baseline work; #674 remains conditional untouched.
+
+Evidence directory: `/tmp/gridex-93-baseline-20261011T154118Z-c1837eca/cleanup635-20261011T160103Z-07cc4bf4`, especially finalguard-qualified.json, close635-intent/request/return/readback.json, postclose-preservation-qualified.json, pr635-receipt-post-intent/return/readback.json, current seven-ref/readbranch proofs and source applicability. Commands were Gitstatus/diffcheck/onlyownCP commits/push/readback and authenticated GitHub metadata/sourceSHA reads and documented authorized state/comment writes. This is administrative delivery, distinct from main merge, currentnative/CI and external verification.
