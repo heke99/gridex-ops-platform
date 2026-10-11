@@ -30,3 +30,4 @@ Role: BLOCKERARAGENT (owner-authorized in chat). Hosted session: Git Data writes
 - Finding: renderUtiltsSegments (lib/ediel/utilts.ts:477-481) never renders field 503 requested-type RFF for E73.
 - Next: await PROXY_RESERVED → GET_MATCH → CLAIM → TDD fix. Meanwhile read-only review of PR#746.
 - Owner explicitly approved the SC-052 scoped handover (2026-10-11); recorded in decisions.md and #673. Still awaiting PROXY_RESERVED.
+- 2026-10-11 owner directed implementation while proxy refs still absent (no ROOT reply; all 4 refs free on live check). Implemented SC-052 on own branch: RED 6/7 → GREEN 7/7; 48 related files 770 PASS; eslint/tsc 0; coverage --check EXIT0 (approved 310/352). SC-052 → PASSED. Deviation from reservation-first recorded on #673.
