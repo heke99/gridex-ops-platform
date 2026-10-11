@@ -34,11 +34,12 @@ function chain(contractId: string): Chain {
     WHERE c.id=${literal(contractId)} AND c.company_id=${literal(f.companyId)}`)
 }
 
-// The fixture keeps only explicit per-actor permissions. A staff member who
-// creates or sends a one-off contract publishes its offer, so this actor gets
-// exactly the contract/pricing permissions the gated commands check.
+// The fixture keeps only explicit per-actor permissions. Owner decision
+// 2026-10-11: staff who may create contracts sell one-off contracts without
+// the catalog rights contracts.publish and pricing.publish, so this actor
+// deliberately lacks both and every case below proves that.
 function grantContractPublishing() {
-  const keys = ['contracts.create', 'contracts.edit_draft', 'contracts.publish', 'pricing.write', 'pricing.publish']
+  const keys = ['contracts.create', 'contracts.edit_draft', 'pricing.write']
   sql(`INSERT INTO public.permissions(key,name,description,category)
     SELECT k,k,'Native fixture catalog key','native_fixture' FROM unnest(ARRAY[${keys.map(literal).join(',')}]) k
     WHERE NOT EXISTS(SELECT FROM public.permissions p WHERE p.key=k);
@@ -150,6 +151,21 @@ it('an actor without contract permissions creates no offer, publication or reser
   const [beforeOffers, beforeReservations] = [offers(), reservations()]
   await expect(cardCreate(outsider)).rejects.toMatchObject({ message: expect.stringContaining('contract_permission_denied') })
   expect([offers(), reservations()]).toEqual([beforeOffers, beforeReservations])
+})
+
+it('keeps catalog publishing gated: the same staff actor cannot publish an ordinary offer, and no authorization lingers', async () => {
+  const contract = await cardCreate()
+  const { contract_offer_id: oneOff } = expectBoundOneOff(contract.id, 'pending_signature')
+  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_one_off_offer_binding.publish_authorizations`)).toBe(0)
+  const catalog = sql<string>(`SELECT to_jsonb(id) FROM public.contract_offers WHERE company_id=${literal(f.companyId)}
+    AND id<>${literal(oneOff)} AND NOT EXISTS(SELECT FROM gridex_one_off_offer_binding.reservations r WHERE r.offer_id=contract_offers.id)
+    ORDER BY created_at LIMIT 1`)
+  for (const offer of [catalog, oneOff]) {
+    const { error } = await supabaseService.rpc('gridex_publish_internal_contract_version', {
+      p_company_id: f.companyId, p_offer_id: offer, p_actor_user_id: f.actorUserId,
+    })
+    expect(error?.message).toContain('contract_permission_denied:contracts.publish')
+  }
 })
 
 it('pins the consuming contract: its ID cannot be changed while it holds the one-off offer', async () => {
