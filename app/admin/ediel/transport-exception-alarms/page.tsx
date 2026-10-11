@@ -30,7 +30,7 @@ export default async function TransportExceptionAlarmsPage() {
   return (
     <main className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
       <h1 className="text-2xl font-semibold">{title}</h1>
-      <p>Varje rad är ett godkänt, tidsbegränsat undantag där ett meddelande skickades med reservförfarande. TLS är fortsatt obligatoriskt. Åtgärda orsaken innan undantaget löper ut.</p>
+      <p>Varje rad visar ett förberett, tidsbegränsat reservförfarande för ett meddelande. Larmet skapas när försöket förbereds och visar inte om meddelandet faktiskt skickades. TLS är fortsatt obligatoriskt. Åtgärda orsaken innan undantaget löper ut.</p>
       {alarms.length === 0 ? (
         <p>Inga larm för reservförfarande.</p>
       ) : (

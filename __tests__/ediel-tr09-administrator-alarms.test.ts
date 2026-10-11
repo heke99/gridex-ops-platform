@@ -93,6 +93,10 @@ describe('administrator alarm page', () => {
     expect(html).toContain(bothCases[0].messageId)
     expect(html).not.toContain('a'.repeat(64))
     expect(html).not.toContain('Inga larm')
+    // The alarm is journaled at prepare, before entry/SMTP; a prepared attempt may be
+    // released unsent, so the page must not claim delivery.
+    expect(html).toContain('förberett')
+    expect(html).not.toContain('skickades med reservförfarande')
   })
 
   it('fails closed: a refused or broken feed is an alert, never "no alarms"', async () => {
