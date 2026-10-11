@@ -413,34 +413,39 @@ async function syncSwitchFromInboundAck(params: {
       current.external_reference ??
       null;
     // P-11: a late negative ACK never rolls back a switch that Z04 already
-    // confirmed. The old-status predicate lives in the same UPDATE statement,
-    // so a concurrent Z04 cannot be overwritten between read and write.
-    const { data: failedRow, error: failError } = await supabase
-      .from("supplier_switch_requests")
-      .update({
-        status: "failed",
-        failure_reason: failureReason,
-        external_reference: externalReference,
-        failed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", current.id)
-      .eq("company_id", current.company_id)
-      .in("status", SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES)
-      .select("*")
-      .maybeSingle();
-    if (failError) throw failError;
-    const updated = (failedRow as SupplierSwitchRequestRow | null) ?? null;
-
-    if (updated) {
-      await createSupplierSwitchEvent(supabase, {
-        switchRequestId: current.id,
-        eventType: "status_updated",
-        eventStatus: "failed",
-        message: failureReason,
-        payload: { status: "failed", previous_status: current.status, new_status: "failed", externalReference, failureReason },
-      });
-    }
+    // confirmed. gridex_transition_supplier_switch_v2 keeps v1's writer
+    // assertion, row lock and atomic status_updated event, and applies the
+    // patch only when the locked status is a pre-confirmation status;
+    // otherwise it is a not-applied no-op without any write or event.
+    // Patch and event mirror updateSupplierSwitchRequestStatus (service
+    // client: no auth user, so updated_by/created_by stay null).
+    const { data: transition, error: transitionError } = await supabase.rpc(
+      "gridex_transition_supplier_switch_v2",
+      {
+        p_company_id: current.company_id,
+        p_request_id: current.id,
+        p_patch: {
+          status: "failed",
+          updated_by: null,
+          failure_reason: failureReason,
+          external_reference: externalReference,
+          failed_at: new Date().toISOString(),
+        },
+        p_event: {
+          event_type: "status_updated",
+          event_status: "failed",
+          message: failureReason,
+          payload: { status: "failed", externalReference, failureReason },
+          created_by: null,
+        },
+        p_expected_statuses: SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES,
+      },
+    );
+    if (transitionError) throw transitionError;
+    const receipt = transition as { applied?: unknown; request?: SupplierSwitchRequestRow } | null;
+    if (!receipt || typeof receipt.applied !== "boolean" || !receipt.request)
+      throw new Error("supplier_switch_transition_receipt_invalid");
+    const updated = receipt.applied ? receipt.request : null;
 
     await createSupplierSwitchEvent(supabase, {
       switchRequestId: current.id,

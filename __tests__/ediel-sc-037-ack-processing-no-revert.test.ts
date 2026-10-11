@@ -30,6 +30,14 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:{
   if(name==='gridex_apply_inbound_ack_source_v1'){const src=db.rows.ediel_messages.find(r=>r.id===args.p_source_message_id)!
    const neg=db.outcome==='negative';Object.assign(src,{aperak_status:neg?'rejected':'accepted',ack_outcome:db.outcome})
    return {data:{version:1,sourceMessage:structuredClone(src),outcome:db.outcome,finalAckReached:!neg,wholeSourceRejected:neg,sourceAccepted:!neg,failureReason:neg?'APERAK 27 avvisade':null},error:null}}
+  if(name==='gridex_transition_supplier_switch_v2'){
+   // Model of the migration: row lock, expected-status predicate, then patch + event together.
+   const r=db.rows.supplier_switch_requests.find(x=>x.id===args.p_request_id&&x.company_id===args.p_company_id)
+   if(!r)return {data:null,error:{message:'supplier_switch_not_found_for_tenant'}}
+   if(!(args.p_expected_statuses as string[]).includes(String(r.status)))return {data:{applied:false,currentStatus:r.status,request:structuredClone(r)},error:null}
+   const before=r.status;Object.assign(r,args.p_patch as Row);const ev=args.p_event as Row
+   db.rows.supplier_switch_events.push({event_type:ev.event_type,event_status:ev.event_status,previous_status:before,new_status:r.status})
+   return {data:{applied:true,request:structuredClone(r)},error:null}}
   throw new Error(`unexpected rpc ${name}`)}}}))
 vi.mock('@/lib/ediel/ack/sourceCorrelation',()=>({
  readInboundAckSourceCorrelation:()=>({classification:{outcome:db.outcome},lookupReferences:[]}),
