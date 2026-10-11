@@ -1,0 +1,257 @@
+name: Ediel Z13V Z13VH request ACK native feedback
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-z13v-z13vh-request-ack-native.*'
+      - 'scripts/fixtures/ediel-service-evidence-native.ts'
+      - 'scripts/helpers/originalMailboxNative.ts'
+      - 'scripts/helpers/ediel-esco-tenant-replay-b6d3.ts'
+      - 'scripts/helpers/ediel-esco-z13-customer-source-b6d3.ts'
+      - 'scripts/helpers/ediel-native-permission-catalog.setup.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - 'lib/ediel/**'
+      - 'lib/customers/matchingService.ts'
+      - 'lib/inbound-mail/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/ediel-z13v-z13vh-request-ack-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z13-request-ack-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental boundary feedback. Later Z14/N and whole-card acceptance,
+# ordinary required gates, upgrade/browser/capture remain independent duties.
+jobs:
+  z13-request-ack-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install the PostgreSQL client for the canonical replay server
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "/usr/lib/postgresql/$server_major/bin" >> "$GITHUB_PATH"
+      - name: Run the sole assigned request and received ACK boundary
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SOURCE_SHA"
+          mkdir -p z13-request-ack-native-working
+          export Z13_NATIVE_WORK="$PWD/z13-request-ack-native-working"
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z13-request-ack-status.json"
+          export Z13_NATIVE_STAGE="$RUNNER_TEMP/z13-request-ack-stage"
+          export Z13_NATIVE_EXIT_FILE="$RUNNER_TEMP/z13-request-ack-test-exit"
+          export Z13_NATIVE_SESSION_LOG="$RUNNER_TEMP/z13-request-ack-session.log"
+          # Freeze the exact Git blob catalog before execution, and refuse
+          # working bytes/modes that differ from that immutable checkout.
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          source=[]
+          for entry in filter(None,subprocess.check_output(['git','ls-tree','-r','-z','HEAD']).decode().split('\0')):
+              head,path=entry.split('\t',1)
+              mode,kind,oid=head.split()
+              if kind!='blob' or mode not in ('100644','100755','120000'):
+                  raise RuntimeError('unsupported_native_source_object')
+              file=pathlib.Path(path)
+              data=os.readlink(file).encode() if file.is_symlink() else file.read_bytes()
+              actual_mode='120000' if file.is_symlink() else '100755' if file.stat().st_mode&0o111 else '100644'
+              actual_oid=hashlib.sha1(('blob '+str(len(data))+'\0').encode()+data).hexdigest()
+              if (actual_mode,actual_oid)!=(mode,oid):raise RuntimeError('candidate_git_source_mismatch: '+path)
+              source.append({'path':path,'mode':mode,'git_oid':oid,'sha256':hashlib.sha256(data).hexdigest()})
+          frozen={'head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),'source':source}
+          pathlib.Path(os.environ['Z13_NATIVE_WORK'],'frozen-source.json').write_text(json.dumps(frozen,indent=2)+'\n')
+          PY
+          # The child retains canonical errexit and its own EXIT cleanup trap.
+          # Replay/status/credentials remain in RUNNER_TEMP, never artifacts.
+          component_exit=0
+          bash <<'NATIVE' > "$Z13_NATIVE_SESSION_LOG" 2>&1 || component_exit=$?
+          set -euo pipefail
+          printf clean_replay > "$Z13_NATIVE_STAGE"
+          source scripts/gridex-aud-003-clean-replay.sh
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          printf native_execution > "$Z13_NATIVE_STAGE"
+          native_exit=0
+          npx vitest run --config scripts/ediel-z13v-z13vh-request-ack-native.config.ts \
+            scripts/ediel-z13v-z13vh-request-ack-native.test.ts \
+            --reporter=default --reporter=junit \
+            --outputFile="$Z13_NATIVE_WORK/native-junit.xml" \
+            > "$Z13_NATIVE_WORK/native.log" 2>&1 || native_exit=$?
+          printf '%s' "$native_exit" > "$Z13_NATIVE_EXIT_FILE"
+          printf native_completed > "$Z13_NATIVE_STAGE"
+          exit "$native_exit"
+          NATIVE
+          export Z13_COMPONENT_EXIT="$component_exit"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,re,subprocess,xml.etree.ElementTree as ET
+          work=pathlib.Path(os.environ['Z13_NATIVE_WORK'])
+          stage=pathlib.Path(os.environ['Z13_NATIVE_STAGE'])
+          native_exit=pathlib.Path(os.environ['Z13_NATIVE_EXIT_FILE'])
+          frozen=json.loads((work/'frozen-source.json').read_text())
+          source=frozen['source']
+          if frozen['head']!=os.environ['EXPECTED_SOURCE_SHA'] or frozen['head']!=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip():
+              raise RuntimeError('native_candidate_head_changed')
+          for row in source:
+              file=pathlib.Path(row['path'])
+              data=os.readlink(file).encode() if file.is_symlink() else file.read_bytes()
+              mode='120000' if file.is_symlink() else '100755' if file.stat().st_mode&0o111 else '100644'
+              if (mode,hashlib.sha256(data).hexdigest())!=(row['mode'],row['sha256']):
+                  raise RuntimeError('native_candidate_source_changed: '+row['path'])
+          physical_sql=[r for r in source if r['path'].startswith('supabase/migrations/') and r['path'].endswith('.sql')]
+          if int(os.environ['Z13_COMPONENT_EXIT'])!=0 and not native_exit.exists():
+              # Publish only classified error lines, never raw replay/status.
+              # The existing redactor processes this subset before publication.
+              session=pathlib.Path(os.environ['Z13_NATIVE_SESSION_LOG'])
+              errors=[line for line in session.read_text(errors='replace').splitlines()
+                  if re.search(r'(^|\s)(ERROR:|Error:|RuntimeError:|Traceback)',line)
+                  and not re.search(r'authorization|password|secret|token|anon_key|service_role',line,re.I)]
+              # Replay can fail before local status exists; its DB URI contains
+              # userinfo that the status-key redactor cannot yet discover.
+              errors=[re.sub(r'([A-Za-z][A-Za-z0-9+.-]*://)[^\s]*@',
+                  r'\1[REDACTED_URI_USERINFO]@',line) for line in errors]
+              (work/'replay-failure.log').write_text('\n'.join(errors[-12:])+'\n')
+          junit=work/'native-junit.xml'
+          counts=None
+          if junit.exists():
+              root=ET.parse(junit).getroot()
+              cases=root.findall('.//testcase')
+              counts={'cases':len(cases),'failures':sum(c.find('failure') is not None for c in cases),
+                  'errors':sum(c.find('error') is not None for c in cases),
+                  'skipped':sum(c.find('skipped') is not None for c in cases)}
+          if native_exit.exists() and int(native_exit.read_text())==0:
+              if counts!={'cases':38,'failures':0,'errors':0,'skipped':0}:
+                  raise RuntimeError('complete_unskipped_z13_boundary_required')
+          receipt={'purpose':'supplemental_public_z13_request_received_ack_boundary',
+              'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'expected_source_sha':os.environ['EXPECTED_SOURCE_SHA'],
+              'workflow_run_id':os.environ['GITHUB_RUN_ID'],'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+              'component_exit_code':int(os.environ['Z13_COMPONENT_EXIT']),
+              'stage':stage.read_text() if stage.exists() else 'NOT_STARTED',
+              'native_exit_code':int(native_exit.read_text()) if native_exit.exists() else 'NOT_RUN',
+              'junit_counts':counts,'test_scope':['scripts/ediel-z13v-z13vh-request-ack-native.test.ts'],
+              'tracked_source':source,'physical_sql_inputs':physical_sql,
+              'canonical_sql_execution_inventory':'NOT_REPORTED_BY_THIS_RECEIPT',
+              'source_frozen_before_execution':True,'source_unchanged_after_cleanup':True,
+              'ordinary_required_gates':'NOT_REPLACED','schema_capture':'NOT_RUN','browser_tests':'NOT_RUN',
+              'upgrade_parity':'NOT_RUN','authentic_market_evidence':'NOT_PROVIDED','whole_card_approval':'NOT_PROVIDED'}
+          (work/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          if test -f "$GRIDEX_NATIVE_STATUS"; then
+            python3 scripts/gridex-redact-native-evidence.py --local-secrets "$GRIDEX_NATIVE_STATUS" --root "$Z13_NATIVE_WORK"
+          else
+            # No replay/session log is present in the publishable directory.
+            python3 scripts/gridex-redact-native-evidence.py --root "$Z13_NATIVE_WORK"
+          fi
+          # Source-bound, already-redacted summaries remain readable through
+          # the first-party check API when archive storage is unavailable.
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,re,xml.etree.ElementTree as ET
+          work=pathlib.Path(os.environ['Z13_NATIVE_WORK'])
+          receipt=json.loads((work/'receipt.json').read_text())
+          frozen=json.loads((work/'frozen-source.json').read_text())
+          def encoded(value):
+              message=json.dumps(value,ensure_ascii=True,separators=(',',':'))
+              return message.replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+          def fits(value):return len(encoded(value).encode('utf8'))<=3800
+          def notice(title,value):
+              if not fits(value):raise ValueError('native_annotation_identity_budget_exceeded')
+              print('::notice title='+title+'::'+encoded(value))
+          def bounded_cases(bundle):
+              # GitHub truncates messages at 4096 bytes. Keep every complete
+              # identity/disposition; only presentation text may shrink.
+              while not fits(bundle):
+                  fields=[(case,key) for case in bundle for key in ('message','detail') if case[key]]
+                  if not fields:raise ValueError('native_annotation_identity_budget_exceeded')
+                  case,key=max(fields,key=lambda field:len(encoded(field[0][field[1]])))
+                  case[key]=case[key][:len(case[key])//2]
+                  case['presentation_truncated']=True
+              return bundle
+          summary={k:receipt[k] for k in ('checkout_sha','checkout_tree','expected_source_sha',
+              'workflow_run_id','workflow_run_attempt','stage','component_exit_code','native_exit_code',
+              'junit_counts','source_frozen_before_execution','source_unchanged_after_cleanup')}
+          summary['frozen_source_sha256']=hashlib.sha256(json.dumps(frozen,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+          junit=work/'native-junit.xml'
+          summary['redacted_junit_sha256']=hashlib.sha256(junit.read_bytes()).hexdigest() if junit.exists() else 'NOT_PROVIDED'
+          notice('Gridex native receipt',summary)
+          cases=[]
+          if junit.exists():
+              for case in ET.parse(junit).getroot().findall('.//testcase'):
+                  failure=case.find('failure')
+                  if failure is None:failure=case.find('error')
+                  status='failed' if failure is not None else 'skipped' if case.find('skipped') is not None else 'passed'
+                  cases.append({'name':case.get('name'),'status':status,
+                      'message':failure.get('message','')[:1000] if failure is not None else None,
+                      'detail':(failure.text or '')[-2000:] if failure is not None else None})
+          # GitHub stores at most ten notices per step. Four bounded bundles
+          # retain all twenty-eight dispositions alongside receipt/diagnostics.
+          for offset in range(0,len(cases),8):notice('Gridex native cases '+str(offset//8+1),bounded_cases(cases[offset:offset+8]))
+          log=work/'native.log'
+          if log.exists():
+              observations=[]
+              for line in log.read_text(errors='replace').splitlines():
+                  if 'NATIVE_ACK_OBSERVATION ' in line:
+                      try:observations.append(json.loads(line.split('NATIVE_ACK_OBSERVATION ',1)[1]))
+                      except json.JSONDecodeError:pass
+              if observations:notice('Gridex native observations',observations[-14:])
+          # Import/config failures can have no testcase; retain their redacted
+          # diagnostics. A failed replay remains explicitly native NOT_RUN.
+          if receipt['component_exit_code']!=0:
+              diagnostic=work/'native.log' if (work/'native.log').exists() else work/'replay-failure.log'
+              if diagnostic.exists():
+                  # GitHub rewrites ANSI escapes inside JSON annotations.
+                  # Remove presentation codes only; retain the redacted log.
+                  excerpt=re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]','',diagnostic.read_text(errors='replace'))[-3500:]
+                  presentation={'stage':receipt['stage'],'excerpt':excerpt}
+                  while not fits(presentation):
+                      if not presentation['excerpt']:raise ValueError('native_annotation_identity_budget_exceeded')
+                      presentation['excerpt']=presentation['excerpt'][len(presentation['excerpt'])//2:]
+                      presentation['presentation_truncated']=True
+                  notice('Gridex native diagnostic',presentation)
+          PY
+          mv "$Z13_NATIVE_WORK" z13-request-ack-native-evidence
+          if test -f z13-request-ack-native-evidence/native.log; then
+            cat z13-request-ack-native-evidence/native.log
+          fi
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$component_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z13-request-ack-native-${{ github.event.pull_request.head.sha }}
+          path: z13-request-ack-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14

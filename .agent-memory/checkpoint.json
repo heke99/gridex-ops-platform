@@ -1,20 +1,20 @@
 {
   "project": "gridex-ops-platform",
   "schema": "distributed-startup-v1",
-  "observed_at": "2026-10-10T18:37:24.879816+00:00",
-  "observed_main": "c5f5be2cf859a325c6782fe612157aad379ab6e8",
+  "observed_at": "2026-10-11T04:01:18.392606+00:00",
+  "observed_main": "da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32",
   "status": "IN_PROGRESS",
   "active_item": "Distributed fixed-role continuation; no inherited shared technical packet",
   "campaign_complete": false,
   "main_full_acceptance": "NOT_VERIFIED_FOR_CURRENT_MAIN",
   "coverage": {
-    "verified_rules": 115,
+    "verified_rules": 116,
     "total_rules": 121,
-    "passed_contracts": 187,
+    "passed_contracts": 191,
     "total_contracts": 231,
-    "approved_ids": 302,
+    "approved_ids": 307,
     "total_ids": 352,
-    "remaining_ids": 50
+    "remaining_ids": 45
   },
   "routing": {
     "readme": ".agent-memory/README.md",
@@ -24,7 +24,7 @@
     "checkpoint": "Use the implementing or reviewing session\u2019s own uniquely named checkpoint; no other identity is inherited.",
     "current_start": ".agent-memory/masterplan-current-start.md"
   },
-  "custody": "113 observed foreign ref/SHA pairs; preserve and refresh actual receipts. No retained duty is released by this file.",
+  "custody": "Refresh authenticated Git refs and original retained-duty/release receipts before action. H737 owner-only role-FIRST/all11ref404 is documented6736104364113/6104375333; no foreign duty is released by this update.",
   "next_action": "Resume own exact criterion or document authorized stopped-overlap handover; refresh actual main, coverage, #673, PR heads/checks and authenticated refs before implementation.",
   "history": ".agent-memory/history/20261010-before-startup-cleanup/checkpoint.json",
   "administrative_dispositions": [
@@ -51,6 +51,309 @@
       "remainingRequirementsComplete": false,
       "receipt": "https://github.com/heke99/gridex-ops-platform/pull/666#issuecomment-6100858665",
       "closedAt": "2026-10-10T18:35:49Z"
+    }
+  ],
+  "previous_observation": {
+    "observed_at": "2026-10-10T18:37:24.879816+00:00",
+    "observed_main": "c5f5be2cf859a325c6782fe612157aad379ab6e8",
+    "coverage": {
+      "verified_rules": 115,
+      "total_rules": 121,
+      "passed_contracts": 187,
+      "total_contracts": 231,
+      "approved_ids": 302,
+      "total_ids": 352,
+      "remaining_ids": 50
+    },
+    "custody": "113 observed foreign ref/SHA pairs; preserve and refresh actual receipts. No retained duty is released by this file."
+  },
+  "latest_delivery": {
+    "pr": 737,
+    "source": "3bc76d51868b106685f5f755d57379485cc11cee",
+    "main": "45dbf8f6236100fb8f34931fd7c6d44e8e822998",
+    "tree": "4ca3d8086071184ac80f1e923f8388bc1a5c5b45",
+    "ids": [
+      "AT-Z03H-SUPPLIER",
+      "AT-Z04H-SUPPLIER"
+    ],
+    "applicable_mandatory_checks": "13_SUCCESS_CURRENT_HEAD",
+    "whole_source_review": "C0_I0_TWO_INDEPENDENT",
+    "current_main_review": "C0_I0_TWO_INDEPENDENT_SCOPED_H_NONINTERFERENCE",
+    "affected_local_finite": "371_PASS_0_FAIL_0_SKIP_PROJECTED_TREE",
+    "source_qualified_native": "a6f7acab_100_PASS_ORIGINAL_SOURCE",
+    "current_main_native_qualification": "NOT_RUN",
+    "external_market_acceptance": "NOT_PROVIDED",
+    "resources": "ALL11_ORIGINAL_OWNER_RELEASED_GET404",
+    "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104375333"
+  },
+  "owned_continuation": {
+    "agent": "codex-ediel-20261007-b6d3-41f5172a",
+    "packet": "e13e5997-ad12-45b4-8b00-ddb525b07234",
+    "ids": [
+      "AT-Z13V-ESCO",
+      "AT-Z13VH-ESCO"
+    ],
+    "branch": "codex/ediel-esco-resume-b6d3-41f5172a",
+    "checkpoint": ".agent-memory/masterplan-codex-b6d3-z13v-z13vh-41f5172a-checkpoint.md",
+    "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104406090",
+    "status": "FAILED",
+    "coverage": "UNCHANGED",
+    "next_action": "Root repairs only proven three-entry route trace oracle with precommand ESCO/profileNULL assertions, affected statics/two final independent reviews then sole fresh38. Original32 allPASS; six newtails remain nativeunverified. Occupied OPS742 reviewed inverse supplement6736105206108 awaits ownerdelivery/currentmandatorygreen; whole positive53/N26/frozenbeg\u00e4ran pending. No coverage approval/merge-role.",
+    "pr": 745,
+    "native_observation": {
+      "status": "ORIGINAL_FAILED_NATIVE_OBSERVED_NOT_APPROVED",
+      "head": "768f22fd12b90d0d774e5fd135b500c128b0abdf",
+      "tree": "47472d8c2a20c5830c203b0daf45d6c851ee4ba2",
+      "run": 38109779777,
+      "job": 114382754069,
+      "artifact": 11691458167,
+      "zip_bytes": 1549299,
+      "zip_sha256": "9b8b7164a9992f55802517466f97d2273cc2304b4d6bd6a826903119366d10eb",
+      "crc": "PASS",
+      "counts": {
+        "cases": 38,
+        "failures": 6,
+        "errors": 0,
+        "skipped": 0
+      },
+      "full_git_catalog_inputs": 9812,
+      "full_catalog": "ALL_ORIGINAL_GIT_MODE_OID_SHA256_EQUAL",
+      "physical_sql_inputs": "EXACT_CATALOG_SUBSET",
+      "exact38_identities": "MATCH",
+      "closed_log_summary": "32PASS6FAIL",
+      "whole_coverage": "UNCHANGED"
+    },
+    "prior_native_observations": [
+      {
+        "head": "babac2f14f1c3321e67204583f2f170f8a30332c",
+        "run": 38105267811,
+        "job": 114369341002,
+        "artifact": 11690305202,
+        "cases": 32,
+        "passed": 24,
+        "failed": 8,
+        "errors": 0,
+        "skipped": 0,
+        "full_frozen_catalog_inputs": 9809,
+        "full_catalog": "MATCH",
+        "approval": "NOT_APPROVED",
+        "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104728182"
+      },
+      {
+        "head": "23ccb0ad82ff09e7484df7216dc31ec611e65798",
+        "run": 38106966030,
+        "job": 114374421561,
+        "artifact": 11689724728,
+        "cases": 32,
+        "passed": 24,
+        "failed": 8,
+        "errors": 0,
+        "skipped": 0,
+        "zip_sha256": "9906a36f7887d620cff751d2fdc0f72371a6b92ede74b4fec10ca262addb95f1",
+        "full_frozen_catalog_inputs": 9809,
+        "full_catalog": "MATCH",
+        "approval": "NOT_APPROVED",
+        "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104934925"
+      },
+      {
+        "status": "QUALIFIED_BOUND_NATIVE32",
+        "head": "d8bcebaec2b0fa3bd0a5cbb8f64043933304a356",
+        "tree": "9804c4999d19a1fbf1d05974137cb2becc79668b",
+        "run": 38108547948,
+        "attempt": 1,
+        "job": 114379119689,
+        "artifact": 11690876616,
+        "zip_bytes": 1546682,
+        "zip_sha256": "f0f778d7e7a63359e593dbcc0b8ac4ae287ebec555762277afa9e08960f6c4a9",
+        "crc": "PASS",
+        "full_git_catalog_inputs": 9811,
+        "full_catalog": "ALL_ORIGINAL_GIT_MODE_OID_SHA256_EQUAL",
+        "tests": 32,
+        "passed": 32,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "closed_log_summary": "PASS",
+        "original32_identities": "EXACT_UNIQUE_SET",
+        "member_sha256": {
+          "frozen-source.json": "76be26cefee7a2d8f44b9e0bc51a155172aaced446123af6b828cbb547732c94",
+          "native.log": "ba08717af1434ad459aef56c6081bf9ce260779900cddd28190bfbcdc12c989e",
+          "native-junit.xml": "5fed4e0406ff2244c2ac678fd0885218ccac421f277f6b61f58e737600914355",
+          "receipt.json": "31ec27ef45227872c4f79bea9b435675271ad3ffd40e83cb8d9738b3c95906ac"
+        },
+        "qualifier_sha256": "ba981183d3adfc3eb4a3e2009fd0a8beae6c470dbfef641c7649701873ca3850",
+        "boundaries": {
+          "canonical_sql_execution_inventory": "NOT_REPORTED_BY_THIS_RECEIPT",
+          "ordinary_required_gates": "NOT_REPLACED",
+          "schema_capture": "NOT_RUN",
+          "browser_tests": "NOT_RUN",
+          "upgrade_parity": "NOT_RUN",
+          "authentic_market_evidence": "NOT_PROVIDED",
+          "whole_card_approval": "NOT_PROVIDED"
+        },
+        "qualification_scope": "Public ESCO32 component evidence at exact executed source; no whole acceptance, latest-main native or external-market approval.",
+        "census": [
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: missing own reporting field 322 is rejected without permission, supply or beneficiary effects; public replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: missing own reporting field 322 is rejected without permission, supply or beneficiary effects; public replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: missing own reporting field 321 is rejected without permission, supply or beneficiary effects; public replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: missing own reporting field 323 is rejected without permission, supply or beneficiary effects; public replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: missing own reporting field 222 is rejected without permission, supply or beneficiary effects; public replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: missing own reporting field 326 is rejected without permission, supply or beneficiary effects; public replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: missing reviewed producer source field 217 holds the public Z13 request before wire or rights; immutable retry"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: missing reviewed producer source field 261 holds the public Z13 request before wire or rights; immutable retry"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: missing reviewed producer source field 217 holds the public Z13 request before wire or rights; immutable retry"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: missing reviewed producer source field 261 holds the public Z13 request before wire or rights; immutable retry"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: actual outbound Z14 direction gate retains one blocked intent with no wire or business effects; immutable reuse"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: actual separately reviewed wrong legal producer role cannot approve or originate Z13; atomic rollback"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: public Z14 after actual request ACKs grants only the separately published beneficiary scope; immutable replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: actual Z13 receives CONTRL then object APERAK; waits for customer without access, immutable replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: CONTRL unknown cannot admit another original or grant access"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: APERAK wrongLI cannot admit another original or grant access"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: received negative object APERAK records refusal, not customer permission"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: wrongTenant is refused at the public intake boundary with no ACK effect"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: wrongRole is refused at the public intake boundary with no ACK effect"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: a received ACK cannot mutate its frozen physical original before processing"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: actual outbound Z14 direction gate retains one blocked intent with no wire or business effects; immutable reuse"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: actual separately reviewed wrong legal producer role cannot approve or originate Z13; atomic rollback"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: public Z14 after actual request ACKs grants only the separately published beneficiary scope; immutable replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: actual Z13 receives CONTRL then object APERAK; waits for customer without access, immutable replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: CONTRL unknown cannot admit another original or grant access"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: APERAK wrongLI cannot admit another original or grant access"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: received negative object APERAK records refusal, not customer permission"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: wrongTenant is refused at the public intake boundary with no ACK effect"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: wrongRole is refused at the public intake boundary with no ACK effect"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: a received ACK cannot mutate its frozen physical original before processing"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "V: public Z14N A13 after actual request ACKs denies consent with positive processing ACKs and no access; immutable replay"
+          ],
+          [
+            "scripts/ediel-z13v-z13vh-request-ack-native.test.ts",
+            "VH: public Z14N A76 after actual request ACKs denies consent with positive processing ACKs and no access; immutable replay"
+          ]
+        ],
+        "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6105093527"
+      }
+    ],
+    "extension_receipt": "8559fa74d3f84d5b3da8aeeef5ccbd39dfa97c10",
+    "local_finite": "75 affected PASS;23 final UUID/tenant guards PASS; Node24; NOT_NATIVE",
+    "customer_extension_receipt": "46d5a0e9ba0e3ae29a0b408dc66527a7d5a11a7c",
+    "mandatory_failed_observation": {
+      "head": "d8bcebaec2b0fa3bd0a5cbb8f64043933304a356",
+      "coverage_job": 114379203895,
+      "coverage_actual": "18FAIL_16615PASS_1FAILED_FILE_1046PASSED_FILES",
+      "targeted_job": 114379119333,
+      "tagged_failing": [
+        "OPS-03",
+        "AT-OPS-03"
+      ],
+      "owner": "codex-ci-dns-blocker-20261011-c680a3d1ab",
+      "owner_pr": 742,
+      "owner_head": "5e07eef9e682da3715bd568fc397789f62108859",
+      "original_logs": "PRESERVED_NO_ARTIFACT_REFETCH",
+      "handoff": 6104798058
+    }
+  },
+  "additional_deliveries": [
+    {
+      "pr": 736,
+      "main": "da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32",
+      "ids": [
+        "P-08",
+        "AT-P-08"
+      ],
+      "status": "ACTUALLY_MERGED",
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104537565"
     }
   ]
 }

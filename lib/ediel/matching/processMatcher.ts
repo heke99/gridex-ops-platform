@@ -6,6 +6,11 @@ function unique(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.map((value) => cleanMatchText(value)).filter((value): value is string => Boolean(value)))]
 }
 
+// BGM/RFF identifiers can be national text while linked row IDs are UUIDs.
+function isRowUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+}
+
 function refsFromInput(input: EdielMatchInput): string[] {
   const parsed = input.message.parsed_payload ?? {}
   const validation = input.message.validation_report ?? {}
@@ -78,7 +83,9 @@ export async function matchProcessForAutomation(input: EdielMatchInput): Promise
       .select('id, company_id, customer_id, site_id, metering_point_id, status, external_reference, automation_key')
       .limit(20)
     if (companyId) switchQuery = switchQuery.eq('company_id', companyId)
-    switchQuery = switchQuery.or(refs.flatMap((ref) => [`id.eq.${ref}`, `external_reference.eq.${ref}`, `automation_key.eq.${ref}`]).join(','))
+    switchQuery = switchQuery.or(refs.flatMap((ref) => [
+      ...(isRowUuid(ref) ? [`id.eq.${ref}`] : []), `external_reference.eq.${ref}`, `automation_key.eq.${ref}`,
+    ]).join(','))
     const { data, error } = await switchQuery
     if (error) throw error
     for (const row of (data ?? []) as Array<Record<string, unknown>>) {
@@ -136,7 +143,10 @@ export async function matchProcessForAutomation(input: EdielMatchInput): Promise
       .select('id, company_id, customer_id, site_id, grid_owner_data_request_id, outbound_request_id, status, request_type, external_reference, transaction_reference, correlation_reference')
       .limit(50)
     if (companyId) customerInfoQuery = customerInfoQuery.eq('company_id', companyId)
-    customerInfoQuery = customerInfoQuery.or(refs.flatMap((ref) => [`id.eq.${ref}`, `grid_owner_data_request_id.eq.${ref}`, `outbound_request_id.eq.${ref}`, `external_reference.eq.${ref}`, `transaction_reference.eq.${ref}`, `correlation_reference.eq.${ref}`]).join(','))
+    customerInfoQuery = customerInfoQuery.or(refs.flatMap((ref) => [
+      ...(isRowUuid(ref) ? [`id.eq.${ref}`, `grid_owner_data_request_id.eq.${ref}`, `outbound_request_id.eq.${ref}`] : []),
+      `external_reference.eq.${ref}`, `transaction_reference.eq.${ref}`, `correlation_reference.eq.${ref}`,
+    ]).join(','))
     const { data, error } = await customerInfoQuery
     if (!error) {
       for (const row of (data ?? []) as Array<Record<string, unknown>>) {
