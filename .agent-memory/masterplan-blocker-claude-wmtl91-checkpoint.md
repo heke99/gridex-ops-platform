@@ -37,3 +37,4 @@ Role: BLOCKERARAGENT (owner-authorized in chat). Hosted session: Git Data writes
 - Removed out-of-scope shared-memory edits (decisions.md, handover.md): role-memory and handover file custody belong to another writer. Owner decision record stays in this checkpoint + #673 6107101857.
 - SC-052 status: candidate on PR #751 (main still 309/352 until merge). SC-037 withdrawn.
 - Next: CLAIM receipt on #673, CI green, merge, MERGED receipt.
+- CI `coverage` red on de049999: ediel-normative-authority-boundary forbids runtime import of rulebook/utiltsApplicationReference. Fix: use canonicalEdielFacade.canonicalVerifiedUtiltsApplicationReference; requested type = explicit or field-311 code, verified by the canonical matrix. Reproduced RED locally, then full vitest 1051 files / 16731 PASS, eslint/tsc 0, coverage --check 0.

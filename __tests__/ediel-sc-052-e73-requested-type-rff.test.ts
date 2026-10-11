@@ -35,21 +35,21 @@ it.each(['23-DGI-E66-S', '23-DGI-E66-T'])('an E73 for missing E66 on %s renders 
   expect(segs.indexOf('RFF+E66')).toBeGreaterThan(segs.indexOf('RFF+TN:SC052-TX'))
 })
 
-it('derives the requested type only from an unambiguous request application reference', async () => {
+it('derives the requested type from a verified request application reference', async () => {
   const draft = await buildUtiltsOutboundDraft({ ...base, applicationReference: '23-DGI-E66-S', payload })
   expect(segments(draft.rawPayload!)).toContain('RFF+E66')
 })
 
 it('never assumes S02 from an E66-DGI route', async () => {
   await expect(buildUtiltsOutboundDraft({ ...base, applicationReference: '23-DGI-E66-S', payload: { ...payload, requestedMessageCode: 'S02' } }))
-    .rejects.toThrow(/utilts_request_requested_type_reference_mismatch:E73:S02:23-DGI-E66-S/)
+    .rejects.toThrow(/utilts_application_reference_not_allowed:S02:23-DGI-E66-S/)
 })
 
 it('never accepts a generic E73 application reference', async () => {
   await expect(buildUtiltsOutboundDraft({ ...base, applicationReference: '23-DGI-E73-S', payload: { ...payload, requestedMessageCode: 'E66' } }))
-    .rejects.toThrow(/utilts_request_requested_type_reference_mismatch:E73:E66:23-DGI-E73-S/)
+    .rejects.toThrow(/utilts_application_reference_not_allowed:E66:23-DGI-E73-S/)
   await expect(buildUtiltsOutboundDraft({ ...base, applicationReference: '23-DGI-E73-S', payload }))
-    .rejects.toThrow(/utilts_request_application_reference_target_invalid/)
+    .rejects.toThrow(/utilts_request_application_reference_target_invalid:E73:E73/)
 })
 
 it('refuses a requested type that E73 cannot request', async () => {

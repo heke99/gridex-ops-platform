@@ -18,10 +18,7 @@ import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'
 import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'
 import type { CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'
 import {utiltsDefaultAlphabetSegment} from '@/lib/ediel/utilts/errSourceCopy'
-import {
-  getUtiltsApplicationReferenceTarget,
-  UTILTS_25_A_3_STATIC_APPLICATION_REFERENCES,
-} from '@/lib/ediel/rulebook/utiltsApplicationReference'
+import { canonicalVerifiedUtiltsApplicationReference } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import {
   segmentComposite,
   segmentUntrimmedRaw,
@@ -482,18 +479,19 @@ function renderUtiltsSegments(input: {
     segments.push(`STS+7++E73::260`)
     segments.push(`FTX+AAO+++${transactionReason}`)
     if (siteType) segments.push(`FTX+ZZZ+++${siteType}`)
-    // Field 503 (SG6/RFF/C506/1153) names the requested message type. It is the
-    // explicit payload value, or the single target of the request application
-    // reference; the two must agree, so a generic E73 reference or an E66 route
-    // reused for S02 is refused.
-    const requested = getUtiltsApplicationReferenceTarget({
+    // Field 503 (SG6/RFF/C506/1153) names the requested message type: the
+    // explicit payload value, else the message code of the field-311 reference
+    // (23-<role>-<code>-<S|T>). Either way the canonical matrix must accept the
+    // reference for exactly that type, so a generic E73 reference or an E66
+    // route reused for S02 is refused.
+    const requested = (getPayloadString(payload, 'requestedMessageCode')
+      || input.applicationReference.split('-')[2]
+      || '').trim().toUpperCase()
+    canonicalVerifiedUtiltsApplicationReference({
       messageCode: 'E73',
-      requestedMessageCode: getPayloadString(payload, 'requestedMessageCode') || null,
+      requestedMessageCode: requested,
       applicationReference: input.applicationReference,
     })
-    if (!UTILTS_25_A_3_STATIC_APPLICATION_REFERENCES[requested].includes(input.applicationReference.trim().toUpperCase())) {
-      throw new Error(`utilts_request_requested_type_reference_mismatch:E73:${requested}:${input.applicationReference}`)
-    }
     segments.push(`RFF+${requested}`)
   }
 
