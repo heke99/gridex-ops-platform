@@ -378,3 +378,51 @@ clean and finalcertificate remain. If743 is qualified first, deliver it first.
 Otherwise an explicit child operation pause and finite actual-base rebind
 may permit green752 delivery while743 CI completes; no silent main mutation.
 No duplicate CI/native/log/GEN collection, rerun/cancel or code edit.
+
+## Actual #752 operation-only delivery and release — 2026-10-11 16:07 UTC
+
+Done: actual administrative delivery-only HANDOFF6110880563 and honest
+PRbody9f0f readbacks, packet625dd0ba-37bd-4f61-aa07-d4a734a684c9/root0b.
+A chat UNKNOWN, no source/native producer retirement or transferred AT duties.
+Original A all5 98b6 source/AT refs retained for763@446c; SC023/a889 separate.
+Root operation script initially caught an operational statusI1 and fixed it
+before execution: unconditional aggregateSUCCESS + requiredknownCodeRabbit.
+Finalexecutor e9e75b81/plan145c8856, independent opsC0/I0 bf5760d7 and
+rootstatic deltaC0/I0 b74e8e1f;21frozen+12independent fakeboundaryPASS.
+This never rewrote original source C0/I2/C0/I3 findings; both remain OPEN.
+
+Done: root's actual16:03 current full7df15mandatorySUCCESS+10qualifiedSKIP
+and allcontextsSUCCESS inclknownCodeRabbit, CI_GREEN/serialdecision:
+https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6110919445
+743 explicitly PAUSED_BEFORE_ROLE_FOR_ROOT752 under solechild13S2RUN
+snapshot/ACK7716789e; native/CI collector continued, no duplicateCAB reads.
+Rootapproval4c5c85ee tied exactactual9d/source/reviews/ownhandoff/pause/CI
+and immediate fresh source/main/A5/status guards; no idle merge role.
+
+Done: ownrole0b39af402abc1b7e5bed836acdd8f216046c86b3 CREATE_IF_ABSENT/GET_MATCH
++actualpublicoperationCLAIM, ONE normal expected-head merge. Actualmain
+12f9368f8966055d1b20317538e84875936c47d2 at2026-10-11T16:06:36Z; orderedparents
+9d58d0b6a12e67ed26cd4395658a46ca805bb888 +
+7df967f444e23fd25d4bbd2da1a4cd94b01b1c59, exactreviewedtree
+7f61564487605015c6b05c88e037c3ec6f43a1a7. Full352ledger bytes unchanged
+decde563d243693a0a6f0d8a8cd47e0250bb5b0cfc0abaef8ef804a0e9fd2cc1:
+117VERIFIED+194PASSED=311/352;41remain; bothESCOAT NOT_EXECUTED.
+Only supplemental nativefeedback, ZERO newcredit, no exactrefusal/whole
+criteria/native-on-composed-main/deployment/externalmarket approval.
+
+Done: ownrole FIRST exactSHA DELETE/twoactual404; all5A98b6 GET_MATCH
+verified AFTER ownedrelease, neverDELETEd/recreated. Authenticated MERGED:
+https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6110948170
+Actual ownoperation RELEASE:
+https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6110948612
+Root holdsZERO resources for625dd (and previousstartup9121 alreadyreleased).
+Immutableactualexecutor journal/officialreadbacks retained; no replay.
+
+Next taken ROOT boundedreview: authenticate actual752 base and qualify
+unchanged743cab on12f9368f/tree7f615 before any childrole/merge. Prospective
+finite review946f3dca +post752 variant0f8edb3a prepares resulttreeec635, all
+53DB/50TR/native838/819 guardproof remains applicable, no source/native churn.
+Child owns7actual584 and continues solecurrentCAB CI; genuineall15SUCCESS
+then qualifiedactualmainreview/finaloperationapproval/normalexpected-head
+merge/auth313/roleFIRST/all7actualrelease. No313credit yet. Select next
+concrete blocker only after this owncompletedrelease/checkpoint record.
