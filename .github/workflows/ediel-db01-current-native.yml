@@ -1,0 +1,435 @@
+name: Ediel DB01 supplemental historical containment native
+
+on:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'types/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '__tests__/helpers/**'
+      - '__tests__/fixtures/**'
+      - '__tests__/ediel-db-01-current-authority-parity.test.ts'
+      - 'docs/ediel/**'
+      - 'package*.json'
+      - 'tsconfig*.json'
+      - '*.config.*'
+      - '.nvmrc'
+      - '.npmrc'
+      - '.github/workflows/ediel-db01-current-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-db01-current-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# BASE56 clean + snapshot repair + one committed ROOT AGT producer over BASE
+# dependencies/prospective public DTO hint + two forwards is reconstructed
+# supplemental composition only. Original 42703 and AGT 23502 failures remain.
+# Current canonical clean/capture/upgrade and all ordinary OPS gates remain.
+jobs:
+  db01-historical-upgrade-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute BASE56 clean, repaired historical births and fresh current owners
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          command -v psql
+          export CURRENT_ROOT="$PWD"
+          export DB01_BASE_SHA=56e58b95518ec4d5eef210ba16ba46228afb40ac
+          export DB01_PRIVATE="$RUNNER_TEMP/db01-historical-upgrade"
+          mkdir -m 700 "$DB01_PRIVATE"
+          export GRIDEX_DB01_NATIVE_RECEIPT="$DB01_PRIVATE/evidence/receipt.json"
+          export GRIDEX_DB01_NATIVE_HANDOFF="$DB01_PRIVATE/handoff.json"
+          export GRIDEX_NATIVE_STATUS="$DB01_PRIVATE/status.json"
+          export DB01_BASE_ROOT="$DB01_PRIVATE/base"
+          mkdir -p "$DB01_BASE_ROOT" "$DB01_PRIVATE/evidence"
+          # Freeze both complete Git trees before the unchanged BASE replay
+          # temporarily substitutes its own SQL/ledger marker files.
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, sys
+          root = pathlib.Path(os.environ['CURRENT_ROOT']).resolve()
+          base_sha = os.environ['DB01_BASE_SHA']
+          head = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          subprocess.run(['git','merge-base','--is-ancestor',base_sha,head],check=True)
+          forwards = ['supabase/migrations/20261006205324_ediel_production_all_family_smime.sql',
+                      'supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql']
+          repair = 'supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql'
+          repair_unit = '__tests__/ediel-test-configuration-route-source.test.ts'
+          producer = 'lib/ediel/testing/agtEngine.ts'
+          producer_unit = '__tests__/ediel-db-01-current-authority-parity.test.ts'
+          producer_hash = '3bcda79a6daf7da078484dd814e939dea85e1f3f7cab9292ff0a1efc5e875cc6'
+          producer_oid = 'eaf3f28312e2d90131c4edaae5ed2cb70823194e'
+          canonical_dependencies = ['lib/ediel/core/kernel.ts','lib/ediel/core/kernelLegacy.ts','lib/ediel/core/outboundOwnerWitness.ts',
+            'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts',
+            'lib/ediel/testing/agtRuntime.ts','lib/ediel/testing/agtRegistry.ts',
+            'lib/ediel/testing/positiveFixtureAuthority.ts','lib/ediel/production/lifeEventCertificationSource.ts']
+          expected_sql_hashes = {
+            repair:'b07568932c85e7342221255a3cf00058a57241c78932f2b76a7a84c0dcb3edeb',
+            forwards[0]:'de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36',
+            forwards[1]:'d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba'}
+          required = [repair,repair_unit,producer_unit] + forwards + ['scripts/ediel-db01-legacy-address-containment-native.test.ts',
+            'scripts/ediel-db01-current-native.config.ts', '.github/workflows/ediel-db01-current-native.yml',
+            'lib/ediel/db.ts','lib/ediel/testing/agtEngine.ts',
+            'lib/ediel/testing/agtRegistry.ts','lib/ediel/testing/agtRuntime.ts','lib/ediel/systemTestSettings.ts',
+            'lib/ediel/mailReadiness.ts','lib/ediel/inbound/receptions.ts',
+            'lib/ediel/production/bilateralProdatOutboundDraft.ts',
+            'lib/ediel/production/bilateralProdatProfileIntake.ts',
+            'lib/ediel/production/supplyRescissionIntake.ts',
+            'lib/ediel/core/kernel.ts','lib/ediel/core/kernelLegacy.ts','lib/ediel/core/outboundOwnerWitness.ts',
+            'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts','lib/ediel/core/atomicAckPersistence.ts',
+            'lib/ediel/testing/positiveFixtureAuthority.ts','lib/ediel/production/lifeEventCertificationSource.ts',
+            'scripts/helpers/nationalRescissionNative.ts',
+            'scripts/helpers/ediel-normal-switch-native-fixture.ts',
+            'scripts/helpers/ediel-bilateral-prodat-profile-native-fixture.ts',
+            'scripts/helpers/originalMailboxNative.ts',
+            '__tests__/helpers/closureWireFixtures.ts','__tests__/helpers/utiltsNativeSourceFixture.ts',
+            'scripts/helpers/ediel-native-permission-catalog.setup.ts',
+            'scripts/gridex-aud-003-clean-replay.sh','scripts/gridex-redact-native-evidence.py',
+            'supabase/config.toml','supabase/schema.sql','package.json','package-lock.json','.nvmrc']
+          current_only = {repair,repair_unit,producer_unit,*forwards,'scripts/ediel-db01-legacy-address-containment-native.test.ts',
+            'scripts/ediel-db01-current-native.config.ts','.github/workflows/ediel-db01-current-native.yml'}
+          required_base = [p for p in required if p not in current_only] + [
+            'scripts/gridex-aud-003-main-ledger.json','scripts/migration-history-manifest.json',
+            'scripts/gridex-aud-003-schema-fingerprint.sql']
+          def inventory(revision):
+              result = {}
+              entries = subprocess.check_output(['git','ls-tree','-r','-z','--full-tree',revision]).split(b'\0')
+              with subprocess.Popen(['git','cat-file','--batch'],stdin=subprocess.PIPE,stdout=subprocess.PIPE) as reader:
+                  for entry in filter(None,entries):
+                      metadata,name = entry.split(b'\t',1)
+                      mode,kind,oid = metadata.decode('ascii').split()
+                      path = name.decode('utf-8')
+                      if kind != 'blob' or mode not in {'100644','100755'} or path in result:
+                          raise RuntimeError('unsupported/duplicate Git source entry: '+path)
+                      reader.stdin.write((oid+'\n').encode()); reader.stdin.flush()
+                      actual,typ,size = reader.stdout.readline().decode().strip().split()
+                      content = reader.stdout.read(int(size))
+                      if actual != oid or typ != 'blob' or len(content) != int(size) or reader.stdout.read(1) != b'\n':
+                          raise RuntimeError('Git blob identity failed: '+path)
+                      result[path] = {'mode':mode,'git_blob_oid':oid,'sha256':hashlib.sha256(content).hexdigest()}
+                  reader.stdin.close()
+                  if reader.wait() != 0: raise RuntimeError('Git inventory reader failed')
+              return {'sha':revision,'tree':subprocess.check_output(['git','rev-parse',revision+'^{tree}'],text=True).strip(),'blobs':result}
+          current, baseline = inventory(head), inventory(base_sha)
+          if len(required) != 40 or len(required) != len(set(required)) or not set(required).issubset(current['blobs']):
+              raise RuntimeError('required input missing or duplicated')
+          if len(required_base) != 35 or len(required_base) != len(set(required_base)) or not set(required_base).issubset(baseline['blobs']):
+              raise RuntimeError('required BASE input missing or duplicated')
+          for path in required:
+              if hashlib.sha256((root/path).read_bytes()).hexdigest() != current['blobs'][path]['sha256']:
+                  raise RuntimeError('checked-out input differs from Git HEAD: '+path)
+          for path in ['package.json','package-lock.json','.nvmrc','.npmrc']:
+              if current['blobs'].get(path) != baseline['blobs'].get(path):
+                  raise RuntimeError('BASE/current dependency inputs differ: '+path)
+          for path,expected in expected_sql_hashes.items():
+              if current['blobs'][path]['sha256'] != expected:
+                  raise RuntimeError('exact SQL source identity changed: '+path)
+          if current['blobs'][producer] != {'mode':'100644','git_blob_oid':producer_oid,'sha256':producer_hash}:
+              raise RuntimeError('committed canonical AGT producer identity changed')
+          kernel_path = 'lib/ediel/core/kernel.ts'
+          kernel_revision = '231b9ef84e5a9c5e737c44dc9d72dd33edb0b56c'
+          expected_base_kernel = {'mode':'100644','git_blob_oid':'e768195621f24838e59274ea09b50031d00a978f',
+            'sha256':'e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1'}
+          expected_current_kernel = {'mode':'100644','git_blob_oid':'35cc6e4f3f60fe2893f13aa145260181def1aba9',
+            'sha256':'3273e28234a17da8da4bd0d0326b22d14a9ec7cb361ccf34d4391e013167a931'}
+          subprocess.run(['git','merge-base','--is-ancestor',kernel_revision,head],check=True)
+          kernel_basis = {'source_revision':kernel_revision,'path':kernel_path,
+            'historical_alias':'BASE56','current_alias':'ROOT',
+            'base':expected_base_kernel,'root':expected_current_kernel}
+          kernel_legacy_path = 'lib/ediel/core/kernelLegacy.ts'
+          expected_base_kernel_legacy = {'mode':'100644','git_blob_oid':'7310ae00ef55e89ea85ef785a7f2540a7baf871d',
+            'sha256':'b6680e10b8b743678b895804661a6e497740893bf778b274b871bfa34c3bab21'}
+          expected_current_kernel_legacy = {'mode':'100644','git_blob_oid':'40bcab025c7012ac6bd16d400ed7fc0ec17e93f4',
+            'sha256':'cfaa59c86e58b1a5272d1b69ef576acb3c904706dadca1f5d6c9a00396f82fb4'}
+          kernel_legacy_basis = {'source_revision':kernel_revision,'path':kernel_legacy_path,
+            'historical_alias':'BASE56','current_alias':'ROOT',
+            'base':expected_base_kernel_legacy,'root':expected_current_kernel_legacy}
+          for path in canonical_dependencies:
+              if path == kernel_path:
+                  if baseline['blobs'][path] != expected_base_kernel or current['blobs'][path] != expected_current_kernel:
+                      raise RuntimeError('exact historical/current kernel identity changed')
+              elif path == kernel_legacy_path:
+                  if baseline['blobs'][path] != expected_base_kernel_legacy or current['blobs'][path] != expected_current_kernel_legacy:
+                      raise RuntimeError('exact historical/current legacy kernel identity changed')
+              elif current['blobs'][path] != baseline['blobs'][path]:
+                  raise RuntimeError('AGT canonical dependency differs from BASE: '+path)
+          receipt = {'purpose':'supplemental_BASE56_plus_snapshot_repair_prebirth_plus_current_AGT_producer_and_prospective_legacy_DTO_then_two_owned_forwards_actual_native',
+            'root_path':str(root),'base_path':str(pathlib.Path(os.environ['DB01_BASE_ROOT']).resolve()),
+            'checkout_sha':head,'checkout_tree':current['tree'],'base_sha':base_sha,'base_tree':baseline['tree'],
+            'workflow_run_id':os.environ['GITHUB_RUN_ID'], 'input_authority':'complete_Git_objects_before_BASE_replay_substitution',
+            'root_source':current,'base_source':baseline,'required_input_paths':required,'required_base_input_paths':required_base,
+            'dependency_inputs':{p:{'current':current['blobs'].get(p),'base':baseline['blobs'].get(p)}
+              for p in ['package.json','package-lock.json','.nvmrc','.npmrc']},
+            'composition':[{'phase':phase,'path':p,**current['blobs'][p]} for phase,p in zip(
+              ['snapshot_repair_prebirth','smime_forward','legacy_address_forward'],[repair,*forwards])],
+            'historical_database_basis':'unchanged_BASE56_clean_plus_exact_snapshot_repair_before_public_births',
+            'historical_source_basis':{'kind':'reconstructed_public_births','default_alias':'BASE56',
+              'module_overrides':[{'specifier':'@/lib/ediel/testing/agtEngine','path':producer,'source':'ROOT','revision':head,**current['blobs'][producer]}],
+              'canonical_dependency_identity':{p:{'base':baseline['blobs'][p],'root':current['blobs'][p]} for p in canonical_dependencies},
+              'kernel_basis':kernel_basis,
+              'kernel_legacy_basis':kernel_legacy_basis,
+              'public_creator_input':{'source':'BASE56','port':'createEdielMessage','field':'partyAddressId',
+                'when':'historical_AGT_Z09_L7_before_INSERT','value_origin':'existing_prospective_legacy_fixture_UUID',
+                'mutation':'ONLY_partyAddressId','scope':'one_exact_company_actor_profile_route_birth','restore':'finally','authority':'NO_authority_or_accepted_fact'}},
+            'current_source_basis':'ROOT_only_no_legacy_hint_wrapper',
+            'unrepaired_BASE_failure':{'run_id':37542593437,'artifact_id':11448599210,
+              'head_sha':'608fd480bea06c2b145e7c95a1d92fe93b256f9b','sqlstate':'42703',
+              'message':'record "v_route" has no field "environment_type"','status':'PRESERVED_FAIL'},
+            'preserved_legacy_AGT_birth_failure':{'run_id':37553765806,'artifact_id':11453387991,
+              'head_sha':'850cb523ab285af00caa081cc563143b54006289','sqlstate':'23502',
+              'message':'canonical_ediel_rule_pack_required','status':'PRESERVED_FAIL'},
+            'phases':{'baseline_clean':{'status':'NOT_RUN','exit_code':None},
+              'snapshot_repair_prebirth':{'status':'NOT_RUN','exit_code':None},'historical':{'status':'NOT_RUN','exit_code':None},
+              'smime_forward':{'status':'NOT_RUN','exit_code':None},'legacy_address_forward':{'status':'NOT_RUN','exit_code':None},
+              'current':{'status':'NOT_RUN','exit_code':None},'junit_qualification':{'status':'NOT_RUN','exit_code':None}},
+            'supplemental_composition':'NOT_RUN','expected_test_count':14,
+            'test_scope':['scripts/ediel-db01-legacy-address-containment-native.test.ts'],
+            'ordinary_required_gates':'NOT_REPLACED','canonical_current_clean':'NOT_RUN',
+            'canonical_current_schema_capture':'NOT_RUN','canonical_upgrade_parity':'NOT_RUN',
+            'authentic_market_or_external_issuer_evidence':'NOT_PROVIDED',
+            'tool_versions':{'python':sys.version.split()[0],
+              'node':subprocess.check_output(['node','--version'],text=True).strip(),
+              'git':subprocess.check_output(['git','--version'],text=True).strip(),
+              'supabase':subprocess.check_output(['supabase','--version'],text=True).strip(),
+              'psql':subprocess.check_output(['psql','--version'],text=True).strip()}}
+          pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT']).write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          git archive "$DB01_BASE_SHA" | tar -x -C "$DB01_BASE_ROOT"
+          # Identical recorded package/lock/config inputs qualify this shared
+          # installation. Historical @ resolves to BASE except the one recorded
+          # committed ROOT AGT producer. Historical kernel remains fixed BASE;
+          # the current phase uses the separately pinned delivered231b9ef8 kernel pair.
+          ln -s "$CURRENT_ROOT/node_modules" "$DB01_BASE_ROOT/node_modules"
+          update_phase() {
+            DB01_PHASE="$1" DB01_EXIT="$2" python3 - <<'PY'
+          import json,os,pathlib
+          path=pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT'])
+          receipt=json.loads(path.read_text()); code=int(os.environ['DB01_EXIT'])
+          receipt['phases'][os.environ['DB01_PHASE']]={'status':'PASS' if code==0 else 'FAIL','exit_code':code}
+          path.write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          }
+          # Capture a real failing shell exit without placing the subshell in
+          # an OR-list (which would disable errexit inside the sourced owner).
+          set +e
+          (
+            set -euo pipefail
+            # The BASE owner's genuine EXIT cleanup remains installed until
+            # both native phases finish. Never exclude unregistered forwards
+            # from a current replay or forge migration history.
+            cd "$DB01_BASE_ROOT"
+            source scripts/gridex-aud-003-clean-replay.sh > "$DB01_PRIVATE/baseline-clean.log" 2>&1
+            trap 'cd "$DB01_BASE_ROOT"; cleanup' EXIT
+            update_phase baseline_clean 0
+            supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+            cd "$CURRENT_ROOT"
+            # A separately receipted source repair runs before any historical
+            # birth; BASE replay is unchanged. The receipted AGT module overlay
+            # and bounded public DTO input are reconstructed birth preparation.
+            repair_exit=0
+            test "$(sha256sum supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql | cut -d ' ' -f 1)" = \
+              b07568932c85e7342221255a3cf00058a57241c78932f2b76a7a84c0dcb3edeb || repair_exit=$?
+            if [[ "$repair_exit" == 0 ]]; then
+              psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 \
+                -f "$CURRENT_ROOT/supabase/migrations/20261006231122_ediel_test_configuration_route_environment_source.sql" \
+                > "$DB01_PRIVATE/snapshot-repair-sql.log" 2>&1 || repair_exit=$?
+            fi
+            update_phase snapshot_repair_prebirth "$repair_exit"
+            if [[ "$repair_exit" != 0 ]]; then exit "$repair_exit"; fi
+            export GRIDEX_DB01_NATIVE_PHASE=historical GRIDEX_DB01_SOURCE_ROOT="$DB01_BASE_ROOT"
+            historical_exit=0
+            npx vitest run --config scripts/ediel-db01-current-native.config.ts \
+              --reporter=default --reporter=junit --outputFile="$DB01_PRIVATE/evidence/historical-junit.xml" \
+              > "$DB01_PRIVATE/evidence/historical-native.log" 2>&1 || historical_exit=$?
+            update_phase historical "$historical_exit"
+            if [[ "$historical_exit" != 0 ]]; then exit "$historical_exit"; fi
+            # Exact checked-out SQL files; no ledger/history writes are added.
+            for phase in smime_forward legacy_address_forward; do
+              if [[ "$phase" == smime_forward ]]; then
+                forward=supabase/migrations/20261006205324_ediel_production_all_family_smime.sql
+                expected=de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36
+              else
+                forward=supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql
+                expected=d774e1f533b5105b904e3fbff4b628b74991f4680ebc86ddc8b020371a0281ba
+              fi
+              forward_exit=0
+              test "$(sha256sum "$CURRENT_ROOT/$forward" | cut -d ' ' -f 1)" = "$expected" || forward_exit=$?
+              if [[ "$forward_exit" == 0 ]]; then
+                psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -v ON_ERROR_STOP=1 \
+                  -f "$CURRENT_ROOT/$forward" >> "$DB01_PRIVATE/forward-sql.log" 2>&1 || forward_exit=$?
+              fi
+              update_phase "$phase" "$forward_exit"
+              if [[ "$forward_exit" != 0 ]]; then exit "$forward_exit"; fi
+            done
+            export GRIDEX_DB01_NATIVE_PHASE=current GRIDEX_DB01_SOURCE_ROOT="$CURRENT_ROOT"
+            current_exit=0
+            npx vitest run --config scripts/ediel-db01-current-native.config.ts \
+              --reporter=default --reporter=junit --outputFile="$DB01_PRIVATE/evidence/current-junit.xml" \
+              > "$DB01_PRIVATE/evidence/current-native.log" 2>&1 || current_exit=$?
+            update_phase current "$current_exit"
+            if [[ "$current_exit" != 0 ]]; then exit "$current_exit"; fi
+            qualification_exit=0
+            python3 - <<'PY' || qualification_exit=$?
+          import json,os,pathlib,subprocess,xml.etree.ElementTree as ET
+          evidence=pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT']).parent
+          scope='scripts/ediel-db01-legacy-address-containment-native.test.ts'
+          expected_historical={'BASE56 actual public direct and protected H births retain prospective legacy hints before custody; capture upgrade witnesses'}
+          expected_current={
+            'actual move preserves OID, type, owner, policies, indexes, all four FK identities/actions and every complete historical row',
+            'historical public DTO retains the original legacy UUID and exact immutable wire after the move',
+            'PUBLIC, anon, authenticated and service_role cannot read/write the archive; actual APIs expose neither old nor private table',
+            'actual direct ediel_messages INSERT rejects a retired hint atomically; original graph preserved',
+            'actual direct ediel_route_profiles INSERT rejects a retired hint atomically; original graph preserved',
+            'actual BASE historical parent-delete behavior is unchanged; a real rollback preserves the complete graph',
+            'disposable legacy directory keeps actual certificate SET NULL and party CASCADE/profile SET NULL lifecycle',
+            'current real public direct creator ignores stale/foreign/nonexistent hints and keeps current route, party and wire authority',
+            'current public protected H creator runs sign/archive/review/current qualification and creates NULL despite the optional retired hint',
+            'current real AGT L7 public run/render/preflight/locked route ignores the retained old profile hint and preserves actual route authority',
+            'protected creator current wrong actor still refuses its actual public RPC without original/outbox/period mutations',
+            'real technical syntax/ACK owner is a separate fresh NULL control, never a legacy-hint historical producer',
+            'second protected national producer reaches real public legal archive/review/source guards and persists a fresh NULL original'}
+          def qualify(path,expected):
+              root=ET.parse(path).getroot(); suites=root.findall('testsuite'); cases=list(root.iter('testcase'))
+              if root.tag!='testsuites' or len(suites)!=1 or len(cases)!=len(expected):
+                  raise RuntimeError('JUnit scope/count mismatch: '+path.name)
+              for node in [root,*suites]:
+                  if int(node.get('tests','-1'))!=len(expected) or any(int(node.get(key,'0'))!=0 for key in ['failures','errors','skipped']):
+                      raise RuntimeError('JUnit declared result mismatch: '+path.name)
+              identities=[(case.get('classname'),case.get('name')) for case in cases]
+              if len(set(identities))!=len(cases) or set(identities)!={(scope,name) for name in expected}:
+                  raise RuntimeError('JUnit missing/duplicate/unexpected case: '+path.name)
+              if any(list(root.iter(tag)) for tag in ['failure','error','skipped']):
+                  raise RuntimeError('JUnit failure/error/skip is not a successful proof: '+path.name)
+              return {'tests':len(cases),'passed':len(cases),'failures':0,'errors':0,'skipped':0,'unique_cases':identities}
+          receipt=json.loads((evidence/'receipt.json').read_text())
+          if receipt.get('purpose')!='supplemental_BASE56_plus_snapshot_repair_prebirth_plus_current_AGT_producer_and_prospective_legacy_DTO_then_two_owned_forwards_actual_native' or \
+              receipt.get('historical_database_basis')!='unchanged_BASE56_clean_plus_exact_snapshot_repair_before_public_births':
+              raise RuntimeError('JUnit qualification requires the explicit reconstructed composition')
+          basis=receipt.get('historical_source_basis',{})
+          producer='lib/ediel/testing/agtEngine.ts'
+          expected_overlay={'specifier':'@/lib/ediel/testing/agtEngine','path':producer,'source':'ROOT','revision':receipt['checkout_sha'],
+            'mode':'100644','git_blob_oid':'eaf3f28312e2d90131c4edaae5ed2cb70823194e',
+            'sha256':'3bcda79a6daf7da078484dd814e939dea85e1f3f7cab9292ff0a1efc5e875cc6'}
+          expected_input={'source':'BASE56','port':'createEdielMessage','field':'partyAddressId','when':'historical_AGT_Z09_L7_before_INSERT',
+            'value_origin':'existing_prospective_legacy_fixture_UUID','mutation':'ONLY_partyAddressId',
+            'scope':'one_exact_company_actor_profile_route_birth','restore':'finally','authority':'NO_authority_or_accepted_fact'}
+          if basis.get('kind')!='reconstructed_public_births' or basis.get('default_alias')!='BASE56' or \
+              basis.get('module_overrides')!=[expected_overlay] or basis.get('public_creator_input')!=expected_input or \
+              receipt.get('current_source_basis')!='ROOT_only_no_legacy_hint_wrapper':
+              raise RuntimeError('JUnit qualification requires the declared reconstructed public birth basis')
+          dependencies={'lib/ediel/core/kernel.ts','lib/ediel/core/kernelLegacy.ts','lib/ediel/core/outboundOwnerWitness.ts',
+            'lib/ediel/rulebook/canonicalEdielFacade.ts','lib/ediel/testing/tgtCanonicalDraftRoute.ts',
+            'lib/ediel/testing/agtRuntime.ts','lib/ediel/testing/agtRegistry.ts',
+            'lib/ediel/testing/positiveFixtureAuthority.ts','lib/ediel/production/lifeEventCertificationSource.ts'}
+          if len(receipt['required_input_paths'])!=40 or len(set(receipt['required_input_paths']))!=40 or \
+              len(receipt['required_base_input_paths'])!=35 or len(set(receipt['required_base_input_paths']))!=35 or \
+              set(basis.get('canonical_dependency_identity',{}))!=dependencies or \
+              receipt['root_source']['blobs'][producer]!={key:expected_overlay[key] for key in ['mode','git_blob_oid','sha256']}:
+              raise RuntimeError('JUnit qualification requires the exact reconstructed source inventory')
+          expected_kernel_basis={'source_revision':'231b9ef84e5a9c5e737c44dc9d72dd33edb0b56c',
+            'path':'lib/ediel/core/kernel.ts','historical_alias':'BASE56','current_alias':'ROOT',
+            'base':{'mode':'100644','git_blob_oid':'e768195621f24838e59274ea09b50031d00a978f',
+              'sha256':'e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1'},
+            'root':{'mode':'100644','git_blob_oid':'35cc6e4f3f60fe2893f13aa145260181def1aba9',
+              'sha256':'3273e28234a17da8da4bd0d0326b22d14a9ec7cb361ccf34d4391e013167a931'}}
+          expected_kernel_legacy_basis={'source_revision':'231b9ef84e5a9c5e737c44dc9d72dd33edb0b56c',
+            'path':'lib/ediel/core/kernelLegacy.ts','historical_alias':'BASE56','current_alias':'ROOT',
+            'base':{'mode':'100644','git_blob_oid':'7310ae00ef55e89ea85ef785a7f2540a7baf871d',
+              'sha256':'b6680e10b8b743678b895804661a6e497740893bf778b274b871bfa34c3bab21'},
+            'root':{'mode':'100644','git_blob_oid':'40bcab025c7012ac6bd16d400ed7fc0ec17e93f4',
+              'sha256':'cfaa59c86e58b1a5272d1b69ef576acb3c904706dadca1f5d6c9a00396f82fb4'}}
+          if basis.get('kernel_basis')!=expected_kernel_basis:
+              raise RuntimeError('JUnit qualification requires exact historical/current kernel basis')
+          if basis.get('kernel_legacy_basis')!=expected_kernel_legacy_basis:
+              raise RuntimeError('JUnit qualification requires exact historical/current legacy kernel basis')
+          subprocess.run(['git','merge-base','--is-ancestor',expected_kernel_basis['source_revision'],receipt['checkout_sha']],check=True)
+          for path in dependencies:
+              base=receipt['base_source']['blobs'][path]; current_input=receipt['root_source']['blobs'][path]
+              if path==expected_kernel_basis['path']:
+                  exact_pair=base==expected_kernel_basis['base'] and current_input==expected_kernel_basis['root']
+              elif path==expected_kernel_legacy_basis['path']:
+                  exact_pair=base==expected_kernel_legacy_basis['base'] and current_input==expected_kernel_legacy_basis['root']
+              else:
+                  exact_pair=base==current_input
+              if not exact_pair or basis['canonical_dependency_identity'][path]!={'base':base,'root':current_input} or \
+                  path not in receipt['required_input_paths'] or path not in receipt['required_base_input_paths']:
+                  raise RuntimeError('JUnit qualification requires exact canonical dependency identities: '+path)
+          if receipt.get('unrepaired_BASE_failure')!={'run_id':37542593437,'artifact_id':11448599210,
+              'head_sha':'608fd480bea06c2b145e7c95a1d92fe93b256f9b','sqlstate':'42703',
+              'message':'record "v_route" has no field "environment_type"','status':'PRESERVED_FAIL'} or \
+              receipt.get('preserved_legacy_AGT_birth_failure')!={'run_id':37553765806,'artifact_id':11453387991,
+              'head_sha':'850cb523ab285af00caa081cc563143b54006289','sqlstate':'23502',
+              'message':'canonical_ediel_rule_pack_required','status':'PRESERVED_FAIL'}:
+              raise RuntimeError('JUnit qualification cannot erase preserved BASE failures')
+          for phase in ['baseline_clean','snapshot_repair_prebirth','historical','smime_forward','legacy_address_forward','current']:
+              if receipt['phases'][phase]!={'status':'PASS','exit_code':0}:
+                  raise RuntimeError('JUnit qualification requires actual successful phase: '+phase)
+          historical=qualify(evidence/'historical-junit.xml',expected_historical)
+          current=qualify(evidence/'current-junit.xml',expected_current)
+          if historical['tests']!=1 or current['tests']!=13:
+              raise RuntimeError('JUnit expected 1 historical and 13 current cases')
+          (evidence/'junit-qualification.json').write_text(json.dumps({'status':'PASS','historical':historical,'current':current,
+            'tests':14,'passed':14,'failures':0,'errors':0,'skipped':0,
+            'proof_basis':'BASE56_plus_snapshot_repair_and_committed_AGT_overlay_with_prospective_legacy_DTO_then_two_forwards',
+            'historical_source_basis':basis,'current_source_basis':receipt['current_source_basis']},indent=2)+'\n')
+          PY
+            update_phase junit_qualification "$qualification_exit"
+            exit "$qualification_exit"
+          ) > "$DB01_PRIVATE/driver.log" 2>&1
+          driver_exit=$?
+          set -e
+          # Source cleanup stops its own stack from BASE even though native
+          # imports ran at ROOT. Private status, fixture handoff and replay/SQL
+          # logs never enter the artifact directory.
+          export DB01_DRIVER_EXIT="$driver_exit"
+          python3 - <<'PY'
+          import json,os,pathlib
+          path=pathlib.Path(os.environ['GRIDEX_DB01_NATIVE_RECEIPT']); receipt=json.loads(path.read_text())
+          receipt['driver_exit_code']=int(os.environ['DB01_DRIVER_EXIT'])
+          if receipt['phases']['baseline_clean']['status']=='NOT_RUN':
+              receipt['phases']['baseline_clean']={'status':'FAIL','exit_code':receipt['driver_exit_code']}
+          receipt['supplemental_composition']='PASS' if receipt['driver_exit_code']==0 and all(
+            phase=={'status':'PASS','exit_code':0} for phase in receipt['phases'].values()) else 'FAIL'
+          path.write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          if [[ -f "$GRIDEX_NATIVE_STATUS" ]]; then
+            python3 scripts/gridex-redact-native-evidence.py --local-secrets "$GRIDEX_NATIVE_STATUS" --root "$DB01_PRIVATE/evidence"
+          else
+            # A failed BASE clean has no native log or status to authenticate.
+            # Publish only the hash/exit receipt after ordinary JWT redaction.
+            test ! -f "$DB01_PRIVATE/evidence/historical-native.log"
+            test ! -f "$DB01_PRIVATE/evidence/current-native.log"
+            python3 scripts/gridex-redact-native-evidence.py --root "$DB01_PRIVATE/evidence"
+          fi
+          mv "$DB01_PRIVATE/evidence" db01-current-native-evidence
+          rm -f "$GRIDEX_NATIVE_STATUS" "$GRIDEX_DB01_NATIVE_HANDOFF"
+          exit "$driver_exit"
+      - name: Upload only redacted supplemental evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-db01-current-native-${{ github.event.pull_request.head.sha }}
+          path: db01-current-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
