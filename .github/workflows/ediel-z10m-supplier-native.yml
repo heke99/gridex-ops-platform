@@ -1,0 +1,247 @@
+name: Ediel Z10M SUPPLIER native feedback
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-at-z10m-supplier-acceptance-native*'
+      - 'scripts/helpers/ediel-requested-change-native-fixture.ts'
+      - 'scripts/helpers/ediel-normal-switch-native-fixture.ts'
+      - 'scripts/helpers/ediel-bilateral-customer-native-fixture.ts'
+      - 'scripts/helpers/originalMailboxNative.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/helpers/ediel-native-permission-catalog.setup.ts'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/migration-history-manifest*.json'
+      - '__tests__/fixtures/prodat-register.ts'
+      - 'lib/ediel/**'
+      - 'lib/inbound-mail/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/ediel-z10m-supplier-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-z10m-supplier-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental feedback only. All ordinary OPS clean/upgrade/native/browser
+# and parity gates remain mandatory; this does not approve any rule card.
+jobs:
+  z10m-supplier-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute the actual reserved SUPPLIER first-effect proposal after disposable clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p z10m-supplier-native-working
+          # The existing owner keeps its EXIT cleanup trap. Replay/status
+          # output can contain disposable credentials and is never uploaded.
+          # Freeze every tracked blob and its actual working mode/bytes before
+          # replay. Only the canonical owner's seed and migration transforms
+          # are allowed; authenticate their originals and actual working bytes.
+          verify_native_inputs() {
+            python3 - "$@" <<'PY_INPUTS'
+          import hashlib, json, os, pathlib, platform, re, stat, subprocess, sys
+          phase = sys.argv[1]
+          snapshot = pathlib.Path(os.environ['RUNNER_TEMP']) / 'z10m-supplier-inputs.json'
+          def git(*args):
+              return subprocess.check_output(['git', *args])
+          head = git('rev-parse', 'HEAD').decode().strip()
+          tree = git('rev-parse', 'HEAD^{tree}').decode().strip()
+          object_format = git('rev-parse', '--show-object-format').decode().strip()
+          def entry(mode, data):
+              return {'mode': mode,
+                      'blob_oid': hashlib.new(object_format, b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest(),
+                      'sha256': hashlib.sha256(data).hexdigest()}
+          def working(path):
+              mode = path.lstat().st_mode
+              if stat.S_ISLNK(mode):
+                  return entry('120000', os.fsencode(os.readlink(path)))
+              if not stat.S_ISREG(mode):
+                  raise SystemExit('nonregular_native_input: ' + str(path))
+              return entry('100755' if mode & 0o111 else '100644', path.read_bytes())
+          def require(path, expected):
+              if working(path) != expected:
+                  raise SystemExit('native_input_mismatch: ' + str(path))
+          def directory(path):
+              return {p.relative_to(path).as_posix(): working(p)
+                      for p in sorted(path.rglob('*')) if not p.is_dir() or p.is_symlink()}
+          if phase == 'freeze':
+              inputs = {}
+              for record in git('ls-tree', '-rz', '--full-tree', head).split(b'\0'):
+                  if not record:
+                      continue
+                  meta, name = record.split(b'\t', 1)
+                  mode, kind, oid = meta.decode().split()
+                  if kind != 'blob' or mode not in ('100644', '100755', '120000'):
+                      raise SystemExit('unsupported_native_git_input: ' + os.fsdecode(name))
+                  path = os.fsdecode(name)
+                  inputs[path] = entry(mode, git('cat-file', 'blob', oid))
+                  if inputs[path]['blob_oid'] != oid:
+                      raise SystemExit('native_git_blob_mismatch: ' + path)
+                  require(pathlib.Path(path), inputs[path])
+              frozen_native = {
+                  'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'fed80cb12ffa89c01e1501fb85040a09f0555c0257ea0dbd850946feea5c4fde',
+                  'scripts/ediel-at-z10m-supplier-acceptance-native.config.ts': '458b8c838e1bf52740b422b04207dc2cf23a1f299744f2130a184123e90438b1',
+              }
+              for path, digest in frozen_native.items():
+                  if inputs[path]['sha256'] != digest:
+                      raise SystemExit('native_source_drift: ' + path)
+              ledger_path = 'scripts/gridex-aud-003-main-ledger.json'
+              ledger_input = inputs[ledger_path]
+              ledger = json.loads(git('cat-file', 'blob', ledger_input['blob_oid']))
+              entries = ledger.get('entries', [])
+              if not entries:
+                  raise SystemExit('official_native_ledger_empty')
+              marker_bytes = b'-- GRIDEX-REM-002 local ledger marker.\nselect 1;\n'
+              expected_markers = {}
+              last = None
+              for e in entries:
+                  version, name = str(e['version']), e['name']
+                  if not re.fullmatch(r'[0-9]{14}', version) or not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9_]+', name):
+                      raise SystemExit('invalid_official_native_ledger_entry')
+                  if last is not None and version <= last:
+                      raise SystemExit('official_native_ledger_not_strictly_ordered')
+                  last = version
+                  expected_markers[f'{version}_{name}.sql'] = entry('100644', marker_bytes)
+              def version(*args):
+                  return subprocess.check_output(args, text=True, stderr=subprocess.DEVNULL).strip()
+              runtime = {'node': version('node', '--version'), 'npm': version('npm', '--version'),
+                         'supabase_cli': version('supabase', '--version'),
+                         'python': platform.python_version(), 'platform': platform.platform()}
+              if not runtime['node'].startswith('v22.') or runtime['supabase_cli'] != '2.101.0':
+                  raise SystemExit('native_runtime_version_mismatch')
+              frozen = {'checkout_sha': head, 'checkout_tree': tree, 'tracked_inputs': inputs,
+                        'runtime_versions': runtime,
+                        'original_native_source_sha256': {**frozen_native,
+                            'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'f4f3d3af1d6da059f91d94bb01ba552a6344d1fc59f0b202c29292da26f9d5a1'},
+                        'native_source_sha256': frozen_native,
+                        'native_source_version': 'm2_post_failure_application_read_observer_v1',
+                        'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+                        'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+                        'canonical_marker_expected': expected_markers,
+                        'canonical_marker_origin': {'ledger_path': ledger_path, 'ledger_input': ledger_input,
+                                                    'entry_count': len(entries),
+                                                    'marker_template_sha256': hashlib.sha256(marker_bytes).hexdigest()}}
+          else:
+              frozen = json.loads(snapshot.read_text())
+              if (head, tree) != (frozen['checkout_sha'], frozen['checkout_tree']):
+                  raise SystemExit('native_checkout_changed')
+              hold, seed_backup, markers = map(pathlib.Path, sys.argv[2:])
+              migrations = 'supabase/migrations/'
+              originals = {p[len(migrations):]: e for p, e in frozen['tracked_inputs'].items()
+                           if p.startswith(migrations)}
+              if directory(hold) != originals:
+                  raise SystemExit('original_migration_backup_mismatch')
+              for path, expected in frozen['tracked_inputs'].items():
+                  if not path.startswith(migrations) and path != 'supabase/seed.sql':
+                      require(pathlib.Path(path), expected)
+              seed_original = frozen['tracked_inputs']['supabase/seed.sql']
+              if hashlib.sha256(seed_backup.read_bytes()).hexdigest() != seed_original['sha256']:
+                  raise SystemExit('original_seed_backup_mismatch')
+              seed_actual = working(pathlib.Path('supabase/seed.sql'))
+              if seed_actual != entry(seed_original['mode'], b''):
+                  raise SystemExit('canonical_empty_seed_mismatch')
+              marker_files = sorted(markers.iterdir())
+              if any(not stat.S_ISREG(p.lstat().st_mode) for p in marker_files):
+                  raise SystemExit('canonical_migration_marker_shape_mismatch')
+              actual_markers = {p.name: working(p) for p in marker_files}
+              if actual_markers != frozen['canonical_marker_expected']:
+                  raise SystemExit('canonical_migration_marker_ledger_mismatch')
+              unchanged = {p: e for p, e in originals.items() if '/' in p or not p.endswith('.sql')}
+              if set(unchanged) & set(actual_markers) or directory(pathlib.Path('supabase/migrations')) != {**unchanged, **actual_markers}:
+                  raise SystemExit('canonical_migration_marker_mismatch')
+              transforms = {'seed_original': seed_original, 'seed_actual': seed_actual,
+                            'migration_markers_actual': actual_markers}
+              if phase == 'after-replay':
+                  frozen['canonical_replay_transforms'] = transforms
+              elif phase != 'after-native' or transforms != frozen['canonical_replay_transforms']:
+                  raise SystemExit('canonical_replay_transform_changed')
+          if git('rev-parse', 'HEAD').decode().strip() != head or git('rev-parse', 'HEAD^{tree}').decode().strip() != tree:
+              raise SystemExit('native_checkout_changed_during_verification')
+          snapshot.write_text(json.dumps(frozen, indent=2) + '\n')
+          PY_INPUTS
+          }
+          verify_native_inputs freeze
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/z10m-supplier-replay.log" 2>&1
+          verify_native_inputs after-replay "$HOLD" "$SEED_BACKUP" "$LEDGER_MARKERS"
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/z10m-supplier-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_tests=(scripts/ediel-at-z10m-supplier-acceptance-native.test.ts)
+          export Z10M_SUPPLIER_NATIVE_TEST_SCOPE
+          Z10M_SUPPLIER_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-at-z10m-supplier-acceptance-native.config.ts \
+            "${native_tests[@]}" \
+            --reporter=default --reporter=junit \
+            --outputFile=z10m-supplier-native-working/native-junit.xml \
+            > z10m-supplier-native-working/native.log 2>&1 || native_exit=$?
+          export Z10M_SUPPLIER_NATIVE_EXIT="$native_exit"
+          verify_native_inputs after-native "$HOLD" "$SEED_BACKUP" "$LEDGER_MARKERS"
+          python3 - <<'PY'
+          import json, os, pathlib, stat
+          frozen = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'z10m-supplier-inputs.json').read_text())
+          test_scope = os.environ['Z10M_SUPPLIER_NATIVE_TEST_SCOPE'].splitlines()
+          if test_scope != ['scripts/ediel-at-z10m-supplier-acceptance-native.test.ts']:
+              raise SystemExit('original_native_scope_mismatch')
+          evidence = pathlib.Path('z10m-supplier-native-working')
+          if sorted(p.name for p in evidence.iterdir()) != ['native-junit.xml', 'native.log'] or not all(
+              stat.S_ISREG(p.lstat().st_mode) for p in evidence.iterdir()):
+              raise SystemExit('native_original_reports_required')
+          receipt = {
+              'purpose': 'supplemental_actual_native_feedback',
+              **frozen,
+              'native_exit_code': int(os.environ['Z10M_SUPPLIER_NATIVE_EXIT']),
+              'input_sha256': {p: e['sha256'] for p, e in frozen['tracked_inputs'].items()},
+              'tracked_input_count': len(frozen['tracked_inputs']),
+              'working_input_checks': ['before-replay', 'before-native', 'after-native'],
+              'migration_hash_origin': 'frozen HEAD original bytes/modes verified before replay and in canonical HOLD before/after native; top-level working SQL is the exact flat regular marker set derived from the frozen official ledger and canonical marker bytes; other migration-directory files retain original modes/bytes',
+              'seed_hash_origin': 'frozen HEAD original bytes verified before replay and in canonical SEED_BACKUP before/after native; actual working seed is empty and separately hashed',
+              'other_working_inputs': 'exact frozen HEAD bytes/modes before replay and before/after native',
+              'test_scope': test_scope,
+              'test_case_names': [
+                  'first genuine two-register Z10 is staged, reviewed, applied and physically acknowledged once',
+                  'a contradictory prior meter obtains no positive first effect or final ACK authority',
+              ],
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          (evidence / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root z10m-supplier-native-working
+          # Only successfully redacted files enter the uploaded directory.
+          # Receipt/redaction failure leaves no artifact directory to upload.
+          mv z10m-supplier-native-working z10m-supplier-native-evidence
+          cat z10m-supplier-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z10m-supplier-native-${{ github.event.pull_request.head.sha }}
+          path: z10m-supplier-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
