@@ -125,15 +125,25 @@ function chain(rows:Row[],source:string){const own=rows.filter(r=>r.source_messa
  expect(visited.size).toBe(own.length);return leaves[0]
 }
 export function captureEscoObjectOwner(f:Fixture,source:EdielMessageRow,raw:string,field:EscoObjectField){
- const code=escoObjectRefusalCode(field)
+ return captureRefusalOwner(f,source,raw,{kind:'object',field})
+}
+export type EscoNationalApplicationField='203'|'205'|'206'|'313'|'322'
+export function captureEscoNationalRefusalOwner(f:Fixture,source:EdielMessageRow,raw:string,field:EscoNationalApplicationField){
+ return captureRefusalOwner(f,source,raw,{kind:'national',field})
+}
+function captureRefusalOwner(f:Fixture,source:EdielMessageRow,raw:string,descriptor:
+ {kind:'object';field:EscoObjectField}|{kind:'national';field:EscoNationalApplicationField}){
+ const national=descriptor.kind==='national',field=descriptor.field
+ const code=descriptor.kind==='object'?escoObjectRefusalCode(descriptor.field):field==='322'?'PRODAT_PERMISSION_322_MISSING':'FIELD_MATRIX_REQUIRED_FIELD_MISSING'
+ const objectId=national?null:f.point,identityAgency=national?null:'9',segmentIndex=national&&(field==='205'||field==='206')?6:7
  schema(tables.assessments,['id','source_message_id','company_id','environment','source_payload_hash','canonical_assessment_id','previous_assessment_id',
   'facts_text','facts_hash','owner_readsets','created_xid','assessed_at'],{id:'gen_random_uuid()',created_xid:'pg_current_xact_id()',assessed_at:'clock_timestamp()'},['previous_assessment_id'])
  schema(tables.witnesses,['id','assessment_id','company_id','environment','source_message_id','facts_hash','visibility_snapshot','observed_at'],
   {id:'gen_random_uuid()',observed_at:'clock_timestamp()'})
  const physical=tokenizeEdifact(raw);expect(physical.segments.filter(s=>s.tag==='LIN')).toHaveLength(1)
- expect(physical.segments[7].raw).toBe('LIN+1++'+f.point+':::9')
- const object={messageIndex:0,messageReference:'1',objectId:f.point,identityAgency:'9',
-  registers:[{lineIndex:0,lineNumber:'1',registerIndex:null,registerPosition:1,segmentIndex:7}]}
+ expect(physical.segments[segmentIndex].raw).toBe(national?'LIN+1':'LIN+1++'+f.point+':::9')
+ const object={messageIndex:0,messageReference:'1',objectId,identityAgency,
+  registers:[{lineIndex:0,lineNumber:'1',registerIndex:null,registerPosition:1,segmentIndex}]}
  let before=snapshot(),beforeXid=xid(),calls=0
  expect(before.assessments.filter(r=>r.source_message_id===source.id)).toEqual([])
  expect(before.witnesses.filter(r=>r.source_message_id===source.id)).toEqual([])
@@ -148,7 +158,7 @@ export function captureEscoObjectOwner(f:Fixture,source:EdielMessageRow,raw:stri
   const facts=JSON.parse(String(parent.facts_text))
   expect(facts).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected',reasonCodes:expect.arrayContaining([code])})
   expect(facts.registerValidation).toEqual({version:1,owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',
-   objects:[{messageIndex:0,messageReference:'1',objectId:f.point,identityAgency:'9',disposition:'accepted',registers:object.registers,reasons:[]}]})
+   objects:[{messageIndex:0,messageReference:'1',objectId,identityAgency,disposition:'accepted',registers:object.registers,reasons:[]}]})
   const text=JSON.stringify({version:1,owner:'received-source-object-decisions-v1',ruleVersion:'1',canonicalFactsHash:parent.facts_hash,
    objects:[{object,disposition:'rejected',reasons:[code],business:null,party:null}]})
   expect(row.id).toMatch(uuid);expect(w.id).toMatch(uuid);expect(w.id).not.toBe(row.id)
