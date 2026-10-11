@@ -1136,3 +1136,28 @@ failure, CI_GREEN, delivery, source changes or role held. Originalprimary proof
 and bothmain622/finalhead independent approvals remain applicable. NEXT ROOT
 close those2actualgates, fresh APIpreflight and free atomicmerge-role, normal
 expectedhead delivery, verifyactualmain/parents/tree, role-FIRST and H11 release.
+
+
+## 2026-10-11 UTC — current-head CI_GREEN and latest-main H rebind
+
+Owned AT-Z03H-SUPPLIER + AT-Z04H-SUPPLIER / packet1102ed76-cc69-452b-a20d-92f34cfda805,
+agent codex-ediel-20261007-b6d3-41f5172a. Exact PR737 head3bc76d51868b106685f5f755d57379485cc11cee:
+all13 applicable mandatory checks actualSUCCESS, including pr-certificate;
+no failed/pending produced checks. Main5628a0aa480deb6018c2b5b0bdca5039a4a2373e
+adds PR741 Z10 intake guard, so prior main622 all4592-unchanged assertion is
+historical only. Latest reviewed normal composition tree4ca3d8086071184ac80f1e923f8388bc1a5c5b45:
+4591 original inputs unchanged, one shared caller gains isolated Z10 import/guard,
+two new collected paths; original a6 native100 remains genuine original-source
+proof, applicable through both bounded whole-H noninterference reviews C0I0.
+No native100 run on current main/projection is claimed.
+Fresh actual finite execution on local projected commit
+a749b98d51b5e31198a53dac3914b51b49acbda9/tree4ca: 8 affected intake/H suites,
+371 PASS,0 FAIL,0 SKIP; real sharedcreator/import/replay/actor paths exercised.
+Private h-main741-finite.json and main741-projection.json retained.
+Main741 reports SHA256: {"h-main741-review1.json": "0d999e5ffce559b79355b0df84576a45262ba7b8f10d9622eee2e9fdd723784d", "h-main741-review2.json": "18b1a9f2a85a3f0f78cd8632040b2ba1475fb2db35572f00fae9c30e719466f9"}.
+Final3bc whole reviews unchanged C0I0; all foreign rows/SC071 preserved.
+NEXT ROOT fresh head/base/normal-tree/full original11-ref custody preflight,
+atomic free merge-role, authorized ordinary expected-head merge, authenticate
+actual main/tree/parents, role-FIRST release, durable MERGED receipt/checkpoint,
+then release own11 resources. No merge claim or new packet yet; external market
+evidence stays NOT_PROVIDED.
