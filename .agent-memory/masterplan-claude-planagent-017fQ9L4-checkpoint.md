@@ -53,3 +53,8 @@ Remain available as GRANSKARE for A's TR-09/DB-01 READY and for the owners' new 
   - current-head CI;
   - two independent reviews;
   - SC-053 coverage row.
+- 2026-10-11 01:50Z — ROOT review I1 on c4d6b2d (#673 6104258073): NULL/46 had no readingAt, so the authorized [start,end) read omitted it.
+  - Fix: the adapter now binds the declared positional interval for missing E30/E66 energy, using the same arithmetic as the contract. It is guarded: the interval is used only if it reproduces every consumed observation's contract start; otherwise no time is set.
+  - New `scripts/ediel-sc-053-authorized-interval-sql-regression.mjs` uses the real `ediel_beneficiary_series_page_v1`. It returns 56/46/21, and the interval-less NULL is omitted.
+  - Verification: vitest 4/4; 2966/2966 related tests; lint, tsc and typecheck:tests clean.
+  - Still pending: capture, CI, and two reviews. Coverage stays PARTIAL until these are done.

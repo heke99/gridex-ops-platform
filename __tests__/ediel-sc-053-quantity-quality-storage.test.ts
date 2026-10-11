@@ -3,7 +3,8 @@
 // adapter forward each quantity's own source STS+8 quality to PostgreSQL, so a
 // missing (NULL, 46) energy value and a verified zero (0, 21) are stored with
 // distinct value and quality. Only the database RPC is a test double; the SQL
-// storage/validation effects are proven by the companion PGlite regression.
+// storage/validation effects and the authorized interval read are proven by
+// the companion PGlite regressions.
 import {describe,expect,it,vi} from 'vitest'
 import {spawnSync} from 'node:child_process'
 import {createRequire} from 'node:module'
@@ -36,7 +37,7 @@ async function captured(){
  const message=nullAndZeroMessage(),runtime=runUtiltsRuntimeForMessage(message),policy=resolveCanonicalMessagePolicy(message)!
  const contracts=await prepareUtiltsConsumptionContracts({message,runtime,policy,matches:[],dataRequest:null,fallback:{customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null},allowConsumption:true})
  const transactions=buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:runtime.facts.transactions,dispositions:runtime.transactionDispositions,matches:[]})
- let sent:{p_transactions:Array<{quantities:Array<{qualifier:string|null;value:string|null;quality?:string|null}>}>}|null=null
+ let sent:{p_transactions:Array<{quantities:Array<{qualifier:string|null;value:string|null;quality?:string|null;readingAt?:string}>}>}|null=null
  native.rpc.mockReset();native.rpc.mockImplementation(async(_name:string,args:typeof sent)=>{sent=args;return {data:null,error:{message:'captured'}}})
  await expect(persistUtiltsTransactionResults({actorUserId:'77777777-7777-4777-8777-777777777777',companyId:message.company_id!,environment:'test',
   sourceMessageId:message.id!,messageCode:'E66',rawPayload:message.raw_payload!,contracts,transactions})).rejects.toThrow('captured')
@@ -49,13 +50,24 @@ describe('SC-053 NULL is not zero in stored UTILTS values',()=>{
   expect(runtime.transactionDispositions).toMatchObject([{disposition:'accepted',responseType:'positive_aperak'}])
   expect(contracts[0].version).toBe(2)
   expect(native.rpc).toHaveBeenCalledWith('gridex_persist_utilts_consumption_v1',expect.anything())
-  expect(sent.p_transactions[0].quantities.map(q=>[q.qualifier,q.value,q.quality])).toEqual([['136',null,'46'],['136','0','21']])
+  expect(sent.p_transactions[0].quantities.map(q=>[q.qualifier,q.value,q.quality,q.readingAt])).toEqual([['136',null,'46','2026-06-30T22:00:00.000Z'],['136','0','21','2026-06-30T22:15:00.000Z']])
+  // The missing quarter keeps its own declared interval, distinct from the zero's.
+  expect(contracts[0].observations.map(o=>[o.sourceOrdinal,o.periodStart])).toEqual([[1,'2026-06-30T22:15:00.000Z']])
  })
  it('never zero-fills the missing quarter or reuses the zero quality for it',async()=>{
   const {sent}=await captured()
   const [missing,zero]=sent.p_transactions[0].quantities
   expect(missing.value).toBeNull();expect(missing.quality).not.toBe(zero.quality)
   expect(zero.value).toBe('0')
+ })
+ it('returns the missing value as NULL/46 through the real authorized interval read (PGlite)',()=>{
+  const root=process.cwd(),require=createRequire(path.join(root,'package.json'))
+  const result=spawnSync(process.execPath,[path.join(root,'scripts/ediel-sc-053-authorized-interval-sql-regression.mjs')],{cwd:root,encoding:'utf8',timeout:120_000,
+   env:{...process.env,EDIEL_SQL_REPOSITORY:root,EDIEL_PGLITE_MODULE:require.resolve('@electric-sql/pglite')}})
+  expect(result.error,result.stderr).toBeUndefined()
+  expect(result.status,result.stdout+result.stderr).toBe(0)
+  const line=result.stdout.split('\n').find(l=>l.startsWith('SC053_AUTHORIZED_INTERVAL_RESULT '))
+  expect(JSON.parse(line!.slice('SC053_AUTHORIZED_INTERVAL_RESULT '.length)).checks).toBe(3)
  })
  it('stores the forwarded qualities through the real SQL owners (PGlite)',()=>{
   const root=process.cwd(),require=createRequire(path.join(root,'package.json'))
