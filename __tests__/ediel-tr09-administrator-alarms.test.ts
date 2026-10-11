@@ -97,6 +97,8 @@ describe('administrator alarm page', () => {
     // released unsent, so the page must not claim delivery.
     expect(html).toContain('förberett')
     expect(html).not.toContain('skickades med reservförfarande')
+    // A retained alarm can outlive its approval; never present it as currently valid.
+    expect(html).not.toContain('gäller till')
   })
 
   it('fails closed: a refused or broken feed is an alert, never "no alarms"', async () => {

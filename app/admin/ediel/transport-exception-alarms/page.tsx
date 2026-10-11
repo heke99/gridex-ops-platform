@@ -30,7 +30,7 @@ export default async function TransportExceptionAlarmsPage() {
   return (
     <main className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
       <h1 className="text-2xl font-semibold">{title}</h1>
-      <p>Varje rad visar ett förberett, tidsbegränsat reservförfarande för ett meddelande. Larmet skapas när försöket förbereds och visar inte om meddelandet faktiskt skickades. TLS är fortsatt obligatoriskt. Åtgärda orsaken innan undantaget löper ut.</p>
+      <p>Varje rad visar ett förberett, tidsbegränsat reservförfarande för ett meddelande. Larmet skapas när försöket förbereds och visar inte om meddelandet faktiskt skickades. TLS är fortsatt obligatoriskt. Kontrollera meddelandets leveransstatus och åtgärda orsaken.</p>
       {alarms.length === 0 ? (
         <p>Inga larm för reservförfarande.</p>
       ) : (
@@ -38,7 +38,7 @@ export default async function TransportExceptionAlarmsPage() {
           {alarms.map((alarm) => (
             <li key={alarm.id} className="space-y-1 p-3" data-alarm-case={alarm.reserveCase}>
               <p className="font-medium" role={alarm.knownReserveCase ? undefined : 'alert'}>{caseLabels[alarm.reserveCase] ?? `Okänt reservfall: ${alarm.reserveCase}`}</p>
-              <p className="text-sm">Larmat {alarm.createdAt}{alarm.validTo ? ` · undantaget gäller till ${alarm.validTo}` : ''}</p>
+              <p className="text-sm">Larmat {alarm.createdAt}{alarm.validTo ? ` · godkännandet var som längst giltigt till ${alarm.validTo} (kan ha återkallats tidigare)` : ''}</p>
               <p className="text-sm">Meddelande {alarm.messageId} · ansvarig {alarm.responsibleUserId}</p>
             </li>
           ))}
