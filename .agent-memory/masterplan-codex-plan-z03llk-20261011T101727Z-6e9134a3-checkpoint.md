@@ -1,6 +1,6 @@
 # Own PLANAGENT checkpoint — Z03L/Z03LK
 
-Status: RESERVATION VERIFIED; six actual refs GETMATCH; CLAIM publication pending. No source/test edits before CLAIM confirmed.
+Status: RESERVATION VERIFIED; six actual refs GETMATCH; CLAIM published and re-read byte-exactly. Exact four-file source/test scope may now resume.
 
 Identity: `codex-plan-z03llk-20261011T101727Z-6e9134a3`; packet `6e9134a3-e363-4d8a-9d35-a9be2c2b8b60`; branch `codex/plan-z03llk-6e9134a3`; base `c4d5c8f3e5c05fe189acb374c14e7c159a4319ed`; workspace `/tmp/gridex-plan-z03llk-6e9134a3`.
 
@@ -67,3 +67,15 @@ Reservation receipt `575ad1a179b04005b90f830fbc649c62d8b5cd09` uses actual main 
 - `refs/tags/agent-claims/masterplan/file-b63f5bf877a2b03c6d4850b2607fad679da958e7fc546a49d9f6ecede416d97b` → `575ad1a179b04005b90f830fbc649c62d8b5cd09`
 - `refs/tags/agent-claims/masterplan/id-AT-Z03L-SUPPLIER` → `575ad1a179b04005b90f830fbc649c62d8b5cd09`
 - `refs/tags/agent-claims/masterplan/id-AT-Z03LK-SUPPLIER` → `575ad1a179b04005b90f830fbc649c62d8b5cd09`
+
+Pre-code CLAIM verified: https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6108005737
+
+## Resumption / qualification
+
+Done: imported only the four exact preserved635native assets after verified CLAIM; preserved effect/negative/replay oracles. Corrected stale no-ID header and one unused diagnostic destructuring binding only.
+
+Executed: targeted existing Z03 profile/dispatch-window/route-context suites49/49 PASS; eslint three importedTSfiles0errors/one existing unused-binding warning(now removed, rerun pending); all121 declared workflow hash inputs present. Scripts typecheck reproduced exactly one TS2305: shared normalfixture no longer exports NormalSwitchNativeRequestInput. Its public createSwitchRequest hook is absent and would silently ignore the old native callback, so a fake type declaration cannot satisfy public-birth proof. No production defect asserted from this testfixture gap.
+
+Required next scope: optional public request-creator hook and typed prospective input in `scripts/helpers/ediel-normal-switch-native-fixture.ts`, reusing narrow released635source while retaining existing default producer. Exact canonical file-52014054dda0fc994012ac8c2633a56ff01328ea2e6d010de50eb554c7fb6661 GET404 verified. Parent/root coordinates the exact fifth-file scope; it remains read-only until qualified/claimed. No broader source or SQL/GEN edit.
+
+Local native environment: Docker daemon socket access is denied and Supabase CLI absent; no fake status or hostedDB fallback. Native has NOT_RUN, whole IDs remain unapproved. After hook qualification/typecheck/reviews, sole producer will be this packet exact-head `Ediel Z03L/Z03LK native` CI workflow against disposable clean replay. Current mandatory gates remain separate.
