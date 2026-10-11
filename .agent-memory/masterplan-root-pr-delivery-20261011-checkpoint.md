@@ -120,3 +120,35 @@ Startdokumentens daterade 302/352 är historik. Denna rapport och aktuella #673-
 | AT-Z14VH-ESCO | NOT_EXECUTED | claude-planagent-tr09db01-01U97c | Z14VH: real23-DGI/Z14/S18, physicalCONTRL+APERAK, market_permission/object scope and entitled tenant projection; Z15V:23-DGI/Z15/S17, no newZ13, correct permission/reporting end+ST-E07 and future distribution revoke, no othertenant/DDQ effects; all negatives Återstart: IndependentlyGETMATCH five98b6refs and record owncheckpoint+CLAIM, then implement only three new workflow/config/native files. Qualified genuine whole proof+two reviews+mandatory finalhead before ownrow credit/delivery | [källa1](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106510903) [källa2](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106676462) [källa3](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106692449) |
 | AT-Z15VH-ESCO | NOT_EXECUTED | UNKNOWN | Correct164/idZ09/statuscause end, physicalCONTRL/APERAK, complete authorised history job ending without separateVpermission or wrongtenant/DDQsupply effect; all negatives Återstart: Qualified named whole history recipient and exact retainedSC023/history/integration handover/custody; no blanket transfer from A twoESCO rows | [källa1](https://github.com/heke99/gridex-ops-platform/blob/038306855fbbd5a0a27d9223c454a31dc0817008/.agent-memory/masterplan-at-z15v-z15vh-esco-checkpoint.md) [källa2](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106692449) [källa3](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5993346021) |
 
+
+## Claim assistance — current followup 2026-10-11 08:33 UTC / 10:33 Stockholm
+
+# Reservationshjälp — 11 oktober 2026, 10:33 Stockholm
+
+Verifierad main: `038306855fbbd5a0a27d9223c454a31dc0817008`. Coverage är **309/352**, med **43 kvar** (4 regler och 39 kontrakt/scenarier). Coverage-bloben är oförändrad. Reservationerna nedan är arbetsägarskap; de ger ingen ytterligare coverage-poäng.
+
+| Agent/scopet | Faktiskt läge | Nästa steg |
+| --- | --- | --- |
+| Claude blocker wmtl91, SC-052 | Tre riktiga lås skapade och GET_MATCH verifierade mot `5d32bd6032407d1ebcbe49e3f6271f0ff23bf2a6` | Egen GET_MATCH av alla tre, CLAIM och checkpoint före kod; därefter det avgränsade RFF-kriteriet |
+| Claude A, AT-Z14VH-ESCO / AT-Z15V-ESCO | Fem `98b6`-lås verifierade; egen CLAIM publicerad | Implementera bara de tre överlämnade test/config/workflow-filerna och slutför hela kriteriernas bevis |
+| Codex 2f72, AT-Z02L/LK | Återupptaget samma paket; #748 publicerad; avgränsad ny adress/freshREAD-koppling självreserverad | Aktuell komponent-CI och den separata återstående hela Z02-bevisningen |
+| Codex B, AT-Z10M | Fyra riktiga `d4a2`-lås; draft #750 och en ensam ordinarie native-producent | Klassificera dess faktiska resultat; ytterligare reparationsfiler kräver exakt scope |
+| Claude C, #747 | Sju begärda filer kan prövas efter komplettering; inga nya lås skapade åt C | Bekräfta paket-UUID/checkpoint och dokumentera #734:s faktiska leverans/release samt den nya övergången |
+| Claude 017f, SC-054/046 | Ny checkpoint och två-ID-koppling är lästa; inga lås skapade | Dokumentera dispositionen av tidigare #744 och SC-046:s exakta ytterligare produktionsfiler före reservation |
+
+**SC-052:** begäran har nu full UUID, branch, checkpoint och uttrycklig avgränsad ägaröverlämning. ROOT skapade en ny protokollreceipt med Claude som arbetsägare och ROOT som `delegatedBy`, på aktuell mains exakta tree/single parent. Endast `id-SC-052` och två exakta filrefs skapades: `lib/ediel/utilts.ts` och det namngivna nya beteendetestet. Coverage-raden använder ID-låset enligt protokollet; ingen global coverage-filreservation behövs. Samtliga 144 tidigare ref/SHA-par var oförändrade i före/efterkontrollen. Slutlig kontroll visar 147 refs, varav 14 avser kvarvarande ID. Övriga 29 kvarvarande ID är inte automatiskt lediga: behållet ansvar och dependencies ska också kontrolleras.
+
+Kvitton:
+
+- [SC-052 faktiskt PROXY_RESERVED](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6107142338)
+- [C:s konkreta paket/checkpoint-komplettering](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6107074695)
+- [SC-054/046 uppdaterad disposition; tidigare metadata är lösta](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6107162052)
+- [A:s egen CLAIM](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106974755)
+- [2f:s egen fortsättning](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6107001999) och [exakt scopeutökning](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6107133689)
+- [B:s faktiska M2-fortsättning](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6107117973)
+
+ROOT hanterar nästa kvalificerade komplettering med fresh main/remote-check, sorterad create-if-absent, oberoende GET av varje SHA och ett verkligt kvitto. Agenten gör sedan egen verifiering och CLAIM före kod. Främmande lås överförs inte genom tystnad, och kommentarer/branches ersätter inga lås. Inget nytt godkännande från användaren behövs för en redan kvalificerad begäran inom den auktoriserade proxyn.
+
+SC-054:s kandidat #749 publicerades före verifierad reservation; historiken behålls. Den faktiska kandidatens tester/reviews kan återanvändas när tillämpliga, men ett senare lås gör inte den tidigare CLAIMen giltig retroaktivt. För #746 gäller ny källa `3ae2b0b`; tidigare `433d733`-native är ett separat bevis och inte en aktuell körning. #745:s publicerade `7440299`-körning är också separat från senare PRE-källor och den tidigare godkända `fd09`-native90.
+
+Aktuell livechattstatus kan inte hämtas i denna host. Publicerade CLAIM/READY-kvitton visar konkret arbete, men motiverar inget påstående att alla chattar kör eller har stoppat. ROOT ändrade inga produktfiler, främmande refs, protokoll, behörigheter eller produktion under denna reservationskörning. Delat minne hålls fortfarande av B6 med `role-memory` och dess exakta filscope; uppdateringen publiceras i ROOT:s eget checkpoint och på #673.
