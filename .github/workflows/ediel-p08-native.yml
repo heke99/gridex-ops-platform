@@ -14,6 +14,13 @@ on:
       - 'scripts/helpers/ediel-z04d-production-native-fixture.ts'
       - 'scripts/helpers/ediel-bilateral-customer-native-fixture.ts'
       - 'lib/ediel/flows/inboundAckProcessing.ts'
+      - 'scripts/ediel-z09b-brp-change-native.test.ts'
+      - 'lib/ediel/flows/prodatBrpChange.ts'
+      - 'lib/ediel/intent/brpChangeGateway.ts'
+      - 'lib/ediel/intent/renderers/brpChange.ts'
+      - 'lib/ediel/production/brpChangeSource.ts'
+      - 'supabase/migrations/*brp_change*'
+      - 'scripts/helpers/ediel-normal-switch-native-fixture.ts'
       - '.github/workflows/ediel-p08-native.yml'
 
 permissions:
@@ -28,7 +35,7 @@ concurrency:
 jobs:
   p08-native:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     env:
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
@@ -65,6 +72,7 @@ jobs:
           python3 - <<'PY'
           import hashlib, json, os, pathlib, subprocess
           paths = ['scripts/ediel-p-08-production-contract-native.test.ts',
+                   'scripts/ediel-z09b-brp-change-native.test.ts',
                    'scripts/ediel-p-08-native.config.ts',
                    'scripts/ediel-source-owner-native.config.ts',
                    'scripts/helpers/ediel-z04d-production-native-fixture.ts',
@@ -75,6 +83,10 @@ jobs:
                    'lib/ediel/intent/productionContractGateway.ts',
                    'lib/ediel/intent/renderers/productionContract.ts',
                    'lib/ediel/production/contractSource.ts',
+                   'lib/ediel/flows/prodatBrpChange.ts',
+                   'lib/ediel/intent/brpChangeGateway.ts',
+                   'lib/ediel/intent/renderers/brpChange.ts',
+                   'lib/ediel/production/brpChangeSource.ts',
                    'scripts/gridex-aud-003-clean-replay.sh',
                    'scripts/migration-history-manifest.json',
                    'scripts/migration-history-manifest.additions.json',
@@ -86,7 +98,8 @@ jobs:
               'workflow_run_id': os.environ['GITHUB_RUN_ID'],
               'native_exit_code': int(os.environ['P08_NATIVE_EXIT']),
               'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},
-              'test_scope': ['scripts/ediel-p-08-production-contract-native.test.ts'],
+              'test_scope': ['scripts/ediel-p-08-production-contract-native.test.ts',
+                             'scripts/ediel-z09b-brp-change-native.test.ts'],
               'ordinary_required_gates': 'NOT_REPLACED',
               'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
               'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',

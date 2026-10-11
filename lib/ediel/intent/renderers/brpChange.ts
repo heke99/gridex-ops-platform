@@ -15,6 +15,11 @@ export async function buildBrpChangeDraft(input: { actorUserId: string; basis: B
   assertBrpChangeCanonicalRoute(b, route)
   const version = await resolveCanonicalOutboundVersion({ family: 'PRODAT', code: 'Z09', standard: 'edifact', environment: b.environment, routeDefaultMessageVersion: route.defaultMessageVersion })
   if (!version || !i.transactionReference) throw new Error('brp_change_canonical_version_reference_required')
+  // AT-Z09B: every source-owned R/D field of the Z09/Z27 must be present; a
+  // blank one is refused here rather than rendered as an empty segment.
+  const missing = (['pointId', 'identityAgency', 'gridArea', 'legalSenderId', 'legalReceiverId', 'brpEdielId', 'effectiveAt'] as const)
+    .filter(key => !String(b[key] ?? '').trim())
+  if (missing.length) throw new Error(`brp_change_required_field_missing:${missing.join(',')}`)
   const facts = {market:'electricity' as const}
   const rendered = renderProdat({ code: 'Z09', variant: 'B', mode: b.environment,
     actor: { senderEdielId: route.senderEdielId, receiverEdielId: route.receiverEdielId },
