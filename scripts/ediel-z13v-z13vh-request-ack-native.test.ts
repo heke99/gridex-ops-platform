@@ -1596,10 +1596,18 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
    expect(reply).toBeTruthy();expect(row).toEqual({source_message_id:reply.id,company_id:f.ids.company,environment:'test',payload_sha256:hash(reply.raw_payload!)})
   }
   expect(additions.businessReferences).toEqual([])
+  expect(additions.positiveScope).toHaveLength(1)
+  const positiveScope=additions.positiveScope[0]
+  expect(Number.isFinite(Date.parse(String(positiveScope.recorded_at)))).toBe(true)
+  const projection=sql<FullRow>(`SELECT gridex_ediel_ack_replay.prodat_permission_scope_projection_v2(${lit(f.ids.company)},'test',${lit(source.id)},${lit(objectReply.raw_payload!)})`)
+  expect(projection).toMatchObject({scopeKind:'prescribed_prodat_permission_ack',sourceMessageId:source.id,
+   sourceRawHash:hash(raw),ackRawHash:hash(objectReply.raw_payload!),dataAccessGranted:false})
+  expect(positiveScope).toEqual({company_id:f.ids.company,environment:'test',source_message_id:source.id,
+   ack_raw_hash:hash(objectReply.raw_payload!),actor_user_id:f.ids.actor,projection,recorded_at:positiveScope.recorded_at})
   expect(additions.creationReceipts).toHaveLength(2)
   expect(additions.creationReceipts.map(row=>row.ack_message_id).sort()).toEqual(replyIds.slice().sort())
   for(const row of additions.creationReceipts)expect(row).toMatchObject({source_message_id:source.id,source_payload_hash:hash(raw),outcome:'positive',actor_user_id:f.ids.actor})
-  const deltas:Record<string,number>={messages:2,outbox:2,acks:2,events:additions.events.length}
+  const deltas:Record<string,number>={messages:2,outbox:2,acks:2,scopeReceipts:additions.positiveScope.length,events:additions.events.length}
   for(const key of ['creationReceipts','witnesses','consumptions','namespace','businessReferences'] as const)deltas[key]=additions[key].length
   expect(stableProducer.effects).toEqual(Object.fromEntries(Object.entries(producerBefore.effects).map(([key,count])=>[key,count+(deltas[key]??0)])))
   expect(await createInboundEdielMessage(originalIntake)).toBe(source.id)
