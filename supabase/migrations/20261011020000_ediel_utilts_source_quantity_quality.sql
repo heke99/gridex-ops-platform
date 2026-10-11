@@ -106,10 +106,15 @@ BEGIN
     AND a.disposition='accepted' AND a.persistence_status='persisted' AND a.planned_response_type='positive_aperak' FOR SHARE OF a,series;
   IF FOUND AND v.immutable_hash=encode(sha256(convert_to(v.raw_transaction::text,'UTF8')),'hex') THEN
    old_item:=v.raw_transaction;
-   -- A series committed before SC-053 has no quantity quality. Compare its
-   -- retry without that key; the original immutable row stays authoritative.
+   -- A series committed before SC-053 has no quantity quality, and its NULL
+   -- quantities may lack readingAt. Compare its retry without only those added
+   -- keys: quality everywhere, readingAt only on a NULL-value quantity whose
+   -- committed counterpart has none. The original immutable row stays
+   -- authoritative and every other key is still compared exactly.
    IF jsonb_typeof(item->'quantities')='array' AND NOT EXISTS(SELECT FROM jsonb_array_elements(coalesce(old_item->'quantities','[]'::jsonb)) q WHERE q ? 'quality') THEN
-    adapted:=item||jsonb_build_object('quantities',(SELECT coalesce(jsonb_agg(q-'quality' ORDER BY n),'[]'::jsonb) FROM jsonb_array_elements(item->'quantities') WITH ORDINALITY x(q,n)));
+    adapted:=item||jsonb_build_object('quantities',(SELECT coalesce(jsonb_agg(
+      CASE WHEN jsonb_typeof(q->'value')='null' AND jsonb_typeof(old_item->'quantities'->(n::int-1))='object' AND NOT (old_item->'quantities'->(n::int-1)) ? 'readingAt'
+       THEN q-'quality'-'readingAt' ELSE q-'quality' END ORDER BY n),'[]'::jsonb) FROM jsonb_array_elements(item->'quantities') WITH ORDINALITY x(q,n)));
     IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;
     ELSIF adapted IS DISTINCT FROM item THEN
      adapted:=(adapted-'productId')||jsonb_build_object('periodStart',adapted#>'{consumptionContract,interpretation,localPeriodStart}','periodEnd',adapted#>'{consumptionContract,interpretation,localPeriodEnd}');

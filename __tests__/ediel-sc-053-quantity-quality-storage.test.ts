@@ -77,7 +77,7 @@ describe('SC-053 NULL is not zero in stored UTILTS values',()=>{
   expect(result.error,result.stderr).toBeUndefined()
   expect(result.status,result.stdout+result.stderr).toBe(0)
   const line=result.stdout.split('\n').find(l=>l.startsWith('SC053_QUANTITY_QUALITY_RESULT '))
-  expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(14)
+  expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(18)
 
  },125_000)
 })

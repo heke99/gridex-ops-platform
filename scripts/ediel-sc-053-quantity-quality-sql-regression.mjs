@@ -61,6 +61,21 @@ const extension = String.raw`
  assert.deepEqual(await preserve(uid(32),[retry]),[original]);sc053++
  const changed={...retry,quantities:retry.quantities.map(q=>({...q,value:'5'}))}
  assert.deepEqual(await preserve(uid(32),[changed]),[changed]);sc053++
+ // A pre-SC-053 NULL quantity committed without readingAt: the retry now
+ // supplies its quality and readingAt; only those added keys are ignored.
+ await message(uid(33),'PRENULL')
+ const nullCommitted={...committed,transactionId:'PRENULL',quantities:[{value:null,qualifier:'136',raw:'QTY+136:NULL'},{...committed.quantities[0]}]}
+ const nullPersisted=await persist(uid(33),nullCommitted)
+ assert.equal(nullPersisted[0].persistenceStatus,'persisted',JSON.stringify(nullPersisted));sc053++
+ const nullOriginal=(await db.query("SELECT raw_transaction r FROM public.meter_reading_series WHERE source_transaction_reference='PRENULL'")).rows[0].r
+ const nullRetry={...nullCommitted,quantities:[{...nullCommitted.quantities[0],quality:'46',readingAt:'2026-09-01T00:00:00Z'},{...nullCommitted.quantities[1],quality:'21'}]}
+ assert.deepEqual(await preserve(uid(33),[nullRetry]),[nullOriginal]);sc053++
+ // Prohibited: a changed readingAt on a valued quantity, or any other change,
+ // is never adapted.
+ const movedReading={...nullRetry,quantities:[nullRetry.quantities[0],{...nullRetry.quantities[1],readingAt:'2026-09-01T00:30:00Z'}]}
+ assert.deepEqual(await preserve(uid(33),[movedReading]),[movedReading]);sc053++
+ const nullChanged={...nullRetry,quantities:[{...nullRetry.quantities[0],raw:'QTY+136:NULLX'},nullRetry.quantities[1]]}
+ assert.deepEqual(await preserve(uid(33),[nullChanged]),[nullChanged]);sc053++
  // A series stored after SC-053 already has its qualities: no stripping.
  const after=(await db.query("SELECT raw_transaction r FROM public.meter_reading_series WHERE source_transaction_reference='SC053'")).rows[0].r
  assert.deepEqual(await preserve(uid(31),[after]),[after]);sc053++
