@@ -1,6 +1,7 @@
 // masterplan: AT-Z13V-ESCO, AT-Z13VH-ESCO
 // National denial input oracle only. No test registration or source authority.
 import {expect} from 'vitest'
+import {createHash} from 'node:crypto'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {serializeUna} from '@/lib/ediel/core/una'
 import {omitPermissionField} from './ediel-permission-field-omissions'
@@ -133,4 +134,91 @@ export function qualifyEscoNationalSyntax(actual:EdielSyntaxValidationResult,fie
     {archiveMember:'EDIFACT/D97ADISK/EDSD.ZIP!EDIFACT/DIRECTOR/TRSD/EDSD.97A',sha256:'f8e67ec915604e16768b153cd6b837ab47e0fb31265e4cfc154db246bf6d7c11'},
     {archiveMember:'EDIFACT/D97ADISK/EDCD.ZIP!EDIFACT/DIRECTOR/TRCD/EDCD.97A',sha256:'545aba5d4df750784d023633685835385b2fdbb49853769b2c79bbd1b7ccf2c1'},
    ]}]})
+}
+
+type UnresolvedInput={companyId:string;sender:string;receiver:string;li:string;actorSettingId:string;
+ interchangeReference:string;documentReference:string}
+type Window=readonly[number,number]
+const unresolvedColumns=['id','company_id','source_message_id','issue_type','severity','extracted_identifiers','suggested_matches','status',
+ 'assigned_to','resolved_by','resolved_at','created_at','environment','inbound_email_message_id','ediel_message_id','reason','resolution_status',
+ 'candidate_company_ids','parsed_sender_ediel_id','parsed_receiver_ediel_id','parsed_subaddress','message_family','message_code','raw_payload',
+ 'raw_sender','raw_receiver','raw_interchange_reference','raw_message_type','suggested_company_id','created_by','updated_at','inbound_quarantine_id'] as const
+// The setting ID comes from the caller's independent PRE source capture, never
+// the returned tenant observation. Transport alone does not resolve a tenant.
+export function escoNationalUnresolved208Resolution(input:UnresolvedInput){
+ expect(input.actorSettingId).toMatch(uuid)
+ return {status:'unresolved',companyId:null,transportEdielId:input.receiver,marketActorEdielId:null,receiverEdielId:input.receiver,
+  receiverSubaddress:null,source:null,confidence:0,reasons:[`UNB receiver ${input.receiver} kunde inte matchas säkert till tenant i test.`],
+  warnings:[],candidateCompanyIds:[],evidence:[{companyId:input.companyId,source:'ediel_actor_settings',score:100,details:{
+   actorSettingId:input.actorSettingId,matchedTransport:true,matchedMarketActor:false,subaddressRequired:false,
+   transportEdielId:input.receiver,marketActorEdielId:null,receiverEdielId:input.receiver,receiverSubaddress:null,applicationReference:'23-DGI-PRODAT'}}]}
+}
+function observedTime(value:unknown,window:Window){
+ expect(window.every(Number.isFinite)).toBe(true);expect(window[0]).toBeLessThanOrEqual(window[1])
+ expect(typeof value).toBe('string');const instant=Date.parse(String(value));expect(Number.isFinite(instant)).toBe(true)
+ expect(instant).toBeGreaterThanOrEqual(window[0]);expect(instant).toBeLessThanOrEqual(window[1]);return value
+}
+function qualifyUnresolved208Before(before:Row,input:UnresolvedInput){
+ expect(Object.keys(before)).toHaveLength(127)
+ expect(before).toMatchObject({company_id:input.companyId,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z14'})
+ expect(typeof before.id).toBe('string');expect(before.id).toMatch(uuid);expect(typeof before.raw_payload).toBe('string')
+ expect(before.immutable_payload_hash).toBe(createHash('sha256').update(String(before.raw_payload)).digest('hex'))
+ const wire=tokenizeEdifact(String(before.raw_payload)),s=wire.segments,u=wire.una
+ for(const tag of ['UNB','UNH','BGM','LIN','NAD'])expect(s.filter(row=>row.tag===tag)).toHaveLength(tag==='NAD'?2:1)
+ expect(segmentComposite(s.find(row=>row.tag==='UNB'),2,u)).toEqual([input.sender,'ZZ'])
+ expect(segmentComposite(s.find(row=>row.tag==='UNB'),3,u)).toEqual([input.receiver,'ZZ'])
+ expect(segmentComposite(s.find(row=>row.tag==='UNB'),5,u)).toEqual([input.interchangeReference])
+ expect(segmentComposite(s.find(row=>row.tag==='UNB'),7,u)).toEqual(['23-DGI-PRODAT'])
+ expect(segmentComposite(s.find(row=>row.tag==='UNH'),2,u)).toEqual(['PRODAT','D','97A','UN','E2SE6A'])
+ expect(segmentComposite(s.find(row=>row.tag==='BGM'),1,u)).toEqual(['Z14'])
+ expect(segmentComposite(s.find(row=>row.tag==='BGM'),2,u)).toEqual([input.documentReference])
+ expect(s.filter(row=>row.tag==='LIN').map(row=>row.raw)).toEqual(['LIN+1']);expect(s.filter(row=>row.tag==='LOC')).toEqual([])
+ expect(s.filter(row=>row.tag==='RFF').map(row=>segmentComposite(row,1,u))).toEqual([['LI',input.li]])
+ const nad=s.filter(row=>row.tag==='NAD')
+ expect(nad.map(row=>segmentComposite(row,1,u))).toEqual([['FR'],['DO']])
+ expect(segmentComposite(nad[0],2,u)).toEqual([input.sender,'160','SVK']);expect(segmentComposite(nad[1],2,u)).toEqual(['','160','SVK'])
+ expect((before.parsed_payload as Row).tenantResolution).toBeUndefined();expect((before.validation_report as Row).tenantResolution).toBeUndefined()
+}
+export function qualifyEscoNationalUnresolved208Source(actual:Row,before:Row,input:UnresolvedInput,window:Window){
+ qualifyUnresolved208Before(before,input);const resolution=escoNationalUnresolved208Resolution(input)
+ const updated=observedTime(actual.updated_at,window)
+ expect(Date.parse(String(updated))).toBeGreaterThanOrEqual(Date.parse(String(before.updated_at)))
+ expect(actual).toEqual({...before,tenant_resolution_status:'tenant_not_found',business_match_status:'business_blocked',processing_status:'routing_unresolved',
+  parsed_payload:{...(before.parsed_payload as Row),tenantResolution:resolution},validation_report:{...(before.validation_report as Row),tenantResolution:resolution},
+  failure_reason:'Routing unresolved: meddelandet är tekniskt läsbart men kunde inte kopplas säkert till tenant.',updated_at:updated})
+ return resolution
+}
+export function qualifyEscoNationalUnresolved208Item(actual:Row,sourceId:string,input:UnresolvedInput,window:Window){
+ expect(actual.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+ const created=observedTime(actual.created_at,window);expect(actual.updated_at).toBe(created)
+ const resolution=escoNationalUnresolved208Resolution(input)
+ expect(actual).toEqual({...Object.fromEntries(unresolvedColumns.map(column=>[column,null])),id:actual.id,company_id:input.companyId,
+  source_message_id:sourceId,issue_type:'tenant_not_found',severity:'warning',status:'open',environment:'test',candidate_company_ids:[],
+  extracted_identifiers:{sender:input.sender,senderSubAddress:null,receiver:input.receiver,receiverSubAddress:null,applicationReference:'23-DGI-PRODAT',
+   interchangeReference:input.interchangeReference,messageFamily:'PRODAT',messageCode:'Z14',bgmReference:input.documentReference,
+   transactionReference:input.li,businessReference:input.li,tenantResolution:resolution},suggested_matches:resolution.evidence,created_at:created,updated_at:created})
+}
+export function captureEscoNationalUnresolved208Owner(sql:<T>(query:string)=>T,lit:(value:string)=>string,before:Row,input:UnresolvedInput){
+ const sourceBefore=structuredClone(before),basis=structuredClone(input);qualifyUnresolved208Before(sourceBefore,basis)
+ const table='public.ediel_unresolved_items',types:Row={id:'uuid',company_id:'uuid',source_message_id:'uuid',assigned_to:'uuid',resolved_by:'uuid',
+  resolved_at:'timestamp with time zone',created_at:'timestamp with time zone',inbound_email_message_id:'uuid',ediel_message_id:'uuid',candidate_company_ids:'uuid[]',
+  extracted_identifiers:'jsonb',suggested_matches:'jsonb',suggested_company_id:'uuid',created_by:'uuid',updated_at:'timestamp with time zone',inbound_quarantine_id:'uuid'}
+ const defaults:Row={id:'gen_random_uuid()',severity:"'warning'::text",extracted_identifiers:"'{}'::jsonb",suggested_matches:"'[]'::jsonb",
+  status:"'open'::text",created_at:'now()',updated_at:'now()',candidate_company_ids:"'{}'::uuid[]"}
+ const nonnull=['id','issue_type','severity','extracted_identifiers','suggested_matches','status','created_at','candidate_company_ids','updated_at']
+ const schema=sql<Row[]>(`SELECT jsonb_agg(jsonb_build_object('name',a.attname,'type',format_type(a.atttypid,a.atttypmod),
+  'nullable',NOT a.attnotnull,'default',pg_get_expr(d.adbin,d.adrelid)) ORDER BY a.attnum) FROM pg_attribute a
+  LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE a.attrelid=${lit(table)}::regclass AND a.attnum>0 AND NOT a.attisdropped`)
+ expect(schema).toEqual(unresolvedColumns.map(name=>({name,type:types[name]??'text',nullable:!nonnull.includes(name),default:defaults[name]??null})))
+ const read=()=>sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r`)
+ let prior=structuredClone(read()),calls=0
+ expect(prior.filter(row=>row.source_message_id===sourceBefore.id)).toEqual([])
+ return {qualify(window:Window){
+  const now=read();for(const row of prior)expect(now.find(next=>next.id===row.id)).toEqual(row)
+  const added=now.filter(row=>!prior.some(old=>old.id===row.id))
+  if(calls===0){expect(added).toHaveLength(1);qualifyEscoNationalUnresolved208Item(added[0],String(sourceBefore.id),basis,window)}
+  else expect(now).toEqual(prior)
+  const own=now.filter(row=>row.source_message_id===sourceBefore.id);expect(own).toHaveLength(1)
+  prior=structuredClone(now);calls++;return structuredClone(own[0])
+ }}
 }
