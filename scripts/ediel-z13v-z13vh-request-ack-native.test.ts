@@ -1207,12 +1207,16 @@ function currentProducerReviews(f:Fixture,evidence:Awaited<ReturnType<typeof rev
  }
  return rows
 }
-async function refuseMissingProducerSource(mode:'V'|'VH',field:'217'|'261'){
+async function refuseMissingProducerSource(mode:'V'|'VH',field:'217'|'261'|'222'|'323'){
  const{f,checkSentinel}=await prospectiveRequest(mode)
  // Omit the one claim prospectively, before issuer signing, public archive
  // and the separate reviewer. All five contracts remain genuinely current.
  const reviewed=await reviewNativeEscoAssignmentEvidence(f,undefined,field),reviews=currentProducerReviews(f,reviewed)
  const agreement=field==='261'?null:'SYN-'+f.ids.customer.slice(0,20),method=field==='217'?null:'Z04'
+ const expectedTerms=(kind:unknown)=>({permission_reporting_frequency:kind==='end_user_contract'&&field==='222'?null:'D',
+  permission_purpose_code:kind==='end_user_contract'&&field==='323'?null:'B72',permission_request_grid_area:'TES',
+  permission_reporting_term_kind:mode==='VH'?'bounded':'indefinite',permission_customer_classification:'private'})
+ for(const row of reviews)expect(row.evidence).toMatchObject(expectedTerms(row.evidence.kind))
  const endUser=reviews.find(r=>r.evidence.kind==='end_user_contract')!.evidence
  expect(endUser).toMatchObject({permission_agreement_reference:agreement,permission_requested_method:method})
  for(const row of reviews.filter(r=>r.evidence.kind!=='end_user_contract')){
@@ -1232,7 +1236,7 @@ async function refuseMissingProducerSource(mode:'V'|'VH',field:'217'|'261'){
    scope_basis_version:f.current().basis,source_hash:reviewed.hash,source_version:'synthetic-v1',scope:f.current().scope})
   expect(archive.artifact.evidence_terms).toEqual(archive.normalized)
   expect(archive.normalized).toMatchObject({permission_agreement_reference:archive.artifact.evidence_kind==='end_user_contract'?agreement:null,
-   permission_requested_method:archive.artifact.evidence_kind==='end_user_contract'?method:null})
+   permission_requested_method:archive.artifact.evidence_kind==='end_user_contract'?method:null,...expectedTerms(archive.artifact.evidence_kind)})
  }
  expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version}))
   .toMatchObject({status:'approved_waiting_permission'})
@@ -1275,7 +1279,8 @@ async function refuseMissingProducerSource(mode:'V'|'VH',field:'217'|'261'){
   actorUserId:f.ids.actor,expectedVersion:f.current().version,permissionId})).toEqual({status:'permission_required',permissionId})
  expect(producerState(f)).toEqual(before)
  const command={action:'request_access',assignmentId:f.assignment,expectedVersion:f.current().version,permissionId,preferredRouteId:f.ids.route}
- const held={status:'held',missing:[field==='261'?'authentic_source_defined_end_user_agreement_reference':'authentic_source_defined_requested_reporting_method']}
+ const held={status:'held',missing:[field==='261'?'authentic_source_defined_end_user_agreement_reference':
+  field==='217'?'authentic_source_defined_requested_reporting_method':'source_assessed_permission_reporting_tuple']}
  expect(await f.command(command)).toEqual(held)
  expect(producerState(f)).toEqual(before)
  expect(await f.command(command)).toEqual(held)
@@ -1285,7 +1290,7 @@ async function refuseMissingProducerSource(mode:'V'|'VH',field:'217'|'261'){
 }
 
 for(const mode of ['V','VH'] as const){
- for(const field of ['217','261'] as const){
+ for(const field of ['217','261','222','323'] as const){
   it(`${mode}: missing reviewed producer source field ${field} holds the public Z13 request before wire or rights; immutable retry`,async()=>{
    await refuseMissingProducerSource(mode,field)
   })
