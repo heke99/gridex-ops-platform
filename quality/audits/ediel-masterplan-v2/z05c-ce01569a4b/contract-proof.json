@@ -275,5 +275,20 @@
     "merge_role": "REQUIRED_SERIAL_OWNER_ONLY",
     "external_legal_market_live_gates": "NOT_APPROVED",
     "other_ids": "NOT_APPROVED"
-  }
+  },
+  "subsequent_main_applicability": [
+    {
+      "main": "d00ca1266fe0f40349f49d9ddab1bb11d59ba187",
+      "main_tree": "1139a38b8b878433404cff3d99ce621117c383d0",
+      "reviewed_evidence_composition": "36f0384c8cc4fb3d3103f3af2a312a8c93b2eff1",
+      "reviewed_evidence_composition_tree": "43369327d63fcb1b1573ba048ae1a68781713325",
+      "independent_applicability_review_sha256": "cbbb30cf22588a143f1e83cdead9371559a1ac8f49346661065b66d1b9a17dd9",
+      "verdict": "C0/I0 bounded static C05 applicability, not execution of this newer composition",
+      "actual_sql_premise_delta": "The C05 fixture calls gridex_publish_internal_contract_version. Its new private same-offer/company/actor/transaction one-off authorization branch is not used by the ordinary catalog fixture; the absent-authorization branch retains contracts.publish and pricing.publish. Only this publisher and the manual one-off materializer differ among 2166 compared schema functions.",
+      "retained_paths": "All Ediel, actor, receipt, effect and replay functions; TypeScript/import/native test postimages and oracles remain exact. Seven imported foreign paths are exact d00.",
+      "earlier_proof_and_checks": "3847 native and 71e8 component checks retain their original source/tree attribution; neither is relabelled to d00 or the new final head.",
+      "current_composition_native_execution": "NOT_PROVIDED; qualify existing automatic producer and all ordinary current-head gates before delivery",
+      "delivered_main_count": 311
+    }
+  ]
 }
