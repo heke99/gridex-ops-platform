@@ -113,7 +113,10 @@ jobs:
           server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
           echo "replay server major version: $server_major"
           sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+          # Retry transient DNS/transfer faults; retain HTTPS verification and final failure.
+          sudo curl -fsS --retry 3 --retry-all-errors --retry-delay 2 \
+            --connect-timeout 10 --max-time 30 --retry-max-time 90 \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
             https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
@@ -562,7 +565,10 @@ jobs:
           server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
           echo "replay server major version: $server_major"
           sudo install -d /usr/share/postgresql-common/pgdg
-          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+          # Retry transient DNS/transfer faults; retain HTTPS verification and final failure.
+          sudo curl -fsS --retry 3 --retry-all-errors --retry-delay 2 \
+            --connect-timeout 10 --max-time 30 --retry-max-time 90 \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
             https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
