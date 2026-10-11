@@ -168,3 +168,10 @@ for 6102293795; (c) explicit scoped handover to E. Otherwise remain BLOCKED; no 
 ### Remaining-ID picture (agent survey 10:55Z)
 - Rules not VERIFIED: TR-08, OPS-04 (EXTERNAL_DECISION), DB-01, DB-05 (occupied/external).
 - Free-but-retained candidates after Z09B: SC-035, SC-039, AT-Z01L/LK, AT-Z04L/LK (overlap risk), AT-Z06F/Z09F/Z06G/Z09G and AT-Z15VH (retained authors) — check fresh before claiming.
+
+## 2026-10-11 22:35Z — AT-Z09B delivered (PARTIAL)
+- Taken/done: PR #760 merged by owner at head 54accbe → main 243fd6e. Review I-760-A-01 is fixed by the immutable-correlation deferred trigger (e491cac). ROOT imported the generated files (31697d1). I reverted my premature PASSED (e27d5e6) to PARTIAL (54accbe) per I-760-COV-C-01 / I-760-D-02.
+- Verification: CI on 54accbe was 30 success / 10 skip / 0 fail; p08-native SUCCESS; local coverage --check exits 0.
+- Receipts on #766: READY 6114621561, MERGED+RELEASE 6114647413. No packet refs existed.
+- Open on AT-Z09B: dated effectiveAt/effectiveUntil and successive-change history-preservation assertions; a direction-refusal fixture with a valid bound origin; the REST/RLS Minor. A future packet needs fresh refs.
+- Next: select the next evidenced blocker from #766 and the work queue.
