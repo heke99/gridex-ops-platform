@@ -1,6 +1,6 @@
 # Codex Z02 coupled continuation — current checkpoint
 
-Updated 2026-10-11 22:38 UTC.
+Updated 2026-10-11 22:34:38 UTC.
 Owner: codex-ediel-20261006-2f72c8ab. Packet: ac08f5ae-1dd9-4209-8fd6-2a596ffaf10f. Session: 6b167a5e-b92a-4b38-94ee-76e698da36b1.
 Retained pair: AT-Z02L-SUPPLIER / AT-Z02LK-SUPPLIER, both NOT_EXECUTED/evidence[]. No next pair, shared role or whole credit.
 Active board [#766](https://github.com/heke99/gridex-ops-platform/issues/766); #673/#530 retain original history.
@@ -15,7 +15,7 @@ Published [PR #762](https://github.com/heke99/gridex-ops-platform/pull/762), OPE
 - Carry517 has ordered parents 7cf3f554b4af7980a75f713285c8223d5a0d4b5c + actual main f77f351cdc94ae0563c5498f7c15679ea2fab44c. Full tree union preserves foreign source/coverage/SQL/GEN; final PR against f77 has22ownedpaths.
 - Seven final diagnostic/marker paths are exact reviewed bytes; other9869treeentries unchanged517; WT /tmp/gridex-ediel-z02-native-current-2f72-6b167a5e clean.
 - Ordinary fastforward push22:16:00.444–01.837 EXIT0/branch GET_MATCH. First immediate PRGET still1990 caused wrapper GET_MATCHfalse/AssertionError; that first receipt is preserved, not relabeled as pushfailure. Later actual PRGET6bb, rewritten body and source-review comment6114517288 all full GET_MATCH.
-- New19workflowevents/32jobchecks are distinct6bb epoch. At22:35: nine genuine SUCCESS including smoke/browser and seven nativejobs; Z02native38179736202/a1/job114589555309, clean replay, targeted and other controls running/queued. Ten staging/production conditional SKIPs are not executed PASS and must be assessed against event/source conditions. Verify/upgrade/quality/coverage/pr-certificate still required. No CI_GREEN/nativePASS/merge.
+- New19workflowevents/32jobchecks are distinct6bb epoch. At authenticated status read2026-10-11 22:34 UTC: nine genuine SUCCESS including smoke/browser and seven nativejobs; Z02native38179736202/a1/job114589555309, clean replay, targeted and other controls running/queued. Ten staging/production conditional SKIPs are not executed PASS and must be assessed against event/source conditions. Verify/upgrade/quality/coverage/pr-certificate still required. No CI_GREEN/nativePASS/merge.
 - Old1990 epoch had four mandatoryFAIL and native91=83PASS/8FAIL/0ERROR/0SKIP. Those remain historical first failures; all eight SDK causes remain UNKNOWN until new qualified diagnostic evidence.
 
 Latest authenticated main f77/tree7627b784197b11ae3838cdce1891074592194da5. Ledger314/352 =118/121rules +196/231contracts,38remaining, ownpair+0. No SQL/GEN/coverage change in6bb.
@@ -112,3 +112,5 @@ ROOT keeps this one pair and actual publication/CI custody. No new pair starts.
 - R2 authors complete authentic forward PRIVATE SOURCE under verifiedexactfileCLAIM; two independent source reviewers +ROOTself required before repository import/runtime.
 - ROOT follows actualcurrent762 applicable CI/review; no merge until current-head mandatorySUCCESS/requiredreview/merge-role/mainrefresh. If new failure, preserve first and qualify exact evidence before fixing owned source.
 - ROOT updates own checkpoint and #766 after each meaningful change. Sharedstatus stays with currentrole/pathowner; no duplication. Actual MERGED requires actualmaincommit/PR then own-only releases. Local green, published, CI-green, merged and externally verified remain distinct.
+
+Documentation correction: previous header22:38/status22:35 were future shorthand, not actual operation clocks; corrected to actual clock read2026-10-11 22:34:10 UTC. All original CLI/test/process receipt clocks remain exact and untouched. Full observerv1 A753c290e +B ea39dc27844ff8d1d6a94fab91e6188c51985c990c3cfd06608afcf3eccb41a2 now fullyROOTread C0/I4/M0; fourImportant source-only, no runtime. Nativehelper preparingv2 plus realPython startup sourcequalification with fixedNOUSERSITE/SAFEPATH afterhook scrub and exactsite.py/systempth/nohookcensus, no shim/canonicalrewrite. SOURCE2+self beforeGO.
