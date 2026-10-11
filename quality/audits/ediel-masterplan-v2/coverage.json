@@ -2230,7 +2230,7 @@
     },
     {
       "id": "SC-046",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-sc-046-late-older-version.test.ts",
         "__tests__/ediel-sc-046-late-older-positive-aperak.test.ts",
