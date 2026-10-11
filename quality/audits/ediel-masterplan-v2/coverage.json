@@ -2309,7 +2309,7 @@
     },
     {
       "id": "SC-054",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-sc-054-storage-failure.test.ts",
         "lib/ediel/flows/inboundProcessing.ts",
