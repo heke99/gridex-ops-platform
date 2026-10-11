@@ -1,4 +1,4 @@
-// masterplan: P-08, AT-P-08
+// masterplan: P-08, AT-P-08, AT-Z09D-SUPPLIER
 // Native clean-replay proof of the P-08 production-contract chain: a signed
 // production-contract original is archived and independently reviewed through
 // the installed intake RPCs, the supplier Z09 is rendered by the actual
@@ -177,6 +177,8 @@ async function sentZ09(f: Fixture, route: string, eventId: string, kind: 'signed
   expect(raw).not.toMatch(/DTM\+157:/); expect(raw).not.toMatch(kind === 'signed' ? /DTM\+93:/ : /DTM\+92:/)
   expect(raw).toMatch(/BGM\+Z09\+/); expect(raw).toContain("CAV+Z70'"); expect(raw).toContain(`LIN+1++${f.productionExternal}:::9'`)
   expect(raw).toContain(`NAD+Z02+${f.brpEdielId}:160:SVK'`)
+  // AT-Z09D: PRODAT application reference and no end-user party (NAD+UD) on a production-contract Z09D.
+  expect(EdifactEnvelopeCodec.decode(raw).applicationReference).toBe('23-DDQ-PRODAT'); expect(raw).not.toMatch(/NAD\+UD\+/)
   expect(queued.message).toMatchObject({ direction: 'outbound', message_family: 'PRODAT', message_code: 'Z09', source_operation_id: eventId, company_id: f.companyId, environment: 'test' })
   expect(sql(`SELECT jsonb_build_object('message',message_id,'hash',payload_hash) FROM gridex_received_sources.production_contract_origins WHERE event_id=${literal(eventId)}`))
     .toEqual({ message: queued.message.id, hash: hash(raw) })
@@ -285,4 +287,21 @@ it('P-08 tenant isolation: an own positive APERAK confirms only its own tenant e
   expect(confirmations(a.sent.eventId)).toEqual([{ event: a.sent.eventId, company: a.f.companyId, environment: 'test', message: a.sent.original.id }])
   expect(confirmations(b.sent.eventId)).toEqual([])
   expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.production_contract_confirmations WHERE company_id=${literal(b.f.companyId)}`)).toBe(0)
+}, 900_000)
+
+it('AT-Z09D a mutated sent Z09D original is never confirmed: the mutation is refused or the ACK authority refuses the changed original', async () => {
+  const { f, sent } = await signedChain()
+  const before = sql<string>(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(sent.original.id)}`)
+  let refused = false
+  try {
+    sql(`UPDATE public.ediel_messages SET raw_payload=replace(raw_payload,'CAV+Z70','CAV+Z71') WHERE id=${literal(sent.original.id)} AND company_id=${literal(f.companyId)}`)
+  } catch { refused = true }
+  if (refused) {
+    // The sealed original is unchanged, so only its own genuine receipt could ever confirm it.
+    expect(sql<string>(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(sent.original.id)}`)).toBe(before)
+  } else {
+    // The stored bytes no longer match the sealed hash: no acknowledgement may be applied to the mutated original.
+    await expect(acknowledge(f, sent, 'APERAK')).rejects.toThrow()
+  }
+  expect(confirmations(sent.eventId)).toEqual([])
 }, 900_000)
