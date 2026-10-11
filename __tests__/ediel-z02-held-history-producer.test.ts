@@ -350,13 +350,15 @@ function expectCurrentNullSemantics(){
  expect(semanticDigest(io.actualDecision!),'current full semantic decision/report changed beyond witness').toBe(currentExpected)
  const legacyProjection=structuredClone(io.actualDecision!)
  const rules=legacyProjection.policy!.fieldRules
- expect(rules.filter(rule=>rule.fieldNumber==='306')).toHaveLength(1)
+ expect(rules.filter(rule=>'fieldNumber' in rule&&rule.fieldNumber==='306')).toHaveLength(1)
  expect(rules[32]).toEqual({family:'PRODAT',code:'Z02',fieldNumber:'306',fieldKey:'installation_status',label:'installation_status',
   segmentPath:'CCI++Z07/CAV',requirement:'forbidden',allowedValues:['Z11','Z12'],source:'static'})
  // Only the separately cloned legacy diagnostic projection changes; the live
  // decision and the full current oracle retain the delivered field metadata.
- const {allowedValues,...legacyRule}=rules[32]!
+ const rule=rules[32]!
+ if(!('fieldNumber' in rule)||!('allowedValues' in rule))throw Error('Exact PRODAT306 rule required for legacy projection')
+ const {allowedValues,...legacyRule}=rule
  expect(allowedValues).toEqual(['Z11','Z12'])
- rules[32]=legacyRule
+ legacyProjection.policy!.fieldRules=rules.map((current,index)=>index===32?legacyRule:current)
  expect(semanticDigest(legacyProjection),'original full semantic decision/report changed beyond documented306 metadata').toBe(expected)
 }
