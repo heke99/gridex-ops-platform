@@ -207,9 +207,10 @@ export function captureEscoNationalUnresolved208Owner(sql:<T>(query:string)=>T,l
   status:"'open'::text",created_at:'now()',updated_at:'now()',candidate_company_ids:"'{}'::uuid[]"}
  const nonnull=['id','issue_type','severity','extracted_identifiers','suggested_matches','status','created_at','candidate_company_ids','updated_at']
  const schema=sql<Row[]>(`SELECT jsonb_agg(jsonb_build_object('name',a.attname,'type',format_type(a.atttypid,a.atttypmod),
-  'nullable',NOT a.attnotnull,'default',pg_get_expr(d.adbin,d.adrelid)) ORDER BY a.attnum) FROM pg_attribute a
+  'nullable',NOT a.attnotnull,'default',pg_get_expr(d.adbin,d.adrelid)) ORDER BY a.attname) FROM pg_attribute a
   LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE a.attrelid=${lit(table)}::regclass AND a.attnum>0 AND NOT a.attisdropped`)
- expect(schema).toEqual(unresolvedColumns.map(name=>({name,type:types[name]??'text',nullable:!nonnull.includes(name),default:defaults[name]??null})))
+ const byName=(a:Row,b:Row)=>String(a.name).localeCompare(String(b.name))
+ expect([...schema].sort(byName)).toEqual(unresolvedColumns.map(name=>({name,type:types[name]??'text',nullable:!nonnull.includes(name),default:defaults[name]??null})).sort(byName))
  const read=()=>sql<Row[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r`)
  let prior=structuredClone(read()),calls=0
  expect(prior.filter(row=>row.source_message_id===sourceBefore.id)).toEqual([])
