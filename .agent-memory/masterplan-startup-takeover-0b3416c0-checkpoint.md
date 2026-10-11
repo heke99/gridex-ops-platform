@@ -208,3 +208,51 @@ actualcandidate reviews/guardedFF and real newhead allCI/soleDB01 output.
 Provide authenticated exact transition identity to its board resolver if766
 activates; never infer transition from main merge alone. Root serial final743
 delivery/release follows applicable currentmain reviews and mandatorygates.
+
+## Actual DB01 publication and current delivery gates — 2026-10-11 14:53 UTC
+
+Taken: root retains startup767 source packet9121 and its tenfile+memory
+cbbee custody; own memory GET_MATCH verified14:52:48 UTC. Currentmain freshly
+authenticated d00ca1266fe0f40349f49d9ddab1bb11d59ba187. Root holds no merge-role.
+Child fae8b466 owns the full743 DB01/AT packet on seven584 refs under actual
+handoff6110029694 and CLAIM6110034139; historical53 duties administratively
+retired only for this scope, external chat UNKNOWN and unrelated duties retained.
+
+Done: actualcab7 source published by one normal485ad→cab7 FF14:36:25 UTC,
+parents485ad+d00, treecbfacd. Two independent actualsource C0/I0 receipts:
+https://github.com/heke99/gridex-ops-platform/pull/743#issuecomment-6110138881
+https://github.com/heke99/gridex-ops-platform/pull/743#issuecomment-6110139066
+Current READY:
+https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6110158962
+Child NONPR CP5a67018d7a934c09e738ae0d6623efa7b36183a7 is published separately;
+technical cab7 remains fixed. Candidate313/352 is not actualmain credit.
+
+Evidence: sole currentcab watcher14:50:20 UTC shows actual TR09 SUCCESS and
+z04a SUCCESS, DB01 run38147869137/attempt1/job114494909767 IN_PROGRESS,
+wholecreatedCI pending. Thus the former FIVE absent TR09 workflow inputs are
+resolved on the actual published basis. Child alone observes/qualifies this
+producer and will collect one official archive only after genuine SUCCESS;
+the old485 14/14 proof remains dated/source485, with no newhead substitution.
+
+Current767 root-only watcher14:51:27 UTC: six required SUCCESS, clean replay
+114477511120 and latecertificate114486062398 IN_PROGRESS, nine qualified
+conditionalSKIP, no failure. Required8 must actuallySUCCESS/allcreatedinventory
+complete before immediate own serial delivery. Prepared operational scripts
+and actuald00+1f/tree2b035 composition have bounded independent C0/I0;
+no merge, ownedrelease or673→766 transition has happened for767 yet.
+
+Updated blocker752: sole fresh14:40:50 UTC metadata identifies actual
+pr-certificate114470303451 FAILURE completed13:35:08 UTC and CURRENT
+clean replay114482789875 IN_PROGRESS since13:57:29 UTC. 13SUCCESS/10SKIP/
+1FAILURE/1RUN; review dispositions I2/I3 persist. No timeout/cause inference,
+new logs, rerun, cancellation or oldpending-only BLOCKED reuse. Five98b6
+source refs remain for763;752 is not currently delivery-ready.
+
+Next: finish767 genuine gates, immediate normal expected-head merge, actual
+parents/tree/full311 authentication, merge-role FIRST then all11 own resources
+SHA/DELETE/GET404, explicit673→766 actualtransition and current unique table.
+Before transition root pauses child publicposting briefly and provides named
+authenticated actualcomment/main identity. Then finish743 currentnative/allCI,
+two applicable currentmain reviews and serial delivery/actualownedrelease.
+C may already continue its independent accepted GEN queue using new5refs,
+CLAIM and every branchowner mandate; root docs impose no dependency.
