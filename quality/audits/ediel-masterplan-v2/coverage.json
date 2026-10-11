@@ -1435,12 +1435,22 @@
     {
       "id": "DB-01",
       "acceptance_id": "AT-DB-01",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "app/admin/ediel/actors/actions.ts",
         "app/admin/ediel/actors/page.tsx",
         "lib/ediel/partyRegistry.ts",
-        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts",
+        "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/kernelLegacy.ts",
+        "__tests__/ediel-db-01-current-authority-parity.test.ts",
+        "__tests__/ediel-test-configuration-route-source.test.ts",
+        "__tests__/ediel-db01-native-source-basis.test.ts",
+        "scripts/ediel-db01-legacy-address-containment-native.test.ts",
+        "scripts/ediel-db01-current-native.config.ts",
+        ".github/workflows/ediel-db01-current-native.yml",
+        ".agent-memory/masterplan-codex-plan-next-20261011T002655Z-53d604e536-checkpoint.md"
       ]
     },
     {
@@ -3676,12 +3686,22 @@
     },
     {
       "id": "AT-DB-01",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "app/admin/ediel/actors/actions.ts",
         "app/admin/ediel/actors/page.tsx",
         "lib/ediel/partyRegistry.ts",
-        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts",
+        "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/kernelLegacy.ts",
+        "__tests__/ediel-db-01-current-authority-parity.test.ts",
+        "__tests__/ediel-test-configuration-route-source.test.ts",
+        "__tests__/ediel-db01-native-source-basis.test.ts",
+        "scripts/ediel-db01-legacy-address-containment-native.test.ts",
+        "scripts/ediel-db01-current-native.config.ts",
+        ".github/workflows/ediel-db01-current-native.yml",
+        ".agent-memory/masterplan-codex-plan-next-20261011T002655Z-53d604e536-checkpoint.md"
       ]
     },
     {
