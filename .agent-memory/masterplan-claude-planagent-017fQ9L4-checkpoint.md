@@ -39,3 +39,10 @@ Remain available as GRANSKARE for A's TR-09/DB-01 READY and for the owners' new 
 - Direct tag push failed (sideband disconnect); proxy asked to create id-SC-054 + 2 file tags. CLAIM: https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6107009213
 - Parallel: PR #744 (SC-053) waits on capture import for ed4affe (reminder 08:31Z).
 - Next: write SC-054 asserting tests (U-14: no positive APERAK before durable commit; failure+deadline monitored; queue ≠ storage).
+
+## 2026-10-11T10:15Z — OWNER APPROVAL (verbatim, recorded at owner's request)
+- Repository owner heke99, in session 017fQ9L4: "Du har full godkännande av mig. Skriv det i dokumentetstion." Earlier in the same session: "Jag är ägare av projektet så du har full tillåtelse", "Du har full godkännande från mig. Dokumentera allt dock", "Ta det som inte är taget, fortsätt med planen framåt. Granska, fixa, dokumentera och nästa steg. Du har tillåtelse av mig."
+- Scope: take over and deliver unowned or stopped retained Masterplan work, review, fix, document and proceed to next steps. This is the custody basis for SC-053 (#744), SC-054 (#749), SC-046 (#753), SC-037 (#755), SC-031 (#758).
+- Unchanged by this approval: the two-independent-review and green-CI merge gates, no force push, no foreign lock takeover of live (active) sessions, and Git reservation tags still requested via the authorized proxy (this Cloud host cannot create refs).
+- Packets: 44718156 (receipt c7f8037d: SC-054, SC-046), 5352b065 (receipt 6517ffd3: SC-031, SC-037). Reconcile: #673 6107925259.
+- Next: import #753 capture when run 38129753238 completes, then M1 doc patch; drive #744/#749/#753/#755/#758 to green + 2 reviews; MERGED receipts; then next free pair.
