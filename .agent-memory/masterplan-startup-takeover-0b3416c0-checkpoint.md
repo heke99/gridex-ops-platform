@@ -553,3 +553,24 @@ that concrete blocker and reuse diagnosis, obtaining necessary actualhandoff
 and ownreservations/CLAIM before code. Reconcile sole766 body honestly now;
 finish genuine current-main CI/checkpoint/publicbaseline evidence before any
 next implementation. This record does not declare wholeMasterplan complete.
+
+## Actual main cancellation selected — 2026-10-11 17:11 UTC
+
+TAKEN: exact actual1e clean-migration-replay job114521147169/run38156710703
+is CANCELLED in sole17:09:07Z metadata snapshot, while quality-release-gates
+isSUCCESS and coverage/full stillRUN. All18created=7SUCCESS+8SKIP+2RUN+1CANCELLED;
+aggregate/VercelSUCCESS does not discharge cancelled mandatory clean replay.
+This current observation replaces oldallhealthy waiting, not old sourceb454 CI.
+Main eight actualSKIPs now locally qualified explicitfalse on push/main by
+eff_mandate exactpolicyJSONa59f5f028b16ab5bc0a5dc085feadaf458c5173004e8a6ca11cd9d4a9e0c05cf;
+smoke remains required onPR. No qualifiedGREEN yet, no inferredcancelcause.
+
+NEXT/EVIDENCE: sole metadatareader eff_owner_table owns bounded diagnosis:
+exactrun38156710703 + exactjob114521147169 + onecurrentmainref, then reusable
+existingownerdiagnosis/localconcurrency. OPS exact1e cancel-in-progress true,
+group ops-hardening-${{ github.event.pull_request.number || github.ref }};
+clean timeout90min. Neither alone proves actualcause. No logs/rerun/cancel,
+workflow/source/native/GEN/ref mutation or implementation authorized by this
+read-onlyselection. Determine supersession/currenthead and actualstep/status
+before choosing a precise remedy. Necessaryactualhandoff/ownreservations/CLAIM
+still precede code; finish ownactualqualification and truthful766 reconciliation.
