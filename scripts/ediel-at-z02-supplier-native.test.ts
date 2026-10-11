@@ -930,7 +930,7 @@ function copyCompleteRows(path: string, tables: readonly string[], excludeNewIng
     'gridex_ediel_inbound_receptions.technical_mailbox_births': `r.inbound_email_message_id IS DISTINCT FROM ${literal(excludeNewIngress.inboundEmailMessageId)}::uuid`,
   } : {}
   const statements = tables.map(table => {
-    if (!/^[a-z_]+\.[a-z_]+$/.test(table)) throw new Error('native312_table_identifier_invalid')
+    if (!/^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/.test(table)) throw new Error('native312_table_identifier_invalid')
     return `COPY (SELECT ${literal(table)}) TO STDOUT;
       COPY (SELECT to_jsonb(r)::text FROM ${table} r ${exclusions[table] ? `WHERE ${exclusions[table]}` : ''}
         ORDER BY to_jsonb(r)::text COLLATE "C") TO STDOUT;`
