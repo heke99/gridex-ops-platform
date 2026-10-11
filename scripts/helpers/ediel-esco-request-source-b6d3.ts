@@ -52,7 +52,13 @@ export async function refuseEscoMissingHistoricalEnd(f:Fixture,ports:Ports){
   expect(archive.artifact).toMatchObject({company_id:f.ids.company,assignment_id:f.assignment,environment:'test',
    scope_basis_version:f.current().basis,source_hash:reviewed.hash,source_version:'synthetic-v1',scope})
   expect(archive.artifact.evidence_terms).toEqual(archive.normalized)
-  expect(archive.normalized).toMatchObject(terms(archive.artifact.evidence_kind))
+  const expected:Row=terms(archive.artifact.evidence_kind)
+  if(archive.artifact.evidence_kind!=='dso_contract'){
+   for(const key of ['permission_network_contract_start','permission_network_contract_end']){
+    delete expected[key];expect(Object.hasOwn(archive.normalized,key)).toBe(false)
+   }
+  }
+  expect(archive.normalized).toMatchObject(expected)
  }
  expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version}))
   .toMatchObject({status:'approved_waiting_permission',accessGranted:false})

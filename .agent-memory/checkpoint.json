@@ -1,7 +1,7 @@
 {
   "project": "gridex-ops-platform",
   "schema": "distributed-startup-v1",
-  "observed_at": "2026-10-11T06:55:13.643867+00:00",
+  "observed_at": "2026-10-11T06:59:48.501939+00:00",
   "observed_main": "da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32",
   "status": "IN_PROGRESS",
   "active_item": "Distributed fixed-role continuation; no inherited shared technical packet",
@@ -659,7 +659,7 @@
       "total_native_cases": 90,
       "public_schema_refused_calls": 28,
       "native_lines": 1800,
-      "helper_lines": 90,
+      "helper_lines": 96,
       "source": "WORKING_SOURCE_NOT_COMMITTED",
       "helper_receipt": "fb037179d1a2f0f22cbb969f7846bba6fc933802",
       "claim": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106390584",
@@ -669,7 +669,15 @@
       "final_reviews": "PENDING",
       "local_statics": "NODE24_SCRIPTS_TSC_LINT_BUDGET_DIFF_AND_WORKFLOW90_FINITE_PASS",
       "whole_card_approval": "NOT_PROVIDED",
-      "source_pre_summary_update": "bf247c175c4029b97d15b47582150485d71382c4"
+      "source_pre_summary_update": "bf247c175c4029b97d15b47582150485d71382c4",
+      "review_correction": {
+        "prior_source": "d7998dddbb5bea3337e04b3a02feb81a12ab1389",
+        "finding": "C0_I1_NON_DSO_NORMALIZED_ARCHIVE_NETWORK_KEYS_ABSENT_NOT_NULL",
+        "repair": "EXPLICIT_NON_DSO_BOTH_NETWORK_KEYS_ABSENCE_DSO_EXACT_PERIOD_PUBLIC_FULL_NULL_COLUMNS_AND_ALL_OTHER_GUARDS_RETAINED",
+        "before_fix_receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106451589",
+        "local_statics": "NODE24_NONINCREMENTAL_SCRIPTS_TSC_LINT_BUDGET_DIFF_PASS",
+        "corrected_final_reviews": "PENDING"
+      }
     },
     "previous_native_observations": [
       {
