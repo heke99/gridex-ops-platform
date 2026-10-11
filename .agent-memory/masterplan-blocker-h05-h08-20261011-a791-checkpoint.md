@@ -414,3 +414,13 @@ User-authorized baseline/PR/documentation cleanup is under parallel read-only au
 
 Next: publish current PR description/attributed COMMENT with exactsource; fresh postpublication composition; qualify actualcurrent CI/native. WholeH finance/timer/conditional duties and all11refs remain held. Ledger118+195=313/352 unchanged; no own whole approval, external acceptance, coverage promotion or merge authorization.
 
+
+
+## TAKEN — bounded PR674 administrative disposition — 2026-10-11T19:14:53.670767+00:00
+
+Only lifecycle state-only CLOSED_UNMERGED / partial SUPERSEDED_PROPOSAL is selected under user cleanup instruction. Source `004cfeaf2a79e352ba23db230a73bb40879cf89c`, tree `124198c1ac26bb5fca82db491c1d828d4b2cf1d3`, original branch `codex/ediel-cm-source-24fa-004c-20261007` and full original body/proof/5 assets remain preserved. No branch/ref/source/CI/coverage mutation or new technicalID claim. Original24fa explicit FULL-WHOLE producer/duty release5306040049445 is preserved; no informal repeat release is required. CurrentM successor750 `50434e1dec7cdfd5c00fbc47659d3ac187a3552f` /ownerB/66520864/d4a2 retains exactthree native files and sole producer/collector. Originalunit a0f6088 andCP56aa0b8 remain unique/undelivered; bothC04/M literal wholecriteria and allnegatives preserved. C04 is not transferred toM/B.
+
+Two bounded independent administrative audits ROOTfullread; root original-data check confirms8/8 exact-source latestattempt1 runs and22/22 hostedjobs terminal:10SUCCESS/3FAILURE/9SKIP. Earlier preliminary23-job shorthand was incorrect; actualarrays22 are authority. Originalfailures remain failures; no native/replay/whole credit. PrivateproducerSTOP remains UNKNOWN; no stopped/private cleanup assertion or jobcontrol. FreshrootGET verifies unchanged004c/branch/tree/body,750/504 exact3postimages andfour currentd4a2refs. Preparationreceipt SHA256 `8a1062b3b6b169fa5a1115584fa3b224f9a052e6455754b5bb2e8351cc004277`.
+
+Next only immediate actual head/state/branch/comments/currentrun guard, one preservation/disposition comment, normalPATCHstate:closed, authenticated GET closed/unmerged and unchangedoriginalbranch/head/body. Ambiguouswrite is GET-reconciled, never blindrepeat. Shared register mirror belongs existing coordinatedwriter/request; new0b6docCLAIM6112611480 excludeslegacy-register/718/674. Own7680f currentCI/native remain pending; all11Hrefs/whole finance/timer/conditional duties retained; ledger313 unchanged and automation paused.
+
