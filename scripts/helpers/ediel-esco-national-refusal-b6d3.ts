@@ -64,13 +64,15 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export function qualifyEscoNationalMatcherPrestate(universe:NationalUniverse,input:NationalMatchInput):EdielBusinessMatchResult{
  const {source,companyId,customerId,li,field}=input
  expect(['203','205','206','207','313','322']).toContain(field)
- expect(source).toMatchObject({company_id:companyId,environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z14',
+ expect(source).toMatchObject({company_id:companyId,environment:'test',direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z14',
   customer_id:customerId,metering_point_id:null,switch_request_id:null,grid_owner_data_request_id:null})
  for(const column of ['site_id','process_type','transaction_reference'] as const){
   expect(Object.hasOwn(source,column)).toBe(true);expect(source[column]===null||typeof source[column]==='string').toBe(true)
  }
  expect(source.raw_payload).toBeTruthy();const wire=tokenizeEdifact(source.raw_payload!),s=wire.segments,u=wire.una
  expect(s.filter(row=>row.tag==='UNH')).toHaveLength(1);expect(s.filter(row=>row.tag==='LIN').map(row=>row.raw)).toEqual(['LIN+1'])
+ expect(segmentComposite(s.find(row=>row.tag==='UNH'),2,u)).toEqual(['PRODAT','D','97A','UN','E2SE6A'])
+ expect(s.filter(row=>row.tag==='LOC')).toEqual([])
  const refs=s.filter(row=>row.tag==='RFF').map(row=>segmentComposite(row,1,u))
  expect(refs).toEqual([['LI',li]])
  expect(s.filter(row=>row.tag==='NAD'&&['UD','IT'].includes((segmentComposite(row,1,u)[0]??'').toUpperCase()))).toEqual([])
