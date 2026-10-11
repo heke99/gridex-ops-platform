@@ -13,6 +13,9 @@ function contracts(input: BoundSinkInput) {
   if (new Set(results.map(row => row.transactionId)).size !== results.length) consumptionConflict('sink_duplicate_outcome')
   return results.flatMap(row => {
     if (row.persistenceStatus !== 'persisted' || row.disposition !== 'accepted' || row.responseType !== 'positive_aperak') return []
+    // SC-046/U-04: late older history keeps its positive APERAK but never
+    // reaches metering or billing, matching the SQL consumers.
+    if (row.versionState === 'late_older_history') return []
     const contract = storedUtiltsConsumption(row, input.message.id)
     if (!contract) consumptionConflict('sink_unbound_outcome')
     if (contract.companyId !== input.message.company_id || contract.environment !== input.message.environment || contract.messageCode !== input.message.message_code) consumptionConflict('sink_source_scope')

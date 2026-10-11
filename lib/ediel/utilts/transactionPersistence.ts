@@ -54,6 +54,8 @@ export type UtiltsTransactionPersistenceResult = {
   persistenceStatus: 'not_applicable' | 'persisted' | 'failed'
   seriesId?: string
   idempotentReplay?: boolean
+  /** SC-046/U-04: a persisted late older version is history, never sink input. */
+  versionState?: 'current' | 'late_older_history'
   issueCodes?: string[]
   consumptionContract?: UtiltsConsumptionContract
   contractHash?: string
@@ -101,9 +103,11 @@ export function validateUtiltsPersistenceResults(input: UtiltsBoundPersistenceIn
     if (row.persistenceStatus === 'failed') consumptionConflict('persistence_failed')
     if (row.disposition !== item.disposition || row.responseType !== item.responseType || row.persistenceStatus !== (item.disposition === 'accepted' ? 'persisted' : 'not_applicable')) consumptionConflict('outcome')
     if (row.persistenceStatus !== 'persisted') {
-      if (row.consumptionContract) consumptionConflict('nonaccepted_contract')
+      if (row.consumptionContract || row.versionState !== undefined) consumptionConflict('nonaccepted_contract')
       continue
     }
+    // Absent only from a pre-SC-046 RPC, whose sinks consumed every row.
+    if (row.versionState !== undefined && row.versionState !== 'current' && row.versionState !== 'late_older_history') consumptionConflict('version_state')
     const contract = validateUtiltsConsumptionContract(row.consumptionContract)
     const prepared = input.contracts[index]
     const comparison = contract.version === 1 && prepared.version === 2 && row.idempotentReplay === true

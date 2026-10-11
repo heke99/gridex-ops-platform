@@ -2230,8 +2230,13 @@
     },
     {
       "id": "SC-046",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-sc-046-late-older-version.test.ts",
+        "scripts/ediel-sc-046-late-older-sink-sql-regression.mjs",
+        "supabase/migrations/20261011090000_ediel_utilts_late_older_sink_exclusion.sql",
+        "lib/ediel/utilts/consumptionSinks.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
         "scripts/test-ediel-utilts-series-and-err-ack.cjs",
         "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
         "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql"
