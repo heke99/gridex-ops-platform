@@ -152,7 +152,8 @@ function parseFields(raw: string, reasons: string[]): Field[] | null {
 
 function tlsVersionsOf(value: string): Set<string> {
   const found = new Set<string>()
-  const upper = value.toUpperCase()
+  // Collapse whitespace runs (tabs, repeated spaces) so every spaced form is matched.
+  const upper = value.replace(/\s+/g, ' ').toUpperCase()
   if (upper.includes('SSLV2') || upper.includes('SSLV3')) found.add('SSLv3')
   // TLSv1.x, TLS v1.x, TLS 1.x, TLS1_x; single optional spaces only (no backtracking).
   for (const m of upper.matchAll(/TLS ?V? ?1[._]([0-3])/g)) found.add(`TLS1.${m[1]}`)
@@ -196,7 +197,9 @@ function parseHop(value: string, index: number, reasons: string[]): RelayHop {
   const rawFrom = seen.get('from')
   const fromComments = fromStart < 0 ? [] : stripped.comments.filter((_c, i) => stripped.commentAt[i] > fromStart && stripped.commentAt[i] <= fromEnd)
   const sTokens = senderTokens(fromComments)
-  hop.fromLoopback = Boolean(rawFrom && isLoopbackLiteral(rawFrom) && sTokens.every(isLoopbackLiteral))
+  // Every bare token between `from` and the next clause is sender-scoped too.
+  const rawSenderTokens = fromStart < 0 ? [] : located.filter((t) => t.at > fromStart && t.at < fromEnd).map((t) => t.text)
+  hop.fromLoopback = Boolean(rawFrom && rawSenderTokens.length > 0 && rawSenderTokens.every(isLoopbackLiteral) && sTokens.every(isLoopbackLiteral))
   hop.fromNames = rawFrom
     ? [...new Set([hop.from, ...sTokens.map(normalizeHost)].filter((h): h is string => Boolean(h)))]
     : []

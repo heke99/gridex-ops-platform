@@ -265,6 +265,28 @@ describe('TR-08 relay trace evaluator (synthetic fixtures)', () => {
       expect(v.hops[1].tlsVersion).toBe(`TLS1.${ver.slice(-1)}`)
     })
 
+    it.each([
+      ['bare remote address token', LOCAL.replace('from localhost (localhost', 'from localhost [192.0.2.30] (localhost')],
+      ['bare remote hostname token', LOCAL.replace('from localhost (localhost', 'from localhost relay.example (localhost')],
+    ])('review 6108807183: %s in the from clause blocks the exception', (_l, local) => {
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, local, RELAY, CLIENT]) })
+      expect(v.verified).toBe(false)
+      expect(v.localFinalDelivery).toBe(false)
+      expect(v.reasons).toContain('hop_2_plaintext')
+    })
+
+    it.each(['TLS  v1.0', 'TLS\tv1.1', 'TLS  1.0', 'TLS \t1.1'])('review 6108807183: rejects weak whitespace variant %j', (ver) => {
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, LOCAL, RELAY.replace('TLSv1.3', ver), CLIENT]) })
+      expect(v.verified).toBe(false)
+      expect(v.reasons).toContain('hop_1_weak_tls')
+    })
+
+    it.each(['TLS  v1.2', 'TLS\tv1.3', 'TLS   1.3'])('review 6108807183: records whitespace variant %j', (ver) => {
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, LOCAL, RELAY.replace('TLSv1.3', ver), CLIENT]) })
+      expect(v.verified).toBe(true)
+      expect(v.hops[1].tlsVersion).toBe(`TLS1.${ver.slice(-1)}`)
+    })
+
     it('I2: a receiver comment never manufactures a sender', () => {
       const noFrom = 'Received: by inbox.final.example (relay.example) with ESMTPS (TLSv1.3); Sun, 11 Oct 2026 11:01:00 +0000'
       const v = evaluateRelayTrace({ rawHeaders: raw([AR, noFrom, CLIENT]) })
