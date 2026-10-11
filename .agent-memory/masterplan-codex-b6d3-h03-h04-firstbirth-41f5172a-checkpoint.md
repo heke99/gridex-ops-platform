@@ -1037,3 +1037,18 @@ Both whole-IDrefs01f5 freshagent/packetMATCH; total11ownrefs, successorarchive
 and update alreadyowned verification.json, ONLY own2coverage rows PASSED with
 concrete evidence; preserve allforeignrows. Then exactfinalhead independentdelta
 reviews/currentmandatoryCI/serialmerge/actualdelivery/release. No merge-role.
+
+
+## 2026-10-11 Stockholm — isolated final H coverage/evidence proposal published
+
+PR737 head 3bc76d51868b106685f5f755d57379485cc11cee. Delta from revieweda6 only3ownpaths:
+current authenticR2ZIP/verificationdescriptor + own2PASSEDcoverage rows. All
+4592 originalinputhashes stillMATCH; everyforeigncoverage row deep+byteblock
+unchanged. Bothowner-IDrefs01f5 verifiedbeforeedit; preservedZIP SHA949ae4e5
+MATCH. Existingintegrity actualexit0/33files121rules231contracts, diffcheckexit0.
+Firstintegrity command named nonexistent check-integrity script; no test ran,
+corrected existing ediel:masterplan-v2:integrity successfully. No gate weakening.
+Finalexacthead independentcoverage/evidence delta reviews now requested from
+same2readers; requiredcurrenthead CI restarted by normalPR push. NEXT ROOT
+close reviews+allmandatorycurrentgates, merge-role onlythen, actualdelivery and
+11owner-onlyresource releases. Baseline and externalboundaries retained.
