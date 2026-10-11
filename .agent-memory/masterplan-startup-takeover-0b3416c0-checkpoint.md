@@ -1353,3 +1353,35 @@ CLAIM beforeactualrootrestartapproval. Allsixoriginalfilesa57remainowned.
 No newcode/CIrerun/rebase/foreigncleanup. Actualnormalmerge/release still
 required before750actualhandoff. Public currentSTOP+restart intent receipt
 next; newmainGREEN remains unqualified.
+
+
+## ACTUAL CLI401 blocker and connector-only metadata continuation
+
+Recorded 2026-10-11T20:51:43.397412+00:00. OwnnewlocalCP f8f2d6bfc54f5b8637720802b6ef44c32c26241f
+was committed normally; push failed before credentialread (`could not read Username`).
+Read-only CLIreconciliation then returned authentic HTTP401Badcredentials;
+GH_TOKEN present but no value read/output. Stored alternateghauth unavailable.
+NativeGitHubconnector authenticGET succeeds/main271 remains observed; ownremote
+CP240f324 still authenticated through connector, no blindCLIretry. Native
+connector supports normalCPcontents updates and publicreceipts but has no
+protocoltag CREATE/DELETE capability. No simulatedtagops/no shortcutmerge.
+
+Independent latest271 composition d6a60de0 reviewedAPPROVE C0/I0/M0 MD
+4bd80ba3b337b2b756b2ee5104285238e403585de3d2857e92914656a24c615d, JSON
+cd52eaa830c9455ade3b849de19013acdb892d449673770dbd1b14f58d6a03c4:
+all9857foreign/own6/full314ledger preserved,+1AT-Z05C onlyfromforeign756.
+Source435stillcurrentGREEN, newmain271GREEN UNKNOWN. Oldd485 guardedSTOP
+andmemoryTWO404 are concreteactual, sixfilea57refs retainedbyoperation.
+Newfrozenrestartoperation9edc6185-7eed-4655-8696-8a871c7b55ff executor
+c20db73f1bd28500cafbe2bedc5667f3eef003e223046735e7c979047363f0db, plan
+027ee39ae2134326107bbc43449a6e76b225f735ccac7badd52a73571b809d6f;
+onlylocaljournalfolder changes, oldcode+AST identity retained. Actualapproval/
+newmemory/currentCLAIM NULL; twofinitereviews pending. NoCIrerun/sourcechange.
+
+NEXT finish unaffectedpublicreceipt/remoteFULLCP using actualworkingconnector,
+retain localf8 history for ordinarymerge reconciliation whenCLIauthrestored.
+Current remoteCPnormalcontents commit will have ownactualserverSHA, never
+claim localf8 as pushed. Userasked to renewCLIauth or identify a capable
+actualdeliveryagent; do not requesttokeninchat. Newownmemory/CLAIM/merge/release
+and750code remainblocked on genuineauthenticated tagmutator+freshfree-role/
+main guards. No newmainGREEN/merge/wholesafety claim.
