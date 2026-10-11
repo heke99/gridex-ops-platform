@@ -1,0 +1,41 @@
+# TR08 exact proxy support — blocker978c8191
+
+Proxy identity `codex-blocker-delivery-20261008-978c8191`, fixed E. Prior item Z09B finite source/custody handover DONE6108631464/review5483156349, independentmatches documented, ownresources0. TAKEN operational support for explicit request6108492998, not TR08 implementation/whole duty.
+
+Actual requesting owner `claude-planagent-017fQ9L4`, packet `6dade0fb-c504-4dbe-9df8-c3ba9e9dc0c7`, branch `claude/tr08-relay-trace`, checkpoint `.agent-memory/masterplan-claude-planagent-017fQ9L4-checkpoint.md`. Existing proposalreceipt `ba39366527d9d870a5d82d7862292d2f8ccbe679` actually read by disjoint helper: full metadata, current7f920 parent/treea81, IDs `TR-08`,`AT-TR-08`, exactfiles `lib/ediel/transport/relayTrace.ts` and `__tests__/ediel-tr-08-relay-trace.test.ts`. Proposal lacks delegatedBy; create a new correctly attributed proxyreceipt, preserving originalproposal ashistory, never update/force it.
+
+Custody evidence: currentrequest6108492998 applies actual project-owner stopped/unowned transfer6107994749 and preserves activeforeignlocks. Historicaloriginal RELEASE5985431617 now independentlyliteralGET-read: TR08PARTIAL, genuine operator-owned testmailboxtrace stillmissing. No repeatinformalproductpermission required for this exactreleasedcodecomponent. Neither actualmailbox/probe/operator nor originalcurrentactor/core/transport/GENduties move through the two-file proxy scope. Coverage remainsunapproved. Requestingowner actuallypublished761code4e7cc0d6/READY6108569670 beforetechnicaltags; futureproxyreservation cannotretrocertify those edits.
+
+NEXT operation: refreshactualmain and onlyfour exactrefs; ifallabsent, POSTnewunreferencedcommit onactualmain tree/singleparent with Claude receipt.agent, samepacket/branch/checkpoint/IDs/files and ROOTdelegatedBy. Acquire four sorted CREATE_IF_ABSENT refs, independentlyallGET_MATCH, then actualproxyCLAIM/ownerverification-before-further-code. Conflict/ambiguousoutcome⇒exactGET andonlysame-newreceiptrollback; noforeignrefdeletion. Rootownsnoimplementation throughproxy. Ownerfinishes sourcecorrection22tests/currentCI/twoapplicablereviews/serializeddelivery and requests actualrelease; genuinewhole/mailboxproofexcluded.
+
+Disjoint readonlyhelpers: previousrecipient preflights exactmetadata/custody; separate parser/evaluator reviewer aftersourcequalification. No code/test/native/CI/probe/capture/GEN/artifactwork byproxy. Baselinecode543 historicalknownbugsduplicatehop/plaintextreclassification are reused, notrediagnosedfrombroadcollection. Rootmay publishboundedsourcefindingonactual761 but notwholeapproval orduplicateproducer.
+
+ActualTAKEN6108649693/fullbodyGET_MATCH; currentmain7f920/treea81and7614e7cc0d60277cfede2ddc74ba88a8d03d860edcb fetched. All4exactresources independentGET404 beforeoperation. Correctproxycommit created `684bab023fe71a860ce899a6eb01e75aa935e58e`, createdAt2026-10-11T11:43:53Z; exactJSON/tree/singleparentPOST_MATCH. No resource acquired atthischeckpoint. NextsortedCREATE_IF_ABSENT4 plusallindependentGET_MATCH, conflictrollbackonlysame684SHA, thenactualproxyCLAIM. Originalba393665 remainsimmutablehistory.
+
+Actualproxyreservation DONE: sortedfourCREATE_IF_ABSENT201, independentlyall4GET_MATCH684 plusfullGitDatacommitJSON/tree/singleparentGET_MATCH. ActualproxyCLAIM [6108680550](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6108680550), independent fullbodyGET_MATCH. ActiveactualrefsagentClaude/delegatedByroot, noforeignupdates/deletes0. Owner adopts/verifies684beforemorecode and owns laterdelivery/requestedrelease. Rootowns0implementation/whole/native resources; delegatedtags remainactiveClaude, notreleasedbyproxy discretion. No retrospectivecustodycertificate.
+
+TAKEN source-only componentreview4e7cc0d6: helper staticreview plusrootindependenttestoracle/provenance/read actualsource; no reruns. KnownarbitraryTLScomment/DTOindexweaknesses closed, but two sourceImportantfindings remain: local-final LMTP exemption ignores latercontradictorysendercomments and treatsparent/subdomainas samehost; unrelatedby-comment can supply missingfrom and falselysatisfyhopcontinuity. Nextpublish exactheadboundedreviewwithconcreteheaders/ownerfixcases after livehead recheck; existing22synthetic tests do not cover thesecounterexamples. No genuineprovidertrace/currentCI/wholeproof asserted.
+
+DONE sourceproof: livehead4e7 recheckedbefore [5483191951](https://github.com/heke99/gridex-ops-platform/pull/761#pullrequestreview-5483191951), independent exactcommit/fullbody/inline4241461246→261 and4241461250→178/diffpositionMATCH. C0/I2, changesrequired. ROOT executed only5NEWpurefunctionsyntheticcounterexamples onunchanged Git-show source/Node22.23.3(--no-warnings --experimental-strip-types):2baselinePASS/3badshapeFAIL, process exit1. All3badshapes incorrectlyverified=true/reasons=[]; owner22suite/native/mailbox/CI/GEN/capture/artifactnotrerun. Source SHA25699220b67984c40521b9c0b4ca37ce612336b866832191e21b4fc8a6542afa3f4, script95e7fd2489911a30c42986706c3bf1a7808e1f48b9b1d1c2f8a0386e3e623848. Newproof isseparatefromproxy'searlier0executiontimestamp. Reproducer baseline/3exactsubstitutions persisted in immutable review5483191951, notonlyephemeraltmp.
+
+Actual independentROOT93 [6108730032](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6108730032) also reports localprovenance plusmissed whitespaceweakTLSversion; reuse its14purecalls ratherthan rerun. Ourmissingfromcounterexample isanotherconcreteownedfixcase; both reviewerswithhold sourceapproval untilcorrection. Whole/providertrace remainsoriginalretainedduty.
+
+Actualboard DONE/proxy/sourcehandover [6108756851](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6108756851), independent fullbodyGET_MATCH. NEXTactualClaudeowner: independentlyGET/adopt684, addREDtestsforallsourcecasesincludingROOT93weakversion, fix ownedtwofiles, obtainchanged-sourceapplicablereviews/currentCI, role-serializedexpectedheadmerge andafterdeliveryrequestactual684DELETE/404. Ouroperationalitem iscomplete; active4delegatedresourcesremainClaude, rootresources0, actualfutureownerreleaseunclaimed.
+
+Freshmain d426a7ee439af5cca5d96d5858f4a835754f51e4/treec7b3a3968101023ca43298f98e60728ae800f52d afterOTHER754merge, actualgitfetch/diff8onlyZ02paths. No relay/TSparser/frozen/protocol/package/coverage changes; thisexact4e7pureproofstillapplies, no rerun. Ledger117/121rules+193/231contracts=310/352;42remain. H'safter754waitactuallyfulfilled; a791/2fretainsadditivehook/native per6108716727. Z09Bactual6108727989adoptsourproofcriticism, plansownconnectednative andkeepsPARTIAL; stillrequiresprevioussingleUUID/checkpointsupplement, no repeatedpermission/foreignGENgrab.
+
+Nextroot: qualify concrete role-merge support6108631743 onlywhenactualcurrentheadgatesgreen andtarget/proxymetadata/roleavailabilityvalid; do notholdrolewhilewaitingCI oroverrideanotherowner'sactualinstructions. Otherwiseprepareexactcurrenthandoff/selectnextexecutableblocker. Branch checkpoint updates/source receipts completedbeforeanynewitem.
+
+## Executed synthetic proof receipt
+
+Command: supported Node22.23.3 `--no-warnings --experimental-strip-types /tmp/gridex-forward-20261011/resume-1055/tr08-counterexamples.mjs`, importing an unchanged `git show 4e7cc0d60277cfede2ddc74ba88a8d03d860edcb:lib/ediel/transport/relayTrace.ts` copy. No imports/RPC/SMTP/DB; only pure function evaluation. `expectedVerified` is independently derived from complete sender/same-server/continuity requirements, not copied from actual result.
+
+| New case | Expected | Actual | Outcome |
+| --- | --- | --- | --- |
+| Legitimate same-receiver loopback LMTP after two TLS hops | true | true | PASS |
+| Normal remote plaintext ESMTP | false | false | PASS |
+| Additional adjacent sender comment records203.0.113.9 | false | true, localFinal=true, reasons=[] | FAIL |
+| Final receiver delivery.inbox.final.example differs from prior inbox.final.example | false | true, localFinal=true, reasons=[] | FAIL |
+| Missing from, unrelated receiver comment names previous relay | false | true, localFinal=false, reasons=[] | FAIL |
+
+No failure repaired bythisroot; actualreservedowner owns correction. Originalfailedsnapshot/source/script hashes and immutable reproducer remainpreserved.

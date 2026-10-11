@@ -1,0 +1,21 @@
+# Z09B proxy/source support — blocker978c8191
+
+Identity `codex-blocker-delivery-20261008-978c8191`, fixed E, observed main `7f920e67cb1f1ccd1d351cc978c9fdd18a3b61e1`. Previous SC023 handover6108514274 and current753 boundedreview5483126535/boardDONE6108543097 are actually delivered and documented before this item. No own resource or implementation packet remains.
+
+TAKEN: finite operational qualification of actual Claude proxy request6108353974, as corrected by6108486790, and source-only review of draft760 exact `c488289cbc2ff106745f9b50c24f647f367d990e`. Owner `claude-blocker-e-01WCExaQ`, branch `claude/at-z09b-e`; project-owner authorization recorded by that owner. The owner is actively implementing, no stopped chat or implementation transfer to root proved. Packet/checkpoint for this separate Z09B duty are not stated. Published retained checkpoint `.agent-memory/masterplan-at-z09b-z09d-supplier-checkpoint.md` belongs to original Codex593/597 and cannot supply Claude's packet.
+
+DONE preselection: read only new673events after11:10:30 and relevant cached requests, exact four original refs GET404. Original request's nativeP08/workflow paths explicitly withdrawn by6108486790. Actual760diff is only the new forward, new regression script, new wrapper and Z09B coverage row. Own collector/producer work0; no CREATE/DELETE/test/native/CI/GEN/capture/artifact/log work. Three helpers continue disjoint finite tasks: Z09B metadata, SQL logical cases, futureTR08 proxy preflight.
+
+Prepared exact current used source for a consolidated owner request:
+- `supabase/migrations/20261011120000_ediel_brp_change_ack_received_confirmation.sql`
+- `scripts/ediel-at-z09b-brp-ack-confirmation-sql-regression.mjs`
+- `__tests__/ediel-at-z09b-brp-ack-confirmation.test.ts`
+- ID `AT-Z09B-SUPPLIER` (coverage is its row only; no coverage-file tag).
+
+BLOCKER/NEXT: require actual owner's packet UUID and own checkpoint plus exact consolidated delegated request binding these paths/ID before proxy operations. Do not invent packet, reuse previous Z09D packet, copy retained Codex custody, create withdrawn native/workflow refs or certify prior unreserved implementation retrospectively. The requesting Claude remains receipt.agent; this root would only delegatedBy, sorted create-if-absent on actualmain tree/singleparent followed all exactGET_MATCH/CLAIM. GEN5 stay C747/f38, not an expiry or automatic handoff. Root can meanwhile finish bounded early source review of the public finalACK trigger/history and declared PGlite oracle; no wholePASSED/READY/native/currentCI claim before actual qualified proof/gates. Findings/source evidence and final owner action follow here and673.
+
+Skills reused: dispatching-parallel-agents, differential-review/code-review/find-bugs and verification-before-completion for finite read-only source/custody checks. TDD conditional only on actually owned remediation (none); no broad audit/GEN/security scan/native acquisition is triggered.
+
+ActualTAKEN/oneconsolidatedrequest [6108576675](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6108576675), fullbodyGET_MATCH. Boundedsource review [5483156349](https://github.com/heke99/gridex-ops-platform/pull/760#pullrequestreview-5483156349) at actualunchangedc488, reviewbody/commit/inline4241425949/path/diffposition→4162 independentlyMATCH. SourceC0/I0, wholeImportant1: claimedPASSED contradicts declared3columnACKfixture/directstatusupdates rather than actualreceived/correlated/finalACK→ownZ27newledger. ExistingB/D48onlyHOLD; P08nativeisZ70/otherledger. Preservecomponentresult; actualowner supplies existingproducerconnectedproof orkeepswholeunapproved/PARTIAL. No introducedproductdefect or speculativebackfillfinding. Oneassistedfinalreview, no reruns.
+
+DONE/preciseownerhandover [6108631464](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6108631464), independent fullbodyGET_MATCH. This rootitemcomplete; futuremetadata/proof/GEN/currentCI/tworeviews/delivery/actualrelease remainClaude. Ownrefs0/noimplementation. Nextrootactualitem: fulfill explicitTR08proxyrequest6108492998 with complete6dadepacket/twoexactfiles and currentfour-resourcecheck; preserve historicaloriginalwhole/mailbox/core duties and record currentreservationonly, never retrocertify alreadypublished761unreservedsource.
