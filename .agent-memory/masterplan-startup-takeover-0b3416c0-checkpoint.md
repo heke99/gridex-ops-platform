@@ -498,3 +498,58 @@ Then actualhandoff, own7+CLAIM, fresh genuine currentCI/base/source guards,
 oneownrole/expected-headmerge/authmain-tree-parents-FULL313, roleFIRST/all7
 rightfulrelease/publicreadback/NONPRcheckpoint. Changedsource/base/ref stops
 for precise reconciliation, no replay/foreignrestore/gate bypass or idle role.
+
+## Original E actually completed #765; new-main CI qualification taken — 2026-10-11 17:04 UTC
+
+DONE: original implementer E978/a934 normally merged exact source
+b4545a4a7e18849eca9cedb98dc4e95eb98a300c at16:44:22Z. Actual main
+1e401d82a7cb8587deb42a750514635c57e154f0, tree
+a66dd56dff00f8efcf35cb23150eda899b6e2487, orderedparents
+[2a7fad321b9dcd22fa2d4b1025d2aa99e1b6f9f1,
+b4545a4a7e18849eca9cedb98dc4e95eb98a300c] match bounded2a composition.
+Fullledger697955a1438c359c44214e8c70d6de746b7d4d4af3cdcd87375b56f51ce5441c
+remains118VERIFIED+195PASSED=313/352;39remain=3rules+36contracts; E+0.
+Authentic active766 receipts: MERGED6111309491, verifiedRELEASE6111324472,
+FINISHED/GEN5-handback6111324698, CLEANUP_DONE6111350046. E's ownrole
+c0b87af56fff9a7f945094f88559866169dd3036 FIRST actualDELETE/404, then both
+own8d6 source refs plus allfiveownc951 GEN refs actualGET_MATCH/DELETE/404.
+ReleaseproofSHA256d6e0ca182189417f6d581fd79ea6c60bd73af2b5f3cbcd7c2359cca0709b2763;
+own765packet ZERO resources. Rightful ownfeaturebranch/worktreecleanup done;
+primaryECP6f21c5cce07c43d0cd66c04cd9ba8e1db82fdd1d/fullbytesSHA256
+85f41c5378b28cbd6e84e37ed9b79dbb360944035b6d5442e2eb2e7b8bd24649
+authenticated by sole collector, not private-chat STOP or globalE retirement.
+
+ROOT SUPERSEDED: final fresh publisher guard observed actualmerged1e and
+allsevenoldrefs/sourcebranch404 BEFORE ANY POST or handoff/resource/role/merge
+mutation. Prepared3619327f custody/2715b031 role NEVER executed. Rootactual
+0POST/0handoff/0refs/0role/0merge/0ownresources. Durable publicationstate
+fe0d6fb4d504b1ca7bfcc760f8d913623a333c391e5e11ca7852c54298490c17
+and preparedmanifestd3b453123a9a39c700844bdc01e0f2596a0b9db13c8a40308c5b7f8e28dfb1c8
+are SUPERSEDED_NOT_EXECUTED_NO_REPLAY. Never acquire/replay already delivered
+source or claim root's actual delivery/handoff/release. Source/OPS finite
+reviews retained; no duplicate capture/native/source/log/artifact collection.
+Actual completion packetb269d287a89f6eb53c1f5206ba0af6298db867e870a84fb634d2c848beb8b011
+binds originalowner receipts, exactparents/tree/fullledger and currentCP.
+
+GEN WAIT CONDITION SATISFIED: E actually released GEN5 and handed available
+files back to retained C accepted744→753→755→760 queue via6111324698.
+Last allfiveauth404 rootguard16:53 is dated, not currentnewC packet proof.
+No newC5 CLAIM/import/privateSTOP observed. C next needs ownfive
+CREATE_IF_ABSENT/GET_MATCH/CLAIM, eachsourceowner exactbranch/headmandate,
+currentfullSQLinputs/capturequalification preserving E121542/deae and C747
+definitions. Prior747/765 captures cannot certify new queue SQL. Brave
+wholeDB05/legal/native/fixture and2f additions/runtime/017fTR08 remain retained.
+
+NEXT TAKEN: read-only genuine POSTMERGE_MAIN_CI_QUALIFICATION on exact1e,
+not sourceb454 PRgreens relabelled as main. Sole metadataobserver
+eff_owner_table; finite local-main-push SKIP qualifier eff_mandate. Exact
+16:58:18Z snapshot18createdchecks=6SUCCESS+8SKIP+4IN_PROGRESS, VercelSUCCESS
+deployment-completed context. Main full is RUNNING; smokeSKIP requires actual
+main-push condition qualification before GREEN. Existing sourceb454
+27SUCCESS+10qualifiedSKIP stays exactsource evidence. No reruns/gatebypass,
+newcapture, healthylogs or idlemerge-role. Pending four: coverage/full/
+quality-release-gates/clean-migration-replay. If actualfailure occurs, select
+that concrete blocker and reuse diagnosis, obtaining necessary actualhandoff
+and ownreservations/CLAIM before code. Reconcile sole766 body honestly now;
+finish genuine current-main CI/checkpoint/publicbaseline evidence before any
+next implementation. This record does not declare wholeMasterplan complete.
