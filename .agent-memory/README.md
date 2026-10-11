@@ -5,7 +5,11 @@ work. It records current state and resumability; code, live schema, forward
 migrations, executed tests, runtime evidence, OpenAPI and active architecture
 decisions remain higher-authority sources.
 
-Current entry: [masterplan-current-start.md](masterplan-current-start.md). Six startup paths below are concise compatibility wrappers; exact original bytes remain in [history](history/20261010-before-startup-cleanup/README.md). Read relevant historical owner/criterion material as needed, not all accumulated history at every start.
+Current entry: [masterplan-current-start.md](masterplan-current-start.md).
+
+Coordination: [#673](https://github.com/heke99/gridex-ops-platform/issues/673) remains active until this routing update is actually merged and an explicit transition is announced there. [#766](https://github.com/heke99/gridex-ops-platform/issues/766) is the prepared successor and contains the single owner/resumption table and GEN queue; after both events, new receipts go only to #766. Preserve #673/#530 original proof links; the move releases no custody.
+
+Reuse the [existing portable foundation](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109033320); this directory remains the single progress system. Six startup paths below are concise compatibility wrappers; exact original bytes remain in [history](history/20261010-before-startup-cleanup/README.md). Read relevant historical owner/criterion material as needed, not all accumulated history at every start.
 
 ## Read order
 
@@ -19,14 +23,14 @@ Current entry: [masterplan-current-start.md](masterplan-current-start.md). Six s
 8. `decisions.md` and `known-failures.md`
 9. `masterplan-agent-workflow.md`, `masterplan-reservations.md` and your own checkpoint
 10. `masterplan-legacy-pr-register.json`, relevant dated status evidence, latest
-    #673 receipts and linked historical #530 evidence, actual main/coverage,
+    announced active-board receipts and linked historical #673/#530 evidence, actual main/coverage,
     current PR heads/checks and live remote refs; read `masterplan-work-queue.md`
     for dated owner actions, exact dependency/handoff criteria and chat resumption
 
 Read active startup sections and your checkpoint first; consult relevant dated
 history as needed. Current code, coverage, head-bound checks and remote refs
-override old current/paused/next-action labels. #673 is the active board; #530
-preserves historical evidence.
+override old current/paused/next-action labels. Follow the conditional board
+transition above; historical #673/#530 evidence remains unchanged.
 
 Before implementation or another work item, every agent must save ownership, actual
 completed work, verification, blockers and the exact next action. Technical
