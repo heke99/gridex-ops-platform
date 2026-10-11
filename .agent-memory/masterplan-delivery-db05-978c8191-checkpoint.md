@@ -1,5 +1,13 @@
 # Fixed E delivery preflight and DB05 component qualification
 
+## Actual smoke cause and reviewed import controls — 2026-10-11 14:38 UTC
+
+EVIDENCE: current18764532 smoke job114491751970/run38145633301 genuinelyFAIL; sole designated readonly collector CI helper sealed log SHA256ec0994852b66447a2edb749941c78e38ca658ff956780abef50b879d187501c8 privately and reported only redacted cause. Actual E2E14/15PASS: integrity1148/1051PASS, generated-types gate refuses migration tail121542 because manifest stillnames94500. This is the already planned owned GEN-tail gate, not a newly invented DB05 SQL/UI/native regression. Root did not fetch a second log/artifact or weaken/rewrite the gate.
+
+DONE: before any artifact collection/import, independent reviewer A found three concrete prepared-control gaps and all were fixed/re-reviewed: exact/distinct5+2 resources and remote receipt JSON; sealed receipt/proof/output hashes plus one RAW3 memory read; one immutable ZIP byte buffer binds official digest/size to parsedCRC/members. Qualifier SHA256b2ffccb9f086fe98f79737284cd60bd1e75a96c2213392c77edd7224e5ba4fc9; importer007c74a4c0cb6e711af822d7b0da41261cc85b64737e63ad9707ee8edd10391a. Both py_compilePASS. Separate design revieweacb1b90 has remaining C0/I0/M0; it is not actual artifact/GEN/native/CI approval. No repo implementation files changed by this preparation.
+
+BLOCKER/NEXT: actual designatedcapture38145633287/a1/18764532 remains queued for ubuntu-latest, runner_id0; no outputs or archive downloaded. Its exact authentic output is the resumption event for E's already owned7resource packet: strict once-only qualification, byte-exact import and actual manifestinverse, two affected full-component review rebindings, all mandatory newhead CI, normal merge and role-FIRST/all7owner-SHA releases. No next implementation packet or substitute manual/duplicate native/capture producer. Current-head rollup observed35=14SUCCESS10qualifiedSKIP8QUEUED2IN_PROGRESS1actualFAIL; CodeRabbit success explicitly requires manual review, and source A/B remains genuinely independent COMMENTED rather than fabricated formalAPPROVED.
+
 ## Source review-ready and stale-run cleanup actually complete — 2026-10-11 14:23 UTC
 
 DONE/EVIDENCE: PR765@18764532 is actual NON-DRAFT/OPEN, finalbody independently GET_MATCH. Complete independent composition source A5483634765/report2d4546b8 and B5483638271/report04404221 each SOURCE_APPROVE Critical0/Important0/Minor0; exacthead/body/eventCOMMENTED readbacks preserved. Root is the product author, not either reviewer. Both require qualified GEN/affected review and mandatory finalcurrent-head CI; no whole/native/legal/coverage approval. Source2 and typed/lint/45GREEN applicability do not replace those gates.
