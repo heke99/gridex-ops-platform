@@ -179,3 +179,15 @@ Skill routing: code-review, differential-review, find-bugs, fp-check, spec-to-co
 Done before this item: own769 merged actual9adb and all own refs RELEASE confirmed;755 one-body correction DONE6111610406. Own overlapping mainCI reader RELEASE6111689319; newer E6111777467 authenticates E finite reader FINISHED6111691821, STOP17:19:42 and existing0b current-main TAKEN6111664596. Reuse their receipts; no root collector.
 
 Checkpoint `this commit` / `codex/baseline-93e252d8-20261011T154118Z-c1837eca-receipts` / `.agent-memory/masterplan-baseline-93e252d8-20261011T154118Z-c1837eca-checkpoint.md`. Next: fetch exact source objects, assign two bounded read-only source readers, root full affected-source self-review; publish current-head review findings/receipt and explicit remaining owner actions. No other actual support item starts while this is active.
+
+## 2026-10-11 — review760 material candidate / verification
+
+PROGRESS / review760 — packet27de2a31-b421-49d8-a37b-74fa62a1f3b0 — exacta03
+
+Root full affected source self-read and two independent bounded readers performed. All9 exact selected blobs MATCH; source diff--check PASS; only own AT-Z09B coverage row changes, other rows/metadata structuralMATCH. Root preliminary private C0/I0 source draft is now superseded as a final conclusion by readerA's concrete candidate status-authority bypass; no source seal was published from it.
+
+Potential Important finding: after real positiveAPERAK beforeCONTRL, a qualified own-company authenticated writer may UPDATE only ediel_messages.status=acknowledged, causing new confirm_on_ack_v1 to create aperak_confirmed from mutable status despite missing finalACK. Root has read actual narrow ACL/RLS and all10 status-only BEFORE-trigger bodies; bytes/identity immutability protects originals, not status authority. One bounded independent false-positive verifier now checks latest overrides/reachability/negative counterexample. No SQL/native/test/CI/log/artifact run or source/ref mutation.
+
+No current-head approval/wholecoverage/GEN adoption/merge granted. E retains implementation/fix/proof/currentCI/merge/release, C/proxy025 retainedGENreconciliation. MainCI reused solely via existing0b after E finite STOP receipt6111691821, not recollected.
+
+Checkpointthis commit oncodex/baseline-93e252d8-20261011T154118Z-c1837eca-receipts. Next root action: conclude independent false-positive verification, publish exact-current-head bounded source review/requiredfix to E and766, then finish this one review before any new actualitem.
