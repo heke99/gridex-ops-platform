@@ -26,6 +26,14 @@ Documentation uses this uniquely owned checkpoint on its dedicated non-PR branch
 
 Merge approval boundary: previous automatic review rejected actual ROOT merges because recurring monitor prompts prohibit PR merges. The newly concrete question asks whether development may merge fully reviewed green PRs using verified role-merge while that prohibition applies only to the monitor. No denied merge retry/delegation/bypass; no idle role held awaiting the answer. This is distinct from the solved source/CI readiness of #757/#742/#743.
 
+### Verified owner resumption and completed eight-minute observation
+
+2026-10-11 after11:56:52UTC: the original `/root/next_executable_packets` agent actually exists and was successfully reactivated; live state RUNNING and same original owner/6e9134a3 packet were verified. Its [RESUMED6108766288](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6108766288) is exact GET verified, all7original575ad/ec08 refs matched against186actualresources. Own pre-edit checkpoint585c463566fd8fe4575de7fc6e3a2c8ca596e617 is separately published. Originalowner now applies the minimal owned native correction and preserves all34cases, failed proof, whole duties and single producer. No new agent inherited its packet and no handover/ref replacement is needed. ROOT supplies independent final delta qualification rather than a duplicate writer.
+
+C680’s actual480seconds elapsed. No owner response was found; fresh consumer ref still matches2d5 and PR742 source5e07 unchanged. External writer process is still UNKNOWN, so ROOT does not fabricate STOP/RELEASE from silence or delete that foreign lock. The exact bounded handoff request remains the single recovery path; that consumer waiting does not stop the resumed Z03 source correction or other qualified deliveries. Journal records the observation outcome, not reservation expiry.
+
+Two new merge-role requests were actually answered in [6108738497](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6108738497), fullbody GET_MATCH: #747/#752 defer only for their pending mandatory head checks; zero refs were created. Earlier rootCP9cda0a26 was byteverified; this dated continuation supersedes its pending Z03 activity observation. No merge was attempted while the explicit development boundary answer remains pending.
+
 ## Dated history before the latest continuation
 
 Agent `codex-pr-delivery-root-20261011-02525622`; packet `f2dcd955-948a-4f60-bf7f-465fa744d154`; base `c4d5c8f3e5c05fe189acb374c14e7c159a4319ed`.
