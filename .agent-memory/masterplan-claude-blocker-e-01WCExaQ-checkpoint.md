@@ -148,3 +148,23 @@ for 6102293795; (c) explicit scoped handover to E. Otherwise remain BLOCKED; no 
 - Reviews given: #744 C0/I0 + composition conflict (6106996363), #749 C0/I0 (6107107431), #751 C0/I0 (6107556340), #747 C0/I0 (6107563705).
 - Blocker: release of id-AT-Z09D-SUPPLIER + file ref at 0f2ff445 requested from proxy (6108236769).
 - Next: verify both refs 404; then select next eligible packet from current main.
+
+## 2026-10-11 12:07Z — CURRENT STATE (BLOCKERARAGENT E)
+**Main:** `4d69800` (#751 SC-052 merged). Coverage on main 311/352 approved incl. AT-Z09D (mine, #746).
+
+### Delivered today by E
+- P-08 (#736) and TR-09 (#735, for stalled A) earlier; AT-Z09D-SUPPLIER #746 → main `7f920e6` (MERGED 6108236769; refs released, verified 404).
+
+### Active packet: AT-Z09B-SUPPLIER — PR #760 (draft), branch `claude/at-z09b-e`, head `d43140b`
+- Custody: owner-override CLAIM 6108353974 + extension 6108727989 (owner: "Ta de reglerna då"). Tag refs NOT created (Claude 403; proxy asked twice). Files: migration 20261011120000 (new), PGlite regression + wrapper (new), required-fields test (new), native test scripts/ediel-z09b-brp-change-native.test.ts (new), lib/ediel/intent/renderers/brpChange.ts, scripts/ediel-p-08-native.config.ts, .github/workflows/ediel-p08-native.yml, coverage row AT-Z09B only.
+- Done: confirm-on-positive-APERAK migration (immutable gridex_brp_changes.confirmations; history source_declared/aperak_confirmed); renderer refuses blank R/D fields (self-review defect, fixed fcd5594); PGlite 43 checks, mutation-tested; native end-to-end test written (CONTRL alone / positive once+replay / negative / mutation).
+- Review: ROOT 978c early review 5483156349 C0/I1 → accepted; coverage set back to PARTIAL (95cc82d) until native proof green.
+- BLOCKER: migration checksum + schema/types capture need the shared generated five, held by C for #747 (receipt f38a7467, #747 open head 5ea7e569). Every native job + coverage job fails at replay manifest check until then (explained on PR, comment 6108582491). No Docker locally → native cannot run here.
+- Next (on C RELEASE): merge main → register-migration-checksum → wait capture job → import capture byte-exact → db:migrations:check → push → p08-native green → coverage PASSED → READY + 2 reviews → role-merge → merge → release.
+
+### Reviews given today (all on #673)
+- #744 SC-053 C0/I0 + GEN conflict (6106996363); #749 SC-054 C0/I0 (6107107431); #751 SC-052 C0/I0 (6107556340, now merged); #747 one-off C0/I0 (6107563705); #753 SC-046 C0/I0 (6108331462); #754 Z02L/LK C0/I0 (6108332975, now merged).
+
+### Remaining-ID picture (agent survey 10:55Z)
+- Rules not VERIFIED: TR-08, OPS-04 (EXTERNAL_DECISION), DB-01, DB-05 (occupied/external).
+- Free-but-retained candidates after Z09B: SC-035, SC-039, AT-Z01L/LK, AT-Z04L/LK (overlap risk), AT-Z06F/Z09F/Z06G/Z09G and AT-Z15VH (retained authors) — check fresh before claiming.
