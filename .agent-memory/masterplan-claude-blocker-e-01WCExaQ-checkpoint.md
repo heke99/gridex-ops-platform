@@ -2,7 +2,7 @@
 
 - Agent: `claude-blocker-e-session_01WCExaQJ8GurBiuazNaHXKh`
 - Role: BLOCKERARAGENT E (fixed). Branch: `claude/blocker-e-01WCExaQ` (checkpoint only).
-- Custody: P-08/AT-P-08 + 10 files, receipts ffce8ee6 / 83b7d8b0 (verified). No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
+- Custody: P-08 delivered; release requested; native test file ref kept for AT-Z09D. No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
 
 ## Log
 
@@ -99,7 +99,14 @@
 - merge-tree 622ccfb+b69b2aa → tree 8c696c16, no conflict, coverage 305/352.
 - CI b69b2aa: 20 success / 0 failure / 5 pending. Two C0/I0 reviews done.
 
+### 2026-10-11T02:17Z — MERGED P-08/AT-P-08 ([6104537565](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104537565))
+- #736 merged: main `da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32`, parents [45dbf8f, b69b2aa], tree 104bd1d = dry-run.
+  Coverage 307/352. All 26 applicable checks green; two C0/I0 reviews.
+- role-merge: tag push 403; owner-override serialisation receipt 0ad5c157 (6104533199); no tag left to release.
+- RELEASE_REQUEST to proxy: 83b7d8b0 (shared five) + ffce8ee6 except native test file (kept for AT-Z09D).
+- AT-Z09D takeover + reservation requested (6104081205); waiting for RESERVED.
+
 ## Next
-P-08: import capture for #736 → native + gates green → READY → 2 reviews → coverage → merge.
+After proxy RELEASE: verify 404s. AT-Z09D: on RESERVED → CLAIM → add 23-DDQ-PRODAT / no NAD+UD / wrong-correlation + mutation assertions to P-08 native test → PR.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
 for 6102293795; (c) explicit scoped handover to E. Otherwise remain BLOCKED; no polling, no native/GEN/capture.
