@@ -13,6 +13,7 @@ import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
 import { buildCancellationProspectiveZ04 } from './helpers/ediel-cancellation-prospective-source-2ea'
 import { ownerSource, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
 import { closureFixture, CLOSURE_OBJECT } from '../__tests__/helpers/closureWireFixtures'
+import { renderProdat } from '@/lib/ediel/prodatEngine'
 import { supabaseService } from '@/lib/supabase/service'
 import { createMeteringPermissionDraft } from '@/lib/onboarding/infoRequests'
 import { getEdielMessageById } from '@/lib/ediel/db'
@@ -86,6 +87,27 @@ function z05(f: Fixture, reason = 'Z22', mutate: (wire: string) => string = wire
     .replaceAll('CUSTOMER-1::89', `${f.customerIdentity.id}:SE2:260`).replaceAll('RFF+Z05:NET-1', `RFF+Z05:${f.gridAreaCode}`)
   return envelope(f, mutate(wire), 'Z05')
 }
+// A genuine DGI/Z15C wire is a role-confusion control, not an ESCO authority.
+// It deliberately names the supplier's same physical customer, point and LI.
+function z15cForSupplier(f: Fixture) {
+  const reference = randomUUID().replaceAll('-', '').slice(0,20)
+  const rendered = renderProdat({ code:'Z15', variant:'C', mode:'test',
+    actor:{senderEdielId:f.receiver,receiverEdielId:f.sender}, route:{applicationReference:'23-DGI-PRODAT'},
+    version:{selectedVersion:'E2SE6A',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A'},
+    context:{code:'Z15',bgmReference:reference,transactionReference:f.caseReference,
+      senderEdielId:f.receiver,receiverEdielId:f.sender,legalSenderId:f.receiver,legalReceiverId:f.sender,
+      customerName:'Synthetic Own Customer',customerId:f.customerIdentity.id,customerIdCodeListQualifier:'SE2',
+      customerIdAgency:'260',customerCountry:'SE',meterPointId:f.external,siteIdAgency:'9',gridAreaId:f.gridAreaCode,
+      reasonForTransaction:'Z24',permissionStatus:'A74',permissionId:'NO-ESCO-'+reference,
+      permissionEndDate:f.endMinute,permissionEndReason:'E37'} })
+  expect(rendered.issues.filter(issue => issue.severity==='error' && !/_UNDETERMINED$/.test(issue.code))).toEqual([])
+  expect(rendered.diagnostics.profileKey).toBe('PRODAT:Z15:C:26.A:r3')
+  return EdifactEnvelopeCodec.encode({sender:f.receiver,receiver:f.sender,senderQualifier:'14',receiverQualifier:'14',
+    applicationReference:'23-DGI-PRODAT',environment:'test',acknowledgementRequest:true,
+    interchangeReference:randomUUID().replaceAll('-','').slice(0,14),messages:[{
+      messageReference:randomUUID().replaceAll('-','').slice(0,14),messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',
+      businessSegments:rendered.segments}]})
+}
 // Preserves PR627/ac264's 30 case identities and original effect controls.
 // Public intake replaces private catalog/false-reading setup; committed healthy
 // period premises and literal missing223 refusal keep each boundary truthful.
@@ -94,7 +116,7 @@ async function nativePhase<T>(phase: string, run: () => Promise<T>): Promise<T> 
   try { return await run() }
   catch (cause) { throw new Error('native_cancellation_phase:'+phase, { cause }) }
 }
-async function receiveProdat(f: Fixture, wire: string, code: 'Z04' | 'Z05', subtype: 'L' | 'C') {
+async function receiveProdat(f: Fixture, wire: string, code: 'Z04' | 'Z05' | 'Z15', subtype: 'L' | 'C') {
   return nativePhase('public_intake_'+code+subtype, async () => {
     const receivedAt = new Date().toISOString(), config = assertEdielSmtpReadiness()
     const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire,
@@ -638,6 +660,64 @@ describe('actual native supplier cancellation chains', () => {
     expect(ownedEffects(f,continuation.id)).toEqual(settled)
     expect(positiveAperakCount(f,continuation.id)).toBe(1)
     expect(permissions(f)).toEqual(permissionBefore); expect(original(f)).toEqual(beforeOriginal)
+  }, 180000)
+
+  it('holds public DGI Z15C for the supplier without restoring its end, then only DDQ Z05C restores the same period', async () => {
+    const f = await seed(), foreign = await seed()
+    await createOwnPermissionDraft(f); await createOwnPermissionDraft(foreign)
+    const confirmation = await receiveProdat(f,z04(f),'Z04','L')
+    await process(f,confirmation); assertConfirmedSupplyPrecondition(f,confirmation)
+    const [baseline] = periods(f)
+    const foreignConfirmation = await receiveProdat(foreign,z04(foreign),'Z04','L')
+    await process(foreign,foreignConfirmation); assertConfirmedSupplyPrecondition(foreign,foreignConfirmation)
+    const ending = await receiveProdat(f,z05(f),'Z05','L')
+    await process(f,ending); assertEndingSupplyPrecondition(f,ending); await sendOwnAcks(f,ending.id)
+    const [endingPeriod] = periods(f), before = supplyBusinessState(f), foreignBefore = supplyBusinessState(foreign)
+    const endingEffects = ownedEffects(f,ending.id), providerCalls = smtp.mock.calls.length
+    const permissionEffects = () => sql(`SELECT jsonb_build_object(
+      'grants',(SELECT coalesce(jsonb_agg(to_jsonb(g) ORDER BY g.id),'[]') FROM public.ediel_data_access_grants g WHERE company_id IN(${literal(f.companyId)},${literal(foreign.companyId)})),
+      'receipts',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_received_sources.permission_effect_receipts r WHERE company_id IN(${literal(f.companyId)},${literal(foreign.companyId)})),
+      'transitions',(SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.company_id,t.source_message_id,t.permission_id,t.applied_at),'[]') FROM gridex_received_sources.permission_effect_transitions_v1 t WHERE company_id IN(${literal(f.companyId)},${literal(foreign.companyId)})));`)
+    const permissionBefore = permissionEffects()
+    expect(sql(`SELECT jsonb_build_object('supplier',count(*) FILTER(WHERE role_code='electricity_supplier'),
+      'esco',count(*) FILTER(WHERE role_code='energy_service_company')) FROM public.tenant_actor_roles
+      WHERE company_id=${literal(f.companyId)} AND environment='test' AND actor_id=${literal(f.actorUserId)}
+        AND valid_from<=clock_timestamp() AND (valid_to IS NULL OR clock_timestamp()<valid_to);`)).toEqual({supplier:1,esco:0})
+    const wire = z15cForSupplier(f), held = await receiveProdat(f,wire,'Z15','C')
+    expect(held.application_reference).toBe('23-DGI-PRODAT')
+    const legalReceipt = () => sql(`SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r
+      WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(held.id)};`)
+    const retained = legalReceipt()
+    expect(retained).toMatchObject({source_message_id:held.id,company_id:f.companyId,environment:'test',direction:'inbound',
+      payload_sha256:createHash('sha256').update(wire).digest('hex'),status:'held',reason:'ediel_inbound_legal_context_required',context:{}})
+    for (let attempt=0; attempt<2; attempt++) {
+      const result = await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:held.id})
+      expect(result).toMatchObject({id:held.id,company_id:f.companyId,raw_payload:wire,message_code:'Z15',
+        tenant_resolution_status:'tenant_ambiguous',business_match_status:'business_blocked',processing_status:'routing_unresolved'})
+      expect(sql(`SELECT coalesce(jsonb_agg(payload ORDER BY id),'[]') FROM public.ediel_message_events
+        WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(held.id)} AND event_type='manual_note'
+          AND event_status='warning' AND payload->>'tenantResolutionStatus'='tenant_ambiguous';`))
+        .toContainEqual(expect.objectContaining({tenantResolutionStatus:'tenant_ambiguous',ackDecision:'no_negative_contrl_for_routing_unresolved'}))
+      expect(legalReceipt()).toEqual(retained)
+      expect(supplyBusinessState(f)).toEqual(before); expect(supplyBusinessState(foreign)).toEqual(foreignBefore)
+      expect(permissionEffects()).toEqual(permissionBefore); expect(ownedEffects(f,ending.id)).toEqual(endingEffects)
+      expect(positiveAperakCount(f,held.id)).toBe(0); expect(smtp.mock.calls).toHaveLength(providerCalls)
+    }
+    // A technical CONTRL/diagnostic may exist; it cannot grant business effect.
+    const continuation = await receiveProdat(f,z05(f,'Z24'),'Z05','C')
+    expect(continuation.application_reference).toBe('23-DDQ-PRODAT')
+    await process(f,continuation)
+    expect(periods(f)).toHaveLength(1)
+    expect(periods(f)[0]).toMatchObject({id:baseline.id,status:baseline.status,source_message_id:baseline.source_message_id,
+      source_end_message_id:baseline.source_end_message_id,end_date:baseline.end_date,market_end_at:baseline.market_end_at,
+      market_state_version:endingPeriod.market_state_version+1,metadata:{...baseline.metadata,endCancellationSource:continuation.id}})
+    await sendOwnAcks(f,continuation.id)
+    const settled = ownedEffects(f,continuation.id)
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:continuation.id})
+    expect(ownedEffects(f,continuation.id)).toEqual(settled); expect(positiveAperakCount(f,continuation.id)).toBe(1)
+    expect(original(f)).toEqual(before.original); expect(permissions(f)).toEqual(before.permissions)
+    expect(permissionEffects()).toEqual(permissionBefore); expect(supplyBusinessState(foreign)).toEqual(foreignBefore)
+    expect(legalReceipt()).toEqual(retained)
   }, 180000)
 
   it('final partition failure preserves the real nonempty permission draft and rolls back all supply business state', async () => {
