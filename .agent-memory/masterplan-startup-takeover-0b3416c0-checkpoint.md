@@ -1559,3 +1559,81 @@ TAKEN: root codex-blocker-20261008-0b3416c0 metadata-only packet90b64062-cc2b-4c
 KLART/BEVIS: own770 actualnormalmergef77/roleFIRST/allsevenrelease/ownedsourcecleanup remainsDONE. Root NOW owns four source750 resources under separate c442a049-e5e3-4d1a-b547-eeb29a098ab0/fd65acd1552bdb337765b198d617bae74e36dd1a with actualHANDOFF6113985236/CLAIM6113988485. Those four are EXCLUDED from metadata90b custody and cannot be changed or released by it; originalB three excluded helpers/otherforeign duties remain theirs. Rootc442 wholeZ10M duties retained/UNPROVEN/+0. Separate sourceCP533842c654a64f074087225a0bde2503411a84bf normalFF/fullbody auth4988366f5417de62b15af1e71d63dccaa7d8134c17661a9ecfad2ab2fc8519dc closes localH781d55ef3e675e9470d918b6b4c73defec0a6a73 adoption and all9867inputs03bbd52580654d44a0dc92f0db2e6e1f30652f53decf107fce6cec8d7d1648a3 plus sourceA89bd/sourceBc131 C0/I0/M0.
 
 BLOCKERARE/NEXT: at this checkpoint stage sourceH is LOCAL_UNPUBLISHED, native/currentHCI/whole UNPROVEN. PublicationV1 I1 destination/immutableH/refscope corrected in preparedV2; two affectedOPclosures/rootoneproducerbudgetapproval/freshguards precede actualsourcepush/auth. Root sole H native/currentHCI collector; eff_mandate solemainf77CI collector, no currentmainGREEN here. Metadata90b awaits actual750 facts/body+operationreviews; freshmain/body/ownrole/finalMAINguard precedes oncepublication. Allsource/native/GEN/merge refs/duties excluded. Earlier own0 checkpoints are dated770-stage facts; current ownsource750 count4, metadataownedmemory0 before acquisition.
+
+## REVIEW_DONE: metadata90b stopped before mutation; current main243 - 2026-10-11
+
+TAKEN scope: close only the already attempted metadata-only operation
+90b64062-cc2b-4c49-a7e7-66712f785321. Source750 packet
+c442a049-e5e3-4d1a-b547-eeb29a098ab0 / receipt
+fd65acd1552bdb337765b198d617bae74e36dd1a remains separate, with its four
+source/ID resources retained and excluded from metadata. No new metadata
+packet, reservation, CLAIM or role is selected by this checkpoint.
+
+KLART: the actual normal source750 publication used exactly one ordinary
+push of H781d55ef3e675e9470d918b6b4c73defec0a6a73, authenticated the existing
+PR750 and branch at that exact H, and consumed its single publication budget.
+The one named read-only reconciliation after temporary PR propagation lag
+made no second push. Actual source-publication journal SHA256
+bf7201f4f42bf4c4e90e56af49ea56671b6dd251805777edd27e6255db7b1af8.
+The reviewed PR750 description was actually PATCHed and FULL-GET authenticated
+at body d76b03dbdbbc7dcd8104d26374d9884ae65cebed75853f4dfa45613139fd3a25;
+its journal SHA256 0bbd137070e7eded48c68268277eca7a9f6fd76986ec8f39063c82020918cbdd.
+It preserved draft status and the other reviewed PR fields.
+
+The same H/tree086743c17c566462ef9fe4a91684c9778af0cdd3 has complete exact
+9867-input provenance certificate03bbd52580654d44a0dc92f0db2e6e1f30652f53decf107fce6cec8d7d1648a3
+and independent source reviews89bd5bb00dc8a57630f71f133d3cbfc7ae89b53c317d7c98b854cf88b44e42d4
+and c1312f7eaf5cb1a27e6ed6fa83bcc71efed7c1cfbfb0d811e2bca90b3b04b0aa.
+Its sole automatic native run38179442262/attempt1, job114588680089,
+artifact11717417320 was qualified by root707c459887f1534bc867f260b2163e810485af957301dc8e5389109c59140c62:
+two original literal strict cases PASS, exit0, complete actual H inputs.
+Independent native peer reports dd382ab35ba566b87c045103ee2c6503858394ba2461416becb9b47c83fc929e
+and 19219f1f9a0da8280e241675c2131ca2bf37dc0e396ab9b5a15e7ad2248ca6f0
+approve that bounded result. This is supplemental feedback only; physical
+negative ACK is not asserted, whole Z10M remains UNPROVEN and coverage +0.
+No source/native input audit or producer was repeated for this checkpoint.
+
+Metadata publisher2849d33c2855f926aba5223039a2f9da8aa75adceef923b58bfd33009f0e12d4
+and plan7a5f94b063f29a4172508ee4573a7e3a7088bec6df9c7e2b1dbb766cc2091b5e
+received two independent C0/I0/M0 operation approvals and root approval
+dd65dd8c7987b09bc7c74cc1ca38cb38ef628b219a28f5e50d8482f095575bcf.
+The actual once-operation then stopped at22:47:29Z because main had advanced.
+Journal3177313a5be7a6af0f1250c2787648fdc46159d2264ed4d37001d2f832f47cce
+records four authentic GETs, attempts{}, role NOT_ACQUIRED,
+role_created_or_attempted=false, owner_authenticated=false and zero
+mutations/CLAIM/PATCH/receipt creation. It must NEVER be replayed.
+No metadata RELEASE or foreign private STOP is claimed. All old 90b files,
+review receipts and the stopped journal are retained byte exactly.
+
+KALLA/BEVIS: root's sole immutable current-base packet9b93d2924fa9e639c2eb207013600245455f95bb761b02a6921fb5f61de5bad5
+authenticates main243fd6e401a016b427692e05d5cb987f10cce8c4,
+treeaf70ef33892f50beabd382ee34e6693c6f9bf064, ordered parents
+f77f351cdc94ae0563c5498f7c15679ea2fab44c and
+54accbee2b597426f6f96167e2857ef2557c5651. Existing issue766 bodye39 is unchanged.
+PR760's actual MERGED receipts6114645903 and6114647413 describe a PARTIAL
+component delivery, whole credit0, with retained remaining whole-proof duties.
+The saved receipt response36c22aee49a0573fd571e93053601c557b838c399147788d029304f0dfba19ea
+is reused; no new source or release authentication is inferred from this
+checkpoint. Protocol comparison72f2a557554e6c4b13766442f1eee16a48d71f186d1f864b99d2aa530a39ab17
+confirms all seven existing protocol/startup documents, including AGENTS, unchanged.
+
+The f77 CI_GREEN proof3a998fde3d6c8f9e90fba74580aaaae69a3c610d0e5359a10d3281e2d7fa6ddc,
+independent review4eff2a7050366d0da62a1dde5d29fb47103f5d2c22bd98c7f8ca5a137512bb29
+and actual public receipt6114582976 are authentic DATED f77 evidence.
+They do not qualify current main243. Root has assigned the separate sole
+current-main243 CI observer to eff_mandate. Current243 CI qualification is
+PENDING, with no invented PASS or new current-GREEN claim here.
+
+BLOCKERARE/NEXT: source750's four fd65 reservations and whole duties remain
+retained; latest source CP0b919e638c237b9412f250649837430d5e411d3a is not edited
+by this metadata closure. Root remains the sole H CI/native collector and
+will determine current source delivery applicability against main243.
+No source/main adoption, new producer, schema/GEN import or merge is authorized
+by this metadata checkpoint. Defer any new metadata packet/body freeze until
+that concrete source-delivery phase is known. The minimal later proposal will
+change only the current-main header and the dated750/760 cells as justified,
+preserve f77 GREEN as dated evidence and preserve the other15 rows/history bytes.
+Then a fresh role/body/main/own-checkpoint qualification, independent affected
+operation reads and root approval precede a NEW once-operation. No docs wait
+is imposed on existing source/GEN owners and no reservation is held while
+waiting. Own metadata resources0; separate retained SOURCE750 resources4.
