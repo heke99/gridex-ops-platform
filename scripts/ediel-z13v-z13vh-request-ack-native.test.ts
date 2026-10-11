@@ -13,7 +13,7 @@ import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prep
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {omitZ14Field} from './helpers/ediel-z14v-current-native-fixture'
 import {refuseEscoCustomerSource} from './helpers/ediel-esco-z13-customer-source-b6d3'
-import {refuseEscoMissingHistoricalEnd} from './helpers/ediel-esco-request-source-b6d3'
+import {refuseEscoMissingHistoricalEnd,qualifyEscoSentZ13RequiredInventory} from './helpers/ediel-esco-request-source-b6d3'
 import {refuseEscoBirthSelector} from './helpers/ediel-esco-birth-selector-b6d3'
 import {escoObjectRefusals,isEscoObjectRefusal,omitEscoObjectField,qualifyEscoObjectDiagnostic,captureEscoObjectOwner,escoObjectRefusalCode,qualifyRequestReferences,type EscoReportingField} from './helpers/ediel-esco-object-refusal-b6d3'
 import {captureEscoTenantBasis,qualifyEscoTenantFirst,expectEscoTenantReplay,type ObservationWindow} from './helpers/ediel-esco-tenant-replay-b6d3'
@@ -84,7 +84,7 @@ async function prospectiveRequest(mode:'V'|'VH',objectReply=false,customerOmissi
 
 async function request(mode:'V'|'VH',objectReply=false){
  const{f,checkSentinel,objectAckProfile,contrlAckProfile}=await prospectiveRequest(mode,objectReply)
- const p=await prepare(f)
+ const beforePrepare=Date.now(),p=await prepare(f),afterPrepare=Date.now()
  const wire=EdifactEnvelopeCodec.decode(p.z13.raw_payload!)
  expect(p.z13).toMatchObject({company_id:f.ids.company,direction:'outbound',environment:'test',message_code:'Z13',status:'sent',application_reference:'23-DGI-PRODAT'})
  expect([wire.sender,wire.receiver]).toEqual([f.sender,f.receiver])
@@ -112,6 +112,7 @@ async function request(mode:'V'|'VH',objectReply=false){
  expect(basis).toMatchObject({status:'authorized',companyId:f.ids.company,assignmentId:f.assignment,customerId:f.ids.customer,
   permissionId:p.permissionId,code:'Z13',environment:'test',scopeBasisVersion:f.current().basis,evidenceSha256:p.hash,
   evidenceVersion:evidence.source_version,agreementReference:evidence.permission_agreement_reference,requestedMethod:evidence.permission_requested_method})
+ qualifyEscoSentZ13RequiredInventory({f,p,source:sources[0],renderWindow:{beforePrepare,afterPrepare}})
  const linePosition=wire.segments.findIndex(s=>s.tag==='LIN')
  const agreements=wire.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='ANJ')
  expect(agreements).toHaveLength(1)
@@ -134,7 +135,6 @@ async function request(mode:'V'|'VH',objectReply=false){
  checkSentinel()
  return{f,p,checkSentinel,objectAckProfile,contrlAckProfile}
 }
-
 // External configuration input only, supplied before archive/send/ACK birth.
 // The shared E66 profile remains unchanged; the protected route selector,
 // source authority, real draft persistence and outbox insertion still run.
