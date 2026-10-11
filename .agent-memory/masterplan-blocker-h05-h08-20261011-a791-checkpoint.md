@@ -288,3 +288,12 @@ The sole H acquirer prepared a NEW9849-input original mapping, not execution: ex
 
 Taken/done/remaining: same retained H05/H08 blocker, source2/local and actual-current-DB prerequisite integration prepared; originalfailedH100 unqualified, new-source native/currentCI still pending, whole finance/timer/conditional duties retained. Coverage117+194=311/352 unchanged. Next exact event: old executing OPS terminate, fresh actualmain/refs/composition remain applicable, root publishes080a normally then activates the sole current-head metadata/evidence qualification.
 
+
+## 2026-10-11 — configured source supersession / corrected publication condition
+
+The earlier zero-executing-OPS guard was a ROOT conservative interpretation, not an explicit project requirement. Bounded independent inspection now confirms exact unchanged OPS3acc65a group ops-hardening-768/cancel-in-progress:true and full83fba5e same PR-ref group/cancel-in-progress:false. Its452-line clean replay uses isolated disposable local Supabase and restored local migrations; rem002 schema/type outputs are runner-local. Inspected entrypoints dispatch no separate H100/canonical capture/source-GEN job and write no branch/ref. Dedicated old H100 and all other dedicated native producers are terminal.
+
+ROOT therefore uses the existing ordinary PR FF update for the necessary080a real-main environment. GitHub concurrency requests retirement of old own OPS and serializes its successor; full certificate remains serialized behind its old read-only waiter. This supersedes the previous extra wait for old executing OPS. No manual restart/cancel/dispatch, foreign producer change, simultaneous duplicate H100 or extra capture/GEN operator is authorized or performed. Actual subsequent run retirement and cleanup remain metadata to verify, not a claimed outcome. All old observations/results stay original and grant no new080a credit.
+
+Both current080a SOURCE2+self/local checks and exact9849 identities remain qualified on d00; fresh main/head/all11 own refs/runtime3afd and dedicated producer terminal states checked before one normal FF. Next ROOT authenticates remote080a/tree059101/orderedf5+d00 parents, updates existing PR body, and sole collectors observe the automatic exactsource H100/all mandatory gates. Current-head native/CI/whole/merge remain unqualified; no coverage311 change or role acquisition.
+
