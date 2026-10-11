@@ -5538,30 +5538,35 @@ CREATE FUNCTION gridex_brp_changes.confirm_on_ack_v1() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE o gridex_brp_changes.origins%rowtype;e gridex_brp_changes.events%rowtype;v gridex_brp_changes.period_versions%rowtype;
+DECLARE m public.ediel_messages%rowtype;o gridex_brp_changes.origins%rowtype;e gridex_brp_changes.events%rowtype;v gridex_brp_changes.period_versions%rowtype;
 BEGIN
- IF NEW.status IS DISTINCT FROM 'acknowledged' OR OLD.status IS NOT DISTINCT FROM 'acknowledged'
- OR NEW.aperak_status IS DISTINCT FROM 'received'
- OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_family IS DISTINCT FROM 'PRODAT' OR NEW.message_code IS DISTINCT FROM 'Z09' THEN RETURN NEW;END IF;
- IF NOT EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=NEW.id AND x.ack_family='APERAK' AND x.outcome='positive')
- OR EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=NEW.id AND x.outcome='negative') THEN RETURN NEW;END IF;
- SELECT * INTO o FROM gridex_brp_changes.origins WHERE message_id=NEW.id AND company_id=NEW.company_id;
- IF NOT FOUND OR o.payload_hash IS DISTINCT FROM encode(sha256(convert_to(NEW.raw_payload,'UTF8')),'hex') THEN RETURN NEW;END IF;
+ SELECT * INTO m FROM public.ediel_messages WHERE id=NEW.source_message_id;
+ IF NOT FOUND OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z09' THEN RETURN NULL;END IF;
+ SELECT * INTO o FROM gridex_brp_changes.origins WHERE message_id=m.id AND company_id=m.company_id;
+ IF NOT FOUND OR o.payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RETURN NULL;END IF;
  SELECT * INTO e FROM gridex_brp_changes.events WHERE id=o.event_id FOR SHARE;
  SELECT * INTO v FROM gridex_brp_changes.period_versions WHERE event_id=o.event_id;
- IF e.company_id IS DISTINCT FROM NEW.company_id OR e.environment IS DISTINCT FROM NEW.environment
- OR v.source_message_id IS DISTINCT FROM NEW.id OR v.source_payload_hash IS DISTINCT FROM o.payload_hash
- OR EXISTS(SELECT FROM gridex_brp_changes.revocations r WHERE r.target_kind='event' AND r.target_id=e.id) THEN RETURN NEW;END IF;
+ IF e.company_id IS DISTINCT FROM m.company_id OR e.environment IS DISTINCT FROM m.environment
+ OR v.source_message_id IS DISTINCT FROM m.id OR v.source_payload_hash IS DISTINCT FROM o.payload_hash
+ OR EXISTS(SELECT FROM gridex_brp_changes.revocations r WHERE r.target_kind='event' AND r.target_id=e.id) THEN RETURN NULL;END IF;
+ -- Both required acknowledgements, from the authority's immutable correlation of this exact original.
+ IF NOT EXISTS(SELECT FROM gridex_ack_authority.source_correlations c WHERE c.source_message_id=m.id AND c.company_id=e.company_id AND c.environment=e.environment
+   AND c.ack_family='CONTRL' AND c.ack_outcome='positive' AND c.source_payload_hash=o.payload_hash)
+ OR NOT EXISTS(SELECT FROM gridex_ack_authority.source_correlations c WHERE c.source_message_id=m.id AND c.company_id=e.company_id AND c.environment=e.environment
+   AND c.ack_family='APERAK' AND c.ack_outcome='positive' AND c.source_payload_hash=o.payload_hash)
+ OR NOT EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=m.id AND x.ack_family='APERAK' AND x.outcome='positive')
+ OR EXISTS(SELECT FROM gridex_ack_authority.source_correlations c WHERE c.source_message_id=m.id AND c.ack_outcome='negative')
+ OR EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=m.id AND x.outcome='negative') THEN RETURN NULL;END IF;
  INSERT INTO gridex_brp_changes.confirmations(event_id,company_id,environment,message_id)
-  VALUES(e.id,e.company_id,e.environment,NEW.id) ON CONFLICT DO NOTHING;
- RETURN NEW;
+  VALUES(e.id,e.company_id,e.environment,m.id) ON CONFLICT DO NOTHING;
+ RETURN NULL;
 END $$;
 
 --
 -- Name: FUNCTION confirm_on_ack_v1(); Type: COMMENT; Schema: gridex_brp_changes; Owner: -
 --
 
-COMMENT ON FUNCTION gridex_brp_changes.confirm_on_ack_v1() IS 'AT-Z09B-SUPPLIER: confirms the producing BRP-change event once its own bound, unchanged outbound PRODAT Z09/Z27 reaches acknowledged with a positive APERAK scope outcome and no negative scope outcome.';
+COMMENT ON FUNCTION gridex_brp_changes.confirm_on_ack_v1() IS 'AT-Z09B-SUPPLIER: confirms the producing BRP-change event only from the ACK authority immutable evidence: positive CONTRL and APERAK correlations of its own bound, unchanged outbound PRODAT Z09/Z27 and no negative outcome.';
 
 --
 -- Name: context_before_site_projection_v1(uuid, uuid, uuid, boolean); Type: FUNCTION; Schema: gridex_brp_changes; Owner: -
@@ -142937,6 +142942,12 @@ CREATE OR REPLACE VIEW public.gridex_api_client_permission_summary_v WITH (secur
   GROUP BY c.id, co.name;
 
 --
+-- Name: source_correlations confirm_brp_change_on_ack; Type: TRIGGER; Schema: gridex_ack_authority; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER confirm_brp_change_on_ack AFTER INSERT ON gridex_ack_authority.source_correlations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION gridex_brp_changes.confirm_on_ack_v1();
+
+--
 -- Name: prodat_physical_receipts immutable; Type: TRIGGER; Schema: gridex_ack_authority; Owner: -
 --
 
@@ -148611,12 +148622,6 @@ CREATE TRIGGER company_invitations_tenant_accept_guard BEFORE INSERT OR UPDATE O
 --
 
 CREATE CONSTRAINT TRIGGER company_memberships_last_functioning_admin_guard AFTER DELETE OR UPDATE ON public.company_memberships DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION public.guard_last_functioning_tenant_admin();
-
---
--- Name: ediel_messages confirm_brp_change_on_ack; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER confirm_brp_change_on_ack AFTER UPDATE OF status, aperak_status ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_brp_changes.confirm_on_ack_v1();
 
 --
 -- Name: ediel_messages confirm_production_contract_on_ack; Type: TRIGGER; Schema: public; Owner: -
