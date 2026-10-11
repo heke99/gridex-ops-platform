@@ -1,9 +1,15 @@
 // masterplan: AT-Z13V-ESCO, AT-Z13VH-ESCO
 // Prospective public source refusal; no hooks, tests or manufactured authority.
 import {createHash,randomUUID} from 'node:crypto'
+import {serialize} from 'node:v8'
 import {expect} from 'vitest'
 import {segmentComposite,segmentElementCount,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import type {ServicePermissionOriginBasis} from '@/lib/ediel/services/permissionOrigin'
+import {loadServiceReportingValidationContext} from '@/lib/ediel/services/reporting'
+import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
+import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
+import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {reviewNativeEscoAssignmentEvidence as review,seedNativeEscoFixture,
  prepareNativeEscoPermissionFixture,nativeEscoSql as sql,nativeEscoLiteral as lit,nativeEscoExternal} from '../fixtures/ediel-service-evidence-native'
 
@@ -182,8 +188,8 @@ export function qualifyEscoSentZ13Fields(rawPayload:string,expected:SentExpectat
  expect(qualified('DTM','329')).toHaveLength(0);expect(qualified('RFF','Z05')).toHaveLength(0);expect(qualified('RFF','Z09')).toHaveLength(0)
 }
 
-export function qualifyEscoSentZ13RequiredInventory(input:{f:Fixture;p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>;
- source:{origin:Row;evidence:Row;current:boolean};renderWindow:RenderWindow}){
+export async function qualifyEscoSentZ13RequiredInventory(input:{f:Fixture;p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>;
+ source:{origin:Row;evidence:Row;current:boolean};renderWindow:RenderWindow;ports:Pick<Ports,'state'|'sentinel'>}){
  const {f,p,source}=input,basis=source.origin.basis as ServicePermissionOriginBasis
  const capture=()=>sql<{message:Row;assignment:Row;intent:Row;permission:Row;customer:Row;current:boolean;senders:Row[];receivers:Row[]}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object(
   'message',to_jsonb(m),'assignment',to_jsonb(a),'intent',to_jsonb(i),'permission',to_jsonb(p),'customer',to_jsonb(c),
@@ -240,4 +246,123 @@ export function qualifyEscoSentZ13RequiredInventory(input:{f:Fixture;p:Awaited<R
   customerName:name,country:country!,reportStart:object.reportStart!,reportEnd:object.reportEnd??null,reportingTerm:basis.reportingTerm!,
   method:basis.requestedMethod!,frequency:basis.frequency!,product:object.product,purpose:basis.purposeCode!,agreement:basis.agreementReference!},input.renderWindow)
  expect(capture()).toEqual(before)
+ await qualifyEscoDetachedGenerated13(f,p,basis,input.ports)
+ expect(capture()).toEqual(before)
+}
+
+// Frozen literal source metadata; no matrix/diagnostic builder as expected oracle.
+const generatedFields=[
+ ['202','BGM/C002/1001','header',{documentElement:1}],['203','BGM/1004','header',{documentElement:2}],
+ ['205','DTM+137','header',{valueElement:'C507/2380',formatElement:'C507/2379',dateQualifier:'137'}],
+ ['206','DTM+ZZZ','header',{valueElement:'C507/2380',formatElement:'C507/2379',dateQualifier:'ZZZ'}],
+ ['207','NAD+FR/C082/3039 + NAD+FR/3207','SG4',{partyQualifier:'FR',partyElement:2,partyComponents:1}],
+ ['208','NAD+DO/C082/3039 + NAD+DO/3207','SG4',{partyQualifier:'DO',partyElement:2,partyComponents:1}],
+ ['223','CCI++Z13/CAV','SG8/SG14',{composite:'C889',cavComponent:0}],
+ ['226','RFF+LI','SG8/SG16',{valueElement:'C506/1154',referenceScope:'line'}],
+ ['311','UNB/S005/0026','header',{}],['312','UNH/S009/0057','header',{}],['313','BGM/4343','header',{documentElement:4}],
+ ['314','LIN','SG8',{linElement:1,linComponent:0}],['513','CCI++Z22/CAV','SG8/SG14',{composite:'C889',cavComponent:0}],
+] as const
+type GeneratedField=typeof generatedFields[number][0]
+function splitWire(value:string,separator:string,release:string){
+ const parts:string[]=[];let part='',released=false
+ for(const char of value){
+  if(released){part+=char;released=false}
+  else if(char===release){part+=char;released=true}
+  else if(char===separator){parts.push(part);part=''}else part+=char
+ }
+ expect(released).toBe(false);parts.push(part);return parts
+}
+export function omitEscoGeneratedField(raw:string,field:GeneratedField){
+ const original=tokenizeEdifact(raw),{una,segments}=original,e=una.dataElementSeparator,c=una.componentDataElementSeparator
+ const parts=segments.map(s=>s.raw),qualified=(tag:string,q?:string,index=1)=>segments.flatMap((s,i)=>
+  s.tag===tag&&(q===undefined||segmentComposite(s,index,una)[0]===q)?[i]:[])
+ const tag=field==='311'?'UNB':field==='312'?'UNH':field==='314'?'LIN':field==='205'||field==='206'?'DTM':
+  field==='207'||field==='208'?'NAD':field==='226'?'RFF':field==='223'||field==='513'?'CCI':'BGM'
+ const q=field==='205'?'137':field==='206'?'ZZZ':field==='207'?'FR':field==='208'?'DO':field==='226'?'LI':field==='223'?'Z13':field==='513'?'Z22':undefined
+ const found=qualified(tag,q,tag==='CCI'?2:1);expect(found).toHaveLength(1);const position=found[0]
+ const elements=splitWire(parts[position],e,una.releaseCharacter)
+ if(tag==='DTM')parts.splice(position,1)
+ else if(tag==='CCI'){
+  expect(segmentComposite(segments[position],2,una)).toEqual([q]);expect(parts[position+1]).toBe('CAV'+e+(field==='223'?segmentComposite(segments[position+1],1,una)[0]:'E19'))
+  expect(segmentComposite(segments[position+1],1,una)).toHaveLength(1);expect(segments[position+2]?.tag).not.toBe('CAV')
+  expect(['S17','S18','E19']).toContain(segmentComposite(segments[position+1],1,una)[0]);parts.splice(position,2)
+ }else{
+  const element=tag==='UNB'?7:tag==='UNH'||tag==='NAD'?2:tag==='BGM'?field==='202'?1:field==='203'?2:4:1
+  const components=splitWire(elements[element],c,una.releaseCharacter)
+  if(tag==='UNH'){expect(segmentComposite(segments[position],2,una)).toEqual(['PRODAT','D','97A','UN','E2SE6A']);components[4]='';elements[element]=components.join(c)}
+  else if(tag==='NAD'){expect(segmentComposite(segments[position],2,una)).toHaveLength(3);expect(components.slice(1)).toEqual(['160','SVK']);expect(components[0]).toBeTruthy();components[0]='';elements[element]=components.join(c)}
+  else if(tag==='RFF'){expect(components[0]).toBe('LI');expect(components[1]).toBeTruthy();expect(components).toHaveLength(2);components[1]='';elements[element]=components.join(c)}
+  else{expect(segmentComposite(segments[position],element,una)).toHaveLength(1);expect(elements[element]).toBeTruthy();elements[element]=''}
+  parts[position]=elements.join(e)
+ }
+ const unh=parts.findIndex(s=>s.startsWith('UNH'+e)),unt=parts.findIndex(s=>s.startsWith('UNT'+e))
+ const trailer=splitWire(parts[unt],e,una.releaseCharacter);trailer[1]=String(unt-unh+1);parts[unt]=trailer.join(e)
+ const omitted=raw.slice(0,9)+parts.join(una.segmentTerminator)+una.segmentTerminator
+ expect(raw).toBe(raw.slice(0,9)+segments.map(s=>s.raw).join(una.segmentTerminator)+una.segmentTerminator)
+ const actual=tokenizeEdifact(omitted);expect(actual.una).toEqual(una);expect(actual.segments.map(s=>s.raw)).toEqual(parts)
+ expect(omitted).not.toBe(raw);return omitted
+}
+export function qualifyEscoGeneratedFieldDiagnostic(issues:ReturnType<typeof validateCanonicalPolicyFields>,field:GeneratedField,raw:string,li:string,customer:string){
+ const descriptor=generatedFields.find(d=>d[0]===field)!,[,path,group,component]=descriptor
+ const found=issues.filter(i=>i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.fieldNumber===field)
+ expect(found.length).toBeGreaterThan(0)
+ const invalid=field==='207'||field==='208',code=invalid?'FIELD_MATRIX_FIELD_FORMAT_INVALID':field==='223'?'PRODAT_TRANSACTION_REASON_INVALID':'FIELD_MATRIX_REQUIRED_FIELD_MISSING'
+ const selected=found.filter(i=>i.code===code&&i.prodatDiagnostic?.kind==='field'&&i.prodatDiagnostic.errorKind===(invalid?'invalid':'missing'))
+ expect(selected.length).toBeGreaterThan(0)
+ const local=['223','226','314','513'].includes(field),scope=local?field==='314'?'register':'object':'header'
+ const unavailable={kind:'unavailable'},absent={kind:'absent'}
+ const occurrence={scope,messageReference:'1',lineIndex:local?0:null,lineNumber:local&&field!=='314'?'1':null,registerPosition:local?1:null,
+  objectId:null,identityAgency:null,lineItemReference:local&&field!=='226'?li:null,
+  ownReferences:local?{objectId:absent,lineItemReference:field==='226'?absent:{kind:'present',value:li},customerId:{kind:'present',value:customer}}
+   :{objectId:unavailable,lineItemReference:unavailable,customerId:unavailable}}
+ for(const issue of selected){
+  expect(issue).toMatchObject({code,severity:'error',blocking:true,fieldPath:path})
+  const diagnostic={kind:'field',fieldNumber:field,errorKind:invalid?'invalid':'missing',
+   sourceRule:field==='223'?'PRODAT26A:§2.6:P64–65:annex4:P122:223':'PRODAT26A:§2.2:Z13:'+field,
+   segmentPath:path,group,component:{locator:path,...component},occurrence}
+  if(invalid){const wire=tokenizeEdifact(raw),nad=wire.segments.filter(s=>s.tag==='NAD'&&segmentComposite(s,1,wire.una)[0]===(field==='207'?'FR':'DO'))
+   expect(nad).toHaveLength(1);expect(issue.prodatDiagnostic).toEqual({...diagnostic,failureEvidence:[{raw:nad[0].raw,locator:path,content:':160:SVK'}]})
+  }else expect(issue.prodatDiagnostic).toEqual(diagnostic)
+ }
+}
+const generatedProtectedTables=['gridex_received_sources.validation_assessments','gridex_received_sources.sources',
+ 'gridex_received_sources.object_assessments','gridex_received_sources.object_availability_witnesses',
+ 'gridex_received_sources.object_selection_snapshots','gridex_received_sources.customer_primary_response_receipts',
+ 'gridex_received_sources.structural_object_apply_receipts','gridex_received_sources.structural_apply_batches',
+ 'gridex_received_sources.prodat_ignored_field_facets','gridex_received_sources.prodat_object_validation_facets',
+ 'gridex_received_sources.prodat_response_facets','gridex_received_sources.prodat_source_function_facets','gridex_received_sources.prodat_application_facets',
+ 'gridex_ediel_ack_replay.creation_receipts','gridex_ediel_ack_replay.positive_service_scope_receipts',
+ 'gridex_ediel_outbound_owner.witnesses','gridex_ediel_outbound_owner.consumptions','gridex_ediel_wire_namespace.coverage',
+ 'gridex_ediel_wire_namespace.reservations','gridex_ediel_source_rules.receipts','gridex_ediel_technical_ack.sources',
+ 'gridex_ediel_technical_ack.syntax_facets','gridex_ediel_technical_ack.replies','gridex_ediel_inbound_receptions.receptions',
+ 'public.ediel_ack_transaction_results','public.ediel_business_references','public.ediel_processing_runs','public.ediel_decision_traces','public.ediel_sla_timers'] as const
+const protectedGenerated=()=>sql<Row>(`SELECT jsonb_build_object(${generatedProtectedTables.map(table=>
+ `'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r)`).join(',')})`)
+async function qualifyEscoDetachedGenerated13(f:Fixture,p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>,basis:ServicePermissionOriginBasis,ports:Pick<Ports,'state'|'sentinel'>){
+ const before=ports.state(f),protectedBefore=protectedGenerated(),sent=structuredClone(p.z13),smtp=serialize(nativeEscoExternal.send.mock.calls)
+ const conserved=()=>{expect(ports.state(f)).toEqual(before);expect(protectedGenerated()).toEqual(protectedBefore)
+  expect(p.z13).toEqual(sent);expect(serialize(nativeEscoExternal.send.mock.calls)).toEqual(smtp);ports.sentinel()}
+ const started=Date.now(),context=await loadServiceReportingValidationContext(p.z13,f.ids.actor),finished=Date.now()
+ expect(context).toBeDefined();if(!context)throw Error('esco_generated_original_reporting_context_required')
+ expect(context.evaluationUtcMs).toBeGreaterThanOrEqual(started);expect(context.evaluationUtcMs).toBeLessThanOrEqual(finished)
+ expect(context.source).toMatchObject({kind:'service_permission',companyId:f.ids.company,assignmentId:f.assignment,
+  assignmentVersion:basis.assignmentVersion,scopeBasisVersion:basis.scopeBasisVersion,permissionId:p.permissionId,evidenceId:basis.evidenceId,
+  evidenceSha256:p.hash,evidenceVersion:basis.evidenceVersion,actorId:f.ids.actor,intentId:p.z13.intent_id,environment:'test',code:'Z13'})
+ expect(context.objects).toHaveLength(1);expect(context.objects[0]).toMatchObject({li:p.li,expectedReason:f.mode==='V'?'S17':'S18',code:'Z13',installation:null})
+ const customer=context.objects[0].customer.id;expect(customer).toBe(sourceText(basis.customer.org_number)??sourceText(basis.customer.personal_number))
+ const baseline=validateEdielMessageRowWithRulebook(p.z13,'send',undefined,context)
+ expect(baseline.ok,JSON.stringify(baseline.issues)).toBe(true);expect(baseline.blocking).toBe(false)
+ expect(baseline.canonicalPolicy).toMatchObject({family:'PRODAT',code:'Z13',direction:'outbound',applicationReference:'23-DGI-PRODAT'})
+ const policy=baseline.canonicalPolicy;if(!policy)throw Error('esco_generated_original_canonical_policy_required')
+ const frozenPolicy=structuredClone(policy),frozenContext=structuredClone(context)
+ const leaf=(raw:string)=>{const wire=tokenizeEdifact(raw);return validateCanonicalPolicyFields({policy:policy as CanonicalEdielPolicy,
+  rawPayload:raw,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,scope:'all',reportingContext:context as ExpectedContext})}
+ const healthy=leaf(p.z13.raw_payload!);expect(healthy.filter(i=>i.blocking||i.severity==='error')).toEqual([])
+ expect(leaf(p.z13.raw_payload!)).toEqual(healthy);conserved()
+ for(const [field] of generatedFields){
+  const raw=omitEscoGeneratedField(p.z13.raw_payload!,field),first=leaf(raw)
+  qualifyEscoGeneratedFieldDiagnostic(first,field,raw,p.li,customer);conserved()
+  expect(leaf(raw)).toEqual(first);expect(policy).toEqual(frozenPolicy);expect(context).toEqual(frozenContext);conserved()
+ }
+ expect(validateEdielMessageRowWithRulebook(p.z13,'send',undefined,context)).toEqual(baseline);conserved()
 }

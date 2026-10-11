@@ -112,7 +112,7 @@ async function request(mode:'V'|'VH',objectReply=false){
  expect(basis).toMatchObject({status:'authorized',companyId:f.ids.company,assignmentId:f.assignment,customerId:f.ids.customer,
   permissionId:p.permissionId,code:'Z13',environment:'test',scopeBasisVersion:f.current().basis,evidenceSha256:p.hash,
   evidenceVersion:evidence.source_version,agreementReference:evidence.permission_agreement_reference,requestedMethod:evidence.permission_requested_method})
- qualifyEscoSentZ13RequiredInventory({f,p,source:sources[0],renderWindow:{beforePrepare,afterPrepare}})
+ await qualifyEscoSentZ13RequiredInventory({f,p,source:sources[0],renderWindow:{beforePrepare,afterPrepare},ports:{state:producerState,sentinel:checkSentinel}})
  const linePosition=wire.segments.findIndex(s=>s.tag==='LIN')
  const agreements=wire.segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='ANJ')
  expect(agreements).toHaveLength(1)
