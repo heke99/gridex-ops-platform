@@ -38,3 +38,41 @@ Role: BLOCKERARAGENT (owner-authorized in chat). Hosted session: Git Data writes
 - SC-052 status: candidate on PR #751 (main still 309/352 until merge). SC-037 withdrawn.
 - Next: CLAIM receipt on #673, CI green, merge, MERGED receipt.
 - CI `coverage` red on de049999: ediel-normative-authority-boundary forbids runtime import of rulebook/utiltsApplicationReference. Fix: use canonicalEdielFacade.canonicalVerifiedUtiltsApplicationReference; requested type = explicit or field-311 code, verified by the canonical matrix. Reproduced RED locally, then full vitest 1051 files / 16731 PASS, eslint/tsc 0, coverage --check 0.
+
+## Status overview 2026-10-11 ~12:10 UTC (main 4d69800e)
+
+**Coverage on main:** 311/352 approved.
+- Rules: 117/121 VERIFIED.
+- Contracts: 194/231 PASSED.
+- 41 IDs remain.
+
+**Delivered by this agent today:** #734 to production (migration 20261010230000), SC-052 (PR #751, merged 4d69800e).
+
+### Remaining IDs, grouped by blocker
+
+| Group | IDs | Status / next step |
+|---|---|---|
+| Open PRs from other agents | SC-031 (#758), SC-037 (#755), SC-046 (#753), SC-053 (#744), SC-054 (#749), AT-Z05C (#756), AT-Z14VH/AT-Z15V (#752), AT-Z10M (#757 component + #750 native), AT-Z02L/LK (#754 component), AT-Z13V/VH (#745), DB-01/AT-DB-01 (#743) | Reviewed (see table below). The owners fix and merge. |
+| Handed to Codex | SC-023 (ESCO-07 history job, plan B) | #673 6108249027. A migration is needed. |
+| External (counterparty / provider) | TR-08, AT-TR-08, OPS-04, AT-OPS-04 | Need a real delivery trace / counterparty test. Cannot be done from code. |
+| Reserved by others (tag) | DB-05, AT-DB-05, SC-070, AT-Z05H, AT-Z08H | Owners are working on them. |
+| Retained custody without tag | SC-035, SC-039, AT-Z15VH, AT-Z01L–Z04L/LK (excluding Z02), AT-Z03C/Z04C, AT-Z06F/Z06G/Z09F/Z09G/Z09B | Require explicit handover from the original owner or an owner decision (as for SC-052/SC-023). AT-Z15VH depends on SC-023. |
+
+### Reviews from this agent (all read-only, posted on the PRs)
+
+| PR | C/I/M | Verdict | Fix proposal |
+|---|---|---|---|
+| #758 SC-031 | 1/1/3 | request changes (boundary test red) | yes, revert of the matcher change, 90/90 green (6108658285) |
+| #755 SC-037 | 0/2/3 | mechanism OK, evidence gaps | — |
+| #753 SC-046 | 0/0/3 | approve (check prod billing underlays before deploy) | — |
+| #744 SC-053 | 0/2/3 | approve after fixes (re-capture GEN) | yes, I2 RED→GREEN (6108670100) |
+| #749 SC-054 | 0/1/3 | approve with change | yes, deadline + positive control, 5/5 (6108681476) |
+| #752 Z14VH/Z15V | 0/3/3 | changes before PASSED | partial: I1 + missing fields; native not run (6108672048) |
+| #754 Z02 | 0/0/3 | approve, merges cleanly | — |
+| #756 Z05C | 0/0/3 | approve | — |
+| #757 Z10M | 0/1/2 | approve with comments (race; needs a DB-side check for whole Z10M) | — |
+| #746 Z09D | — | already merged; earlier findings closed | — |
+
+### Next
+- No free ID without handover. Waiting on owner decisions or new PRs to review.
+- RELEASE of the SC-052 resources requested from ROOT (6108841870).
