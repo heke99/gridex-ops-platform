@@ -15,7 +15,7 @@ import { parseSourceReceiptInstant } from '@/lib/ediel/utilts/receivedSourceInve
 import { readInboundReceptionRequest } from '@/lib/ediel/inbound/receptions'
 import { requireEdielInboundLegalContext } from '@/lib/ediel/tenant/sourceLegalContext'
 import { requireEdielSourceRulePackEvidence } from '@/lib/ediel/core/sourceRulePackEvidence'
-import { ownerSource, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
+import { ownerSourceWithInstallationStatus, OWNER } from '../__tests__/helpers/sourceOwnerFixtures'
 import { supabaseService } from '@/lib/supabase/service'
 import { saveElectricitySupplier, saveCustomerSite } from '@/lib/masterdata/db'
 import { setOwnElectricitySupplier } from '@/lib/masterdata/selfSupplier'
@@ -911,7 +911,7 @@ function encode(f: Fixture, body: string[], inbound=false, ownReverseOriginalEnv
     messages:[{ messageReference:randomUUID().replaceAll('-','').slice(0,14),messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:body }] })
 }
 function confirmation(f: Fixture, change: (body:string[])=>string[]=body=>body, ownReverseOriginalEnvelope=false) {
-  const selected=ownerSource().raw_payload!.replaceAll(OWNER.external,f.external)
+  const selected=ownerSourceWithInstallationStatus('Z12').raw_payload!.replaceAll(OWNER.external,f.external)
     .replaceAll('12345:160:SVK',`${f.receiver}:160:SVK`).replaceAll('54321:160:SVK',`${f.sender}:160:SVK`)
     .replaceAll('11111:160:SVK',`${f.brpEdielId}:160:SVK`).replaceAll('CUSTOMER-1::89',`${f.customerIdentity.id}:SE2:260`)
     .replaceAll('RFF+Z05:NET-1',`RFF+Z05:${f.gridAreaCode}`).replaceAll('RFF+LI:CASE-1',`RFF+LI:${f.li}`)
