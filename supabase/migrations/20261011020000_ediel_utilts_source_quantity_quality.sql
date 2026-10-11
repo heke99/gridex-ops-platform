@@ -95,7 +95,7 @@ REVOKE ALL ON FUNCTION gridex_utilts_binding.validate_decimal_source_v2(jsonb,js
 
 CREATE OR REPLACE FUNCTION gridex_utilts_binding.preserve_committed_projection_v1(c uuid,env text,sid uuid,transactions jsonb) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog SET timezone='UTC' AS $$
-DECLARE s public.ediel_messages%rowtype;item jsonb;old_item jsonb;adapted jsonb;answer jsonb:='[]';r gridex_utilts_binding.receipts%rowtype;v public.meter_reading_series%rowtype;
+DECLARE s public.ediel_messages%rowtype;item jsonb;old_item jsonb;adapted jsonb;answer jsonb:='[]';r gridex_utilts_binding.receipts%rowtype;v public.meter_reading_series%rowtype;remove_quality boolean;
 BEGIN
  SELECT * INTO STRICT s FROM public.ediel_messages WHERE company_id=c AND id=sid AND environment=env;
  SELECT * INTO r FROM gridex_utilts_binding.receipts WHERE source_message_id=sid AND company_id=c AND environment=env;
@@ -106,15 +106,22 @@ BEGIN
     AND a.disposition='accepted' AND a.persistence_status='persisted' AND a.planned_response_type='positive_aperak' FOR SHARE OF a,series;
   IF FOUND AND v.immutable_hash=encode(sha256(convert_to(v.raw_transaction::text,'UTF8')),'hex') THEN
    old_item:=v.raw_transaction;
-   -- A series committed before SC-053 has no quantity quality, and its NULL
-   -- quantities may lack readingAt. Compare its retry without only those added
-   -- keys: quality everywhere, readingAt only on a NULL-value quantity whose
-   -- committed counterpart has none. The original immutable row stays
-   -- authoritative and every other key is still compared exactly.
-   IF jsonb_typeof(item->'quantities')='array' AND NOT EXISTS(SELECT FROM jsonb_array_elements(coalesce(old_item->'quantities','[]'::jsonb)) q WHERE q ? 'quality') THEN
+   -- Compatibility with rows committed before SC-053's added keys. quality is
+   -- stripped only when no committed quantity has one. Independently, readingAt
+   -- is dropped from a retry quantity only where both it and its committed
+   -- counterpart at the same ordinal are qualifier 136 with a NULL value and
+   -- the committed one lacks readingAt. Every other key, including an existing
+   -- quality or time, is still compared against the whole old item exactly.
+   IF jsonb_typeof(item->'quantities')='array' THEN
+    remove_quality:=NOT EXISTS(SELECT FROM jsonb_array_elements(coalesce(old_item->'quantities','[]'::jsonb)) q WHERE q ? 'quality');
     adapted:=item||jsonb_build_object('quantities',(SELECT coalesce(jsonb_agg(
-      CASE WHEN jsonb_typeof(q->'value')='null' AND jsonb_typeof(old_item->'quantities'->(n::int-1))='object' AND NOT (old_item->'quantities'->(n::int-1)) ? 'readingAt'
-       THEN q-'quality'-'readingAt' ELSE q-'quality' END ORDER BY n),'[]'::jsonb) FROM jsonb_array_elements(item->'quantities') WITH ORDINALITY x(q,n)));
+      CASE WHEN remove_quality THEN q-'quality' ELSE q END
+      - CASE WHEN q->>'qualifier'='136' AND jsonb_typeof(q->'value')='null'
+         AND jsonb_typeof(old_item->'quantities'->(n::int-1))='object'
+         AND old_item->'quantities'->(n::int-1)->>'qualifier'='136'
+         AND jsonb_typeof(old_item->'quantities'->(n::int-1)->'value')='null'
+         AND NOT (old_item->'quantities'->(n::int-1)) ? 'readingAt'
+        THEN 'readingAt' ELSE '' END ORDER BY n),'[]'::jsonb) FROM jsonb_array_elements(item->'quantities') WITH ORDINALITY x(q,n)));
     IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;
     ELSIF adapted IS DISTINCT FROM item THEN
      adapted:=(adapted-'productId')||jsonb_build_object('periodStart',adapted#>'{consumptionContract,interpretation,localPeriodStart}','periodEnd',adapted#>'{consumptionContract,interpretation,localPeriodEnd}');

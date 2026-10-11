@@ -79,6 +79,17 @@ const extension = String.raw`
  // A series stored after SC-053 already has its qualities: no stripping.
  const after=(await db.query("SELECT raw_transaction r FROM public.meter_reading_series WHERE source_transaction_reference='SC053'")).rows[0].r
  assert.deepEqual(await preserve(uid(31),[after]),[after]);sc053++
+ // A V2 row with quality but a NULL 136 quantity lacking readingAt: the retry
+ // adding readingAt there returns the committed item.
+ assert.equal(after.quantities[0].value,null);assert.equal(after.quantities[0].quality,'46');assert.equal('readingAt' in after.quantities[0],false)
+ const timed={...after,quantities:[{...after.quantities[0],readingAt:'2026-09-01T00:00:00Z'},...after.quantities.slice(1)]}
+ assert.deepEqual(await preserve(uid(31),[timed]),[after]);sc053++
+ // Prohibited: a different existing quality, or a moved readingAt on a valued
+ // quantity, is never adapted.
+ const requality={...timed,quantities:[{...timed.quantities[0],quality:'21'},...timed.quantities.slice(1)]}
+ assert.deepEqual(await preserve(uid(31),[requality]),[requality]);sc053++
+ const moved={...timed,quantities:[timed.quantities[0],{...timed.quantities[1],readingAt:'2026-09-01T00:30:00Z'},timed.quantities[2]]}
+ assert.deepEqual(await preserve(uid(31),[moved]),[moved]);sc053++
  // Both replaced functions stay private.
  for(const role of ['anon','authenticated','service_role'])for(const fn of ['gridex_utilts_binding.validate_decimal_source_v2(jsonb,jsonb,text)','gridex_utilts_binding.preserve_committed_projection_v1(uuid,text,uuid,jsonb)'])
   assert.equal((await db.query('SELECT has_function_privilege($1,$2,$3) a',[role,fn,'EXECUTE'])).rows[0].a,false)
