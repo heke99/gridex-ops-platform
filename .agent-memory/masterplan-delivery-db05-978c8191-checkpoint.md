@@ -1,5 +1,11 @@
 # Fixed E delivery preflight and DB05 component qualification
 
+## Actual clean replay and OPS pass — 2026-10-11 16:13 UTC
+
+DONE/EVIDENCE: sole current-head observer16:13:01 verifies b454 exact/PR765OPEN, clean114497220077 actually completedSUCCESS16:13:00Z and OPS38148643179 completedSUCCESS. Currentfullsnapshot26SUCCESS+10conditionalSKIP+1IN_PROGRESS/37jobs and21SUCCESS+1qualifiedcrawlerSKIP+1IN_PROGRESS/23runs; currentcontextSUCCESS. Fullmetadata2ccd4b2950f1c8bf1c028c3487b8349285ae6ca5b5cea2ee5e208ce348826cef; boundedreceipt8ae36c2df3c87e6f5bc50b60f2ca6ad73d31cf5ea3c3d279cc954be5362b8952. Actualcurrentclean/upgrade native gates are now successful, without a second human rawproof/log/artifact collector; they are not wholeDB05/legal/nativeacceptance credit.
+
+TAKEN/BLOCKER/NEXT: sameEpacket7refs8d+c951 retained; applicable source4/currentmaincomposition and preparedcontrolc499 ready. Only PRcertificate114505136101/run38148643222 remainsIN_PROGRESS after waiting existingOPS; sole bounded16:14–16:24 cert-onlyobserver will handback genuineall27SUCCESS10SKIP/37+22SUCCESS1SKIP/23/currentcontext. Runtimepreflight/role/acquirer stillUNEXECUTED, no merge/delete. Root then fresh preflightefd21/acquirer9fb57 guards actualmain9d58/tree2b035/expectedd67f/#766 and allsource/review/CI/ref conditions, immediatefree role/CLAIM, normal expected-head delivery/authenticatedcomposition, roleFIRST then all7exactowner releases. Own obsolete18764full-e2e38145633301 was freshGET-qualified15:53:34 asalreadyterminalFAIL15:01:02 with all7jobsfinished and smoke/coverageuploadsSUCCESS; preservehistory, no additionalcancel. Own cleanup and C GEN5restart handback remain prepared/unexecuted until actualdelivery/release.
+
 ## Prepared current-main delivery gates fully reviewed — 2026-10-11 15:46 UTC
 
 DONE/EVIDENCE: affected control-design A c4990fcc5c7f211d4486f8d3085ca6371fd071c3c6b775d9670fdf5e0e3cb28e is bounded CONTROL_DESIGN_REBIND_APPROVE C0/I0/M0 for exact current preflightefd21/acquirer9fb57/frozenmatrix8ade/expected-sourcea60ab84. Actualmain9d58/tree2b035, conflict-free expectedmergedtreed67f, active766/literal6110433111 transition and two new actualhead/main/tree-bound composition review readbacks are checked without weakening any mandatory head gate. Tools remainUNEXECUTED; no role acquired/merge/delete.
