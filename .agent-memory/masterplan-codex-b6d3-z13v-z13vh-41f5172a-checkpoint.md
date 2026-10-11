@@ -1262,3 +1262,20 @@ NEXT ROOT document actualREADY on673, administrativelysupersede original687
 onlynownewproposal exists (preserve2549/014b/history/branches), follow sole32/
 requiredCI; causal currentfailurefixonlyownscope, originalqualification before
 coverage/merge. Samepacket/10files+IDs/memoryrole, merge-roleunheldwhilewaiting.
+
+
+## 2026-10-11 UTC — actual687 superseded; qualifier ready, native pending
+
+Original687 actuallyCLOSED_UNMERGED_SUPERSEDED_PROPOSAL viaexpected2549head
+PATCH+freshGET afteractual745; original2549remote branchverifiedpreserved,014b/
+historical24P6F retained. No coverage/merge/custodyrelease inferred. Own745head
+baba remainsclean/unchanged; native38105267811/job114369341002 stepRunboundary
+inprogress, no native result. Browser/cancellationbirthcurrentheadSUCCESS,
+otherapplicableCI pending; staging/nightlyskipped are distinct nonapplicable
+workflows, no mandatoryskipcredit. Independent qualifier C0I0 binds private
+qualify-esco-native.py SHAba981183d3adfc3eb4a3e2009fd0a8beae6c470dbfef641c7649701873ca3850
+reportSHA30676a77a4c4e22dee80322b24eb606e99b81f84ab26b824cdc210333f93ac05; NOT_RUN.
+NEXT ROOT soleoriginal4memberZIP/API/fullcatalog/32identities/closedlog
+qualification whenexecutioncloses; independentlybounded follow-on R/Dpublic
+plan nowread-only whileCI runs. No duplicateproducer/download/capture, no
+merge-role. Samepacket/10b384resources/memoryrole988a, wholecoverageunchanged.
