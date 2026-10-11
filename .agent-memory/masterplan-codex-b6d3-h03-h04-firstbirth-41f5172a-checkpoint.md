@@ -1161,3 +1161,24 @@ atomic free merge-role, authorized ordinary expected-head merge, authenticate
 actual main/tree/parents, role-FIRST release, durable MERGED receipt/checkpoint,
 then release own11 resources. No merge claim or new packet yet; external market
 evidence stays NOT_PROVIDED.
+
+
+## 2026-10-11 UTC — actual PR737 MERGED, role-FIRST released
+
+MERGED AT-Z03H-SUPPLIER + AT-Z04H-SUPPLIER — PR737
+actual main 45dbf8f6236100fb8f34931fd7c6d44e8e822998, exact source3bc76d51868b106685f5f755d57379485cc11cee.
+Normal GitHub merge API succeeded; actual PR merged flag/SHA, mainref, parent pair
+5628a0aa480deb6018c2b5b0bdca5039a4a2373e +3bc and tree4ca3d8086071184ac80f1e923f8388bc1a5c5b45 authenticated.
+Actualtree equals independently reviewed and finite371-tested normal projection.
+All13 applicable mandatory checks SUCCESS for exact PR head; final whole reviews
+and current-main741 rebindings C0I0. Coverage only own2contracts deliveredPASSED.
+Code ledger at this delivery115/121 rules+190/231 contracts=305/352;47remain.
+Owner exact2 Claude permission allows delivered in .claude/settings.json.
+Role receipt5a358515c8a6c9e608a99cfe9f7909bffd785346 fullGET_MATCH→DELETE→GET404
+FIRST; no shared role held. Source-qualified authentic a6 native100 and historical
+b61 originals preserved; current-head native gateSUCCESS distinct from external
+market/counterparty acceptance NOT_PROVIDED. No current-tree native qualification
+claimed. Eleven owned originalH resources remain until this durable merge receipt
+is published. NEXT ROOT publish MERGED #673, owner/scope/SHA verify all11 resources
+then DELETE/404 only own refs; publish RELEASE before selecting fresh eligible
+pair. Shared memory reconciliation needs role-memory+exactfiles.
