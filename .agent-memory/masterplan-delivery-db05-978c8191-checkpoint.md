@@ -1,5 +1,11 @@
 # Fixed E delivery preflight and DB05 component qualification
 
+## Actual affected-current-main reviews — 2026-10-11 15:40 UTC
+
+DONE/EVIDENCE: independent main9d58 A report5503d4352359afd7cfbc3c8dff5545505fd957e313aa61056d3a3e77a4fe95b7/review5483880040 and B458e73a58436b0efdd147446fadea041e8b79b456fa7787e1fa5de506c488eda/review5483880106 both SOURCE/COMPOSITION_APPROVE boundedC0/I0/M0. Actual published COMMENTED bodies/headb454 independentlyGET_MATCH; sealed current-main readbacks61a1ce1a535c97cc6cbe6c5d6131a97e19bb1c8ab1c38da2d788bb10760bf25c. Complete9844-entry comparison preserves all11currentmain and7DB05 postimages, filemodes/blobs, with no unexpected path; every product/env/workflow/test/GEN/caller outside docs is unchanged. Prior45/TSC/lint/source2/authenticGEN assertions remain applicable to identical inputs; no native/currentCI/actualmerge/whole approval inferred.
+
+TAKEN/NEXT: same7resources/rootpacket, new activeboard READY_REBIND6110666562 fullbodyGET_MATCH. Prepared static controls now preflightefd21f304c22422ec1de2f2300aa70dabf98d7c996945e210bb6ebf351042588 and acquirer9fb57f66c041ecc230f15e91270b012f613f381cac125172060059ef49db04d9; expected-source-plana60ab84be544bbaab2f97b063f660ceb4701cac37986c26667dd244ea5e2d954. Current deliverypins9d58/tree2b035/merge-treed67f/#766; frozenworkflowmatrix8ade still describes originalsourcebase d00 and sameb454. SyntaxPASS, affected independent control-design rebind pending; tools stillUNEXECUTED, no role/merge/delete. Sole currentCIwatch and eventualgenuineallgreen/freshpreflight/normaldelivery/exactownerrelease remain, no new implementation item. Own post-delivery cleanup qualified read-only: secondaryworktree cleanb454, onlyignored node_modules symlink toprimary; afteractualmerge+ROLEFIRST+7RELEASE404, ordinary remove/mergedbranch-delete can preserveprimaryworkspace/operationalbranch/checkpoints/entireproofarchive. No foreign draft/branch/asset is cleanup-certified.
+
 ## Actual main and active-board correction — 2026-10-11 15:37 UTC
 
 TAKEN: same own DB05 packet a934428c-75bc-4b23-a063-4a0a65a1e809, frozen PR765 b4545a4a/treeace8, seven exact implementation reservations8d+c951 and original CLAIMs retained. No next implementation packet, role acquisition, merge or release has occurred.
