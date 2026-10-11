@@ -7,6 +7,10 @@ on:
       - 'scripts/fixtures/ediel-service-evidence-native.ts'
       - 'scripts/helpers/originalMailboxNative.ts'
       - 'scripts/helpers/ediel-esco-tenant-replay-b6d3.ts'
+      - 'scripts/helpers/ediel-esco-request-source-b6d3.ts'
+      - 'scripts/helpers/ediel-esco-national-refusal-b6d3.ts'
+      - 'scripts/helpers/ediel-esco-national-graph-b6d3.ts'
+      - 'scripts/helpers/ediel-esco-national-flow-b6d3.ts'
       - 'scripts/helpers/ediel-esco-z13-customer-source-b6d3.ts'
       - 'scripts/helpers/ediel-esco-birth-selector-b6d3.ts'
       - 'scripts/helpers/ediel-esco-object-refusal-b6d3.ts'
@@ -153,7 +157,7 @@ jobs:
                   'errors':sum(c.find('error') is not None for c in cases),
                   'skipped':sum(c.find('skipped') is not None for c in cases)}
           if native_exit.exists() and int(native_exit.read_text())==0:
-              if counts!={'cases':90,'failures':0,'errors':0,'skipped':0}:
+              if counts!={'cases':104,'failures':0,'errors':0,'skipped':0}:
                   raise RuntimeError('complete_unskipped_z13_boundary_required')
           receipt={'purpose':'supplemental_public_z13_request_received_ack_boundary',
               'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
@@ -217,9 +221,9 @@ jobs:
                   cases.append({'name':case.get('name'),'status':status,
                       'message':failure.get('message','')[:1000] if failure is not None else None,
                       'detail':(failure.text or '')[-2000:] if failure is not None else None})
-          # Eight bounded case bundles retain all 90 dispositions alongside
+          # Eight bounded case bundles retain all 104 dispositions alongside
           # the receipt and at most one diagnostic/observation notice.
-          for offset in range(0,len(cases),12):notice('Gridex native cases '+str(offset//12+1),bounded_cases(cases[offset:offset+12]))
+          for offset in range(0,len(cases),13):notice('Gridex native cases '+str(offset//13+1),bounded_cases(cases[offset:offset+13]))
           log=work/'native.log'
           if log.exists():
               observations=[]
@@ -251,6 +255,76 @@ jobs:
           fi
           rm -f "$GRIDEX_NATIVE_STATUS"
           exit "$component_exit"
+      - name: Preserve incomplete native diagnostics
+        id: incomplete-native-feedback
+        if: always()
+        shell: bash
+        env:
+          EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          # BEGIN INCOMPLETE_NATIVE_FEEDBACK
+          import hashlib,json,pathlib,re,subprocess,sys
+          def preserve_incomplete_native_feedback(root,runner,expected_head,run_id,attempt):
+              if (root/'z13-request-ack-native-evidence'/'receipt.json').is_file():return False
+              head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
+              tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],cwd=root,text=True).strip()
+              if head!=expected_head:raise ValueError('incomplete_native_checkout_head_changed')
+              work=root/'z13-request-ack-native-working'
+              status=runner/'z13-request-ack-status.json'
+              stage=runner/'z13-request-ack-stage'
+              files=[work/name for name in ('frozen-source.json','native.log','native-junit.xml')]
+              if any(path.is_symlink() for path in [work,status,stage,*files]):
+                  raise ValueError('incomplete_native_symlink_refused')
+              frozen=files[0]
+              if frozen.is_file():
+                  identity=json.loads(frozen.read_text())
+                  if (identity.get('head'),identity.get('tree'))!=(head,tree):
+                      raise ValueError('incomplete_native_frozen_source_changed')
+              local=False
+              if status.is_file():
+                  try:local=json.loads(status.read_text()).get('API_URL')=='http://127.0.0.1:54321'
+                  except (ValueError,AttributeError):pass
+              redactor=root/'scripts/gridex-redact-native-evidence.py'
+              if redactor.is_symlink() or redactor.read_bytes()!=subprocess.check_output(
+                  ['git','show','HEAD:scripts/gridex-redact-native-evidence.py'],cwd=root):
+                  raise ValueError('incomplete_native_redactor_source_changed')
+              output=root/'z13-request-ack-native-incomplete'
+              output.mkdir(mode=0o700)
+              # Never export status/session/replay logs. Without qualified
+              # local secrets, only frozen-source and stage metadata survive.
+              for original in files if local else [frozen]:
+                  if not original.is_file():continue
+                  data=original.read_bytes()
+                  if original.name!='frozen-source.json':
+                      data=re.sub(rb'([A-Za-z][A-Za-z0-9+.-]*://)[^\s]*@',
+                          rb'\1[REDACTED_URI_USERINFO]@',data)
+                  destination=output/original.name
+                  with destination.open('xb') as handle:handle.write(data)
+                  destination.chmod(0o600)
+              command=[sys.executable,str(redactor),'--root',str(output)]
+              if local:command+=['--local-secrets',str(status)]
+              subprocess.run(command,cwd=root,check=True)
+              current_stage=stage.read_text() if stage.is_file() else 'NOT_STARTED'
+              if current_stage not in ('clean_replay','native_execution','native_completed','NOT_STARTED'):
+                  current_stage='UNRECOGNIZED_STAGE_NOT_QUALIFIED'
+              inventory=[{'name':file.name,'bytes':file.stat().st_size,'sha256':hashlib.sha256(file.read_bytes()).hexdigest()}
+                  for file in sorted(output.iterdir())]
+              diagnostic={'status':'INCOMPLETE_NATIVE_EXECUTION_NOT_QUALIFIED','checkout_sha':head,'checkout_tree':tree,
+                  'workflow_run_id':run_id,'workflow_run_attempt':attempt,'stage':current_stage,
+                  'native_outcome':'NOT_QUALIFIED','junit_counts':'NOT_QUALIFIED',
+                  'source_unchanged_after_cleanup':'NOT_VERIFIED','whole_card_approval':'NOT_PROVIDED',
+                  'local_credentials':'QUALIFIED_DISPOSABLE_LOCAL' if local else 'NOT_QUALIFIED','files':inventory}
+              with (output/'diagnostic.json').open('x') as handle:handle.write(json.dumps(diagnostic,indent=2)+'\n')
+              (output/'diagnostic.json').chmod(0o600)
+              return True
+          # END INCOMPLETE_NATIVE_FEEDBACK
+          import os
+          available=preserve_incomplete_native_feedback(pathlib.Path.cwd(),pathlib.Path(os.environ['RUNNER_TEMP']),
+              os.environ['EXPECTED_SOURCE_SHA'],os.environ['GITHUB_RUN_ID'],os.environ['GITHUB_RUN_ATTEMPT'])
+          with open(os.environ['GITHUB_OUTPUT'],'a') as output:output.write('available='+str(available).lower()+'\n')
+          PY
       - name: Upload redacted native feedback
         if: always()
         uses: actions/upload-artifact@v4
@@ -258,4 +332,12 @@ jobs:
           name: ediel-z13-request-ack-native-${{ github.event.pull_request.head.sha }}
           path: z13-request-ack-native-evidence/
           if-no-files-found: warn
+          retention-days: 14
+      - name: Upload nonqualifying incomplete native diagnostics
+        if: always() && steps.incomplete-native-feedback.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z13-request-ack-incomplete-${{ github.event.pull_request.head.sha }}
+          path: z13-request-ack-native-incomplete/
+          if-no-files-found: error
           retention-days: 14

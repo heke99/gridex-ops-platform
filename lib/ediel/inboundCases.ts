@@ -21,6 +21,7 @@ import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage } from '
 import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
 import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
 import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
+import {isReceivedProdatMeterExchangeRefusal} from '@/lib/ediel/sources/receivedProdatMeterExchangeApplyGuard'
 import {createReceivedProdatStructuralAcks} from '@/lib/ediel/flows/receivedProdatStructuralAcks'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -781,7 +782,18 @@ export async function approveEdielInboundCase(params: {
       if(new Set(objectLineIndices).size!==objectLineIndices.length)throw new Error('structural_apply_requested_scope_invalid')
     }
     if(!['pending_review','failed','applied'].includes(inboundCase.status))throw new Error('structural_apply_case_not_reviewable')
-    const result=await approveSafeMasterdataChanges({actorUserId:params.actorUserId,edielMessageId:sourceMessage.id,objectLineIndices})
+    let result:Awaited<ReturnType<typeof approveSafeMasterdataChanges>>
+    try{
+      result=await approveSafeMasterdataChanges({actorUserId:params.actorUserId,edielMessageId:sourceMessage.id,objectLineIndices})
+    }catch(error){
+      if(!isReceivedProdatMeterExchangeRefusal(error))throw error
+      const {data, error:updateError}=await (tenantDb(params.companyId).from('ediel_inbound_cases').update({status:'pending_review',
+        failure_reason:error.message,updated_by:params.actorUserId}) as ScopedUpdate)
+        .eq('id',inboundCase.id).eq('updated_at',inboundCase.updated_at).eq('status',inboundCase.status).select('*').maybeSingle()
+      if(updateError)throw updateError
+      if(!data)throw new Error('PRODAT_INBOUND_CASE_CHANGED')
+      return data as EdielInboundCaseRow
+    }
     const ackIds=await createReceivedProdatStructuralAcks({actorUserId:params.actorUserId,companyId:params.companyId,sourceMessageId:sourceMessage.id,objectLineIndices})
     const final=sourceMessage.raw_payload?await readReceivedProdatFinalResponsePlan({companyId:params.companyId,sourceMessageId:sourceMessage.id,rawPayload:sourceMessage.raw_payload}):null
     if(!final)throw new Error('prodat_structural_response_own_effect_unavailable')

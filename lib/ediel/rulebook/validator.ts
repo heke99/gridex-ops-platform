@@ -1,3 +1,4 @@
+import type {ReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
 import {qualifyAssignedProdatHeaderNegativeAck} from '@/lib/ediel/ack/prodatAssignedHeaderNegativeAckValidation'
 import {requiresBilateralProdatOutboundOwner,qualifyPersistedBilateralProdatOutboundOriginal,bilateralProdatOutboundDraftQualified,type QualifiedBilateralProdatOutboundDraft} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
 import {technicalSyntaxAckQualification,readPersistedEdielTechnicalContrlBasis,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
@@ -58,6 +59,7 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Explicit local assessment time; sender DTM137 never admits a guide. */
   admissionAt?: string | Date
   messageRow?: EdielMessageRow
+  receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext
   /** Current authenticated server executor; a retained creator is source history. */
   executionActorUserId?: string
   /** Actual private source RPC capability; caller JSON supplies no authority. */
@@ -449,7 +451,7 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
       }))
     }
 
-    let fieldIssues = validateCanonicalPolicyFields({reportingContext:input.reportingContext, policy, rawPayload:input.rawPayload,rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
+    let fieldIssues = validateCanonicalPolicyFields({sourceMessage:input.messageRow,receivedZ02EndUserAddressContext:input.receivedZ02EndUserAddressContext,reportingContext:input.reportingContext, policy, rawPayload:input.rawPayload,rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
     if(input.ackSourceQualification&&isSourceBoundAckFamily(policy.family as ActiveCanonicalFamily)){
       const qualification=sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
       if(!qualification)throw new Error('ack_source_qualification_required')

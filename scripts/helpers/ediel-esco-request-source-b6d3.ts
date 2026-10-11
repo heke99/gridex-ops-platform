@@ -2,10 +2,11 @@
 // Prospective public source refusal; no hooks, tests or manufactured authority.
 import {createHash,randomUUID} from 'node:crypto'
 import {execFileSync} from 'node:child_process'
-import {closeSync,mkdtempSync,openSync,readFileSync,rmSync} from 'node:fs'
+import {chmodSync,fchmodSync,closeSync,mkdtempSync,openSync,readFileSync,rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {serialize} from 'node:v8'
+import {TextDecoder} from 'node:util'
 import {expect} from 'vitest'
 import {segmentComposite,segmentElementCount,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import type {ServicePermissionOriginBasis} from '@/lib/ediel/services/permissionOrigin'
@@ -344,18 +345,7 @@ function protectedGenerated():Row{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('synthetic_local_native_only')
  const statement=`SELECT jsonb_build_object(${generatedProtectedTables.map(table=>
   `'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r)`).join(',')})`
- // Retain every full global row as history grows, without child stdout limits.
- // This private file is a read snapshot, never a database authority or artifact.
- const directory=mkdtempSync(join(tmpdir(),'gridex-esco-generated-history-')),file=join(directory,'full.json')
- let descriptor:number|undefined
- try{
-  descriptor=openSync(file,'wx',0o600)
-  execFileSync('psql',[NATIVE_ESCO_DB,'-XAtq','-v','ON_ERROR_STOP=1'],
-   {input:statement,encoding:'utf8',timeout:10000,maxBuffer:4_000_000,stdio:['pipe',descriptor,'pipe']})
-  return JSON.parse(readFileSync(file,'utf8').trim()) as Row
- }finally{
-  try{if(descriptor!==undefined)closeSync(descriptor)}finally{rmSync(directory,{recursive:true,force:true})}
- }
+ return readEscoNativeSnapshot<Row>(statement)
 }
 async function qualifyEscoDetachedGenerated13(f:Fixture,p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>,basis:ServicePermissionOriginBasis,ports:Pick<Ports,'state'|'sentinel'>){
  const before=ports.state(f),protectedBefore=protectedGenerated(),sent=structuredClone(p.z13),smtp=serialize(nativeEscoExternal.send.mock.calls)
@@ -384,4 +374,54 @@ async function qualifyEscoDetachedGenerated13(f:Fixture,p:Awaited<ReturnType<typ
   expect(leaf(raw)).toEqual(first);expect(policy).toEqual(frozenPolicy);expect(context).toEqual(frozenContext);conserved()
  }
  expect(validateEdielMessageRowWithRulebook(p.z13,'send',undefined,context)).toEqual(baseline);conserved()
+}
+
+// Only reviewed internal single-JSON SELECT/CTE templates may call this port.
+// The prefix check is a shape guard, not an SQL sandbox or public SQL API.
+export function readEscoNativeSnapshot<T>(select:string):T{
+ if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321'
+  ||NATIVE_ESCO_DB!=='postgresql://postgres:postgres@127.0.0.1:54322/postgres')throw Error('synthetic_local_native_only')
+ if(!/^(SELECT|WITH)\b/.test(select.trimStart())||select.includes('\u0000'))throw Error('native_esco_snapshot_select_required')
+ const directory=mkdtempSync(join(tmpdir(),'gridex-esco-read-snapshot-'))
+ let descriptor:number|undefined
+ try{
+  chmodSync(directory,0o700)
+  const file=join(directory,'full.json')
+  descriptor=openSync(file,'wx',0o600);fchmodSync(descriptor,0o600)
+  const input=`BEGIN TRANSACTION READ ONLY;\nSET LOCAL statement_timeout = '10s';\nSELECT (${select})::text;\nROLLBACK;\n`
+  execFileSync('psql',[NATIVE_ESCO_DB,'-XAtq','-w','-v','ON_ERROR_STOP=1'],
+   {input,encoding:'utf8',timeout:10000,maxBuffer:4_000_000,stdio:['pipe',descriptor,'pipe'],
+    env:{...process.env,PGCLIENTENCODING:'UTF8'}})
+  const text=new TextDecoder('utf-8',{fatal:true}).decode(readFileSync(file)).trim()
+  if(!text)throw Error('native_esco_snapshot_json_required')
+  qualifyEscoNativeSnapshotNumericTokens(text)
+  return JSON.parse(text) as T
+ }finally{
+  try{if(descriptor!==undefined)closeSync(descriptor)}finally{rmSync(directory,{recursive:true,force:true})}
+ }
+}
+
+// Reject numeric conversion that changes an original PostgreSQL JSON token.
+// String contents remain data; JSON.parse still validates the complete grammar.
+export function qualifyEscoNativeSnapshotNumericTokens(text:string):void{
+ const number=/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y
+ for(let i=0;i<text.length;){
+  const c=text[i]
+  if(c==='"'){
+   i++
+   while(i<text.length){
+    if(text[i]==='\\'){i+=2;continue}
+    if(text[i++]==='"')break
+   }
+   continue
+  }
+  if(c==='-'||c>='0'&&c<='9'){
+   number.lastIndex=i
+   const token=number.exec(text)?.[0]
+   if(!token)throw Error('native_esco_snapshot_numeric_fidelity_required')
+   const value=Number(token)
+   if(!Number.isFinite(value)||Number.isInteger(value)&&!Number.isSafeInteger(value)||JSON.stringify(value)!==token)throw Error('native_esco_snapshot_numeric_fidelity_required')
+   i+=token.length
+  }else i++
+ }
 }

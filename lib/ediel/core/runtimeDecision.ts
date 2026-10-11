@@ -1,3 +1,4 @@
+import {fetchReceivedZ02EndUserAddressContext,type ReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
 import {loadReceivedZ04HAddressContext,type ReceivedZ04HAddressContext} from '@/lib/ediel/core/receivedZ04HAddressAvailability'
 import {observeReceivedZ04HStructuralFields,loadReceivedZ04HStructuralFieldRejection,readReceivedZ04HStructuralFieldWitness,ownReceivedZ04HStructuralFieldRejection} from '@/lib/ediel/prodat/receivedZ04HStructuralFieldRejection'
 import {observeReceivedProdatHeaderRejection,loadReceivedProdatHeaderRejection,readReceivedProdatHeaderRejectionErrors,ownReceivedProdatHeaderRejection} from '@/lib/ediel/prodat/receivedProdatHeaderRejection'
@@ -38,7 +39,9 @@ import {
 } from '@/lib/ediel/core/canonicalMessage'
 import { runUtiltsRuntimeForMessage,takeUtiltsRuntimeOwner,type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
 import {readUtiltsIssuerIdentityAuthority,type UtiltsIssuerIdentityAuthority} from '@/lib/ediel/utilts/issuerIdentityAuthority'
-import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {evidenceHash,isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import type { EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { canonicalAckRuleForFamilyCode } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -172,6 +175,8 @@ function addNegativeAperakIfAllowed(params: {
 }
 
 function applyProdatPolicyDecision(params: {
+  sourceMessage:EdielMessageRow
+  receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext
   rawPayload?:string|null
   receivedReportingContext?:ReceivedZ14ReportingContext
   sourceFunctionContext?:DeathStatusValidationContext
@@ -187,6 +192,8 @@ function applyProdatPolicyDecision(params: {
   let prodatRegisterValidation: ProdatRegisterValidationEvidence | undefined
   const prodatIgnoredFields: ProdatIgnoredField[] = []
   const fieldIssues = validateCanonicalPolicyFields({
+    sourceMessage:params.sourceMessage,
+    receivedZ02EndUserAddressContext:params.receivedZ02EndUserAddressContext,
     policy: params.policy,
     rawPayload:params.rawPayload,
     rawSegments: params.canonical.rawSegments,
@@ -444,7 +451,7 @@ export function resolveCanonicalRuntimeDecision(message:EdielMessageRow,facts:Ca
 /** Registry admission freezes the whole guide before consuming its actual
  * issuer owner. Explicit observed time and opaque source capabilities survive
  * that selection without caller-provided success facts. */
-function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{deferUtiltsRuntime?:boolean;receivedReportingContext?:ReceivedZ14ReportingContext;receivedReportingActorUserId?:string;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string;ownZ10SourceReadingContext?:ProdatZ10OwnSourceReadingContext|null;ownZ10SourceReadingActorUserId?:string;receivedZ04HAddressContext?:ReceivedZ04HAddressContext|null;receivedZ04HAddressActorUserId?:string}):CanonicalRuntimeDecision {
+function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext;deferUtiltsRuntime?:boolean;receivedReportingContext?:ReceivedZ14ReportingContext;receivedReportingActorUserId?:string;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string;ownZ10SourceReadingContext?:ProdatZ10OwnSourceReadingContext|null;ownZ10SourceReadingActorUserId?:string;receivedZ04HAddressContext?:ReceivedZ04HAddressContext|null;receivedZ04HAddressActorUserId?:string}):CanonicalRuntimeDecision {
   const syntax = message.message_standard === 'edifact'
     ? validateEdifactSyntax({ ...message, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null })
     : { ok: true, issues: [], declaredUntCount: null, actualMessageSegmentCount: null }
@@ -624,7 +631,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
     utiltsHeaderValidation = utilts.utiltsHeaderValidation
     utiltsTransactionValidation = utilts.utiltsTransactionValidation
   } else if (canonical.family === 'PRODAT' && policy) {
-    const prodat = applyProdatPolicyDecision({ rawPayload:message.raw_payload,receivedReportingContext:receivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId)??heldReceivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId),sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
+    const prodat = applyProdatPolicyDecision({ sourceMessage:message,receivedZ02EndUserAddressContext:options?.receivedZ02EndUserAddressContext,rawPayload:message.raw_payload,receivedReportingContext:receivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId)??heldReceivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId),sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
     prodatSourceFunctionValidation=prodat.prodatSourceFunctionValidation
     prodatApplicationValidation=prodat.prodatApplicationValidation
     prodatRegisterValidation = prodat.prodatRegisterValidation
@@ -753,6 +760,49 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
   return final
 }
 
+// An invocation-local comparison of source primitives, not an accepted source
+// token. The NULL RPC result precedes SQL actor checks; history still requires
+// a fresh tenant READ and the actual selected registry witness below.
+function receivedZ02HeldHistoryScope(message:EdielMessageRow,policy:CanonicalEdielPolicy,canonical:CanonicalEdielMessage):readonly unknown[]|null {
+ try{
+ const own=(value:unknown,key:string):unknown=>{
+  if(value===null||typeof value!=='object'||Array.isArray(value))return undefined
+  const descriptor=Object.getOwnPropertyDescriptor(value,key)
+  return descriptor&&Object.hasOwn(descriptor,'value')?descriptor.value:undefined
+ }
+ const context=own(message.execution_context_snapshot,'receivedProdatContext')
+ const keys=['version','contextOrigin','sourceMessageId','companyId','environment','messageCode','payloadHash','sourceReceivedAt','capturedAt'] as const
+ const values=keys.map(key=>own(context,key))
+ const [version,origin,sourceId,companyId,environment,code,hash,sourceAt,capturedAt]=values
+ const received=parseSourceReceiptInstant(message.message_received_at)
+ const captured=parseSourceReceiptInstant(capturedAt)
+ const immutableHash=(message as EdielMessageRow&{immutable_payload_hash?:unknown}).immutable_payload_hash
+ if(!isEvidenceUuid(message.id)||!isEvidenceUuid(message.company_id)||!['test','production'].includes(message.environment)
+  ||message.direction!=='inbound'||message.message_standard!=='edifact'||message.message_family!=='PRODAT'||message.message_code!=='Z02'
+  ||typeof message.raw_payload!=='string'||!message.raw_payload||typeof immutableHash!=='string'||immutableHash!==evidenceHash(message.raw_payload)
+  ||received===null||captured===null||parseSourceReceiptInstant(sourceAt)!==received
+  ||context===null||typeof context!=='object'||Array.isArray(context)||Object.keys(context).length!==keys.length
+  ||version!==1||origin!=='database_insert'||sourceId!==message.id||companyId!==message.company_id
+  ||environment!==message.environment||code!==message.message_code||hash!==immutableHash
+  // Optional relation primitives retain their exact null/undefined value.
+  ||![message.customer_id,message.site_id,message.grid_owner_id].every(value=>value==null||isEvidenceUuid(value))
+  ||policy.family!=='PRODAT'||policy.code!=='Z02'||!['L','LK'].includes(policy.subtype??'')||policy.direction!=='inbound'
+  ||policy.applicationReference!=='23-DDQ-PRODAT'||message.application_reference!==policy.applicationReference
+  ||parseSourceReceiptInstant(`${policy.referenceDate}T00:00:00Z`)===null
+  ||canonical.family!=='PRODAT'||canonical.messageCode!=='Z02'||canonical.messageStandard!=='edifact'
+  ||canonical.direction!=='inbound'||canonical.version!==policy.associationAssignedCode
+  ||canonical.applicationReference!==policy.applicationReference||canonical.subtype!==policy.transactionReasonCode)return null
+ return [message.id,message.company_id,message.environment,message.direction,message.message_standard,message.message_family,message.message_code,
+  message.application_reference,message.raw_payload,immutableHash,message.customer_id,message.site_id,message.grid_owner_id,message.message_received_at,received,
+  ...values,captured,policy,policy.family,policy.code,policy.subtype,policy.applicationReference,policy.referenceDate,policy.direction,
+  policy.transactionReasonCode,policy.associationAssignedCode,policy.guide.guideRevision]
+ }catch{return null}
+}
+function sameReceivedZ02HeldHistoryScope(scope:readonly unknown[],message:EdielMessageRow,policy:CanonicalEdielPolicy,canonical:CanonicalEdielMessage):boolean {
+ const current=receivedZ02HeldHistoryScope(message,policy,canonical)
+ return current!==null&&current.length===scope.length&&current.every((value,index)=>value===scope[index])
+}
+
 export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts={}):Promise<CanonicalRuntimeDecision> {
   let receivedReportingContext:ReceivedZ14ReportingContext|undefined
   let receivedReportingActorUserId:string|undefined
@@ -762,7 +812,8 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
   let ownZ10SourceReadingActorUserId:string|undefined
   // Caller facts stay lazy until syntax qualifies. Only this invocation's
   // fresh READ and captured actor can enter the private reporting-context port.
-  if(validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}).ok){
+  if(!(message.direction==='inbound'&&message.message_standard==='edifact'&&message.message_family==='PRODAT'&&message.message_code==='Z02')
+    &&validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}).ok){
     receivedReportingActorUserId=facts.actorUserId
     if(receivedReportingActorUserId)receivedReportingContext=await loadReceivedZ14ReportingContext(message,receivedReportingActorUserId)
     if(receivedReportingActorUserId&&message.direction==='inbound'&&message.message_family==='PRODAT'&&message.message_code==='Z04'){
@@ -783,10 +834,60 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
       }
     }
   }
-  const options={deferUtiltsRuntime:message.direction==='inbound',receivedReportingContext,receivedReportingActorUserId,
+  const options={receivedZ02EndUserAddressContext:undefined as ReceivedZ02EndUserAddressContext|undefined,deferUtiltsRuntime:message.direction==='inbound',receivedReportingContext,receivedReportingActorUserId,
     ownSourceReadingContext,ownSourceReadingActorUserId,ownZ10SourceReadingContext,ownZ10SourceReadingActorUserId,
     receivedZ04HAddressContext:null as ReceivedZ04HAddressContext|null,receivedZ04HAddressActorUserId:receivedReportingActorUserId}
   let base=resolveCanonicalRuntimeDecisionCore(message,facts,options)
+  // Requalify the present executor's READ authority for each actual received
+  // Z02 assessment. A prior opaque token is not a cached permission grant.
+  if(message.direction==='inbound'&&base.canonical.family==='PRODAT'&&base.canonical.messageCode==='Z02'
+   &&base.syntaxDecision==='accepted'&&base.policy&&['L','LK'].includes(base.policy.subtype??'')){
+   // Syntax and the resolved physical subtype qualify before lazy caller actor
+   // access. Only this invocation's fresh READ enters the private core port;
+   // caller opaque-context properties are never read or spread.
+   const actorUserId=facts.actorUserId
+   const selectedPolicy=base.policy
+   const historyCompanyId=message.company_id
+   const historyScope=receivedZ02HeldHistoryScope(message,selectedPolicy,base.canonical)
+   let originalNull=false
+   try{
+    if(!actorUserId)throw Error('received_z02_end_user_address_current_actor_required')
+    const context=await fetchReceivedZ02EndUserAddressContext({message,actorUserId})
+    originalNull=context===undefined&&historyScope!==null&&sameReceivedZ02HeldHistoryScope(historyScope,message,selectedPolicy,base.canonical)
+    if(!context)throw Error('received_z02_end_user_address_source_unavailable')
+    options.receivedZ02EndUserAddressContext=context
+    base=resolveCanonicalRuntimeDecisionCore(message,facts,options)
+   }catch(error){
+    const description=error instanceof Error?error.message:String(error)
+    const issues=[...base.issues,issue({layer:'application',severity:'error',code:'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE',
+     title:'Källstyrd adresstillgänglighet saknas',description,source:'fetchReceivedZ02EndUserAddressContext'})]
+    const responsePlan=base.responsePlan.filter(response=>response.family==='CONTRL'
+     ||response.family==='APERAK'&&response.outcome==='negative'&&Boolean(response.applicationErrors?.length)
+      &&response.applicationErrors!.every(isQualifiedProdatApplicationError))
+    const applicationDecision:CanonicalDecisionState=base.applicationDecision==='rejected'?'rejected':'manual_review'
+    const prodatProcessingDisposition:ProdatProcessingDisposition={kind:'internal_review',reasons:[
+     ...(base.prodatProcessingDisposition?.reasons??[]),{code:'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE',sourceRule:'PRODAT26A:Z02/229',reason:description}]}
+    const decisionTrace=[...base.decisionTrace,'Z02-adressunderlaget hålls lokalt; inget nationellt fel fabriceras av saknad READ-källa.']
+    const held:CanonicalRuntimeDecision={...base,applicationDecision,functionalDecision:'manual_review',issues,responsePlan,decisionTrace,prodatProcessingDisposition,
+     validationReport:{...base.validationReport,applicationDecision,functionalDecision:'manual_review',issues,responsePlan,decisionTrace,prodatProcessingDisposition}}
+    // Attach historical evidence only to the unchanged held report. No address
+    // availability or accepted APP/FUNCTION/response owner is established here.
+    if(originalNull&&actorUserId&&historyScope&&historyCompanyId&&sameReceivedZ02HeldHistoryScope(historyScope,message,selectedPolicy,base.canonical)){
+     try{
+      await assertEdielTenantActor({companyId:historyCompanyId,actorUserId,permissionAnyOf:['ediel.read','communication.read']})
+      if(!sameReceivedZ02HeldHistoryScope(historyScope,message,selectedPolicy,base.canonical))return held
+      const evidence=await resolveCanonicalRulePack({family:'PRODAT',messageCode:selectedPolicy.code,transactionSubtype:selectedPolicy.subtype,
+       applicationReference:selectedPolicy.applicationReference,direction:'inbound',businessDate:selectedPolicy.referenceDate,
+       canonicalPolicy:selectedPolicy,requireBuilder:false,requireStateMachine:true})
+      if(!sameReceivedZ02HeldHistoryScope(historyScope,message,selectedPolicy,base.canonical))return held
+      held.validationReport={...held.validationReport,rulePackEvidence:{profileKey:evidence.profileKey,
+       ...(evidence.databaseProfileKey!==undefined?{databaseProfileKey:evidence.databaseProfileKey}:{}),messageProfileId:evidence.messageProfileId,
+       rulePackId:evidence.rulePackId,sourceHash:evidence.sourceHash,version:evidence.originalVersion,snapshot:evidence.originalSnapshot}}
+     }catch{ /* A denied/unavailable current READ or registry leaves the original hold intact. */ }
+    }
+    return held
+   }
+  }
   // A private assigned negative birth can own its missing common field without
   // an operational H profile. The committed actual syntax and frozen family
   // guide READ authorize only this typed national rejection, never business.

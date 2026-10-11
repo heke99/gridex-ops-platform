@@ -2290,9 +2290,11 @@
     },
     {
       "id": "SC-052",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+        "__tests__/ediel-sc-052-e73-requested-type-rff.test.ts",
+        "lib/ediel/utilts.ts",
         "__tests__/ediel-u-06-request-application-reference.test.ts",
         "lib/ediel/rulebook/utiltsApplicationReference.ts"
       ]
@@ -4164,8 +4166,14 @@
     },
     {
       "id": "AT-Z09D-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts",
+        "lib/ediel/intent/renderers/productionContract.ts",
+        "supabase/migrations/20261010233000_ediel_production_contract_ack_received_confirmation.sql",
+        "scripts/ediel-p-08-production-contract-native.test.ts",
+        ".github/workflows/ediel-p08-native.yml"
+      ]
     },
     {
       "id": "AT-Z10M-SUPPLIER",

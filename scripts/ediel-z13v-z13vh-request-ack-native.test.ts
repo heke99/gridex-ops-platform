@@ -47,13 +47,11 @@ import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
 import {resolveEdielBusinessMatch} from '@/lib/ediel/matching/index'
 import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-
 type Fixture=Awaited<ReturnType<typeof seed>>
 type Pending=Awaited<ReturnType<typeof prepare>>
 const hash=(raw:string)=>createHash('sha256').update(raw).digest('hex')
 beforeEach(resetNativeEscoFixture)
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
-
 async function prospectiveRequest(mode:'V'|'VH',objectReply=false,customerOmission?:'227'|'228'|'316',missingHistoricalEnd=false){
  if(typeof missingHistoricalEnd!=='boolean'||missingHistoricalEnd&&(mode!=='VH'||customerOmission!==undefined))throw Error('native_esco_historical_end_omission_scope_invalid')
  const seeded=await seed(mode,customerOmission?{customerOmission}:undefined)
@@ -81,7 +79,6 @@ async function prospectiveRequest(mode:'V'|'VH',objectReply=false,customerOmissi
  checkSentinel()
  return{f,checkSentinel,objectAckProfile,contrlAckProfile}
 }
-
 async function request(mode:'V'|'VH',objectReply=false){
  const{f,checkSentinel,objectAckProfile,contrlAckProfile}=await prospectiveRequest(mode,objectReply)
  const beforePrepare=Date.now(),p=await prepare(f),afterPrepare=Date.now()
@@ -175,7 +172,6 @@ function configureProspectiveAckRoute(f:Fixture,family:'CONTRL'|'APERAK'='CONTRL
     AND (p.smtp_host IS NULL OR p.smtp_host=${lit(smtp.host)}) AND (p.smtp_port IS NULL OR p.smtp_port=${lit(smtp.port)})))`)).toBe(1)
  return profile
 }
-
 // Full row images, not count-only absence assertions. Journal/status deltas
 // live in ACK state; legal scope, foreign tenant, data and supply must not move.
 function business(f:Fixture,p:Pending){
@@ -215,7 +211,6 @@ async function permission(f:Fixture,p:Pending){
  expect(result.data).toMatchObject({source_z13_message_id:p.z13.id,source_z14_message_id:null,inbound_z14_message_id:null,approved_start_date:null,approved_end_date:null})
  return result.data
 }
-
 async function withPermissionShare<T>(action:(signal:AbortSignal)=>Promise<T>):Promise<T>{
  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321'
   ||NATIVE_ESCO_DB!=='postgresql://postgres:postgres@127.0.0.1:54322/postgres')throw Error('synthetic_local_native_only')
@@ -250,7 +245,6 @@ async function withPermissionShare<T>(action:(signal:AbortSignal)=>Promise<T>):P
   if(expired||exit!==0)throw Error('native_permission_holder_cleanup_failed')
  }
 }
-
 async function proveWaitingLockRollback(f:Fixture,p:Pending,message:EdielMessageRow){
  // Real-owner preparation for an isolated public-RPC atomicity control.
  // Intake itself did not mint a canonical assessment. Use the same actual
@@ -294,7 +288,6 @@ async function noAccess(f:Fixture,p:Pending){
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.permission_effect_receipts WHERE company_id=${lit(f.ids.company)}`)).toBe(0)
  await permission(f,p)
 }
-
 function counterpart(p:Pending,family:'CONTRL'|'APERAK',defect?:'unknown'|'wrongLI'|'negative'){
  const e=EdifactEnvelopeCodec.decode(p.z13.raw_payload!)
  let segments=family==='CONTRL'
@@ -386,7 +379,6 @@ async function consume(f:Fixture,message:EdielMessageRow){
  expect(stored.raw_payload).toBe(message.raw_payload)
  return readCommittedInboundAck({actorUserId:f.ids.actor,message:stored})
 }
-
 // Failure observations disclose only fixed decision states and known counts.
 // They never seed authority, repair a source or replace the original failure.
 function observeAckFailure(f:Fixture,message:EdielMessageRow){
@@ -406,7 +398,6 @@ function observeAckFailure(f:Fixture,message:EdielMessageRow){
   console.info('NATIVE_ACK_OBSERVATION '+JSON.stringify(observed))
  }catch{console.info('NATIVE_ACK_OBSERVATION '+JSON.stringify({diagnosticAvailable:false}))}
 }
-
 // Declared prospective grid-owner counterpart bytes. This does not choose a
 // database profile, mint a canonical assessment or apply a permission.
 function positiveZ14(f:Fixture,p:Pending){
@@ -428,7 +419,6 @@ function positiveZ14(f:Fixture,p:Pending){
   interchangeReference:randomUUID().replaceAll('-','').slice(0,14),environment:'test',acknowledgementRequest:true,
   messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:rendered.segments}]})
 }
-
 async function currentPermission(f:Fixture,p:Pending){
  const result=await supabaseService.from('metering_permissions').select('*').eq('company_id',f.ids.company).eq('id',p.permissionId).single()
  if(result.error)throw result.error
@@ -1189,12 +1179,12 @@ function producerState(f:Fixture){
  foreign.push(foreignDigest('public.ediel_message_events','true'),foreignDigest('public.ediel_permission_events','true'))
  // Own public NULL rows are already full images; private/command/export NULL
  // rows are in this disjoint complement. Every retained row field is hashed.
- return {
-  foreign:sql<Record<string,unknown>>(`SELECT jsonb_build_object(${foreign.join(',')})`),
-  business:sql<Record<string,unknown>>(`SELECT jsonb_build_object(${fields.join(',')})`),
-  commands:sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY command_id),'[]') FROM gridex_service_administration.commands r WHERE company_id IN ${companies}`),
-  effects:f.effects(),
- }
+ const effects=`jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)}),'businessReferences',(SELECT count(*) FROM public.ediel_business_references WHERE company_id=${lit(f.ids.company)}),'creationReceipts',(SELECT count(*) FROM gridex_ediel_ack_replay.creation_receipts WHERE company_id=${lit(f.ids.company)}),'consumptions',(SELECT count(*) FROM gridex_ediel_outbound_owner.consumptions WHERE company_id=${lit(f.ids.company)}),'namespace',(SELECT count(*) FROM gridex_ediel_wire_namespace.coverage WHERE company_id=${lit(f.ids.company)}),'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${lit(f.ids.company)}),'intents',(SELECT count(*) FROM public.ediel_message_intents WHERE company_id=${lit(f.ids.company)}),'series',(SELECT count(*) FROM public.meter_reading_series WHERE company_id=${lit(f.ids.company)}),'values',(SELECT count(*) FROM public.meter_reading_values WHERE company_id=${lit(f.ids.company)}),'contracts',(SELECT count(*) FROM gridex_utilts_binding.contracts WHERE company_id=${lit(f.ids.company)}),'bindings',(SELECT count(*) FROM gridex_utilts_binding.receipts WHERE company_id=${lit(f.ids.company)}),'reservations',(SELECT count(*) FROM public.ediel_ack_transaction_results WHERE company_id=${lit(f.ids.company)}),'acks',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND direction='outbound' AND related_message_id IS NOT NULL),'witnesses',(SELECT count(*) FROM gridex_ediel_outbound_owner.witnesses WHERE company_id=${lit(f.ids.company)}),'scopeReceipts',(SELECT count(*) FROM gridex_ediel_ack_replay.positive_service_scope_receipts WHERE company_id=${lit(f.ids.company)}),'events',(SELECT count(*) FROM public.ediel_message_events WHERE company_id=${lit(f.ids.company)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${lit(f.ids.company)}))`
+ return readEscoNativeSnapshot<{foreign:Record<string,unknown>;business:Record<string,unknown>;commands:Record<string,unknown>[];effects:Record<string,number>}>(`SELECT jsonb_build_object(
+  'foreign',jsonb_build_object(${foreign.join(',')}),
+  'business',jsonb_build_object(${fields.join(',')}),
+  'commands',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY command_id),'[]') FROM gridex_service_administration.commands r WHERE company_id IN ${companies}),
+  'effects',${effects})`)
 }
 function currentProducerReviews(f:Fixture,evidence:Awaited<ReturnType<typeof reviewNativeEscoAssignmentEvidence>>){
  const rows=sql<{evidence:Record<string,unknown>;current:boolean}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('evidence',to_jsonb(e),
@@ -1797,4 +1787,14 @@ for(const mode of ['V','VH'] as const)for(const reply of ['positive','nationalN'
   },render:(f,p,reply)=>reply==='positive'?positiveZ14(f,p):nationalDenial(f,p,mode==='V'?'A13':'A76'),
   retained,state:producerState,ledger:refusalLedger,noAccess})
  },120000)
+}
+import {refuseEscoNationalField} from './helpers/ediel-esco-national-flow-b6d3'
+import {readEscoNativeSnapshot} from './helpers/ediel-esco-request-source-b6d3'
+function nativeNationalSmtpBasis(){
+ const config=edielSmtpConfig();expect(typeof config.user).toBe('string')
+ return {smtp:{from:config.from,host:config.host,port:config.port},
+ readiness:{provider:config.provider,user:config.user!,passwordConfigured:Boolean(config.password),globalEmailProvider:process.env.EMAIL_PROVIDER?.trim()||null,applicationDkim:config.appLevelDkimEnabled,replyTo:config.replyTo??null,secure:Boolean(config.secure),sharedMailboxAddress:process.env.EDIEL_SHARED_MAILBOX_ADDRESS?.trim()||null}}
+}
+for(const mode of ['V','VH'] as const)for(const field of ['203','205','206','207','208','313','322'] as const){
+ it(`${mode}: public Z14N missing required national field ${field} refuses processing without rights; complete birth and same sealed intake retry`,async()=>{await refuseEscoNationalField(mode,field,{request,counterpart,intake,consume,permission,noAccess,render:nationalDenial,retained,fullOutbox,sql:readEscoNativeSnapshot,sqlRead:readEscoNativeSnapshot,lit,smtpBasis:nativeNationalSmtpBasis,externalSendCount:()=>nativeEscoExternal.send.mock.calls.length})},120000)
 }
