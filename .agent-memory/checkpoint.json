@@ -1,8 +1,8 @@
 {
   "project": "gridex-ops-platform",
   "schema": "distributed-startup-v1",
-  "observed_at": "2026-10-10T18:37:24.879816+00:00",
-  "observed_main": "c5f5be2cf859a325c6782fe612157aad379ab6e8",
+  "observed_at": "2026-10-11T01:59:31.468147+00:00",
+  "observed_main": "45dbf8f6236100fb8f34931fd7c6d44e8e822998",
   "status": "IN_PROGRESS",
   "active_item": "Distributed fixed-role continuation; no inherited shared technical packet",
   "campaign_complete": false,
@@ -10,21 +10,21 @@
   "coverage": {
     "verified_rules": 115,
     "total_rules": 121,
-    "passed_contracts": 187,
+    "passed_contracts": 190,
     "total_contracts": 231,
-    "approved_ids": 302,
+    "approved_ids": 305,
     "total_ids": 352,
-    "remaining_ids": 50
+    "remaining_ids": 47
   },
   "routing": {
     "readme": ".agent-memory/README.md",
     "queue": ".agent-memory/masterplan-work-queue.md",
     "workflow": ".agent-memory/masterplan-agent-workflow.md",
     "reservations": ".agent-memory/masterplan-reservations.md",
-    "checkpoint": "Use the implementing or reviewing session\u2019s own uniquely named checkpoint; no other identity is inherited.",
+    "checkpoint": "Use the implementing or reviewing session’s own uniquely named checkpoint; no other identity is inherited.",
     "current_start": ".agent-memory/masterplan-current-start.md"
   },
-  "custody": "113 observed foreign ref/SHA pairs; preserve and refresh actual receipts. No retained duty is released by this file.",
+  "custody": "Refresh authenticated Git refs and original retained-duty/release receipts before action. H737 owner-only role-FIRST/all11ref404 is documented6736104364113/6104375333; no foreign duty is released by this update.",
   "next_action": "Resume own exact criterion or document authorized stopped-overlap handover; refresh actual main, coverage, #673, PR heads/checks and authenticated refs before implementation.",
   "history": ".agent-memory/history/20261010-before-startup-cleanup/checkpoint.json",
   "administrative_dispositions": [
@@ -52,5 +52,52 @@
       "receipt": "https://github.com/heke99/gridex-ops-platform/pull/666#issuecomment-6100858665",
       "closedAt": "2026-10-10T18:35:49Z"
     }
-  ]
+  ],
+  "previous_observation": {
+    "observed_at": "2026-10-10T18:37:24.879816+00:00",
+    "observed_main": "c5f5be2cf859a325c6782fe612157aad379ab6e8",
+    "coverage": {
+      "verified_rules": 115,
+      "total_rules": 121,
+      "passed_contracts": 187,
+      "total_contracts": 231,
+      "approved_ids": 302,
+      "total_ids": 352,
+      "remaining_ids": 50
+    },
+    "custody": "113 observed foreign ref/SHA pairs; preserve and refresh actual receipts. No retained duty is released by this file."
+  },
+  "latest_delivery": {
+    "pr": 737,
+    "source": "3bc76d51868b106685f5f755d57379485cc11cee",
+    "main": "45dbf8f6236100fb8f34931fd7c6d44e8e822998",
+    "tree": "4ca3d8086071184ac80f1e923f8388bc1a5c5b45",
+    "ids": [
+      "AT-Z03H-SUPPLIER",
+      "AT-Z04H-SUPPLIER"
+    ],
+    "applicable_mandatory_checks": "13_SUCCESS_CURRENT_HEAD",
+    "whole_source_review": "C0_I0_TWO_INDEPENDENT",
+    "current_main_review": "C0_I0_TWO_INDEPENDENT_SCOPED_H_NONINTERFERENCE",
+    "affected_local_finite": "371_PASS_0_FAIL_0_SKIP_PROJECTED_TREE",
+    "source_qualified_native": "a6f7acab_100_PASS_ORIGINAL_SOURCE",
+    "current_main_native_qualification": "NOT_RUN",
+    "external_market_acceptance": "NOT_PROVIDED",
+    "resources": "ALL11_ORIGINAL_OWNER_RELEASED_GET404",
+    "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104375333"
+  },
+  "owned_continuation": {
+    "agent": "codex-ediel-20261007-b6d3-41f5172a",
+    "packet": "e13e5997-ad12-45b4-8b00-ddb525b07234",
+    "ids": [
+      "AT-Z13V-ESCO",
+      "AT-Z13VH-ESCO"
+    ],
+    "branch": "codex/ediel-esco-resume-b6d3-41f5172a",
+    "checkpoint": ".agent-memory/masterplan-codex-b6d3-z13v-z13vh-41f5172a-checkpoint.md",
+    "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104406090",
+    "status": "CLAIMED",
+    "coverage": "UNCHANGED",
+    "next_action": "Document verified CLAIM/checkpoint, close independent bounded plan reviews; reuse only strict30 native producer/config/workflow and narrow prospective fixture extension on actual main, verify actual currentsource/wholeconsumer effects via single native producer. Under separately verified role-memory update four shared summaries with actual H737 delivery ledger, preserve dated evidence; no coverage approval until whole frozen expected/prohibited criteria and owner begäran disposition proven. No production/runtime/GEN stack import, no foreign file edits or duplicate native/artifact work."
+  }
 }

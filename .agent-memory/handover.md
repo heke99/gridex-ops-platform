@@ -1,5 +1,9 @@
 # Delivery and handover routing
 
+2026-10-11: PR737 → actual main `45dbf8f6236100fb8f34931fd7c6d44e8e822998`, source `3bc76d51`, AT-Z03H/AT-Z04H PASSED; source-qualified a6 native100 + scoped current-main C0/I0/371finite and all13 exact-head gates; merge-role-FIRST/all11 ownrefs404; [delivery/release](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104375333). External acceptance remains separate.
+
+## Historical observation — 2026-10-10
+
 Observed main `c5f5be2cf859a325c6782fe612157aad379ab6e8` (2026-10-10); refresh actual main/coverage, #673, PR heads/checks and authenticated remote refs before action. Approved ledger: **115/121 VERIFIED rules +187/231 PASSED contracts =302/352;50 remain**. Component delivery and native success do not promote whole IDs.
 
 Use [README](README.md), [workflow](masterplan-agent-workflow.md), [reservations](masterplan-reservations.md), [owner-action queue](masterplan-work-queue.md) and your own checkpoint. Continue only your authorized fixed role and exact criterion. New identities inherit no packet or refs. Preserve retained whole duties and literal HOLD/PAUSED/external gates; silence, stopped chats and absent tags do not release custody. The user's concrete new-agent handover authorization permits recording bounded stopped-overlap handovers under the existing protocol; document source, original producer's stop, exact scope/criteria/exclusions, recipient and verified own refs before implementation.
