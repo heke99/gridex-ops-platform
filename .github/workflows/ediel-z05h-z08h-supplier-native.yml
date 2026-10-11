@@ -77,12 +77,15 @@ jobs:
           if not all(name in source for name in required): raise RuntimeError('native_input_missing_from_frozen_git')
           pathlib.Path(os.environ['GRIDEX_H_GIT_INPUTS']).write_text(json.dumps(dict(sorted(source.items())),indent=2)+'\n')
           PY
+          printf '%s\n' 'H05H08_BOUNDARY INPUTS_FROZEN'
           # Replay owns its EXIT cleanup. Disposable status/credentials stay local.
           echo BOOTSTRAP > "$RUNNER_TEMP/h05h08-stage"
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/h05h08-replay.log" 2>&1
+          printf '%s\n' 'H05H08_BOUNDARY REPLAY_RETURNED'
           echo STATUS > "$RUNNER_TEMP/h05h08-stage"
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/h05h08-native-status.json"
           supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          printf '%s\n' 'H05H08_BOUNDARY STATUS_RETURNED'
           native_exit=0
           echo NATIVE > "$RUNNER_TEMP/h05h08-stage"
           GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
@@ -90,12 +93,14 @@ jobs:
             --reporter=default --reporter=junit \
             --outputFile=h05h08-native-working/native-junit.xml \
             > h05h08-native-working/native.log 2>&1 || native_exit=$?
+          printf '%s\n' 'H05H08_BOUNDARY NATIVE_RETURNED'
           export GRIDEX_H_NATIVE_EXIT="$native_exit"
           echo "$native_exit" > "$RUNNER_TEMP/h05h08-native-exit"
           echo POST_NATIVE > "$RUNNER_TEMP/h05h08-stage"
           # Restore replay's original tracked migrations/seed before comparing
           # working files with their immutable pre-replay Git identities.
           cleanup
+          printf '%s\n' 'H05H08_BOUNDARY CLEANUP_RETURNED'
           trap - EXIT
           set -euo pipefail
           echo SOURCE_IDENTITY > "$RUNNER_TEMP/h05h08-stage"
@@ -132,10 +137,12 @@ jobs:
           }
           pathlib.Path('h05h08-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
           PY
+          printf '%s\n' 'H05H08_BOUNDARY SOURCE_IDENTITY_WRITTEN'
           echo REDACTION > "$RUNNER_TEMP/h05h08-stage"
           python3 scripts/gridex-redact-native-evidence.py \
             --local-secrets "$GRIDEX_NATIVE_STATUS" --root h05h08-native-working
           mv h05h08-native-working h05h08-native-evidence
+          printf '%s\n' 'H05H08_BOUNDARY EVIDENCE_REDACTED'
           cat h05h08-native-evidence/native.log
           rm -f "$GRIDEX_NATIVE_STATUS" "$GRIDEX_H_GIT_INPUTS"
           exit "$native_exit"
