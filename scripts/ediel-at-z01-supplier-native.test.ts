@@ -7,11 +7,16 @@
 import {createHash, randomUUID} from 'node:crypto'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {getEdielMessageById} from '@/lib/ediel/db'
+import {supabaseService} from '@/lib/supabase/service'
+import type {EdielMessageRow} from '@/lib/ediel/types'
 import {archiveCustomerAuthorizationDocument} from '@/lib/operations/db'
 import {enqueueCustomerDataRequestAutomation, processCustomerOperationJobs} from '@/lib/customer-operations/automation'
 import {readEdielBusinessExpectations} from '@/lib/ediel/businessExpectations'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
-import {resolveCanonicalRuntimeDecisionWithRegistry, readReceivedCanonicalProdatApplicationObjects} from '@/lib/ediel/core/runtimeDecision'
+import {resolveCanonicalRuntimeDecision, resolveCanonicalRuntimeDecisionWithRegistry, readReceivedCanonicalProdatApplicationObjects,
+  readReceivedCanonicalProdatSourceFunction, readReceivedCanonicalProdatResponseValidation} from '@/lib/ediel/core/runtimeDecision'
+import {fetchReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
+import {matchOutboundRequestForInbound, matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {prodatRegisterFieldState} from '@/lib/ediel/prodat/prodatRegisterFields'
 import {prodatPartyState} from '@/lib/ediel/prodat/prodatPartyFields'
 import {prepareAndQueueEdielZ03} from '@/lib/ediel/flows/prodatSwitch'
@@ -57,9 +62,9 @@ async function sent(variant: 'L' | 'LK') {
   return {f, original: await originateZ01SupplierRequest(f)}
 }
 function source(original: Original) {return {rawPayload: original.originalZ01.raw_payload!}}
-function z02(f: Fixture, original: Original, overrides: ExternalZ02Overrides = {}, omitMethod = false) {
+function z02(f: Fixture, original: Original, overrides: ExternalZ02Overrides = {}, omitMethod = false, documentMinute = minute()) {
   return externalZ02Reply({source: source(original), ...references(), documentReference: `Z02-${randomUUID().slice(0, 8)}`,
-    documentMinute: minute(), measurementMethod: 'Z04', customerAddress: f.customerAddress,
+    documentMinute, measurementMethod: 'Z04', customerAddress: f.customerAddress,
     installationAddress: f.installationAddress, overrides, omitFields: omitMethod ? ['217'] : []})
 }
 function sealedSource(id: string) {
@@ -144,6 +149,140 @@ function observeCorrelationCause(f: Fixture, original: Original,
   // selected contrast. Zero effects or a different hold cannot prove it.
   console.info('Z01_NATIVE_CORRELATION_OBSERVATION', JSON.stringify(observation))
 }
+type SourceContrast = 'point' | 'identityAgency' | 'reason'
+type SourceReadControl = {contrast: SourceContrast; original: Original; documentMinute: string; message: EdielMessageRow;
+  intake: Awaited<ReturnType<typeof attemptZ01SupplierMailIntake>>; basis: unknown}
+function assertGenuineZ02Birth(f: Fixture, original: Original, message: EdielMessageRow,
+  intake: Pick<SourceReadControl['intake'], 'mailbox' | 'match' | 'tenant'>) {
+  expect(intake.match.status).toBe('matched')
+  expect(intake.tenant).toMatchObject({companyId: f.companyId})
+  expect(message).toMatchObject({company_id: f.companyId, environment: 'test', direction: 'inbound',
+    message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z02', customer_id: f.customerId,
+    site_id: f.siteId, grid_owner_id: f.gridId, inbound_email_message_id: intake.mailbox.inboundEmailMessageId})
+  // Read the genuine database birth and retained mail/parse. A missing source,
+  // clock, hash or matcher binding must not masquerade as correlation refusal.
+  const birth = sql(`SELECT jsonb_build_object('id',s.source_message_id,'company',s.company_id,'environment',s.environment,
+    'origin',s.origin,'hash',s.payload_hash,'context',s.received_context,'parseId',p.id,
+    'rawBound',s.raw_payload=m.raw_payload AND s.raw_payload=mail.raw_edifact_payload AND s.raw_payload=p.raw_payload
+      AND s.payload_hash=m.immutable_payload_hash AND s.payload_hash=encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex'),
+    'clockBound',isfinite(s.source_received_at) AND isfinite(s.captured_at)
+      AND s.source_received_at=m.message_received_at
+      AND (s.received_context->>'sourceReceivedAt')::timestamptz=s.source_received_at
+      AND isfinite((s.received_context->>'capturedAt')::timestamptz),
+    'contextBound',s.received_context=m.execution_context_snapshot->'receivedProdatContext')
+    FROM gridex_received_sources.sources s JOIN public.ediel_messages m ON m.id=s.source_message_id
+      AND m.company_id=s.company_id AND m.environment=s.environment
+    JOIN public.inbound_email_messages mail ON mail.id=m.inbound_email_message_id AND mail.company_id=m.company_id
+    JOIN public.inbound_ediel_parse_results p ON p.inbound_email_message_id=mail.id AND p.company_id=mail.company_id
+      AND p.id=${literal(intake.mailbox.parseResultId)}
+    WHERE m.id=${literal(message.id)} AND m.company_id=${literal(f.companyId)}`)
+  expect(birth).toMatchObject({id: message.id, company: f.companyId, environment: 'test', origin: 'database_insert',
+    hash: sha(message.raw_payload!), parseId: intake.mailbox.parseResultId, rawBound: true, clockBound: true, contextBound: true,
+    context: {version: 1, contextOrigin: 'database_insert', sourceMessageId: message.id, companyId: f.companyId,
+      environment: 'test', messageCode: 'Z02', payloadHash: sha(message.raw_payload!)}})
+  // The actual basis, rather than guessed inbound operation/related-message
+  // columns, binds the original, CIR, operation, snapshot and accepted attempt.
+  expect(ownRequest(f, original)).toMatchObject({id: original.requestId, response_ediel_message_id: null})
+}
+async function readMatchedZ02Source(f: Fixture, original: Original, message: EdielMessageRow) {
+  if (!original.snapshot) throw Error('z01_actual_positive_request_snapshot_missing')
+  expect(message.validation_report).not.toHaveProperty('canonicalRuntimeVersion')
+  expect(sql(`SELECT jsonb_build_object('assessments',(SELECT count(*) FROM gridex_received_sources.validation_assessments
+    WHERE source_message_id=${literal(message.id)} AND company_id=${literal(f.companyId)}),
+    'jobs',(SELECT count(*) FROM public.customer_operation_jobs WHERE company_id=${literal(f.companyId)}
+      AND job_type='apply_inbound_grid_owner_response' AND payload->>'ediel_message_id'=${literal(message.id)}))`)).toEqual({assessments: 0, jobs: 0})
+  expect(coreApplications(f, original.requestId)).toBe(0)
+  const result = await supabaseService.rpc('gridex_ediel_received_z02_address_source_basis_v1',
+    {p_source_message_id: message.id, p_actor_user_id: f.actorUserId})
+  expect(result.error).toBeNull()
+  expect(result.data).toMatchObject({status: 'z02_address_source_basis', version: 1, companyId: f.companyId,
+    environment: 'test', sourceMessageId: message.id, sourceRawPayload: message.raw_payload,
+    sourcePayloadHash: sha(message.raw_payload!), originalMessageId: original.originalZ01.id,
+    originalRawPayload: original.originalZ01.raw_payload, originalPayloadHash: sha(original.originalZ01.raw_payload!),
+    sourceObject: {objectId: original.wire.point, identityAgency: original.wire.identityAgency,
+      reason: original.wire.reason, lineReference: original.wire.lineReference},
+    originalObject: {objectId: original.wire.point, identityAgency: original.wire.identityAgency,
+      reason: original.wire.reason, lineReference: original.wire.lineReference},
+    request: {id: original.requestId, company_id: f.companyId, operation_id: original.operationId,
+      customer_id: f.customerId, site_id: f.siteId, ediel_message_id: original.originalZ01.id},
+    requestSnapshot: {id: original.snapshot.id, company_id: f.companyId, operation_id: original.operationId,
+      customer_id: f.customerId, customer_site_id: f.siteId, request_kind: 'customer_data_request',
+      request_reference: original.requestId, superseded_at: null, grid_owner_id: f.gridId,
+      site_address_hash: original.snapshot.site_address_hash},
+    site: {id: f.siteId, company_id: f.companyId, customer_id: f.customerId, grid_owner_id: f.gridId},
+    customer: {id: f.customerId, company_id: f.companyId},
+    acceptedTransport: {company_id: f.companyId, message_id: original.originalZ01.id, environment: 'test',
+      classification: 'accepted', binding: {originalHash: sha(original.originalZ01.raw_payload!)}},
+    acceptedTransportReceipt: {status: 'accepted_projection', lane: 'generic_journal', companyId: f.companyId,
+      environment: 'test', messageId: original.originalZ01.id, originalHash: sha(original.originalZ01.raw_payload!)}})
+  // Default public READ creates its own opaque capability. No positive token
+  // is copied to a negative message or passed into the runtime as caller facts.
+  expect(await fetchReceivedZ02EndUserAddressContext({message, actorUserId: f.actorUserId})).toBeDefined()
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(message, {actorUserId: f.actorUserId})
+  expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision]).toEqual(['accepted', 'accepted', 'accepted'])
+  expect(readReceivedCanonicalProdatApplicationObjects(decision, message)).not.toBeNull()
+  expect(readReceivedCanonicalProdatSourceFunction(decision, message)).not.toBeNull()
+  expect(readReceivedCanonicalProdatResponseValidation(decision, message)).not.toBeNull()
+  return result.data
+}
+async function createMatchedZ02ReadControl(f: Fixture, original: Original, contrast: SourceContrast): Promise<SourceReadControl> {
+  const documentMinute = minute(), raw = z02(f, original, {}, false, documentMinute)
+  // Public source birth only: this control is never business-processed.
+  const intake = await attemptZ01SupplierMailIntake(f, raw)
+  if (!intake.id) throw Error('z01_positive_read_control_not_born')
+  const message = await getEdielMessageById(intake.id, {companyId: f.companyId})
+  if (!message?.raw_payload) throw Error('z01_positive_read_control_not_readable')
+  expect(message.raw_payload).toBe(raw)
+  expect(intake.pointMatch).toMatchObject({status: 'matched', entityId: f.pointId})
+  expect(message.metering_point_id).toBe(f.pointId)
+  assertGenuineZ02Birth(f, original, message, intake)
+  return {contrast, original, documentMinute, message, intake, basis: await readMatchedZ02Source(f, original, message)}
+}
+function assertOnlySelectedSourceTupleChanged(control: SourceReadControl, negative: EdielMessageRow,
+  expected: {point: string; identityAgency: string; reason: string}) {
+  const positive = tokenizeEdifact(control.message.raw_payload!), wrong = tokenizeEdifact(negative.raw_payload!)
+  expect(wrong.una).toEqual(positive.una)
+  const normalize = (wire: ReturnType<typeof tokenizeEdifact>, selected: typeof expected) => {
+    for (const tag of ['UNB', 'UNH', 'BGM', 'UNT', 'UNZ', 'LIN']) expect(wire.segments.filter(s => s.tag === tag)).toHaveLength(1)
+    const reasons = wire.segments.filter(s => s.tag === 'CCI' && segmentComposite(s, 2, wire.una)[0] === 'Z13')
+    expect(reasons).toHaveLength(1)
+    const reasonIndex = reasons[0].index + 1
+    expect(wire.segments[reasonIndex]?.tag).toBe('CAV')
+    const installations = wire.segments.filter(s => s.tag === 'NAD' && segmentComposite(s, 1, wire.una)[0] === 'IT')
+    expect(installations).toHaveLength(1)
+    return wire.segments.map(s => {
+      const parts = Array.from({length: segmentElementCount(s, wire.una) + 1}, (_, i) => segmentComposite(s, i, wire.una))
+      if (s.tag === 'LIN') {
+        expect(parts[3]).toEqual([selected.point, '', '', selected.identityAgency])
+        if (control.contrast === 'point') parts[3][0] = '[selected point]'
+        if (control.contrast === 'identityAgency') parts[3][3] = '[selected agency]'
+      }
+      if (s === installations[0]) {
+        expect(parts[2]).toEqual([selected.point, '', selected.identityAgency])
+        if (control.contrast === 'point') parts[2][0] = '[selected point]'
+        if (control.contrast === 'identityAgency') parts[2][2] = '[selected agency]'
+      }
+      if (s.index === reasonIndex) {
+        expect(parts[1]).toEqual([selected.reason])
+        if (control.contrast === 'reason') parts[1][0] = '[selected reason]'
+      }
+      // Independently born messages need distinct delivery/document IDs and
+      // the real envelope clock. No LI/party/source/business field is masked.
+      const fresh = s.tag === 'UNB' ? [4, 5] : s.tag === 'UNH' ? [1] : s.tag === 'BGM' ? [2] : s.tag === 'UNT' || s.tag === 'UNZ' ? [2] : []
+      for (const index of fresh) {
+        expect(parts[index].length).toBe(s.tag === 'UNB' && index === 4 ? 2 : 1)
+        expect(parts[index].every(value => value.length > 0)).toBe(true)
+        parts[index] = parts[index].map(() => '[fresh delivery]')
+      }
+      return {tag: s.tag, parts}
+    })
+  }
+  const own = control.original.wire
+  expect(expected[control.contrast]).not.toBe(own[control.contrast])
+  expect(normalize(wrong, expected)).toEqual(normalize(positive, own))
+  expect(negative.id).not.toBe(control.message.id)
+  expect(sha(negative.raw_payload!)).not.toBe(sha(control.message.raw_payload!))
+}
 async function assertPhysicalZ02Application(f: Fixture, received: Awaited<ReturnType<typeof receiveZ01SupplierReply>>,
   expected: {point: string; identityAgency: string; reason: string; gridAreaCode: string}) {
   // This actual invocation proves application guidance only. Correlation and
@@ -161,6 +300,105 @@ async function assertPhysicalZ02Application(f: Fixture, received: Awaited<Return
   expect(received.message.processing_status, witness).not.toBe('routing_unresolved')
   expect(received.message.validation_report, witness).toMatchObject({canonicalRuntimeVersion: '2.5B',
     syntaxDecision: 'accepted', applicationDecision: 'accepted', functionalDecision: 'accepted'})
+  expect(decision.syntaxDecision, witness).toBe('accepted')
+  expect(decision.applicationDecision, witness).toBe('accepted')
+  expect(decision.functionalDecision, witness).toBe('accepted')
+  expect(decision.issues.filter(issue => issue.severity === 'error'), witness).toEqual([])
+  expect(application, witness).not.toBeNull()
+  const raw = received.message.raw_payload!, wire = tokenizeEdifact(raw)
+  const one = (tag: string) => {const rows = wire.segments.filter(s => s.tag === tag); expect(rows).toHaveLength(1); return rows[0]}
+  const lin = one('LIN'), unh = one('UNH'), identity = segmentComposite(lin, 3, wire.una)
+  expect(identity).toEqual([expected.point, '', '', expected.identityAgency])
+  expect(prodatRegisterFieldState('209', wire.segments, wire.una)).toMatchObject({present: true, value: expected.point, malformed: false})
+  expect(prodatPartyState('233', wire.segments, wire.una)).toMatchObject({present: true, value: expected.point, malformed: false, tooLong: false})
+  const installation = wire.segments.filter(s => s.tag === 'NAD' && segmentComposite(s, 1, wire.una)[0] === 'IT')
+  expect(installation).toHaveLength(1)
+  expect(segmentComposite(installation[0], 2, wire.una)).toEqual([expected.point, '', expected.identityAgency])
+  const areas = wire.segments.filter(s => s.tag === 'RFF' && segmentComposite(s, 1, wire.una)[0] === 'Z05')
+  expect(areas).toHaveLength(1); expect(segmentComposite(areas[0], 1, wire.una)).toEqual(['Z05', expected.gridAreaCode])
+  const reasons = wire.segments.filter(s => s.tag === 'CCI' && segmentComposite(s, 2, wire.una)[0] === 'Z13')
+  expect(reasons).toHaveLength(1)
+  const reasonValue = wire.segments.find(s => s.index === reasons[0].index + 1 && s.tag === 'CAV')
+  expect(segmentComposite(reasonValue, 1, wire.una)[0]).toBe(expected.reason)
+  const scope = {messageIndex: 0, messageReference: segmentComposite(unh, 1, wire.una)[0],
+    objectId: expected.point, identityAgency: expected.identityAgency,
+    registers: [{lineIndex: 0, lineNumber: segmentComposite(lin, 1, wire.una)[0], registerIndex: null,
+      registerPosition: 1, segmentIndex: lin.index}]}
+  expect(application, witness).toEqual({version: 1, owner: 'canonical-prodat-application-all-v1',
+    coverage: 'canonical_own_application_only', sourcePayloadHash: sha(raw), headerDecision: 'accepted',
+    objects: [{...scope, applicationDecision: 'accepted', reasonCodes: []}]})
+  expect(decision.prodatRegisterValidation, witness).toEqual({version: 1, owner: 'validateProdatRegisterPolicy',
+    coverage: 'canonical_register_only', objects: [{...scope, disposition: 'accepted', reasons: []}]})
+}
+async function assertPhysicalZ02GuidanceWithSelectedReadRefusal(f: Fixture, received: Awaited<ReturnType<typeof receiveZ01SupplierReply>>,
+  expected: {point: string; identityAgency: string; reason: string; gridAreaCode: string}, control: SourceReadControl) {
+  if (!control.original.snapshot) throw Error('z01_actual_negative_request_snapshot_missing')
+  // This actual invocation proves application guidance only. Correlation and
+  // durable business application remain separate assertions below; an earlier
+  // unrelated field/header refusal cannot satisfy a source-correlation test.
+  const current = await resolveCanonicalRuntimeDecisionWithRegistry(received.message, {actorUserId: f.actorUserId})
+  // Complete detached physical guidance owns no received/source capability.
+  // Actual persisted/current source authority is checked separately below.
+  const decision = resolveCanonicalRuntimeDecision(received.message)
+  const application = decision.prodatApplicationValidation
+  const witness = JSON.stringify({decision, application, tenant: received.tenant,
+    match: received.match, pointMatch: received.pointMatch, processed: received.processed,
+    responseJobsBefore: received.inboundResponseJobsBefore, responseJobsAfter: received.inboundResponseJobsAfter,
+    responseJob: received.inboundResponseJob, responseResult: received.inboundResponseResult})
+  // A fresh read cannot establish that the actual processor reached runtime.
+  // Require its real persisted decisions, excluding an earlier routing hold.
+  expect(received.message.company_id, witness).toBe(f.companyId)
+  expect(received.message.processing_status, witness).not.toBe('routing_unresolved')
+  assertGenuineZ02Birth(f, control.original, received.message, received)
+  assertOnlySelectedSourceTupleChanged(control, received.message, expected)
+  expect(received.message.validation_report, witness).toMatchObject({canonicalRuntimeVersion: '2.5B',
+    syntaxDecision: 'accepted', applicationDecision: 'manual_review', functionalDecision: 'manual_review'})
+  expect([current.syntaxDecision, current.applicationDecision, current.functionalDecision]).toEqual(['accepted', 'manual_review', 'manual_review'])
+  expect(current.issues.map(issue => ({code: issue.code, description: issue.description}))).toEqual([
+    {code: 'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE', description: 'received_z02_end_user_address_source_unavailable'}])
+  expect(readReceivedCanonicalProdatApplicationObjects(current, received.message)).toBeNull()
+  expect(readReceivedCanonicalProdatSourceFunction(current, received.message)).toBeNull()
+  expect(readReceivedCanonicalProdatResponseValidation(current, received.message)).toBeNull()
+  expect(current.responsePlan.some(plan => plan.family === 'APERAK')).toBe(false)
+  const recorded = sql(`SELECT jsonb_build_object('owner',a.owner,'sourceHash',a.source_payload_hash,'facts',a.facts_text::jsonb,
+    'hashBound',a.facts_hash=encode(sha256(convert_to(a.facts_text,'UTF8')),'hex') AND a.source_payload_hash=s.payload_hash,
+    'clockBound',isfinite(a.assessed_at) AND a.assessed_at>=s.source_received_at)
+    FROM gridex_received_sources.validation_assessments a JOIN gridex_received_sources.sources s
+      ON s.source_message_id=a.source_message_id AND s.company_id=a.company_id AND s.environment=a.environment
+    WHERE a.source_message_id=${literal(received.id)} AND a.company_id=${literal(f.companyId)}
+      AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id)`)
+  expect(recorded).toMatchObject({owner: 'canonical-runtime-with-registry-v1', sourceHash: sha(received.message.raw_payload!),
+    hashBound: true, clockBound: true, facts: {version: 1, owner: 'canonical-runtime-with-registry-v1',
+      sourceDisposition: 'not_established', originalTenantMatch: 'matched', syntaxDecision: 'accepted',
+      applicationDecision: 'manual_review', functionalDecision: 'manual_review',
+      reasonCodes: ['RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE']}})
+  expect(received.inboundResponseJobsBefore).toEqual([]); expect(received.inboundResponseJobsAfter).toEqual([])
+  if (control.contrast === 'point') {
+    expect(received.pointMatch).toMatchObject({status: 'missing', entityId: null, candidates: []})
+    expect(received.message.metering_point_id).toBeNull()
+  } else {
+    expect(received.pointMatch).toMatchObject({status: 'matched', entityId: f.pointId})
+    expect(received.message.metering_point_id).toBe(f.pointId)
+  }
+  const refusal = await supabaseService.rpc('gridex_ediel_received_z02_address_source_basis_v1',
+    {p_source_message_id: received.id, p_actor_user_id: f.actorUserId})
+  expect(refusal.error).toBeNull(); expect(refusal.data).toBeNull()
+  expect(await fetchReceivedZ02EndUserAddressContext({message: received.message, actorUserId: f.actorUserId})).toBeUndefined()
+  expect(await readMatchedZ02Source(f, control.original, control.message)).toEqual(control.basis)
+  const parsed = control.intake.mailbox.parsed
+  const [match, pointMatch] = await Promise.all([
+    matchOutboundRequestForInbound({companyId: f.companyId, parsed, inboundEmailMessageId: control.intake.mailbox.inboundEmailMessageId,
+      parseResultId: control.intake.mailbox.parseResultId}),
+    matchMeteringPointForInbound({companyId: f.companyId, parsed, inboundEmailMessageId: control.intake.mailbox.inboundEmailMessageId,
+      parseResultId: control.intake.mailbox.parseResultId}),
+  ])
+  expect(match).toEqual(control.intake.match); expect(pointMatch).toEqual(control.intake.pointMatch)
+  console.info('Z01_NATIVE_SOURCE_READ_CAUSE', JSON.stringify({variant: f.variant, contrast: control.contrast,
+    originalId: control.original.originalZ01.id, originalHash: sha(control.original.originalZ01.raw_payload!),
+    requestId: control.original.requestId, operationId: control.original.operationId, snapshotId: control.original.snapshot.id,
+    positiveId: control.message.id, positiveHash: sha(control.message.raw_payload!), negativeId: received.id,
+    negativeHash: sha(received.message.raw_payload!), sourceRead: 'positive_negative_null_positive',
+    refusal: 'selected_original_correlation_read', downstreamJobGate: 'NOT_REACHED'}))
   expect(decision.syntaxDecision, witness).toBe('accepted')
   expect(decision.applicationDecision, witness).toBe('accepted')
   expect(decision.functionalDecision, witness).toBe('accepted')
@@ -309,9 +547,10 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const {f, original} = await sent(variant), other = await createZ01SupplierNativeFixture(variant, provider)
     const before = customerState(f), otherBefore = customerState(other), sealed = sealedSource(original.originalZ01.id)
     expect(other.external).not.toBe(original.wire.point)
-    const received = await receiveZ01SupplierReply(f, z02(f, original, {point: other.external}))
+    const control = await createMatchedZ02ReadControl(f, original, 'point')
+    const received = await receiveZ01SupplierReply(f, z02(f, original, {point: other.external}, false, control.documentMinute))
     observeCorrelationCause(f, original, received, 'existing GS1 object')
-    await assertPhysicalZ02Application(f, received, {...original.wire, point: other.external})
+    await assertPhysicalZ02GuidanceWithSelectedReadRefusal(f, received, {...original.wire, point: other.external}, control)
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
     expect(customerState(f)).toEqual(before); expect(customerState(other)).toEqual(otherBefore)
@@ -323,9 +562,10 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const identityAgency = original.wire.identityAgency === '9' ? '89' : '9'
     expect(['9', '89']).toContain(original.wire.identityAgency)
     expect(identityAgency).not.toBe(original.wire.identityAgency)
-    const received = await receiveZ01SupplierReply(f, z02(f, original, {identityAgency}))
+    const control = await createMatchedZ02ReadControl(f, original, 'identityAgency')
+    const received = await receiveZ01SupplierReply(f, z02(f, original, {identityAgency}, false, control.documentMinute))
     observeCorrelationCause(f, original, received, 'lawful identity agency')
-    await assertPhysicalZ02Application(f, received, {...original.wire, identityAgency})
+    await assertPhysicalZ02GuidanceWithSelectedReadRefusal(f, received, {...original.wire, identityAgency}, control)
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
     expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
@@ -335,9 +575,10 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
     const {f, original} = await sent(variant), before = customerState(f), sealed = sealedSource(original.originalZ01.id)
     const reason = variant === 'L' ? 'Z23' : 'Z22'
     expect(reason).not.toBe(original.wire.reason)
-    const received = await receiveZ01SupplierReply(f, z02(f, original, {reason}))
+    const control = await createMatchedZ02ReadControl(f, original, 'reason')
+    const received = await receiveZ01SupplierReply(f, z02(f, original, {reason}, false, control.documentMinute))
     observeCorrelationCause(f, original, received, 'opposite legal subtype')
-    await assertPhysicalZ02Application(f, received, {...original.wire, reason})
+    await assertPhysicalZ02GuidanceWithSelectedReadRefusal(f, received, {...original.wire, reason}, control)
     expect(coreApplications(f, original.requestId)).toBe(0)
     expect(ownRequest(f, original).response_ediel_message_id).toBeNull()
     expect(customerState(f)).toEqual(before); expect(sealedSource(original.originalZ01.id)).toEqual(sealed)
