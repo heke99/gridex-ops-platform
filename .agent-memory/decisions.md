@@ -269,3 +269,9 @@ vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras f�
 - P-06 "ändra inte alla ZZZ globalt" = E012: fix only the NAD+UD end-user agency to 260; keep other legitimate ZZZ (field 206 DTM+ZZZ:1:805).
 - U-11: E30 is a disabled (non-production) capability for DDQ/DGI (§9). U-11 only scopes E90/E97/E98 away from individual E66 and keeps them for aggregates; aggregate value limits are CV-U-FN-* rules behind G02.
 - Owner rule (2026-10-04): open interpretation questions are answered first by re-reading the project's purpose and MASTERMASTERPLAN_v2 + annexes A–E (incl. E-findings, §20 gates G01–G07); only ask the owner when the sources truly leave it open.
+
+## 2026-10-11 — Owner-scoped handover SC-052 (project owner heke99)
+- Project owner explicitly approved in Claude session_01QEKxDf9fK37cTCto6MZfs1 (chat, 2026-10-11): transfer of SC-052's remaining criterion to BLOCKERARAGENT `claude-session_01QEKxDf9fK37cTCto6MZfs1`.
+- Scope: field 503 requested-type RFF (`SG6/RFF/C506/1153`) for E73 in `renderUtiltsSegments`; write paths `lib/ediel/utilts.ts`, `__tests__/ediel-sc-052-e73-requested-type-rff.test.ts`, SC-052 row of `quality/audits/ediel-masterplan-v2/coverage.json`. Packet `4f1c9a2e-7b3d-4e58-9a61-c2d05e8b3f17`, branch `claude/elegant-davinci-wmtl91`.
+- Releases from original SC owner (receipt 5305992830290) only this criterion. Exclusions: SC-037, native/GEN/shared memory files, E73 role-capability work. Preserves refuted E73 allegation and E66 alternative evidence.
+- Does not replace atomic reservation: implementation only after PROXY_RESERVED + GET_MATCH + CLAIM. Request 6107087204.
