@@ -34,3 +34,15 @@ non-masterplan implementation packet (no IDs, no coverage rows).
 - #735 TR-09 (78ba725, delta) C0/I0; earlier 2e1a68f review superseded (missed alarm).
 - #743 DB-01 kernel-pair basis (e9d4f27) C0/I0 for that scope.
 - #733 AT-Z10M (3997913) C0/I0; #732 (859f378) C0/I0 after correcting my aa02493 miss.
+
+## 2026-10-11 — delivery overlay (dated, supersedes "active" status above)
+
+- #734 MERGED: main `038306855fbbd5a0a27d9223c454a31dc0817008` (parents `40795e8` + `c500acf`).
+  Applied to production by BLOCKERARAGENT (#673 6106998164). 11 file refs released by
+  proxy, GET_MATCH → DELETE → 404 (#673 6106872712).
+- Reviews: #746 AT-Z09D C0/I1 (either-or mutation oracle, 6107014630; patch 6107093554).
+- Active: PR #747 (draft) — owner decision 2026-10-11: one-off contracts need only
+  `contracts.create`, not `contracts.publish`/`pricing.publish`. Migration
+  `20261011090000_one_off_binding_staff_publish.sql` + native test. File-ref proxy
+  request 6107017428 (pushed `c004e22` before reservation — recorded deviation).
+- Next: verify refs; import CI capture GEN outputs; mark READY; two reviews.
