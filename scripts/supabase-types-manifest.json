@@ -4,7 +4,7 @@
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38181597418",
   "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
   "latest_migration": "20261011170000_ediel_brp_change_ack_received_confirmation.sql",
-  "latest_migration_schema_effect": "SC-053 source quantity quality component: the original020000/a042 forward validates supplied own-QTY quality and preserves pre-fix committed projections for exact compatible NULL-time retries. Complete current-main plus unchanged original744 prefix captured authentically; public generated types/schema/fingerprint imported byte-exactly. Whole SC-053 remains PARTIAL; no whole native or downstream acceptance is supplied by this capture.",
+  "latest_migration_schema_effect": "AT-Z09B component: confirms the producing BRP-change event only from matching immutable positive CONTRL and APERAK correlations, using a private DEFERRABLE INITIALLY DEFERRED source_correlations INSERT trigger; tenant-writable message flags no longer create confirmation. Byte-exact full-prefix artifact from run38168274556 on ec4e6457; public types unchanged. Whole AT-Z09B stays PARTIAL pending original owner acceptance proof. This authentic complete-prefix capture additionally includes unchanged 20261011020000_ediel_utilts_source_quantity_quality.sql, SHA256 a04247de21d1e041455e09359a88fb6c0285e29e18883f9bdeb5f9b7286d6496, from original SC-053 source3ea037be30ca832b6afa21e80ddf99198998180e: validate supplied own-QTY quality and preserve exact compatible pre-fix NULL-time replay projections. Latest170000 BRP/ACK migration SHA256506d59868e2d57a6e4c0a5170dcf44856b334263a28165437d6cbd6c5bccb22e stays included. Both source effects are bound to captured checkoutc82458dc41987adb0c8a20274dc0bdbb6cc0f8a1/treecdbf898ac73bee5b287f0e31e35f5114c06ee61c. Public generated types are unchanged; whole SC-053 and AT-Z09B remain PARTIAL without whole acceptance from this capture.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -15648,10 +15648,7 @@
       "current_prefix_verification",
       "generated_at",
       "generated_with",
-      "latest_migration",
-      "latest_migration_schema_effect",
-      "sha256",
-      "source_latest_migration"
+      "latest_migration_schema_effect"
     ]
   }
 }
