@@ -21,3 +21,10 @@
 
 ## Status
 - Taken: nothing yet (no refs). Done: selection + handover record. Blocker: proxy reservation (6106488769 asked for UUID/checkpoint/handover — supplied here). Next: proxy RESERVED → own GET verify → CLAIM → implement native suite.
+
+## 2026-10-11 — review round and owner decision
+- Taken: AT-Z14VH-ESCO, AT-Z15V-ESCO (refs 98b6c8ce, retained).
+- Done: PR #752 head ee281df. Two independent read-only reviews; fixed Z15V projection stop, real cross-tenant snapshot, Z15V ACK replay, removed always-true check. Local native 26/26.
+- Not proven: AT-Z14VH "E66 enligt bekräftade villkor" and "slut via Z15VH"; AT-Z15V "VH slutför historikjobbet, inte separat V-tillstånd". Coverage stays NOT_EXECUTED.
+- Owner decision (2026-10-11): merge #752 when green as test-only delivery; remaining effects in a separate packet (with AT-Z15VH-ESCO after reservation).
+- Next: merge #752 on green; request proxy reservation for AT-Z15VH-ESCO; research agents running on Z15VH, V/VH coexistence and VH E66.
