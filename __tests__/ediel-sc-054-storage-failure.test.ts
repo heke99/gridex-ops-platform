@@ -3,8 +3,8 @@
 // inbound processor, canonical runtime, contract preparation and persistence
 // adapter refuse to continue, so no acknowledgement is created; the real
 // transport journals the failure as a retryable internal failure (no external
-// rejection); the real file-engine registration stores the pending APERAK with
-// an ack_due_at so it stays under deadline surveillance; and the real SQL
+// rejection); the aperak_due SLA timer the pipeline created survives the failure
+// and the real checkAckDeadlines sweep expires it after due, with no ACK; and the real SQL
 // authority refuses a merely queued reservation as proof of storage.
 // Test doubles: the Supabase port (an in-memory table/RPC model whose UTILTS
 // persist RPC fails), tenant legal-identity loader, matching, dead-letter writer
@@ -86,7 +86,7 @@ import {prepareUtiltsConsumptionContracts} from '@/lib/ediel/utilts/consumptionP
 import {buildUtiltsTransactionPersistencePayload,persistUtiltsTransactionResults} from '@/lib/ediel/utilts/transactionPersistence'
 import {processInboundEdifactMessage} from '@/lib/ediel/transport/inboundProcessor'
 import {getCanonicalAckState} from '@/lib/ediel/core/ackPolicy'
-import {registerEdielFile} from '@/lib/ediel/fileEngine'
+import {checkAckDeadlines} from '@/lib/ediel/sla/checkAckDeadlines'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 import {createUtiltsFinalValidationIo,qualifyUtiltsFixtureSource,UTILTS_FIXTURE_ACTOR} from './helpers/utiltsCurrentOwnerFixture'
 import {receivedUtiltsOwnerFixture,resetUtiltsCanonicalOwnerIo} from './helpers/utiltsCanonicalOwnerIo'
@@ -109,6 +109,18 @@ async function failingPersistence(){
  return {runtime,outcome}
 }
 
+async function runFailingInbound(){
+ const wire=energyHandoffMessage('2026-10-15');wire.sender_ediel_id='91100';wire.receiver_ediel_id='21660'
+ const message=qualifyUtiltsFixtureSource(receivedUtiltsOwnerFixture(wire))
+ Object.assign(message,{status:'received',requires_contrl:true,requires_aperak:true,contrl_status:'pending',aperak_status:'pending',utilts_err_status:'pending'})
+ port.io=createUtiltsFinalValidationIo() as never
+ seedActor()
+ port.tables.ediel_messages=[structuredClone(message) as unknown as Row]
+ port.tables.tenant_actor_identifiers=[{company_id:company,environment:'test',identifier_type:'EdielId',identifier_value:'21660',valid_from:'2020-01-01T00:00:00Z',valid_to:null}]
+ const failure=await processInboundEdifactMessage({actorUserId:UTILTS_FIXTURE_ACTOR,message:message as EdielMessageRow}).catch((error:unknown)=>error)
+ return {message,failure}
+}
+
 describe('SC-054 storage failure blocks the positive APERAK',()=>{
  beforeEach(()=>{
   vi.clearAllMocks();resetUtiltsCanonicalOwnerIo();port.tables={};port.io=null;port.rpcCalls.length=0
@@ -125,15 +137,7 @@ describe('SC-054 storage failure blocks the positive APERAK',()=>{
  })
 
  it('real inbound processing propagates the failed persist, journals it retryable and creates no ACK',async()=>{
-  const wire=energyHandoffMessage('2026-10-15');wire.sender_ediel_id='91100';wire.receiver_ediel_id='21660'
-  const message=qualifyUtiltsFixtureSource(receivedUtiltsOwnerFixture(wire))
-  Object.assign(message,{status:'received',requires_contrl:true,requires_aperak:true,contrl_status:'pending',aperak_status:'pending',utilts_err_status:'pending'})
-  port.io=createUtiltsFinalValidationIo() as never
-  seedActor()
-  port.tables.ediel_messages=[structuredClone(message) as unknown as Row]
-  port.tables.tenant_actor_identifiers=[{company_id:company,environment:'test',identifier_type:'EdielId',identifier_value:'21660',valid_from:'2020-01-01T00:00:00Z',valid_to:null}]
-
-  const failure=await processInboundEdifactMessage({actorUserId:UTILTS_FIXTURE_ACTOR,message:message as EdielMessageRow}).catch((error:unknown)=>error)
+  const {message,failure}=await runFailingInbound()
   // The real chain reached the persist RPC with the correct accepted transaction, and its error propagated unchanged.
   expect(failure).toBeInstanceOf(Error)
   expect((failure as Error).message).toBe('utilts_transaction_persistence_failed:could not serialize access')
@@ -152,27 +156,40 @@ describe('SC-054 storage failure blocks the positive APERAK',()=>{
   expect((port.tables.ediel_messages??[]).filter(row=>row.direction==='outbound')).toEqual([])
  })
 
- it('the real inbound registration keeps the unacknowledged APERAK under its deadline and reports it overdue',async()=>{
-  seedActor()
-  const raw=energyHandoffMessage('2026-10-15').raw_payload!
+ it('the failed source keeps its APERAK deadline timer; the real sweep expires it without any ACK',async()=>{
   vi.useFakeTimers({toFake:['Date']})
   try{
-   const receivedAt='2026-10-11T08:00:00.000Z';vi.setSystemTime(new Date(receivedAt))
-   await registerEdielFile({actorUserId:UTILTS_FIXTURE_ACTOR,direction:'inbound',rawPayload:raw,mode:'tgt',companyId:company,
-    ownActorEdielId:'21660',testPortalEdielId:'91100'})
-   const stored=(port.tables.ediel_messages??[]).filter(row=>row.direction==='inbound')
-   expect(stored).toHaveLength(1)
-   const row=stored[0] as unknown as EdielMessageRow
-   expect(row).toMatchObject({message_family:'UTILTS',message_code:'E66',requires_aperak:true,aperak_status:'pending'})
-   expect(row.ack_due_at).not.toBeNull()
-   expect(Date.parse(row.ack_due_at!)).toBeGreaterThan(Date.parse(receivedAt))
-   // UTILTS E66 also requires CONTRL; once the CONTRL is received, the stored row awaits the APERAK.
-   expect(getCanonicalAckState(row)).toBe('awaiting_contrl')
-   const contrlReceived={...row,contrl_status:'received' as const}
-   expect(getCanonicalAckState(contrlReceived)).toBe('awaiting_aperak')
-   vi.setSystemTime(new Date(Date.parse(row.ack_due_at!)+1))
-   expect(getCanonicalAckState(contrlReceived)).toBe('ack_overdue')
-   expect(getCanonicalAckState(row)).toBe('ack_overdue')
+   const receivedAt='2026-10-15T20:00:00.000Z';vi.setSystemTime(new Date(receivedAt))
+   const {message,failure}=await runFailingInbound()
+   expect((failure as Error).message).toBe('utilts_transaction_persistence_failed:could not serialize access')
+   // The pipeline created the aperak_due timer before the persist failure, and the failure left it open.
+   const timers=(port.tables.ediel_sla_timers??[]).filter(row=>row.ediel_message_id===message.id&&row.timer_type==='aperak_due')
+   expect(timers).toHaveLength(1)
+   const timer=timers[0]
+   expect(timer).toMatchObject({company_id:company,status:'open'})
+   const dueAt=Date.parse(String(timer.due_at))
+   expect(dueAt).toBeGreaterThan(Date.parse(receivedAt))
+   const sweepEvents=()=>(port.tables.ediel_message_events??[]).filter(row=>row.ediel_message_id===message.id
+    &&String(row.message??'').startsWith('Ediel SLA timer is now'))
+   // Before due: the real sweep finds no completion and emits nothing for the APERAK timer.
+   vi.setSystemTime(new Date(dueAt-11*60_000))
+   const before=await checkAckDeadlines({actorUserId:UTILTS_FIXTURE_ACTOR,companyId:company})
+   expect(before).toEqual({warning:0,critical:0,expired:0,updated:0})
+   expect(timer.status).toBe('open')
+   expect(sweepEvents()).toEqual([])
+   // After due: the timer expires (overdue) and an error event records it.
+   vi.setSystemTime(new Date(dueAt+1))
+   const after=await checkAckDeadlines({actorUserId:UTILTS_FIXTURE_ACTOR,companyId:company})
+   expect(after.expired).toBeGreaterThanOrEqual(1)
+   expect(timer.status).toBe('expired')
+   expect(sweepEvents()).toContainEqual(expect.objectContaining({event_status:'error',
+    payload:expect.objectContaining({timerId:timer.id,timerType:'aperak_due',status:'expired'})}))
+   // The source message itself reads as overdue at that time.
+   const source=(port.tables.ediel_messages??[]).find(row=>row.id===message.id) as unknown as EdielMessageRow
+   expect(getCanonicalAckState({...source,ack_due_at:String(timer.due_at)})).toBe('ack_overdue')
+   // No positive APERAK or any ACK at any point.
+   expect(port.ack).not.toHaveBeenCalled()
+   expect((port.tables.ediel_messages??[]).filter(row=>row.direction==='outbound')).toEqual([])
   }finally{vi.useRealTimers()}
  })
 
