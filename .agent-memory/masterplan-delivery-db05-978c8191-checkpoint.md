@@ -1,5 +1,13 @@
 # Fixed E delivery preflight and DB05 component qualification
 
+## Actual main and active-board correction — 2026-10-11 15:37 UTC
+
+TAKEN: same own DB05 packet a934428c-75bc-4b23-a063-4a0a65a1e809, frozen PR765 b4545a4a/treeace8, seven exact implementation reservations8d+c951 and original CLAIMs retained. No next implementation packet, role acquisition, merge or release has occurred.
+
+DONE/EVIDENCE: fresh dependencies verification and root git fetch confirm actual main9d58d0b6a12e67ed26cd4395658a46ca805bb888/tree2b035f880298f3f9a289caab83746e05149d6ef3, orderedparentsd00+1f346. PR767 actually merged15:07:39Z; MERGED6110407609/RELEASE6110410155 and explicit BOARD_TRANSITION6110433111 on673 qualify #766 as the active board. New receipts go ONLY766; historical links/bodies673/530 remain evidence. Current main AGENTS/startup/wrappers/queue read. d00→9d58 has exactly11 documentation/memory paths, no SQL/GEN/test/workflow/product/environment changes. Conflict-free expected normal765merge tree d67f63b430f2bb0a7f9c55fc76848aa856a1ae9a preserves currentmain docs and frozen delivery. Two independent affected-composition reviewers are verifying this comparison. Earlier d00 is the historical DB/source base, not the current delivery main pin.
+
+BLOCKER/NEXT: sole CI collector closed15:20–15:30 window with actual15:31:15 snapshot25SUCCESS+10conditionalSKIP+2IN_PROGRESS, no FAIL; only clean114497220077 and certificate114505136101 remain. Snapshot fe30fc49a7c355f179dbe01586407c814d969b6eb714b11e2ca7ecf1b9a141f3, bounded receipt4b0acf966c18d252758c374f3e18741ba4c836ffdc64df62147997e3cc104f76. Continue sole bounded15:33–15:43 watch, no second metadata/log/archive/native producer. Before actual delivery, rebind only affected source/composition reviews and prepared controls to9d58/tree2b035/expectedmerge d67f/#766, preserving frozen b454 CI matrix and existing meaningful proof. Fresh runtime preflight, immediately-free own merge-role/CLAIM, ordinary expected-head merge, authenticated parents/tree, role-FIRST then seven exact-owner DELETE/404 remain necessary. Own source-worktree cleanup is read-only preparation until authenticated delivery/release.
+
 ## Actual conditional workflow qualification and final tool rebind — 2026-10-11 15:25 UTC
 
 DONE/EVIDENCE: actual finalb454 SMOKE114499874922/run38148643222 completedSUCCESS, collector15:17:46 and root same-metadata-file readback; the old GEN-tail failure is genuinely green on currenthead. At15:23:14 observed24SUCCESS/10conditionalSKIP/2IN_PROGRESS/0FAIL, allnativefeedback and OPSupgradeSUCCESS; coverage/cleanreplay and dependentPRcertificate remain. No oldfdce failurecause retroactively invented.
