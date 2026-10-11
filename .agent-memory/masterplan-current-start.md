@@ -12,7 +12,11 @@ Coordination: [#766](https://github.com/heke99/gridex-ops-platform/issues/766) i
 
 Prior 9adb coverage observation (retained): Coverage is **313/352: 118/121 VERIFIED rules and 195/231 PASSED contracts; 39 remain (3 rules +36 contracts)**. Remaining rules: TR-08, DB-05, OPS-04. DB-01/AT-DB-01 are approved by actual [#743 delivery](https://github.com/heke99/gridex-ops-platform/pull/743); P-08/TR-09 remain approved. Preserve delivered source-bound evidence. No native/component result or administrative cleanup promotes whole IDs. Whole acceptance, legal/external input, deployment and counterparty acceptance remain separate.
 
+Prior dated #744 guide-gap observation (retained):
+
 The [completed #744 original-guide gap read](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6112469588) leaves repeated STS+8 UNDECIDABLE and preserves 017f's existing normative owner disposition. It transfers no SQL/TS/tests/native/whole or PR-delivery custody and adds no documentation/handoff condition to original 017f or C continuation. Reuse its exact source-locator gap rather than repeat the collection.
+
+Later [original-owner disposition6112774111](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6112774111), 2026-10-11T19:22:25Z, resolves that guide question in source `3ea037be`: repeated STS+8 under one QTY is guide-invalid, including identical repeats, and the existing guide check returns ERC42/field520 without an RPC. The migration/checksum is unchanged. The earlier UNDECIDABLE observation is historical, not a current guide blocker or a request to recollect the guide. Current affected re-review, C's qualified GEN/checksum import and actual current-head gates remain required; no whole approval or custody transfer follows from this disposition.
 
 Read [README](README.md), its six short startup wrappers, your own uniquely named checkpoint, [owner-action queue](masterplan-work-queue.md), unchanged [workflow](masterplan-agent-workflow.md) and [reservations](masterplan-reservations.md). Preserve all literal legacy requirements in [register](masterplan-legacy-pr-register.json). The prior huge six startup files are byte-preserved in [history](history/20261010-before-startup-cleanup/README.md), with original-path immutable links and a hash/blob manifest.
 
