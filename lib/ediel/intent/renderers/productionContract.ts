@@ -32,7 +32,7 @@ export async function buildProductionContractDraft(input: { actorUserId: string;
     messages: [{ messageReference: i.messageReference, messageTypeToken: prodatMessageTypeToken(version), businessSegments: rendered.segments }] })
   const draft: CreateEdielMessageInput = { actorUserId: input.actorUserId, companyId: b.companyId, intentId: i.id, sourceOperationId: b.eventId,
     routeProfileId: i.routeProfileId, direction: 'outbound', messageStandard: 'edifact', messageFamily: 'PRODAT', messageCode: 'Z09', messageVersion: version,
-    processType: 'customer_masterdata', environment: b.environment, testFlag: b.environment === 'test' ? 1 : 0, status: 'draft', transportType: 'smtp', mailbox: route.mailbox,
+    processType: 'masterdata', environment: b.environment, testFlag: b.environment === 'test' ? 1 : 0, status: 'draft', transportType: 'smtp', mailbox: route.mailbox,
     senderEdielId: route.senderEdielId, senderName: route.senderName, senderSubAddress: route.senderSubAddress, receiverEdielId: route.receiverEdielId,
     receiverName: route.receiverName, receiverSubAddress: route.receiverMessageSubAddress ?? route.receiverSubAddress, receiverEmail: route.receiverEmail,
     communicationRouteId: route.route.id, outboundRequestId: input.outboundRequestId, customerId: b.customerId, siteId: b.siteId, meteringPointId: b.meteringPointId,

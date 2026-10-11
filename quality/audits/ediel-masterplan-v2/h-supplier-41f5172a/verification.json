@@ -1,0 +1,524 @@
+{
+  "status": "QUALIFIED",
+  "qualification_script_sha256": "1e553dc807e4845a0dc331be7a66101099fa65db020e2e8fa9c7014fc2987799",
+  "scope": "Internal H CODE acceptance only; real issuer/counterparty/market activation and deployment are separate.",
+  "head": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+  "tree": "a285593d6bd89d8d7514de722f8722c33e2678f8",
+  "run": 38095758584,
+  "attempt": 1,
+  "job": 114341192257,
+  "artifact": 11686431504,
+  "zip_bytes": 239951,
+  "zip_sha256": "949ae4e5ed3cf042d9ebb6458da21ec7049b8007f530ccf702364ea4b1212099",
+  "input_count": 4592,
+  "test_scope": [
+    "scripts/ediel-at-z03h-z04h-supplier-native.test.ts"
+  ],
+  "tests": 100,
+  "passed": 100,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 0,
+  "crc": "PASS",
+  "complete_input_hashes": "PASS",
+  "declared_boundaries": {
+    "ordinary_required_gates": "NOT_REPLACED",
+    "schema_capture": "NOT_RUN",
+    "browser_tests": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN",
+    "authentic_market_evidence": "NOT_PROVIDED"
+  },
+  "member_sha256": {
+    "native-junit.xml": "f08547d88416f7cf01ad1203fba291603f00f30266317417c3ce7086688a06a6",
+    "native.log": "08d77b9b27373d243588b0ec4902d985871111c28232a83bd903dd6c2f798e92",
+    "receipt.json": "c645b99a11ec3a407703cfe64a9cefb71f06be4fa145c01b6abf096b5406d1d0"
+  },
+  "api_provenance": {
+    "artifact_name": "ediel-z03h-z04h-supplier-native-a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+    "artifact_workflow_run_id": 38095758584,
+    "artifact_head_sha": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+    "artifact_digest": "sha256:949ae4e5ed3cf042d9ebb6458da21ec7049b8007f530ccf702364ea4b1212099",
+    "run_head_sha": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+    "run_attempt": 1,
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "run_event": "pull_request",
+    "run_path": ".github/workflows/ediel-z03h-z04h-supplier-native.yml",
+    "job_head_sha": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+    "job_run_id": 38095758584,
+    "job_run_attempt": 1,
+    "job_name": "z03h-z04h-supplier-native",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "execution_step_conclusion": "success",
+    "upload_step_conclusion": "success"
+  },
+  "census": [
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "actual native H catalog component only; no admission or bilateral authority > returns exactly six installed catalog witnesses equal to the independent current RPC"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "actual native H catalog component only; no admission or bilateral authority > uses actual physical later-register inheritance without a repeated reason"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "actual native H catalog component only; no admission or bilateral authority > qualifies neither a mixed object reason nor malformed physical object209"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "actual native H catalog component only; no admission or bilateral authority > requires the actual UNH association to equal its independently selected catalog"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > applies only the archived own H transition after SMTP request acceptance, then physical ACK and durable replay"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > known Z25 and catalog alone cannot originate an H request without the actual archived profile"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > archive without independent review remains unable to originate the H request"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > rejected separate review authorizes no default H business transition"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R311 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R312 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R202 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R203 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R313 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R205 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R206 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R207 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R208 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R314 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R209 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R210 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R217 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R223 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R260 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R261 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R226 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R227 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R228 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R231 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R232 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R316 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z03 R262 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R311 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R312 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R202 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R203 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R313 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R205 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R206 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R207 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R208 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R314 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R209 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R210 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R508 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R213 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R217 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R306 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R222 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R223 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R254 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R242 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R224 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R260 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R226 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R227 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R228 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R231 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R232 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R316 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R233 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R234 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > Z04 R262 missing is a native registry field refusal with no business/provider effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > selected actual Z04 IV parent activates child 250 and refuses its omission"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > selected actual Z04 IV parent activates child 251 and refuses its omission"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > selected actual Z04 IV parent activates child 252 and refuses its omission"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > selected actual Z04 IV parent activates child 253 and refuses its omission"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > selected actual Z04 IV parent activates child 317 and refuses its omission"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > selected actual Z04 IV parent activates child 318 and refuses its omission"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > actual source-selected Z03 IT makes child 233 mandatory before another original can persist"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > actual source-selected Z03 IT makes child 234 mandatory before another original can persist"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > public caller selection renders Z03 IV250 and blocks a malformed derivative original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > public caller selection renders Z03 IV251 and blocks a malformed derivative original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > public caller selection renders Z03 IV252 and blocks a malformed derivative original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > public caller selection renders Z03 IV253 and blocks a malformed derivative original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > public caller selection renders Z03 IV317 and blocks a malformed derivative original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > public caller selection renders Z03 IV318 and blocks a malformed derivative original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > outbound D229 has actual protected available customer source before malformed persistence is refused"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > incoming D229 is refused when its genuine accepted original independently supplies available own address"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > actual two-register Z04 inheritance makes each declared physical subline258 necessary"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > fresh incoming H from a genuinely known SUPPLIER issuer cannot borrow the original DSO scope"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > expiry of the actual SUPPLIER recipient role before a fresh H birth cannot rewrite the old ready source or authorize a new effect"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > rejects immutable original raw_payload mutation at its actual public SQL guard"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > rejects immutable original direction mutation at its actual public SQL guard"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > rejects immutable original environment mutation at its actual public SQL guard"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > a genuine outbound original is never interpreted as the incoming H confirmation"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > the same archived test profile cannot authorize a production-environment original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > fresh Z04 with wrong own LI cannot borrow the accepted H original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > fresh Z04 with wrong own customer cannot borrow the accepted H original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > fresh Z04 with wrong own start cannot borrow the accepted H original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > fresh Z04 wrong own point fails the current profile physical scope without business effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > fresh Z04 wrong own grid fails the current profile physical scope without business effects"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > a genuine foreign-company executor cannot apply the own bilateral source"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > received H raw_payload is immutable before and after its actual source read"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > received H direction is immutable before and after its actual source read"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H actual public chain proposals; whole NOT_EXECUTED > received H environment is immutable before and after its actual source read"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H original ACK receipt and current archive authority proposals > receives physical CONTRL and APERAK for the SMTP-accepted own Z03 without confirming supply, then replays immutable receipts"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H original ACK receipt and current archive authority proposals > denying the public separate reviewer grant removes current profile authority for a fresh H source without rewriting archive or history"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H outgoing supplier role proposal > requires the current scoped SUPPLIER role before H qualification or original idempotent reuse"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H outgoing current-review authority and explicit controlled agreement proposals > withdrawal of the public reviewer grant prevents fresh H qualification and origination while preserving the sent original"
+    ],
+    [
+      "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+      "H outgoing current-review authority and explicit controlled agreement proposals > archives newly signed explicit controlled H agreement bytes and executes their current technical watches and own confirmation transition"
+    ]
+  ],
+  "contracts": [
+    "AT-Z03H-SUPPLIER",
+    "AT-Z04H-SUPPLIER"
+  ],
+  "frozen_acceptance_register_sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+  "finite_behavioral_verification": {
+    "source": "b61cd3132fcfc529b4effa89d909d82166914a66",
+    "tests": 89,
+    "passed": 89,
+    "failed": 0,
+    "skipped": 0,
+    "suites": [
+      "__tests__/ediel-bilateral-prodat-switch-preparation.test.ts",
+      "__tests__/ediel-bilateral-prodat-outbound-draft.test.ts",
+      "__tests__/ediel-prodat-bilateral-source-capability.test.ts",
+      "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts"
+    ],
+    "applicability": "89 passing finite cases executed at b61; all four finite bodies byte-identical at a6. The native comment replaces one blank line; every original nonblank assertion and fixture is unchanged. Fresh complete H native100 executes the current #732 source/schema."
+  },
+  "criteria": {
+    "wire": "Actual 23-DDQ-PRODAT physical Z03/Z04 with reason223=Z25 and exact own fields.",
+    "current_profile": "New explicit controlled agreement bytes and signed hash are archived, separately reviewed, read back unchanged and bound to current own tuple/contract hash/source grammar.",
+    "explicit_process": "Actual public origination, accepted SMTP technical watch and retained incoming technical watch (30min); physical CONTRL/APERAK and own Z04 confirmation/period/transition receipts; no premature activation or ordinary L/LK business timer.",
+    "no_automatic_standard_effect": "Absent archive, rejected review or current permission withdrawal refuses business authority and preserves history/own originals.",
+    "role_direction_environment_tenant": "Revoked sender/receiver role, foreign executor, wrong direction and test-profile production refusal preserve business state.",
+    "required_dependent_fields": "Frozen independent required lists and selected-parent D fields call real protected owners, public retained intake, runtime/processor and prescribed physical negative ACK paths; missing209/314 uses required-field source owner, missing311 uses permanent-negative-header owner.",
+    "correlation_mutation": "Wrong own LI/customer/date/point/grid, copied markers, raw/direction/environment mutation and stale/current-profile tuple refusal cannot commit the transition.",
+    "replay": "Actual durable business/ACK/original snapshots remain stable through sequential and concurrent replay."
+  },
+  "preserved_archive": "native-a6f7acab.zip",
+  "baseline": {
+    "head": "b61cd3132fcfc529b4effa89d909d82166914a66",
+    "tree": "43e258aa3f2e945da2bf2589f81eb9912bcbc7f1",
+    "run": 38093935849,
+    "attempt": 1,
+    "job": 114335822220,
+    "artifact": 11685827427,
+    "zip_bytes": 239810,
+    "zip_sha256": "00bff7ebb5b0c6a4e4032f9a3623768ed32c3875e22b6a2d24b5f5e8c76d7627",
+    "input_count": 4590,
+    "tests": 100,
+    "passed": 100,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0,
+    "preserved_archive": "native-b61cd313.zip",
+    "applicability": "Historical b61 before main#732; preserved separately, not used as current execution."
+  },
+  "whole_source_review": {
+    "source": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+    "independent_readers": [
+      "h_contract_reconciliation",
+      "h_existing_pr_review"
+    ],
+    "critical": 0,
+    "important": 0,
+    "status": "FULL_LITERAL_SOURCE_PATH_ASSERTIONS_AND_SAME_ORIGINAL_EXECUTION_APPROVED; FINAL_COVERAGE_DELTA_AND_CURRENT_HEAD_CI_SEPARATE",
+    "reports": {
+      "source-r2-review1.json": "e3fc04bfc76e48a136c4bfa0dc2dacb3f2d1e7fb5013109d83e98ab24841358d",
+      "source-r2-review2.json": "dd3766a58f66ec6daa40d93e0eb74541f691ca69a2b96a202ff606e2c6bf8017",
+      "h-native-r2-review1.json": "b740264444ea935fbb3a8215df39226db1f969fa0fd45336b5735b41eaa33d12",
+      "h-native-r2-review2.json": "7ce0457f1d444909c18b98f9daeec60fbf394159c23e554f28647cc35400896e"
+    },
+    "coordination_receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103702402"
+  },
+  "applicability": "Authentic a6 native execution after delivered main#732. All4592 collector source/schema/test/helper/doc/config inputs must remain byte-identical for this proof to apply to a later coverage/evidence-only head. Mandatory CI and final independent delta reviews must pass for that exact later head; external market/activation/deployment remain separate."
+}
