@@ -1426,3 +1426,156 @@ for(const mode of ['V','VH'] as const){
   expect(business(f,p)).toEqual(before);await noAccess(f,p);checkSentinel()
  },120000)
 }
+
+// National denial has no physical installation. Keep the original thirty
+// cases (including their positive installation assertions) unchanged above.
+function nationalDenial(f:Fixture,p:Pending,status:'A13'|'A76'){
+ const rendered=renderProdat({code:'Z14',variant:'N',mode:'test',
+  actor:{senderEdielId:f.receiver,receiverEdielId:f.sender},route:{applicationReference:f.app},
+  version:{selectedVersion:'E2SE6A',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A'},
+  context:{code:'Z14',customerName:'',meterPointId:'',bgmReference:randomUUID().replaceAll('-','').slice(0,20),
+   transactionReference:p.li,senderEdielId:f.receiver,receiverEdielId:f.sender,legalSenderId:f.receiver,
+   legalReceiverId:f.sender,reasonForTransaction:'Z96',permissionStatus:status}})
+ expect(rendered.issues.filter(x=>x.severity==='error'&&!/_UNDETERMINED$/.test(x.code)),JSON.stringify(rendered.issues)).toEqual([])
+ const raw=EdifactEnvelopeCodec.encode({sender:f.receiver,receiver:f.sender,applicationReference:f.app,
+  interchangeReference:randomUUID().replaceAll('-','').slice(0,14),environment:'test',acknowledgementRequest:true,
+  messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:rendered.segments}]})
+ const wire=tokenizeEdifact(raw),segments=wire.segments
+ expect(segmentComposite(segments.find(s=>s.tag==='BGM'),1,wire.una)[0]).toBe('Z14')
+ expect(segments.filter(s=>s.tag==='LIN').map(s=>s.raw)).toEqual(['LIN+1'])
+ expect(segments.filter(s=>s.tag==='DGI').map(s=>s.raw)).toEqual(['DGI+23-DGI-PRODAT'])
+ for(const value of ['Z96',status])expect(segments.filter(s=>s.tag==='CAV'&&segmentComposite(s,1,wire.una)[0]===value)).toHaveLength(1)
+ expect(segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='LI')
+  .map(s=>segmentComposite(s,1,wire.una)[1])).toEqual([p.li])
+ expect(segments.some(s=>s.tag==='NAD'&&['UD','IT'].includes(segmentComposite(s,1,wire.una)[0]??''))).toBe(false)
+ expect(segments.some(s=>s.tag==='RFF'&&['Z05','Z09'].includes(segmentComposite(s,1,wire.una)[0]??''))).toBe(false)
+ expect(segments.some(s=>s.tag==='DTM'&&['91','92','171','206','693'].includes(segmentComposite(s,1,wire.una)[0]??''))).toBe(false)
+ return raw
+}
+
+async function committedDenialReplies(f:Fixture,p:Pending,source:EdielMessageRow,previous:FullRow[],contrlProfile:string,objectProfile:string,receipt:FullRow){
+ const after=fullOutbox(f),added=retainedRows(previous,after)
+ expect(added).toHaveLength(2)
+ expect(added.map(row=>row.message_family).sort()).toEqual(['APERAK','CONTRL'])
+ const wire=tokenizeEdifact(source.raw_payload!),line=wire.segments.find(s=>s.tag==='LIN')!,sourceEnvelope=EdifactEnvelopeCodec.decode(source.raw_payload!)
+ const replies=sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.id),'[]') FROM public.ediel_messages m
+  WHERE company_id=${lit(f.ids.company)} AND direction='outbound' AND related_message_id=${lit(source.id)}`)
+ expect(replies).toHaveLength(2)
+ expect(replies.map(row=>row.id).sort()).toEqual(added.map(row=>String(row.ediel_message_id)).sort())
+ for(const queue of added){
+  expect(queue).toMatchObject({company_id:f.ids.company,environment:'test',source_message_id:source.id,ack_outcome:'positive',status:'queued',attempts:0})
+  const ack=(await getEdielMessageById(String(queue.ediel_message_id)))!
+  expect(ack).toMatchObject({company_id:f.ids.company,environment:'test',direction:'outbound',related_message_id:source.id,
+   message_family:queue.message_family,ack_outcome:'positive',route_profile_id:queue.message_family==='CONTRL'?contrlProfile:objectProfile})
+  const envelope=EdifactEnvelopeCodec.decode(ack.raw_payload!),physical=readPhysicalAckSourceCorrelation(ack,source)
+  expect([envelope.sender,envelope.receiver,envelope.applicationReference]).toEqual([f.sender,f.receiver,f.app])
+  expect(physical.classification.outcome).toBe('positive')
+  if(ack.message_family==='CONTRL'){
+   expect(physical.scope).toBe('interchange');expect(physical.acknowledgedReferences).toEqual([sourceEnvelope.interchangeReference])
+   expect(envelope.segments.some(s=>s.tag==='BGM')).toBe(false)
+  }else{
+   expect(physical.scope).toBe('object')
+   expect(physical.lookupReferences).toContainEqual({type:'BGM_REF',value:segmentComposite(wire.segments.find(s=>s.tag==='BGM'),2,wire.una)[0]})
+   expect(physical.prodatObjectOutcomes).toEqual([{objectId:null,identityAgency:null,firstLineIndex:line.index,lineItemReference:p.li,outcome:'positive'}])
+   expect(envelope.segments.filter(s=>s.tag==='BGM').map(s=>s.raw)).toEqual(['BGM+++34'])
+   expect(envelope.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,envelope.una)[0])).toEqual(['100'])
+   const arrival=new Date(Date.parse(source.message_received_at!)+3600000).toISOString().replace(/[-:T]/g,'').slice(0,12)
+   expect(envelope.segments.filter(s=>s.tag==='DTM'&&segmentComposite(s,1,envelope.una)[0]==='178')
+    .map(s=>segmentComposite(s,1,envelope.una))).toEqual([['178',arrival,'203']])
+  }
+  expect(sql(`SELECT to_jsonb(immutable_payload_hash) FROM public.ediel_messages WHERE id=${lit(ack.id)}`)).toBe(hash(ack.raw_payload!))
+ }
+ expect(sql<FullRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o
+  WHERE source_message_id=${lit(source.id)}`)).toEqual(added)
+ const plan=await readReceivedProdatFinalResponsePlan({companyId:f.ids.company,sourceMessageId:source.id,rawPayload:source.raw_payload!})
+ expect(plan?.plans).toHaveLength(1)
+ expect(plan!.plans[0]).toMatchObject({effectKind:'metering_permission',outcome:'positive',objectLineIndices:[line.index],
+  effectReceiptId:receipt.id,canonicalAssessmentId:receipt.canonical_assessment_id})
+ return {outbox:after,replies}
+}
+
+for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A76','rejected_passive_timeout']] as const){
+ it(`${mode}: public Z14N ${status} after actual request ACKs denies consent with positive processing ACKs and no access; immutable replay`,async()=>{
+  const {f,p,contrlAckProfile,objectAckProfile,checkSentinel}=await request(mode,true)
+  expect(objectAckProfile).toBeTruthy()
+  for(const family of ['CONTRL','APERAK'] as const){
+   const ack=await intake(f,p,counterpart(p,family))
+   expect(await consume(f,ack)).toMatchObject({kind:'exact_receipt',sourceMessageId:p.z13.id,
+    result:{outcome:'positive',sourceAccepted:family==='APERAK',finalAckReached:family==='APERAK'}})
+  }
+  const waiting=await permission(f,p),before=business(f,p),queues=fullOutbox(f)
+  expect(waiting.status).toBe('waiting_for_customer_approval');await noAccess(f,p);checkSentinel()
+  const sqlPermission=()=>sql<FullRow>(`SELECT to_jsonb(mp) FROM public.metering_permissions mp WHERE company_id=${lit(f.ids.company)} AND id=${lit(p.permissionId)}`)
+  const sqlSites=()=>sql<FullRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.metering_permission_sites s
+   WHERE company_id=${lit(f.ids.company)} AND metering_permission_id=${lit(p.permissionId)}`)
+  const previousPermission=sqlPermission(),previousSites=sqlSites(),original=(await getEdielMessageById(p.z13.id))!,ackReceipts=ackState(f,p)
+  expect(previousSites).toEqual([])
+  const raw=nationalDenial(f,p,status),source=await intake(f,p,raw)
+  expect(business(f,p)).toEqual(before)
+  const {resolvePermissionReportingBirthProfile}=await import('@/lib/inbound-mail/permissionReportingBirthProfile')
+  // Read the catalog only as an assertion after actual public receipt birth.
+  const born=await resolvePermissionReportingBirthProfile({rawPayload:raw,receivedAt:source.message_received_at!})
+  expect(born).not.toBeNull();expect(born!.rule_profile_key).toBe('PRODAT:Z14:N:26.A:r3')
+  for(const [key,value] of Object.entries(born!))expect((source as unknown as FullRow)[key]).toEqual(value)
+  const foreignBefore=refusalLedger(f).foreign,producerBefore=producerState(f)
+  const sends=nativeEscoExternal.send.mock.calls.length
+  // First business/domain invocation is the actual public processor.
+  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
+  const denied=await currentPermission(f,p),next=sqlPermission(),reason=mode==='V'?'S17':'S18',after=business(f,p)
+  expect(denied).toMatchObject({status:deniedStatus,source_z13_message_id:p.z13.id,outbound_z13_message_id:p.z13.id,
+   source_z14_message_id:source.id,inbound_z14_message_id:source.id,customer_id:f.ids.customer,rff_li_reference:p.li,
+   approved_start_date:null,approved_end_date:null,approved_start_at:null,approved_end_at:null,product_code:null,
+   report_frequency:null,last_blocker:'source_z14_denied_'+status,updated_by:f.ids.actor})
+  const allowed=['status','source_z14_message_id','inbound_z14_message_id','approved_start_date','approved_end_date',
+   'approved_start_at','approved_end_at','product_code','report_frequency','last_blocker','metadata','market_state_version','updated_at','updated_by']
+  const immutable=(row:FullRow)=>Object.fromEntries(Object.entries(row).filter(([key])=>!allowed.includes(key)))
+  expect(immutable(next)).toEqual(immutable(previousPermission))
+  expect(Number(denied.market_state_version)).toBe(Number(waiting.market_state_version??0)+1)
+  expect(Number.isFinite(Date.parse(denied.updated_at!))).toBe(true)
+  expect(Date.parse(denied.updated_at!)).toBeGreaterThanOrEqual(Date.parse(waiting.updated_at!))
+  const actualWire=sql<{objects:FullRow[]}>(`SELECT gridex_received_sources.permission_partition_wire_v1(${lit(raw)})`)
+  expect(actualWire.objects).toHaveLength(1)
+  expect(actualWire.objects[0]).toMatchObject({point:null,identityAgency:null,reason:'Z96',status,li:p.li})
+  expect(denied.metadata).toEqual({...waiting.metadata as FullRow,marketPermission:{mode:reason,legalActor:f.sender,
+   dsoActor:f.receiver,sourceZ14:source.id,objects:actualWire.objects}})
+  expect(sqlSites()).toEqual(previousSites)
+  const receipts=sql<FullRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_received_sources.permission_effect_receipts r WHERE source_message_id=${lit(source.id)}`)
+  expect(receipts).toHaveLength(1)
+  const receipt=receipts[0]
+  expect(receipt).toMatchObject({source_message_id:source.id,company_id:f.ids.company,permission_id:p.permissionId,
+   payload_hash:hash(raw),actor_user_id:f.ids.actor,qualified_original_message_id:p.z13.id,qualified_expected_message_code:'Z14'})
+  expect(receipt.previous_state).toEqual(previousPermission);expect(receipt.resulting_state).toEqual(next)
+  expect(receipt.previous_sites).toEqual(previousSites);expect(receipt.resulting_sites).toEqual(previousSites)
+  const application=sql<{objects:FullRow[];assessmentId:string}>(`SELECT gridex_received_sources.require_prodat_application_objects_v1(${lit(f.ids.company)},${lit(source.id)})`)
+  expect(application.objects).toHaveLength(1)
+  const {applicationDecision,reasonCodes,...scope}=application.objects[0]
+  expect(applicationDecision).toBe('accepted');expect(reasonCodes).toEqual([])
+  expect(scope).toMatchObject({objectId:null,identityAgency:null,messageIndex:0,messageReference:'1'})
+  expect(receipt.object_scopes).toEqual([scope]);expect(receipt.canonical_assessment_id).toBe(application.assessmentId)
+  const transitionKeys=['source_message_id','company_id','permission_id','payload_hash','previous_state','previous_sites','resulting_state',
+   'applied_at','actor_user_id','resulting_sites','qualified_original_message_id','qualified_expected_message_code']
+  expect(sql<FullRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.source_message_id),'[]') FROM gridex_received_sources.permission_effect_transitions_v1 t
+   WHERE source_message_id=${lit(source.id)}`)).toEqual([Object.fromEntries(transitionKeys.map(key=>[key,receipt[key]]))])
+  expect(continuationInvariant(after,f,p,source.id)).toEqual(continuationInvariant(before,f,p,source.id))
+  expect(refusalLedger(f).foreign).toEqual(foreignBefore)
+  const foreign=(state:ReturnType<typeof producerState>)=>Object.fromEntries(Object.entries(state.foreign)
+   .filter(([key])=>!['public.ediel_message_events','public.ediel_permission_events'].includes(key)))
+  expect(foreign(producerState(f))).toEqual(foreign(producerBefore))
+  const stableReplies=await committedDenialReplies(f,p,source,queues,contrlAckProfile,objectAckProfile!,receipt)
+  expect(await readEdielServiceAdministration({companyId:f.ids.company,actorUserId:f.ids.actor,assignmentId:f.assignment})).toMatchObject({grants:[]})
+  expect((await getEdielMessageById(p.z13.id))!).toEqual(original);expect(ackState(f,p)).toEqual(ackReceipts);checkSentinel()
+  expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
+  const stableProducer=producerState(f),stableLedger=refusalLedger(f),stableSource=(await getEdielMessageById(source.id))!
+  const replayInput=await retained(f,raw)
+  expect(await createInboundEdielMessage(replayInput)).toBe(source.id)
+  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
+  expect(business(f,p)).toEqual(after);expect(await currentPermission(f,p)).toEqual(denied)
+  expect(fullOutbox(f)).toEqual(stableReplies.outbox)
+  expect(sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.id),'[]') FROM public.ediel_messages m
+   WHERE company_id=${lit(f.ids.company)} AND direction='outbound' AND related_message_id=${lit(source.id)}`)).toEqual(stableReplies.replies)
+  expect((await getEdielMessageById(source.id))!).toEqual(stableSource)
+  expect(producerState(f)).toEqual(stableProducer);expect(refusalLedger(f)).toEqual(stableLedger)
+  expect((await getEdielMessageById(p.z13.id))!).toEqual(original);expect(ackState(f,p)).toEqual(ackReceipts)
+  expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends);checkSentinel()
+ },120000)
+}

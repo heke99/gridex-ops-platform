@@ -148,7 +148,7 @@ jobs:
                   'errors':sum(c.find('error') is not None for c in cases),
                   'skipped':sum(c.find('skipped') is not None for c in cases)}
           if native_exit.exists() and int(native_exit.read_text())==0:
-              if counts!={'cases':30,'failures':0,'errors':0,'skipped':0}:
+              if counts!={'cases':32,'failures':0,'errors':0,'skipped':0}:
                   raise RuntimeError('complete_unskipped_z13_boundary_required')
           receipt={'purpose':'supplemental_public_z13_request_received_ack_boundary',
               'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
