@@ -27,3 +27,8 @@ PR → READY on #673 → two independent reviews → green gates incl. TR09 nati
 - Confirmed: T A.3.2.1 requires an administrator alarm for both reserve cases. Alarms are only inserted into private `gridex_transport_exception.alarms`; read RPC `ediel_transport_exception_alarms_v1` (actor_v1 communication.write, service_role) has no product consumer.
 - Action: TR-09/AT-TR-09 rows set to PARTIAL (not VERIFIED/PASSED) in PR735; PR now delivers the ported native proofs only.
 - Next (same TR-09 IDs, new file custody via proxy): tenant-scoped administrator alarm feed calling the existing RPC with current actor; tests for both reserve cases, foreign/unauthorized denial, retry no duplicate, atomic failure; then approve.
+
+## 2026-10-11T00:20Z — administrator alarm feed implemented (receipt 42f7475c, CLAIM 6103491696)
+- New: lib/ediel/transport/exception/administratorAlarms.ts (server-only loader over existing ediel_transport_exception_alarms_v1; strict parse; errors propagate; one alarm per attempt), app/admin/ediel/transport-exception-alarms/page.tsx (requireAdminPageAccess allOf communication.write; fail-closed alert), nav item in tenant Drift group, __tests__/ediel-tr09-administrator-alarms.test.ts.
+- Native: reserve-source test now asserts the product loader for both reserve cases, foreign-company refusal 42501, and still one alarm after accepted retry.
+- Local: new+nav tests 24/24, typecheck + typecheck:tests exit 0, coverage --check exit 0 (approved 304). TR-09/AT-TR-09 VERIFIED/PASSED conditional on tr09-current-native green on this head.

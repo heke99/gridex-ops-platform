@@ -1348,7 +1348,7 @@
     {
       "id": "TR-09",
       "acceptance_id": "AT-TR-09",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "lib/ediel/transport/exception/source.ts",
         "lib/ediel/transport/exception/previousCrl.ts",
@@ -1362,7 +1362,10 @@
         "__tests__/ediel-source-qualified-technical-contrl-admission.test.ts",
         "scripts/ediel-tr-09-reserve-source-native.test.ts",
         "scripts/ediel-tr09-production-family-native.test.ts",
-        ".github/workflows/ediel-tr09-current-native.yml"
+        ".github/workflows/ediel-tr09-current-native.yml",
+        "lib/ediel/transport/exception/administratorAlarms.ts",
+        "app/admin/ediel/transport-exception-alarms/page.tsx",
+        "__tests__/ediel-tr09-administrator-alarms.test.ts"
       ]
     },
     {
@@ -3602,7 +3605,7 @@
     },
     {
       "id": "AT-TR-09",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "lib/ediel/transport/exception/source.ts",
         "lib/ediel/transport/exception/previousCrl.ts",
@@ -3616,7 +3619,10 @@
         "__tests__/ediel-source-qualified-technical-contrl-admission.test.ts",
         "scripts/ediel-tr-09-reserve-source-native.test.ts",
         "scripts/ediel-tr09-production-family-native.test.ts",
-        ".github/workflows/ediel-tr09-current-native.yml"
+        ".github/workflows/ediel-tr09-current-native.yml",
+        "lib/ediel/transport/exception/administratorAlarms.ts",
+        "app/admin/ediel/transport-exception-alarms/page.tsx",
+        "__tests__/ediel-tr09-administrator-alarms.test.ts"
       ]
     },
     {

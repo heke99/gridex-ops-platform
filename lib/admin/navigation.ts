@@ -89,6 +89,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'analytics', label: 'Analys', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
       { key: 'outbound', label: 'Utskick', href: '/admin/outbound', description: 'Extern kommunikation i affärsspråk', pageKey: 'outbound.queue' },
       { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Datakvalitet, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
+      { key: 'transport_exception_alarms', label: 'Larm vid överföring', href: '/admin/ediel/transport-exception-alarms', description: 'Reservförfarande vid saknat certifikat eller spärrlista', requiredPermissions: ['communication.write'] },
     ],
   },
   {

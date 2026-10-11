@@ -14,6 +14,7 @@ import {seedNormalSwitchNativeFixture,nativeSql as sql,literal} from './helpers/
 import {supabaseService} from '@/lib/supabase/service'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {resolveOutboundRecipientCertificate} from '@/lib/ediel/security/outboundRecipientCertificate'
+import {readEdielTransportExceptionAlarms} from '@/lib/ediel/transport/exception/administratorAlarms'
 
 const sha=(value:string|Buffer)=>createHash('sha256').update(value).digest('hex')
 const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
@@ -205,6 +206,10 @@ it('native completed empty X.500 source permits only its exact plaintext origina
  expect(journal(s)).toEqual({events:['prepared','entered','observed'],exact:true,alarm:true});originalUnchanged(s,before)
  const alarms=await rpc('ediel_transport_exception_alarms_v1',{p_company_id:s.f.companyId,p_actor_user_id:s.reviewer})
  expect(alarms).toMatchObject({error:null,data:[expect.objectContaining({messageId:s.m.id,responsibleUserId:s.reviewer,facts:expect.objectContaining({case:s.source.case,mandatoryTls:true,administratorAlarm:true})})]})
+ // T A.3.2.1: the same protected journal reaches the administrator page loader.
+ expect(await readEdielTransportExceptionAlarms({companyId:s.f.companyId,actorUserId:s.reviewer})).toEqual([expect.objectContaining({
+  messageId:s.m.id,responsibleUserId:s.reviewer,reserveCase:s.source.case,knownReserveCase:true})])
+ await expect(readEdielTransportExceptionAlarms({companyId:randomUUID(),actorUserId:s.reviewer})).rejects.toMatchObject({code:'42501'})
 
  // The same valid selector consumes the actual accepted receipt. It cannot
  // spend another budget operation, alarm or SMTP entry. Public projection
@@ -213,6 +218,7 @@ it('native completed empty X.500 source permits only its exact plaintext origina
  expect(await sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})).toEqual(delivered)
  expect(smtp.send).toHaveBeenCalledTimes(1);expect(scopeGraph(s,transportTables)).toEqual(acceptedJournal)
  expect(exactSourceCustody(s,id)).toBe(true);originalUnchanged(s,acceptedWire)
+ expect(await readEdielTransportExceptionAlarms({companyId:s.f.companyId,actorUserId:s.reviewer})).toHaveLength(1)
 
  // A separate canonical original exercises the prepared-attempt budget. Safe
  // public release cancels each reservation before SMTP; it does not refund
@@ -372,6 +378,8 @@ it('native all actual certificate CDPs failing permits the exact expired signed 
  expect(Buffer.from(body,'base64')).toEqual(Buffer.from(s.m.raw_payload!,'latin1'))
  expect(effects(s)).toEqual({approvals:1,operations:1,alarms:1,attempts:1,entries:1})
  expect(journal(s)).toEqual({events:['prepared','entered','observed'],exact:true,alarm:true})
+ expect(await readEdielTransportExceptionAlarms({companyId:s.f.companyId,actorUserId:s.reviewer})).toEqual([expect.objectContaining({
+  messageId:s.m.id,responsibleUserId:s.reviewer,reserveCase:'crl_refresh_failure',knownReserveCase:true})])
  expect(sql(`SELECT to_jsonb(bool_and(binding->'priorCrlSha256'=${literal([sha(expiredCrl)])}::jsonb AND binding->>'certificateAuthorityId'=${literal(s.cache.registrationId)}
  AND binding->'cdpLocations'=${literal(cdps)}::jsonb)) FROM gridex_transport_exception.operations WHERE message_id=${literal(s.m.id)}`)).toBe(true)
  originalUnchanged(s,wire);expect(ownerMembers()).toBe(0)
