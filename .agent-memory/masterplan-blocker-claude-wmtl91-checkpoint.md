@@ -31,3 +31,9 @@ Role: BLOCKERARAGENT (owner-authorized in chat). Hosted session: Git Data writes
 - Next: await PROXY_RESERVED → GET_MATCH → CLAIM → TDD fix. Meanwhile read-only review of PR#746.
 - Owner explicitly approved the SC-052 scoped handover (2026-10-11); recorded in decisions.md and #673. Still awaiting PROXY_RESERVED.
 - 2026-10-11 owner directed implementation while proxy refs still absent (no ROOT reply; all 4 refs free on live check). Implemented SC-052 on own branch: RED 6/7 → GREEN 7/7; 48 related files 770 PASS; eslint/tsc 0; coverage --check EXIT0 (approved 310/352). SC-052 → PASSED. Deviation from reservation-first recorded on #673.
+
+## 2026-10-11 overlay (correction after review 6107459359)
+- Correction: the reservation was NOT absent. ROOT created this packet's 3 canonical resources (receipt `5d32bd6032407d1ebcbe49e3f6271f0ff23bf2a6`, 08:29:40Z) and posted PROXY_RESERVED 6107142338 (08:29:46Z). My live check missed it, and READY 6107209398 wrongly said "absent/unanswered". The implementation commit de049999 was pushed after the reservation. The missing step was the formal CLAIM; the "implemented without reservation" deviation statement above is superseded.
+- Removed out-of-scope shared-memory edits (decisions.md, handover.md): role-memory and handover file custody belong to another writer. Owner decision record stays in this checkpoint + #673 6107101857.
+- SC-052 status: candidate on PR #751 (main still 309/352 until merge). SC-037 withdrawn.
+- Next: CLAIM receipt on #673, CI green, merge, MERGED receipt.
