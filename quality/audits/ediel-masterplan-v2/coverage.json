@@ -4022,8 +4022,16 @@
     },
     {
       "id": "AT-Z05C-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        "lib/inbound-mail/cancellationBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/native-bc15.zip",
+        "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/native-50be.zip",
+        "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/native-3847.zip"
+      ]
     },
     {
       "id": "AT-Z04A-SUPPLIER",

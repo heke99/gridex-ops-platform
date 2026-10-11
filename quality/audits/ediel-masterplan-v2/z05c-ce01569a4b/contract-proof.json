@@ -1,0 +1,294 @@
+{
+  "id": "AT-Z05C-SUPPLIER",
+  "scope": "Frozen single supplier cancellation contract; proposed branch acceptance, not delivered main or external market acceptance",
+  "prepared_at": "2026-10-11T13:29:51.434911+00:00",
+  "owner": "codex-plan-z05c-04ffc7e8-1ef2-4c61-8747-bbd05a2507f2",
+  "packet": "ec12d709-949f-4a17-abc4-96114233a689",
+  "pr": 756,
+  "frozen_acceptance": {
+    "id": "AT-Z05C-SUPPLIER",
+    "name": "Meddelandefall Z05C",
+    "given": "SUPPLIER; Skilj återtag av leveransslut från ESCO Z15C.",
+    "when": "Tidigare meddelat leveransslut återtas.",
+    "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z24; CONTRL och tillämplig APERAK.; Återställ rätt avslutsbeslut efter kontroll; skapa inte duplicerad leveransperiod.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  "frozen_acceptance_row_sha256": "26bc04624a525e8e697a50d7fed6f7b26b26742d8383c9678624ee11e061ebff",
+  "current_original": {
+    "qualified_at": "2026-10-11T13:13:45.285295+00:00",
+    "run": 38137625048,
+    "attempt": 1,
+    "job": 114464649346,
+    "artifact": 11702454867,
+    "archive_sha256": "2f1c496436924cebc1cb8abb96ebab789bd0738c1d90de067ed0b24f64b6e925",
+    "head": "3847d59299349cc85f0605da83deedbafdffd440",
+    "tree": "d918f63c908c14b60a0d76cfde5b15336ef387b8",
+    "source_blobs_exact": 9834,
+    "all_blob_sha256_exact": true,
+    "runtime_changes_declared": {},
+    "total": 31,
+    "passed": 31,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "case_names": [
+      "actual native supplier cancellation chains > keeps requested after actual provider250 and physical ACKs; only causal Z04C completes the own future start",
+      "actual native supplier cancellation chains > restores the same native period from its exact ordinary Z05 end, preserves original history and replays without duplicate replies",
+      "actual native supplier cancellation chains > restoration, physical replies and replay preserve a real nonempty same-tenant permission draft",
+      "actual native supplier cancellation chains > holds public DGI Z15C for the supplier without restoring its end, then only DDQ Z05C restores the same period",
+      "actual native supplier cancellation chains > final partition failure preserves the real nonempty permission draft and rolls back all supply business state",
+      "actual native supplier cancellation chains > a stale cancellation of restored end A cannot restore the current distinct end B",
+      "actual native supplier cancellation chains > refuses raw and direction rewrites of a genuinely received Z05C without changing source, reception or effects",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 226 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 260 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 223 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 227 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 228 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 232 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 231 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 316 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 233 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 234 with its actual national diagnostic",
+      "actual native supplier cancellation chains > holds individually omitted required Z05C field 262 with its actual national diagnostic",
+      "actual native supplier cancellation chains > concurrent invocation of the same received C restores once with one transition and one reply per family",
+      "actual native supplier cancellation chains > a receiver supplier role expired after genuine C reception cannot restore the ending period",
+      "actual native supplier cancellation chains > a genuine foreign execution actor cannot apply the own fresh C source",
+      "actual native supplier cancellation chains > a sender grid-owner role revoked before fresh C reception cannot restore the ending period",
+      "actual native supplier cancellation chains > failure at the final C partition insert rolls back restoration and receipts and records the named held warning",
+      "actual native supplier cancellation chains > holds Z05C li without restoring its real ending decision",
+      "actual native supplier cancellation chains > holds Z05C point without restoring its real ending decision",
+      "actual native supplier cancellation chains > holds Z05C stop without restoring its real ending decision",
+      "actual native supplier cancellation chains > holds Z05C required-date without restoring its real ending decision",
+      "actual native supplier cancellation chains > holds Z05C required-user without restoring its real ending decision",
+      "actual native supplier cancellation chains > holds Z05C selected-invoicee without restoring its real ending decision",
+      "actual native supplier cancellation chains > current sender-role revocation and a foreign actor cannot originate a cancellation of the preserved own original",
+      "actual native supplier cancellation chains > uses actual prospective LK public input at its zero-day cancellation boundary"
+    ],
+    "whole_credit": false,
+    "ordinary_required_gates": "NOT_REPLACED",
+    "current_main_composed_execution": "NOT_PROVIDED",
+    "authentic_market_evidence": "NOT_PROVIDED",
+    "new_case_renderer_assertion": "REACHED_PASSED",
+    "new_case_public_intake": "REACHED_PASSED",
+    "new_case_legal_routing_effect_replay_restoration": "REACHED_PASSED_TEST_ASSERTIONS",
+    "historical_bc15_and_50be_failures": "PRESERVED_SEPARATELY"
+  },
+  "current_original_path": "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/native-3847.zip",
+  "historical_originals": [
+    {
+      "qualified_at": "2026-10-11T10:34:38.955168+00:00",
+      "run": 38129047018,
+      "job": 114439368259,
+      "artifact": 11698304727,
+      "archive_sha256": "4420ec0cfab65b662fbbe5186962e688903ffd7498bcf2b7373c50e7833d7010",
+      "head": "bc15c24eb09e82dddfe923461d17a6e99d655d27",
+      "tree": "cfe2a0098302962d207efb1eeecde1de4414fb9b",
+      "source_blobs_exact": 9829,
+      "all_blob_sha256_exact": true,
+      "runtime_changes_declared": {},
+      "total": 31,
+      "passed": 30,
+      "failed": 1,
+      "failures": [
+        {
+          "name": "actual native supplier cancellation chains > holds public DGI Z15C for the supplier without restoring its end, then only DDQ Z05C restores the same period",
+          "message": "expected 'prodat_z15_permission_ended' to be 'PRODAT:Z15:C:26.A:r3' // Object.is equality",
+          "text": "\nAssertionError: expected 'prodat_z15_permission_ended' to be 'PRODAT:Z15:C:26.A:r3' // Object.is equality\n\nExpected: \"PRODAT:Z15:C:26.A:r3\"\nReceived: \"prodat_z15_permission_ended\"\n\n ❯ z15cForSupplier scripts/ediel-cancellation-public-acceptance-native.test.ts:104:43\n ❯ scripts/ediel-cancellation-public-acceptance-native.test.ts:686:18\n            "
+        }
+      ],
+      "whole_credit": false,
+      "new_case_post_profile_assertions": "NOT_REACHED",
+      "archive_path": "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/native-bc15.zip"
+    },
+    {
+      "qualified_at": "2026-10-11T11:21:51.630622+00:00",
+      "run": 38132781210,
+      "attempt": 1,
+      "job": 114450373985,
+      "artifact": 11700547239,
+      "archive_sha256": "e3ec334928d21fee9d28b6bf1953c30d870d6d3bd08b10ea4931186f29ec901f",
+      "head": "50be797b66571c6073be4110f07fbeb787272cf1",
+      "tree": "2d5f1828045d75d0d4d4cbe41beb09e777deeeb6",
+      "source_blobs_exact": 9829,
+      "all_blob_sha256_exact": true,
+      "runtime_changes_declared": {},
+      "total": 31,
+      "passed": 30,
+      "failed": 1,
+      "errors": 0,
+      "skipped": 0,
+      "failures": [
+        {
+          "name": "actual native supplier cancellation chains > holds public DGI Z15C for the supplier without restoring its end, then only DDQ Z05C restores the same period",
+          "failure": "\nError: native_cancellation_phase:public_intake_Z15C\n ❯ nativePhase scripts/ediel-cancellation-public-acceptance-native.test.ts:118:25\n ❯ scripts/ediel-cancellation-public-acceptance-native.test.ts:687:45\n\nCaused by: Caused by: AssertionError: public_creator_must_return_actual_source: expected 'object' to be 'string' // Object.is equality\n\nExpected: \"string\"\nReceived: \"object\"\n\n ❯ scripts/ediel-cancellation-public-acceptance-native.test.ts:131:67\n ❯ nativePhase scripts/ediel-cancellation-public-acceptance-native.test.ts:117:16\n ❯ scripts/ediel-cancellation-public-acceptance-native.test.ts:687:45\n            "
+        }
+      ],
+      "whole_credit": false,
+      "new_case_renderer_assertion": "REACHED_PASSED",
+      "new_case_public_intake": "RETURNED_NULL_PROFILE_AMBIGUITY_23514",
+      "new_case_legal_routing_effect_restoration_suffix": "NOT_REACHED",
+      "public_error": "canonical_inbound_rule_profile_resolution_failed:PRODAT:Z15:2026-10-11:3",
+      "protected_source_or_private_authority_minted": false,
+      "archive_path": "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/native-50be.zip"
+    }
+  ],
+  "independent_proof_reviews": [
+    {
+      "reviewer": "R1",
+      "sha256": "bf91fcbd37c4793a646810087b58d06d0fe10b55a8adb542063cbfd9439014bc",
+      "verdict": "C0/I0 frozen C05 behavior demonstrated; current gates/delivery/market separate"
+    },
+    {
+      "reviewer": "R2",
+      "sha256": "07aa05694e9e85419e94c1a60979358644d63e326d91f4b10912d9b411ea2b8d",
+      "verdict": "C0/I0 frozen C05 behavior demonstrated; current gates/delivery/market separate"
+    }
+  ],
+  "independent_corrected_source_reviews": [
+    {
+      "reviewer": "R1",
+      "sha256": "2c59ac8071c0368c4655a58d06a1f3b8b2739b524039e72a55eea4d9d5048142",
+      "source": "3847d59299349cc85f0605da83deedbafdffd440",
+      "verdict": "C0/I0"
+    },
+    {
+      "reviewer": "R2",
+      "sha256": "371b0f0c4ea7863fee1f5b98550869f998b19a701dfd5eca25b93595f238ccd5",
+      "source": "3847d59299349cc85f0605da83deedbafdffd440",
+      "verdict": "C0/I0"
+    }
+  ],
+  "criteria": [
+    {
+      "criterion": "SUPPLIER distinguishes withdrawal of supplier end from ESCO Z15C",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        666,
+        723
+      ],
+      "observed": "Whole actual public DGI/Z15C is held under supplier1/ESCO0, immutable legal receipt and both replay attempts have no own/foreign supply/permission/ACK effects. Only subsequent DDQ/Z05C restores the same actual original period."
+    },
+    {
+      "criterion": "Previously communicated end is withdrawn by DDQ/BGMZ05/own223Z24 with actual replies",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        621,
+        665,
+        708,
+        723
+      ],
+      "observed": "Actual public intake and canonical owner apply restore exact Z04-created/Z05-ended period; actual CONTRL/applicable APERAK send and immutable archives."
+    },
+    {
+      "criterion": "Correct end decision, retained history, no duplicate delivery period",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        621,
+        665,
+        708,
+        723,
+        743,
+        764
+      ],
+      "observed": "Exact prior period ID/status/source/end metadata/history/original bytes; exactly one version increment; stale endA cannot restore distinct endB."
+    },
+    {
+      "criterion": "Wrong role, actor, tenant, direction or mutation cannot execute",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        766,
+        788,
+        891,
+        922
+      ],
+      "observed": "Actual role revocation, expired supplier authority, foreign actor and native immutable raw/context guards preserve business state with no accepted effect."
+    },
+    {
+      "criterion": "Applicable missing R/D fields and incorrect physical correlation cannot execute",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        158,
+        206,
+        791,
+        846,
+        944,
+        958
+      ],
+      "observed": "Eleven individual required-field omissions plus physical LI/point/stop/date/customer-parent/selected-IV controls; genuine no-source refusal for missing own223. Finite applicable vectors; not exhaustive P01 whole-rule cell enumeration."
+    },
+    {
+      "criterion": "Replay/concurrent invocation/idempotency and atomic failure preserve effects and history",
+      "source": "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+      "lines": [
+        621,
+        665,
+        717,
+        721,
+        724,
+        741,
+        848,
+        890,
+        924,
+        941
+      ],
+      "observed": "Replay after actual replies and concurrent calls give one transition/reply per family; two genuine final-partition CHECK failures roll back restoration/receipts and retain real nonempty permission drafts."
+    }
+  ],
+  "premises": {
+    "database": "Actual disposable PostgreSQL native replay",
+    "authority": "Constructed tenant/market/role/registry/signed-source/mail inputs",
+    "external_transport": "Declared SMTP/provider double; not authentic external delivery",
+    "permissions": "Actual nonempty drafts, not active ESCO grants",
+    "C05_relevant_cases": 28,
+    "other_cases_excluded_from_C05_credit": 3
+  },
+  "composition": {
+    "main": "b56641304e7edd4d093e304efab482862d2f163a",
+    "merge_head": "71e8f03841044c934860ce5d92e8e5b744b9179f",
+    "merge_tree": "ecc05179d24f95d122893125bf03a250b9affa80",
+    "kind": "Normal conflict-free composition; current native original executed3847, not this newer composition",
+    "existing_source_applicability_review_sha256": "d6018d22f2e7a923acf9ac82838cae3fd69f5d58f2cee047a56c27978fdda0ae",
+    "new_component_checks": {
+      "source": "71e8f03841044c934860ce5d92e8e5b744b9179f",
+      "tree": "ecc05179d24f95d122893125bf03a250b9affa80",
+      "scope": "Affected new current-main imports and source-owner/C05 finite components, not native/market",
+      "test_files": 6,
+      "passed": 241,
+      "failed": 0,
+      "log_sha256": "fe1ed16784a7ee62883018baba101ac93f8a54b1f474acf165bebfd641fdd834",
+      "scoped_typescript": "PASS",
+      "scoped_typescript_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "delivery": {
+    "status": "NOT_DELIVERED",
+    "delivered_main_count_at_preparation": 311,
+    "ordinary_final_head_gates": "REQUIRED",
+    "merge_role": "REQUIRED_SERIAL_OWNER_ONLY",
+    "external_legal_market_live_gates": "NOT_APPROVED",
+    "other_ids": "NOT_APPROVED"
+  },
+  "subsequent_main_applicability": [
+    {
+      "main": "d00ca1266fe0f40349f49d9ddab1bb11d59ba187",
+      "main_tree": "1139a38b8b878433404cff3d99ce621117c383d0",
+      "reviewed_evidence_composition": "36f0384c8cc4fb3d3103f3af2a312a8c93b2eff1",
+      "reviewed_evidence_composition_tree": "43369327d63fcb1b1573ba048ae1a68781713325",
+      "independent_applicability_review_sha256": "cbbb30cf22588a143f1e83cdead9371559a1ac8f49346661065b66d1b9a17dd9",
+      "verdict": "C0/I0 bounded static C05 applicability, not execution of this newer composition",
+      "actual_sql_premise_delta": "The C05 fixture calls gridex_publish_internal_contract_version. Its new private same-offer/company/actor/transaction one-off authorization branch is not used by the ordinary catalog fixture; the absent-authorization branch retains contracts.publish and pricing.publish. Only this publisher and the manual one-off materializer differ among 2166 compared schema functions.",
+      "retained_paths": "All Ediel, actor, receipt, effect and replay functions; TypeScript/import/native test postimages and oracles remain exact. Seven imported foreign paths are exact d00.",
+      "earlier_proof_and_checks": "3847 native and 71e8 component checks retain their original source/tree attribution; neither is relabelled to d00 or the new final head.",
+      "current_composition_native_execution": "NOT_PROVIDED; qualify existing automatic producer and all ordinary current-head gates before delivery",
+      "delivered_main_count": 311
+    }
+  ]
+}

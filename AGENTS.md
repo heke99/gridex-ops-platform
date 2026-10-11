@@ -12,26 +12,27 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 This is a long-lived production project.
 
-## Masterplan coordination board — prepared transition, 2026-10-11
+## Masterplan coordination board — announced transition, 2026-10-11
 
-[#673](https://github.com/heke99/gridex-ops-platform/issues/673) remains the active
-board until this routing update is actually merged and an explicit transition
-receipt is announced on #673. [#766](https://github.com/heke99/gridex-ops-platform/issues/766) is the prepared successor; read its
-single owner/resumption table and GEN queue now as dated planning evidence.
-After both events, new CLAIM/READY/CI_GREEN/BLOCKED/MERGED/RELEASE and bounded
-handover receipts go only to #766. Do not duplicate receipts across boards.
+[#766](https://github.com/heke99/gridex-ops-platform/issues/766) is the active board
+after actual [#767 delivery](https://github.com/heke99/gridex-ops-platform/pull/767)
+and the [explicit transition on #673](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6110433111).
+Read its single owner/resumption table and GEN queue as dated evidence; refresh
+actual sources and custody before action. New CLAIM/READY/CI_GREEN/BLOCKED/MERGED/RELEASE
+and bounded handover receipts go only to #766. Do not duplicate receipts across boards.
 
 Operational posting instructions in older memory files or prompts pointing to
-#530 or #673 then refer to #766. Preserve all original links and evidence:
+#530 or #673 refer to #766. Preserve all original links and evidence:
 [#530](https://github.com/heke99/gridex-ops-platform/issues/530) reached GitHub's
-2,500-comment limit; #673 retains the subsequent original receipts. The channel
+2,500-comment limit; [#673](https://github.com/heke99/gridex-ops-platform/issues/673) retains the subsequent original receipts. The channel
 move grants no scope or release. Exact reservation refs, retained duties, HOLD
 criteria, review/CI, normal merge and verified owner-only release remain unchanged.
 
 Use the [existing portable foundation](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109033320)
 and your recorded fixed-role checkpoint; no second foundation or inherited
-packet is created. Shared-memory publication remains with its verified writer
-under the [existing continuation request](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109005878).
+packet is created. Shared-memory publication requires the verified writer's
+role-memory and exact file custody. The [existing continuation request](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109005878)
+remains dated evidence; actual handover, CLAIM and release receipts determine custody.
 
 ## Autonomous Masterplan roles — owner continuation, 2026-10-08
 

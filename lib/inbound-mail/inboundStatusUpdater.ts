@@ -484,7 +484,7 @@ export async function createInboundEdielMessage(input: {
       : ordinary
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
-  if (input.parsed.messageFamily === 'PRODAT' && (insertPayload.message_code === 'Z04' || insertPayload.message_code === 'Z05')) {
+  if (input.parsed.messageFamily === 'PRODAT' && (insertPayload.message_code === 'Z04' || insertPayload.message_code === 'Z05' || insertPayload.message_code === 'Z15')) {
     const birthProfile = await resolveCancellationBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at, messageCode: insertPayload.message_code })
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }

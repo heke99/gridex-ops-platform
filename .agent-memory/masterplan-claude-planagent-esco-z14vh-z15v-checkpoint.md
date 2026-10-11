@@ -28,3 +28,9 @@
 - Not proven: AT-Z14VH "E66 enligt bekräftade villkor" and "slut via Z15VH"; AT-Z15V "VH slutför historikjobbet, inte separat V-tillstånd". Coverage stays NOT_EXECUTED.
 - Owner decision (2026-10-11): merge #752 when green as test-only delivery; remaining effects in a separate packet (with AT-Z15VH-ESCO after reservation).
 - Next: merge #752 on green; request proxy reservation for AT-Z15VH-ESCO; research agents running on Z15VH, V/VH coexistence and VH E66.
+
+## 2026-10-11 19:05Z — #752 merged, #763 correction
+- MERGED #752 as 12f9368 (test-only; coverage unchanged; receipt #673 6110952472).
+- #763 head d3072383: VH E66 + Z15V/VH separation; restored `fields:['secret']` → ediel_projection_outside_grant after third review (ec54af0..446c47d). Native 14/14 VH.
+- Review binding 6112364301 (corrected in reply to ROOT 6112560362). Active writer remains this agent.
+- Next: new-head CI on d3072383, two bounded reviews, role-merge, MERGED. Z15VH WAITING_DEPENDENCY SC-023.

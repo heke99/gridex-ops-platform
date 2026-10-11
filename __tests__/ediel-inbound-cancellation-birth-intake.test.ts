@@ -10,6 +10,7 @@ import { company, actor, mailId, parseId, oldId, newId, receivedAt, inboundRecep
 const io = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
 const checksum = 'a'.repeat(64)
+const codes = ['Z04', 'Z05', 'Z15']
 function catalogRow(code: string) {
   const profile = { family: 'PRODAT', source: 'canonical-db-rule-pack', messageCode: code,
     guideVersion: '26.A', guideRevision: '3', canonicalDirection: 'inbound',
@@ -21,7 +22,7 @@ function catalogRow(code: string) {
     unh_association_code: 'E2SE6A', valid_from: '2026-04-01', valid_to: null,
     source_document: 'SYNTHETIC DECLARED SDK PORT', source_hash: checksum,
     field_matrix_version: '26A-r3', profile_key: `PRODAT:${code}:C:26.A:r3`,
-    business_process: code === 'Z04' ? 'supplier_switch' : 'supply_end', phase: null, profile,
+    business_process: code === 'Z15' ? 'metering_access' : code === 'Z04' ? 'supplier_switch' : 'supply_end', phase: null, profile,
     parser_ready: true, builder_ready: true, validator_ready: true, ack_ready: true, state_machine_ready: true,
     original_version: '26.A:r3', original_snapshot: {
       rulePack: { id: '11111111-1111-4111-8111-111111111111', source_hash: checksum, guide_version: '26.A', guide_revision: '3' },
@@ -30,8 +31,11 @@ function catalogRow(code: string) {
     },
   }
 }
-const wire = (code: string) => guideOrderedFixtureRaw([
-  line('1', '735999000000001', undefined, '9'), ...characteristic('Z13', 'Z24'), ['RFF', ['LI', 'OWN-C']]], code)
+const wire = (code: string) => {
+  const payload = guideOrderedFixtureRaw([
+    line('1', '735999000000001', undefined, '9'), ...characteristic('Z13', 'Z24'), ['RFF', ['LI', 'OWN-C']]], code)
+  return code === 'Z15' ? payload.replace('23-DDQ-PRODAT', '23-DGI-PRODAT') : payload
+}
 function parsed(payload: string) {
   const result = parseInboundEmailContent({ attachmentText: payload })
   if (!result) throw Error('actual_parser_required')
@@ -56,7 +60,7 @@ function setup(code: string) {
 }
 beforeEach(() => vi.clearAllMocks())
 
-it.each(['Z04', 'Z05'])('binds physical %s/Z24 through the actual catalog resolver before public INSERT', async code => {
+it.each(codes)('binds physical %s/Z24 through the actual catalog resolver before public INSERT', async code => {
   const request = setup(code), originalCatalog = structuredClone(row)
   expect(await createInboundEdielMessage(request)).toBe(newId)
   const writes = db.writes('ediel_messages')
@@ -76,14 +80,14 @@ it.each(['Z04', 'Z05'])('binds physical %s/Z24 through the actual catalog resolv
 })
 
 const catalogCalls = () => io.rpc.mock.calls.filter(([name]) => name === 'resolve_canonical_ediel_rule_pack_with_witness_v1')
-it.each(['Z04', 'Z05'])('preserves existing %s C original on replay without catalog reselection', async code => {
+it.each(codes)('preserves existing %s C original on replay without catalog reselection', async code => {
   const request = setup(code); db.state.existing = true
   const original = structuredClone(db.state.original)
   expect(await createInboundEdielMessage(request)).toBe(oldId)
   expect(catalogCalls()).toEqual([]); expect(db.writes('ediel_messages')).toEqual([])
   expect(db.state.original).toEqual(original)
 })
-it.each(['Z04', 'Z05'].flatMap(code => ['actor', 'permission', 'environment', 'parse'].map(guard => ({ code, guard }))))('refuses $code C $guard before catalog or source effects', async ({ code, guard }) => {
+it.each(codes.flatMap(code => ['actor', 'permission', 'environment', 'parse'].map(guard => ({ code, guard }))))('refuses $code C $guard before catalog or source effects', async ({ code, guard }) => {
   const request = setup(code)
   if (guard === 'actor') db.state.actorActive = false
   if (guard === 'permission') db.state.permission = false
@@ -105,7 +109,7 @@ function patchMail(patch: Record<string, unknown>) {
     return query
   })
 }
-it.each(['Z04', 'Z05'])('uses original zoned %s C receipt across Stockholm midnight instead of wire date', async code => {
+it.each(codes)('uses original zoned %s C receipt across Stockholm midnight instead of wire date', async code => {
   const request = setup(code); patchMail({ received_at: '2026-09-21T22:30:00Z' })
   expect(await createInboundEdielMessage(request)).toBe(newId)
   expect(catalogCalls()).toEqual([['resolve_canonical_ediel_rule_pack_with_witness_v1', {
@@ -113,13 +117,13 @@ it.each(['Z04', 'Z05'])('uses original zoned %s C receipt across Stockholm midni
     p_direction: 'inbound', p_business_date: '2026-09-22' }]])
   expect(db.writes('ediel_messages')[0].payload).toHaveProperty('message_received_at', '2026-09-21T22:30:00.000Z')
 })
-it.each(['Z04', 'Z05'].flatMap(code => [{ company_id: 'foreign' }, { environment: 'production' }, { received_at: null }, { received_at: 'invalid' }].map(patch => ({ code, patch }))))('refuses $code C invalid retained mail $patch before catalog or INSERT', async ({ code, patch }) => {
+it.each(codes.flatMap(code => [{ company_id: 'foreign' }, { environment: 'production' }, { received_at: null }, { received_at: 'invalid' }].map(patch => ({ code, patch }))))('refuses $code C invalid retained mail $patch before catalog or INSERT', async ({ code, patch }) => {
   const request = setup(code); patchMail(patch)
   await expect(createInboundEdielMessage(request)).rejects.toThrow('ediel_actual_inbound_receipt_clock_required')
   expect(catalogCalls()).toEqual([]); expect(db.writes('ediel_messages')).toEqual([])
   expect(db.state.rpcCalls.map(call => call.name)).toEqual(['gridex_actor_has_company_permission'])
 })
-it.each(['Z04', 'Z05'].flatMap(code => ['empty', 'ambiguous', 'foreign-code', 'foreign-subtype', 'foreign-direction', 'foreign-original', 'missing-original', 'runtime-incomplete', 'sdk-error'].map(change => ({ code, change }))))('propagates real $code C catalog $change before INSERT/reception', async ({ code, change }) => {
+it.each(codes.flatMap(code => ['empty', 'ambiguous', 'foreign-code', 'foreign-subtype', 'foreign-direction', 'foreign-original', 'missing-original', 'runtime-incomplete', 'sdk-error'].map(change => ({ code, change }))))('propagates real $code C catalog $change before INSERT/reception', async ({ code, change }) => {
   const request = setup(code)
   if (change === 'foreign-code') row.profile.messageCode = code === 'Z04' ? 'Z05' : 'Z04'
   if (change === 'foreign-subtype') row.profile.transactionSubtype = 'H'
@@ -138,7 +142,7 @@ it.each(['Z04', 'Z05'].flatMap(code => ['empty', 'ambiguous', 'foreign-code', 'f
   expect(db.writes('ediel_message_events')).toEqual([])
   expect(db.state.rpcCalls.map(call => call.name)).toEqual(['gridex_actor_has_company_permission'])
 })
-it.each(['Z04', 'Z05'])('keeps race winner %s C original immutable after public unique conflict', async code => {
+it.each(codes)('keeps race winner %s C original immutable after public unique conflict', async code => {
   const request = setup(code), winner = inboundReceptionBoundary(request.parsed)
   const original = structuredClone(winner.state.original)
   db.state.error = { code: '23505', message: 'canonical duplicate' }
