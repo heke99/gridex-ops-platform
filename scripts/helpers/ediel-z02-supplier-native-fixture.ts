@@ -154,8 +154,177 @@ export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provid
   expect(environmentResolution).toMatchObject({status: 'resolved', environment: 'test', routeProfileId: z01RouteProfileId, blocker: null})
   const process = await resolveCustomerSiteProcessContext({companyId: f.companyId, customerId: f.customerId, siteId: f.siteId})
   expect(process.processType, JSON.stringify(process)).toBe(processType)
+  await ensureZ01SupplierCanonicalGridPrerequisites(f)
   return {...f, variant, provider, z01RouteId, z01RouteProfileId, ackRouteId, ackRouteProfileId,
     customerAddress, customerMasterdataSource, installationAddress, registry: {...registry, dispatchSource, environmentResolution}}
+}
+
+type ExactGridReferenceRow = {id: string; rowText: string}
+type GridReferenceSnapshot = {
+  owners: Row[]; areas: Row[]; source: Row;
+  ownerExact: ExactGridReferenceRow[]; areaExact: ExactGridReferenceRow[];
+  sourceText: string
+}
+function stableGridValue(value: unknown): string {
+  const canonical = (item: unknown): unknown => {
+    if (Array.isArray(item)) return item.map(canonical)
+    if (item && typeof item === 'object') return Object.fromEntries(Object.entries(item)
+      .sort(([a],[b]) => a.localeCompare(b)).map(([key,nested]) => [key,canonical(nested)]))
+    return item
+  }
+  return JSON.stringify(canonical(value))
+}
+type CanonicalGridMapping = {rowCount: number; priceCount: number; priceArea: string | null}
+
+function gridReferenceSnapshot(f: NormalSwitchStageNativeFixture): GridReferenceSnapshot {
+  // to_jsonb(row)::text becomes an escaped string BEFORE nativeSql JSON.parse.
+  // Semantic rows may round JSON numbers; they are never preservation authority.
+  const snapshot = sql<GridReferenceSnapshot>([
+    "WITH snapshot AS (SELECT",
+    "(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.platform_grid_owners r) owners,",
+    "(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.platform_grid_areas r) areas,",
+    "(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id::text,'rowText',to_jsonb(r)::text) ORDER BY id),'[]') FROM public.platform_grid_owners r) owner_exact,",
+    "(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id::text,'rowText',to_jsonb(r)::text) ORDER BY id),'[]') FROM public.platform_grid_areas r) area_exact,",
+    "jsonb_build_object(",
+    "'site',(SELECT to_jsonb(r) FROM public.customer_sites r WHERE id="+literal(f.siteId)+" AND company_id="+literal(f.companyId)+"),",
+    "'point',(SELECT to_jsonb(r) FROM public.metering_points r WHERE id="+literal(f.pointId)+" AND company_id="+literal(f.companyId)+"),",
+    "'grid',(SELECT to_jsonb(r) FROM public.grid_owners r WHERE id="+literal(f.gridId)+" AND company_id="+literal(f.companyId)+"),",
+    "'contract',(SELECT to_jsonb(r) FROM public.customer_contracts r WHERE id="+literal(f.contractId)+" AND company_id="+literal(f.companyId)+"),",
+    "'messages',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.ediel_messages r WHERE company_id="+literal(f.companyId)+"),",
+    "'sources',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY source_message_id),'[]') FROM gridex_received_sources.sources r WHERE company_id="+literal(f.companyId)+"),",
+    "'watches',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.ediel_business_expectations r WHERE company_id="+literal(f.companyId)+"),",
+    "'requests',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.customer_info_requests r WHERE company_id="+literal(f.companyId)+"),",
+    "'snapshots',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.customer_operation_request_snapshots r WHERE company_id="+literal(f.companyId)+")) source)",
+    "SELECT jsonb_build_object('owners',owners,'areas',areas,'source',source,",
+    "'ownerExact',owner_exact,'areaExact',area_exact,'sourceText',source::text) FROM snapshot",
+  ].join(' '))
+  if (!Array.isArray(snapshot.owners) || !Array.isArray(snapshot.areas)
+    || !Array.isArray(snapshot.ownerExact) || !Array.isArray(snapshot.areaExact)
+    || typeof snapshot.sourceText !== 'string' || !snapshot.sourceText)
+    phaseFailure('canonical_grid_exact_snapshot_required', {qualified:false})
+  const tables: Array<[Row[], ExactGridReferenceRow[]]> = [
+    [snapshot.owners,snapshot.ownerExact], [snapshot.areas,snapshot.areaExact],
+  ]
+  for (const [semantic,exact] of tables) {
+    const ids = semantic.map(row => row.id)
+    if (ids.some(id => typeof id !== 'string') || new Set(ids).size !== ids.length
+      || exact.length !== ids.length || new Set(exact.map(row => row.id)).size !== exact.length
+      || exact.some(row => typeof row.id !== 'string' || typeof row.rowText !== 'string'
+        || !row.rowText || !ids.includes(row.id)))
+      phaseFailure('canonical_grid_exact_snapshot_required', {qualified:false})
+  }
+  return snapshot
+}
+
+function canonicalGridMappingAt(area: string, receivedAt: string): CanonicalGridMapping {
+  return sql<CanonicalGridMapping>([
+    "SELECT jsonb_build_object('rowCount',count(*),'priceCount',count(DISTINCT upper(pga.price_area)),",
+    "'priceArea',min(upper(pga.price_area))) FROM public.platform_grid_areas pga",
+    "WHERE pga.is_active=true AND upper(pga.grid_area_code)=upper("+literal(area)+")",
+    "AND upper(coalesce(pga.price_area,'')) IN('SE1','SE2','SE3','SE4')",
+    "AND (pga.valid_from IS NULL OR pga.valid_from<=("+literal(receivedAt)+"::timestamptz AT TIME ZONE 'Etc/GMT-1')::date)",
+    "AND (pga.valid_to IS NULL OR pga.valid_to>=("+literal(receivedAt)+"::timestamptz AT TIME ZONE 'Etc/GMT-1')::date)",
+  ].join(' '))
+}
+
+function preserveOldReferenceRows(before: ExactGridReferenceRow[], after: ExactGridReferenceRow[], table: 'owners' | 'areas') {
+  for (const prior of before) {
+    const next = after.find(row => row.id === prior.id)
+    if (!next || next.rowText !== prior.rowText)
+      phaseFailure('canonical_grid_existing_row_changed', {table, preserved: false})
+  }
+}
+
+// This prospective reference input grants no source admission or acceptance.
+// Requires ROOT's disposable exclusive producer/table custody: snapshot/readback
+// detects interleaving but cannot make a multi-RPC importer atomic against peers.
+async function ensureZ01SupplierCanonicalGridPrerequisites(f: NormalSwitchStageNativeFixture) {
+  const before = gridReferenceSnapshot(f)
+  const point = objectRecord(before.source.point), site = objectRecord(before.source.site)
+  const grid = objectRecord(before.source.grid)
+  const price = String(point.price_area_code ?? ''), name = String(grid.name ?? '')
+  if (f.gridAreaCode !== 'TES' || site.grid_area_code !== f.gridAreaCode
+    || point.grid_area_code !== f.gridAreaCode || price !== 'SE3'
+    || site.price_area_code !== price || !name)
+    phaseFailure('canonical_grid_declared_source_required', {scopeValid: false})
+  // Freeze a preparation clock as a prerequisite check, never as source receipt
+  // authority. The unchanged actual core uses the captured source receipt.
+  const preparationAt = sql<string>("SELECT to_jsonb(clock_timestamp())")
+  const valid = "is_active IS TRUE AND grid_owner_name="+literal(name)
+    +" AND upper(price_area)="+literal(price)
+    +" AND (valid_from IS NULL OR valid_from<=("+literal(preparationAt)+"::timestamptz AT TIME ZONE 'Etc/GMT-1')::date)"
+    +" AND (valid_to IS NULL OR valid_to>=("+literal(preparationAt)+"::timestamptz AT TIME ZONE 'Etc/GMT-1')::date)"
+  const originalRows = before.areas.filter(row =>
+    typeof row.grid_area_code === 'string' && row.grid_area_code.toUpperCase() === f.gridAreaCode)
+  const original = canonicalGridMappingAt(f.gridAreaCode, preparationAt)
+  // Any existing original-area data is preserved. It may be reused only with
+  // one effective SE3 and the declared grid owner's name; never overwritten.
+  const originalNamedReference = sql<boolean>("SELECT to_jsonb(EXISTS(SELECT FROM public.platform_grid_areas"
+    +" WHERE "+valid+" AND upper(grid_area_code)=upper("+literal(f.gridAreaCode)+")))")
+  if (originalRows.length && (original.priceCount !== 1 || original.priceArea !== price
+    || !originalNamedReference))
+    phaseFailure('canonical_grid_existing_reference_incompatible', {originalPresent: true, compatible: false})
+  const distinct = sql<Row | null>("SELECT to_jsonb(r) FROM public.platform_grid_areas r WHERE "+valid
+    +" AND grid_area_code~'^[A-Z0-9]{3}$' AND upper(grid_area_code)<>"+literal(f.gridAreaCode)
+    +" ORDER BY grid_area_code LIMIT 1")
+  const imports: Array<{gridAreaCode: string; priceArea: string; gridOwnerName: string;
+    gridAreaName: string; metadata: Record<string, unknown>}> = []
+  const metadata = {synthetic_native_fixture: true, purpose: 'z01_supplier_grid_prerequisites'}
+  if (!originalRows.length) imports.push({gridAreaCode:f.gridAreaCode, priceArea:price,
+    gridOwnerName:name, gridAreaName:'Synthetic declared original Z01 area', metadata})
+  if (!distinct) {
+    // Case-fold exclusion matches core and prevents alias ambiguity.
+    const fresh = sql<string | null>("SELECT to_jsonb(code) FROM (SELECT 'Z'||upper(lpad(to_hex(n),2,'0')) code"
+      +" FROM generate_series(0,255) n) candidates WHERE upper(code)<>"+literal(f.gridAreaCode)
+      +" AND NOT EXISTS(SELECT FROM public.platform_grid_areas WHERE upper(grid_area_code)=upper(code))"
+      +" ORDER BY code LIMIT 1")
+    if (!fresh) phaseFailure('canonical_grid_no_fresh_distinct_reference', {freshAvailable: false})
+    imports.push({gridAreaCode:fresh,priceArea:price,gridOwnerName:name,
+      gridAreaName:'Synthetic distinct Z01 reply area',metadata})
+  }
+  const ownerRows = sql<Row[]>("SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.platform_grid_owners r"
+    +" WHERE public.gridex_grid_owner_name_key(name)=public.gridex_grid_owner_name_key("+literal(name)+")")
+  const canonical = ownerRows.filter(row => row.is_active !== false
+    && typeof row.ediel_id === 'string' && Boolean(row.ediel_id.trim())
+    && row.ops_grid_owner_id !== null && row.ops_grid_owner_id !== undefined)
+  if (imports.length && ownerRows.length && canonical.length !== 1)
+    phaseFailure('canonical_grid_import_would_change_existing_owner', {existingOwnerCount:ownerRows.length, canonicalCount:canonical.length})
+  // If the owner is genuinely absent, prepare BOTH reference areas before any
+  // original send. Later wrong-grid control can reuse the distinct area without
+  // updating that now-existing noncanonical owner or original source snapshots.
+  const result = imports.length ? await upsertPlatformGridAreaMasterRows(imports) : []
+  if (result.length !== imports.length || result.some(row => !row.ok || !row.id))
+    phaseFailure('canonical_grid_public_import_failed', {expectedCount:imports.length, resultCount:result.length, allOk:false})
+  const after = gridReferenceSnapshot(f)
+  preserveOldReferenceRows(before.ownerExact, after.ownerExact, 'owners')
+  preserveOldReferenceRows(before.areaExact, after.areaExact, 'areas')
+  if (after.sourceText !== before.sourceText)
+    phaseFailure('canonical_grid_source_changed', {preserved:false})
+  const addedAreas = after.areas.filter(row => !before.areas.some(old => old.id === row.id))
+  const addedOwners = after.owners.filter(row => !before.owners.some(old => old.id === row.id))
+  if (addedAreas.length !== imports.length || addedAreas.some(row =>
+    !result.some((value,index) => value.id === row.id && imports[index].gridAreaCode === row.grid_area_code
+      && row.price_area === price && row.grid_owner_name === name && row.is_active === true
+      && row.valid_from === null && row.valid_to === null
+      && stableGridValue(row.metadata) === stableGridValue(metadata))))
+    phaseFailure('canonical_grid_added_area_unqualified', {addedAreaCount:addedAreas.length, qualified:false})
+  if (addedOwners.length !== (imports.length && !ownerRows.length ? 1 : 0)
+    || addedOwners.some(row => row.name !== name || row.source !== 'manual_platform_import'
+      || row.ediel_id !== null || row.ops_grid_owner_id != null
+      || stableGridValue(row.metadata) !== stableGridValue(metadata)))
+    phaseFailure('canonical_grid_added_owner_unqualified', {addedOwnerCount:addedOwners.length, qualified:false})
+  const originalAfter = canonicalGridMappingAt(f.gridAreaCode, preparationAt)
+  const other = sql<Row | null>("SELECT to_jsonb(r) FROM public.platform_grid_areas r WHERE "+valid
+    +" AND grid_area_code~'^[A-Z0-9]{3}$' AND upper(grid_area_code)<>"+literal(f.gridAreaCode)
+    +" ORDER BY grid_area_code LIMIT 1")
+  const distinctAfter = other && typeof other.grid_area_code === 'string'
+    ? canonicalGridMappingAt(other.grid_area_code,preparationAt) : null
+  if (originalAfter.priceCount !== 1 || originalAfter.priceArea !== price
+    || !other || typeof other.grid_area_code !== 'string'
+    || !distinctAfter || distinctAfter.priceCount !== 1 || distinctAfter.priceArea !== price)
+    phaseFailure('canonical_grid_effective_readback_failed', {qualified:false})
+  return {prepared:true, publicImportCount:imports.length, sourcePreserved:true,
+    existingOwnersPreserved:true, existingAreasPreserved:true}
 }
 
 function knownAreaSourceRows(f: Z01SupplierNativeFixture) {
