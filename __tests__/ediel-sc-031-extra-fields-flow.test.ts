@@ -35,21 +35,20 @@ beforeEach(()=>{p16bBlockedAperaks.length=0;state.effects=[];state.calls=[];stat
 const run=async(message:EdielMessageRow)=>{state.effects=[];state.calls=[];state.drafts=[];state.events=[];state.message=withProdatFixtureInsertContext({...message,status:'received',parsed_payload:{fileEngine:{mode:'agt'}}} as EdielMessageRow);await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000002',edielMessageId:message.id});
  return {message:state.message,drafts:[...state.drafts],calls:[...state.calls],effects:[...state.effects]}}
 type Parts=ReturnType<typeof head>[number]
-type Row=EdielMessageRow&{parsed_payload:{canonical:Record<string,unknown>&{references:{qualifier:string}[]}}}
+type Row=EdielMessageRow&{parsed_payload:{canonical:Record<string,unknown>}}
 const base=():Parts[]=>[...head(),...own('1','735123456789012345','CASE-A')]
 // P26.A r3 p119 (incoming X): field 224 RFF+MG meter number and field 213 QTY+31 are not used in Z01.
 const extras:[string,string,Parts,(body:Parts[])=>number][]=[
  ['224','RFF+MG:IGNORED-METER',['RFF',['MG','IGNORED-METER']],body=>body.findIndex(p=>p[0]==='RFF')],
- ['213','QTY+31:',['QTY',['31','777','KWH']],body=>body.findIndex(p=>p[0]==='LIN')+1],
+ ['213','QTY+31:777:KWH',['QTY',['31','777','KWH']],body=>body.findIndex(p=>p[0]==='LIN')+1],
 ]
 const insert=(segment:Parts,at:(body:Parts[])=>number)=>{const body=base();body.splice(at(body),0,segment);return body}
-// Business projection received by the case and business-state owners, without raw/evidence-only carriers.
-const business=(calls:{kind:string;args:Record<string,unknown>}[],ignoredQualifier:string)=>calls.map(({kind,args})=>{
+// Business projection received by the case and business-state owners; only raw evidence carriers are left out.
+const business=(calls:{kind:string;args:Record<string,unknown>}[])=>calls.map(({kind,args})=>{
  const omit=<T extends Record<string,unknown>>(value:T,keys:string[])=>Object.fromEntries(Object.entries(value).filter(([key])=>!keys.includes(key)))
  const message=args.message as Row,rest=omit(args,['message','onSourceSwitchCommitted'])
- const canonical=omit(message.parsed_payload.canonical,['rawSegments','prodatIgnoredFields','references']),references=message.parsed_payload.canonical.references
- return {kind,rest,companyId:message.company_id,code:message.message_code,status:message.status,canonical,
-  references:references.filter(reference=>reference.qualifier!==ignoredQualifier)}})
+ const canonical=omit(message.parsed_payload.canonical,['rawSegments','prodatIgnoredFields'])
+ return {kind,rest,companyId:message.company_id,code:message.message_code,status:message.status,canonical}})
 
 const flow=async(field:string,marker:string,segment:Parts,at:(body:Parts[])=>number)=>{
  const withWire=raw(insert(segment,at),'Z01'),withoutWire=raw(base(),'Z01')
@@ -69,16 +68,17 @@ const flow=async(field:string,marker:string,segment:Parts,at:(body:Parts[])=>num
  expect(withExtra.drafts.map(d=>[d.messageFamily,d.ackOutcome])).toEqual(without.drafts.map(d=>[d.messageFamily,d.ackOutcome]))
  expect((withExtra.message as Row).parsed_payload.canonical.prodatIgnoredFields).toContainEqual(expect.objectContaining({fieldNumber:field,sourceRule:'PRODAT26A:P119'}))
  expect((without.message as Row).parsed_payload.canonical.prodatIgnoredFields).toEqual([])
- expect(business(withExtra.calls,'MG')).toEqual(business(without.calls,'MG'))
+ expect(business(withExtra.calls)).toEqual(business(without.calls))
+ // The raw segment list keeps the ignored evidence; the business projection does not.
+ expect((withExtra.message as Row).parsed_payload.canonical.rawSegments).toContain(marker)
+ for(const call of withExtra.calls){const canonical=(call.args.message as Row).parsed_payload.canonical as {references:{raw:string}[];quantities:{raw:string}[]}
+  expect([...canonical.references,...canonical.quantities].map(row=>row.raw)).not.toContain(marker)}
  // Raw evidence is preserved unchanged on the stored row and on the message handed to the business owners.
  expect(withExtra.message.raw_payload).toBe(withWire)
  for(const call of withExtra.calls)expect((call.args.message as EdielMessageRow).raw_payload).toBe(withWire)
 }
 it('incoming Z01 with ignorable field 224 (RFF+MG): same positive ACKs and identical business data as without it',()=>flow(...extras[0]))
-// KNOWN DEFECT (reported, not fixed here): the P119-ignored QTY+31 is projected into
-// parsed_payload.canonical.quantities that the case and business-state owners receive.
-// This expected-failure marker flips red once the projection omits ignored fields.
-it.fails('incoming Z01 with ignorable field 213 (QTY+31): business data equals the run without it',()=>flow(...extras[1]))
+it('incoming Z01 with ignorable field 213 (QTY+31): same positive ACKs and identical business data as without it',()=>flow(...extras[1]))
 
 const outboundInput={companyId:'tenant',role:'supplier',businessCode:'Z01',transactionSubtype:'L',sender:{edielId:'12345'},receiver:{edielId:'54321'},
  meteringPoint:{id:'A',identityAgency:'89' as const,gridArea:'TES'},customer:{id:'USER',idAgency:'89' as const,name:'Synthetic',addressLines:['Street'],city:'City',postalCode:'12345'},

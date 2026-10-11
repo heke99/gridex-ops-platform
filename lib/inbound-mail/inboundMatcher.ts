@@ -1,6 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
+import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 
 export type InboundEntityMatch = {
   status: 'matched' | 'missing' | 'ambiguous' | 'not_checked'
@@ -11,8 +12,15 @@ export type InboundEntityMatch = {
   candidates: Array<Record<string, unknown>>
 }
 
+/** P26.A p119: an incoming PRODAT reference not used ('-') for its BGM is ignored, never a match key. */
+function prodatIgnoredReference(parsed: ParsedEdifactEnvelope, qualifier: string): boolean {
+  if (parsed.messageFamily !== 'PRODAT' || !parsed.messageCode) return false
+  return canonicalProdat26AFieldRules(parsed.messageCode).some(rule => rule.segmentPath === `RFF+${qualifier}` && rule.requirement === 'forbidden')
+}
+
 function firstReference(parsed: ParsedEdifactEnvelope, keys: string[]): string | null {
   for (const key of keys) {
+    if (prodatIgnoredReference(parsed, key)) continue
     const value = parsed.references[key]?.[0]
     if (value) return value
   }

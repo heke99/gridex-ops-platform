@@ -69,6 +69,32 @@ export function recordIgnoredProdatField(input: FieldMatrixEvaluationInput, fiel
   if (occurrence) input.onIgnoredField({fieldNumber, sourceRule:'PRODAT26A:P119', occurrence})
 }
 
+/**
+ * Physical wire segments carrying recorded P119 ignored fields (inbound only).
+ * Keyed on the same ignored-field decision so business projections can omit
+ * exactly those occurrences while raw evidence remains untouched.
+ */
+export function ignoredProdatFieldSegments(input: {code?: string | null; rawSegments?: readonly string[] | null; una?: EdifactServiceStringAdvice}, fields: readonly ProdatIgnoredField[]): string[] {
+  if (!fields.length) return []
+  const una = input.una ?? parseUna(null)
+  const rawSegments = input.rawSegments ?? []
+  const groups = prodatRegisterGroups(rawSegments, una, input.code).groups
+  const grouped = new Set(groups.flatMap(group => group.segments.map(segment => segment.index)))
+  const header = prodatRegisterMessageSegments(rawSegments, una).filter(segment => !grouped.has(segment.index))
+  const selected = new Map<string, string>()
+  for (const field of fields) {
+    const descriptor = canonicalProdat26AFieldRules(input.code ?? '').find(rule => rule.fieldNumber === field.fieldNumber)
+    if (!descriptor) continue
+    const lineIndex = field.occurrence.lineIndex
+    const scope = lineIndex === null ? header : groups.filter(group => group.lineIndex === lineIndex).flatMap(group => group.segments)
+    for (const segment of scope) {
+      if (fieldRulePresentInScope({...descriptor, requirement:'forbidden'}, {family:'PRODAT', code:input.code, una, direction:'inbound', rawSegments:[segment.raw]}))
+        selected.set(`${segment.index}`, segment.raw)
+    }
+  }
+  return [...selected.values()]
+}
+
 function normalize(value: string | null | undefined): string {
   return String(value ?? '').trim().toUpperCase()
 }

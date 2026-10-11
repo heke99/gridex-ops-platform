@@ -18,7 +18,7 @@ import {buildReceivedUtiltsTransactionValidation,type ReceivedUtiltsTransactionV
 import {readSourceBoundAckRulePackEvidence,sourceBoundAckCanonicalPolicy} from './ackSourceRulePackEvidence'
 import {validateCanonicalAckGuide} from '@/lib/ediel/rulebook/ackGuidePolicy'
 import { classifyEdielFailure,EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
-import type {ProdatIgnoredField} from '@/lib/ediel/rulebook/fieldMatrix'
+import {ignoredProdatFieldSegments, type ProdatIgnoredField} from '@/lib/ediel/rulebook/fieldMatrix'
 import type {ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import {projectProdatDiagnostics,isQualifiedProdatApplicationError} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
@@ -376,6 +376,16 @@ function canonicalPolicyProjection(policy: CanonicalEdielPolicy | null) {
   } : null
 }
 
+/** P119: recorded ignored fields never reach business-facing quantities/references; rawSegments keep the evidence. */
+function withoutIgnoredProdatFields(payload: Record<string, unknown>, canonical: CanonicalEdielMessage, fields: ProdatIgnoredField[] | undefined): Record<string, unknown> {
+  if (canonical.family !== 'PRODAT' || canonical.direction !== 'inbound' || !fields?.length) return payload
+  const ignored = ignoredProdatFieldSegments({code: canonical.messageCode, rawSegments: canonical.rawSegments, una: canonical.una}, fields)
+  if (!ignored.length) return payload
+  const omit = <T extends {raw: string}>(rows: readonly T[]) => { const pending = [...ignored]
+    return rows.filter(row => { const at = pending.indexOf(row.raw); if (at < 0) return true; pending.splice(at, 1); return false }) }
+  return {...payload, quantities: omit(canonical.quantities), references: omit(canonical.references)}
+}
+
 function buildResult(params: {
   utiltsFunctionalValidation?: ReceivedUtiltsFunctionalValidation
   utiltsHeaderValidation?: ReceivedUtiltsHeaderValidation
@@ -397,7 +407,7 @@ function buildResult(params: {
   decisionTrace: string[]
   syntax: unknown
 }): CanonicalRuntimeDecision {
-  const parsedPayload = {...buildCanonicalParsedPayload(params.canonical), ...(params.prodatIgnoredFields ? {prodatIgnoredFields:params.prodatIgnoredFields} : {}), ...(params.prodatProcessingDisposition ? {prodatProcessingDisposition:params.prodatProcessingDisposition} : {})}
+  const parsedPayload = {...withoutIgnoredProdatFields(buildCanonicalParsedPayload(params.canonical), params.canonical, params.prodatIgnoredFields), ...(params.prodatIgnoredFields ? {prodatIgnoredFields:params.prodatIgnoredFields} : {}), ...(params.prodatProcessingDisposition ? {prodatProcessingDisposition:params.prodatProcessingDisposition} : {})}
   const validationReport = {
     canonicalRuntimeVersion: '3.0-policy',
     ...(params.prodatProcessingDisposition ? {prodatProcessingDisposition:params.prodatProcessingDisposition} : {}),

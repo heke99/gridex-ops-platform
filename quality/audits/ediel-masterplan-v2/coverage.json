@@ -2070,11 +2070,16 @@
     },
     {
       "id": "SC-031",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-sc-031-extra-fields-flow.test.ts",
         "__tests__/ediel-prodat-incoming-unused-fields.test.ts",
         "__tests__/ediel-received-register-validation-binding.test.ts",
-        "lib/ediel/core/runtimeDecision.ts"
+        "__tests__/ediel-prodat-register-consumers.test.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/rulebook/fieldMatrix.ts",
+        "lib/ediel/inboundCases.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
       ]
     },
     {
