@@ -21,12 +21,7 @@ export default function UnresolvedQuickActions() {
  </button>
  </form>
 
- <Link
- href="/admin/integrations/routes"
- className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
- >
- Öppna communication routes
- </Link>
+
 
  <Link
  href="/admin/outbound"

@@ -1,3 +1,4 @@
+import { portalInvoiceTitle } from '@/lib/customer-portal/labels'
 import Link from 'next/link'
 import { getCustomerPortalContext, listPortalInvoices } from '@/lib/customer-portal/db'
 import {
@@ -37,11 +38,13 @@ export default async function PortalInvoicesPage() {
               <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_1fr_1fr_auto] lg:items-center">
                 <div>
                   <div className="font-semibold text-slate-950">
-                    {invoice.invoice_number ?? invoice.partner_invoice_reference ?? invoice.id}
+                    {portalInvoiceTitle(invoice)}
                   </div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    Partnerref: {invoice.partner_invoice_reference ?? '—'}
-                  </div>
+                  {invoice.partner_invoice_reference ? (
+                    <div className="mt-1 text-xs text-slate-500">
+                      Referens: {invoice.partner_invoice_reference}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="text-sm text-slate-600">{formatPeriod(invoice.period_start, invoice.period_end)}</div>
@@ -59,7 +62,7 @@ export default async function PortalInvoicesPage() {
 
           {invoices.length === 0 ? (
             <div className="px-6 py-12 text-center text-sm text-slate-500">
-              Inga fakturor har importerats från fakturapartnern ännu.
+              Du har inga fakturor ännu. När din första faktura är klar visas den här, vanligtvis efter din första hela förbrukningsmånad.
             </div>
           ) : null}
         </div>

@@ -105,7 +105,7 @@ export default function ClaimCustomerForm({
         <div className="font-semibold text-slate-900">Så skyddar vi kopplingen</div>
         <p className="mt-1">
           Alla fyra krav måste matcha samma kundkort. Om något inte stämmer skapas ingen
-          portalåtkomst och ärendet måste hanteras av kundansvarig.
+          portalåtkomst och ärendet måste hanteras av kundservice.
         </p>
       </div>
 

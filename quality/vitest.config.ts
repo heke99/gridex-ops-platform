@@ -16,6 +16,9 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['quality/**/*.test.ts'],
+    // Archived audit evidence reproduces findings as they were before their
+    // fixes; the permanent regressions live under __tests__/.
+    exclude: ['quality/audits/**/evidence/**', '**/node_modules/**'],
     setupFiles: [path.join(projectRoot, '__tests__/setup.ts')],
   },
 })

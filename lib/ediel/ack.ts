@@ -1,3 +1,4 @@
+import {commonHeaderOriginalSource,commonHeaderRejectionField,commonHeaderReplyApplicationReference,prodatCommonHeaderRejectionQualification,type ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {sourceQualifiedOutboundAck,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
@@ -765,6 +766,7 @@ function buildAckDraft(params: {
   utiltsHeaderRejected?: boolean
   prodatAcknowledgementLineIndices?:readonly number[]
   ackSourceQualification?: SourceQualifiedOutboundAck
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence
 }): CreateEdielMessageInput {
   ensureInboundEdifactSource(params.sourceMessage, params.ackFamily)
   if(params.ackSourceQualification){
@@ -813,7 +815,12 @@ function buildAckDraft(params: {
   const sourceWire = params.ackFamily==='CONTRL'?observeCompletedEdifactSegments(params.sourceMessage.raw_payload):tokenizeEdifact(params.sourceMessage.raw_payload)
   const originalApplication = segmentComposite(sourceWire.segments.find(segment => segment.tag === 'UNB'), 7, sourceWire.una)
   if (originalApplication.length !== 1) throw new Error('ack_original_application_reference_ambiguous')
-  const applicationReference = originalApplication[0] || null
+  const supplied=params.prodatCommonHeaderRejectionEvidence
+  const common=supplied?prodatCommonHeaderRejectionQualification({evidence:supplied,companyId:params.sourceMessage.company_id??'',
+    environment:params.sourceMessage.environment,sourceMessageId:params.sourceMessage.id}):null
+  if(supplied&&(!common||params.ackFamily!=='APERAK'||outcome!=='negative'||commonHeaderRejectionField(common)?.fieldCode!=='311'
+    ||commonHeaderOriginalSource(common)?.raw_payload!==params.sourceMessage.raw_payload))throw Error('ack_common_header_source_scope_mismatch')
+  const applicationReference = common?commonHeaderReplyApplicationReference(common):originalApplication[0]||null
 
   const ackStatuses = deriveEdielAckDefaults({ family: params.ackFamily, code: params.ackFamily })
 
@@ -1037,12 +1044,14 @@ export function buildAperakDraft(params: {
   utiltsHeaderRejected?: boolean
   prodatAcknowledgementLineIndices?:readonly number[]
   ackSourceQualification?: SourceQualifiedOutboundAck
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence
 }): CreateEdielMessageInput {
   return buildAckDraft({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: 'APERAK',
     ackSourceQualification:params.ackSourceQualification,
+    prodatCommonHeaderRejectionEvidence:params.prodatCommonHeaderRejectionEvidence,
     outcome: params.outcome ?? 'positive',
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
@@ -1083,6 +1092,7 @@ export function buildAckDraftForSource(params: {
   utiltsHeaderRejected?: boolean
   prodatAcknowledgementLineIndices?:readonly number[]
   ackSourceQualification?: SourceQualifiedOutboundAck
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence
 }): CreateEdielMessageInput {
   if (params.ackFamily === 'CONTRL') {
     return buildContrlDraft({
@@ -1105,6 +1115,7 @@ export function buildAckDraftForSource(params: {
       utiltsHeaderRejected: params.utiltsHeaderRejected,
     prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
       ackSourceQualification:params.ackSourceQualification,
+    prodatCommonHeaderRejectionEvidence:params.prodatCommonHeaderRejectionEvidence,
     })
   }
 

@@ -402,7 +402,7 @@ it('every required common/own/UD Z15C omission reaches its actual syntax/guide/f
  expect(z18Count(f)).toBe(0)
  expect(processingFailures).toEqual([])
  reportOmissionPhase('matrix_assertions_return')
-// The 22-field real-processing matrix needs more than the shared 120 s budget
+// The 21-field real-processing matrix needs more than the shared 120 s budget
 // under clean-replay load (observed 122-125 s with every assertion passing).
 },300000)
 

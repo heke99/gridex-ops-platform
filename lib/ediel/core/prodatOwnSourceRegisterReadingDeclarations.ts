@@ -59,12 +59,17 @@ function physicalSource(source:EdielMessageRow) {
   if(!first.length||grouped.groups.some(group=>group.messageIndex!==0||!group.validRegisterChain)
     ||first.some(group=>!group.itemId||!['9','89'].includes(group.identityAgency??'')))return null
   const reasons=first.map(group=>prodatRegisterReadingSubtype('Z04',group.segments,wire.una))
-  if(!reasons.every(reason=>reason==='L'||reason==='LK')||new Set(reasons).size!==1)return null
-  const subtype=reasons[0] as 'L'|'LK'
+  if(!reasons.every(reason=>reason==='L'||reason==='LK'||reason==='C')||new Set(reasons).size!==1)return null
+  const subtype=reasons[0] as 'L'|'LK'|'C'
+  // Svensk Elmarknadshandbok26B (2026-10-01), §4.1.7 p87: C must
+  // not be followed by readings. Earlier sources retain UNKNOWN; this is
+  // not a claim that the historical Handbok26A contains this clause.
+  if(subtype==='C'&&stockholmBusinessDate(new Date(source.message_received_at!))<'2026-10-01')return null
+  const reasonCode=subtype==='L'?'Z22':subtype==='LK'?'Z23':'Z24'
   const canonical=parseCanonicalMessageRow(source)
-  if(canonical.family!=='PRODAT'||canonical.messageCode!=='Z04'||canonical.subtype!==(subtype==='L'?'Z22':'Z23')
+  if(canonical.family!=='PRODAT'||canonical.messageCode!=='Z04'||canonical.subtype!==reasonCode
     ||canonical.applicationReference!==application[0]||canonical.version!=='E2SE6A')return null
-  return {wire,first,groups:grouped.groups,subtype,canonical,interchange:interchanges[0]}
+  return {wire,first,groups:grouped.groups,subtype,reasonCode,canonical,interchange:interchanges[0]}
 }
 
 /** Actual scoped source/legal/reception READs; no rule-pack capture or source writes. */
@@ -91,7 +96,7 @@ export async function loadProdatOwnSourceReadingContext(source:EdielMessageRow,a
     ||parseSourceReceiptInstant(legal.sourceReceivedAt)!==received||typeof basis.sourceEdition!=='string'
     ||!/^[a-f0-9]{64}$/.test(basis.sourceEdition)||!isEvidenceRecord(projection)
     ||projection.family!=='PRODAT'||projection.code!=='Z04'||projection.subtype!==physical.subtype
-    ||projection.transactionReasonCode!==(physical.subtype==='L'?'Z22':'Z23')
+    ||projection.transactionReasonCode!==physical.reasonCode
     ||!['inbound','both'].includes(String(projection.direction))
     ||!Array.isArray(projection.applicationReferences)||!projection.applicationReferences.includes(legal.applicationReference)
     ||!Array.isArray(projection.receiverRoles)||!projection.receiverRoles.some(role=>role==='supplier'||role==='electricity_supplier'))return null
@@ -166,6 +171,9 @@ export function sourceProdatOwnRegisterReadingDeclarations(input:{
       ||prodatRegisterReadingState('259',group.segments,physical.wire.una).malformed)
     const allowed=!rules[0].allowedValues||state.value!==null&&rules[0].allowedValues.includes(state.value)
     return Object.freeze({meteringPointId:own.itemId!,identityAgency,
-      meterReadingsSentInUtilts:!header259&&!malformed&&state.present&&!state.malformed&&state.value&&allowed?true:null})
+      // A qualified current C process supplies FALSE, never a promise from259.
+      // The register validator records incoming forbidden259 as P119 ignored;
+      // original wire/birth/hash remain intact. L/LK keep their own true/null rule.
+      meterReadingsSentInUtilts:physical.subtype==='C'?false:!header259&&!malformed&&state.present&&!state.malformed&&state.value&&allowed?true:null})
   })
 }

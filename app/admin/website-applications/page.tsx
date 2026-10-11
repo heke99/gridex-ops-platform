@@ -66,11 +66,11 @@ function facilityCorrectionCopy(status: string | null | undefined) {
     return {
       title: "Anläggnings-ID behöver verifieras",
       message:
-        "Kundrelationen får skapas separat, men automation ska vänta tills anläggning, startdatum och fullmakt är verifierade. Kunddata från annan tenant visas inte.",
+        "Kundrelationen får skapas separat, men automation ska vänta tills anläggning, startdatum och fullmakt är verifierade. Endast ert bolags ansökningar visas.",
       steps: [
         "Verifiera uppgiften med kunden.",
         "Kontakta nätägaren om uppgiften fortfarande verkar rätt.",
-        "Kör ny readiness-check efter manuell granskning.",
+        "Kontrollera ansökan igen efter granskningen.",
       ],
     };
   }
@@ -92,7 +92,7 @@ function facilityCorrectionCopy(status: string | null | undefined) {
       steps: [
         "Öppna befintlig kund/anläggning.",
         "Länka eller rätta uppgiften.",
-        "Kör ny readiness-check innan switch.",
+        "Kontrollera ansökan igen innan leverantörsbytet startas.",
       ],
     };
   }
@@ -103,7 +103,7 @@ function facilityCorrectionCopy(status: string | null | undefined) {
     steps: [
       "Kontrollera anläggnings-ID och mätpunkt med kunden.",
       "Begär rätt uppgifter från nätägaren eller ladda upp elnätsfaktura.",
-      "Kör ny readiness-check innan någon switch skickas.",
+      "Kontrollera ansökan igen innan leverantörsbytet startas.",
     ],
   };
 }
@@ -318,7 +318,7 @@ function reviewIssues(
         label: "Ansökan kräver åtgärd",
         action:
           safeOperationalMessage(item.error_message ?? item.error_code) ??
-          "Kontrollera logg, kör senaste migration och kör redo-kontroll igen.",
+          "Kontrollera uppgifterna i ansökan och försök igen. Kontakta Gridex support om felet kvarstår.",
         severity: "blocking",
       },
     ];

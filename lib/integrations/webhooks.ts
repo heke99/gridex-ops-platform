@@ -9,6 +9,7 @@ import { assertPublicResponsePayload } from '@/lib/api/publicPayloadSafety'
 import { postPublicWebhook } from '@/lib/integrations/publicWebhookTransport'
 import { PARTNER_API_VERSION } from '@/lib/partner-api/openApi'
 import { publicOrganizationReference } from '@/lib/integrations/publicReferences'
+import { loadWebhookCredentialClients, webhookCredentialDecision } from '@/lib/integrations/webhookCredentialPolicy'
 
 type WebhookSubscriptionRow = {
   id: string
@@ -548,6 +549,9 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
   const subscriptions = new Map(
     ((subscriptionRows ?? []) as WebhookSubscriptionRow[]).map((subscription) => [subscription.id, subscription])
   )
+  // F45: credential policy is read after the claim, so a revocation that
+  // committed before this batch also stops already-queued deliveries.
+  const credentialClients = await loadWebhookCredentialClients([...subscriptions.values()])
   let sent = 0
   let failed = 0
   let deliveryUncertain = 0
@@ -574,6 +578,23 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         attempts,
         last_attempt_at: new Date().toISOString(),
         failure_reason: !subscription ? 'Webhook subscription was not found.' : 'Webhook subscription is not active or target URL is missing.',
+        locked_at: null,
+        locked_by: null,
+      })
+      failed += 1
+      continue
+    }
+
+    const credentialDecision = webhookCredentialDecision(
+      subscription,
+      subscription.api_client_id ? credentialClients.get(subscription.api_client_id) ?? null : null,
+    )
+    if (!credentialDecision.allowed) {
+      await finalizeClaimedDelivery(delivery, {
+        status: 'skipped',
+        attempts,
+        last_attempt_at: new Date().toISOString(),
+        failure_reason: credentialDecision.reason,
         locked_at: null,
         locked_by: null,
       })

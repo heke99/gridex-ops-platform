@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto'
+import { isCompatibleResponseRevision } from '@/lib/integrations/apiContractCompatibility'
 
 export type VerifiedPublicContractFeedSnapshot = {
   tenantReference: string
@@ -88,7 +89,6 @@ function fingerprint(value: unknown): string {
 function validateSuccessfulFeed(input: {
   payload: unknown
   expectedTenantReference: string
-  expectedSchemaVersion: string
   etag: string | null
   now: string
 }): VerifiedPublicContractFeedSnapshot {
@@ -107,11 +107,14 @@ function validateSuccessfulFeed(input: {
       'The public-contract response belongs to another tenant.',
     )
   }
+  // Any well-formed V1 revision is accepted, including revisions newer than
+  // this helper: the documentation revision is not a gate. The business
+  // payload below decides whether the response is usable.
   const contractSchemaVersion = text(meta.contract_schema_version)
-  if (contractSchemaVersion !== input.expectedSchemaVersion) {
+  if (!contractSchemaVersion || !isCompatibleResponseRevision(contractSchemaVersion, text(meta.contract_major))) {
     throw new PublicContractFeedRefreshError(
       'PUBLIC_CONTRACT_SCHEMA_MISMATCH',
-      'The public-contract response uses an unexpected schema version.',
+      'The public-contract response does not use a supported V1 contract revision.',
     )
   }
   const count = Number(meta.count)
@@ -232,13 +235,24 @@ export async function refreshPublicContractFeed(input: {
   endpoint: string
   apiKey: string
   expectedTenantReference: string
-  expectedSchemaVersion: string
+  /**
+   * @deprecated Kept for source compatibility. It no longer requires the
+   * server to return exactly this revision; any supported V1 revision passes.
+   */
+  expectedSchemaVersion?: string
   store: PublicContractFeedSnapshotStore
   fetchImpl?: typeof fetch
   now?: () => Date
   timeoutMs?: number
 }): Promise<PublicContractFeedRefreshResult> {
-  const existing = await input.store.load()
+  const stored = await input.store.load()
+  // A snapshot of another tenant or an unsupported revision is never reused,
+  // neither for 304 nor as last known good.
+  const existing = stored
+    && stored.tenantReference === input.expectedTenantReference
+    && isCompatibleResponseRevision(stored.contractSchemaVersion)
+    ? stored
+    : null
   const fetchImpl = input.fetchImpl ?? fetch
   let response: Response | null = null
   const timeoutMs = Math.max(1_000, Math.min(input.timeoutMs ?? 15_000, 120_000))
@@ -290,7 +304,6 @@ export async function refreshPublicContractFeed(input: {
     const snapshot = validateSuccessfulFeed({
       payload,
       expectedTenantReference: input.expectedTenantReference,
-      expectedSchemaVersion: input.expectedSchemaVersion,
       etag: response.headers.get('etag'),
       now: (input.now?.() ?? new Date()).toISOString(),
     })

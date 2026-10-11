@@ -8,6 +8,7 @@ import {
 } from '@/lib/auth/loginError'
 import { getSafeNextPath } from '@/lib/auth/urls'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { decidePostLoginPath, userHasStaffAccess } from '@/lib/auth/postLoginDestination'
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase()
@@ -53,10 +54,17 @@ export async function loginAction(formData: FormData) {
     )
   }
 
+  // Customer-only accounts (no staff membership) land in the portal instead
+  // of the staff dashboard; explicit deep links are kept as requested.
+  const destination =
+    next === '/dashboard' && data.user?.id
+      ? decidePostLoginPath({ next, hasStaffAccess: await userHasStaffAccess(data.user.id) })
+      : next
+
   const mustChangePassword = data.user?.user_metadata?.must_change_password === true
   if (mustChangePassword) {
-    redirect(`/login/update-password?next=${encodeURIComponent(next)}`)
+    redirect(`/login/update-password?next=${encodeURIComponent(destination)}`)
   }
 
-  redirect(next)
+  redirect(destination)
 }

@@ -12,7 +12,9 @@ import {
   queueCustomerInfoRequestForDispatch,
   queueMeteringPermissionForZ13,
   applyZ14SnapshotToMeteringPermission,
+  closeCustomerInfoRequest,
 } from "@/lib/onboarding/infoRequests";
+import { redirect } from "next/navigation";
 
 function text(formData: FormData, key: string): string {
   return String(formData.get(key) ?? "").trim();
@@ -54,6 +56,9 @@ export async function createCustomerInfoRequestAction(formData: FormData) {
   const customerId = text(formData, "customer_id");
 
   if (!customerId) throw new Error("Välj kund innan uppgiftsbegäran skapas.");
+  if (checkedValues(formData, "requested_data_categories").length === 0) {
+    throw new Error("Välj minst en uppgift som ska begäras eller kontrolleras.");
+  }
 
   await createCustomerInfoRequest({
     companyId: actor.companyId,
@@ -136,7 +141,7 @@ export async function queueCustomerInfoRequestAction(formData: FormData) {
   const actor = await currentActor();
   const requestId = text(formData, "request_id");
 
-  if (!requestId) throw new Error("request_id saknas.");
+  if (!requestId) throw new Error("Ärendet kunde inte identifieras. Ladda om sidan och försök igen.");
 
   await queueCustomerInfoRequestForDispatch({
     companyId: actor.companyId,
@@ -154,7 +159,7 @@ export async function queueMeteringPermissionZ13Action(formData: FormData) {
   const actor = await currentActor();
   const permissionId = text(formData, "permission_id");
 
-  if (!permissionId) throw new Error("permission_id saknas.");
+  if (!permissionId) throw new Error("Mätvärdesbehörigheten kunde inte identifieras. Ladda om sidan och försök igen.");
 
   await queueMeteringPermissionForZ13({
     companyId: actor.companyId,
@@ -173,7 +178,7 @@ export async function applyZ14SnapshotAction(formData: FormData) {
   const actor = await currentActor();
   const permissionId = text(formData, "permission_id");
 
-  if (!permissionId) throw new Error("permission_id saknas.");
+  if (!permissionId) throw new Error("Mätvärdesbehörigheten kunde inte identifieras. Ladda om sidan och försök igen.");
 
   await applyZ14SnapshotToMeteringPermission({
     companyId: actor.companyId,
@@ -184,4 +189,29 @@ export async function applyZ14SnapshotAction(formData: FormData) {
 
   revalidatePath("/admin/customer-info-requests");
   revalidatePath("/admin/metering");
+}
+
+export async function closeCustomerInfoRequestAction(formData: FormData) {
+  await requireAdminActionAccess(["customers.write"]);
+  const actor = await currentActor();
+  const requestId = text(formData, "request_id");
+  if (!requestId) throw new Error("Ärendet kunde inte identifieras. Ladda om sidan och försök igen.");
+
+  let notice: string;
+  try {
+    const closed = await closeCustomerInfoRequest({
+      companyId: actor.companyId,
+      actorUserId: actor.userId,
+      requestId,
+      targetStatus: text(formData, "target_status"),
+      reason: text(formData, "reason"),
+    });
+    notice = `success=${encodeURIComponent(closed.status === "cancelled" ? "Ärendet avbröts." : "Ärendet markerades som slutfört.")}`;
+  } catch (error) {
+    const message = error instanceof Error && error.message ? error.message : "Ärendet kunde inte stängas.";
+    notice = `error=${encodeURIComponent(message)}`;
+  }
+
+  revalidatePath("/admin/customer-info-requests");
+  redirect(`/admin/customer-info-requests?${notice}`);
 }

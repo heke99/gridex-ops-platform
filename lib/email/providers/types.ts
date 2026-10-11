@@ -48,6 +48,11 @@ export type SendEmailInput = {
   idempotencyKey?: string
   /** Optional file attachments (e.g. power of attorney snapshot). */
   attachments?: EmailAttachment[]
+  /**
+   * Explicit RFC 5322 headers for the outbound message (e.g. Message-ID).
+   * Never put transport-level keys such as Idempotency-Key here.
+   */
+  headers?: Record<string, string>
 }
 
 export type SendEmailResult = {

@@ -42,3 +42,12 @@ locks held. Only this unique checkpoint is written (needs no shared lock).
   Local: tsc no errors in file; eslint 0 errors (2 pre-existing warnings, same before/after).
   Native/clean replay not runnable here → proof is PR clean-migration-replay.
 - Next: PR, independent review, mandatory checks, merge under role-merge (proxy), release.
+- 13:10 UTC: PR #714 head e18f9981 CI_GREEN (8 mandatory SUCCESS; clean 113303379208
+  Z15C case ✓ 63994 ms, 725P/1skip/0F). Review 5456496045 approve (nit 21-field, deferred).
+  z03h-z04h-supplier-native red = b6d3's unapproved H suite, also red on #699/#687.
+  Requested proxy role-merge (#673 6060615751). Next: on merge verify main SHA, MERGED,
+  release file-701ac via root, then choose next blocker.
+- 13:47 UTC: PR #714 MERGED, main 0509defba33a0a5eee10cd60fd4574fda4a97268 from expected
+  head e18f9981. Follow-up (this branch, from that main): comment "22"→"21" per review
+  5456496045 under the same file reservation ee171db1; checkpoint record. After its
+  delivery: root releases file-701ac; B2 DONE; select next blocker.

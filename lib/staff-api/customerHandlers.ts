@@ -9,6 +9,7 @@ import { listCustomersPageForCompany, type CustomerStatusFilter, type CustomerTy
 import { publicReference } from '@/lib/integrations/publicReferences'
 import { findStaffCustomer, parseStaffContactPatch, rejectUnknownFields, staffCustomerDetail, staffCustomerSummary } from '@/lib/staff-api/customers'
 import { staffApiJson, withStaffApi } from '@/lib/staff-api/http'
+import { applyStaffQueryPolicy } from '@/lib/staff-api/queryPolicy'
 
 type Params = { params: Promise<{ ref: string }> }
 const statuses = ['all', 'draft', 'pending_verification', 'active', 'inactive', 'moved', 'terminated', 'blocked', 'archived'] as const
@@ -39,6 +40,7 @@ export async function getStaffCustomers(request: NextRequest): Promise<Response>
       if (!allowed.includes(key)) throw new ApiInputError('Okänt sökfält.', 'field_not_allowed', 422, key)
       if (query.getAll(key).length > 1) throw new ApiInputError('Sökfält får bara anges en gång.', 'invalid_field', 422, key)
     }
+    applyStaffQueryPolicy(request, ['page', 'page_size'])
     const search = query.get('q')?.trim() ?? ''
     if (search.length > 200) throw new ApiInputError('Söktexten är för lång.', 'invalid_field', 422, 'q')
     const status = query.get('status') ?? 'all'

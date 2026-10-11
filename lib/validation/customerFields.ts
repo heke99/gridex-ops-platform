@@ -58,6 +58,63 @@ export function isValidSwedishOrganizationNumber(value: string | null | undefine
   return Number(normalized[2]) >= 2 && hasLuhnChecksum(normalized)
 }
 
+function realCivilDate(year: number, month: number, dayRaw: number): Date | null {
+  // Coordination numbers (samordningsnummer) add 60 to the day.
+  const day = dayRaw > 60 ? dayRaw - 60 : dayRaw
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null
+  return date
+}
+
+/**
+ * Canonical 12-digit form (YYYYMMDDNNNC) of a Swedish personnummer or
+ * samordningsnummer, so 10- and 12-digit inputs for the same person collapse
+ * to one value. For 10-digit input the century is the latest one that does not
+ * put the birth date in the future; a '+' separator (Skatteverket notation for
+ * age 100+) moves it back another 100 years. Returns null for invalid input.
+ */
+export function canonicalSwedishPersonalNumber(
+  value: string | null | undefined,
+  today: Date = new Date(),
+): string | null {
+  const raw = value?.trim() ?? ''
+  if (!raw || !isValidSwedishPersonalNumber(raw)) return null
+  const digits = digitsOnly(raw)
+  const month = Number(digits.slice(-8, -6))
+  const day = Number(digits.slice(-6, -4))
+  if (digits.length === 12) {
+    return realCivilDate(Number(digits.slice(0, 4)), month, day) ? digits : null
+  }
+  const yy = Number(digits.slice(0, 2))
+  const currentYear = today.getUTCFullYear()
+  let year = currentYear - (currentYear % 100) + yy
+  const todayUtc = Date.UTC(currentYear, today.getUTCMonth(), today.getUTCDate())
+  const birth = realCivilDate(year, month, day)
+  if (!birth || birth.getTime() > todayUtc) year -= 100
+  if (raw.includes('+')) year -= 100
+  if (!realCivilDate(year, month, day)) return null
+  return `${year}${digits.slice(2)}`
+}
+
+/**
+ * Canonical organisation identity: a valid organisationsnummer as 10 digits
+ * (an optional '16' century prefix is dropped). A sole trader (enskild firma)
+ * uses the owner's personnummer as organisation number; that form is returned
+ * as the canonical 12-digit personnummer. Returns null for invalid input.
+ */
+export function canonicalSwedishOrganizationNumber(
+  value: string | null | undefined,
+  today: Date = new Date(),
+): string | null {
+  const raw = value?.trim() ?? ''
+  if (!raw) return null
+  const digits = digitsOnly(raw)
+  if (isValidSwedishOrganizationNumber(raw)) {
+    return digits.length === 12 ? digits.slice(2) : digits
+  }
+  return canonicalSwedishPersonalNumber(raw, today)
+}
+
 export function isValidSwedishPostalCode(value: string | null | undefined): boolean {
   if (!value) return true
   return /^\d{3}\s?\d{2}$/.test(value.trim())

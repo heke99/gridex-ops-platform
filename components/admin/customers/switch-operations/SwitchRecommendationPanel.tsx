@@ -247,7 +247,7 @@ export default function SwitchRecommendationPanel({
  >
  <div className="flex flex-wrap items-center gap-2">
  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${routeIssueTone(issue)}`}>
- {issue.severity === 'error' ? 'blockerare' : 'varning'}
+ {issue.severity === 'error' ? 'måste åtgärdas' : 'varning'}
  </span>
  <span className="text-sm font-semibold text-slate-900 ">
  {issue.label}

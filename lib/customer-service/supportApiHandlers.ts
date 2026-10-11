@@ -20,7 +20,7 @@ import {
   findCustomerSupportCase,
   isClosedSupportCase,
   listCustomerSupportCases,
-  listCustomerSupportMessages,
+  listCustomerSupportMessagesPage,
   publicSupportCase,
 } from '@/lib/customer-service/supportConversation'
 import { toSupportApiError } from '@/lib/customer-service/supportApi'
@@ -29,9 +29,13 @@ import {
   SUPPORT_ATTACHMENT_MIME_TYPES,
   addSupportAttachment,
   downloadSupportAttachment,
-  listSupportAttachments,
+  listSupportAttachmentsContinuation,
   publicSupportAttachment,
 } from '@/lib/customer-service/supportAttachments'
+
+/** Continuation of oldest-first support histories; the V1 body shape stays unchanged. */
+export const SUPPORT_NEXT_CURSOR_HEADER = 'X-Gridex-Next-Cursor'
+const continuationHeaders = (nextCursor: string | null): Record<string, string> => (nextCursor ? { [SUPPORT_NEXT_CURSOR_HEADER]: nextCursor } : {})
 
 type Params = { params: Promise<{ reference: string }> }
 type AttachmentParams = { params: Promise<{ reference: string; attachmentReference: string }> }
@@ -92,9 +96,9 @@ export async function getSupportCase(request: NextRequest, contextInput: { param
     const { reference } = await contextInput.params
     const scope = { companyId: context.client.company_id, customerId: context.identity.customer_id }
     const supportCase = await findCustomerSupportCase(scope, reference)
-    const messages = await listCustomerSupportMessages(scope, supportCase.id)
+    const messages = await listCustomerSupportMessagesPage(scope, supportCase.id)
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1 })
-    return customerPortalJson({ data: { ...publicSupportCase(supportCase), messages } })
+    return customerPortalJson({ data: { ...publicSupportCase(supportCase), messages: messages.items } }, { headers: continuationHeaders(messages.nextCursor) })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error: toSupportApiError(error) })
   }
@@ -107,9 +111,9 @@ export async function getSupportMessages(request: NextRequest, contextInput: Par
     const { reference } = await contextInput.params
     const scope = { companyId: context.client.company_id, customerId: context.identity.customer_id }
     const supportCase = await findCustomerSupportCase(scope, reference)
-    const messages = await listCustomerSupportMessages(scope, supportCase.id)
-    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: messages.length })
-    return customerPortalJson({ data: messages })
+    const messages = await listCustomerSupportMessagesPage(scope, supportCase.id, { cursor: request.nextUrl.searchParams.get('cursor') })
+    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: messages.items.length })
+    return customerPortalJson({ data: messages.items }, { headers: continuationHeaders(messages.nextCursor) })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error: toSupportApiError(error) })
   }
@@ -154,9 +158,9 @@ export async function getSupportAttachments(request: NextRequest, contextInput: 
     const { reference } = await contextInput.params
     const scope = { companyId: context.client.company_id, customerId: context.identity.customer_id }
     const supportCase = await findCustomerSupportCase(scope, reference)
-    const rows = await listSupportAttachments({ ...scope, caseId: supportCase.id, audience: 'customer' })
-    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: rows.length })
-    return customerPortalJson({ data: rows.map(publicSupportAttachment) })
+    const page = await listSupportAttachmentsContinuation({ ...scope, caseId: supportCase.id, audience: 'customer' }, { cursor: request.nextUrl.searchParams.get('cursor') })
+    await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: page.items.length })
+    return customerPortalJson({ data: page.items.map(publicSupportAttachment) }, { headers: continuationHeaders(page.nextCursor) })
   } catch (error) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error: toSupportApiError(error) })
   }
@@ -202,10 +206,8 @@ export async function postSupportAttachment(request: NextRequest, contextInput: 
     }
     requireIdempotencyKey(request)
     const scope = { companyId: context.client.company_id, customerId: context.identity.customer_id }
+    // Current auth/ownership is always checked before any idempotent replay can be returned.
     const supportCase = await findCustomerSupportCase(scope, reference)
-    if (isClosedSupportCase(supportCase)) {
-      throw new ApiInputError('Ärendet är avslutat. Skapa ett nytt ärende.', 'support_case_closed', 409)
-    }
     const bytes = await readBoundedBody(request, SUPPORT_ATTACHMENT_API_MAX_BYTES)
     if (bytes.length === 0) throw new ApiInputError('Filen är tom.', 'attachment_empty', 422)
     const fileName = headerFileName(request)
@@ -218,6 +220,11 @@ export async function postSupportAttachment(request: NextRequest, contextInput: 
       operation: '/api/v1/customer/support/cases/[reference]/attachments',
       payload: { reference, sha256, content_type: contentType, file_name: fileName },
       execute: async () => {
+        // F10 policy: a previously completed upload with the same key and bytes replays its stored
+        // result even after the case was closed; closure blocks only new writes.
+        if (isClosedSupportCase(supportCase)) {
+          throw new ApiInputError('Ärendet är avslutat. Skapa ett nytt ärende.', 'support_case_closed', 409)
+        }
         const row = await addSupportAttachment({
           ...scope,
           caseId: supportCase.id,

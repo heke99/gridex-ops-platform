@@ -1,0 +1,55 @@
+{
+  "engine": "PGlite isolated in-memory PostgreSQL",
+  "scope": "Exact extracted native POA insertion phase + native JSON insert helper + live normalization/materialization; NOT entire onboarding graph; synthetic fixture; no live writes",
+  "passed": 7,
+  "results": [
+    {
+      "name": "exact_offer_document",
+      "accepted": true,
+      "expected_offer_document": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      "stored_document": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      "snapshot_bundle": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "expected_offer_bundle": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "materialized": true
+    },
+    {
+      "name": "alternate_valid_same_tenant_document",
+      "accepted": true,
+      "expected_offer_document": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      "stored_document": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      "snapshot_bundle": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "expected_offer_bundle": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "materialized": true
+    },
+    {
+      "name": "wrong_tenant",
+      "rejected": true,
+      "code": "23514",
+      "message": "power_of_attorney_legal_document_tenant_mismatch"
+    },
+    {
+      "name": "wrong_module",
+      "rejected": true,
+      "code": "23514",
+      "message": "power_of_attorney_legal_document_type_mismatch"
+    },
+    {
+      "name": "unlocked_document",
+      "rejected": true,
+      "code": "23514",
+      "message": "power_of_attorney_legal_document_not_locked"
+    },
+    {
+      "name": "missing_document",
+      "rejected": true,
+      "code": "23503",
+      "message": "insert or update on table \"powers_of_attorney\" violates foreign key constraint \"powers_of_attorney_legal_bundle_version_document_id_fkey\""
+    },
+    {
+      "name": "missing_scope",
+      "rejected": true,
+      "code": "22023",
+      "message": "signed_power_of_attorney_scope_required"
+    }
+  ]
+}

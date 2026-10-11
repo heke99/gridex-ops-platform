@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   ResendWebhookError,
+  ResendWebhookProcessingError,
   getResendWebhookHeaders,
   getResendWebhookSecret,
   processResendWebhookEvent,
@@ -57,9 +58,16 @@ export async function POST(request: NextRequest) {
     const result = await processResendWebhookEvent(event, webhookHeaders)
     return NextResponse.json(result, { status: 200 })
   } catch (error) {
-    console.error('[resend-webhook] event processing failed', { error })
+    // Non-2xx makes Resend retry; the stored-but-unprocessed event is then
+    // re-processed. Details are logged only: the body carries codes, never raw
+    // database error text.
+    const stage = error instanceof ResendWebhookProcessingError ? error.stage : null
+    console.error('[resend-webhook] event processing failed', {
+      stage,
+      error: error instanceof ResendWebhookProcessingError ? error.cause : error,
+    })
     return NextResponse.json(
-      { ok: false, error: 'Event-bearbetning misslyckades.', code: 'event_processing_failed' },
+      { ok: false, error: 'Event-bearbetning misslyckades.', code: 'event_processing_failed', stage },
       { status: 500 },
     )
   }

@@ -28,7 +28,7 @@ export default async function CustomerPortfolioPage({ searchParams }: PageProps)
 
   return (
     <div className="min-h-screen">
-      <AdminHeader title="Kundportfölj" subtitle="Aktiva, nya och lämnade kunder per månad, fullmakter, mätvärdesbegäranden och förbrukningsprognos framåt." userEmail={admin.email} />
+      <AdminHeader title="Portföljöversikt" subtitle="Aktiva, nya och lämnade kunder per månad, fullmakter, mätvärdesbegäranden och förbrukningsprognos framåt." userEmail={admin.email} />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <form className="flex flex-wrap items-end gap-3">
           <label className="text-sm font-bold text-slate-700">

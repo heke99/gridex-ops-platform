@@ -105,6 +105,29 @@ export async function POST(request: NextRequest) {
         correlation_id: requestId,
       }, { status: 400 })
     }
+    // facility_id and metering_point_id are accepted as references only. No
+    // facility -> grid owner lookup exists, so they never resolve an area on
+    // their own: an address, postal code or grid area code is required.
+    const hasResolvableInput = Boolean(
+      text(body, 'grid_area_code') ||
+      text(body, 'postal_code') ||
+      (text(body, 'street') && text(body, 'city')),
+    )
+    if (!hasResolvableInput) {
+      return customerPortalJson({
+        error: {
+          code: 'energy_area_address_required',
+          message: 'Anläggnings-ID och mätpunkt används endast som referens. Ange fullständig adress, postnummer eller nätområde.',
+          field: 'postal_code',
+          request_id: requestId,
+          correlation_id: requestId,
+          retryable: false,
+          details: { required_fields: ['postal_code', 'street', 'city', 'grid_area_code'] },
+        },
+        request_id: requestId,
+        correlation_id: requestId,
+      }, { status: 422 })
+    }
     const resolution = await resolveWebsiteEnergyContext({
       companyId: auth.context.companyId,
       street: text(body, 'street'),

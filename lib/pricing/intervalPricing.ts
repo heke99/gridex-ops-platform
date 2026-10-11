@@ -12,6 +12,8 @@ export type IntervalPriceEvidence = {
   price_sek_per_kwh: number;
   amount_ex_vat: number;
   price_source_id: string;
+  /** All price rows used; four quarter-hours when an hourly price is derived. */
+  price_source_ids?: string[];
   price_area: PriceArea;
   evidence_sha256: string;
 };
@@ -55,6 +57,45 @@ export function spotPriceResolutionMatches(
   return requiredResolution === "quarterly"
     ? text(sourceResolution) === "quarter_hour"
     : text(sourceResolution) === "hourly";
+}
+
+const QUARTER_MS = 15 * 60 * 1_000;
+
+/**
+ * Since 2025-10-01 the market publishes quarter-hour prices only. An hourly
+ * price is the arithmetic mean of the four quarter-hours of that hour from one
+ * source; all four must exist and tile the hour exactly, otherwise no price.
+ */
+export function hourlyPriceFromQuarters(
+  prices: Row[],
+  startMs: number,
+  endMs: number,
+  sourcePriority: Map<string, number>,
+): { value: number; ids: string[] } | null {
+  if (endMs - startMs !== 4 * QUARTER_MS) return null;
+  const bySource = new Map<string, Row[]>();
+  for (const price of prices) {
+    if (text(price.resolution) !== "quarter_hour") continue;
+    const priceStart = Date.parse(String(price.time_start));
+    if (priceStart < startMs || priceStart >= endMs) continue;
+    const source = String(price.source);
+    bySource.set(source, [...(bySource.get(source) ?? []), price]);
+  }
+  const sources = [...bySource.keys()].sort((a, b) =>
+    (sourcePriority.get(a) ?? Number.MAX_SAFE_INTEGER) - (sourcePriority.get(b) ?? Number.MAX_SAFE_INTEGER));
+  for (const source of sources) {
+    const rows = bySource.get(source)!.sort((a, b) => Date.parse(String(a.time_start)) - Date.parse(String(b.time_start)));
+    if (rows.length !== 4) continue;
+    const tiles = rows.every((row, index) =>
+      Date.parse(String(row.time_start)) === startMs + index * QUARTER_MS &&
+      Date.parse(String(row.time_end)) === startMs + (index + 1) * QUARTER_MS);
+    const values = rows.map((row) => numeric(row.sek_per_kwh));
+    const ids = rows.map((row) => text(row.id));
+    if (!tiles || values.some((v) => v === null) || ids.some((id) => !id)) continue;
+    const mean = (values as number[]).reduce((sum, v) => sum + v, 0) / 4;
+    return { value: Math.round(mean * 1e6) / 1e6, ids: ids as string[] };
+  }
+  return null;
 }
 
 export async function resolveIntervalSpotPricing(input: {
@@ -155,14 +196,24 @@ export async function resolveIntervalSpotPricing(input: {
       (sourcePriority.get(String(a.source)) ?? Number.MAX_SAFE_INTEGER) -
       (sourcePriority.get(String(b.source)) ?? Number.MAX_SAFE_INTEGER)
     );
-    if (candidates.length === 0) {
+    let priceValue: number | null = null;
+    let priceId: string | null = null;
+    let priceIds: string[] | undefined;
+    if (candidates.length > 0) {
+      priceValue = numeric(candidates[0].sek_per_kwh);
+      priceId = text(candidates[0].id);
+    } else if (input.requiredResolution === "hourly" && resolution === "hour") {
+      const derived = hourlyPriceFromQuarters(prices, startMs, endMs, sourcePriority);
+      if (derived) {
+        priceValue = derived.value;
+        priceId = derived.ids[0];
+        priceIds = derived.ids;
+      }
+    }
+    if (candidates.length === 0 && priceIds === undefined) {
       errors.push(`Spotpris saknas för mätintervallet ${start}–${end}.`);
       continue;
     }
-
-    const price = candidates[0];
-    const priceValue = numeric(price.sek_per_kwh);
-    const priceId = text(price.id);
     if (priceValue === null || !priceId) {
       errors.push(`Spotpriskällan är ogiltig för intervallet ${start}–${end}.`);
       continue;
@@ -181,6 +232,7 @@ export async function resolveIntervalSpotPricing(input: {
       price_sek_per_kwh: priceValue,
       amount_ex_vat: Math.round(contractualAmount * 100) / 100,
       price_source_id: priceId,
+      ...(priceIds ? { price_source_ids: priceIds } : {}),
       price_area: input.priceArea,
     };
     evidence.push({

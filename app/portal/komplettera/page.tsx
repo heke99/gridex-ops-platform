@@ -1,3 +1,4 @@
+import { portalCompletionTypeLabel, portalInfoRequestStatusLabel, portalInfoRequestTypeLabel } from "@/lib/customer-portal/labels";
 import {
   getCustomerPortalContext,
   listPortalCompletions,
@@ -27,8 +28,8 @@ export default async function PortalCompletionPage({
     <div className="space-y-6">
       {params?.status === "success" ? (
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
-          Tack. Dina kompletterande uppgifter har skickats in och ett ärende har
-          skapats för granskning.
+          Tack. Dina kompletterande uppgifter har skickats in. Vi går igenom dem
+          och återkommer om något mer behövs.
         </section>
       ) : null}
       {params?.status === "blocked" ? (
@@ -119,10 +120,10 @@ export default async function PortalCompletionPage({
                   className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-700"
                 >
                   <div className="font-semibold text-slate-950">
-                    {request.request_type ?? "Uppgiftsbegäran"}
+                    {portalInfoRequestTypeLabel(request.request_type)}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">
-                    Status {request.status ?? "—"} ·{" "}
+                    Status {portalInfoRequestStatusLabel(request.status)} ·{" "}
                     {formatDate(request.updated_at)}
                   </div>
                   {request.notes ? (
@@ -134,7 +135,7 @@ export default async function PortalCompletionPage({
               ))}
               {requests.length === 0 ? (
                 <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-slate-500">
-                  Inga öppna uppgiftsbegäran.
+                  Inga öppna uppgiftsbegäran. Du behöver inte göra något just nu.
                 </div>
               ) : null}
             </div>
@@ -151,7 +152,7 @@ export default async function PortalCompletionPage({
                   className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-700"
                 >
                   <div className="font-semibold text-slate-950">
-                    {completion.completion_type}
+                    {portalCompletionTypeLabel(completion.completion_type)}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">
                     Status {formatStatusLabel(completion.status)} ·{" "}
@@ -161,7 +162,7 @@ export default async function PortalCompletionPage({
               ))}
               {completions.length === 0 ? (
                 <div className="rounded-2xl border border-dashed p-8 text-center text-sm text-slate-500">
-                  Inga kompletteringar inskickade ännu.
+                  Inga kompletteringar inskickade ännu. Använd formuläret för att skicka in saknade uppgifter.
                 </div>
               ) : null}
             </div>

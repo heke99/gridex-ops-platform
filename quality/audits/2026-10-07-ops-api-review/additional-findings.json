@@ -1,0 +1,58 @@
+{
+  "source_head": "1aef94be4758260e134bdc195a69312901bf8cb2",
+  "report": "ADDITIONAL-API-DOCS.md",
+  "runtime": "Node22.23.3",
+  "tests_passed": 20,
+  "production_changes": false,
+  "findings": [
+    {
+      "id": "F6",
+      "priority": "P2",
+      "status": "confirmed",
+      "summary": "Partner Customer/Site closed allOf is unsatisfiable",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F7",
+      "priority": "P2",
+      "status": "confirmed",
+      "summary": "Partner site invoices limited before site filter",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F8",
+      "priority": "P2",
+      "status": "confirmed",
+      "summary": "Customer message history capped at oldest500 without continuation",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F9",
+      "priority": "P2",
+      "status": "confirmed",
+      "summary": "Customer attachments capped at oldest100 without continuation",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F10",
+      "priority": "P3",
+      "status": "document_requirement_ambiguous_behavior_confirmed",
+      "summary": "Closed-case attachment replay priority unspecified",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F11",
+      "priority": "P3",
+      "status": "confirmed_optional_signal_gap",
+      "summary": "Staff user writes omit documented optional replay header",
+      "remediation": "OPEN"
+    },
+    {
+      "id": "F12",
+      "priority": "P3",
+      "status": "confirmed_documentation_gap",
+      "summary": "Staff machine contract omits storage target header/412/attestation",
+      "remediation": "OPEN"
+    }
+  ]
+}

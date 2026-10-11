@@ -157,6 +157,11 @@ export type CustomerConsumptionMonth = {
   label: string
   totalKwh: number
   valueCount: number
+  /**
+   * Full-month native aggregation only: false when intervals are missing for the month
+   * (Europe/Stockholm calendar month, DST-aware). Undefined for legacy sample summaries.
+   */
+  complete?: boolean
 }
 
 export type CustomerPortalContractRow = {

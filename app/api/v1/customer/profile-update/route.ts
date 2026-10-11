@@ -182,6 +182,16 @@ export async function POST(request: NextRequest) {
       operation: '/api/v1/customer/profile-update',
       payload,
       execute: async () => {
+        // F22: validate every referenced resource before the first mutation so a
+        // missing/foreign facility reference can never leave a partial profile change.
+        const siteId: string | null = payload.facility_data
+          ? await resolveFacilitySite({
+              companyId: context.client.company_id,
+              customerId: context.identity.customer_id,
+              facilityReference: payload.facility_data.facility_reference,
+            })
+          : null
+
         const profileUpdated = payload.profile
           ? await updateCanonicalCustomerProfile({
               companyId: context.client.company_id,
@@ -192,14 +202,8 @@ export async function POST(request: NextRequest) {
             })
           : false
 
-        let siteId: string | null = null
         let addressResult: unknown = null
-        if (payload.facility_data) {
-          siteId = await resolveFacilitySite({
-            companyId: context.client.company_id,
-            customerId: context.identity.customer_id,
-            facilityReference: payload.facility_data.facility_reference,
-          })
+        if (payload.facility_data && siteId) {
           const address = payload.facility_data.address
           const applied = await applyCustomerSiteAddressCandidate({
             companyId: context.client.company_id,

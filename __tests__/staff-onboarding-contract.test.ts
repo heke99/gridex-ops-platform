@@ -75,7 +75,10 @@ describe('independent onboarding public contract parity', () => {
   it('does not alter or include onboarding in the frozen Staff API release or its release manifest', () => {
     const frozen = readFileSync('docs/openapi/releases/2026-10-04.1/staff-v1.json')
     const current = readFileSync('docs/openapi/staff-v1.json')
-    expect(createHash('sha256').update(current).digest('hex')).toBe(createHash('sha256').update(frozen).digest('hex'))
+    // The current Staff document is the frozen bytes of the current release; earlier releases stay frozen.
+    const currentRelease = readFileSync(`docs/openapi/releases/${JSON.parse(current.toString()).info.version}/staff-v1.json`)
+    expect(createHash('sha256').update(current).digest('hex')).toBe(createHash('sha256').update(currentRelease).digest('hex'))
+    expect(JSON.stringify(JSON.parse(current.toString()).paths)).not.toContain('staff-onboarding')
     const manifest = buildOpenApiReleaseManifest()
     expect(JSON.stringify(manifest)).not.toContain('staff-onboarding')
     expect(JSON.stringify(JSON.parse(frozen.toString()).paths)).not.toContain('staff-onboarding')

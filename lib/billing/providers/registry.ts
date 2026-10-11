@@ -6,8 +6,16 @@ import { tenantDb } from '@/lib/supabase/tenantDb'
  * (invoice_provider_catalog) decides which are selectable; this registry decides which have a
  * dispatch implementation in this build. A provider must be both to be used.
  */
-export const DISPATCH_IMPLEMENTED_PROVIDERS = ['capway_aptic', 'file_export'] as const
+export const DISPATCH_IMPLEMENTED_PROVIDERS = ['capway_aptic', 'file_export', 'nordfin'] as const
 export type DispatchProvider = (typeof DISPATCH_IMPLEMENTED_PROVIDERS)[number]
+
+/** Providers that receive approved invoices as a file instead of per-invoice API sends. */
+export const FILE_PROVIDERS = ['file_export', 'nordfin'] as const
+export type FileProvider = (typeof FILE_PROVIDERS)[number]
+
+export function isFileProvider(provider: unknown): provider is FileProvider {
+  return typeof provider === 'string' && (FILE_PROVIDERS as readonly string[]).includes(provider)
+}
 export type InvoiceProviderEnvironment = 'test' | 'production'
 
 export type InvoiceProviderCatalogEntry = {
@@ -96,6 +104,7 @@ const RPC_ERRORS: Record<string, string> = {
   invoice_file_provider_not_active: 'Filexport är inte vald och aktiverad för bolaget.',
   invoice_file_items_changed: 'Någon faktura ändrades medan filen skapades. Ladda om och försök igen.',
   invoice_file_empty: 'Det finns inga godkända fakturor att lägga i en fil.',
+  nordfin_client_id_missing: 'Nordfins ClientId saknas för bolaget.',
   invoice_provider_connection_not_ready: 'Kopplingen till leverantören måste testas och godkännas innan utskick aktiveras.',
 }
 
@@ -131,4 +140,47 @@ export async function setTenantInvoiceDispatchEnabled(input: { companyId: string
   })
   if (error) throw rpcError(error)
   return data as { enabled: boolean; provider: string | null; environment: string | null }
+}
+
+/** Nordfin client id for the company and environment (kept on the provider connection). */
+export async function loadNordfinClientId(companyId: string, environment: InvoiceProviderEnvironment): Promise<string | null> {
+  const { data, error } = await tenantDb(companyId)
+    .unscoped()
+    .from('billing_provider_connections')
+    .select('settings')
+    .eq('company_id', companyId)
+    .eq('provider', 'nordfin')
+    .eq('environment', environment)
+    .maybeSingle()
+  if (error) throw error
+  const value = (data?.settings as Record<string, unknown> | null | undefined)?.client_id
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+export function normalizeNordfinClientId(value: unknown): string | null {
+  const text = typeof value === 'string' ? value.trim() : ''
+  return /^[A-Za-z0-9_-]{1,40}$/.test(text) ? text : null
+}
+
+export async function saveNordfinClientId(input: { companyId: string; environment: InvoiceProviderEnvironment; clientId: string; actorUserId: string }) {
+  const clientId = normalizeNordfinClientId(input.clientId)
+  if (!clientId) throw new InvoiceProviderConfigError('nordfin_client_id_invalid', 'ClientId får bara innehålla bokstäver, siffror, - och _ (högst 40 tecken).')
+  const db = tenantDb(input.companyId).unscoped()
+  const current = await db
+    .from('billing_provider_connections')
+    .select('id,settings')
+    .eq('company_id', input.companyId)
+    .eq('provider', 'nordfin')
+    .eq('environment', input.environment)
+    .maybeSingle()
+  if (current.error) throw current.error
+  if (!current.data) throw new InvoiceProviderConfigError('invoice_provider_not_selected', 'Välj Nordfin som fakturaleverantör först.')
+  const settings = { ...((current.data.settings as Record<string, unknown> | null) ?? {}), client_id: clientId }
+  const { error } = await db
+    .from('billing_provider_connections')
+    .update({ settings, updated_by: input.actorUserId, updated_at: new Date().toISOString() })
+    .eq('company_id', input.companyId)
+    .eq('id', current.data.id)
+  if (error) throw error
+  return { clientId }
 }

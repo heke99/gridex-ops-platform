@@ -770,6 +770,7 @@ export async function listCompanyUsersForGovernance(companyId: string): Promise<
       'id, email',
     ]
 
+    // query-loop-budget: bounded-schema-fallback max=3
     for (const select of profileAttempts) {
       try {
         const { data, error } = await supabaseService

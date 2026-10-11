@@ -463,7 +463,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <div className="mt-2 text-sm text-slate-700 ">
  {validationSummary.validatedAt
  ? `${formatDateTime(validationSummary.validatedAt)} · ${validationSummary.issueCount} issues`
- : 'Ingen validation snapshot sparad ännu.'}
+ : 'Ingen kontroll har gjorts ännu.'}
  </div>
  </div>
  </section>
@@ -581,7 +581,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  </div>
 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
- <div className="text-slate-700 ">Snapshot issue count</div>
+ <div className="text-slate-700 ">Antal avvikelser</div>
  <div className="mt-1 font-medium text-slate-900 ">
  {validationSummary.issueCount}
  </div>
@@ -861,15 +861,9 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="flex items-center justify-between gap-4">
  <h2 className="text-lg font-semibold text-slate-950 ">
- Kopplade Ediel-meddelanden
+ Kopplade meddelanden
  </h2>
 
- <Link
- href="/admin/ediel"
- className="text-sm font-medium text-slate-700 underline-offset-4 hover:underline "
- >
- Öppna Ediel-vyn
- </Link>
  </div>
 
  <div className="mt-5 space-y-4">
@@ -910,13 +904,13 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <div className="mt-4 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
  <div>Avsändare: <span className="font-medium">{message.sender_ediel_id ?? '—'}</span></div>
  <div>Mottagare: <span className="font-medium">{message.receiver_ediel_id ?? '—'}</span></div>
- <div>Interchange: <span className="font-medium">{message.interchange_reference ?? '—'}</span></div>
- <div>Transaction: <span className="font-medium">{message.transaction_reference ?? '—'}</span></div>
+ <div>Meddelandereferens: <span className="font-medium">{message.interchange_reference ?? '—'}</span></div>
+ <div>Transaktionsreferens: <span className="font-medium">{message.transaction_reference ?? '—'}</span></div>
  </div>
 
  <div className="mt-4 flex flex-wrap gap-2">
  <Link
- href={`/admin/ediel/messages/${message.id}`}
+ href={`/admin/messages/${message.id}`}
  className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 "
  >
  Öppna meddelande

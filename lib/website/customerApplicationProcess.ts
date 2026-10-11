@@ -22,7 +22,7 @@ import type { WebsiteLegalAcceptanceVersion } from "./customerApplicationLegal";
 import { onboardCanonicalWebsiteCustomerGraph } from "./customerApplicationOnboarding";
 import { applicationBusinessConflictError, createApplicationRow, duplicateApplicationError, expectsSiteOrMetering, failureResponse, hasCompleteSiteAndMetering, idempotencyPayloadMismatchError, idempotentFailure, isFailedIdempotentApplication, isRetryableFailedSiteProvisioningApplication, loadConflictingBusinessApplication, loadEquivalentCommittedApplication, loadIdempotentApplication, markApplicationFailed, releaseRetryableFailedIdempotency, reserveWebsiteApplicationIdempotency, resumeCommittedIdempotentApplication, storedApplicationPayloadHash, successResponse } from "./customerApplicationPersistence";
 import { repairMissingPoaOnIdempotentApplication } from "./customerApplicationRepair";
-import { ApplicationSchema, WebsiteQuoteSettlementSchema, applicationBusinessKeyHash, applicationPayloadHash, normalizeStructuredPoa, structuredPoaIsExternallySendable, validateApplicationDates, validateCanonicalApplicationReferencePlacement, validateIdempotencyKey, validateNestedPayloadFields, validateRequestedStartMode, validateStructuredPoaForExternalSendability } from "./customerApplicationSchemas";
+import { ApplicationSchema, WebsiteQuoteSettlementSchema, applicationBusinessKeyHash, applicationPayloadHash, normalizeStructuredPoa, structuredPoaIsExternallySendable, validateApplicationDates, validateCanonicalApplicationReferencePlacement, validateCustomerIdentityNumbers, validateIdempotencyKey, validateNestedPayloadFields, validateRequestedStartMode, validateStructuredPoaForExternalSendability } from "./customerApplicationSchemas";
 import { WEBSITE_APPLICATION_SIGNED_CONTRACT_STATUS, WebsiteApplicationError, calculatedEarliestStartDate, clean, controlledBusinessBlockingReason, controlledBusinessErrorCode, controlledBusinessNextStep, controlledBusinessStatus, errorMessage, isControlledBusinessError, isUuid, missingSchema, normalizedEmail, operationalErrorMessage, reviewAuditEvent, schemaRepairStatus, stage, technicalBlockingReason, timelineEvent, updateCustomerIntakeStatus, validationError } from "./customerApplicationShared";
 import type { CustomerRow, RequestAuditMetadata } from "./customerApplicationShared";
 
@@ -75,6 +75,8 @@ export async function processWebsiteCustomerApplication(input: {
   if (startModeValidation) return failureResponse(startModeValidation);
   const dateValidation = validateApplicationDates(normalizedRaw);
   if (dateValidation) return failureResponse(dateValidation);
+  const identityValidation = validateCustomerIdentityNumbers(normalizedRaw);
+  if (identityValidation) return failureResponse(identityValidation);
 
   // Reject unmappable customer types with a precise code instead of a generic
   // Zod validation error. Empty values default to 'private' in normalization.

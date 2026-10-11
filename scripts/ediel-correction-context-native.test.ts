@@ -34,25 +34,26 @@ const assignments=`jsonb_build_object(
  'roles',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]'::jsonb) FROM public.role_permissions r),
  'users',(SELECT coalesce(jsonb_agg(to_jsonb(u) ORDER BY id),'[]'::jsonb) FROM public.user_permissions u),
  'overrides',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY id),'[]'::jsonb) FROM public.user_permission_overrides o))`
-// The ordinary clean replay, not fixture INSERTs, must have materialized both
-// canonical registry rows. Other native files may already have created synthetic
-// (@example.invalid) grants; no migration may have assigned the keys to anyone else.
+// Other native files may have committed communication grants. Isolate a genuine
+// missing-key materialization inside this rollback-only fixture, then require
+// the original migration to preserve every assignment in every tenant.
 it('canonical communication keys materialize once without creating any assignments',()=>{
  expect(sql(`SELECT jsonb_object_agg(key,n) FROM (SELECT key,count(*) n FROM public.permissions
   WHERE key IN ('communication.read','communication.send') GROUP BY key) p`)).toEqual({'communication.read':1,'communication.send':1})
- expect(sql(`SELECT jsonb_build_object(
-  'roles',(SELECT count(*) FROM public.role_permissions WHERE permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send'))),
-  'users',(SELECT count(*) FROM public.user_permissions WHERE (permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send')))
-   AND NOT EXISTS(SELECT FROM auth.users au WHERE au.id=user_id AND au.email LIKE '%@example.invalid')),
-  'overrides',(SELECT count(*) FROM public.user_permission_overrides WHERE permission_key IN ('communication.read','communication.send')
-   AND NOT EXISTS(SELECT FROM auth.users au WHERE au.id=user_id AND au.email LIKE '%@example.invalid')))`)).toEqual({roles:0,users:0,overrides:0})
  const source=committedMigration(registryMigration)
- expect(sql(`BEGIN; CREATE TEMP TABLE before_registry AS SELECT ${assignments} AS state;
+ expect(sql(`BEGIN;
+  DELETE FROM public.role_permissions WHERE permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send'));
+  DELETE FROM public.user_permissions WHERE permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send'));
+  DELETE FROM public.user_permission_overrides WHERE permission_key IN ('communication.read','communication.send');
+  CREATE TEMP TABLE before_registry AS SELECT ${assignments} AS state;
   DELETE FROM public.permissions WHERE key IN ('communication.read','communication.send');
   ${source}
   SELECT jsonb_build_object('assignmentsUnchanged',(SELECT state FROM before_registry)=${assignments},
+   'roles',(SELECT count(*) FROM public.role_permissions WHERE permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send'))),
+   'users',(SELECT count(*) FROM public.user_permissions WHERE permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send'))),
+   'overrides',(SELECT count(*) FROM public.user_permission_overrides WHERE permission_key IN ('communication.read','communication.send')),
    'keys',(SELECT jsonb_object_agg(key,n) FROM (SELECT key,count(*) n FROM public.permissions WHERE key IN ('communication.read','communication.send') GROUP BY key) p));
-  ROLLBACK;`)).toEqual({assignmentsUnchanged:true,keys:{'communication.read':1,'communication.send':1}})
+  ROLLBACK;`)).toEqual({assignmentsUnchanged:true,roles:0,users:0,overrides:0,keys:{'communication.read':1,'communication.send':1}})
 })
 it('registry replay preserves preexisting IDs, metadata, disabled state and all assignments',()=>{
  const source=committedMigration(registryMigration)

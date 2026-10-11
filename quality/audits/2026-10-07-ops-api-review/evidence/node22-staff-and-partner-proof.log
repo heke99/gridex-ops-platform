@@ -1,0 +1,16 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/ops-normal-api-review-proof.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ops-normal-api-review-proof.test.ts [ __tests__/ops-normal-api-review-proof.test.ts ]
+Error: Cannot find module '/workspace/gridex-ops-platform/__tests__/ops-normal-api-review-proof.test.ts'
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 53 passed (54)
+      Tests  658 passed (658)
+   Start at  09:55:17
+   Duration  32.78s (transform 6.32s, setup 502ms, import 12.61s, tests 108.22s, environment 5ms)

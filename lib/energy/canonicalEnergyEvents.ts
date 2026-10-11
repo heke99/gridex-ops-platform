@@ -41,6 +41,8 @@ function sleep(milliseconds: number) {
  * strongest guarantee; application-level flows must surface an audit failure
  * instead of silently continuing without provenance.
  */
+const PLATFORM_EVENT_PREFIXES = ['market_price.', 'energy_geodata.']
+
 export async function recordCanonicalEnergyEvent(input: CanonicalEnergyEventInput): Promise<void> {
   const eventId = randomUUID()
   const correlationId = input.correlationId ?? randomUUID()
@@ -48,6 +50,10 @@ export async function recordCanonicalEnergyEvent(input: CanonicalEnergyEventInpu
     id: eventId,
     event_type: input.eventType,
     company_id: input.companyId ?? null,
+    // Only known market-data events may be platform scoped (readable by all
+    // authenticated users). Anything else without a company stays 'tenant'
+    // and is rejected by the scope check instead of leaking as platform data.
+    event_scope: !input.companyId && PLATFORM_EVENT_PREFIXES.some((prefix) => input.eventType.startsWith(prefix)) ? 'platform' : 'tenant',
     customer_id: input.customerId ?? null,
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,

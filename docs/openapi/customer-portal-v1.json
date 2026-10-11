@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal API",
-    "version": "2026-10-04.1",
+    "version": "2026-10-09.1",
     "description": "Production API for customer portals. Access is organization-scoped by the server-side API credential and customer data is limited to the verified linked customer identity."
   },
   "servers": [
@@ -155,7 +155,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -261,7 +261,7 @@
             }
           },
           "409": {
-            "description": "Tvetydig matchning eller idempotenskonflikt.",
+            "description": "Tvetydig matchning eller idempotenskonflikt. idempotency_reconciliation_required: an earlier attempt with this Idempotency-Key stopped without a confirmed result; check the resource state before using a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -346,6 +346,33 @@
           },
           "500": {
             "description": "Internt fel utan databasdetaljer.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "idempotency_completion_uncertain: the write may already be saved but its receipt could not be confirmed. Retry with the same Idempotency-Key and payload, never with a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -2720,7 +2747,7 @@
             }
           }
         },
-        "description": "Retrieve metering values available to the customer.",
+        "description": "Retrieve metering values available to the customer. The list is a bounded detail list of current interval values; it is not a complete-month aggregate. Do not sum it to show monthly totals: a month can contain more values than one response returns.",
         "x-scope-mode": "all",
         "x-rate-limit-class": "expensive",
         "x-cache-policy": "no-store",
@@ -2831,7 +2858,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -2882,7 +2909,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -2988,7 +3015,7 @@
             }
           },
           "409": {
-            "description": "Tvetydig matchning eller idempotenskonflikt.",
+            "description": "Tvetydig matchning eller idempotenskonflikt. idempotency_reconciliation_required: an earlier attempt with this Idempotency-Key stopped without a confirmed result; check the resource state before using a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -3073,6 +3100,33 @@
           },
           "500": {
             "description": "Internt fel utan databasdetaljer.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "idempotency_completion_uncertain: the write may already be saved but its receipt could not be confirmed. Retry with the same Idempotency-Key and payload, never with a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -3501,7 +3555,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -3607,7 +3661,7 @@
             }
           },
           "409": {
-            "description": "Tvetydig matchning eller idempotenskonflikt.",
+            "description": "Tvetydig matchning eller idempotenskonflikt. idempotency_reconciliation_required: an earlier attempt with this Idempotency-Key stopped without a confirmed result; check the resource state before using a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -3692,6 +3746,33 @@
           },
           "500": {
             "description": "Internt fel utan databasdetaljer.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "idempotency_completion_uncertain: the write may already be saved but its receipt could not be confirmed. Retry with the same Idempotency-Key and payload, never with a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -4752,7 +4833,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -4858,7 +4939,7 @@
             }
           },
           "409": {
-            "description": "Tvetydig matchning eller idempotenskonflikt.",
+            "description": "Tvetydig matchning eller idempotenskonflikt. idempotency_reconciliation_required: an earlier attempt with this Idempotency-Key stopped without a confirmed result; check the resource state before using a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -4943,6 +5024,33 @@
           },
           "500": {
             "description": "Internt fel utan databasdetaljer.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "idempotency_completion_uncertain: the write may already be saved but its receipt could not be confirmed. Retry with the same Idempotency-Key and payload, never with a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -5381,7 +5489,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -5487,7 +5595,7 @@
             }
           },
           "409": {
-            "description": "Tvetydig matchning eller idempotenskonflikt.",
+            "description": "Tvetydig matchning eller idempotenskonflikt. idempotency_reconciliation_required: an earlier attempt with this Idempotency-Key stopped without a confirmed result; check the resource state before using a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -5572,6 +5680,33 @@
           },
           "500": {
             "description": "Internt fel utan databasdetaljer.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "idempotency_completion_uncertain: the write may already be saved but its receipt could not be confirmed. Retry with the same Idempotency-Key and payload, never with a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -5700,7 +5835,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -5986,7 +6121,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -6092,7 +6227,7 @@
             }
           },
           "409": {
-            "description": "Tvetydig matchning eller idempotenskonflikt.",
+            "description": "Tvetydig matchning eller idempotenskonflikt. idempotency_reconciliation_required: an earlier attempt with this Idempotency-Key stopped without a confirmed result; check the resource state before using a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -6177,6 +6312,33 @@
           },
           "500": {
             "description": "Internt fel utan databasdetaljer.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "idempotency_completion_uncertain: the write may already be saved but its receipt could not be confirmed. Retry with the same Idempotency-Key and payload, never with a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -8139,7 +8301,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     },
                     "page": {
                       "$ref": "#/components/schemas/PortalPage"
@@ -8468,7 +8630,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -8574,7 +8736,7 @@
             }
           },
           "409": {
-            "description": "Tvetydig matchning eller idempotenskonflikt.",
+            "description": "Tvetydig matchning eller idempotenskonflikt. idempotency_reconciliation_required: an earlier attempt with this Idempotency-Key stopped without a confirmed result; check the resource state before using a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -8659,6 +8821,33 @@
           },
           "500": {
             "description": "Internt fel utan databasdetaljer.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "idempotency_completion_uncertain: the write may already be saved but its receipt could not be confirmed. Retry with the same Idempotency-Key and payload, never with a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -8793,7 +8982,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -8814,6 +9003,12 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Next-Cursor": {
+                "description": "Present only when another page exists. Send the value unchanged as the cursor query parameter to read the next page; absent on the last page.",
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -9037,7 +9232,7 @@
             }
           }
         },
-        "description": "Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned.",
+        "description": "Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned. messages contains at most the first 500 customer-visible messages. When later messages exist the response carries X-Gridex-Next-Cursor; continue with GET .../messages?cursor=<value>.",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-cache-policy": "no-store",
@@ -9115,6 +9310,15 @@
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
             "description": "Signed proof of the end customer's own login, forwarded by the tenant server. Compact JWS signed with RS256, PS256 or ES256 (none and HS* are rejected). Claims: iss and aud as configured for the tenant in OPS (own-login keys use iss=gridex-tenant:<organization> and aud=gridex-customer-api:<organization>), sub = the linked portal user id, exp at most 15 minutes after iat, and a unique jti (each assertion is accepted once). Required only when the tenant has enabled \"require verified customer\"; in report mode a missing or invalid assertion is logged but the call proceeds; tenants without a configuration are unaffected."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque continuation value from X-Gridex-Next-Cursor of the previous response. Bound to the organization, the verified customer and the case; a modified or foreign cursor returns 400 invalid_cursor. Without cursor the first page is returned, identical to earlier V1 behaviour."
           }
         ],
         "responses": {
@@ -9148,7 +9352,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -9169,11 +9373,17 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Next-Cursor": {
+                "description": "Present only when another page exists. Send the value unchanged as the cursor query parameter to read the next page; absent on the last page.",
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           },
           "400": {
-            "description": "Ogiltig JSON eller validering.",
+            "description": "Ogiltig JSON eller validering. invalid_cursor: the cursor was modified, expired or belongs to another case, customer or organization.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -9392,7 +9602,7 @@
             }
           }
         },
-        "description": "Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned.",
+        "description": "Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned. Returns customer-visible messages oldest first, at most 500 per response. When more exist the response carries X-Gridex-Next-Cursor; repeat with ?cursor=<value> until the header is absent. The response body shape is unchanged.",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-cache-policy": "no-store",
@@ -9511,7 +9721,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -9644,7 +9854,7 @@
             }
           },
           "409": {
-            "description": "Tvetydig matchning eller idempotenskonflikt.",
+            "description": "Tvetydig matchning eller idempotenskonflikt. idempotency_reconciliation_required: an earlier attempt with this Idempotency-Key stopped without a confirmed result; check the resource state before using a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -9753,9 +9963,36 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "idempotency_completion_uncertain: the write may already be saved but its receipt could not be confirmed. Retry with the same Idempotency-Key and payload, never with a new key.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
         },
-        "description": "Closed cases reject new messages with 409. Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned.",
+        "description": "Closed cases reject new messages with 409. Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned. Closure versus replay: authentication, scope and case ownership are always checked first. A retry with the same Idempotency-Key and the same payload of a write that already succeeded replays the original result (Idempotency-Replayed: true, nothing new is stored) even if the case was closed in between; a new write on a closed case returns 409 support_case_closed.",
         "x-scope-mode": "all",
         "x-rate-limit-class": "write",
         "x-cache-policy": "no-store",
@@ -9833,6 +10070,15 @@
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
             "description": "Signed proof of the end customer's own login, forwarded by the tenant server. Compact JWS signed with RS256, PS256 or ES256 (none and HS* are rejected). Claims: iss and aud as configured for the tenant in OPS (own-login keys use iss=gridex-tenant:<organization> and aud=gridex-customer-api:<organization>), sub = the linked portal user id, exp at most 15 minutes after iat, and a unique jti (each assertion is accepted once). Required only when the tenant has enabled \"require verified customer\"; in report mode a missing or invalid assertion is logged but the call proceeds; tenants without a configuration are unaffected."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque continuation value from X-Gridex-Next-Cursor of the previous response. Bound to the organization, the verified customer and the case; a modified or foreign cursor returns 400 invalid_cursor. Without cursor the first page is returned, identical to earlier V1 behaviour."
           }
         ],
         "responses": {
@@ -9866,7 +10112,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -9887,11 +10133,17 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Next-Cursor": {
+                "description": "Present only when another page exists. Send the value unchanged as the cursor query parameter to read the next page; absent on the last page.",
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           },
           "400": {
-            "description": "Ogiltig JSON eller validering.",
+            "description": "Ogiltig JSON eller validering. invalid_cursor: the cursor was modified, expired or belongs to another case, customer or organization.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -10110,7 +10362,7 @@
             }
           }
         },
-        "description": "Requires an actively linked portal user. Only released (content-checked), customer-visible attachments are ever listed or served; internal staff files are never returned.",
+        "description": "Requires an actively linked portal user. Only released (content-checked), customer-visible attachments are ever listed or served; internal staff files are never returned. Returns customer-visible attachments oldest first, at most 100 per response. When more exist the response carries X-Gridex-Next-Cursor; repeat with ?cursor=<value> until the header is absent. The response body shape is unchanged.",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-cache-policy": "no-store",
@@ -10255,7 +10507,7 @@
                     },
                     "contract_schema_version": {
                       "type": "string",
-                      "const": "2026-10-04.1"
+                      "const": "2026-10-09.1"
                     }
                   }
                 }
@@ -10388,7 +10640,7 @@
             }
           },
           "409": {
-            "description": "Tvetydig matchning eller idempotenskonflikt.",
+            "description": "Tvetydig matchning eller idempotenskonflikt. idempotency_reconciliation_required: an earlier attempt with this Idempotency-Key stopped without a confirmed result; check the resource state before using a new key.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -10551,9 +10803,36 @@
                 }
               }
             }
+          },
+          "503": {
+            "description": "idempotency_completion_uncertain: the write may already be saved but its receipt could not be confirmed. Retry with the same Idempotency-Key and payload, never with a new key.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/RateLimitLimit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/RateLimitRemaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/RateLimitReset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
           }
         },
-        "description": "Send the raw file as the request body with Content-Type application/pdf, image/png or image/jpeg (at most 4 MB) and an optional URL-encoded X-File-Name header. The file is stored in quarantine and released only after a content check (real type from the bytes, no active PDF content such as JavaScript, launch actions or embedded files). Rejected files return 422 and are never served. Closed cases return 409. At most 20 attachments per customer per 24 hours (429). The same Idempotency-Key with the same bytes replays the result. Requires an actively linked portal user. Only released (content-checked), customer-visible attachments are ever listed or served; internal staff files are never returned.",
+        "description": "Send the raw file as the request body with Content-Type application/pdf, image/png or image/jpeg (at most 4 MB) and an optional URL-encoded X-File-Name header. The file is stored in quarantine and released only after a content check (real type from the bytes, no active PDF content such as JavaScript, launch actions or embedded files). Rejected files return 422 and are never served. Closed cases return 409. At most 20 attachments per customer per 24 hours (429). The same Idempotency-Key with the same bytes replays the result. Requires an actively linked portal user. Only released (content-checked), customer-visible attachments are ever listed or served; internal staff files are never returned. Closure versus replay: authentication, scope and case ownership are always checked first. A retry with the same Idempotency-Key and the same payload of a write that already succeeded replays the original result (Idempotency-Replayed: true, nothing new is stored) even if the case was closed in between; a new write on a closed case returns 409 support_case_closed.",
         "x-scope-mode": "all",
         "x-rate-limit-class": "write",
         "x-cache-policy": "no-store",
@@ -11074,6 +11353,90 @@
         },
         "x-required-scopes": [],
         "operationId": "getApiV1Openapi202610041CustomerPortalV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
+    },
+    "/api/v1/openapi/2026-10-09.1/customer-portal-v1.json": {
+      "get": {
+        "summary": "Immutable Customer Portal OpenAPI release 2026-10-09.1",
+        "description": "Immutable Customer Portal OpenAPI release 2026-10-09.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Contract version of this immutable OpenAPI document.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-09.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Contract version of this immutable OpenAPI document.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-09.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202610091CustomerPortalV1Json",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
@@ -11907,7 +12270,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -12452,7 +12815,7 @@
             "const": "api_key"
           },
           "contract_version": {
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "configuration": {
             "type": "object",
@@ -12699,7 +13062,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -12874,7 +13237,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -13407,7 +13770,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -13480,7 +13843,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -13905,7 +14268,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -14254,27 +14617,27 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "staff_openapi_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "runtime_contract_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "released_at": {
             "type": "string",
@@ -14362,7 +14725,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "url": {
             "type": "string",
@@ -14392,7 +14755,7 @@
         "description": "Canonical contract version used for this response.",
         "schema": {
           "type": "string",
-          "const": "2026-10-04.1"
+          "const": "2026-10-09.1"
         }
       },
       "RequestId": {
@@ -14457,7 +14820,7 @@
       }
     }
   },
-  "x-contract-schema-version": "2026-10-04.1",
+  "x-contract-schema-version": "2026-10-09.1",
   "x-gridex-organization-setup": {
     "required_environment_variables": [
       "GRIDEX_API_KEY"
@@ -14475,7 +14838,7 @@
       "description": "Verifiera API-nyckelns tenantkontext, fasta base URL och one-secret readiness."
     }
   ],
-  "x-gridex-release-version": "2026-10-04.1",
+  "x-gridex-release-version": "2026-10-09.1",
   "x-error-codes": [
     "missing_api_token",
     "invalid_api_token",

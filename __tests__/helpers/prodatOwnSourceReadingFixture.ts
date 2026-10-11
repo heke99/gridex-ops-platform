@@ -25,7 +25,7 @@ const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
 const actor=id(3),received='2026-10-01T12:01:00.123456Z'
 const hash=(raw:string)=>createHash('sha256').update(raw,'utf8').digest('hex')
 
-export function installProdatOwnSourceReadingFixture(io:ProdatOwnSourceReadingSdk,row:EdielMessageRow,variant:'L'|'LK',options?:ProdatOwnSourceReadingFixtureScope){
+export function installProdatOwnSourceReadingFixture(io:ProdatOwnSourceReadingSdk,row:EdielMessageRow,variant:'L'|'LK'|'C',options?:ProdatOwnSourceReadingFixtureScope){
  io.scope=options?{...options,companyId:row.company_id,sourceMessageId:row.id}:null
  const readActor=options?.actorUserId??actor,readReceived=options?.receivedAt??received
  const mailId=options?.mailId??id(4),parseId=options?.parseId??id(5),receptionId=options?.receptionId??id(6)
@@ -42,7 +42,7 @@ export function installProdatOwnSourceReadingFixture(io:ProdatOwnSourceReadingSd
  io.legal={basisKind:'observed_source_persistence',companyId:row.company_id,environment:row.environment,direction:'inbound',
   family:'PRODAT',code:'Z04',subtype:variant,legalActorId,legalEdielId:receiverId,actorRole:'electricity_supplier',
   transportActorId:legalActorId,transportEdielId:receiverId,applicationReference:'23-DDQ-PRODAT',sourceEdition:'c'.repeat(64),
-  canonicalProjection:{family:'PRODAT',code:'Z04',subtype:variant,transactionReasonCode:variant==='L'?'Z22':'Z23',direction:'inbound',
+  canonicalProjection:{family:'PRODAT',code:'Z04',subtype:variant,transactionReasonCode:variant==='L'?'Z22':variant==='LK'?'Z23':'Z24',direction:'inbound',
    senderRoles:['grid_owner'],receiverRoles:['supplier'],applicationReferences:['23-DDQ-PRODAT']},
   observedAt:readReceived,sourceReceivedAt:readReceived}
  io.reception={companyId:row.company_id,sourceMessageId:row.id,inboundEmailMessageId:mailId,parseResultId:parseId,receptionId,

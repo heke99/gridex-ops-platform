@@ -1,7 +1,10 @@
+import {observeAssignedProdatHeaderNegativeField} from '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
+import {qualifiedReceivedProdatHeaderRejectionErrors} from './receivedProdatHeaderRejection'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatRegisterGroups,prodatRegisterMessageSegments,type ProdatRegisterGroup} from './prodatRegisterGroups'
 import {isQualifiedProdatApplicationError} from './prodatDiagnosticProjection'
 import {prodatErrorOccurrence,validProdatWireDiagnostic} from './prodatFieldDiagnostic'
+import {observeReceivedZ04HRegister,receivedZ04HRegisterRejectionAckFirstLine} from './receivedZ04HRegisterRejection'
 import {prodatHeaderFieldRejection} from './prodatHeaderDateRejection'
 import {isProdatIdentityOmissionScope} from './prodatIdentityOmissionScope'
 import {hasProdatRejectedIdentityDiagnostic} from './prodatRejectedIdentityScope'
@@ -31,6 +34,10 @@ export function resolveProdatAckMessageFunction(params:{
   // P26.A §2.2 and §3.3: source-owned invalid 202/204 or missing/invalid 313/205/206 in the actual
   // header rejects the entire message. The inbound consumer uses this same
   // qualification before entering any case or business writer.
+  const missing311=sourceWire&&observeAssignedProdatHeaderNegativeField(sourceWire.una.raw+sourceWire.segments.map(row=>row.raw).join(sourceWire.una.segmentTerminator)+sourceWire.una.segmentTerminator)==='311'
+  const header311=Boolean(missing311&&params.outcome==='negative'&&qualifiedReceivedProdatHeaderRejectionErrors(
+    sourceWire!.una.raw+sourceWire!.segments.map(row=>row.raw).join(sourceWire!.una.segmentTerminator)+sourceWire!.una.segmentTerminator,params.applicationErrors))
+  if(missing311&&!header311)throw new Error('aperak_prodat_header_311_response_unqualified')
   const header202=hasProdatWire ? prodatHeaderFieldRejection({field:'202',sourceWire,errors:params.applicationErrors}) : null
   const header204=hasProdatWire ? prodatHeaderFieldRejection({field:'204',sourceWire,errors:params.applicationErrors}) : null
   const header313=hasProdatWire ? prodatHeaderFieldRejection({field:'313',sourceWire,errors:params.applicationErrors}) : null
@@ -69,7 +76,7 @@ export function resolveProdatAckMessageFunction(params:{
         occurrence.messageReference === messageReference)
     })
   ))) throw new Error('aperak_prodat_sequence_response_unqualified')
-  return sequenceProblems.length || header202?.qualified || header204?.qualified || header313?.qualified || header205?.qualified || header206?.qualified ? '27' : '34'
+  return sequenceProblems.length || header311 || header202?.qualified || header204?.qualified || header313?.qualified || header205?.qualified || header206?.qualified ? '27' : '34'
 }
 
 /** Selected positive objects are named by their actual first LIN token index,
@@ -101,6 +108,10 @@ export function prodatAckObjectScopes(params:{
  const all=occurrences.map(own=>own?.lineItemReference)
  const uniqueOwn=(ref:string|null|undefined)=>Boolean(ref&&all.filter(candidate=>candidate===ref).length===1)
  const scopeFor=(group:ProdatRegisterGroup):ProdatAckObjectScope=>({objectId:group.itemId,identityAgency:group.identityAgency,firstLineIndex:group.segments[0].index,lineItemReference:occurrences[first.indexOf(group)]?.lineItemReference??null})
+ const physical={rawSegments:sourceWire.segments.map(token=>token.raw),una:sourceWire.una}
+ if(params.outcome==='negative'&&sourceCode==='Z04'&&observeReceivedZ04HRegister(physical).length
+  &&(!params.applicationErrors?.length||!params.applicationErrors.every(error=>receivedZ04HRegisterRejectionAckFirstLine(physical,error)!==null)))
+  throw new Error('aperak_prodat_requested_scope_unqualified')
  if(params.relatedTransactionReference){
   if(!uniqueOwn(params.relatedTransactionReference))throw new Error('aperak_prodat_requested_scope_unqualified')
   return [scopeFor(first[all.indexOf(params.relatedTransactionReference)])]
@@ -123,7 +134,12 @@ export function prodatAckObjectScopes(params:{
    if(!actual||!(['scope','messageReference','lineIndex','lineNumber','registerPosition','objectId','identityAgency','lineItemReference'] as const).every(key=>own[key]===actual[key])
     )throw new Error('aperak_prodat_requested_scope_unqualified')
    const group=owner.groups.find(group=>group.lineIndex===actual.lineIndex)
-   const firstGroup=group?.validRegisterChain&&group.firstLineIndex!==null?owner.groups.find(candidate=>candidate.lineIndex===group.firstLineIndex):group
+   // A genuine physical H258 rejection can name the same object's first LIN
+   // for a negative ACK only; the malformed second never becomes a valid chain.
+   const rejectedFirstLine=group&&!group.validRegisterChain&&sourceCode==='Z04'
+    ?receivedZ04HRegisterRejectionAckFirstLine(physical,error):null
+   const firstGroup=group?.validRegisterChain&&group.firstLineIndex!==null?owner.groups.find(candidate=>candidate.lineIndex===group.firstLineIndex)
+    :rejectedFirstLine!==null?owner.groups.find(candidate=>candidate.lineIndex===rejectedFirstLine):group
    // Field209's sole matrix/subtype owner may permit an absent identity.
    // Such a negative scope is still its actual first LIN and unique own LI;
    // two absent identities never become one global null object or fake Z07.

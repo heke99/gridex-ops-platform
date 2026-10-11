@@ -42,21 +42,30 @@ export async function POST(request: NextRequest) {
     const billingMonth = normalizeSpotAutoImportMonth(request.nextUrl.searchParams.get('billing_month') ?? request.nextUrl.searchParams.get('billingMonth'))
     const priceAreas = normalizeSpotAutoImportAreas(request.nextUrl.searchParams.get('price_areas') ?? request.nextUrl.searchParams.get('priceAreas'))
     const result = await ensureSpotPricesForBillingMonth({ billingMonth, priceAreas, force: parseForce(request), reason: 'cron' })
-    const settlements = []
+    // One incomplete area must not block locking the others.
+    const settlements: unknown[] = []
+    const failedAreas: Array<{ price_area: string; error: string }> = []
     for (const priceArea of priceAreas) {
-      settlements.push(await lockSpotSettlementMonth({
-        priceArea,
-        billingMonth,
-        reason: 'monthly_settlement_cron',
-      }))
+      try {
+        settlements.push(await lockSpotSettlementMonth({
+          priceArea,
+          billingMonth,
+          reason: 'monthly_settlement_cron',
+        }))
+      } catch (error) {
+        // Return a code only; the detail goes to the server log.
+        console.error('[spot-settlement] area lock failed', { priceArea, billingMonth, error })
+        failedAreas.push({ price_area: priceArea, error: 'spot_settlement_area_lock_failed' })
+      }
     }
     return NextResponse.json({
-      ok: true,
+      ok: failedAreas.length === 0,
       mode: 'settlement_lock',
-      settlement_locked: true,
+      settlement_locked: failedAreas.length === 0,
       settlements,
+      failed_areas: failedAreas,
       result,
-    })
+    }, { status: failedAreas.length === 0 ? 200 : 500 })
   } catch (error) {
     return internalApiError({ context: 'spot_price_settlement_cron_failed', error, code: 'spot_price_settlement_cron_failed', message: 'Settlementförberedelsen av spotpris kunde inte slutföras.' })
   }

@@ -58,6 +58,27 @@ function detectResolution(start: string, end: string): 'hourly' | 'quarter_hour'
   })
 }
 
+function wallClockMinutes(iso: string): number | null {
+  const match = /T(\d{2}):(\d{2})/.exec(iso)
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null
+}
+
+/**
+ * On the autumn DST day elprisetjustnu publishes one row whose `time_end` uses
+ * the wrong offset (e.g. 02:45+02:00 → 03:00+01:00, i.e. 75 minutes). When the
+ * absolute length is not 15/60 minutes but the local wall-clock length is, the
+ * interval is the provider's 15/60 minutes starting at `time_start`.
+ */
+function correctedEndMs(row: ElprisetJustNuRow, start: number, end: number): number {
+  const absolute = Math.round((end - start) / 60_000)
+  if (absolute === 15 || absolute === 60) return end
+  const from = wallClockMinutes(String(row.time_start))
+  const to = wallClockMinutes(String(row.time_end))
+  if (from === null || to === null) return end
+  const wall = (to - from + 24 * 60) % (24 * 60)
+  return wall === 15 || wall === 60 ? start + wall * 60_000 : end
+}
+
 function normalizeRow(row: ElprisetJustNuRow, priceArea: PriceArea, sourcePayload: Record<string, unknown>): SpotPriceInterval {
   if (typeof row.SEK_per_kWh !== 'number' || !Number.isFinite(row.SEK_per_kWh)) {
     throw new SpotPriceProviderError({ message: 'Spotprisraden saknar SEK_per_kWh.', code: 'invalid_payload' })
@@ -66,8 +87,12 @@ function normalizeRow(row: ElprisetJustNuRow, priceArea: PriceArea, sourcePayloa
     throw new SpotPriceProviderError({ message: 'Spotprisraden saknar time_start/time_end.', code: 'invalid_payload' })
   }
   const start = Date.parse(row.time_start)
-  const end = Date.parse(row.time_end)
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+  const rawEnd = Date.parse(row.time_end)
+  if (!Number.isFinite(start) || !Number.isFinite(rawEnd) || rawEnd <= start) {
+    throw new SpotPriceProviderError({ message: 'Spotprisraden har ogiltigt tidsintervall.', code: 'invalid_payload' })
+  }
+  const end = correctedEndMs(row, start, rawEnd)
+  if (end <= start) {
     throw new SpotPriceProviderError({ message: 'Spotprisraden har ogiltigt tidsintervall.', code: 'invalid_payload' })
   }
 
@@ -79,7 +104,7 @@ function normalizeRow(row: ElprisetJustNuRow, priceArea: PriceArea, sourcePayloa
     sekPerKwh: row.SEK_per_kWh,
     eurPerKwh: typeof row.EUR_per_kWh === 'number' && Number.isFinite(row.EUR_per_kWh) ? row.EUR_per_kWh : null,
     exchangeRate: typeof row.EXR === 'number' && Number.isFinite(row.EXR) ? row.EXR : null,
-    resolution: detectResolution(row.time_start, row.time_end),
+    resolution: detectResolution(new Date(start).toISOString(), new Date(end).toISOString()),
     sourcePayload,
   }
 }

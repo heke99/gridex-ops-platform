@@ -128,11 +128,11 @@ it('the unchanged actual intent guard refuses an independently changed message s
 // actor permission below are explicit finite ports, not authentic authority,
 // journal entry, SMTP success or native proof. No request site is patched.
 async function installActualProjector(db:PGlite){
- await db.exec(`CREATE SCHEMA gridex_outbound_dispatch;CREATE SCHEMA gridex_supply_rescission;CREATE SCHEMA gridex_business_expectations;
+ await db.exec(`CREATE SCHEMA gridex_outbound_dispatch;CREATE SCHEMA gridex_supply_rescission;CREATE SCHEMA gridex_business_expectations;CREATE SCHEMA gridex_utilts_binding;CREATE SCHEMA gridex_ack_authority;
  CREATE TABLE public.user_profiles(id uuid,user_status text);INSERT INTO public.user_profiles VALUES('${id(3)}','active');
  CREATE TABLE public.company_memberships(company_id uuid,user_id uuid,status text,is_active boolean,accepted_at timestamptz);INSERT INTO public.company_memberships VALUES('${id(1)}','${id(3)}','active',true,now());
  CREATE FUNCTION public.gridex_actor_has_company_permission(a uuid,c uuid,p text)RETURNS boolean LANGUAGE sql AS $$SELECT a='${id(3)}'::uuid AND c='${id(1)}'::uuid AND p IN('ediel.send','communication.send')$$;
- CREATE TABLE public.ediel_messages(id uuid,company_id uuid,environment text,direction text,message_standard text,message_family text,message_code text,status text,raw_payload text,immutable_payload_hash text,customer_id uuid,site_id uuid,metering_point_id uuid,outbound_request_id uuid,grid_owner_data_request_id uuid,requires_contrl boolean,contrl_status text,contrl_due_at timestamptz,ack_due_at timestamptz,business_response_due_at timestamptz,message_sent_at timestamptz,updated_by uuid,updated_at timestamptz);
+ CREATE TABLE public.ediel_messages(id uuid,company_id uuid,environment text,direction text,message_standard text,message_family text,message_code text,status text,raw_payload text,immutable_payload_hash text,customer_id uuid,site_id uuid,metering_point_id uuid,related_message_id uuid,outbound_request_id uuid,grid_owner_data_request_id uuid,requires_contrl boolean,contrl_status text,contrl_due_at timestamptz,ack_due_at timestamptz,business_response_due_at timestamptz,message_sent_at timestamptz,updated_by uuid,updated_at timestamptz);
  CREATE TABLE public.grid_owner_data_requests(id uuid,company_id uuid,customer_id uuid,site_id uuid,metering_point_id uuid,status text,sent_at timestamptz,failed_at timestamptz,failure_reason text,updated_by uuid,updated_at timestamptz);
  CREATE TABLE public.customer_info_requests(id uuid,company_id uuid,customer_id uuid,site_id uuid,metering_point_id uuid,ediel_message_id uuid,outbound_request_id uuid,grid_owner_data_request_id uuid,status text,sent_at timestamptz,blocker_code text,blocker_reason text,blocker_details jsonb,next_required_action text,updated_by uuid,updated_at timestamptz);
  CREATE TABLE gridex_ediel_transport.attempts(id uuid,company_id uuid,environment text,message_id uuid,binding jsonb);
@@ -147,6 +147,8 @@ async function installActualProjector(db:PGlite){
  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,immutable_payload_hash,customer_id,site_id,metering_point_id,outbound_request_id,requires_contrl)
  SELECT '${id(7)}',i.company_id,i.environment,'outbound','edifact',i.message_family,i.message_code,'queued','DECLARED wire port',repeat('d',64),i.customer_id,i.customer_site_id,'${id(11)}',o.outbound_request_id,false FROM public.ediel_message_intents i JOIN gridex_requested_changes.origins o ON o.intent_id=i.id;
  INSERT INTO gridex_ediel_transport.attempts SELECT '${id(40)}',company_id,environment,id,jsonb_build_object('originalHash',immutable_payload_hash) FROM public.ediel_messages;`)
+ await db.exec(fn(schema,'gridex_utilts_binding.wire_tokens_v1'))
+ await db.exec(fn(schema,'gridex_ack_authority.wire_v1'))
  await db.exec(fn(schema,'public.ediel_project_accepted_source_state_v1'))
 }
 const project=`SELECT public.ediel_project_accepted_source_state_v1('${id(1)}','test','${id(3)}','${id(7)}',repeat('d',64)) result`

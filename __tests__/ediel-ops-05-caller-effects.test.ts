@@ -130,11 +130,11 @@ import { resolveCanonicalRuntimeDecision, resolveCanonicalRuntimeDecisionWithReg
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { buildEdielControlTowerOperationsSummary } from '@/lib/ediel/operations/controlTower'
 import { runInboundEdielMailEngine } from '@/lib/inbound-mail/edielMailboxPoller'
-import { OWNER, ownerId, ownerSource, ownerRows, ownerRulePack } from './helpers/sourceOwnerFixtures'
+import { OWNER, ownerId, ownerSourceWithInstallationStatus as ownerSource, ownerRows, ownerRulePack } from './helpers/sourceOwnerFixtures'
 
 const company = OWNER.company
 const actor = ownerId(50)
-const raw = ownerSource().raw_payload!
+const raw = ownerSource('Z12').raw_payload!
 const ackFields = ['requires_contrl', 'requires_aperak', 'contrl_status', 'aperak_status', 'utilts_err_status', 'ack_status', 'ack_outcome', 'syntax_check_status', 'functional_check_status', 'ack_due_at', 'contrl_due_at', 'business_response_due_at', 'response_overdue_at', 'acknowledged_at'] as const
 const ackSnapshot = (row: Row) => Object.fromEntries(ackFields.map(key => [key, row[key]]))
 const snapshot = () => structuredClone(port.tables.ediel_messages[0])
@@ -143,7 +143,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-09-30T13:00:00Z'))
   port.writes = []; port.calls = []; port.fault = null; port.initialSourceReadFault = false; port.legalIdentityReadFault = false; port.sourceReceiptMismatch = false; port.wire = raw
-  const message = { ...ownerSource(), company_id: company, status: 'received', processing_status: 'received', requires_contrl: true, requires_aperak: true, contrl_status: 'sent', aperak_status: 'pending', utilts_err_status: 'not_required', ack_status: 'waiting', ack_outcome: null, syntax_check_status: 'not_checked', functional_check_status: 'not_checked', ack_due_at: '2026-09-30T13:30:00Z', contrl_due_at: '2026-09-30T13:30:00Z', business_response_due_at: null, response_overdue_at: null, acknowledged_at: null, inbound_email_message_id: 'email-ops05' }
+  const message = { ...ownerSource('Z12'), company_id: company, status: 'received', processing_status: 'received', requires_contrl: true, requires_aperak: true, contrl_status: 'sent', aperak_status: 'pending', utilts_err_status: 'not_required', ack_status: 'waiting', ack_outcome: null, syntax_check_status: 'not_checked', functional_check_status: 'not_checked', ack_due_at: '2026-09-30T13:30:00Z', contrl_due_at: '2026-09-30T13:30:00Z', business_response_due_at: null, response_overdue_at: null, acknowledged_at: null, inbound_email_message_id: 'email-ops05' }
   Object.assign(message, { execution_context_snapshot: { receivedProdatContext: { version: 1, contextOrigin: 'database_insert', sourceMessageId: message.id, companyId: company, environment: 'test', messageCode: 'Z04', payloadHash: createHash('sha256').update(raw).digest('hex'), sourceReceivedAt: message.message_received_at, capturedAt: message.message_received_at } } })
   const contrlRaw = EdifactEnvelopeCodec.encode({ sender: '54321', receiver: '12345', environment: 'test', applicationReference: '23-DDQ-PRODAT', interchangeReference: 'ACK-I', acknowledgementRequest: false, messages: [{ messageReference: 'ACK-M', messageTypeToken: 'CONTRL:2:2:UN', businessSegments: ['UCI+I+12345:14+54321:14+1'] }] })
   port.ack = { id: '50000000-0000-4000-8000-000000000001', company_id: company, environment: 'test', direction: 'outbound', message_standard: 'edifact', message_family: 'CONTRL', message_code: 'CONTRL', related_message_id: message.id, raw_payload: contrlRaw, parsed_payload: {}, status: 'sent', ack_outcome: 'positive' }

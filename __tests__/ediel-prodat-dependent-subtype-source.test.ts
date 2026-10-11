@@ -39,7 +39,7 @@ const payloadField: Record<string, Parts[]> = {
   '508': [['DTM', ['354', '15', '806']]],
   '216': [['DTM', ['157', '202610010000', '203']]],
   '217': characteristic('Z04', 'Z03'),
-  '306': characteristic('Z07', 'E22'),
+  '306': characteristic('Z07', 'Z12'),
   '254': characteristic('Z15', 'E02'),
 }
 function policy(code: string, field: string, subtype: string): CanonicalEdielPolicy {

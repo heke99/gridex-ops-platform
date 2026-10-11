@@ -161,7 +161,7 @@ export function nextActionLabel(params: {
   }
 
   if (validation.isReady === false) {
-    return 'Öppna ärendet, rätta blockerare och kör validering igen.'
+    return 'Öppna ärendet, åtgärda det som saknas och kontrollera igen.'
   }
 
   if (validation.isReady === null && request.status === 'draft') {

@@ -1,0 +1,26 @@
+{
+  "scope": "Isolated fixture; unmodified scanner source, identical synthetic direct select loop in three roots; no project source mutation",
+  "passed": 3,
+  "cases": [
+    {
+      "location": "lib/staff-api",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "gate_output": "N+1 query budget passed: 0 awaited database calls inside loops across app/api/v1, lib/customer-portal, lib/pricing, lib/website.\n"
+    },
+    {
+      "location": "lib/partner-api",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "gate_output": "N+1 query budget passed: 0 awaited database calls inside loops across app/api/v1, lib/customer-portal, lib/pricing, lib/website.\n"
+    },
+    {
+      "location": "lib/website",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "gate_output": "N+1 query budget failed:\n- lib/website/probe.ts:1 awaits a database call inside a loop\n"
+    }
+  ],
+  "scanner_source": "scripts/check-n-plus-one-query-budget.cjs",
+  "scanner_sha256": "5c1cdbbb852ff7e11321db8d8d0a60600565bf55dcf6e14fc26de16ffcf57d62"
+}

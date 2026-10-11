@@ -64,3 +64,56 @@ export async function prepareRecoveryCustomerMasterdataContext(input:{companyId:
  const projection=checkedProjection(value,{companyId:input.companyId,customerId:input.customerId,asOf:value.asOf,...(value.environment===null?{}:{environment:input.environment})})
  return bindCustomerMasterdataValidationContext({kind:'customer_masterdata',companyId:input.companyId,customerId:input.customerId,environment:input.environment,rawPayload:input.rawPayload,intentId:input.intentId,routeId:input.routeId,projection})
 }
+
+/** The cancellation owner reads the actual original's protected dated source
+ * in prepare phase. Its creator can differ from this authorized preparer. */
+export async function loadSwitchCancellationCustomerMasterdataValidationContext(message:EdielMessageRow,switchRequestId:string,actorUserId:string):Promise<CustomerMasterdataValidationContext|undefined>{
+ if(message.direction!=='outbound'||message.message_family!=='PRODAT'||message.message_code!=='Z03')throw Error('customer_masterdata_cancellation_original_scope_required')
+ if(![message.company_id,message.id,message.customer_id,message.intent_id,message.communication_route_id,message.created_by,switchRequestId,actorUserId].every(isEvidenceUuid)||!message.raw_payload)throw Error('customer_masterdata_cancellation_original_scope_required')
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as(name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
+ const{data,error}=await rpc('ediel_switch_cancellation_customer_masterdata_basis_v1',{p_company_id:message.company_id,p_switch_id:switchRequestId,p_actor_user_id:actorUserId})
+ if(error)throw error
+ if(data===null)return undefined
+ if(!data||typeof data!=='object'||Array.isArray(data))throw Error('customer_masterdata_cancellation_original_binding_invalid')
+ const value=data as Partial<SourceQualifiedCustomerMasterdataProjection>&{messageBinding?:Record<string,unknown>;cancellationSourceBinding?:Record<string,unknown>}
+ const binding=value.messageBinding,source=value.cancellationSourceBinding,hash=createHash('sha256').update(message.raw_payload).digest('hex')
+ if(!binding||binding.id!==message.id||binding.environment!==message.environment||binding.intentId!==message.intent_id||binding.routeId!==message.communication_route_id||binding.payloadHash!==hash
+  ||!source||source.switchRequestId!==switchRequestId||source.actorUserId!==actorUserId||source.originalMessageId!==message.id||source.originalHash!==hash||source.environment!==message.environment||source.originalPreparerId!==message.created_by||typeof value.asOf!=='string')throw Error('customer_masterdata_cancellation_original_binding_invalid')
+ const projection=checkedProjection(value,{companyId:message.company_id!,customerId:message.customer_id!,asOf:value.asOf,...(value.environment===null?{}:{environment:message.environment})})
+ return bindCustomerMasterdataValidationContext({kind:'customer_masterdata',companyId:message.company_id!,customerId:message.customer_id!,environment:message.environment,rawPayload:message.raw_payload,intentId:message.intent_id!,routeId:message.communication_route_id!,projection})
+}
+
+/** A reserved cancellation receives a fresh current-preparer preparation.
+ * The original read context is rendering input, never its INSERT credential. */
+export async function prepareSwitchCancellationCustomerMasterdataContext(input:{companyId:string;operationId:string;actorUserId:string;intentId:string;routeId:string;customerId:string;environment:'test'|'production';switchRequestId:string;originalMessageId:string;originalHash:string;rawPayload:string;sourceContext:CustomerMasterdataValidationContext}):Promise<CustomerMasterdataValidationContext>{
+ if(![input.companyId,input.operationId,input.actorUserId,input.intentId,input.routeId,input.customerId,input.switchRequestId,input.originalMessageId].every(isEvidenceUuid)||!input.rawPayload||!/^[a-f0-9]{64}$/.test(input.originalHash)
+  ||!isQualifiedCustomerMasterdataValidationContext(input.sourceContext)||input.sourceContext.companyId!==input.companyId||input.sourceContext.customerId!==input.customerId||input.sourceContext.environment!==input.environment||createHash('sha256').update(input.sourceContext.rawPayload).digest('hex')!==input.originalHash)throw Error('customer_masterdata_cancellation_scope_required')
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as(name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
+ const{data,error}=await rpc('ediel_prepare_switch_cancellation_customer_masterdata_v1',{p_company_id:input.companyId,p_operation_id:input.operationId,p_actor_user_id:input.actorUserId,p_intent_id:input.intentId,p_route_id:input.routeId,p_raw_payload:input.rawPayload})
+ if(error)throw error
+ if(!data||typeof data!=='object'||Array.isArray(data))throw Error('customer_masterdata_cancellation_binding_invalid')
+ const value=data as Partial<SourceQualifiedCustomerMasterdataProjection>&{cancellationBinding?:Record<string,unknown>},binding=value.cancellationBinding,source=input.sourceContext.projection
+ if(!binding||binding.operationId!==input.operationId||binding.switchRequestId!==input.switchRequestId||binding.actorUserId!==input.actorUserId||binding.intentId!==input.intentId||binding.routeId!==input.routeId||binding.environment!==input.environment
+  ||binding.originalMessageId!==input.originalMessageId||binding.originalHash!==input.originalHash||binding.payloadHash!==createHash('sha256').update(input.rawPayload).digest('hex')
+  ||value.environment!==source.environment||value.sourceContextId===source.sourceContextId||value.sourceKind!==source.sourceKind||value.sourceReference!==source.sourceReference||value.sourceDigest!==source.sourceDigest)throw Error('customer_masterdata_cancellation_binding_invalid')
+ const projection=checkedProjection(value,{companyId:input.companyId,customerId:input.customerId,asOf:source.asOf,...(value.environment===null?{}:{environment:input.environment})})
+ const identity=projection.customerIdentity,originalIdentity=source.customerIdentity,d=projection.endUserMasterdata,original=source.endUserMasterdata
+ if(identity.id!==originalIdentity.id||identity.qualifier!==originalIdentity.qualifier||identity.agency!==originalIdentity.agency||JSON.stringify(d.nameParts)!==JSON.stringify(original.nameParts)||JSON.stringify(d.streetParts)!==JSON.stringify(original.streetParts)||d.postalCode!==original.postalCode||d.city!==original.city||d.country!==original.country)throw Error('customer_masterdata_cancellation_source_changed')
+ return bindCustomerMasterdataValidationContext({kind:'customer_masterdata',companyId:input.companyId,customerId:input.customerId,environment:input.environment,rawPayload:input.rawPayload,intentId:input.intentId,routeId:input.routeId,projection})
+}
+
+/** Recheck a real bound draft for a subsequent preparing actor, preserving
+ * the preparation and immutable bytes of the user who created it. */
+export async function loadPreparedSwitchCancellationCustomerMasterdataContext(message:EdielMessageRow,actorUserId:string,originalHash:string):Promise<CustomerMasterdataValidationContext>{
+ if(message.status!=='draft'||message.direction!=='outbound'||message.message_family!=='PRODAT'||message.message_code!=='Z03'||!message.raw_payload
+  ||![message.company_id,message.id,message.customer_id,message.intent_id,message.communication_route_id,message.created_by,message.source_operation_id,message.original_message_id,message.switch_request_id,actorUserId].every(isEvidenceUuid)||!/^[a-f0-9]{64}$/.test(originalHash))throw Error('customer_masterdata_cancellation_bound_draft_scope_required')
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as(name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
+ const{data,error}=await rpc('ediel_switch_cancellation_customer_masterdata_message_basis_v1',{p_company_id:message.company_id,p_message_id:message.id,p_actor_user_id:actorUserId})
+ if(error)throw error
+ if(!data||typeof data!=='object'||Array.isArray(data))throw Error('customer_masterdata_cancellation_bound_draft_binding_invalid')
+ const value=data as Partial<SourceQualifiedCustomerMasterdataProjection>&{messageBinding?:Record<string,unknown>;cancellationBinding?:Record<string,unknown>},binding=value.messageBinding,source=value.cancellationBinding
+ if(!binding||binding.id!==message.id||binding.environment!==message.environment||binding.intentId!==message.intent_id||binding.routeId!==message.communication_route_id||binding.payloadHash!==createHash('sha256').update(message.raw_payload).digest('hex')
+  ||!source||source.operationId!==message.source_operation_id||source.switchRequestId!==message.switch_request_id||source.actorUserId!==actorUserId||source.originalMessageId!==message.original_message_id||source.originalHash!==originalHash||source.preparerId!==message.created_by||typeof value.asOf!=='string')throw Error('customer_masterdata_cancellation_bound_draft_binding_invalid')
+ const projection=checkedProjection(value,{companyId:message.company_id!,customerId:message.customer_id!,asOf:value.asOf,...(value.environment===null?{}:{environment:message.environment})})
+ return bindCustomerMasterdataValidationContext({kind:'customer_masterdata',companyId:message.company_id!,customerId:message.customer_id!,environment:message.environment,rawPayload:message.raw_payload,intentId:message.intent_id!,routeId:message.communication_route_id!,projection})
+}

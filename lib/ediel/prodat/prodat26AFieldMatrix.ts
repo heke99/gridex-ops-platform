@@ -68,7 +68,7 @@ export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'217',fieldKey:'measure_method',segmentPath:'CCI++Z04/CAV',cavComponent:0,requirements:['-','R','R','R','-','D','-','D','R','R','D','-','-']},
   {fieldNumber:'218',registerScope:'local',fieldKey:'number_of_digits',segmentPath:'CCI++Z05/CAV',cavComponent:3,requirements:['-','-','-','D','-','D','-','-','D','-','-','-','-']},
   {fieldNumber:'219',fieldKey:'old_number_of_digits',segmentPath:'CCI++Z06/CAV',cavComponent:3,requirements:['-','-','-','-','-','-','-','-','O','-','-','-','-']},
-  {fieldNumber:'306',fieldKey:'installation_status',segmentPath:'CCI++Z07/CAV',cavComponent:0,requirements:['-','-','-','R','-','D','-','-','-','-','-','-','-']},
+  {fieldNumber:'306',fieldKey:'installation_status',segmentPath:'CCI++Z07/CAV',cavComponent:0,allowedValues:['Z11','Z12'],requirements:['-','-','-','R','-','D','-','-','-','-','-','-','-']},
   {fieldNumber:'307',fieldKey:'tariff_code',segmentPath:'CCI++Z08/CAV',cavComponent:0,requirements:['-','-','-','O','-','O','-','-','-','-','-','-','-']},
   {fieldNumber:'220',fieldKey:'priority',segmentPath:'CCI++Z09/CAV',cavComponent:0,requirements:['-','-','-','O','-','O','-','-','-','-','-','-','-']},
   {fieldNumber:'222',fieldKey:'reporting_frequency',segmentPath:'CCI++Z12/CAV',cavComponent:3,requirements:['-','-','-','R','-','R','-','-','R','R','D','-','-']},

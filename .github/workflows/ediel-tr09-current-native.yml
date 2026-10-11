@@ -1,0 +1,186 @@
+name: Ediel TR09 current reserve native feedback
+
+on:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'types/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - '__tests__/helpers/**'
+      - '__tests__/fixtures/**'
+      - 'docs/ediel/**'
+      - 'package*.json'
+      - 'tsconfig*.json'
+      - '*.config.*'
+      - '.nvmrc'
+      - '.npmrc'
+      - '.github/workflows/ediel-tr09-current-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-tr09-current-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental feedback only. All ordinary OPS clean/upgrade/native/browser
+# and parity gates remain mandatory; this does not approve any rule card.
+jobs:
+  tr09-current-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute the actual transport reserve owners after disposable clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p tr09-current-native-working
+          native_tests=(scripts/ediel-transport-exception-native.test.ts scripts/ediel-tr-09-reserve-source-native.test.ts scripts/ediel-tr09-production-family-native.test.ts)
+          export TR09_CURRENT_NATIVE_TEST_SCOPE
+          TR09_CURRENT_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, sys
+          test_scope = os.environ['TR09_CURRENT_NATIVE_TEST_SCOPE'].splitlines()
+          paths = test_scope + [
+              '.github/workflows/ediel-tr09-current-native.yml', 'scripts/ediel-tr09-current-native.config.ts',
+              'scripts/helpers/ediel-normal-switch-native-fixture.ts', 'scripts/helpers/ediel-native-permission-catalog.setup.ts',
+              'lib/ediel/transport/exception/previousCrl.ts', 'lib/ediel/transport/exception/source.ts',
+              'lib/inbound-mail/edielMailboxPoller.ts', 'lib/inbound-mail/edielMailboxPoller.part-1.ts',
+              'lib/inbound-mail/edielMailboxPoller.part-2.ts', 'lib/inbound-mail/edielMailboxPoller.part-3.ts',
+              'lib/ediel/security/certificateTrust.ts', 'lib/ediel/security/outboundRecipientCertificate.ts',
+              'lib/ediel/transport/index.part-1.ts', 'lib/ediel/transport/index.part-2.ts',
+              'lib/ediel/config.ts', 'lib/ediel/sendContextConsistency.ts',
+              'supabase/migrations/20261006205324_ediel_production_all_family_smime.sql',
+              'supabase/migrations/20261007111843_ediel_actor_profile_current_authority.sql',
+              'supabase/migrations/20261007114453_ediel_actor_profile_immutable_replay.sql',
+              'supabase/migrations/20261007114513_ediel_actor_profile_legal_noop_preservation.sql',
+              'supabase/migrations/20261007154601_ediel_source_qualified_technical_contrl_admission.sql',
+              'scripts/helpers/originalMailboxNative.ts', 'scripts/helpers/syntheticCertificateTrust.ts',
+              'scripts/helpers/correctionContextNative.ts', '__tests__/helpers/closureWireFixtures.ts',
+              'scripts/helpers/ediel-tr09-native-foreign-image.ts',
+              '__tests__/helpers/utiltsNativeSourceFixture.ts',
+              'scripts/gridex-aud-003-clean-replay.sh', 'scripts/gridex-redact-native-evidence.py',
+              'scripts/ediel-actor-profile-expansion-fingerprint.py',
+              'supabase/config.toml', 'supabase/schema.sql', 'package.json', 'package-lock.json',
+              'lib/ediel/productionReadiness.ts',
+              'lib/ediel/productionReadiness.part-1.ts',
+              'lib/ediel/productionReadiness.part-2.ts',
+              'lib/ediel/productionReadiness.part-3.ts',
+              'lib/ediel/productionReadinessTestAuthority.ts',
+              'lib/ediel/certificationEvidence.ts',
+              'lib/ediel/scopedCapabilityReadiness.ts',
+              'lib/ediel/operations/runtimeHealth.ts',
+              'lib/ediel/security/certificateStatus.ts',
+              'lib/ediel/actorTesting.ts',
+              'lib/tenant/operationPolicy.ts',
+              'docs/ediel/masterplan-v2/registers/rules.json', 'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
+          ]
+          # Bind the complete tracked checkout before replay mutates SQL.
+          # This is repository source identity, not a claim every blob ran.
+          checkout_sha = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          checkout_tree = subprocess.check_output(['git','rev-parse',checkout_sha+'^{tree}'],text=True).strip()
+          entries = subprocess.check_output(['git','ls-tree','-r','-z','--full-tree',checkout_sha]).split(b'\0')
+          source_blobs = {}
+          for entry in filter(None, entries):
+              metadata, name = entry.split(b'\t', 1)
+              mode, kind, oid = metadata.decode('ascii').split()
+              path = name.decode('utf-8')
+              if kind != 'blob' or mode not in {'100644', '100755'}:
+                  raise RuntimeError('unsupported tracked source entry: '+path)
+              if path in source_blobs:
+                  raise RuntimeError('duplicate tracked source path: '+path)
+              source_blobs[path] = {'mode': mode, 'git_blob_oid': oid}
+          if len(paths) != len(set(paths)) or not set(paths).issubset(source_blobs):
+              raise RuntimeError('required native inputs are duplicate or missing from checkout')
+          input_hashes = {}
+          with subprocess.Popen(['git','cat-file','--batch'], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as blobs:
+              for path in sorted(source_blobs):
+                  expected_oid = source_blobs[path]['git_blob_oid']
+                  blobs.stdin.write((expected_oid+'\n').encode('ascii'))
+                  blobs.stdin.flush()
+                  oid, kind, size = blobs.stdout.readline().decode('ascii').strip().split()
+                  if oid != expected_oid or kind != 'blob':
+                      raise RuntimeError('unexpected source blob identity: '+path)
+                  content = blobs.stdout.read(int(size))
+                  if len(content) != int(size) or blobs.stdout.read(1) != b'\n':
+                      raise RuntimeError('incomplete source blob: '+path)
+                  input_hashes[path] = hashlib.sha256(content).hexdigest()
+              blobs.stdin.close()
+              if blobs.wait() != 0:
+                  raise RuntimeError('Git source blob reader failed')
+          receipt = {
+              'purpose': 'supplemental_actual_native_feedback',
+              'checkout_sha': checkout_sha,
+              'checkout_tree': checkout_tree,
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'native_exit_code': None,
+              # Replay temporarily substitutes SQL ledger markers until its
+              # EXIT trap. Hash original checked-out inputs, not those markers.
+              'input_authority': 'git_HEAD_source_before_replay_substitution',
+              'input_inventory_scope': 'complete_tracked_repository_source_identity',
+              'required_input_paths': sorted(paths),
+              'source_blobs': {p: source_blobs[p] for p in sorted(source_blobs)},
+              'input_sha256': input_hashes,
+              'tool_versions': {'python': sys.version.split()[0],
+                  'git': subprocess.check_output(['git','--version'],text=True).strip(),
+                  'node': subprocess.check_output(['node','--version'],text=True).strip(),
+                  'supabase': subprocess.check_output(['supabase','--version'],text=True).strip()},
+              'test_scope': test_scope,
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('tr09-current-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          # The existing owner keeps its EXIT cleanup trap. Replay/status
+          # output can contain disposable credentials and is never uploaded.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/tr09-current-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/tr09-current-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-tr09-current-native.config.ts \
+            "${native_tests[@]}" \
+            --reporter=default --reporter=junit \
+            --outputFile=tr09-current-native-working/native-junit.xml \
+            > tr09-current-native-working/native.log 2>&1 || native_exit=$?
+          export TR09_CURRENT_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import json, os, pathlib
+          receipt_path = pathlib.Path('tr09-current-native-working/receipt.json')
+          receipt = json.loads(receipt_path.read_text())
+          receipt['native_exit_code'] = int(os.environ['TR09_CURRENT_NATIVE_EXIT'])
+          receipt_path.write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root tr09-current-native-working
+          # Only successfully redacted files enter the uploaded directory.
+          # Receipt/redaction failure leaves no artifact directory to upload.
+          mv tr09-current-native-working tr09-current-native-evidence
+          cat tr09-current-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-tr09-current-native-${{ github.event.pull_request.head.sha }}
+          path: tr09-current-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14

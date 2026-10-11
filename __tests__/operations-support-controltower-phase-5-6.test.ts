@@ -42,7 +42,7 @@ describe('Operations Autopilot phase 5 — tenant support', () => {
     expect(actions).toContain('createTenantSupportCase')
     expect(actions).toContain('updateCustomerCaseStatus')
     expect(actions).not.toContain('supportOutOfScope')
-    expect(page).toContain('Tenant-isolerade supportärenden')
+    expect(page).toContain('Ert bolags supportärenden')
     expect(page).not.toContain("redirect('/admin/operations/tasks')")
   })
 })

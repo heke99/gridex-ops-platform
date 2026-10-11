@@ -48,7 +48,7 @@ export default async function InvoiceReviewDetailPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   const scope = user ? await getOperationalCompanyScope(user.id) : null
   const companyId = scope?.companyId ?? null
-  if (!companyId) throw new Error('Välj en tenant innan fakturan granskas.')
+  if (!companyId) throw new Error('Välj ett bolag innan fakturan granskas.')
   const detail = await getInvoiceReviewDetail({ companyId, invoiceExportItemId: id })
   const invoice: Row = detail.invoice ?? {}
   const calculation = invoice.calculation_snapshot && typeof invoice.calculation_snapshot === 'object' && !Array.isArray(invoice.calculation_snapshot)

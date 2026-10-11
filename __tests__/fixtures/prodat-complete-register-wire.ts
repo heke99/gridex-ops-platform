@@ -16,7 +16,7 @@ export function completeRegisterWire(body: Parts[]): string {
     if (register && register[1] !== '1') return block
     return [...block,
       ['DTM',['92','202610010000','203']], ['DTM',['354','15','806']],
-      ...characteristic('Z04','Z03'), ...characteristic('Z07','E22'),
+      ...characteristic('Z04','Z03'), ...characteristic('Z07','Z12'),
       ...characteristic('Z12','D',3), ...characteristic('Z15','D'),
       ['CCI','','Z14'], ['CAV',['','','','L917']],
       ['RFF',['MG','METER-'+identity[0]]], ['RFF',['Z05','TES']], ['RFF',['LI','CASE-'+identity[0]]],

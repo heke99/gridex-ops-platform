@@ -14,9 +14,10 @@ const port = vi.hoisted(() => ({
   db: null as PGlite | null, tables: {} as Record<string, Row[]>,
   calls: [] as Array<{ name: string; args: Row }>, writes: [] as Array<{ table: string; value: Row }>,
   source: {} as EdielMessageRow, ack: {} as EdielMessageRow, retainAck: true,
+  ownSourceReadings:null as ProdatOwnSourceReadingSdk|null,
 }))
 
-vi.mock('@/lib/supabase/service', () => {
+vi.mock('@/lib/supabase/service', async () => {
   class Query {
     filters: Array<(row: Row) => boolean> = []
     one = false; exact = false; maximum = Infinity; operation = 'read'; value: Row = {}
@@ -113,7 +114,7 @@ vi.mock('@/lib/supabase/service', () => {
     })
     return Object.assign(pending, { abortSignal: () => pending })
   }
-  return { supabaseService: { rpc, from: (table: string) => new Query(table) } }
+  return { supabaseService:(await import('./helpers/prodatOwnSourceReadingAdapter')).prodatOwnSourceReadingAdapter(()=>port.ownSourceReadings,{ rpc, from: (table: string) => new Query(table) }) }
 })
 
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
@@ -121,7 +122,8 @@ import { assertCompanyCanSendProductionEdiel } from '@/lib/ediel/productionReadi
 import { getScopedEdielProductionReadiness, recordScopedEdielProductionEvidence } from '@/lib/ediel/scopedCapabilityReadiness'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
-import { OWNER, ownerId, ownerSource, ownerRows, ownerRulePack } from './helpers/sourceOwnerFixtures'
+import { OWNER, ownerId, ownerSourceWithInstallationStatus as ownerSource, ownerRows, ownerRulePack } from './helpers/sourceOwnerFixtures'
+import {createProdatOwnSourceReadingSdk,resetProdatOwnSourceReadingSdk,installProdatOwnSourceReadingFixture,type ProdatOwnSourceReadingSdk} from './helpers/prodatOwnSourceReadingFixture'
 
 const digest = (value: string) => createHash('sha256').update(value, 'utf8').digest('hex')
 const company = OWNER.company, actor = ownerId(50), ruleHash = 'a'.repeat(64), release = 'f'.repeat(40)
@@ -233,9 +235,11 @@ beforeEach(async () => {
   port.tables = { ...rows }
   for (const table of ['tenant_ediel_profiles', 'tenant_actor_identifiers', 'tenant_actor_roles']) port.tables[table] = [...rows[table].map(row => ({ ...row, environment: 'production' }))]
   port.tables.tenant_actor_roles.push({ ...port.tables.tenant_actor_roles[0], id: ownerId(163), role_code: 'energy_service_company' })
-  port.source = { ...ownerSource(), environment: 'production', test_flag: 0 }
+  port.source = ownerSource('Z12',{readingDeclarations:true,environment:'production',sourceCodes:{installationStatus:'Z12',settlementMethod:'Z32'}})
   port.source.execution_context_snapshot = { receivedProdatContext: { version: 1, contextOrigin: 'database_insert', sourceMessageId: port.source.id, companyId: company, environment: 'production', messageCode: 'Z04', payloadHash: digest(port.source.raw_payload!), sourceReceivedAt: port.source.message_received_at, capturedAt: port.source.message_received_at } }
   port.tables.ediel_messages = [port.source as unknown as Row]
+  port.ownSourceReadings=createProdatOwnSourceReadingSdk();resetProdatOwnSourceReadingSdk(port.ownSourceReadings)
+  installProdatOwnSourceReadingFixture(port.ownSourceReadings,port.source,'L',{actorUserId:actor,receivedAt:port.source.message_received_at!,mailId:port.source.inbound_email_message_id!,parseId:ownerId(61),receptionId:ownerId(62),legalActorId:OWNER.actor})
   const raw = EdifactEnvelopeCodec.encode({ sender: '54321', receiver: '12345', senderQualifier: '14', receiverQualifier: '14', environment: 'production', applicationReference: '23-DDQ-PRODAT', interchangeReference: 'ACK-I', acknowledgementRequest: false, messages: [{ messageReference: 'ACK-M', messageTypeToken: 'CONTRL:2:2:UN', businessSegments: ['UCI+I+12345:14+54321:14+1'] }] })
   port.ack = { id: ownerId(600), created_at: '2026-09-30T12:01:00Z', company_id: company, environment: 'production', direction: 'outbound', message_standard: 'edifact', message_family: 'CONTRL', message_code: 'CONTRL', related_message_id: port.source.id, raw_payload: raw, parsed_payload: {}, status: 'sent', ack_outcome: 'positive' } as EdielMessageRow
   await fixtureDb()

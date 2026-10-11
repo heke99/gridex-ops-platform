@@ -1,3 +1,93 @@
+# Current Masterplan owner actions — 2026-10-10
+
+Observed main `c5f5be2cf859a325c6782fe612157aad379ab6e8`. Refresh actual main/coverage, own checkpoint, #673, affected PR heads/checks and authenticated refs. This is a dated selection aid, never custody, approval or automatic chat launch. See [current start](masterplan-current-start.md) for delivery/proof limits and persistent roles. Ledger302/352;50 remain.
+
+| Retained owner / source | Exact continuation and dependency |
+| --- | --- |
+| Claude brave-newton, #718 | Retains DB-05/AT-DB-05/SC-070 HTTP/native/legal/coverage whole duty. Two transferred SQL components are delivered through #699, not a whole-duty release. Reconcile actual closed-tenant→same-tuple due-purge expected/prohibited effects and genuine retention/legal input. |
+| Claude Bardeen, #710 | Retains P-08/AT-P-08 signed/ceased/CONTRL/negative/revoked/replay/ACL and renderer/process-group/ACK accepted-scope proof. Continue exact owner checkpoint and source-bound native validation; one capture/forward producer. |
+| Codex b6d3 / 41f, #720 | Whole H criterion reconciliation remains. Compare old failures/fields to delivered #725 C30/H100 prerequisites; don't redo fixed258/306/address252 or borrow source counts as whole acceptance. |
+| Original Codex2f, #658 | Retained Z02L/LK original source/private/physical/native whole effects need exact criterion mapping against current main; delivered OwnSource components are prerequisites, not whole-duty release. |
+| Original C owner, #627/#676 | Reconcile whole C03/C05/related source duties and scope with existing2f owner. C217/masterdata/SENT/ACK correction is already delivered through #699/#725, not a pending new fix. |
+| Historical #662 owner + current overlapping2f | TR-09/DB-01 historical released lane and retained/overlapping whole effects need actual receipt/source reconciliation. #666 SQL delivery grants no whole-ID approval. |
+| Brave-planck, #729, observed41b22a8 | Active schema/upsert/migration/audit work: refresh exact current head, claimed files, genuine GEN/type/capture provenance and affected CI with its designated producer. Don't repeat old-head diagnosis or create overlapping producer. |
+| Original external input owners | TR-08: genuine provider/TLS/SPF/delivery-hop evidence. DB-05: authorized retention/legal classes plus actual purge effects. OPS-04: agreed counterparty/environment/incident/route/certificate/profile/tenant input and original LIVE mandate. #726 PaymentReference/OCR and #724 follow-up retain their own decision/input conditions. No invented evidence. |
+
+#699/#725/#727/#728 are delivered. #728 already removed its five generated `.tmp.mjs` native artifacts. #721/#666 are closed administratively as superseded proposals with branches/checkpoints and #666 unique undelivered workflow preserved. No foreign resource or retained duty is released by cleanup.
+
+Observed113 foreign ref/SHA pairs remain original custody; count alone never proves it. New identities need concrete authorized handover, producer stop and own verified exact refs before code. PLAN chooses eligible packets within its role; BLOCKER chooses one evidenced blocker; reviewers named READY. Every transition own checkpoint+#673. The original queue below is unchanged dated history, including old #699/nonmerged/failure statements; those are superseded observations, not current blockers.
+
+## Historical queue — exact prior bytes
+
+# Current Masterplan owner actions
+
+Observation: 2026-10-08T19:29:47.074092+00:00; actual main `1897ea4999ca93bf4631ee53f1cbe19de86d7dc3`.
+This is a dated selection aid. Refresh main/coverage, own checkpoint, #673,
+current PR heads/checks and actual remote refs before action. Selection status
+is neither a lock nor approval; executable work for its owner is not free scope
+for a new identity. The earlier queue is preserved as history below.
+
+Main coverage is **115/121 VERIFIED rules +187/231 PASSED contracts =302/352**;
+**50 remain (6 rules +44 contracts)**. SC-038 and SC-047 are now PASSED after
+[#719](https://github.com/heke99/gridex-ops-platform/pull/719); component fixes,
+source reviews and green open PRs grant no additional coverage.
+
+## Current bounded actions
+
+| Owner / state | Exact next action and limits |
+| --- | --- |
+| ROOT CORE — IMPLEMENTING | L/LK OwnSource runtime integration is claimed in [6067297301](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067297301): exact messagePolicy.ts and its new runtime test under receipt43e5, with the previous six source refs unchanged. Wire the genuine actor/source READ and one-use selected-guide/original-clock redemption; preserve unknown/null, object, APP and H/A/D gates. No whole L/LK transfer from2f and no new producer. |
+| 2f72, #699 — own SQL19 preparation | Current source235 has genuine GEN17 adopted and current verify/smoke SUCCESS. [6067413681](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067413681) authorizes the owner's exact two DB05 SQL inputs under53607 for prospective19 registration/composition. Preserve all prior SQL identities and GEN17 bytes/history;19 needs its own genuine qualification. Never relabel the17 capture as19. ROOT retains four GEN file refs; shared source/qualification is already supplied in [6067386234](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067386234), so no second artifact reader/capture/GEN producer. |
+| ROOT / original2f C261 scope — WAITING_HANDOFF | The distinct missing original ANJ/261 path is requested in [6067374146](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067374146). It is separate from the already claimed OwnSource wiring. Resume implementation only after the exact original scope is explicitly handed over/released and ROOT verifies its own required refs; request or silence alone grants nothing. Original2f whole C/L-LK duty and other paths remain retained. |
+| b6d3 H306 — IMPLEMENTING / OCCUPIED | [6067386002](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067386002) records the owner's meaningful RED and bounded306 correction with remaining positive-fixture compatibility work. Reuse that owner operation. Its prospective additional test/fixture scope still needs actual reservation before edits; neither the queue nor a plan acquires it. No duplicate306 fix/native run or whole H approval. |
+| ROOT CORE #721 / existing H owners — exact remaining criteria | Physical258 on source731 now actually passes its native case; do not repeat the old positive-reader/258 fix. The same source's aggregate H is86PASS/14FAIL and cancellation is FAILURE; whole H is unapproved. Remaining profile, physical ACK, outbox and other-field paths require separate source-bound diagnosis, exact custody and affected proof. Reuse existing H314 request6065552441/ACK6065634492 rather than another generic handoff loop. |
+| Brave-newton DB05 — retained whole duty | The DB05/AT-DB05/SC-070 IDs and HTTP/tests/native/coverage/review/CI remain with their owner. [Exact two-file handover6065459987](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6065459987), [release6066895022](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6066895022) and [2f CLAIM6067045850](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067045850) transfer only those two SQL files. Internal fixture correction and required legal input remain distinct; no whole-duty or additional-file transfer is inferred. |
+
+[Current bounded source status6067137363](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067137363)
+records GEN235 and typed731 source publication. Neither PR is merged. Both retain
+current H/cancellation failures and pending clean/certificate checks at that
+observation. GEN235 H/cancellation failures and typed731 H86PASS/14FAIL are
+source-specific observations; do not combine or transplant them. Native-case PASS and source
+approval are not whole-ID, resulting-main or clean/upgrade-parity approval.
+Current checks must be refreshed for delivery; these snapshots are not eternal
+blockers or automatic permission to merge.
+
+## Completed operations and next selection
+
+- SC-038/SC-047 #719 is delivered at main9c2c, with actual owner-requested
+  release [6066284273](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6066284273)
+  and owner absence verification6066635441. The old retained/unanswered SC038
+  action below is historical, not a new handoff requirement or eligible work.
+- Claude uwoj7c #716 is delivered at actual main1897; exact role-FIRST/file
+  release [6067094458](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6067094458)
+  is verified. The owner updates its checkpoint and may choose the next
+  evidenced blocker in its fixed role, with fresh exact custody before code.
+  A new identity does not inherit that session or its released packet.
+- Other older P08/H/protocol/TRDB owner rows below are dated evidence. Refresh
+  each actual PR, retained duty and RELEASE/handover before treating it as an
+  active assignment, new blocker or available scope. Missing refs alone do not
+  release retained whole responsibility.
+
+PLANAGENT finishes its own packet, then independently selects eligible rule
+or acceptance-only work; use the existing final-single-eligible exception when
+only one executable eligible ID is available. BLOCKERARAGENT finishes or
+actually hands over one evidenced blocker, then selects another within its
+fixed role. GRANSKARE remains an independent bounded read-only reviewer.
+AGENTS, the two role prompts and reservation/review/coverage/merge rules remain
+unchanged. No coordinator-assigned IDs or staggered launch is required.
+
+For each blocker, name the owner, exact required output/criterion and resumption
+event. Continue independent authorized parts while whole proof waits. Reuse one
+existing scoped request instead of repeating it. Before another work item,
+record taken/done/source/verification/blocker/next in own checkpoint and #673,
+and verify actual delivery or explicit handover/release of the prior scope.
+If no eligible action exists, leave one current BLOCKED/checkpoint with its
+concrete event; no unchanged polling, empty reports or duplicate producers.
+A stopped chat needs explicit resumption; documentation/comments do not wake it.
+New identities require their own scope/handoff and verified refs before code.
+
+## Historical queue — 2026-10-08T12:32:29 (preserved)
+
 # Masterplan owner actions and startup recovery
 
 Observation: 2026-10-08T12:32:29+00:00; source main `372d61847ae59290f1077a433d26fc3e144c4a1f` (documentation712 delivered,

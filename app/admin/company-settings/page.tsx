@@ -111,7 +111,7 @@ export default async function CompanySettingsPage() {
                     kommunikation.
                   </p>
                   <p className="mt-2 text-sm text-slate-700">Ediel-id: <strong>{company.ediel_id ?? 'Saknas'}</strong> · Driftmiljö: <strong>{isLiveApproved && company.operating_environment === 'production' ? 'Produktion' : 'Test'}</strong></p>
-                  {!isLiveApproved ? <p className="mt-1 text-sm text-amber-800">Produktion kräver att superadmin har godkänt go-live.</p> : null}
+                  {!isLiveApproved ? <p className="mt-1 text-sm text-amber-800">Ert bolag är i testläge tills Gridex har godkänt driftstart.</p> : null}
                 </div>
               </div>
               <form

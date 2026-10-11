@@ -1,0 +1,56 @@
+{
+  "schema": "startup-history-archive-v1",
+  "base": "c5f5be2cf859a325c6782fe612157aad379ab6e8",
+  "createdAt": "2026-10-10T18:37:24.879816+00:00",
+  "meaning": "Exact historical bytes only. Old active/paused labels are dated observations, not current ownership or allocation.",
+  "files": [
+    {
+      "originalPath": ".agent-memory/current-state.md",
+      "archivePath": ".agent-memory/history/20261010-before-startup-cleanup/current-state.md",
+      "bytes": 258488,
+      "sha256": "f9928781de8d291a23e4c185e1d4809733c8f6ef7d6416456ff8ba8648b838bf",
+      "gitBlob": "74415e47aa36f3c93aed2cb701125f579fda24c8",
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/c5f5be2cf859a325c6782fe612157aad379ab6e8/.agent-memory/current-state.md"
+    },
+    {
+      "originalPath": ".agent-memory/current-task.md",
+      "archivePath": ".agent-memory/history/20261010-before-startup-cleanup/current-task.md",
+      "bytes": 284196,
+      "sha256": "a0b2390c5342e44f26818a9c82646a578c18d6ce9db86270dcd44ecd259a536f",
+      "gitBlob": "af60d876085f4d772cb81e3e84e68ff94695b4f0",
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/c5f5be2cf859a325c6782fe612157aad379ab6e8/.agent-memory/current-task.md"
+    },
+    {
+      "originalPath": ".agent-memory/checkpoint.json",
+      "archivePath": ".agent-memory/history/20261010-before-startup-cleanup/checkpoint.json",
+      "bytes": 154599,
+      "sha256": "6cfc590a880ecdcd1708175b46f85901d4f930fb2cf4e65e252fe21901c2189f",
+      "gitBlob": "f2ec62f24354cfa7b9ad5507fc4ceeddb4b41b9e",
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/c5f5be2cf859a325c6782fe612157aad379ab6e8/.agent-memory/checkpoint.json"
+    },
+    {
+      "originalPath": ".agent-memory/handover.md",
+      "archivePath": ".agent-memory/history/20261010-before-startup-cleanup/handover.md",
+      "bytes": 286536,
+      "sha256": "959fa70bf235bb53207cc3a5575803d1b1d73bc18d775bf489bdf66ef19b4d21",
+      "gitBlob": "78760ab0fd4e75b19f00739ecbf35d82b200ca76",
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/c5f5be2cf859a325c6782fe612157aad379ab6e8/.agent-memory/handover.md"
+    },
+    {
+      "originalPath": ".agent-memory/open-blockers.md",
+      "archivePath": ".agent-memory/history/20261010-before-startup-cleanup/open-blockers.md",
+      "bytes": 189823,
+      "sha256": "675527dd7b61d9a8adf014a3100f362d7ceb2ec558293695cabfac0ed70aee26",
+      "gitBlob": "c287834741d2837f69a69e0cf40b77065b6c4475",
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/c5f5be2cf859a325c6782fe612157aad379ab6e8/.agent-memory/open-blockers.md"
+    },
+    {
+      "originalPath": ".agent-memory/work-plan.md",
+      "archivePath": ".agent-memory/history/20261010-before-startup-cleanup/work-plan.md",
+      "bytes": 142969,
+      "sha256": "2109fc33dbb4b6476375e0dd20392752c4d8314e2ee6fba1f6405da0038d6655",
+      "gitBlob": "c0ce2c2241f6e5dc7fd4d3ae978500723cde19d0",
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/c5f5be2cf859a325c6782fe612157aad379ab6e8/.agent-memory/work-plan.md"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { applyPermissionMarketSource } from '@/lib/ediel/permissions/permissionMarketTransition';
+import { validateInfoRequestClosure } from "@/lib/onboarding/infoRequestClosure";
 import { prepareManualServicePermission } from '@/lib/ediel/services/manualPermission';
 import type { EdielMessageRow } from '@/lib/ediel/types';
 import { supabaseService } from "@/lib/supabase/service";
@@ -1092,6 +1093,70 @@ function dispatchBlockerFromError(
 
 /** Qualify current bound authority and persist its exact refusal. This method
  * cannot create or queue a GODR, outbound request or message. */
+export async function closeCustomerInfoRequest(input: {
+  companyId: string;
+  actorUserId: string;
+  requestId: string;
+  targetStatus: string;
+  reason: string;
+}): Promise<CustomerInfoRequestRow> {
+  const companyId = requireUuid(input.companyId, "company_id");
+  const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
+  const requestId = requireUuid(input.requestId, "customer_info_request_id");
+
+  await requireCompanyOperationalForWrites(companyId);
+  const request = await getCustomerInfoRequestById({ companyId, requestId });
+  if (!request) throw new Error("Uppgiftsbegäran hittades inte för valt bolag.");
+
+  const validationError = validateInfoRequestClosure({
+    currentStatus: request.status,
+    targetStatus: input.targetStatus,
+    reason: input.reason,
+  });
+  if (validationError) throw new Error(validationError);
+
+  const reason = input.reason.trim();
+  const now = new Date().toISOString();
+  const { data, error } = await supabaseService
+    .from("customer_info_requests")
+    .update({
+      status: input.targetStatus,
+      next_required_action: null,
+      verified_payload: {
+        ...(request.verified_payload ?? {}),
+        manual_closure: {
+          status: input.targetStatus,
+          reason,
+          closed_by: actorUserId,
+          closed_at: now,
+          previous_status: request.status,
+        },
+      },
+      updated_by: actorUserId,
+      updated_at: now,
+    })
+    .eq("company_id", companyId)
+    .eq("id", request.id)
+    // Optimistic concurrency: only close from the status that was validated.
+    .eq("status", request.status)
+    .select("*")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Ärendet ändrades samtidigt av någon annan. Ladda om sidan och försök igen.");
+
+  await addCustomerInfoRequestEvent({
+    companyId,
+    requestId: request.id,
+    customerId: request.customer_id,
+    actorUserId,
+    eventType: input.targetStatus === "cancelled" ? "manually_cancelled" : "manually_completed",
+    message: input.targetStatus === "cancelled" ? `Ärendet avbröts: ${reason}` : `Ärendet markerades som slutfört: ${reason}`,
+    payload: { previous_status: request.status, status: input.targetStatus, reason },
+  });
+
+  return data as CustomerInfoRequestRow;
+}
+
 export async function checkCustomerInfoRequestAuthorization(input: {
   companyId: string;
   actorUserId: string;

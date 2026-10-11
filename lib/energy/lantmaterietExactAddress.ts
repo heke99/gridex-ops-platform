@@ -42,10 +42,6 @@ function normalize(value: string | null): string {
     .trim()
 }
 
-function compactToken(value: string | null): string {
-  return normalize(value).replace(/[^a-z0-9åäö]/gi, '')
-}
-
 function numberValue(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string' && value.trim()) {
@@ -142,18 +138,80 @@ function candidateIdentity(candidate: unknown): string | null {
   return null
 }
 
-function candidateText(candidate: unknown): string {
-  if (typeof candidate === 'string') return candidate
-  try { return JSON.stringify(candidate) } catch { return '' }
+type CandidateAddress = {
+  street: string
+  houseNumber: string
+  postalCode: string
+  postalTown: string
 }
 
-function exactCandidate(candidate: unknown, parts: NonNullable<ReturnType<typeof requestParts>>) {
-  const text = compactToken(candidateText(candidate))
-  if (!text) return false
-  const required = [parts.street, parts.streetNumber, parts.postalCode, parts.city]
-    .map((value) => compactToken(value))
-    .filter(Boolean)
-  return required.every((token) => text.includes(token))
+function matchToken(value: unknown): string {
+  return typeof value === 'string' || typeof value === 'number'
+    ? normalize(String(value)).replace(/[\s.\-–]+/g, '')
+    : ''
+}
+
+function firstString(record: JsonRecord, keys: string[]): string | null {
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'string' && value.trim()) return value.trim()
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  }
+  return null
+}
+
+// Parses provider address text such as "Storgatan 1A, 123 45 Stad" into its
+// structured parts. Returns null when the text is not a single full address.
+function parseAddressText(text: string): CandidateAddress | null {
+  const match = text.trim().match(/^(.+?)\s+(\d+(?:\s*[-–]\s*\d+)?)\s*([A-Za-zÅÄÖåäö])?\s*,\s*(\d{3})\s?(\d{2})\s+(.+)$/)
+  if (!match) return null
+  return {
+    street: match[1],
+    houseNumber: `${match[2].replace(/\s+/g, '')}${match[3] ?? ''}`,
+    postalCode: `${match[4]}${match[5]}`,
+    postalTown: match[6],
+  }
+}
+
+function structuredCandidate(candidate: unknown): CandidateAddress | null {
+  if (typeof candidate === 'string') return parseAddressText(candidate)
+  const record = asRecord(candidate)
+  if (!record) return null
+  const nested = asRecord(record.adress) ?? asRecord(record.address) ?? asRecord(record.properties)
+  const sources = [record, ...(nested ? [nested] : [])]
+  for (const source of sources) {
+    const street = firstString(source, ['adressomrade', 'gatunamn', 'street', 'streetName', 'street_name'])
+    const number = firstString(source, ['adressplatsnummer', 'nummer', 'houseNumber', 'house_number', 'streetNumber', 'street_number'])
+    const letter = firstString(source, ['bokstavstillagg', 'letter', 'houseLetter', 'house_letter']) ?? ''
+    const postalCode = firstString(source, ['postnummer', 'postalCode', 'postal_code'])
+    const postalTown = firstString(source, ['postort', 'postalTown', 'postal_town', 'city'])
+    if (street && number && postalCode && postalTown) {
+      return { street, houseNumber: `${number}${letter}`, postalCode, postalTown }
+    }
+  }
+  for (const source of sources) {
+    const text = firstString(source, ['adress', 'address', 'beteckning', 'text', 'label'])
+    const parsed = text ? parseAddressText(text) : null
+    if (parsed) return parsed
+  }
+  return null
+}
+
+// Exact structured equality after normalisation (case, whitespace, Unicode
+// form, postal code digits only). Substring matches such as house "1" vs "11"
+// or "storgatan" vs "lillstorgatan" must never qualify as an exact address.
+export function exactCandidate(
+  candidate: unknown,
+  parts: { street: string; streetNumber: string; postalCode: string; city: string },
+) {
+  const address = structuredCandidate(candidate)
+  if (!address) return false
+  const postalDigits = address.postalCode.replace(/\D/g, '')
+  return matchToken(address.street) === matchToken(parts.street)
+    && matchToken(address.houseNumber) === matchToken(parts.streetNumber)
+    && postalDigits === parts.postalCode.replace(/\D/g, '')
+    && matchToken(address.postalTown) === matchToken(parts.city)
+    && matchToken(parts.street) !== ''
 }
 
 function geometryCoordinates(value: unknown): { x: number; y: number } | null {

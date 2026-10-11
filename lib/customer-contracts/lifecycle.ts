@@ -1,3 +1,4 @@
+import { currentStockholmCalendarDate } from '@/lib/time/stockholm'
 import type { CustomerContractRow, CustomerContractTerminationReason } from './types'
 
 type ContractLifecycleInput = {
@@ -82,7 +83,8 @@ function maxDate(a: string | null, b: string | null): string | null {
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
+  // Contract dates are Swedish calendar dates; UTC would lag 1-2 hours each night.
+  return currentStockholmCalendarDate()
 }
 
 function getRenewalTermMonths(input: ContractLifecycleInput): number | null {
@@ -120,12 +122,17 @@ function getRollingTermWindow(
     }
   }
 
-  let currentTermStart = startsAt
-  let currentTermEnd = addMonths(currentTermStart, renewalTermMonths)
+  // Every boundary is anchored to the original start date (start + k*term).
+  // Chaining addMonths from the previous boundary drifts permanently after a
+  // month-end clamp (e.g. 01-31 -> 02-28 -> 03-28 instead of 03-31).
+  let termIndex = 0
+  let currentTermStart: string | null = startsAt
+  let currentTermEnd = addMonths(startsAt, renewalTermMonths)
 
   while (currentTermEnd && referenceDate >= currentTermEnd) {
+    termIndex += 1
     currentTermStart = currentTermEnd
-    currentTermEnd = addMonths(currentTermStart, renewalTermMonths)
+    currentTermEnd = addMonths(startsAt, (termIndex + 1) * renewalTermMonths)
   }
 
   return {

@@ -24,6 +24,9 @@ export default function DevelopersPage() {
           <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-600">
             Här finns den publika online-dokumentationen för hemsidor, Mina sidor-koppling, kundportaler och partnerintegrationer som ska koppla mot Gridex API.
           </p>
+          <p className="mt-3 max-w-3xl text-base leading-7 text-slate-700">
+            You do not need to match the latest documentation revision exactly to use a supported API version.
+          </p>
         </div>
       </section>
 

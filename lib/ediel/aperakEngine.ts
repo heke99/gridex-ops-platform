@@ -318,14 +318,21 @@ export function renderAperakEdiel(params: {
         `DTM+137:${swedishDateTime()}:203`,
       ]
 
-  const receivedDateTime =
-    swedishDateTimeFromEdifactUnb(params.source.rawPayload) ??
-    (params.source.messageReceivedAt
+  const receivedDateTime = hasProdatWire
+    // P A901 is the actual retained PRODAT arrival, in fixed UTC+1.
+    ? (params.source.messageReceivedAt
       ? (() => {
           const receivedDate = new Date(params.source.messageReceivedAt as string)
-          return Number.isFinite(receivedDate.getTime()) ? swedishDateTime(receivedDate) : null
+          return Number.isFinite(receivedDate.getTime()) ? standardTimeMinute(receivedDate) : null
         })()
       : null)
+    : swedishDateTimeFromEdifactUnb(params.source.rawPayload) ??
+      (params.source.messageReceivedAt
+        ? (() => {
+            const receivedDate = new Date(params.source.messageReceivedAt as string)
+            return Number.isFinite(receivedDate.getTime()) ? swedishDateTime(receivedDate) : null
+          })()
+        : null)
 
   if (!isUtiltsSource && receivedDateTime) {
     segments.push(`DTM+178:${receivedDateTime}:203`)

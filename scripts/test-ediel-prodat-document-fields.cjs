@@ -11,6 +11,9 @@ const { test, after } = require('node:test')
 const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 after(assertNoSourceBoundaryAttempts)
 const root=path.resolve(__dirname,'..')
+// Load the actual pure header observation; its external ports remain denied.
+const headerNegativeIntake='@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
+const headerNegativeIntakeFile=path.join(root,'lib/inbound-mail/prodatAssignedHeaderRejectionIntake.ts')
 async function runtime(){
  const modules=new Map()
  const service=new SyntheticModule(['supabaseService'],function(){this.setExport('supabaseService',{from(){throw new Error('Unexpected DB call in document read test')},rpc(){throw new Error('Unexpected RPC')}})})
@@ -48,10 +51,10 @@ async function runtime(){
   if(name==='@/lib/supabase/service') return service
   if(blocked.has(name))return blocked.get(name)
   if(name==='crypto'||name==='node:crypto')return crypto
-  assert(name.startsWith('@/lib/ediel/')||name.startsWith('.'),`Unexpected dependency:${name}`)
+  assert(name.startsWith('@/lib/ediel/')||name.startsWith('.')||name===headerNegativeIntake,`Unexpected dependency:${name}`)
   const base=name.startsWith('@/')?path.join(root,name.slice(2)):path.resolve(path.dirname(parent.identifier),name)
   const file=['.ts','/index.ts'].map(ext=>base+ext).find(fs.existsSync)
-  assert(file&&file.startsWith(path.join(root,'lib/ediel/')),'Only actual Ediel source is loaded')
+  assert(file&&(file.startsWith(path.join(root,'lib/ediel/'))||file===headerNegativeIntakeFile),'Only actual Ediel source is loaded')
   if(!modules.has(file))modules.set(file,new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'transform',sourceUrl:file}),{identifier:file}))
   return modules.get(file)
  })

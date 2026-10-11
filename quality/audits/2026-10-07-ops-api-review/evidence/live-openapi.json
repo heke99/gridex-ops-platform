@@ -1,0 +1,102 @@
+[
+  {
+    "url": "https://app.gridex.se/api/v1/openapi/release-manifest.json",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "sha256": "c44c4086e03734ca5c68deb6e0bf68eb92ece315945b69e08143afd1f96acc85",
+    "version": "2026-10-04.1",
+    "manifest": {
+      "release_version": "2026-10-04.1",
+      "website_openapi_version": "2026-10-04.1",
+      "customer_portal_openapi_version": "2026-10-04.1",
+      "staff_openapi_version": "2026-10-04.1",
+      "runtime_contract_version": "2026-10-04.1",
+      "guide_version": "2026-10-04.1",
+      "released_at": "2026-10-04T08:30:00.000Z",
+      "generated_at": "2026-10-04T08:30:00.000Z",
+      "build_commit": "c401ae989f8add2f73912746936ced6be2d02708",
+      "compatibility_classification": "backward-compatible",
+      "deprecated_features": [
+        {
+          "feature": "public contract id and contract_offer_id compatibility aliases",
+          "replacement": "offer_reference",
+          "sunset_at": "2026-10-31T23:59:59.000Z"
+        },
+        {
+          "feature": "legal evidence UUID compatibility fields",
+          "replacement": "legal_bundle_reference and document_reference",
+          "sunset_at": "2026-10-31T23:59:59.000Z"
+        },
+        {
+          "feature": "diagnostics=true on public-contracts",
+          "replacement": "/api/v1/website/public-contracts/diagnostics",
+          "sunset_at": "2026-10-31T23:59:59.000Z"
+        },
+        {
+          "feature": "x-api-key request header",
+          "replacement": "Authorization: Bearer <GRIDEX_API_KEY>",
+          "sunset_at": "2026-10-31T23:59:59.000Z"
+        }
+      ],
+      "minimum_tenant_integration_version": "2026-10-02.3",
+      "specifications": {
+        "staff": {
+          "contract_name": "staff-v1",
+          "contract_version": "2026-10-04.1",
+          "url": "https://app.gridex.se/api/v1/openapi/staff-v1.json",
+          "immutable_url": "https://app.gridex.se/api/v1/openapi/2026-10-04.1/staff-v1.json",
+          "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+          "compatibility": "backward-compatible"
+        },
+        "website": {
+          "contract_name": "website-integration-v1",
+          "contract_version": "2026-10-04.1",
+          "url": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json",
+          "immutable_url": "https://app.gridex.se/api/v1/openapi/2026-10-04.1/website-integration-v1.json",
+          "sha256": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47",
+          "compatibility": "backward-compatible"
+        },
+        "customer_portal": {
+          "contract_name": "customer-portal-v1",
+          "contract_version": "2026-10-04.1",
+          "url": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json",
+          "immutable_url": "https://app.gridex.se/api/v1/openapi/2026-10-04.1/customer-portal-v1.json",
+          "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+          "compatibility": "backward-compatible"
+        }
+      }
+    }
+  },
+  {
+    "url": "https://app.gridex.se/api/v1/openapi/website-integration-v1.json",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "sha256": "311c1fd85a82aec158bc5e391bcd380a8a944d7762a7fdeebb24cc0ae7da6a47",
+    "version": "2026-10-04.1",
+    "semantic_equal_local": true
+  },
+  {
+    "url": "https://app.gridex.se/api/v1/openapi/customer-portal-v1.json",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+    "version": "2026-10-04.1",
+    "semantic_equal_local": true
+  },
+  {
+    "url": "https://app.gridex.se/api/v1/openapi/staff-v1.json",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+    "version": "2026-10-04.1",
+    "semantic_equal_local": true
+  },
+  {
+    "url": "https://app.gridex.se/api/v1/openapi/staff-onboarding-v1.json",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "sha256": "5a70f265a58cfe1ba06728205f3dae08841188b90e3ac5892d4185f6e6c4a372",
+    "version": "2026-10-05.2",
+    "semantic_equal_local": true
+  }
+]

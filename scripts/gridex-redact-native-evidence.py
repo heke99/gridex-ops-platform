@@ -21,6 +21,7 @@ def scrub(data, secrets=()):
             for item in source.infolist():
                 target.writestr(item, scrub(source.read(item), secrets))
         return result.getvalue()
+    original = data
     for secret in secrets:
         data = data.replace(secret, REDACTED.encode())
     data = JWT.sub(REDACTED.encode(), data)
@@ -29,6 +30,24 @@ def scrub(data, secrets=()):
         text = data.decode('utf-8')
     except UnicodeDecodeError:
         return data
+
+    def load(text):
+        duplicate = False
+
+        def pairs(items):
+            nonlocal duplicate
+            result = {}
+            for key, item in items:
+                if key in result:
+                    duplicate = True
+                result[key] = item
+            # A later duplicate name must not hide an earlier auth header.
+            if (len(result) != len(items) and 'value' in result
+                    and any(key == 'name' and str(item).lower() in SENSITIVE for key, item in items)):
+                result['value'] = REDACTED
+            return result
+
+        return json.loads(text, object_pairs_hook=pairs), duplicate
 
     def value(item):
         if isinstance(item, list):
@@ -39,20 +58,33 @@ def scrub(data, secrets=()):
             return {key: REDACTED if key.lower() in SENSITIVE else value(x) for key, x in item.items()}
         if isinstance(item, str) and item.lstrip().startswith(('{', '[')):
             try:
-                return json.dumps(value(json.loads(item)), separators=(',', ':'))
+                parsed, duplicate = load(item)
+                cleaned = value(parsed)
+                # Preserve formatted nested JSON only when no key was hidden
+                # and scrubbing made no change to the decoded value.
+                return json.dumps(cleaned, separators=(',', ':')) if duplicate or cleaned != parsed else item
             except json.JSONDecodeError:
                 pass
         return item
 
-    # Each NDJSON trace record and complete JSON resource is independently
-    # parsed; a password/token inside a nested response body is covered too.
+    def record(text):
+        parsed, duplicate = load(text)
+        cleaned = value(parsed)
+        # Decoded equality alone cannot authorize a no-op for duplicate keys:
+        # an earlier credential may have been shadowed by the last value.
+        if duplicate or cleaned != parsed or data != original:
+            return json.dumps(cleaned, separators=(',', ':')) + '\n'
+        return text
+
+    # JSON scalars in SQL and secret-free JSON/NDJSON keep their original
+    # whitespace, line endings and final-newline state.
     try:
-        return (json.dumps(value(json.loads(text)), separators=(',', ':')) + '\n').encode()
+        return record(text).encode()
     except json.JSONDecodeError:
         lines = []
         for line in text.splitlines(keepends=True):
             try:
-                lines.append(json.dumps(value(json.loads(line)), separators=(',', ':')) + '\n')
+                lines.append(record(line))
             except json.JSONDecodeError:
                 lines.append(line)
         return ''.join(lines).encode()

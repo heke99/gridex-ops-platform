@@ -7,6 +7,8 @@ import {guideOrderedFixtureRaw} from './helpers/prodatGuideOrderedFixture'
 import {head,source} from './fixtures/prodat-identity'
 import {ownerRulePack,ownerId} from './helpers/sourceOwnerFixtures'
 import {withProdatFixtureInsertContext,prodatFixtureSourceRpc} from './helpers/prodatInboundSourceFixture'
+import {createProdatOwnSourceReadingSdk,resetProdatOwnSourceReadingSdk,installProdatOwnSourceReadingFixture,withProdatOwnSourceReadings} from './helpers/prodatOwnSourceReadingFixture'
+import {prodatOwnSourceReadingAdapter} from './helpers/prodatOwnSourceReadingAdapter'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import { approveEdielInboundCaseAction } from '@/app/admin/ediel/actions.part-5'
@@ -23,7 +25,7 @@ vi.mock('@/lib/customers/canonicalOnboarding',async importOriginal=>({...await i
 vi.mock('@/lib/ediel/db',()=>({createEdielMessageEvent:boundary.event,linkEdielMessage:boundary.link,getEdielMessageById:boundary.read}))
 const raw=(body:readonly Parts[],code='Z04')=>{
  const enhanced:Parts[]=[]
- for(let i=0;i<body.length;i++){const p=body[i];enhanced.push(p);if(p[0]==='CAV'&&body[i-1]?.[0]==='CCI'&&body[i-1]?.[2]==='Z04')enhanced.push(...characteristic('Z07','E22'),...characteristic('Z12','W',3),...characteristic('Z15','D'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']]);if(p[0]==='NAD'&&p[1]==='UD'){const id=(p[2] as readonly string[])[0].replace('CUSTOMER-','');enhanced.push(['NAD','IT',[id,'','89'],'','','Street','City','','12345','SE'],['NAD','Z02',['11111','160','SVK']])}}
+ for(let i=0;i<body.length;i++){const p=body[i];enhanced.push(p);if(p[0]==='CAV'&&body[i-1]?.[0]==='CCI'&&body[i-1]?.[2]==='Z04')enhanced.push(...characteristic('Z07','Z12'),...characteristic('Z12','W',3),...characteristic('Z15','Z32'),['CCI','','Z14'],['CAV',['','','','L917','8716867000030']]);if(p[0]==='NAD'&&p[1]==='UD'){const id=(p[2] as readonly string[])[0].replace('CUSTOMER-','');enhanced.push(['NAD','IT',[id,'','89'],'','','Street','City','','12345','SE'],['NAD','Z02',['11111','160','SVK']])}}
  return guideOrderedFixtureRaw([...head(),...enhanced],code).replace('+S+R+','+12345:14+54321:14+')
 }
 type Decision={meteringPointId:string;identityAgency:string;mode:'create_new_customer'|'update_existing_customer'|'link_existing_only';selectedCustomerId?:string;selectedSiteId?:string;selectedMeteringPointId?:string}
@@ -34,9 +36,12 @@ const keyValue=(row:Record<string,unknown>,key:string)=>{
  const value=key.split(/->>?/).reduce<unknown>((v,k)=>v && typeof v==='object' ? (v as Record<string,unknown>)[k] : null,row) ?? null
  return key.includes('->>') && value!==null ? String(value) : value
 }
+const reads=createProdatOwnSourceReadingSdk()
 beforeEach(async()=>{
  vi.clearAllMocks();boundary.event.mockResolvedValue(undefined);clock=0;failB=false;loseAResponse=false;committed=new Map();writes=[];graphRows={customers:[],customer_sites:[],metering_points:[]}
- message=withProdatFixtureInsertContext({...source(raw([line('1','A','1'),qty('10'),...common('A','Customer A'),line('2','A','2'),qty('20'),line('3','B'),qty('30'),...common('B','Customer B')],'Z04'),'Z04'),parsed_payload:{subtype:'L',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:false}}})
+ message=withProdatFixtureInsertContext({...source(withProdatOwnSourceReadings(raw([line('1','A','1'),qty('10'),...common('A','Customer A'),line('2','A','2'),qty('20'),...characteristic('Z02','1',3),...characteristic('Z05','6',3),...characteristic('Z16','222',3),line('3','B'),qty('30'),...common('B','Customer B')],'Z04')),'Z04'),inbound_email_message_id:ownerId(60),parsed_payload:{subtype:'L',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:false}}})
+ resetProdatOwnSourceReadingSdk(reads)
+ installProdatOwnSourceReadingFixture(reads,message,'L',{actorUserId:ownerId(2),receivedAt:message.message_received_at!,mailId:message.inbound_email_message_id!,parseId:ownerId(61),receptionId:ownerId(62),legalActorId:ownerId(9)})
  const original=structuredClone(message)
  let actorActive=true,sourceAvailable=true
  boundary.read.mockImplementation(async(id:string)=>id===message.id?structuredClone(message):null)
@@ -61,7 +66,7 @@ beforeEach(async()=>{
    if(patch.status==='applied')return boundary.event({eventType:'validated'}).then(save)
    return Promise.resolve(save())
   }
-  if(name==='batch_fixture_revoke_actor'){actorActive=false;return Promise.resolve({data:null,error:null})}
+  if(name==='batch_fixture_revoke_actor'){actorActive=false;reads.permissions.clear();return Promise.resolve({data:null,error:null})}
   if(name==='batch_fixture_remove_source'){sourceAvailable=false;return Promise.resolve({data:null,error:null})}
   return prodatFixtureSourceRpc(name,args)
  })
@@ -83,6 +88,9 @@ beforeEach(async()=>{
   query.then=(resolve:(v:ReturnType<typeof execute>)=>void)=>Promise.resolve(execute()).then(resolve)
   return query
  })
+ const rpc=boundary.rpc.getMockImplementation()!,from=boundary.from.getMockImplementation()!
+ const sdk=prodatOwnSourceReadingAdapter(()=>reads,{rpc:(name,args)=>rpc(name,args),from:table=>from(table)},{sourceMessageReads:false})
+ boundary.rpc.mockImplementation(sdk.rpc);boundary.from.mockImplementation(sdk.from)
  boundary.graph.mockImplementation(async(command:Record<string,unknown>,context:{companyId:string})=>{
   expect(command.company_id).toBe('00000000-0000-4000-8000-000000000002');expect(context.companyId).toBe('00000000-0000-4000-8000-000000000002')
   const key=command.idempotency_key as string, id=(command.metering_point as Record<string,unknown>).meter_point_id
@@ -93,7 +101,8 @@ beforeEach(async()=>{
   if(id==='A' && loseAResponse){loseAResponse=false;throw new Error('response lost after A commit')}
   return result
  })
- const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:ownerId(2)})
+ expect(decision.prodatApplicationValidation?.objects.map(object=>object.applicationDecision),JSON.stringify(decision.issues.map(issue=>({code:issue.code,field:issue.prodatDiagnostic?.kind==='field'?issue.prodatDiagnostic.fieldNumber:null,description:issue.description})))).toEqual(['accepted','accepted'])
  const recorded=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:message.company_id!,decision})
  expect(recorded.status,JSON.stringify({syntax:decision.syntaxDecision,app:decision.applicationDecision,issues:decision.issues})).toBe('recorded')
 })

@@ -2,10 +2,12 @@
 
 import { readRegistryRouteSource, verifyElRegistryActor, type SourceQualifiedRegistryRoute } from '@/lib/actor-registry/registryMarketSource'
 import { revalidatePath } from 'next/cache'
-import {diffRegistryRecord,readRegistryPreviewSnapshot} from '@/lib/actor-registry/registrySnapshotDiff'
+import {diffRegistryRecord,readRegistryPreviewSnapshot,type RegistrySnapshot} from '@/lib/actor-registry/registrySnapshotDiff'
 import {parseActorRegistryTxt} from '@/lib/actor-registry/parseActorRegistryTxt'
 import { parseActorRegistryXml } from '@/lib/actor-registry/parseActorRegistryXml'
-import { applyActorRegistryRecords, decodeRegistryUpload, readActorRegistryPriorResult } from '@/lib/actor-registry/importActorRegistry'
+import { applyActorRegistryRecords, carryForwardTxtRegistryFacts, decodeRegistryUpload, readActorRegistryPriorResult } from '@/lib/actor-registry/importActorRegistry'
+import { applyGridOwnerReconciliation, planGridOwnerReconciliation, type GridOwnerApplyResult, type GridOwnerReconciliationPlan } from '@/lib/actor-registry/gridOwnerReconciliation'
+import { createSupabaseGridOwnerPort } from '@/lib/actor-registry/gridOwnerSupabasePort'
 import type { ParsedActorRegistryActor } from '@/lib/actor-registry/types'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
@@ -218,8 +220,10 @@ type ActorImportPreviewSummary = {
   issues: ActorImportPreviewIssue[]
 }
 
-async function buildActorImportPreview(records: ActorImportRecord[],actorUserId:string): Promise<ActorImportPreviewSummary> {
-  const snapshot=await readRegistryPreviewSnapshot(actorUserId,records.flatMap(r=>r.edielId?[r.edielId]:[]))
+const readSnapshotFor=(records:Array<{edielId?:string|null}>,actorUserId:string)=>readRegistryPreviewSnapshot(actorUserId,records.flatMap(r=>r.edielId?[r.edielId]:[]))
+
+async function buildActorImportPreview(records: ActorImportRecord[],actorUserId:string,knownSnapshot?:RegistrySnapshot): Promise<ActorImportPreviewSummary> {
+  const snapshot=knownSnapshot??await readSnapshotFor(records,actorUserId)
   const summary: ActorImportPreviewSummary = {
     recordsSeen: records.length,
     newActors: 0,
@@ -326,6 +330,7 @@ async function createActorImportPreviewRun(input: {
   importType: string
   parsed: ActorImportRecord[]
   userId: string
+  gridOwnerPlan?: GridOwnerReconciliationPlan | null
 }) {
   const preview = await buildActorImportPreview(input.parsed,input.userId)
   const run = await supabaseService
@@ -345,6 +350,7 @@ async function createActorImportPreviewRun(input: {
         source: input.source,
         fileName: input.fileName,
         preview,
+        ...(input.gridOwnerPlan ? { gridOwnerPlan: summarizeGridOwnerPlan(input.gridOwnerPlan) } : {}),
         nextStep: 'Granska diffen. Kör därefter importen igen med bekräftelsetext IMPORTERA för att uppdatera masterdata.',
       },
       error_log: preview.issues,
@@ -381,6 +387,32 @@ async function createActorImportPreviewRun(input: {
   return run.data.id
 }
 
+/** Bounded, display-ready subset of the grid-owner plan stored with the preview run. */
+function summarizeGridOwnerPlan(plan: GridOwnerReconciliationPlan) {
+  return { planSha256: plan.planSha256, sourceKind: plan.sourceKind, counts: plan.counts,
+    updates: plan.updates.slice(0, 200).map(u => ({ gridOwnerId: u.gridOwnerId, name: u.name, edielId: u.edielId, matchedBy: u.matchedBy, before: u.before, patch: u.patch })),
+    creates: plan.creates.slice(0, 200).map(c => ({ edielId: c.edielId, name: c.name, communicationEmail: c.row.communication_email })),
+    flags: plan.flags.slice(0, 300) }
+}
+
+/** Grid-owner reconciliation input: XML carries roles/OrgNo; TXT relies on roles
+ * already registered on the platform actor and never links or creates. */
+async function gridOwnerSourceFor(importType: string, textContent: string, actorUserId: string) {
+  if (importType === 'companies_xml') return { actors: parseActorRegistryXml(textContent), knownRoles: undefined }
+  if (importType !== 'companies_txt') return null
+  const actors = parseActorRegistryTxt(textContent)
+  const snapshot = await readSnapshotFor(actors, actorUserId)
+  return { actors, knownRoles: new Map(snapshot.actors.map(actor => [String(actor.edielId), actor.roles])) }
+}
+
+async function recordGridOwnerApply(uiRunId: string, result: GridOwnerApplyResult | null, registry: Record<string, unknown>) {
+  const current = await supabaseService.from('platform_actor_import_runs').select('metadata').eq('id', uiRunId).maybeSingle()
+  if (current.error) throw current.error
+  const metadata = current.data?.metadata && typeof current.data.metadata === 'object' && !Array.isArray(current.data.metadata) ? current.data.metadata as Record<string, unknown> : {}
+  const update = await supabaseService.from('platform_actor_import_runs').update({ metadata: { ...metadata, mode: 'apply', result: registry, ...(result ? { gridOwnerResult: result } : {}) } }).eq('id', uiRunId)
+  if (update.error) throw update.error
+}
+
 export async function importPlatformActorsAction(formData: FormData) {
   const context = await requirePlatformAdminActionAccess()
   const file = formData.get('actorImportFile')
@@ -388,7 +420,8 @@ export async function importPlatformActorsAction(formData: FormData) {
   const format = value(formData, 'format') ?? 'auto'
   const mode = value(formData, 'importMode') ?? 'preview'
   const confirmApply = value(formData, 'confirmApply')
-  if (!(file instanceof File) || file.size <= 0) throw new Error('Välj companies.xml eller CSV-fil att importera.')
+  const syncGridOwners = boolValue(formData, 'syncGridOwners')
+  if (!(file instanceof File) || file.size <= 0) throw new Error('Välj companies.xml, companies.txt eller CSV-fil att importera.')
 
   const fileName = file.name || 'actor-import'
   const importType = format==='txt'||fileName.toLowerCase().endsWith('.txt')?'companies_txt':format === 'csv' || fileName.toLowerCase().endsWith('.csv') ? 'csv' : 'companies_xml'
@@ -397,8 +430,13 @@ export async function importPlatformActorsAction(formData: FormData) {
     if(confirmApply!=='IMPORTERA')throw new Error('Skriv IMPORTERA för att godkänna att säkra fält uppdateras och osäkra ändringar läggs i granskning.')
     const prior=await readActorRegistryPriorResult({sourceBytes,sourceKind:importType,actorUserId:context.userId})
     if(prior) {
+      // The registry batch is immutable and replayed, but grid_owners may have
+      // drifted since; reconciliation is idempotent and runs again when requested.
+      const gridSource=syncGridOwners?await gridOwnerSourceFor(importType,decodeRegistryUpload(sourceBytes,importType),context.userId):null
+      const gridOwnerResult=gridSource?await applyGridOwnerReconciliation({...gridSource,sourceKind:importType as GridOwnerReconciliationPlan['sourceKind'],port:createSupabaseGridOwnerPort(context.userId)}):null
+      if(syncGridOwners)await recordGridOwnerApply(prior.uiRunId,gridOwnerResult,prior)
       await logAdminActionAndUsage({companyId:null,actorUserId:context.userId,entityType:'platform_actor_import_run',entityId:prior.uiRunId,
-        action:'actor_import.reused',label:'Registerimportens tidigare resultat läst',billable:false,billingUnit:'actor_import',metadata:{source,fileName,result:prior,activation:prior.activation}})
+        action:'actor_import.reused',label:'Registerimportens tidigare resultat läst',billable:false,billingUnit:'actor_import',metadata:{source,fileName,result:prior,activation:prior.activation,gridOwnerResult}})
       revalidatePath('/admin/ediel/actors');revalidatePath('/admin/ediel/auto-readiness');revalidatePath('/admin/customers/intake')
       return
     }
@@ -410,12 +448,15 @@ export async function importPlatformActorsAction(formData: FormData) {
   if (parsed.length === 0) throw new Error('Importfilen innehöll inga aktörer som kunde läsas.')
 
   if (mode !== 'apply') {
+    const gridSource = syncGridOwners ? await gridOwnerSourceFor(importType, textContent, context.userId) : null
+    const gridOwnerPlan = gridSource ? planGridOwnerReconciliation({ ...gridSource, sourceKind: importType as GridOwnerReconciliationPlan['sourceKind'], gridOwners: await createSupabaseGridOwnerPort(context.userId).listGridOwners() }) : null
     await createActorImportPreviewRun({
       fileName,
       source,
       importType,
       parsed,
       userId: context.userId,
+      gridOwnerPlan,
     })
     revalidatePath('/admin/ediel/actors')
     revalidatePath('/admin/customers/intake')
@@ -426,7 +467,8 @@ export async function importPlatformActorsAction(formData: FormData) {
     throw new Error('Skriv IMPORTERA för att godkänna att säkra fält uppdateras och osäkra ändringar läggs i granskning.')
   }
 
-  const preview = await buildActorImportPreview(parsed,context.userId)
+  const snapshot = await readSnapshotFor(parsed, context.userId)
+  const preview = await buildActorImportPreview(parsed,context.userId,snapshot)
   if (preview.routesSeen === 0) {
     await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId })
     revalidatePath('/admin/ediel/actors')
@@ -438,15 +480,19 @@ export async function importPlatformActorsAction(formData: FormData) {
   }
 
   const applied = await applyActorRegistryRecords({ sourceBytes, sourceKind: importType as 'companies_xml' | 'companies_txt' | 'csv', sourceFilename: fileName, actorUserId: context.userId,
-    actors: txtActors??(importType === 'companies_xml' ? parseActorRegistryXml(textContent) : parsed.map(record => ({ name: record.name, legalName: record.name, market: record.market, countryCode: record.countryCode, orgNumber: record.orgNumber, edielId: record.edielId, svkId: record.svkId, eic: record.eic,
+    actors: txtActors?carryForwardTxtRegistryFacts(txtActors,snapshot.actors):(importType === 'companies_xml' ? parseActorRegistryXml(textContent) : parsed.map(record => ({ name: record.name, legalName: record.name, market: record.market, countryCode: record.countryCode, orgNumber: record.orgNumber, edielId: record.edielId, svkId: record.svkId, eic: record.eic,
       roles: record.roles as ParsedActorRegistryActor['roles'], routes: record.routes.map(route => ({ ...route, market: record.market, environment: 'production' as const })), certificates: [], raw: record.sourceRecord ?? { ...record, sourceKind: 'csv' } }))) })
+  const gridSource = syncGridOwners ? await gridOwnerSourceFor(importType, textContent, context.userId) : null
+  const gridOwnerResult = gridSource ? await applyGridOwnerReconciliation({ ...gridSource, sourceKind: importType as GridOwnerReconciliationPlan['sourceKind'], port: createSupabaseGridOwnerPort(context.userId) }) : null
+  if (syncGridOwners) await recordGridOwnerApply(applied.uiRunId, gridOwnerResult, applied)
   await logAdminActionAndUsage({ companyId: null, actorUserId: context.userId, entityType: 'platform_actor_import_run', entityId: applied.uiRunId,
     action: 'actor_import.completed', label: 'Aktörsimport atomärt tillämpad', billable: !applied.reusedExistingRun, billingUnit: 'actor_import',
-    metadata: { source, fileName, atomicApplyVersion: 1, result: applied, activation: applied.activation } })
+    metadata: { source, fileName, atomicApplyVersion: 1, result: applied, activation: applied.activation, gridOwnerResult } })
 
   revalidatePath('/admin/ediel/actors')
   revalidatePath('/admin/ediel/auto-readiness')
   revalidatePath('/admin/customers/intake')
+  if (gridOwnerResult) revalidatePath('/admin/agreements/grid-owners')
 }
 
 async function syncVerifiedActorToCustomerMasterdata(actorId: string, userId: string) {

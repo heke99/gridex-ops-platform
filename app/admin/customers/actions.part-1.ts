@@ -14,6 +14,13 @@ import { normalizeCustomerIdentityType } from "@/lib/customers/normalizeCustomer
 import type { IntakeField, IntakeFieldErrors, IntakeFormValues } from "./actionState"
 
 import type { ContractType, GreenFeeMode } from "@/lib/customer-contracts/types"
+import {
+  parseContractSigningMethod,
+  resolveContractSigningChoice,
+  validateSignedAgreementFile,
+  type ContractSigningMethod,
+  type ResolvedSigningChoice,
+} from "@/lib/customer-contracts/signingMethod"
 
 import type { SupplierSwitchRequestType } from "@/lib/operations/types"
 import { isValidEmailAddress, isValidFacilityId, isValidMeterPointId, isValidSwedishOrganizationNumber, isValidSwedishPersonalNumber, isValidSwedishPhoneNumber, isValidSwedishPostalCode } from "@/lib/validation/customerFields"
@@ -98,6 +105,14 @@ export type CreateCustomerGraphParams = {
   contractOfferId: string | null;
   contractStartDate: string | null;
   contractStatus: ContractStatus | null;
+  /**
+   * Staff signing choice from the intake form. When
+   * `requireContractSigningChoice` is set the choice is mandatory for a
+   * contract and decides status, signed-agreement import and auto-send.
+   */
+  contractSigningMethod?: ContractSigningMethod | null;
+  contractSignedDate?: string | null;
+  requireContractSigningChoice?: boolean;
   overrideReason: string | null;
   contractTypeOverride: ContractType | null;
   fixedPriceOrePerKwh: number | null;
@@ -201,6 +216,8 @@ export const INTAKE_VALUE_FIELDS: IntakeField[] = [
   "contractOfferId",
   "contractStartDate",
   "contractStatus",
+  "contractSigningMethod",
+  "contractSignedDate",
   "overrideReason",
   "contractTypeOverride",
   "fixedPriceOrePerKwh",
@@ -645,6 +662,55 @@ export function isEmail(value: string | null | undefined): boolean {
   return isValidEmailAddress(value);
 }
 
+export const SIGNED_AGREEMENT_REQUIRES_CONTRACT_MESSAGE =
+  "Ett signerat avtal kan bara laddas upp tillsammans med ett avtal. Välj avtalsmall eller kundspecifikt avtal.";
+
+function intakeHasContract(params: CreateCustomerGraphParams): boolean {
+  return Boolean(params.contractOfferId || params.contractTypeOverride);
+}
+
+/**
+ * Resolves the staff signing choice for a form-driven intake with a contract.
+ * Returns null for callers that do not use the choice (imports, website
+ * applications) or when no contract is created.
+ */
+export function resolveIntakeSigningChoice(
+  params: CreateCustomerGraphParams,
+): ResolvedSigningChoice | null {
+  if (!params.requireContractSigningChoice || !intakeHasContract(params)) return null;
+  return resolveContractSigningChoice({
+    method: params.contractSigningMethod ?? null,
+    file: params.signedAgreementFile,
+    signedDate: params.contractSignedDate ?? null,
+    // Catalog contracts enter the import via pending_signature; one-off
+    // contracts start as draft until the import materializes their chain.
+    uploadedCreateStatus: params.contractOfferId ? "pending_signature" : "draft",
+  });
+}
+
+export function validateContractSigningChoice(
+  params: CreateCustomerGraphParams,
+): IntakeFieldErrors {
+  const errors: IntakeFieldErrors = {};
+  const choice = resolveIntakeSigningChoice(params);
+  if (choice && !choice.ok) {
+    if (choice.errors.signingMethod) errors.contractSigningMethod = choice.errors.signingMethod;
+    if (choice.errors.signedDate) errors.contractSignedDate = choice.errors.signedDate;
+    if (choice.errors.signedAgreementFile) errors.signedAgreementFile = choice.errors.signedAgreementFile;
+    return errors;
+  }
+  if (params.signedAgreementFile) {
+    // The canonical signed-agreement import needs a contract to sign and PDF evidence.
+    if (!intakeHasContract(params)) {
+      errors.signedAgreementFile = SIGNED_AGREEMENT_REQUIRES_CONTRACT_MESSAGE;
+    } else {
+      const fileError = validateSignedAgreementFile(params.signedAgreementFile);
+      if (fileError) errors.signedAgreementFile = fileError;
+    }
+  }
+  return errors;
+}
+
 export function validateCreateCustomerParams(
   params: CreateCustomerGraphParams,
 ): IntakeFieldErrors {
@@ -793,6 +859,7 @@ export function validateCreateCustomerParams(
     }
   }
 
+  Object.assign(errors, validateContractSigningChoice(params));
   return errors;
 }
 
@@ -880,6 +947,11 @@ export function buildCreateCustomerParams(
       formData,
       "contractStatus",
     ) as ContractStatus | null,
+    contractSigningMethod: parseContractSigningMethod(
+      getString(formData, "contractSigningMethod"),
+    ),
+    contractSignedDate: getNullableString(formData, "contractSignedDate"),
+    requireContractSigningChoice: true,
     overrideReason: getNullableString(formData, "overrideReason"),
     contractTypeOverride: getString(formData, "contractTypeOverride")
       ? parseContractType(getString(formData, "contractTypeOverride"))

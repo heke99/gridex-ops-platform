@@ -158,15 +158,10 @@ export function MeteringRequestsSection({
  <div>
  <h2 className="text-lg font-semibold text-slate-950">Mätvärdesrequests</h2>
  <p className="mt-1 text-sm text-slate-700">
- {requests.length} träffar. Använd E73-knappen för att begära saknade värden via Ediel.
+ {requests.length} träffar. Använd knappen för att begära saknade mätvärden från nätägaren.
  </p>
  </div>
- <Link
- href="/admin/ediel"
- className="rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
- >
- Öppna Ediel workbench
- </Link>
+
  </div>
  </div>
 

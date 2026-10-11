@@ -246,15 +246,15 @@ async function recordRateLimitEvent(
 
   if (event.error && !missingSchema(event.error)) throw event.error
 
+  // Only scalar columns are written here. The rate-limit details live in
+  // integration_api_rate_limit_events; rewriting `metadata` from the stale
+  // authentication snapshot would clobber concurrent admin changes (for
+  // example lifecycle_status) and nothing reads a last_rate_limit key.
   await supabaseService
     .from('integration_api_clients')
     .update({
       rate_limited_until: cooldownUntil,
       updated_at: new Date().toISOString(),
-      metadata: {
-        ...(client.metadata ?? {}),
-        last_rate_limit: metadata,
-      },
     })
     .eq('id', client.id)
     .then((result) => {
@@ -429,11 +429,33 @@ async function resolveIntegrationApiAccess(
 }
 
 
+const verifiedRequestAccess = new WeakMap<object, Map<string, Promise<IntegrationApiAuthResult>>>()
+
+function requestScopeKey(requirement: IntegrationScopeRequirement): string {
+  const scopes = splitScopeRequirement(requirement)
+  return JSON.stringify([[...new Set(scopes.requiredAll)].sort(), [...new Set(scopes.requiredAny)].sort()])
+}
+
 export async function requireIntegrationApiAccess(
   request: NextRequest,
   requiredScopes: IntegrationScopeRequirement,
 ): Promise<IntegrationApiAuthResult> {
-  const result = await resolveIntegrationApiAccess(request, requiredScopes)
+  // F4: one verified context per request object. A dispatcher preflight and
+  // the handler that serves the same request share one authentication and
+  // one rate-limit charge for the same scope requirement. The cache is keyed
+  // by the request instance (WeakMap), so nothing is reused across requests.
+  const scopeKey = requestScopeKey(requiredScopes)
+  let perRequest = verifiedRequestAccess.get(request)
+  if (!perRequest) {
+    perRequest = new Map()
+    verifiedRequestAccess.set(request, perRequest)
+  }
+  let pending = perRequest.get(scopeKey)
+  if (!pending) {
+    pending = resolveIntegrationApiAccess(request, requiredScopes)
+    perRequest.set(scopeKey, pending)
+  }
+  const result = await pending
   integrationApiResponseContext.enterWith({
     rateLimit: result.rateLimit,
     retryAfterSeconds: result.ok ? undefined : result.retryAfterSeconds,
@@ -448,6 +470,8 @@ export async function logIntegrationApiRequest(input: {
   startedAt: number
   errorCode?: string | null
   metadata?: Record<string, unknown>
+  /** Server-issued id returned to the caller; falls back to the inbound header for legacy callers. */
+  requestId?: string | null
 }) {
   // Anonymous 401 traffic has no tenant-safe persistence target. Skipping the
   // database write also prevents unauthenticated requests from turning an
@@ -457,7 +481,7 @@ export async function logIntegrationApiRequest(input: {
   const payload = {
     company_id: input.client?.company_id ?? null,
     api_client_id: input.client?.id ?? null,
-    request_id: input.request.headers.get('x-request-id'),
+    request_id: input.requestId ?? input.request.headers.get('x-request-id'),
     method: input.request.method,
     route: input.request.nextUrl.pathname,
     status_code: input.statusCode,

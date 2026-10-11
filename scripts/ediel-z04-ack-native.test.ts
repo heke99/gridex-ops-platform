@@ -2,7 +2,7 @@
 import {execFileSync} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
 import {expect,it,vi} from 'vitest'
-import {qty,raw} from '../__tests__/fixtures/prodat-register'
+import {characteristic,qty,raw} from '../__tests__/fixtures/prodat-register'
 import {mixedZ04Parts} from '../__tests__/helpers/mixedZ04Fixture'
 import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 import {recordUtiltsTechnicalReception} from './helpers/utiltsConsumptionParties'
@@ -37,6 +37,16 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   if (variant === 'gas-unit-on-electric-register') {
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
     parts.splice(second+1,0,['QTY',['31','20','MTQ']])
+    // New synthetic DSO declaration before physical source/mail birth: object 1
+    // has RKv1.7 paired cumulative tariff counters201/202; object 2 has one
+    // all-time counter101. Future UTILTS stands are declared, not delivered.
+    // Each register owns constant1/digits6 and its own tariff, before RFF/NAD.
+    // This supplies no private READ; the real receiver still qualifies it.
+    for (const [lineNumber,tariff] of [['1','201'],['2','202'],['3','101']] as const) {
+      const lineAt=parts.findIndex(part=>part[0]==='LIN'&&part[1]===lineNumber)
+      const endAt=parts.findIndex((part,index)=>index>lineAt&&(part[0]==='RFF'||part[0]==='NAD'||part[0]==='LIN'))
+      parts.splice(endAt,0,...characteristic('Z02','1',3),...characteristic('Z05','6',3),...characteristic('Z16',tariff,3))
+    }
   }
   if (variant === 'whole-message-lin-sequence') {
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')

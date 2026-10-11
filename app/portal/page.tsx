@@ -1,3 +1,4 @@
+import { portalInvoiceTitle } from '@/lib/customer-portal/labels'
 import Link from 'next/link'
 import { getPortalDashboardData } from '@/lib/customer-portal/db'
 import {
@@ -147,7 +148,7 @@ export default async function CustomerPortalPage({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="font-semibold text-slate-950">
-                      {invoice.invoice_number ?? invoice.partner_invoice_reference ?? invoice.id}
+                      {portalInvoiceTitle(invoice)}
                     </div>
                     <div className="mt-1 text-sm text-slate-500">
                       {formatPeriod(invoice.period_start, invoice.period_end)} · Förfallodatum {formatDate(invoice.due_date)}

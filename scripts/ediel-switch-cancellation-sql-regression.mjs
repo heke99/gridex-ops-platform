@@ -97,5 +97,78 @@ try{
  // A real cancellation origin whose current source fails cannot substitute a
  // registered test pointer for its independent production cancellation basis.
  await db.query('INSERT INTO gridex_negative_fixtures.positive_consumptions VALUES($1,$2)',[id(16),id(1)]);await assert.rejects(db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]),/current_source_held/);checks++
+ // Continue the existing component fixture; no duplicate cancellation owner.
+ // These independent signed-declaration/original/legal/provider ports are
+ // mechanical. Actual private method decoding and public bind/send consumers
+ // below execute unchanged SQL; this does not certify genuine market inputs.
+ await db.exec("ALTER TABLE public.ediel_messages ALTER COLUMN original_message_id TYPE text USING original_message_id::text");
+ const bindDefinition=(await db.query("SELECT pg_get_functiondef('gridex_switch_cancellations.bind_message_v1()'::regprocedure) d")).rows[0].d;
+ const align=migration('20261004202548_ediel_recovery_text_original_reference_alignment.sql');
+ const oldReference='NEW.original_message_id IS DISTINCT FROM o.original_message_id';
+ assert.ok(align.includes("'"+oldReference+"','"+oldReference+"::text'"));
+ assert.equal(bindDefinition.split(oldReference).length,2);
+ await db.exec(bindDefinition.replace(oldReference,oldReference+'::text'));
+ await db.exec("CREATE OR REPLACE FUNCTION gridex_ediel_inbound_context.require_v1(uuid,uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('legalActorId','"+id(7)+"','legalEdielId','12345','actorRole','electricity_supplier')$$;CREATE OR REPLACE FUNCTION gridex_ediel_inbound_context.derive(public.ediel_messages,timestamptz) RETURNS jsonb LANGUAGE sql AS $$SELECT gridex_ediel_inbound_context.require_v1(NULL,NULL)$$;");
+ const methodSource=migration('20260930234708_ediel_normal_switch_signed_method_binding.sql');
+ await db.exec(methodSource.slice(methodSource.indexOf('CREATE FUNCTION gridex_received_sources.switch_requested_method_v1'),methodSource.indexOf('CREATE FUNCTION gridex_received_sources.switch_contract_request_basis_v1')));
+ await db.exec(migration('20261001142650_ediel_switch_requested_method_line_dtm.sql'));
+ await db.exec("CREATE SCHEMA gridex_metering_method_changes;CREATE TABLE gridex_metering_method_changes.contract_request_declarations(id uuid PRIMARY KEY,company_id uuid,environment text,contract_id uuid,contract_revision text,protected_contract_hash text,agreement_sha256 text,customer_id uuid,site_id uuid,metering_point_id uuid,point_id text,identity_agency text,legal_actor_id uuid,legal_sender_id text,legal_receiver_id text,grid_area_code text,requested_method text,source_reference text,source_version text,source_sha256 text);CREATE TABLE gridex_received_sources.switch_contract_request_bindings(message_id uuid PRIMARY KEY,company_id uuid,declaration_id uuid,requested_method text,source_basis jsonb,payload_hash text);");
+ const qualifiedOriginal=old.replace("'CCI++Z13'","'CCI++Z04'CAV+Z03'CCI++Z13'");
+ const qualifiedCancel=qualifiedOriginal.replace('CAV+Z22','CAV+Z24');
+ await db.query("INSERT INTO public.supplier_switch_requests SELECT (jsonb_populate_record(NULL::public.supplier_switch_requests,to_jsonb(s)||jsonb_build_object('id',$1::uuid,'outbound_z03_message_id',$2::uuid,'status','submitted'))).* FROM public.supplier_switch_requests s WHERE id=$3",[id(106),id(108),id(6)]);
+ await db.query("INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',$1::uuid,'raw_payload',$2::text,'immutable_payload_hash',encode(sha256(convert_to($2,'UTF8')),'hex'),'customer_id',$3::uuid,'site_id',$4::uuid,'metering_point_id',$5::uuid))).* FROM public.ediel_messages m WHERE id=$6",[id(108),qualifiedOriginal,id(3),id(7),id(5),id(8)]);
+ await db.query("INSERT INTO gridex_received_sources.switch_originals SELECT (jsonb_populate_record(NULL::gridex_received_sources.switch_originals,to_jsonb(o)||jsonb_build_object('message_id',$1::uuid,'switch_id',$2::uuid,'payload_hash',encode(sha256(convert_to($3,'UTF8')),'hex'),'original_object',gridex_received_sources.switch_origin_wire_v1($3)#>'{objects,0}','resulting_switch',(SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=$2)))).* FROM gridex_received_sources.switch_originals o WHERE message_id=$4",[id(108),id(106),qualifiedOriginal,id(8)]);
+ const declared={status:'authorized',declarationId:id(140),companyId:id(1),environment:'test',contractId:id(4),contractRevision:'signed-fixture-v1',protectedContractHash:'contract-fixture',agreementSha256:'a'.repeat(64),customerId:id(3),siteId:id(7),meteringPointId:id(5),pointId:'735123456789012345',identityAgency:'9',legalActorId:id(7),legalSenderId:'12345',legalReceiverId:'54321',gridArea:'TES',requestedMethod:'Z03',sourceReference:'mechanical-signed-source-port',sourceVersion:'v1',sourceDigest:'b'.repeat(64)};
+ await db.query("INSERT INTO gridex_metering_method_changes.contract_request_declarations VALUES($1,$2,'test',$3,'signed-fixture-v1','contract-fixture',$4,$5,$6,$7,'735123456789012345','9',$6,'12345','54321','TES','Z03','mechanical-signed-source-port','v1',$8)",[id(140),id(1),id(4),declared.agreementSha256,id(3),id(7),id(5),declared.sourceDigest]);
+ await db.query("INSERT INTO gridex_received_sources.switch_contract_request_bindings VALUES($1,$2,$3,'Z03',$4,encode(sha256(convert_to($5,'UTF8')),'hex'))",[id(108),id(1),id(140),declared,qualifiedOriginal]);
+ const signatures=['public.ediel_switch_cancellation_source_v1(uuid,uuid,uuid)','gridex_switch_cancellations.bind_message_v1()','public.ediel_require_switch_cancellation_source_current_v1(uuid,uuid)'];
+ const metadata=async()=> (await db.query("SELECT p.oid,to_jsonb(p)-'prosrc' metadata FROM pg_proc p WHERE oid=ANY($1::regprocedure[]) ORDER BY p.oid",[signatures])).rows;
+ const metadataBefore=await metadata(),contextBefore=(await db.query("SELECT pg_get_functiondef('gridex_switch_cancellations.context_v1(uuid,uuid,uuid,boolean)'::regprocedure) d")).rows[0].d;
+ const historicalBasis=(await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE message_id=$1',[id(16)])).rows[0].basis;
+ const oldOriginalRow=(await db.query('SELECT to_jsonb(m) r FROM public.ediel_messages m WHERE id=$1',[id(8)])).rows[0].r;
+ await db.exec(migration('20261007132500_ediel_switch_cancellation_original_method.sql'));checks++;
+ assert.deepEqual(await metadata(),metadataBefore);assert.equal((await db.query("SELECT pg_get_functiondef('gridex_switch_cancellations.context_v1(uuid,uuid,uuid,boolean)'::regprocedure) d")).rows[0].d,contextBefore);checks++;
+ const projected=()=>db.query('SELECT public.ediel_switch_cancellation_source_v1($1,$2,$3) r',[id(1),id(106),id(20)]).then(r=>r.rows[0].r);
+ assert.equal((await projected()).requestedMethod,'Z03');checks++;
+ const method=()=>db.query("SELECT gridex_switch_cancellations.original_method_v1($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),'test') method",[id(1),id(108),qualifiedOriginal]).then(r=>r.rows[0].method);
+ assert.equal(await method(),'Z03');checks++;
+ // Mutate only explicitly declared evidence ports inside rollback-isolated
+ // component transactions. Production originals/declarations are immutable.
+ const refusedPort=async(query,values)=>{await db.exec('BEGIN');try{await db.query(query,values);assert.equal(await method(),null);assert.deepEqual((await projected()).missing,['qualified_immutable_original_requested_method']);checks++}finally{await db.exec('ROLLBACK')}};
+ await refusedPort('DELETE FROM gridex_received_sources.switch_contract_request_bindings WHERE message_id=$1',[id(108)]);
+ await refusedPort("UPDATE gridex_received_sources.switch_contract_request_bindings SET requested_method='Z04' WHERE message_id=$1",[id(108)]);
+ await refusedPort("UPDATE gridex_received_sources.switch_contract_request_bindings SET source_basis=jsonb_set(source_basis,'{requestedMethod}','\"Z04\"') WHERE message_id=$1",[id(108)]);
+ await refusedPort("UPDATE gridex_received_sources.switch_contract_request_bindings SET payload_hash=repeat('c',64) WHERE message_id=$1",[id(108)]);
+ await refusedPort('UPDATE gridex_received_sources.switch_contract_request_bindings SET company_id=$1 WHERE message_id=$2',[id(2),id(108)]);
+ for(const column of ['company_id','contract_id','customer_id','site_id','metering_point_id','legal_actor_id'])await refusedPort('UPDATE gridex_metering_method_changes.contract_request_declarations SET '+column+'=$1 WHERE id=$2',[id(99),id(140)]);
+ for(const [column,value] of [['environment','production'],['protected_contract_hash','other'],['point_id','other'],['identity_agency','89'],['legal_sender_id','other'],['legal_receiver_id','other'],['grid_area_code','other'],['contract_revision','other'],['agreement_sha256','c'.repeat(64)],['source_reference','other'],['source_version','other'],['source_sha256','c'.repeat(64)]])await refusedPort('UPDATE gridex_metering_method_changes.contract_request_declarations SET '+column+'=$1 WHERE id=$2',[value,id(140)]);
+ const decoder=raw=>db.query('SELECT gridex_received_sources.switch_requested_method_v1($1) method',[raw]).then(r=>r.rows[0].method);
+ for(const raw of [qualifiedOriginal.replace("CCI++Z04'CAV+Z03'",""),qualifiedOriginal.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+'"),qualifiedOriginal.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+Z03'CCI++Z04'CAV+Z03'"),qualifiedOriginal.replace("UNT+13+1'","LIN+2++OTHER:::9'UNT+13+1'")]){assert.equal(await decoder(raw),null);checks++}
+ await db.query("INSERT INTO public.ediel_message_intents SELECT (jsonb_populate_record(NULL::public.ediel_message_intents,to_jsonb(i)||jsonb_build_object('id',$1::uuid,'operation_id',$2::uuid))).* FROM public.ediel_message_intents i WHERE id=$3",[id(112),id(110),id(12)]);
+ await db.query("INSERT INTO public.outbound_requests SELECT (jsonb_populate_record(NULL::public.outbound_requests,to_jsonb(r)||jsonb_build_object('id',$1::uuid,'source_id',$2::uuid,'operation_id',$3::uuid))).* FROM public.outbound_requests r WHERE id=$4",[id(113),id(112),id(110),id(13)]);
+ await db.query('SELECT public.ediel_reserve_switch_cancellation_v1($1,$2,$3,$4,$5)',[id(1),id(106),id(20),id(112),id(113)]);
+ const reservedBasis=(await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE intent_id=$1',[id(112)])).rows[0].basis;
+ assert.equal(Object.hasOwn(reservedBasis,'requestedMethod'),false);checks++;
+ const snapshot=()=>db.query("SELECT jsonb_build_object('origins',(SELECT jsonb_agg(to_jsonb(o) ORDER BY id) FROM gridex_switch_cancellations.origins o),'switches',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM public.supplier_switch_requests s),'messages',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM public.ediel_messages m),'bindings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY message_id) FROM gridex_received_sources.switch_contract_request_bindings b)) r").then(r=>r.rows[0].r);
+ const insertMethod=raw=>db.query("INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',$1::uuid,'raw_payload',$2::text,'immutable_payload_hash',encode(sha256(convert_to($2,'UTF8')),'hex'),'intent_id',$3::uuid,'outbound_request_id',$4::uuid,'source_operation_id',$5::text,'original_message_id',$6::text,'switch_request_id',$7::uuid))).* FROM public.ediel_messages m WHERE id=$8",[id(116),raw,id(112),id(113),id(110),id(108),id(106),id(16)]);
+ const invalidCancels=[qualifiedCancel.replace("CCI++Z04'CAV+Z03'",""),qualifiedCancel.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+Z03'CCI++Z04'CAV+Z03'"),qualifiedCancel.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+Z04'")];
+ for(const raw of invalidCancels){const before=await snapshot();await assert.rejects(insertMethod(raw),/switch_cancellation_exact_original_method_required/);assert.deepEqual(await snapshot(),before);checks++}
+ await insertMethod(qualifiedCancel);checks++;
+ assert.equal((await db.query('SELECT status FROM public.supplier_switch_requests WHERE id=$1',[id(106)])).rows[0].status,'cancellation_requested');checks++;
+ const fresh=()=>db.query('SELECT public.ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(116)]);
+ await fresh();checks++;
+ // The production trigger forbids modifying a bound message. For this send
+ // consumer fault-injection only, disable that guard transactionally in the
+ // component DB and roll back each injection. Never alter an authentic input.
+ for(const raw of invalidCancels){const before=await snapshot();await db.exec('BEGIN');try{await db.exec('ALTER TABLE public.ediel_messages DISABLE TRIGGER ediel_switch_cancellation_message_immutable');await db.query("UPDATE public.ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2",[raw,id(116)]);await db.exec('ALTER TABLE gridex_switch_cancellations.origins DISABLE TRIGGER cancellation_origin_immutable');await db.query("UPDATE gridex_switch_cancellations.origins SET payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE message_id=$2",[raw,id(116)]);await assert.rejects(fresh(),/switch_cancellation_exact_original_method_required/);checks++}finally{await db.exec('ROLLBACK')}assert.deepEqual(await snapshot(),before)}
+ // Direct private physical guard isolates missing/duplicate/different217,
+ // while fresh public source above retains its earlier immutable-hash guard.
+ for(const raw of invalidCancels){await assert.rejects(db.query("SELECT gridex_switch_cancellations.require_original_method_v1($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),'test',$4)",[id(1),id(108),qualifiedOriginal,raw]),/exact_original_method_required/);checks++}
+ const actualReplay=(await db.query('SELECT gridex_ediel_transport.mutate_v1($1) r',[{action:'enter',companyId:id(1),messageId:id(16),fixtureProceed:false,fixtureAcceptedReceipt:{fixture:'already-established-outcome'}}])).rows[0].r;
+ assert.deepEqual(actualReplay,replay);checks++;
+ assert.deepEqual((await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE message_id=$1',[id(16)])).rows[0].basis,historicalBasis);
+ assert.deepEqual((await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE message_id=$1',[id(116)])).rows[0].basis,reservedBasis);
+ assert.deepEqual((await db.query('SELECT to_jsonb(m) r FROM public.ediel_messages m WHERE id=$1',[id(8)])).rows[0].r,oldOriginalRow);checks++;
+ for(const role of ['anon','authenticated','service_role']){assert.equal((await db.query("SELECT has_function_privilege($1,'gridex_switch_cancellations.original_method_v1(uuid,uuid,text,text)','execute') a",[role])).rows[0].a,false);checks++}
  console.log(`PASS ${checks} cancellation SQL probes; actual owner with declared existing receipt/legal/original ports, not native/authentic acceptance`)
 }finally{await db.close()}

@@ -13,6 +13,7 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import {
   InvoiceProviderConfigError,
   loadTenantInvoiceProviderSelection,
+  saveNordfinClientId,
   selectTenantInvoiceProvider,
   setTenantInvoiceDispatchEnabled,
 } from '@/lib/billing/providers/registry'
@@ -77,6 +78,19 @@ export async function setInvoiceDispatchEnabledAction(formData: FormData): Promi
     throw error
   }
   providerSettingsRedirect(enabled ? 'enabled' : 'disabled')
+}
+
+export async function saveNordfinClientIdAction(formData: FormData): Promise<void> {
+  const { context, companyId } = await requireScopedBillingCompany()
+  const environment = await selectedEnvironment(companyId)
+  try {
+    await saveNordfinClientId({ companyId, environment, clientId: String(formData.get('client_id') ?? ''), actorUserId: context.userId })
+  } catch (error) {
+    unstable_rethrow(error)
+    if (error instanceof InvoiceProviderConfigError) providerSettingsRedirect(error.code)
+    throw error
+  }
+  providerSettingsRedirect('nordfin_client_id_saved')
 }
 
 export async function testCapwayConnectionAction(): Promise<void> {

@@ -165,7 +165,7 @@ function row(body: Parts[], environment: 'test' | 'production', alphabet: readon
   // Keep independent register/previous-D prerequisites real, not waived. All
   // three subtypes permit these common fields; only field242 is under test.
   const wireBody = body.flatMap((part): Parts[] => part[0] === 'LIN' ? [part,qty('1'),['DTM',['354','15','806']],
-    ...characteristic('Z04','Z04'),...characteristic('Z07','E22'),...characteristic('Z15','Z32')] : [part])
+    ...characteristic('Z04','Z04'),...characteristic('Z07','Z12'),...characteristic('Z15','Z32')] : [part])
   const payload = raw(wireBody,'Z06',alphabet).replace('23-DDQ-PRODAT',reference)
   const wire = input(payload,'Z06')
   const evidence = createProdatRegisterEvidence({code:'Z06',rawSegments:wire.rawSegments,una:wire.una,facts:{market:'electricity',endUserAddressObjects:[udAddressFact()],invoiceeObjects:[udInvoiceeFact()],

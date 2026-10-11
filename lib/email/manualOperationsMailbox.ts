@@ -72,10 +72,13 @@ function missingSchema(error: unknown): boolean {
 
 // Default environment for manual mailbox selection. Manual flows do not carry an
 // explicit Ediel test/production environment, so resolve from config.
+// NODE_ENV is 'production' on every Vercel deployment (previews included), so it
+// is never used here. Fail closed: only an explicit GRIDEX_MANUAL_OPS_ENVIRONMENT
+// or VERCEL_ENV=production selects production (real grid-owner sends).
 export function resolveManualMailboxEnvironment(): 'test' | 'production' {
   const configured = clean(process.env.GRIDEX_MANUAL_OPS_ENVIRONMENT)?.toLowerCase()
   if (configured === 'test' || configured === 'production') return configured
-  return String(process.env.NODE_ENV ?? '').toLowerCase() === 'production' ? 'production' : 'test'
+  return clean(process.env.VERCEL_ENV)?.toLowerCase() === 'production' ? 'production' : 'test'
 }
 
 // The Ediel transport sender must never be used for manual e-mail. Reserved
@@ -199,6 +202,13 @@ export async function resolveManualOperationsMailbox(input: {
   return winner
 }
 
+const MANUAL_MAILBOX_SECRET_NAME = /^MANUAL_MAILBOX_[A-Z0-9_]{1,120}$/
+const LEGACY_MANUAL_MAILBOX_SECRET_NAMES = new Set(['MANUAL_OPS_IMAP_PASS', 'MANUAL_OPS_IMAP_PASSWORD'])
+
+export function isAllowedManualMailboxSecretName(name: string): boolean {
+  return MANUAL_MAILBOX_SECRET_NAME.test(name) || LEGACY_MANUAL_MAILBOX_SECRET_NAMES.has(name)
+}
+
 // Resolves the inbound IMAP password for a manual mailbox from its env-only
 // secret reference, mirroring the Ediel secret-reference resolution pattern.
 export function resolveManualMailboxSecret(
@@ -206,12 +216,16 @@ export function resolveManualMailboxSecret(
   mailboxId: string,
 ): string | null {
   const ref = clean(reference)
-  if (ref?.startsWith('env:')) {
-    const value = clean(process.env[ref.slice(4)])
+  if (ref) {
+    // The reference is stored in the database; it must never be able to name
+    // an arbitrary server secret (RESEND_API_KEY, SUPABASE_SERVICE_ROLE_KEY...).
+    const name = ref.startsWith('env:') ? ref.slice(4).trim() : ref
+    if (!isAllowedManualMailboxSecretName(name)) {
+      console.error('[manual-mailbox] imap_secret_reference rejected: not a MANUAL_MAILBOX_* variable', { mailboxId })
+      return null
+    }
+    const value = clean(process.env[name])
     if (value) return value
-  } else if (ref) {
-    const direct = clean(process.env[ref])
-    if (direct) return direct
   }
   const mailboxSpecific = clean(process.env[`MANUAL_MAILBOX_${mailboxId.replace(/-/g, '_').toUpperCase()}_PASSWORD`])
   if (mailboxSpecific) return mailboxSpecific

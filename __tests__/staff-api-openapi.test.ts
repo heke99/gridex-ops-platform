@@ -13,7 +13,8 @@ import { PUBLIC_API_ROUTES, publicRouteContract } from '@/lib/api/publicRouteReg
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 import { GET as currentStaffDocument } from '@/app/api/v1/openapi/staff-v1.json/route'
-import { GET as immutableStaffDocument } from '@/app/api/v1/openapi/2026-10-04.1/staff-v1.json/route'
+import { GET as immutableStaffDocument } from '@/app/api/v1/openapi/2026-10-09.1/staff-v1.json/route'
+import { GET as firstStaffReleaseDocument } from '@/app/api/v1/openapi/2026-10-04.1/staff-v1.json/route'
 import { STAFF_API_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const { validateSchema, validateResponse } = createRequire(import.meta.url)('../scripts/lib/openapi-schema-validator.cjs') as {
@@ -141,10 +142,16 @@ describe('Staff API public contract', () => {
     const cached = await immutableStaffDocument(new NextRequest(request.url, { headers: { 'if-none-match': immutable.headers.get('etag')! } }))
     expect(cached.status).toBe(304)
     expect(cached.headers.get('x-gridex-contract-version')).toBe(STAFF_API_CONTRACT_VERSION)
+    const first = await firstStaffReleaseDocument(request)
+    expect(await first.text()).toBe(serializeOpenApiDocument(JSON.parse(readFileSync('docs/openapi/releases/2026-10-04.1/staff-v1.json', 'utf8'))))
+    expect(first.headers.get('cache-control')).toContain('immutable')
   })
 
   it('preserves existing business paths and schemas except release metadata and the additive manifest', () => {
-    for (const [name, current] of [['website-integration-v1', website], ['customer-portal-v1', customer]] as const) {
+    // Invariant of the Staff release 2026-10-04.1 against 2026-10-02.4, checked on the frozen bytes.
+    // Later documentation releases are checked additively in api-supported-client-release-matrix.test.ts.
+    const frozenStaffRelease = (name: string) => JSON.parse(readFileSync(`docs/openapi/releases/2026-10-04.1/${name}.json`, 'utf8'))
+    for (const [name, current] of [['website-integration-v1', frozenStaffRelease('website-integration-v1')], ['customer-portal-v1', frozenStaffRelease('customer-portal-v1')]] as const) {
       const previous = JSON.parse(readFileSync(`docs/openapi/releases/2026-10-02.4/${name}.json`, 'utf8'))
       for (const [path, value] of Object.entries(previous.paths)) {
         if (path.startsWith('/api/v1/openapi/')) continue

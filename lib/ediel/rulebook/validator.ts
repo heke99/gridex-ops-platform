@@ -1,3 +1,5 @@
+import type {ReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
+import {qualifyAssignedProdatHeaderNegativeAck} from '@/lib/ediel/ack/prodatAssignedHeaderNegativeAckValidation'
 import {requiresBilateralProdatOutboundOwner,qualifyPersistedBilateralProdatOutboundOriginal,bilateralProdatOutboundDraftQualified,type QualifiedBilateralProdatOutboundDraft} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
 import {technicalSyntaxAckQualification,readPersistedEdielTechnicalContrlBasis,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {commonHeaderOriginalSource,prodatCommonHeaderRejectionQualification,readPersistedProdatCommonHeaderNegativeAckBasis,type ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
@@ -57,6 +59,7 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Explicit local assessment time; sender DTM137 never admits a guide. */
   admissionAt?: string | Date
   messageRow?: EdielMessageRow
+  receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext
   /** Current authenticated server executor; a retained creator is source history. */
   executionActorUserId?: string
   /** Actual private source RPC capability; caller JSON supplies no authority. */
@@ -448,7 +451,7 @@ function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?
       }))
     }
 
-    let fieldIssues = validateCanonicalPolicyFields({reportingContext:input.reportingContext, policy, rawPayload:input.rawPayload,rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
+    let fieldIssues = validateCanonicalPolicyFields({sourceMessage:input.messageRow,receivedZ02EndUserAddressContext:input.receivedZ02EndUserAddressContext,reportingContext:input.reportingContext, policy, rawPayload:input.rawPayload,rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
     if(input.ackSourceQualification&&isSourceBoundAckFamily(policy.family as ActiveCanonicalFamily)){
       const qualification=sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
       if(!qualification)throw new Error('ack_source_qualification_required')
@@ -539,6 +542,9 @@ function qualifyCommonHeaderNegativeAck(input:RulebookValidationInput,result:Rul
   const evidence=input.environment==='test'||input.environment==='production'?prodatCommonHeaderRejectionQualification({evidence:input.prodatCommonHeaderRejectionEvidence,companyId:input.companyId??'',environment:input.environment}):null
   const unavailable=()=>({...result,ok:false,blocking:true,rulePackSnapshot:null,issues:[...result.issues,issue({severity:'error',code:'CANONICAL_COMMON_HEADER_SOURCE_REQUIRED',title:'Skyddat nationellt meddelandehuvud saknas',description:'En fält202-kvittens kräver den prospektivt frysta originalauktoriteten och faktiskt fastställd syntax.'})]})
   if(!evidence||input.direction!=='outbound'||input.mode!=='send'||result.family!=='APERAK'||!input.rawPayload||!result.parsed)return unavailable()
+  const extended=qualifyAssignedProdatHeaderNegativeAck(input,result,evidence)
+  if(extended)return extended
+  if(!evidence.field202)return unavailable()
   const source=commonHeaderOriginalSource(evidence)
   if(!source?.raw_payload)return unavailable()
   const template=resolveCanonicalEdielPolicy({family:'APERAK',messageCode:'APERAK',direction:'outbound',referenceDate:stockholmBusinessDate(new Date(evidence.sourceReceivedAt)),associationAssignedCode:evidence.guide.associationAssignedCode,applicationReference:evidence.identities.applicationReference,mode:'parse'})

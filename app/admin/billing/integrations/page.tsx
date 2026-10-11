@@ -6,6 +6,7 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
 import {
   reprocessInvoiceProviderEventsAction,
+  saveNordfinClientIdAction,
   selectInvoiceProviderAction,
   setInvoiceDispatchEnabledAction,
   testCapwayConnectionAction,
@@ -30,6 +31,8 @@ const PROVIDER_NOTICES: Record<string, { tone: 'ok' | 'error'; text: string }> =
   invoice_provider_switch_blocked_open_exports: { tone: 'error', text: 'Det finns pågående fakturaexporter. Byt leverantör eller miljö när de är klara.' },
   invoice_provider_not_selected: { tone: 'error', text: 'Välj en fakturaleverantör först.' },
   invoice_provider_connection_not_ready: { tone: 'error', text: 'Kopplingen måste testas med godkänt resultat innan utskick kan aktiveras.' },
+  nordfin_client_id_saved: { tone: 'ok', text: 'Nordfins ClientId är sparat.' },
+  nordfin_client_id_invalid: { tone: 'error', text: 'ClientId får bara innehålla bokstäver, siffror, - och _ (högst 40 tecken).' },
 }
 
 export default async function BillingIntegrationsPage({
@@ -143,7 +146,7 @@ export default async function BillingIntegrationsPage({
           <AdminDisclosurePanel id="billing-select-provider" title="Välj eller byt leverantör och miljö" defaultOpen={!selection?.invoice_export_target_system} className="mt-4 rounded-xl border border-slate-200 p-3"><form action={selectInvoiceProviderAction} className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,160px)_auto] lg:items-end">
             <fieldset className="grid gap-2">
               <legend className="text-sm font-medium text-slate-800">Leverantör</legend>
-              {catalog.map((entry) => (
+              {catalog.filter((entry) => entry.selectable || entry.provider === selection?.invoice_export_target_system).map((entry) => (
                 <label key={entry.provider} className={`flex items-start gap-3 rounded-2xl border p-3 text-sm ${entry.selectable ? 'border-slate-200' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
                   <input
                     type="radio"
@@ -208,6 +211,23 @@ export default async function BillingIntegrationsPage({
               </dd>
             </div>
           </dl>
+          {selection?.invoice_export_target_system === 'nordfin' ? (
+            <form action={saveNordfinClientIdAction} className="mt-4 flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 p-3">
+              <label className="grid gap-1 text-sm font-medium text-slate-800">
+                Nordfin ClientId ({selection.billing_provider_environment === 'production' ? 'produktion' : 'test'})
+                <input
+                  name="client_id"
+                  required
+                  maxLength={40}
+                  pattern="[A-Za-z0-9_\-]{1,40}"
+                  defaultValue={typeof (selectedConnection?.settings as Record<string, unknown> | undefined)?.client_id === 'string' ? String((selectedConnection?.settings as Record<string, unknown>).client_id) : ''}
+                  className="rounded-xl border border-slate-300 px-3 py-2"
+                />
+              </label>
+              <button type="submit" className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold">Spara ClientId</button>
+              <p className="w-full text-xs text-slate-600">Det id Nordfin har gett ert bolag. Det skrivs in i varje fakturafil till Nordfin.</p>
+            </form>
+          ) : null}
         </section>
 
         <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">

@@ -120,6 +120,27 @@ rollback/pause option, duplicate-avoidance, escalation. General rules:
   then audit `customer_portal_identities` links; block → check identifier
   quality from the website (email ambiguity requires customer_number)
 
+### Compromised API key / unwanted outgoing webhooks
+- Severity: Critical (compromise) / Medium (rotation)
+- Look: `integration_api_clients` row (status, `revoke_reason` prefix
+  `[revoke_kind:…]`), `webhook_subscriptions` linked via `api_client_id`,
+  `webhook_deliveries` with `failure_reason` `webhook_credential_*`
+- Kill actions (separate on purpose):
+  1. Compromised key → superadmin "Säkerhetsåterkalla och stoppa kopplade
+     webhooks" (`revokeKind = security_revocation`). Inbound calls stop, linked
+     active subscriptions become `disabled`, and queued deliveries are skipped
+     before transport.
+  2. Normal rotation → "Återkalla nyckel (rotation, webhooks behålls)"
+     (`revokeKind = key_rotation`). Approved webhooks keep delivering.
+  3. Webhook only (target compromised, key fine) → pause/disable the
+     subscription; the key stays active.
+  4. Whole tenant → tenant lifecycle pause/close; all deliveries become
+     `blocked_tenant_state` and closure-revoked keys stop linked webhooks.
+- Subscriptions without a key link or with
+  `metadata.credential_independent_approval = true` are not stopped by a key
+  revocation; use action 3 or 4 for them. Keys revoked before this policy
+  carry no kind and behave like rotation.
+
 ### Supabase migration fails
 - Severity: High
 - Look: SQL error + NOTICE output; `db:migrations:check`

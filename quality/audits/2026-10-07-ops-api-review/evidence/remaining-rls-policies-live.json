@@ -1,0 +1,33 @@
+{
+  "read_only": true,
+  "project_id": "piidsfebjqjmnepdpnas",
+  "rows": [
+    {
+      "evidence": {
+        "policies": [
+          {
+            "cmd": "SELECT",
+            "qual": "((auth.role() = 'service_role'::text) OR gridex_user_is_platform_admin() OR ((company_id IS NOT NULL) AND gridex_can_read_company(company_id)))",
+            "roles": [
+              "public"
+            ],
+            "policyname": "inbound_operation_events_read",
+            "with_check": null
+          },
+          {
+            "cmd": "ALL",
+            "qual": "((auth.role() = 'service_role'::text) OR gridex_user_is_platform_admin())",
+            "roles": [
+              "public"
+            ],
+            "policyname": "inbound_operation_events_write",
+            "with_check": "((auth.role() = 'service_role'::text) OR gridex_user_is_platform_admin())"
+          }
+        ],
+        "checked_at": "2026-10-07T10:57:13.324269+00:00",
+        "stats_reset": null,
+        "statement_extension": "extensions"
+      }
+    }
+  ]
+}

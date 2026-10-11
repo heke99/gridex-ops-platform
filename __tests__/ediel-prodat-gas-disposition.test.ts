@@ -6,7 +6,7 @@ import {compareInboundPayloadToTgtTestData} from '@/lib/ediel/testing/tgtAutoMat
 import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-import {OWNER,ownerSource} from './helpers/sourceOwnerFixtures'
+import {OWNER,ownerSourceWithInstallationStatus as ownerSource} from './helpers/sourceOwnerFixtures'
 import {createProdatRegisterEvidence} from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {selectedAddressFact,selectedInvoiceeFact} from './fixtures/prodat-ud'
@@ -77,7 +77,7 @@ it('a full97A EL original cannot bypass canonical current-source qualification o
  // cannot grant persisted canonical source qualification for this send.
  // Keep required field242 (first7110) and omit forbidden field506
  // (second7110); the historical inbound owner fixture intentionally has both.
- const source=ownerSource();source.raw_payload=source.raw_payload!.replace('L917:8716867000030','L917')
+ const source=ownerSource('Z12');source.raw_payload=source.raw_payload!.replace('L917:8716867000030','L917')
  const tokens=tokenizeEdifact(source.raw_payload)
  const registerEvidence=createProdatRegisterEvidence({code:'Z04',rawSegments:tokens.segments.map(s=>s.raw),una:tokens.una,facts:{market:'electricity',
   registerObjects:[{meteringPointId:OWNER.external,identityAgency:'9',expectedRegisterCount:1,meterReadingsSentInUtilts:false}],

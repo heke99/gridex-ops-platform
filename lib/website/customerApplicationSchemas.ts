@@ -4,6 +4,10 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { IDEMPOTENCY_KEY_MAX_LENGTH, IDEMPOTENCY_KEY_MIN_LENGTH, isValidIdempotencyKey } from "@/lib/api/idempotencyKey";
 import { WebsiteApplicationError, calculatedEarliestStartDate, clean, isObject, stage, validationError } from "./customerApplicationShared";
+import {
+  canonicalSwedishOrganizationNumber,
+  canonicalSwedishPersonalNumber,
+} from "@/lib/validation/customerFields";
 
 const OPTIONAL_TEXT = z.preprocess(
   (value) =>
@@ -29,8 +33,22 @@ const CustomerSchema = z
     last_name: OPTIONAL_TEXT,
     full_name: OPTIONAL_TEXT,
     company_name: OPTIONAL_TEXT,
-    personal_number: OPTIONAL_TEXT,
-    org_number: OPTIONAL_TEXT,
+    // Canonicalized so 10- and 12-digit forms of the same identity produce
+    // one stored value (see validateCustomerIdentityNumbers for the 422).
+    personal_number: z.preprocess(
+      (value) =>
+        typeof value === "string" && value.trim()
+          ? canonicalSwedishPersonalNumber(value) ?? value.trim()
+          : undefined,
+      z.string().optional(),
+    ),
+    org_number: z.preprocess(
+      (value) =>
+        typeof value === "string" && value.trim()
+          ? canonicalSwedishOrganizationNumber(value) ?? value.trim()
+          : undefined,
+      z.string().optional(),
+    ),
     email: OPTIONAL_TEXT,
     phone: OPTIONAL_TEXT,
     invoice_email: OPTIONAL_TEXT,
@@ -708,6 +726,41 @@ export function validateApplicationDates(
       field: "contract.signed_at",
       stage: "validation",
       hint: "Skicka exempelvis 2026-07-10T08:30:00Z.",
+    });
+  }
+  return null;
+}
+
+/**
+ * Rejects personnummer/organisationsnummer that are not valid Swedish
+ * identities (date + Luhn check digit) with 422. Accepted forms: 10 or 12
+ * digits, with or without '-' / '+'. A sole trader may send the owner's
+ * personnummer as org_number.
+ */
+export function validateCustomerIdentityNumbers(
+  input: Record<string, unknown>,
+): WebsiteApplicationError | null {
+  const customer = nestedRecord(input, "customer");
+  const personalNumber = clean(customer?.personal_number);
+  if (personalNumber && !canonicalSwedishPersonalNumber(personalNumber)) {
+    return new WebsiteApplicationError({
+      message: "customer.personal_number är inte ett giltigt svenskt personnummer.",
+      status: 422,
+      code: "personal_number_invalid",
+      field: "customer.personal_number",
+      stage: "validation",
+      hint: "Skicka personnumret som ÅÅÅÅMMDDNNNN eller ÅÅMMDD-NNNN med korrekt kontrollsiffra.",
+    });
+  }
+  const orgNumber = clean(customer?.org_number);
+  if (orgNumber && !canonicalSwedishOrganizationNumber(orgNumber)) {
+    return new WebsiteApplicationError({
+      message: "customer.org_number är inte ett giltigt svenskt organisationsnummer.",
+      status: 422,
+      code: "org_number_invalid",
+      field: "customer.org_number",
+      stage: "validation",
+      hint: "Skicka organisationsnumret som NNNNNN-NNNN med korrekt kontrollsiffra.",
     });
   }
   return null;

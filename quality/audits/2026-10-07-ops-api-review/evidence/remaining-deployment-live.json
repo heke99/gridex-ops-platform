@@ -1,0 +1,15 @@
+{
+  "read_only": true,
+  "project_id": "piidsfebjqjmnepdpnas",
+  "rows": [
+    {
+      "checked_at": "2026-10-07 10:56:32.02339+00",
+      "actor_anchors": null,
+      "identity_deliveries": null,
+      "identity_bindings": null,
+      "validate_binding": null,
+      "resolve_identity": null,
+      "latest_migration": "20261005081122"
+    }
+  ]
+}

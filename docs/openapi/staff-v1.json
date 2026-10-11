@@ -2,16 +2,16 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Staff API",
-    "version": "2026-10-04.1",
-    "description": "Staff accounts and customer service from your own backend. Every staff call requires an API credential and a signed proof of the acting staff login. The platform derives the organization and permissions from those two identities."
+    "version": "2026-10-09.1",
+    "description": "Staff accounts and customer service from your own backend. Every staff call requires an API credential and a signed proof of the acting staff login. The platform derives the organization and permissions from those two identities. Every response carries a server-issued X-Request-ID equal to request_id in the body. The optional x-gridex-expected-project-ref header pins the storage project (412 storage_project_mismatch otherwise), and list endpoints accept the opt-in x-gridex-query-parsing: strict profile."
   },
   "servers": [
     {
       "url": "https://app.gridex.se"
     }
   ],
-  "x-contract-schema-version": "2026-10-04.1",
-  "x-gridex-release-version": "2026-10-04.1",
+  "x-contract-schema-version": "2026-10-09.1",
+  "x-gridex-release-version": "2026-10-09.1",
   "paths": {
     "/api/v1/staff/users": {
       "get": {
@@ -79,6 +79,12 @@
                 "revoked"
               ]
             }
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
+          },
+          {
+            "$ref": "#/components/parameters/QueryParsing"
           }
         ],
         "responses": {
@@ -107,6 +113,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -142,6 +151,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -177,6 +189,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -212,6 +227,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -247,6 +265,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -259,6 +280,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -317,6 +376,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -355,6 +417,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -390,6 +455,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -425,6 +493,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -473,6 +544,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -504,13 +578,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -546,6 +623,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -581,6 +661,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -616,6 +699,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -651,6 +737,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -663,6 +752,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -721,6 +848,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -759,6 +889,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -794,6 +927,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -829,6 +965,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -898,6 +1037,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -929,13 +1071,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -971,6 +1116,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1006,6 +1154,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1041,6 +1192,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1076,6 +1230,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1088,6 +1245,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -1146,6 +1341,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1184,6 +1382,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1219,6 +1420,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1254,6 +1458,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1323,6 +1530,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -1354,13 +1564,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1396,6 +1609,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1431,6 +1647,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1466,6 +1685,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1501,6 +1723,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1513,6 +1738,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -1571,6 +1834,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1609,6 +1875,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1644,6 +1913,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1679,6 +1951,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1748,6 +2023,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -1779,13 +2057,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1821,6 +2102,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1856,6 +2140,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1891,6 +2178,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1926,6 +2216,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -1938,6 +2231,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -1996,6 +2327,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2034,6 +2368,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2069,6 +2406,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2104,6 +2444,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2161,6 +2504,9 @@
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
             "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -2189,6 +2535,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2224,6 +2573,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2259,6 +2611,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2294,6 +2649,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2329,6 +2687,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2341,6 +2702,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -2399,6 +2798,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2437,6 +2839,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2472,6 +2877,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2507,6 +2915,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2618,6 +3029,12 @@
                 "association"
               ]
             }
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
+          },
+          {
+            "$ref": "#/components/parameters/QueryParsing"
           }
         ],
         "responses": {
@@ -2646,6 +3063,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2681,6 +3101,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2716,6 +3139,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2751,6 +3177,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2786,6 +3215,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2798,6 +3230,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -2856,6 +3326,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2894,6 +3367,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2929,6 +3405,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -2964,6 +3443,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3021,6 +3503,9 @@
               "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$",
               "description": "Opaque resource reference. Access always requires the organization credential and authorized staff identity."
             }
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -3049,6 +3534,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3084,6 +3572,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3119,6 +3610,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3154,6 +3648,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3189,6 +3686,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3201,6 +3701,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -3259,6 +3797,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3297,6 +3838,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3332,6 +3876,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3367,6 +3914,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3427,6 +3977,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -3458,13 +4011,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3500,6 +4056,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3535,6 +4094,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3570,6 +4132,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3605,6 +4170,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3617,6 +4185,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -3675,6 +4281,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3713,6 +4322,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3748,6 +4360,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3783,6 +4398,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3853,6 +4471,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -3884,13 +4505,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3926,6 +4550,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3961,6 +4588,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -3996,6 +4626,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4031,6 +4664,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4043,6 +4679,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -4101,6 +4775,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4139,6 +4816,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4174,6 +4854,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4209,6 +4892,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4322,6 +5008,12 @@
               "type": "string",
               "maxLength": 180
             }
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
+          },
+          {
+            "$ref": "#/components/parameters/QueryParsing"
           }
         ],
         "responses": {
@@ -4350,6 +5042,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4385,6 +5080,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4420,6 +5118,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4455,6 +5156,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4490,6 +5194,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4502,6 +5209,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -4560,6 +5305,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4598,6 +5346,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4633,6 +5384,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4668,6 +5422,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4716,6 +5473,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -4747,13 +5507,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4789,6 +5552,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4824,6 +5590,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4859,6 +5628,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4894,6 +5666,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -4906,6 +5681,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -4964,6 +5777,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5002,6 +5818,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5037,6 +5856,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5072,6 +5894,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5139,6 +5964,9 @@
               "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$",
               "description": "Opaque resource reference. Access always requires the organization credential and authorized staff identity."
             }
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -5167,6 +5995,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5202,6 +6033,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5237,6 +6071,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5272,6 +6109,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5307,6 +6147,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5319,6 +6162,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -5377,6 +6258,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5415,6 +6299,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5450,6 +6337,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5485,6 +6375,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5545,6 +6438,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -5576,13 +6472,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5618,6 +6517,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5653,6 +6555,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5688,6 +6593,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5723,6 +6631,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5735,6 +6646,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -5793,6 +6742,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5831,6 +6783,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5866,6 +6821,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5901,6 +6859,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -5971,6 +6932,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -6002,13 +6966,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6044,6 +7011,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6079,6 +7049,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6114,6 +7087,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6149,6 +7125,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6161,6 +7140,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -6219,6 +7236,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6257,6 +7277,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6292,6 +7315,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6327,6 +7353,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6397,6 +7426,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -6428,13 +7460,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6470,6 +7505,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6505,6 +7543,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6540,6 +7581,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6575,6 +7619,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6587,6 +7634,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -6645,6 +7730,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6683,6 +7771,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6718,6 +7809,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6753,6 +7847,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6823,6 +7920,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -6854,13 +7954,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6896,6 +7999,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6931,6 +8037,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -6966,6 +8075,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7001,6 +8113,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7013,6 +8128,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -7071,6 +8224,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7109,6 +8265,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7144,6 +8303,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7179,6 +8341,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7249,6 +8414,9 @@
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -7280,13 +8448,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7322,6 +8493,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7357,6 +8531,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7392,6 +8569,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7427,6 +8607,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7439,6 +8622,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -7497,6 +8718,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7535,6 +8759,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7570,6 +8797,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7605,6 +8835,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7692,6 +8925,12 @@
               "type": "string"
             },
             "description": "Opaque continuation cursor returned as page.next_cursor; bound to this organization, customer and case."
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
+          },
+          {
+            "$ref": "#/components/parameters/QueryParsing"
           }
         ],
         "responses": {
@@ -7720,6 +8959,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7755,6 +8997,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7790,6 +9035,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7825,6 +9073,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7860,6 +9111,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7872,6 +9126,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -7930,6 +9222,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -7968,6 +9263,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8003,6 +9301,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8038,6 +9339,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8118,6 +9422,9 @@
                 "customer"
               ]
             }
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -8149,13 +9456,16 @@
                     "false"
                   ]
                 },
-                "description": "Whether an existing idempotent result was replayed."
+                "description": "true when the stored result of an earlier identical request (same Idempotency-Key and body) is returned; false for a new execution. Current authentication, scopes, permission and active membership are checked before any stored result is replayed."
               },
               "X-Gridex-Sha256": {
                 "schema": {
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8191,6 +9501,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8226,6 +9539,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8261,6 +9577,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8296,6 +9615,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8308,6 +9630,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -8366,6 +9726,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8401,6 +9764,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8436,6 +9802,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8474,6 +9843,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8509,6 +9881,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8544,6 +9919,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8637,6 +10015,9 @@
               "pattern": "^[a-z][a-z0-9_]{1,31}_[A-Za-z0-9_-]{20,64}$",
               "description": "Opaque resource reference. Access always requires the organization credential and authorized staff identity."
             }
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
           }
         ],
         "responses": {
@@ -8665,6 +10046,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8713,6 +10097,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8748,6 +10135,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8783,6 +10173,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8818,6 +10211,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8830,6 +10226,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -8888,6 +10322,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8926,6 +10363,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8961,6 +10401,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -8996,6 +10439,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9180,7 +10626,11 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "$ref": "#/components/headers/GridexContractVersion"
+                "description": "Contract version of this immutable OpenAPI document.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-04.1"
+                }
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -9214,7 +10664,11 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "$ref": "#/components/headers/GridexContractVersion"
+                "description": "Contract version of this immutable OpenAPI document.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-04.1"
+                }
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -9300,6 +10754,12 @@
               "type": "string"
             },
             "description": "Opaque continuation cursor returned as page.next_cursor; bound to this organization, customer and case."
+          },
+          {
+            "$ref": "#/components/parameters/ExpectedProjectRef"
+          },
+          {
+            "$ref": "#/components/parameters/QueryParsing"
           }
         ],
         "responses": {
@@ -9328,6 +10788,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9363,6 +10826,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9398,6 +10864,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9433,6 +10902,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9468,6 +10940,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9480,6 +10955,44 @@
           },
           "409": {
             "description": "Version, membership, role safeguard or idempotency conflict.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              },
+              "X-Gridex-Sha256": {
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "storage_project_mismatch: x-gridex-expected-project-ref is malformed or names another storage project. Nothing was executed; call the deployment that serves the expected project.",
             "headers": {
               "X-Gridex-Contract-Version": {
                 "$ref": "#/components/headers/GridexContractVersion"
@@ -9538,6 +11051,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9576,6 +11092,9 @@
               },
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9611,6 +11130,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9646,6 +11168,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Project-Ref": {
+                "$ref": "#/components/headers/ProjectRef"
               }
             },
             "content": {
@@ -9667,6 +11192,90 @@
         "x-cache-policy": "no-store",
         "x-public-id-policy": "staff-identities-and-opaque-references",
         "description": "List staff visible case events with a case bound continuation cursor."
+      }
+    },
+    "/api/v1/openapi/2026-10-09.1/staff-v1.json": {
+      "get": {
+        "summary": "Immutable Staff OpenAPI release 2026-10-04",
+        "description": "Immutable Staff OpenAPI release 2026-10-09.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Contract version of this immutable OpenAPI document.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-09.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Contract version of this immutable OpenAPI document.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-09.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202610091StaffV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
       }
     }
   },
@@ -9692,7 +11301,8 @@
         "schema": {
           "type": "string",
           "maxLength": 128
-        }
+        },
+        "description": "Optional client correlation value (1-128 characters of A-Z, a-z, 0-9, \".\", \"_\", \":\" or \"-\"). It is recorded separately for support as the client correlation id and never replaces the server request id."
       },
       "IdempotencyKey": {
         "name": "Idempotency-Key",
@@ -9705,6 +11315,30 @@
           "pattern": "^[A-Za-z0-9._:+~-]+$"
         },
         "description": "Reuse the same key and unchanged body for a retry. Sign a fresh assertion with a new jti for every attempt."
+      },
+      "ExpectedProjectRef": {
+        "name": "x-gridex-expected-project-ref",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{20}$"
+        },
+        "description": "Optional 20-character storage project reference you expect to serve this call. A malformed value, or a value that differs from the project served by this deployment, returns 412 storage_project_mismatch before authentication, rate limiting, audit or any write; nothing is executed."
+      },
+      "QueryParsing": {
+        "name": "x-gridex-query-parsing",
+        "in": "header",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "compatible",
+            "strict"
+          ],
+          "default": "compatible"
+        },
+        "description": "List query parsing profile. compatible (default) keeps the parsing each endpoint has always accepted. strict applies one rule to every Staff list endpoint: each query parameter at most once, and page, page_size and limit only as plain decimal digits without sign, whitespace, exponent, fraction, hexadecimal prefix or leading zero. Violations, and unknown profile values, return 422 invalid_field with error.field naming the parameter, before any data is read."
       }
     },
     "headers": {
@@ -9712,11 +11346,11 @@
         "description": "Canonical contract version used for this response.",
         "schema": {
           "type": "string",
-          "const": "2026-10-04.1"
+          "const": "2026-10-09.1"
         }
       },
       "RequestId": {
-        "description": "Stable request identifier for support and audit.",
+        "description": "Server-issued request id for this call. The same value is returned as request_id in the body (including errors) and recorded in the request log. A client-supplied x-request-id is never echoed here.",
         "schema": {
           "type": "string"
         }
@@ -9774,6 +11408,13 @@
         "schema": {
           "type": "string"
         }
+      },
+      "ProjectRef": {
+        "description": "Storage project reference that served this call. Present when the deployment serves an identified project; compare it with x-gridex-expected-project-ref.",
+        "schema": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{20}$"
+        }
       }
     },
     "schemas": {
@@ -9798,27 +11439,27 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "staff_openapi_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "runtime_contract_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "released_at": {
             "type": "string",
@@ -9906,7 +11547,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "url": {
             "type": "string",
@@ -9998,7 +11639,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -11572,7 +13213,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "pagination": {
             "$ref": "#/components/schemas/StaffPagination"
@@ -11602,7 +13243,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11629,7 +13270,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11656,7 +13297,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11683,7 +13324,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11713,7 +13354,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11756,7 +13397,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11792,7 +13433,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11819,7 +13460,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11846,7 +13487,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11877,7 +13518,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "page": {
             "$ref": "#/components/schemas/StaffCasePage"
@@ -11907,7 +13548,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11934,7 +13575,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11961,7 +13602,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -11988,7 +13629,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -12015,7 +13656,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -12042,7 +13683,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -12069,7 +13710,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -12100,7 +13741,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "page": {
             "$ref": "#/components/schemas/StaffCasePage"
@@ -12130,7 +13771,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -12155,7 +13796,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         }
       },
@@ -12267,7 +13908,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           }
         },
         "description": "Canonical error envelope. Business and provider failures use one nested error object; no parallel top-level aliases are emitted."
@@ -12323,7 +13964,7 @@
           },
           "contract_schema_version": {
             "type": "string",
-            "const": "2026-10-04.1"
+            "const": "2026-10-09.1"
           },
           "page": {
             "$ref": "#/components/schemas/StaffCasePage"

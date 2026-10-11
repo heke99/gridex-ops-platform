@@ -56,7 +56,7 @@ BEGIN
    'LIN+1++735123456789012345:::89','DTM+92:202610010000:203','DTM+354:15:806',
    -- Field 213 (QTY+31) deliberately absent: the source owner rejects it and the
    -- negative APERAK below answers exactly that application error.
-   'CCI++Z13','CAV+Z22','CCI++Z04','CAV+Z03','CCI++Z07','CAV+E22','CCI++Z12','CAV+:::W','CCI++Z15','CAV+D','CCI++Z14','CAV+:::L917:8716867000030',
+   'CCI++Z13','CAV+Z22','CCI++Z04','CAV+Z03','CCI++Z07','CAV+Z12','CCI++Z12','CAV+:::W','CCI++Z15','CAV+D','CCI++Z14','CAV+:::L917:8716867000030',
    'RFF+MG:METER-735123456789012345','RFF+Z05:TES','RFF+LI:CASE-735123456789012345',
    'NAD+UD+CUSTOMER-735123456789012345::89++A+Street+City++12345+SE','NAD+IT+735123456789012345::89+++Street+City++12345+SE',format('NAD+Z02+%s:160:SVK',own_ediel_id),
    format('UNT+28+%s',source_unh),format('UNZ+1+%s',source_unb)],'''')||'''';

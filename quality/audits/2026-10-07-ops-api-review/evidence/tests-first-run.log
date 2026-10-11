@@ -1,0 +1,34 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/staff-api-openapi.test.ts (11 tests | 1 failed) 152ms
+     × rejects attempted immutable staff release mutation during materialization 42ms
+ ❯ __tests__/staff-user-rbac-audit.test.ts (20 tests | 1 failed) 94ms
+     × runs the complete audit against the shared-command implementation 84ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/staff-api-openapi.test.ts > Staff API public contract > rejects attempted immutable staff release mutation during materialization
+Error: spawnSync /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node EPERM
+ ❯ __tests__/staff-api-openapi.test.ts:172:7
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  __tests__/staff-user-rbac-audit.test.ts > staff user RBAC static boundary audit > runs the complete audit against the shared-command implementation
+Error: spawnSync /opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node EPERM
+ ❯ __tests__/staff-user-rbac-audit.test.ts:24:12
+     22|   it('runs the complete audit against the shared-command implementatio…
+     23|     expect(auditStaffUserCommandBoundary(sources)).toEqual([])
+     24|     expect(execFileSync(process.execPath, ['scripts/security-audit-rba…
+       |            ^
+     25|   })
+     26|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 51 passed (53)
+      Tests  2 failed | 656 passed (658)
+   Start at  09:32:49
+   Duration  30.83s (transform 5.80s, setup 378ms, import 10.90s, tests 71.60s, environment 5ms)

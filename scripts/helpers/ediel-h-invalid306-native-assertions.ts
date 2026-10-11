@@ -23,6 +23,182 @@ type Input = {
   smtpCalls: () => number
 }
 const hash = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex')
+/** Diagnostic codes come only from fixed canonical ACK/preflight owners.
+ * Source wrapper text grants no ACK authority; descriptions are never logged. */
+const nativeAckWrapperCodes=new Set([
+  'ACK_APERAK_ACCEPTANCE_CODE_INVALID',
+  'ACK_APERAK_BGM_CARDINALITY',
+  'ACK_APERAK_DOCUMENT_DATE_INVALID',
+  'ACK_APERAK_ERROR_GROUP_MISSING',
+  'ACK_APERAK_FIELD_REFERENCE_INVALID',
+  'ACK_APERAK_LEGAL_PARTY_INVALID',
+  'ACK_APERAK_ORIGINAL_LEGAL_PARTY_MISMATCH',
+  'ACK_APERAK_OWN_TEXT_INVALID',
+  'ACK_APERAK_POSITIVE_TEXT_INVALID',
+  'ACK_APERAK_PROFILE_INVALID',
+  'ACK_GUIDE_ONE_MESSAGE_REQUIRED',
+  'ACK_ORIGINAL_TECHNICAL_ROUTE_MISMATCH',
+  'ACK_PRODAT_APPLICATION_TEXT_INVALID',
+  'ACK_PRODAT_FIELD_REFERENCE_UNKNOWN',
+  'ACK_PRODAT_INVALID_TEXT_INVALID',
+  'ACK_PRODAT_MESSAGE_FUNCTION_INVALID',
+  'ACK_PRODAT_MISSING_TEXT_INVALID',
+  'ACK_PRODAT_ORIGINAL_DOCUMENT_INVALID',
+  'ACK_PRODAT_ORIGINAL_DOCUMENT_MISMATCH',
+  'ACK_PRODAT_OWN_OBJECT_OUTCOME_CONFLICT',
+  'ACK_PRODAT_OWN_OBJECT_REFERENCE_INVALID',
+  'ACK_PRODAT_OWN_OBJECT_REFERENCE_MISMATCH',
+  'ACK_PRODAT_OWN_OBJECT_SCOPE_MISMATCH',
+  'ACK_PRODAT_UNUSED_DOCUMENT_ELEMENT',
+  'ACK_PRODAT_WHOLE_REJECTION_ACCEPTANCE_CONFLICT',
+  'ACK_SOURCE_FAMILY_MISMATCH',
+  'AI_BI_NOT_SEMICOLON',
+  'AI_BI_VERSION_MISSING',
+  'APERAK_ERC_WITHOUT_FTX',
+  'APERAK_POSITIVE_WITHOUT_OK_FTX',
+  'APERAK_UTILTS_E66_GENERIC_ERC40_BLOCKED',
+  'APERAK_UTILTS_E66_GENERIC_FTX40_BLOCKED',
+  'BOM_NOT_ALLOWED',
+  'EDIFACT_LATIN1_ENCODING_HELD',
+  'EDIFACT_LINEBREAKS',
+  'EMPTY_PAYLOAD',
+  'IDENTIFIER_INVALID_CHARACTERS',
+  'MESSAGE_PROFILE_MISSING',
+  'MIME_TYPE_NOT_EDIFACT',
+  'MISSING_BGM',
+  'MISSING_UNB',
+  'MISSING_UNH',
+  'MISSING_UNT',
+  'MISSING_UNZ',
+  'PAYLOAD_TOO_LARGE',
+  'PRODAT_COMPOSITE_BGM_BLOCKED',
+  'PRODAT_ENERGY_PRODUCT_CAV_COMPONENT_MISMATCH',
+  'PRODAT_REGISTER_EVIDENCE_INVALID',
+  'PRODAT_Z13VH_DTM_90_MISSING',
+  'PRODAT_Z13VH_DTM_91_MISSING',
+  'PRODAT_Z13VH_DTM_92_FORBIDDEN',
+  'PRODAT_Z13_NAD_UD_ID_MISSING',
+  'PRODAT_Z13_NAD_UD_MISSING',
+  'PRODAT_Z18_DTM_164_MISSING',
+  'PRODAT_Z18_NAD_IT_FORBIDDEN',
+  'PRODAT_Z18_NAD_UD_MISSING',
+  'PRODAT_Z18_RFF_Z09_MISSING',
+  'PROFILE_APPLICATION_REFERENCE_MISSING',
+  'PROFILE_BGM_CODE_NOT_ALLOWED',
+  'PROFILE_FIELD_LENGTH_EXCEEDED',
+  'PROFILE_FORBIDDEN_SEGMENT_PRESENT',
+  'PROFILE_REQUIRED_SEGMENT_MISSING',
+  'PROFILE_SEGMENT_ORDER_WARNING',
+  'PROFILE_SEGMENT_REPEATED_TOO_MANY_TIMES',
+  'PROFILE_UNH_TOKEN_MISMATCH',
+  'UNA_NOT_STANDARD',
+  'UNB_APPLICATION_REFERENCE_TOO_LONG',
+  'UNB_RECEIVER_SUBADDRESS_TOO_LONG',
+  'UNB_RECEIVER_TOO_LONG',
+  'UNB_REFERENCE_TOO_LONG',
+  'UNB_SENDER_SUBADDRESS_TOO_LONG',
+  'UNB_SENDER_TOO_LONG',
+  'UNB_SYNTAX_NOT_UNOC3',
+  'UNB_UNZ_REFERENCE_MISMATCH',
+  'UNH_REFERENCE_TOO_LONG',
+  'UNH_UNT_REFERENCE_MISMATCH',
+  'UNSM_DIRECTORY_SOURCE_UNAVAILABLE',
+  'UNSM_MESSAGE_STRUCTURE_INVALID',
+  'UNT_COUNT_MISMATCH',
+  'UNZ_COUNT_MISMATCH',
+  'UTILTS_CONSERVATIVE_PACKING_LIMIT',
+  'UTILTS_COPIED_TRANSACTION_REFERENCE_INVALID',
+  'UTILTS_ERR_BGM_NOT_ERR',
+  'UTILTS_PHYSICAL_TRANSACTION_REFERENCE_INVALID',
+  'XML_BOM_NOT_ALLOWED',
+  'XML_MIME_WARNING',
+])
+// Exact leading machine markers from the independently reviewed C143 inventory.
+const nativeAckMachineCodes=new Set([
+  'ediel_existing_ack_original_read_unavailable','ediel_existing_ack_original_source_mismatch',
+  'ediel_source_rule_pack_basis_required','ediel_historical_rule_pack_basis_unavailable',
+  'prodat_bilateral_original_metadata_unqualified','prodat_bilateral_capability_required',
+  'canonical_ack_actual_original_mismatch','prodat_response_original_owner_unavailable',
+  'prodat_response_original_rule_witness_mismatch','prodat_response_frozen_owner_binding_unavailable',
+  'prodat_response_frozen_owner_binding_changed','prodat_response_established_original_changed',
+  'prodat_domain_response_frozen_owner_required','prodat_domain_response_frozen_owner_changed',
+  'prodat_domain_response_source_required','prodat_domain_response_scope_required',
+  'prodat_domain_response_own_effect_unavailable','prodat_domain_response_original_guide_unavailable',
+  'prodat_domain_response_own_plan_unavailable','prodat_domain_response_own_effect_required',
+  'prodat_structural_response_source_required','prodat_structural_response_scope_required',
+  'prodat_structural_response_own_effect_unavailable','historical_rule_pack_basis_unavailable',
+  'supply_final_response_scope_required','supply_final_response_source_changed',
+  'supply_final_response_admitted_canonical_required','supply_final_response_own_effect_required',
+  'supply_final_response_own_effect_uncommitted','ediel_existing_ack_original_object_scope_unavailable',
+  'ediel_existing_ack_original_basis_unavailable','ediel_existing_ack_original_outcome_unavailable',
+  'ack_source_scope_unavailable','ack_actual_original_unavailable',
+  'ack_source_owner_qualification_required','historical_rule_pack_guide_scope_unavailable',
+  'canonical_ack_original_family_mismatch','canonical_ack_source_scope_mismatch',
+  'canonical_ack_draft_physical_outcome_mismatch','canonical_ack_prodat_source_code_profile_mismatch',
+  'canonical_ack_owner_scope_required','ediel_historical_ack_guide_basis_unavailable',
+  'ediel_ack_guide_original_basis_changed','ediel_native_ack_guide_invalid',
+  'ediel_inbound_legal_context_required','ediel_historical_identity_basis_unavailable',
+  'ediel_ack_current_captured_role_unavailable','ediel_technical_endpoint_unqualified',
+  'ediel_ack_replay_actor_not_authorized','ediel_ack_replay_actual_source_unavailable',
+  'ediel_ack_replay_legal_scope_invalid','ediel_business_ack_current_actor_required',
+  'ediel_fresh_ack_envelope_invalid','ediel_message_reference_length_invalid',
+  'ediel_unh_unused_element','ediel_prodat_aperak_unused_document_element',
+  'ediel_native_ack_guide_source_required','ediel_registered_original_guide_unavailable',
+  'prodat_response_native_scope_invalid','ediel_ack_atomic_outcome_required',
+  'ediel_ack_atomic_wire_outcome_mismatch','ediel_ack_atomic_draft_whitelist_required',
+  'ediel_ack_atomic_wire_required','ediel_ack_atomic_wire_family_mismatch',
+  'ediel_ack_atomic_owner_scope_mismatch','ediel_ack_atomic_metadata_required',
+  'ediel_ack_atomic_route_changed','ediel_ack_atomic_foreign_source_resource',
+  'ediel_ack_atomic_postwrite_owner_mismatch','canonical_ack_route_profile_required',
+  'canonical_ack_atomic_output_scope_mismatch','canonical_ack_draft_outcome_scope_mismatch',
+  'canonical_ack_physical_scope_required','canonical_ack_duplicate_scope_mismatch',
+  'canonical_ack_physical_scope_receipt_mismatch','ediel_existing_ack_original_current_actor_required',
+  'ediel_existing_ack_original_read_scope_invalid','ack_source_qualification_scope_mismatch',
+  'ack_original_application_reference_ambiguous','aperak_prodat_document_reference_required',
+  'aperak_original_legal_party_projection_conflict','aperak_prodat_selected_scope_invalid',
+  'aperak_prodat_requested_scope_unqualified','aperak_prodat_own_line_reference_required',
+  'ediel_ack_route_profile_required','ediel_ack_route_profile_scope_mismatch',
+  'ediel_ack_route_profile_basis_required','canonical_route_environment_mismatch',
+  'canonical_route_profile_environment_mismatch','canonical_route_tenant_mismatch',
+  'ediel_tenant_actor_required','ediel_tenant_permission_required',
+  'ediel_tenant_actor_forbidden','ediel_tenant_permission_forbidden',
+  'blocked_final_ack_exists','outbound_ediel_canonical_policy_evidence_missing',
+  'ediel_ack_replay_scope_required','ediel_ack_replay_own_response_ambiguous',
+  'ediel_ack_replay_private_own_wire_unavailable','ediel_ack_replay_original_basis_mismatch',
+  'ediel_ack_replay_physical_source_mismatch','ediel_ack_replay_physical_prodat_scope_required',
+  'ediel_historical_prodat_ack_scope_basis_unavailable','ediel_prodat_ack_scope_conflicting_outcome',
+  'ediel_prodat_ack_scope_partially_fixed','ediel_ack_actual_original_unavailable',
+  'ediel_original_bytes_retention_tombstoned','ediel_outbound_owner_witness_required',
+  'ediel_outbound_owner_actor_scope_required','ediel_outbound_owner_preparation_permission_required',
+  'ediel_prodat_ack_physical_scope_required','ediel_prodat_ack_contradictory_own_outcome',
+  'ediel_outbound_owner_witness_scope_invalid','ediel_historical_outbound_owner_witness_unavailable',
+  'ediel_outbound_owner_witness_already_consumed','ediel_business_ack_private_relation_changed',
+  'prodat_structural_response_frozen_binding_changed',
+])
+export function nativeAckBlockedReasonDiagnostic(message: unknown) {
+  const prefix='APERAK skapades inte: '
+  const reason=typeof message==='string'&&message.startsWith(prefix)?message.slice(prefix.length):null
+  if(reason===null)return {kind:'unexpected_event',codes:[],unknownCodeCount:0,reasonHash:null,reasonLength:null}
+  const canonical=reason.match(/^Outbound APERAK APERAK blockerades av canonical Ediel-policy: ([A-Z][A-Z0-9_]{0,127}) - /)
+  if(canonical)return {kind:'canonical_policy',codes:nativeAckWrapperCodes.has(canonical[1])?[canonical[1]]:[],
+    unknownCodeCount:nativeAckWrapperCodes.has(canonical[1])?0:1,reasonHash:hash(reason),reasonLength:reason.length}
+  const preflight='EDIFACT envelope stoppades av payload preflight: '
+  if(reason.startsWith(preflight)){
+    const reported=reason.slice(preflight.length).split(' | ').slice(0,8)
+      .flatMap(item=>{const code=item.match(/^([A-Z][A-Z0-9_]{0,127}): /);return code?[code[1]]:[]})
+    return {kind:'payload_preflight',codes:reported.filter(code=>nativeAckWrapperCodes.has(code)),
+      unknownCodeCount:reported.filter(code=>!nativeAckWrapperCodes.has(code)).length,reasonHash:hash(reason),reasonLength:reason.length}
+  }
+  // Match only the primary reason, never a code mentioned by details/hint text.
+  const machine=/^([a-z][a-z0-9_]*)(?=$|[:\s])/.exec(reason)?.[1]
+  if(machine&&nativeAckMachineCodes.has(machine))return {kind:'machine_guard',codes:[machine],
+    unknownCodeCount:0,reasonHash:hash(reason),reasonLength:reason.length}
+  // Only fixed, source-backed enums leave this helper: a known SQLSTATE/PostgREST
+  // code and a schema-identifier constraint name. Free text stays hash/length only.
+  const sqlstate=/(?:^|[\s·(:])(23505|23503|23514|23P01|42501|P0001|40001|22023|42883|PGRST116|PGRST202)(?=$|[\s·),:])/.exec(reason)?.[1]??null
+  const constraint=/constraint "(ux_ediel_outbound_source)"/.exec(reason)?.[1]??null
+  return {kind:'unclassified',codes:[],unknownCodeCount:0,reasonHash:hash(reason),reasonLength:reason.length,sqlstate,constraint}
+}
 function record(v: unknown): Row {
   expect(v).not.toBeNull(); expect(typeof v).toBe('object'); expect(Array.isArray(v)).toBe(false)
   return v as Row
@@ -216,6 +392,50 @@ async function acknowledgements(i: Input, o: Observations) {
   // Guarded public reader is always authoritative; SQL only supplements it.
   const acks = await listBusinessAckMessagesForSource({ companyId: i.companyId, sourceMessageId: i.source.id,
     actorUserId: i.actorUserId, environment: 'test' })
+  if (!acks.some(a => a.message_family === 'APERAK')) {
+    // Only this original's already persisted ACK guard events. Log fixed
+    // classifications, never their messages, payloads or source identifiers.
+    const blocked = sql<Array<{ message: string }>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',e.message)
+      ORDER BY e.created_at,e.id),'[]') FROM public.ediel_message_events e
+      WHERE e.company_id=${literal(i.companyId)} AND e.ediel_message_id=${literal(i.source.id)}
+        AND e.event_type='manual_note' AND e.event_status='warning'
+        AND e.event_payload->>'blockedBy'='canonical_inbound_ack_guard' AND e.event_payload->>'ackFamily'='APERAK'
+        AND e.event_payload->>'sourceMessageId'=${literal(i.source.id)}`)
+    const allowedGuards = ['ediel_existing_ack_original_read_unavailable', 'ediel_existing_ack_original_source_mismatch',
+      'ediel_source_rule_pack_basis_required', 'ediel_historical_rule_pack_basis_unavailable',
+      'prodat_bilateral_original_metadata_unqualified', 'prodat_bilateral_capability_required',
+      'canonical_ack_actual_original_mismatch', 'prodat_response_original_owner_unavailable',
+      'prodat_response_original_rule_witness_mismatch', 'prodat_response_frozen_owner_binding_unavailable',
+      'ediel_existing_ack_original_current_actor_required', 'ediel_existing_ack_original_read_scope_invalid',
+      'ediel_existing_ack_original_object_scope_unavailable', 'ediel_existing_ack_original_basis_unavailable',
+      'ediel_existing_ack_original_outcome_unavailable', 'ack_source_scope_unavailable',
+      'ack_actual_original_unavailable', 'historical_rule_pack_basis_unavailable',
+      'ack_source_owner_qualification_required', 'historical_rule_pack_guide_scope_unavailable',
+      'canonical_ack_original_family_mismatch', 'ack_original_application_reference_ambiguous',
+      'aperak_prodat_requested_scope_unqualified', 'aperak_prodat_document_reference_required',
+      'aperak_original_legal_party_projection_conflict', 'PRODAT_APERAK_TEXT_REVIEW_REQUIRED',
+      'APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH', 'APERAK_PRODAT_OBJECT_OUTCOME_MISSING',
+      'ack_correlation_envelope_invalid', 'ack_correlation_wire_context_invalid',
+      'ack_object_result_unavailable', 'ack_processed_negative_scope_unavailable',
+      'ack_prodat_original_object_scope_ambiguous', 'ack_prodat_original_object_scope_mismatch',
+      'ack_object_result_conflict', 'ack_correlation_outcome_invalid',
+      'ack_correlation_stored_family_mismatch', 'ack_correlation_original_document_required',
+      'canonical_ack_source_scope_mismatch', 'canonical_ack_draft_physical_outcome_mismatch',
+      'canonical_ack_draft_outcome_scope_mismatch', 'canonical_ack_prodat_source_code_profile_mismatch',
+      'canonical_ack_owner_scope_required', 'canonical_ack_physical_scope_required',
+      'canonical_ack_duplicate_scope_mismatch', 'canonical_ack_physical_scope_receipt_mismatch',
+      'canonical_ack_atomic_output_scope_mismatch', 'ediel_native_ack_guide_source_required',
+      'ediel_registered_original_guide_unavailable', 'prodat_response_native_scope_invalid',
+      'prodat_response_frozen_owner_binding_changed', 'prodat_response_established_original_changed',
+      'ediel_outbound_owner_witness_required', 'ediel_outbound_owner_witness_scope_invalid',
+      'prodat_domain_response_frozen_owner_required', 'ediel_historical_ack_guide_basis_unavailable',
+      'ediel_ack_guide_original_basis_changed', 'ediel_native_ack_guide_invalid'] as const
+    const guards = blocked.map(e => allowedGuards.find(guard => typeof e.message === 'string'
+      && e.message.startsWith('APERAK skapades inte: ') && e.message.slice('APERAK skapades inte: '.length).includes(guard)) ?? null)
+    console.error('H_NATIVE_INVALID306_ACK_GATE', JSON.stringify({ stage: 'invalid306_actual_negative_ack_missing',
+      blockedAckEventCount: blocked.length, guards, unknownGuardCount: guards.filter(guard => guard === null).length,
+      blockedReasons: blocked.map(event=>nativeAckBlockedReasonDiagnostic(event.message)) }))
+  }
   expect(acks.map(a => a.message_family).sort()).toEqual(['APERAK', 'CONTRL'])
   const source = tokenizeEdifact(i.source.raw_payload!), envelope = EdifactEnvelopeCodec.decode(i.source.raw_payload!)
   const sourceOne = (tag: string) => { const a = source.segments.filter(s => s.tag === tag); expect(a).toHaveLength(1); return a[0] }

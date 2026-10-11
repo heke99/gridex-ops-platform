@@ -8194,6 +8194,7 @@ export type Database = {
           event_type: string
           id: string
           occurred_at: string
+          processed_at: string | null
           provider: string
           provider_event_id: string | null
           provider_message_id: string | null
@@ -8206,6 +8207,7 @@ export type Database = {
           event_type: string
           id?: string
           occurred_at?: string
+          processed_at?: string | null
           provider?: string
           provider_event_id?: string | null
           provider_message_id?: string | null
@@ -8218,6 +8220,7 @@ export type Database = {
           event_type?: string
           id?: string
           occurred_at?: string
+          processed_at?: string | null
           provider?: string
           provider_event_id?: string | null
           provider_message_id?: string | null
@@ -8618,6 +8621,8 @@ export type Database = {
           billing_terms_summary: string | null
           branding: Json
           brp_ediel_id: string | null
+          brp_name: string | null
+          brp_status: string | null
           city: string | null
           closed_at: string | null
           closed_by: string | null
@@ -8674,6 +8679,7 @@ export type Database = {
           ediel_production_status: string
           ediel_route_resolution_mode: string
           ediel_shared_transport_mode: string
+          esett_status: string | null
           external_tenant_reference: string
           id: string
           industry: string
@@ -8692,6 +8698,7 @@ export type Database = {
           live_approved_by: string | null
           live_blocked_reason: string | null
           live_ediel_enabled: boolean
+          market_role: string | null
           metadata: Json
           name: string
           normalized_org_number: string | null
@@ -8727,6 +8734,8 @@ export type Database = {
           suspended_at: string | null
           suspended_by: string | null
           technical_contact: Json
+          technical_contact_email: string | null
+          technical_contact_name: string | null
           test_application_reference: string | null
           test_counterparty_ediel_id: string | null
           test_ediel_id: string | null
@@ -8759,6 +8768,8 @@ export type Database = {
           billing_terms_summary?: string | null
           branding?: Json
           brp_ediel_id?: string | null
+          brp_name?: string | null
+          brp_status?: string | null
           city?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -8815,6 +8826,7 @@ export type Database = {
           ediel_production_status?: string
           ediel_route_resolution_mode?: string
           ediel_shared_transport_mode?: string
+          esett_status?: string | null
           external_tenant_reference?: string
           id?: string
           industry?: string
@@ -8833,6 +8845,7 @@ export type Database = {
           live_approved_by?: string | null
           live_blocked_reason?: string | null
           live_ediel_enabled?: boolean
+          market_role?: string | null
           metadata?: Json
           name: string
           normalized_org_number?: string | null
@@ -8868,6 +8881,8 @@ export type Database = {
           suspended_at?: string | null
           suspended_by?: string | null
           technical_contact?: Json
+          technical_contact_email?: string | null
+          technical_contact_name?: string | null
           test_application_reference?: string | null
           test_counterparty_ediel_id?: string | null
           test_ediel_id?: string | null
@@ -8900,6 +8915,8 @@ export type Database = {
           billing_terms_summary?: string | null
           branding?: Json
           brp_ediel_id?: string | null
+          brp_name?: string | null
+          brp_status?: string | null
           city?: string | null
           closed_at?: string | null
           closed_by?: string | null
@@ -8956,6 +8973,7 @@ export type Database = {
           ediel_production_status?: string
           ediel_route_resolution_mode?: string
           ediel_shared_transport_mode?: string
+          esett_status?: string | null
           external_tenant_reference?: string
           id?: string
           industry?: string
@@ -8974,6 +8992,7 @@ export type Database = {
           live_approved_by?: string | null
           live_blocked_reason?: string | null
           live_ediel_enabled?: boolean
+          market_role?: string | null
           metadata?: Json
           name?: string
           normalized_org_number?: string | null
@@ -9009,6 +9028,8 @@ export type Database = {
           suspended_at?: string | null
           suspended_by?: string | null
           technical_contact?: Json
+          technical_contact_email?: string | null
+          technical_contact_name?: string | null
           test_application_reference?: string | null
           test_counterparty_ediel_id?: string | null
           test_ediel_id?: string | null
@@ -18040,6 +18061,171 @@ export type Database = {
           },
         ]
       }
+      customer_contract_confirmation_deliveries: {
+        Row: {
+          attempts: number
+          company_id: string
+          created_at: string
+          customer_contract_id: string
+          document_sha256: string | null
+          id: string
+          last_error: string | null
+          next_attempt_at: string
+          queued_at: string | null
+          signature_request_id: string
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          company_id: string
+          created_at?: string
+          customer_contract_id: string
+          document_sha256?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          queued_at?: string | null
+          signature_request_id: string
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          company_id?: string
+          created_at?: string
+          customer_contract_id?: string
+          document_sha256?: string | null
+          id?: string
+          last_error?: string | null
+          next_attempt_at?: string
+          queued_at?: string | null
+          signature_request_id?: string
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contract_confirmation_delive_signature_request_id_fkey"
+            columns: ["signature_request_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contract_signature_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_contract_confirmation_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       customer_contract_documents: {
         Row: {
           archived_at: string | null
@@ -21839,39 +22025,51 @@ export type Database = {
           company_id: string | null
           created_at: string
           customer_id: string | null
+          document_type: string
           file_name: string | null
           file_path: string | null
           id: string
           invoice_id: string | null
           metadata: Json | null
           mime_type: string | null
+          public_url: string | null
+          source_system: string | null
           storage_bucket: string | null
+          title: string | null
           updated_at: string | null
         }
         Insert: {
           company_id?: string | null
           created_at?: string
           customer_id?: string | null
+          document_type?: string
           file_name?: string | null
           file_path?: string | null
           id?: string
           invoice_id?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          public_url?: string | null
+          source_system?: string | null
           storage_bucket?: string | null
+          title?: string | null
           updated_at?: string | null
         }
         Update: {
           company_id?: string | null
           created_at?: string
           customer_id?: string | null
+          document_type?: string
           file_name?: string | null
           file_path?: string | null
           id?: string
           invoice_id?: string | null
           metadata?: Json | null
           mime_type?: string | null
+          public_url?: string | null
+          source_system?: string | null
           storage_bucket?: string | null
+          title?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -56403,6 +56601,7 @@ export type Database = {
           created_by: string
           environment: string
           id: string
+          provider: string
           row_count: number
           rows: Json
           rows_sha256: string
@@ -56415,6 +56614,7 @@ export type Database = {
           created_by: string
           environment: string
           id?: string
+          provider?: string
           row_count: number
           rows: Json
           rows_sha256: string
@@ -56427,6 +56627,7 @@ export type Database = {
           created_by?: string
           environment?: string
           id?: string
+          provider?: string
           row_count?: number
           rows?: Json
           rows_sha256?: string
@@ -94734,6 +94935,18 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_create_assigned_prodat_header_negative_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_expected_payload_hash: string
+          p_expected_raw_payload: string
+          p_inbound_email_message_id: string
+          p_parse_result_id: string
+        }
+        Returns: Json
+      }
       ediel_create_bilateral_prodat_original_v1: {
         Args: { p_actor_user_id: string; p_company_id: string; p_draft: Json }
         Returns: Json
@@ -95192,6 +95405,17 @@ export type Database = {
           p_original_message_id: string
           p_previous_attempt_id?: string
           p_source_ack_message_id?: string
+        }
+        Returns: Json
+      }
+      ediel_prepare_switch_cancellation_customer_masterdata_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_intent_id: string
+          p_operation_id: string
+          p_raw_payload: string
+          p_route_id: string
         }
         Returns: Json
       }
@@ -95706,6 +95930,22 @@ export type Database = {
           p_company_id: string
           p_environment: string
           p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_prodat_customer_masterdata_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_prodat_h_accepted_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
         }
         Returns: Json
       }
@@ -96793,6 +97033,22 @@ export type Database = {
         Args: { p_company_id: string; p_switch_request_id: string }
         Returns: boolean
       }
+      ediel_switch_cancellation_customer_masterdata_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
+      ediel_switch_cancellation_customer_masterdata_message_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
       ediel_switch_cancellation_source_v1: {
         Args: {
           p_actor_user_id: string
@@ -97166,6 +97422,8 @@ export type Database = {
           billing_terms_summary: string | null
           branding: Json
           brp_ediel_id: string | null
+          brp_name: string | null
+          brp_status: string | null
           city: string | null
           closed_at: string | null
           closed_by: string | null
@@ -97222,6 +97480,7 @@ export type Database = {
           ediel_production_status: string
           ediel_route_resolution_mode: string
           ediel_shared_transport_mode: string
+          esett_status: string | null
           external_tenant_reference: string
           id: string
           industry: string
@@ -97240,6 +97499,7 @@ export type Database = {
           live_approved_by: string | null
           live_blocked_reason: string | null
           live_ediel_enabled: boolean
+          market_role: string | null
           metadata: Json
           name: string
           normalized_org_number: string | null
@@ -97275,6 +97535,8 @@ export type Database = {
           suspended_at: string | null
           suspended_by: string | null
           technical_contact: Json
+          technical_contact_email: string | null
+          technical_contact_name: string | null
           test_application_reference: string | null
           test_counterparty_ediel_id: string | null
           test_ediel_id: string | null
@@ -97603,6 +97865,10 @@ export type Database = {
       gridex_company_legal_profile_defaults: {
         Args: { p_company: Json }
         Returns: Json
+      }
+      gridex_company_retained_history_v1: {
+        Args: { p_company_id: string }
+        Returns: string[]
       }
       gridex_complete_facility_response: {
         Args: {
@@ -98579,6 +98845,10 @@ export type Database = {
         Args: { p_context: Json }
         Returns: Json
       }
+      gridex_ediel_received_z02_address_source_basis_v1: {
+        Args: { p_actor_user_id: string; p_source_message_id: string }
+        Returns: Json
+      }
       gridex_ediel_received_z14_reporting_source_basis_v1: {
         Args: { p_actor_user_id: string; p_source_message_id: string }
         Returns: Json
@@ -99446,6 +99716,23 @@ export type Database = {
           grid_owner_name: string
           price_area: string
           source: string
+        }[]
+      }
+      gridex_portal_monthly_consumption_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_ids: string[]
+          p_from_month: string
+          p_to_month: string
+        }
+        Returns: {
+          covered_seconds: number
+          expected_seconds: number
+          is_complete: boolean
+          metering_point_count: number
+          month_key: string
+          total_kwh: number
+          value_count: number
         }[]
       }
       gridex_portfolio_actor_has_permission: {

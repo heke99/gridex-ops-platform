@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'
 import { withStaffApi, staffApiJson } from '@/lib/staff-api/http'
+import { applyStaffQueryPolicy } from '@/lib/staff-api/queryPolicy'
 import type { StaffApiContext } from '@/lib/staff-api/context'
 import { findStaffCustomer } from '@/lib/staff-api/customers'
 import { STAFF_CASE_PRIORITIES, STAFF_CASE_STATUSES, assignStaffCase, createStaffCase, findStaffCase, listStaffCaseEvents, listStaffCases, staffAttachmentDto, staffCaseDto, staffCaseEventDto } from '@/lib/staff-api/cases'
@@ -65,6 +66,7 @@ function scope(context: StaffApiContext, supportCase: { id: string; customer_id:
 }
 function pageInput(request: NextRequest) {
   for (const key of request.nextUrl.searchParams.keys()) if (!['limit', 'cursor'].includes(key)) fail('Parametern stöds inte.', key)
+  applyStaffQueryPolicy(request, ['limit'])
   const rawLimit = request.nextUrl.searchParams.get('limit')
   const limit = rawLimit === null ? null : Number(rawLimit)
   if (limit !== null && (!Number.isInteger(limit) || limit < 1 || limit > 100)) fail('limit måste vara mellan 1 och 100.', 'limit')
@@ -75,6 +77,7 @@ export function getStaffCases(request: NextRequest) {
   return route(request, READ_ACCESS, async (context) => {
     const params = request.nextUrl.searchParams
     for (const key of params.keys()) if (!['limit', 'cursor', 'status', 'customer_reference', 'query'].includes(key)) fail('Parametern stöds inte.', key)
+    applyStaffQueryPolicy(request, ['limit'])
     const rawLimit = params.get('limit')
     const limit = rawLimit === null ? null : Number(rawLimit)
     if (limit !== null && (!Number.isInteger(limit) || limit < 1 || limit > 100)) fail('limit måste vara mellan 1 och 100.', 'limit')

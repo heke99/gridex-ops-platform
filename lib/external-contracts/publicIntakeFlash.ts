@@ -1,10 +1,10 @@
 export const EXTERNAL_CONTRACT_SUCCESS_CREATED_MESSAGE =
-  'Tack. Avtalet är mottaget och ett kundflöde har skapats för granskning.'
+  'Tack. Avtalet är mottaget och vi återkommer så snart vi har gått igenom din ansökan.'
 export const EXTERNAL_CONTRACT_SUCCESS_NEEDS_REVIEW_MESSAGE =
   'Tack. Vi har tagit emot avtalet och behöver granska några uppgifter innan flödet går vidare.'
 export const EXTERNAL_CONTRACT_GENERIC_ERROR_MESSAGE = 'Avtalet kunde inte tas emot.'
 export const EXTERNAL_CONTRACT_OFFER_INCOMPLETE_MESSAGE =
-  'Det valda avtalet är inte komplett publicerat eller saknar canonical versionskopplingar.'
+  'Det valda avtalet kan inte tecknas just nu. Välj ett annat avtal eller kontakta oss.'
 export const EXTERNAL_CONTRACT_OFFER_UNAVAILABLE_MESSAGE =
   'Det valda avtalet är inte tillgängligt idag.'
 export const EXTERNAL_CONTRACT_COMPANY_NOT_FOUND_MESSAGE =

@@ -97,7 +97,7 @@ describe('Partner API v1 simple public surface', () => {
   it('stores POA privately and exposes only bounded PDF content', () => {
     expect(simple).toContain("const POA_BUCKET = 'customer-documents'")
     expect(simple).toContain('MAX_POA_BYTES = 5 * 1024 * 1024')
-    expect(simple).toContain("bytes.subarray(0, 5).toString('ascii') !== '%PDF-'")
+    expect(simple).toContain('if (!inspectPdfStructure(bytes).ok) {')
     expect(simple).toContain("file.toString('base64')")
     expect(openApi).toContain("file_extension: { type: 'string', enum: ['pdf'] }")
   })

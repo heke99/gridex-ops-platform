@@ -1,9 +1,11 @@
 // Extracted from actions.ts; keep public imports on the facade module.
 
 
+import { catalogPricesOverridden, validateContractPricing } from "@/lib/customer-contracts/pricingValidation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 import { supabaseService } from "@/lib/supabase/service"
+import { autoSendSigningLinkAfterCreate, type AutoSendSigningLinkResult } from "@/lib/customer-contracts/autoSendSigningLink"
 
 
 
@@ -15,13 +17,14 @@ import type { IntakeActionState, IntakeField, IntakeFieldErrors, IntakeFormValue
 import { getContractOfferById } from "@/lib/customer-contracts/db"
 
 import { saveCustomerAuthorizationDocument } from "@/lib/operations/db"
+import { signedAgreementDocumentTiming } from "@/lib/customer-contracts/signingMethod"
 
 
 import { processManualCustomerIntake, processPdfCustomerIntake } from "@/lib/customer-operations/customerIntakeOrchestrator"
 import { canonicalIdempotencyKey, onboardCustomerGraph, signedAuthorizationScopes } from "@/lib/customers/canonicalOnboarding"
 import { createTenantContext } from "@/lib/tenant/context"
 import type { CreateCustomerGraphParams, IntakeDocumentUploadResult } from './actions.part-1'
-import { IntakeValidationError, buildBillingAddressSnapshot, buildCustomerDocumentPath, checksumFile, createValidationErrorFromFieldErrors, insertAuditLog, normalizeCountryCode, normalizeOptionalString, validateCreateCustomerParams } from './actions.part-1'
+import { IntakeValidationError, buildBillingAddressSnapshot, buildCustomerDocumentPath, checksumFile, createValidationErrorFromFieldErrors, insertAuditLog, normalizeCountryCode, normalizeOptionalString, resolveIntakeSigningChoice, validateCreateCustomerParams } from './actions.part-1'
 import { buildAdminIntakeIdempotencyKey } from './actions.part-3'
 
 export async function uploadCustomerIntakeDocuments(params: {
@@ -35,6 +38,7 @@ export async function uploadCustomerIntakeDocuments(params: {
   existingAuthorizationDocumentId: string | null;
   signedScopes: string[];
   signedAgreementFile: File | null;
+  signedAgreementDeclaredDate?: string | null;
   signedPowerOfAttorneyFile: File | null;
   gridInvoiceFile: File | null;
   authorizationValidFrom: string | null;
@@ -169,6 +173,9 @@ export async function uploadCustomerIntakeDocuments(params: {
       params.signedAgreementFile,
       "complete_agreement",
     );
+    const signedAgreementTiming = signedAgreementDocumentTiming({
+      declaredSignedDate: params.signedAgreementDeclaredDate,
+    });
 
     const document = await saveCustomerAuthorizationDocument(supabase, {
       companyId: params.companyId,
@@ -189,9 +196,13 @@ export async function uploadCustomerIntakeDocuments(params: {
         ? `CONTRACT-${params.contractId.slice(0, 8)}`
         : null,
       notes: "Uppladdat vid kundskapande.",
+      // Real upload time; the canonical import uses metadata.declaredSignedDate
+      // as the signing date and records the import time separately.
+      uploaded_at: signedAgreementTiming.uploaded_at,
       metadata: {
         source: "customer_intake",
         documentRole: "signed_agreement",
+        ...signedAgreementTiming.metadata,
       },
     });
 
@@ -659,9 +670,23 @@ export type CustomerGraphResult = CustomerGraphRow & {
   __createdPowerOfAttorneyId: string | null
   __createdCurrentSupplierName: string | null
   __uploadedDocumentLabels?: string[]
+  /** Outcome of the automatic signing-link send; null when not requested or no contract. */
+  __signingLink?: AutoSendSigningLinkResult | null
 }
 
-export async function createCustomerGraph(params: CreateCustomerGraphParams): Promise<CustomerGraphResult> {
+export type CreateCustomerGraphOptions = {
+  /**
+   * Send the online signing link after commit when the graph created a
+   * pending_signature contract. Opt-in so bulk imports and test tooling do
+   * not email customers.
+   */
+  autoSendSigningLink?: { actorCanWriteContracts: boolean }
+}
+
+export async function createCustomerGraph(
+  params: CreateCustomerGraphParams,
+  options: CreateCustomerGraphOptions = {},
+): Promise<CustomerGraphResult> {
   const fieldErrors = validateCreateCustomerParams(params);
   if (Object.keys(fieldErrors).length > 0) {
     throw createValidationErrorFromFieldErrors(fieldErrors);
@@ -705,11 +730,40 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
   if (params.contractOfferId && !offer) {
     throw new Error("Det valda avtalet finns inte för bolaget. Välj avtal igen.");
   }
+  if (params.contractOfferId || params.contractTypeOverride) {
+    const pricingErrors = validateContractPricing({
+      contractType: params.contractTypeOverride ?? offer?.contract_type ?? "variable_hourly",
+      // Without a catalog offer every price is entered manually.
+      customPricing: !offer,
+      catalogOverridden: catalogPricesOverridden(offer, {
+        fixedPriceOrePerKwh: params.fixedPriceOrePerKwh,
+        spotMarkupOrePerKwh: params.spotMarkupOrePerKwh,
+        variableFeeOrePerKwh: params.variableFeeOrePerKwh,
+        monthlyFeeSek: params.monthlyFeeSek,
+        invoiceFeeSek: params.invoiceFeeSek,
+      }) || Boolean(offer && params.contractTypeOverride && params.contractTypeOverride !== offer.contract_type),
+      fixedPriceOrePerKwh: params.fixedPriceOrePerKwh,
+      spotMarkupOrePerKwh: params.spotMarkupOrePerKwh,
+      overrideReason: params.overrideReason,
+    });
+    const intakeFieldErrors: IntakeFieldErrors = {};
+    if (pricingErrors.fixedPriceOrePerKwh) intakeFieldErrors.fixedPriceOrePerKwh = pricingErrors.fixedPriceOrePerKwh;
+    if (pricingErrors.spotMarkupOrePerKwh) intakeFieldErrors.spotMarkupOrePerKwh = pricingErrors.spotMarkupOrePerKwh;
+    if (pricingErrors.overrideReason) intakeFieldErrors.overrideReason = pricingErrors.overrideReason;
+    if (Object.keys(intakeFieldErrors).length > 0) {
+      throw createValidationErrorFromFieldErrors(intakeFieldErrors);
+    }
+  }
   const hasContract = Boolean(params.contractOfferId || params.contractTypeOverride);
   const hasSignedAgreement = Boolean(params.signedAgreementFile);
+  // Staff signing choice (form intake). Already validated above.
+  const signingChoice = resolveIntakeSigningChoice(params);
+  const resolvedChoice = signingChoice?.ok ? signingChoice : null;
   // Intake only creates draft or pending-signature contracts; "signed" requires
   // the signed agreement file. Activation happens later in the contract flow.
-  const requestedStatus = params.contractStatus === "draft" ? "draft" : "pending_signature";
+  const requestedStatus = resolvedChoice
+    ? resolvedChoice.createStatus
+    : params.contractStatus === "draft" ? "draft" : "pending_signature";
   const contractStatus = hasSignedAgreement ? "signed" : requestedStatus;
   const contractType = params.contractTypeOverride ?? offer?.contract_type ?? "variable_hourly";
   const signedScopes = params.signedPowerOfAttorneyFile
@@ -919,7 +973,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
             vatRate: offer?.vat_rate ?? 25,
             optionalFeeLines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
           },
-          valid_from: normalizeOptionalString(params.contractStartDate),
+          valid_from: normalizeOptionalString(params.contractStartDate) ?? normalizeOptionalString(params.confirmedStartDate) ?? normalizeOptionalString(params.expectedStartDate),
         }
       : null,
     legal: hasSignedAgreement || signedScopes.length > 0
@@ -942,7 +996,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
           valid_from: normalizeOptionalString(params.authorizationValidFrom),
           valid_to: normalizeOptionalString(params.authorizationValidTo),
           reference: `INTAKE-POA-${idempotencyKey.slice(-12)}`,
-          notes: "Signerad fullmakt registrerad genom kanoniskt kundintag.",
+          notes: "Signerad fullmakt registrerad genom kundintag.",
           signed_scopes: signedScopes,
           created_by: params.actorUserId,
           updated_by: params.actorUserId,
@@ -986,7 +1040,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
       : null,
     info_request: params.postCreateAction === "request_data"
       ? {
-          request_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier_contract" : "z01_customer_masterdata",
+          request_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier_contract_check" : "z01_customer_masterdata",
           target_party_type: params.postCreateRequestTarget === "current_supplier" ? "current_supplier" : "grid_owner",
           grid_owner_id: normalizedGridOwnerId,
           current_supplier_name: params.currentSupplierUnknown ? "Okänd nuvarande leverantör" : normalizeOptionalString(params.currentSupplierName),
@@ -1018,6 +1072,7 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
     existingAuthorizationDocumentId: result.authorization_document_id,
     signedScopes,
     signedAgreementFile: params.signedAgreementFile,
+    signedAgreementDeclaredDate: resolvedChoice?.signedDate ?? null,
     signedPowerOfAttorneyFile: params.signedPowerOfAttorneyFile,
     gridInvoiceFile: params.gridInvoiceFile,
     authorizationValidFrom: params.authorizationValidFrom,
@@ -1047,8 +1102,22 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
     throw new Error(`Kundnummer saknas efter commit. Referens: ${result.correlation_id}.`);
   }
 
+  // After commit: a send failure is reported, never thrown (no rollback).
+  // Only the "send for signing" choice sends a link; uploaded/draft never do.
+  const signingLink = options.autoSendSigningLink && result.contract_id &&
+    (resolvedChoice ? resolvedChoice.sendSigningLink : true)
+    ? await autoSendSigningLinkAfterCreate({
+        companyId: params.companyId,
+        customerId: result.customer_id,
+        contractId: result.contract_id,
+        actorUserId: params.actorUserId,
+        actorCanWriteContracts: options.autoSendSigningLink.actorCanWriteContracts,
+      })
+    : null;
+
   return {
     ...(customer as CustomerGraphRow),
+    __signingLink: signingLink,
     __duplicateWarnings: duplicateWarnings,
     __duplicateReviewRequired: params.duplicateResolution === "create_new_pending_review",
     __createdNewCustomer: result.created_new_customer,

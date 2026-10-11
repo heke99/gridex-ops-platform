@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process'
-import {randomUUID} from 'node:crypto'
+import {createHash,randomUUID} from 'node:crypto'
 import {recordUtiltsTechnicalReception,registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './helpers/utiltsConsumptionParties'
 import {afterEach,beforeAll,expect,it,vi} from 'vitest'
 import {closureFixture as originalClosureFixture} from '../__tests__/helpers/closureWireFixtures'
@@ -12,7 +12,7 @@ import {compareUtiltsStructure} from '@/lib/ediel/utilts/structuralComparison'
 import {utiltsStructureWire as originalUtiltsStructureWire,STRUCTURE_POINT} from '../__tests__/helpers/structuralComparisonFixtures'
 import {priorE30PointWire as originalPriorE30PointWire} from '../__tests__/helpers/priorUtiltsStructureFixtures'
 import {priorE66MembershipWire as originalPriorE66MembershipWire} from '../__tests__/helpers/priorUtiltsStructureFixtures'
-import {ownerSource as originalOwnerSource} from '../__tests__/helpers/sourceOwnerFixtures'
+import {ownerSourceWithInstallationStatus as originalOwnerSource} from '../__tests__/helpers/sourceOwnerFixtures'
 import {utiltsNativeSourceFixture as originalUtiltsNativeSourceFixture} from '../__tests__/helpers/utiltsNativeSourceFixture'
 import {observationHandoffMessage as originalObservationHandoffMessage} from '../__tests__/helpers/utiltsObservationHandoff'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -50,7 +50,7 @@ vi.mock('@/lib/metering/normalizeMeteringValues',()=>({normalizeAndStoreMetering
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {supabaseService} from '@/lib/supabase/service'
-import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {resolveCanonicalRuntimeDecisionWithRegistry,readReceivedCanonicalProdatApplicationObjects} from '@/lib/ediel/core/runtimeDecision'
 import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
@@ -59,15 +59,20 @@ import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusines
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
 import {finalizeSupplierSwitchExecution} from '@/lib/operations/db'
 import {seedNormalSwitchNativeFixture} from './helpers/ediel-normal-switch-native-fixture'
+import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
+import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
+import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
+import {matchOutboundRequestForInbound,matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
 
 import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
 
 const DB='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 const literal=(v:unknown):string=>v===null?'NULL':"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
-function sql<T>(input:string):T {
+function sql<T>(input:string,captureStderr=false):T {
   if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('local_only')
-  const out=execFileSync('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{input,encoding:'utf8',timeout:10000,maxBuffer:2_000_000}).trim()
+  const out=execFileSync('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{input,encoding:'utf8',timeout:10000,maxBuffer:2_000_000,
+    ...(captureStderr?{stdio:'pipe' as const}:{})}).trim()
   return out?JSON.parse(out) as T:undefined as T
 }
 let serial=0
@@ -132,13 +137,16 @@ async function seed(delegated=false, structural=false) {
     utiltsEffects.provider.mockResolvedValue({accepted:[email],rejected:[],messageId:`native-original-${sourceId}`,response:'250 synthetic accepted'})
   }})
   expect(utiltsEffects.provider).toHaveBeenCalledTimes(providerCalls+1)
-  const ids={source:sourceId,company:native.companyId,customer:native.customerId,point:native.pointId,site:native.siteId,
+  const ids={source:sourceId as string,company:native.companyId,customer:native.customerId,point:native.pointId,site:native.siteId,
     grid:native.gridId,switch:native.switchId,actor:native.actorUserId,transport,outbound:native.originalZ03.id,reviewer,
     route:native.routeId,routeProfile:native.routeProfileId,contract:native.contractId}
   const p=(key:keyof typeof ids)=>literal(ids[key])
   const scope={external:native.external,sender:native.sender,receiver:native.receiver,caseReference:native.caseReference,
     customerIdentity:native.customerIdentity,requestedStartDate,gridArea:native.gridAreaCode,brpEdielId:native.brpEdielId}
-  const input=structural?structuralOwnerSource():ownerSource()
+  // Declare this positive fixture's own reading fields before source birth.
+  // The runtime still requires its actual mailbox/parse/reception owner.
+  const input=structural?structuralOwnerSource():ownerSource('Z12',{readingDeclarations:true,
+    sourceCodes:{installationStatus:'Z12',settlementMethod:'Z32'}})
   let wire=scopedWire(scope,String(input.raw_payload))
   if(!structural)wire=wire.replaceAll(`DTM+92:${S('2026-10-01').replaceAll('-','')}0000:203`,`DTM+92:${requestedStartDate.replaceAll('-','')}0000:203`)
   const transportEdiel=sql<string>(`SELECT to_jsonb(min(n)::text) FROM generate_series(90000,99999) n
@@ -158,17 +166,39 @@ async function seed(delegated=false, structural=false) {
       INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to)
       VALUES(${p('transport')},'EdielId',${literal(transportEdiel)},true,'${S('2026-01-01')}','${S('2099-01-01')}');
       INSERT INTO public.tenant_counterparty_relations(company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from)
-      VALUES(${p('company')},'test',${p('transport')},'ediel_transport_agent',true,clock_timestamp()-interval '1 second');`:''}
-    INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,
-      raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
-      canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-    SELECT ${p('source')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','inbound','edifact','PRODAT','Z04','received',
-      ${literal(wire)},${literal(input.parsed_payload)}::jsonb,clock_timestamp(),'23-DDQ-PRODAT',${literal(native.receiver)},
-      ${literal(delegated?transportEdiel:native.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
-    FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
-    WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)
+      VALUES(${p('company')},'test',${p('transport')},'ediel_transport_agent',true,clock_timestamp()-interval '1 second');`:''}`)
+  // Use the actual retained mail and parser before the public source creator.
+  // Its immutable birth and first reception are never backfilled by this suite.
+  const receivedAt=new Date().toISOString()
+  const mail=await seedOriginalMailboxNative(<T>(statement:string)=>sql<T>(statement,true),literal,{companyId:ids.company,environment:'test',raw:wire,
+    receivedAt,smtpFrom:assertEdielSmtpReadiness().from})
+  const outboundMatch=await matchOutboundRequestForInbound({companyId:ids.company,parsed:mail.parsed,
+    inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+  const meteringPointMatch=await matchMeteringPointForInbound({companyId:ids.company,parsed:mail.parsed})
+  const source=await createInboundEdielMessage({companyId:ids.company,actorUserId:ids.actor,environment:'test',
+    inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,
+    parsed:mail.parsed,outboundMatch,meteringPointMatch})
+  expect(source,'public_creator_must_return_actual_source').toMatch(/^[a-f0-9-]{36}$/)
+  ids.source=source!
   const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',ids.source).single()
   expect(error).toBeNull();expect(data).not.toBeNull()
+  expect(data).toMatchObject({id:ids.source,company_id:ids.company,environment:'test',direction:'inbound',
+    message_family:'PRODAT',message_code:'Z04',raw_payload:wire,inbound_email_message_id:mail.inboundEmailMessageId,
+    mailbox_message_id:mail.inboundEmailMessageId,rule_profile_key:'PRODAT:Z04:L:26.A:r3',
+    customer_id:ids.customer,site_id:ids.site})
+  const receptions=sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]')
+    FROM gridex_ediel_inbound_receptions.receptions r WHERE company_id=${p('company')} AND source_message_id=${p('source')};`,true)
+  const payloadHash=createHash('sha256').update(wire).digest('hex')
+  expect(receptions).toHaveLength(1)
+  expect(receptions[0]).toMatchObject({source_message_id:ids.source,company_id:ids.company,environment:'test',
+    inbound_email_message_id:mail.inboundEmailMessageId,parse_result_id:mail.parseResultId,actor_user_id:ids.actor,
+    classification:'first_reception',canonical_payload_hash:payloadHash,received_payload_hash:payloadHash})
+  const retainedMail=sql<{received_at:string;raw_edifact_payload:string}>(`SELECT to_jsonb(m)
+    FROM public.inbound_email_messages m WHERE company_id=${p('company')} AND id=${literal(mail.inboundEmailMessageId)};`,true)
+  expect(retainedMail.raw_edifact_payload).toBe(wire)
+  expect(Date.parse(retainedMail.received_at)).toBe(Date.parse(receivedAt))
+  expect(Date.parse(data!.message_received_at!)).toBe(Date.parse(retainedMail.received_at))
+  expect(Date.parse(String(receptions[0].received_at))).toBe(Date.parse(retainedMail.received_at))
   for(const permission of ['ediel_testing.write','metering.read','communication.read']){
     const authorized=await supabaseService.rpc('gridex_actor_has_company_permission',{
       p_actor_user_id:ids.reviewer,p_company_id:ids.company,p_permission:permission,
@@ -178,8 +208,11 @@ async function seed(delegated=false, structural=false) {
   return {ids,original:data as unknown as EdielMessageRow,...scope}
 }
 async function prepare(f:Awaited<ReturnType<typeof seed>>) {
-  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.original)
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.original,{actorUserId:f.ids.actor})
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
+  const ownApplication=readReceivedCanonicalProdatApplicationObjects(decision,f.original)
+  expect(ownApplication,'complete_own_application_must_qualify_before_real_supply_apply').toMatchObject({
+    headerDecision:'accepted',objects:[{applicationDecision:'accepted',reasonCodes:[]}]})
   const canonical=await recordReceivedSourceValidation({original:f.original,validated:f.original,resolvedCompanyId:f.ids.company,decision})
   expect(canonical, JSON.stringify({rulePackEvidence:decision.validationReport.rulePackEvidence,sourceReceivedAt:f.original.message_received_at,context:f.original.execution_context_snapshot})).toMatchObject({status:'recorded'})
   // Production order (lib/ediel/flows/inboundProcessing.ts): an accepted
@@ -189,10 +222,61 @@ async function prepare(f:Awaited<ReturnType<typeof seed>>) {
   expect(session).not.toBeNull()
   return {canonical,session:session!}
 }
+// Observe only literal qualification reasons from the actual Z04/L apply;
+// unknown values remain counted without printing source IDs or free-form text.
+const sourceOwnerSupplyReasons = [
+  'supply_execution_actor_unqualified',
+  'supply_frozen_legal_context_required',
+  'supply_complete_own_application_and_function_required',
+  'supply_complete_physical_partition_required',
+  'own_application_not_accepted',
+  'ambiguous_physical_supply_scope',
+  'own_supply_wire_or_legal_scope_unavailable',
+  'own_supply_business_unqualified',
+  'no_qualified_supply_objects',
+  'normal_z04_source_required',
+  'normal_z04_execution_actor_required',
+  'normal_z04_frozen_legal_context_required',
+  'normal_z04_canonical_leaf_ambiguous',
+  'normal_z04_canonical_source_not_accepted',
+  'normal_z04_whole_physical_scope_required',
+  'supply_original_cohort_changed',
+  'normal_z04_register_owner_scope_required',
+  'normal_z04_exact_sent_original_required',
+  'normal_z04_locked_original_scope_required',
+  'normal_z04_owned_signed_contract_scope_required',
+  'normal_z04_conflicting_supply_period',
+ ] as const
+function sourceOwnerSupplyDiagnostic(results: import('@/lib/ediel/flows/supplyMarketTransition').SupplyMarketResult[]) {
+ const refused=results.filter(result=>!result.applied)
+ const held=results.flatMap(result=>result.partition?.flatMap(entry=>entry.disposition==='held'?[entry.reason]:[])??[])
+ const known=(reason:string|null)=>sourceOwnerSupplyReasons.some(marker=>marker===reason)
+ return {
+  observedApplyCount:results.length,
+  appliedCount:results.filter(result=>result.applied).length,
+  primaryReasonCounts:Object.fromEntries(sourceOwnerSupplyReasons.map(marker=>[marker,refused.filter(result=>result.reason===marker).length])),
+  unknownPrimaryReasonCount:refused.filter(result=>!known(result.reason)).length,
+  heldReasonCounts:Object.fromEntries(sourceOwnerSupplyReasons.map(marker=>[marker,held.filter(reason=>reason===marker).length])),
+  unknownHeldReasonCount:held.filter(reason=>!known(reason)).length,
+ }
+}
 async function complete(f:Awaited<ReturnType<typeof seed>>,given?:Awaited<ReturnType<typeof prepare>>) {
   const prepared=given ?? await prepare(f)
-  const result=await applyInboundBusinessStateMachine({message:f.original,actorUserId:f.ids.actor,matchedSwitchRequestId:f.ids.switch,onSourceSwitchCommitted:prepared.session.onSwitchCommitted})
-  expect(result.outcome, JSON.stringify(result)).toBe('supplier_switch_accepted')
+  const supplyModule=await import('@/lib/ediel/flows/supplyMarketTransition')
+  // A default spy delegates to the existing real implementation; inspect its
+  // already-returned promise rather than executing another apply or replay.
+  const observedApply=vi.spyOn(supplyModule,'applySupplyMarketSource')
+  let result:Awaited<ReturnType<typeof applyInboundBusinessStateMachine>>
+  let sourceQualification:ReturnType<typeof sourceOwnerSupplyDiagnostic>
+  try{
+   result=await applyInboundBusinessStateMachine({message:f.original,actorUserId:f.ids.actor,matchedSwitchRequestId:f.ids.switch,onSourceSwitchCommitted:prepared.session.onSwitchCommitted})
+   const pending=observedApply.mock.results.flatMap((returned,index)=>{
+    const call=observedApply.mock.calls[index]?.[0]
+    return returned.type==='return'&&call?.message.company_id===f.ids.company&&call.message.id===f.ids.source&&call.actorUserId===f.ids.actor?[returned.value]:[]
+   })
+   sourceQualification=sourceOwnerSupplyDiagnostic(await Promise.all(pending))
+  }finally{observedApply.mockRestore()}
+  expect(result.outcome, JSON.stringify({...result,sourceQualification})).toBe('supplier_switch_accepted')
   return prepared.session.finish()
 }
 function stored(source:string) {
@@ -461,6 +545,53 @@ async function insertStructuralChange(f:Awaited<ReturnType<typeof seed>>,code:'Z
  const message=structuralOwnerSource(code,reason,document,replacement)
  const external=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  const body=scopedWire(f,message.raw_payload!.replaceAll('735123456789012345',external))
+ if(code==='Z10'){
+  // Each actual reception needs its own technical interchange. Preserve every
+  // business segment, including the correction's document and BGM function.
+  const reference=randomUUID().replaceAll('-','').slice(0,14),{una,segments}=tokenizeEdifact(body)
+  const headers=segments.filter(segment=>segment.tag==='UNB'),trailers=segments.filter(segment=>segment.tag==='UNZ')
+  expect(headers).toHaveLength(1);expect(trailers).toHaveLength(1)
+  const replacements=[{segment:headers[0],element:5},{segment:trailers[0],element:2}].map(({segment,element})=>{
+   const span=segmentSourceSpan(segment),fields=segment.raw.split(una.dataElementSeparator)
+   expect(span).not.toBeNull();expect(fields[element]).toBe('I')
+   fields[element]=reference
+   return {span:span!,raw:fields.join(una.dataElementSeparator)}
+  }).sort((a,b)=>b.span.startOffset-a.span.startOffset)
+  let wire=body
+  for(const replacement of replacements)wire=wire.slice(0,replacement.span.startOffset)+replacement.raw+wire.slice(replacement.span.endOffset)
+  const receivedAt=new Date().toISOString()
+  const mail=await seedOriginalMailboxNative(<T>(statement:string)=>sql<T>(statement,true),literal,{
+   companyId:f.ids.company,environment:'test',raw:wire,receivedAt,smtpFrom:assertEdielSmtpReadiness().from})
+  expect(mail.parsed.messageTypeVersion.associationAssignedCode).toBe('E2SE6A')
+  expect(mail.parsed.applicationReference).toBe('23-DDQ-PRODAT');expect(mail.parsed.interchangeReference).toBe(reference)
+  const id=sql<string>(`INSERT INTO public.ediel_messages(company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,inbound_email_message_id,mailbox_message_id,message_version,sender_ediel_id,receiver_ediel_id,interchange_reference)
+   SELECT ${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},'test','inbound','edifact','PRODAT','Z10','received',${literal(wire)},${literal(mail.parsed)}::jsonb,${literal(receivedAt)}::timestamptz,${literal(mail.parsed.applicationReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile,
+    ${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)},${literal(mail.parsed.messageTypeVersion.associationAssignedCode)},${literal(mail.parsed.senderEdielId)},${literal(mail.parsed.receiverEdielId)},${literal(mail.parsed.interchangeReference)}
+   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+   WHERE profile.profile_key='PRODAT:Z10:M:26.A:r3' AND profile.is_enabled RETURNING to_jsonb(id);`)
+  expect(id).toMatch(/^[a-f0-9-]{36}$/)
+  await recordOriginalMailboxNativeReception({companyId:f.ids.company,sourceMessageId:id,actorUserId:f.ids.reviewer,
+   inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,sourcePayloadHash:mail.sourcePayloadHash})
+  const original=sql<Record<string,unknown>>(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(id)} AND company_id=${literal(f.ids.company)};`,true)
+  expect(original).toMatchObject({company_id:f.ids.company,customer_id:f.ids.customer,site_id:f.ids.site,metering_point_id:f.ids.point,
+   environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z10',message_version:'E2SE6A',raw_payload:wire,
+   inbound_email_message_id:mail.inboundEmailMessageId,mailbox_message_id:mail.inboundEmailMessageId,
+   sender_ediel_id:mail.parsed.senderEdielId,receiver_ediel_id:mail.parsed.receiverEdielId,interchange_reference:reference,
+   application_reference:'23-DDQ-PRODAT',rule_profile_key:'PRODAT:Z10:M:26.A:r3',immutable_payload_hash:mail.sourcePayloadHash})
+  const receptions=sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]') FROM gridex_ediel_inbound_receptions.receptions r
+   WHERE company_id=${literal(f.ids.company)} AND source_message_id=${literal(id)};`,true)
+  expect(receptions).toHaveLength(1)
+  expect(receptions[0]).toMatchObject({company_id:f.ids.company,source_message_id:id,environment:'test',actor_user_id:f.ids.reviewer,
+   inbound_email_message_id:mail.inboundEmailMessageId,parse_result_id:mail.parseResultId,classification:'first_reception',
+   canonical_payload_hash:mail.sourcePayloadHash,received_payload_hash:mail.sourcePayloadHash})
+  expect(sql(`SELECT to_jsonb(m.message_received_at=mail.received_at AND r.received_at=mail.received_at
+   AND mail.received_at=${literal(receivedAt)}::timestamptz AND mail.raw_edifact_payload=m.raw_payload AND p.raw_payload=m.raw_payload AND p.parse_status='parsed')
+   FROM public.ediel_messages m JOIN public.inbound_email_messages mail ON mail.id=m.inbound_email_message_id
+   JOIN public.inbound_ediel_parse_results p ON p.id=${literal(mail.parseResultId)} AND p.inbound_email_message_id=mail.id AND p.company_id=m.company_id
+   JOIN gridex_ediel_inbound_receptions.receptions r ON r.company_id=m.company_id AND r.source_message_id=m.id
+   WHERE m.id=${literal(id)} AND m.company_id=${literal(f.ids.company)};`,true)).toBe(true)
+  return id
+ }
  const id=sql<string>(`INSERT INTO public.ediel_messages(company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
   SELECT ${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},'test','inbound','edifact','PRODAT',${literal(code)},'received',${literal(body)},${literal(message.parsed_payload)}::jsonb,clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key=${literal(`PRODAT:${code}:${(message.parsed_payload as Record<string,unknown>).subtype}:26.A:r3`)} AND profile.is_enabled RETURNING to_jsonb(id);`)

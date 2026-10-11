@@ -1,3 +1,4 @@
+import {createAssignedProdatHeaderNegativeSource,observeAssignedProdatHeaderNegativeField} from '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
 import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
 import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
 import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
@@ -8,9 +9,12 @@ import { supabaseService } from '@/lib/supabase/service'
 import { resolveAssignedSupplyBirthProfile } from '@/lib/inbound-mail/assignedSupplyBirthProfile'
 import { resolveNormalSwitchBirthProfile } from '@/lib/inbound-mail/normalSwitchBirthProfile'
 import { resolveCustomerSourceBirthProfile } from '@/lib/inbound-mail/customerSourceBirthProfile'
+import { resolveMeterChangeSourceBirthProfile } from '@/lib/inbound-mail/meterChangeSourceBirthProfile'
 import { resolveSupplierDataBirthProfile } from '@/lib/inbound-mail/supplierDataBirthProfile'
 import { resolveBilateralSwitchBirthProfile } from '@/lib/inbound-mail/bilateralSwitchBirthProfile'
+import {captureBilateralSwitchBirthResources,resolveBilateralSwitchBirthResources} from '@/lib/inbound-mail/bilateralSwitchBirthResources'
 import { resolveRejectedBilateralSwitchBirthProfile } from '@/lib/inbound-mail/rejectedBilateralSwitchBirthProfile'
+import {resolveRejectedZ04HRequiredFieldBirthProfile} from '@/lib/inbound-mail/rejectedZ04HRequiredFieldBirthProfile'
 import { resolveSupplyEndBirthProfile } from '@/lib/inbound-mail/supplyEndBirthProfile'
 import { resolveCancellationBirthProfile } from '@/lib/inbound-mail/cancellationBirthProfile'
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
@@ -334,6 +338,11 @@ export async function createInboundEdielMessage(input: {
   await assertEdielTenantActor({ companyId, actorUserId, permission: 'communication.write' })
   if (!sourcePrincipal.ok) throw sourcePrincipal.error
   const { inboundEmailMessageId, environment } = sourcePrincipal
+  if(input.parsed.messageFamily==='PRODAT'&&observeAssignedProdatHeaderNegativeField(input.parsed.rawPayload)){
+    if(environment!=='test'&&environment!=='production')throw new Error('ediel_inbound_duplicate_scope_required')
+    return createAssignedProdatHeaderNegativeSource({companyId,actorUserId,environment,inboundEmailMessageId,
+      parseResultId,rawPayload:input.parsed.rawPayload})
+  }
   const matchedOutboundRequestId =
     input.outboundMatch?.status === 'matched' && input.outboundMatch.entityType === 'outbound_request'
       ? input.outboundMatch.entityId
@@ -425,6 +434,13 @@ export async function createInboundEdielMessage(input: {
     ...ackColumnsForParsed(input.parsed),
   }
 
+  // Capture only scalar reference candidates before any subsequent source
+  // awaits. Replay and non-H paths do not consume a failed optional snapshot.
+  let bilateralResources: {ok:true;candidate:ReturnType<typeof captureBilateralSwitchBirthResources>} | {ok:false;error:unknown}
+  try {
+    bilateralResources={ok:true,candidate:input.parsed.messageFamily==='PRODAT'&&insertPayload.message_code==='Z04'&&insertPayload.metering_point_id===null
+      ?captureBilateralSwitchBirthResources({companyId,outboundMatch:input.outboundMatch,meteringPointMatch:input.meteringPointMatch}):null}
+  } catch(error) {bilateralResources={ok:false,error}}
   const observe=async(messageId:string)=>{
     const r=await recordInboundReception({companyId:companyId,messageId,actorUserId:actorUserId,inboundEmailMessageId:inboundEmailMessageId,parseResultId:parseResultId})
     requireFirstReception(r)
@@ -444,11 +460,22 @@ export async function createInboundEdielMessage(input: {
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z04') {
-    const birthProfile = await resolveAssignedSupplyBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    const ordinaryProfile = await resolveAssignedSupplyBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
       ?? await resolveNormalSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
-      ?? await resolveBilateralSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    const bilateralProfile = ordinaryProfile===null
+      ?await resolveBilateralSwitchBirthProfile({rawPayload:insertPayload.raw_payload,receivedAt:mailSource.received_at}):null
+    const birthProfile = ordinaryProfile??bilateralProfile
       ?? await resolveRejectedBilateralSwitchBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+      ?? await resolveRejectedZ04HRequiredFieldBirthProfile({rawPayload:insertPayload.raw_payload,receivedAt:mailSource.received_at})
     if (birthProfile) Object.assign(insertPayload, birthProfile)
+    if(bilateralProfile&&insertPayload.metering_point_id===null){
+      if(!bilateralResources.ok)throw bilateralResources.error
+      const candidate=bilateralResources.candidate
+      if(candidate&&candidate.requestId===insertPayload.outbound_request_id&&candidate.customerId===insertPayload.customer_id&&candidate.siteId===insertPayload.site_id){
+        const resources=await resolveBilateralSwitchBirthResources({candidate,rawPayload:insertPayload.raw_payload,environment:normalizedEnvironment})
+        if(resources)insertPayload.metering_point_id=resources.pointId
+      }
+    }
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z05') {
     const ordinary = await resolveSupplyEndBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
@@ -463,6 +490,11 @@ export async function createInboundEdielMessage(input: {
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z06') {
     const birthProfile = await resolveCustomerSourceBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at })
+    if (birthProfile) Object.assign(insertPayload, birthProfile)
+  }
+  if (insertPayload.message_family === 'PRODAT' && insertPayload.message_code === 'Z10') {
+    const birthProfile = await resolveMeterChangeSourceBirthProfile({ rawPayload: insertPayload.raw_payload, receivedAt: mailSource.received_at,
+      applicationReference: insertPayload.application_reference, environment: insertPayload.environment })
     if (birthProfile) Object.assign(insertPayload, birthProfile)
   }
   if (input.parsed.messageFamily === 'PRODAT' && insertPayload.message_code === 'Z14') {

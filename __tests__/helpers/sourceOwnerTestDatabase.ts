@@ -1,8 +1,10 @@
 import {ownerSource,ownerRulePack,OWNER,ownerId} from './sourceOwnerFixtures'
 import {createHash} from 'node:crypto'
-export type SourceOwnerTestIO = {rows:Record<string,Record<string,unknown>[]>;calls:{name:string;args:Record<string,unknown>}[];badReceipt:string;badCount:boolean;failTable:string;hideSupply:boolean;message?:ReturnType<typeof ownerSource>;nativeUnavailable?:boolean}
+import {prodatOwnSourceReadingAdapter} from './prodatOwnSourceReadingAdapter'
+import type {ProdatOwnSourceReadingSdk} from './prodatOwnSourceReadingFixture'
+export type SourceOwnerTestIO = {rows:Record<string,Record<string,unknown>[]>;calls:{name:string;args:Record<string,unknown>}[];badReceipt:string;badCount:boolean;failTable:string;hideSupply:boolean;message?:ReturnType<typeof ownerSource>;nativeUnavailable?:boolean;ownSourceReadings?:ProdatOwnSourceReadingSdk|null}
 /** Only the external database boundary is replaced; all decision producers are real. */
-export function sourceOwnerTestDatabase(io:SourceOwnerTestIO) { return {from:(table:string)=>{
+export function sourceOwnerTestDatabase(io:SourceOwnerTestIO) { return prodatOwnSourceReadingAdapter(()=>io.ownSourceReadings??null,{from:(table:string)=>{
  const filters:Record<string,unknown>={};let columns='',values:Record<string,unknown>|null=null,single=false
  const result=()=>{
    const rows=(io.rows[table]??[]).filter(r=>Object.entries(filters).every(([k,v])=>r[k]===v))
@@ -56,4 +58,4 @@ export function sourceOwnerTestDatabase(io:SourceOwnerTestIO) { return {from:(ta
  for(const field of ['objectFactsHash','ignoredFieldsHash','responseFactsHash','applicationFactsHash','sourceFunctionFactsHash'])if(io.badReceipt===name+':'+field)data={...data,[field]:'0'.repeat(64)}
  if(io.badReceipt===name)data={...data,companyId:'00000000-0000-4000-8000-000000000999'}
  const q={abortSignal:()=>q,then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data,error:null}).then(resolve)};return q
-}} }
+}}) }

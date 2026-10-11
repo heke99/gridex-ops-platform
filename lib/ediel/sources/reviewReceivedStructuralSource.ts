@@ -122,7 +122,7 @@ export async function reviewReceivedStructuralSource(input:{companyId:string;env
     const original=data as EdielMessageRow
     if(original.direction!=='inbound'||original.message_family!=='PRODAT'||original.message_standard!=='edifact'
       ||!['Z04','Z06','Z10'].includes(original.message_code??''))return unconfirmed()
-    const decision=await resolveCanonicalRuntimeDecisionWithRegistry(original)
+    const decision=await resolveCanonicalRuntimeDecisionWithRegistry(original,{actorUserId:input.reviewerUserId})
     const canonicalReceipt=await recordReceivedSourceValidation({original,validated:original,resolvedCompanyId:input.companyId,decision})
     const seed=takeReceivedSourceOwnerSeed(canonicalReceipt)
     if(!seed||!original.raw_payload)return unconfirmed()

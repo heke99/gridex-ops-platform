@@ -9,12 +9,8 @@ const io=vi.hoisted(()=>({message:{} as EdielMessageRow,tables:{} as Record<stri
  domainResult:null as Record<string,unknown>|null,domainAckFailure:false,followupFailure:false,
  retained:null as Record<string,unknown>|null,append:null as Record<string,unknown>|null,
  actualDecision:null as import('@/lib/ediel/core/runtimeDecision').CanonicalRuntimeDecision|null,
- deliveredDecision:null as import('@/lib/ediel/core/runtimeDecision').CanonicalRuntimeDecision|null}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>sourceRpc(name,args),from:(table:string)=>tablePort(table)}}))
-vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async importOriginal=>{
- const actual=await importOriginal<typeof import('@/lib/ediel/rulebook/canonicalRulePackRegistry')>()
- return {...actual,resolveCanonicalRulePack:async()=>{io.trace.push('named-registry');return registryEvidence()}}
-})
+ deliveredDecision:null as import('@/lib/ediel/core/runtimeDecision').CanonicalRuntimeDecision|null,ownSourceReadings:null as ProdatOwnSourceReadingSdk|null}))
+vi.mock('@/lib/supabase/service',async()=>({supabaseService:(await import('./helpers/prodatOwnSourceReadingAdapter')).prodatOwnSourceReadingAdapter(()=>io.ownSourceReadings,{rpc:(name:string,args:Record<string,unknown>)=>sourceRpc(name,args),from:(table:string)=>tablePort(table)})}))
 // The copy probe still executes the real validator first. It replaces only
 // that actual return object's identity, never its national checks or facts.
 vi.mock('@/lib/ediel/core/runtimeDecision',async importOriginal=>{
@@ -70,23 +66,28 @@ import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {deathSelection} from './fixtures/prodat-death-status'
 import {raw,line,characteristic,common} from './fixtures/prodat-register'
 import {head,source} from './fixtures/prodat-identity'
-import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
-import {ownerSource} from './helpers/sourceOwnerFixtures'
+import {ownerSourceWithInstallationStatus as ownerSource} from './helpers/sourceOwnerFixtures'
+import {createProdatOwnSourceReadingSdk,resetProdatOwnSourceReadingSdk,installProdatOwnSourceReadingFixture,type ProdatOwnSourceReadingSdk} from './helpers/prodatOwnSourceReadingFixture'
+import {finiteProdatRulePack} from './helpers/prodatOwnSourceReadingAdapter'
 import type {SourceObjectScope} from '@/lib/ediel/sources/sourceOwnerWire'
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,company=id(2),actor=id(50),pointA='735123456789012345',pointB='735123456789012346'
 function registryEvidence(){
- const code=io.message.message_code
- const profile=code==='Z04'?['PRODAT:Z04:L:26.A:r3','prodat_z04_supplier_switch_confirmation']
-   :code==='Z14'?['PRODAT:Z14:N:26.A:r3','prodat_z14_permission_response']
-   :['PRODAT:Z06:E:26.A:r3','prodat_z06_customer_update']
- const witness=originalRuleWitnessFixture({rulePackId:id(12),messageProfileId:id(11),profileKey:profile[0],sourceHash:'a'.repeat(64)})
- return {...witness,profileKey:profile[1],databaseProfileKey:witness.profileKey,originalVersion:witness.version,originalSnapshot:witness.snapshot}
+ const row=registryRow()
+ return {rulePackId:row.rule_pack_id,messageProfileId:row.message_profile_id,sourceHash:row.source_hash,databaseProfileKey:row.profile_key,
+  originalVersion:row.original_version,originalSnapshot:row.original_snapshot}
+}
+function registryRow(){
+ if(io.message.message_code==='Z04')return finiteProdatRulePack('Z04','L','Z22')
+ if(io.message.message_code==='Z14')return finiteProdatRulePack('Z14','N','Z96')
+ if(io.message.message_code==='Z06')return finiteProdatRulePack('Z06','E','E34')
+ throw Error('UNDECLARED_COORDINATOR_CATALOGUE_SCOPE')
 }
 function sourceRpc(name:string,args:Record<string,unknown>){
  io.calls.push({name,args});io.trace.push(name)
  const hash=(field:string)=>typeof args[field]==='string'?evidenceHash(args[field] as string):null
  let data:unknown=null,error:Error|null=null
- if(name==='ediel_read_technical_source_endpoint_v2')data=null
+ if(name==='resolve_canonical_ediel_rule_pack_with_witness_v1'){io.trace.push('named-registry');const row=registryRow();expect(args).toMatchObject({p_market:'electricity',p_family:'PRODAT',p_message_code:row.profile.messageCode,p_transaction_subtype:row.profile.transactionSubtype,p_direction:'inbound'});data=[row]}
+ else if(name==='ediel_read_technical_source_endpoint_v2')data=null
  else if(name==='gridex_read_committed_inbound_ack_v2'){
   expect(args.p_ack_payload_hash).toBe(evidenceHash(io.message.raw_payload!));data=io.retained
  }else if(name==='ediel_customer_life_event_inbound_basis_v1'){
@@ -163,12 +164,13 @@ function receivedDomain(wire:string,code:string){
  const message={...source(wire,code),company_id:company,status:'received',application_reference:code==='Z14'?'23-DGI-PRODAT':'23-DDQ-PRODAT',
   // Declared receiver-local readings facts match the independent good supply
   // fixture. They are not an authentic source or native business approval.
-  parsed_payload:code==='Z04'?ownerSource().parsed_payload:{}} as EdielMessageRow
+  parsed_payload:code==='Z04'?ownerSource('Z12').parsed_payload:{}} as EdielMessageRow
+ if(code==='Z04'){message.inbound_email_message_id=id(60);message.created_at=message.message_received_at!}
  message.execution_context_snapshot={receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:message.id,companyId:company,environment:'test',messageCode:code,payloadHash:evidenceHash(wire),sourceReceivedAt:message.message_received_at,capturedAt:message.message_received_at}}
  return message
 }
 function supplyMessage(){
- const first=tokenizeEdifact(ownerSource().raw_payload!),start=first.segments.findIndex(token=>token.tag==='LIN'),end=first.segments.findIndex(token=>token.tag==='UNT')
+ const first=tokenizeEdifact(ownerSource('Z12',{readingDeclarations:true,sourceCodes:{installationStatus:'Z12',settlementMethod:'Z32'}}).raw_payload!),start=first.segments.findIndex(token=>token.tag==='LIN'),end=first.segments.findIndex(token=>token.tag==='UNT')
  const own=first.segments.slice(start,end).map(token=>token.raw)
  const sibling=own.filter(segment=>!segment.startsWith('QTY+31')).map(segment=>segment.replace('LIN+1+','LIN+2+').replaceAll(pointA,pointB).replaceAll('CASE-1','CASE-2'))
  const all=[...first.segments.slice(0,start).map(token=>token.raw),...own,...sibling],unh=all.findIndex(segment=>segment.startsWith('UNH+'))
@@ -200,7 +202,9 @@ function permissionResult(allApplied=false){
 }
 function ackMessage(tenant:string|null){const rawPayload=EdifactEnvelopeCodec.encode({sender:'54321',receiver:'12345',environment:'test',interchangeReference:'ACK-I',applicationReference:'23-DDQ-PRODAT',acknowledgementRequest:false,
  messages:[{messageReference:'ACK-M',messageTypeToken:'CONTRL:2:2:UN',businessSegments:['UCI+SOURCE-I+12345:14+54321:14+1']}]});return {...source(rawPayload),company_id:tenant,message_family:'CONTRL',message_code:'CONTRL',status:'received'} as EdielMessageRow}
-function setMessage(message:EdielMessageRow){io.message=message;io.tables.ediel_messages=[message as unknown as Record<string,unknown>]}
+function setMessage(message:EdielMessageRow){io.message=message;io.tables.ediel_messages=[message as unknown as Record<string,unknown>];io.ownSourceReadings=null
+ if(message.message_code==='Z04'){io.ownSourceReadings=createProdatOwnSourceReadingSdk();resetProdatOwnSourceReadingSdk(io.ownSourceReadings)
+  installProdatOwnSourceReadingFixture(io.ownSourceReadings,message,'L',{actorUserId:actor,receivedAt:message.message_received_at!,mailId:message.inbound_email_message_id!,parseId:id(61),receptionId:id(62),legalActorId:id(9)})}}
 const run=()=>processInboundEdielMessage({actorUserId:actor,edielMessageId:io.message.id})
 const native=(name:string)=>io.calls.filter(call=>call.name===name)
 const aperak=()=>io.drafts.filter(draft=>draft.messageFamily==='APERAK')

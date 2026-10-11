@@ -2,7 +2,7 @@ import {supabaseService} from '@/lib/supabase/service'
 import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {technicalSyntaxAckQualification,type TechnicalSyntaxAckEvidence} from './technicalSyntaxAuthority'
-import {prodatCommonHeaderRejectionQualification,type ProdatCommonHeaderRejectionEvidence} from './prodatCommonHeaderRejectionAuthority'
+import {prodatCommonHeaderRejectionQualification,commonHeaderReplyApplicationReference,type ProdatCommonHeaderRejectionEvidence} from './prodatCommonHeaderRejectionAuthority'
 import type {TechnicalSyntaxAckRoute} from './technicalSyntaxRoute'
 
 export type ProdatCommonHeaderNegativeAckRoute=Readonly<Omit<TechnicalSyntaxAckRoute,'kind'> & {kind:'prodat_common_header_negative_ack_route';smtpHost:string;smtpPort:number}>
@@ -25,7 +25,7 @@ export async function readProdatCommonHeaderNegativeAckRoute(input:{evidence:Pro
  const r=data as ProdatCommonHeaderNegativeAckRoute|null,u=t.originalUNB
  if(!r||r.kind!=='prodat_common_header_negative_ack_route'||r.companyId!==e.companyId||r.environment!==e.environment||r.sourceMessageId!==e.sourceMessageId||r.sourceHash!==e.sourceHash||r.authorizesBusinessEffect!==false
   ||r.senderEdielId!==u.receiver[0]||r.senderQualifier!==(u.receiver[1]||null)||r.senderSubAddress!==(u.receiver[2]||null)||r.receiverEdielId!==u.sender[0]||r.receiverQualifier!==(u.sender[1]||null)||r.receiverSubAddress!==(u.sender[2]||null)
-  ||r.receiverMessageSubAddress!==r.receiverSubAddress||r.applicationReference!==u.applicationReference||r.senderEmail!==smtp.from||r.mailbox!==smtp.from||r.smtpHost!==smtp.host||r.smtpPort!==smtp.port||!email(r.receiverEmail)
+  ||r.receiverMessageSubAddress!==r.receiverSubAddress||r.applicationReference!==commonHeaderReplyApplicationReference(e)||r.senderEmail!==smtp.from||r.mailbox!==smtp.from||r.smtpHost!==smtp.host||r.smtpPort!==smtp.port||!email(r.receiverEmail)
   ||r.route?.company_id!==e.companyId||r.routeRuntime?.company_id!==e.companyId||r.routeRuntime?.communication_route_id!==r.route.id||r.routeRuntime.environment!==e.environment||!r.route.is_active||!r.routeRuntime.is_enabled
   ||(r.routeRuntime.message_family&&r.routeRuntime.message_family!=='APERAK')||(r.routeRuntime.business_code&&r.routeRuntime.business_code!=='APERAK'))throw Error('ediel_common_header_negative_route_scope_mismatch')
  const qualified=freeze(r);routes.add(qualified);return qualified

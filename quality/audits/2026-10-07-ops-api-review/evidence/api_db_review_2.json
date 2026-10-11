@@ -1,0 +1,9 @@
+[
+  {
+    "database_name": "postgres",
+    "server_version": "17.6",
+    "public_table_count": 513,
+    "public_rls_table_count": 513,
+    "public_security_definer_count": 437
+  }
+]

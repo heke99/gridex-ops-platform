@@ -105,6 +105,7 @@ export default async function BillingQualityPage() {
   const loadError = [customersResult, sitesResult, metersResult, contractsResult, poaResult, billingResult, exportsResult]
     .map((result) => result.error?.message)
     .find(Boolean)
+  if (loadError) console.error('[billing-quality] load_failed', { message: loadError })
 
   const sitesByCustomer = groupByCustomer((sitesResult.data ?? []) as GenericRow[])
   const metersByCustomer = groupByCustomer((metersResult.data ?? []) as GenericRow[])
@@ -132,9 +133,9 @@ export default async function BillingQualityPage() {
 
   return (
     <div className="min-h-screen">
-      <AdminHeader title="Datakvalitet och readiness" subtitle="Kundredo-score för avtal, leverantörsbyte, fakturering och export per bolag." userEmail={admin.email} />
+      <AdminHeader title="Datakvalitet och fakturaberedskap" subtitle="Kundredo-score för avtal, leverantörsbyte, fakturering och export per bolag." userEmail={admin.email} />
       <div className="space-y-6 p-8">
-        {loadError ? <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-900">Kunde inte läsa all readiness-data. Kör senaste migrationer: {loadError}</section> : null}
+        {loadError ? <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-900">Alla uppgifter kunde inte hämtas just nu. Försök igen senare.</section> : null}
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="text-sm font-medium text-slate-700">Kunder</div><div className="mt-2 text-3xl font-semibold text-slate-950">{rows.length}</div></div>
           <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm"><div className="text-sm font-medium text-emerald-800">Redo för export</div><div className="mt-2 text-3xl font-semibold text-slate-950">{readyForExport}</div></div>
@@ -145,7 +146,7 @@ export default async function BillingQualityPage() {
         <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
             <h2 className="text-lg font-semibold text-slate-950">Kundredo-score</h2>
-            <p className="mt-1 text-sm text-slate-700">Visar om kunden är redo för avtal, leverantörsbyte, fakturering och export. Poängen sparas inte automatiskt; den beräknas från aktuell tenant-data.</p>
+            <p className="mt-1 text-sm text-slate-700">Visar om kunden är redo för avtal, leverantörsbyte, fakturering och export. Poängen sparas inte automatiskt; den beräknas från ert bolags aktuella uppgifter.</p>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">

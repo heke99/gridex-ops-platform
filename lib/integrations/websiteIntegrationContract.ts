@@ -6,8 +6,8 @@
  * credential. Internal database identifiers are never part of the public V1
  * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-04.1' as const
-// Schema-only correction: integrations built for the preceding release remain supported.
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-09.1' as const
+// Documentation-only release: the minimum supported revision is never raised by a docs release.
 export const MINIMUM_TENANT_INTEGRATION_VERSION = '2026-10-02.3' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
@@ -52,6 +52,16 @@ export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
  */
 
 /**
+ * 2026-10-09.1 is a documentation-only release (OPS API remediation Paket 17). It publishes the
+ * OpenAPI text for runtime behaviour already in production: Staff x-gridex-expected-project-ref /
+ * X-Gridex-Project-Ref / 412 storage_project_mismatch, Idempotency-Replayed semantics,
+ * x-gridex-query-parsing strict profile and server request ids; customer support message and
+ * attachment continuation (X-Gridex-Next-Cursor/cursor), closure-versus-replay precedence and the
+ * idempotency_completion_uncertain (503) / idempotency_reconciliation_required (409) outcomes;
+ * Website textVersionId exactness (409 power_of_attorney_offer_version_mismatch), public-contracts
+ * ETag/If-None-Match/Vary and energy-area 422 energy_area_address_required. No request
+ * requirement or response field changes; 2026-10-02.3 and 2026-10-04.1 clients remain supported.
+ *
  * 2026-10-02.4 corrects the closed support-case detail and release-manifest schemas.
  * Business fields remain unchanged; compatibility is relative to the preceding .3 release.
  *

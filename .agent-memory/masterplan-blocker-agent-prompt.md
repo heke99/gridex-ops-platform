@@ -1,3 +1,7 @@
+Current dated routing: [masterplan-current-start.md](masterplan-current-start.md) and [owner-action queue](masterplan-work-queue.md), observed main c5f5be2 after #728. #699/#725 are delivered; authentic C30/H100 evidence is bound to dd8, not newly executed main. #721/#666 administrative closure preserves all remaining whole requirements and branches. #729 observed41b22a8 retains designated schema/GEN ownership; refresh live before overlap.
+
+User authorization already permits concrete new-agent stopped-overlap takeover. Document original owner/packet/source/checkpoint/refs, producer stop, exact remaining criteria/files/exclusions and recipient; reconcile only that authorized receipt-bound custody, then acquire/verify own refs and CLAIM before coding. Authorization is not technical custody; no inherited identity, global unlock or duplicate producer. Finish/document actual delivery or verified handover/release, then continue selecting eligible work within the same fixed role without another prompt. Original instructions below remain in force.
+
 # Blocker agent continuation prompt
 
 Use this prompt for new or existing BLOCKERARAGENT Claude/Codex sessions. The

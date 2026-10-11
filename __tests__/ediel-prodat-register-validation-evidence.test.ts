@@ -1,12 +1,17 @@
 import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
-import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
-import type {EdielMessageRow} from '@/lib/ediel/types'
+import {resolveCanonicalRuntimeDecision,resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it,vi,beforeEach} from 'vitest'
+const io=vi.hoisted(()=>({database:null as ReturnType<typeof prodatOwnSourceReadingFixtureDatabase>|null}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>io.database!.rpc(name,args),from:(table:string)=>io.database!.from(table)}}))
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import {input, raw, line, characteristic, qty} from './fixtures/prodat-register'
+import {createProdatOwnSourceReadingSdk,resetProdatOwnSourceReadingSdk,installProdatOwnSourceReadingFixture,withProdatOwnSourceReadings,prodatOwnSourceReadingMessage,prodatOwnSourceReadingActor} from './helpers/prodatOwnSourceReadingFixture'
+import {prodatOwnSourceReadingFixtureDatabase,finiteProdatRulePack} from './helpers/prodatOwnSourceReadingAdapter'
+const reads=createProdatOwnSourceReadingSdk()
+beforeEach(()=>{resetProdatOwnSourceReadingSdk(reads);io.database=prodatOwnSourceReadingFixtureDatabase(reads,()=>[finiteProdatRulePack('Z04','L','Z22')])})
 
 const policy = () => resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z04',subtypeOrReasonCode:'L',direction:'inbound',referenceDate:'2026-09-17',applicationReference:'23-DDQ-PRODAT',bilateralCapabilityVerified:true,mode:'parse',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:false}})
 function assess(payload: string, override = {}) {
@@ -66,14 +71,13 @@ describe('actual canonical register validation evidence', () => {
   })
 })
 
-it('actual runtime exposes the direct facet and leaves syntax-rejected runs without it', () => {
-  const message = {direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z04',
-    raw_payload:raw([line('1','A'),qty('10'),...reason]),created_at:'2026-09-17T12:00:00Z',
-    parsed_payload:{prodatDependentFacts:{meterReadingsSentInUtilts:false}},validation_report:{}} as unknown as EdielMessageRow
-  const decision = resolveCanonicalRuntimeDecision(message)
+it('actual runtime exposes the direct facet and leaves syntax-rejected runs without it', async () => {
+  const message=prodatOwnSourceReadingMessage(withProdatOwnSourceReadings(raw([line('1','A'),qty('10'),...reason]),{addLegalHeader:true}))
+  installProdatOwnSourceReadingFixture(reads,message,'L',{actorUserId:prodatOwnSourceReadingActor,receivedAt:message.message_received_at!,mailId:message.inbound_email_message_id!,parseId:'00000000-0000-4000-8000-000000000005',receptionId:'00000000-0000-4000-8000-000000000006',legalActorId:'00000000-0000-4000-8000-000000000008'})
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:prodatOwnSourceReadingActor})
   expect(decision.applicationDecision).toBe('rejected')
   expect(decision.prodatRegisterValidation?.objects[0].disposition).toBe('accepted')
-  const bad = resolveCanonicalRuntimeDecision({...message,raw_payload:message.raw_payload!.replace('UNT+9','UNT+999')})
+  const bad = resolveCanonicalRuntimeDecision({...message,raw_payload:message.raw_payload!.replace(/UNT\+\d+/,'UNT+999')})
   expect(bad.syntaxDecision).toBe('rejected')
   expect(bad.prodatRegisterValidation).toBeUndefined()
 })

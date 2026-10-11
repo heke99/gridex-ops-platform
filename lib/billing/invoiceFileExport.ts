@@ -7,7 +7,8 @@ import {
   maybeLockCompleteMonth,
   updateLegacyProjection,
 } from '@/lib/billing/invoiceApprovedDispatch'
-import { InvoiceProviderConfigError, requireTenantInvoiceProvider, rpcError } from '@/lib/billing/providers/registry'
+import { renderNordfinInvoiceXml } from '@/lib/billing/nordfinInvoiceXml'
+import { InvoiceProviderConfigError, isFileProvider, loadNordfinClientId, requireTenantInvoiceProvider, rpcError, type FileProvider } from '@/lib/billing/providers/registry'
 import { buildXlsxWorkbook } from '@/lib/billing/xlsx'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
 import { supabaseService } from '@/lib/supabase/service'
@@ -22,7 +23,7 @@ import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
  * always rendered from the stored rows, so every download of a file is identical.
  */
 export const INVOICE_FILE_FORMAT_VERSION = 'gridex_invoice_file_v1'
-export type InvoiceFileFormat = 'csv' | 'xlsx' | 'json'
+export type InvoiceFileFormat = 'csv' | 'xlsx' | 'json' | 'nordfin_xml'
 
 type Row = Record<string, unknown>
 
@@ -51,7 +52,61 @@ export type InvoiceFileRow = {
   currency: string
   invoice_date: string
   due_date: string
-  lines: Array<{ description: string; quantity: number | null; unit: string | null; unit_price_ex_vat: number | null; amount_ex_vat: number }>
+  lines: Array<{ description: string; quantity: number | null; unit: string | null; unit_price_ex_vat: number | null; amount_ex_vat: number; line_type?: string | null; vat_rate?: number | null; vat_amount?: number | null; amount_inc_vat?: number | null }>
+  /** Facility facts for electricity invoices (Nordfin's added fields). */
+  electricity?: InvoiceFileElectricity | null
+  /** Nordfin client id, fixed when the file is created. */
+  nordfin_client_id?: string | null
+}
+
+export type InvoiceFileFacility = {
+  facility_id: string | null
+  metering_point_id: string | null
+  site_street: string | null
+  site_postal_code: string | null
+  site_city: string | null
+  price_area: string | null
+  grid_area: string | null
+  grid_owner: string | null
+  period_start: string | null
+  period_end: string | null
+  consumption_kwh: number
+  estimated_annual_kwh: number | null
+}
+
+export type InvoiceFileContract = {
+  name: string | null
+  number: string | null
+  type: string | null
+  start_date: string | null
+  binding_months: number | null
+  binding_end_date: string | null
+  binding_months_remaining: number | null
+  notice_months: number | null
+  auto_renew: boolean | null
+  fixed_price_ore_per_kwh: number | null
+  spot_markup_ore_per_kwh: number | null
+  monthly_fee_sek: number | null
+}
+
+export type InvoiceFileReconciliation = {
+  role: 'credit_preliminary' | 'charge_final'
+  reconciled_month: string | null
+  preliminary_kwh: number | null
+  final_kwh: number | null
+  difference_kwh: number | null
+}
+
+export type InvoiceFileElectricity = {
+  /** credit = the invoice credits an earlier (e.g. preliminary) charge. */
+  invoice_type: 'debit' | 'credit'
+  /** How the billed consumption was established. */
+  consumption_basis: 'measured' | 'estimated' | 'measured_with_estimate' | 'reconciliation'
+  reconciliation: InvoiceFileReconciliation | null
+  facility_count: number
+  facilities: InvoiceFileFacility[]
+  contract: InvoiceFileContract | null
+  average_price_ore_per_kwh: number | null
 }
 
 function text(value: unknown) {
@@ -114,6 +169,10 @@ export function buildInvoiceFileRow(input: {
   legacyItem: Row | null
   billingMonth: string
   now: Date
+  site?: Row | null
+  meteringPoint?: Row | null
+  contract?: Row | null
+  nordfinClientId?: string | null
 }): InvoiceFileRow {
   const itemId = text(input.item.id)
   if (!itemId) throw new Error('Fakturaposten saknar ID.')
@@ -153,7 +212,130 @@ export function buildInvoiceFileRow(input: {
         unit: text(line.unit),
         unit_price_ex_vat: num(line.unit_price_ex_vat) ?? num(line.unit_price),
         amount_ex_vat: money(line.amount_ex_vat),
+        line_type: text(line.line_type),
+        vat_rate: num(line.vat_rate),
+        vat_amount: num(line.vat_amount) === null ? null : money(line.vat_amount),
+        amount_inc_vat: num(line.amount_inc_vat) === null ? null : money(line.amount_inc_vat),
       })),
+    electricity: buildElectricity({ ...input, invoiceDate }),
+    nordfin_client_id: input.nordfinClientId ?? null,
+  }
+}
+
+function addMonths(date: string, months: number) {
+  const [y, m, d] = date.slice(0, 10).split('-').map(Number)
+  const target = new Date(Date.UTC(y, m - 1 + months, 1))
+  const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate()
+  target.setUTCDate(Math.min(d, lastDay))
+  return target.toISOString().slice(0, 10)
+}
+
+/** Whole months left from `from` until `end` (0 when the binding has ended). */
+export function monthsRemaining(from: string, end: string) {
+  const [fy, fm, fd] = from.slice(0, 10).split('-').map(Number)
+  const [ey, em, ed] = end.slice(0, 10).split('-').map(Number)
+  const months = (ey - fy) * 12 + (em - fm) - (ed < fd ? 1 : 0)
+  return Math.max(0, months)
+}
+
+function buildContract(contract: Row | null, invoiceDate: string): InvoiceFileContract | null {
+  if (!contract) return null
+  const start = text(contract.actual_start_date) ?? text(contract.confirmed_start_date) ?? text(contract.starts_at)?.slice(0, 10) ?? null
+  const bindingMonths = num(contract.binding_months)
+  const explicitEnd = text(contract.ends_at)?.slice(0, 10) ?? null
+  const bindingEnd = bindingMonths && bindingMonths > 0 && start ? addMonths(start, bindingMonths) : explicitEnd
+  return {
+    name: text(contract.contract_name),
+    number: text(contract.contract_number),
+    type: text(contract.contract_type),
+    start_date: start,
+    binding_months: bindingMonths,
+    binding_end_date: bindingEnd,
+    binding_months_remaining: bindingEnd ? monthsRemaining(invoiceDate, bindingEnd) : null,
+    notice_months: num(contract.notice_months),
+    auto_renew: typeof contract.auto_renew_enabled === 'boolean' ? contract.auto_renew_enabled : null,
+    fixed_price_ore_per_kwh: num(contract.fixed_price_ore_per_kwh),
+    spot_markup_ore_per_kwh: num(contract.spot_markup_ore_per_kwh) ?? num(contract.markup_ore_per_kwh),
+    monthly_fee_sek: num(contract.monthly_fee_sek),
+  }
+}
+
+function consumptionBasis(underlay: Row): InvoiceFileElectricity['consumption_basis'] {
+  const source = text(underlay.source_system) ?? ''
+  if (source === 'consumption_estimate_reconciliation') return 'reconciliation'
+  if (source === 'consumption_estimate') return 'estimated'
+  if (source.includes('consumption_estimate')) return 'measured_with_estimate'
+  return 'measured'
+}
+
+function buildReconciliation(underlay: Row): InvoiceFileReconciliation | null {
+  const payload = (underlay.payload ?? {}) as Row
+  const role = text(payload.reconciliation_role)
+  if (role !== 'credit_preliminary' && role !== 'charge_final') return null
+  return {
+    role,
+    reconciled_month: text(payload.reconciled_month),
+    preliminary_kwh: num(payload.preliminary_kwh),
+    final_kwh: num(payload.final_kwh),
+    difference_kwh: num(payload.difference_kwh),
+  }
+}
+
+function buildElectricity(input: {
+  item: Row
+  invoice: Row
+  underlay: Row
+  site?: Row | null
+  meteringPoint?: Row | null
+  contract?: Row | null
+  invoiceDate: string
+}): InvoiceFileElectricity {
+  const site = input.site ?? null
+  const mp = input.meteringPoint ?? null
+  const kwh = num(input.item.total_kwh) ?? 0
+  const amountExVat = money(input.item.amount_ex_vat)
+  const credit = text(input.underlay.settlement_type) === 'credit_invoice' || text(input.underlay.energy_direction) === 'consumption_correction'
+  // One invoice covers one billing underlay, i.e. one facility; the list form also carries
+  // future consolidated invoices without changing the file layout.
+  const facilities: InvoiceFileFacility[] = [{
+    facility_id: text(site?.facility_id) ?? text(mp?.site_facility_id),
+    metering_point_id: text(mp?.metering_point_id) ?? text(mp?.ediel_metering_point_id),
+    site_street: text(site?.street),
+    site_postal_code: text(site?.postal_code),
+    site_city: text(site?.city),
+    price_area: text(input.invoice.price_area_code) ?? text(input.underlay.price_area),
+    grid_area: text(mp?.grid_area_code) ?? text(site?.grid_area_code),
+    grid_owner: text(mp?.grid_owner_name),
+    period_start: text(input.item.period_start) ?? text(input.underlay.billing_period_start),
+    period_end: text(input.item.period_end) ?? text(input.underlay.billing_period_end),
+    consumption_kwh: kwh,
+    estimated_annual_kwh: num(mp?.estimated_annual_consumption_kwh) ?? num(site?.annual_consumption_kwh),
+  }]
+  return {
+    invoice_type: credit ? 'credit' : 'debit',
+    consumption_basis: consumptionBasis(input.underlay),
+    reconciliation: buildReconciliation(input.underlay),
+    facility_count: facilities.length,
+    facilities,
+    contract: buildContract(input.contract ?? null, input.invoiceDate),
+    average_price_ore_per_kwh: kwh !== 0 ? Math.round((amountExVat / kwh) * 10000) / 100 : null,
+  }
+}
+
+async function loadFacility(companyId: string, underlay: Row) {
+  const siteId = text(underlay.customer_site_id) ?? text(underlay.site_id)
+  const mpId = text(underlay.metering_point_id)
+  const contractId = text(underlay.customer_contract_id) ?? text(underlay.contract_id)
+  const [site, mp, contract] = await Promise.all([
+    siteId ? tenantSelect(companyId, 'customer_sites', 'facility_id,street,postal_code,city,grid_area_code,annual_consumption_kwh').eq('id', siteId).maybeSingle() : null,
+    mpId ? tenantSelect(companyId, 'metering_points', 'metering_point_id,ediel_metering_point_id,site_facility_id,grid_area_code,grid_owner_name,estimated_annual_consumption_kwh').eq('id', mpId).maybeSingle() : null,
+    contractId ? tenantSelect(companyId, 'customer_contracts', 'contract_name,contract_number,contract_type,actual_start_date,confirmed_start_date,starts_at,ends_at,binding_months,notice_months,auto_renew_enabled,fixed_price_ore_per_kwh,spot_markup_ore_per_kwh,markup_ore_per_kwh,monthly_fee_sek').eq('id', contractId).maybeSingle() : null,
+  ])
+  for (const result of [site, mp, contract]) if (result?.error) throw result.error
+  return {
+    site: (site?.data ?? null) as Row | null,
+    meteringPoint: (mp?.data ?? null) as Row | null,
+    contract: (contract?.data ?? null) as Row | null,
   }
 }
 
@@ -167,20 +349,20 @@ async function loadSelection(companyId: string) {
   if (error) throw error
   const row = (data ?? {}) as Row
   const selected = requireTenantInvoiceProvider(row)
-  if (selected.provider !== 'file_export') {
+  if (!isFileProvider(selected.provider)) {
     throw new InvoiceProviderConfigError('invoice_file_provider_not_active', 'Bolaget skickar fakturor via API, inte via fil.')
   }
   if (row.invoice_export_enabled !== true) {
     throw new InvoiceProviderConfigError('invoice_file_provider_not_active', 'Filexport är inte aktiverad för bolaget.')
   }
-  return selected
+  return { provider: selected.provider as FileProvider, environment: selected.environment }
 }
 
 /** Approved, unsent invoices for the month that belong in the next file. */
-export async function listInvoiceFileCandidates(companyId: string, billingMonth: string, environment: string) {
+export async function listInvoiceFileCandidates(companyId: string, billingMonth: string, environment: string, provider: FileProvider = 'file_export') {
   const runs = await tenantSelect(companyId, 'invoice_export_runs', 'id')
     .eq('billing_month', billingMonth)
-    .eq('provider', 'file_export')
+    .eq('provider', provider)
     .eq('environment', environment)
   if (runs.error) throw runs.error
   const runIds = ((runs.data ?? []) as unknown as Row[]).map((row) => text(row.id)).filter((id): id is string => Boolean(id))
@@ -201,8 +383,12 @@ export async function createInvoiceFile(input: { companyId: string; billingMonth
   await requireCompanyOperationalForWrites(input.companyId)
   await assertOutboundAllowed({ companyId: input.companyId, channel: 'invoice_export' })
   const selected = await loadSelection(input.companyId)
-  const candidates = await listInvoiceFileCandidates(input.companyId, input.billingMonth, selected.environment)
+  const candidates = await listInvoiceFileCandidates(input.companyId, input.billingMonth, selected.environment, selected.provider)
   if (candidates.length === 0) throw new InvoiceProviderConfigError('invoice_file_empty', 'Det finns inga godkända fakturor att lägga i en fil.')
+  const nordfinClientId = selected.provider === 'nordfin' ? await loadNordfinClientId(input.companyId, selected.environment) : null
+  if (selected.provider === 'nordfin' && !nordfinClientId) {
+    throw new InvoiceProviderConfigError('nordfin_client_id_missing', 'Nordfins ClientId saknas för bolaget. Ange det under Fakturering → Integrationer.')
+  }
 
   const now = input.now ?? new Date()
   const rows: InvoiceFileRow[] = []
@@ -216,7 +402,10 @@ export async function createInvoiceFile(input: { companyId: string; billingMonth
       .eq('id', itemId)
       .maybeSingle()
     if (legacy.error) throw legacy.error
+    const facility = await loadFacility(input.companyId, context.underlay)
     rows.push(buildInvoiceFileRow({
+      ...facility,
+      nordfinClientId,
       item: context.item,
       invoice: context.invoice,
       customer: context.customer,
@@ -263,6 +452,7 @@ export type InvoiceFileRecord = {
   id: string
   billing_month: string
   environment: string
+  provider: FileProvider
   row_count: number
   total_inc_vat: number
   rows_sha256: string
@@ -270,7 +460,7 @@ export type InvoiceFileRecord = {
 }
 
 export async function listInvoiceFiles(companyId: string, limit = 24) {
-  const { data, error } = await tenantSelect(companyId, 'invoice_export_files', 'id,billing_month,environment,row_count,total_inc_vat,rows_sha256,created_at')
+  const { data, error } = await tenantSelect(companyId, 'invoice_export_files', 'id,billing_month,environment,provider,row_count,total_inc_vat,rows_sha256,created_at')
     .order('created_at', { ascending: false })
     .limit(limit)
   if (error) throw error
@@ -278,7 +468,7 @@ export async function listInvoiceFiles(companyId: string, limit = 24) {
 }
 
 export async function loadInvoiceFile(companyId: string, fileId: string) {
-  const { data, error } = await tenantSelect(companyId, 'invoice_export_files', 'id,billing_month,environment,row_count,total_inc_vat,rows,rows_sha256,created_at')
+  const { data, error } = await tenantSelect(companyId, 'invoice_export_files', 'id,billing_month,environment,provider,row_count,total_inc_vat,rows,rows_sha256,created_at')
     .eq('id', fileId)
     .maybeSingle()
   if (error) throw error
@@ -322,6 +512,13 @@ function csvCell(value: unknown) {
 
 export function renderInvoiceFile(file: { id: string; billing_month: string; rows: InvoiceFileRow[]; rows_sha256: string; created_at: string }, format: InvoiceFileFormat) {
   const base = `fakturor-${file.billing_month}-${file.id.slice(0, 8)}`
+  if (format === 'nordfin_xml') {
+    return {
+      fileName: `nordfin-${base}.xml`,
+      contentType: 'application/xml; charset=utf-8',
+      body: renderNordfinInvoiceXml(file.rows),
+    }
+  }
   if (format === 'json') {
     return {
       fileName: `${base}.json`,
@@ -349,6 +546,8 @@ export function renderInvoiceFile(file: { id: string; billing_month: string; row
   }
 }
 
-export function parseInvoiceFileFormat(value: string | null): InvoiceFileFormat {
-  return value === 'xlsx' || value === 'json' ? value : 'csv'
+/** A Nordfin file defaults to Nordfin XML; csv/xlsx/json stay available for review. */
+export function parseInvoiceFileFormat(value: string | null, provider: FileProvider = 'file_export'): InvoiceFileFormat {
+  if (value === 'xlsx' || value === 'json' || value === 'csv' || value === 'nordfin_xml') return value
+  return provider === 'nordfin' ? 'nordfin_xml' : 'csv'
 }

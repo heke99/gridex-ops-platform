@@ -1,12 +1,15 @@
-import { getCustomerPortalContext, listPortalMeteringValues, summarizeConsumptionByMonth } from '@/lib/customer-portal/db'
+import { getCustomerPortalContext, listPortalMeteringValues, listPortalMonthlyConsumption } from '@/lib/customer-portal/db'
 import { formatDate, formatKwh, formatPeriod } from '@/lib/customer-portal/format'
 
 export const dynamic = 'force-dynamic'
 
 export default async function PortalConsumptionPage() {
   const context = await getCustomerPortalContext()
-  const values = await listPortalMeteringValues(context, { limit: 500 })
-  const months = summarizeConsumptionByMonth(values)
+  // Month cards use the complete native month sum; the detail list below stays bounded.
+  const [values, months] = await Promise.all([
+    listPortalMeteringValues(context, { limit: 500 }),
+    listPortalMonthlyConsumption(context),
+  ])
 
   return (
     <div className="space-y-6">
@@ -24,7 +27,9 @@ export default async function PortalConsumptionPage() {
           <article key={month.monthKey} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-sm font-medium text-slate-500">{month.label}</p>
             <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{formatKwh(month.totalKwh)}</p>
-            <p className="mt-2 text-sm text-slate-600">{month.valueCount} mätvärden</p>
+            <p className="mt-2 text-sm text-slate-600">
+              {month.valueCount} mätvärden{month.complete === false ? ' · ofullständig månad' : ''}
+            </p>
           </article>
         ))}
       </section>

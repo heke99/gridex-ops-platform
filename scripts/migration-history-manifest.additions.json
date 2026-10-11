@@ -263,6 +263,7 @@
     "20261001070700_ediel_finance_retention_decision_original_class.sql": "518e191d24343bef7e7e0eaf7a8a02ec4a72b5b8c632e974ea29decf69bf8d5e",
     "20261001071050_ediel_stable_finance_guard_identities.sql": "8f4edd6db6f856bdf1bce16e16894997d9e19d53e2c004e720f8e6d2aea03448",
     "20261004221605_ediel_test_original_outcome_conflict.sql": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25",
-    "20261005130401_ediel_imp05_original_mailbox_return_route.sql": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab"
+    "20261005130401_ediel_imp05_original_mailbox_return_route.sql": "49f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab",
+    "20261007232422_ediel_z13_ack_customer_waiting.sql": "bfbeb6878fe3b0b2c31db95aacb8d446a40a90a0fb6d0dda81275ea9128ead8b"
   }
 }
