@@ -1452,12 +1452,22 @@
     {
       "id": "DB-01",
       "acceptance_id": "AT-DB-01",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "app/admin/ediel/actors/actions.ts",
         "app/admin/ediel/actors/page.tsx",
         "lib/ediel/partyRegistry.ts",
-        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts",
+        "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/kernelLegacy.ts",
+        "__tests__/ediel-db-01-current-authority-parity.test.ts",
+        "__tests__/ediel-test-configuration-route-source.test.ts",
+        "__tests__/ediel-db01-native-source-basis.test.ts",
+        "scripts/ediel-db01-legacy-address-containment-native.test.ts",
+        "scripts/ediel-db01-current-native.config.ts",
+        ".github/workflows/ediel-db01-current-native.yml",
+        ".agent-memory/masterplan-codex-plan-next-20261011T002655Z-53d604e536-checkpoint.md"
       ]
     },
     {
@@ -2290,9 +2300,11 @@
     },
     {
       "id": "SC-052",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+        "__tests__/ediel-sc-052-e73-requested-type-rff.test.ts",
+        "lib/ediel/utilts.ts",
         "__tests__/ediel-u-06-request-application-reference.test.ts",
         "lib/ediel/rulebook/utiltsApplicationReference.ts"
       ]
@@ -3710,12 +3722,22 @@
     },
     {
       "id": "AT-DB-01",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "app/admin/ediel/actors/actions.ts",
         "app/admin/ediel/actors/page.tsx",
         "lib/ediel/partyRegistry.ts",
-        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts",
+        "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/kernelLegacy.ts",
+        "__tests__/ediel-db-01-current-authority-parity.test.ts",
+        "__tests__/ediel-test-configuration-route-source.test.ts",
+        "__tests__/ediel-db01-native-source-basis.test.ts",
+        "scripts/ediel-db01-legacy-address-containment-native.test.ts",
+        "scripts/ediel-db01-current-native.config.ts",
+        ".github/workflows/ediel-db01-current-native.yml",
+        ".agent-memory/masterplan-codex-plan-next-20261011T002655Z-53d604e536-checkpoint.md"
       ]
     },
     {
@@ -4000,8 +4022,16 @@
     },
     {
       "id": "AT-Z05C-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/ediel-cancellation-public-acceptance-native.test.ts",
+        "lib/inbound-mail/cancellationBirthProfile.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/contract-proof.json",
+        "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/native-bc15.zip",
+        "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/native-50be.zip",
+        "quality/audits/ediel-masterplan-v2/z05c-ce01569a4b/native-3847.zip"
+      ]
     },
     {
       "id": "AT-Z04A-SUPPLIER",
@@ -4159,13 +4189,30 @@
     },
     {
       "id": "AT-Z09B-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "scripts/ediel-z09b-brp-change-native.test.ts",
+        ".github/workflows/ediel-p08-native.yml",
+        "__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts",
+        "__tests__/ediel-at-z09b-required-fields.test.ts",
+        "__tests__/ediel-at-z09b-brp-ack-confirmation.test.ts",
+        "scripts/ediel-at-z09b-brp-ack-confirmation-sql-regression.mjs",
+        "lib/ediel/intent/renderers/brpChange.ts",
+        "lib/ediel/flows/prodatBrpChange.ts",
+        "supabase/migrations/20260930200545_ediel_brp_change_source_origination.sql",
+        "supabase/migrations/20261011170000_ediel_brp_change_ack_received_confirmation.sql"
+      ]
     },
     {
       "id": "AT-Z09D-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts",
+        "lib/ediel/intent/renderers/productionContract.ts",
+        "supabase/migrations/20261010233000_ediel_production_contract_ack_received_confirmation.sql",
+        "scripts/ediel-p-08-production-contract-native.test.ts",
+        ".github/workflows/ediel-p08-native.yml"
+      ]
     },
     {
       "id": "AT-Z10M-SUPPLIER",

@@ -5531,6 +5531,44 @@ END IF;
 END$$;
 
 --
+-- Name: confirm_on_ack_v1(); Type: FUNCTION; Schema: gridex_brp_changes; Owner: -
+--
+
+CREATE FUNCTION gridex_brp_changes.confirm_on_ack_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE m public.ediel_messages%rowtype;o gridex_brp_changes.origins%rowtype;e gridex_brp_changes.events%rowtype;v gridex_brp_changes.period_versions%rowtype;
+BEGIN
+ SELECT * INTO m FROM public.ediel_messages WHERE id=NEW.source_message_id;
+ IF NOT FOUND OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z09' THEN RETURN NULL;END IF;
+ SELECT * INTO o FROM gridex_brp_changes.origins WHERE message_id=m.id AND company_id=m.company_id;
+ IF NOT FOUND OR o.payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RETURN NULL;END IF;
+ SELECT * INTO e FROM gridex_brp_changes.events WHERE id=o.event_id FOR SHARE;
+ SELECT * INTO v FROM gridex_brp_changes.period_versions WHERE event_id=o.event_id;
+ IF e.company_id IS DISTINCT FROM m.company_id OR e.environment IS DISTINCT FROM m.environment
+ OR v.source_message_id IS DISTINCT FROM m.id OR v.source_payload_hash IS DISTINCT FROM o.payload_hash
+ OR EXISTS(SELECT FROM gridex_brp_changes.revocations r WHERE r.target_kind='event' AND r.target_id=e.id) THEN RETURN NULL;END IF;
+ -- Both required acknowledgements, from the authority's immutable correlation of this exact original.
+ IF NOT EXISTS(SELECT FROM gridex_ack_authority.source_correlations c WHERE c.source_message_id=m.id AND c.company_id=e.company_id AND c.environment=e.environment
+   AND c.ack_family='CONTRL' AND c.ack_outcome='positive' AND c.source_payload_hash=o.payload_hash)
+ OR NOT EXISTS(SELECT FROM gridex_ack_authority.source_correlations c WHERE c.source_message_id=m.id AND c.company_id=e.company_id AND c.environment=e.environment
+   AND c.ack_family='APERAK' AND c.ack_outcome='positive' AND c.source_payload_hash=o.payload_hash)
+ OR NOT EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=m.id AND x.ack_family='APERAK' AND x.outcome='positive')
+ OR EXISTS(SELECT FROM gridex_ack_authority.source_correlations c WHERE c.source_message_id=m.id AND c.ack_outcome='negative')
+ OR EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=m.id AND x.outcome='negative') THEN RETURN NULL;END IF;
+ INSERT INTO gridex_brp_changes.confirmations(event_id,company_id,environment,message_id)
+  VALUES(e.id,e.company_id,e.environment,m.id) ON CONFLICT DO NOTHING;
+ RETURN NULL;
+END $$;
+
+--
+-- Name: FUNCTION confirm_on_ack_v1(); Type: COMMENT; Schema: gridex_brp_changes; Owner: -
+--
+
+COMMENT ON FUNCTION gridex_brp_changes.confirm_on_ack_v1() IS 'AT-Z09B-SUPPLIER: confirms the producing BRP-change event only from the ACK authority immutable evidence: positive CONTRL and APERAK correlations of its own bound, unchanged outbound PRODAT Z09/Z27 and no negative outcome.';
+
+--
 -- Name: context_before_site_projection_v1(uuid, uuid, uuid, boolean); Type: FUNCTION; Schema: gridex_brp_changes; Owner: -
 --
 
@@ -34725,24 +34763,11 @@ BEGIN
     AND a.disposition='accepted' AND a.persistence_status='persisted' AND a.planned_response_type='positive_aperak' FOR SHARE OF a,series;
   IF FOUND AND v.immutable_hash=encode(sha256(convert_to(v.raw_transaction::text,'UTF8')),'hex') THEN
    old_item:=v.raw_transaction;
-   -- A series committed before SC-053 has no quantity quality. Compare its
-   -- retry without that key; the original immutable row stays authoritative.
-   IF jsonb_typeof(item->'quantities')='array' AND NOT EXISTS(SELECT FROM jsonb_array_elements(coalesce(old_item->'quantities','[]'::jsonb)) q WHERE q ? 'quality') THEN
-    adapted:=item||jsonb_build_object('quantities',(SELECT coalesce(jsonb_agg(q-'quality' ORDER BY n),'[]'::jsonb) FROM jsonb_array_elements(item->'quantities') WITH ORDINALITY x(q,n)));
-    IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;
-    ELSIF adapted IS DISTINCT FROM item THEN
-     adapted:=(adapted-'productId')||jsonb_build_object('periodStart',adapted#>'{consumptionContract,interpretation,localPeriodStart}','periodEnd',adapted#>'{consumptionContract,interpretation,localPeriodEnd}');
-     IF r.contract_version=1 THEN adapted:=gridex_utilts_binding.legacy_retry_item_v1(adapted);END IF;
-     IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;END IF;
-    END IF;
-   END IF;
-   IF item IS DISTINCT FROM old_item THEN
-    -- Only the newly introduced metadata fields differ. V1's existing numeric
-    -- comparison remains the immutable private owner's exact original shape.
-    adapted:=(item-'productId')||jsonb_build_object('periodStart',item#>'{consumptionContract,interpretation,localPeriodStart}','periodEnd',item#>'{consumptionContract,interpretation,localPeriodEnd}');
-    IF r.contract_version=1 THEN adapted:=gridex_utilts_binding.legacy_retry_item_v1(adapted);END IF;
-    IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;END IF;
-   END IF;
+   -- Only the newly introduced metadata fields differ. V1's existing numeric
+   -- comparison remains the immutable private owner's exact original shape.
+   adapted:=(item-'productId')||jsonb_build_object('periodStart',item#>'{consumptionContract,interpretation,localPeriodStart}','periodEnd',item#>'{consumptionContract,interpretation,localPeriodEnd}');
+   IF r.contract_version=1 THEN adapted:=gridex_utilts_binding.legacy_retry_item_v1(adapted);END IF;
+   IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;END IF;
   END IF;
   answer:=answer||jsonb_build_array(item);
  END LOOP;
@@ -35237,18 +35262,6 @@ BEGIN
   ELSIF jsonb_typeof(supplied->'value') IS DISTINCT FROM 'string'
    OR gridex_utilts_binding.canonical_decimal_v2(source_quantity#>>'{elements,1,1}',decimal_mark) IS DISTINCT FROM supplied->>'value'
    OR gridex_utilts_binding.canonical_decimal_v2(supplied->>'value') IS DISTINCT FROM supplied->>'value' THEN RETURN false; END IF;
-  -- SC-053: a supplied stored quality must be this QTY's own STS+8 code
-  -- (until the next QTY of the same SEQ), or JSON null when it has none.
-  IF supplied ? 'quality' THEN
-   SELECT coalesce(min((t->>'index')::integer),next_sequence) INTO quality_end FROM jsonb_array_elements(tokens) t
-    WHERE t->>'tag'='QTY' AND (t->>'index')::integer>(source_quantity->>'index')::integer AND (t->>'index')::integer<next_sequence;
-   IF (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='STS' AND t#>>'{elements,1,0}'='8'
-     AND (t->>'index')::integer>(source_quantity->>'index')::integer AND (t->>'index')::integer<quality_end)>1
-    OR supplied->'quality' IS DISTINCT FROM coalesce((SELECT to_jsonb(t#>>'{elements,2,0}') FROM jsonb_array_elements(tokens) t
-     WHERE t->>'tag'='STS' AND t#>>'{elements,1,0}'='8'
-      AND (t->>'index')::integer>(source_quantity->>'index')::integer AND (t->>'index')::integer<quality_end),'null'::jsonb)
-   THEN RETURN false; END IF;
-  END IF;
  END LOOP;
  FOR o IN SELECT value FROM jsonb_array_elements(item#>'{consumptionContract,observations}') LOOP
   source_quantity:=quantities->((o->>'sourceOrdinal')::integer);
@@ -44573,8 +44586,13 @@ END IF;
  SELECT coalesce(jsonb_agg(jsonb_build_object('eventId',v.event_id,'effectiveAt',v.effective_at,'effectiveUntil',(SELECT min(next.effective_at) FROM gridex_brp_changes.period_versions next WHERE next.company_id=v.company_id
   AND next.environment=v.environment
   AND next.supply_period_id=v.supply_period_id
-  AND next.effective_at>v.effective_at),'brpActorId',v.brp_actor_id,'brpEdielId',v.brp_ediel_id,'sourceMessageId',v.source_message_id,'sourcePayloadHash',v.source_payload_hash,'status','source_declared','sourceRevoked',EXISTS(SELECT FROM gridex_brp_changes.revocations WHERE target_kind='event'
-  AND target_id=v.event_id),'marketActivationProven',false) ORDER BY v.effective_at,v.event_id),'[]') INTO rows FROM gridex_brp_changes.period_versions v WHERE v.company_id=p_company_id
+  AND next.effective_at>v.effective_at),'brpActorId',v.brp_actor_id,'brpEdielId',v.brp_ediel_id,'sourceMessageId',v.source_message_id,'sourcePayloadHash',v.source_payload_hash,
+  'status',CASE WHEN c.event_id IS NULL THEN 'source_declared' ELSE 'aperak_confirmed' END,
+  'confirmedAt',c.confirmed_at,'confirmationMessageId',c.message_id,
+  'sourceRevoked',EXISTS(SELECT FROM gridex_brp_changes.revocations WHERE target_kind='event'
+  AND target_id=v.event_id),'marketActivationProven',false) ORDER BY v.effective_at,v.event_id),'[]') INTO rows FROM gridex_brp_changes.period_versions v
+  LEFT JOIN gridex_brp_changes.confirmations c ON c.event_id=v.event_id AND c.company_id=v.company_id AND c.environment=v.environment
+  WHERE v.company_id=p_company_id
   AND v.supply_period_id=p_supply_period_id;
 
  RETURN jsonb_build_object('companyId',p_company_id,'supplyPeriodId',p_supply_period_id,'versions',rows,'marketActivationProven',false);
@@ -71707,7 +71725,19 @@ begin
     return old;
   end if;
   if old.status = 'deleted_test_only' then
-    v_retained := public.gridex_company_retained_history_v1(old.id);
+    v_retained := public.gridex_company_retained_history_v1(old.id) || array_remove(array[
+      case when exists (select 1 from public.canonical_audit_events x where x.company_id = old.id) then 'canonical_audit_events' end,
+      case when exists (select 1 from public.canonical_command_results x where x.company_id = old.id) then 'canonical_command_results' end,
+      case when exists (select 1 from public.canonical_domain_events x where x.company_id = old.id) then 'canonical_domain_events' end,
+      case when exists (select 1 from public.canonical_event_outbox x where x.company_id = old.id) then 'canonical_event_outbox' end,
+      case when exists (select 1 from public.pricing_audit_logs x where x.company_id = old.id) then 'pricing_audit_logs' end,
+      case when exists (select 1 from public.domain_events x where x.company_id = old.id) then 'domain_events' end,
+      case when exists (select 1 from public.ediel_ack_transaction_results x where x.company_id = old.id) then 'ediel_ack_transaction_results' end,
+      case when exists (select 1 from public.ediel_business_correlations x where x.company_id = old.id) then 'ediel_business_correlations' end,
+      case when exists (select 1 from public.ediel_business_errors x where x.company_id = old.id) then 'ediel_business_errors' end,
+      case when exists (select 1 from public.ediel_route_history x where x.company_id = old.id) then 'ediel_route_history' end,
+      case when exists (select 1 from public.ediel_certification_evidence x where x.company_id = old.id) then 'ediel_certification_evidence' end
+    ], null);
     if cardinality(v_retained) = 0 then
       return old;
     end if;
@@ -79793,9 +79823,16 @@ begin
   -- and readiness-gated command staff use for catalog versions; it promotes the
   -- pricing, materializes the legal bundle and locks the internal publication.
   -- A structured refusal is raised with its code and blockers.
+  -- Staff who may create contracts may sell a one-off contract without the
+  -- catalog publish rights: authorize exactly this new offer, for this actor,
+  -- in this transaction, and withdraw the authorization right after.
+  perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.create');
+  insert into gridex_one_off_offer_binding.publish_authorizations(offer_id,company_id,actor_user_id,txid)
+  values (v_offer_id,p_company_id,p_actor_user_id,txid_current());
   v_published := public.gridex_publish_internal_contract_version(
     p_company_id,v_offer_id,p_actor_user_id
   );
+  delete from gridex_one_off_offer_binding.publish_authorizations where offer_id=v_offer_id;
   if not coalesce((v_published->>'ok')::boolean,false) then
     raise exception using
       errcode='23514',
@@ -82549,8 +82586,19 @@ declare
   v_pricing jsonb;
   v_canonical uuid;
 begin
-  perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.publish');
-  perform public.gridex_assert_contract_permission(p_actor_user_id,'pricing.publish');
+  -- Owner decision 2026-10-11: a one-off offer created by the manual-binding
+  -- materializer in this same transaction is published under the creator's
+  -- contracts.create right, which the materializer asserts. Every other
+  -- publish keeps the catalog publish rights.
+  if not exists (
+    select 1 from gridex_one_off_offer_binding.publish_authorizations a
+    where a.offer_id=p_offer_id and a.company_id=p_company_id
+      and a.actor_user_id is not distinct from p_actor_user_id
+      and a.txid=txid_current()
+  ) then
+    perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.publish');
+    perform public.gridex_assert_contract_permission(p_actor_user_id,'pricing.publish');
+  end if;
 
   select * into o
   from public.contract_offers
@@ -97821,6 +97869,21 @@ CREATE TABLE gridex_billing_source.underlay_bindings (
 ALTER TABLE ONLY gridex_billing_source.underlay_bindings FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: confirmations; Type: TABLE; Schema: gridex_brp_changes; Owner: -
+--
+
+CREATE TABLE gridex_brp_changes.confirmations (
+    event_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    message_id uuid NOT NULL,
+    confirmed_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT confirmations_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
+);
+
+ALTER TABLE ONLY gridex_brp_changes.confirmations FORCE ROW LEVEL SECURITY;
+
+--
 -- Name: events; Type: TABLE; Schema: gridex_brp_changes; Owner: -
 --
 
@@ -101274,6 +101337,17 @@ CREATE TABLE gridex_network_registry_sources.revocations (
 );
 
 ALTER TABLE ONLY gridex_network_registry_sources.revocations FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: publish_authorizations; Type: TABLE; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+CREATE TABLE gridex_one_off_offer_binding.publish_authorizations (
+    offer_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    actor_user_id uuid,
+    txid bigint NOT NULL
+);
 
 --
 -- Name: reservations; Type: TABLE; Schema: gridex_one_off_offer_binding; Owner: -
@@ -124097,6 +124171,20 @@ ALTER TABLE ONLY gridex_billing_source.underlay_bindings
     ADD CONSTRAINT underlay_bindings_pkey PRIMARY KEY (underlay_id);
 
 --
+-- Name: confirmations confirmations_message_id_key; Type: CONSTRAINT; Schema: gridex_brp_changes; Owner: -
+--
+
+ALTER TABLE ONLY gridex_brp_changes.confirmations
+    ADD CONSTRAINT confirmations_message_id_key UNIQUE (message_id);
+
+--
+-- Name: confirmations confirmations_pkey; Type: CONSTRAINT; Schema: gridex_brp_changes; Owner: -
+--
+
+ALTER TABLE ONLY gridex_brp_changes.confirmations
+    ADD CONSTRAINT confirmations_pkey PRIMARY KEY (event_id);
+
+--
 -- Name: events events_company_id_environment_source_reference_source_versi_key; Type: CONSTRAINT; Schema: gridex_brp_changes; Owner: -
 --
 
@@ -126069,6 +126157,13 @@ ALTER TABLE ONLY gridex_network_registry_sources.reviews
 
 ALTER TABLE ONLY gridex_network_registry_sources.revocations
     ADD CONSTRAINT revocations_pkey PRIMARY KEY (target_kind, target_id);
+
+--
+-- Name: publish_authorizations publish_authorizations_pkey; Type: CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.publish_authorizations
+    ADD CONSTRAINT publish_authorizations_pkey PRIMARY KEY (offer_id);
 
 --
 -- Name: reservations reservations_pkey; Type: CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
@@ -142847,6 +142942,12 @@ CREATE OR REPLACE VIEW public.gridex_api_client_permission_summary_v WITH (secur
   GROUP BY c.id, co.name;
 
 --
+-- Name: source_correlations confirm_brp_change_on_ack; Type: TRIGGER; Schema: gridex_ack_authority; Owner: -
+--
+
+CREATE CONSTRAINT TRIGGER confirm_brp_change_on_ack AFTER INSERT ON gridex_ack_authority.source_correlations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION gridex_brp_changes.confirm_on_ack_v1();
+
+--
 -- Name: prodat_physical_receipts immutable; Type: TRIGGER; Schema: gridex_ack_authority; Owner: -
 --
 
@@ -143427,6 +143528,18 @@ CREATE TRIGGER brp_origin_no_truncate BEFORE TRUNCATE ON gridex_brp_changes.orig
 --
 
 CREATE TRIGGER brp_revocation_lock BEFORE INSERT ON gridex_brp_changes.revocations FOR EACH ROW EXECUTE FUNCTION gridex_brp_changes.revocation_lock_v1();
+
+--
+-- Name: confirmations confirmations_immutable; Type: TRIGGER; Schema: gridex_brp_changes; Owner: -
+--
+
+CREATE TRIGGER confirmations_immutable BEFORE DELETE OR UPDATE ON gridex_brp_changes.confirmations FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: confirmations confirmations_no_truncate; Type: TRIGGER; Schema: gridex_brp_changes; Owner: -
+--
+
+CREATE TRIGGER confirmations_no_truncate BEFORE TRUNCATE ON gridex_brp_changes.confirmations FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
 
 --
 -- Name: events events_immutable; Type: TRIGGER; Schema: gridex_brp_changes; Owner: -
@@ -153342,6 +153455,27 @@ ALTER TABLE ONLY gridex_billing_source.underlay_bindings
     ADD CONSTRAINT underlay_bindings_underlay_id_fkey FOREIGN KEY (underlay_id) REFERENCES public.billing_underlays(id);
 
 --
+-- Name: confirmations confirmations_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_brp_changes; Owner: -
+--
+
+ALTER TABLE ONLY gridex_brp_changes.confirmations
+    ADD CONSTRAINT confirmations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: confirmations confirmations_event_id_fkey; Type: FK CONSTRAINT; Schema: gridex_brp_changes; Owner: -
+--
+
+ALTER TABLE ONLY gridex_brp_changes.confirmations
+    ADD CONSTRAINT confirmations_event_id_fkey FOREIGN KEY (event_id) REFERENCES gridex_brp_changes.events(id);
+
+--
+-- Name: confirmations confirmations_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_brp_changes; Owner: -
+--
+
+ALTER TABLE ONLY gridex_brp_changes.confirmations
+    ADD CONSTRAINT confirmations_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id);
+
+--
 -- Name: events events_approved_by_fkey; Type: FK CONSTRAINT; Schema: gridex_brp_changes; Owner: -
 --
 
@@ -156105,6 +156239,13 @@ ALTER TABLE ONLY gridex_network_registry_sources.reviews
 
 ALTER TABLE ONLY gridex_network_registry_sources.reviews
     ADD CONSTRAINT reviews_reviewer_user_id_fkey FOREIGN KEY (reviewer_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: publish_authorizations publish_authorizations_offer_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.publish_authorizations
+    ADD CONSTRAINT publish_authorizations_offer_id_fkey FOREIGN KEY (offer_id) REFERENCES public.contract_offers(id) ON DELETE CASCADE;
 
 --
 -- Name: reservations reservations_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
@@ -166476,6 +166617,12 @@ ALTER TABLE gridex_billing_source.correction_journal ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE gridex_billing_source.underlay_bindings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: confirmations; Type: ROW SECURITY; Schema: gridex_brp_changes; Owner: -
+--
+
+ALTER TABLE gridex_brp_changes.confirmations ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: events; Type: ROW SECURITY; Schema: gridex_brp_changes; Owner: -
@@ -187852,6 +187999,12 @@ REVOKE ALL ON FUNCTION gridex_billing_source.require_underlay_v1(p_company uuid,
 --
 
 REVOKE ALL ON FUNCTION gridex_brp_changes.bind_message_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION confirm_on_ack_v1(); Type: ACL; Schema: gridex_brp_changes; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_brp_changes.confirm_on_ack_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION context_before_site_projection_v1(c uuid, event uuid, actor uuid, notice boolean); Type: ACL; Schema: gridex_brp_changes; Owner: -

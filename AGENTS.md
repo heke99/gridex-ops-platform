@@ -12,19 +12,27 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 This is a long-lived production project.
 
-## Active Masterplan coordination board — 2026-10-07
+## Masterplan coordination board — announced transition, 2026-10-11
 
-Use [#673](https://github.com/heke99/gridex-ops-platform/issues/673) for new
-Masterplan CLAIM/READY/BLOCKED/MERGED/RELEASE receipts and handovers.
+[#766](https://github.com/heke99/gridex-ops-platform/issues/766) is the active board
+after actual [#767 delivery](https://github.com/heke99/gridex-ops-platform/pull/767)
+and the [explicit transition on #673](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6110433111).
+Read its single owner/resumption table and GEN queue as dated evidence; refresh
+actual sources and custody before action. New CLAIM/READY/CI_GREEN/BLOCKED/MERGED/RELEASE
+and bounded handover receipts go only to #766. Do not duplicate receipts across boards.
+
+Operational posting instructions in older memory files or prompts pointing to
+#530 or #673 refer to #766. Preserve all original links and evidence:
 [#530](https://github.com/heke99/gridex-ops-platform/issues/530) reached GitHub's
-2,500-comment limit and remains the historical evidence archive. Read the
-current board and relevant linked #530 receipts before selecting or resuming work.
+2,500-comment limit; [#673](https://github.com/heke99/gridex-ops-platform/issues/673) retains the subsequent original receipts. The channel
+move grants no scope or release. Exact reservation refs, retained duties, HOLD
+criteria, review/CI, normal merge and verified owner-only release remain unchanged.
 
-Operational instructions in older memory files or prompts to post new receipts
-on #530 now refer to #673. Preserve original #530 links and historical receipts;
-do not rewrite them or treat the channel move as a release. Atomic GitHub refs
-still determine ownership, and the reservation, documentation, review, coverage
-and merge protocols remain unchanged.
+Use the [existing portable foundation](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109033320)
+and your recorded fixed-role checkpoint; no second foundation or inherited
+packet is created. Shared-memory publication requires the verified writer's
+role-memory and exact file custody. The [existing continuation request](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109005878)
+remains dated evidence; actual handover, CLAIM and release receipts determine custody.
 
 ## Autonomous Masterplan roles — owner continuation, 2026-10-08
 
@@ -51,7 +59,7 @@ reviewers keep their role. The prompts support new and resumed Claude/Codex
 sessions; a new session never inherits another session's locks by assumption.
 
 Read the active sections of startup memory and your checkpoint, then relevant
-dated history. Refresh actual main, coverage, PR heads/checks, #673 and remote
+dated history. Refresh actual main, coverage, PR heads/checks, the announced active board and remote
 refs before selection. Old status labels and chat activity neither establish nor release custody.
 Reconcile live refs with explicit retained-duty, RELEASE and authorized
 handover receipts; absence of a tag does not erase retained whole responsibility.
@@ -81,7 +89,7 @@ with its role prompt, or record an authorized scoped handoff to a new identity.
 No new chat inherits another session's packet or reservations.
 
 Every role records taken/done/verification/blocker/next in its own checkpoint
-and #673 before another work item. Keep receipts concise. Shared summaries
+and the active board before another work item. Keep receipts concise. Shared summaries
 require both role-memory and exact file custody; the role does not grant files
 reserved by another writer. Preserve dated evidence instead of copying whole
 audit narratives into each transition.
@@ -117,7 +125,7 @@ Before every non-trivial task:
 12. Inspect the actual implementation.
 13. For Masterplan work, read `.agent-memory/masterplan-agent-workflow.md`,
     `.agent-memory/masterplan-reservations.md`, your own checkpoint, the legacy PR register,
-    latest #673 receipts, relevant historical #530 receipts, the dated owner-action
+    latest active-board receipts, relevant historical #530 receipts, the dated owner-action
     queue and live remote locks before selecting a packet.
 14. Continue from the recorded next action.
 
@@ -129,7 +137,7 @@ After every atomic subtask, inspect changes, run targeted verification, update
 the checkpoint and current task, record the exact next action, and continue.
 
 For parallel Masterplan packets, each technical agent records these updates in
-its own packet checkpoint and on #673. Agents acquire the atomic memory-role
+its own packet checkpoint and on the active board. Agents acquire the atomic memory-role
 lock to reconcile shared current-task/checkpoint/handover from those receipts.
 
 Before session end, update checkpoint, handover, current state, blockers,
@@ -364,7 +372,7 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
    the authorized role above. PLANAGENT chooses
    two eligible unapproved rule IDs and their contracts independently from current
    main, priority and dependencies (or two remaining contract/scenario IDs when
-   work is acceptance-only; a final single eligible ID is allowed). Read #673
+   work is acceptance-only; a final single eligible ID is allowed). Read the active board
    and relevant historical #530 receipts,
    current PRs, checkpoints and live remote locks. Atomically reserve IDs and
    exact file scope using `.agent-memory/masterplan-reservations.md`, then post
@@ -373,7 +381,7 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
    Direct self-reservation needs no user allocation, coordinator acknowledgement
    or staggered launch. A restricted session using the already-authorized proxy
    must obtain and verify its actual reservation receipt before implementation.
-   Issue #673 carries new progress; #530 preserves earlier evidence. Atomic refs
+   The active board carries new progress; #673/#530 preserve earlier evidence. Atomic refs
    establish ownership. Acquire the
    merge-role lock for serial current-head delivery. Post `READY <IDs> — PR #N` for reviewable work,
    `CI_GREEN` only for the current head, and `MERGED <IDs> — PR #N — <main SHA>`
