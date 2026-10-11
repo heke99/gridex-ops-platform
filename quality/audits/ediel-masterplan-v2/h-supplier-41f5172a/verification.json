@@ -2,15 +2,15 @@
   "status": "QUALIFIED",
   "qualification_script_sha256": "1e553dc807e4845a0dc331be7a66101099fa65db020e2e8fa9c7014fc2987799",
   "scope": "Internal H CODE acceptance only; real issuer/counterparty/market activation and deployment are separate.",
-  "head": "b61cd3132fcfc529b4effa89d909d82166914a66",
-  "tree": "43e258aa3f2e945da2bf2589f81eb9912bcbc7f1",
-  "run": 38093935849,
+  "head": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+  "tree": "a285593d6bd89d8d7514de722f8722c33e2678f8",
+  "run": 38095758584,
   "attempt": 1,
-  "job": 114335822220,
-  "artifact": 11685827427,
-  "zip_bytes": 239810,
-  "zip_sha256": "00bff7ebb5b0c6a4e4032f9a3623768ed32c3875e22b6a2d24b5f5e8c76d7627",
-  "input_count": 4590,
+  "job": 114341192257,
+  "artifact": 11686431504,
+  "zip_bytes": 239951,
+  "zip_sha256": "949ae4e5ed3cf042d9ebb6458da21ec7049b8007f530ccf702364ea4b1212099",
+  "input_count": 4592,
   "test_scope": [
     "scripts/ediel-at-z03h-z04h-supplier-native.test.ts"
   ],
@@ -29,23 +29,23 @@
     "authentic_market_evidence": "NOT_PROVIDED"
   },
   "member_sha256": {
-    "native-junit.xml": "57f6b0082ace02c3c04a5d4c0b082bd76c773a1d2f99e8eb9767f48fbaaee07d",
-    "native.log": "c4d797d42c3b9dd98ee16359c4d2083d7e0af6315e29dd6fc0cf172065d7ce95",
-    "receipt.json": "c7b337c932652a599b8a663c24e9d497a9f4b1348fe09b99bf3700971eda8a62"
+    "native-junit.xml": "f08547d88416f7cf01ad1203fba291603f00f30266317417c3ce7086688a06a6",
+    "native.log": "08d77b9b27373d243588b0ec4902d985871111c28232a83bd903dd6c2f798e92",
+    "receipt.json": "c645b99a11ec3a407703cfe64a9cefb71f06be4fa145c01b6abf096b5406d1d0"
   },
   "api_provenance": {
-    "artifact_name": "ediel-z03h-z04h-supplier-native-b61cd3132fcfc529b4effa89d909d82166914a66",
-    "artifact_workflow_run_id": 38093935849,
-    "artifact_head_sha": "b61cd3132fcfc529b4effa89d909d82166914a66",
-    "artifact_digest": "sha256:00bff7ebb5b0c6a4e4032f9a3623768ed32c3875e22b6a2d24b5f5e8c76d7627",
-    "run_head_sha": "b61cd3132fcfc529b4effa89d909d82166914a66",
+    "artifact_name": "ediel-z03h-z04h-supplier-native-a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+    "artifact_workflow_run_id": 38095758584,
+    "artifact_head_sha": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+    "artifact_digest": "sha256:949ae4e5ed3cf042d9ebb6458da21ec7049b8007f530ccf702364ea4b1212099",
+    "run_head_sha": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
     "run_attempt": 1,
     "run_status": "completed",
     "run_conclusion": "success",
     "run_event": "pull_request",
     "run_path": ".github/workflows/ediel-z03h-z04h-supplier-native.yml",
-    "job_head_sha": "b61cd3132fcfc529b4effa89d909d82166914a66",
-    "job_run_id": 38093935849,
+    "job_head_sha": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+    "job_run_id": 38095758584,
     "job_run_attempt": 1,
     "job_name": "z03h-z04h-supplier-native",
     "job_status": "completed",
@@ -460,7 +460,6 @@
     "AT-Z04H-SUPPLIER"
   ],
   "frozen_acceptance_register_sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
-  "preserved_archive": "native-b61cd313.zip",
   "finite_behavioral_verification": {
     "source": "b61cd3132fcfc529b4effa89d909d82166914a66",
     "tests": 89,
@@ -473,17 +472,7 @@
       "__tests__/ediel-prodat-bilateral-source-capability.test.ts",
       "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts"
     ],
-    "applicability": "Executed after first two tag lines; remaining three edits are ID comments only. All five original test bodies compare byte-exact after removing the added first line."
-  },
-  "whole_source_review": {
-    "source": "b61cd3132fcfc529b4effa89d909d82166914a66",
-    "independent_readers": [
-      "h_contract_reconciliation",
-      "h_existing_pr_review"
-    ],
-    "critical": 0,
-    "important": 0,
-    "status": "FULL_LITERAL_SOURCE_PATH_AND_ASSERTION_MAP_REVIEWED; EXECUTION_AND_FINAL_COVERAGE_REVIEW_SEPARATE"
+    "applicability": "89 passing finite cases executed at b61; all four finite bodies byte-identical at a6. The native comment replaces one blank line; every original nonblank assertion and fixture is unchanged. Fresh complete H native100 executes the current #732 source/schema."
   },
   "criteria": {
     "wire": "Actual 23-DDQ-PRODAT physical Z03/Z04 with reason223=Z25 and exact own fields.",
@@ -495,5 +484,41 @@
     "correlation_mutation": "Wrong own LI/customer/date/point/grid, copied markers, raw/direction/environment mutation and stale/current-profile tuple refusal cannot commit the transition.",
     "replay": "Actual durable business/ACK/original snapshots remain stable through sequential and concurrent replay."
   },
-  "applicability": "Authentic b61cd313 baseline execution before main PR732 signing-date/schema migration. Current PR composition incorporates d5808b97; changed relevant inputs require fresh affected native execution and exact-head ordinary gates before CODE coverage/delivery."
+  "preserved_archive": "native-a6f7acab.zip",
+  "baseline": {
+    "head": "b61cd3132fcfc529b4effa89d909d82166914a66",
+    "tree": "43e258aa3f2e945da2bf2589f81eb9912bcbc7f1",
+    "run": 38093935849,
+    "attempt": 1,
+    "job": 114335822220,
+    "artifact": 11685827427,
+    "zip_bytes": 239810,
+    "zip_sha256": "00bff7ebb5b0c6a4e4032f9a3623768ed32c3875e22b6a2d24b5f5e8c76d7627",
+    "input_count": 4590,
+    "tests": 100,
+    "passed": 100,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0,
+    "preserved_archive": "native-b61cd313.zip",
+    "applicability": "Historical b61 before main#732; preserved separately, not used as current execution."
+  },
+  "whole_source_review": {
+    "source": "a6f7acab79de2fdea06fde28756dd7f8b4ff57f4",
+    "independent_readers": [
+      "h_contract_reconciliation",
+      "h_existing_pr_review"
+    ],
+    "critical": 0,
+    "important": 0,
+    "status": "FULL_LITERAL_SOURCE_PATH_ASSERTIONS_AND_SAME_ORIGINAL_EXECUTION_APPROVED; FINAL_COVERAGE_DELTA_AND_CURRENT_HEAD_CI_SEPARATE",
+    "reports": {
+      "source-r2-review1.json": "e3fc04bfc76e48a136c4bfa0dc2dacb3f2d1e7fb5013109d83e98ab24841358d",
+      "source-r2-review2.json": "dd3766a58f66ec6daa40d93e0eb74541f691ca69a2b96a202ff606e2c6bf8017",
+      "h-native-r2-review1.json": "b740264444ea935fbb3a8215df39226db1f969fa0fd45336b5735b41eaa33d12",
+      "h-native-r2-review2.json": "7ce0457f1d444909c18b98f9daeec60fbf394159c23e554f28647cc35400896e"
+    },
+    "coordination_receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6103702402"
+  },
+  "applicability": "Authentic a6 native execution after delivered main#732. All4592 collector source/schema/test/helper/doc/config inputs must remain byte-identical for this proof to apply to a later coverage/evidence-only head. Mandatory CI and final independent delta reviews must pass for that exact later head; external market/activation/deployment remain separate."
 }

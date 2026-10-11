@@ -3994,13 +3994,29 @@
     },
     {
       "id": "AT-Z03H-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/production/bilateralProdatSwitchPreparation.ts",
+        "lib/ediel/production/bilateralProdatOutboundDraft.ts",
+        "__tests__/ediel-bilateral-prodat-switch-preparation.test.ts",
+        "__tests__/ediel-bilateral-prodat-outbound-draft.test.ts",
+        "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/native-a6f7acab.zip",
+        "quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/verification.json"
+      ]
     },
     {
       "id": "AT-Z04H-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/prodatBilateralSourceCapability.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "__tests__/ediel-prodat-bilateral-source-capability.test.ts",
+        "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts",
+        "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/native-a6f7acab.zip",
+        "quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/verification.json"
+      ]
     },
     {
       "id": "AT-Z05H-SUPPLIER",
