@@ -1100,9 +1100,55 @@
       },
       "native_census": 90,
       "native_lines": 1800,
-      "required_final_reviews": "PENDING",
+      "required_final_reviews": {
+        "head": "1fb45b05e89abf5a7514037303b2941abf619f95",
+        "status": "TWO_FINAL_C0_I0",
+        "reviews": [
+          "40602102eba51a32f51f10b95db46658f0a9b2cc70abacf19b23f9d929cdff24",
+          "866637b7e600b56b10e99c70b7837345a55936402fbc35934c3e4e0860b0c479"
+        ],
+        "summary_only_rebind": "PENDING"
+      },
       "native_read_adapter": "NOT_RUN",
-      "next": "ROOT exact-source twoFINAL reviews; sole31 native90 strict original terminal qualification before successor publication"
+      "next": "ROOT summary-only twoFINAL rebind and fresh actual source/custody preflight then one original generated23 native90 successor"
+    },
+    "qualified_native90": {
+      "status": "QUALIFIED_BOUND_NATIVE90",
+      "head": "31f29376730570725d0cf0d31d41a80f9425d634",
+      "tree": "672b2d7dc252e62ce8bf7aff9bb6a38c6faafdb1",
+      "run": 38120160193,
+      "attempt": 1,
+      "job": 114413047934,
+      "artifact": 11695027361,
+      "zip_bytes": 1550209,
+      "zip_sha256": "3c7fb787350f3037ebe551b0683175b56882f8265613ba84e932d529fbc4ba88",
+      "crc": "PASS",
+      "full_git_catalog_inputs": 9825,
+      "full_catalog": "ALL_ORIGINAL_GIT_MODE_OID_SHA256_EQUAL",
+      "tests": 90,
+      "passed": 90,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "closed_log_summary": "PASS",
+      "original90_identities": "EXACT_UNIQUE_SET",
+      "member_sha256": {
+        "frozen-source.json": "5d7ebe368ac8c9a51680080fa2103db181adfa51bc1c6df5dee5481a9af2df97",
+        "native.log": "32417d813ee7c61515e7194760e9e8d61dcea38b2f46e3413bc21c5fa1941e0b",
+        "native-junit.xml": "98d770d8ddaeba03860b1cdc9b4e58e4041c813771857c10f76513fbbc1c8b15",
+        "receipt.json": "f82d170f6aecc728184598f88a06797d9decb9b9eec5ca5d74834ed6dbcef5a0"
+      },
+      "qualifier_sha256": "e1db5dc737f92d28d7b1b08a267a526c7cc1e7e077fda603427487d9cf85d594",
+      "boundaries": {
+        "canonical_sql_execution_inventory": "NOT_REPORTED_BY_THIS_RECEIPT",
+        "ordinary_required_gates": "NOT_REPLACED",
+        "schema_capture": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "authentic_market_evidence": "NOT_PROVIDED",
+        "whole_card_approval": "NOT_PROVIDED"
+      },
+      "qualification_scope": "Public ESCO90 component evidence at exact executed source; no whole acceptance, latest-main native or external-market approval."
     }
   },
   "additional_deliveries": [
