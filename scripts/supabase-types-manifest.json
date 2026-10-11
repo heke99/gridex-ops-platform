@@ -3,9 +3,9 @@
   "generated_at": "2026-10-11T08:36:02.193205+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38124809178",
   "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
-  "latest_migration": "20261011090000_one_off_binding_staff_publish.sql",
+  "latest_migration": "20261011094500_one_off_binding_staff_publish.sql",
   "latest_migration_schema_effect": "PR #747: adds private table gridex_one_off_offer_binding.publish_authorizations and replaces gridex_publish_internal_contract_version and gridex_prepare_manual_contract_binding; public types unchanged unless the capture shows otherwise. Artifacts imported byte-exactly from capture run 38124809178.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-11T08:36:02.193205+00:00",
@@ -103,7 +103,7 @@
     "upgrade_parity": "NOT_RUN",
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
-  "composition_note": "All thirteen previous active fields are archived under pre_ediel_main420_combined_capture_root_20261010 with a complete112-key source-manifest byte inverse. All99 other historical fields and every original NOT_RUN/pending value remain unchanged. RAW3 is copied byte-exactly from this authenticated original artifact.",
+  "composition_note": "Migration renamed 20261011090000 -> 20261011094500 (version collision with PR #753); byte-identical SQL. Capture of the renamed head pending; capture field still records run 38124809178 under the old name.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -15440,5 +15440,7 @@
       "upgrade_parity": "NOT_RUN",
       "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
     }
-  }
+  },
+  "pre_747_rename_composition_note": "All thirteen previous active fields are archived under pre_ediel_main420_combined_capture_root_20261010 with a complete112-key source-manifest byte inverse. All99 other historical fields and every original NOT_RUN/pending value remain unchanged. RAW3 is copied byte-exactly from this authenticated original artifact.",
+  "pre_747_rename_composition_capture_pending": false
 }
