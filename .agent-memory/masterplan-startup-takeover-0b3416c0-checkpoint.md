@@ -470,3 +470,31 @@ sevenrefs and retained Brave/native/legal/whole exclusions are bound. Genuine
 current gates/review precede any merge-role. Finish normal expected-head
 merge, actualmain/parents/tree/full313ledger, ownroleFIRST and rightful source
 release/checkpoint before another blocker. No stale BLOCKED or blind GEN import.
+
+## Selected exact #765 delivery custody — 2026-10-11 16:42 UTC
+
+TAKEN: user-authorized administrative ALL7_DELIVERY_CUSTODY_ONLY,
+packet3619327f-ba62-4e96-b5d8-4725d6cf3253; sourceb454 frozen, ZERO CODE/GEN-edit,
+whole/native/legal/coverage authority. Pending own role packet2715b031-35c3-45cf-b087-364c6d038cc8;
+no handoff/ref/role mutation yet. ExistingE978/a934 two8d6 plus GEN5c951 will
+retire ONLY after actual authentic public handoff; own7 CREATE_IF_ABSENT,
+fullGET_MATCH/CLAIM before operation. OriginalE chat/privateSTOP UNKNOWN;
+Brave whole/legal/native and C accepted744/753/755/760 queue excluded.
+Exact seven paths: NEW121542 SQL/test, scripts/migration-history-manifest.json,
+scripts/supabase-types-manifest.json, supabase/database.types.ts,
+supabase/schema.fingerprint.json, supabase/schema.sql. No additions-manifest
+edit or sourcebranch republish; unchanged reviewed checksum work reused.
+
+DONE: sole16:31 E b454/all7 refs/CLAIM/source2/READY actual,37/37complete
+27SUCCESS+10qualifiedSKIP/knownCodeRabbitSUCCESS, roleGET404. Old CI-pending
+is superseded. Actual743finalCP19853752/authenticcompleteb66f0ec0;
+rootCPd072 remote/fullbytesauth. Sole766 body actualPATCH/GET3d143ba5
+at16:40,20rows/16foreignoldrows/allhistory preserved;313/352/39remain.
+
+BLOCKER/NEXT: exact actual2a composition/applicability and two bounded
+operationsreviews of frozen handoff/custody/delivery executor. Reuse same
+45PGlite sourceproof+sole38145633287 capture/source2; no native/archive redo.
+Then actualhandoff, own7+CLAIM, fresh genuine currentCI/base/source guards,
+oneownrole/expected-headmerge/authmain-tree-parents-FULL313, roleFIRST/all7
+rightfulrelease/publicreadback/NONPRcheckpoint. Changedsource/base/ref stops
+for precise reconciliation, no replay/foreignrestore/gate bypass or idle role.
