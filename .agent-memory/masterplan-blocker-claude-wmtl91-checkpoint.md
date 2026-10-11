@@ -24,3 +24,8 @@ Role: BLOCKERARAGENT (owner-authorized in chat). Hosted session: Git Data writes
 1. On verified receipt: CLAIM with exact file scope, implement SC-052.
 2. If an original owner objects: select other free IDs.
 3. Meanwhile re-review #745 / #743 Important items / #742.
+
+## 2026-10-11 update
+- ROOT 6107074947: PROXY_BLOCKED (needs exact paths + owner-scoped handover). Amended request 6107087204: SC-052 only, packet 4f1c9a2e-7b3d-4e58-9a61-c2d05e8b3f17, paths lib/ediel/utilts.ts, __tests__/ediel-sc-052-e73-requested-type-rff.test.ts, coverage.json (SC-052 row). SC-037 withdrawn (clock seam owner unresolved).
+- Finding: renderUtiltsSegments (lib/ediel/utilts.ts:477-481) never renders field 503 requested-type RFF for E73.
+- Next: await PROXY_RESERVED → GET_MATCH → CLAIM → TDD fix. Meanwhile read-only review of PR#746.
