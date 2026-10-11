@@ -1,3 +1,4 @@
+// masterplan: AT-Z03H-SUPPLIER
 import {beforeEach,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:vi.fn()}}))
