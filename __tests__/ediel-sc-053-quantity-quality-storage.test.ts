@@ -1,4 +1,4 @@
-// masterplan: SC-053
+// masterplan: SC-053, AT-U-09
 // The real runtime, contract preparation, payload builder and persistence
 // adapter forward each quantity's own source STS+8 quality to PostgreSQL, so a
 // missing (NULL, 46) energy value and a verified zero (0, 21) are stored with
@@ -22,12 +22,12 @@ vi.mock('@/lib/supabase/service',()=>({supabaseService:native}))
 vi.mock('@/lib/ediel/matching',()=>({matchMeteringPointIdByIdentifier:vi.fn().mockResolvedValue(null),matchSiteAndCustomerForMeteringPoint:vi.fn().mockResolvedValue(null)}))
 
 // Two quarters of one E66 series: the first is missing, the second is zero.
-function nullAndZeroMessage(){
+function nullAndZeroMessage(nullStatuses:string[]=["STS+8+46'"]){
  const message=energyHandoffMessage('2026-10-15')
  message.company_id='11111111-1111-4111-8111-111111111111';message.id='22222222-2222-4222-8222-222222222222'
  const lines=message.raw_payload!.split('\n'),at=lines.findIndex(line=>line.startsWith('SEQ+'))
  const head=lines.slice(0,at).map(line=>line.replace('202607010000202607010015:719','202607010000202607010030:719'))
- const observations=["SEQ++1'","QTY+136:NULL'","DTM+597:202607010000:203'","STS+8+46'",
+ const observations=["SEQ++1'","QTY+136:NULL'","DTM+597:202607010000:203'",...nullStatuses,
   "SEQ++2'","QTY+136:0'","DTM+597:202607010015:203'","STS+8+21'"]
  message.raw_payload=recountEdifactUnt([...head,...observations,"UNT+0+1'",lines[lines.length-1]].join('\n'))
  return message
@@ -80,4 +80,22 @@ describe('SC-053 NULL is not zero in stored UTILTS values',()=>{
   expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(21)
 
  },125_000)
+
+ // Ediel-anvisning UTILTS & APERAK 25-A-5 p97 §3.9: SG11 QTY has `STS Status 1 D`
+ // (max one repetition). Bilaga 1 p121: an Anvisningskontroll failure rejects the
+ // transaction in a negative APERAK; no functional check and no persistence.
+ for(const [label,statuses] of [['identical',["STS+8+46'","STS+8+46'"]],['differing',["STS+8+46'","STS+8+21'"]]] as const){
+  it(`rejects a QTY with two ${label} STS by guide check ERC 42 field 520, without RPC`,async()=>{
+   native.rpc.mockReset()
+   const message=nullAndZeroMessage([...statuses]),runtime=runUtiltsRuntimeForMessage(message)
+   expect(runtime.transactionDispositions).toMatchObject([{disposition:'guide_rejected',responseType:'negative_aperak'}])
+   const issue=runtime.validation.issues.find(i=>i.code==='UTILTS_QUANTITY_STATUS_REPEATED')
+   expect(issue).toMatchObject({kind:'application',aperakErcCode:'42',aperakFieldCode:'520',aperakText:'INCORRECT DATA',referenceQualifier:'ACW'})
+   expect(runtime.transactionDispositions[0].issueCodes).toContain('UTILTS_QUANTITY_STATUS_REPEATED')
+   const policy=resolveCanonicalMessagePolicy(message)!
+   const contracts=await prepareUtiltsConsumptionContracts({message,runtime,policy,matches:[],dataRequest:null,fallback:{customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null},allowConsumption:true})
+   expect(contracts.every(c=>c.observations.length===0)).toBe(true)
+   expect(native.rpc).not.toHaveBeenCalled()
+  })
+ }
 })
