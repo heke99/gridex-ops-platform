@@ -289,19 +289,14 @@ it('P-08 tenant isolation: an own positive APERAK confirms only its own tenant e
   expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.production_contract_confirmations WHERE company_id=${literal(b.f.companyId)}`)).toBe(0)
 }, 900_000)
 
-it('AT-Z09D a mutated sent Z09D original is never confirmed: the mutation is refused or the ACK authority refuses the changed original', async () => {
+it('AT-Z09D a mutated sent Z09D original is never confirmed: the sealed-payload guard refuses the mutation', async () => {
   const { f, sent } = await signedChain()
-  const before = sql<string>(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(sent.original.id)}`)
-  let refused = false
-  try {
-    sql(`UPDATE public.ediel_messages SET raw_payload=replace(raw_payload,'CAV+Z70','CAV+Z71') WHERE id=${literal(sent.original.id)} AND company_id=${literal(f.companyId)}`)
-  } catch { refused = true }
-  if (refused) {
-    // The sealed original is unchanged, so only its own genuine receipt could ever confirm it.
-    expect(sql<string>(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(sent.original.id)}`)).toBe(before)
-  } else {
-    // The stored bytes no longer match the sealed hash: no acknowledgement may be applied to the mutated original.
-    await expect(acknowledge(f, sent, 'APERAK')).rejects.toThrow()
-  }
+  const sealed = () => sql<{ raw: string; hash: string }>(`SELECT jsonb_build_object('raw',raw_payload,'hash',immutable_payload_hash) FROM public.ediel_messages WHERE id=${literal(sent.original.id)}`)
+  const before = sealed()
+  expect(before.hash).toMatch(/^[0-9a-f]{64}$/)
+  // Only the immutability guard may refuse this; any other failure fails the test.
+  expect(() => sql(`UPDATE public.ediel_messages SET raw_payload=replace(raw_payload,'CAV+Z70','CAV+Z71') WHERE id=${literal(sent.original.id)} AND company_id=${literal(f.companyId)}`))
+    .toThrow(/immutable_ediel_payload_cannot_change/)
+  expect(sealed()).toEqual(before)
   expect(confirmations(sent.eventId)).toEqual([])
 }, 900_000)
