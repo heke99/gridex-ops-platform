@@ -7,7 +7,7 @@ decisions remain higher-authority sources.
 
 Current entry: [masterplan-current-start.md](masterplan-current-start.md).
 
-Coordination: [#673](https://github.com/heke99/gridex-ops-platform/issues/673) remains active until this routing update is actually merged and an explicit transition is announced there. [#766](https://github.com/heke99/gridex-ops-platform/issues/766) is the prepared successor and contains the single owner/resumption table and GEN queue; after both events, new receipts go only to #766. Preserve #673/#530 original proof links; the move releases no custody.
+Coordination: [#766](https://github.com/heke99/gridex-ops-platform/issues/766) is active after actual [#767 delivery](https://github.com/heke99/gridex-ops-platform/pull/767) and the [explicit transition on #673](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6110433111). Its single owner/resumption table and GEN queue route current work. New operational receipts go only to #766. Preserve [#673](https://github.com/heke99/gridex-ops-platform/issues/673)/#530 original proof links; the move releases no custody.
 
 Reuse the [existing portable foundation](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109033320); this directory remains the single progress system. Six startup paths below are concise compatibility wrappers; exact original bytes remain in [history](history/20261010-before-startup-cleanup/README.md). Read relevant historical owner/criterion material as needed, not all accumulated history at every start.
 
@@ -29,8 +29,10 @@ Reuse the [existing portable foundation](https://github.com/heke99/gridex-ops-pl
 
 Read active startup sections and your checkpoint first; consult relevant dated
 history as needed. Current code, coverage, head-bound checks and remote refs
-override old current/paused/next-action labels. Follow the conditional board
-transition above; historical #673/#530 evidence remains unchanged.
+override old current/paused/next-action labels. The announced active board is
+#766; historical #673/#530 evidence remains unchanged. The six startup wrappers
+(including checkpoint.json) retain their dated b566/311 observation; use current-start and
+actual evidence for current progress and resumption.
 
 Before implementation or another work item, every agent must save ownership, actual
 completed work, verification, blockers and the exact next action. Technical
