@@ -34,7 +34,7 @@ begin
     raise exception using errcode = 'P0002', message = 'supplier_switch_not_found_for_tenant';
   end if;
 
-  if p_expected_statuses is null or not (v_before.status = any (p_expected_statuses)) then
+  if p_expected_statuses is null or (v_before.status = any (p_expected_statuses)) is not true then
     return jsonb_build_object('applied', false, 'currentStatus', v_before.status, 'request', to_jsonb(v_before));
   end if;
 

@@ -459,11 +459,11 @@ async function syncSwitchFromInboundAck(params: {
         ackEdielMessageId: params.ackMessage.id,
         outboundRequestId: params.outboundRequest?.id ?? null,
         outcome: params.outcome,
-        currentSwitchStatus: updated ? "failed" : current.status,
+        currentSwitchStatus: receipt.request.status,
       },
     });
 
-    return updated ?? current;
+    return receipt.request;
   }
 
   if (

@@ -17,7 +17,7 @@ assert.equal(base.split(marker).length, 2, 'normal-switch harness insertion seam
 
 const extension = String.raw`
  let v2=0
- const migration=readFileSync(new URL('../supabase/migrations/20261011120000_ediel_supplier_switch_transition_expected_status.sql',import.meta.url),'utf8')
+ const migration=readFileSync(new URL('../supabase/migrations/20261011124500_ediel_supplier_switch_transition_expected_status.sql',import.meta.url),'utf8')
  await db.exec("CREATE SCHEMA IF NOT EXISTS auth;"+
   "CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $f$ SELECT coalesce(current_setting('request.jwt.claims',true)::jsonb->>'role','') $f$;"+
   "CREATE OR REPLACE FUNCTION public.gridex_can_write_company(uuid) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT coalesce(current_setting('request.jwt.claims',true)::jsonb->>'company',NULL)=$1::text $f$;"+
@@ -41,6 +41,12 @@ const extension = String.raw`
  // Locked status not in the set: no change, no event, current status reported.
  for(const [n,status] of [[5003,'accepted'],[5004,'completed'],[5005,'failed']]){const req=await seed(n,status),r=await t(req)
   assert.deepEqual({applied:r.applied,currentStatus:r.currentStatus},{applied:false,currentStatus:status});assert.deepEqual(await row(req),{status,failure_reason:null,events:0});v2++}
+
+ // NULL-safe membership: NULL, empty and a non-matching set containing NULL all no-op.
+ const tx=(req,expected)=>db.query("SELECT public.gridex_transition_supplier_switch_v2($1,$2,$3,$4,$5::text[]) r",[id(1),req,{status:'failed',failure_reason:'APERAK 27'},{event_type:'status_updated',event_status:'failed'},expected]).then(r=>r.rows[0].r)
+ for(const [n,expected] of [[5011,null],[5012,[]],[5013,['prepared',null]]]){const req=await seed(n,'accepted'),r=await tx(req,expected)
+  assert.equal(r.applied,false,JSON.stringify(r));assert.deepEqual(await row(req),{status:'accepted',failure_reason:null,events:0});v2++}
+ { const req=await seed(5014,'sent');assert.equal((await tx(req,[null,'sent'])).applied,true);assert.equal((await row(req)).status,'failed');v2++ }
 
  // Writer assertion still enforced: a non-writer authenticated actor is refused
  // with no change; a writer of the same tenant is allowed; another tenant cannot
