@@ -38,3 +38,25 @@ actual repo postimages exactly match reviewed proposal manifest; no product,
 SQL/schema/generated/coverage/frozen-register change. Priorhistory preserved.
 Local apply/whitespace/JSON/arithmetic/46relative-link checks PASS. Next publish
 source and request independent actual-source review; currentCI/merge pending.
+
+## Published READY/current review checkpoint
+
+Technical source remains `1f346c321186ea5bcb04ad31cffda0e03288eeb9`, PRhttps://github.com/heke99/gridex-ops-platform/pull/767 .
+Operational checkpoint is published on separate branch
+`codex/startup-routing-0b3416c0-checkpoint`; this avoids changing a reviewed
+technical head or starting extra CI solely for checkpoint receipts.
+https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109365907
+Independent source A https://github.com/heke99/gridex-ops-platform/pull/767#issuecomment-6109378227
+Independent source B https://github.com/heke99/gridex-ops-platform/pull/767#issuecomment-6109378442
+Both C0/I0 for actual source; current-head CI is queued/running, not green.
+No role-merge acquired or actual delivery/board transition claimed yet.
+
+Parallel native header agent received the same project-owner direct handoff
+mandate under a separate one-file packet/own ref and CLAIM; no overlap with
+these ten docs. Parent serializes final qualified merges. Existing E13 and
+other743 source/ID duty remains explicit; the new successor owns only its
+header delta and one mandatory automatic new-head native collection.
+
+Next: finish actual767 checks and normal expected-head delivery; then verified
+roleFIRST/file cleanup/673transition, and deliver the new743 source after its
+actual mandatory native/currentchecks/applicability. No reruns or gate waivers.
