@@ -19,7 +19,7 @@ import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/ru
 import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
-import { tokenizeEdifact, segmentComposite, segmentElementCount } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite, segmentElementCount, segmentSourceSpan, segmentOriginalRaw } from '@/lib/ediel/core/edifactTokenizer'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import { prodatRegisterGroups } from '@/lib/ediel/prodat/prodatRegisterGroups'
@@ -439,6 +439,88 @@ function observeZ02StructuredEnqueueFailureProjection(observation: unknown,
   }
 }
 
+// Separate SDK-code evidence accompanies, never replaces, the three legacy labels.
+const positiveSdkCodes = [
+  '23502', '23503', '23505', '23514', '42501', '42P01', '42703', 'P0001', '22P02', '42883',
+  '21000', '22023', 'XX000', 'P0002', 'P0003', '40001', '40P01',
+  'PGRST116', 'PGRST200', 'PGRST201', 'PGRST202', 'PGRST203', 'PGRST204', 'PGRST205',
+  'unlisted', 'unavailable',
+] as const
+function positiveSdkEnqueueProjection(value: unknown) {
+  positiveStructuredShape(value, ['schemaVersion', 'requestCount', 'eventCount', 'eventOverflow', 'copiesAgree', 'evidenceBins', 'sdkCodeBins'])
+  const count = positiveProjectionCount(positiveStructuredData(value, 'eventCount'))
+  const copies = positiveStructuredData(value, 'copiesAgree')
+  const overflow = positiveStructuredData(value, 'eventOverflow')
+  if (positiveStructuredData(value, 'schemaVersion') !== 1 || positiveStructuredData(value, 'requestCount') !== 1
+    || count === null || count > 65 || typeof overflow !== 'boolean'
+    || (count === 0 ? copies !== null : typeof copies !== 'boolean')) throw Error('observation_shape_unavailable')
+  if (count === 65) {
+    if (!overflow || positiveStructuredData(value, 'evidenceBins') !== null || positiveStructuredData(value, 'sdkCodeBins') !== null)
+      throw Error('observation_shape_unavailable')
+    return Object.assign(Object.create(null), {observed: false, reason: 'observation_unavailable', eventOverflow: true})
+  }
+  if (overflow) throw Error('observation_shape_unavailable')
+  const evidence = positiveStructuredBins(positiveStructuredData(value, 'evidenceBins'), positiveStructuredEvidenceClasses)
+  const codes = positiveStructuredBins(positiveStructuredData(value, 'sdkCodeBins'), positiveSdkCodes)
+  if (evidence.total !== count || codes.total !== evidence.bins.classified
+    || copies === true && evidence.bins.conflicting_copies !== 0
+    || copies === false && evidence.bins.conflicting_copies === 0) throw Error('observation_shape_unavailable')
+  return Object.assign(Object.create(null), {observed: true, schemaVersion: 1, requestCount: 1,
+    eventCount: count, eventOverflow: false, copiesAgree: copies, evidenceBins: evidence.bins, sdkCodeBins: codes.bins})
+}
+function observeZ02SdkEnqueueProjection(f: Fixture, original: Original, received: Pick<Received, 'id'>,
+  phase: Z02ProjectionPhase = 'positive.pre606.public_projection'): void {
+  const stage = phase === 'positive.pre606.public_projection' ? 'positive.pre606.enqueue_sdk_code_classification' : phase
+  const emit = (value: unknown) => { try { console.info('Z02_NATIVE_ENQUEUE_SDK_CODE_CLASSIFICATION', JSON.stringify(value)) } catch { /* Never replace a native contract assertion. */ } }
+  try {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
+    const query = `WITH sdk_request AS (
+      SELECT r.id FROM public.customer_info_requests r WHERE r.id=${literal(original.requestId)}
+        AND r.company_id=${literal(f.companyId)} AND r.customer_id=${literal(f.customerId)}
+        AND r.site_id=${literal(f.siteId)} AND r.ediel_message_id=${literal(original.originalZ01.id)}
+        AND EXISTS (SELECT 1 FROM public.ediel_messages m WHERE m.id=${literal(received.id)}
+          AND m.company_id=${literal(f.companyId)} AND m.direction='inbound' AND m.message_family='PRODAT' AND m.message_code='Z02'
+          AND m.customer_id=${literal(f.customerId)} AND m.site_id=${literal(f.siteId)})
+    ), sdk_events AS (
+      SELECT e.payload,e.event_payload FROM public.ediel_message_events e
+      WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(received.id)}
+        AND e.event_type='manual_note' AND e.event_status='error'
+        AND e.message='Z02 kunde inte starta canonical verifiering och applicerades inte.'
+        AND jsonb_typeof(e.payload)='object' AND e.payload->>'customerInfoRequestId'=${literal(original.requestId)}
+        AND EXISTS (SELECT 1 FROM sdk_request)
+    ), sdk_metadata AS (
+      SELECT payload,event_payload,payload IS NOT DISTINCT FROM event_payload AS copies_agree,
+        payload->'enqueueFailureSdkEvidence' AS metadata,
+        CASE WHEN jsonb_typeof(payload->'enqueueFailureSdkEvidence')='object' THEN
+          (SELECT count(*) FROM jsonb_object_keys(payload->'enqueueFailureSdkEvidence'))=2
+          AND (payload->'enqueueFailureSdkEvidence') ?& ARRAY['schemaVersion','sdkCode']::text[]
+          AND payload->'enqueueFailureSdkEvidence'->'schemaVersion'='1'::jsonb
+          AND jsonb_typeof(payload->'enqueueFailureSdkEvidence'->'sdkCode')='string'
+          AND payload->'enqueueFailureSdkEvidence'->>'sdkCode' IN (${positiveSdkCodes.map(literal).join(',')})
+          ELSE false END AS metadata_valid FROM sdk_events
+    ), sdk_classified AS (
+      SELECT copies_agree,metadata->>'sdkCode' AS sdk_code,
+        CASE WHEN jsonb_typeof(event_payload) IS DISTINCT FROM 'object'
+          OR event_payload->>'customerInfoRequestId' IS DISTINCT FROM ${literal(original.requestId)}
+          OR payload IS DISTINCT FROM event_payload THEN 'conflicting_copies'
+          WHEN NOT (payload ? 'enqueueFailureSdkEvidence') THEN 'missing_metadata'
+          WHEN metadata_valid THEN 'classified' ELSE 'malformed_metadata' END AS category FROM sdk_metadata
+    ) SELECT jsonb_build_object('schemaVersion',1,'requestCount',(SELECT count(*) FROM sdk_request),
+      'eventCount',least(count(*),65),'eventOverflow',count(*)>=65,'copiesAgree',bool_and(copies_agree),
+      'evidenceBins',CASE WHEN count(*)>=65 THEN NULL ELSE jsonb_build_object(${positiveStructuredEvidenceClasses.map(category =>
+        `${literal(category)},count(*) FILTER (WHERE category=${literal(category)})`).join(',')}) END,
+      'sdkCodeBins',CASE WHEN count(*)>=65 THEN NULL ELSE jsonb_build_object(${positiveSdkCodes.map(code =>
+        `${literal(code)},count(*) FILTER (WHERE category='classified' AND sdk_code=${literal(code)})`).join(',')}) END)
+      FROM sdk_classified`
+    const stdout = execFileSync('psql', ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'],
+      { input: query, encoding: 'utf8', timeout: 10000, maxBuffer: 2_000_000, stdio: ['pipe', 'pipe', 'pipe'] })
+    const value: unknown = JSON.parse(stdout.trim())
+    emit(Object.assign(Object.create(null), {stage}, positiveSdkEnqueueProjection(value)))
+  } catch {
+    emit(Object.assign(Object.create(null), {stage, observed: false, reason: 'observation_unavailable'}))
+  }
+}
+
 function observeZ02PositiveProjection(f: Fixture, original: Original, received: Pick<Received, 'id'>,
   stage: Z02ProjectionPhase = 'positive.pre606.public_projection'): void {
   const emit = (value: unknown) => { try { console.info('Z02_NATIVE_POSITIVE_PROJECTION', JSON.stringify(value)) } catch { /* Diagnostic failure cannot replace the contract assertion. */ } }
@@ -850,6 +932,90 @@ async function physicalMissingAddressAck(f: Fixture, original: Original, id: str
   expect(segmentComposite(own('FTX', 'AAO')[0], 3, wire.una)).toEqual(['229','','260'])
   expect(frozen(ack.id)).toEqual(bytes)
 }
+/** Independent tokenizer and original-text observer: only BGM4343/field313 changes.
+ * One captured reply tuple keeps original/correlation/clock/transport bytes identical. */
+function physicalAperakRequest(abRaw: string, naRaw: string) {
+  const ab = tokenizeEdifact(abRaw), na = tokenizeEdifact(naRaw)
+  const expected = ab.segments.map(s => Array.from({ length: segmentElementCount(s, ab.una) + 1 }, (_, i) => segmentComposite(s, i, ab.una)))
+  const actual = na.segments.map(s => Array.from({ length: segmentElementCount(s, na.una) + 1 }, (_, i) => segmentComposite(s, i, na.una)))
+  const abBgm = ab.segments.filter(s => s.tag === 'BGM'), naBgm = na.segments.filter(s => s.tag === 'BGM')
+  expect(abBgm).toHaveLength(1); expect(naBgm).toHaveLength(1)
+  expect(abBgm[0].index).toBe(naBgm[0].index)
+  expect(segmentElementCount(abBgm[0], ab.una)).toBe(4)
+  expect(segmentElementCount(naBgm[0], na.una)).toBe(4)
+  expect(segmentComposite(abBgm[0], 4, ab.una)).toEqual(['AB'])
+  expect(segmentComposite(naBgm[0], 4, na.una)).toEqual(['NA'])
+  expected[abBgm[0].index][4] = ['NA']
+  expect(na.una).toEqual(ab.una); expect(actual).toEqual(expected)
+  const span = segmentSourceSpan(abBgm[0]), originalText = segmentOriginalRaw(abBgm[0])
+  expect(span).not.toBeNull(); expect(originalText).not.toBeNull()
+  expect(span!.unit).toBe('utf16_code_unit')
+  expect(originalText!.endsWith('AB')).toBe(true)
+  expect(abRaw.slice(span!.startOffset, span!.endOffset)).toBe(originalText)
+  expect(naRaw).toBe(abRaw.slice(0, span!.startOffset) + originalText!.slice(0, -2) + 'NA' + abRaw.slice(span!.endOffset))
+}
+async function physicalMissingNameAck(f: Fixture, original: Original, id: string, rawPayload: string) {
+  const sourceBytes = frozen(id)
+  const sourceRow = (await getEdielMessageById(id))!
+  expect(sourceRow).not.toBeNull()
+  expect(sourceRow).toMatchObject({ id, company_id: f.companyId, environment: 'test', direction: 'inbound',
+    raw_payload: rawPayload, immutable_payload_hash: hash(rawPayload) })
+  const acks = await listBusinessAckMessagesForSource({ companyId: f.companyId, sourceMessageId: id,
+    actorUserId: f.actorUserId, environment: 'test', ackFamily: 'APERAK' })
+  expect(acks).toHaveLength(1)
+  const ack = acks[0]
+  expect(ack).toMatchObject({ company_id: f.companyId, environment: 'test', direction: 'outbound', message_family: 'APERAK',
+    related_message_id: id, ack_outcome: 'negative', immutable_payload_hash: hash(ack.raw_payload!) })
+  expect(ack.raw_payload).toBeTruthy()
+  const bytes = frozen(ack.id), source = tokenizeEdifact(rawPayload), wire = tokenizeEdifact(ack.raw_payload!)
+  const parties = originalAckPartyIdentities({ rawPayload, expectedFamily: 'PRODAT' })
+  const sourceEnvelope = EdifactEnvelopeCodec.decode(rawPayload), envelope = EdifactEnvelopeCodec.decode(ack.raw_payload!)
+  expect(envelope.sender).toBe(sourceEnvelope.receiver); expect(envelope.receiver).toBe(sourceEnvelope.sender)
+  expect(envelope.environment).toBe('test'); expect(envelope.applicationReference).toBe('23-DDQ-PRODAT')
+  const own = (tag: string, qualifier?: string) => wire.segments.filter(s => s.tag === tag && (!qualifier || segmentComposite(s, 1, wire.una)[0] === qualifier))
+  for (const [role, tuple] of [['FR', parties.legalReceiver.identityComponents], ['DO', parties.legalSender.identityComponents]] as const) {
+    expect(own('NAD', role)).toHaveLength(1); expect(segmentComposite(own('NAD', role)[0], 2, wire.una)).toEqual(tuple)
+  }
+  const bgm = source.segments.filter(s => s.tag === 'BGM'); expect(bgm).toHaveLength(1)
+  for (const [qualifier, value] of [['ACW', segmentComposite(bgm[0], 2, source.una)[0]], ['Z07', f.external], ['LI', original.wire.lineReference]]) {
+    expect(own('RFF', qualifier)).toHaveLength(1); expect(segmentComposite(own('RFF', qualifier)[0], 1, wire.una)).toEqual([qualifier, value])
+  }
+  expect(own('UNH')).toHaveLength(1)
+  expect(segmentComposite(own('UNH')[0], 2, wire.una)).toEqual(['APERAK','D','96A','UN','E2SE6A'])
+  expect(own('BGM')).toHaveLength(1)
+  expect(segmentComposite(own('BGM')[0], 3, wire.una)).toEqual(['34'])
+  expect(own('ERC').map(s => segmentComposite(s, 1, wire.una))).toEqual([['41','','260']])
+  expect(own('FTX', 'AAO')).toHaveLength(1)
+  expect(segmentComposite(own('FTX', 'AAO')[0], 3, wire.una)).toEqual(['228','','260'])
+  expect(frozen(ack.id)).toEqual(bytes)
+  const all = await listBusinessAckMessagesForSource({ companyId: f.companyId, sourceMessageId: id,
+    actorUserId: f.actorUserId, environment: 'test' })
+  expect(all.map(a => a.message_family).sort()).toEqual(['APERAK', 'CONTRL'])
+  expect(all.filter(a => a.message_family === 'APERAK').map(a => a.id)).toEqual([ack.id])
+  const technical = all.filter(a => a.message_family === 'CONTRL')
+  expect(technical).toHaveLength(1)
+  expect(technical[0]).toMatchObject({ company_id: f.companyId, environment: 'test', direction: 'outbound',
+    message_family: 'CONTRL', related_message_id: id, ack_outcome: 'positive', immutable_payload_hash: hash(technical[0].raw_payload!) })
+  expect(technical[0].raw_payload).toBeTruthy()
+  const technicalBytes = frozen(technical[0].id), control = tokenizeEdifact(technical[0].raw_payload!)
+  const controlEnvelope = EdifactEnvelopeCodec.decode(technical[0].raw_payload!)
+  expect(controlEnvelope.sender).toBe(sourceEnvelope.receiver); expect(controlEnvelope.receiver).toBe(sourceEnvelope.sender)
+  expect(controlEnvelope.environment).toBe('test'); expect(controlEnvelope.applicationReference).toBe('23-DDQ-PRODAT')
+  const sourceUnb = source.segments.filter(s => s.tag === 'UNB'), sourceUnh = source.segments.filter(s => s.tag === 'UNH')
+  expect(sourceUnb).toHaveLength(1); expect(sourceUnh).toHaveLength(1)
+  const uci = control.segments.filter(s => s.tag === 'UCI'), ucm = control.segments.filter(s => s.tag === 'UCM')
+  expect(uci).toHaveLength(1)
+  expect(segmentComposite(uci[0], 1, control.una)).toEqual([sourceEnvelope.interchangeReference!.slice(0, 14)])
+  expect(segmentComposite(uci[0], 2, control.una)).toEqual(segmentComposite(sourceUnb[0], 2, source.una))
+  expect(segmentComposite(uci[0], 3, control.una)).toEqual(segmentComposite(sourceUnb[0], 3, source.una))
+  expect(segmentComposite(uci[0], 4, control.una)).toEqual(['1'])
+  for (const message of ucm) {
+    expect(segmentComposite(message, 1, control.una)).toEqual(segmentComposite(sourceUnh[0], 1, source.una))
+    expect(segmentComposite(message, 3, control.una)).toEqual(['1'])
+  }
+  expect(frozen(technical[0].id)).toEqual(technicalBytes)
+  expect(frozen(id)).toEqual(sourceBytes)
+}
 function durableReplay(f: Fixture, original: Original) {
   return sql(`SELECT jsonb_build_object('business',${literal(protectedEffects(f, original))}::jsonb,
     'messageAuthority',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',m.id,
@@ -1238,6 +1404,98 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const received = await receiveZ01SupplierReply(f, rawPayload)
     await acceptedPhysical(f, received)
     observeZ02PositiveProjection(f, original, received)
+    observeZ02SdkEnqueueProjection(f, original, received)
+    expect(received.message).toMatchObject({ related_message_id: original.originalZ01.id, customer_id: f.customerId,
+      site_id: f.siteId, metering_point_id: f.pointId })
+    const applied = applications(f, original)
+    expect(applied).toHaveLength(1)
+    expect(applied[0]).toMatchObject({ source_message_id: received.id, company_id: f.companyId, environment: 'test',
+      source_payload_hash: hash(rawPayload), originating_z01_message_id: original.originalZ01.id, request_id: original.requestId,
+      customer_id: f.customerId, site_id: f.siteId, object_id: f.external, identity_agency: original.wire.identityAgency, metering_point_id: f.pointId })
+    expect(applied[0].canonical_assessment_id).toMatch(/^[a-f0-9-]{36}$/)
+    expect(applied[0].result).toMatchObject({ ok: true, requestId: original.requestId, messageId: received.id,
+      customerId: f.customerId, customerSiteId: f.siteId, meteringPointRecordId: f.pointId,
+      meteringPointExternalId: f.external, facilityId: f.external, gridAreaCode: f.gridAreaCode, atomicCoreApply: true })
+    const assessment = sql<Row>(`SELECT to_jsonb(a) FROM gridex_received_sources.validation_assessments a
+      WHERE id=${literal(applied[0].canonical_assessment_id)}`)
+    expect(assessment).toMatchObject({ source_message_id: received.id, company_id: f.companyId, environment: 'test', source_payload_hash: hash(rawPayload) })
+    expect(JSON.parse(String(assessment.facts_text))).toMatchObject({ syntaxDecision: 'accepted', applicationDecision: 'accepted', functionalDecision: 'accepted' })
+    const transport = sql<Row>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE id=${literal(applied[0].originating_transport_attempt_id)}`)
+    expect(transport).toMatchObject({ message_id: original.originalZ01.id, company_id: f.companyId, environment: 'test', classification: 'accepted',
+      binding: { originalHash: hash(original.originalZ01.raw_payload!) } })
+    expect(Date.parse(String(transport.observed_at))).toBeLessThanOrEqual(Date.parse(String(received.message.message_received_at)))
+    const afterRequest = request(f, original), prior = record(original.request.verified_payload)
+    expect(afterRequest).toMatchObject({ status: 'ready_for_switch', response_ediel_message_id: received.id,
+      metering_point_id: f.pointId, route_resolution_status: 'z02_market_verified' })
+    const verified = record(afterRequest.verified_payload)
+    expect(verified).toEqual({ ...prior, z02: verified.z02 })
+    expect(verified.z02).toMatchObject({ message_id: received.id, metering_point_id: f.external, facility_id: f.external,
+      grid_area_code: f.gridAreaCode, verification_level: 'market_verified', atomic_core_apply: true })
+    const dataAfter = sql<Row>(`SELECT to_jsonb(d) FROM public.grid_owner_data_requests d
+      WHERE id=${literal(dataBefore.id)} AND company_id=${literal(f.companyId)}`)
+    expect(dataAfter.status).toBe('received')
+    expect(dataAfter.response_payload).toMatchObject({ ...record(dataBefore.response_payload), z02_message_id: received.id,
+      metering_point_id: f.external, facility_id: f.external, grid_area_code: f.gridAreaCode, atomic_core_apply: true })
+    expect(sql(`SELECT to_jsonb(s) FROM public.customer_operation_request_snapshots s WHERE id=${literal(original.snapshot!.id)}`)).toEqual(original.snapshot)
+    const site = sql<Row>(`SELECT to_jsonb(s) FROM public.customer_sites s WHERE id=${literal(f.siteId)} AND company_id=${literal(f.companyId)}`)
+    expect(site).toMatchObject({ customer_id: f.customerId, facility_id: f.external, grid_area_code: f.gridAreaCode,
+      facility_data_status: 'verified', data_quality_status: 'verified', metadata: { facility_provenance: {
+        sourceType: 'ediel_inbound', sourceMessageId: received.id, customerInfoRequestId: original.requestId,
+        operationId: original.operationId, verificationLevel: 'market_verified' } } })
+    const point = sql<Row>(`SELECT to_jsonb(p) FROM public.metering_points p WHERE id=${literal(f.pointId)} AND company_id=${literal(f.companyId)}`)
+    expect(point).toMatchObject({ customer_id: f.customerId, site_id: f.siteId, metering_point_id: f.external, grid_area_code: f.gridAreaCode,
+      status: 'active', verification_status: 'verified', data_quality_status: 'verified',
+      metadata: { z02_market_verified: true, z02_message_id: received.id, customer_info_request_id: original.requestId } })
+    // Active metering identity is not an active supply period or contract.
+    expect(supply(f)).toEqual(nonActivation)
+    await executeSeparateReadiness(f, received)
+    expect(supply(f)).toEqual(nonActivation)
+    const acks = await physicalReplies(f, original, received)
+    const beforeReplay = durableReplay(f, original), receivedBytes = frozen(received.id), sends = smtp.send.mock.calls.length
+    await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: received.id })
+    expect(durableReplay(f, original)).toEqual(beforeReplay)
+    expect((await listBusinessAckMessagesForSource({ companyId: f.companyId, sourceMessageId: received.id,
+      actorUserId: f.actorUserId, environment: 'test' })).map(a => a.id).sort()).toEqual(acks.map(a => a.id).sort())
+    expect(smtp.send.mock.calls.length).toBe(sends)
+    expect(frozen(received.id)).toEqual(receivedBytes); expect(frozen(original.originalZ01.id)).toEqual(originalBytes)
+    expect(supply(f)).toEqual(nonActivation)
+    expect(sql(`SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.metering_permissions p WHERE company_id=${literal(f.companyId)}`)).toEqual(permissions)
+    const concurrent = await Promise.allSettled([1, 2].map(() => processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: received.id })))
+    const diagnostics = { outcomes: concurrent.map(o => o.status === 'fulfilled' ? { status: o.status, id: o.value.id }
+      : { status: o.status, reason: o.reason instanceof Error ? o.reason.message : o.reason }),
+    inboundCases: sql(`SELECT coalesce(jsonb_agg(id ORDER BY id),'[]') FROM public.ediel_inbound_cases
+      WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(received.id)}`),
+    applications: applications(f, original) }
+    console.info('Z02_NATIVE_CONCURRENT_REPLAY', JSON.stringify(diagnostics))
+    expect(concurrent.filter(o => o.status === 'rejected'), JSON.stringify(diagnostics)).toEqual([])
+    expect(diagnostics.inboundCases).toHaveLength(1)
+    expect(durableReplay(f, original)).toEqual(beforeReplay)
+    expect((await listBusinessAckMessagesForSource({ companyId: f.companyId, sourceMessageId: received.id,
+      actorUserId: f.actorUserId, environment: 'test' })).map(a => a.id).sort()).toEqual(acks.map(a => a.id).sort())
+    expect(smtp.send.mock.calls.length).toBe(sends)
+    expect(frozen(received.id)).toEqual(receivedBytes); expect(frozen(original.originalZ01.id)).toEqual(originalBytes)
+  })
+
+  it('accepts genuine own Z02 with field313 NA, executes separate Z03 readiness, replies physically and replays without supply activation', async () => {
+    const { f, original } = await sent(variant), nonActivation = supply(f), originalBytes = frozen(original.originalZ01.id)
+    const permissions = sql(`SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.metering_permissions p WHERE company_id=${literal(f.companyId)}`)
+    const dataBefore = sql<Row>(`SELECT to_jsonb(d) FROM public.grid_owner_data_requests d
+      WHERE id=${literal(original.request.grid_owner_data_request_id)} AND company_id=${literal(f.companyId)}`)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_ack_chains
+      WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(original.originalZ01.id)}`)).toBe(0)
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages
+      WHERE company_id=${literal(f.companyId)} AND direction='inbound' AND message_family IN ('CONTRL','APERAK')`)).toBe(0)
+    const references = { ...refs(), documentReference: `Z02-${randomUUID().slice(0, 8)}`, documentMinute: prodatNowDate203(), createdAt: new Date() }
+    const abControl = reply(f, original, {}, [], references)
+    const rawPayload = reply(f, original, { aperakRequest: 'NA' }, [], references)
+    physicalAperakRequest(abControl, rawPayload)
+    expect(frozen(original.originalZ01.id)).toEqual(originalBytes)
+    const validation = await validateIncoming(f, rawPayload)
+    expect(validation.ok, JSON.stringify(validation.issues)).toBe(true)
+    const received = await receiveZ01SupplierReply(f, rawPayload)
+    await acceptedPhysical(f, received)
+    observeZ02PositiveProjection(f, original, received)
+    observeZ02SdkEnqueueProjection(f, original, received)
     expect(received.message).toMatchObject({ related_message_id: original.originalZ01.id, customer_id: f.customerId,
       site_id: f.siteId, metering_point_id: f.pointId })
     const applied = applications(f, original)
@@ -1396,6 +1654,16 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
           const decision = await resolveCanonicalRuntimeDecisionWithRegistry((await getEdielMessageById(staged.id))!, { actorUserId: f.actorUserId })
           expect(decision.issues.some(i => i.severity === 'error' && i.prodatDiagnostic?.kind === 'field'
             && i.prodatDiagnostic.fieldNumber === target && i.prodatDiagnostic.errorKind === kind), JSON.stringify(decision.issues)).toBe(true)
+          if (field === '228') {
+            expect(staged.birthErrors).toEqual([])
+            expect(decision.syntaxDecision, JSON.stringify(decision)).toBe('accepted')
+            expect(decision.applicationDecision, JSON.stringify(decision)).toBe('rejected')
+            expect(decision.responsePlan).toEqual(expect.arrayContaining([expect.objectContaining({ family: 'APERAK', outcome: 'negative',
+              applicationErrors: expect.arrayContaining([expect.objectContaining({ fieldCode: '228', ercCode: '41',
+                referenceNumber: f.external, lineItemReference: original.wire.lineReference })]) })]))
+            expect(decision.responsePlan.filter(p => p.family === 'APERAK' && p.outcome === 'positive')).toEqual([])
+            await physicalMissingNameAck(f, original, staged.id, rawPayload)
+          }
           if (field === '229') {
             expect(decision.applicationDecision, JSON.stringify(decision)).toBe('rejected')
             expect(decision.responsePlan).toEqual(expect.arrayContaining([expect.objectContaining({ family: 'APERAK', outcome: 'negative',
@@ -1493,6 +1761,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const received = await receiveZ01SupplierReply(f, reply(f, original, { gridAreaCode: other.gridAreaCode }))
     await acceptedPhysical(f, received)
     observeZ02PositiveProjection(f, original, received, 'wrong_grid.before_result_assertion')
+    observeZ02SdkEnqueueProjection(f, original, received, 'wrong_grid.before_result_assertion')
     assertRefusedEffects(f, original, before, sealed)
     const result = record(received.inboundResponseResult), core = record(result.z02_atomic_core)
     // No source contract prescribes an invented grid-area error code. Require
@@ -1636,6 +1905,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     // The authentic source remains processable after both refused mutations.
     await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: staged.id! })
     observeZ02PositiveProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion')
+    observeZ02SdkEnqueueProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion')
     expect(applications(f, original)).toHaveLength(1)
     expect(frozen(staged.id!)).toEqual(sealed)
   })

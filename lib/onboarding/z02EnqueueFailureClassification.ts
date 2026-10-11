@@ -53,3 +53,28 @@ export function classifyZ02EnqueueFailure(error: unknown): Z02EnqueueFailureClas
     return unknown
   }
 }
+
+// Separate SDK evidence. Existing schema1 SQL/public classification is unchanged.
+export const z02EnqueueSdkCodes = [
+  '23502', '23503', '23505', '23514', '42501', '42P01', '42703', 'P0001', '22P02', '42883',
+  '21000', '22023', 'XX000', 'P0002', 'P0003', '40001', '40P01',
+  'PGRST116', 'PGRST200', 'PGRST201', 'PGRST202', 'PGRST203', 'PGRST204', 'PGRST205',
+] as const
+export type Z02EnqueueSdkEvidence = {
+  schemaVersion: 1
+  sdkCode: typeof z02EnqueueSdkCodes[number] | 'unlisted' | 'unavailable'
+}
+export function classifyZ02EnqueueFailureSdkEvidence(error: unknown): Z02EnqueueSdkEvidence {
+  const unavailable: Z02EnqueueSdkEvidence = { schemaVersion: 1, sdkCode: 'unavailable' }
+  try {
+    if (typeof nodeUtil.types?.isProxy !== 'function') return unavailable
+    if (error === null || typeof error !== 'object' || nodeUtil.types.isProxy(error) || Array.isArray(error)) return unavailable
+    const descriptor = Object.getOwnPropertyDescriptor(error, 'code')
+    if (!descriptor || !('value' in descriptor) || typeof descriptor.value !== 'string') return unavailable
+    const sdkCode = (z02EnqueueSdkCodes as readonly string[]).includes(descriptor.value)
+      ? descriptor.value as typeof z02EnqueueSdkCodes[number] : 'unlisted'
+    return { schemaVersion: 1, sdkCode }
+  } catch {
+    return unavailable
+  }
+}

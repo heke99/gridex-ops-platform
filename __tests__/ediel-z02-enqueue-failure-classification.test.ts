@@ -732,3 +732,215 @@ describe('permanent live native observer regression controls', () => {
       tests: 214, pass: 214, fail: 0, jsCount: 157, pgliteCount: 57, trueExit: 0 })
   })
 })
+
+// Consumer-only desired SDK oracle. Run this group against the unchanged
+// consumer first: actual enqueue catch completes but the sibling key is absent.
+const desiredZ02SdkCodes = [
+  '23502', '23503', '23505', '23514', '42501', '42P01', '42703', 'P0001', '22P02', '42883',
+  '21000', '22023', 'XX000', 'P0002', 'P0003', '40001', '40P01',
+  'PGRST116', 'PGRST200', 'PGRST201', 'PGRST202', 'PGRST203', 'PGRST204', 'PGRST205',
+] as const
+describe('real Z02 consumer separate SDK evidence desired oracle', () => {
+  for (const variant of ['Z22', 'Z23'] as const) {
+    it.each(desiredZ02SdkCodes)(`${variant} preserves legacy catch and records exact SDK %s`, async code => {
+      const thrown = Object.freeze({ code, message: 'SDK_PRIVATE_CANARY', details: 'SDK_PRIVATE_CANARY', hint: 'SDK_PRIVATE_CANARY' })
+      io.enqueue.mockImplementation(async () => { io.order.push('enqueue'); throw thrown })
+      const result = await applyInboundProdatZ02ToCustomerInfoRequest({ actorUserId: own.actor, message: message(variant) })
+      assertLegacyCatch('[object Object]', result)
+      expect(errorEvent().payload?.enqueueFailureClassification).toEqual({ schemaVersion: 1,
+        sqlState: (finiteSqlStates as readonly string[]).includes(code) ? code : 'unknown', publicLabel: 'unknown' })
+      expect(errorEvent().payload?.enqueueFailureSdkEvidence).toEqual({ schemaVersion: 1, sdkCode: code })
+      expect(JSON.stringify(errorEvent().payload?.enqueueFailureSdkEvidence)).not.toContain('SDK_PRIVATE_CANARY')
+      expect(io.events[0].payload).not.toHaveProperty('enqueueFailureSdkEvidence')
+    })
+  }
+})
+
+describe('separate SDK evidence privacy and capability', () => {
+  const sdk = async (value: unknown) => (await import('@/lib/onboarding/z02EnqueueFailureClassification'))
+    .classifyZ02EnqueueFailureSdkEvidence(value)
+  it('distinguishes only exact own strings and fixed unavailable/unlisted states', async () => {
+    for (const code of ['SDK_PRIVATE_CANARY', ' 21000', '21000 ', 'pgrst116', '21000SDK_PRIVATE_CANARY', ''])
+      expect(await sdk({ code })).toEqual({ schemaVersion: 1, sdkCode: 'unlisted' })
+    for (const code of [null, undefined, 21000, true, {}, ['21000']])
+      expect(await sdk({ code })).toEqual({ schemaVersion: 1, sdkCode: 'unavailable' })
+    for (const value of [null, undefined, true, 21000, '21000', [], Object.create({ code: '21000' })])
+      expect(await sdk(value)).toEqual({ schemaVersion: 1, sdkCode: 'unavailable' })
+  })
+  it('never reads getters, coercion, prototype, private fields or proxy traps', async () => {
+    const trap = vi.fn(() => { throw Error('SDK_PRIVATE_CANARY') })
+    const accessor = Object.defineProperties({}, { code: { get: trap }, message: { get: trap },
+      details: { get: trap }, hint: { get: trap }, cause: { get: trap }, stack: { get: trap } })
+    expect(await sdk(accessor)).toEqual({ schemaVersion: 1, sdkCode: 'unavailable' })
+    const ownCode = Object.defineProperties({}, { code: { value: '21000' }, message: { get: trap },
+      details: { get: trap }, hint: { get: trap }, cause: { get: trap } })
+    expect(await sdk(ownCode)).toEqual({ schemaVersion: 1, sdkCode: '21000' })
+    expect(await sdk({ code: { toString: trap, [Symbol.toPrimitive]: trap } }))
+      .toEqual({ schemaVersion: 1, sdkCode: 'unavailable' })
+    const proxy = new Proxy({ code: '21000' }, { get: trap, getOwnPropertyDescriptor: trap, getPrototypeOf: trap, ownKeys: trap })
+    expect(await sdk(proxy)).toEqual({ schemaVersion: 1, sdkCode: 'unavailable' })
+    const revoked = Proxy.revocable({}, {}); revoked.revoke()
+    expect(await sdk(revoked.proxy)).toEqual({ schemaVersion: 1, sdkCode: 'unavailable' })
+    expect(trap).not.toHaveBeenCalled()
+  })
+  it('links the actual sibling helper through missing trap-free capability without widening it', () => {
+    const output = execFileSync(process.execPath, ['--experimental-vm-modules', '-e', `
+      const assert=require('node:assert/strict'), fs=require('node:fs'), ts=require('typescript');
+      const {createContext,SourceTextModule,SyntheticModule}=require('node:vm');
+      const source=fs.readFileSync('lib/onboarding/z02EnqueueFailureClassification.ts','utf8');
+      const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}}).outputText;
+      const bridge=require('./scripts/helpers/ediel-source-manifest-vm.cjs');
+      const data=require('./scripts/lib/ediel-source-test-data.cjs');
+      (async()=>{for(const factory of [
+        (c,cache)=>bridge.sourceRuntimeBoundary('node:util',cache,{context:c}),
+        (c,cache)=>data.loadEdielSourceTestData('node:util',process.cwd(),cache,c),
+        c=>new SyntheticModule(['types'],function(){this.setExport('types',{});},{context:c}),
+        c=>new SyntheticModule(['types'],function(){this.setExport('types',{isProxy:undefined});},{context:c})]){
+        const context=createContext({}),helper=new SourceTextModule(compiled,{context});
+        await helper.link(name=>{assert.equal(name,'node:util');return factory(context,new Map());});await helper.evaluate();
+        let reads=0;const trap=()=>{reads++;throw Error('SDK_PRIVATE_CANARY');};
+        const getter=Object.defineProperty({},'code',{get:trap}),proxy=new Proxy({},{getOwnPropertyDescriptor:trap});
+        for(const input of [{code:'21000'},getter,proxy])
+          assert.deepEqual(JSON.parse(JSON.stringify(helper.namespace.classifyZ02EnqueueFailureSdkEvidence(input))),{schemaVersion:1,sdkCode:'unavailable'});
+        assert.equal(reads,0);
+      }bridge.assertNoSourceBoundaryAttempts();process.stdout.write('SDK missing-capability PASS');})().catch(()=>{process.exitCode=1;});
+    `], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(output).toBe('SDK missing-capability PASS')
+  })
+})
+
+const sdkNativeFinitePortProgram = [
+  "// Future ROOT test program: actual source declarations and actual read-only SQL.",
+  "// No producer, network, psql execution, production module import or native credit.",
+  "const assert = require('node:assert/strict')",
+  "const fs = require('node:fs')",
+  "const ts = require('typescript')",
+  "const vm = require('node:vm')",
+  "const { PGlite } = require('@electric-sql/pglite')",
+  "const source = fs.readFileSync('scripts/ediel-at-z02-supplier-native.test.ts', 'utf8')",
+  "const ast = ts.createSourceFile('native.ts', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)",
+  "const names = ['positiveSdkCodes','positiveStructuredEvidenceClasses','positiveProjectionData','positiveProjectionCount',",
+  "  'positiveStructuredObject','positiveStructuredData','positiveStructuredShape','positiveStructuredBins',",
+  "  'positiveSdkEnqueueProjection','observeZ02SdkEnqueueProjection']",
+  "const selected = new Map()",
+  "for (const node of ast.statements) {",
+  "  const declaration = ts.isVariableStatement(node) ? node.declarationList.declarations : [node]",
+  "  for (const item of declaration) {",
+  "    const name = item.name?.text",
+  "    if (names.includes(name)) {",
+  "      assert.equal(selected.has(name), false)",
+  "      selected.set(name, source.slice(node.getStart(ast), node.end))",
+  "    }",
+  "  }",
+  "}",
+  "assert.deepEqual([...selected.keys()].sort(), [...names].sort())",
+  "const compiled = ts.transpileModule([...selected.values()].join('\\n'), {",
+  "  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },",
+  "  reportDiagnostics: true,",
+  "})",
+  "assert.equal(compiled.diagnostics?.filter(d=>d.category===ts.DiagnosticCategory.Error).length, 0)",
+  "const desired = ['23502','23503','23505','23514','42501','42P01','42703','P0001','22P02','42883',",
+  "  '21000','22023','XX000','P0002','P0003','40001','40P01','PGRST116','PGRST200','PGRST201','PGRST202','PGRST203','PGRST204','PGRST205','unlisted','unavailable']",
+  "const literal = value => \"'\"+String(value).replaceAll(\"'\",\"''\")+\"'\"",
+  "const id = n => `00000000-0000-4000-8000-${String(n).padStart(12,'0')}`",
+  "const f={companyId:id(1),customerId:id(2),siteId:id(3)}",
+  "const original={requestId:id(4),originalZ01:{id:id(5)}}",
+  "const received={id:id(6)}",
+  "const cases=[]",
+  "function check(name, run) { run();cases.push(name) }",
+  "function environment(raw, url='http://127.0.0.1:54321', capability=require('node:util').types) {",
+  "  const logs=[],calls=[]",
+  "  const context=vm.createContext({f,original,received,literal,positiveStructuredNodeUtil:{types:capability},",
+  "    process:{env:{NEXT_PUBLIC_SUPABASE_URL:url}},console:{info:(label,value)=>logs.push([label,JSON.parse(value)])},",
+  "    execFileSync:(command,args,options)=>{",
+  "      assert.equal(command,'psql');assert.deepEqual(Array.from(options.stdio),['pipe','pipe','pipe']);",
+  "      assert.equal(args[0],'postgresql://postgres:postgres@127.0.0.1:54322/postgres');",
+  "      calls.push(options.input);return JSON.stringify(raw)",
+  "    }})",
+  "  vm.runInContext(compiled.outputText,context)",
+  "  assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(positiveSdkCodes)',context)),desired)",
+  "  vm.runInContext('observeZ02SdkEnqueueProjection(f,original,received)',context)",
+  "  assert.equal(logs.length,1);assert.equal(logs[0][0],'Z02_NATIVE_ENQUEUE_SDK_CODE_CLASSIFICATION')",
+  "  assert.equal(JSON.stringify(logs).includes('SDK_PRIVATE_CANARY'),false)",
+  "  return {result:logs[0][1],calls,context}",
+  "}",
+  "async function main() {",
+  "  const db=new PGlite()",
+  "  try {",
+  "    await db.exec(`CREATE TABLE customer_info_requests(id uuid,company_id uuid,customer_id uuid,site_id uuid,ediel_message_id uuid);",
+  "      CREATE TABLE ediel_messages(id uuid,company_id uuid,direction text,message_family text,message_code text,customer_id uuid,site_id uuid);",
+  "      CREATE TABLE ediel_message_events(company_id uuid,ediel_message_id uuid,event_type text,event_status text,message text,payload jsonb,event_payload jsonb);`)",
+  "    const captured=environment({}).calls[0]",
+  "    assert.equal(typeof captured,'string')",
+  "    const message='Z02 kunde inte starta canonical verifiering och applicerades inte.'",
+  "    async function observation(meta={schemaVersion:1,sdkCode:'21000'}, opts={}) {",
+  "      await db.exec('TRUNCATE customer_info_requests,ediel_messages,ediel_message_events;')",
+  "      const request={id:original.requestId,company_id:f.companyId,customer_id:f.customerId,site_id:f.siteId,ediel_message_id:original.originalZ01.id,...opts.request}",
+  "      const inbound={id:received.id,company_id:f.companyId,direction:'inbound',message_family:'PRODAT',message_code:'Z02',customer_id:f.customerId,site_id:f.siteId,...opts.inbound}",
+  "      await db.query('INSERT INTO customer_info_requests VALUES($1,$2,$3,$4,$5)',Object.values(request))",
+  "      await db.query('INSERT INTO ediel_messages VALUES($1,$2,$3,$4,$5,$6,$7)',Object.values(inbound))",
+  "      const payload={customerInfoRequestId:original.requestId,error:'SDK_PRIVATE_CANARY'}",
+  "      if (!opts.missing) payload.enqueueFailureSdkEvidence=meta",
+  "      const event={company_id:f.companyId,ediel_message_id:received.id,event_type:'manual_note',event_status:'error',message,...opts.event}",
+  "      const eventPayload=opts.conflict===undefined?payload:opts.conflict",
+  "      for(let i=0;i<(opts.count??1);i++) await db.query('INSERT INTO ediel_message_events VALUES($1,$2,$3,$4,$5,$6,$7)',[...Object.values(event),JSON.stringify(payload),JSON.stringify(eventPayload)])",
+  "      return (await db.query(captured)).rows[0].jsonb_build_object",
+  "    }",
+  "    const valid=await observation()",
+  "    for(const code of desired) {",
+  "      const raw=await observation({schemaVersion:1,sdkCode:code})",
+  "      check('SQL-literal-'+code,()=>{const out=environment(raw).result;assert.equal(out.observed,true);assert.equal(out.sdkCodeBins[code],1);assert.equal(out.evidenceBins.classified,1)})",
+  "    }",
+  "    const missing=environment(await observation(undefined,{missing:true})).result",
+  "    check('SQL-missing',()=>{assert.equal(missing.evidenceBins.missing_metadata,1);assert.equal(missing.sdkCodeBins['21000'],0)})",
+  "    const malformed=[null,false,[], 'SDK_PRIVATE_CANARY',0,{}, {schemaVersion:1,sdkCode:'PGRST999'},",
+  "      {schemaVersion:1,sdkCode:'21000',extra:'SDK_PRIVATE_CANARY'}, {schemaVersion:true,sdkCode:'21000'},",
+  "      {schemaVersion:'1',sdkCode:'21000'},{schemaVersion:1,sdkCode:null},{sdkCode:'21000'}]",
+  "    for(const [i,meta] of malformed.entries()) {",
+  "      const raw=await observation(meta)",
+  "      check('SQL-malformed-'+i,()=>{const out=environment(raw).result;assert.equal(out.evidenceBins.malformed_metadata,1);assert.equal(Object.values(out.sdkCodeBins).reduce((a,b)=>a+b,0),0)})",
+  "    }",
+  "    for(const conflict of [null,{customerInfoRequestId:id(99),enqueueFailureSdkEvidence:{schemaVersion:1,sdkCode:'21000'}}]) {",
+  "      const raw=await observation(undefined,{conflict})",
+  "      check('SQL-copy-conflict-'+cases.length,()=>{const out=environment(raw).result;assert.equal(out.copiesAgree,false);assert.equal(out.evidenceBins.conflicting_copies,1);assert.equal(out.sdkCodeBins['21000'],0)})",
+  "    }",
+  "    for(const key of ['id','company_id','customer_id','site_id','ediel_message_id']) {",
+  "      const raw=await observation(undefined,{request:{[key]:id(99)}})",
+  "      check('SQL-request-correlation-'+key,()=>assert.equal(environment(raw).result.observed,false))",
+  "    }",
+  "    const wrongInbound=await observation(undefined,{inbound:{customer_id:id(99)}})",
+  "    check('SQL-inbound-correlation',()=>assert.equal(environment(wrongInbound).result.observed,false))",
+  "    for(const [key,value] of [['company_id',id(99)],['ediel_message_id',id(99)],['event_type','other'],['event_status','info'],['message','SDK_PRIVATE_CANARY']]) {",
+  "      const raw=await observation(undefined,{event:{[key]:value}})",
+  "      check('SQL-event-correlation-'+key,()=>{const out=environment(raw).result;assert.equal(out.eventCount,0);assert.equal(out.copiesAgree,null)})",
+  "    }",
+  "    const empty=await observation(undefined,{count:0})",
+  "    check('SQL-zero-events',()=>{const out=environment(empty).result;assert.equal(out.observed,true);assert.equal(out.eventCount,0)})",
+  "    for(const count of [65,66]) {",
+  "      const raw=await observation(undefined,{count})",
+  "      check('SQL-overflow-'+count,()=>{const out=environment(raw).result;assert.equal(out.observed,false);assert.equal(out.eventOverflow,true);assert.equal(raw.sdkCodeBins,null)})",
+  "    }",
+  "    for(const [key,value] of [['schemaVersion',true],['requestCount',true],['eventCount',true],['eventCount',-1],['copiesAgree',null],['eventOverflow',true]]) {",
+  "      check('decoder-hostile-'+key+'-'+String(value),()=>assert.equal(environment({...valid,[key]:value}).result.observed,false))",
+  "    }",
+  "    check('modeguard-no-psql',()=>{const out=environment(valid,'https://unapproved.invalid');assert.equal(out.calls.length,0);assert.equal(out.result.observed,false)})",
+  "    check('capability-absence',()=>assert.equal(environment(valid,'http://127.0.0.1:54321',{}).result.observed,false))",
+  "    check('proxy-no-traps',()=>{",
+  "      let traps=0;const proxy=new Proxy(valid,{get(){traps++;throw Error('SDK_PRIVATE_CANARY')},getOwnPropertyDescriptor(){traps++;throw Error('SDK_PRIVATE_CANARY')}})",
+  "      const env=environment(valid);env.context.proxy=proxy",
+  "      assert.throws(()=>vm.runInContext('positiveSdkEnqueueProjection(proxy)',env.context));assert.equal(traps,0)",
+  "    })",
+  "    assert.equal(cases.length,64);assert.equal(new Set(cases).size,64)",
+  "    process.stdout.write(JSON.stringify({kind:'ACTUAL_SDK_OBSERVER_AND_SQL_FINITE_PORTS',tests:64,pass:64,fail:0,nativeExecuted:false}))",
+  "  } finally {await db.close()}",
+  "}",
+  "main().catch(()=>{process.exitCode=1})"
+].join('\n')
+
+describe('actual separate SDK native observer finite ports', () => {
+  it('preserves exact source decoder and correlated SQL domains, copies, privacy and mode guards', () => {
+    const output = execFileSync(process.execPath, ['-e', sdkNativeFinitePortProgram], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(JSON.parse(output)).toEqual({ kind: 'ACTUAL_SDK_OBSERVER_AND_SQL_FINITE_PORTS',
+      tests: 64, pass: 64, fail: 0, nativeExecuted: false })
+  })
+})

@@ -7,7 +7,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { MeteringPermissionRow } from '@/lib/onboarding/infoRequests'
 import { enqueueInboundGridOwnerResponseAutomation } from '@/lib/customer-operations/automation'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
-import { classifyZ02EnqueueFailure } from '@/lib/onboarding/z02EnqueueFailureClassification'
+import { classifyZ02EnqueueFailure, classifyZ02EnqueueFailureSdkEvidence } from '@/lib/onboarding/z02EnqueueFailureClassification'
 
 type JsonRecord = Record<string, unknown>
 
@@ -260,6 +260,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     })
   } catch (enqueueError) {
     const enqueueFailureClassification = classifyZ02EnqueueFailure(enqueueError)
+    const enqueueFailureSdkEvidence = classifyZ02EnqueueFailureSdkEvidence(enqueueError)
     const errorMessage = enqueueError instanceof Error ? enqueueError.message : String(enqueueError)
     await supabaseService
       .from('customer_info_requests')
@@ -279,7 +280,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
       eventType: 'manual_note',
       eventStatus: 'error',
       message: 'Z02 kunde inte starta canonical verifiering och applicerades inte.',
-      payload: { customerInfoRequestId: request.id, error: errorMessage, enqueueFailureClassification },
+      payload: { customerInfoRequestId: request.id, error: errorMessage, enqueueFailureClassification, enqueueFailureSdkEvidence },
     })
     return { applied: false, targetId: String(request.id), reason: 'z02_processing_enqueue_failed' }
   }
