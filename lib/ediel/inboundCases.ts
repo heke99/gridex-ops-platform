@@ -13,6 +13,7 @@ import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 import { parseUna } from '@/lib/ediel/core/una'
+import { projectProdatBusinessWire, recordedProdatIgnoredFields } from '@/lib/ediel/prodat/prodatIgnoredFieldProjection'
 // lib/ediel/inboundCases.ts
 
 import { supabaseService } from '@/lib/supabase/service'
@@ -141,7 +142,13 @@ function buildInternalNotes(parsed: ParsedInboundProdat): string {
   return rows.join('\n')
 }
 
-export function parseInboundProdatBusinessData(message: EdielMessageRow, object?: {meteringPointId:string;identityAgency:string}): ParsedInboundProdat {
+export function parseInboundProdatBusinessData(sourceMessage: EdielMessageRow, object?: {meteringPointId:string;identityAgency:string}): ParsedInboundProdat {
+  // P26.A p119 (SC-031/P-02): every business view below reads one projection of
+  // the wire without the recorded ignored occurrences (by segment index, own
+  // header/line scope). raw_payload and ignored-field evidence stay unchanged.
+  const message: EdielMessageRow = sourceMessage.raw_payload?.trim()
+    ? {...sourceMessage, raw_payload: projectProdatBusinessWire(sourceMessage.raw_payload, recordedProdatIgnoredFields(sourceMessage.parsed_payload))}
+    : sourceMessage
   const payload = message.parsed_payload ?? {}
   const source = parseProdatMessage(message)
   const allObjects = parsedProdatObjects(source)
