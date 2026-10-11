@@ -9,6 +9,7 @@ on:
       - 'scripts/helpers/ediel-esco-tenant-replay-b6d3.ts'
       - 'scripts/helpers/ediel-esco-z13-customer-source-b6d3.ts'
       - 'scripts/helpers/ediel-esco-birth-selector-b6d3.ts'
+      - 'scripts/helpers/ediel-esco-object-refusal-b6d3.ts'
       - 'scripts/helpers/ediel-native-permission-catalog.setup.ts'
       - 'scripts/ediel-source-owner-native.config.ts'
       - 'scripts/gridex-aud-003-clean-replay.sh'
@@ -152,7 +153,7 @@ jobs:
                   'errors':sum(c.find('error') is not None for c in cases),
                   'skipped':sum(c.find('skipped') is not None for c in cases)}
           if native_exit.exists() and int(native_exit.read_text())==0:
-              if counts!={'cases':62,'failures':0,'errors':0,'skipped':0}:
+              if counts!={'cases':82,'failures':0,'errors':0,'skipped':0}:
                   raise RuntimeError('complete_unskipped_z13_boundary_required')
           receipt={'purpose':'supplemental_public_z13_request_received_ack_boundary',
               'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
@@ -216,9 +217,9 @@ jobs:
                   cases.append({'name':case.get('name'),'status':status,
                       'message':failure.get('message','')[:1000] if failure is not None else None,
                       'detail':(failure.text or '')[-2000:] if failure is not None else None})
-          # Eight bounded case bundles retain all 62 dispositions alongside
+          # Eight bounded case bundles retain all 82 dispositions alongside
           # the receipt and at most one diagnostic/observation notice.
-          for offset in range(0,len(cases),8):notice('Gridex native cases '+str(offset//8+1),bounded_cases(cases[offset:offset+8]))
+          for offset in range(0,len(cases),11):notice('Gridex native cases '+str(offset//11+1),bounded_cases(cases[offset:offset+11]))
           log=work/'native.log'
           if log.exists():
               observations=[]

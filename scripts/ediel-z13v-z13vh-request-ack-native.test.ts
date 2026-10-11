@@ -14,6 +14,7 @@ import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {omitZ14Field} from './helpers/ediel-z14v-current-native-fixture'
 import {refuseEscoCustomerSource} from './helpers/ediel-esco-z13-customer-source-b6d3'
 import {refuseEscoBirthSelector} from './helpers/ediel-esco-birth-selector-b6d3'
+import {escoObjectRefusals,isEscoObjectRefusal,omitEscoObjectField,qualifyEscoObjectDiagnostic,captureEscoObjectOwner,type EscoReportingField} from './helpers/ediel-esco-object-refusal-b6d3'
 import {captureEscoTenantBasis,qualifyEscoTenantFirst,expectEscoTenantReplay,type ObservationWindow} from './helpers/ediel-esco-tenant-replay-b6d3'
 import {readEdielServiceAdministration} from '@/lib/ediel/services/administration'
 import {coordinateEdielServicePermission,resolveEdielServicePermissionCommand} from '@/lib/ediel/services/commands'
@@ -692,7 +693,7 @@ function qualifyRequestReferences(f:Fixture,p:Pending,previous:FullRow[],added:F
    business_object_id:p.z13.outbound_request_id,customer_id:f.ids.customer,customer_site_id:null,metering_point_id:null,created_at:row.created_at})
  }
 }
-async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'|'326'){
+async function missingReportingField(mode:'V'|'VH',field:EscoReportingField){
  const {f,p,checkSentinel,objectAckProfile,contrlAckProfile}=await request(mode,true)
  for(const family of ['CONTRL','APERAK'] as const){
   const ack=await intake(f,p,counterpart(p,family))
@@ -707,14 +708,15 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
   expect(sql(`SELECT to_jsonb(customer_type) FROM public.customers WHERE company_id=${lit(f.ids.company)} AND id=${lit(f.ids.customer)}`)).toBe('private')
   expect(sealed.segments.some((s,i)=>s.raw==='CCI++Z24'&&sealed.segments[i+1]?.raw==='CAV+B72')).toBe(true)
  }
- const wire=fieldOmission(positiveZ14(f,p),field),source=await intake(f,p,wire)
+ const renderStarted=Date.now(),positive=positiveZ14(f,p),renderWindow:ObservationWindow=[renderStarted,Date.now()],extra=isEscoObjectRefusal(mode,field)
+ const wire=extra?omitEscoObjectField(positive,field,f,p,renderWindow):fieldOmission(positive,field as '222'|'321'|'322'|'323'|'326'),source=await intake(f,p,wire)
  const pending=sql<FullRow>(`SELECT to_jsonb(r) FROM public.metering_permissions r WHERE id=${lit(p.permissionId)} AND company_id=${lit(f.ids.company)}`)
- const before=producerState(f),ledger=refusalLedger(f),smtp=nativeEscoExternal.send.mock.calls.length
+ const before=producerState(f),ledger=refusalLedger(f),smtp=nativeEscoExternal.send.mock.calls.length,objectOwner=extra?captureEscoObjectOwner(f,source,wire):null
  const sourceBefore=(before.business.ediel_messages as FullRow[]).find(r=>r.id===source.id)!
  const tenantBasis=captureEscoTenantBasis(sql,lit,f)
- const codes={222:'FIELD_MATRIX_REQUIRED_FIELD_MISSING',321:'PRODAT_RECEIVED_REPORTING_321_MISSING',
-  322:'PRODAT_PERMISSION_322_MISSING',323:'PRODAT_RECEIVED_REPORTING_323_MISSING',326:'FIELD_MATRIX_REQUIRED_FIELD_MISSING'}
- const code=codes[field]
+ const codes={'222':'FIELD_MATRIX_REQUIRED_FIELD_MISSING','321':'PRODAT_RECEIVED_REPORTING_321_MISSING',
+  '322':'PRODAT_PERMISSION_322_MISSING','323':'PRODAT_RECEIVED_REPORTING_323_MISSING','326':'FIELD_MATRIX_REQUIRED_FIELD_MISSING'}
+ const code=extra?'FIELD_MATRIX_REQUIRED_FIELD_MISSING':codes[field as keyof typeof codes]
  // First source/domain invocation is the public processor, never a preflight
  // assessment that could create the authority this test is meant to prove.
  const processingStarted=Date.now()
@@ -722,6 +724,7 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
  const processingFinished=Date.now()
  const current=(await getEdielMessageById(source.id))!
  const firstWindow:ObservationWindow=[processingStarted,processingFinished]
+ objectOwner?.qualify(firstWindow)
  const firstTenant=qualifyEscoTenantFirst(current.parsed_payload!,tenantBasis,firstWindow)
  expect(current.validation_report?.tenantResolution).toEqual(firstTenant)
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(current,{actorUserId:f.ids.actor})
@@ -733,6 +736,8 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
   .filter(error=>error.prodatFieldDiagnostic?.kind==='field'&&error.prodatFieldDiagnostic.fieldNumber===field)
  expect(missingErrors).toHaveLength(1)
  expect(isQualifiedProdatApplicationError(missingErrors[0])).toBe(true)
+ if(extra)qualifyEscoObjectDiagnostic(missingErrors[0].prodatFieldDiagnostic,field,f,p)
+ if(extra){expect(decision.functionalDecision).toBe('accepted');expect(decision.prodatApplicationValidation?.headerDecision).toBe('accepted');expect(decision.prodatProcessingDisposition?.kind).toBe('continue')}
  expect(missingErrors[0]).toMatchObject({ercCode:'41',fieldCode:field,
   prodatFieldDiagnostic:{kind:'field',fieldNumber:field,errorKind:'missing',
    occurrence:{scope:'object',objectId:f.point,identityAgency:'9',lineItemReference:p.li}}})
@@ -762,6 +767,7 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
   }
   else {
    expect(tokens.segments.filter(s=>s.tag==='BGM')).toHaveLength(1)
+   if(extra)expect(segmentComposite(tokens.segments.find(s=>s.tag==='BGM'),3,tokens.una)[0]).toBe('34')
    expect(physical.acknowledgedReferences).toEqual([p.li])
    expect(tokens.segments.filter(s=>s.tag==='ERC').map(s=>segmentComposite(s,1,tokens.una)[0])).toEqual(['41'])
    expect(tokens.segments.some(s=>s.tag==='FTX'&&segmentComposite(s,3,tokens.una).join(':')===field+'::260')).toBe(true)
@@ -914,7 +920,7 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
  qualifyRequestReferences(f,p,ledger.own.businessReferences,additions.businessReferences,[
   [current,'UNB_REF',EdifactEnvelopeCodec.decode(wire).interchangeReference],
   [current,'BGM_REF',wireDocument(wire)],
-  [current,'PERMISSION_ID',wireReference(wire,'Z09')],
+  ...(field==='325'?[]:[[current,'PERMISSION_ID',wireReference(wire,'Z09')] as const]),
   [objectReply,'UNB_REF',EdifactEnvelopeCodec.decode(String(objectReply.raw_payload)).interchangeReference],
   [objectReply,'RFF_ACW',wireDocument(wire)],
   [objectReply,'RFF_Z07',f.point],
@@ -1115,6 +1121,7 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
  const replayStarted=Date.now()
  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
  const replayWindow:ObservationWindow=[replayStarted,Date.now()]
+ objectOwner?.qualify(replayWindow)
  const replay=producerState(f),replayLedger=refusalLedger(f)
  const replaySource=(await getEdielMessageById(source.id))!
  const replayTenant=qualifySource(replaySource,replayWindow)
@@ -1154,6 +1161,12 @@ for(const [mode,field] of [['V','322'],['VH','322'],['VH','321'],['V','323']] as
 for(const field of ['222','326'] as const){
  it(`V: missing own reporting field ${field} is rejected without permission, supply or beneficiary effects; public replay`,async()=>{
   await missingReportingField('V',field)
+ })
+}
+
+for(const [mode,field] of escoObjectRefusals){
+ it(`${mode}: missing own reporting field ${field} is rejected without permission, supply or beneficiary effects; public replay`,async()=>{
+  await missingReportingField(mode,field)
  })
 }
 
