@@ -100,8 +100,8 @@ function externalAck(original: EdielMessageRow, family: 'CONTRL' | 'APERAK', out
   const e = EdifactEnvelopeCodec.decode(original.raw_payload!)
   const segments = family === 'CONTRL' ? renderContrl2Ediel2({ source: { rawPayload: original.raw_payload }, outcome: 'positive' }).segments
     : renderAperakEdiel({ source: { id: original.id, messageFamily: 'PRODAT', messageCode: 'Z09', rawPayload: original.raw_payload }, refs: {}, externalReference: randomUUID(), transactionReference: randomUUID(), outcome,
-      // The grid owner's negative APERAK on the BRP change date of the one object: ERC 40, field 216.
-      applicationErrors: outcome === 'negative' ? [{ ercCode: '40', fieldCode: '216', text: PRODAT_APERAK_APPLICATION_TEXTS['216'],
+      // The grid owner's negative APERAK on the one object, the same qualified ERC 40 / 109 application error as P-08.
+      applicationErrors: outcome === 'negative' ? [{ ercCode: '40', fieldCode: '109', text: PRODAT_APERAK_APPLICATION_TEXTS['109'],
         referenceQualifier: 'Z07', referenceNumber: /LIN\+1\+\+([0-9]+):/.exec(original.raw_payload!)![1], lineItemReference: /RFF\+LI:([^']+)'/.exec(original.raw_payload!)![1] }] : null }).segments
   return EdifactEnvelopeCodec.encode({ sender: e.receiver!, receiver: e.sender!, senderQualifier: e.receiverQualifier, receiverQualifier: e.senderQualifier, senderSubAddress: e.receiverSubAddress,
     receiverSubAddress: e.senderSubAddress, applicationReference: e.applicationReference, acknowledgementRequest: false, environment: 'test', interchangeReference: randomUUID().replaceAll('-', '').slice(0, 14),
