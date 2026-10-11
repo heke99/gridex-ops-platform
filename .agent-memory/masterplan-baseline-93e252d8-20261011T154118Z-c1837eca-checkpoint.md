@@ -235,3 +235,15 @@ Packet5b02ba14-7354-4338-b91d-13f67ce71ba4, TAKEN6112198691. Exacta493fa69bc94c4
 Historical ROOT025/f2dcd955 monitor rejection is not a verified current permission blocker. Limited757 delivery6109065495 explicitly applies its6108967526 authority only to757; it does not answer759 or transfer custody. Original6e9134a3 source owner retains native/currentheadCI/whole proof/ordinarydelivery and7refs. Existing request reused; no duplicate question or bypass. Source2/currenta493 two-line correction6108880257/6108927742 retained as attributed affected proof, not an adjudication of original whole C0/I2/M3. Old native18PASS16FAIL and12:12QUEUED history remain; no current terminal claim.
 
 Remaining exact events: original6e9134a3 publishes source-bound terminal34-case native proof, current mandatory gates and currentmain9adb composition; rightful ROOT025/original owner publishes current759 boundary disposition or an explicit authorized scoped delivery handoff with exact source/refs/whole criteria. Nothing was granted, merged, deleted or released. OwnIDs/files/refs0, no source/test/SQL/native/CI/log/artifact/capture/GEN/PRstate mutation; mainCI/mirror0b retained. Next root closes this support item then checks existing763 source-review provenance, reusing applicable seals instead of a third full audit.
+
+## 2026-10-11 PR763 administrative TAKEN
+
+TAKEN — PR #763 review provenance and dependency metadata — codex-ediel-20261006-93e252d8 — packet 3f3f19e5-ab85-40b1-a4f3-fab54797d326
+
+Previous item: #759 DONE6112287745. Exact head 3a437239a4f2f52502ba00990665de6a7e1a0622, OPEN/non-draft at18:32UTC. #752 actually merged as12f9368f8966055d1b20317538e84875936c47d2 at16:06:36UTC; #763's opening paragraph still says it will remain draft until that merge. Scope: correct only this obsolete dependency paragraph and qualify existing review provenance. Preserve every other body byte, source, state and whole criterion.
+
+Fresh reviews=[]; comments=[one bot]. The body claims two independent reviews, possibly private: zero formal reviews does not prove absent reviews. Earlier prospective counts2/2 counted wrapper keys; actual arrays0/1 supersede them. Root and one metadata peer trace existing exact-source reports; no third full source audit. All five original98b6 refs MATCH; Claude01U97c/packet0cff retains implementation, native, current gates, whole proof and delivery. SC023/#764 is separate. Own IDs/files/refs0; no code, SQL, tests, native, CI, logs, artifacts, capture, GEN, coverage or shared-memory changes.
+
+Current main9adb is GREEN under sole0b receipt6112231421:9SUCCESS/10 qualified conditional SKIP. Authenticated published checkpoint3b0e880 binds terminal reportbcf09b94 and C0/I0da513606; root made zero CI calls. Existing mirror and C's GEN queue remain. Next: guarded dependency-only PATCH, full inverse/body readback, bounded provenance disposition and exact remaining owner output, then close this item.
+
+Skills: coordination, differential/receiving review and verification apply. Source/database/security audits and execution producers are outside this metadata scope.
