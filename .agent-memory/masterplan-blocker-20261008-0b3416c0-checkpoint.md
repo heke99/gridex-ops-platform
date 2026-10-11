@@ -234,3 +234,35 @@ review of its bounded delta. Latest owner-response append has local diff/scope
 verification only; no new implementation review claimed. Next event is actual
 owner709 delivery/release, or an explicit subsequent exact handoff. No own locks
 or technical package exist to merge/release; no background monitor is claimed.
+
+## Five-point execution — owner instruction 2026-10-11
+
+Same fixed agent; prior709 waiting event nowDONE: actualmergef851aad5.699also
+delivered6cba5847. Actualmain4d69800e388f826b49f8a703f4374cb00d8ab3a4; SC052751delivered,
+117rules+194contracts=311/352,41remain. Ownbranch adoptsactualmain normally;
+onlyuniqueowncheckpoint is authored. No sharedsummary/native/capture/GENredo.
+
+Taken bounded blocker: delivery throughput and stale startup coordination.
+User explicitly executes five previously proposed points and parallel agents.
+Execution packet5cfe86b5-f22c-4e3f-9b24-a539e7fb1421; five read-only/preparation readers cover
+742/743/757 delivery, narrowmerge mandate, existingGENwriterqueue, current
+head/owner/actiontable, existingstartupwriter+nextboard preparation. Root
+serializes everyexternal mutation and exactreservation; no inheritedforeignrefs.
+
+Skillrouting: using-superpowers/dispatching-parallel-agents for bounded independent
+streams, verification-before-completion for current evidence, requesting-code-review
+before actualdelivery and finishing-a-development-branch within explicituser
+deliveryauthorization. No broadsource/security/databaseaudit orproductionremediation
+triggered; no skill-driven duplicatefulltest/native/artifact collection.
+
+Currentpreflight:742/757 createdchecks green;743 has new materialreview
+dispositions to qualify beforemerge. Actual311, current-memory302 stale.
+GENfourbranches shareC747 writer;755/760 same14digitversion requires
+sourceownerrenaming/refverification. Startupfourfiles+memoryrole remain
+41f-owned; existinghelp699foundation correction is reused. No sourceedit,
+foreignlockrelease or oldmonitorrestriction bypass is authorized by preparation.
+Next: publish narrowcurrentinstruction and exactownerhandoffs, qualify then
+acquireonlyfreshfreemergerole for immediatelydeliverable original-owner package;
+normalexpected-head merge and authenticateparents/tree/coverage,roleFIRSTrelease,
+originalowner-request-only resource release. Existingmemorywriter prepares
+startup311/latestheadtable and boardrouting with actualhandoff/custody.
