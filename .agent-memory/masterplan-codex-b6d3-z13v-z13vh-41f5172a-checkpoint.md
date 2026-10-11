@@ -1171,3 +1171,26 @@ proposal publication. Independent readonly Z14N requirement map now assigned
 while root owns CI; it must identify scope-applicable reusable proof or minimum
 missing actualpublicscenario, no duplicate test/native/artefact/GitHub action.
 Owner frozenbegäran/fullR-D still pending. No merge-role held whilewaiting.
+
+
+## 2026-10-11 UTC — before adding public N composition, same owned packet
+
+Source bbbd947f28fa16652799e7e4ed7273e91e0c6326/tree0f3 is locally verified and
+bounded-source2C0I0, but NOT_PUSHED/NOT_RUN. Both independent single-requirement
+readers C0I0 confirm current public Z96 birth/original S17-S18 denial owner exists;
+existing accepted nationalN proof pins receipt/defaultV and lacks actual original
+requestACK pair, so it is complementary, not this composed proof. No production
+defect inferred. Within same e13e5997 packet/full10refs b384cc8e and memoryrole988a
+append V/A13 and VH/A76 public requestACK→waiting→N receipt/processor/denial cases
+in the already owned producer. Preserve all original30 bytes/names/assertions;
+strict workflow census30→32 solely for two new cases. No native currently running,
+so no obsolete30 publication/duplicate producer. No foreign N test/coverage edit,
+no profile pin/internal apply. Require exact denied fullpermission/effect, null
+physical object positive processingACK/source-clock, full queue/business/foreign
+preservation, sealedoriginal and immutable replay; no rights/supply/report effects.
+Independent plan reports SHA256 {"esco-z14n-plan-refutation.json": "681d31ab65db457b7f8e442c9a91704dc9a417b3d922a4263e1ee9e12362862e", "esco-z14n-requirement-map.json": "c4cd437a70950fdf16019a13e66d5cec4f0dfbd57928c43d92eece528f26c36d"}.
+Owner frozen begäran disposition/all-applicable R-D map remain wholeapproval
+limits, coverage unchanged. Same own refs/custody, no new pair or merge-role.
+NEXT ROOT implement two local native cases/strict32; scoped static verification,
+new exactsource2 reviews and refreshed preflight before sole native/currentCI.
+Existing bbb source reviews remain historical applicability, not newhead approval.
