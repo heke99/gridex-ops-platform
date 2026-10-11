@@ -1,5 +1,6 @@
 // masterplan: AT-Z05H-SUPPLIER, AT-Z08H-SUPPLIER
 // Retained665/9c1c668f: original96 cases preserved, then two strict H209 tails.
+// Two additional H05 country omissions make 100 cases; current native NOT RUN.
 // Proposed whole H05/H08 proof. No masterplan approval tags until authentic
 // public-birth integration, actual native execution and literal review pass.
 import {createHash,createHmac,randomUUID} from 'node:crypto'
@@ -20,7 +21,7 @@ import {nationalRescissionNativeChain} from './helpers/nationalRescissionNative'
 import {createBilateralProdatGroundNativeFixture} from './helpers/ediel-bilateral-prodat-profile-native-fixture'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {archiveBilateralProdatGround,reviewBilateralProdatGround,readBilateralProdatGroundArtifact} from '@/lib/ediel/production/bilateralProdatProfileIntake'
-import {readSupplyRescissionScope,archiveSupplyRescission,reviewSupplyRescission,readSupplyRescissionBytes} from '@/lib/ediel/production/supplyRescissionIntake'
+import {readSupplyRescissionScope,archiveSupplyRescission,reviewSupplyRescission,readSupplyRescissionBytes,readSupplyRescissionArtifact} from '@/lib/ediel/production/supplyRescissionIntake'
 import {prepareAndQueueSupplyRescissionZ08} from '@/lib/ediel/flows/prodatSupplyRescission'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {matchOutboundRequestForInbound,matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
@@ -135,6 +136,7 @@ async function publicH04Reception(input:Pick<NormalSwitchFixtureInput,'bindingMo
  if(declaration==='absent')for(const state of Object.values(physicalReadings))expect(state).toEqual({present:false,value:null,malformed:false})
  if(declaration==='malformed')expect(physicalReadings['259']).toEqual({present:true,value:null,malformed:true})
  const businessBefore=graph(),effectsBefore=effects(f.companyId),providerBefore=provider.mock.calls.length
+ const globalEffectsBefore=rejectedIdentityEffects()
  const processed=await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:received.sourceId})
  const period=sql<{id:string;source_message_id:string;source_end_message_id:string|null}>(`SELECT to_jsonb(p) FROM public.customer_supply_periods p WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(received.sourceId)}`)
  // Observe the first actual outcome without applying again or manufacturing
@@ -158,7 +160,7 @@ async function publicH04Reception(input:Pick<NormalSwitchFixtureInput,'bindingMo
  )`)
  expect(custody(original.id)).toEqual(originalBefore);expect(custody(received.sourceId)).toEqual(sourceBefore)
  expect(await retainedTransportBytes(f,original.id)).toEqual(originalTransport)
- return{...f,received,processed,period,diagnostic,physicalReadings,businessBefore,effectsBefore,providerBefore,originalZ03:original}
+ return{...f,received,processed,period,diagnostic,physicalReadings,businessBefore,effectsBefore,globalEffectsBefore,providerBefore,originalZ03:original}
 }
 async function publicHStart(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|'billingAddress'>={}){
  const f=await publicH04Reception(input)
@@ -282,6 +284,7 @@ it('public H04 declares source-own future UTILTS readings before birth and commi
 })
 for(const declaration of ['absent','malformed'] as const)it('public H04 '+declaration+' reading declaration cannot manufacture a period, business effects or positive APERAK',async()=>{
  const f=await publicH04Reception({},declaration)
+ assertNegativeGlobalEffects(f.globalEffectsBefore,f.received.source,f.actorUserId)
  expect(f.period,JSON.stringify({declaration,physicalReadings:f.physicalReadings,diagnostic:f.diagnostic})).toBeUndefined()
  expect(graph()).toEqual(f.businessBefore)
  const after=effects(f.companyId) as Record<string,Row[]>,before=f.effectsBefore as Record<string,Row[]>
@@ -299,8 +302,11 @@ for(const declaration of ['absent','malformed'] as const)it('public H04 '+declar
  expect(leaf.facts.registerValidation.objects[0].disposition,JSON.stringify({technicalStatus:persisted.status,physicalReadings:f.physicalReadings})).not.toBe('accepted')
  if(declaration==='absent')expect(leaf.facts.registerValidation.objects[0]).toMatchObject({disposition:'unavailable',reasons:expect.arrayContaining(['PRODAT_DEPENDENT_CONDITION_UNDETERMINED'])})
  const retained={graph:graph(),effects:effects(f.companyId),custody:custody(f.received.sourceId),original:custody(f.originalZ03.id)}
+ const globalReplay=rejectedIdentityEffects()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.received.sourceId})
  expect({graph:graph(),effects:effects(f.companyId),custody:custody(f.received.sourceId),original:custody(f.originalZ03.id)}).toEqual(retained)
+ expect(rejectedIdentityEffects()).toEqual(globalReplay)
+ assertNegativeGlobalEffects(f.globalEffectsBefore,f.received.source,f.actorUserId)
  expect(provider).toHaveBeenCalledTimes(f.providerBefore)
 })
 // Limited source proof, separate from the 91 strict whole-H effect cases below.
@@ -313,6 +319,7 @@ for(const reason of ['Z25','Z22'] as const)it('SOURCE_ONLY actual public Z05/'+r
   'objectEffects',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM gridex_received_sources.supply_object_effect_receipts p WHERE company_id=${literal(f.companyId)}),
   'permissions',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.metering_permissions p WHERE company_id=${literal(f.companyId)}),
   'permissionSites',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY id),'[]') FROM public.metering_permission_sites p WHERE company_id=${literal(f.companyId)}))`)})
+ const globalBefore=rejectedIdentityEffects()
  const before=business(),originalsBefore=protectedOriginals(),m=await receive(f,raw)
  const proof=sql<{catalog:{pack:Row;profile:Row;guideSources:Row[]};captured:Row;mail:Row;parse:Row;context:Row;receptions:Row[]}>(`SELECT jsonb_build_object(
   'catalog',(SELECT jsonb_build_object('pack',to_jsonb(pack),'profile',to_jsonb(p),'guideSources',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY id),'[]') FROM public.ediel_rule_pack_sources s WHERE rule_pack_id=pack.id)) FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs pack ON pack.id=p.rule_pack_id WHERE p.id=${literal(m.source.rule_profile_version_id)}),
@@ -342,6 +349,7 @@ for(const reason of ['Z25','Z22'] as const)it('SOURCE_ONLY actual public Z05/'+r
  expect(replay).toBe(m.sourceId);expect(custody(m.sourceId)).toEqual(born)
  expect(sql(`SELECT to_jsonb(x) FROM gridex_ediel_inbound_context.receipts x WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(m.sourceId)}`)).toEqual(proof.context)
  expect(business()).toEqual(before);expect(protectedOriginals()).toEqual(originals);expect(provider).not.toHaveBeenCalled()
+ assertNegativeGlobalEffects(globalBefore)
 })
 it('public H05 reception commits the same supply/history and only its actual commercial end before exact physical ACKs; replay preserves originals and effects',async()=>{
  const f=await hEndGround(),m=await accepted(f,wire(f,'Z05',endBody(f,'Z25',f.li))),before=graph(),inputBefore=custody(m.sourceId),startBefore=custody(f.startSourceId),started=clock()
@@ -380,7 +388,9 @@ it('actual H05 current metering permission withdrawal refuses the honest retaine
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)} AND permission_key='metering.write'`)
  await expect(assertEdielTenantActor({companyId:f.companyId,actorUserId:f.actorUserId,permission:'metering.write'})).rejects.toThrow('ediel_tenant_permission_forbidden')
  const before=graph(),saved=effects(f.companyId),privateSaved=protectedOriginals(),input=custody(m.sourceId),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  expect(await applySupplyMarketSource({actorUserId:f.actorUserId,message:m.source})).toMatchObject({applied:false,reason:'supply_execution_actor_unqualified'})
+ assertNegativeGlobalEffects(globalBefore)
  expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(m.sourceId)).toEqual(input);expect(provider).toHaveBeenCalledTimes(calls)
 },120000)
 
@@ -395,13 +405,17 @@ for(const failure of ['foreign_actor','permission_withdrawn'] as const)it('actua
  }
  await expect(assertEdielTenantActor({companyId:f.companyId,actorUserId:actor,permission:'communication.write'})).rejects.toThrow(reason)
  const before=graph(),saved=effects(f.companyId),privateSaved=protectedOriginals(),input=custody(control.sourceId),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  await expect(receive(f,wire(f,'Z05',endBody(f,'Z25',f.li)),actor)).rejects.toThrow(reason)
+ assertNegativeGlobalEffects(globalBefore)
  expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(control.sourceId)).toEqual(input);expect(provider).toHaveBeenCalledTimes(calls)
 },120000)
 
 it('actual public H05 has no standard end effect when its own bilateral transition profile was never established',async()=>{
  const f=await publicHStart(),m=await receive(f,wire(f,'Z05',endBody(f,'Z25','H-END-UNAGREED'))),before=graph(),old=effects(f.companyId),privateBefore=protectedOriginals(),input=custody(m.sourceId),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
+ assertNegativeGlobalEffects(globalBefore,m.source,f.actorUserId)
  expect(graph()).toEqual(before)
  const after=effects(f.companyId) as Record<string,unknown>;for(const key of ['transitions','bilateral','national','watch'])expect(after[key],key).toEqual((old as Record<string,unknown>)[key])
  oldRowsPreserved(old,after);preservedProtected(privateBefore,m.sourceId);expect(custody(m.sourceId)).toEqual(input)
@@ -420,7 +434,9 @@ for(const revoked of ['supplier_role','reviewer'] as const)it('actual H05 '+revo
  }
  expect(await readBilateralProdatGroundArtifact({companyId:f.companyId,actorUserId:f.actorUserId,artifactId:f.artifactId})).toMatchObject({status:'held',missing:expect.arrayContaining(['actual_current_qualified_ground'])})
  const before=graph(),saved=effects(f.companyId),privateSaved=protectedOriginals(),input=custody(m.sourceId),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  await expect(applySupplyMarketSource({actorUserId:f.actorUserId,message:m.source})).rejects.toMatchObject({message:'bilateral_h_end_current_profile_required'})
+ assertNegativeGlobalEffects(globalBefore)
  expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(m.sourceId)).toEqual(input);expect(provider).toHaveBeenCalledTimes(calls)
 },120000)
 
@@ -436,31 +452,40 @@ for(const change of ['customer','grid_area','sender','receiver','object','agency
   return p
  }) as Parts[]
  const m=await receive(f,wire(f,'Z05',body)),before=graph(),old=effects(f.companyId),privateBefore=protectedOriginals(),input=custody(m.sourceId),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
+ assertNegativeGlobalEffects(globalBefore,m.source,f.actorUserId)
  expect(graph()).toEqual(before)
  const after=effects(f.companyId) as Record<string,unknown>;for(const key of ['transitions','bilateral','national','watch'])expect(after[key],key).toEqual((old as Record<string,unknown>)[key])
  oldRowsPreserved(old,after);preservedProtected(privateBefore,m.sourceId);expect(custody(m.sourceId)).toEqual(input)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE related_message_id=${literal(m.sourceId)} AND message_family='APERAK' AND ack_outcome='positive'`)).toBe(0)
  const saved=effects(f.companyId),privateSaved=protectedOriginals()
+ const globalReplay=rejectedIdentityEffects()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
  expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(m.sourceId)).toEqual(input);expect(provider).toHaveBeenCalledTimes(calls)
+ expect(rejectedIdentityEffects()).toEqual(globalReplay)
+ assertNegativeGlobalEffects(globalBefore,m.source,f.actorUserId)
 },120000)
 
 it('actual H05 registered raw/direction and protected legal-context mutations are refused without rewriting originals',async()=>{
  const f=await hEndGround(),m=await accepted(f,wire(f,'Z05',endBody(f,'Z25',f.li))),before=graph(),saved=effects(f.companyId),input=custody(m.sourceId),privateSaved=protectedOriginals(),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  expect(await applySupplyMarketSource({actorUserId:f.actorUserId,message:{...m.source,direction:'outbound'}})).toMatchObject({applied:false,reason:'not_inbound_supply_source'})
  expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=raw_payload||' ' WHERE id=${literal(m.sourceId)}`)).toThrow('ediel_registered_reception_original_immutable')
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_wire_namespace.coverage WHERE source_message_id=${literal(m.sourceId)}`)).toBe(0)
  expect(()=>sql(`UPDATE public.ediel_messages SET direction='outbound' WHERE id=${literal(m.sourceId)}`)).toThrow('ediel_registered_reception_original_immutable')
  expect(()=>sql(`UPDATE gridex_ediel_inbound_context.receipts SET context=context||'{"actorRole":"supplier"}'::jsonb WHERE source_message_id=${literal(m.sourceId)}`)).toThrow('ediel_original_identity_basis_immutable')
+ assertNegativeGlobalEffects(globalBefore)
  expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(custody(m.sourceId)).toEqual(input);expect(protectedOriginals()).toEqual(privateSaved);expect(provider).toHaveBeenCalledTimes(calls)
 },120000)
 
 it('actual H05 final audit failure rolls back market, contract, billing, transition and positive ACK writes atomically',async()=>{
  const f=await hEndGround(),m=await accepted(f,wire(f,'Z05',endBody(f,'Z25',f.li))),before=graph(),old=effects(f.companyId),input=custody(m.sourceId),privateBefore=protectedOriginals(),calls=provider.mock.calls.length,name='native_h05_final_audit_'+randomUUID().replaceAll('-','')
+ const globalBefore=rejectedIdentityEffects()
  sql(`ALTER TABLE public.audit_logs ADD CONSTRAINT ${name} CHECK(NOT(company_id=${literal(f.companyId)}::uuid AND action='ediel.bilateral_profile.supply_applied' AND entity_id=${literal(m.sourceId)}::uuid)) NOT VALID`)
  try{
   await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
+  assertNegativeGlobalEffects(globalBefore,m.source,f.actorUserId)
   expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_events WHERE ediel_message_id=${literal(m.sourceId)} AND payload->>'supplySourceApply'='rolled_back' AND position(${literal(name)} in payload->>'reason')>0`)).toBe(1)
   expect(graph()).toEqual(before)
   const after=effects(f.companyId) as Record<string,unknown>;for(const key of ['transitions','bilateral','national','watch'])expect(after[key],key).toEqual((old as Record<string,unknown>)[key])
@@ -476,6 +501,41 @@ it('actual H05 final audit failure rolls back market, contract, billing, transit
 function oldRowsPreserved(before:unknown,after:unknown){
  const prior=before as Record<string,Row[]>,current=after as Record<string,Row[]>
  for(const key of ['acks','outbox','cases'])for(const row of prior[key])expect(current[key].find(x=>x.id===row.id),key).toEqual(row)
+}
+function assertNegativeGlobalEffects(before:ReturnType<typeof rejectedIdentityEffects>,source:EdielMessageRow|null=null,reviewActorUserId?:string){
+ const after=rejectedIdentityEffects()
+ for(const key of ['transitions','bilateral','national','watch','cases'])expect(after[key],key).toEqual(before[key])
+ oldRowsPreserved(before,after)
+ const acks=newRows(before.acks,after.acks),outbox=newRows(before.outbox,after.outbox)
+ if(!source){expect(acks).toEqual([]);expect(outbox).toEqual([])}
+ else{
+  // Both technical outcomes are legitimate; a business-positive APERAK is
+  // never licensed by one of these rejected/held source paths.
+  for(const row of acks){
+   expect(row).toMatchObject({company_id:source.company_id,environment:source.environment,direction:'outbound',related_message_id:source.id})
+   expect(['CONTRL','APERAK']).toContain(row.message_family)
+   if(row.message_family==='APERAK')expect(row.ack_outcome).toBe('negative')
+   else expect(row.ack_outcome).toMatch(/^(positive|negative)$/)
+  }
+  expect(new Set(acks.map(row=>row.message_family)).size).toBe(acks.length)
+  expect(outbox.map(row=>row.ediel_message_id).sort()).toEqual(acks.map(row=>row.id).sort())
+  for(const row of outbox)expect(row).toMatchObject({company_id:source.company_id,environment:source.environment,source_message_id:source.id})
+ }
+ // createOrUpdateInboundProdatCase is the actual source-bound review producer
+ // (inboundCases.ts), distinct from customer_cases/business follow-up. Only
+ // its unreviewed pending-admin row is allowed, and only on public PRODAT
+ // processing. All old rows, foreign tenants and NULL scopes remain intact.
+ for(const row of before.inboundCases)expect(after.inboundCases.find(current=>current.id===row.id),'inboundCases').toEqual(row)
+ const reviewCases=newRows(before.inboundCases,after.inboundCases)
+ if(!source||source.message_family!=='PRODAT'||!reviewActorUserId)expect(reviewCases).toEqual([])
+ else{
+  expect(reviewCases.length).toBeLessThanOrEqual(1)
+  for(const row of reviewCases){
+   expect(row).toMatchObject({company_id:source.company_id,ediel_message_id:source.id,message_family:'PRODAT',message_code:source.message_code,
+    status:'pending_review',created_by:reviewActorUserId,updated_by:reviewActorUserId,review_decision:null,reviewed_by:null,reviewed_at:null,applied_at:null,
+    proposed_action:{action:'pending_admin_review'}})
+  }
+ }
 }
 function preservedProtected(before:ReturnType<typeof protectedOriginals>,sourceId:string){
  const after=protectedOriginals(),ackIds=sql<string[]>(`SELECT coalesce(jsonb_agg(id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(sourceId)} AND message_family IN('CONTRL','APERAK')`)
@@ -493,15 +553,17 @@ function preservedProtected(before:ReturnType<typeof protectedOriginals>,sourceI
 }
 async function rejectPhysicalEnd(f:Awaited<ReturnType<typeof hEndGround>>,raw:string,field:string,control:Awaited<ReturnType<typeof accepted>>){
  const before=graph(),prior=effects(f.companyId),protectedBefore=protectedOriginals(),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  const tokens=tokenizeEdifact(raw),policy=control.decision.policy
  expect(policy).toBeTruthy()
  // Diagnose the independently omitted physical field using the actual
  // qualified control's policy. This pure projection grants no admission.
  const typed=validateCanonicalPolicyFields({policy:policy!,rawPayload:raw,rawSegments:tokens.segments.map(x=>x.raw),una:tokens.una})
- const expected=field==='UD'?['227','228']:field==='IT'?['233','234']:[field]
+ const diagnosticField=field.replace('country','')
+ const expected=field==='UD'?['227','228']:field==='IT'?['233','234']:[diagnosticField]
  expect(typed.some(x=>x.prodatDiagnostic?.kind==='field'&&expected.includes(x.prodatDiagnostic.fieldNumber)),JSON.stringify(typed)).toBe(true)
  let m:Awaited<ReturnType<typeof receive>>|undefined,birthError:unknown
- try{m=await receive(f,raw,f.actorUserId,f.companyId,field)}catch(error){if(!(error instanceof ExpectedPhysicalBirthRefusal))throw error;birthError=error}
+ try{m=await receive(f,raw,f.actorUserId,f.companyId,diagnosticField)}catch(error){if(!(error instanceof ExpectedPhysicalBirthRefusal))throw error;birthError=error}
  if(m){
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(m.source)
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).not.toEqual(['accepted','accepted','accepted'])
@@ -514,11 +576,15 @@ async function rejectPhysicalEnd(f:Awaited<ReturnType<typeof hEndGround>>,raw:st
  const after=effects(f.companyId) as Record<string,unknown>,old=prior as Record<string,unknown>
  for(const key of ['transitions','bilateral','national','watch'])expect(after[key],key).toEqual(old[key])
  oldRowsPreserved(prior,after)
+ assertNegativeGlobalEffects(globalBefore,m?.source??null,m?f.actorUserId:undefined)
  if(m)preservedProtected(protectedBefore,m.sourceId);else expect(protectedOriginals()).toEqual(protectedBefore)
  if(m){
   const saved=effects(f.companyId),original=custody(m.sourceId),privateSaved=protectedOriginals()
+  const globalReplay=rejectedIdentityEffects()
   await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
   expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(m.sourceId)).toEqual(original)
+  expect(rejectedIdentityEffects()).toEqual(globalReplay)
+  assertNegativeGlobalEffects(globalBefore,m.source,f.actorUserId)
  }
  expect(provider).toHaveBeenCalledTimes(calls)
 }
@@ -526,6 +592,11 @@ for(const field of [...h05Required,'UD','IT'])it('public H05 refuses missing phy
  const f=await hEndGround(),valid=wire(f,'Z05',endBody(f,'Z25',f.li))
  const control=await accepted(f,valid)
  expect(control.decision.functionalDecision).toBe('accepted')
+ await rejectPhysicalEnd(f,omitSupplyEndField(wire(f,'Z05',endBody(f,'Z25',f.li)),field),field,control)
+},120000)
+
+for(const field of ['207country','208country'])it('public H05 refuses missing physical '+field+' through its actual public birth without end or positive business ACK',async()=>{
+ const f=await hEndGround(),control=await accepted(f,wire(f,'Z05',endBody(f,'Z25',f.li)))
  await rejectPhysicalEnd(f,omitSupplyEndField(wire(f,'Z05',endBody(f,'Z25',f.li)),field),field,control)
 },120000)
 
@@ -615,7 +686,9 @@ for(const change of ['unsent','wrong_li','wrong_object','wrong_agency','wrong_en
  if(change==='reviewer_revoked')sql(`DELETE FROM public.user_roles WHERE user_id=${literal(f.reviewer)};UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.supply_rescission.review'`)
  const changed=body.map(p=>change==='wrong_li'&&p[0]==='RFF'&&Array.isArray(p[1])&&p[1][0]==='LI'?['RFF',['LI','FOREIGN-LI']]:change==='wrong_object'&&p[0]==='LIN'?line('1','735999999999999999',undefined,'9'):change==='wrong_agency'&&p[0]==='LIN'?line('1',f.external,undefined,'89'):change==='wrong_end'&&p[0]==='DTM'?['DTM',['93','202610171330','203']]:p) as Parts[]
  const m=await accepted(f,wire(f,'Z05',changed)),before=graph(),old=effects(f.companyId) as Record<string,unknown>,input=custody(m.sourceId),original=custody(f.original.id),privateBefore=protectedOriginals(),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
+ assertNegativeGlobalEffects(globalBefore,m.source,f.actorUserId)
  expect(graph()).toEqual(before)
  const after=effects(f.companyId) as Record<string,unknown>;for(const key of ['transitions','bilateral','national','watch'])expect(after[key],key).toEqual(old[key])
  oldRowsPreserved(old,after);preservedProtected(privateBefore,m.sourceId)
@@ -623,8 +696,11 @@ for(const change of ['unsent','wrong_li','wrong_object','wrong_agency','wrong_en
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE related_message_id=${literal(m.sourceId)} AND message_family='APERAK' AND ack_outcome='positive'`)).toBe(0)
  expect(provider).toHaveBeenCalledTimes(calls)
  const saved=effects(f.companyId),privateSaved=protectedOriginals()
+ const globalReplay=rejectedIdentityEffects()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
  expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(m.sourceId)).toEqual(input);expect(custody(f.original.id)).toEqual(original);expect(provider).toHaveBeenCalledTimes(calls)
+ expect(rejectedIdentityEffects()).toEqual(globalReplay)
+ assertNegativeGlobalEffects(globalBefore,m.source,f.actorUserId)
 },120000)
 
 // Literal H08 R21 and D9 expectations are independent of runtime descriptors.
@@ -645,6 +721,7 @@ for(const field of [...h08Required,'207country','208country','229','250','251','
  const typed=validateCanonicalPolicyFields({policy:decision.policy!,rawPayload:omitted,rawSegments:tokens.segments.map(x=>x.raw),una:tokens.una})
  expect(field==='229'?typed.some(x=>x.code==='PRODAT_END_USER_ADDRESS_VALUE_MISMATCH'&&x.fieldPath==='NAD+UD/C059/3042[1..3]'):typed.some(x=>x.prodatDiagnostic?.kind==='field'&&x.prodatDiagnostic.fieldNumber===field.replace('country','')),JSON.stringify(typed)).toBe(true)
  const before=graph(),saved=effects(f.companyId),input=custody(actual.id),privateSaved=protectedOriginals(),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  // The qualified customer source binds the original exact bytes. This is
  // source-integrity refusal; the independent typed call above proves the
  // field diagnostic without claiming transport reached that validator.
@@ -655,15 +732,18 @@ for(const field of [...h08Required,'207country','208country','229','250','251','
  // Source binding is checked before field admission. A syntax refusal can
  // occur even earlier for malformed mandatory envelope/message components.
  expect(message==='customer_masterdata_message_basis_invalid'||message.startsWith('ediel_send_syntax_rejected:')).toBe(true)
+ assertNegativeGlobalEffects(globalBefore)
  expect(provider).toHaveBeenCalledTimes(calls);expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(actual.id)).toEqual(input)
 },120000)
 
 it('actual H08 current SEND withdrawal denies the provider and leaves the unsent original, supply and untimed expectation unchanged',async()=>{
  const f=await nationalOperation(true),before=graph(),saved=effects(f.companyId),input=custody(f.original.id),privateSaved=protectedOriginals(),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  await assertEdielTenantActor({companyId:f.companyId,actorUserId:f.currentExecutor,permission:'communication.send'})
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.currentExecutor)} AND permission_key='communication.send'`)
  await expect(assertEdielTenantActor({companyId:f.companyId,actorUserId:f.currentExecutor,permission:'communication.send'})).rejects.toThrow('ediel_tenant_permission_forbidden')
  await expect(sendEdielMessageViaSmtp((await getEdielMessageById(f.original.id))!,{actorUserId:f.currentExecutor,smtpMimeMode:'nodemailer-attachment'})).rejects.toThrow('ediel_tenant_permission_forbidden')
+ assertNegativeGlobalEffects(globalBefore)
  expect(provider).toHaveBeenCalledTimes(calls);expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(f.original.id)).toEqual(input)
 },120000)
 
@@ -674,7 +754,9 @@ for(const family of ['CONTRL','APERAK'] as const)it('actual H08 wrong '+family+'
  const parts=target.raw.split(tokens.una.dataElementSeparator)
  parts[1]=family==='CONTRL'?'FOREIGN-INTERCHANGE':'ACW'+tokens.una.componentDataElementSeparator+'FOREIGN-DOCUMENT'
  const m=await receive(f,draft.rawPayload!.replace(target.raw,parts.join(tokens.una.dataElementSeparator))),before=graph(),old=effects(f.companyId),privateBefore=protectedOriginals(),input=custody(m.sourceId),original=custody(sent.id),transport=await retainedTransportBytes(f,sent.id),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  await processInboundEdielMessage({actorUserId:f.currentExecutor,edielMessageId:m.sourceId})
+ assertNegativeGlobalEffects(globalBefore,m.source)
  expect(await readCommittedInboundAck({actorUserId:f.currentExecutor,message:(await getEdielMessageById(m.sourceId))!})).toBeNull()
  expect(graph()).toEqual(before)
  const after=effects(f.companyId) as Record<string,unknown>;for(const key of ['transitions','bilateral','national','watch'])expect(after[key],key).toEqual((old as Record<string,unknown>)[key])
@@ -685,11 +767,13 @@ for(const family of ['CONTRL','APERAK'] as const)it('actual H08 wrong '+family+'
 
 for(const change of ['raw','direction'] as const)it('actual accepted H08 '+change+' candidate cannot rewrite its protected transport receipt or enter SMTP again',async()=>{
  const f=await nationalOperation(),sent=await sendNational(f),before=graph(),saved=effects(f.companyId),original=custody(sent.id),privateSaved=protectedOriginals(),transport=await retainedTransportBytes(f,sent.id),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  const changed={...sent,...(change==='raw'?{raw_payload:sent.raw_payload+' '}:{direction:'inbound' as const})}
  let observed:unknown
  try{await sendEdielMessageViaSmtp(changed,{actorUserId:f.currentExecutor,smtpMimeMode:'nodemailer-attachment'})}catch(error){observed=error}
  expect(observed).toBeInstanceOf(SmtpDeliveryUncertainError)
  expect((observed as SmtpDeliveryUncertainError).cause).toMatchObject({message:'ediel_accepted_projection_original_changed'})
+ assertNegativeGlobalEffects(globalBefore)
  expect(provider).toHaveBeenCalledTimes(calls);expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(sent.id)).toEqual(original);expect(await retainedTransportBytes(f,sent.id)).toEqual(transport)
 },120000)
 
@@ -703,17 +787,23 @@ for(const withdrawal of ['supplier_role','reviewer'] as const)it('actual H08 '+w
   expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(f.reviewer)},${literal(f.companyId)},'ediel.supply_rescission.review'))`)).toBe(false)
  }
  const before=graph(),saved=effects(f.companyId),input=custody(f.original.id),privateSaved=protectedOriginals(),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
  const held={status:'held',missing:['actual_current_own_supply_and_authenticated_reviewed_legal_rescission_original']}
  expect(await readSupplyRescissionMandate({companyId:f.companyId,actorUserId:f.currentExecutor,mandateId:f.mandateId})).toEqual(held)
  expect(await prepareAndQueueSupplyRescissionZ08({companyId:f.companyId,actorUserId:f.currentExecutor,mandateId:f.mandateId,preferredRouteId:f.routeId})).toEqual(held)
+ assertNegativeGlobalEffects(globalBefore)
  expect(provider).toHaveBeenCalledTimes(calls);expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(f.original.id)).toEqual(input)
 },120000)
 
 it('actual H08 archived but unreviewed legal original never becomes a mandate or outgoing rescission',async()=>{
  const f=await nationalArtifact(),before=graph(),saved=effects(f.companyId),privateSaved=protectedOriginals(),calls=provider.mock.calls.length
+ const globalBefore=rejectedIdentityEffects()
+ expect(await readSupplyRescissionArtifact({companyId:f.companyId,actorUserId:f.reviewer,artifactId:f.artifactId})).toMatchObject({status:'archived',companyId:f.companyId,
+  artifactId:f.artifactId,mandateId:null,sourceHash:hash(f.bytes),scopeHash:f.review.scopeHash,missing:['authentic_legal_rescission_issuer_and_separate_qualified_review']})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_supply_rescission.mandates WHERE artifact_id=${literal(f.artifactId)}`)).toBe(0)
  expect(await prepareAndQueueSupplyRescissionZ08({companyId:f.companyId,actorUserId:f.actorUserId,mandateId:randomUUID(),preferredRouteId:f.routeId})).toEqual({status:'held',missing:['actual_current_own_supply_and_authenticated_reviewed_legal_rescission_original']})
  expect(provider).toHaveBeenCalledTimes(calls);expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved)
+ assertNegativeGlobalEffects(globalBefore)
 },120000)
 
 // Additive actual-runtime proof, not a replacement for any retained omission or
@@ -725,7 +815,7 @@ it('actual H08 archived but unreviewed legal original never becomes a mandate or
 function rejectedIdentityEffects(){
  const tables={transitions:'gridex_received_sources.supply_source_transitions',
   bilateral:'gridex_bilateral_prodat.supply_effect_receipts',national:'gridex_supply_rescission.end_receipts',
-  watch:'public.ediel_business_expectations',acks:'public.ediel_messages',outbox:'public.ediel_outbox',cases:'public.customer_cases'}
+  watch:'public.ediel_business_expectations',acks:'public.ediel_messages',outbox:'public.ediel_outbox',cases:'public.customer_cases',inboundCases:'public.ediel_inbound_cases'}
  return sql<Record<string,Row[]>>(`SELECT jsonb_build_object(${Object.entries(tables).map(([key,table])=>
   `${literal(key)},(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text),'[]') FROM ${table} x${key==='acks'?" WHERE message_family IN('CONTRL','APERAK')":''})`).join(',')})`)
 }
@@ -773,6 +863,7 @@ for(const kind of ['missing','malformed'] as const)it('public H05 '+kind+' physi
  const assertOnlyOwnAckEffects=(value:unknown)=>{
   const current=value as Record<string,Row[]>,prior=saved as Record<string,Row[]>
   for(const key of ['transitions','bilateral','national','watch','cases'])expect(current[key],key).toEqual(prior[key])
+  expect(current.inboundCases,'inboundCases').toEqual(prior.inboundCases)
   oldRowsPreserved(prior,current)
   expect(newRows(prior.acks,current.acks).map(row=>row.id).sort()).toEqual(acks.map(row=>row.id).sort())
   for(const row of newRows(prior.acks,current.acks))expect(row).toMatchObject({company_id:f.companyId,
@@ -783,6 +874,16 @@ for(const kind of ['missing','malformed'] as const)it('public H05 '+kind+' physi
   for(const row of ownOutbox)expect(row).toMatchObject({company_id:f.companyId,environment:'test',source_message_id:m.sourceId})
  }
  assertOnlyOwnAckEffects(after)
+ const contrl=acks.find(x=>x.message_family==='CONTRL')!
+ expect(contrl).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',related_message_id:m.sourceId,ack_outcome:'positive'})
+ expect(validateUnsmGrammar(contrl.raw_payload!).issues.filter(x=>x.severity==='error')).toEqual([])
+ expect(readPhysicalAckSourceCorrelation(contrl,m.source).classification.outcome).toBe('positive')
+ const originalTokens=tokenizeEdifact(m.wire),contrlTokens=tokenizeEdifact(contrl.raw_payload!),unb=originalTokens.segments.find(x=>x.tag==='UNB'),contrlUnb=contrlTokens.segments.find(x=>x.tag==='UNB'),uci=contrlTokens.segments.find(x=>x.tag==='UCI')
+ expect(segmentComposite(contrlUnb,2,contrlTokens.una)).toEqual(segmentComposite(unb,3,originalTokens.una))
+ expect(segmentComposite(contrlUnb,3,contrlTokens.una)).toEqual(segmentComposite(unb,2,originalTokens.una))
+ expect(segmentComposite(uci,1,contrlTokens.una)[0]).toBe(segmentComposite(unb,5,originalTokens.una)[0])
+ expect(segmentComposite(uci,2,contrlTokens.una)).toEqual(segmentComposite(unb,2,originalTokens.una))
+ expect(segmentComposite(uci,3,contrlTokens.una)).toEqual(segmentComposite(unb,3,originalTokens.una))
  const ack=acks.find(x=>x.message_family==='APERAK')!
  expect(ack).toMatchObject({company_id:f.companyId,environment:'test',related_message_id:m.sourceId})
  expect(validateUnsmGrammar(ack.raw_payload!).issues.filter(x=>x.severity==='error')).toEqual([])
