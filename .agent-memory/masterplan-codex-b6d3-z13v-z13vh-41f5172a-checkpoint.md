@@ -1309,3 +1309,32 @@ Currentbaba mandatory targeted-regressions failed at approvedtagcoverage consume
 Source b86ffdfff1852a0d19395c6eae0960b72c780b49 tree97e91a3a79ed021f531b0a757be534d616870565 clean/basedda0; native1726<=1800. Shared local qualifier derives exact SIX positive/fourN rows from wires, complete13 columns/exactmatchedoriginalrequest/nullsitepoint/sourcecustomer; independentlyfreshUUID+processorclock, noexistingkeycollision, originalLI/wholeoldrows/foreign preserved. OriginalACKfull127 and all32 identities remain; currentnativeNOT_RUN, original24P8F/full9809catalog preserved. ScriptsTSC/scopedESLint/filebudget/diffPASS; temporaryfirsthelperTSC duplicateobjectReply/structuralFullRow type errors preserved and corrected beforecommit. Both fresh exactsource reviews pending, no currentready/green/merge claim.
 
 Occupied OPSconsumer dependency cause now independently closed: ownfixture SHA f62c3dcaee46fd9169123033b84b5be0386e7875540c2ffbebe8cbdd15cd38ee differs from supported09b only three exactunique inverses. Remove sourceOmission217/261 parameter+validation from exportedreview function and remove both &&sourceOmission!='261' / &&sourceOmission!='217' terms clauses; restored SHA exactly09b779f3e803d1e541f167d4bdb7b700e29a884c7356700dba3d1e565a4a6931. This strictlyrestores historical finite testport, givesnocurrentnativeapproval and changesnorealproductionguard. Nativecases actuallyuse omissionseams; do notdropthem. PR742 owner c680 holds file and actualhead5e07eef9e682da3715bd568fc397789f62108859; noownerfileedit. Exactinverse receipt privateesco-ops-strict-fixture-inverse.json. ROOT next publish preciseinversehandoff toexisting673request, closeexactsource2reviews then reviewedpush/sole32/currentCI; entiretagcoverage and external frozenbegäran/fullR-D distinct. Coverage unchanged, nomergerole.
+
+
+## 2026-10-11 UTC — final unexecuted timer projection correction planned
+
+b86f review C0/I1 (six/fourreference qualifier accepted): source-backed PostgreSQL rawto_jsonb ediel_sla_timers timestamptz uses +00:00, while buildAckTimerPlan exactsource ingress +30/-10/-5 minute outputs Date.toISOString Z. Originalmissing-field tails have notexecuted and directthree-string equality is false. ROOT NEXT narrow three expected due/warning/critical values to real read-only SQL timestamptz serialization of independentlybuilt exactplan; retain fulltimerrow, all sourceanchors/payloadJSON/status/oldrows/replayzero additions/epochidentity. No runtime, schema orrequirementchange; then exactsource2review andsole32.
+
+Bounded OPSconsumer proposal prepared PRIVATELY against ownerPR742 exact5e07; occupied actualfile unchanged. Exactcurrentfixturef62 only inverses below restore supported09b; owner should apply gated digest/exactunique replacements then assert final09b before pre-existing strict inverse. This proposal gives no currenthead or historical nativecredit, changesnoproductguards. Root singleaffectedfinite diagnosis stillrunning, notentiretagcoverage/native.
+
+```json
+{
+  "source_fixture_sha256": "f62c3dcaee46fd9169123033b84b5be0386e7875540c2ffbebe8cbdd15cd38ee",
+  "restored_existing_reviewed_seam_sha256": "09b779f3e803d1e541f167d4bdb7b700e29a884c7356700dba3d1e565a4a6931",
+  "three_exact_unique_inverses": [
+    [
+      "export async function reviewNativeEscoAssignmentEvidence(f:NativeEscoFixture,termination?:NativeEscoTermination,sourceOmission?:'217'|'261'){\n if(sourceOmission!==undefined&&sourceOmission!=='217'&&sourceOmission!=='261')throw Error('native_esco_prospective_source_omission_invalid')\n",
+      "export async function reviewNativeEscoAssignmentEvidence(f:NativeEscoFixture,termination?:NativeEscoTermination){\n"
+    ],
+    [
+      "kind==='end_user_contract'&&sourceOmission!=='261'",
+      "kind==='end_user_contract'"
+    ],
+    [
+      "kind==='end_user_contract'&&sourceOmission!=='217'",
+      "kind==='end_user_contract'"
+    ]
+  ],
+  "status": "SOURCE_DERIVED_STRICT_INVERSE_ONLY_NOT_HISTORICAL_NATIVE_APPROVAL"
+}
+```
