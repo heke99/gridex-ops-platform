@@ -2,7 +2,7 @@
 
 - Agent: `claude-blocker-e-session_01WCExaQJ8GurBiuazNaHXKh`
 - Role: BLOCKERARAGENT E (fixed). Branch: `claude/blocker-e-01WCExaQ` (checkpoint only).
-- Custody: none. AT-Z09D BLOCKED on reservation. No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
+- Custody: id-AT-Z09D-SUPPLIER + file-b45d98… at 0f2ff445 (PR #746). No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
 
 ## Log
 
@@ -130,6 +130,11 @@
 - Proxy released role-merge + A's 12 + my file-b45d98 at 07:00 (6106472390); verified 404 myself. E holds no resources.
 - Owner rule (07:01): if no executor answer within 25 min → document OWNER_OVERRIDE on #673 and proceed.
 - #733 vs main 6acc621: no file overlap, merge-tree 0bf9fa5 clean (6106498990).
+
+### 2026-10-11T07:22Z — AT-Z09D: correction, owner transfer, CLAIM + READY #746
+- Missed proxy refusal 6104135857 (01:20); corrected 6106504208. Receipt 8ef0d408 unused.
+- Owner chose "Ja, överför AT-Z09D" → specific transfer 6106510767. Proxy reserved id-AT-Z09D + native file at 0f2ff445 (verified).
+- PR #746 head 433d733: 23-DDQ-PRODAT, no NAD+UD, mutation case; coverage AT-Z09D PASSED (local 310/352). READY 6106616932.
 
 ## Next
 After proxy RELEASE: verify 404s. AT-Z09D: on RESERVED → CLAIM → add 23-DDQ-PRODAT / no NAD+UD / wrong-correlation + mutation assertions to P-08 native test → PR.
