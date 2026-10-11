@@ -6,7 +6,9 @@ describe('Z02 receipt is not verification', () => {
   it('does not write verified payload or link customer/site before canonical gates', () => {
     const source = fs.readFileSync(path.join(process.cwd(), 'lib/onboarding/inboundEdielLinking.ts'), 'utf8')
     const start = source.indexOf('export async function applyInboundProdatZ02ToCustomerInfoRequest')
-    const enqueue = source.indexOf('enqueueInboundGridOwnerResponseAutomation({', start)
+    const enqueue = source.indexOf('enqueueInboundGridOwnerResponseAutomation(', start)
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(enqueue).toBeGreaterThan(start)
     const preGate = source.slice(start, enqueue)
     expect(preGate).not.toContain('verified_payload:')
     expect(preGate).not.toContain('linkEdielMessage({')

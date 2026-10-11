@@ -223,9 +223,12 @@ function positiveSdkEnqueueProjection(value: unknown) {
     eventCount: count, eventOverflow: false, copiesAgree: copies, evidenceBins: evidence.bins, sdkCodeBins: codes.bins})
 }
 function observeZ02SdkEnqueueProjection(f: Fixture, original: Original, received: Pick<Received, 'id'>,
-  phase: Z02ProjectionPhase = 'positive.pre606.public_projection'): void {
+  phase: Z02ProjectionPhase = 'positive.pre606.public_projection', includeDiagnosticEpoch = false): void {
   const stage = phase === 'positive.pre606.public_projection' ? 'positive.pre606.enqueue_sdk_code_classification' : phase
   const emit = (value: unknown) => { try { console.info('Z02_NATIVE_ENQUEUE_SDK_CODE_CLASSIFICATION', JSON.stringify(value)) } catch { /* Never replace a native contract assertion. */ } }
+  const emitDiagnostics = (value: unknown) => {
+    try { console.info('Z02_NATIVE_ENQUEUE_SDK_SUPPLEMENT_CLASSIFICATION', JSON.stringify(value)) } catch { /* Fixed evidence only. */ }
+  }
   try {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL !== 'http://127.0.0.1:54321') throw Error('owned_local_only')
     const query = `WITH sdk_request AS (
@@ -267,11 +270,20 @@ function observeZ02SdkEnqueueProjection(f: Fixture, original: Original, received
         `${literal(code)},count(*) FILTER (WHERE category='classified' AND sdk_code=${literal(code)})`).join(',')}) END)
       FROM sdk_classified`
     const stdout = execFileSync('psql', ['postgresql://postgres:postgres@127.0.0.1:54322/postgres', '-XAtq', '-v', 'ON_ERROR_STOP=1'],
-      { input: query, encoding: 'utf8', timeout: 10000, maxBuffer: 2_000_000, stdio: ['pipe', 'pipe', 'pipe'] })
+      { input: includeDiagnosticEpoch ? buildZ02SdkDiagnosticQuery(query) : query, encoding: 'utf8', timeout: 10000, maxBuffer: 2_000_000, stdio: ['pipe', 'pipe', 'pipe'] })
     const value: unknown = JSON.parse(stdout.trim())
-    emit(Object.assign(Object.create(null), {stage}, positiveSdkEnqueueProjection(value)))
+    if (includeDiagnosticEpoch) {
+      positiveStructuredShape(value, ['legacySdk', 'diagnostics'])
+      const legacySdk = positiveSdkEnqueueProjection(positiveStructuredData(value, 'legacySdk'))
+      const diagnostics = positiveSdkDiagnosticProjection(positiveStructuredData(value, 'diagnostics'))
+      emit(Object.assign(Object.create(null), {stage}, legacySdk))
+      emitDiagnostics(Object.assign(Object.create(null), {stage}, diagnostics))
+    } else {
+      emit(Object.assign(Object.create(null), {stage}, positiveSdkEnqueueProjection(value)))
+    }
   } catch {
     emit(Object.assign(Object.create(null), {stage, observed: false, reason: 'observation_unavailable'}))
+    if (includeDiagnosticEpoch) emitDiagnostics(Object.assign(Object.create(null), {stage, observed: false, reason: 'observation_unavailable'}))
   }
 }
 
@@ -407,6 +419,94 @@ function observeZ02PositiveProjection(f: Fixture, original: Original, received: 
     observeZ02EnqueueFailureProjection(undefined, stage)
     observeZ02StructuredEnqueueFailureProjection(undefined, stage)
   }
+}
+
+
+// New sibling epoch only. The retained 26 SDK bins and old decoder stay exact.
+const positiveSdkSupplementCodes = [
+  'empty_sdk_code', '57014', '55P03', 'PGRST000', 'PGRST001', 'PGRST002', '22001',
+  'retained_sdk_code', 'other_unlisted', 'unavailable',
+] as const
+const positiveSdkDiagnosticPorts = [
+  'original_snapshot_select', 'job_insert', 'duplicate_job_select', 'snapshot_upsert', 'unavailable',
+] as const
+function buildZ02SdkDiagnosticQuery(legacyQuery: string): string {
+  const marker = ") SELECT jsonb_build_object('schemaVersion',1,'requestCount'"
+  const boundary = legacyQuery.indexOf(marker)
+  if (boundary < 0 || boundary !== legacyQuery.lastIndexOf(marker)) throw Error('observation_shape_unavailable')
+  const ctes = legacyQuery.slice(0, boundary + 1)
+  const legacySelect = legacyQuery.slice(boundary + 2)
+  return `${ctes}, sdk_diagnostic_metadata AS (
+    SELECT payload,event_payload,payload IS NOT DISTINCT FROM event_payload AS copies_agree,
+      payload->'enqueueFailureSdkSupplementEvidence' AS sdk_metadata,
+      payload->'enqueueFailurePortEvidence' AS port_metadata,
+      CASE WHEN jsonb_typeof(payload->'enqueueFailureSdkSupplementEvidence')='object' THEN
+        (SELECT count(*) FROM jsonb_object_keys(payload->'enqueueFailureSdkSupplementEvidence'))=2
+        AND (payload->'enqueueFailureSdkSupplementEvidence') ?& ARRAY['schemaVersion','sdkCode']::text[]
+        AND payload->'enqueueFailureSdkSupplementEvidence'->'schemaVersion'='1'::jsonb
+        AND jsonb_typeof(payload->'enqueueFailureSdkSupplementEvidence'->'sdkCode')='string'
+        AND payload->'enqueueFailureSdkSupplementEvidence'->>'sdkCode' IN (${positiveSdkSupplementCodes.map(literal).join(',')})
+        ELSE false END AS sdk_valid,
+      CASE WHEN jsonb_typeof(payload->'enqueueFailurePortEvidence')='object' THEN
+        (SELECT count(*) FROM jsonb_object_keys(payload->'enqueueFailurePortEvidence'))=2
+        AND (payload->'enqueueFailurePortEvidence') ?& ARRAY['schemaVersion','operationPort']::text[]
+        AND payload->'enqueueFailurePortEvidence'->'schemaVersion'='1'::jsonb
+        AND jsonb_typeof(payload->'enqueueFailurePortEvidence'->'operationPort')='string'
+        AND payload->'enqueueFailurePortEvidence'->>'operationPort' IN (${positiveSdkDiagnosticPorts.map(literal).join(',')})
+        ELSE false END AS port_valid FROM sdk_events
+  ), sdk_diagnostic_classified AS (
+    SELECT copies_agree,sdk_metadata->>'sdkCode' AS sdk_code,port_metadata->>'operationPort' AS operation_port,
+      CASE WHEN jsonb_typeof(event_payload) IS DISTINCT FROM 'object'
+        OR event_payload->>'customerInfoRequestId' IS DISTINCT FROM payload->>'customerInfoRequestId'
+        OR payload IS DISTINCT FROM event_payload THEN 'conflicting_copies'
+        WHEN NOT (payload ? 'enqueueFailureSdkSupplementEvidence') THEN 'missing_metadata'
+        WHEN sdk_valid THEN 'classified' ELSE 'malformed_metadata' END AS sdk_category,
+      CASE WHEN jsonb_typeof(event_payload) IS DISTINCT FROM 'object'
+        OR event_payload->>'customerInfoRequestId' IS DISTINCT FROM payload->>'customerInfoRequestId'
+        OR payload IS DISTINCT FROM event_payload THEN 'conflicting_copies'
+        WHEN NOT (payload ? 'enqueueFailurePortEvidence') THEN 'missing_metadata'
+        WHEN port_valid THEN 'classified' ELSE 'malformed_metadata' END AS port_category
+      FROM sdk_diagnostic_metadata
+  ) SELECT jsonb_build_object('legacySdk',(${legacySelect}),'diagnostics',(
+    SELECT jsonb_build_object('schemaVersion',1,'requestCount',(SELECT count(*) FROM sdk_request),
+      'eventCount',least(count(*),65),'eventOverflow',count(*)>=65,'copiesAgree',bool_and(copies_agree),
+      'sdkEvidenceBins',CASE WHEN count(*)>=65 THEN NULL ELSE jsonb_build_object(${positiveStructuredEvidenceClasses.map(category =>
+        `${literal(category)},count(*) FILTER (WHERE sdk_category=${literal(category)})`).join(',')}) END,
+      'sdkCodeBins',CASE WHEN count(*)>=65 THEN NULL ELSE jsonb_build_object(${positiveSdkSupplementCodes.map(code =>
+        `${literal(code)},count(*) FILTER (WHERE sdk_category='classified' AND sdk_code=${literal(code)})`).join(',')}) END,
+      'portEvidenceBins',CASE WHEN count(*)>=65 THEN NULL ELSE jsonb_build_object(${positiveStructuredEvidenceClasses.map(category =>
+        `${literal(category)},count(*) FILTER (WHERE port_category=${literal(category)})`).join(',')}) END,
+      'operationPortBins',CASE WHEN count(*)>=65 THEN NULL ELSE jsonb_build_object(${positiveSdkDiagnosticPorts.map(port =>
+        `${literal(port)},count(*) FILTER (WHERE port_category='classified' AND operation_port=${literal(port)})`).join(',')}) END)
+      FROM sdk_diagnostic_classified))`
+}
+function positiveSdkDiagnosticProjection(value: unknown) {
+  positiveStructuredShape(value, ['schemaVersion', 'requestCount', 'eventCount', 'eventOverflow', 'copiesAgree',
+    'sdkEvidenceBins', 'sdkCodeBins', 'portEvidenceBins', 'operationPortBins'])
+  const count = positiveProjectionCount(positiveStructuredData(value, 'eventCount'))
+  const copies = positiveStructuredData(value, 'copiesAgree')
+  const overflow = positiveStructuredData(value, 'eventOverflow')
+  if (positiveStructuredData(value, 'schemaVersion') !== 1 || positiveStructuredData(value, 'requestCount') !== 1
+    || count === null || count > 65 || typeof overflow !== 'boolean'
+    || (count === 0 ? copies !== null : typeof copies !== 'boolean')) throw Error('observation_shape_unavailable')
+  if (count === 65) {
+    if (!overflow || ['sdkEvidenceBins', 'sdkCodeBins', 'portEvidenceBins', 'operationPortBins']
+      .some(key => positiveStructuredData(value, key) !== null)) throw Error('observation_shape_unavailable')
+    return Object.assign(Object.create(null), {observed: false, reason: 'observation_unavailable', eventOverflow: true})
+  }
+  if (overflow) throw Error('observation_shape_unavailable')
+  const sdkEvidence = positiveStructuredBins(positiveStructuredData(value, 'sdkEvidenceBins'), positiveStructuredEvidenceClasses)
+  const codes = positiveStructuredBins(positiveStructuredData(value, 'sdkCodeBins'), positiveSdkSupplementCodes)
+  const portEvidence = positiveStructuredBins(positiveStructuredData(value, 'portEvidenceBins'), positiveStructuredEvidenceClasses)
+  const ports = positiveStructuredBins(positiveStructuredData(value, 'operationPortBins'), positiveSdkDiagnosticPorts)
+  if (sdkEvidence.total !== count || portEvidence.total !== count
+    || codes.total !== sdkEvidence.bins.classified || ports.total !== portEvidence.bins.classified
+    || copies === true && (sdkEvidence.bins.conflicting_copies !== 0 || portEvidence.bins.conflicting_copies !== 0)
+    || copies === false && (sdkEvidence.bins.conflicting_copies === 0 || portEvidence.bins.conflicting_copies === 0))
+    throw Error('observation_shape_unavailable')
+  return Object.assign(Object.create(null), {observed: true, schemaVersion: 1, requestCount: 1,
+    eventCount: count, eventOverflow: false, copiesAgree: copies, sdkEvidenceBins: sdkEvidence.bins,
+    sdkCodeBins: codes.bins, portEvidenceBins: portEvidence.bins, operationPortBins: ports.bins})
 }
 
 export { observeZ02PositiveProjection, observeZ02SdkEnqueueProjection }

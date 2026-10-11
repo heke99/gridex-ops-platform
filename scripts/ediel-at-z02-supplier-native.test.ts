@@ -1005,7 +1005,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const received = await receiveZ01SupplierReply(f, rawPayload)
     await acceptedPhysical(f, received)
     observeZ02PositiveProjection(f, original, received)
-    observeZ02SdkEnqueueProjection(f, original, received)
+    observeZ02SdkEnqueueProjection(f, original, received, 'positive.pre606.public_projection', true)
     expect(received.message).toMatchObject({ related_message_id: original.originalZ01.id, customer_id: f.customerId,
       site_id: f.siteId, metering_point_id: f.pointId })
     const applied = applications(f, original)
@@ -1096,7 +1096,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const received = await receiveZ01SupplierReply(f, rawPayload)
     await acceptedPhysical(f, received)
     observeZ02PositiveProjection(f, original, received)
-    observeZ02SdkEnqueueProjection(f, original, received)
+    observeZ02SdkEnqueueProjection(f, original, received, 'positive.pre606.public_projection', true)
     expect(received.message).toMatchObject({ related_message_id: original.originalZ01.id, customer_id: f.customerId,
       site_id: f.siteId, metering_point_id: f.pointId })
     const applied = applications(f, original)
@@ -1362,7 +1362,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const received = await receiveZ01SupplierReply(f, reply(f, original, { gridAreaCode: other.gridAreaCode }))
     await acceptedPhysical(f, received)
     observeZ02PositiveProjection(f, original, received, 'wrong_grid.before_result_assertion')
-    observeZ02SdkEnqueueProjection(f, original, received, 'wrong_grid.before_result_assertion')
+    observeZ02SdkEnqueueProjection(f, original, received, 'wrong_grid.before_result_assertion', true)
     assertRefusedEffects(f, original, before, sealed)
     const result = record(received.inboundResponseResult), core = record(result.z02_atomic_core)
     // No source contract prescribes an invented grid-area error code. Require
@@ -1506,7 +1506,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     // The authentic source remains processable after both refused mutations.
     await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: staged.id! })
     observeZ02PositiveProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion')
-    observeZ02SdkEnqueueProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion')
+    observeZ02SdkEnqueueProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion', true)
     expect(applications(f, original)).toHaveLength(1)
     expect(frozen(staged.id!)).toEqual(sealed)
   })

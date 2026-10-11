@@ -78,3 +78,63 @@ export function classifyZ02EnqueueFailureSdkEvidence(error: unknown): Z02Enqueue
     return unavailable
   }
 }
+
+// Fixed sibling diagnostics only. Never recode historical schema1 SDK evidence.
+export const z02EnqueueSdkSupplementCodes = [
+  'empty_sdk_code', '57014', '55P03', 'PGRST000', 'PGRST001', 'PGRST002', '22001',
+  'retained_sdk_code', 'other_unlisted', 'unavailable',
+] as const
+export type Z02EnqueueSdkSupplementEvidence = {
+  schemaVersion: 1
+  sdkCode: typeof z02EnqueueSdkSupplementCodes[number]
+}
+export function classifyZ02EnqueueFailureSdkSupplementEvidence(error: unknown): Z02EnqueueSdkSupplementEvidence {
+  const unavailable: Z02EnqueueSdkSupplementEvidence = { schemaVersion: 1, sdkCode: 'unavailable' }
+  try {
+    if (typeof nodeUtil.types?.isProxy !== 'function') return unavailable
+    if (error === null || typeof error !== 'object' || nodeUtil.types.isProxy(error) || Array.isArray(error)) return unavailable
+    const descriptor = Object.getOwnPropertyDescriptor(error, 'code')
+    if (!descriptor || !('value' in descriptor) || typeof descriptor.value !== 'string') return unavailable
+    switch (descriptor.value) {
+      case '': return { schemaVersion: 1, sdkCode: 'empty_sdk_code' }
+      case '57014': case '55P03': case 'PGRST000': case 'PGRST001': case 'PGRST002': case '22001':
+        return { schemaVersion: 1, sdkCode: descriptor.value }
+      default: return { schemaVersion: 1, sdkCode: (z02EnqueueSdkCodes as readonly string[]).includes(descriptor.value)
+        ? 'retained_sdk_code' : 'other_unlisted' }
+    }
+  } catch {
+    return unavailable
+  }
+}
+
+export const z02EnqueueDiagnosticPorts = [
+  'original_snapshot_select', 'job_insert', 'duplicate_job_select', 'snapshot_upsert',
+] as const
+export type Z02EnqueueDiagnosticPort = typeof z02EnqueueDiagnosticPorts[number]
+export type Z02EnqueueDiagnosticPortObserver = (port: Z02EnqueueDiagnosticPort, error: unknown) => void
+// The fresh input object is the invocation key. No request/error property or
+// import/capability is added; concurrent input identities remain separate.
+const z02EnqueueDiagnosticScopes = new WeakMap<object, { observer: Z02EnqueueDiagnosticPortObserver | undefined }>()
+export async function withZ02EnqueueDiagnosticPortWitness<T>(input: object,
+  operation: () => Promise<T>, observer: Z02EnqueueDiagnosticPortObserver): Promise<T> {
+  // Reused identities cannot attest which invocation failed. Suppress both
+  // observers, including callbacks already passed to lower port consumers.
+  const previous = z02EnqueueDiagnosticScopes.get(input)
+  if (previous) { previous.observer = undefined; return operation() }
+  const scope = { observer: observer as Z02EnqueueDiagnosticPortObserver | undefined }
+  z02EnqueueDiagnosticScopes.set(input, scope)
+  try { return await operation() } finally {
+    if (z02EnqueueDiagnosticScopes.get(input) === scope) z02EnqueueDiagnosticScopes.delete(input)
+  }
+}
+export function z02EnqueueDiagnosticPortObserver(input: object): Z02EnqueueDiagnosticPortObserver | undefined {
+  const scope = z02EnqueueDiagnosticScopes.get(input)
+  if (!scope?.observer) return undefined
+  return (port, error) => { scope.observer?.(port, error) }
+}
+export function z02EnqueueDiagnosticPortEvidence(port: unknown): {
+  schemaVersion: 1; operationPort: Z02EnqueueDiagnosticPort | 'unavailable'
+} {
+  return { schemaVersion: 1, operationPort: typeof port === 'string'
+    && (z02EnqueueDiagnosticPorts as readonly string[]).includes(port) ? port as Z02EnqueueDiagnosticPort : 'unavailable' }
+}

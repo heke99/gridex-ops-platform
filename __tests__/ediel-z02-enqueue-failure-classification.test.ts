@@ -944,3 +944,297 @@ describe('actual separate SDK native observer finite ports', () => {
       tests: 64, pass: 64, fail: 0, nativeExecuted: false })
   })
 })
+
+// Desired sibling contract: first RED runs the existing exported consumer and
+// its complete retained catch/effect/ordering oracle before these assertions.
+const desiredZ02Supplement = [
+  ['', 'empty_sdk_code'], ['57014', '57014'], ['55P03', '55P03'], ['PGRST000', 'PGRST000'],
+  ['PGRST001', 'PGRST001'], ['PGRST002', 'PGRST002'], ['22001', '22001'],
+  ['21000', 'retained_sdk_code'], ['SDK_PRIVATE_CANARY', 'other_unlisted'],
+] as const
+
+describe('real Z02 consumer supplemental fixed diagnostic desired oracle', () => {
+  for (const variant of ['Z22', 'Z23'] as const) {
+    it.each(desiredZ02Supplement)(`${variant} retains old catch before sibling SDK %s`, async (code, token) => {
+      const thrown = Object.freeze({ code, message: 'SDK_PRIVATE_CANARY', details: 'SDK_PRIVATE_CANARY' })
+      io.enqueue.mockImplementation(async () => { io.order.push('enqueue'); throw thrown })
+      const result = await applyInboundProdatZ02ToCustomerInfoRequest({ actorUserId: own.actor, message: message(variant) })
+      assertLegacyCatch('[object Object]', result)
+      expect(errorEvent().payload?.enqueueFailureSdkEvidence).toEqual({ schemaVersion: 1,
+        sdkCode: code === '21000' ? '21000' : 'unlisted' })
+      expect(errorEvent().payload?.enqueueFailureSdkSupplementEvidence).toEqual({ schemaVersion: 1, sdkCode: token })
+      expect(errorEvent().payload?.enqueueFailurePortEvidence).toEqual({ schemaVersion: 1, operationPort: 'unavailable' })
+      const sibling = { sdk: errorEvent().payload?.enqueueFailureSdkSupplementEvidence,
+        port: errorEvent().payload?.enqueueFailurePortEvidence }
+      expect(JSON.stringify(sibling)).not.toContain('SDK_PRIVATE_CANARY')
+      expect(io.events[0].payload).not.toHaveProperty('enqueueFailureSdkSupplementEvidence')
+      expect(io.events[0].payload).not.toHaveProperty('enqueueFailurePortEvidence')
+    })
+  }
+  it('records unavailable for an ordinary Error while preserving its existing text', async () => {
+    io.enqueue.mockImplementation(async () => { io.order.push('enqueue'); throw new Error('SYNTHETIC_FIXED_ERROR') })
+    const result = await applyInboundProdatZ02ToCustomerInfoRequest({ actorUserId: own.actor, message: message('Z22') })
+    assertLegacyCatch('SYNTHETIC_FIXED_ERROR', result)
+    expect(errorEvent().payload?.enqueueFailureSdkSupplementEvidence).toEqual({ schemaVersion: 1, sdkCode: 'unavailable' })
+    expect(errorEvent().payload?.enqueueFailurePortEvidence).toEqual({ schemaVersion: 1, operationPort: 'unavailable' })
+  })
+})
+
+describe('supplemental SDK and invocation-scope privacy component', () => {
+  it('rejects getters/proxies/nonstring codes and never reads private fields', async () => {
+    const helper = await import('@/lib/onboarding/z02EnqueueFailureClassification')
+    const trap = vi.fn(() => { throw Error('SDK_PRIVATE_CANARY') })
+    const getter = Object.defineProperty({}, 'code', { get: trap })
+    const ownCode = Object.defineProperties({}, { code: { value: '57014' },
+      message: { get: trap }, details: { get: trap }, hint: { get: trap }, cause: { get: trap }, stack: { get: trap } })
+    const proxy = new Proxy({ code: '57014' }, { get: trap, getOwnPropertyDescriptor: trap, getPrototypeOf: trap })
+    const revoked = Proxy.revocable({}, {}); revoked.revoke()
+    for (const value of [getter, proxy, revoked.proxy, null, false, [], { code: null }, { code: 57014 },
+      Object.create({ code: '57014' })])
+      expect(helper.classifyZ02EnqueueFailureSdkSupplementEvidence(value)).toEqual({ schemaVersion: 1, sdkCode: 'unavailable' })
+    expect(helper.classifyZ02EnqueueFailureSdkSupplementEvidence(ownCode)).toEqual({ schemaVersion: 1, sdkCode: '57014' })
+    for (const code of [' 57014', '57014 ', 'pgrst000', 'PGRST003', '08006', 'PRIVATE_CANARY'])
+      expect(helper.classifyZ02EnqueueFailureSdkSupplementEvidence({ code })).toEqual({ schemaVersion: 1, sdkCode: 'other_unlisted' })
+    expect(trap).not.toHaveBeenCalled()
+  })
+  it('keeps distinct concurrent inputs isolated and cleans up rejection scopes', async () => {
+    const helper = await import('@/lib/onboarding/z02EnqueueFailureClassification')
+    const first = {}, second = {}, thrown = Object.freeze({ code: '' })
+    const seen: string[] = []
+    const run = (input: object, port: 'original_snapshot_select' | 'job_insert') => helper.withZ02EnqueueDiagnosticPortWitness(input,
+      async () => { await Promise.resolve(); helper.z02EnqueueDiagnosticPortObserver(input)?.(port, thrown); throw thrown },
+      observed => { seen.push(observed) })
+    const results = await Promise.allSettled([run(first, 'original_snapshot_select'), run(second, 'job_insert')])
+    expect(results).toEqual([{ status: 'rejected', reason: thrown }, { status: 'rejected', reason: thrown }])
+    expect(seen).toEqual(['original_snapshot_select', 'job_insert'])
+    expect(helper.z02EnqueueDiagnosticPortObserver(first)).toBeUndefined()
+    expect(helper.z02EnqueueDiagnosticPortObserver(second)).toBeUndefined()
+  })
+  it('suppresses ambiguous reused input identities without replacing the action result', async () => {
+    const helper = await import('@/lib/onboarding/z02EnqueueFailureClassification')
+    const input = {}, seen = vi.fn(), error = Object.freeze({ code: '' })
+    const value = await helper.withZ02EnqueueDiagnosticPortWitness(input, async () => {
+      const beforeCollision = helper.z02EnqueueDiagnosticPortObserver(input)
+      const result = await helper.withZ02EnqueueDiagnosticPortWitness(input, async () => {
+        beforeCollision?.('job_insert', error)
+        helper.z02EnqueueDiagnosticPortObserver(input)?.('snapshot_upsert', error)
+        return 'UNCHANGED_SYNTHETIC_ACTION_RESULT'
+      }, seen)
+      return result
+    }, seen)
+    expect(value).toBe('UNCHANGED_SYNTHETIC_ACTION_RESULT')
+    expect(seen).not.toHaveBeenCalled()
+    expect(helper.z02EnqueueDiagnosticPortObserver(input)).toBeUndefined()
+  })
+})
+
+// Invocation callback fixture proves consumer error-identity selection only.
+// The separate complete automation source program proves actual port placement.
+describe('real Z02 consumer same-error port evidence component', () => {
+  const ports = ['original_snapshot_select', 'job_insert', 'duplicate_job_select', 'snapshot_upsert'] as const
+  for (const variant of ['Z22', 'Z23'] as const) {
+    it.each(ports)(`${variant} accepts the same caught object at fixed port %s`, async port => {
+      const helper = await import('@/lib/onboarding/z02EnqueueFailureClassification')
+      const thrown = Object.freeze({ code: '57014', message: 'SDK_PRIVATE_CANARY' })
+      io.enqueue.mockImplementation(async (input: object) => {
+        io.order.push('enqueue'); helper.z02EnqueueDiagnosticPortObserver(input)?.(port, thrown); throw thrown
+      })
+      const result = await applyInboundProdatZ02ToCustomerInfoRequest({ actorUserId: own.actor, message: message(variant) })
+      assertLegacyCatch('[object Object]', result)
+      expect(errorEvent().payload?.enqueueFailurePortEvidence).toEqual({ schemaVersion: 1, operationPort: port })
+      expect(errorEvent().payload?.enqueueFailureSdkEvidence).toEqual({ schemaVersion: 1, sdkCode: 'unlisted' })
+      expect(errorEvent().payload?.enqueueFailureSdkSupplementEvidence).toEqual({ schemaVersion: 1, sdkCode: '57014' })
+      expect(JSON.stringify(errorEvent())).not.toContain('SDK_PRIVATE_CANARY')
+    })
+  }
+  it('does not attribute an earlier observed error to a different final catch', async () => {
+    const helper = await import('@/lib/onboarding/z02EnqueueFailureClassification')
+    const earlier = Object.freeze({ code: '23505' }), final = Object.freeze({ code: '57014' })
+    io.enqueue.mockImplementation(async (input: object) => {
+      io.order.push('enqueue'); helper.z02EnqueueDiagnosticPortObserver(input)?.('job_insert', earlier); throw final
+    })
+    const result = await applyInboundProdatZ02ToCustomerInfoRequest({ actorUserId: own.actor, message: message('Z22') })
+    assertLegacyCatch('[object Object]', result)
+    expect(errorEvent().payload?.enqueueFailurePortEvidence).toEqual({ schemaVersion: 1, operationPort: 'unavailable' })
+    expect(errorEvent().payload?.enqueueFailureSdkSupplementEvidence).toEqual({ schemaVersion: 1, sdkCode: '57014' })
+  })
+})
+
+const actualZ02PortIdentityProgram = [
+  "// Executes only in the future ROOT-approved component test. No real SDK or SQL.",
+  "const assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript'),vm=require('node:vm')",
+  "function extract(path,names){",
+  " const source=fs.readFileSync(path,'utf8'),ast=ts.createSourceFile(path,source,ts.ScriptTarget.ES2022,true)",
+  " assert.equal(ast.parseDiagnostics.length,0)",
+  " const selected=ast.statements.filter(n=>ts.isFunctionDeclaration(n)||ts.isClassDeclaration(n)?names.includes(n.name?.text):ts.isVariableStatement(n)&&n.declarationList.declarations.some(d=>names.includes(d.name.text)))",
+  " const actual=selected.flatMap(n=>ts.isVariableStatement(n)?n.declarationList.declarations.map(d=>d.name.text):[n.name.text])",
+  " assert.deepEqual(actual.slice().sort(),names.slice().sort())",
+  " const code=selected.map(n=>source.slice(n.getFullStart(),n.end)).join('\\n')",
+  " const out=ts.transpileModule(code,{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}})",
+  " assert.equal((out.diagnostics||[]).filter(d=>d.category===ts.DiagnosticCategory.Error).length,0)",
+  " return out.outputText",
+  "}",
+  "const programs=[",
+  " extract('lib/onboarding/z02EnqueueFailureClassification.ts',['z02EnqueueDiagnosticScopes','withZ02EnqueueDiagnosticPortWitness','z02EnqueueDiagnosticPortObserver']),",
+  " extract('lib/validation/uuid.ts',['UUID_PATTERN','UuidValidationError','cleanUuidCandidate','normalizeUuidOrNull','requireUuid']),",
+  " extract('lib/customer-operations/automation.part-1.ts',['reportZ02EnqueuePortFailure','observeZ02EnqueueSdkRejection','originalCustomerDataSnapshot','persistOperationSnapshot','enqueue','enqueueInboundGridOwnerResponseAutomation','missingSchema','duplicate','clean','record','nowIso']),",
+  "]",
+  "const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`",
+  "const input={companyId:id(1),customerId:id(4),siteId:id(5),meteringPointId:id(6),requestId:id(3),edielMessageId:id(7),actorUserId:id(2),operationId:id(8)}",
+  "const stamp='2026-10-11T00:00:00.000Z',snapshot={site_id:id(5),address_hash:'FINITE_HASH',grid_owner_id:null,grid_area_code:'NET',route_profile_id:null,facility_id:'FINITE_POINT',captured_at:stamp}",
+  "const snapshotReply={site_address_hash:'FINITE_HASH',grid_owner_id:null,grid_area_code:'NET',route_profile_id:null,snapshot,superseded_at:null}",
+  "const jobReply={id:id(9),operation_id:id(8),trace_id:id(10),status:'queued',result:{},last_error:null}",
+  "const snapshotSteps=[['from',['customer_operation_request_snapshots']],['select',['site_address_hash,grid_owner_id,grid_area_code,route_profile_id,snapshot,superseded_at']],['eq',['company_id',id(1)]],['eq',['operation_id',id(8)]],['eq',['request_kind','customer_data_request']],['eq',['request_reference',id(3)]],['maybeSingle',[]],['await',[]]]",
+  "const jobSteps=[['from',['customer_operation_jobs']],['insert',[{company_id:id(1),customer_id:id(4),customer_site_id:id(5),metering_point_id:id(6),job_type:'apply_inbound_grid_owner_response',status:'queued',priority:5,idempotency_key:`inbound-grid-owner-response:${id(7)}`,operation_id:id(8),trace_id:id(10),payload:{customer_info_request_id:id(3),ediel_message_id:id(7),site_snapshot:snapshot},request_snapshot:snapshot,run_after:stamp,created_by:id(2)}]],['select',['id, operation_id, trace_id, status, result, last_error']],['single',[]],['await',[]]]",
+  "const duplicateSteps=[['from',['customer_operation_jobs']],['select',['id, operation_id, trace_id, status, result, last_error']],['eq',['company_id',id(1)]],['eq',['job_type','apply_inbound_grid_owner_response']],['eq',['idempotency_key',`inbound-grid-owner-response:${id(7)}`]],['in',['status',['queued','running','waiting_response']]],['order',['created_at',{ascending:false}]],['limit',[1]],['maybeSingle',[]],['await',[]]]",
+  "const persistSteps=[['from',['customer_operation_request_snapshots']],['upsert',[{company_id:id(1),customer_id:id(4),customer_site_id:id(5),metering_point_id:id(6),customer_operation_job_id:id(9),operation_id:id(8),request_kind:'inbound_grid_owner_response',site_address_hash:'FINITE_HASH',grid_owner_id:null,grid_area_code:'NET',route_profile_id:null,request_reference:id(3),trace_id:id(10),snapshot:{...snapshot,operation_id:id(8),request_reference:id(3),route_profile_id:null,trace_id:id(10)}},{onConflict:'company_id,operation_id,request_kind'}]],['await',[]]]",
+  "const normalize=v=>JSON.parse(JSON.stringify(v))",
+  "function setup(queue){",
+  " let count=0,randomCalls=0;const calls=[]",
+  " const service={from(table){const row=queue[count++];assert.ok(row,'undeclared query');let cursor=0",
+  "  function step(name,args){assert.deepEqual(normalize([name,args]),row.steps[cursor++]);calls.push(name);return builder}",
+  "  const builder={then(resolve,reject){step('await',[]);assert.equal(cursor,row.steps.length);return (row.reject?Promise.reject(row.error):Promise.resolve({data:row.data??null,error:row.error??null})).then(resolve,reject)}}",
+  "  for(const name of ['select','eq','insert','upsert','in','order','limit','single','maybeSingle'])builder[name]=(...args)=>step(name,args)",
+  "  return step('from',[table])",
+  " }}",
+  " class FixedDate extends Date{constructor(...args){super(...(args.length?args:[stamp]))}}",
+  " const context=vm.createContext({exports:{},supabaseService:service,Date:FixedDate,randomUUID(){randomCalls++;return id(10)}})",
+  " for(const program of programs)vm.runInContext(program,context)",
+  " const api=vm.runInContext('({enqueueInboundGridOwnerResponseAutomation,withZ02EnqueueDiagnosticPortWitness,z02EnqueueDiagnosticPortObserver,observeZ02EnqueueSdkRejection})',context)",
+  " return {api,done(){assert.equal(count,queue.length);assert.equal(calls.filter(x=>x==='await').length,queue.length);return randomCalls}}",
+  "}",
+  "const cases=[]",
+  "async function check(name,fn){await fn();assert.ok(!cases.includes(name));cases.push(name)}",
+  "async function main(){",
+  " for(const port of ['original_snapshot_select','job_insert','duplicate_job_select','snapshot_upsert'])for(const reject of [false,true])await check(port+'-'+(reject?'await-rejection':'returned-error'),async()=>{",
+  "  const error=Object.freeze({code:'57014',message:'PRIVATE_PORT_CANARY'}),dup=Object.freeze({code:'23505'})",
+  "  const queue=[]",
+  "  queue.push({steps:snapshotSteps,...(port==='original_snapshot_select'?{error,reject}:{data:snapshotReply})})",
+  "  if(port!=='original_snapshot_select')queue.push({steps:jobSteps,...(port==='job_insert'?{error,reject}:port==='duplicate_job_select'?{error:dup}:{data:jobReply})})",
+  "  if(port==='duplicate_job_select')queue.push({steps:duplicateSteps,error,reject})",
+  "  if(port==='snapshot_upsert')queue.push({steps:persistSteps,error,reject})",
+  "  const env=setup(queue),arg={...input},observed=[]",
+  "  let caught;try{await env.api.withZ02EnqueueDiagnosticPortWitness(arg,()=>env.api.enqueueInboundGridOwnerResponseAutomation(arg),(p,e)=>observed.push([p,e]))}catch(e){caught=e}",
+  "  assert.equal(caught,error);assert.equal(observed.at(-1)[0],port);assert.equal(observed.at(-1)[1],error)",
+  "  assert.equal(observed.length,port==='duplicate_job_select'?2:1)",
+  "  if(port==='duplicate_job_select'){assert.equal(observed[0][0],'job_insert');assert.equal(observed[0][1],dup)}",
+  "  assert.equal(env.api.z02EnqueueDiagnosticPortObserver(arg),undefined);assert.deepEqual(arg,input);assert.deepEqual(Object.keys(error),['code','message'])",
+  "  assert.equal(env.done(),port==='original_snapshot_select'?0:1)",
+  " })",
+  " await check('default-thenable-identity-preserved',async()=>{const env=setup([]),pending={then(){throw Error('must not evaluate')}};assert.equal(env.api.observeZ02EnqueueSdkRejection(pending,'job_insert',undefined),pending);assert.equal(env.done(),0)})",
+  " for(const scoped of [false,true])await check('success-no-failure-'+scoped,async()=>{",
+  "  const env=setup([{steps:snapshotSteps,data:snapshotReply},{steps:jobSteps,data:jobReply},{steps:persistSteps}]),arg={...input},seen=[]",
+  "  const action=()=>env.api.enqueueInboundGridOwnerResponseAutomation(arg)",
+  "  const result=scoped?await env.api.withZ02EnqueueDiagnosticPortWitness(arg,action,(...v)=>seen.push(v)):await action()",
+  "  assert.deepEqual(normalize(result),{id:id(9),duplicate:false,operationId:id(8),traceId:id(10),status:'queued',result:{},lastError:null});assert.deepEqual(seen,[]);assert.equal(env.done(),1)",
+  " })",
+  " await check('throwing-observer-preserves-original-error',async()=>{const error=Object.freeze({code:'57014'}),env=setup([{steps:snapshotSteps,error}]),arg={...input};let caught",
+  "  try{await env.api.withZ02EnqueueDiagnosticPortWitness(arg,()=>env.api.enqueueInboundGridOwnerResponseAutomation(arg),()=>{throw Error('OBSERVER_PRIVATE')})}catch(e){caught=e}assert.equal(caught,error);assert.equal(env.done(),0)",
+  " })",
+  " await check('duplicate-success-no-upsert-and-clean-scope',async()=>{const dup=Object.freeze({code:'23505'}),env=setup([{steps:snapshotSteps,data:snapshotReply},{steps:jobSteps,error:dup},{steps:duplicateSteps,data:jobReply}]),arg={...input},seen=[]",
+  "  const result=await env.api.withZ02EnqueueDiagnosticPortWitness(arg,()=>env.api.enqueueInboundGridOwnerResponseAutomation(arg),(p,e)=>seen.push([p,e]));assert.equal(result.duplicate,true);assert.deepEqual(seen,[['job_insert',dup]]);assert.equal(env.api.z02EnqueueDiagnosticPortObserver(arg),undefined);assert.equal(env.done(),1)",
+  " })",
+  " assert.equal(cases.length,13)",
+  " process.stdout.write(JSON.stringify({kind:'ACTUAL_AUTOMATION_SOURCE_FINITE_PORT_IDENTITY',tests:13,pass:13,fail:0,sqlExecuted:false,nativeExecuted:false}))",
+  "}",
+  "main().catch(()=>{process.exitCode=1})"
+].join('\n')
+
+const actualZ02SupplementObserverProgram = [
+  "// Future ROOT-only component execution. Actual observer JS + captured SELECT;",
+  "// standalone three-table PGlite fixture, no source admission/RLS/native proof.",
+  "const assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript'),vm=require('node:vm')",
+  "const {PGlite}=require('@electric-sql/pglite')",
+  "const source=fs.readFileSync('scripts/helpers/ediel-z02-supplier-native-diagnostics.ts','utf8')",
+  "const ast=ts.createSourceFile('observer-helper.ts',source,ts.ScriptTarget.ES2022,true,ts.ScriptKind.TS)",
+  "assert.equal(ast.parseDiagnostics.length,0)",
+  "const names=['positiveSdkCodes','positiveStructuredEvidenceClasses','positiveProjectionData','positiveProjectionCount','positiveStructuredObject','positiveStructuredData','positiveStructuredShape','positiveStructuredBins','positiveSdkEnqueueProjection','observeZ02SdkEnqueueProjection','positiveSdkSupplementCodes','positiveSdkDiagnosticPorts','buildZ02SdkDiagnosticQuery','positiveSdkDiagnosticProjection']",
+  "const selected=new Map()",
+  "for(const n of ast.statements)for(const d of ts.isVariableStatement(n)?n.declarationList.declarations:[n])if(names.includes(d.name?.text)){assert.equal(selected.has(d.name.text),false);selected.set(d.name.text,source.slice(n.getStart(ast),n.end))}",
+  "assert.deepEqual([...selected.keys()].sort(),names.slice().sort())",
+  "const compiled=ts.transpileModule([...selected.values()].join('\\n'),{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}})",
+  "assert.equal((compiled.diagnostics||[]).filter(d=>d.category===ts.DiagnosticCategory.Error).length,0)",
+  "const sdk=['empty_sdk_code','57014','55P03','PGRST000','PGRST001','PGRST002','22001','retained_sdk_code','other_unlisted','unavailable']",
+  "const ports=['original_snapshot_select','job_insert','duplicate_job_select','snapshot_upsert','unavailable']",
+  "const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,literal=v=>\"'\"+String(v).replaceAll(\"'\",\"''\")+\"'\"",
+  "const f={companyId:id(1),customerId:id(2),siteId:id(3)},original={requestId:id(4),originalZ01:{id:id(5)}},received={id:id(6)}",
+  "function environment(raw,opts={}){",
+  " const logs=[],calls=[]",
+  " const context=vm.createContext({f,original,received,literal,positiveStructuredNodeUtil:{types:opts.missingCapability?{}:require('node:util').types},process:{env:{NEXT_PUBLIC_SUPABASE_URL:opts.foreignHost?'https://foreign.invalid':'http://127.0.0.1:54321'}},",
+  "  console:{info:(label,value)=>logs.push([label,JSON.parse(value)])},execFileSync(command,args,options){",
+  "   assert.equal(command,'psql');assert.deepEqual(Array.from(args),['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'])",
+  "   assert.equal(options.timeout,10000);assert.equal(options.maxBuffer,2_000_000);assert.equal(options.encoding,'utf8');assert.deepEqual(Array.from(options.stdio),['pipe','pipe','pipe'])",
+  "   calls.push(options.input);return JSON.stringify(raw)",
+  "  }})",
+  " vm.runInContext(compiled.outputText,context)",
+  " assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(positiveSdkSupplementCodes)',context)),sdk)",
+  " assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(positiveSdkDiagnosticPorts)',context)),ports)",
+  " vm.runInContext(opts.legacy?'observeZ02SdkEnqueueProjection(f,original,received)':'observeZ02SdkEnqueueProjection(f,original,received,\"positive.pre606.public_projection\",true)',context)",
+  " assert.equal(logs.length,opts.legacy?1:2);assert.equal(logs[0][0],'Z02_NATIVE_ENQUEUE_SDK_CODE_CLASSIFICATION')",
+  " if(!opts.legacy)assert.equal(logs[1][0],'Z02_NATIVE_ENQUEUE_SDK_SUPPLEMENT_CLASSIFICATION')",
+  " assert.equal(JSON.stringify(logs).includes('SDK_PRIVATE_CANARY'),false)",
+  " return {result:logs.at(-1)[1],logs,calls,context}",
+  "}",
+  "const cases=[]",
+  "function check(name,fn){fn();assert.ok(!cases.includes(name));cases.push(name)}",
+  "async function main(){const db=new PGlite();try{",
+  " await db.exec(`CREATE TABLE customer_info_requests(id uuid,company_id uuid,customer_id uuid,site_id uuid,ediel_message_id uuid);",
+  " CREATE TABLE ediel_messages(id uuid,company_id uuid,direction text,message_family text,message_code text,customer_id uuid,site_id uuid);",
+  " CREATE TABLE ediel_message_events(company_id uuid,ediel_message_id uuid,event_type text,event_status text,message text,payload jsonb,event_payload jsonb);`)",
+  " const captured=environment({}).calls[0],oldCaptured=environment({}, {legacy:true}).calls[0]",
+  " async function observation(opts={}){",
+  "  await db.exec('TRUNCATE customer_info_requests,ediel_messages,ediel_message_events;')",
+  "  const request={id:original.requestId,company_id:f.companyId,customer_id:f.customerId,site_id:f.siteId,ediel_message_id:original.originalZ01.id,...opts.request}",
+  "  const inbound={id:received.id,company_id:f.companyId,direction:'inbound',message_family:'PRODAT',message_code:'Z02',customer_id:f.customerId,site_id:f.siteId,...opts.inbound}",
+  "  await db.query('INSERT INTO customer_info_requests VALUES($1,$2,$3,$4,$5)',Object.values(request))",
+  "  await db.query('INSERT INTO ediel_messages VALUES($1,$2,$3,$4,$5,$6,$7)',Object.values(inbound))",
+  "  const payload={customerInfoRequestId:original.requestId,error:'SDK_PRIVATE_CANARY',enqueueFailureSdkEvidence:{schemaVersion:1,sdkCode:'unlisted'},enqueueFailureSdkSupplementEvidence:{schemaVersion:1,sdkCode:'empty_sdk_code'},enqueueFailurePortEvidence:{schemaVersion:1,operationPort:'original_snapshot_select'},...opts.payload}",
+  "  if(opts.missing)delete payload[opts.missing]",
+  "  const event={company_id:f.companyId,ediel_message_id:received.id,event_type:'manual_note',event_status:'error',message:'Z02 kunde inte starta canonical verifiering och applicerades inte.',...opts.event}",
+  "  const copy=Object.hasOwn(opts,'conflict')?opts.conflict:payload",
+  "  for(let i=0;i<(opts.count??1);i++)await db.query('INSERT INTO ediel_message_events VALUES($1,$2,$3,$4,$5,$6,$7)',[...Object.values(event),JSON.stringify(payload),JSON.stringify(copy)])",
+  "  const raw=(await db.query(captured)).rows[0].jsonb_build_object",
+  "  const legacy=(await db.query(oldCaptured)).rows[0].jsonb_build_object",
+  "  assert.deepEqual(raw.legacySdk,legacy)",
+  "  return raw",
+  " }",
+  " const valid=await observation()",
+  " for(const code of sdk){const raw=await observation({payload:{enqueueFailureSdkSupplementEvidence:{schemaVersion:1,sdkCode:code}}});check('SQL-sdk-'+code,()=>{const e=environment(raw);assert.equal(e.calls.length,1);assert.equal(e.result.observed,true);assert.equal(e.result.sdkCodeBins[code],1);assert.equal(e.result.sdkEvidenceBins.classified,1);assert.equal(e.logs[0][1].sdkCodeBins.unlisted,1)})}",
+  " for(const port of ports){const raw=await observation({payload:{enqueueFailurePortEvidence:{schemaVersion:1,operationPort:port}}});check('SQL-port-'+port,()=>{const out=environment(raw).result;assert.equal(out.operationPortBins[port],1);assert.equal(out.portEvidenceBins.classified,1)})}",
+  " for(const [key,bin] of [['enqueueFailureSdkSupplementEvidence','sdkEvidenceBins'],['enqueueFailurePortEvidence','portEvidenceBins']]){",
+  "  const raw=await observation({missing:key});check('SQL-missing-'+key,()=>assert.equal(environment(raw).result[bin].missing_metadata,1))",
+  "  const field=key==='enqueueFailurePortEvidence'?'operationPort':'sdkCode',token=field==='sdkCode'?'empty_sdk_code':'job_insert'",
+  "  const malformed=[null,false,[],'SDK_PRIVATE_CANARY',0,{}, {schemaVersion:1,[field]:'SDK_PRIVATE_CANARY'}, {schemaVersion:1,[field]:token,extra:'SDK_PRIVATE_CANARY'}, {schemaVersion:true,[field]:token}, {schemaVersion:'1',[field]:token},{schemaVersion:1,[field]:null},{[field]:token}]",
+  "  for(const [i,meta] of malformed.entries()){const raw=await observation({payload:{[key]:meta}});check('SQL-malformed-'+key+'-'+i,()=>{const out=environment(raw).result;assert.equal(out[bin].malformed_metadata,1);assert.equal(Object.values(out[field==='sdkCode'?'sdkCodeBins':'operationPortBins']).reduce((a,b)=>a+b,0),0)})}",
+  " }",
+  " for(const [i,conflict] of [null,{customerInfoRequestId:id(99)}].entries()){const raw=await observation({conflict});check('SQL-copy-conflict-'+i,()=>{const out=environment(raw).result;assert.equal(out.copiesAgree,false);assert.equal(out.sdkEvidenceBins.conflicting_copies,1);assert.equal(out.portEvidenceBins.conflicting_copies,1)})}",
+  " for(const key of ['id','company_id','customer_id','site_id','ediel_message_id']){const raw=await observation({request:{[key]:id(99)}});check('SQL-request-'+key,()=>assert.equal(environment(raw).result.observed,false))}",
+  " const wrongInbound=await observation({inbound:{customer_id:id(99)}});check('SQL-inbound',()=>assert.equal(environment(wrongInbound).result.observed,false))",
+  " for(const [key,value] of [['company_id',id(99)],['ediel_message_id',id(99)],['event_type','other'],['event_status','info'],['message','SDK_PRIVATE_CANARY']]){const raw=await observation({event:{[key]:value}});check('SQL-event-'+key,()=>{const out=environment(raw).result;assert.equal(out.eventCount,0);assert.equal(out.copiesAgree,null)})}",
+  " const zero=await observation({count:0});check('SQL-zero',()=>assert.equal(environment(zero).result.eventCount,0))",
+  " for(const count of [65,66]){const raw=await observation({count});check('SQL-overflow-'+count,()=>{const out=environment(raw).result;assert.equal(out.observed,false);assert.equal(out.eventOverflow,true);for(const k of ['sdkEvidenceBins','sdkCodeBins','portEvidenceBins','operationPortBins'])assert.equal(raw.diagnostics[k],null)})}",
+  " for(const [key,value] of [['schemaVersion',true],['requestCount',true],['eventCount',true],['eventCount',-1],['copiesAgree',null],['eventOverflow',true]])check('decoder-scalar-'+key+'-'+value,()=>{const raw=structuredClone(valid);raw.diagnostics[key]=value;assert.equal(environment(raw).result.observed,false)})",
+  " check('local-mode-guard',()=>{const e=environment(valid,{foreignHost:true});assert.equal(e.calls.length,0);assert.equal(e.result.observed,false)})",
+  " check('missing-capability',()=>assert.equal(environment(valid,{missingCapability:true}).result.observed,false))",
+  " check('default-one-old-label',()=>{const e=environment(valid.legacySdk,{legacy:true});assert.equal(e.calls.length,1);assert.equal(e.logs.length,1);assert.equal(e.result.sdkCodeBins.unlisted,1)})",
+  " check('legacy-query-is-exact-inner-query',()=>{const boundary=oldCaptured.indexOf(\") SELECT jsonb_build_object('schemaVersion'\");assert.ok(boundary>=0);assert.ok(captured.startsWith(oldCaptured.slice(0,boundary+1)));assert.ok(captured.includes(\"'legacySdk',(\"+oldCaptured.slice(boundary+2)+')'))})",
+  " check('proxy-zero-traps',()=>{const e=environment(valid);let traps=0;e.context.hostile=new Proxy(valid.diagnostics,{get(){traps++;throw Error('SDK_PRIVATE_CANARY')},getOwnPropertyDescriptor(){traps++;throw Error('SDK_PRIVATE_CANARY')}});assert.throws(()=>vm.runInContext('positiveSdkDiagnosticProjection(hostile)',e.context));assert.equal(traps,0)})",
+  " assert.equal(cases.length,68)",
+  " process.stdout.write(JSON.stringify({kind:'ACTUAL_SDK_SUPPLEMENT_OBSERVER_CAPTURED_SELECT',tests:68,pass:68,fail:0,jsCount:11,pgliteCount:57,nativeExecuted:false}))",
+  "}finally{await db.close()}}",
+  "main().catch(()=>{process.exitCode=1})"
+].join('\n')
+
+
+describe('actual supplemental diagnostic source finite ports', () => {
+  it('proves returned and rejected errors at each actual automation port with exact queues and identity', () => {
+    const output = execFileSync(process.execPath, ['-e', actualZ02PortIdentityProgram], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(JSON.parse(output)).toEqual({ kind: 'ACTUAL_AUTOMATION_SOURCE_FINITE_PORT_IDENTITY',
+      tests: 13, pass: 13, fail: 0, sqlExecuted: false, nativeExecuted: false })
+  })
+  it('proves the actual one-call observer and composite SELECT with standalone finite SQL rows', () => {
+    const output = execFileSync(process.execPath, ['-e', actualZ02SupplementObserverProgram], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(JSON.parse(output)).toEqual({ kind: 'ACTUAL_SDK_SUPPLEMENT_OBSERVER_CAPTURED_SELECT',
+      tests: 68, pass: 68, fail: 0, jsCount: 11, pgliteCount: 57, nativeExecuted: false })
+  })
+})
