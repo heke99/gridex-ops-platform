@@ -2309,8 +2309,12 @@
     },
     {
       "id": "SC-054",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-sc-054-storage-failure.test.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/transport/inboundProcessor.ts",
+        "lib/ediel/core/ackPolicy.ts",
         "scripts/test-ediel-utilts-series-and-err-ack.cjs",
         "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
         "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql"
