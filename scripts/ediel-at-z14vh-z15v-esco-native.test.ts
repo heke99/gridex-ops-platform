@@ -150,6 +150,8 @@ it.each([
  ['foreign LI correlation',{transactionReference:'NO-PRIOR-LI'}],
  ['foreign object',{meterPointId:'735999260731000014'}],
  ['broadened report end',{reportEndDate:'2027-12-31T00:00:00Z'}],
+ ['broadened product',{energyProductId:'8716867000047'}],
+ ['another customer',{customerId:'198001011235'}],
 ] as const)('Z14VH with %s cannot create or widen the permission and gets no positive APERAK',async(_name,change)=>{
  const p=await pendingVH(),{f}=p,before=market(f,p.permissionId)
  const source=await receive(f,z14vh(p,change),'Z14',change.reasonForTransaction==='S17'?'PRODAT:Z14:V:26.A:r3':VH_PROFILE)
@@ -265,7 +267,7 @@ it('Z15V in the outbound direction or from the ESCO role itself is never execute
  expect(positiveAperaks(f,wrongRole)).toBe(0)
 })
 
-it.each(['327','325','226','223'] as const)('Z15V missing required field %s is refused before ending or positive APERAK',async field=>{
+it.each(['327','325','226','223','322','324'] as const)('Z15V missing required field %s is refused before ending or positive APERAK',async field=>{
  const a=await activeV(),{f}=a,raw=z15v(a),omitted=omitPermissionField(raw,field)
  expect(omitted).not.toBe(raw)
  const before=market(f,a.permissionId),source=await receive(f,omitted,'Z15',field==='223'?undefined:V15_PROFILE)
