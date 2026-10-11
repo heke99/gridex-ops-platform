@@ -1294,3 +1294,62 @@ main CI is a separate observation, never source435/old9ad promoted to newGREEN.
 750V2 b6420c70 is PREPAREDONLY; OP-B73b454c4 APPROVE C0/I0/M0, OP-A
 finite draft-fix review in progress. No actualhandoff/retirement/newclaims/code
 or producer. PrivateSTOPUNKNOWN, actual own770 fullrelease gate retained.
+
+
+## ACTUAL root770 bounded delivery approval before operation
+
+Recorded 2026-10-11T20:43:51.065229+00:00. Public CI_GREEN actual/fullGET6113530125, body
+f24c5ced2d2f555238eb673e26235a2508f3af89313a1ad5904f777cae147f02.
+Independent current5b8 composition+affecteddependency review
+57467007802996a56ca16283120571f02ffbd49926b4df97320778fe33d0e91d
+APPROVE C0/I0/M0, binds fullc95/source435/main5b8/expectedtreeeafa; all9852
+foreign mode/type/OIDs and313ledger preserved, SOURCE-A/B+actualsourceCI
+applies boundedown docs only. Root actualapproval SHA256 b46c837b70b64aff0b69640dbb8beba9b9f37712e62fbc6ece9986f60b461d7c, exact
+V2aa730/plan631/twoOPad2a+e0ab/terminalbf9+998/currentcompositionc95+574/
+actualCI_GREENfullbody/custodyCLAIM6112611480/a57own7/roletemplatesbound.
+Root sole serialized actualoperator now authorized only normalexpected435
+merge into immediatefreshmain5b8 ifguardsmatch; firstown role release then
+own7 TWO404. No actualmerge/release at this record. executeonce durable
+journal, neverreplay. GuarddriftSTOP preservesforeignresources and mayyield
+only freshlyauthenticated ownmemory, retains sixfiles. No newmainGREEN
+promotion; closing/CI separate. 750V2 bothOP nowapproved(OPA4b1e98ab,
+OPB73b454c4), stillPREPAREDONLY andactual770fullrelease first.
+
+
+## ACTUAL770 delivery guard STOP; own memory released, six files retained
+
+Recorded 2026-10-11T20:47:35.592020+00:00. Frozen aa730 execution d485
+was actually attempted once. First authentic PR GET435 OPEN/non-draft returned
+mergeable null/unknown; guard STOP before any merge-role or normalmerge PUT.
+Named journalroot770-execution.actual.json persists STOP_UNRESOLVED_RECONCILE_NAMED_DURABLE_STATE_NO_REPLAY.
+Independent ownmemory witness required fullactualCLAIM6112611480, immutable
+a57 ownagent/packet/branch/CP/files andfreshGET_MATCH before DELETE. Actual
+a57 role-memory deletedonce, two authenticated404; six file-a57refs retained.
+No foreignrole/ref/source/native/CI mutation; no blindreplay of d485.
+Adaptive4metadata GETs show PR435 nowmergeabletrue/clean, actualmain
+2715e7ea5ca92d635b6fcdf1a7162c286559070f/tree4fb3cf4db704b450c46b58a2638c680a00ef9b54,
+parents5b8d3b3f+339a8b7d; ROOT025 role c6cf571f42e68f6c371c5fc3eaeb2a19ad760a1b
+was then live for actual756 merge. Authenticated foreignreceipt names own
+merge-only delivery, userhandover6113494078, original10custodyretained.
+We do not delete or inherit it. Role-memory actually404 at this observation.
+
+Actual756 added one PASSED wholecriterion, not one VERIFIED rule. Fullcurrent
+ledger118VERIFIED+196PASSED=314/352,38remaining; preserve actual314 not old313.
+Newcomposition d6a60de064a9fe5fff39913f6b292a649e6196dbbcb989f32204e266b82a89a2
+against271 preserves all9857foreign entries/exactown6postimages/beforeblobs;
+expectedtree7627b784197b11ae3838cdce1891074592194da5. Changed11foreignpaths
+are cancellationBirthProfile/inboundStatusUpdater,2tests,1nativeharness,
+foreignCP,fullledger+4auditproofs. No SQL/schema/workflow/packageadvance.
+Initial local count assert incorrectly expected119VERIFIED/195PASSED; rejected
+before writing any composition. Actualfullledger118/196 now explicitly bound.
+Source435stillunchanged/actualCI_GREEN6113530125. Old5b8 compositionapproval
+b46c/d485 is datedstopped; not authority for current271.
+
+NEXT finit dependencyreview onactual271 (eff_delivery), frozenrestartcarrier
+with new operation/journal (eff_gen_queue andoldOPpeers), preserveoldstate.
+When authentic foreignmerge-role actuallyabsent andallcurrentguardsmatch,
+ROOT alone newownmemoryreceipt CREATEIFabsent+GET_MATCH andnewfullcurrent
+CLAIM beforeactualrootrestartapproval. Allsixoriginalfilesa57remainowned.
+No newcode/CIrerun/rebase/foreigncleanup. Actualnormalmerge/release still
+required before750actualhandoff. Public currentSTOP+restart intent receipt
+next; newmainGREEN remains unqualified.
