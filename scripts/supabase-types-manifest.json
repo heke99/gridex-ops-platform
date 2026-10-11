@@ -1,24 +1,24 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-10T22:00:58.478695+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38089595439",
+  "generated_at": "2026-10-11T02:04:40.991261+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38102975679",
   "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
-  "latest_migration": "20261010200000_admin_intake_declared_signing_date_and_one_off_pending_signature.sql",
-  "latest_migration_schema_effect": "Replaces gridex_finalize_admin_imported_signed_agreement_v1 (staff-declared signing date); generated artifacts imported byte-exactly from capture run 38089595439.",
+  "latest_migration": "20261011020000_ediel_utilts_source_quantity_quality.sql",
+  "latest_migration_schema_effect": "Replaces gridex_utilts_binding.validate_decimal_source_v2 (supplied quantity quality must equal the source STS+8) and preserve_committed_projection_v1 (pre-SC-053 committed retries compared without quantity quality); generated artifacts imported byte-exactly from capture run 38102975679.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-10T22:00:58.478695+00:00",
-    "checkout_sha": "b1b1054e473516a9976bc035338a5e061b468aa6",
-    "checkout_tree": "fda32b4fc4e4ff7bc1672d0d4316898bdb49169c",
-    "workflow_run_id": "38089595439",
+    "captured_at": "2026-10-11T02:04:40.991261+00:00",
+    "checkout_sha": "1bdf3b7e39603223e8fe6be353a5c8d88f9d16a8",
+    "checkout_tree": "1a87a1d37d3985cdaa4d110d06f73a4c6925f9c1",
+    "workflow_run_id": "38102975679",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
     "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
     "latest_replay_migration": {
-      "name": "20261010200000_admin_intake_declared_signing_date_and_one_off_pending_signature.sql",
-      "sha256": "ac84ad95a93c3fe0c84e4af4e79a7806c7c3e19a122f59e58f3bf785e153d78d"
+      "name": "20261011020000_ediel_utilts_source_quantity_quality.sql",
+      "sha256": "7be26830e1623a7bd39d4324a42891bee8262e1fc0e7cb535e545fe4af6d5369"
     },
     "schema_names": [
       "gridex_ack_authority",
@@ -80,18 +80,18 @@
       "gridex_utilts_issuer",
       "public"
     ],
-    "schema_fingerprint": "2224013f5ccd36cd36ae0cb06e1e68cfeafdd0d5ef0f003e3fcb7a256fd0c151",
+    "schema_fingerprint": "688a9ea97054bec32ec96c7ee381df3f0ba91f9e08d3747780a7e69cd1f2c84f",
     "artifact_sha256": {
       "database.types.ts": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
-      "schema.sql": "28032f6189511c4ede749a02f6d7cb4ec3b63dcfc2c4b22abfb9d6ef988f9acc",
-      "schema.fingerprint.json": "51785c0b7066eefc4a42ab682931be9edb6772568ee2e55e17fac1c0e1e263cd"
+      "schema.sql": "6bcbd1e54d2a0524166a27d4f79df2b22b2834ddbf2d7eaaa4d38441ac061ccf",
+      "schema.fingerprint.json": "7fc41ddfd3b461ebaa9993e21194eb70f5bc7f679fc711040c53c8f322531bde"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
-      "scripts/migration-history-manifest.json": "aa2d828ab9d784f0d02dd277fa02c6229ce18b3beb179bce4ad95386b72be55f",
+      "scripts/migration-history-manifest.json": "02ed1de83e75ef5f503995f3356878d44953dc156d9baff362ecb076b5ea89b5",
       "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
       "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
-      "scripts/supabase-types-manifest.json": "8426ebcbc50a9d0649811883c35831ced3cfac8d2572940b0c793b696a4a8c3d",
+      "scripts/supabase-types-manifest.json": "f00cee4bf378e8bffc8e114f40491e63c3018d20460189fb839a283f361a2363",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
