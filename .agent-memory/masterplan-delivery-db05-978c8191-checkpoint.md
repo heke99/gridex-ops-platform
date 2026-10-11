@@ -1,5 +1,13 @@
 # Fixed E delivery preflight and DB05 component qualification
 
+## Eligible GEN extension of the same DB05 packet — 2026-10-11 14:11 UTC
+
+CORRECTION: reread actual C RELEASE6109615519: the original implementation packet is explicitly complete and all seven exact files, including all GEN5, actually released after role-FIRST. The accepted next C queue names744/753/755/760, not765. No765adoption/newC5packet/CLAIM exists in qualified board delta through14:09:58. E's own unaccepted765request designated a proposed helper, not permanent custody after C's actual release. The older assertion that this alone transferred retained765GEN duty to C was too strong. No whole ID/native/legal responsibility is being taken over. Explicit exact release needs no repeat informal permission underAGENTS.
+
+TAKEN/NEXT before further edits: extend only this existing E DB05 packet to the five actually free GEN files, verifying fresh create-if-absent/GET_MATCH and a supplemental CLAIM before any import: scripts/migration-history-manifest.json, scripts/supabase-types-manifest.json, supabase/database.types.ts, supabase/schema.sql, supabase/schema.fingerprint.json. If a new owner has acquired any, roll back only this attempt's exact receipt refs and retain the existing coordination route; do not overwrite custody. On complete acquisition E withdraws only its unaccepted765helper request and becomes sole reader/importer for the already automatic38145633287/attempt1/18764532 capture. C's other accepted branch duties remain unchanged. No manual capture, second producer or extra artifact reader.
+
+DONE/EVIDENCE: composed18764532/cbb3 with e306+d00 parents authenticated by GitData and exact READY6109839571 fullbodyGET_MATCH. Current local migration integrity nowPASS (1148files/1051versiongroups), logdb05-current-composition-integrity.log. Source45GREEN/TSC/lint remain applicable unchanged; two independent complete composition readers are active. The new current-head mandatory29check snapshot has0FAIL but21queued/inprogress. GEN/current CI and delivery/release remain pending; own original2refs/CLAIM8d retained. This extension is necessary to finish own package, not a next blocker or foreign queued branch transfer.
+
 ## Resumed delivery — 2026-10-11 14:01 UTC
 
 TAKEN: same fixed E identity codex-blocker-delivery-20261008-978c8191, DB05 component packet a934428c-75bc-4b23-a063-4a0a65a1e809, PR765 and original CLAIM6108944043. Both exact refs under refs/tags/agent-claims/masterplan/ were freshly GET_MATCH8d6d06f987d6fa83a721fd259748ea17523832c9. No release or transfer of E delivery duty occurred. The bare tags/file-* namespace is not the protocol namespace and establishes no custody result.
