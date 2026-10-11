@@ -2487,8 +2487,15 @@
     },
     {
       "id": "SC-071",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+        "lib/ediel/services/beneficiaryExport.ts",
+        "lib/ediel/services/projection.ts",
+        "scripts/ediel-sc-071-projection-revocation-native.test.ts",
+        "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+        "__tests__/ediel-sc-010-071-current-grant.test.ts"
+      ]
     },
     {
       "id": "SC-072",
