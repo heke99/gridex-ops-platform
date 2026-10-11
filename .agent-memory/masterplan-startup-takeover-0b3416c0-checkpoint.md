@@ -1505,3 +1505,49 @@ duplicate diagnosis/archive/native/test/CI collection. After bodydone: fresh
 four-ref/source/main/epoch guards, public actualHANDOFF/FULLGET, exactold4
 retirement/TWO404, ownsorted4 create-if-absent/GET_MATCH, CLAIM/FULLGET;
 new ownCP remote/FULLauth before local adoption or implementation.
+
+## ACTUAL current metadata-role WAIT; independent750 next action
+
+Own770 full delivery/release/cleanup remains COMPLETE. Rootmetadata once
+publisherf3afc51fc77f489d739cc85d9a70d4b96bdde80dfc2a2210c0ff1d08ce4d4af8
+was rootreviewedc8bd/approved7da6 and actually attempted21:25:12Z.
+Fresh mainf77/tree7627 and OPEN bodye39 MATCH; role-memory GET at21:25:13Z
+was foreign63db1068629c2e06db0e64b9aa41c7f1b37c2007. Actualjournal STOP
+BEFORE ANY MUTATION/CLAIM/PATCH/receiptcommit. Zero own metadata resources,
+attempts{}. No foreignref deleted, no staleBLOCKED reused, no retry/replay.
+
+ONE bounded immutable receipt GET authenticates actual owner
+codex-pr-delivery-root-20261011-02525622/packet8c9108ef-a603-40cd-acd2-f2efaeb958b8,
+branchcodex/baseline-documentation-aad10be3, sourcepacketf92faf7f-fb6b-4807-a331-b1bdcaf615d8,
+sourceReceipt5e35430a7c5a5873b026f5d9edb4b1c4b198eba4, ownbaselineCP
+.agent-memory/masterplan-root-pr763-pr760-delivery-aad10be3-checkpoint.md.
+Its receipt explicitly preserves sole766body/currentmainCI with0b; three
+shared sourcefiles stay its custody. This is real current occupancy.
+
+Public exact bounded request6113955729 FULLGETauth, bodySHA256
+03ad2b28022522b86ad4a6a84a87eb2a7db1520cbe7237f4ef52c2ee1b56c38a:
+owner finishes/pauses sharedpublication and authenticates/releases ONLY
+its63dbmemory GET_MATCH/DELETE/TWO404; its three sourcefiles/source/duty
+retained. Rootthen NEW metadata-only reservation/CLAIM/freshmain/body/once
+reviewedfinalbodyPATCH/FULLGET/ownrelease. RequestisNOactualhandoff/release,
+no privateSTOP. Finalreviewedbodyb4d74a2d/manifestf13ccd63 remains PREPARED;
+future restart gets NEW actualcarrier, oldSTOP journal immutable.
+
+NEXT750 technical scope is separate, no memory/merge-role required for exact
+FULL4 administrative custody. Genuine prior770completion59a1 satisfies own
+wait; freshsource504/drafttrue/main/producer/old4 guards stillrequired.
+V4executor58c byteexact oldqualifiedsemantics; plan787e6278729b04301e3f880cc7df14ba18caed78a03dad75f3d43dcb15bf5af2,
+text9d9de980fb7822661a6cf76d4b0e22fc3e55002fa5241d7f98951746686adf46,
+finalmanifest6b8a32d66a5e177c7557619ff939797892c01cf0d9b5ce12511e95d25e57246c.
+Originalqualifiedpins mechanicallymappedadaptercc7389194a41a119406330530e71c29cd258367a82081f272af41c35ade1f01d,
+peerB971f9bb17b409f7aac9c0530c3ab8d5e2f56fbcad68088aa412d0126482507af
+APPROVE C0/I0/M0, peerA finishing; both required before ROOTactualacquire.
+No olddiagnosis/native/artifact/log/sourcefullaudit/test recollection.
+
+Finite local tree comparison found original504 has EXACT4 addedpaths over
+main: own3source and passive originalBcheckpoint100644/blob
+ea340709f7345f1bb7c2f67747a1b7aea633bb2a (ABSENTf77). Ordinarymerge must
+preserve this existing datedhistory byteexact without edit/custody/identity
+inheritance. V5adopt-only guard correction is PREPARED separately, oldV4
+acquire immutable; sourceCP/sourcepublication/newH/native remainNOTEXECUTED.
+Own4actualhandoff/CLAIM then ownNEWCP remoteFULLauth before any productcode.
