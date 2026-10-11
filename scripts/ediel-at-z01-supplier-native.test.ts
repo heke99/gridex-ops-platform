@@ -149,7 +149,7 @@ async function assertPhysicalZ02Application(f: Fixture, received: Awaited<Return
   // This actual invocation proves application guidance only. Correlation and
   // durable business application remain separate assertions below; an earlier
   // unrelated field/header refusal cannot satisfy a source-correlation test.
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(received.message)
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(received.message, {actorUserId: f.actorUserId})
   const application = readReceivedCanonicalProdatApplicationObjects(decision, received.message)
   const witness = JSON.stringify({decision, application, tenant: received.tenant,
     match: received.match, pointMatch: received.pointMatch, processed: received.processed,
@@ -359,7 +359,7 @@ describe.each(['L', 'LK'] as const)('actual SUPPLIER Z01%s information chain', v
   it('actual inbound Z02 missing mandatory 217 cannot apply any information or activate supply', async () => {
     const {f, original} = await sent(variant), before = customerState(f)
     const received = await receiveZ01SupplierReply(f, z02(f, original, {}, true))
-    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(received.message)
+    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(received.message, {actorUserId: f.actorUserId})
     expect(decision.issues.some(issue => issue.prodatDiagnostic?.kind === 'field'
       && issue.prodatDiagnostic.fieldNumber === '217' && issue.prodatDiagnostic.errorKind === 'missing'), JSON.stringify(decision.issues)).toBe(true)
     expect(coreApplications(f, original.requestId)).toBe(0)
