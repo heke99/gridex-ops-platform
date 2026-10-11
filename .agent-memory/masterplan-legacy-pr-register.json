@@ -1098,5 +1098,78 @@
     "noCoverageOrCustodyFromClosure": true,
     "sharedOutputWriter": "E P08 current five-file slot6103283264/6103294221; other source/test/review work continues, later SQL outputs require serial handoff and actual delivered-main composition.",
     "sourceComparisons": "13 exact-branch/path/blob triages verified; remaining assets and criteria retained below. No new native/capture/GEN/artifact execution."
+  },
+  "currentAdministrativeDispositions20261011": {
+    "observedAt": "2026-10-11T21:08:14.651Z",
+    "main": "f77f351cdc94ae0563c5498f7c15679ea2fab44c",
+    "approvedIds": 314,
+    "totalIds": 352,
+    "remainingIds": 38,
+    "metadataOnly": true,
+    "priorObservationsAndEntriesPreserved": true,
+    "supersedesOnlyCurrentAdministrativeStateFor": [
+      627,
+      658,
+      674,
+      676,
+      718
+    ],
+    "meaning": "These dated CLOSED_UNMERGED dispositions supersede the old KEEP/open labels for these five PRs only. Original entries, heads, body hashes, branches, checkpoints, unique assets, HOLD/PAUSED labels and literal expected/prohibited criteria remain byte-preserved. Closure neither completes requirements nor releases technical custody; consult actual main ledger, original residual owner output and current board before resumption.",
+    "archiveReceipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6113053439",
+    "sharedMirrorRequestHistory": "658/6109713709 requested coordination owner0b to index only after exact register+memory custody; the register was excluded from old startup claims. This append uses separate three-file CLAIM6113792972; memory63db was subsequently released6114045498 while those file refs remain retained, so the writer must obtain a fresh own memory role before shared publication.",
+    "administrativeDispositions": [
+      {
+        "pr": 627,
+        "head": "ac26467f2285a0f6c738e8ebbfbc55a495363272",
+        "state": "CLOSED_UNMERGED",
+        "closedAt": "2026-10-11T19:48:38Z",
+        "administrativeDisposition": "ARCHIVED_PROPOSAL_REQUIREMENTS_RETAINED",
+        "receipt": "https://github.com/heke99/gridex-ops-platform/pull/627#issuecomment-6113021638"
+      },
+      {
+        "pr": 658,
+        "head": "87778063e3819d0a1b069c9e517459f8288ba350",
+        "state": "CLOSED_UNMERGED",
+        "closedAt": "2026-10-11T13:50:51Z",
+        "administrativeDisposition": "ARCHIVED_PROPOSAL_REQUIREMENTS_RETAINED",
+        "receipt": "https://github.com/heke99/gridex-ops-platform/pull/658#issuecomment-6109718966",
+        "ownerDisposition": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109713709",
+        "retainedOwner": "codex-ediel-20261006-2f72c8ab/ac08f5ae",
+        "limitedSuccessorReuse": "#762 continues strictly seven native assets; it does not deliver the original enqueue classifier477f545f, hostile consumer regressionaab3e977 or inboundEdielLinking enrichment902abd. Original312 birth guard/vectors, historical1102capture and all literal whole effects remain accountable under original retained owner; no duplicate capture/native/GEN producer."
+      },
+      {
+        "pr": 674,
+        "head": "004cfeaf2a79e352ba23db230a73bb40879cf89c",
+        "state": "CLOSED_UNMERGED",
+        "closedAt": "2026-10-11T19:21:59Z",
+        "administrativeDisposition": "ARCHIVED_PROPOSAL_REQUIREMENTS_RETAINED",
+        "receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6113053439",
+        "closureAttribution": "Already closed before the later archive operator; actual close actor UNKNOWN. Its separate209-line refusal test remains preserved."
+      },
+      {
+        "pr": 676,
+        "head": "1b4be1fb5b78a6ef357f16b304f112ad939ab6ed",
+        "state": "CLOSED_UNMERGED",
+        "closedAt": "2026-10-11T19:48:46Z",
+        "administrativeDisposition": "ARCHIVED_PROPOSAL_REQUIREMENTS_RETAINED",
+        "receipt": "https://github.com/heke99/gridex-ops-platform/pull/676#issuecomment-6113022912",
+        "separatePinRetained": "16e4825a7089512aca0bc974fb43bce7a20f4ef2; original retained scope/proof limits unchanged."
+      },
+      {
+        "pr": 718,
+        "head": "371bd3a3228a4dd6078890af6caf334b1cb1b999",
+        "state": "CLOSED_UNMERGED",
+        "closedAt": "2026-10-11T19:48:51Z",
+        "administrativeDisposition": "ARCHIVED_PROPOSAL_REQUIREMENTS_RETAINED",
+        "receipt": "https://github.com/heke99/gridex-ops-platform/pull/718#issuecomment-6113023777",
+        "retainedWholeDuty": "Original Brave DB-05/AT-DB-05/SC-070 legal/native/history/offboarding duty remains; component/source/administrative closure does not satisfy it."
+      }
+    ],
+    "completionClaim": false,
+    "remainingRequirementsComplete": false,
+    "coverageCredit": 0,
+    "originalHeadsBranchesBodiesAndCriteriaPreserved": true,
+    "appendCustodyReceipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6113792972",
+    "assessmentRequiredBeforeResumption": true
   }
 }
