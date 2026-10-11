@@ -172,3 +172,39 @@ DB01 handoff/adoption and genuine new-source gates continue independently;
 root then qualifies its final current-main composition and delivery. C may
 already continue its own GEN queue with new5refs/CLAIM and every branch mandate;
 there is no dependency on root767 documentation.
+
+## Actual remaining DB01 handoff — 2026-10-11 14:30 UTC
+
+Done: finite static ordinary485+d00 applicability APPROVE C0/I0,
+reviewSHA256 bdb88238d1e8a10f3e186666dcacc4565c62fbf09ad5cee91208c75c8a329235.
+Complete TR09 required-input inventory correction: FIVE missing entries on485,
+the four named files plus its workflow. All50 inputs are exact canonical d00
+postimages after adoption. No unseen exception-stack or new runtime claim.
+
+Done: exact user-authorized administrative full-source/delivery handoff
+https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6110029694
+supersedes only original53 DB01/AT duty; unrelated roles/history retained,
+external chat UNKNOWN. Coherent ownfull7 receipt584572cd1f2f1475458b72fe18715f2b379f468c
+on actuald00 tree1139/singleparent: six039 refs exactSHA/DELETE/two404 then own
+create-only/MATCH, ownnative d76e rollover only aftersixownverified, allseven
+GET_MATCH before authentic fullCLAIM:
+https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6110034139
+Custody executor909b passed ten failpaths/five board cases and independent
+operational APPROVE C0/I0; earlier three findings fixed before any mutations.
+Author own NONPR checkpoint ed92d0fee904376da01a1b65610150ba6a4bf09f is published.
+
+Done: isolated unpublished normal adoption candidate cab7e147eb36b1239700b6bb92d7e33a6ea702d7,
+parents485ad +d00, exact previously reviewed treecbfacd. Root actualGit identity,
+eight incoming-path scope, unchanged fiveproof postimages and whitespace PASS.
+Two independent actualcandidate binding reviews pending; no repeated native,
+guard-definition/artifact collection or newsource publication claimed yet.
+Existing48514PASS stays source485; candidate313 is not actualmain credit.
+
+Current767: six required SUCCESS, clean replay and latecertificate IN_PROGRESS;
+no failure, no merge-role/actualdelivery/transition yet. Root source1f unchanged.
+Next: current767gates→ordinary immediate serialdelivery→actualauth/full311→
+roleFIRST/own11release→explicit673-to766 transition. Child then qualifies
+actualcandidate reviews/guardedFF and real newhead allCI/soleDB01 output.
+Provide authenticated exact transition identity to its board resolver if766
+activates; never infer transition from main merge alone. Root serial final743
+delivery/release follows applicable currentmain reviews and mandatorygates.
