@@ -2,7 +2,6 @@
 // T A.3.2.1 administrator alarm consumer: the protected alarm journal reaches an
 // own-company operator page through the existing actor-checked RPC. The native
 // owner/ACL proof is scripts/ediel-tr-09-reserve-source-native.test.ts.
-import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
