@@ -1,3 +1,4 @@
+import {fetchReceivedZ02EndUserAddressContext,type ReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
 import {loadReceivedZ04HAddressContext,type ReceivedZ04HAddressContext} from '@/lib/ediel/core/receivedZ04HAddressAvailability'
 import {observeReceivedZ04HStructuralFields,loadReceivedZ04HStructuralFieldRejection,readReceivedZ04HStructuralFieldWitness,ownReceivedZ04HStructuralFieldRejection} from '@/lib/ediel/prodat/receivedZ04HStructuralFieldRejection'
 import {observeReceivedProdatHeaderRejection,loadReceivedProdatHeaderRejection,readReceivedProdatHeaderRejectionErrors,ownReceivedProdatHeaderRejection} from '@/lib/ediel/prodat/receivedProdatHeaderRejection'
@@ -172,6 +173,8 @@ function addNegativeAperakIfAllowed(params: {
 }
 
 function applyProdatPolicyDecision(params: {
+  sourceMessage:EdielMessageRow
+  receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext
   rawPayload?:string|null
   receivedReportingContext?:ReceivedZ14ReportingContext
   sourceFunctionContext?:DeathStatusValidationContext
@@ -187,6 +190,8 @@ function applyProdatPolicyDecision(params: {
   let prodatRegisterValidation: ProdatRegisterValidationEvidence | undefined
   const prodatIgnoredFields: ProdatIgnoredField[] = []
   const fieldIssues = validateCanonicalPolicyFields({
+    sourceMessage:params.sourceMessage,
+    receivedZ02EndUserAddressContext:params.receivedZ02EndUserAddressContext,
     policy: params.policy,
     rawPayload:params.rawPayload,
     rawSegments: params.canonical.rawSegments,
@@ -444,7 +449,7 @@ export function resolveCanonicalRuntimeDecision(message:EdielMessageRow,facts:Ca
 /** Registry admission freezes the whole guide before consuming its actual
  * issuer owner. Explicit observed time and opaque source capabilities survive
  * that selection without caller-provided success facts. */
-function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{deferUtiltsRuntime?:boolean;receivedReportingContext?:ReceivedZ14ReportingContext;receivedReportingActorUserId?:string;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string;ownZ10SourceReadingContext?:ProdatZ10OwnSourceReadingContext|null;ownZ10SourceReadingActorUserId?:string;receivedZ04HAddressContext?:ReceivedZ04HAddressContext|null;receivedZ04HAddressActorUserId?:string}):CanonicalRuntimeDecision {
+function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{receivedZ02EndUserAddressContext?:ReceivedZ02EndUserAddressContext;deferUtiltsRuntime?:boolean;receivedReportingContext?:ReceivedZ14ReportingContext;receivedReportingActorUserId?:string;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string;ownZ10SourceReadingContext?:ProdatZ10OwnSourceReadingContext|null;ownZ10SourceReadingActorUserId?:string;receivedZ04HAddressContext?:ReceivedZ04HAddressContext|null;receivedZ04HAddressActorUserId?:string}):CanonicalRuntimeDecision {
   const syntax = message.message_standard === 'edifact'
     ? validateEdifactSyntax({ ...message, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null })
     : { ok: true, issues: [], declaredUntCount: null, actualMessageSegmentCount: null }
@@ -624,7 +629,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
     utiltsHeaderValidation = utilts.utiltsHeaderValidation
     utiltsTransactionValidation = utilts.utiltsTransactionValidation
   } else if (canonical.family === 'PRODAT' && policy) {
-    const prodat = applyProdatPolicyDecision({ rawPayload:message.raw_payload,receivedReportingContext:receivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId)??heldReceivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId),sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
+    const prodat = applyProdatPolicyDecision({ sourceMessage:message,receivedZ02EndUserAddressContext:options?.receivedZ02EndUserAddressContext,rawPayload:message.raw_payload,receivedReportingContext:receivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId)??heldReceivedZ14ReportingContextForMessage(options?.receivedReportingContext,message,options?.receivedReportingActorUserId),sourceFunctionContext:facts.deathStatusContext,policy, canonical, responsePlan, issues, sourceRules, decisionTrace })
     prodatSourceFunctionValidation=prodat.prodatSourceFunctionValidation
     prodatApplicationValidation=prodat.prodatApplicationValidation
     prodatRegisterValidation = prodat.prodatRegisterValidation
@@ -762,7 +767,8 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
   let ownZ10SourceReadingActorUserId:string|undefined
   // Caller facts stay lazy until syntax qualifies. Only this invocation's
   // fresh READ and captured actor can enter the private reporting-context port.
-  if(validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}).ok){
+  if(!(message.direction==='inbound'&&message.message_standard==='edifact'&&message.message_family==='PRODAT'&&message.message_code==='Z02')
+    &&validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}).ok){
     receivedReportingActorUserId=facts.actorUserId
     if(receivedReportingActorUserId)receivedReportingContext=await loadReceivedZ14ReportingContext(message,receivedReportingActorUserId)
     if(receivedReportingActorUserId&&message.direction==='inbound'&&message.message_family==='PRODAT'&&message.message_code==='Z04'){
@@ -783,10 +789,40 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
       }
     }
   }
-  const options={deferUtiltsRuntime:message.direction==='inbound',receivedReportingContext,receivedReportingActorUserId,
+  const options={receivedZ02EndUserAddressContext:undefined as ReceivedZ02EndUserAddressContext|undefined,deferUtiltsRuntime:message.direction==='inbound',receivedReportingContext,receivedReportingActorUserId,
     ownSourceReadingContext,ownSourceReadingActorUserId,ownZ10SourceReadingContext,ownZ10SourceReadingActorUserId,
     receivedZ04HAddressContext:null as ReceivedZ04HAddressContext|null,receivedZ04HAddressActorUserId:receivedReportingActorUserId}
   let base=resolveCanonicalRuntimeDecisionCore(message,facts,options)
+  // Requalify the present executor's READ authority for each actual received
+  // Z02 assessment. A prior opaque token is not a cached permission grant.
+  if(message.direction==='inbound'&&base.canonical.family==='PRODAT'&&base.canonical.messageCode==='Z02'
+   &&base.syntaxDecision==='accepted'&&base.policy&&['L','LK'].includes(base.policy.subtype??'')){
+   // Syntax and the resolved physical subtype qualify before lazy caller actor
+   // access. Only this invocation's fresh READ enters the private core port;
+   // caller opaque-context properties are never read or spread.
+   const actorUserId=facts.actorUserId
+   try{
+    if(!actorUserId)throw Error('received_z02_end_user_address_current_actor_required')
+    const context=await fetchReceivedZ02EndUserAddressContext({message,actorUserId})
+    if(!context)throw Error('received_z02_end_user_address_source_unavailable')
+    options.receivedZ02EndUserAddressContext=context
+    base=resolveCanonicalRuntimeDecisionCore(message,facts,options)
+   }catch(error){
+    const description=error instanceof Error?error.message:String(error)
+    const issues=[...base.issues,issue({layer:'application',severity:'error',code:'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE',
+     title:'Källstyrd adresstillgänglighet saknas',description,source:'fetchReceivedZ02EndUserAddressContext'})]
+    const responsePlan=base.responsePlan.filter(response=>response.family==='CONTRL'
+     ||response.family==='APERAK'&&response.outcome==='negative'&&Boolean(response.applicationErrors?.length)
+      &&response.applicationErrors!.every(isQualifiedProdatApplicationError))
+    const applicationDecision:CanonicalDecisionState=base.applicationDecision==='rejected'?'rejected':'manual_review'
+    const prodatProcessingDisposition:ProdatProcessingDisposition={kind:'internal_review',reasons:[
+     ...(base.prodatProcessingDisposition?.reasons??[]),{code:'RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE',sourceRule:'PRODAT26A:Z02/229',reason:description}]}
+    const decisionTrace=[...base.decisionTrace,'Z02-adressunderlaget hålls lokalt; inget nationellt fel fabriceras av saknad READ-källa.']
+    const held:CanonicalRuntimeDecision={...base,applicationDecision,functionalDecision:'manual_review',issues,responsePlan,decisionTrace,prodatProcessingDisposition,
+     validationReport:{...base.validationReport,applicationDecision,functionalDecision:'manual_review',issues,responsePlan,decisionTrace,prodatProcessingDisposition}}
+    return held
+   }
+  }
   // A private assigned negative birth can own its missing common field without
   // an operational H profile. The committed actual syntax and frozen family
   // guide READ authorize only this typed national rejection, never business.
