@@ -1,5 +1,5 @@
 // masterplan: AT-Z09B-SUPPLIER
-// Runs the real BRP origination and 20261011120000 confirmation migrations in
+// Runs the real BRP origination and 20261011170000 confirmation migrations in
 // embedded PostgreSQL: the dated BRP version stays a source declaration until
 // its own bound, unchanged Z09/Z27 reaches the final acknowledgement with a
 // positive APERAK; CONTRL alone, negative or mixed outcomes, an unbound or

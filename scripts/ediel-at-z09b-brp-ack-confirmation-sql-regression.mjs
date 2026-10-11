@@ -1,6 +1,6 @@
 // masterplan: AT-Z09B-SUPPLIER
 // The BRP Z09/Z27 origination fixture of ediel-brp-change-sql-regression.mjs,
-// then the 20261011120000 confirm-on-positive-APERAK authority. The ACK
+// then the 20261011170000 confirm-on-positive-APERAK authority. The ACK
 // authority's scope_outcomes table is a declared fixture with its installed shape.
 import{readFileSync}from'node:fs';import{pathToFileURL}from'node:url';import assert from'node:assert/strict'
 if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required')
@@ -50,7 +50,7 @@ try{
  // AT-Z09B: the dated BRP version is a declaration until its own Z09/Z27 is acknowledged.
  await db.exec(`ALTER TABLE ediel_messages ADD COLUMN status text DEFAULT 'sent',ADD COLUMN contrl_status text DEFAULT 'pending',ADD COLUMN aperak_status text DEFAULT 'pending';
   CREATE SCHEMA gridex_ack_authority;CREATE TABLE gridex_ack_authority.scope_outcomes(source_message_id uuid,ack_family text,outcome text)`)
- await db.exec(readFileSync(new URL('../supabase/migrations/20261011120000_ediel_brp_change_ack_received_confirmation.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261011170000_ediel_brp_change_ack_received_confirmation.sql',import.meta.url),'utf8'));checks++
  const confirmations=async()=>(await db.query('SELECT event_id,company_id,environment,message_id FROM gridex_brp_changes.confirmations')).rows
  const versions=async()=>(await db.query(`SELECT ediel_brp_responsibility_history_v1('${id(1)}','${id(4)}','${id(20)}') result`)).rows[0].result.versions
  const ack=(status,aperak)=>db.exec(`UPDATE ediel_messages SET status='${status}',aperak_status='${aperak}' WHERE id='${id(16)}'`)
