@@ -16,7 +16,7 @@ import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {createCustomerInfoRequest} from '@/lib/onboarding/infoRequests'
 import {createGridOwnerDataRequest} from '@/lib/cis/db-data'
 import {getGridOwnerById} from '@/lib/masterdata/db'
-import {upsertPlatformGridAreaMasterRows} from '@/lib/energy/resolver'
+import {resolveEnergyContext, upsertPlatformGridAreaMasterRows} from '@/lib/energy/resolver'
 import {setOperationSnapshotRequestReference} from '@/lib/customer-operations/automation.part-1'
 import {findOrCreateDataRequestOutbound, finalizeOutboundDraft} from '@/lib/ediel/flows/shared'
 import {resolveDecisionBackedOutboundContext} from '@/lib/ediel/flows/routeDecisionContext'
@@ -104,6 +104,7 @@ async function importZ01RegistryFixture(f: NormalSwitchStageNativeFixture) {
  */
 export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provider: (email: string) => void): Promise<Z01SupplierNativeFixture> {
   const f = await seedNormalSwitchNativeFixture({deferOriginal: true, requestedStartDate: futureNativeSupplyDate(), provider})
+  await ensureProspectiveZ01PriceArea(f)
   const registry = await importZ01RegistryFixture(f)
   const z01RouteId = randomUUID(), z01RouteProfileId = randomUUID(), ackRouteId = randomUUID(), ackRouteProfileId = randomUUID()
   const smtp = edielSmtpConfig()
@@ -158,8 +159,8 @@ export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provid
     customerAddress, customerMasterdataSource, installationAddress, registry: {...registry, dispatchSource, environmentResolution}}
 }
 
-function knownAreaSourceRows(f: Z01SupplierNativeFixture) {
-  return sql<Row>(`SELECT jsonb_build_object(
+function knownAreaSourceRows(f: NormalSwitchStageNativeFixture) {
+  return sql<Row & {platformOwners: Row[]}>(`SELECT jsonb_build_object(
     'site',(SELECT to_jsonb(r) FROM public.customer_sites r WHERE id=${literal(f.siteId)} AND company_id=${literal(f.companyId)}),
     'point',(SELECT to_jsonb(r) FROM public.metering_points r WHERE id=${literal(f.pointId)} AND company_id=${literal(f.companyId)}),
     'grid',(SELECT to_jsonb(r) FROM public.grid_owners r WHERE id=${literal(f.gridId)} AND company_id=${literal(f.companyId)}),
@@ -173,6 +174,77 @@ function knownAreaSourceRows(f: Z01SupplierNativeFixture) {
     'watches',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_business_expectations r WHERE company_id=${literal(f.companyId)}),
     'requests',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_info_requests r WHERE company_id=${literal(f.companyId)}),
     'snapshots',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_operation_request_snapshots r WHERE company_id=${literal(f.companyId)}))`)
+}
+
+/** Declare reference-price GIVEN through its real public importer before any
+ * own EDIEL original is born. A reference owner is not the operational DSO or
+ * issuer; no existing area/owner/source may be repaired for this fixture.
+ */
+async function ensureProspectiveZ01PriceArea(f: NormalSwitchStageNativeFixture) {
+  const before = knownAreaSourceRows(f)
+  expect(before.messages, 'Prospective reference input must precede original EDIEL birth').toEqual([])
+  const point = objectRecord(before.point), site = objectRecord(before.site)
+  const priceArea = String(point.price_area_code ?? '')
+  if (!/^SE[1-4]$/.test(priceArea) || site.price_area_code !== priceArea
+    || point.grid_area_code !== f.gridAreaCode || site.grid_area_code !== f.gridAreaCode)
+    phaseFailure('prospective_area_source_mapping_required', {point, site})
+  const referenceRows = () => sql<{owners: Row[]; areas: Row[]}>(`SELECT jsonb_build_object(
+    'owners',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.platform_grid_owners r),
+    'areas',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]') FROM public.platform_grid_areas r))`)
+  const referencesBefore = referenceRows()
+  const existing = referencesBefore.areas.filter(r => String(r.grid_area_code).toUpperCase() === f.gridAreaCode.toUpperCase())
+  const valid = `is_active IS TRUE AND upper(price_area)=${literal(priceArea)}
+    AND (valid_from IS NULL OR valid_from<=(now() AT TIME ZONE 'Etc/GMT-1')::date)
+    AND (valid_to IS NULL OR valid_to>=(now() AT TIME ZONE 'Etc/GMT-1')::date)`
+  let importedAreaId: string | null = null, importedOwnerName: string | null = null
+  if (existing.length) {
+    const qualified = sql<number>(`SELECT to_jsonb(count(*)) FROM public.platform_grid_areas
+      WHERE upper(grid_area_code)=upper(${literal(f.gridAreaCode)}) AND ${valid}`)
+    if (qualified !== existing.length) phaseFailure('prospective_area_existing_reference_unqualified', existing)
+  } else {
+    // The importer's area/name upsert can change old rows. Require both keys
+    // absent, using a separate UUID name so the later distinct-area control
+    // can still use its genuine operational owner without a name collision.
+    importedOwnerName = `Synthetic Z01 reference price ${randomUUID()}`
+    expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.platform_grid_owners
+      WHERE public.gridex_grid_owner_name_key(name)=public.gridex_grid_owner_name_key(${literal(importedOwnerName)})`)).toBe(0)
+    const imported = await upsertPlatformGridAreaMasterRows([{gridAreaCode: f.gridAreaCode, priceArea,
+      gridOwnerName: importedOwnerName, gridAreaName: 'Synthetic prospective Z01 reference price',
+      metadata: {synthetic_native_fixture: true, reference_price_only: true}}])
+    if (imported.length !== 1 || !imported[0].ok || !imported[0].id)
+      phaseFailure('prospective_area_public_import_failed', imported)
+    importedAreaId = imported[0].id
+  }
+  const mapping = sql<{count: number; priceArea: string | null}>(`SELECT jsonb_build_object(
+    'count',count(DISTINCT upper(price_area)),'priceArea',min(upper(price_area))) FROM public.platform_grid_areas
+    WHERE is_active IS TRUE AND upper(grid_area_code)=upper(${literal(f.gridAreaCode)}) AND upper(price_area) IN('SE1','SE2','SE3','SE4')
+    AND (valid_from IS NULL OR valid_from<=(now() AT TIME ZONE 'Etc/GMT-1')::date)
+    AND (valid_to IS NULL OR valid_to>=(now() AT TIME ZONE 'Etc/GMT-1')::date)`)
+  expect(mapping).toEqual({count: 1, priceArea})
+  // No company/site/address is supplied: this public readback cannot save a
+  // resolution or call a geodata provider. Its unverified claim stays held.
+  const resolved = await resolveEnergyContext({gridAreaCode: f.gridAreaCode})
+  expect(resolved).toMatchObject({gridAreaCode: f.gridAreaCode, priceArea,
+    resolutionStatus: 'needs_review', automationAllowed: false})
+  expect(resolved.sourceChain).toContain('platform_grid_areas')
+  const referencesAfter = referenceRows()
+  const priorOwnerIds = new Set(referencesBefore.owners.map(r => r.id)), priorAreaIds = new Set(referencesBefore.areas.map(r => r.id))
+  expect(referencesAfter.owners.filter(r => priorOwnerIds.has(r.id))).toEqual(referencesBefore.owners)
+  expect(referencesAfter.areas.filter(r => priorAreaIds.has(r.id))).toEqual(referencesBefore.areas)
+  const newOwners = referencesAfter.owners.filter(r => !priorOwnerIds.has(r.id)), newAreas = referencesAfter.areas.filter(r => !priorAreaIds.has(r.id))
+  if (importedAreaId) {
+    expect(newOwners).toHaveLength(1); expect(newAreas).toHaveLength(1)
+    expect(newOwners[0]).toMatchObject({name: importedOwnerName, ops_grid_owner_id: null, ediel_id: null})
+    expect(newAreas[0]).toMatchObject({id: importedAreaId, grid_area_code: f.gridAreaCode, price_area: priceArea,
+      grid_owner_id: newOwners[0].id, grid_owner_name: importedOwnerName, is_active: true, valid_from: null, valid_to: null})
+  } else expect(referencesAfter).toEqual(referencesBefore)
+  const after = knownAreaSourceRows(f)
+  expect(after).toEqual({...before, originalArea: after.originalArea, platformOwners: after.platformOwners})
+  // Any newly observed reference owner must be only the declared new owner;
+  // the full global comparisons above preserve every old owner and area.
+  const newOwnerIds = new Set(newOwners.map(r => r.id))
+  expect(after.platformOwners.filter(r => !newOwnerIds.has(r.id))).toEqual(before.platformOwners)
+  expect(after.platformOwners.filter(r => newOwnerIds.has(r.id))).toEqual(newOwners)
 }
 
 /** A distinct known reference area isolates original-area correlation from
