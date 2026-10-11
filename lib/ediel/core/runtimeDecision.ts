@@ -3,6 +3,7 @@ import {observeReceivedZ04HStructuralFields,loadReceivedZ04HStructuralFieldRejec
 import {observeReceivedProdatHeaderRejection,loadReceivedProdatHeaderRejection,readReceivedProdatHeaderRejectionErrors,ownReceivedProdatHeaderRejection} from '@/lib/ediel/prodat/receivedProdatHeaderRejection'
 import {observeReceivedZ04HRequiredFields,loadReceivedZ04HRequiredFieldRejection,readReceivedZ04HRequiredFieldWitness,ownReceivedZ04HRequiredFieldRejection} from '@/lib/ediel/prodat/receivedZ04HRequiredFieldRejection'
 import {loadProdatOwnSourceReadingContext,type ProdatOwnSourceReadingContext} from './prodatOwnSourceRegisterReadingDeclarations'
+import {loadProdatZ10OwnSourceReadingContext,type ProdatZ10OwnSourceReadingContext} from './prodatZ10OwnSourceRegisterReadingDeclarations'
 import {observeReceivedZ04HRegister,validateReceivedZ04HRegisterStructure,loadReceivedZ04HRegisterRejection,readReceivedZ04HRegisterWitness,ownReceivedZ04HRegisterRejection} from '@/lib/ediel/prodat/receivedZ04HRegisterRejection'
 import {loadReceivedZ14ReportingContext,receivedZ14ReportingContextForMessage,heldReceivedZ14ReportingContextForMessage,type ReceivedZ14ReportingContext} from '@/lib/ediel/prodat/receivedZ14ReportingContext'
 import {readPeriodicReasonAuthority,type PeriodicReasonAuthority} from '@/lib/ediel/utilts/periodicReasonAuthority'
@@ -443,7 +444,7 @@ export function resolveCanonicalRuntimeDecision(message:EdielMessageRow,facts:Ca
 /** Registry admission freezes the whole guide before consuming its actual
  * issuer owner. Explicit observed time and opaque source capabilities survive
  * that selection without caller-provided success facts. */
-function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{deferUtiltsRuntime?:boolean;receivedReportingContext?:ReceivedZ14ReportingContext;receivedReportingActorUserId?:string;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string;receivedZ04HAddressContext?:ReceivedZ04HAddressContext|null;receivedZ04HAddressActorUserId?:string}):CanonicalRuntimeDecision {
+function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts,options?:{deferUtiltsRuntime?:boolean;receivedReportingContext?:ReceivedZ14ReportingContext;receivedReportingActorUserId?:string;ownSourceReadingContext?:ProdatOwnSourceReadingContext|null;ownSourceReadingActorUserId?:string;ownZ10SourceReadingContext?:ProdatZ10OwnSourceReadingContext|null;ownZ10SourceReadingActorUserId?:string;receivedZ04HAddressContext?:ReceivedZ04HAddressContext|null;receivedZ04HAddressActorUserId?:string}):CanonicalRuntimeDecision {
   const syntax = message.message_standard === 'edifact'
     ? validateEdifactSyntax({ ...message, status: 'received', syntax_check_status: 'not_checked', validation_report: {}, failure_reason: null })
     : { ok: true, issues: [], declaredUntCount: null, actualMessageSegmentCount: null }
@@ -500,6 +501,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
       get admissionAt(){return facts.admissionAt},get replayAt(){return facts.replayAt},
       get prodatSourceCapability(){return facts.prodatSourceCapability},get deathStatusContext(){return facts.deathStatusContext},
       ownSourceReadingContext:options?.ownSourceReadingContext,ownSourceReadingActorUserId:options?.ownSourceReadingActorUserId,
+      ownZ10SourceReadingContext:options?.ownZ10SourceReadingContext,ownZ10SourceReadingActorUserId:options?.ownZ10SourceReadingActorUserId,
       receivedZ04HAddressContext:options?.receivedZ04HAddressContext,receivedZ04HAddressActorUserId:options?.receivedZ04HAddressActorUserId,
     })
   } catch (error) {
@@ -756,6 +758,8 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
   let receivedReportingActorUserId:string|undefined
   let ownSourceReadingContext:ProdatOwnSourceReadingContext|null|undefined
   let ownSourceReadingActorUserId:string|undefined
+  let ownZ10SourceReadingContext:ProdatZ10OwnSourceReadingContext|null|undefined
+  let ownZ10SourceReadingActorUserId:string|undefined
   // Caller facts stay lazy until syntax qualifies. Only this invocation's
   // fresh READ and captured actor can enter the private reporting-context port.
   if(validateEdifactSyntax({...message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}).ok){
@@ -770,9 +774,17 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
         ownSourceReadingContext=await loadProdatOwnSourceReadingContext(message,ownSourceReadingActorUserId)
       }
     }
+    if(receivedReportingActorUserId&&message.direction==='inbound'&&message.message_family==='PRODAT'&&message.message_code==='Z10'){
+      const canonical=parseCanonicalMessageRow(message)
+      if(canonical.family==='PRODAT'&&canonical.messageCode==='Z10'&&canonical.subtype==='E58'){
+        // M uses its own one-use source token, never the public facts or Z04 port.
+        ownZ10SourceReadingActorUserId=receivedReportingActorUserId
+        ownZ10SourceReadingContext=await loadProdatZ10OwnSourceReadingContext(message,ownZ10SourceReadingActorUserId)
+      }
+    }
   }
   const options={deferUtiltsRuntime:message.direction==='inbound',receivedReportingContext,receivedReportingActorUserId,
-    ownSourceReadingContext,ownSourceReadingActorUserId,
+    ownSourceReadingContext,ownSourceReadingActorUserId,ownZ10SourceReadingContext,ownZ10SourceReadingActorUserId,
     receivedZ04HAddressContext:null as ReceivedZ04HAddressContext|null,receivedZ04HAddressActorUserId:receivedReportingActorUserId}
   let base=resolveCanonicalRuntimeDecisionCore(message,facts,options)
   // A private assigned negative birth can own its missing common field without
