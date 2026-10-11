@@ -1,5 +1,19 @@
 # Independent DB05 named-journal component — fixed E
 
+## Current corrected scope — 2026-10-11 12:39 UTC
+
+TAKEN: the same two NEW file reservations, packet a934428c-75bc-4b23-a063-4a0a65a1e809, receipt 8d6d06f987d6fa83a721fd259748ea17523832c9; CLAIM6108944043 and pre-edit SCOPE_CORRECTION6109074060. Root retains both file refs. The dated shared-helper implementation and its 44-test status-refusal oracle below are superseded, not current acceptance evidence.
+
+DONE locally: the unapplied forward replaces only gridex_guard_company_hard_delete_v1, adding tenant-scoped checks for the eleven named journals before physical DELETE. The original six-category helper, disposable-status guard, old applied migration, function signature/rights, maintenance exception and non-disposable refusal remain unchanged. Terminal tombstones with journals are permitted under the existing status rules; their subsequent physical deletion returns SQLSTATE23001 and preserves company/journal rows. No new helper/RPC, retained whole ID, foreign native test, coverage or shared GEN edit.
+
+EVIDENCE: reviewers A and B independently found the c517a736 UI regression; both findings were accepted before correction. Against that bad source the corrected 45-case oracle genuinely failed 12 cases (33 PASS), then the DELETE-only correction passed all45 on Node22.23.3/Vitest4.1.9/PGlite. The added two-step test models pending_deletion, the canonical journal-write boundary and terminal marking; it does not execute the full canonical RPC. Nonincremental test-project TSC exit0; scoped ESLint exit0. Removing only the eleven named DELETE checks exactly restores the original DELETE guard. Original helper/status guard and applied migration bytes remain untouched. No duplicate native, capture, GEN or artifact collection.
+
+Current SHA256: migration deae7a8ceb459acc6c428bba0011d238d3cd2e4eec6915fe9610cc06a0212303; test 5b41da910b5fb48e2962d6affdcd7382d484c96c209a82e96f2c86a70ea13fc2. Corrected RED log 0d185e350d998d1105af96c5c695093dc37367d5752f95775525938c1718b471; GREEN log 42c82b30d983e99271d12b2d4fc2513d0874e444eb4633be118a58fca76e2869. Logs/results retained under /tmp/gridex-forward-20261011/resume-1055/.
+
+ACTUAL DELIVERY GATE: migration integrity exits1 solely because this new forward lacks an entry in scripts/migration-history-manifest.json. That exact file ref remains GET_MATCH f38a746768cf5dbfb5e05bacc63343ac07ac6f95, C747 custody. This local proof is not mandatory CI_GREEN, native/ACL/concurrency/legal-class proof, whole DB05 approval, merge or release. Remaining retention-map/class/hold/indirect/native duties and the old audit-delete success fixture remain with the retained brave-newton owner.
+
+NEXT: publish this corrected immutable component in PR765; require two independently attributed full-component re-reviews on that source; inspect current-head CI; coordinate one exact source/hash/desired-output request with C747's sole manifest/schema/GEN producer. Complete normal expected-head delivery or an actual scoped handoff before exact-owner release of the two resources. No next implementation packet while this packet retains custody.
+
 CLAIM independent DB05 named-journal BLOCKER component — codex-blocker-delivery-20261008-978c8191 — packet a934428c-75bc-4b23-a063-4a0a65a1e809 — branch codex/blocker-db05-journals-978c8191
 
 Actual main 4d69800e388f826b49f8a703f4374cb00d8ab3a4; receipt 8d6d06f987d6fa83a721fd259748ea17523832c9, exactmain-tree/singleparent/literalJSON independently GET_MATCH. Two sorted CREATE_IF_ABSENT resource refs independently GET_MATCH beforecode:
@@ -33,3 +47,13 @@ Proof/source SHA256:
 Nextpublishexactreviewablecomponent, twoindependentcompletefinalreviews, currentCI qualification andonepreciseforeignmanifest/GENhandoff toactualC747producer. Maintainrootfilecustody untilactualdelivery or explicitscopedhandover/release. OriginalBraveoldfixtureconflictandallunqualifiedretention/native/wholecriteriastayretained, no wholeI2/DB05closure claimed.
 
 Test-project nonincremental TSC completed actualexit0 (tsconfig.tests.json, Node22). Local source commit b5ada138e18834cc77f9f0f6cdc6f39bd5f252d4; all44GREEN/lint0/inverseappendMATCH apply to its unchanged two code blobs. This checkpoint-only update changes no implementation/test SQL bytes. Currentintegrity remainsone missingforeignmanifestentry; source-ready is notCI_GREEN or whole/nativeapproval.
+
+## Actual review finding and current scope correction
+
+SCOPE_CORRECTION own DB05 component — PR765 c517a736 — fixed E978c / packeta934428c
+
+Independent complete source reviewers A and B each confirmed an introduced status regression: deleteTestCompanyAction uses pending_deletion→canonical journal writes→deleted_test_only, with hardDeletePerformed:false. My first shared-helper expansion incorrectly blocks that second status command. Original44GREEN oracle wrongly expected newjournalstatusrefusal; those greens are dated and do not prove the actual UI positive. Finding accepted, no whole approval or merge.
+
+Same two exact owned files remain independently GET_MATCH8d6d06f987d6fa83a721fd259748ea17523832c9; no new/foreign files or retainedIDs acquired. Before furthercode: restrict named11journal checks to the existing company physical DELETE guard in the NEW unapplied forward. Leave originalsix-category helper and disposable-status guard unchanged, preserve terminaltombstone/emptypositive and existingrole/maintenance/customer/classpurge rules. No newhelper/RPC/GEN/coverage edits.
+
+NEXT root TDD: change neworacles to preservejournal-only status/terminalpositive and add actualtwo-step journal-before-final-status boundary; firstcapturegenuineRED on currentbadsource, thenminimalDELETE-only fix andfreshaffected44plusboundarychecks/types/lint. Bothindependent reviewers rebind/re-review newimmutablehead. Exactforeignmanifestresource GET_MATCHf38a746768cf5dbfb5e05bacc63343ac07ac6f95 belongs C747; newchecksum/native/sharedschema output remainsactualdeliverygate, no duplicateGEN producer. Owncheckpoint .agent-memory/masterplan-db05-journals-978c8191-checkpoint.md. Root retains twofile refs; no source-release claimed.

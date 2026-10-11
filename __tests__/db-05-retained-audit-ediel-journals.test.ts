@@ -82,11 +82,11 @@ describe('DB05 named retained journals survive company disposal', () => {
   afterEach(async () => { await db.exec('rollback'); });
   afterAll(async () => { await db.close(); });
 
-  it.each(journals)('refuses disposable marking with retained %s', async (table) => {
+  it.each(journals)('preserves terminal status marking without deleting %s', async (table) => {
     await db.query(`insert into public.${table} (company_id) values ($1)`, [active]);
-    expect(await attempt('postgres', `update public.companies set status = 'deleted_test_only' where id = '${active}'`)).toBe('23001');
+    expect(await attempt('postgres', `update public.companies set status = 'deleted_test_only' where id = '${active}'`)).toBeUndefined();
     expect(await count(table, active)).toBe(1);
-    expect((await db.query<{ status: string }>('select status from public.companies where id = $1', [active])).rows[0].status).toBe('onboarding');
+    expect((await db.query<{ status: string }>('select status from public.companies where id = $1', [active])).rows[0].status).toBe('deleted_test_only');
   });
 
   it.each(journals)('refuses service-role parent deletion with retained %s', async (table) => {
@@ -123,6 +123,20 @@ describe('DB05 named retained journals survive company disposal', () => {
     expect(await attempt('service_role', `delete from public.companies where id = '${active}'`)).toBe('23001');
     expect(await count('companies', active)).toBe(1);
     expect(await count('canonical_audit_events', active)).toBe(1);
+  });
+
+  it('preserves the pending-deletion journal-before-terminal-status boundary', async () => {
+    // Model the real canonical caller's ordering, without claiming RPC proof.
+    expect(await attempt('postgres', `update public.companies set status = 'pending_deletion' where id = '${active}'`)).toBeUndefined();
+    for (const table of ['canonical_audit_events', 'canonical_domain_events', 'canonical_event_outbox', 'canonical_command_results']) {
+      await db.query(`insert into public.${table} (company_id) values ($1)`, [active]);
+    }
+    expect(await attempt('postgres', `update public.companies set status = 'deleted_test_only' where id = '${active}'`)).toBeUndefined();
+    expect(await attempt('service_role', `delete from public.companies where id = '${active}'`)).toBe('23001');
+    expect(await count('companies', active)).toBe(1);
+    for (const table of ['canonical_audit_events', 'canonical_domain_events', 'canonical_event_outbox', 'canonical_command_results']) {
+      expect(await count(table, active)).toBe(1);
+    }
   });
 
   it('preserves refusal of non-disposable company deletion', async () => {
