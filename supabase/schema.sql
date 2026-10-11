@@ -24632,8 +24632,11 @@ CREATE FUNCTION gridex_received_sources.confirm_production_contract_on_ack_v1() 
     AS $$
 DECLARE o gridex_received_sources.production_contract_origins%rowtype;e gridex_received_sources.production_contract_events%rowtype;
 BEGIN
- IF NEW.aperak_status IS DISTINCT FROM 'accepted' OR OLD.aperak_status IS NOT DISTINCT FROM NEW.aperak_status
+ IF NEW.status IS DISTINCT FROM 'acknowledged' OR OLD.status IS NOT DISTINCT FROM 'acknowledged'
+ OR NEW.aperak_status IS DISTINCT FROM 'received'
  OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_family IS DISTINCT FROM 'PRODAT' OR NEW.message_code IS DISTINCT FROM 'Z09' THEN RETURN NEW;END IF;
+ IF NOT EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=NEW.id AND x.ack_family='APERAK' AND x.outcome='positive')
+ OR EXISTS(SELECT FROM gridex_ack_authority.scope_outcomes x WHERE x.source_message_id=NEW.id AND x.outcome='negative') THEN RETURN NEW;END IF;
  SELECT * INTO o FROM gridex_received_sources.production_contract_origins WHERE message_id=NEW.id;
  IF NOT FOUND THEN RETURN NEW;END IF;
  SELECT * INTO e FROM gridex_received_sources.production_contract_events WHERE id=o.event_id FOR SHARE;
@@ -24643,6 +24646,12 @@ BEGIN
   VALUES(e.id,e.company_id,e.environment,NEW.id) ON CONFLICT DO NOTHING;
  RETURN NEW;
 END $$;
+
+--
+-- Name: FUNCTION confirm_production_contract_on_ack_v1(); Type: COMMENT; Schema: gridex_received_sources; Owner: -
+--
+
+COMMENT ON FUNCTION gridex_received_sources.confirm_production_contract_on_ack_v1() IS 'P-08: confirms the producing production-contract event once its own bound outbound PRODAT Z09 reaches acknowledged with a positive APERAK scope outcome and no negative scope outcome.';
 
 --
 -- Name: confirmed_death_response_v1(uuid, uuid, integer[]); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
@@ -148363,7 +148372,7 @@ CREATE CONSTRAINT TRIGGER company_memberships_last_functioning_admin_guard AFTER
 -- Name: ediel_messages confirm_production_contract_on_ack; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER confirm_production_contract_on_ack AFTER UPDATE OF aperak_status ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.confirm_production_contract_on_ack_v1();
+CREATE TRIGGER confirm_production_contract_on_ack AFTER UPDATE OF status, aperak_status ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.confirm_production_contract_on_ack_v1();
 
 --
 -- Name: contract_offers contract_offers_closed_delete_guard; Type: TRIGGER; Schema: public; Owner: -
