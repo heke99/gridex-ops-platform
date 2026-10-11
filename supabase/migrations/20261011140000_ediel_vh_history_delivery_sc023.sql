@@ -205,6 +205,9 @@ END$$;
 CREATE FUNCTION public.ediel_link_vh_history_request_v1(p_company_id uuid,p_permission_id uuid,p_site_id uuid,p_request_id uuid,p_message_id uuid,p_transaction_id text,p_actor_user_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE job gridex_vh_history.deliveries%rowtype;prior gridex_vh_history.requests%rowtype;bound jsonb;h text;
 BEGIN
+ -- Coordinate original/job row order with the public permission writer before
+ -- actor, request or job locks. This supplies no READ/send authority.
+ PERFORM gridex_ediel_services.lock_evidence_graph_v1();
  PERFORM gridex_vh_history.authorize_v1(p_company_id,p_actor_user_id,'metering.write');
  PERFORM gridex_vh_history.authorize_v1(p_company_id,p_actor_user_id,'communication.write');
  -- Same lock as closure serializes new links with the final gap snapshot.
@@ -250,6 +253,27 @@ BEGIN
  EXECUTE replace(f.definition,f.prosrc,body);
  IF (SELECT to_jsonb(p)-'prosrc' FROM pg_proc p WHERE p.oid=f.oid) IS DISTINCT FROM f.metadata THEN RAISE EXCEPTION 'vh_history_permission_metadata_changed';END IF;
 END $hook$;
+-- The new post-DML historical reader takes graph SHARE locks. Acquire the
+-- existing canonical self-exclusive writer order BEFORE any source/cohort row
+-- locks, preventing distinct writers' ROW EXCLUSIVE -> SHARE conversion and
+-- original/job inversion. S17 scheduling also serializes; its business checks,
+-- raw domains, periods, V/VH data and outcomes remain the exact predecessor.
+DO $writer_lock$
+DECLARE f record;body text;signature text:='public.ediel_apply_permission_source_v1(uuid,uuid,uuid,uuid)';
+ needle text:=$n$ IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'permission_source_service_required' USING ERRCODE='42501';END IF;
+$n$;
+ prefix text:=$h$ PERFORM gridex_service_permission.lock_request_writer_v1();
+$h$;
+BEGIN
+ SELECT p.oid,p.prosrc,pg_get_functiondef(p.oid) definition,to_jsonb(p)-'prosrc' metadata INTO STRICT f FROM pg_proc p WHERE p.oid=to_regprocedure(signature);
+ IF encode(sha256(convert_to(f.prosrc,'UTF8')),'hex')<>'4362a82ed71d6526be25caea4f1a01ed3d48cd80468f6b1fc962978dc8f454ef'
+  OR (length(f.prosrc)-length(replace(f.prosrc,needle,'')))/length(needle)<>1
+  OR (SELECT encode(sha256(convert_to(p.prosrc,'UTF8')),'hex') FROM pg_proc p WHERE p.oid=to_regprocedure('gridex_service_permission.lock_request_writer_v1()')) IS DISTINCT FROM 'da71d930e83ca1407ef7e192b2a03165069195aab8faa48aa9de8da648c7d1a9'
+ THEN RAISE EXCEPTION 'vh_history_public_writer_predecessor_required';END IF;
+ body:=replace(f.prosrc,needle,needle||prefix);
+ EXECUTE replace(f.definition,f.prosrc,body);
+ IF (SELECT to_jsonb(p)-'prosrc' FROM pg_proc p WHERE p.oid=f.oid) IS DISTINCT FROM f.metadata THEN RAISE EXCEPTION 'vh_history_public_writer_metadata_changed';END IF;
+END $writer_lock$;
 -- Internal operational audit requires a CURRENT tenant read permission. The
 -- expired historical assignment never supplies read or E66 export authority.
 CREATE FUNCTION gridex_vh_history.require_basis_v1(c uuid,pid uuid) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
@@ -269,6 +293,9 @@ END$$;
 CREATE FUNCTION public.ediel_vh_history_delivery_audit_v1(p_company_id uuid,p_permission_id uuid,p_actor_user_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE job gridex_vh_history.deliveries%rowtype;result jsonb;
 BEGIN
+ -- Graph-first read order conflicts with the canonical writer before either
+ -- side can hold the other's original/job row. Existing read ACL is unchanged.
+ PERFORM gridex_ediel_services.lock_evidence_graph_v1();
  PERFORM gridex_vh_history.authorize_v1(p_company_id,p_actor_user_id,'metering.read');
  SELECT * INTO job FROM gridex_vh_history.deliveries WHERE company_id=p_company_id AND permission_id=p_permission_id FOR SHARE;
  IF NOT FOUND THEN RETURN NULL;END IF;

@@ -57,7 +57,18 @@ async function permission(n,objects,application=null){
  await db.exec(capturedFunction('public.gridex_normalize_facility_id'))
  for(const name of ['public.metering_points','public.customer_sites']){const a=schema.indexOf('CREATE TABLE '+name+' (');assert.ok(a>=0);await db.exec(schema.slice(a,schema.indexOf('\n);',a)+4))}
  // Historical reviewed assignment is an explicit external admission port.
- await db.exec("ALTER TABLE public.companies ADD COLUMN status text DEFAULT 'active';ALTER TABLE auth.users ADD COLUMN deleted_at timestamptz;ALTER TABLE auth.users ADD COLUMN banned_until timestamptz;CREATE SCHEMA gridex_ediel_services;CREATE FUNCTION gridex_ediel_services.lock_evidence_graph_v1() RETURNS void LANGUAGE sql AS $$SELECT$$;")
+ await db.exec("ALTER TABLE public.companies ADD COLUMN status text DEFAULT 'active';ALTER TABLE auth.users ADD COLUMN deleted_at timestamptz;ALTER TABLE auth.users ADD COLUMN banned_until timestamptz;CREATE SCHEMA gridex_ediel_services;")
+ // Real captured graph locks replace the previous no-op. Missing graph-only
+ // relations are declared empty fixture ports; existing captured domain tables
+ // are preserved. Single-session PGlite is not concurrency/native evidence.
+ const graphFunctions=['gridex_ediel_ack_replay.lock_current_graph_v2','gridex_ediel_services.lock_evidence_graph_v1','gridex_service_permission.lock_request_writer_v1'].map(capturedFunction)
+ for(const definition of graphFunctions)for(const match of definition.matchAll(/LOCK TABLE\s+([\s\S]*?)\s+IN (?:SHARE|SHARE ROW EXCLUSIVE) MODE;/g))for(const relation of match[1].split(',').map(x=>x.trim())){
+  if(!(await db.query('SELECT to_regclass($1) present',[relation])).rows[0].present){
+   await db.exec('CREATE SCHEMA IF NOT EXISTS '+relation.split('.')[0]+';CREATE TABLE '+relation+'(id uuid PRIMARY KEY);')
+  }
+ }
+ await db.exec('CREATE SCHEMA IF NOT EXISTS gridex_service_permission;')
+ for(const definition of graphFunctions)await db.exec(definition)
  const actualReader=capturedFunction('gridex_received_sources.received_z14_reporting_source_basis_v1')
  const readerAuth=actualReader.slice(actualReader.indexOf(" IF current_setting('role'"),actualReader.indexOf(" IF m.direction IS DISTINCT"))
  assert.ok(readerAuth.includes('received_reporting_read_actor_forbidden'))
