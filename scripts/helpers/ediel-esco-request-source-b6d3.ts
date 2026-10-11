@@ -1,6 +1,10 @@
 // masterplan: AT-Z13V-ESCO, AT-Z13VH-ESCO
 // Prospective public source refusal; no hooks, tests or manufactured authority.
 import {createHash,randomUUID} from 'node:crypto'
+import {execFileSync} from 'node:child_process'
+import {closeSync,mkdtempSync,openSync,readFileSync,rmSync} from 'node:fs'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
 import {serialize} from 'node:v8'
 import {expect} from 'vitest'
 import {segmentComposite,segmentElementCount,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
@@ -11,7 +15,7 @@ import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolic
 import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import {reviewNativeEscoAssignmentEvidence as review,seedNativeEscoFixture,
- prepareNativeEscoPermissionFixture,nativeEscoSql as sql,nativeEscoLiteral as lit,nativeEscoExternal} from '../fixtures/ediel-service-evidence-native'
+ prepareNativeEscoPermissionFixture,nativeEscoSql as sql,nativeEscoLiteral as lit,nativeEscoExternal,NATIVE_ESCO_DB} from '../fixtures/ediel-service-evidence-native'
 
 type Fixture=Awaited<ReturnType<typeof seedNativeEscoFixture>>
 type Row=Record<string,unknown>
@@ -336,8 +340,23 @@ const generatedProtectedTables=['gridex_received_sources.validation_assessments'
  'gridex_ediel_wire_namespace.reservations','gridex_ediel_source_rules.receipts','gridex_ediel_technical_ack.sources',
  'gridex_ediel_technical_ack.syntax_facets','gridex_ediel_technical_ack.replies','gridex_ediel_inbound_receptions.receptions',
  'public.ediel_ack_transaction_results','public.ediel_business_references','public.ediel_processing_runs','public.ediel_decision_traces','public.ediel_sla_timers'] as const
-const protectedGenerated=()=>sql<Row>(`SELECT jsonb_build_object(${generatedProtectedTables.map(table=>
- `'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r)`).join(',')})`)
+function protectedGenerated():Row{
+ if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('synthetic_local_native_only')
+ const statement=`SELECT jsonb_build_object(${generatedProtectedTables.map(table=>
+  `'${table}',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]') FROM ${table} r)`).join(',')})`
+ // Retain every full global row as history grows, without child stdout limits.
+ // This private file is a read snapshot, never a database authority or artifact.
+ const directory=mkdtempSync(join(tmpdir(),'gridex-esco-generated-history-')),file=join(directory,'full.json')
+ let descriptor:number|undefined
+ try{
+  descriptor=openSync(file,'wx',0o600)
+  execFileSync('psql',[NATIVE_ESCO_DB,'-XAtq','-v','ON_ERROR_STOP=1'],
+   {input:statement,encoding:'utf8',timeout:10000,maxBuffer:4_000_000,stdio:['pipe',descriptor,'pipe']})
+  return JSON.parse(readFileSync(file,'utf8').trim()) as Row
+ }finally{
+  try{if(descriptor!==undefined)closeSync(descriptor)}finally{rmSync(directory,{recursive:true,force:true})}
+ }
+}
 async function qualifyEscoDetachedGenerated13(f:Fixture,p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>,basis:ServicePermissionOriginBasis,ports:Pick<Ports,'state'|'sentinel'>){
  const before=ports.state(f),protectedBefore=protectedGenerated(),sent=structuredClone(p.z13),smtp=serialize(nativeEscoExternal.send.mock.calls)
  const conserved=()=>{expect(ports.state(f)).toEqual(before);expect(protectedGenerated()).toEqual(protectedBefore)
