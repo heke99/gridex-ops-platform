@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
 import type {
   ContractOfferRow,
@@ -238,6 +238,8 @@ type CanonicalContractBinding = {
 };
 
 type ManualBindingInput = {
+  /** Contract that will own the one-off offer; only it may bind the offer. */
+  intendedContractId: string;
   companyId: string;
   siteId?: string | null;
   meteringPointId?: string | null;
@@ -492,6 +494,7 @@ async function prepareManualCanonicalBinding(
     {
       p_company_id: input.companyId,
       p_payload: {
+        intended_contract_id: input.intendedContractId,
         name: input.contractName,
         contract_type: input.contractType,
         customer_type: "both",
@@ -882,9 +885,13 @@ export async function createCustomerContract(input: {
   if (status !== "draft" && !input.companyId) {
     throw new Error("Bolag krävs för att versionslåsa kundavtalet.");
   }
+  // Preallocated so the one-off offer is reserved for exactly this contract
+  // between the binding command and the INSERT below.
+  const contractId = randomUUID();
   const manualBinding =
     !input.contractOfferId && status !== "draft" && input.companyId
       ? await prepareManualCanonicalBinding({
+          intendedContractId: contractId,
           companyId: input.companyId,
           siteId: input.siteId,
           meteringPointId: input.meteringPointId,
@@ -922,6 +929,7 @@ export async function createCustomerContract(input: {
   const { data, error } = await supabaseService
     .from("customer_contracts")
     .insert({
+      id: contractId,
       company_id: input.companyId ?? null,
       customer_id: input.customerId,
       site_id: input.siteId ?? null,
@@ -1124,6 +1132,7 @@ export async function updateCustomerContract(input: {
     !existing.contract_publication_version_id &&
     input.companyId
       ? await prepareManualCanonicalBinding({
+          intendedContractId: input.id,
           companyId: input.companyId,
           siteId: input.siteId,
           meteringPointId: input.meteringPointId,
