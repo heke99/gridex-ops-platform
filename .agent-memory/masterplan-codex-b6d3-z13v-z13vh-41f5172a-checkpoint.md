@@ -1194,3 +1194,23 @@ limits, coverage unchanged. Same own refs/custody, no new pair or merge-role.
 NEXT ROOT implement two local native cases/strict32; scoped static verification,
 new exactsource2 reviews and refreshed preflight before sole native/currentCI.
 Existing bbb source reviews remain historical applicability, not newhead approval.
+
+
+## 2026-10-11 UTC — exact-source refutation and fresh P08 main before corrections
+
+Unpublished edfb957220916c5fb868be7141bdb89cae04f3d1/tree29beeb adds twoN cases;
+original1428line/30case prefix byte-preserved. TSC/lint/staticwf/budget PASS.
+Independent source refutation found two real test-oracle errors before execution:
+ackState includes whole-company effects which must grow for N+2 processingACKs;
+second retained(f,raw) creates fresh mailbox/parse custody and is a protocol
+duplicate HOLD, not same original reception replay. ROOT will preserve complete
+original-ACK projections with separately exact own-effect assertions, retain one
+actual public intake input and replay that original input. No native/CI started.
+Fresh main da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32 actuallymerged P08#736,
+10 foreign source/schema/migration/manifest/coverage paths; approvedledger now
+116/121+191/231=307/352,45remain. No own-file overlap. Rebase own unpublished
+source to actualmain preserving every foreigncoverage/newmigration, reconcile
+shared summary under retainedrole+exactfiles; re-review exactcorrectedhead.
+Same owned e13 packet/all10refs, memory-role retainedforconcretedelivery, no
+merge-role; no whole/coverage/market credit. NEXT ROOT causal oracle corrections
++P08 rebase/static checks, new exactsource2 C0I0, one fresh32native/currentCI.
