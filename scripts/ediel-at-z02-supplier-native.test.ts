@@ -898,10 +898,11 @@ async function executeSeparateReadiness(f: Fixture, received: Received) {
 
 // Oracle epoch map: original PR658/87778063 native SHA256
 // f7fcc4be1ccce6c86a572fd61b0dbfa971d4d3c750a494c13b009ad89e219b4c.
-// Its 5+42+42 logical cases remain. Only L/LK missing312 uses the explicit
-// current early-refusal oracle below: e641348f removed the old null-version
-// return. The historical later SQL-warning expectation is not claimed executed.
-// Neither error text alone nor an arbitrary missing/foreign guide proves312.
+// Its 5+42+42 logical cases remain. Missing312 uses the current early-refusal
+// oracle below after e641348f removed the old null-version return. Physical
+// 209/314 use their separately qualified structural/profile birth refusal.
+// Historical later effects are not claimed executed; every early refusal
+// requires its own real control, source cause and complete preserved effects.
 const preBirthAuthorityTables = [
   'gridex_received_sources.sources', 'gridex_received_sources.validation_assessments',
   'gridex_received_sources.z02_core_applications', 'gridex_received_sources.prodat_response_facets',
