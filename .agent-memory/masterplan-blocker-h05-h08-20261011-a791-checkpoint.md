@@ -31,3 +31,20 @@ Node22.23.3 officialtar SHA256 MATCH; npm ci --cache /tmp/gridex-blocker-npm-cac
 
 Next implement own separate helper/API returning decision+realfacet; current2f alone supplies private runtime WeakMap import/call/register boundary. Own ingress resourceb4? is documented6107646052/extensionreceipt exact in state, no foreign edit. No wholeH05/H08/native/coverage claim.
 
+
+## Same H05/H08 proof prerequisite extension / BEFORE native asset authoring
+
+Fresh actualmainc4d5c8f3e5c05fe189acb374c14e7c159a4319ed; all own5priorrefs MATCH. Root additionally CREATE_ONLY/independent GET MATCH six absent/free exactpaths receipt `42d4388597f09ecdf2152907629d1dddb0b7a2bd`:
+- `scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts`
+- `scripts/ediel-at-z05h-z08h-supplier-native.test.ts`
+- `scripts/helpers/ediel-supply-end-field-omissions.ts`
+- `__tests__/ediel-supply-end-field-omissions.test.ts`
+- `scripts/ediel-z05h-z08h-supplier-native.config.ts`
+- `.github/workflows/ediel-z05h-z08h-supplier-native.yml`
+
+Original665 fullhead9c1c668f344bb7fd1d34b552885938c1b908bf75/nativeblob7992ec704654c464ea5351f54b6b70b32c4b0551 retained; original96 failures preserved. Other blocker978 actually rolled back sevenfile attempt exact404 after our H-ID conflict, documented6107650778, then provided finite96 sourcehandover: 306E22→Z12,254D→Z32+222D,259111→101 currentguide compatibility preservingnegativeoriginaloracles. Internal bounded worker may author only these sixroot-ownedpaths; ROOT remains sole H96 verifier/producer.
+
+Current sharedfixture and foreignOPS03 exactfinite model remain unchanged. New unique fixture preserves fullcurrentmain postimage, adding honest pre-sign contract binding/billing input+finite64MiB originalsnapshots; never seed accepted runtime/domain rows. Must not import historic fullsharedfixture. Preserve native wholecase sequence/effect/negative/replay/rollback assertions, originalsource references and96 requirements. First omissionmodule taggedbehavior tests before corrections; strict missing209 native assertions must require ownnegative41/42 and no business effects, not acceptbirthrefusal/hold as wholeproof. No jobs/manualnative/capture/GEN or coverage started by this extension.
+
+Next worker prepares6assets+targetedomissiontest/types/lint, root continues209helper+exact2f hook request, independent review then single ownPR native event after current-source integrationready. WholeH95/H08 coverage remainsNOT_EXECUTED untilallliteralproof; no predecessorH100 borrowing.
+
