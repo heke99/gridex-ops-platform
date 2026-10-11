@@ -77,7 +77,7 @@ describe.each([['canonical',canonical,NEGATIVE],['legacy',legacy,['negative APER
    expect(db.rows.supply_periods).toEqual([PERIOD])
   })
  })
- describe.each(['submitted','sent','queued'])('before Z04 (switch %s)',status=>{
+ describe.each(['prepared','submitted','sent','queued'])('before Z04 (switch %s)',status=>{
   beforeEach(()=>seed(status,false))
   it.each(negatives)('a %s still rejects the switch',async ack=>{
    await run(ACKS[ack]())

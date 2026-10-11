@@ -33,6 +33,7 @@ import {
 import type { SupplierSwitchRequestRow } from "@/lib/operations/types";
 import { syncCustomerCaseCancellationAck } from "@/lib/customer-cases/db";
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
+import { SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES } from "@/lib/inbound-mail/canonicalInboundAckStatusUpdater";
 
 type InboundAckFamily = Extract<
   EdielMessageFamily,
@@ -404,32 +405,60 @@ async function syncSwitchFromInboundAck(params: {
   const supabase = supabaseService;
 
   if (params.outcome === "negative") {
-    const updated = await updateSupplierSwitchRequestStatus(supabase, {
-      requestId: current.id,
-      status: "failed",
-      failureReason:
-        params.failureReason ??
-        `${params.ackMessage.message_family} negativ kvittens.`,
-      externalReference:
-        params.ackMessage.external_reference ??
-        current.external_reference ??
-        null,
-    });
+    const failureReason =
+      params.failureReason ??
+      `${params.ackMessage.message_family} negativ kvittens.`;
+    const externalReference =
+      params.ackMessage.external_reference ??
+      current.external_reference ??
+      null;
+    // P-11: a late negative ACK never rolls back a switch that Z04 already
+    // confirmed. The old-status predicate lives in the same UPDATE statement,
+    // so a concurrent Z04 cannot be overwritten between read and write.
+    const { data: failedRow, error: failError } = await supabase
+      .from("supplier_switch_requests")
+      .update({
+        status: "failed",
+        failure_reason: failureReason,
+        external_reference: externalReference,
+        failed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", current.id)
+      .eq("company_id", current.company_id)
+      .in("status", SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES)
+      .select("*")
+      .maybeSingle();
+    if (failError) throw failError;
+    const updated = (failedRow as SupplierSwitchRequestRow | null) ?? null;
+
+    if (updated) {
+      await createSupplierSwitchEvent(supabase, {
+        switchRequestId: current.id,
+        eventType: "status_updated",
+        eventStatus: "failed",
+        message: failureReason,
+        payload: { status: "failed", previous_status: current.status, new_status: "failed", externalReference, failureReason },
+      });
+    }
 
     await createSupplierSwitchEvent(supabase, {
       switchRequestId: current.id,
       eventType: "ediel_ack_received",
-      eventStatus: "failed",
-      message: `${params.ackMessage.message_family} negativ kvittens mottagen. Switch markerad som failed.`,
+      eventStatus: updated ? "failed" : "warning",
+      message: updated
+        ? `${params.ackMessage.message_family} negativ kvittens mottagen. Switch markerad som failed.`
+        : `${params.ackMessage.message_family} negativ kvittens mottagen efter affärsbekräftelse. Switchstatus behölls.`,
       payload: {
         sourceEdielMessageId: params.sourceMessage.id,
         ackEdielMessageId: params.ackMessage.id,
         outboundRequestId: params.outboundRequest?.id ?? null,
         outcome: params.outcome,
+        currentSwitchStatus: updated ? "failed" : current.status,
       },
     });
 
-    return updated;
+    return updated ?? current;
   }
 
   if (

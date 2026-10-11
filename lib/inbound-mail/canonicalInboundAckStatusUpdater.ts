@@ -181,11 +181,17 @@ async function persistInboundAck(input: {
 }
 
 export const OUTBOUND_BUSINESS_RESPONSE_STATUSES = '("confirmed","business_response_received")'
-// Supplier-switch states before the business confirmation (PRODAT Z04). Mirrors
-// the dispatch statuses in gridex_guard_supplier_switch_dispatch plus draft.
-// A negative ACK may only reject a switch in one of these states; once Z04 has
-// moved it to accepted/confirmed/completed a late ACK never rolls it back (P-11).
-export const SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES = ['draft', 'ready', 'queued', 'submitted', 'sent', 'processing']
+// Supplier-switch states before the business confirmation (PRODAT Z04): the
+// pre-Z03 states the Z03 binder accepts (it leaves the switch 'prepared', and
+// the send worker never advances it), plus the dispatch statuses of
+// gridex_guard_supplier_switch_dispatch. A negative ACK may only reject or fail
+// a switch in one of these states; once Z04 has moved it to accepted/confirmed/
+// completed a late ACK never rolls it back (P-11). Single source of truth for
+// the canonical, legacy and inboundAckProcessing paths.
+export const SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES = [
+  'draft', 'ready', 'ready_for_switch', 'ready_for_z03', 'z03_ready', 'prepared', 'waiting',
+  'queued', 'submitted', 'sent', 'processing',
+]
 
 async function updateOutboundAck(input: {
   companyId: string
