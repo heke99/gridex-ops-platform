@@ -1,4 +1,5 @@
-// Prospective supplemental DB-01 native upgrade; no approval tag.
+// masterplan: DB-01, AT-DB-01
+// Supplemental reconstructed DB-01 containment/current-authority native proof.
 // Historical reconstructed births use BASE56 source and database plus the
 // pinned snapshot repair and one committed current AGT producer over BASE
 // dependencies. Only its real BASE public creator receives a prospective
