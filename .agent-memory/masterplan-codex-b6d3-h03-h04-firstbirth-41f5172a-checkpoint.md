@@ -1019,3 +1019,21 @@ b8ee retained. No new artifact downloaded/file written, no coverage/headchange.
 NEXT ROOT postthisscopeCLAIM673 before preservation; existinga6 native
 38095758584/job114341192257 is soleproducer, actualcompletion+oneoriginal
 qualification required. Originalb61 retained separately; no duplicate run or merge-role.
+
+
+## 2026-10-11 Stockholm — fresh R2 whole CODE proof approved; only own coverage next
+
+Sourcea6f7acab79de2fdea06fde28756dd7f8b4ff57f4/treea285593d, includes main#732.
+Actual successfulrun38095758584/attempt1/job114341192257/artifact11686431504:
+original239951bytes SHA256949ae4e5ed3cf042d9ebb6458da21ec7049b8007f530ccf702364ea4b1212099.
+Strict authentic API/digest/CRC/three-member/closedlog/complete4592inputhash
+qualification PASS;100unique native PASS/0FAIL-ERROR-SKIP. Both independent
+whole source+same-original R2 reviews C0I0 approve internal literal H CODE proof.
+Priorb61 baseline remains separate; no real market/issuer/counterparty/SMTP or
+activation/deployment credit. Existing ordinaryCI remains required.
+
+Both whole-IDrefs01f5 freshagent/packetMATCH; total11ownrefs, successorarchive
+3416b8ca and existingverification custody retained. NEXT ROOT preserve R2 original
+and update alreadyowned verification.json, ONLY own2coverage rows PASSED with
+concrete evidence; preserve allforeignrows. Then exactfinalhead independentdelta
+reviews/currentmandatoryCI/serialmerge/actualdelivery/release. No merge-role.
