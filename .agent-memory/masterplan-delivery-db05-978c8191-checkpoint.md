@@ -1,5 +1,15 @@
 # Fixed E delivery preflight and DB05 component qualification
 
+## Authentic GEN actually imported and published — 2026-10-11 14:49 UTC
+
+TAKEN: same DB05 packet a934428c-75bc-4b23-a063-4a0a65a1e809, own seven exact refs8d(two)+c951(five), supplemental CLAIM6109920094. Fresh all7GET_MATCH plus literal c951receiptJSON before actual import. E remains sole designated archive reader/importer. No next blocker taken.
+
+DONE/EVIDENCE: existing automatic capture38145633287/attempt1 actuallySUCCESS14:45:11UTC. Single valid archive11705520854/1,696,547bytes/official ZIPdigestee43e8a1db5488ae7d5111f9ed55602c6d5fa592c2e3ab3a8a1c0dcc975ba12b qualified once: exact frozen18764532/treecbb3, CRC/fourmembers/eight input hashes/three output hashes/tail121542-deae/NOT_RUN flags. Authentic3GEN imported byte-exactly with owned manifest. Full prior schema bytes restored by only guard-body inverse; fingerprint allfields restored by twohash inverse; typebytes identical. All112foreignmanifestfields and previous747capture attribution preserved; fulloldmanifestinverse byteMATCH. Primary/additions maps unchanged. CurrentactualNode22 generated-typesPASS at121542, integrityPASS1148/1051; relevant source45GREEN/TSC/lint applicability retained without duplicate executions.
+
+DELIVERABLE: published immutable b4545a4a7e18849eca9cedb98dc4e95eb98a300c/treeace8ecfb54f4f1ddc54051e6595e1e351d031f1b, soleparent18764532. PR765 actualOPEN/NON-DRAFT, refreshed implementation description. READY6110234660 independently fullbodyGET_MATCH. Actual main stilld00ca126;767OPEN, #673active. Two genuinely independent affected complete-component reviewers A/B now inspect finalGEN/source and historicalpreservation. Capture-only doesnotprove native/browser/comparison/parity/wholelegal; mandatory finalheadCI is notyetgreen.
+
+NEXT: applicable A/B bounded reviews, currentb454mandatoryCI, normal expected-head merge on immediatelyfree verifiedrole, authenticate actualmainparents/tree, role-FIRST and all7exact-receiptSHA DELETE/404. Reuse source-smoke failure only as historical fixedGENtail diagnosis. No archived-log/validarchive second reader, manualproducer, alternateGENpatch/checker weakening or wholecoverage promotion. Cleanup examines only obsolete own queued18764 automaticruns with actualb454replacements, preserving designatedcapture/terminal/in_progress proof and allcurrentruns.
+
 ## Actual smoke cause and reviewed import controls — 2026-10-11 14:38 UTC
 
 EVIDENCE: current18764532 smoke job114491751970/run38145633301 genuinelyFAIL; sole designated readonly collector CI helper sealed log SHA256ec0994852b66447a2edb749941c78e38ca658ff956780abef50b879d187501c8 privately and reported only redacted cause. Actual E2E14/15PASS: integrity1148/1051PASS, generated-types gate refuses migration tail121542 because manifest stillnames94500. This is the already planned owned GEN-tail gate, not a newly invented DB05 SQL/UI/native regression. Root did not fetch a second log/artifact or weaken/rewrite the gate.
