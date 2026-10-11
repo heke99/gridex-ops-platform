@@ -1003,9 +1003,13 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
     ...(requirements.requiresAperak||requirements.supportsNegativeAperak&&current.requires_aperak===true?['aperak_due']:[])]
    expect(timerTypes.sort()).toEqual(expected.filter(type=>!ledger.own.slaTimers.some(r=>r.ediel_message_id===source.id&&r.timer_type===type)).sort())
   }
+  // Preserve full SQL rows while deriving timestamp serialization from
+  // the exact source-clock plan, never from the timer being compared.
+  const sqlTime=(value:string)=>sql<string>(`SELECT to_jsonb(${lit(value)}::timestamptz)`)
   for(const timer of rows.slaTimers){expect(['contrl_due','aperak_due']).toContain(timer.timer_type)
    expect(timer).toEqual({id:timer.id,company_id:f.ids.company,ediel_message_id:source.id,timer_type:timer.timer_type,status:'open',
-    due_at:timer.timer_type==='contrl_due'?timerPlan.contrlDueAt:timerPlan.aperakDueAt,warning_at:timerPlan.warningAt,critical_at:timerPlan.criticalAt,
+    due_at:sqlTime(timer.timer_type==='contrl_due'?timerPlan.contrlDueAt:timerPlan.aperakDueAt),
+    warning_at:sqlTime(timerPlan.warningAt),critical_at:sqlTime(timerPlan.criticalAt),
     triggered_at:null,payload:{receivedAt:timerPlan.receivedAt,anchorKind:timerPlan.anchorKind,anchorCertainty:timerPlan.anchorCertainty},
     created_at:timer.created_at,updated_at:timer.updated_at,created_by:f.ids.actor,updated_by:f.ids.actor})
   }
