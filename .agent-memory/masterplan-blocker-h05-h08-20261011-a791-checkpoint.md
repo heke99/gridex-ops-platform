@@ -24,3 +24,10 @@ Implementation plan: (1) actual async resolver/renderer test reproduces missing/
 
 Skills: Supabase read for existing authenticated READ/security boundary; current changelog examined (no API/RLS/schema feature changed); finite RPC docs consulted. No schema/roles/key exposure modifications. Local dependencies initial npm attempt failed because default cache path inaccessible and Node24 mismatched project22; installing verified officialNode22 tar SHA and npm ci into ownworktree with cache /tmp, without changing lockfile. Original failed log retained.
 
+
+## Confirmed behavioral RED / before production correction
+
+Node22.23.3 officialtar SHA256 MATCH; npm ci --cache /tmp/gridex-blocker-npm-cache PASS, locked deps unchanged. Genuine async runtime test14cases executed on actualc4d5:9FAIL/5PASS in2.81s. Failure classes: physical missing/malformed209 scopes return manual_review instead of rejected and no runtime-owned response; private current actor denial never reached; cloned-owner adversarial case has no actual owner to start from. Real runtime/structural validator/catalog decoder/renderer/source-evidence execute; only external READ IO is declared finite, no capture/native/send. Log z05-runtime-red.log retained /tmp/gridex-blocker-intake/resume-20261011. Expected outcomes are independent literals ERC41/42+field209+nullID+OWN-LI and no application/sourcefunction/business owner. Rootcause confirmed: existing private Z05 owner has no async runtime hook, plus inbound excludes it from exact negative gates.
+
+Next implement own separate helper/API returning decision+realfacet; current2f alone supplies private runtime WeakMap import/call/register boundary. Own ingress resourceb4? is documented6107646052/extensionreceipt exact in state, no foreign edit. No wholeH05/H08/native/coverage claim.
+
