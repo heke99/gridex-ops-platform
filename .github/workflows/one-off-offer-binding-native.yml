@@ -1,0 +1,72 @@
+name: One-off offer binding native
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/one-off-offer-binding-native.test.ts'
+      - 'scripts/one-off-offer-binding-native.config.ts'
+      - 'scripts/helpers/ediel-normal-switch-native-fixture.ts'
+      - 'lib/customer-contracts/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/one-off-offer-binding-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: one-off-offer-binding-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Executes the real save -> publish -> archive/reserve -> bind chain for
+# one-off manual contracts after a disposable clean replay. Ordinary OPS
+# clean/upgrade/parity gates remain mandatory.
+jobs:
+  one-off-offer-binding-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Run the one-off binding chain after disposable clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p one-off-native-working
+          # The replay owner keeps its EXIT cleanup trap. Replay/status output
+          # can contain disposable credentials and is never uploaded.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/one-off-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/one-off-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/one-off-offer-binding-native.config.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=one-off-native-working/native-junit.xml \
+            > one-off-native-working/native.log 2>&1 || native_exit=$?
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root one-off-native-working
+          mv one-off-native-working one-off-native-evidence
+          cat one-off-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: one-off-offer-binding-native-${{ github.event.pull_request.head.sha }}
+          path: one-off-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
