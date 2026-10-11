@@ -155,20 +155,25 @@ type SourceReadControl = {contrast: SourceContrast; original: Original; document
 function assertGenuineZ02Birth(f: Fixture, original: Original, message: EdielMessageRow,
   intake: Pick<SourceReadControl['intake'], 'mailbox' | 'match' | 'tenant'>) {
   expect(intake.match.status).toBe('matched')
+  expect(intake.match.entityId).toBe(original.request.outbound_request_id)
   expect(intake.tenant).toMatchObject({companyId: f.companyId})
   expect(message).toMatchObject({company_id: f.companyId, environment: 'test', direction: 'inbound',
     message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z02', customer_id: f.customerId,
-    site_id: f.siteId, grid_owner_id: f.gridId, inbound_email_message_id: intake.mailbox.inboundEmailMessageId})
+    site_id: f.siteId, grid_owner_id: f.gridId, outbound_request_id: original.request.outbound_request_id,
+    inbound_email_message_id: intake.mailbox.inboundEmailMessageId, mailbox_message_id: intake.mailbox.inboundEmailMessageId})
   // Read the genuine database birth and retained mail/parse. A missing source,
   // clock, hash or matcher binding must not masquerade as correlation refusal.
   const birth = sql(`SELECT jsonb_build_object('id',s.source_message_id,'company',s.company_id,'environment',s.environment,
     'origin',s.origin,'hash',s.payload_hash,'context',s.received_context,'parseId',p.id,
     'rawBound',s.raw_payload=m.raw_payload AND s.raw_payload=mail.raw_edifact_payload AND s.raw_payload=p.raw_payload
       AND s.payload_hash=m.immutable_payload_hash AND s.payload_hash=encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex'),
-    'clockBound',isfinite(s.source_received_at) AND isfinite(s.captured_at)
+    'clockBound',isfinite(s.source_received_at) AND isfinite(s.captured_at) AND isfinite(mail.received_at)
+      AND mail.received_at<=s.source_received_at AND s.source_received_at<=s.captured_at
+      AND s.source_received_at=date_trunc('milliseconds',mail.received_at)
       AND s.source_received_at=m.message_received_at
       AND (s.received_context->>'sourceReceivedAt')::timestamptz=s.source_received_at
-      AND isfinite((s.received_context->>'capturedAt')::timestamptz),
+      AND isfinite((s.received_context->>'capturedAt')::timestamptz)
+      AND (s.received_context->>'capturedAt')::timestamptz>=s.source_received_at,
     'contextBound',s.received_context=m.execution_context_snapshot->'receivedProdatContext')
     FROM gridex_received_sources.sources s JOIN public.ediel_messages m ON m.id=s.source_message_id
       AND m.company_id=s.company_id AND m.environment=s.environment
@@ -221,7 +226,8 @@ async function readMatchedZ02Source(f: Fixture, original: Original, message: Edi
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(message, {actorUserId: f.actorUserId})
   expect([decision.syntaxDecision, decision.applicationDecision, decision.functionalDecision]).toEqual(['accepted', 'accepted', 'accepted'])
   expect(readReceivedCanonicalProdatApplicationObjects(decision, message)).not.toBeNull()
-  expect(readReceivedCanonicalProdatSourceFunction(decision, message)).not.toBeNull()
+  // This owner is Z06 customer-life-event authority and is not applicable to Z02.
+  expect(readReceivedCanonicalProdatSourceFunction(decision, message)).toBeNull()
   expect(readReceivedCanonicalProdatResponseValidation(decision, message)).not.toBeNull()
   return result.data
 }
@@ -350,6 +356,21 @@ async function assertPhysicalZ02GuidanceWithSelectedReadRefusal(f: Fixture, rece
   expect(received.message.company_id, witness).toBe(f.companyId)
   expect(received.message.processing_status, witness).not.toBe('routing_unresolved')
   assertGenuineZ02Birth(f, control.original, received.message, received)
+  const basis = control.basis as {acceptedTransport: {id: string; observed_at: string};
+    acceptedTransportReceipt: {attemptId: string; observedAt: string}}
+  expect(basis.acceptedTransport.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+  expect(basis.acceptedTransportReceipt.attemptId).toBe(basis.acceptedTransport.id)
+  // Compare the actual negative source clock to the SAME accepted attempt,
+  // using PostgreSQL precision. A prior-receipt NULL cannot satisfy this cause.
+  expect(sql(`SELECT to_jsonb(isfinite(a.entered_at) AND isfinite(a.observed_at)
+    AND a.observed_at=${literal(basis.acceptedTransport.observed_at)}::timestamptz
+    AND a.observed_at=${literal(basis.acceptedTransportReceipt.observedAt)}::timestamptz
+    AND a.entered_at<=a.observed_at AND a.observed_at<=s.source_received_at)
+    FROM gridex_received_sources.sources s JOIN gridex_ediel_transport.attempts a
+      ON a.id=${literal(basis.acceptedTransport.id)} AND a.company_id=s.company_id AND a.environment=s.environment
+      AND a.message_id=${literal(control.original.originalZ01.id)} AND a.classification='accepted'
+      AND a.binding->>'originalHash'=${literal(sha(control.original.originalZ01.raw_payload!))}
+    WHERE s.source_message_id=${literal(received.id)} AND s.company_id=${literal(f.companyId)}`)).toBe(true)
   assertOnlySelectedSourceTupleChanged(control, received.message, expected)
   expect(received.message.validation_report, witness).toMatchObject({canonicalRuntimeVersion: '2.5B',
     syntaxDecision: 'accepted', applicationDecision: 'manual_review', functionalDecision: 'manual_review'})
@@ -424,7 +445,7 @@ async function assertPhysicalZ02GuidanceWithSelectedReadRefusal(f: Fixture, rece
     registers: [{lineIndex: 0, lineNumber: segmentComposite(lin, 1, wire.una)[0], registerIndex: null,
       registerPosition: 1, segmentIndex: lin.index}]}
   expect(application, witness).toEqual({version: 1, owner: 'canonical-prodat-application-all-v1',
-    coverage: 'canonical_own_application_only', sourcePayloadHash: sha(raw), headerDecision: 'accepted',
+    coverage: 'canonical_own_application_only', headerDecision: 'accepted',
     objects: [{...scope, applicationDecision: 'accepted', reasonCodes: []}]})
   expect(decision.prodatRegisterValidation, witness).toEqual({version: 1, owner: 'validateProdatRegisterPolicy',
     coverage: 'canonical_register_only', objects: [{...scope, disposition: 'accepted', reasons: []}]})
