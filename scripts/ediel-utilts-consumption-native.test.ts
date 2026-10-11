@@ -891,7 +891,7 @@ it('private storage and old unbound function are unavailable to service callers'
 // string-body/dynamic calls are a separate installed-source inventory below.
 const persistenceCatalogOwners = [
   ['public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)',
-    '20261001110500_ediel_utilts_current_execution_actor.sql', 'public.gridex_persist_utilts_consumption_v1'],
+    '20261011090000_ediel_utilts_late_older_sink_exclusion.sql', 'public.gridex_persist_utilts_consumption_v1'],
   ['gridex_utilts_binding.require_execution_actor_v1(uuid,uuid)',
     '20261001110500_ediel_utilts_current_execution_actor.sql', 'gridex_utilts_binding.require_execution_actor_v1'],
   ['gridex_utilts_binding.persist_consumption_before_actor_v1(uuid,text,uuid,text,text,jsonb)',
