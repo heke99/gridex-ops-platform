@@ -660,16 +660,18 @@
     {
       "id": "P-08",
       "acceptance_id": "AT-P-08",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
+        "lib/ediel/intent/renderers/productionContract.ts",
+        "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+        "supabase/migrations/20261010233000_ediel_production_contract_ack_received_confirmation.sql",
         "__tests__/ediel-prodat-date-boundaries.test.ts",
         "__tests__/ediel-prodat-field-identity.test.ts",
         "__tests__/ediel-prodat-date-events.test.ts",
         "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
         "__tests__/ediel-prodat-date-fields.test.ts",
-        "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
-        "scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs",
-        "scripts/test-ediel-p-08-production-contract-confirmation.cjs"
+        "scripts/ediel-p-08-production-contract-native.test.ts",
+        ".github/workflows/ediel-p08-native.yml"
       ]
     },
     {
@@ -1433,12 +1435,22 @@
     {
       "id": "DB-01",
       "acceptance_id": "AT-DB-01",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "app/admin/ediel/actors/actions.ts",
         "app/admin/ediel/actors/page.tsx",
         "lib/ediel/partyRegistry.ts",
-        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts",
+        "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/kernelLegacy.ts",
+        "__tests__/ediel-db-01-current-authority-parity.test.ts",
+        "__tests__/ediel-test-configuration-route-source.test.ts",
+        "__tests__/ediel-db01-native-source-basis.test.ts",
+        "scripts/ediel-db01-legacy-address-containment-native.test.ts",
+        "scripts/ediel-db01-current-native.config.ts",
+        ".github/workflows/ediel-db01-current-native.yml",
+        ".agent-memory/masterplan-codex-plan-next-20261011T002655Z-53d604e536-checkpoint.md"
       ]
     },
     {
@@ -3071,16 +3083,18 @@
     },
     {
       "id": "AT-P-08",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "lib/ediel/intent/renderers/productionContract.ts",
+        "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+        "supabase/migrations/20261010233000_ediel_production_contract_ack_received_confirmation.sql",
         "__tests__/ediel-prodat-date-boundaries.test.ts",
         "__tests__/ediel-prodat-field-identity.test.ts",
         "__tests__/ediel-prodat-date-events.test.ts",
         "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
         "__tests__/ediel-prodat-date-fields.test.ts",
-        "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
-        "scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs",
-        "scripts/test-ediel-p-08-production-contract-confirmation.cjs"
+        "scripts/ediel-p-08-production-contract-native.test.ts",
+        ".github/workflows/ediel-p08-native.yml"
       ]
     },
     {
@@ -3672,12 +3686,22 @@
     },
     {
       "id": "AT-DB-01",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "app/admin/ediel/actors/actions.ts",
         "app/admin/ediel/actors/page.tsx",
         "lib/ediel/partyRegistry.ts",
-        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts",
+        "supabase/migrations/20261006210116_ediel_db01_legacy_address_containment.sql",
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/kernelLegacy.ts",
+        "__tests__/ediel-db-01-current-authority-parity.test.ts",
+        "__tests__/ediel-test-configuration-route-source.test.ts",
+        "__tests__/ediel-db01-native-source-basis.test.ts",
+        "scripts/ediel-db01-legacy-address-containment-native.test.ts",
+        "scripts/ediel-db01-current-native.config.ts",
+        ".github/workflows/ediel-db01-current-native.yml",
+        ".agent-memory/masterplan-codex-plan-next-20261011T002655Z-53d604e536-checkpoint.md"
       ]
     },
     {
@@ -4001,13 +4025,29 @@
     },
     {
       "id": "AT-Z03H-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/production/bilateralProdatSwitchPreparation.ts",
+        "lib/ediel/production/bilateralProdatOutboundDraft.ts",
+        "__tests__/ediel-bilateral-prodat-switch-preparation.test.ts",
+        "__tests__/ediel-bilateral-prodat-outbound-draft.test.ts",
+        "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/native-a6f7acab.zip",
+        "quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/verification.json"
+      ]
     },
     {
       "id": "AT-Z04H-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/prodatBilateralSourceCapability.ts",
+        "lib/ediel/flows/supplyMarketTransition.ts",
+        "__tests__/ediel-prodat-bilateral-source-capability.test.ts",
+        "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts",
+        "scripts/ediel-at-z03h-z04h-supplier-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/native-a6f7acab.zip",
+        "quality/audits/ediel-masterplan-v2/h-supplier-41f5172a/verification.json"
+      ]
     },
     {
       "id": "AT-Z05H-SUPPLIER",
