@@ -1,20 +1,20 @@
 {
   "project": "gridex-ops-platform",
   "schema": "distributed-startup-v1",
-  "observed_at": "2026-10-10T18:37:24.879816+00:00",
-  "observed_main": "c5f5be2cf859a325c6782fe612157aad379ab6e8",
+  "observed_at": "2026-10-11T12:43:38.774092+00:00",
+  "observed_main": "b56641304e7edd4d093e304efab482862d2f163a",
   "status": "IN_PROGRESS",
   "active_item": "Distributed fixed-role continuation; no inherited shared technical packet",
   "campaign_complete": false,
   "main_full_acceptance": "NOT_VERIFIED_FOR_CURRENT_MAIN",
   "coverage": {
-    "verified_rules": 115,
+    "verified_rules": 117,
     "total_rules": 121,
-    "passed_contracts": 187,
+    "passed_contracts": 194,
     "total_contracts": 231,
-    "approved_ids": 302,
+    "approved_ids": 311,
     "total_ids": 352,
-    "remaining_ids": 50
+    "remaining_ids": 41
   },
   "routing": {
     "readme": ".agent-memory/README.md",
@@ -22,10 +22,18 @@
     "workflow": ".agent-memory/masterplan-agent-workflow.md",
     "reservations": ".agent-memory/masterplan-reservations.md",
     "checkpoint": "Use the implementing or reviewing session\u2019s own uniquely named checkpoint; no other identity is inherited.",
-    "current_start": ".agent-memory/masterplan-current-start.md"
+    "current_start": ".agent-memory/masterplan-current-start.md",
+    "active_board": "Follow transition_condition: #673 before both conditions, #766 afterwards.",
+    "board_before_transition": "https://github.com/heke99/gridex-ops-platform/issues/673",
+    "board_after_transition": "https://github.com/heke99/gridex-ops-platform/issues/766",
+    "prepared_successor": "https://github.com/heke99/gridex-ops-platform/issues/766",
+    "transition_condition": "This routing update actually merged AND explicit transition receipt announced on #673; only then publish new receipts solely on #766.",
+    "owner_resumption_table": "https://github.com/heke99/gridex-ops-platform/issues/766",
+    "gen_queue": "https://github.com/heke99/gridex-ops-platform/issues/766",
+    "portable_foundation": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109033320"
   },
-  "custody": "113 observed foreign ref/SHA pairs; preserve and refresh actual receipts. No retained duty is released by this file.",
-  "next_action": "Resume own exact criterion or document authorized stopped-overlap handover; refresh actual main, coverage, #673, PR heads/checks and authenticated refs before implementation.",
+  "custody": "Prior113 and checked186 ref/SHA counts are dated observations only; preserve foreign refs and refresh exact receipts. No retained duty is released by this file.",
+  "next_action": "Resume own exact criterion or document authorized bounded handover; refresh actual main/coverage, announced active board, PR heads/checks and authenticated refs. Existing writer completes routing delivery and explicit transition before #766 becomes active.",
   "history": ".agent-memory/history/20261010-before-startup-cleanup/checkpoint.json",
   "administrative_dispositions": [
     {
@@ -52,5 +60,19 @@
       "receipt": "https://github.com/heke99/gridex-ops-platform/pull/666#issuecomment-6100858665",
       "closedAt": "2026-10-10T18:35:49Z"
     }
-  ]
+  ],
+  "observed_tree": "fc9879d2a7e7be71889a39ecdf81030c564cd471",
+  "prior_snapshot": "https://github.com/heke99/gridex-ops-platform/blob/b56641304e7edd4d093e304efab482862d2f163a/.agent-memory/checkpoint.json",
+  "retained_foreign_memory": {
+    "owner": "codex-ediel-20261007-b6d3-41f5172a",
+    "packet": "e13e5997-ad12-45b4-8b00-ddb525b07234",
+    "original_branch": "codex/ediel-esco-resume-b6d3-41f5172a",
+    "original_file_receipt": "b384cc8e95b1dc403aaeda5c60cbadc98440e887",
+    "published_pr745_postimage": "https://github.com/heke99/gridex-ops-platform/blob/9d46a9ad7e0ddc9f813a1ad13795a3071186197f/.agent-memory/checkpoint.json",
+    "checkpoint_branch_postimage": "https://github.com/heke99/gridex-ops-platform/blob/da97b4c19e4f243a5a105bbd7fbbf495a62e2804/.agent-memory/checkpoint.json",
+    "original_owner_checkpoint": "https://github.com/heke99/gridex-ops-platform/blob/da97b4c19e4f243a5a105bbd7fbbf495a62e2804/.agent-memory/masterplan-codex-b6d3-z13v-z13vh-41f5172a-checkpoint.md",
+    "no_shared_edit_receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109206616",
+    "publication_duty": "After documented docs-only handover and fresh own verified reservations/CLAIM, codex-blocker-20261008-0b3416c0 owns summary/routing publication. ESCO/native duty stays with41f. Later PR745 delivery must reconcile actual new-main wrappers; pending old four summary postimages are dated history, not current startup to republish.",
+    "evidence_limit": "Both distinct published snapshots preserve foreign native/e13 proof via immutable links. No historical-stack import or unpublished776 source byte-equivalence claim."
+  }
 }
