@@ -68,7 +68,8 @@ describe('SC-053 NULL is not zero in stored UTILTS values',()=>{
   expect(result.status,result.stdout+result.stderr).toBe(0)
   const line=result.stdout.split('\n').find(l=>l.startsWith('SC053_AUTHORIZED_INTERVAL_RESULT '))
   expect(JSON.parse(line!.slice('SC053_AUTHORIZED_INTERVAL_RESULT '.length)).checks).toBe(3)
- })
+
+ },125_000)
  it('stores the forwarded qualities through the real SQL owners (PGlite)',()=>{
   const root=process.cwd(),require=createRequire(path.join(root,'package.json'))
   const result=spawnSync(process.execPath,[path.join(root,'scripts/ediel-sc-053-quantity-quality-sql-regression.mjs')],{cwd:root,encoding:'utf8',timeout:120_000,
@@ -77,5 +78,6 @@ describe('SC-053 NULL is not zero in stored UTILTS values',()=>{
   expect(result.status,result.stdout+result.stderr).toBe(0)
   const line=result.stdout.split('\n').find(l=>l.startsWith('SC053_QUANTITY_QUALITY_RESULT '))
   expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(14)
- })
+
+ },125_000)
 })
