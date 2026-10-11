@@ -13,6 +13,7 @@ import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prep
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {omitZ14Field} from './helpers/ediel-z14v-current-native-fixture'
 import {refuseEscoCustomerSource} from './helpers/ediel-esco-z13-customer-source-b6d3'
+import {refuseEscoBirthSelector} from './helpers/ediel-esco-birth-selector-b6d3'
 import {captureEscoTenantBasis,qualifyEscoTenantFirst,expectEscoTenantReplay,type ObservationWindow} from './helpers/ediel-esco-tenant-replay-b6d3'
 import {readEdielServiceAdministration} from '@/lib/ediel/services/administration'
 import {coordinateEdielServicePermission,resolveEdielServicePermissionCommand} from '@/lib/ediel/services/commands'
@@ -1767,4 +1768,19 @@ for(const mode of ['V','VH'] as const)for(const field of ['227','228','316'] as 
  it(`${mode}: missing prospective customer field ${field} blocks the public Z13 renderer; full retained intent and immutable retry`,async()=>{
   await refuseEscoCustomerSource(mode,field,{prospective:prospectiveRequest,state:producerState,ledger:refusalLedger,reviews:currentProducerReviews})
  })
+}
+
+for(const mode of ['V','VH'] as const)for(const reply of ['positive','nationalN'] as const)for(const field of ['311','312','202','314','223','226'] as const){
+ it(`${mode}: public ${reply} Z14 missing selector field ${field} refuses birth; full conservation and same intake retry`,async()=>{
+  await refuseEscoBirthSelector(mode,reply,field,{accepted:async mode=>{
+   const r=await request(mode,true),{f,p}=r
+   for(const family of ['CONTRL','APERAK'] as const){
+    const ack=await intake(f,p,counterpart(p,family))
+    expect(await consume(f,ack)).toMatchObject({kind:'exact_receipt',sourceMessageId:p.z13.id,
+     result:{outcome:'positive',sourceAccepted:family==='APERAK',finalAckReached:family==='APERAK'}})
+   }
+   expect((await permission(f,p)).status).toBe('waiting_for_customer_approval');return r
+  },render:(f,p,reply)=>reply==='positive'?positiveZ14(f,p):nationalDenial(f,p,mode==='V'?'A13':'A76'),
+  retained,state:producerState,ledger:refusalLedger,noAccess})
+ },120000)
 }
