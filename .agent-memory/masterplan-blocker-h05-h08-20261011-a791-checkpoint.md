@@ -48,3 +48,12 @@ Current sharedfixture and foreignOPS03 exactfinite model remain unchanged. New u
 
 Next worker prepares6assets+targetedomissiontest/types/lint, root continues209helper+exact2f hook request, independent review then single ownPR native event after current-source integrationready. WholeH95/H08 coverage remainsNOT_EXECUTED untilallliteralproof; no predecessorH100 borrowing.
 
+
+## Independent helper locally verified / exact producer seam prepared
+
+Own rejected-only helper is implemented. Node22 actual helper2/2PASS with currentfiniteIO harness; npm run typecheck PASS; scoped ESLint PASS and diff whitespace PASS. It obtains only existing fresh actor/stored-original/legal/original-witness token; preserves structureobject; constructs fresh nullpolicy/applicationrejected/functionnotapplicable report before oneuseownership; actual renderer supplies facet. Direct helper intentionally cannot impersonate runtime responseWeakMap. Actualruntime/ingress RED remain unresolved until ownerhook. Currentpublicingress3cases exercise record refusal/capture refusal/negativeACKattempt with realprocess+decoders; harness needed exactcount fix, not a producttenantdefect, preserved deliberatefiniteIO.
+
+Precise requested2f output after existing headerrejection and BEFORE bilateral needsCapability: import resolveReceivedZ05RejectedIdentityRuntime; await helper(message,base,capturedActor); on nonnull set privateinitialProdatResponseOwners using existing prodatResponseSourceIdentity(message)+evidenceHash(JSON.stringify(decision))+facet, then return decision. No WeakMapsetter export/publicJSONauthority. Do not alter other Z02/H04/M/header paths. ROOT ingressthreeedits remain pending its behaviorRED/connectedhook.
+
+Six-file own proofworker is preparing original66596 +2strictH209tails, noL/Z22privateauthorityexpansion; originalnegative/end/watch/replaycases preserved. The native/workflow files are still uncommitted and no nativejob exists. Prepared helper/test/checkpoint will be published separately for exact ownerhandoff, not markedREADY/CI_GREEN or merged while requiredruntimeconnection missing.
+
