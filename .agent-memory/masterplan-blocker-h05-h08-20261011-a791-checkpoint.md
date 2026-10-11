@@ -187,3 +187,12 @@ Before code action documented: consume exact owner-authored bytes unchanged into
 
 State ADOPTING_QUALIFIED_OWNER_OUTPUT; previous named wait event is now actually satisfied. Root owns finalHdelivery. Coverage117+194=311/352 unchanged. No merge/memory-role acquired; foreignruntime3afd and all other scopes remain owners.
 
+
+## 2026-10-11 — exact correctedf5fb published / actual Node22 component GREEN
+
+Source `f5fb29d61507c84c8425f4dab7537047b9dddc4b` / tree `a59aeb03fa2f21f331b743635ce727f221315ea3`, actualbase `b56641304e7edd4d093e304efab482862d2f163a`. Own branch fastforward2094→f5fb; remoteHEAD/tree/full runtime9c4fa bytes GET MATCH. Own11originalreceipt refs and foreignruntime012e/3afd freshlyMATCH; no ownership transfer. Only approved9c4fa and uniquely ownCP changed from2094; allown9code/native/workflow assets exact2094 and9837foreignpostimages exactb566. SourceCPa7dc normalized onlyfinalnewline to clear original EOF diffcheck; original remoteCP and failedcheck metadata retained. Worktreeclean at sourcefreeze and beforepublication.
+
+Actual root Node22.23.3 one18file execution **946PASS/0FAIL/0SKIP**, JUnit946 unique testresults and20 actualruntimecases including former217seam nowGREEN. All original19 staygreen. Fresh app/scripts/tests nonincrementalTSC and9TSscopedLint/diff PASS0. Complete currentlogs/JUnit/emptytype-lint logs/rootself/inventory/sourcepublication metadata are original-byte preserved under `/workspace/gridex-blocker-evidence/b9f89eb0-1832-4066-b8cf-34c3f6b15af4`; suite logSHA25604698706a9b213adcbd1344588c625395d65f022af8785c40d627085bfeee1a2. Declared finiteIO/capturedSQL mocks remain bounded, no native/committedACK/tenant/business effect borrowed.
+
+Root affected selfreview C0/I0; priorI1 is corrected in actual20 behavior. Exactf5fb independent finalfullpathsR1 andR2 stillrunning, no premature SOURCE2/READY/CI_GREEN. Next root: finish currentreview receipts and findings; one PR after freshactualmain/refs/head/producerabsence check, sourcepinned genuineH100 plus allactually applicable ordinaryCI; then normalexpectedhead delivery/verifiedroleFIRST and owner-only release. FullH literal finance/timer/conditionalfields/mixedACK gaps persist; coverage117+194=311 unchanged. No native/CI producer manually started or repeated.
+
