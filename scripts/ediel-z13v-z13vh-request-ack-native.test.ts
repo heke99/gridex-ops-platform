@@ -660,6 +660,35 @@ function stableRefusalSource(row:FullRow){
   'parsed_at','validated_at','updated_at','updated_by'])delete projection[key]
  return projection
 }
+function wireDocument(wire:string){const parsed=tokenizeEdifact(wire)
+ return segmentComposite(parsed.segments.find(segment=>segment.tag==='BGM'),2,parsed.una)[0]}
+function wireReference(wire:string,qualifier:string){const parsed=tokenizeEdifact(wire)
+ const refs=parsed.segments.filter(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,parsed.una)[0]===qualifier)
+ expect(refs).toHaveLength(1);return segmentComposite(refs[0],1,parsed.una)[1]}
+function qualifyRequestReferences(f:Fixture,p:Pending,previous:FullRow[],added:FullRow[],
+ expected:readonly (readonly [FullRow|EdielMessageRow,string,string|null|undefined])[],started:number,finished:number){
+ // Complete correlation rows derive from immutable wires and the matched
+ // original request, with independently qualified new UUIDs and timestamps.
+ expect(p.z13.outbound_request_id).toBeTruthy()
+ expect(previous.filter(row=>row.reference_type==='RFF_LI'&&row.reference_value===p.li
+  &&row.business_object_type==='outbound_request'&&row.business_object_id===p.z13.outbound_request_id))
+  .toEqual([expect.objectContaining({company_id:f.ids.company,source_message_id:p.z13.id,customer_id:f.ids.customer})])
+ expect(added).toHaveLength(expected.length);expect(new Set(added.map(row=>row.id)).size).toBe(expected.length)
+ for(const [message,type,value] of expected){
+  expect(typeof value).toBe('string');expect(value).toBeTruthy()
+  expect(previous.some(row=>row.reference_type===type&&row.reference_value===value
+   &&row.business_object_type==='outbound_request'&&row.business_object_id===p.z13.outbound_request_id)).toBe(false)
+  const rows=added.filter(row=>row.source_message_id===message.id&&row.reference_type===type)
+  expect(rows).toHaveLength(1);const row=rows[0]
+  expect(row.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  expect(previous.some(old=>old.id===row.id)).toBe(false)
+  const created=Date.parse(String(row.created_at));expect(Number.isFinite(created)).toBe(true)
+  expect(created).toBeGreaterThanOrEqual(started);expect(created).toBeLessThanOrEqual(finished)
+  expect(row).toEqual({id:row.id,company_id:f.ids.company,source_message_id:message.id,reference_type:type,reference_value:value,
+   message_family:message.message_family,message_code:message.message_code,business_object_type:'outbound_request',
+   business_object_id:p.z13.outbound_request_id,customer_id:f.ids.customer,customer_site_id:null,metering_point_id:null,created_at:row.created_at})
+ }
+}
 async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'|'326'){
  const {f,p,checkSentinel,objectAckProfile,contrlAckProfile}=await request(mode,true)
  for(const family of ['CONTRL','APERAK'] as const){
@@ -874,9 +903,18 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
    rule_profile_key:ack.rule_profile_key,rule_profile_version_id:ack.rule_profile_version_id,rule_profile_version:ack.rule_profile_version,
    rule_pack_checksum:ack.rule_pack_checksum,rule_pack_snapshot:ack.rule_pack_snapshot})
  }
- // This request has no supply switch, grid-owner request or export business
- // object. Technical ACK creation must not invent reference ownership.
- expect(additions.businessReferences).toEqual([])
+ // References index the existing request; they create no permission/site.
+ qualifyRequestReferences(f,p,ledger.own.businessReferences,additions.businessReferences,[
+  [current,'UNB_REF',EdifactEnvelopeCodec.decode(wire).interchangeReference],
+  [current,'BGM_REF',wireDocument(wire)],
+  [current,'PERMISSION_ID',wireReference(wire,'Z09')],
+  [objectReply,'UNB_REF',EdifactEnvelopeCodec.decode(String(objectReply.raw_payload)).interchangeReference],
+  [objectReply,'RFF_ACW',wireDocument(wire)],
+  [objectReply,'RFF_Z07',f.point],
+ ],processingStarted,processingFinished)
+ expect(wireDocument(String(objectReply.raw_payload))).toBe('')
+ expect(wireReference(String(objectReply.raw_payload),'ACW')).toBe(wireDocument(wire))
+ expect(wireReference(String(objectReply.raw_payload),'Z07')).toBe(f.point)
  const qualifyAssessments=(rows:FullRow[])=>{expect(rows.length).toBeGreaterThan(0)
   for(const row of rows){expect(row).toEqual({id:row.id,source_message_id:source.id,company_id:f.ids.company,environment:'test',source_payload_hash:hash(wire),
    owner:'canonical-runtime-with-registry-v1',facts_text:canonicalEvidence.factsText,facts_hash:hash(canonicalEvidence.factsText),
@@ -1609,36 +1647,14 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
   for(const row of additions.namespace){const reply=stableReplies.replies.find(candidate=>candidate.id===row.source_message_id)!
    expect(reply).toBeTruthy();expect(row).toEqual({source_message_id:reply.id,company_id:f.ids.company,environment:'test',payload_sha256:hash(reply.raw_payload!)})
   }
-  // Correlation indices point to the existing request, creating no access.
-  // Values are derived from physical wires, not from the rows being tested.
-  const document=(wire:string)=>{const parsed=tokenizeEdifact(wire)
-   return segmentComposite(parsed.segments.find(segment=>segment.tag==='BGM'),2,parsed.una)[0]}
-  const expectedReferences=[
+  qualifyRequestReferences(f,p,beforeLedger.own.businessReferences,additions.businessReferences,[
    [source,'UNB_REF',EdifactEnvelopeCodec.decode(raw).interchangeReference],
-   [source,'BGM_REF',document(raw)],
+   [source,'BGM_REF',wireDocument(raw)],
    [objectReply,'UNB_REF',EdifactEnvelopeCodec.decode(objectReply.raw_payload!).interchangeReference],
-   [objectReply,'RFF_ACW',document(raw)],
-  ] as const
-  expect(document(raw)).toBeTruthy();expect(document(objectReply.raw_payload!)).toBe('')
-  const objectWire=tokenizeEdifact(objectReply.raw_payload!)
-  expect(objectWire.segments.filter(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,objectWire.una)[0]==='ACW')
-   .map(segment=>segmentComposite(segment,1,objectWire.una)[1])).toEqual([document(raw)])
-  expect(beforeLedger.own.businessReferences.filter(row=>row.reference_type==='RFF_LI'&&row.reference_value===p.li
-   &&row.business_object_type==='outbound_request'&&row.business_object_id===p.z13.outbound_request_id))
-   .toEqual([expect.objectContaining({company_id:f.ids.company,source_message_id:p.z13.id,customer_id:f.ids.customer})])
-  expect(additions.businessReferences).toHaveLength(4)
-  expect(new Set(additions.businessReferences.map(row=>row.id)).size).toBe(4)
-  for(const [message,type,value] of expectedReferences){
-   const rows=additions.businessReferences.filter(row=>row.source_message_id===message.id&&row.reference_type===type)
-   expect(rows).toHaveLength(1);const row=rows[0]
-   expect(row.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
-   expect(beforeLedger.own.businessReferences.some(previous=>previous.id===row.id)).toBe(false)
-   const created=Date.parse(String(row.created_at));expect(Number.isFinite(created)).toBe(true)
-   expect(created).toBeGreaterThanOrEqual(processingStarted);expect(created).toBeLessThanOrEqual(processingFinished)
-   expect(row).toEqual({id:row.id,company_id:f.ids.company,source_message_id:message.id,reference_type:type,reference_value:value,
-    message_family:message.message_family,message_code:message.message_code,business_object_type:'outbound_request',
-    business_object_id:p.z13.outbound_request_id,customer_id:f.ids.customer,customer_site_id:null,metering_point_id:null,created_at:row.created_at})
-  }
+   [objectReply,'RFF_ACW',wireDocument(raw)],
+  ],processingStarted,processingFinished)
+  expect(wireDocument(objectReply.raw_payload!)).toBe('')
+  expect(wireReference(objectReply.raw_payload!,'ACW')).toBe(wireDocument(raw))
   expect(additions.positiveScope).toHaveLength(1)
   const positiveScope=additions.positiveScope[0]
   expect(Number.isFinite(Date.parse(String(positiveScope.recorded_at)))).toBe(true)
