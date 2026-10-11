@@ -4159,7 +4159,7 @@
     },
     {
       "id": "AT-Z09B-SUPPLIER",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-at-z09b-z09d-supplier-profile.test.ts",
         "__tests__/ediel-at-z09b-required-fields.test.ts",
