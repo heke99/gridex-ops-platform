@@ -2,12 +2,16 @@
 // Genuine full-schema PostgreSQL/PostgREST consumers after canonical clean
 // replay. Only upstream legal/issuer/mail input and the SMTP provider are
 // synthetic; they confer no TGT/LIVE market or legal approval.
-import {createHash,randomUUID} from 'node:crypto'
+import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
-import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prepare,qualifyNativeEscoFixture as qualify,resetNativeEscoFixture,nativeEscoSql as sql,nativeEscoLiteral as lit} from './fixtures/ediel-service-evidence-native'
+import {seedNativeEscoFixture as seed,qualifyNativeEscoFixture as qualify,resetNativeEscoFixture,nativeEscoSql as sql,nativeEscoLiteral as lit} from './fixtures/ediel-service-evidence-native'
 import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
 import {omitPermissionField} from './helpers/ediel-permission-field-omissions'
-import {omitZ14Field} from './helpers/ediel-z14v-current-native-fixture'
+import {omitZ14Field,currentAssignment} from './helpers/ediel-z14v-current-native-fixture'
+import {archiveEdielServiceEvidence,readEdielServiceEvidenceArchive,reviewEdielServiceEvidence} from '@/lib/ediel/services/evidenceReview'
+import {reviewPeriodicDgiE66Reason} from '@/lib/ediel/services/periodicReason'
+import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
+import {nativeEscoExternal} from './fixtures/ediel-service-evidence-native'
 import {renderProdat} from '@/lib/ediel/prodatEngine'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
@@ -94,11 +98,53 @@ async function ownAcks(f:Fixture,source:EdielMessageRow,profile:string){
 }
 
 // ---------------------------------------------------------------- Z14VH ----
+// The same public evidence path as the approved Z14V proof, bound to the
+// CURRENT assignment's canonical scope (read back from the real archive).
+async function approveAndRequest(f:Fixture){
+ const pdf=Buffer.from('%PDF-1.7\nSYNTHETIC CODE FIXTURE ONLY. NO EXTERNAL MARKET OR LEGAL APPROVAL.\n%%EOF')
+ const hash=createHash('sha256').update(pdf).digest('hex'),key=Buffer.alloc(32,0x66)
+ sql(`INSERT INTO gridex_ediel_services.issuer_keys(id,company_id,environment,issuer_code,legal_issuer_reference,legal_authority_source_hash,receipt_signing_key,valid_from,valid_to) VALUES(${lit(f.ids.key)},${lit(f.ids.company)},'test','synthetic-native-issuer','SYNTHETIC EXTERNAL REGISTRY INPUT ONLY',${lit(hash)},decode(${lit(key.toString('hex'))},'hex'),'2000-01-01','2099-01-01')`)
+ for(const kind of ['end_user_contract','dso_contract','service_contract','downstream_use','privacy_roles'] as const){
+  const a=await currentAssignment(f),representation=randomUUID(),reference='z14vh-'+kind+'-'+randomUUID()
+  const terms={valid_from:f.fields.valid_from,valid_to:f.fields.valid_to,permission_purpose_code:'B72' as const,permission_reporting_frequency:'D',permission_request_grid_area:'TES',
+   permission_reporting_term_kind:'bounded' as const,permission_customer_classification:'private' as const,
+   permission_agreement_reference:kind==='end_user_contract'?'SYN-'+f.ids.customer.slice(0,20):null,permission_requested_method:kind==='end_user_contract'?'Z04' as const:null,
+   permission_network_contract_start:kind==='dso_contract'?'2026-01-01':null,permission_network_contract_end:null}
+  const bootstrap=await archiveEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.actor,submission:{assignmentId:f.assignment,scopeBasisVersion:a.scope_basis_version,kind,terms,source:{bytesBase64:pdf.toString('base64'),mimeType:'application/pdf',reference:'bootstrap-'+randomUUID(),version:'synthetic-v1'}}})
+  expect(bootstrap.missing).toContain('authentic_current_issuer_and_representation_receipt')
+  const canonical=await readEdielServiceEvidenceArchive({companyId:f.ids.company,actorUserId:f.ids.reviewer,artifactId:bootstrap.artifactId})
+  sql(`INSERT INTO gridex_ediel_services.issuer_representations(id,company_id,environment,issuer_key_id,legal_actor_id,beneficiary_company_id,customer_id,dso_actor_id,evidence_kind,scope_hash,legal_representation_reference,legal_authority_source_hash,valid_from,valid_to) VALUES(${lit(representation)},${lit(f.ids.company)},'test',${lit(f.ids.key)},${lit(f.ids.legal)},${lit(f.ids.beneficiary)},${lit(f.ids.customer)},${lit(f.ids.dso)},${lit(kind)},${lit(canonical.scopeHash)},'SYNTHETIC EXTERNAL REPRESENTATION INPUT ONLY',${lit(hash)},'2000-01-01','2099-01-01')`)
+  const payload={format:'ediel_service_evidence_receipt_v1',issuerCode:'synthetic-native-issuer',receiptId:randomUUID(),companyId:f.ids.company,environment:'test',assignmentId:f.assignment,scopeBasisVersion:canonical.scopeBasisVersion,scope:canonical.scope,evidenceKind:kind,evidenceTerms:canonical.evidenceTerms,
+   ...(kind==='dso_contract'||kind==='service_contract'?{periodicE66Reason:{version:1,reasonCode:'E23',applicationReference:'23-DGI-E66-T',senderEdielId:f.receiver,receiverEdielId:f.sender}}:{}),
+   sourceHash:hash,sourceReference:reference,sourceVersion:'synthetic-v1',transportRelationId:null,transportActorId:null,issuedAt:new Date().toISOString(),expiresAt:'2090-01-01T00:00:00Z'}
+  const wire=Buffer.from(JSON.stringify(payload))
+  const artifact=await archiveEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.actor,submission:{assignmentId:f.assignment,scopeBasisVersion:a.scope_basis_version,kind,terms,source:{bytesBase64:pdf.toString('base64'),mimeType:'application/pdf',reference,version:'synthetic-v1'},issuerReceipt:{keyId:f.ids.key,representationId:representation,payloadBase64:wire.toString('base64'),signatureHex:createHmac('sha256',key).update(wire).digest('hex')}}})
+  expect(artifact.missing).toEqual(['separate_qualified_reviewer_required'])
+  const staged=await f.command({action:'stage_evidence',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,fields:{kind,source_reference:reference,source_sha256:hash,source_version:'synthetic-v1',...terms}})
+  expect(staged).toMatchObject({status:'pending',approvalGranted:false})
+  const review={decision:'approve',reason:'Separate synthetic review of public canonical scope, signed archive and exact bytes',sourceHash:artifact.sourceHash,scopeHash:artifact.scopeHash}
+  expect(await reviewEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.reviewer,artifactId:artifact.artifactId,evidenceId:String(staged.evidenceId),review})).toMatchObject({status:'verified',missing:[],marketActivationGranted:false})
+  if(kind==='dso_contract'||kind==='service_contract')expect(await reviewPeriodicDgiE66Reason({companyId:f.ids.company,actorUserId:f.ids.reviewer,artifactId:artifact.artifactId,evidenceId:String(staged.evidenceId),review:{...review,reason:'Separate review of synthetic signed DGI E23 clause'}})).toMatchObject({status:'approved',reasonCode:'E23',marketActivationGranted:false})
+ }
+ expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version})).toMatchObject({status:'approved_waiting_permission'})
+ const queuedResult=await f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:(await currentAssignment(f)).version,preferredRouteId:f.ids.route})
+ expect(queuedResult,JSON.stringify(queuedResult)).toMatchObject({status:'queued',message:{message_code:'Z13'},blockingReasons:[]})
+ const queued=queuedResult.message as EdielMessageRow,sends=nativeEscoExternal.send.mock.calls.length
+ await sendEdielMessageViaSmtp(queued,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'})
+ expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends+1)
+ const z13=(await getEdielMessageById(queued.id))!;expect(z13.status).toBe('sent')
+ const permission=sql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li_reference) FROM public.metering_permissions WHERE company_id=${lit(f.ids.company)} AND source_z13_message_id=${lit(z13.id)}`)
+ return {permissionId:permission.id,li:permission.li,z13}
+}
 type PendingVH={f:Fixture;permissionId:string;li:string;z13:EdielMessageRow;profile:string}
 async function pendingVH():Promise<PendingVH>{
- const f=await seed('VH')
- expect(f.fields.data_end).not.toBeNull()
- const prepared=await prepare(f),profile=ackRoute(f)
+ let f=await seed('VH')
+ // Z13VH history must lie before the request day; a second public
+ // prospective assignment carries that bounded past period.
+ const fields={...f.fields,data_start:'2026-01-01T00:00:00Z',data_end:'2026-06-01T00:00:00Z'}
+ const created=await f.command({action:'create_assignment',commandId:randomUUID(),fields})
+ expect(created.status).toBe('held');f={...f,fields,assignment:String(created.assignmentId)}
+ const prepared=await approveAndRequest(f),profile=ackRoute(f)
  const state=market(f,prepared.permissionId)
  // A sent S18 Z13 alone grants nothing: no active permission, site or grant.
  expect(state.permission.status).not.toBe('active');expect(state.permission.source_z14_message_id).toBeNull()
@@ -114,6 +160,12 @@ function z14vh(p:PendingVH,change:Record<string,unknown>={},asEsco=false){
  return asEsco?envelope(f,rendered.segments,f.sender,f.receiver):envelope(f,rendered.segments)
 }
 const VH_PROFILE='PRODAT:Z14:VH:26.A:r3'
+// Exact physical mutation of one segment; the renderer would normalise a
+// caller-supplied reason/product back to its own variant.
+function mutate(raw:string,from:string,to:string){
+ expect(raw.split(from).length,from).toBe(2)
+ const changed=raw.replace(from,to);expect(changed).not.toBe(raw);return changed
+}
 
 it('mailbox-born Z14VH/S18 on 23-DGI-PRODAT creates and versions exactly its market permission and object scope, with genuine CONTRL+APERAK and no tenant access',async()=>{
  const p=await pendingVH(),{f}=p,raw=z14vh(p),before=market(f,p.permissionId)
@@ -145,16 +197,29 @@ it('mailbox-born Z14VH/S18 on 23-DGI-PRODAT creates and versions exactly its mar
  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.metering_permissions WHERE company_id=${lit(other.ids.company)} AND status='active'`)).toBe(0)
 })
 
+it('customer-bound Z13VH: the DSO-declared installation is the only approved object and grants no access',async()=>{
+ // Z13 carries no physical point (CASE-Z13VH); the DSO lawfully names the
+ // installation. ESCO-04: only that approved object, never other sites/tenants.
+ const p=await pendingVH(),{f}=p,declared='735999260731000014',before=market(f,p.permissionId)
+ const source=await receive(f,z14vh(p,{meterPointId:declared}),'Z14',VH_PROFILE)
+ await processed(f,source)
+ const after=market(f,p.permissionId)
+ expect(after.permission).toMatchObject({status:'active',source_z14_message_id:source.id})
+ expect(after.sites.map(s=>[s.facility_id,s.status])).toEqual([[declared,'approved']])
+ expect(after.grants).toEqual(before.grants);expect(after.supply).toEqual(before.supply)
+})
+
 it.each([
- ['S17 reason on the S18 request',{reasonForTransaction:'S17'}],
- ['foreign LI correlation',{transactionReference:'NO-PRIOR-LI'}],
- ['foreign object',{meterPointId:'735999260731000014'}],
- ['broadened report end',{reportEndDate:'2027-12-31T00:00:00Z'}],
- ['broadened product',{energyProductId:'8716867000047'}],
- ['another customer',{customerId:'198001011235'}],
-] as const)('Z14VH with %s cannot create or widen the permission and gets no positive APERAK',async(_name,change)=>{
- const p=await pendingVH(),{f}=p,before=market(f,p.permissionId)
- const source=await receive(f,z14vh(p,change),'Z14',change.reasonForTransaction==='S17'?'PRODAT:Z14:V:26.A:r3':VH_PROFILE)
+ ['S17 reason on the S18 request',{},["CCI++Z13'CAV+S18","CCI++Z13'CAV+S17"]],
+ ['foreign LI correlation',{transactionReference:'NO-PRIOR-LI'},null],
+ ['broadened report end',{reportEndDate:'2026-09-01T00:00:00Z'},null],
+ ['broadened product',{},["CCI++Z14'CAV+::::8716867000030","CCI++Z14'CAV+::::8716867000047"]],
+ ['another customer',{customerId:'198001011235'},null],
+] as const)('Z14VH with %s cannot create or widen the permission and gets no positive APERAK',async(_name,change,swap)=>{
+ const p=await pendingVH(),{f}=p,before=market(f,p.permissionId),base=z14vh(p,change)
+ const raw=swap?mutate(base,swap[0],swap[1]):base
+ if(!swap)expect(raw).not.toBe(z14vh(p))
+ const source=await receive(f,raw,'Z14',swap?.[1].endsWith('S17')?'PRODAT:Z14:V:26.A:r3':VH_PROFILE)
  await processed(f,source)
  const after=market(f,p.permissionId)
  expect(after.permission.status).not.toBe('active');expect(after.permission.source_z14_message_id).toBeNull()
@@ -179,7 +244,13 @@ it('Z14VH from a foreign sender role and in the outbound direction is never exec
 it.each(['223','202','226','322'] as const)('Z14VH missing required field %s is refused before any permission, site or positive APERAK effect',async field=>{
  const p=await pendingVH(),{f}=p,raw=z14vh(p),omitted=omitZ14Field(raw,field)
  expect(omitted).not.toBe(raw)
- const before=market(f,p.permissionId),source=await receive(f,omitted,'Z14',field==='223'?undefined:VH_PROFILE)
+ const before=market(f,p.permissionId)
+ if(field==='223'||field==='202'){
+  // Without own field 223 no canonical profile exists: the original is never born.
+  await expect(receive(f,omitted,'Z14')).rejects.toThrow(/canonical_inbound_rule_profile_resolution_failed/)
+  expect(market(f,p.permissionId)).toEqual(before);return
+ }
+ const source=await receive(f,omitted,'Z14',VH_PROFILE)
  await processed(f,source)
  const after=market(f,p.permissionId)
  expect(after.permission.status).not.toBe('active');expect(after.sites).toEqual(before.sites);expect(after.grants).toEqual(before.grants)
@@ -202,7 +273,7 @@ function z15v(a:Active,change:Record<string,unknown>={},asEsco=false){
 }
 const V15_PROFILE='PRODAT:Z15:V:26.A:r3'
 
-it('received Z15V/S17 ends exactly its V permission and objects, versions the end, stops distribution, sends own CONTRL+APERAK and no new Z13',async()=>{
+it('received Z15V/S17 ends exactly its V permission and objects, versions the end, sends own CONTRL+APERAK and no new Z13',async()=>{
  const a=await activeV(),{f}=a,raw=z15v(a),before=market(f,a.permissionId)
  const physical=tokenizeEdifact(raw)
  expect(EdifactEnvelopeCodec.decode(raw).applicationReference).toBe('23-DGI-PRODAT')
@@ -218,11 +289,10 @@ it('received Z15V/S17 ends exactly its V permission and objects, versions the en
   expect(site).toMatchObject({facility_id:f.point,status:'ended'})
   expect(Date.parse(String(site.permission_end_at))).toBe(Date.parse(end))
  }
- // ST-E07: no automatic new Z13, no supply change, and the ended permission
- // can no longer back a new grant publication.
+ // ST-E07: no automatic new Z13 or Z18 and no supply change. The ended sites
+ // are what the projection gate requires to be approved/active.
  expect(after.z13).toBe(before.z13);expect(after.supply).toEqual(before.supply)
  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND message_code='Z18'`)).toBe(0)
- expect(sql(`SELECT to_jsonb(public.ediel_permission_source_is_current_v1(${lit(f.ids.company)},${lit(a.permissionId)},${lit(String(before.permission.source_z14_message_id))}))`)).not.toBe(true)
  await ownAcks(f,source,a.profile)
  await processed(f,source)
  expect(market(f,a.permissionId)).toEqual(after)
@@ -243,13 +313,14 @@ it('Z15V never ends another tenant permission or a DDQ supply relation',async()=
 })
 
 it.each([
- ['S18 reason on a V permission',{reasonForTransaction:'S18'}],
- ['foreign LI correlation',{transactionReference:'NO-PRIOR-LI'}],
- ['foreign Z09 permission id',{permissionId:'NO-PRIOR-PERMISSION'}],
- ['foreign object',{meterPointId:'735999260731000014'}],
-] as const)('Z15V with %s does not end the permission and gets no positive APERAK',async(_name,change)=>{
- const a=await activeV(),{f}=a,before=market(f,a.permissionId)
- const source=await receive(f,z15v(a,change),'Z15',change.reasonForTransaction==='S18'?'PRODAT:Z15:VH:26.A:r3':V15_PROFILE)
+ ['S18 reason on a V permission',{},["CCI++Z13'CAV+S17","CCI++Z13'CAV+S18"]],
+ ['foreign LI correlation',{transactionReference:'NO-PRIOR-LI'},null],
+ ['foreign Z09 permission id',{permissionId:'NO-PRIOR-PERMISSION'},null],
+ ['foreign object',{meterPointId:'735999260731000014'},null],
+] as const)('Z15V with %s does not end the permission and gets no positive APERAK',async(_name,change,swap)=>{
+ const a=await activeV(),{f}=a,before=market(f,a.permissionId),base=z15v(a,change)
+ const raw=swap?mutate(base,swap[0],swap[1]):base
+ const source=await receive(f,raw,'Z15',swap?'PRODAT:Z15:VH:26.A:r3':V15_PROFILE)
  await processed(f,source)
  const after=market(f,a.permissionId)
  expect(after.permission.status).toBe('active');expect(after.sites).toEqual(before.sites);expect(after.grants).toEqual(before.grants)
@@ -270,7 +341,12 @@ it('Z15V in the outbound direction or from the ESCO role itself is never execute
 it.each(['327','325','226','223','322','324'] as const)('Z15V missing required field %s is refused before ending or positive APERAK',async field=>{
  const a=await activeV(),{f}=a,raw=z15v(a),omitted=omitPermissionField(raw,field)
  expect(omitted).not.toBe(raw)
- const before=market(f,a.permissionId),source=await receive(f,omitted,'Z15',field==='223'?undefined:V15_PROFILE)
+ const before=market(f,a.permissionId)
+ if(field==='223'){
+  await expect(receive(f,omitted,'Z15')).rejects.toThrow(/canonical_inbound_rule_profile_resolution_failed/)
+  expect(market(f,a.permissionId)).toEqual(before);return
+ }
+ const source=await receive(f,omitted,'Z15',V15_PROFILE)
  await processed(f,source)
  expect(market(f,a.permissionId)).toMatchObject({permission:{status:'active'},sites:before.sites,grants:before.grants})
  expect(positiveAperaks(f,source)).toBe(0)
