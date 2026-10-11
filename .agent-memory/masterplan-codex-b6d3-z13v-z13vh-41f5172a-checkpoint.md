@@ -1214,3 +1214,27 @@ shared summary under retainedrole+exactfiles; re-review exactcorrectedhead.
 Same owned e13 packet/all10refs, memory-role retainedforconcretedelivery, no
 merge-role; no whole/coverage/market credit. NEXT ROOT causal oracle corrections
 +P08 rebase/static checks, new exactsource2 C0I0, one fresh32native/currentCI.
+
+
+## 2026-10-11 UTC — corrected exact source2 C0I0, strict32 before publication
+
+Source babac2f14f1c3321e67204583f2f170f8a30332c/tree777dd08a5f82d26ab99f49d5867ba730c17b8a6b
+basedactualP08mainda0fa1a6cc3661c6dd37b6a6067e910cc81f5f32. Exactly8claimedpaths,
+original120085byte/30case prefix SHA1a4d4bc9 preserved; two newV/A13+VH/A76
+public requestACK→waiting→N denial cases. No product/SQL/GEN/coveragechanges.
+Review-refuted test oracles corrected from actualsource: UNBapplicationDGI,
+sameoriginalmailintake replay, originalACKprojection with qualifiedexactcount
+changes, actualsourceoperationalreplay vs businessimmutability, source-bound
+witness/consumption, retainedAPERAKdiagnosticID, exactpositive processing scope
+receipt with dataAccessGrantedfalse and scopeReceipts+1. Historical I reports
+preserved; no fake nativefailure. Alloriginalassertions remainunchanged.
+Latestlocal Node24 scriptsTSC/scopedlint/budget/diff/staticwf PASS; actual262
+affectedfinitePASS0F0SKIP afterP08main. Native1667lines belowunchanged1800cap.
+Both independent finalexactsourceC0I0, reports SHA256 {"esco-32-baba-source-review1.json": "b488d6ad43a0018dc554b8db33b0bb706fa9b227a6e84749dbe25eb738dac980", "esco-32-baba-source-review2.json": "7f8d206abc851a3929775cde7e035a78a9395ec4abf65e102fb24e2e5a601057"}.
+Private32uniqueidentitymanifest/fullprefixproof currentheadbound. Freshnative
+NOT_RUN/currentmandatoryCI NOT_RUN; sharedproposal ledger307 vsdated302preserved,
+notmain yet. Same10ownb384refs/memoryrole988a; no mergerole. Wholecoverage remains
+NOT_EXECUTED pending frozenbegäran disposition and fullR/Dscopeproof; independent
+perfieldmap nowruns read-only, no duplicateproducer. NEXT ROOT refreshedmain/
+fullreceipts/source2/oldterminal preflight; one normalpush/newsmallPR linking687,
+actualREADY then soleoriginal32 qualification/currentCI. No obsolete30run.
