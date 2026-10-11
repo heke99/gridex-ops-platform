@@ -42,12 +42,13 @@ for x in ast.parse(s).body:
  if isinstance(x,ast.FunctionDef):break
  if isinstance(x,ast.Assign) and len(x.targets)==1 and isinstance(x.targets[0],ast.Name):
   k=x.targets[0].id
-  if k in ['forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','required','current_only','required_base']:
+  if k in ['current_read_manifest','current_read_forwards','current_reader_callers','forwards','repair','repair_unit','producer','producer_unit','canonical_dependencies','required','current_only','required_base']:
    n[k]=eval(compile(ast.Expression(x.value),'<declared-inputs>','eval'),{},n)
-print(json.dumps({'root':n['required'],'base':n['required_base']}))`], {cwd: root, encoding: 'utf8'})
-  const declared = JSON.parse(declarations) as {root: string[]; base: string[]}
+print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['current_read_manifest']}))`], {cwd: root, encoding: 'utf8'})
+  const declared = JSON.parse(declarations) as {root: string[]; base: string[]; reader: Array<Input & {path: string}>}
   identities = Object.fromEntries(dependencies.map(path => [path, {base: input(baseRevision, path), root: input('HEAD', path)}]))
-  const rootInputs = {...Object.fromEntries(dependencies.map(path => [path, identities[path].root])), [producer]: input('HEAD', producer)}
+  const rootInputs = {...Object.fromEntries(dependencies.map(path => [path, identities[path].root])), [producer]: input('HEAD', producer), 'supabase/schema.sql': input('HEAD', 'supabase/schema.sql'),
+    ...Object.fromEntries(declared.reader.map(item => [item.path, input('HEAD', item.path)]))}
   const historical = {kind: 'reconstructed_public_births', default_alias: 'BASE56',
     module_overrides: [{specifier: '@/lib/ediel/testing/agtEngine', path: producer, source: 'ROOT', revision: git('rev-parse', 'HEAD').trim(), ...rootInputs[producer]}],
     canonical_dependency_identity: identities,
@@ -61,7 +62,13 @@ print(json.dumps({'root':n['required'],'base':n['required_base']}))`], {cwd: roo
   receipt = {root_path: root, base_path: baseRoot, checkout_sha: git('rev-parse', 'HEAD').trim(), base_sha: baseRevision,
     required_input_paths: declared.root, required_base_input_paths: declared.base,
     root_source: {blobs: rootInputs}, base_source: {blobs: Object.fromEntries(dependencies.map(path => [path, identities[path].base]))},
-    historical_source_basis: historical, current_source_basis: 'ROOT_only_no_legacy_hint_wrapper'}
+    historical_source_basis: historical, current_source_basis: 'ROOT_only_no_legacy_hint_wrapper',
+    current_database_basis: {kind: 'BASE56_repair_two_forwards_plus_delivered_reader_guard_closure', forwards: declared.reader, schema_path: 'supabase/schema.sql'},
+    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 371, function_definitions: 371, delivered_relation_objects: 18, mismatches: [],
+      source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex')},
+    current_api_schema_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(),
+      rpc_paths: ['/rpc/ediel_read_prodat_h_accepted_original_v1', '/rpc/ediel_read_prodat_customer_masterdata_original_v1']},
+    phases: Object.fromEntries(['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'].map(name => [name, {status: 'PASS', exit_code: 0}]))}
   vi.stubEnv('GRIDEX_DB01_NATIVE_RECEIPT', receiptPath); vi.stubEnv('GRIDEX_NATIVE_STATUS', statusPath)
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'prior-unit-only'); vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'http://127.0.0.1:54321')
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'prior-unit-only')
@@ -157,4 +164,76 @@ exec(compile(code,'<actual-workflow-basis-'+stage+'>','exec'),env)
     if (change === 'valid') expect(execute, `${stage} actual source identities`).not.toThrow()
     else expect(execute, `${stage} refuses self-consistent ${change}`).toThrow()
   }
+})
+
+// The actual e9 national case failed before legal/archive guards because its
+// current reader RPC was absent from the reconstructed historical database.
+it('refuses current native admission without qualified delivered reader dependencies', async () => {
+  delete receipt.current_database_basis
+  await expect(load('current')).rejects.toThrow('db01_native_current_reader_guard_basis_required')
+})
+
+it('refuses a dropped predecessor and a forged reader SQL identity', async () => {
+  const basis = receipt.current_database_basis as {forwards: Array<Input & {path: string}>}
+  const original = structuredClone(basis.forwards)
+  basis.forwards.splice(0, 1)
+  await expect(load('current')).rejects.toThrow('db01_native_current_reader_guard_basis_required')
+  basis.forwards = original
+  const reader = basis.forwards.find(item => item.path.endsWith('_ediel_prodat_customer_masterdata_original_read.sql'))!
+  reader.sha256 = 'f'.repeat(64)
+  const inputs = receipt.root_source as {blobs: Record<string, Input>}
+  inputs.blobs[reader.path].sha256 = 'f'.repeat(64)
+  await expect(load('current')).rejects.toThrow('db01_native_current_reader_guard_basis_required')
+})
+it.each(['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'])('refuses failed or unexecuted actual current phase %s', async name => {
+  const phases = receipt.phases as Record<string, {status: string; exit_code: number | null}>
+  phases[name] = {status: 'NOT_RUN', exit_code: null}
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
+  phases[name] = {status: 'FAIL', exit_code: 1}
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
+})
+it('does not use a guard result for another source or a different schema', async () => {
+  const result = receipt.current_guard_result as Record<string, unknown>
+  result.source_sha = baseRevision
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
+  result.source_sha = git('rev-parse', 'HEAD').trim(); result.source_schema_sha256 = 'f'.repeat(64)
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
+})
+
+it('qualifies current function definitions, ACLs and exact delivered guard objects independently of native cases', () => {
+  writeFileSync(receiptPath, JSON.stringify(receipt))
+  const python = String.raw`import os,pathlib,textwrap
+s=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
+s=s.split('cat > "$DB01_PRIVATE/qualify-current-guards.py" <<\'PY\'\n',1)[1].split('\n          PY',1)[0]
+e={}
+exec(textwrap.dedent(s).split('mode=sys.argv[1]',1)[0],e)
+assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==371 and len(e['function_keys'])==371
+expected=e['expected']; compare=e['logical_mismatches']
+assert compare(dict(expected))==[]
+keys=[('gridex_ediel_technical_ack','FUNCTION','require_contrl_v1(public.ediel_messages)'),
+ ('public','FUNCTION','ediel_read_prodat_h_accepted_original_v1(uuid, uuid, uuid)'),
+ ('public','ACL','FUNCTION ediel_read_prodat_h_accepted_original_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid)'),
+ ('gridex_customer_masterdata','CONSTRAINT','preparations customer_masterdata_preparation_actor_operation_key'),
+ ('gridex_customer_masterdata','FK CONSTRAINT','preparations preparations_cancellation_origin_id_fkey'),
+ ('gridex_ediel_header_negative_birth','ROW SECURITY','receipts'),
+ ('public','TRIGGER','ediel_messages assigned_prodat_negative_original_immutable')]
+for key in keys:
+ assert key in expected
+ actual=dict(expected);del actual[key];assert compare(actual),('missing',key)
+ actual=dict(expected);actual[key]+='\nchanged logical guard';assert compare(actual),('changed',key)
+# Framing normalization never erases an actual function/constraint/ACL body.
+assert e['blocks']('\n--\n-- Name: t; Type: TABLE; Schema: s; Owner: -\n--\nCREATE TABLE s.t(id uuid);\n--\n-- PostgreSQL database dump complete\n--\n\\unrestrict random\n')=={('s','TABLE','t'):'CREATE TABLE s.t(id uuid);'}
+`
+  expect(() => execFileSync('python3', ['-c', python], {cwd: root, env: {...process.env, CURRENT_ROOT: root,
+    GRIDEX_DB01_NATIVE_RECEIPT: receiptPath}, stdio: ['pipe', 'pipe', 'pipe']})).not.toThrow()
+})
+
+it('refuses mismatched guard surroundings and missing actual reader API visibility', async () => {
+  const result = receipt.current_guard_result as Record<string, unknown>
+  result.mismatches = [{identity: ['gridex_customer_masterdata', 'TABLE', 'preparations']}]
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
+  result.mismatches = []
+  const api = receipt.current_api_schema_result as {rpc_paths: string[]}
+  api.rpc_paths.splice(0, 1)
+  await expect(load('current')).rejects.toThrow('db01_native_actual_current_guard_qualification_required')
 })
