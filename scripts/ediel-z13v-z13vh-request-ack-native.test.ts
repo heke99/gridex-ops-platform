@@ -1443,7 +1443,8 @@ function nationalDenial(f:Fixture,p:Pending,status:'A13'|'A76'){
  const wire=tokenizeEdifact(raw),segments=wire.segments
  expect(segmentComposite(segments.find(s=>s.tag==='BGM'),1,wire.una)[0]).toBe('Z14')
  expect(segments.filter(s=>s.tag==='LIN').map(s=>s.raw)).toEqual(['LIN+1'])
- expect(segments.filter(s=>s.tag==='DGI').map(s=>s.raw)).toEqual(['DGI+23-DGI-PRODAT'])
+ expect(EdifactEnvelopeCodec.decode(raw).applicationReference).toBe(f.app)
+ expect(f.app).toBe('23-DGI-PRODAT')
  for(const value of ['Z96',status])expect(segments.filter(s=>s.tag==='CAV'&&segmentComposite(s,1,wire.una)[0]===value)).toHaveLength(1)
  expect(segments.filter(s=>s.tag==='RFF'&&segmentComposite(s,1,wire.una)[0]==='LI')
   .map(s=>segmentComposite(s,1,wire.una)[1])).toEqual([p.li])
@@ -1508,16 +1509,24 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
   const sqlPermission=()=>sql<FullRow>(`SELECT to_jsonb(mp) FROM public.metering_permissions mp WHERE company_id=${lit(f.ids.company)} AND id=${lit(p.permissionId)}`)
   const sqlSites=()=>sql<FullRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.metering_permission_sites s
    WHERE company_id=${lit(f.ids.company)} AND metering_permission_id=${lit(p.permissionId)}`)
-  const previousPermission=sqlPermission(),previousSites=sqlSites(),original=(await getEdielMessageById(p.z13.id))!,ackReceipts=ackState(f,p)
+  const previousPermission=sqlPermission(),previousSites=sqlSites(),original=(await getEdielMessageById(p.z13.id))!
+  const requestAckState=()=>{const {effects,...state}=ackState(f,p) as FullRow;void effects;return state}
+  const ackReceipts=requestAckState()
   expect(previousSites).toEqual([])
-  const raw=nationalDenial(f,p,status),source=await intake(f,p,raw)
+  const raw=nationalDenial(f,p,status),originalIntake=await retained(f,raw),sourceId=await createInboundEdielMessage(originalIntake)
+  expect(sourceId).toBeTruthy();if(!sourceId)throw Error('native_n_public_birth_required')
+  const source=(await getEdielMessageById(sourceId))!
+  expect(source).toMatchObject({company_id:f.ids.company,direction:'inbound',environment:'test',message_family:'PRODAT',message_code:'Z14',
+   raw_payload:raw,inbound_email_message_id:originalIntake.inboundEmailMessageId,mailbox_message_id:originalIntake.inboundEmailMessageId,immutable_payload_hash:hash(raw)})
+  expect(Date.parse(source.message_received_at!)).toBeGreaterThan(Date.parse(p.z13.message_sent_at!))
+  expect(fullOutbox(f)).toEqual(queues)
   expect(business(f,p)).toEqual(before)
   const {resolvePermissionReportingBirthProfile}=await import('@/lib/inbound-mail/permissionReportingBirthProfile')
   // Read the catalog only as an assertion after actual public receipt birth.
   const born=await resolvePermissionReportingBirthProfile({rawPayload:raw,receivedAt:source.message_received_at!})
   expect(born).not.toBeNull();expect(born!.rule_profile_key).toBe('PRODAT:Z14:N:26.A:r3')
   for(const [key,value] of Object.entries(born!))expect((source as unknown as FullRow)[key]).toEqual(value)
-  const foreignBefore=refusalLedger(f).foreign,producerBefore=producerState(f)
+  const beforeLedger=refusalLedger(f),foreignBefore=beforeLedger.foreign,producerBefore=producerState(f)
   const sends=nativeEscoExternal.send.mock.calls.length
   // First business/domain invocation is the actual public processor.
   await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
@@ -1563,19 +1572,76 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
   expect(foreign(producerState(f))).toEqual(foreign(producerBefore))
   const stableReplies=await committedDenialReplies(f,p,source,queues,contrlAckProfile,objectAckProfile!,receipt)
   expect(await readEdielServiceAdministration({companyId:f.ids.company,actorUserId:f.ids.actor,assignmentId:f.assignment})).toMatchObject({grants:[]})
-  expect((await getEdielMessageById(p.z13.id))!).toEqual(original);expect(ackState(f,p)).toEqual(ackReceipts);checkSentinel()
+  expect((await getEdielMessageById(p.z13.id))!).toEqual(original);expect(requestAckState()).toEqual(ackReceipts);checkSentinel()
   expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends)
   const stableProducer=producerState(f),stableLedger=refusalLedger(f),stableSource=(await getEdielMessageById(source.id))!
-  const replayInput=await retained(f,raw)
-  expect(await createInboundEdielMessage(replayInput)).toBe(source.id)
+  const additions=Object.fromEntries(Object.keys(refusalOwnerTables).map(key=>[key,
+   retainedRows(beforeLedger.own[key as keyof typeof refusalOwnerTables],stableLedger.own[key as keyof typeof refusalOwnerTables])])) as Record<keyof typeof refusalOwnerTables,FullRow[]>
+  const replyIds=stableReplies.replies.map(reply=>reply.id)
+  for(const key of ['creationReceipts','witnesses','consumptions','namespace','businessReferences'] as const){
+   for(const row of additions[key]){
+    expect(row.company_id).toBe(f.ids.company)
+    expect([row.source_message_id,row.ack_message_id,row.outbound_message_id].some(id=>id===source.id||replyIds.includes(String(id)))).toBe(true)
+   }
+  }
+  expect(additions.creationReceipts).toHaveLength(2)
+  expect(additions.creationReceipts.map(row=>row.ack_message_id).sort()).toEqual(replyIds.slice().sort())
+  for(const row of additions.creationReceipts)expect(row).toMatchObject({source_message_id:source.id,source_payload_hash:hash(raw),outcome:'positive',actor_user_id:f.ids.actor})
+  const deltas:Record<string,number>={messages:2,outbox:2,acks:2,events:additions.events.length}
+  for(const key of ['creationReceipts','witnesses','consumptions','namespace','businessReferences'] as const)deltas[key]=additions[key].length
+  expect(stableProducer.effects).toEqual(Object.fromEntries(Object.entries(producerBefore.effects).map(([key,count])=>[key,count+(deltas[key]??0)])))
+  expect(await createInboundEdielMessage(originalIntake)).toBe(source.id)
   await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
   expect(business(f,p)).toEqual(after);expect(await currentPermission(f,p)).toEqual(denied)
   expect(fullOutbox(f)).toEqual(stableReplies.outbox)
   expect(sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.id),'[]') FROM public.ediel_messages m
    WHERE company_id=${lit(f.ids.company)} AND direction='outbound' AND related_message_id=${lit(source.id)}`)).toEqual(stableReplies.replies)
-  expect((await getEdielMessageById(source.id))!).toEqual(stableSource)
-  expect(producerState(f)).toEqual(stableProducer);expect(refusalLedger(f)).toEqual(stableLedger)
-  expect((await getEdielMessageById(p.z13.id))!).toEqual(original);expect(ackState(f,p)).toEqual(ackReceipts)
+  const replaySource=(await getEdielMessageById(source.id))!,replayProducer=producerState(f),replayLedger=refusalLedger(f)
+  expect(stableRefusalSource(replaySource as unknown as FullRow)).toEqual(stableRefusalSource(stableSource as unknown as FullRow))
+  expect(replaySource).toMatchObject({status:stableSource.status,processing_status:stableSource.processing_status,
+   parsed_at:stableSource.parsed_at,parsed_payload:stableSource.parsed_payload,updated_by:f.ids.actor})
+  for(const key of ['validated_at','updated_at'] as const){
+   expect(Number.isFinite(Date.parse(replaySource[key]!))).toBe(true)
+   expect(Date.parse(replaySource[key]!)).toBeGreaterThanOrEqual(Date.parse(stableSource[key]!))
+  }
+  const {receivedSourceValidationEvidence:previousEvidence,...previousReport}=stableSource.validation_report??{}
+  const {receivedSourceValidationEvidence:replayEvidence,...replayReport}=replaySource.validation_report??{}
+  void previousEvidence;expect(replayReport).toEqual(previousReport)
+  const replayAdds=Object.fromEntries(Object.keys(refusalOwnerTables).map(key=>[key,
+   retainedRows(stableLedger.own[key as keyof typeof refusalOwnerTables],replayLedger.own[key as keyof typeof refusalOwnerTables])])) as Record<keyof typeof refusalOwnerTables,FullRow[]>
+  expect(replayLedger.foreign).toEqual(stableLedger.foreign)
+  for(const [key,rows] of Object.entries(replayAdds)){
+   if(['assessments','applicationFacets','ignoredFacets','objectFacets','responseFacets','functionFacets'].includes(key)){
+    for(const row of rows){
+     expect(row).toMatchObject({company_id:f.ids.company,environment:'test',source_message_id:source.id,source_payload_hash:hash(raw)})
+     if(key==='assessments'){
+      expect(hash(String(row.facts_text))).toBe(row.facts_hash)
+      expect(JSON.parse(String(row.facts_text))).toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted'})
+     }else expect(replayAdds.assessments.some(a=>a.id===(key==='ignoredFacets'?row.canonical_assessment_id:row.assessment_id))).toBe(true)
+    }
+   }else if(key==='events'){
+    expect(rows).toHaveLength(5)
+    for(const row of rows)expect(row).toMatchObject({company_id:f.ids.company,ediel_message_id:source.id,message_id:source.id,created_by:f.ids.actor})
+    expect(rows.map(row=>row.event_type).sort()).toEqual(['manual_note','validated','validated','validated','validated'])
+    expect(rows.filter(row=>row.message==='Egna objekt och deras slutliga svar följer beständiga skrivkvitton.')).toHaveLength(1)
+    const domain=rows.find(row=>row.message==='Egna objekt och deras slutliga svar följer beständiga skrivkvitton.')!
+    expect(domain.event_status).toBe('success');expect(domain.payload).toMatchObject({idempotent:true,createdAckMessageIds:[],fullyApplied:true,reviewRequired:false})
+   }else if(key==='processingRuns'||key==='decisionTraces'){
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({company_id:f.ids.company,source_message_id:source.id,created_by:f.ids.actor})
+   }else expect(rows).toEqual([])
+  }
+  const leaf=sql<{assessmentId:string;objects:FullRow[]}>(`SELECT gridex_received_sources.require_prodat_application_objects_v1(${lit(f.ids.company)},${lit(source.id)})`)
+  expect(leaf.objects).toEqual(application.objects)
+  expect(replayEvidence).toMatchObject({status:'recorded',assessmentId:leaf.assessmentId})
+  const protectedReplay=(state:ReturnType<typeof producerState>)=>{
+   const foreign={...state.foreign};delete foreign['public.ediel_message_events']
+   const business={...state.business,ediel_messages:(state.business.ediel_messages as FullRow[]).map(row=>row.id===source.id?stableRefusalSource(row):row)}
+   return {foreign,business,commands:state.commands}
+  }
+  expect(protectedReplay(replayProducer)).toEqual(protectedReplay(stableProducer))
+  expect(replayProducer.effects).toEqual({...stableProducer.effects,events:stableProducer.effects.events+replayAdds.events.length})
+  expect((await getEdielMessageById(p.z13.id))!).toEqual(original);expect(requestAckState()).toEqual(ackReceipts)
   expect(nativeEscoExternal.send).toHaveBeenCalledTimes(sends);checkSentinel()
  },120000)
 }

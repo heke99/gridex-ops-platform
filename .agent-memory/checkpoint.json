@@ -1,20 +1,20 @@
 {
   "project": "gridex-ops-platform",
   "schema": "distributed-startup-v1",
-  "observed_at": "2026-10-11T01:59:31.468147+00:00",
-  "observed_main": "45dbf8f6236100fb8f34931fd7c6d44e8e822998",
+  "observed_at": "2026-10-11T02:21:14.794952+00:00",
+  "observed_main": "da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32",
   "status": "IN_PROGRESS",
   "active_item": "Distributed fixed-role continuation; no inherited shared technical packet",
   "campaign_complete": false,
   "main_full_acceptance": "NOT_VERIFIED_FOR_CURRENT_MAIN",
   "coverage": {
-    "verified_rules": 115,
+    "verified_rules": 116,
     "total_rules": 121,
-    "passed_contracts": 190,
+    "passed_contracts": 191,
     "total_contracts": 231,
-    "approved_ids": 305,
+    "approved_ids": 307,
     "total_ids": 352,
-    "remaining_ids": 47
+    "remaining_ids": 45
   },
   "routing": {
     "readme": ".agent-memory/README.md",
@@ -99,5 +99,17 @@
     "status": "CLAIMED",
     "coverage": "UNCHANGED",
     "next_action": "Document verified CLAIM/checkpoint, close independent bounded plan reviews; reuse only strict30 native producer/config/workflow and narrow prospective fixture extension on actual main, verify actual currentsource/wholeconsumer effects via single native producer. Under separately verified role-memory update four shared summaries with actual H737 delivery ledger, preserve dated evidence; no coverage approval until whole frozen expected/prohibited criteria and owner begäran disposition proven. No production/runtime/GEN stack import, no foreign file edits or duplicate native/artifact work."
-  }
+  },
+  "additional_deliveries": [
+    {
+      "pr": 736,
+      "main": "da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32",
+      "ids": [
+        "P-08",
+        "AT-P-08"
+      ],
+      "status": "ACTUALLY_MERGED",
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104537565"
+    }
+  ]
 }
