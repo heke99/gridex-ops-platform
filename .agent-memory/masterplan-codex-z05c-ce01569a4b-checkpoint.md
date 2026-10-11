@@ -117,3 +117,11 @@ Taken: exact four c303-owned files after actual CLAIM6108665134 and six GET_MATC
 Verification: test-first actual RED14FAIL/144PASS on old production; GREEN158/158 focused plus160/160 related guards. Scoped ESLint, scoped TypeScript and git diff --check PASS. Declared catalog/SDK ports are component controls, not genuine whole proof. All original native31 oracles are unchanged; bc15/50be30PASS1FAIL preserved. Full logs/hashes remain in external packet artifacts; four affected source hashes frozen for R1/R2.
 
 Blocker: current-source sole31 native, mandatory final-head checks and currentmain composition still required; coverage NOT_EXECUTED unchanged. Fresh actual main d426/treec7b3a396 (#754 component normal merge) remains310/352 with42remaining. Next: compose this source with delivered main, affected tests and independent exact final-source applicability; publish own branch once, await existing sole producer. No foreign refs/SQL/GEN/capture/native-oracle edits.
+
+## 2026-10-11 actual d426 main composition
+
+Done: local normal merge of delivered main d426a7ee439af5cca5d96d5858f4a835754f51e4 into correction8402ab43; resulting source e43728674ed7f21bbe684f431b5b07f282e7d21d/tree15d5e726a6093ec3cfc21eb3efa449ff4d5e211e. All four frozen corrected postimages preserved, native31 source exact50be. Every foreign main path is exact: own PRdelta consists solely of four newly claimed files, original own native file and unique own checkpoint. No conflict or foreign coverage-row edit.
+
+Verification: actual composed9suites318PASS/0FAIL, scoped TypeScript PASS. Coverage blob29ea96d636c8dfdcb4c9f91d0a3927ac443d6d8b exact fresh main; frozen121/231 IDsets equal, no missing/duplicate IDs or missing approved evidence paths. Delivered ledger117VERIFIED+193PASSED=310/352; own AT-Z05C-SUPPLIER remains NOT_EXECUTED. Two independent read-only reviewers examine frozen4postimages and imported relevant runtime/validator applicability; no native/whole/CI approval inferred.
+
+Next: publish stable final own source once after affected review, preserving automatic sole31 pipeline and all original failures; await actual final-head gates and original output. Normal owner-only serial role merge/release only after applicable full proof/authorization.
