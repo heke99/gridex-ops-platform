@@ -1,24 +1,24 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-11T02:04:40.991261+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38102975679",
+  "generated_at": "2026-10-10T23:52:17.382739+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38096321529",
   "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
-  "latest_migration": "20261011020000_ediel_utilts_source_quantity_quality.sql",
-  "latest_migration_schema_effect": "Replaces gridex_utilts_binding.validate_decimal_source_v2 (supplied quantity quality must equal the source STS+8) and preserve_committed_projection_v1 (pre-SC-053 committed retries compared without quantity quality); generated artifacts imported byte-exactly from capture run 38102975679.",
+  "latest_migration": "20261010233000_ediel_production_contract_ack_received_confirmation.sql",
+  "latest_migration_schema_effect": "Replaces gridex_received_sources.confirm_production_contract_on_ack_v1 and its trigger (P-08 positive APERAK confirmation on acknowledged), composed on main with 20261010200000; generated artifacts imported byte-exactly from capture run 38096321529.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-11T02:04:40.991261+00:00",
-    "checkout_sha": "1bdf3b7e39603223e8fe6be353a5c8d88f9d16a8",
-    "checkout_tree": "1a87a1d37d3985cdaa4d110d06f73a4c6925f9c1",
-    "workflow_run_id": "38102975679",
+    "captured_at": "2026-10-10T23:52:17.382739+00:00",
+    "checkout_sha": "370591cfcad96ccb1875f53ac18e17f642bf5ea5",
+    "checkout_tree": "ccf15c52a763e9ff6a37763db9e94281d6942f77",
+    "workflow_run_id": "38096321529",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
     "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
     "latest_replay_migration": {
-      "name": "20261011020000_ediel_utilts_source_quantity_quality.sql",
-      "sha256": "7be26830e1623a7bd39d4324a42891bee8262e1fc0e7cb535e545fe4af6d5369"
+      "name": "20261010233000_ediel_production_contract_ack_received_confirmation.sql",
+      "sha256": "0e33a83717f7b432bcf80a9f78b43975a90f739fbca97b3a7a2913818458b09d"
     },
     "schema_names": [
       "gridex_ack_authority",
@@ -80,15 +80,15 @@
       "gridex_utilts_issuer",
       "public"
     ],
-    "schema_fingerprint": "688a9ea97054bec32ec96c7ee381df3f0ba91f9e08d3747780a7e69cd1f2c84f",
+    "schema_fingerprint": "c7d51e137adbc44e5cc44da2807e41a25494df6aea7a3f648e99d2abaf192946",
     "artifact_sha256": {
       "database.types.ts": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
-      "schema.sql": "6bcbd1e54d2a0524166a27d4f79df2b22b2834ddbf2d7eaaa4d38441ac061ccf",
-      "schema.fingerprint.json": "7fc41ddfd3b461ebaa9993e21194eb70f5bc7f679fc711040c53c8f322531bde"
+      "schema.sql": "e6901a40975042ab25ed4a966dd634bb5a6cbb1965e1fc5c947560ac63650abd",
+      "schema.fingerprint.json": "584ccd874ffc27afe808f9054780b3d0254836d915114d52610d1d6a5843e758"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
-      "scripts/migration-history-manifest.json": "02ed1de83e75ef5f503995f3356878d44953dc156d9baff362ecb076b5ea89b5",
+      "scripts/migration-history-manifest.json": "f2236b1156d7807892ddd93dbdb8f9bcbac8f76d8665d1bd8d194bcaa80dce46",
       "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
       "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
       "scripts/supabase-types-manifest.json": "f00cee4bf378e8bffc8e114f40491e63c3018d20460189fb839a283f361a2363",
