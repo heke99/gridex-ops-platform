@@ -10,6 +10,7 @@ on:
       - 'scripts/helpers/ediel-esco-z13-customer-source-b6d3.ts'
       - 'scripts/helpers/ediel-esco-birth-selector-b6d3.ts'
       - 'scripts/helpers/ediel-esco-object-refusal-b6d3.ts'
+      - 'scripts/helpers/ediel-esco-b6d3-native-evidence.ts'
       - 'scripts/helpers/ediel-native-permission-catalog.setup.ts'
       - 'scripts/ediel-source-owner-native.config.ts'
       - 'scripts/gridex-aud-003-clean-replay.sh'

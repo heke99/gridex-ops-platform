@@ -3,8 +3,8 @@
 // archive/review, permission coordination and the public producer all run.
 import {randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
-import {reviewNativeEscoAssignmentEvidence as review,nativeEscoSql as sql,nativeEscoLiteral as lit,
- nativeEscoExternal,seedNativeEscoFixture} from '../fixtures/ediel-service-evidence-native'
+import {nativeEscoSql as sql,nativeEscoLiteral as lit,nativeEscoExternal} from '../fixtures/ediel-service-evidence-native'
+import {reviewNativeEscoB6d3AssignmentEvidence as review,seedNativeEscoB6d3Fixture as seedNativeEscoFixture} from './ediel-esco-b6d3-native-evidence'
 import {coordinateEdielServicePermission,resolveEdielServicePermissionCommand} from '@/lib/ediel/services/commands'
 import {readServicePermissionOrigin} from '@/lib/ediel/services/permissionOrigin'
 import {getCustomerExportContext,buildCustomerIdentityPayload,buildSitePayload,buildMeteringPointPayload,

@@ -14,8 +14,8 @@ import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validato
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type {ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
-import {reviewNativeEscoAssignmentEvidence as review,seedNativeEscoFixture,
- prepareNativeEscoPermissionFixture,nativeEscoSql as sql,nativeEscoLiteral as lit,nativeEscoExternal,NATIVE_ESCO_DB} from '../fixtures/ediel-service-evidence-native'
+import {reviewNativeEscoB6d3AssignmentEvidence as review,seedNativeEscoB6d3Fixture as seedNativeEscoFixture} from './ediel-esco-b6d3-native-evidence'
+import {prepareNativeEscoPermissionFixture,nativeEscoSql as sql,nativeEscoLiteral as lit,nativeEscoExternal,NATIVE_ESCO_DB} from '../fixtures/ediel-service-evidence-native'
 
 type Fixture=Awaited<ReturnType<typeof seedNativeEscoFixture>>
 type Row=Record<string,unknown>

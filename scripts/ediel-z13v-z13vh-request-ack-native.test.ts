@@ -6,10 +6,11 @@
 import {createHash,randomUUID} from 'node:crypto'
 import {spawn} from 'node:child_process'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
-import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prepare,
- reviewNativeEscoAssignmentEvidence,
+import {prepareNativeEscoPermissionFixture as prepare,
  resetNativeEscoFixture,nativeEscoSql as sql,nativeEscoLiteral as lit,
  nativeEscoExternal,NATIVE_ESCO_DB} from './fixtures/ediel-service-evidence-native'
+import {seedNativeEscoB6d3Fixture as seed,
+ reviewNativeEscoB6d3AssignmentEvidence as reviewNativeEscoAssignmentEvidence} from './helpers/ediel-esco-b6d3-native-evidence'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {omitZ14Field} from './helpers/ediel-z14v-current-native-fixture'
 import {refuseEscoCustomerSource} from './helpers/ediel-esco-z13-customer-source-b6d3'
