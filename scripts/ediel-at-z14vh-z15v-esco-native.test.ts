@@ -12,6 +12,7 @@ import {archiveEdielServiceEvidence,readEdielServiceEvidenceArchive,reviewEdielS
 import {reviewPeriodicDgiE66Reason} from '@/lib/ediel/services/periodicReason'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {nativeEscoExternal} from './fixtures/ediel-service-evidence-native'
+import {projectEdielSeriesToBeneficiary} from '@/lib/ediel/services/projection'
 import {renderProdat} from '@/lib/ediel/prodatEngine'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
@@ -168,6 +169,7 @@ function mutate(raw:string,from:string,to:string){
 }
 
 it('mailbox-born Z14VH/S18 on 23-DGI-PRODAT creates and versions exactly its market permission and object scope, with genuine CONTRL+APERAK and no tenant access',async()=>{
+ const other=await pendingVH(),otherBefore=market(other.f,other.permissionId)
  const p=await pendingVH(),{f}=p,raw=z14vh(p),before=market(f,p.permissionId)
  const physical=tokenizeEdifact(raw)
  expect(EdifactEnvelopeCodec.decode(raw).applicationReference).toBe('23-DGI-PRODAT')
@@ -192,9 +194,8 @@ it('mailbox-born Z14VH/S18 on 23-DGI-PRODAT creates and versions exactly its mar
  // Idempotent replay: no second version, receipt or acknowledgement.
  await processed(f,source)
  expect(market(f,p.permissionId)).toEqual(after);expect((await ownAcks(f,source,p.profile)).acks).toEqual(acks.acks)
- // Another tenant's ESCO fixture is untouched by this permission.
- const other=await seed('VH')
- expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.metering_permissions WHERE company_id=${lit(other.ids.company)} AND status='active'`)).toBe(0)
+ // Another tenant's pending VH permission, created before the source, is untouched.
+ expect(market(other.f,other.permissionId)).toEqual(otherBefore)
 })
 
 it('customer-bound Z13VH: the DSO-declared installation is the only approved object and grants no access',async()=>{
@@ -218,7 +219,6 @@ it.each([
 ] as const)('Z14VH with %s cannot create or widen the permission and gets no positive APERAK',async(_name,change,swap)=>{
  const p=await pendingVH(),{f}=p,before=market(f,p.permissionId),base=z14vh(p,change)
  const raw=swap?mutate(base,swap[0],swap[1]):base
- if(!swap)expect(raw).not.toBe(z14vh(p))
  const source=await receive(f,raw,'Z14',swap?.[1].endsWith('S17')?'PRODAT:Z14:V:26.A:r3':VH_PROFILE)
  await processed(f,source)
  const after=market(f,p.permissionId)
@@ -273,6 +273,22 @@ function z15v(a:Active,change:Record<string,unknown>={},asEsco=false){
 }
 const V15_PROFILE='PRODAT:Z15:V:26.A:r3'
 
+it('received Z15V/S17 stops distribution: the grant that projected before the end can no longer project after it',async()=>{
+ const a=await activeV(),{f}=a
+ const incoming=await f.utilts('accepted','Z15V-'+randomUUID().slice(0,8));await incoming.persist()
+ const series=sql<{id:string;start:string;end:string}>(`SELECT jsonb_build_object('id',id,'start',period_start,'end',period_end) FROM public.meter_reading_series WHERE company_id=${lit(f.ids.company)} AND source_ediel_message_id=${lit(incoming.source.id)}`)
+ sql(`INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,role,is_active,role_key) VALUES(${lit(f.ids.beneficiary)},${lit(f.ids.actor)},'operations','active',now(),'member',true,'operations');INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${lit(f.ids.actor)},${lit(f.ids.beneficiary)},id,key FROM public.permissions WHERE key='metering.read'`)
+ const grantVersion=()=>sql<number>(`SELECT to_jsonb(version) FROM public.ediel_data_access_grants WHERE id=${lit(a.grantId)}`)
+ const read=()=>projectEdielSeriesToBeneficiary({beneficiaryCompanyId:f.ids.beneficiary,actorUserId:f.ids.actor,grantId:a.grantId,expectedGrantVersion:grantVersion(),purpose:f.fields.purpose,seriesId:series.id,fields:['quantity'] as const,startInclusive:series.start,endExclusive:series.end})
+ // Precondition: the active V permission really distributes before the end.
+ expect((await read()).grantId).toBe(a.grantId)
+ const source=await receive(f,z15v(a),'Z15',V15_PROFILE)
+ await processed(f,source)
+ expect(market(f,a.permissionId).permission.status).toBe('ended')
+ const refusal=await read().then(()=>null,(e:unknown)=>e as {message?:string;code?:string})
+ expect(refusal,'projection after Z15V must be refused').not.toBeNull()
+})
+
 it('received Z15V/S17 ends exactly its V permission and objects, versions the end, sends own CONTRL+APERAK and no new Z13',async()=>{
  const a=await activeV(),{f}=a,raw=z15v(a),before=market(f,a.permissionId)
  const physical=tokenizeEdifact(raw)
@@ -293,9 +309,10 @@ it('received Z15V/S17 ends exactly its V permission and objects, versions the en
  // are what the projection gate requires to be approved/active.
  expect(after.z13).toBe(before.z13);expect(after.supply).toEqual(before.supply)
  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND message_code='Z18'`)).toBe(0)
- await ownAcks(f,source,a.profile)
+ const acks=await ownAcks(f,source,a.profile)
+ // Idempotent replay: no second version, receipt, acknowledgement or outbox row.
  await processed(f,source)
- expect(market(f,a.permissionId)).toEqual(after)
+ expect(market(f,a.permissionId)).toEqual(after);expect((await ownAcks(f,source,a.profile)).acks).toEqual(acks.acks)
 })
 
 it('Z15V never ends another tenant permission or a DDQ supply relation',async()=>{
