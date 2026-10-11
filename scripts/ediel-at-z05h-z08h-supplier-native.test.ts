@@ -720,11 +720,20 @@ it('actual H08 archived but unreviewed legal original never becomes a mandate or
 // national L/watch case. Missing C212 and malformed C212 are distinct physical
 // sources. A birth refusal, local hold, missing private owner or missing physical
 // ACK fails these cases. This owner deliberately covers H/Z25 only.
+// Full tables include foreign tenants and NULL-scoped public rows. An exact
+// own-source negative response cannot authorize any unrelated addition there.
+function rejectedIdentityEffects(){
+ const tables={transitions:'gridex_received_sources.supply_source_transitions',
+  bilateral:'gridex_bilateral_prodat.supply_effect_receipts',national:'gridex_supply_rescission.end_receipts',
+  watch:'public.ediel_business_expectations',acks:'public.ediel_messages',outbox:'public.ediel_outbox',cases:'public.customer_cases'}
+ return sql<Record<string,Row[]>>(`SELECT jsonb_build_object(${Object.entries(tables).map(([key,table])=>
+  `${literal(key)},(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text),'[]') FROM ${table} x${key==='acks'?" WHERE message_family IN('CONTRL','APERAK')":''})`).join(',')})`)
+}
 for(const kind of ['missing','malformed'] as const)it('public H05 '+kind+' physical209 owns only its exact negative ACK; no business authority, original mutation or replay effect',async()=>{
  const f=await hEndGround(),body=endBody(f,'Z25',f.li).map(p=>p[0]==='LIN'
   ?kind==='missing'?['LIN','1']:['LIN','1','',['','','','9']]:p) as Parts[]
  // Do not pass omittedField: ExpectedPhysicalBirthRefusal is not proof.
- const m=await receive(f,wire(f,'Z05',body)),original=custody(m.sourceId),before=graph(),saved=effects(f.companyId),privateSaved=protectedOriginals(),calls=provider.mock.calls.length
+ const m=await receive(f,wire(f,'Z05',body)),original=custody(m.sourceId),before=graph(),saved=rejectedIdentityEffects(),privateSaved=protectedOriginals(),calls=provider.mock.calls.length
  expect(m.source).toMatchObject({company_id:f.companyId,environment:'test',direction:'inbound',raw_payload:m.wire})
  expect(m.source.execution_context_snapshot).toMatchObject({receivedProdatContext:{sourceMessageId:m.sourceId,companyId:f.companyId,payloadHash:hash(m.wire)}})
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(m.source,{actorUserId:f.actorUserId})
@@ -752,7 +761,7 @@ for(const kind of ['missing','malformed'] as const)it('public H05 '+kind+' physi
  expect(readReceivedZ05RejectedIdentityWitness(token!,m.source,f.actorUserId)).toBeNull()
  expect(readReceivedCanonicalProdatResponseValidation(separate,m.source)).toBeNull()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
- const after=effects(f.companyId) as Record<string,unknown>,old=saved as Record<string,unknown>
+ const after=rejectedIdentityEffects(),old=saved
  expect(graph()).toEqual(before)
  for(const key of ['transitions','bilateral','national','watch'])expect(after[key],key).toEqual(old[key])
  oldRowsPreserved(saved,after);preservedProtected(privateSaved,m.sourceId)
@@ -766,9 +775,12 @@ for(const kind of ['missing','malformed'] as const)it('public H05 '+kind+' physi
   for(const key of ['transitions','bilateral','national','watch','cases'])expect(current[key],key).toEqual(prior[key])
   oldRowsPreserved(prior,current)
   expect(newRows(prior.acks,current.acks).map(row=>row.id).sort()).toEqual(acks.map(row=>row.id).sort())
+  for(const row of newRows(prior.acks,current.acks))expect(row).toMatchObject({company_id:f.companyId,
+   environment:'test',direction:'outbound',related_message_id:m.sourceId})
   const ownOutbox=newRows(prior.outbox,current.outbox)
   expect(ownOutbox).toHaveLength(2)
   expect(ownOutbox.map(row=>row.ediel_message_id).sort()).toEqual(acks.map(row=>row.id).sort())
+  for(const row of ownOutbox)expect(row).toMatchObject({company_id:f.companyId,environment:'test',source_message_id:m.sourceId})
  }
  assertOnlyOwnAckEffects(after)
  const ack=acks.find(x=>x.message_family==='APERAK')!
@@ -796,9 +808,9 @@ for(const kind of ['missing','malformed'] as const)it('public H05 '+kind+' physi
  expect(graph()).toEqual(before);expect(custody(m.sourceId)).toEqual(original)
  // Check against the pre-processing business baseline after actual SEND;
  // a mutated effect cannot become an accepted replay baseline.
- assertOnlyOwnAckEffects(effects(f.companyId))
- const replay=effects(f.companyId),privateReplay=protectedOriginals()
+ assertOnlyOwnAckEffects(rejectedIdentityEffects())
+ const replay=rejectedIdentityEffects(),privateReplay=protectedOriginals()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:m.sourceId})
- expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(replay);expect(protectedOriginals()).toEqual(privateReplay);expect(custody(m.sourceId)).toEqual(original);expect(provider).toHaveBeenCalledTimes(calls+2)
+ expect(graph()).toEqual(before);expect(rejectedIdentityEffects()).toEqual(replay);expect(protectedOriginals()).toEqual(privateReplay);expect(custody(m.sourceId)).toEqual(original);expect(provider).toHaveBeenCalledTimes(calls+2)
  for(const [index,actualAck]of acks.entries())expect(await retainedTransportBytes(f,actualAck.id)).toEqual(ackCopies[index])
 },120000)
