@@ -59,7 +59,7 @@ import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusines
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
 import {finalizeSupplierSwitchExecution} from '@/lib/operations/db'
 import {seedNormalSwitchNativeFixture} from './helpers/ediel-normal-switch-native-fixture'
-import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
+import {seedOriginalMailboxNative,recordOriginalMailboxNativeReception} from './helpers/originalMailboxNative'
 import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {matchOutboundRequestForInbound,matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
@@ -545,6 +545,53 @@ async function insertStructuralChange(f:Awaited<ReturnType<typeof seed>>,code:'Z
  const message=structuralOwnerSource(code,reason,document,replacement)
  const external=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  const body=scopedWire(f,message.raw_payload!.replaceAll('735123456789012345',external))
+ if(code==='Z10'){
+  // Each actual reception needs its own technical interchange. Preserve every
+  // business segment, including the correction's document and BGM function.
+  const reference=randomUUID().replaceAll('-','').slice(0,14),{una,segments}=tokenizeEdifact(body)
+  const headers=segments.filter(segment=>segment.tag==='UNB'),trailers=segments.filter(segment=>segment.tag==='UNZ')
+  expect(headers).toHaveLength(1);expect(trailers).toHaveLength(1)
+  const replacements=[{segment:headers[0],element:5},{segment:trailers[0],element:2}].map(({segment,element})=>{
+   const span=segmentSourceSpan(segment),fields=segment.raw.split(una.dataElementSeparator)
+   expect(span).not.toBeNull();expect(fields[element]).toBe('I')
+   fields[element]=reference
+   return {span:span!,raw:fields.join(una.dataElementSeparator)}
+  }).sort((a,b)=>b.span.startOffset-a.span.startOffset)
+  let wire=body
+  for(const replacement of replacements)wire=wire.slice(0,replacement.span.startOffset)+replacement.raw+wire.slice(replacement.span.endOffset)
+  const receivedAt=new Date().toISOString()
+  const mail=await seedOriginalMailboxNative(<T>(statement:string)=>sql<T>(statement,true),literal,{
+   companyId:f.ids.company,environment:'test',raw:wire,receivedAt,smtpFrom:assertEdielSmtpReadiness().from})
+  expect(mail.parsed.messageTypeVersion.associationAssignedCode).toBe('E2SE6A')
+  expect(mail.parsed.applicationReference).toBe('23-DDQ-PRODAT');expect(mail.parsed.interchangeReference).toBe(reference)
+  const id=sql<string>(`INSERT INTO public.ediel_messages(company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,inbound_email_message_id,mailbox_message_id,message_version,sender_ediel_id,receiver_ediel_id,interchange_reference)
+   SELECT ${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},'test','inbound','edifact','PRODAT','Z10','received',${literal(wire)},${literal(mail.parsed)}::jsonb,${literal(receivedAt)}::timestamptz,${literal(mail.parsed.applicationReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile,
+    ${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)},${literal(mail.parsed.messageTypeVersion.associationAssignedCode)},${literal(mail.parsed.senderEdielId)},${literal(mail.parsed.receiverEdielId)},${literal(mail.parsed.interchangeReference)}
+   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+   WHERE profile.profile_key='PRODAT:Z10:M:26.A:r3' AND profile.is_enabled RETURNING to_jsonb(id);`)
+  expect(id).toMatch(/^[a-f0-9-]{36}$/)
+  await recordOriginalMailboxNativeReception({companyId:f.ids.company,sourceMessageId:id,actorUserId:f.ids.reviewer,
+   inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,sourcePayloadHash:mail.sourcePayloadHash})
+  const original=sql<Record<string,unknown>>(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(id)} AND company_id=${literal(f.ids.company)};`,true)
+  expect(original).toMatchObject({company_id:f.ids.company,customer_id:f.ids.customer,site_id:f.ids.site,metering_point_id:f.ids.point,
+   environment:'test',direction:'inbound',message_family:'PRODAT',message_code:'Z10',message_version:'E2SE6A',raw_payload:wire,
+   inbound_email_message_id:mail.inboundEmailMessageId,mailbox_message_id:mail.inboundEmailMessageId,
+   sender_ediel_id:mail.parsed.senderEdielId,receiver_ediel_id:mail.parsed.receiverEdielId,interchange_reference:reference,
+   application_reference:'23-DDQ-PRODAT',rule_profile_key:'PRODAT:Z10:M:26.A:r3',immutable_payload_hash:mail.sourcePayloadHash})
+  const receptions=sql<Record<string,unknown>[]>(`SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]') FROM gridex_ediel_inbound_receptions.receptions r
+   WHERE company_id=${literal(f.ids.company)} AND source_message_id=${literal(id)};`,true)
+  expect(receptions).toHaveLength(1)
+  expect(receptions[0]).toMatchObject({company_id:f.ids.company,source_message_id:id,environment:'test',actor_user_id:f.ids.reviewer,
+   inbound_email_message_id:mail.inboundEmailMessageId,parse_result_id:mail.parseResultId,classification:'first_reception',
+   canonical_payload_hash:mail.sourcePayloadHash,received_payload_hash:mail.sourcePayloadHash})
+  expect(sql(`SELECT to_jsonb(m.message_received_at=mail.received_at AND r.received_at=mail.received_at
+   AND mail.received_at=${literal(receivedAt)}::timestamptz AND mail.raw_edifact_payload=m.raw_payload AND p.raw_payload=m.raw_payload AND p.parse_status='parsed')
+   FROM public.ediel_messages m JOIN public.inbound_email_messages mail ON mail.id=m.inbound_email_message_id
+   JOIN public.inbound_ediel_parse_results p ON p.id=${literal(mail.parseResultId)} AND p.inbound_email_message_id=mail.id AND p.company_id=m.company_id
+   JOIN gridex_ediel_inbound_receptions.receptions r ON r.company_id=m.company_id AND r.source_message_id=m.id
+   WHERE m.id=${literal(id)} AND m.company_id=${literal(f.ids.company)};`,true)).toBe(true)
+  return id
+ }
  const id=sql<string>(`INSERT INTO public.ediel_messages(company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
   SELECT ${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},'test','inbound','edifact','PRODAT',${literal(code)},'received',${literal(body)},${literal(message.parsed_payload)}::jsonb,clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key=${literal(`PRODAT:${code}:${(message.parsed_payload as Record<string,unknown>).subtype}:26.A:r3`)} AND profile.is_enabled RETURNING to_jsonb(id);`)
