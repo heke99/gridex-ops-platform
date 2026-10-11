@@ -1,5 +1,6 @@
 import {fetchReceivedZ02EndUserAddressContext,type ReceivedZ02EndUserAddressContext} from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
 import {resolveReceivedZ05RejectedIdentityRuntime} from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRuntime'
+import {hasReceivedZ05RejectedIdentityRejection} from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRejection'
 import {loadReceivedZ04HAddressContext,type ReceivedZ04HAddressContext} from '@/lib/ediel/core/receivedZ04HAddressAvailability'
 import {observeReceivedZ04HStructuralFields,loadReceivedZ04HStructuralFieldRejection,readReceivedZ04HStructuralFieldWitness,ownReceivedZ04HStructuralFieldRejection} from '@/lib/ediel/prodat/receivedZ04HStructuralFieldRejection'
 import {observeReceivedProdatHeaderRejection,loadReceivedProdatHeaderRejection,readReceivedProdatHeaderRejectionErrors,ownReceivedProdatHeaderRejection} from '@/lib/ediel/prodat/receivedProdatHeaderRejection'
@@ -915,6 +916,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
   const rejectedIdentity = await resolveReceivedZ05RejectedIdentityRuntime(message,base,receivedReportingActorUserId)
   if(rejectedIdentity){
     const {decision,facet}=rejectedIdentity
+    if(!hasReceivedZ05RejectedIdentityRejection(decision,message,receivedReportingActorUserId))return base
     initialProdatResponseOwners.set(decision,{
       sourceIdentity:prodatResponseSourceIdentity(message),
       decisionHash:evidenceHash(JSON.stringify(decision)),facet,
