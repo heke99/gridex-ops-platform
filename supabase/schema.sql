@@ -71682,7 +71682,19 @@ begin
     return old;
   end if;
   if old.status = 'deleted_test_only' then
-    v_retained := public.gridex_company_retained_history_v1(old.id);
+    v_retained := public.gridex_company_retained_history_v1(old.id) || array_remove(array[
+      case when exists (select 1 from public.canonical_audit_events x where x.company_id = old.id) then 'canonical_audit_events' end,
+      case when exists (select 1 from public.canonical_command_results x where x.company_id = old.id) then 'canonical_command_results' end,
+      case when exists (select 1 from public.canonical_domain_events x where x.company_id = old.id) then 'canonical_domain_events' end,
+      case when exists (select 1 from public.canonical_event_outbox x where x.company_id = old.id) then 'canonical_event_outbox' end,
+      case when exists (select 1 from public.pricing_audit_logs x where x.company_id = old.id) then 'pricing_audit_logs' end,
+      case when exists (select 1 from public.domain_events x where x.company_id = old.id) then 'domain_events' end,
+      case when exists (select 1 from public.ediel_ack_transaction_results x where x.company_id = old.id) then 'ediel_ack_transaction_results' end,
+      case when exists (select 1 from public.ediel_business_correlations x where x.company_id = old.id) then 'ediel_business_correlations' end,
+      case when exists (select 1 from public.ediel_business_errors x where x.company_id = old.id) then 'ediel_business_errors' end,
+      case when exists (select 1 from public.ediel_route_history x where x.company_id = old.id) then 'ediel_route_history' end,
+      case when exists (select 1 from public.ediel_certification_evidence x where x.company_id = old.id) then 'ediel_certification_evidence' end
+    ], null);
     if cardinality(v_retained) = 0 then
       return old;
     end if;
