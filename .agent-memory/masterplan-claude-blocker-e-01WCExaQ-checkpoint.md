@@ -2,7 +2,7 @@
 
 - Agent: `claude-blocker-e-session_01WCExaQJ8GurBiuazNaHXKh`
 - Role: BLOCKERARAGENT E (fixed). Branch: `claude/blocker-e-01WCExaQ` (checkpoint only).
-- Custody: P-08 delivered; release requested; native test file ref kept for AT-Z09D. No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
+- Custody: only file-b45d98… (P-08 native test) at ffce8ee6, held for AT-Z09D. No CLAIM, no ID/file refs, no coverage edits. Coverage 302/352.
 
 ## Log
 
@@ -110,6 +110,10 @@
 - 12 refs still live at 03:09Z; reminder posted (6104893183), shared five first.
 - AT-Z09D not yet reserved.
 - #743 delta e9d4f27→36e91f9: C0/I0 + note (checkpoint as coverage evidence) (6104934116); local coverage check 309/352.
+
+### 2026-10-11T03:58Z — RELEASE_VERIFIED ([6105219719](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6105219719))
+- 11 refs (P-08 IDs, 4 P-08 files, shared five) independently GET → Not Found. Shared output slot free.
+- Kept: file-b45d98… (native test) at ffce8ee6 for AT-Z09D. Deadline 06:00Z: if not RESERVED, release it and BLOCKED.
 
 ## Next
 After proxy RELEASE: verify 404s. AT-Z09D: on RESERVED → CLAIM → add 23-DDQ-PRODAT / no NAD+UD / wrong-correlation + mutation assertions to P-08 native test → PR.
