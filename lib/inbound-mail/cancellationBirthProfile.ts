@@ -13,8 +13,9 @@ export async function resolveCancellationBirthProfile(input: {
   rawPayload: string | null | undefined; receivedAt: string; messageCode: string
 }) {
   const canonical = parseCanonicalEdielPayload({ rawPayload: input.rawPayload, direction: 'inbound', standardHint: 'edifact' })
-  if (!['Z04', 'Z05'].includes(input.messageCode) || canonical.messageCode !== input.messageCode ||
-    canonical.family !== 'PRODAT' || canonical.applicationReference !== '23-DDQ-PRODAT' || canonical.version !== 'E2SE6A') return null
+  const applicationReference = input.messageCode === 'Z15' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT'
+  if (!['Z04', 'Z05', 'Z15'].includes(input.messageCode) || canonical.messageCode !== input.messageCode ||
+    canonical.family !== 'PRODAT' || canonical.applicationReference !== applicationReference || canonical.version !== 'E2SE6A') return null
   const { segments, una } = tokenizeEdifact(input.rawPayload)
   const positions = ['UNB', 'UNH', 'BGM', 'UNT', 'UNZ'].map(tag => {
     const own = segments.filter(token => token.tag === tag)

@@ -15,21 +15,24 @@ const evidence = (code: string) => ({ rulePackId: 'declared-pack', messageProfil
   databaseProfileKey: `PRODAT:${code}:C:26.A:r3`, originalVersion: '26.A:r3', sourceHash: checksum,
   unhAssociationCode: 'E2SE6A', originalSnapshot: { rulePack: { id: 'declared-pack' },
     messageProfile: { id: 'declared-profile', code, reason: 'Z24' }, guideSources: [{ source_hash: checksum }] } })
+const codes = ['Z04', 'Z05', 'Z15']
+const physical = (body: readonly Parts[], code: string) => code === 'Z15'
+  ? raw(body, code).replace('23-DDQ-PRODAT', '23-DGI-PRODAT') : raw(body, code)
 const select = (payload: string, messageCode = 'Z04', clock = receivedAt) => resolveCancellationBirthProfile({ rawPayload: payload, messageCode, receivedAt: clock })
 beforeEach(() => { catalog.mockReset(); catalog.mockImplementation(async ({ messageCode }: { messageCode: string }) => evidence(messageCode)) })
 
-it.each(['Z04', 'Z05'])('selects the own %s/Z24 physical profile with complete original witness and retained Stockholm date', async code => {
+it.each(codes)('selects the own %s/Z24 physical profile with complete original witness and retained Stockholm date', async code => {
   const original = evidence(code)
-  expect(await select(raw(object(), code), code)).toEqual({ canonical_rule_pack_id: original.rulePackId,
+  expect(await select(physical(object(), code), code)).toEqual({ canonical_rule_pack_id: original.rulePackId,
     rule_profile_key: original.databaseProfileKey, rule_profile_version_id: original.messageProfileId,
     rule_profile_version: original.originalVersion, rule_pack_checksum: checksum,
     rule_pack_snapshot: { ...original.originalSnapshot, profileKey: original.databaseProfileKey,
       profileVersionId: original.messageProfileId, version: original.originalVersion, checksum } })
   expect(catalog).toHaveBeenCalledExactlyOnceWith({ family: 'PRODAT', messageCode: code, transactionSubtype: 'Z24',
-    applicationReference: '23-DDQ-PRODAT', direction: 'inbound', businessDate: '2026-10-08' })
+    applicationReference: code === 'Z15' ? '23-DGI-PRODAT' : '23-DDQ-PRODAT', direction: 'inbound', businessDate: '2026-10-08' })
 })
-it.each(['Z04', 'Z05'])('qualifies each homogeneous %s object independently', async code => {
-  expect(await select(raw([...object(), ...object('2', '735999000000002')], code), code)).not.toBeNull()
+it.each(codes)('qualifies each homogeneous %s object independently', async code => {
+  expect(await select(physical([...object(), ...object('2', '735999000000002')], code), code)).not.toBeNull()
   expect(catalog).toHaveBeenCalledTimes(1)
 })
 it('preserves lawful Z04 first-register common reason inheritance', async () => {
@@ -78,6 +81,25 @@ const refusals: [string, () => string][] = [
 ]
 it.each(refusals)('refuses %s before catalog lookup', async (_name, make) => {
   expect(await select(make())).toBeNull(); expect(catalog).not.toHaveBeenCalled()
+})
+it.each(refusals.filter(([name]) => name !== 'wrong application'))('refuses physical Z15 C %s before catalog lookup', async (_name, make) => {
+  const payload = make().replace('BGM+Z04', 'BGM+Z15').replace('23-DDQ-PRODAT', '23-DGI-PRODAT')
+  expect(await select(payload, 'Z15')).toBeNull(); expect(catalog).not.toHaveBeenCalled()
+})
+it.each(['S17', 'S18', 'Z25'])('does not select a Z15 %s permission-end profile as cancellation', async reason => {
+  expect(await select(physical(object('1', undefined, reason), 'Z15'), 'Z15')).toBeNull()
+  expect(catalog).not.toHaveBeenCalled()
+})
+it.each(codes)('refuses %s with the other application reference', async code => {
+  const payload = code === 'Z15' ? raw(object(), code) : physical(object(), code).replace('23-DDQ-PRODAT', '23-DGI-PRODAT')
+  expect(await select(payload, code)).toBeNull(); expect(catalog).not.toHaveBeenCalled()
+})
+it.each(['Z04', 'Z05', 'Z01'])('refuses physical Z15 with caller %s', async code => {
+  expect(await select(physical(object(), 'Z15'), code)).toBeNull(); expect(catalog).not.toHaveBeenCalled()
+})
+it('rejects Z15 same-object register repetition', async () => {
+  expect(await select(physical([...object('1', undefined, 'Z24', '1'), line('2', '735999000000001', '2', '9')], 'Z15'), 'Z15')).toBeNull()
+  expect(catalog).not.toHaveBeenCalled()
 })
 it.each(['PRODAT:X:97A:UN:E2SE6A', 'PRODAT:D:1:UN:E2SE6A', 'PRODAT:D:97A:ZZ:E2SE6A', 'PRODAT:D:97A:UN:E2SE6A:EXTRA'])('refuses the complete foreign physical UNH token %s before lookup', async token => {
   expect(await select(raw(object()).replace('PRODAT:D:97A:UN:E2SE6A', token))).toBeNull()
