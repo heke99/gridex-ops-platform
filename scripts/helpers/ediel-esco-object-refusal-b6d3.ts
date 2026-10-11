@@ -13,12 +13,16 @@ type Fixture=Awaited<ReturnType<typeof seedNativeEscoFixture>>
 type Pending=Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>
 type Row=Record<string,unknown>
 type Window=readonly[number,number]
-export type EscoObjectField='316'|'234'|'302'|'508'|'326'|'217'|'222'|'513'|'260'|'325'|'228'
+export type EscoObjectField='316'|'234'|'302'|'508'|'326'|'217'|'222'|'513'|'260'|'325'|'228'|'506'|'323'
 export type EscoReportingField=EscoObjectField|'321'|'322'|'323'
 export const escoObjectRefusals=[['V','316'],['V','234'],['V','302'],['V','508'],['V','217'],['V','513'],['V','260'],['V','325'],['V','228'],
- ['VH','316'],['VH','234'],['VH','302'],['VH','508'],['VH','326'],['VH','217'],['VH','222'],['VH','513'],['VH','260'],['VH','325'],['VH','228']] as const
+ ['VH','316'],['VH','234'],['VH','302'],['VH','508'],['VH','326'],['VH','217'],['VH','222'],['VH','513'],['VH','260'],['VH','325'],['VH','228'],
+ ['V','506'],['VH','506'],['VH','323']] as const
 export function isEscoObjectRefusal(mode:'V'|'VH',field:EscoReportingField):field is EscoObjectField{
  return escoObjectRefusals.some(([m,n])=>m===mode&&n===field)
+}
+export function escoObjectRefusalCode(field:EscoObjectField){
+ return field==='506'?'PRODAT_ENERGY_PRODUCT_REQUIRED':field==='323'?'PRODAT_RECEIVED_REPORTING_323_MISSING':'FIELD_MATRIX_REQUIRED_FIELD_MISSING'
 }
 const hash=(text:string)=>createHash('sha256').update(text).digest('hex')
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -39,7 +43,7 @@ export function omitEscoObjectField(raw:string,field:EscoObjectField,f:Fixture,p
  for(const delimiter of [u.dataElementSeparator,u.componentDataElementSeparator,u.segmentTerminator])expect(raw.includes(u.releaseCharacter+delimiter)).toBe(false)
  const party=field==='316'||field==='228'?'UD':field==='234'?'IT':null
  const date=field==='302'?'90':field==='508'?'354':field==='326'?'693':null
- const char=field==='217'?'Z04':field==='513'?'Z22':field==='222'?'Z12':null
+ const char=field==='217'?'Z04':field==='513'?'Z22':field==='222'?'Z12':field==='506'?'Z14':field==='323'?'Z24':null
  const ref=field==='260'?'Z05':field==='325'?'Z09':null
  const positions=s.flatMap((x,i)=>i>7&&(party?x.tag==='NAD'&&segmentComposite(x,1,u)[0]===party:
   date?x.tag==='DTM'&&segmentComposite(x,1,u)[0]===date:
@@ -55,7 +59,7 @@ export function omitEscoObjectField(raw:string,field:EscoObjectField,f:Fixture,p
    expect(value[1]>=minute(new Date(renderWindow[0]).toISOString())).toBe(true)
    expect(value[1]<=minute(new Date(renderWindow[1]).toISOString())).toBe(true)}
   expected.splice(at,1)
- }else if(char){expect(s[at+1].raw).toBe('CAV+'+(field==='217'?'Z04':field==='513'?'E19':':::D'));expected.splice(at,2)
+ }else if(char){expect(s[at+1].raw).toBe('CAV+'+(field==='217'?'Z04':field==='513'?'E19':field==='222'?':::D':field==='506'?'::::8716867000030':'B72'));expected.splice(at,2)
  }else{expect(segmentComposite(s[at],1,u)).toEqual([ref,field==='260'?'TES':'SYNTHETIC-PERMISSION-'+p.permissionId.slice(0,8)]);expected.splice(at,1)}
  const unh=expected.findIndex(x=>x.startsWith('UNH+')),unt=expected.findIndex(x=>x.startsWith('UNT+'))
  expected[unt]='UNT+'+(unt-unh+1)+'+'+segmentComposite(s.find(x=>x.tag==='UNT'),2,u)[0]
@@ -77,9 +81,12 @@ const diagnostic={
  '222':{segmentPath:'CCI++Z12/CAV',group:'SG8/SG14',component:{locator:'CCI++Z12/CAV',composite:'C889',cavComponent:3}},
  '260':{segmentPath:'RFF+Z05',group:'SG8/SG16',component:{locator:'RFF+Z05',referenceScope:'line',valueElement:'C506/1154'}},
  '325':{segmentPath:'RFF+Z09',group:'SG8/SG16',component:{locator:'RFF+Z09',referenceScope:'line',valueElement:'C506/1154'}},
+ '506':{segmentPath:'CCI++Z14/CAV',group:'SG8/SG14',component:{locator:'CCI++Z14/CAV',composite:'C889',cavComponent:4}},
+ '323':{segmentPath:'CCI++Z24/CAV',group:'SG8/SG14',component:{locator:'CCI++Z24/CAV',composite:'C889',cavComponent:0}},
 } as const
 export function qualifyEscoObjectDiagnostic(actual:unknown,field:EscoObjectField,f:Fixture,p:Pending){
- expect(actual).toEqual({kind:'field',fieldNumber:field,errorKind:'missing',sourceRule:'PRODAT26A:§2.2:Z14:'+field,...diagnostic[field],
+ const sourceRule=field==='506'?'PRODAT26A:P20/68/119/122':field==='323'?'PRODAT26A:P17/21/43/49/74/119/123':'PRODAT26A:§2.2:Z14:'+field
+ expect(actual).toEqual({kind:'field',fieldNumber:field,errorKind:'missing',sourceRule,...diagnostic[field],
   occurrence:{scope:'object',messageReference:'1',lineIndex:0,lineNumber:'1',registerPosition:1,objectId:f.point,identityAgency:'9',lineItemReference:p.li,
    ownReferences:{objectId:{kind:'present',value:f.point},lineItemReference:{kind:'present',value:p.li},customerId:{kind:'present',value:'199001011234'}}}})
 }
@@ -117,7 +124,8 @@ function chain(rows:Row[],source:string){const own=rows.filter(r=>r.source_messa
   node=own.find(r=>r.id===node!.previous_assessment_id);expect(node).toBeTruthy()}
  expect(visited.size).toBe(own.length);return leaves[0]
 }
-export function captureEscoObjectOwner(f:Fixture,source:EdielMessageRow,raw:string){
+export function captureEscoObjectOwner(f:Fixture,source:EdielMessageRow,raw:string,field:EscoObjectField){
+ const code=escoObjectRefusalCode(field)
  schema(tables.assessments,['id','source_message_id','company_id','environment','source_payload_hash','canonical_assessment_id','previous_assessment_id',
   'facts_text','facts_hash','owner_readsets','created_xid','assessed_at'],{id:'gen_random_uuid()',created_xid:'pg_current_xact_id()',assessed_at:'clock_timestamp()'},['previous_assessment_id'])
  schema(tables.witnesses,['id','assessment_id','company_id','environment','source_message_id','facts_hash','visibility_snapshot','observed_at'],
@@ -138,11 +146,11 @@ export function captureEscoObjectOwner(f:Fixture,source:EdielMessageRow,raw:stri
   if(!parent)throw Error('esco_object_owner_fresh_canonical_parent_required')
   expect(parent).toMatchObject({source_message_id:source.id,company_id:f.ids.company,environment:'test',source_payload_hash:hash(raw),facts_hash:hash(String(parent.facts_text))})
   const facts=JSON.parse(String(parent.facts_text))
-  expect(facts).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected',reasonCodes:expect.arrayContaining(['FIELD_MATRIX_REQUIRED_FIELD_MISSING'])})
+  expect(facts).toMatchObject({syntaxDecision:'accepted',applicationDecision:'rejected',reasonCodes:expect.arrayContaining([code])})
   expect(facts.registerValidation).toEqual({version:1,owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',
    objects:[{messageIndex:0,messageReference:'1',objectId:f.point,identityAgency:'9',disposition:'accepted',registers:object.registers,reasons:[]}]})
   const text=JSON.stringify({version:1,owner:'received-source-object-decisions-v1',ruleVersion:'1',canonicalFactsHash:parent.facts_hash,
-   objects:[{object,disposition:'rejected',reasons:['FIELD_MATRIX_REQUIRED_FIELD_MISSING'],business:null,party:null}]})
+   objects:[{object,disposition:'rejected',reasons:[code],business:null,party:null}]})
   expect(row.id).toMatch(uuid);expect(w.id).toMatch(uuid);expect(w.id).not.toBe(row.id)
   expect(row).toEqual({id:row.id,source_message_id:source.id,company_id:f.ids.company,environment:'test',source_payload_hash:hash(raw),
    canonical_assessment_id:parent.id,previous_assessment_id:calls===0?null:chain(before.assessments,source.id).id,
@@ -160,4 +168,29 @@ export function captureEscoObjectOwner(f:Fixture,source:EdielMessageRow,raw:stri
   for(const a of now.assessments.filter(r=>r.source_message_id===source.id))expect(now.witnesses.filter(r=>r.assessment_id===a.id)).toHaveLength(1)
   before=now;beforeXid=xid();calls++
  }}
+}
+
+export function qualifyRequestReferences(f:Fixture,p:Pending,previous:Row[],added:Row[],
+ expected:readonly (readonly [Row|EdielMessageRow,string,string|null|undefined])[],started:number,finished:number){
+ // Complete correlation rows derive from immutable wires and the matched
+ // original request, with independently qualified new UUIDs and timestamps.
+ expect(p.z13.outbound_request_id).toBeTruthy()
+ expect(previous.filter(row=>row.reference_type==='RFF_LI'&&row.reference_value===p.li
+  &&row.business_object_type==='outbound_request'&&row.business_object_id===p.z13.outbound_request_id))
+  .toEqual([expect.objectContaining({company_id:f.ids.company,source_message_id:p.z13.id,customer_id:f.ids.customer})])
+ expect(added).toHaveLength(expected.length);expect(new Set(added.map(row=>row.id)).size).toBe(expected.length)
+ for(const [message,type,value] of expected){
+  expect(typeof value).toBe('string');expect(value).toBeTruthy()
+  expect(previous.some(row=>row.reference_type===type&&row.reference_value===value
+   &&row.business_object_type==='outbound_request'&&row.business_object_id===p.z13.outbound_request_id)).toBe(false)
+  const rows=added.filter(row=>row.source_message_id===message.id&&row.reference_type===type)
+  expect(rows).toHaveLength(1);const row=rows[0]
+  expect(row.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  expect(previous.some(old=>old.id===row.id)).toBe(false)
+  const created=Date.parse(String(row.created_at));expect(Number.isFinite(created)).toBe(true)
+  expect(created).toBeGreaterThanOrEqual(started);expect(created).toBeLessThanOrEqual(finished)
+  expect(row).toEqual({id:row.id,company_id:f.ids.company,source_message_id:message.id,reference_type:type,reference_value:value,
+   message_family:message.message_family,message_code:message.message_code,business_object_type:'outbound_request',
+   business_object_id:p.z13.outbound_request_id,customer_id:f.ids.customer,customer_site_id:null,metering_point_id:null,created_at:row.created_at})
+ }
 }

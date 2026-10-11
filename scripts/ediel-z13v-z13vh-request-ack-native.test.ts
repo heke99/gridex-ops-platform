@@ -14,7 +14,7 @@ import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {omitZ14Field} from './helpers/ediel-z14v-current-native-fixture'
 import {refuseEscoCustomerSource} from './helpers/ediel-esco-z13-customer-source-b6d3'
 import {refuseEscoBirthSelector} from './helpers/ediel-esco-birth-selector-b6d3'
-import {escoObjectRefusals,isEscoObjectRefusal,omitEscoObjectField,qualifyEscoObjectDiagnostic,captureEscoObjectOwner,type EscoReportingField} from './helpers/ediel-esco-object-refusal-b6d3'
+import {escoObjectRefusals,isEscoObjectRefusal,omitEscoObjectField,qualifyEscoObjectDiagnostic,captureEscoObjectOwner,escoObjectRefusalCode,qualifyRequestReferences,type EscoReportingField} from './helpers/ediel-esco-object-refusal-b6d3'
 import {captureEscoTenantBasis,qualifyEscoTenantFirst,expectEscoTenantReplay,type ObservationWindow} from './helpers/ediel-esco-tenant-replay-b6d3'
 import {readEdielServiceAdministration} from '@/lib/ediel/services/administration'
 import {coordinateEdielServicePermission,resolveEdielServicePermissionCommand} from '@/lib/ediel/services/commands'
@@ -669,30 +669,6 @@ function wireDocument(wire:string){const parsed=tokenizeEdifact(wire)
 function wireReference(wire:string,qualifier:string){const parsed=tokenizeEdifact(wire)
  const refs=parsed.segments.filter(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,parsed.una)[0]===qualifier)
  expect(refs).toHaveLength(1);return segmentComposite(refs[0],1,parsed.una)[1]}
-function qualifyRequestReferences(f:Fixture,p:Pending,previous:FullRow[],added:FullRow[],
- expected:readonly (readonly [FullRow|EdielMessageRow,string,string|null|undefined])[],started:number,finished:number){
- // Complete correlation rows derive from immutable wires and the matched
- // original request, with independently qualified new UUIDs and timestamps.
- expect(p.z13.outbound_request_id).toBeTruthy()
- expect(previous.filter(row=>row.reference_type==='RFF_LI'&&row.reference_value===p.li
-  &&row.business_object_type==='outbound_request'&&row.business_object_id===p.z13.outbound_request_id))
-  .toEqual([expect.objectContaining({company_id:f.ids.company,source_message_id:p.z13.id,customer_id:f.ids.customer})])
- expect(added).toHaveLength(expected.length);expect(new Set(added.map(row=>row.id)).size).toBe(expected.length)
- for(const [message,type,value] of expected){
-  expect(typeof value).toBe('string');expect(value).toBeTruthy()
-  expect(previous.some(row=>row.reference_type===type&&row.reference_value===value
-   &&row.business_object_type==='outbound_request'&&row.business_object_id===p.z13.outbound_request_id)).toBe(false)
-  const rows=added.filter(row=>row.source_message_id===message.id&&row.reference_type===type)
-  expect(rows).toHaveLength(1);const row=rows[0]
-  expect(row.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
-  expect(previous.some(old=>old.id===row.id)).toBe(false)
-  const created=Date.parse(String(row.created_at));expect(Number.isFinite(created)).toBe(true)
-  expect(created).toBeGreaterThanOrEqual(started);expect(created).toBeLessThanOrEqual(finished)
-  expect(row).toEqual({id:row.id,company_id:f.ids.company,source_message_id:message.id,reference_type:type,reference_value:value,
-   message_family:message.message_family,message_code:message.message_code,business_object_type:'outbound_request',
-   business_object_id:p.z13.outbound_request_id,customer_id:f.ids.customer,customer_site_id:null,metering_point_id:null,created_at:row.created_at})
- }
-}
 async function missingReportingField(mode:'V'|'VH',field:EscoReportingField){
  const {f,p,checkSentinel,objectAckProfile,contrlAckProfile}=await request(mode,true)
  for(const family of ['CONTRL','APERAK'] as const){
@@ -711,12 +687,12 @@ async function missingReportingField(mode:'V'|'VH',field:EscoReportingField){
  const renderStarted=Date.now(),positive=positiveZ14(f,p),renderWindow:ObservationWindow=[renderStarted,Date.now()],extra=isEscoObjectRefusal(mode,field)
  const wire=extra?omitEscoObjectField(positive,field,f,p,renderWindow):fieldOmission(positive,field as '222'|'321'|'322'|'323'|'326'),source=await intake(f,p,wire)
  const pending=sql<FullRow>(`SELECT to_jsonb(r) FROM public.metering_permissions r WHERE id=${lit(p.permissionId)} AND company_id=${lit(f.ids.company)}`)
- const before=producerState(f),ledger=refusalLedger(f),smtp=nativeEscoExternal.send.mock.calls.length,objectOwner=extra?captureEscoObjectOwner(f,source,wire):null
+ const before=producerState(f),ledger=refusalLedger(f),smtp=nativeEscoExternal.send.mock.calls.length,objectOwner=extra?captureEscoObjectOwner(f,source,wire,field):null
  const sourceBefore=(before.business.ediel_messages as FullRow[]).find(r=>r.id===source.id)!
  const tenantBasis=captureEscoTenantBasis(sql,lit,f)
  const codes={'222':'FIELD_MATRIX_REQUIRED_FIELD_MISSING','321':'PRODAT_RECEIVED_REPORTING_321_MISSING',
   '322':'PRODAT_PERMISSION_322_MISSING','323':'PRODAT_RECEIVED_REPORTING_323_MISSING','326':'FIELD_MATRIX_REQUIRED_FIELD_MISSING'}
- const code=extra?'FIELD_MATRIX_REQUIRED_FIELD_MISSING':codes[field as keyof typeof codes]
+ const code=extra?escoObjectRefusalCode(field):codes[field as keyof typeof codes]
  // First source/domain invocation is the public processor, never a preflight
  // assessment that could create the authority this test is meant to prove.
  const processingStarted=Date.now()

@@ -1,7 +1,7 @@
 {
   "project": "gridex-ops-platform",
   "schema": "distributed-startup-v1",
-  "observed_at": "2026-10-11T04:28:07.329634+00:00",
+  "observed_at": "2026-10-11T05:25:05.152854+00:00",
   "observed_main": "da0fa1a6cc3661c6dd37b6a6067e910cc81f5f32",
   "status": "IN_PROGRESS",
   "active_item": "Distributed fixed-role continuation; no inherited shared technical packet",
@@ -21,7 +21,7 @@
     "queue": ".agent-memory/masterplan-work-queue.md",
     "workflow": ".agent-memory/masterplan-agent-workflow.md",
     "reservations": ".agent-memory/masterplan-reservations.md",
-    "checkpoint": "Use the implementing or reviewing session’s own uniquely named checkpoint; no other identity is inherited.",
+    "checkpoint": "Use the implementing or reviewing session\u2019s own uniquely named checkpoint; no other identity is inherited.",
     "current_start": ".agent-memory/masterplan-current-start.md"
   },
   "custody": "Refresh authenticated Git refs and original retained-duty/release receipts before action. H737 owner-only role-FIRST/all11ref404 is documented6736104364113/6104375333; no foreign duty is released by this update.",
@@ -96,9 +96,9 @@
     "branch": "codex/ediel-esco-resume-b6d3-41f5172a",
     "checkpoint": ".agent-memory/masterplan-codex-b6d3-z13v-z13vh-41f5172a-checkpoint.md",
     "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6104406090",
-    "status": "OBJECT20_IMPLEMENTED_FINAL_SOURCE_REVIEW_PENDING",
+    "status": "ENERGY3_IMPLEMENTED_FINAL_SOURCE_REVIEW_PENDING",
     "coverage": "UNCHANGED",
-    "next_action": "Root close exact final source/summary two reviews and fresh custody/head preflight; one normal745 push and sole native82 original full qualification, then remaining21positive14N/conditionalboundedV321. Whole frozenbegäran/owner742/currentmandatory green unresolved; no coverage/merge approval.",
+    "next_action": "ROOT final exact source and four summaries independent reviews, fresh all18+role custody/current head/main preflight and one normal745 push/sole85 original qualification. Continue remaining18positive14N/prospectiveboundedV321 and Z13 R/D. Foreign742 strictinverse and owner frozenbeg\u00e4ran remain; no wholecoverage/merge.",
     "pr": 745,
     "native_observation": {
       "status": "QUALIFIED_BOUND_NATIVE62",
@@ -654,16 +654,23 @@
       "coverage_artifact": "NOT_FETCHED"
     },
     "current_subtask": {
-      "cases": 20,
-      "total_native_cases": 82,
+      "cases": 3,
+      "mode_fields": [
+        "V506",
+        "VH506",
+        "VH323"
+      ],
+      "total_native_cases": 85,
       "status": "IMPLEMENTED_NOT_RUN",
       "helper_receipt": "7dfed554673e317dfaa8454dd6c5e0ede3814b5e",
-      "claim": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6105568749",
-      "final_reviews": "PENDING",
+      "claim": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6105822341",
       "source": "WORKING_SOURCE_NOT_COMMITTED",
-      "local_statics": "TSC_LINT_BUDGET_DIFF_AST_AND_WORKFLOW_PASS",
-      "native_lines": 1799,
-      "owner_ledger_scope": "FULL_GLOBAL_12_AND8_XID_VISIBILITY_CHAIN_AND_FOUR_FROZEN_RELATIONS"
+      "final_reviews": "PENDING",
+      "local_statics": "NODE24_SCRIPTS_TSC_LINT_BUDGET_DIFF_AST_YAML_BASH_PYTHON_AND_NOTICE_PACKING_PASS",
+      "native_lines": 1775,
+      "helper_lines": 196,
+      "reference_guard": "EXACT24_LINE_BODY_PRESERVED_IN_NON_TEST_HELPER",
+      "owner_ledger_scope": "FULL_GLOBAL12_AND8_WITH_LITERAL_GENERIC_ENERGY_OR_REPORTING_REASON_XID_VISIBILITY_CHAIN_AND_FOUR_FROZEN_RELATIONS"
     },
     "previous_native_observations": [
       {
@@ -858,7 +865,72 @@
           ]
         ]
       }
-    ]
+    ],
+    "previous_subtask_observations": [
+      {
+        "cases": 20,
+        "total_native_cases": 82,
+        "status": "IMPLEMENTED_NOT_RUN",
+        "helper_receipt": "7dfed554673e317dfaa8454dd6c5e0ede3814b5e",
+        "claim": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6105568749",
+        "final_reviews": "PENDING",
+        "source": "WORKING_SOURCE_NOT_COMMITTED",
+        "local_statics": "TSC_LINT_BUDGET_DIFF_AST_AND_WORKFLOW_PASS",
+        "native_lines": 1799,
+        "owner_ledger_scope": "FULL_GLOBAL_12_AND8_XID_VISIBILITY_CHAIN_AND_FOUR_FROZEN_RELATIONS"
+      }
+    ],
+    "qualified_native82": {
+      "status": "QUALIFIED_BOUND_NATIVE82",
+      "head": "8265e6ec20e981929c95660a0090bf9bb7cb0da5",
+      "tree": "98899ccc1154238476172c127efdd155c9d54ca2",
+      "run": 38113909613,
+      "attempt": 1,
+      "job": 114394881900,
+      "artifact": 11693341334,
+      "zip_bytes": 1548361,
+      "zip_sha256": "c6f47d69402b16baf17fdcfe097b19af07b2f8bb7edab8da06ea54094e73b8ab",
+      "crc": "PASS",
+      "full_git_catalog_inputs": 9814,
+      "full_catalog": "ALL_ORIGINAL_GIT_MODE_OID_SHA256_EQUAL",
+      "tests": 82,
+      "passed": 82,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "closed_log_summary": "PASS",
+      "original82_identities": "EXACT_UNIQUE_SET",
+      "member_sha256": {
+        "frozen-source.json": "1323ff27b4300403cc7ce61cc78bbaa9968a1c225d2e42f28316f4fc2ae6e86a",
+        "native-junit.xml": "44d8e52cb0bb4b3cb1ba5cbb171d9977bbe8a82ed1aedb4ed78d086d13bb1f70",
+        "native.log": "457cebaf807b0ec593fcaa79fb8c4cda23d059a10e869fe58d2f44394fc861d7",
+        "receipt.json": "632edd10f88cafa9c59a925f48e5666f8ed5f6c630632a4d71f1b33690ab34bf"
+      },
+      "qualifier_sha256": "8151c6239bbb027d4806190925e0dad300313186e4b3b5c4a9dda869273db879",
+      "boundaries": {
+        "canonical_sql_execution_inventory": "NOT_REPORTED_BY_THIS_RECEIPT",
+        "ordinary_required_gates": "NOT_REPLACED",
+        "schema_capture": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "authentic_market_evidence": "NOT_PROVIDED",
+        "whole_card_approval": "NOT_PROVIDED"
+      },
+      "qualification_scope": "Public ESCO82 component evidence at exact executed source; no whole acceptance, latest-main native or external-market approval.",
+      "receipt": "https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6105822341"
+    },
+    "current_mandatory_observation": {
+      "source_head": "8265e6ec20e981929c95660a0090bf9bb7cb0da5",
+      "at": "2026-10-11T05:25:05.152854+00:00",
+      "failed": [
+        "coverage",
+        "quality-release-gates",
+        "targeted-regressions"
+      ],
+      "logs": "NOT_COLLECTED_FOR_CURRENT8265",
+      "approval": "NOT_GREEN",
+      "old_a708_logs": "PRESERVED_SEPARATE_SOURCE_BOUND"
+    }
   },
   "additional_deliveries": [
     {
