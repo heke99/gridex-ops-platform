@@ -176,3 +176,15 @@ it('AT-Z09B: a mutated sent Z09B original is refused by the sealed-payload guard
   expect(sealed()).toEqual(before)
   expect(confirmations(sent.eventId)).toEqual([])
 }, 900_000)
+
+it('AT-Z09B: APERAK before the required CONTRL plus a status-only PATCH confirms nothing; the genuine later CONTRL confirms once', async () => {
+  const { f, sent } = await chain()
+  await acknowledge(f, sent, 'APERAK')
+  // Review I-760-A-01: only the tenant-writable status is forced to acknowledged before the required CONTRL arrives.
+  sql(`UPDATE public.ediel_messages SET status='acknowledged' WHERE id=${literal(sent.original.id)} AND company_id=${literal(f.companyId)}`)
+  expect(confirmations(sent.eventId)).toEqual([])
+  expect(version(f, sent.eventId)).toMatchObject({ status: 'source_declared', confirmationMessageId: null })
+  await acknowledge(f, sent, 'CONTRL')
+  expect(confirmations(sent.eventId)).toEqual([{ event: sent.eventId, company: f.companyId, environment: 'test', message: sent.original.id }])
+  expect(version(f, sent.eventId)).toMatchObject({ status: 'aperak_confirmed', confirmationMessageId: sent.original.id })
+}, 900_000)

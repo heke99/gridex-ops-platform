@@ -47,50 +47,68 @@ try{
  assert.equal((await db.query('SELECT count(*) n FROM gridex_brp_changes.period_versions')).rows[0].n,0);checks++
  await db.exec(`UPDATE outbound_requests SET source_id='${id(99)}' WHERE id='${id(15)}'`);await assert.rejects(insert(raw),/owned_request_changed/);checks++;await db.exec(`UPDATE outbound_requests SET source_id='${id(12)}' WHERE id='${id(15)}'`)
  await insert(raw);assert.equal((await db.query('SELECT count(*) n FROM gridex_brp_changes.period_versions')).rows[0].n,1);checks++
- // AT-Z09B: the dated BRP version is a declaration until its own Z09/Z27 is acknowledged.
+ // AT-Z09B: the dated BRP version is a declaration until the ACK authority's own
+ // immutable CONTRL and APERAK evidence for this exact original exists.
  await db.exec(`ALTER TABLE ediel_messages ADD COLUMN status text DEFAULT 'sent',ADD COLUMN contrl_status text DEFAULT 'pending',ADD COLUMN aperak_status text DEFAULT 'pending';
-  CREATE SCHEMA gridex_ack_authority;CREATE TABLE gridex_ack_authority.scope_outcomes(source_message_id uuid,ack_family text,outcome text)`)
+  CREATE SCHEMA gridex_ack_authority;
+  CREATE TABLE gridex_ack_authority.source_correlations(ack_message_id uuid PRIMARY KEY,source_message_id uuid NOT NULL,company_id uuid NOT NULL,environment text NOT NULL,source_payload_hash text NOT NULL,ack_family text NOT NULL,ack_outcome text NOT NULL);
+  CREATE TABLE gridex_ack_authority.scope_outcomes(source_message_id uuid,ack_family text,outcome text,ack_message_id uuid)`)
  await db.exec(readFileSync(new URL('../supabase/migrations/20261011170000_ediel_brp_change_ack_received_confirmation.sql',import.meta.url),'utf8'));checks++
+ const hash=(await db.query(`SELECT payload_hash h FROM gridex_brp_changes.origins WHERE event_id='${id(10)}'`)).rows[0].h
+ let ackN=100
+ // The authority writes the correlation and its scope outcomes in one transaction (correlation first).
+ const ack=async(family,outcome,{msg=id(16),company=id(1),env='test',sourceHash=hash,scopeOutcome=outcome}={})=>{const a=id(ackN++)
+  await db.exec(`BEGIN;INSERT INTO gridex_ack_authority.source_correlations VALUES('${a}','${msg}','${company}','${env}','${sourceHash}','${family}','${outcome}');
+   INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${msg}','${family}','${scopeOutcome}','${a}');COMMIT`)}
  const confirmations=async()=>(await db.query('SELECT event_id,company_id,environment,message_id FROM gridex_brp_changes.confirmations')).rows
  const versions=async()=>(await db.query(`SELECT ediel_brp_responsibility_history_v1('${id(1)}','${id(4)}','${id(20)}') result`)).rows[0].result.versions
- const ack=(status,aperak)=>db.exec(`UPDATE ediel_messages SET status='${status}',aperak_status='${aperak}' WHERE id='${id(16)}'`)
- const outcome=(family,o)=>db.exec(`INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${id(16)}','${family}','${o}')`)
- const reset=()=>db.exec(`DELETE FROM gridex_ack_authority.scope_outcomes;UPDATE ediel_messages SET status='sent',contrl_status='pending',aperak_status='pending' WHERE id='${id(16)}'`)
+ const reset=()=>db.exec(`DELETE FROM gridex_ack_authority.scope_outcomes;DELETE FROM gridex_ack_authority.source_correlations;UPDATE ediel_messages SET status='sent',contrl_status='pending',aperak_status='pending' WHERE id='${id(16)}'`)
  const v0=await versions();assert.equal(v0.length,1);assert.equal(v0[0].status,'source_declared');assert.equal(v0[0].confirmedAt,null);checks++
  // CONTRL alone confirms nothing.
- await outcome('CONTRL','positive');await db.exec(`UPDATE ediel_messages SET contrl_status='received' WHERE id='${id(16)}'`);await ack('sent','pending')
- assert.deepEqual(await confirmations(),[]);checks++;await reset()
- // A negative APERAK confirms nothing, also when acknowledged is (wrongly) reached.
- await outcome('APERAK','negative');await ack('acknowledged','received');assert.deepEqual(await confirmations(),[]);checks++;await reset()
- // A positive APERAK with any negative scope outcome confirms nothing.
- await outcome('APERAK','positive');await outcome('APERAK','negative');await ack('acknowledged','received');assert.deepEqual(await confirmations(),[]);checks++;await reset()
- // A positive APERAK outcome before the final acknowledgement confirms nothing.
- await outcome('APERAK','positive');await ack('sent','received');assert.deepEqual(await confirmations(),[]);checks++;await reset()
- // Wrong correlation: an unbound Z09 of the same tenant reaching a positive APERAK confirms nothing.
- await db.exec(`INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload) VALUES('${id(41)}','${id(1)}','test','outbound','PRODAT','Z09',${quote(raw)});
-  INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${id(41)}','APERAK','positive');UPDATE ediel_messages SET status='acknowledged',aperak_status='received' WHERE id='${id(41)}'`)
- assert.deepEqual(await confirmations(),[]);checks++
+ await ack('CONTRL','positive');assert.deepEqual(await confirmations(),[]);checks++;await reset()
+ // Review I-760-A-01: a genuine positive APERAK before the required CONTRL, plus a tenant
+ // status-only PATCH to acknowledged, confirms nothing and history stays source_declared.
+ await ack('APERAK','positive');await db.exec(`UPDATE ediel_messages SET status='acknowledged',aperak_status='received',contrl_status='received' WHERE id='${id(16)}'`)
+ assert.deepEqual(await confirmations(),[]);assert.equal((await versions())[0].status,'source_declared');checks++
+ // ...and the genuine subsequent CONTRL then confirms exactly once.
+ await ack('CONTRL','positive');assert.equal((await confirmations()).length,1);checks++;await reset()
+ await db.exec(`ALTER TABLE gridex_brp_changes.confirmations DISABLE TRIGGER USER;DELETE FROM gridex_brp_changes.confirmations;ALTER TABLE gridex_brp_changes.confirmations ENABLE TRIGGER USER`)
+ // A negative APERAK, or a positive APERAK with a negative scope outcome, confirms nothing.
+ await ack('CONTRL','positive');await ack('APERAK','negative');assert.deepEqual(await confirmations(),[]);checks++;await reset()
+ await ack('CONTRL','positive');await ack('APERAK','positive',{scopeOutcome:'negative'});assert.deepEqual(await confirmations(),[]);checks++;await reset()
+ // A negative CONTRL with a positive APERAK confirms nothing.
+ await ack('CONTRL','negative');await ack('APERAK','positive');assert.deepEqual(await confirmations(),[]);checks++;await reset()
+ // Wrong correlation: evidence for another (unbound) Z09, another tenant/environment, or another payload hash confirms nothing.
+ await db.exec(`INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload) VALUES('${id(41)}','${id(1)}','test','outbound','PRODAT','Z09',${quote(raw)})`)
+ await ack('CONTRL','positive',{msg:id(41)});await ack('APERAK','positive',{msg:id(41)});assert.deepEqual(await confirmations(),[]);checks++;await reset()
+ await ack('CONTRL','positive',{company:id(2)});await ack('APERAK','positive',{company:id(2)});assert.deepEqual(await confirmations(),[]);checks++;await reset()
+ await ack('CONTRL','positive',{env:'production'});await ack('APERAK','positive',{env:'production'});assert.deepEqual(await confirmations(),[]);checks++;await reset()
+ await ack('CONTRL','positive',{sourceHash:'f'.repeat(64)});await ack('APERAK','positive',{sourceHash:'f'.repeat(64)});assert.deepEqual(await confirmations(),[]);checks++;await reset()
  // Wrong direction: an inbound Z09 of the same bytes never confirms.
- await db.exec(`INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload) VALUES('${id(42)}','${id(1)}','test','inbound','PRODAT','Z09',${quote(raw)});
-  INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${id(42)}','APERAK','positive');UPDATE ediel_messages SET status='acknowledged',aperak_status='received' WHERE id='${id(42)}'`)
- assert.deepEqual(await confirmations(),[]);checks++
+ await db.exec(`INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload) VALUES('${id(42)}','${id(1)}','test','inbound','PRODAT','Z09',${quote(raw)})`)
+ await ack('CONTRL','positive',{msg:id(42)});await ack('APERAK','positive',{msg:id(42)});assert.deepEqual(await confirmations(),[]);checks++;await reset()
  // An acknowledged AI list naming the BRP does not replace Z09B: no version, no confirmation.
- await db.exec(`INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload) VALUES('${id(43)}','${id(1)}','test','outbound','AI_LIST','AI','SYNTHETIC AI LIST balansansvarsId=11111');
-  INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${id(43)}','APERAK','positive');UPDATE ediel_messages SET status='acknowledged',aperak_status='received' WHERE id='${id(43)}'`)
- assert.deepEqual(await confirmations(),[]);assert.equal((await versions()).length,1);checks++
+ await db.exec(`INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload) VALUES('${id(43)}','${id(1)}','test','outbound','AI_LIST','AI','SYNTHETIC AI LIST balansansvarsId=11111')`)
+ await ack('CONTRL','positive',{msg:id(43)});await ack('APERAK','positive',{msg:id(43)});assert.deepEqual(await confirmations(),[]);assert.equal((await versions()).length,1);checks++;await reset()
  // A revoked event confirms nothing (rolled back so the valid receipt is proven next).
- await db.exec('BEGIN');await db.exec(`INSERT INTO gridex_brp_changes.revocations VALUES('event','${id(10)}','SYNTHETIC REVOCATION',repeat('e',64),'${id(20)}',now())`)
- await outcome('APERAK','positive');await ack('acknowledged','received');assert.deepEqual(await confirmations(),[]);checks++;await db.exec('ROLLBACK')
+ await db.exec(`BEGIN;INSERT INTO gridex_brp_changes.revocations VALUES('event','${id(10)}','SYNTHETIC REVOCATION',repeat('e',64),'${id(20)}',now());
+  INSERT INTO gridex_ack_authority.source_correlations VALUES('${id(90)}','${id(16)}','${id(1)}','test','${hash}','CONTRL','positive'),('${id(91)}','${id(16)}','${id(1)}','test','${hash}','APERAK','positive');
+  INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${id(16)}','CONTRL','positive','${id(90)}'),('${id(16)}','APERAK','positive','${id(91)}');
+  SET CONSTRAINTS ALL IMMEDIATE`);assert.deepEqual(await confirmations(),[]);checks++;await db.exec('ROLLBACK')
  // A changed original (bound bytes no longer match the origin hash) confirms nothing.
  await db.exec('BEGIN');await db.exec(`ALTER TABLE ediel_messages DISABLE TRIGGER USER;UPDATE ediel_messages SET raw_payload=replace(raw_payload,'CAV+Z27','CAV+Z28') WHERE id='${id(16)}';ALTER TABLE ediel_messages ENABLE TRIGGER USER`)
- await outcome('APERAK','positive');await ack('acknowledged','received');assert.deepEqual(await confirmations(),[]);checks++;await db.exec('ROLLBACK')
- // The valid receipt: final acknowledgement with a positive APERAK confirms exactly its own event once.
- await outcome('CONTRL','positive');await outcome('APERAK','positive');await ack('acknowledged','received')
+ await db.exec(`INSERT INTO gridex_ack_authority.source_correlations VALUES('${id(92)}','${id(16)}','${id(1)}','test','${hash}','CONTRL','positive'),('${id(93)}','${id(16)}','${id(1)}','test','${hash}','APERAK','positive');
+  INSERT INTO gridex_ack_authority.scope_outcomes VALUES('${id(16)}','CONTRL','positive','${id(92)}'),('${id(16)}','APERAK','positive','${id(93)}');SET CONSTRAINTS ALL IMMEDIATE`)
+ assert.deepEqual(await confirmations(),[]);checks++;await db.exec('ROLLBACK')
+ // The valid receipt: positive CONTRL and APERAK evidence confirms exactly its own event once; replay is idempotent.
+ await ack('CONTRL','positive');await ack('APERAK','positive')
  assert.deepEqual(await confirmations(),[{event_id:id(10),company_id:id(1),environment:'test',message_id:id(16)}]);checks++
- await ack('sent','received');await ack('acknowledged','received');assert.equal((await confirmations()).length,1);checks++
+ await ack('APERAK','positive');assert.equal((await confirmations()).length,1);checks++
  const v1=await versions();assert.equal(v1.length,1);assert.equal(v1[0].status,'aperak_confirmed');assert.equal(v1[0].confirmationMessageId,id(16));assert.equal(v1[0].sourceMessageId,id(16))
  assert.equal(v1[0].brpEdielId,'11111');assert.equal(v1[0].marketActivationProven,false);assert.ok(v1[0].confirmedAt);checks++
- // Dated, not tenant-global: another tenant's history sees nothing and is refused for this actor.
+ // A status-only change cannot add or remove confirmation.
+ await db.exec(`UPDATE ediel_messages SET status='sent' WHERE id='${id(16)}'`);assert.equal((await confirmations()).length,1);checks++
+ // Dated, not tenant-global: another tenant's history is refused for this actor.
  await assert.rejects(db.query(`SELECT ediel_brp_responsibility_history_v1('${id(2)}','${id(4)}','${id(20)}')`),/actor_forbidden/);checks++
  // The confirmation is immutable and private.
  await assert.rejects(db.exec('DELETE FROM gridex_brp_changes.confirmations'),/source_immutable/);checks++

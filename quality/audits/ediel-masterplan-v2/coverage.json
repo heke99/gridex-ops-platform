@@ -4181,7 +4181,7 @@
     },
     {
       "id": "AT-Z09B-SUPPLIER",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "scripts/ediel-z09b-brp-change-native.test.ts",
         ".github/workflows/ediel-p08-native.yml",
