@@ -151,7 +151,7 @@ async function pendingVH(opts:{f?:Fixture;start?:string;end?:string}={}):Promise
  const state=market(f,prepared.permissionId)
  // A sent S18 Z13 alone grants nothing: no active permission, site or grant.
  expect(state.permission.status).not.toBe('active');expect(state.permission.source_z14_message_id).toBeNull()
- expect(state.sites.filter(s=>['approved','active'].includes(String(s.status)))).toEqual([]);expect(state.grants.filter(g=>g.assignment_id===f.assignment)).toEqual([])
+ expect(state.sites.filter(s=>['approved','active'].includes(String(s.status)))).toEqual([]);expect(opts.f?state.grants.filter(g=>g.assignment_id===f.assignment):state.grants).toEqual([])
  const sent=tokenizeEdifact(prepared.z13.raw_payload!)
  expect(segmentComposite(sent.segments[sent.segments.findIndex(s=>s.tag==='CCI'&&segmentComposite(s,2,sent.una)[0]==='Z13')+1],1,sent.una)[0]).toBe('S18')
  return {f,permissionId:prepared.permissionId,li:prepared.li,z13:prepared.z13,profile}
@@ -407,8 +407,14 @@ it('Z14VH history: confirmed E66 inside the approved window reaches the benefici
  expect(page.rows).toEqual(sql(`SELECT jsonb_agg(jsonb_build_object('reading_at',reading_at,'quantity',quantity::text) ORDER BY reading_at,id) FROM public.meter_reading_values WHERE series_id=${lit(series.id)} AND reading_at>=${lit(series.start)}::timestamptz AND reading_at<${lit(series.end)}::timestamptz`))
  expect(page.provenance).toMatchObject({sourceMessageId:incoming.source.id,sourceRawHash:createHash('sha256').update(incoming.source.raw_payload!).digest('hex'),sourceRole:'DGI',sourceCode:'E66',receiverRole:'energy_service_company'})
  // Outside the history window, another purpose/field, a stale version or another tenant: refused.
- for(const change of [{startInclusive:'2026-05-01T00:00:00Z'},{endExclusive:'2026-09-01T00:00:00Z'},{purpose:'ungranted billing'},{fields:['secret'] as never},{expectedGrantVersion:grantVersion()+1},{beneficiaryCompanyId:outsider.f.ids.company}]){
-  await expect(projectEdielSeriesToBeneficiary({...request(),...change}),JSON.stringify(change)).rejects.toBeDefined()
+ // The unentitled company is a real beneficiary the actor may read for, so
+ // only the grant (not membership) can refuse it.
+ sql(`INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,role,is_active,role_key) VALUES(${lit(outsider.f.ids.beneficiary)},${lit(f.ids.actor)},'operations','active',now(),'member',true,'operations');INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${lit(f.ids.actor)},${lit(outsider.f.ids.beneficiary)},id,key FROM public.permissions WHERE key='metering.read'`)
+ // Each refusal comes from its own gate (observed natively): the window and
+ // purpose from the grant, a stale version from grant currency, and an
+ // unentitled beneficiary from the grant lookup itself.
+ for(const [change,code] of [[{startInclusive:'2026-05-01T00:00:00Z'},'ediel_projection_outside_grant'],[{endExclusive:'2026-09-01T00:00:00Z'},'ediel_projection_outside_grant'],[{purpose:'ungranted billing'},'ediel_projection_outside_grant'],[{expectedGrantVersion:grantVersion()+1},'ediel_grant_not_current'],[{beneficiaryCompanyId:outsider.f.ids.beneficiary},'query returned no rows']] as const){
+  await expect(projectEdielSeriesToBeneficiary({...request(),...change}),JSON.stringify(change)).rejects.toMatchObject({message:expect.stringContaining(code)})
  }
  expect(market(outsider.f,outsider.permissionId)).toEqual(outsiderBefore)
 })
@@ -430,4 +436,6 @@ it('Z15V/S17 ends the V permission and leaves a coexisting VH history permission
  expect(market(f,a.permissionId).permission).toMatchObject({status:'ended',inbound_z15_message_id:source.id})
  const vhAfter=market(vh.f,vh.permissionId)
  expect(vhAfter.permission).toEqual(vhBefore.permission);expect(vhAfter.sites).toEqual(vhBefore.sites)
+ // ESCO-07: no supply (DDQ) change and no new Z13 from ending V.
+ expect(vhAfter.supply).toEqual(vhBefore.supply);expect(vhAfter.z13).toBe(vhBefore.z13)
 })
