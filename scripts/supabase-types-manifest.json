@@ -5,7 +5,7 @@
   "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
   "latest_migration": "20261011170000_ediel_brp_change_ack_received_confirmation.sql",
   "latest_migration_schema_effect": "AT-Z09B on main 1e401d8: adds private immutable gridex_brp_changes.confirmations, trigger confirm_brp_change_on_ack (gridex_brp_changes.confirm_on_ack_v1) on public.ediel_messages, and history ediel_brp_responsibility_history_v1 reports source_declared/aperak_confirmed; public types unchanged. Artifacts imported byte-exactly from capture run 38157594203.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-11T17:02:44.977770+00:00",
