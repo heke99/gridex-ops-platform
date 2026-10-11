@@ -1,0 +1,69 @@
+# Own PLANAGENT checkpoint — Z03L/Z03LK
+
+Status: RESERVATION VERIFIED; six actual refs GETMATCH; CLAIM publication pending. No source/test edits before CLAIM confirmed.
+
+Identity: `codex-plan-z03llk-20261011T101727Z-6e9134a3`; packet `6e9134a3-e363-4d8a-9d35-a9be2c2b8b60`; branch `codex/plan-z03llk-6e9134a3`; base `c4d5c8f3e5c05fe189acb374c14e7c159a4319ed`; workspace `/tmp/gridex-plan-z03llk-6e9134a3`.
+
+Taken: closed read-only selection of all43 remaining rows. Local selection report `/tmp/gridex-next-executable-packets-20261011/report.md` and classification JSON;309/352 approved. Selected released acceptance-only pair autonomously after exact WHOLE RELEASE6026462223/6026519492 and fresh163ref/22latestcomment check; no later overlapping custody. Source PR635 headbb2dfea62659282b77c080b7508cef3505afc3ad preserves reusable native assets. No previous owner packet inherited.
+
+Exact requested implementation scope:
+- `.github/workflows/ediel-z03l-z03lk-native.yml`
+- `scripts/ediel-at-z03l-z03lk-supplier-native.config.ts`
+- `scripts/ediel-at-z03l-z03lk-supplier-native.test.ts`
+- `scripts/helpers/ediel-z03-native-supply-observation.ts`
+
+Own checkpoint needs no shared lock. Existing normal fixture and all production/core/SQL/GEN/capture files are read-only. Shared memory/merge roles are not requested.
+
+Original frozen whole criteria:
+```json
+[
+  {
+    "id": "AT-Z03L-SUPPLIER",
+    "name": "Meddelandefall Z03L",
+    "given": "SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före.",
+    "when": "Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt.",
+    "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z22; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  {
+    "id": "AT-Z03LK-SUPPLIER",
+    "name": "Meddelandefall Z03LK",
+    "given": "SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före.",
+    "when": "Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt.",
+    "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z23; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+    "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+    "rule_ids": [
+      "TEN-05",
+      "P-01",
+      "ENV-06"
+    ],
+    "layer": "Planerat meddelande-/rollprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  }
+]
+```
+
+Completed: criteria/custody/dependency qualification. Eight public supplier/route/profile columns are restored by current main213222forward and authentically declared captured generated types; this supplies no whole/native green. Preserved prior red/native receipts remain history.
+
+Verification: actual main/tree GET; resource absence GET; explicit entire-duty releases GET; latest board and immutable old635fourfile reads. No native/GEN/capture/artifact run in selection.
+
+Next: acquire all six resources sorted CREATE_IF_ABSENT, GETMATCH; publish and re-read CLAIM, push own checkpoint before importing source. Then import only four old assets, adapt to current public source consumers and perform fresh applicable proof with exactly one named producer for this packet. No coverage credit before whole-proof/current CI/two independent reviews. Any product bug outside four files needs qualified exact extension coordinated with its owner.
+
+Skill routing: using-superpowers subagent STOP; using-git-worktrees for explicit isolated checkout; verification-before-completion for all claims; TDD/systematic-debugging for genuine red-first defect diagnosis; requesting-code-review for two bounded reviews before delivery. Supabase guidance applies to disposable local source/native proof, no production access or schema mutation. Spec-to-code literal whole criteria preserved. Broad UI/performance/architecture/security scans and new provider/schema design are not triggered by this four-file native proof packet.
+
+Reservation receipt `575ad1a179b04005b90f830fbc649c62d8b5cd09` uses actual main exact tree and single parent; all6 refs verified twice.
+- `refs/tags/agent-claims/masterplan/file-74d67f2791b82250067295242636a6eb1b2ddfc1b3414c4f01ab5cc9ca3ecef7` → `575ad1a179b04005b90f830fbc649c62d8b5cd09`
+- `refs/tags/agent-claims/masterplan/file-75d37691ad15916b0d1e8056cd62142d8c52dd7c3486a872c8262cb3afc4b5fd` → `575ad1a179b04005b90f830fbc649c62d8b5cd09`
+- `refs/tags/agent-claims/masterplan/file-8572ec11280b78f41d4d00b5e9176bb9d07adf25db03c23387488f2eafd411be` → `575ad1a179b04005b90f830fbc649c62d8b5cd09`
+- `refs/tags/agent-claims/masterplan/file-b63f5bf877a2b03c6d4850b2607fad679da958e7fc546a49d9f6ecede416d97b` → `575ad1a179b04005b90f830fbc649c62d8b5cd09`
+- `refs/tags/agent-claims/masterplan/id-AT-Z03L-SUPPLIER` → `575ad1a179b04005b90f830fbc649c62d8b5cd09`
+- `refs/tags/agent-claims/masterplan/id-AT-Z03LK-SUPPLIER` → `575ad1a179b04005b90f830fbc649c62d8b5cd09`
