@@ -1578,12 +1578,24 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
   const additions=Object.fromEntries(Object.keys(refusalOwnerTables).map(key=>[key,
    retainedRows(beforeLedger.own[key as keyof typeof refusalOwnerTables],stableLedger.own[key as keyof typeof refusalOwnerTables])])) as Record<keyof typeof refusalOwnerTables,FullRow[]>
   const replyIds=stableReplies.replies.map(reply=>reply.id)
-  for(const key of ['creationReceipts','witnesses','consumptions','namespace','businessReferences'] as const){
+  for(const key of ['creationReceipts','consumptions','namespace','businessReferences'] as const){
    for(const row of additions[key]){
     expect(row.company_id).toBe(f.ids.company)
     expect([row.source_message_id,row.ack_message_id,row.outbound_message_id].some(id=>id===source.id||replyIds.includes(String(id)))).toBe(true)
    }
   }
+  expect(additions.witnesses).toHaveLength(1);expect(additions.consumptions).toHaveLength(1)
+  const objectReply=stableReplies.replies.find(reply=>reply.message_family==='APERAK')!,witness=additions.witnesses[0]
+  const sourceEvidence=sql<FullRow>(`SELECT gridex_ediel_source_rules.require_v1(${lit(f.ids.company)},${lit(source.id)})`)
+  expect(witness).toEqual({id:witness.id,company_id:f.ids.company,environment:'test',actor_user_id:f.ids.actor,
+   payload_sha256:hash(objectReply.raw_payload!),family:'APERAK',code:'APERAK',related_message_id:source.id,observed_at:witness.observed_at,
+   context:sql(`SELECT gridex_ediel_inbound_context.derive(m,${lit(String(witness.observed_at))}::timestamptz) FROM public.ediel_messages m WHERE m.id=${lit(objectReply.id)}`),evidence:sourceEvidence})
+  expect(additions.consumptions).toEqual([{witness_id:witness.id,source_message_id:objectReply.id,company_id:f.ids.company,environment:'test',payload_sha256:witness.payload_sha256}])
+  expect(additions.namespace).toHaveLength(2)
+  for(const row of additions.namespace){const reply=stableReplies.replies.find(candidate=>candidate.id===row.source_message_id)!
+   expect(reply).toBeTruthy();expect(row).toEqual({source_message_id:reply.id,company_id:f.ids.company,environment:'test',payload_sha256:hash(reply.raw_payload!)})
+  }
+  expect(additions.businessReferences).toEqual([])
   expect(additions.creationReceipts).toHaveLength(2)
   expect(additions.creationReceipts.map(row=>row.ack_message_id).sort()).toEqual(replyIds.slice().sort())
   for(const row of additions.creationReceipts)expect(row).toMatchObject({source_message_id:source.id,source_payload_hash:hash(raw),outcome:'positive',actor_user_id:f.ids.actor})
@@ -1625,7 +1637,7 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
     expect(rows.map(row=>row.event_type).sort()).toEqual(['manual_note','validated','validated','validated','validated'])
     expect(rows.filter(row=>row.message==='Egna objekt och deras slutliga svar följer beständiga skrivkvitton.')).toHaveLength(1)
     const domain=rows.find(row=>row.message==='Egna objekt och deras slutliga svar följer beständiga skrivkvitton.')!
-    expect(domain.event_status).toBe('success');expect(domain.payload).toMatchObject({idempotent:true,createdAckMessageIds:[],fullyApplied:true,reviewRequired:false})
+    expect(domain.event_status).toBe('success');expect(domain.payload).toMatchObject({idempotent:true,createdAckMessageIds:[objectReply.id],fullyApplied:true,reviewRequired:false})
    }else if(key==='processingRuns'||key==='decisionTraces'){
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({company_id:f.ids.company,source_message_id:source.id,created_by:f.ids.actor})
