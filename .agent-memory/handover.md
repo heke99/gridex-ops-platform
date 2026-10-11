@@ -19,3 +19,5 @@ Exact prior bytes: [historical handover.md](history/20261010-before-startup-clea
 
 
 #721 and #666 were administratively closed as superseded proposals on 2026-10-10. Exact source comparisons found their product corrections delivered through #699/#725. Original branches/checkpoints, #666's undelivered dedicated workflow, source-bound failures/proofs and retained whole duties remain preserved. Administrative closure grants no coverage or custody release. Receipts: [721](https://github.com/heke99/gridex-ops-platform/pull/721#issuecomment-6100857994), [666](https://github.com/heke99/gridex-ops-platform/pull/666#issuecomment-6100858665).
+
+Active own e13 ESCO pair / PR745: second authentic23cc native24P8F preserved6736104934925; verified five-path extension6736104943584, source-qualified UUID/query and tenant lifecycle/replay corrections plus finite75/23PASS remain locally verified only. Root next exact-source2 review then sole fresh32/mandatoryCI; wholecoverage unchanged, OPS742/norm/fullR-D still bounded dependencies, no release/merge inferred.

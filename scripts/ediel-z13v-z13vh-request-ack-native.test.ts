@@ -12,6 +12,7 @@ import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prep
  nativeEscoExternal,NATIVE_ESCO_DB} from './fixtures/ediel-service-evidence-native'
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {omitZ14Field} from './helpers/ediel-z14v-current-native-fixture'
+import {captureEscoTenantBasis,qualifyEscoTenantFirst,expectEscoTenantReplay,type ObservationWindow} from './helpers/ediel-esco-tenant-replay-b6d3'
 import {readEdielServiceAdministration} from '@/lib/ediel/services/administration'
 import {coordinateEdielServicePermission,resolveEdielServicePermissionCommand} from '@/lib/ediel/services/commands'
 import {createEdielMessageIntent,getEdielMessageIntentById} from '@/lib/ediel/intent/intentEngine'
@@ -708,6 +709,7 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
  const pending=sql<FullRow>(`SELECT to_jsonb(r) FROM public.metering_permissions r WHERE id=${lit(p.permissionId)} AND company_id=${lit(f.ids.company)}`)
  const before=producerState(f),ledger=refusalLedger(f),smtp=nativeEscoExternal.send.mock.calls.length
  const sourceBefore=(before.business.ediel_messages as FullRow[]).find(r=>r.id===source.id)!
+ const tenantBasis=captureEscoTenantBasis(sql,lit,f)
  const codes={222:'FIELD_MATRIX_REQUIRED_FIELD_MISSING',321:'PRODAT_RECEIVED_REPORTING_321_MISSING',
   322:'PRODAT_PERMISSION_322_MISSING',323:'PRODAT_RECEIVED_REPORTING_323_MISSING',326:'FIELD_MATRIX_REQUIRED_FIELD_MISSING'}
  const code=codes[field]
@@ -717,6 +719,9 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
  const processingFinished=Date.now()
  const current=(await getEdielMessageById(source.id))!
+ const firstWindow:ObservationWindow=[processingStarted,processingFinished]
+ const firstTenant=qualifyEscoTenantFirst(current.parsed_payload!,tenantBasis,firstWindow)
+ expect(current.validation_report?.tenantResolution).toEqual(firstTenant)
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(current,{actorUserId:f.ids.actor})
  expect(decision.syntaxDecision).toBe('accepted');expect(decision.applicationDecision).toBe('rejected')
  expect(decision.issues).toEqual(expect.arrayContaining([expect.objectContaining({code,
@@ -940,7 +945,8 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
   expect(message.validation_report?.receivedSourceValidationEvidence).toEqual({status:'recorded',sourceDisposition:'not_established',assessmentId:leaves[0].id,factsHash:leaves[0].facts_hash})
   const durable=sql<FullRow>(`SELECT gridex_received_sources.require_prodat_application_objects_v1(${lit(f.ids.company)},${lit(source.id)})`)
   expect(durable.assessmentId).toBe(leaves[0].id)
-  expect(durable.objects).toEqual([expect.objectContaining({objectId:f.point,identityAgency:'9',applicationDecision:'rejected',reasonCodes:expect.arrayContaining([code]),
+  if(field==='322')expect(durable.headerDecision).toBe('held')
+  expect(durable.objects).toEqual([expect.objectContaining({objectId:f.point,identityAgency:'9',applicationDecision:field==='322'?'held':'rejected',reasonCodes:field==='322'?[code,'PRODAT_RECEIVED_REPORTING_SOURCE_UNQUALIFIED']:expect.arrayContaining([code]),
    registers:expect.arrayContaining([expect.objectContaining({lineNumber:'1'})])})])
   const {assessmentId,...application}=durable;void assessmentId
   expect(application).toEqual({...decision.prodatApplicationValidation,sourcePayloadHash:hash(wire)})
@@ -1016,11 +1022,12 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
   return run
  }
  const firstRun=qualifyPipeline(additions,true)
- const qualifyEvents=(rows:FullRow[],newReplies:boolean,run:FullRow)=>{
+ const qualifyEvents=(rows:FullRow[],newReplies:boolean,run:FullRow,invocationTenant:unknown)=>{
   const sourceRows=rows.filter(row=>row.ediel_message_id===source.id)
-  expect(sourceRows).toHaveLength(4);expect(sourceRows.filter(row=>row.event_type==='manual_note')).toHaveLength(1)
+  expect(sourceRows).toHaveLength(5);expect(sourceRows.filter(row=>row.event_type==='manual_note')).toHaveLength(1)
+  expect(sourceRows.filter(row=>row.event_type==='linked')).toHaveLength(1)
   expect(sourceRows.filter(row=>row.event_type==='validated')).toHaveLength(3)
-  expect(rows).toHaveLength(newReplies?8:4)
+  expect(rows).toHaveLength(newReplies?9:5)
   if(newReplies)for(const ack of replies){const own=rows.filter(row=>row.ediel_message_id===ack.id)
    expect(own.map(row=>row.event_type).sort()).toEqual(['created','queued'])
   }
@@ -1030,7 +1037,10 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
   for(const row of rows){expect(row).toMatchObject({company_id:f.ids.company,created_by:f.ids.actor,message_id:row.ediel_message_id})
    if(row.ediel_message_id===source.id){expect(row.event_payload).toEqual(row.payload)
     const payload=row.payload as FullRow
-    if(row.message==='SLA-timers prepared for inbound Ediel automation.'){
+    if(row.message==='Inbound Ediel tenant resolved before runtime/business matching.'){
+     expect(row.event_type).toBe('linked');expect(row.event_status).toBe('success')
+     expect(payload).toEqual({companyId:f.ids.company,tenantResolution:invocationTenant})
+    }else if(row.message==='SLA-timers prepared for inbound Ediel automation.'){
      expect(row.event_type).toBe('manual_note');expect(row.event_status).toBe('info');expect(payload).toEqual(timerPlan)
     }else if(row.message==='Status uppdaterad till validated.'){
      expect(row.event_type).toBe('validated')
@@ -1040,8 +1050,7 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
      expect(row.event_status).toBe('warning');expect(payload).toEqual({batch:'2.5B',family:'PRODAT',messageCode:'Z14',processGroup:decision.canonical.processGroup,
       syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:decision.functionalDecision,responsePlan:decision.responsePlan,
       issueCount:decision.issues.length,prodatProcessingDisposition:decision.prodatProcessingDisposition,sourceRules:decision.sourceRules,decisionTrace:decision.decisionTrace,
-      tenantResolution:current.parsed_payload?.tenantResolution??current.validation_report?.tenantResolution??null,
-      runtimeTenantResolutionSource:(current.parsed_payload?.tenantResolution??current.validation_report?.tenantResolution)?'persisted':'not_available'})
+      tenantResolution:invocationTenant,runtimeTenantResolutionSource:'persisted'})
     }else{
      expect(String(row.message)).toMatch(/^Backend automation pipeline prepared trace (?:and requires manual review before business ACK autosend\.|and marked message safe for backend-controlled ACK flow\.)$/)
      expect(row.event_type).toBe('validated');expect(row.event_status).toBe(manualReason?'warning':'success')
@@ -1063,44 +1072,55 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
    }
   }
  }
- qualifyEvents(additions.events,true,firstRun)
+ qualifyEvents(additions.events,true,firstRun,firstTenant)
  const protectedState=(state:ReturnType<typeof producerState>)=>{
   const foreign={...state.foreign};delete foreign['public.ediel_message_events']
   const business={...state.business,ediel_messages:(state.business.ediel_messages as FullRow[]).filter(r=>!replyIds.includes(String(r.id)))
-   .map(r=>r.id===source.id?stableRefusalSource(r):r),ediel_outbox:(state.business.ediel_outbox as FullRow[]).filter(r=>!replyIds.includes(String(r.ediel_message_id)))}
+   .map(r=>r.id===source.id?sourceBefore:r),ediel_outbox:(state.business.ediel_outbox as FullRow[]).filter(r=>!replyIds.includes(String(r.ediel_message_id)))}
+  expect((state.business.ediel_messages as FullRow[]).filter(r=>r.id===source.id)).toHaveLength(1)
   return {foreign,business,commands:state.commands}
  }
- expect(protectedState(after)).toEqual(protectedState(before))
- expect(stableRefusalSource((after.business.ediel_messages as FullRow[]).find(r=>r.id===source.id)!)).toEqual(stableRefusalSource(sourceBefore))
  const tenantResolution=sourceBefore.parsed_payload as FullRow
  const sourceReport=sourceBefore.validation_report as FullRow
- const persistedTenant=tenantResolution.tenantResolution??sourceReport.tenantResolution??null
+ expect(tenantResolution.tenantResolution).toBeUndefined();expect(sourceReport.tenantResolution).toBeUndefined()
+ const persistedTenant=firstTenant
  const expectedReport={...sourceReport,...(persistedTenant?{tenantResolution:persistedTenant}:{}),canonicalRuntime:decision.validationReport,
   canonicalRuntimeVersion:'2.5B',syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:decision.functionalDecision,
   responsePlan:decision.responsePlan,prodatProcessingDisposition:decision.prodatProcessingDisposition,decisionTrace:decision.decisionTrace,
   sourceRules:decision.sourceRules,runtimeTenantResolutionSource:persistedTenant?'persisted':'not_available'}
- const qualifySource=(message:EdielMessageRow)=>{
+ const qualifySource=(message:EdielMessageRow,window:ObservationWindow)=>{
+  const observedTenant=qualifyEscoTenantFirst(message.parsed_payload!,tenantBasis,window)
+  expect(message.validation_report?.tenantResolution).toEqual(observedTenant)
+  const envelope=EdifactEnvelopeCodec.decode(wire),physical=tokenizeEdifact(wire)
   const fullRow=sql<FullRow>(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE m.id=${lit(message.id)}`)
   expect(fullRow).toEqual({...sourceBefore,status:'validated',processing_status:'validated',updated_by:f.ids.actor,
    parsed_at:sourceBefore.parsed_at??freshTime(message.parsed_at),validated_at:freshTime(message.validated_at),updated_at:freshTime(message.updated_at),
-   parsed_payload:{...tenantResolution,canonical:decision.parsedPayload,...(persistedTenant?{tenantResolution:persistedTenant}:{})},
-   validation_report:{...expectedReport,receivedSourceValidationEvidence:message.validation_report?.receivedSourceValidationEvidence}})
+   unb_sender_id:envelope.sender,unb_sender_subaddress:envelope.senderSubAddress??null,
+   unb_receiver_id:envelope.receiver,unb_receiver_subaddress:envelope.receiverSubAddress??null,
+   message_reference:segmentComposite(physical.segments.find(s=>s.tag==='UNH'),1,physical.una)[0],bgm_code:'Z14',bgm_reference:wireDocument(wire),
+   tenant_resolution_status:'tenant_resolved',business_match_status:'not_checked',
+   parsed_payload:{...tenantResolution,canonical:decision.parsedPayload,tenantResolution:observedTenant},
+   validation_report:{...expectedReport,tenantResolution:observedTenant,receivedSourceValidationEvidence:message.validation_report?.receivedSourceValidationEvidence}})
+  return observedTenant
  }
- qualifySource(current)
+ qualifySource(current,firstWindow)
+ expect(protectedState(after)).toEqual(protectedState(before))
  const deltas:Record<string,number>={messages:replies.length,outbox:queues.length,acks:replies.length,events:additions.events.length}
  for(const key of ['creationReceipts','witnesses','consumptions','namespace','businessReferences'] as const)deltas[key]=additions[key].length
  expect(after.effects).toEqual(Object.fromEntries(Object.entries(before.effects).map(([key,count])=>[key,count+(deltas[key]??0)])))
  const assertPending=()=>expect(sql(`SELECT to_jsonb(r) FROM public.metering_permissions r WHERE id=${lit(p.permissionId)} AND company_id=${lit(f.ids.company)}`)).toEqual(pending)
  assertPending();await noAccess(f,p);checkSentinel();expect(nativeEscoExternal.send).toHaveBeenCalledTimes(smtp)
+ const replayStarted=Date.now()
  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
+ const replayWindow:ObservationWindow=[replayStarted,Date.now()]
  const replay=producerState(f),replayLedger=refusalLedger(f)
  const replaySource=(await getEdielMessageById(source.id))!
- qualifySource(replaySource)
- expect(replaySource.parsed_payload).toEqual(current.parsed_payload)
+ const replayTenant=qualifySource(replaySource,replayWindow)
+ expectEscoTenantReplay(current.parsed_payload!,replaySource.parsed_payload!,firstWindow,replayWindow)
  const {receivedSourceValidationEvidence:oldReceipt,...oldReport}=current.validation_report??{}
  const {receivedSourceValidationEvidence:newReceipt,...newReport}=replaySource.validation_report??{}
  void oldReceipt;void newReceipt
- expect(newReport).toEqual(oldReport)
+ expectEscoTenantReplay(oldReport,newReport,firstWindow,replayWindow)
  expect(replaySource).toMatchObject({status:'validated',processing_status:'validated',updated_by:f.ids.actor,raw_payload:wire,parsed_at:current.parsed_at})
  expect(Date.parse(replaySource.validated_at!)).toBeGreaterThanOrEqual(Date.parse(current.validated_at!))
  expect(Date.parse(replaySource.updated_at!)).toBeGreaterThanOrEqual(Date.parse(current.updated_at!))
@@ -1113,7 +1133,7 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
  qualifyLeaf(replayLedger,(await getEdielMessageById(source.id))!)
  for(const key of Object.keys(refusalOwnerTables) as (keyof typeof refusalOwnerTables)[]){
   const added=replayAdditions[key]
-  if(key==='events')qualifyEvents(added,false,replayRun)
+  if(key==='events')qualifyEvents(added,false,replayRun,replayTenant)
   else if(key==='assessments'){if(added.length)qualifyAssessments(added)}
   else if(['applicationFacets','ignoredFacets','objectFacets','responseFacets','functionFacets'].includes(key)){
    expect(added.every(r=>replayAdditions.assessments.some(a=>a.id===(key==='ignoredFacets'?r.canonical_assessment_id:r.assessment_id)))).toBe(true)
@@ -1581,6 +1601,7 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
   expect(born).not.toBeNull();expect(born!.rule_profile_key).toBe('PRODAT:Z14:N:26.A:r3')
   for(const [key,value] of Object.entries(born!))expect((source as unknown as FullRow)[key]).toEqual(value)
   const beforeLedger=refusalLedger(f),foreignBefore=beforeLedger.foreign,producerBefore=producerState(f)
+  const tenantBasis=captureEscoTenantBasis(sql,lit,f)
   const sends=nativeEscoExternal.send.mock.calls.length
   // First business/domain invocation is the actual public processor.
   const processingStarted=Date.now()
@@ -1673,8 +1694,10 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
   const deltas:Record<string,number>={messages:2,outbox:2,acks:2,scopeReceipts:additions.positiveScope.length,events:additions.events.length}
   for(const key of ['creationReceipts','witnesses','consumptions','namespace','businessReferences'] as const)deltas[key]=additions[key].length
   expect(stableProducer.effects).toEqual(Object.fromEntries(Object.entries(producerBefore.effects).map(([key,count])=>[key,count+(deltas[key]??0)])))
+  const replayStarted=Date.now()
   expect(await createInboundEdielMessage(originalIntake)).toBe(source.id)
   await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
+  const firstWindow:ObservationWindow=[processingStarted,processingFinished],replayWindow:ObservationWindow=[replayStarted,Date.now()]
   expect(business(f,p)).toEqual(after);expect(await currentPermission(f,p)).toEqual(denied)
   expect(fullOutbox(f)).toEqual(stableReplies.outbox)
   expect(sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.id),'[]') FROM public.ediel_messages m
@@ -1682,14 +1705,19 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
   const replaySource=(await getEdielMessageById(source.id))!,replayProducer=producerState(f),replayLedger=refusalLedger(f)
   expect(stableRefusalSource(replaySource as unknown as FullRow)).toEqual(stableRefusalSource(stableSource as unknown as FullRow))
   expect(replaySource).toMatchObject({status:stableSource.status,processing_status:stableSource.processing_status,
-   parsed_at:stableSource.parsed_at,parsed_payload:stableSource.parsed_payload,updated_by:f.ids.actor})
+   parsed_at:stableSource.parsed_at,updated_by:f.ids.actor})
+  const firstTenant=qualifyEscoTenantFirst(stableSource.parsed_payload!,tenantBasis,firstWindow)
+  const replayTenant=qualifyEscoTenantFirst(replaySource.parsed_payload!,tenantBasis,replayWindow)
+  expect(stableSource.validation_report?.tenantResolution).toEqual(firstTenant)
+  expect(replaySource.validation_report?.tenantResolution).toEqual(replayTenant)
+  expectEscoTenantReplay(stableSource.parsed_payload!,replaySource.parsed_payload!,firstWindow,replayWindow)
   for(const key of ['validated_at','updated_at'] as const){
    expect(Number.isFinite(Date.parse(replaySource[key]!))).toBe(true)
    expect(Date.parse(replaySource[key]!)).toBeGreaterThanOrEqual(Date.parse(stableSource[key]!))
   }
   const {receivedSourceValidationEvidence:previousEvidence,...previousReport}=stableSource.validation_report??{}
   const {receivedSourceValidationEvidence:replayEvidence,...replayReport}=replaySource.validation_report??{}
-  void previousEvidence;expect(replayReport).toEqual(previousReport)
+  void previousEvidence;expectEscoTenantReplay(previousReport,replayReport,firstWindow,replayWindow)
   const replayAdds=Object.fromEntries(Object.keys(refusalOwnerTables).map(key=>[key,
    retainedRows(stableLedger.own[key as keyof typeof refusalOwnerTables],replayLedger.own[key as keyof typeof refusalOwnerTables])])) as Record<keyof typeof refusalOwnerTables,FullRow[]>
   expect(replayLedger.foreign).toEqual(stableLedger.foreign)
@@ -1703,9 +1731,12 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
      }else expect(replayAdds.assessments.some(a=>a.id===(key==='ignoredFacets'?row.canonical_assessment_id:row.assessment_id))).toBe(true)
     }
    }else if(key==='events'){
-    expect(rows).toHaveLength(5)
+    expect(rows).toHaveLength(6)
     for(const row of rows)expect(row).toMatchObject({company_id:f.ids.company,ediel_message_id:source.id,message_id:source.id,created_by:f.ids.actor})
-    expect(rows.map(row=>row.event_type).sort()).toEqual(['manual_note','validated','validated','validated','validated'])
+    expect(rows.map(row=>row.event_type).sort()).toEqual(['linked','manual_note','validated','validated','validated','validated'])
+    const linked=rows.filter(row=>row.event_type==='linked');expect(linked).toHaveLength(1)
+    expect(linked[0]).toMatchObject({event_status:'success',message:'Inbound Ediel tenant resolved before runtime/business matching.',
+     payload:{companyId:f.ids.company,tenantResolution:replayTenant},event_payload:{companyId:f.ids.company,tenantResolution:replayTenant}})
     expect(rows.filter(row=>row.message==='Egna objekt och deras slutliga svar följer beständiga skrivkvitton.')).toHaveLength(1)
     const domain=rows.find(row=>row.message==='Egna objekt och deras slutliga svar följer beständiga skrivkvitton.')!
     expect(domain.event_status).toBe('success');expect(domain.payload).toMatchObject({idempotent:true,createdAckMessageIds:[objectReply.id],fullyApplied:true,reviewRequired:false})

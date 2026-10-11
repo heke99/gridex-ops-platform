@@ -6,6 +6,7 @@ import {matchProcessForAutomation} from '@/lib/ediel/matching/processMatcher'
 import {matchCustomerForAutomation} from '@/lib/ediel/matching/customerMatcher'
 import {findCustomersByIdentifierValues} from '@/lib/customers/matchingService'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {expectEscoTenantReplay,qualifyTenantObservation} from '../scripts/helpers/ediel-esco-tenant-replay-b6d3'
 
 type Row=Record<string,unknown>
 type Query={table:string;filters:Array<[string,unknown]>;or:string;limit:number}
@@ -85,4 +86,35 @@ it.each(['permission','process','customer'] as const)('propagates genuine %s dat
  const error={code:'08006',message:'SYNTHETIC_DATABASE_UNAVAILABLE'};db.error=error
  const match=kind==='permission'?matchPermissionForAutomation:kind==='process'?matchProcessForAutomation:matchCustomerForAutomation
  await expect(match({message:message()})).rejects.toEqual(error)
+})
+
+function observation(start:number){return {canonical:{source:'IMMUTABLE'},evaluatedAt:'OTHER_OWNER_CLOCK',tenantResolution:{
+ companyId:COMPANY,source:'verified_legal_identity',status:'resolved',evidence:[{companyId:COMPANY,source:'verified_legal_identity',
+  details:{legalActorId:ID,identityEvidence:{version:1,owner:'canonical-tenant-ediel-identity-v1',historicalKnowledge:'not_established',
+   sourceDisposition:'not_established',consistency:'independent_reads',completeness:'exact_count',records:{roles:[{id:ID,valid_from:'IMMUTABLE_VALIDITY'}]},
+   evaluatedAt:new Date(start+2).toISOString(),observedAt:new Date(start+3).toISOString(),completedAt:new Date(start+4).toISOString()}}}]}}}
+it('qualifies only fresh identity observation clocks and leaves both payloads unchanged',()=>{
+ const before=observation(10000),after=observation(10020),copies=structuredClone([before,after])
+ expectEscoTenantReplay(before,after,[10000,10010],[10020,10030])
+ expect([before,after]).toEqual(copies)
+})
+it.each(['record','tenant','other_clock','classification'] as const)('rejects replay change to %s',kind=>{
+ const before=observation(10000),after=observation(10020)
+ if(kind==='record')after.tenantResolution.evidence[0].details.identityEvidence.records.roles[0].valid_from='CHANGED'
+ if(kind==='tenant')after.tenantResolution.companyId=FOREIGN
+ if(kind==='other_clock')after.evaluatedAt='CHANGED'
+ if(kind==='classification')after.tenantResolution.status='ambiguous'
+ expect(()=>expectEscoTenantReplay(before,after,[10000,10010],[10020,10030])).toThrow()
+})
+it.each(['outside','order','non_iso','owner','census'] as const)('rejects unqualified observation %s',kind=>{
+ const payload=observation(10000),identity=payload.tenantResolution.evidence[0].details.identityEvidence
+ if(kind==='outside')identity.completedAt=new Date(10011).toISOString()
+ if(kind==='order')identity.observedAt=new Date(10001).toISOString()
+ if(kind==='non_iso')identity.evaluatedAt='1970-01-01T00:00:10.002+00:00'
+ if(kind==='owner')identity.owner='OTHER_OWNER'
+ if(kind==='census')payload.tenantResolution.evidence.push(structuredClone(payload.tenantResolution.evidence[0]))
+ expect(()=>qualifyTenantObservation(payload,[10000,10010])).toThrow()
+})
+it('rejects replay invocation before the original processing window',()=>{
+ expect(()=>expectEscoTenantReplay(observation(10020),observation(10000),[10020,10030],[10000,10010])).toThrow()
 })
