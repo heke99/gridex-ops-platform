@@ -106,6 +106,11 @@
 - RELEASE_REQUEST to proxy: 83b7d8b0 (shared five) + ffce8ee6 except native test file (kept for AT-Z09D).
 - AT-Z09D takeover + reservation requested (6104081205); waiting for RESERVED.
 
+### 2026-10-11T03:20Z — release pending; #743 delta review
+- 12 refs still live at 03:09Z; reminder posted (6104893183), shared five first.
+- AT-Z09D not yet reserved.
+- #743 delta e9d4f27→36e91f9: C0/I0 + note (checkpoint as coverage evidence) (6104934116); local coverage check 309/352.
+
 ## Next
 After proxy RELEASE: verify 404s. AT-Z09D: on RESERVED → CLAIM → add 23-DDQ-PRODAT / no NAD+UD / wrong-correlation + mutation assertions to P-08 native test → PR.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
