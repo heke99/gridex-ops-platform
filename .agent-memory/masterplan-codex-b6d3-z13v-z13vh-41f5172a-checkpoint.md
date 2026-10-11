@@ -1361,3 +1361,17 @@ Eight later failures: V/VH322 durable object held (national aggregate rejected),
 Private OPS742 bounded inverse proof now actually3PASS: currentf62 restores original1367, original unchanged, unknown drift fails closed. Proposal SHA d6769180701e08df94d9051ed6b57dd5ad1fc714e621acc2f480e190d8788532; occupied owner c680 file untouched/current5e07. No whole OPS/history/currentCI approval. Existing handoff6104798058 remains action for owner742.
 
 ROOT NEXT document this actualRED on673/PRbody; atomic matcher scope extension if free, red/green regression, exact source oracle corrections/static/two independent reviews; only reviewed currenthead triggers sole native32. Full R/D followon13N/53positive/23Z13 plans now source mapped but NOTimplemented or passed; authentic32 qualification remains prerequisite. Coverage all bytes unchanged/ownNOT_EXECUTED; frozen begäran disposition ownerheke99 and completecriteria remain. No next packet, no merge while native/mandatorytargetedred.
+
+
+## 2026-10-11 UTC — exact same-packet UUID/tenant helper extension CLAIM before code
+
+Additional receipt8559fa74d3f84d5b3da8aeeef5ccbd39dfa97c10 packet2fc55876-7625-4093-9d09-098e4c77ab72 explicitly extends e13 pair (no new IDs/pair): five sorted create-if-absent refs freshly GETmatch on actualda0. Exactfiles:
+- lib/ediel/matching/permissionMatcher.ts
+- lib/ediel/matching/processMatcher.ts
+- lib/customers/matchingService.ts
+- __tests__/ediel-esco-reference-uuid-matching-b6d3.test.ts
+- scripts/helpers/ediel-esco-tenant-replay-b6d3.ts
+
+Existing10b384/role988a retained, no foreign source edit or merge-role. Current source23cc/secondnative24P8F preserved. Three proven UUID sinks guarded only on UUID columns; all textreferences/companyfilters/errors/validUUID continue. Root failing bounded regression beforecode; existing matching/tenant/error regressions and native32 later. Scope FP equivalent directproof: immutable valid nationaltext travels canonicalmessage→customer/permission/process queries→UUID columns; no upstreamUUIDvalidation, current PostgreSQL22P02. Availability/business-trace defect, no demonstrated security data leak/tenantbypass; trace catches error but same directconsumerthrows. Customer looseidentifier helper has exactlyoneproductioncaller, skip only idarm fornoncanonicalUUID and failclosed if no validarms; no broad unrelatedcustomeridentity matching changes.
+
+Source review additionally finds original unexecuted firstprocessing tail: birth has no tenantResolution; processor adds verifiedidentity observation and physical UNB/UNH/BGM fields/business_match_status. Root must independently qualify the complete first tenant identity and exact immutablewire lifecycle fields/full127 before substituting the ONE qualified ownsource row for broad old-state conservation. No enlarged ignorelist. Three clock-only qualification first→replay preserves fullpayload/report/recordset/canonicalevent and exactforeign/domain guards. Missing322 only heldfacet, aggregate stillrejected. Next root red/greenfinite, exact helper/source corrections, static/fullsource2reviews then one fresh native32; coverageunchanged and wholeR-D/norm/OPS742 currentmandatoryred remain.
