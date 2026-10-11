@@ -86,3 +86,43 @@ Next: authenticate delivered747 main and actual resource cleanup; qualify
 767 composition and743 input applicability against that new base. Bounded
 runner scheduling reader investigates metadata only while required jobs wait.
 No native/GEN/artifact recollection, rerun, cancellation or gate lowering.
+
+## Actual new baseline and release — 2026-10-11
+
+Done: C747 is actually MERGED at `d00ca1266fe0f40349f49d9ddab1bb11d59ba187`,
+parents b56641304e7edd4d093e304efab482862d2f163a +
+5ea7e56906d92899547cdd84d077f4d4e82357eb; tree1139a38b8b878433404cff3d99ce621117c383d0.
+Current27 Actions SUCCESS/10 qualified SKIP and CodeRabbit SUCCESS reused;
+all9,833 foreign entries and full311 coverage authenticated unchanged.
+Existing role10eef belonged to the SAME C747. Actual user-authorized operator
+handoff6109609120 replaced only its pending delivery executor with6d7/4c7;
+C chat state UNKNOWN, no silent STOP/consent inferred. Public handoff readback,
+freshrole/source/checkguards and independent bounded operator C0/I0 read
+preceded normal merge. No new role/tag rewriting or source/GEN transfer.
+Role10eef FIRST and allsevenf38 resources then individually SHA/DELETE/GET404
+verified. Proxy owns0resources. Root cbbee/foreign reservations preserved.
+MERGED https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109613939
+RELEASE https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109615519
+
+Done: root767 clean prospective composition on ACTUALd00 + current1f346 is
+tree`2b035f880298f3f9a289caab83746e05149d6ef3`. All11 own postimages/modes,
+9,830 foreign actual-main entries including C747 source, full311 ledger,
+historical queue and both foreign9d46/da97 proof links/duties are preserved.
+Independent current delivery composition is APPROVE C0/I0; no new behavior
+checks required solely for disjoint inherited C747 files. Mandatory current767
+Actions remain in progress; coverage started13:34 UTC, no green claim.
+
+Existing743 request6109039345 amended: header HOLD RESOLVED by actual485ad
+handoff/CLAIM/READY, old evidence retained as dated history. Sole743 current
+native collector remains fae8b466; other six039daf refs/whole duty retained.
+Prepared766 single table now reflects actual747delivery/release,743newsource,
+752pendinggates/retained Arefs, SC023 documented a889 owner and767currentCI.
+#673 remains active; no channel activation before actual767merge/announcement.
+
+Next: finish existing767 automatic CI including latecertificate; immediately
+fresh main/head/allownrefs/status/qualified composition and own rolemerge;
+normal delivery, authenticate parents/tree/fullcoverage; exact roleFIRST then
+own tenfile+memory releases. Publish actual transition, bind743proof to actual
+newmain and deliver qualified743 afterward. C GEN continuation requires NEW
+own5refs/CLAIM and every source-owner branch mandate; no import was performed.
+Runner metadata diagnosis found no safe redundant active generic job to cancel.
