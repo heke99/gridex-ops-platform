@@ -181,6 +181,11 @@ async function persistInboundAck(input: {
 }
 
 export const OUTBOUND_BUSINESS_RESPONSE_STATUSES = '("confirmed","business_response_received")'
+// Supplier-switch states before the business confirmation (PRODAT Z04). Mirrors
+// the dispatch statuses in gridex_guard_supplier_switch_dispatch plus draft.
+// A negative ACK may only reject a switch in one of these states; once Z04 has
+// moved it to accepted/confirmed/completed a late ACK never rolls it back (P-11).
+export const SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES = ['draft', 'ready', 'queued', 'submitted', 'sent', 'processing']
 
 async function updateOutboundAck(input: {
   companyId: string
@@ -238,7 +243,7 @@ async function updateOutboundAck(input: {
   if (sourceType === 'supplier_switch_request') {
     await supabaseService.from('supplier_switch_requests').update({
       status: 'rejected', failed_at: nowIso(), failure_reason: `${ackLabel(input.parsed)} avvisade Ediel-meddelandet.`, updated_at: nowIso(),
-    }).eq('company_id', input.companyId).eq('id', sourceId)
+    }).eq('company_id', input.companyId).eq('id', sourceId).in('status', SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES)
   }
   if (sourceType === 'grid_owner_data_request') {
     await supabaseService.from('grid_owner_data_requests').update({

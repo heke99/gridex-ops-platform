@@ -1,6 +1,6 @@
 import {createAssignedProdatHeaderNegativeSource,observeAssignedProdatHeaderNegativeField} from '@/lib/inbound-mail/prodatAssignedHeaderRejectionIntake'
 import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
-import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
+import { OUTBOUND_BUSINESS_RESPONSE_STATUSES, SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
 import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
 import { admitUnattributedTechnicalSource, recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
@@ -954,6 +954,7 @@ async function updateBusinessStatusFromInbound(input: {
         .update({ status: 'rejected', failed_at: nowIso(), failure_reason: eventMessageForParsed(input.parsed), metadata: responsePayload, updated_at: nowIso() })
         .eq('id', sourceId)
         .eq('company_id', input.companyId)
+        .in('status', SUPPLIER_SWITCH_PRE_CONFIRMATION_STATUSES)
     }
   }
 
