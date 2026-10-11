@@ -607,3 +607,47 @@ boundedlocalqualifier owns tenantpath applicability/skipcondition reuse.
 No broad runlist/oldfullpoll/cancel/retry/newproducer or implementation.
 Preserve actual E1e delivery/source attribution and truthful20row766/history;
 finish genuine9adb terminalgates/currentheadguard/boundedreview/checkpoint.
+
+## Actual documentary reconciliation and rightful cleanup taken — 2026-10-11 17:24 UTC
+
+DONE: sole #766 body normalPATCH/fresh3d143 guard/identicalGET authenticated
+final3c4d17674a2003008a834760dc473537414eed36ff40611e31bca997839c2231;
+root + independentfinaldocumentary C0/I0, review6bd86279bb10a0168006a07248d27308c5633d99c476935fe3a2c59342e35865.
+All20rows/17unaffectedrows/fullhistory111283 bytepreserved. Authentic root
+VERIFY/TAKEN7666111664596 documents originalEactual1e release, root765
+NOHANDOFF/NOREF/NOMERGE/NOPOST for supersededpacket, actual9adb/full313,
+CwaitconditionSATISFIED/newCpacketUNKNOWN and genuinecurrentCIpending.
+Documentarypublication is a separate performed operation; no root765claim.
+OwnCPd0cd actualremoteFULLbytesauth1355785a. No ownreservedresources.
+
+Sole17:22:32Z current9adb CI now17created=5SUCCESS+8qualifiedSKIP+4RUN;
+full114528268393 andcoverage114528268565 actuallycreated/RUN on38158345245,
+clean/quality stillRUN, allmandatorynamesnowpresent/VercelaggregateSUCCESS.
+Newhead stillrequires genuineallterminalsuccess and lateconditionalcerts;
+no oldheadrerun/globalGREEN/wholeMasterplan claim.
+
+TAKEN remaining ownstartup cleanup: root's delivered767 featurebranch
+codex/startup-routing-0b3416c0/technicalworktree at exact1f346c321186ea5bcb04ad31cffda0e03288eeb9,
+tracked/untrackedstatus CLEAN, normalmerged ancestry present in9adb. Own
+role-FIRST/alltenfile+memoryrefs release alreadyactual6110410155; cleanup
+will use fresh exactremotehead MATCH + atomicexpected-head branchdelete,
+authenticate absence then normalunforced worktree/localmergedbranch removal.
+Preserve activeNONPR checkpointbranch/worktree/sourcehistory and everyforeign
+branch/worktree/ref/native artifact. Changedhead/dirt stops for reconciliation,
+no force removal or foreigncleanup. Evidence/finaloutcome remains to record.
+
+DONE own767 cleanup17:25:26Z: exactfreshremote1f346 MATCH, atomicexpected-head
+featurebranchDELETE (leasefixed1f346), authenticremoteabsence; normalunforced
+technicalworktree removal and normalgitbranch-d from operationalcheckpoint
+descendant. Actualsourcebranch/worktree/localbranchabsent; activecheckpoint
+branch/worktree/sourcehistory preserved, foreigncleanupZERO. Durable actual
+767-rightful-source-cleanup.actual.json=RIGHTFUL_767_SOURCE_CLEANUP_DONE.
+No code/refreservation/role/CI run or actualmain mutation occurred.
+
+NEXT remains sole current9adb genuineCI qualification. Actual17:25:33Z
+qualitySUCCESS;17created=6SUCCESS+8qualifiedSKIP+3RUN(clean/full/coverage),
+mandatoryallpresent/aggregateVercelSUCCESS. No failures reported; retain
+exactnewhead evidence/latecertconditions, await actual terminalsuccess and
+closingcurrentmain guard rather than replaying old1e CANCELLED or collecting
+healthylogs. Child may finish only own secondarylocal743worktree cleanup,
+preserving primary operationalcheckpoint/sourcehistory/foreignbranches.
