@@ -14,3 +14,9 @@ Public user-authorized handoff: https://github.com/heke99/gridex-ops-platform/is
 ## Header correction / source verification
 
 Applied only two comments after confirmed custody/CLAIM. Native postimageSHA256 a498684afb0996a96d86064b31861d009979f6435fccae79961cc63984a17bb9; all637 remaining lines FULL_BYTE_IDENTICAL, bodySHA256 bdd0ad8ec998a9caa2e301d015900dec1ccd58451b7007f47b696e41f55f1779. Source/assertions/pins/fixtures/helper/SQL/kernel/workflow/config untouched. Scratchapply+actualapply/fullpostimage+gitdiffcheckPASS. Existing actual14 native/117unit results reused as sourcebehavior evidence, not newsource-head CI. No test rerun justified for comment-only semanticidentity; allsuccessor actualmandatoryCI remainrequired. Next localcommit →twoindependentdelta reviews/rootselfreview →normal expected36e guardedpublication.
+
+## Published source / current-head gate (2026-10-11T13:18:23.870491+00:00)
+
+- Exact source `485ad3030dd252754c39d57f4b36b8925405e735` / tree `b66301eee410eec86630a98dd2b5e399909d1061` normal-FF published to existing PR743; original source remains fixed. Two independent bounded reviews and root self-review APPROVE; all executable native bytes unchanged.
+- Public source READY receipt [6109439515](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109439515); own native ref remains d76e, foreign six remain039daf. Automatic sole new-head DB01 run38142490570/job114479022245 QUEUED; no manual dispatch or old-source recollection. All created current-head mandatory CI and single official native artifact qualification remain before root serial delivery.
+- This later checkpoint-only history belongs only to the isolated non-PR branch; it does not change PR743 head or start another native producer. Parent root retains merge/foreign cleanup. Next: wait/qualify current-head results once, hand off qualified delivery and release own082d only after actual delivery.
