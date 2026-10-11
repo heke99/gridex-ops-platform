@@ -2,6 +2,7 @@ import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenize
 import {isQualifiedCustomerMasterdataProjection,isQualifiedCustomerMasterdataValidationContext,type CustomerMasterdataValidationContext,type SourceQualifiedCustomerMasterdataProjection} from '@/lib/ediel/production/customerMasterdataSource'
 import {END_USER_ADDRESS_CODES,prodatEndUserAddressWireLines,type ProdatEndUserAddressObject} from './prodatEndUserAddress'
 import type {EdielRulebookIssue} from '@/lib/ediel/rulebook/rulebook'
+import {isKnownUnavailableCustomerMasterdataShape} from './customerMasterdataShape'
 
 export type CustomerMasterdataRenderingSource=Readonly<{kind:'customer_masterdata_rendering';companyId:string;environment:'test'|'production';rawPayload:string;projection:SourceQualifiedCustomerMasterdataProjection;authorizesPersistence:false;authorizesTransport:false}>
 const renderingSources=new WeakSet<object>()
@@ -17,7 +18,7 @@ export function isQualifiedCustomerMasterdataRenderingSource(value:unknown):valu
 export function createCustomerMasterdataAddressFacts(input:{projection:SourceQualifiedCustomerMasterdataProjection;meteringPointId:string;identityAgency:'9'|'89'}):ProdatEndUserAddressObject[]{
  const p=input.projection
  if(!isQualifiedCustomerMasterdataProjection(p)||!input.meteringPointId||input.meteringPointId!==input.meteringPointId.trim()||!['9','89'].includes(input.identityAgency))throw Error('customer_masterdata_address_source_unqualified')
- return [{meteringPointId:input.meteringPointId,identityAgency:input.identityAgency,endUser:{...p.customerIdentity},availability:'available',addressLines:[...p.endUserMasterdata.streetParts],
+ return [{meteringPointId:input.meteringPointId,identityAgency:input.identityAgency,endUser:{...p.customerIdentity},availability:isKnownUnavailableCustomerMasterdataShape(p.endUserMasterdata)?'unavailable':'available',addressLines:[...p.endUserMasterdata.streetParts],
   source:{kind:'customer_masterdata',companyId:p.companyId,customerId:p.customerId,reference:p.sourceReference,sourceContextId:p.sourceContextId,sourceDigest:p.sourceDigest,asOf:p.asOf}}]
 }
 
@@ -30,7 +31,7 @@ export function assertCustomerMasterdataAddressOwnership(object:ProdatEndUserAdd
  if(object.source.kind!=='customer_masterdata')return
  if(!context&&!isQualifiedCustomerMasterdataRenderingSource(renderingSource)||context&&!isQualifiedCustomerMasterdataValidationContext(context))throw Error('customer_masterdata_address_source_unqualified')
  const p=context?.projection??renderingSource!.projection,s=object.source
- if(s.companyId!==p.companyId||s.customerId!==p.customerId||s.sourceContextId!==p.sourceContextId||s.sourceDigest!==p.sourceDigest||s.reference!==p.sourceReference||s.asOf!==p.asOf||object.availability!=='available'||object.endUser.id!==p.customerIdentity.id||object.endUser.qualifier!==p.customerIdentity.qualifier||object.endUser.agency!==p.customerIdentity.agency||JSON.stringify(object.addressLines)!==JSON.stringify(p.endUserMasterdata.streetParts))throw Error('customer_masterdata_address_source_mismatch')
+ if(s.companyId!==p.companyId||s.customerId!==p.customerId||s.sourceContextId!==p.sourceContextId||s.sourceDigest!==p.sourceDigest||s.reference!==p.sourceReference||s.asOf!==p.asOf||object.availability!==(isKnownUnavailableCustomerMasterdataShape(p.endUserMasterdata)?'unavailable':'available')||object.endUser.id!==p.customerIdentity.id||object.endUser.qualifier!==p.customerIdentity.qualifier||object.endUser.agency!==p.customerIdentity.agency||JSON.stringify(object.addressLines)!==JSON.stringify(p.endUserMasterdata.streetParts))throw Error('customer_masterdata_address_source_mismatch')
 }
 
 /** Provenance equality, not a second national field engine. The common parser

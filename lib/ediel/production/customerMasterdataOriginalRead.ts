@@ -6,6 +6,7 @@ import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {prodatEndUserWireSubtype} from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator'
+import {hasCustomerMasterdataStreetAvailability,isKnownUnavailableCustomerMasterdataShape,type ReadonlyCustomerMasterdataShape} from '@/lib/ediel/prodat/customerMasterdataShape'
 
 /** Observational original READ only. Neither this token nor its projection is
  * registered with the customer masterdata preparation/sender context owner. */
@@ -20,7 +21,7 @@ type ReadProjection=Readonly<{
  sourceKind:'registered_customer_address'|'signed_contract_masterdata'|'confirmed_customer_history';
  sourceReference:string;sourceDigest:string;sourceContextId:string;
  customerIdentity:Readonly<{id:string;qualifier:'SE1'|'SE2';agency:'260'}>;
- endUserMasterdata:Readonly<{nameParts:readonly string[];streetParts:readonly string[];postalCode:string;city:string;country:string}>;
+ endUserMasterdata:ReadonlyCustomerMasterdataShape;
 }>
 const issued=new WeakMap<CustomerMasterdataOriginalRead,{identity:string;actor:string;readAt:number;projection:ReadProjection}>()
 const acceptedReads=new WeakMap<AcceptedProdatHOriginalRead,{identity:string;actor:string;readAt:number;projection:AcceptedReadProjection}>()
@@ -62,14 +63,15 @@ function checkedProjection(value:unknown,source:EdielMessageRow,actor:string):Re
   ||binding.intentId!==source.intent_id||binding.routeId!==source.communication_route_id||binding.payloadHash!==evidenceHash(source.raw_payload!)
   ||!isEvidenceRecord(identity)||(identity.qualifier!=='SE1'&&identity.qualifier!=='SE2')||identity.agency!=='260'
   ||typeof identity.id!=='string'||!identity.id||identity.id!==identity.id.trim()||identity.id.length>35
-  ||!isEvidenceRecord(d)||!parts(d.nameParts,2)||!parts(d.streetParts,3,true)
+  ||!isEvidenceRecord(d)||!parts(d.nameParts,2)||!(hasCustomerMasterdataStreetAvailability(d)?data.sourceKind!=='registered_customer_address'&&isKnownUnavailableCustomerMasterdataShape(d):parts(d.streetParts,3,true))
   ||typeof d.postalCode!=='string'||!d.postalCode||d.postalCode.length>9||typeof d.city!=='string'||!d.city||d.city.length>35
   ||typeof d.country!=='string'||!/^[A-Z]{2}$/.test(d.country)||[identity.id,d.postalCode,d.city].some(value=>/[\x00-\x1f\x7f]/.test(value)))
   throw Error('customer_masterdata_original_read_result_invalid')
  return Object.freeze({status:'authorized',companyId:source.company_id!,customerId:source.customer_id!,environment:data.environment as ReadProjection['environment'],
   asOf:data.asOf as string,sourceKind:data.sourceKind as ReadProjection['sourceKind'],sourceReference:data.sourceReference,sourceDigest:data.sourceDigest,
   sourceContextId:data.sourceContextId,customerIdentity:Object.freeze({id:identity.id,qualifier:identity.qualifier as 'SE1'|'SE2',agency:'260'}),
-  endUserMasterdata:Object.freeze({nameParts:Object.freeze([...d.nameParts]),streetParts:Object.freeze([...d.streetParts]),postalCode:d.postalCode,city:d.city,country:d.country})})
+  endUserMasterdata:Object.freeze({nameParts:Object.freeze([...d.nameParts]),streetParts:Object.freeze([...(d.streetParts as string[])]),postalCode:d.postalCode,city:d.city,country:d.country,
+   ...(isKnownUnavailableCustomerMasterdataShape(d)?{streetAvailability:'known_unavailable' as const}:{})} as ReadonlyCustomerMasterdataShape)})
 }
 /** The native READ owns original/current source/profile/retention and actor
  * guards. Unknown original knowledge yields no observational requirement. */
