@@ -16,6 +16,7 @@ import { getEdielMessageById } from '@/lib/ediel/db'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
+import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
 import { validateRulebookMessageWithRegistry } from '@/lib/ediel/rulebook/validator'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import { tokenizeEdifact, segmentComposite, segmentElementCount } from '@/lib/ediel/core/edifactTokenizer'
@@ -630,6 +631,14 @@ async function actualNamespaceBaseline(f: Fixture, original: Original, rawPayloa
   // This genuine source is staged but never business-applied. Its ready legal
   // context does not seed an accepted assessment or authorize another message.
   return { supplier, dso, baseline }
+}
+function assertUnattributedMailboxConflict(f: Fixture, staged: Awaited<ReturnType<typeof stage>>, environment: 'test' | 'production' = 'test') {
+  expect(staged.tenant).toMatchObject({ status: 'ambiguous', companyId: null, source: null, confidence: 0 })
+  expect(staged.tenant.candidateCompanyIds).toEqual([])
+  expect(staged.tenant.reasons).toEqual(['Juridisk mottagare, teknisk transportidentitet och tenantkontext är inte entydigt verifierade; inga lokala objektfel skapas.'])
+  expect(staged.tenant.evidence.filter(evidence => evidence.source === 'verified_legal_identity')).toEqual([])
+  expect(sql<Row>(`SELECT to_jsonb(m) FROM public.ediel_mailboxes m WHERE id=${literal(staged.mailbox.mailboxId)}`))
+    .toMatchObject({ company_id: f.companyId, environment })
 }
 /** The real fresh READ and current namespaces qualify the control before and
  * after a negative; NULL alone never establishes its physical cause. */
@@ -1370,7 +1379,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
         expect(staged.birthErrors).toHaveLength(1)
         expect(staged.birthErrors[0]).toMatchObject({ code: 'P0001', message: 'ediel_inbound_legal_context_required' })
       }
-      if (facet === 'legalReceiver' || facet === 'transportReceiver') expect(staged.tenant).toMatchObject({ status: 'unresolved', companyId: null })
+      if (facet === 'legalReceiver' || facet === 'transportReceiver') assertUnattributedMailboxConflict(f, staged)
       await rereadControl(f, original, control)
       assertRefusedEffects(f, original, before, sealed)
     })
@@ -1386,7 +1395,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
       .rejects.toThrow(`tenant_market_roles_missing:${f.companyId}:test`)
     expect(baseline.supplier.identity.legalEdielId).toBe(original.wire.parties.legalSender.id)
     const before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id), staged = await stage(f, rawPayload)
-    expect(staged.tenant).toMatchObject({ status: 'unresolved', companyId: null })
+    assertUnattributedMailboxConflict(f, staged)
     if (staged.id) {
       expect(staged.id).not.toBe(baseline.baseline.id)
       expect(sql<Row>(`SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE source_message_id=${literal(staged.id)}`))
@@ -1438,16 +1447,24 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const staged = await stage(f, reply(f, original))
     expect(staged.id, JSON.stringify(staged)).not.toBeNull()
     const before = protectedEffects(f, original), foreignBefore = protectedEffects(other, original), sealed = frozen(original.originalZ01.id)
-    await expect(processInboundEdielMessage({ actorUserId: other.actorUserId, edielMessageId: staged.id! }))
-      .rejects.toThrow(/ediel_tenant_actor_forbidden|company_permission_required|company_membership/)
+    const incomingBytes = frozen(staged.id!), ownDelivery = durableReplay(f, original), foreignDelivery = durableReplay(other, original)
+    const sends = smtp.send.mock.calls.length
+    const refused = processInboundEdielMessage({ actorUserId: other.actorUserId, edielMessageId: staged.id! })
+    await expect(refused).rejects.toBeInstanceOf(EdielExecutionFailure)
+    await expect(refused).rejects.toMatchObject({ message: 'ediel_inbound_execution_actor_forbidden',
+      disposition: { kind: 'security_quarantine', code: 'EDIEL_INBOUND_EXECUTION_ACTOR_FORBIDDEN' } })
     assertRefusedEffects(f, original, before, sealed)
     expect(protectedEffects(other, original)).toEqual(foreignBefore)
+    expect(durableReplay(f, original)).toEqual(ownDelivery)
+    expect(durableReplay(other, original)).toEqual(foreignDelivery)
+    expect(frozen(staged.id!)).toEqual(incomingBytes)
+    expect(smtp.send.mock.calls.length).toBe(sends)
   })
   it('test source and route cannot authorize the same physical Z02 through a production mailbox', async () => {
     const { f, original } = await sent(variant), rawPayload = reply(f, original)
     expect(EdifactEnvelopeCodec.decode(rawPayload).environment).toBe('test')
     const before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id), staged = await stage(f, rawPayload, 'production')
-    expect(staged.tenant).toMatchObject({ status: 'unresolved', companyId: null })
+    assertUnattributedMailboxConflict(f, staged, 'production')
     if (staged.id) {
       await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: staged.id })
       expect(JSON.stringify(refusalObservation(f, original, staged.id))).toMatch(/environment|routing_unresolved|unresolved/)
