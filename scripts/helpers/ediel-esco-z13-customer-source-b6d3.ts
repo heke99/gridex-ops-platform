@@ -97,6 +97,10 @@ export async function refuseEscoCustomerSource(mode:'V'|'VH',field:'227'|'228'|'
  expect(context.companyId).toBe(f.ids.company);expect(context.tenantIssues).toEqual([])
  expect(context.customer).toEqual(customer);expect(context.site).toBeNull();expect(context.meteringPoint).toBeNull()
  const route=sql<CommunicationRouteRow>(`SELECT to_jsonb(r) FROM public.communication_routes r WHERE id=${lit(f.ids.route)} AND company_id=${lit(f.ids.company)}`)
+ const profile=sql<Row>(`SELECT to_jsonb(p) FROM public.ediel_route_profiles p WHERE id=${lit(f.ids.routeProfile)} AND company_id=${lit(f.ids.company)}`)
+ // The administrative request passes no actor role; PRODAT sender resolution
+ // excludes the ESCO setting and uses this test profile, without a sender trace.
+ expect(profile).toMatchObject({environment:'test',actor_setting_id:null,sender_ediel_id:f.sender,communication_route_id:f.ids.route})
  const basis=await readServicePermissionOrigin({...originInput,permissionId,code:'Z13'})
  expect(basis.status).toBe('authorized');if(basis.status!=='authorized')throw Error('native_customer_source_origin_required')
  expect(basis).toMatchObject({companyId:f.ids.company,assignmentId:f.assignment,customerId:f.ids.customer,permissionId,
@@ -137,7 +141,8 @@ export async function refuseEscoCustomerSource(mode:'V'|'VH',field:'227'|'228'|'
   {code:'missing_grid_owner_agreement',message:'company_id och grid_owner_id krävs för att hitta aktivt nätägaravtal.',severity:'blocking',source:'agreement_resolver'},
   {code:'missing_agreement_reference',message:'Z13 kräver agreement_reference/kundfullmaktsreferens.',severity:'blocking',source:'agreement_resolver'}]
  const setting=(before.business.ediel_actor_settings as Row[]).filter(r=>r.company_id===f.ids.company&&r.environment==='test')
- expect(setting).toHaveLength(1);expect(route).toMatchObject({route_name:'Synthetic ESCO permission route',route_type:'ediel_partner'})
+ expect(setting).toHaveLength(1);expect(setting[0]).toMatchObject({actor_role:'energy_service_company',ediel_id:f.sender})
+ expect(route).toMatchObject({route_name:'Synthetic ESCO permission route',route_type:'ediel_partner'})
  const expectedDecision={decision_status:'blocked',route_scope:'metering_access',communication_route_id:f.ids.route,
   ediel_route_profile_id:f.ids.routeProfile,grid_owner_access_agreement_id:null,business_process:'metering_access',message_family:'PRODAT',
   message_code:'Z13',message_intent:'metering_access_request',application_reference:f.app,message_version:null,
@@ -150,8 +155,6 @@ export async function refuseEscoCustomerSource(mode:'V'|'VH',field:'227'|'228'|'
   decision_trace:[{step:'classify_process',status:'success',message:'metering_access klassades som metering_access.',
    metadata:{messageFamily:'PRODAT',messageCode:'Z13',environment:'test',environmentExplicit:true}},
    {step:'dynamic_receiver_resolver',status:'blocked',message:'Ingen vald nätägare kunde hämtas från ärendets kontext.'},
-   {step:'actor_setting_resolver',status:'success',message:'Bolagets Ediel-ID hämtades från ediel_actor_settings för test.',
-    metadata:{actorSettingId:setting[0].id,edielId:f.sender,selectedVia:'resolver'}},
    {step:'route_resolver',status:'success',message:'Route Synthetic ESCO permission route valdes för metering_access.',
     metadata:{routeId:f.ids.route,routeType:'ediel_partner'}}]}
  expect(decision).toEqual(expectedDecision)
