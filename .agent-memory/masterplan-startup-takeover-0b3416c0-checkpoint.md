@@ -126,3 +126,49 @@ own tenfile+memory releases. Publish actual transition, bind743proof to actual
 newmain and deliver qualified743 afterward. C GEN continuation requires NEW
 own5refs/CLAIM and every source-owner branch mandate; no import was performed.
 Runner metadata diagnosis found no safe redundant active generic job to cancel.
+
+## Current gate and evidence checkpoint — 2026-10-11 14:09 UTC
+
+Done: sole mandatory DB01 run38142490570 / attempt1 / job114479022245
+on743 source485ad3030dd252754c39d57f4b36b8925405e735 actually SUCCESS.
+Agent fae8b466 qualified official artifact11704371130 once: SHA256
+bd915093f4c3d304607c36f20723e930d68d7b5b5ed3f2f88dacc96f35e3240f,
+14/14 distinct native cases (1 historical +13 current),11 SQL phases PASS,
+driver exit0 and complete source/guard/JUnit binding. Prior36e proof retained;
+no rerun, old-source recollection or second artifact collector.
+
+Current blocker: mandatory tr09-current-native job114479022132 FAIL on485
+because four canonical files now on actualmain are absent from this old branch.
+No placeholder, skip or lowered gate is authorized. Proposed ordinary actual
+d00 adoption has clean treecbfacdff942bd7b152d5cfd78d5c911f77cb6992;
+only DB01/AT-DB01 coverage rows differ, prospective313/352 is NOT delivered.
+Finite pure-source projection reuses qualified485 inputs: all838 selected
+definitions/absences (819 present),233 readers,371 helpers and18 relations
+fully match. Config/native/workflow/migration pins remain exact; dynamic whole
+ROOT schema hash binds the new source. No blind pin or count changes required.
+
+Taken/preparing: child fae8b466 prepares an exact full remaining DB01 source
+and delivery administrative handoff under the project-owner explicit takeover
+mandate. Original53's two IDs/four other files remain SIX039daf resources;
+child's native-only d76e resource remains owned separately. No whole-source
+transfer, foreign-ref deletion or new adoption code is claimed at this point.
+Root must review the exact retirement/source/postimage/resource schedule before
+actual documented handoff, SHA-bound releases, verified own reservations and
+new CLAIM. Independent reviewer eff_mandate reads only this frozen projection.
+
+Current767 source1f346 is unchanged; sole root metadata watcher at14:09 UTC:
+coverage/smoke/upgrade/browser-public SUCCESS; clean replay,quality and late
+certificate IN_PROGRESS; verify QUEUED; nine qualified conditional SKIP.
+No767 failed gate, no CI_GREEN, no merge-role held. Both prepared delivery
+routines received bounded operational APPROVE C0/I0 after three findings were
+fixed; execution requires all eight mandatory current-head jobs actualSUCCESS,
+complete current inventory/statuses, actualmain/head/own11 custody guards and
+the exact independent reviewed d00+1f→2b035 composition.
+
+Next: finish own767 actual gates and normal immediate role-merge delivery,
+authenticate actualparents/tree/full311, release role FIRST then own11resources,
+publish explicit673→766 activation and current checkpoint. Child's actual
+DB01 handoff/adoption and genuine new-source gates continue independently;
+root then qualifies its final current-main composition and delivery. C may
+already continue its own GEN queue with new5refs/CLAIM and every branch mandate;
+there is no dependency on root767 documentation.
