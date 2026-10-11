@@ -46,3 +46,18 @@ Remain available as GRANSKARE for A's TR-09/DB-01 READY and for the owners' new 
 - Unchanged by this approval: the two-independent-review and green-CI merge gates, no force push, no foreign lock takeover of live (active) sessions, and Git reservation tags still requested via the authorized proxy (this Cloud host cannot create refs).
 - Packets: 44718156 (receipt c7f8037d: SC-054, SC-046), 5352b065 (receipt 6517ffd3: SC-031, SC-037). Reconcile: #673 6107925259.
 - Next: import #753 capture when run 38129753238 completes, then M1 doc patch; drive #744/#749/#753/#755/#758 to green + 2 reviews; MERGED receipts; then next free pair.
+
+## 2026-10-11T12:10Z — STATUS SNAPSHOT (owner request: full picture)
+| PR | IDs | Head | State | Blocker / next |
+|---|---|---|---|---|
+| #744 | SC-053 | 95bc9b1 | code + 21 SQL checks done | capture/GEN import + checksum registration held by C747 (f38a7467); then CI + 2 reviews |
+| #749 | SC-054 | e96b0afd | coverage PASSED, Codex re-review C0/I0/M0 | current-head CI + 2nd review, then merge |
+| #753 | SC-046 | 5259643 | capture imported, SC-046 PARTIAL, Codex C0/I0 x2 | manifest registration by C747; whole proof needs native SQL/ACK producer |
+| #755 | SC-037 | 27989a90a | v2 transition RPC + 10 unit + 12 PGlite checks, SC-037 PARTIAL | all native jobs (incl. p08-native) fail at clean-replay: migration 20261011120000 not in migration-history-manifest.json (C747 custody); PR comment 6108755771 |
+| #758 | SC-031 | draft | paused | runtimeDecision/inboundCases owned by others; proposal 337cf9b posted (6108728337) |
+| #761 | TR-08 (code part) | 0e8ed905 | relayTrace.ts + 52 tests, reviewer bypasses fixed | TR-08 stays NOT_VERIFIED until genuine Strato test-mailbox trace (owner decision 2026-10-04, #543) |
+- Help delivered: #745 OPS03 fix proposal branch claude/pr745-option-a-ops03-split (040589e, OPS03 163/163).
+- Confirmed main defect flagged: DB-05 retained-history guard covers 6 tables vs 197 cascading FKs (#673 6108693802, #718).
+- Selection: no free executable ID; remaining are mine, OCCUPIED, or EXTERNAL_DECISION (TR-08, OPS-04, DB-05 legal).
+- Single critical path: C747 must register/import migrations 20261011020000, 20261011090000, 20261011120000 in GEN/manifest files (or hand over those paths).
+- Next: on C747 handover/import → re-run CI on #744/#753/#755; merge #749 when green + 2 reviews; MERGED receipts on #673.
