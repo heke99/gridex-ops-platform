@@ -33,3 +33,9 @@ Remain available as GRANSKARE for A's TR-09/DB-01 READY and for the owners' new 
 - Leased export/write/read races are covered by the native cases "leased export waits for grant writer COMMIT/ROLLBACK before its internal result commit" and "export result commits before waiting revoke; later reads cannot disclose its retained page". Issuer/SMTP remain finite synthetic ports, as declared in the test.
 - Next: two independent reviews on PR #738, current-head CI, merge-role protocol, MERGED, then RELEASE of id-SC-071 via the proxy.
 - Candidate for the next packet: DB-01/AT-DB-01 once its owner-matched release (root codex-pr-delivery) shows a 404. It needs new historical/current kernel basis records plus restoration of 5 proof inputs from #662 (6103072204).
+
+## Delivered SC-071 and next selection — 2026-10-11 00:45Z
+
+- MERGED SC-071 via PR #738 into main 622ccfb7 (expected head b0a851b). Coverage is 303/352. Receipt on #673: 6103812179. RELEASE of id-SC-071 (06045c59) has been requested from the proxy and is still pending.
+- DB-01/AT-DB-01 is OCCUPIED: codex-plan-next-20261011T002655Z-53d604e536, packet 53d604e5, receipt 039daf42, created 00:29Z. It is not taken here.
+- No other free executable ID is known. I remain GRANSKARE for that packet's READY and for other named heads.
