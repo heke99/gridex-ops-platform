@@ -1,24 +1,24 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-10T23:52:17.382739+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38096321529",
+  "generated_at": "2026-10-11T04:07:17.644360+00:00",
+  "generated_with": "supabase-cli-2.101.0-authentic-capture-only-run38109798077",
   "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
-  "latest_migration": "20261010233000_ediel_production_contract_ack_received_confirmation.sql",
-  "latest_migration_schema_effect": "Replaces gridex_received_sources.confirm_production_contract_on_ack_v1 and its trigger (P-08 positive APERAK confirmation on acknowledged), composed on main with 20261010200000; generated artifacts imported byte-exactly from capture run 38096321529.",
+  "latest_migration": "20261011020000_ediel_utilts_source_quantity_quality.sql",
+  "latest_migration_schema_effect": "Composition on main da0fa1a: replaces gridex_utilts_binding.validate_decimal_source_v2 (supplied quantity quality must equal the source STS+8) and preserve_committed_projection_v1 (pre-SC-053 committed retries compared without quantity quality); generated artifacts imported byte-exactly from capture run 38109798077.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-10T23:52:17.382739+00:00",
-    "checkout_sha": "370591cfcad96ccb1875f53ac18e17f642bf5ea5",
-    "checkout_tree": "ccf15c52a763e9ff6a37763db9e94281d6942f77",
-    "workflow_run_id": "38096321529",
+    "captured_at": "2026-10-11T04:07:17.644360+00:00",
+    "checkout_sha": "42f551556897266c4feca727c806adbe73b597fd",
+    "checkout_tree": "1761c5704b7588fed8496867ba9bdb17e4d348db",
+    "workflow_run_id": "38109798077",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
     "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
     "latest_replay_migration": {
-      "name": "20261010233000_ediel_production_contract_ack_received_confirmation.sql",
-      "sha256": "0e33a83717f7b432bcf80a9f78b43975a90f739fbca97b3a7a2913818458b09d"
+      "name": "20261011020000_ediel_utilts_source_quantity_quality.sql",
+      "sha256": "7be26830e1623a7bd39d4324a42891bee8262e1fc0e7cb535e545fe4af6d5369"
     },
     "schema_names": [
       "gridex_ack_authority",
@@ -80,18 +80,18 @@
       "gridex_utilts_issuer",
       "public"
     ],
-    "schema_fingerprint": "c7d51e137adbc44e5cc44da2807e41a25494df6aea7a3f648e99d2abaf192946",
+    "schema_fingerprint": "ac09a9cd1e714a7fdc232e4d485722fdf171cfeeb324ed82e7725a1359854e36",
     "artifact_sha256": {
       "database.types.ts": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
-      "schema.sql": "e6901a40975042ab25ed4a966dd634bb5a6cbb1965e1fc5c947560ac63650abd",
-      "schema.fingerprint.json": "584ccd874ffc27afe808f9054780b3d0254836d915114d52610d1d6a5843e758"
+      "schema.sql": "1ebe387e307a6b1ee6b05513654351ad3b9cf11c245698ee47d46a32004f06f1",
+      "schema.fingerprint.json": "bc651fda38f3cbc85f3cc1119a6e3873d16aeb52be62aca1855db9cde2c8f3d6"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "f745017887d22ee19ebddf1ad40a926fdceadaa13a4dc29c20d6561c0f2b5f3a",
-      "scripts/migration-history-manifest.json": "f2236b1156d7807892ddd93dbdb8f9bcbac8f76d8665d1bd8d194bcaa80dce46",
+      "scripts/migration-history-manifest.json": "ffd19bd8d49f66366dcbc5b1364e594ba8fb05a418bd32c54c807c4a30a874a2",
       "scripts/migration-history-manifest.additions.json": "c7082bf805abf7d5d03a0ce773e5edab9df985efa5f941dd796d8b90a69385a0",
       "scripts/migration-history-manifest.runtime.additions.json": "df99aaaed8ba5db7d14a290a7535706498b0872b0b7346670387a3421532d3a9",
-      "scripts/supabase-types-manifest.json": "f00cee4bf378e8bffc8e114f40491e63c3018d20460189fb839a283f361a2363",
+      "scripts/supabase-types-manifest.json": "4244ebdcd0501e964f3043a87e358b625661d8407bab8758f44a3919d84d4286",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"

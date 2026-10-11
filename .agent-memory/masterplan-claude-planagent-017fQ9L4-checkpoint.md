@@ -33,3 +33,28 @@ Remain available as GRANSKARE for A's TR-09/DB-01 READY and for the owners' new 
 - Leased export/write/read races are covered by the native cases "leased export waits for grant writer COMMIT/ROLLBACK before its internal result commit" and "export result commits before waiting revoke; later reads cannot disclose its retained page". Issuer/SMTP remain finite synthetic ports, as declared in the test.
 - Next: two independent reviews on PR #738, current-head CI, merge-role protocol, MERGED, then RELEASE of id-SC-071 via the proxy.
 - Candidate for the next packet: DB-01/AT-DB-01 once its owner-matched release (root codex-pr-delivery) shows a 404. It needs new historical/current kernel basis records plus restoration of 5 proof inputs from #662 (6103072204).
+
+## SC-053 packet — 2026-10-11 (owner override, CLAIM #673 6104091018)
+
+- Branch `claude/sc053-quantity-quality` from main 622ccfb7.
+- Finding (verified RED): UTILTS storage writes `meter_reading_values.quality='unknown'` for every value, because `persistUtiltsTransactionResults` never supplies `quality`. As a result, NULL/46 and 0/21 share the same stored quality.
+- Fix:
+  - TS forwards the physical STS+8 quality per quantity, including NULL values.
+  - Forward migration 20261011020000:
+    - `validate_decimal_source_v2` requires a supplied quality to equal the source STS+8;
+    - `preserve_committed_projection_v1` strips quality when comparing pre-fix committed series, so idempotent retry is preserved.
+- Verification:
+  - PGlite regression: 14 SC-053 checks + 10 original U-04/U-14 checks PASS. RED without the migration.
+  - Vitest: 3/3 PASS, with 2 RED without the TS change.
+  - 184 related UTILTS test files: 2965/2965 PASS.
+  - Also passing: lint, `typecheck:tests`, tsc, `db:migrations:integrity`.
+- Pending:
+  - capture of the generated `schema.sql`, fingerprint and types manifest, via the PR's clean-replay artifact;
+  - current-head CI;
+  - two independent reviews;
+  - SC-053 coverage row.
+- 2026-10-11 01:50Z — ROOT review I1 on c4d6b2d (#673 6104258073): NULL/46 had no readingAt, so the authorized [start,end) read omitted it.
+  - Fix: the adapter now binds the declared positional interval for missing E30/E66 energy, using the same arithmetic as the contract. It is guarded: the interval is used only if it reproduces every consumed observation's contract start; otherwise no time is set.
+  - New `scripts/ediel-sc-053-authorized-interval-sql-regression.mjs` uses the real `ediel_beneficiary_series_page_v1`. It returns 56/46/21, and the interval-less NULL is omitted.
+  - Verification: vitest 4/4; 2966/2966 related tests; lint, tsc and typecheck:tests clean.
+  - Still pending: capture, CI, and two reviews. Coverage stays PARTIAL until these are done.
