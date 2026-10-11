@@ -122,6 +122,10 @@
   parents [da0fa1a, 78ba725], tree c94ebe3 = dry-run, coverage 309/352. MERGED 6106086529; role-merge release requested from D.
 - A's TR-09 custody untouched.
 
+### 2026-10-11T06:58Z — BLOCKED: no Git Data executor ([6106449425](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6106449425))
+- role-merge 389e6396 still live after #735 merged; A's 12 refs and my file-b45d98… still live. Merge queue (#733, #742) stopped.
+- Owner event: a tag-capable proxy (D/ROOT) or the project owner deletes role-merge first, then the rest.
+
 ## Next
 After proxy RELEASE: verify 404s. AT-Z09D: on RESERVED → CLAIM → add 23-DDQ-PRODAT / no NAD+UD / wrong-correlation + mutation assertions to P-08 native test → PR.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
