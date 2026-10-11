@@ -1,6 +1,7 @@
 -- masterplan: AT-Z09B-SUPPLIER (CONTRL and APERAK; update according to the BRP flow)
 -- The dated BRP period version is recorded when our own Z09/Z27 is bound for
--- sending (20260930200545, 20260930230653). That is a source declaration, not
+-- sending (20260930200545, 20260930230653); Z27 is its field-223 reason, the
+-- message code is Z09. That is a source declaration, not
 -- an acknowledged change. A valid receipt is the acknowledged transition of
 -- that same bound outbound PRODAT Z09 with at least one positive APERAK scope
 -- outcome and no negative scope outcome (the ACK authority writes
@@ -10,6 +11,7 @@
 -- alone, a negative APERAK, an unbound message, a changed original or a
 -- revoked event confirms nothing. Existing events, origins and period versions
 -- are not changed; the history reports the confirmation per dated version.
+-- Z09 messages acknowledged before this migration stay source_declared (no backfill).
 BEGIN;
 CREATE TABLE gridex_brp_changes.confirmations (
  event_id uuid PRIMARY KEY REFERENCES gridex_brp_changes.events(id),
