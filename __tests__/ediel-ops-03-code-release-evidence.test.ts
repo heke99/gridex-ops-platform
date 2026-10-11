@@ -209,6 +209,22 @@ function reviewedProducerFixture(file: string, bytes: Buffer) {
     bytes = Buffer.from(current.replace(addition, ''))
     if (sha256(bytes) !== '7461db28b3fbd1546bd45e9b5fe4a470bba786460731d215a675828d0903fedf') throw Error('fixture_reviewed_billing_config_inverse_digest_mismatch')
   }
+  // Invert only this exact workflow in the historical finite Git port. This
+  // does not admit changed current producer bytes to the real source guard.
+  if (file === '.github/workflows/ops-hardening.yml'
+    && sha256(bytes) === 'f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d') {
+    const current = '          # Retry transient DNS/transfer faults; retain HTTPS verification and final failure.\n'
+      + '          sudo curl -fsS --retry 3 --retry-all-errors --retry-delay 2 \\\n'
+      + '            --connect-timeout 10 --max-time 30 --retry-max-time 90 \\\n'
+      + '            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \\\n'
+      + '            https://www.postgresql.org/media/keys/ACCC4CF8.asc\n'
+    const previous = '          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \\\n'
+      + '            https://www.postgresql.org/media/keys/ACCC4CF8.asc\n'
+    const source = bytes.toString('utf8')
+    if (source.split(current).length !== 3) throw Error('fixture_reviewed_workflow_correction_count')
+    bytes = Buffer.from(source.split(current).join(previous))
+    if (sha256(bytes) !== '0f04e48eed93545c2a796fed06d476be75b21bca770ae691889ed145e9b4694a') throw Error('fixture_reviewed_workflow_inverse_digest_mismatch')
+  }
   const additions = file === 'scripts/ediel-source-owner-native.config.ts'
     ? ["    'scripts/ediel-test-original-outcome-native.test.ts',\n", "    'scripts/ediel-db02-profile-periods-native.test.ts',\n", "    'scripts/ediel-at-z15c-z18v-esco-native.test.ts',\n", "    'scripts/ediel-at-z14n-esco-native.test.ts',\n"]
     : file === '.github/workflows/ops-hardening.yml'
@@ -649,6 +665,25 @@ it.each(['foreign_rule_status', 'foreign_at_status', 'foreign_evidence', 'spec',
 
 // Exercise the actual finite port, including its whole-byte admission guards.
 // The historical DDQ port restores known bytes only; it does not run native cases.
+it('historical workflow port restores the exact reviewed producer after bounded key-download retries', () => {
+  const file = '.github/workflows/ops-hardening.yml', source = readFileSync(file)
+  expect(sha256(source)).toBe('f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d')
+  const original = reviewedProducerFixture(file, source)
+  expect(sha256(original)).toBe('eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261')
+  expect(reviewedProducerFixture(file, original)).toEqual(original)
+})
+it.each([
+  ['unknown suffix', (source: string) => source + '\n# unreviewed workflow\n'],
+  ['changed key anchor', (source: string) => source.replace('media/keys/ACCC4CF8.asc', 'media/keys/unreviewed.asc')],
+  ['missing download', (source: string) => source.replace(source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0], '')],
+  ['duplicate download', (source: string) => source + source.match(/          # Retry transient DNS\/transfer faults;[^\n]*\n(?:[^\n]*\n){4}/)![0]],
+])('historical workflow port refuses %s without admitting current native proof', (_name, mutate) => {
+  const file = '.github/workflows/ops-hardening.yml', source = readFileSync(file, 'utf8'), changed = mutate(source)
+  expect(changed).not.toBe(source)
+  expect(() => reviewedProducerFixture(file, Buffer.from(changed)))
+    .toThrow('fixture_reviewed_producer_source_unavailable:' + file)
+})
+
 it('historical DDQ finite port restores only the exact reviewed source prerequisites', () => {
   const source = readFileSync('scripts/ediel-prodat-mixed-native.test.ts')
   expect(sha256(source)).toBe('19d419cfc725193a95f0820584bf3ce9df1d5d19560be83971614feb23830ac8')
