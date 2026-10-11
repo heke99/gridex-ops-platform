@@ -2233,6 +2233,7 @@
       "status": "PASSED",
       "evidence": [
         "__tests__/ediel-sc-046-late-older-version.test.ts",
+        "__tests__/ediel-sc-046-late-older-positive-aperak.test.ts",
         "scripts/ediel-sc-046-late-older-sink-sql-regression.mjs",
         "supabase/migrations/20261011090000_ediel_utilts_late_older_sink_exclusion.sql",
         "lib/ediel/utilts/consumptionSinks.ts",
