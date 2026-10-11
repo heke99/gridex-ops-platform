@@ -1,5 +1,15 @@
 # Autonomous Masterplan reservations
 
+## Current operational routing — announced 2026-10-11
+
+[#766](https://github.com/heke99/gridex-ops-platform/issues/766) is active after actual
+[#767 delivery](https://github.com/heke99/gridex-ops-platform/pull/767) and the
+[explicit #673 transition](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6110433111).
+Operational instructions below naming #673 now route new receipts to #766.
+Original #673/#530 receipt links, proxy authority, exact resource names,
+CREATE_IF_ABSENT/GET_MATCH, CLAIM, review/CI and owner-only release remain unchanged.
+This channel update grants no custody or scope; do not duplicate receipts.
+
 Historical owner decision, 2026-10-06: use a shared continuation prompt.
 Active `AGENTS.md` roles qualify that older dispatch wording: PLANAGENT selects
 eligible plan packets, BLOCKERARAGENT resolves consecutive concrete blockers,
