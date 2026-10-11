@@ -1,5 +1,15 @@
 # Independent DB05 named-journal component — fixed E
 
+## Actual qualified GEN import — 2026-10-11T14:46:27.828570+00:00
+
+TAKEN: same E packet a934428c-75bc-4b23-a063-4a0a65a1e809; original two8d refs/CLAIM6108944043 plus five freshc951 refs/supplementalCLAIM6109920094 after actual C747 completed all-file release6109615519. All seven exact owner-SHA refs freshly GET_MATCH immediately before this import. Only the unaccepted765C helper request6109182486 was withdrawn; queued C owners and retained whole/native/legal duties stay unchanged.
+
+DONE/EVIDENCE: sole archive qualification of existing automaticcapture38145633287/attempt1/exact18764532/treecbb3, artifact11705520854, ZIP SHA256ee43e8a1db5488ae7d5111f9ed55602c6d5fa592c2e3ab3a8a1c0dcc975ba12b, bytes1696547. Official digest/size/CRC/exactfour members, checkout/source-tree/latest121542/deae, all eight source-input hashes, all three output hashes and NOT_RUN flags verified. No new/manual producer or duplicate archive reader. Imported genuine schema/types/fingerprint byte-exactly; generated manifest preserves all prior foreign fields and previous747 capture attribution, with an exact inverse restoring the full preimport manifest bytes. Existing primary/additions checksum map bytes unchanged; no duplicated registration.
+
+VERIFIED: actual Node22 generated-types check now PASS at tail121542 (3,713,116 bytes; SHA25616465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b); migration integrity PASS1148files/1051groups. Reverting only the captured DELETE-guard body restores the entire prior schema byte-exactly. Reverting only functions digest and overall digest restores every prior fingerprint field. Generated type bytes are unchanged; all112 foreign manifest fields and previous747 capture attribution are preserved. No gate/checker/oracle was weakened.
+
+NEXT: independent affected full-component GEN/composition reviews and all mandatory checks for the resulting exact head; then normal expected-head merge, authenticated main parents/tree and role-FIRST plus all seven exact receipt-bound DELETE/404. Source migration/test blobs deae/5b41 remain unchanged and prior45GREEN/TSC/lint proof applies only to its same assertions. Capture explicitly did not run native/browser/type-schema comparison/upgrade parity, and this import is not CI_GREEN or whole DB05/ATDB05/SC070/legal acceptance. E retains delivery/resources and takes no next blocker yet.
+
 ## Current main composition — 2026-10-11 14:04 UTC
 
 TAKEN: same E978c packet a934428c-75bc-4b23-a063-4a0a65a1e809, original two exact refs freshly GET_MATCH8d6d06f under refs/tags/agent-claims/masterplan/, original CLAIM6108944043. Implementation and delivery duty remain E; no whole IDs, foreign manifests or GEN writer duty transferred.
