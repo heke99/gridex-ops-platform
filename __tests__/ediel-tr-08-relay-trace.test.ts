@@ -153,6 +153,51 @@ describe('TR-08 relay trace evaluator (synthetic fixtures)', () => {
     expect(e.verified).toBe(false)
   })
 
+  describe('local final delivery exception (synthetic)', () => {
+    const SYN_LOCAL_LMTP =
+      'Received: from localhost (localhost [127.0.0.1])\r\n' +
+      '\tby mx.mailbox.example.invalid with LMTP id l3; Sun, 4 Oct 2026 12:00:03 +0200'
+
+    it('verifies all-TLS relay hops followed by a final LMTP from localhost', () => {
+      const v = evaluateRelayTrace({ rawHeaders: synthetic([SYN_HOP_SUBMIT, SYN_HOP_RELAY, SYN_LOCAL_LMTP]) })
+      expect(v.reasons).toEqual([])
+      expect(v.verified).toBe(true)
+      expect(v.localFinalDelivery).toBe(true)
+      expect(v.hops[2].tls).toBe('local_final_delivery')
+      expect(v.notes).toContain('hop_2_local_final_delivery_excluded_from_tls')
+    })
+
+    it('does not exempt LMTP from a non-loopback address', () => {
+      const hop = SYN_LOCAL_LMTP.replace('from localhost (localhost [127.0.0.1])', 'from mx.mailbox.example.invalid (mx.mailbox.example.invalid [192.0.2.30])')
+      const v = evaluateRelayTrace({ rawHeaders: synthetic([SYN_HOP_SUBMIT, SYN_HOP_RELAY, hop]) })
+      expect(v.verified).toBe(false)
+      expect(v.localFinalDelivery).toBe(false)
+      expect(v.reasons).toContain('hop_2_plaintext')
+    })
+
+    it('does not exempt LMTP in the middle of the chain', () => {
+      const v = evaluateRelayTrace({ rawHeaders: synthetic([SYN_HOP_SUBMIT, SYN_LOCAL_LMTP.replace('mx.mailbox', 'smtp.provider'), SYN_HOP_RELAY]) })
+      expect(v.verified).toBe(false)
+      expect(v.localFinalDelivery).toBe(false)
+      expect(v.reasons).toContain('hop_1_plaintext')
+    })
+
+    it('does not exempt a final plaintext SMTP hop from 127.0.0.1', () => {
+      const hop = SYN_LOCAL_LMTP.replace('with LMTP', 'with SMTP')
+      const v = evaluateRelayTrace({ rawHeaders: synthetic([SYN_HOP_SUBMIT, SYN_HOP_RELAY, hop]) })
+      expect(v.verified).toBe(false)
+      expect(v.localFinalDelivery).toBe(false)
+      expect(v.reasons).toContain('hop_2_plaintext')
+    })
+
+    it('does not verify a trace that is only a local LMTP hop', () => {
+      const v = evaluateRelayTrace({ rawHeaders: synthetic([SYN_LOCAL_LMTP]) })
+      expect(v.verified).toBe(false)
+      expect(v.localFinalDelivery).toBe(false)
+      expect(v.reasons).toContain('first_hop_only_trace')
+    })
+  })
+
   it('rejects non-string input', () => {
     const v = evaluateRelayTrace({ rawHeaders: 42 as unknown as string })
     expect(v.verified).toBe(false)

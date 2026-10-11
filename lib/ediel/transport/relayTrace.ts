@@ -20,7 +20,7 @@ export const RELAY_TRACE_MAX_HOPS = 30
 /** Accepted backwards clock skew between consecutive hops. */
 export const RELAY_TRACE_CLOCK_SKEW_MS = 30_000
 
-export type HopTls = 'tls' | 'plaintext' | 'unknown' | 'ambiguous'
+export type HopTls = 'tls' | 'plaintext' | 'unknown' | 'ambiguous' | 'local_final_delivery'
 export type SpfResult = 'pass' | 'fail' | 'softfail' | 'neutral' | 'none' | 'temperror' | 'permerror' | 'missing' | 'conflicting'
 
 export type RelayHop = {
@@ -28,6 +28,8 @@ export type RelayHop = {
   index: number
   from: string | null
   fromNames: string[]
+  /** Sender recorded only as loopback (localhost, 127.0.0.0/8, ::1). */
+  fromLoopback: boolean
   by: string | null
   protocol: string | null
   tls: HopTls
@@ -40,6 +42,10 @@ export type RelayTraceVerdict = {
   verified: boolean
   hops: RelayHop[]
   spf: SpfResult
+  /** True only when the newest hop is an exempted local delivery step inside the final server. */
+  localFinalDelivery: boolean
+  /** Informational notes that do not block verification. */
+  notes: string[]
   reasons: string[]
 }
 
@@ -52,6 +58,8 @@ export type RelayTraceInput = {
 // RFC 3848: the trailing S (STARTTLS/implicit TLS) is the only accepted TLS signal.
 const TLS_PROTOCOLS = new Set(['ESMTPS', 'ESMTPSA', 'UTF8SMTPS', 'UTF8SMTPSA', 'LMTPS', 'LMTPSA'])
 const PLAINTEXT_PROTOCOLS = new Set(['SMTP', 'ESMTP', 'ESMTPA', 'UTF8SMTP', 'UTF8SMTPA', 'LMTP', 'LMTPA', 'LOCAL', 'HTTP'])
+// Local delivery inside the final server (not a network relay hop).
+const LOCAL_DELIVERY_PROTOCOLS = new Set(['LMTP', 'LOCAL'])
 const CLAUSES = new Set(['from', 'by', 'via', 'with', 'id', 'for'])
 const SPF_VALUES = new Set(['pass', 'fail', 'softfail', 'neutral', 'none', 'temperror', 'permerror'])
 const HOST_RE = /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/
@@ -59,7 +67,7 @@ const HOST_RE = /^[a-z0-9-]+(?:\.[a-z0-9-]+)+$/
 type Field = { name: string; value: string }
 
 function fail(reasons: string[], hops: RelayHop[] = [], spf: SpfResult = 'missing'): RelayTraceVerdict {
-  return { schema: RELAY_TRACE_SCHEMA, verified: false, hops, spf, reasons }
+  return { schema: RELAY_TRACE_SCHEMA, verified: false, hops, spf, localFinalDelivery: false, notes: [], reasons }
 }
 
 /** Strip RFC 5322 comments with a linear scan; returns null on unbalanced input. */
@@ -82,6 +90,20 @@ export function stripComments(value: string): { text: string; comments: string[]
     else out += ch
   }
   return depth === 0 ? { text: out, comments } : null
+}
+
+function isLoopbackLiteral(value: string): boolean {
+  const v = value.trim().toLowerCase().replace(/^\[/, '').replace(/\]$/, '').replace(/^ipv6:/, '')
+  if (v === 'localhost' || v === '::1') return true
+  const parts = v.split('.')
+  return parts.length === 4 && parts[0] === '127' && parts.every((x) => /^\d{1,3}$/.test(x) && Number(x) <= 255)
+}
+
+/** Every name/address recorded for the sender must be loopback. */
+function senderIsLoopback(rawFrom: string | undefined, firstComment: string | undefined): boolean {
+  if (!rawFrom || !isLoopbackLiteral(rawFrom)) return false
+  const tokens = (firstComment ?? '').split(/\s+/).filter(Boolean)
+  return tokens.every((t) => isLoopbackLiteral(t))
 }
 
 function normalizeHost(value: string | null | undefined): string | null {
@@ -124,7 +146,7 @@ function tlsVersionsOf(value: string): Set<string> {
 }
 
 function parseHop(value: string, index: number, reasons: string[]): RelayHop {
-  const hop: RelayHop = { index, from: null, fromNames: [], by: null, protocol: null, tls: 'unknown', tlsVersion: null, timestamp: null }
+  const hop: RelayHop = { index, from: null, fromNames: [], fromLoopback: false, by: null, protocol: null, tls: 'unknown', tlsVersion: null, timestamp: null }
   const p = `hop_${index}`
   const stripped = stripComments(value)
   if (!stripped) { reasons.push(`${p}_malformed_comment`); hop.tls = 'ambiguous'; return hop }
@@ -152,6 +174,7 @@ function parseHop(value: string, index: number, reasons: string[]): RelayHop {
   if (!hop.by) reasons.push(`${p}_by_missing`)
   // Names the receiver recorded for the sender: HELO plus reverse-DNS in the comment that follows it.
   const firstComment = stripped.comments[0]?.split(/\s+/)[0]
+  hop.fromLoopback = senderIsLoopback(seen.get('from'), stripped.comments[0])
   hop.fromNames = [...new Set([hop.from, normalizeHost(firstComment)].filter((h): h is string => Boolean(h)))]
 
   const protocol = seen.get('with')?.toUpperCase() ?? null
@@ -225,11 +248,27 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
 
   const normalized = chronological.map((pos) => fields[pos].value.replace(/\s+/g, ' ').trim().toLowerCase())
   if (new Set(normalized).size !== normalized.length) reasons.push('duplicate_hop')
-  const byHosts = hops.map((h) => h.by).filter(Boolean)
-  if (new Set(byHosts).size !== byHosts.length) reasons.push('hop_loop')
 
   if (hops.length === 1) reasons.push('first_hop_only_trace')
-  for (let i = 1; i < hops.length; i++) {
+
+  // Narrow exception: only the newest hop of a multi-hop chain, LMTP/LOCAL,
+  // loopback sender, delivered by the same host that received the last relay hop.
+  const notes: string[] = []
+  const last = hops[hops.length - 1]
+  const prevHop = hops.length > 1 ? hops[hops.length - 2] : null
+  const localFinal = Boolean(
+    prevHop && last.tls === 'plaintext' && last.protocol && LOCAL_DELIVERY_PROTOCOLS.has(last.protocol) &&
+    last.fromLoopback && last.by && prevHop.by && hostsRelated(last.by, prevHop.by),
+  )
+  if (localFinal) {
+    last.tls = 'local_final_delivery'
+    const drop = new Set([`hop_${last.index}_plaintext`])
+    for (let i = reasons.length - 1; i >= 0; i--) if (drop.has(reasons[i])) reasons.splice(i, 1)
+    notes.push(`hop_${last.index}_local_final_delivery_excluded_from_tls`)
+  }
+  const relayHops = localFinal ? hops.slice(0, -1) : hops
+
+  for (let i = 1; i < relayHops.length; i++) {
     const prev = hops[i - 1], cur = hops[i]
     if (!cur.fromNames.some((n) => hostsRelated(n, prev.by))) {
       if (!reasons.includes('hop_chain_discontinuity')) reasons.push('hop_chain_discontinuity')
@@ -238,7 +277,12 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
       if (!reasons.includes('hop_timestamps_out_of_order')) reasons.push('hop_timestamps_out_of_order')
     }
   }
-  if (hops.some((h) => h.tls !== 'tls')) reasons.push('not_all_hops_tls')
+  if (localFinal && last.timestamp !== null && prevHop?.timestamp != null && last.timestamp + RELAY_TRACE_CLOCK_SKEW_MS < prevHop.timestamp) {
+    if (!reasons.includes('hop_timestamps_out_of_order')) reasons.push('hop_timestamps_out_of_order')
+  }
+  const byHosts = relayHops.map((h) => h.by).filter(Boolean)
+  if (new Set(byHosts).size !== byHosts.length) reasons.push('hop_loop')
+  if (relayHops.some((h) => h.tls !== 'tls')) reasons.push('not_all_hops_tls')
 
   // Only SPF results the final receiving server added (above the newest Received) count.
   const finalBy = hops[hops.length - 1].by
@@ -254,5 +298,5 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
   if (spf === 'missing') reasons.push('spf_missing')
   else if (spf !== 'pass' && spf !== 'conflicting') reasons.push('spf_not_pass')
 
-  return done({ schema: RELAY_TRACE_SCHEMA, verified: reasons.length === 0, hops, spf, reasons })
+  return done({ schema: RELAY_TRACE_SCHEMA, verified: reasons.length === 0, hops, spf, localFinalDelivery: localFinal, notes, reasons })
 }
