@@ -38,7 +38,7 @@ async function fixture(extraPermissions:string[]=[]){
  return {...f,reviewer}
 }
 type Fixture=Awaited<ReturnType<typeof fixture>>
-function changeWire(f:Fixture,oldMeter='METER-1'){
+function changeWire(f:Fixture,oldMeter='METER-1',options:{omitFirstRegisterReadingDeclaration?:boolean}={}){
   const instant=new Date(`${f.requestedStartDate}T00:00:00Z`);instant.setUTCDate(instant.getUTCDate()+12)
   const minute=instant.toISOString().slice(0,10).replaceAll('-','')+'0000'
   const reference='M-'+randomUUID().replaceAll('-','').slice(0,28)
@@ -50,7 +50,8 @@ function changeWire(f:Fixture,oldMeter='METER-1'){
     line('1',f.external,'1','9'),['DTM',['157',minute,'203']],['DTM',['354','15','806']],
     ...characteristic('Z13','E58'),...characteristic('Z04','Z04'),
     ...characteristic('Z12','D',3),...characteristic('Z15','Z32'),...characteristic('Z14','L639Q',3),
-    ...characteristic('Z16','101',3),...characteristic('Z02','1',3),...characteristic('Z05','6',3),
+    ...(options.omitFirstRegisterReadingDeclaration?[]:characteristic('Z16','101',3)),
+    ...characteristic('Z02','1',3),...characteristic('Z05','6',3),
     ['RFF',['MG','NEW-METER']],['RFF',['Z02',oldMeter]],['RFF',['Z05',f.gridAreaCode]],['RFF',['LI',reference]],
     ['NAD','Z02',[f.brpEdielId,'160','SVK']],
     line('2',f.external,'2','9'),...characteristic('Z16','102',3),
@@ -128,7 +129,7 @@ it('records the genuine two-register held source through v6 without granting own
 })
 
 it('normal processing records held M but preserves the exact own-application guard and technical ACK on retry',async()=>{
- const f=await fixture(['metering.read','metering.write','ediel_testing.write']),{wire,reference}=changeWire(f)
+ const f=await fixture(['metering.read','metering.write','ediel_testing.write']),{wire,reference}=changeWire(f,'METER-1',{omitFirstRegisterReadingDeclaration:true})
  // Public disposable transport inputs only; no private readiness or readings facts.
  const route=randomUUID(),profile=randomUUID(),smtp=edielSmtpConfig()
  sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
@@ -143,6 +144,17 @@ it('normal processing records held M but preserves the exact own-application gua
  const id=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.reviewer.id,environment:'test',
   inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,meteringPointMatch:match,tenantResolution:tenant.shared})
  expect(id).toMatch(/^[a-f0-9-]{36}$/)
+ const actual=await supabaseService.from('ediel_messages').select('*').eq('id',id!).eq('company_id',f.companyId).single()
+ expect(actual.error).toBeNull()
+ const held=await resolveCanonicalRuntimeDecisionWithRegistry(actual.data as EdielMessageRow,{actorUserId:f.reviewer.id})
+ // The later register cannot supply the first register's missing declaration.
+ expect(held.policy?.prodatDependentFacts?.registerObjects).toEqual([
+  {meteringPointId:f.external,identityAgency:'9',meterReadingsSentInUtilts:null},
+ ])
+ const readingConditions=held.policy?.prodatDependentConditions.filter(c=>['214','218','259'].includes(c.fieldNumber))
+ expect(readingConditions?.map(c=>c.fieldNumber).sort()).toEqual(['214','218','259'])
+ expect(readingConditions?.every(c=>c.status==='undetermined')).toBe(true)
+ expect(held.prodatApplicationValidation?.headerDecision).toBe('held')
  const process=()=>processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:id!})
  // A different error, including the former canonical recording failure, is RED.
  await expect(process()).rejects.toThrow(/^structural_apply_complete_own_application_required$/)

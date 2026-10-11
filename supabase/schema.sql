@@ -245,6 +245,12 @@ CREATE SCHEMA gridex_negative_fixtures;
 CREATE SCHEMA gridex_network_registry_sources;
 
 --
+-- Name: gridex_one_off_offer_binding; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_one_off_offer_binding;
+
+--
 -- Name: gridex_outbound_dispatch; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -66271,6 +66277,7 @@ declare
   o public.contract_offers%rowtype;
   v_count bigint;
   v_statuses text[]:=array['draft','pending_signature','signed','active'];
+  v_reserved_one_off boolean:=false;
 begin
   if new.status not in ('draft','pending_signature','signed','active') then
     return new;
@@ -66292,9 +66299,22 @@ begin
   end if;
 
   perform pg_advisory_xact_lock(hashtextextended(o.version_series_id::text,0));
-  if o.lifecycle_status<>'published' or not o.is_active
+
+  -- A materializer-reserved one-off offer is bindable only by the contract that
+  -- references it directly, in the same tenant, and only by one contract.
+  if o.id=new.contract_offer_id then
+    update gridex_one_off_offer_binding.reservations r
+    set consumed_contract_id=new.id,consumed_at=coalesce(r.consumed_at,now())
+    where r.offer_id=o.id and r.company_id=new.company_id
+      and (r.consumed_contract_id is null or r.consumed_contract_id=new.id)
+      and (r.intended_contract_id is null or r.intended_contract_id=new.id);
+    v_reserved_one_off:=found;
+  end if;
+
+  if not v_reserved_one_off and (
+     o.lifecycle_status<>'published' or not o.is_active
      or (o.valid_from is not null and o.valid_from>current_date)
-     or (o.valid_to is not null and o.valid_to<current_date) then
+     or (o.valid_to is not null and o.valid_to<current_date)) then
     raise exception using errcode='23514',message='contract_offer_not_available';
   end if;
   if not exists(
@@ -68505,7 +68525,7 @@ begin
       else 'terms'
     end,
     null,
-    lbv.legal_bundle_id,
+    lbv.legacy_legal_bundle_id,
     d.id,
     d.module_key,
     coalesce(d.template_version, left(d.content_sha256, 12)),
@@ -79654,7 +79674,10 @@ CREATE FUNCTION public.gridex_prepare_manual_contract_binding(p_company_id uuid,
     AS $$
 declare
   v_identity uuid := gen_random_uuid();
+  v_intended_contract_id uuid := nullif(p_payload->>'intended_contract_id','')::uuid;
   v_saved jsonb;
+  v_published jsonb;
+  v_key text;
   v_offer_id uuid;
   v_publication_id uuid;
   v_publication public.contract_publication_versions%rowtype;
@@ -79665,7 +79688,51 @@ begin
     raise exception using errcode='22023',message='company_required';
   end if;
 
-  p_payload := coalesce(p_payload,'{}'::jsonb) || jsonb_build_object(
+  p_payload := coalesce(p_payload,'{}'::jsonb) - 'intended_contract_id';
+  p_pricing_snapshot := coalesce(p_pricing_snapshot,'{}'::jsonb);
+
+  -- The signature-request and signed-import consumers pass the contract's
+  -- commercial terms only in the pricing snapshot, while the offer save reads
+  -- them from the payload. Fill each missing payload value from that
+  -- server-side snapshot; explicitly supplied payload values always win.
+  foreach v_key in array array[
+    'pricing_model','fixed_price_ore_per_kwh','spot_markup_ore_per_kwh','variable_fee_ore_per_kwh',
+    'monthly_fee_sek','invoice_fee_sek','green_fee_mode','green_fee_value','discount_value',
+    'discount_unit','start_fee_sek','admin_fee_sek','break_fee_sek','vat_rate'
+  ] loop
+    if p_payload->v_key is null and jsonb_typeof(p_pricing_snapshot->v_key) <> 'null' then
+      p_payload := p_payload || jsonb_build_object(v_key,p_pricing_snapshot->v_key);
+    end if;
+  end loop;
+  if p_payload->'default_binding_months' is null and p_payload ? 'binding_months' then
+    p_payload := p_payload || jsonb_build_object('default_binding_months',p_payload->'binding_months');
+  end if;
+  if p_payload->'default_notice_months' is null and p_payload ? 'notice_months' then
+    p_payload := p_payload || jsonb_build_object('default_notice_months',p_payload->'notice_months');
+  end if;
+  -- Canonical pricing requires the price_areas array; those consumers send only
+  -- the contract's single resolved price_area. Bridge only an absent canonical
+  -- key: an explicit (even malformed) price_areas keeps its normal refusal path.
+  if not (p_pricing_snapshot ? 'price_areas')
+     and nullif(p_pricing_snapshot->>'price_area','') is not null then
+    p_pricing_snapshot := p_pricing_snapshot
+      || jsonb_build_object('price_areas',jsonb_build_array(p_pricing_snapshot->>'price_area'));
+  end if;
+  -- The contract's resolved price_area is authoritative for what it is billed
+  -- on. An explicit canonical list that does not contain it would publish an
+  -- offer for other areas, which no downstream check compares, so refuse it.
+  -- A valid multi-area list that contains the resolved area stays eligible.
+  if nullif(p_pricing_snapshot->>'price_area','') is not null
+     and jsonb_typeof(p_pricing_snapshot->'price_areas')='array'
+     and jsonb_array_length(p_pricing_snapshot->'price_areas')>0
+     and not (p_pricing_snapshot->'price_areas' @> jsonb_build_array(p_pricing_snapshot->>'price_area')) then
+    raise exception using
+      errcode='23514',
+      message='one_off_price_area_not_in_price_areas',
+      detail=p_pricing_snapshot->>'price_area';
+  end if;
+
+  p_payload := p_payload || jsonb_build_object(
     'name',coalesce(nullif(p_payload->>'name',''),'Kundspecifikt avtal'),
     'slug','one-off-' || replace(v_identity::text,'-',''),
     'status','active',
@@ -79674,9 +79741,16 @@ begin
     'contract_type',coalesce(nullif(p_payload->>'contract_type',''),'variable_hourly'),
     'campaign_code',coalesce(nullif(p_payload->>'campaign_code',''),'ONE_OFF'),
     'campaign_version',coalesce(nullif(p_payload->>'campaign_version',''),'v1'),
-    'terms_version',coalesce(nullif(p_payload->>'terms_version',''),'canonical')
+    'terms_version',coalesce(nullif(p_payload->>'terms_version',''),'canonical'),
+    -- A one-off offer is sold (signed) now for a supply that may start later.
+    -- The canonical sync keeps a future-valid offer's channel paused, which
+    -- would block signing, so its sellable window opens today. The contract's
+    -- own starts_at keeps the supply start; the price plan, valid from today,
+    -- covers it.
+    'valid_from',case when nullif(p_payload->>'valid_from','')::date > current_date
+                      then current_date::text else p_payload->>'valid_from' end
   );
-  p_pricing_snapshot := coalesce(p_pricing_snapshot,'{}'::jsonb) || jsonb_build_object(
+  p_pricing_snapshot := p_pricing_snapshot || jsonb_build_object(
     'one_off',true,
     'one_off_identity',v_identity,
     'source_of_truth','price_plan_versions'
@@ -79688,6 +79762,28 @@ begin
   v_offer_id := nullif(v_saved#>>'{offer,id}','')::uuid;
   if v_offer_id is null then
     raise exception using errcode='P0001',message='one_off_offer_creation_failed';
+  end if;
+
+  -- The save above is always a draft. Publish it through the same permission-
+  -- and readiness-gated command staff use for catalog versions; it promotes the
+  -- pricing, materializes the legal bundle and locks the internal publication.
+  -- A structured refusal is raised with its code and blockers.
+  -- Staff who may create contracts may sell a one-off contract without the
+  -- catalog publish rights: authorize exactly this new offer, for this actor,
+  -- in this transaction, and withdraw the authorization right after.
+  perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.create');
+  insert into gridex_one_off_offer_binding.publish_authorizations(offer_id,company_id,actor_user_id,txid)
+  values (v_offer_id,p_company_id,p_actor_user_id,txid_current());
+  v_published := public.gridex_publish_internal_contract_version(
+    p_company_id,v_offer_id,p_actor_user_id
+  );
+  delete from gridex_one_off_offer_binding.publish_authorizations where offer_id=v_offer_id;
+  if not coalesce((v_published->>'ok')::boolean,false) then
+    raise exception using
+      errcode='23514',
+      message='one_off_publication_refused',
+      detail=coalesce(v_published->>'code','unknown'),
+      hint=coalesce(v_published->'blockers','[]'::jsonb)::text;
   end if;
 
   v_publication_id := public.gridex_ensure_internal_contract_publication(
@@ -79716,6 +79812,12 @@ begin
   update public.contract_offers
   set status='inactive',is_active=false,archived_at=coalesce(archived_at,now()),updated_at=now(),updated_by=p_actor_user_id
   where id=v_offer_id;
+
+  -- Only this materializer may make an archived offer bindable, and only for
+  -- the tenant it was created for. The reservation is consumed by the first
+  -- contract that binds it.
+  insert into gridex_one_off_offer_binding.reservations(offer_id,company_id,intended_contract_id)
+  values (v_offer_id,p_company_id,v_intended_contract_id);
 
   return jsonb_build_object(
     'contract_offer_id',v_offer_id,
@@ -82429,8 +82531,19 @@ declare
   v_pricing jsonb;
   v_canonical uuid;
 begin
-  perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.publish');
-  perform public.gridex_assert_contract_permission(p_actor_user_id,'pricing.publish');
+  -- Owner decision 2026-10-11: a one-off offer created by the manual-binding
+  -- materializer in this same transaction is published under the creator's
+  -- contracts.create right, which the materializer asserts. Every other
+  -- publish keeps the catalog publish rights.
+  if not exists (
+    select 1 from gridex_one_off_offer_binding.publish_authorizations a
+    where a.offer_id=p_offer_id and a.company_id=p_company_id
+      and a.actor_user_id is not distinct from p_actor_user_id
+      and a.txid=txid_current()
+  ) then
+    perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.publish');
+    perform public.gridex_assert_contract_permission(p_actor_user_id,'pricing.publish');
+  end if;
 
   select * into o
   from public.contract_offers
@@ -101154,6 +101267,32 @@ CREATE TABLE gridex_network_registry_sources.revocations (
 );
 
 ALTER TABLE ONLY gridex_network_registry_sources.revocations FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: publish_authorizations; Type: TABLE; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+CREATE TABLE gridex_one_off_offer_binding.publish_authorizations (
+    offer_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    actor_user_id uuid,
+    txid bigint NOT NULL
+);
+
+--
+-- Name: reservations; Type: TABLE; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+CREATE TABLE gridex_one_off_offer_binding.reservations (
+    offer_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    intended_contract_id uuid,
+    consumed_contract_id uuid,
+    consumed_at timestamp with time zone,
+    CONSTRAINT reservations_consumed_by_intended CHECK (((intended_contract_id IS NULL) OR (consumed_contract_id IS NULL) OR (consumed_contract_id = intended_contract_id))),
+    CONSTRAINT reservations_consumption_coherent CHECK (((consumed_contract_id IS NULL) = (consumed_at IS NULL)))
+);
 
 --
 -- Name: epoch; Type: TABLE; Schema: gridex_outbound_dispatch; Owner: -
@@ -125934,6 +126073,20 @@ ALTER TABLE ONLY gridex_network_registry_sources.reviews
 
 ALTER TABLE ONLY gridex_network_registry_sources.revocations
     ADD CONSTRAINT revocations_pkey PRIMARY KEY (target_kind, target_id);
+
+--
+-- Name: publish_authorizations publish_authorizations_pkey; Type: CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.publish_authorizations
+    ADD CONSTRAINT publish_authorizations_pkey PRIMARY KEY (offer_id);
+
+--
+-- Name: reservations reservations_pkey; Type: CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.reservations
+    ADD CONSTRAINT reservations_pkey PRIMARY KEY (offer_id);
 
 --
 -- Name: attempts attempts_pkey; Type: CONSTRAINT; Schema: gridex_outbound_dispatch; Owner: -
@@ -155963,6 +156116,34 @@ ALTER TABLE ONLY gridex_network_registry_sources.reviews
 
 ALTER TABLE ONLY gridex_network_registry_sources.reviews
     ADD CONSTRAINT reviews_reviewer_user_id_fkey FOREIGN KEY (reviewer_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: publish_authorizations publish_authorizations_offer_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.publish_authorizations
+    ADD CONSTRAINT publish_authorizations_offer_id_fkey FOREIGN KEY (offer_id) REFERENCES public.contract_offers(id) ON DELETE CASCADE;
+
+--
+-- Name: reservations reservations_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.reservations
+    ADD CONSTRAINT reservations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: reservations reservations_consumed_contract_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.reservations
+    ADD CONSTRAINT reservations_consumed_contract_id_fkey FOREIGN KEY (consumed_contract_id) REFERENCES public.customer_contracts(id) ON UPDATE RESTRICT ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
+
+--
+-- Name: reservations reservations_offer_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.reservations
+    ADD CONSTRAINT reservations_offer_id_fkey FOREIGN KEY (offer_id) REFERENCES public.contract_offers(id) ON DELETE CASCADE;
 
 --
 -- Name: attempts attempts_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_outbound_dispatch; Owner: -
