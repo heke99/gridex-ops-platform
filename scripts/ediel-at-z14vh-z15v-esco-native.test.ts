@@ -413,7 +413,7 @@ it('Z14VH history: confirmed E66 inside the approved window reaches the benefici
  // Each refusal comes from its own gate (observed natively): the window and
  // purpose from the grant, a stale version from grant currency, and an
  // unentitled beneficiary from the grant lookup itself.
- for(const [change,code] of [[{startInclusive:'2026-05-01T00:00:00Z'},'ediel_projection_outside_grant'],[{endExclusive:'2026-09-01T00:00:00Z'},'ediel_projection_outside_grant'],[{purpose:'ungranted billing'},'ediel_projection_outside_grant'],[{expectedGrantVersion:grantVersion()+1},'ediel_grant_not_current'],[{beneficiaryCompanyId:outsider.f.ids.beneficiary},'query returned no rows']] as const){
+ for(const [change,code] of [[{startInclusive:'2026-05-01T00:00:00Z'},'ediel_projection_outside_grant'],[{endExclusive:'2026-09-01T00:00:00Z'},'ediel_projection_outside_grant'],[{purpose:'ungranted billing'},'ediel_projection_outside_grant'],[{fields:['secret'] as never},'ediel_projection_outside_grant'],[{expectedGrantVersion:grantVersion()+1},'ediel_grant_not_current'],[{beneficiaryCompanyId:outsider.f.ids.beneficiary},'query returned no rows']] as const){
   await expect(projectEdielSeriesToBeneficiary({...request(),...change}),JSON.stringify(change)).rejects.toMatchObject({message:expect.stringContaining(code)})
  }
  expect(market(outsider.f,outsider.permissionId)).toEqual(outsiderBefore)
