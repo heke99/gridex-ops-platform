@@ -60,3 +60,29 @@ header delta and one mandatory automatic new-head native collection.
 Next: finish actual767 checks and normal expected-head delivery; then verified
 roleFIRST/file cleanup/673transition, and deliver the new743 source after its
 actual mandatory native/currentchecks/applicability. No reruns or gate waivers.
+
+## Serial delivery checkpoint — 2026-10-11 13:26 UTC
+
+Taken: bounded C747 delivery/release proxy, no source or GEN custody. Original
+C request6108344528 and renewal6109135025 plus the actual user takeover mandate
+authorize this operation. Independent delivery review is APPROVE C0/I0,
+SHA256 a80b74837dc50f33f15a8b71d8b1d2f50791a6c4e6e8bd11e1ec0edfbce58197.
+Root read it and approved only actual b566 + current5ea7 -> tree1139: seven
+postimages/modes and9,833 foreign entries preserved, full311 coverage unchanged.
+Current747:27 Actions SUCCESS +10 qualified conditional SKIP, separate
+CodeRabbit SUCCESS; native and PR certificate are genuinely current/green.
+Proxy codex-delivery-c747-20261011-6d7d9e71 executes fresh guards, C-role-only
+CLAIM/normal merge, authenticated main then roleFIRST and exact sevenf38
+release. Root cbbee memory custody remains unchanged; no parallel767 merge.
+These are approved next operations, not an actual merge/release claim yet.
+
+Done: independent native-header correction was published on743 at485ad,
+READY6109439515, after actual one-file handoff/own d76e ref/CLAIM6109373817.
+Other six039daf source/ID resources remain; native successor is sole current
+run38142490570 collector.13:26 metadata:14 execution checksQUEUED,10SKIP,
+no failure.767 at1f346:7 mandatoryQUEUED,9SKIP. CI_GREEN is not claimed.
+
+Next: authenticate delivered747 main and actual resource cleanup; qualify
+767 composition and743 input applicability against that new base. Bounded
+runner scheduling reader investigates metadata only while required jobs wait.
+No native/GEN/artifact recollection, rerun, cancellation or gate lowering.
