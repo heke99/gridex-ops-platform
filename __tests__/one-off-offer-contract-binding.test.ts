@@ -106,7 +106,10 @@ beforeAll(async () => {
       return v;
     end $$;
   `)
-  await db.exec(fs.readFileSync(MIGRATION, 'utf8'))
+  // The migration also replaces the signed-agreement import trigger, whose
+  // %rowtype declarations need the full schema; it is compiled and executed
+  // by the native suite. Load it like a schema restore does.
+  await db.exec(`set check_function_bodies = off; ${fs.readFileSync(MIGRATION, 'utf8')}; reset check_function_bodies;`)
   await db.exec(`
     create trigger customer_contracts_contract_availability
     before insert or update of status, contract_offer_id, contract_product_id, contract_product_version_id
