@@ -684,7 +684,9 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
  const code=codes[field]
  // First source/domain invocation is the public processor, never a preflight
  // assessment that could create the authority this test is meant to prove.
+ const processingStarted=Date.now()
  await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
+ const processingFinished=Date.now()
  const current=(await getEdielMessageById(source.id))!
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(current,{actorUserId:f.ids.actor})
  expect(decision.syntaxDecision).toBe('accepted');expect(decision.applicationDecision).toBe('rejected')
@@ -826,12 +828,22 @@ async function missingReportingField(mode:'V'|'VH',field:'222'|'321'|'322'|'323'
    companyId:f.ids.company,validationPurpose:'render'})
   expect(preflight.blocking).toBe(false)
   expect(ack.file_name).toMatch(new RegExp('^outbound_'+family+'_'+family+'_\\d{8}T\\d{6}\\.edi$'))
-  expect(ack).toEqual({...nulls('mailbox_message_id subject failure_reason message_received_at message_sent_at parsed_at validated_at acknowledged_at failed_at ack_due_at unb_sender_id unb_sender_subaddress unb_receiver_id unb_receiver_subaddress message_reference bgm_code bgm_reference tenant_resolution_status business_match_status processing_status raw_payload_hash utilts_subtype measurement_resolution backend_automation_status backend_automation_reason route_version transport_profile_id routing_decision_id parsed_unb_sender_ediel_id parsed_unb_receiver_ediel_id resolved_company_id resolved_sender_ediel_id resolved_receiver_ediel_id receiver_source resolved_grid_owner_id resolved_counterparty_id dynamic_receiver_strategy party_id party_address_id transport_security_mode route_transport_security_mode was_smime_encrypted expected_receiver_certificate_id cms_expected_receiver_present operation_id grid_owner_information_request_id intent_id message_subtype business_process business_state certificate_profile_id business_date contrl_due_at business_response_due_at response_overdue_at inbound_email_message_id'),
+  // APERAK's builder clock retains its +30m metadata even when atomic
+  // persistence makes both ACK requirements not_required; CONTRL has none.
+  if(object){const due=Date.parse(String(ack.ack_due_at)),created=Date.parse(String(ack.message_created_at))
+   expect(Number.isFinite(due)).toBe(true);expect(Number.isFinite(created)).toBe(true)
+   expect(due-30*60*1000).toBeGreaterThanOrEqual(processingStarted)
+   expect(due-30*60*1000).toBeLessThanOrEqual(processingFinished)
+   expect(due-30*60*1000).toBeLessThanOrEqual(created)
+   expect(current.receiver_email).toBeNull();expect(current.mailbox).toBeNull()
+  }else expect(ack.ack_due_at).toBeNull()
+  expect(ack).toEqual({...nulls('mailbox_message_id subject failure_reason message_received_at message_sent_at parsed_at validated_at acknowledged_at failed_at unb_sender_id unb_sender_subaddress unb_receiver_id unb_receiver_subaddress message_reference bgm_code bgm_reference tenant_resolution_status business_match_status processing_status raw_payload_hash utilts_subtype measurement_resolution backend_automation_status backend_automation_reason route_version transport_profile_id routing_decision_id parsed_unb_sender_ediel_id parsed_unb_receiver_ediel_id resolved_company_id resolved_sender_ediel_id resolved_receiver_ediel_id receiver_source resolved_grid_owner_id resolved_counterparty_id dynamic_receiver_strategy party_id party_address_id transport_security_mode route_transport_security_mode was_smime_encrypted expected_receiver_certificate_id cms_expected_receiver_present operation_id grid_owner_information_request_id intent_id message_subtype business_process business_state certificate_profile_id business_date contrl_due_at business_response_due_at response_overdue_at inbound_email_message_id'),
    id:ack.id,company_id:f.ids.company,direction:'outbound',message_standard:'edifact',message_family:family,message_code:family,
    message_version:object?'E2SE6A':'EDIEL2',process_type:'ack',environment:'test',test_flag:1,status:'draft',transport_type:'smtp',
    mailbox:profile.mailbox,sender_ediel_id:f.sender,receiver_ediel_id:f.receiver,sender_sub_address:envelope.senderSubAddress??null,
    receiver_sub_address:envelope.receiverSubAddress??null,sender_name:current.receiver_name?.trim()||null,receiver_name:current.sender_name?.trim()||null,
-   sender_email:profile.mailbox,receiver_email:route.target_email,file_name:ack.file_name,mime_type:'application/edifact',
+   sender_email:object?(current.receiver_email?.trim()||current.mailbox?.trim()||null):profile.mailbox,
+   ack_due_at:object?ack.ack_due_at:null,receiver_email:route.target_email,file_name:ack.file_name,mime_type:'application/edifact',
    interchange_reference:envelope.interchangeReference,external_reference:bgm?(segmentComposite(bgm,2,parsed.una)[0]??null):null,
    correlation_reference:reference('ACW'),transaction_reference:reference('TN'),application_reference:f.app,
    original_message_id:generatedRef,original_transaction_id:null,original_message_code:'Z14',related_message_id:source.id,
@@ -1529,7 +1541,9 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
   const beforeLedger=refusalLedger(f),foreignBefore=beforeLedger.foreign,producerBefore=producerState(f)
   const sends=nativeEscoExternal.send.mock.calls.length
   // First business/domain invocation is the actual public processor.
+  const processingStarted=Date.now()
   await processInboundEdielMessage({actorUserId:f.ids.actor,edielMessageId:source.id})
+  const processingFinished=Date.now()
   const denied=await currentPermission(f,p),next=sqlPermission(),reason=mode==='V'?'S17':'S18',after=business(f,p)
   expect(denied).toMatchObject({status:deniedStatus,source_z13_message_id:p.z13.id,outbound_z13_message_id:p.z13.id,
    source_z14_message_id:source.id,inbound_z14_message_id:source.id,customer_id:f.ids.customer,rff_li_reference:p.li,
@@ -1595,7 +1609,36 @@ for(const [mode,status,deniedStatus] of [['V','A13','rejected_active'],['VH','A7
   for(const row of additions.namespace){const reply=stableReplies.replies.find(candidate=>candidate.id===row.source_message_id)!
    expect(reply).toBeTruthy();expect(row).toEqual({source_message_id:reply.id,company_id:f.ids.company,environment:'test',payload_sha256:hash(reply.raw_payload!)})
   }
-  expect(additions.businessReferences).toEqual([])
+  // Correlation indices point to the existing request, creating no access.
+  // Values are derived from physical wires, not from the rows being tested.
+  const document=(wire:string)=>{const parsed=tokenizeEdifact(wire)
+   return segmentComposite(parsed.segments.find(segment=>segment.tag==='BGM'),2,parsed.una)[0]}
+  const expectedReferences=[
+   [source,'UNB_REF',EdifactEnvelopeCodec.decode(raw).interchangeReference],
+   [source,'BGM_REF',document(raw)],
+   [objectReply,'UNB_REF',EdifactEnvelopeCodec.decode(objectReply.raw_payload!).interchangeReference],
+   [objectReply,'RFF_ACW',document(raw)],
+  ] as const
+  expect(document(raw)).toBeTruthy();expect(document(objectReply.raw_payload!)).toBe('')
+  const objectWire=tokenizeEdifact(objectReply.raw_payload!)
+  expect(objectWire.segments.filter(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,objectWire.una)[0]==='ACW')
+   .map(segment=>segmentComposite(segment,1,objectWire.una)[1])).toEqual([document(raw)])
+  expect(beforeLedger.own.businessReferences.filter(row=>row.reference_type==='RFF_LI'&&row.reference_value===p.li
+   &&row.business_object_type==='outbound_request'&&row.business_object_id===p.z13.outbound_request_id))
+   .toEqual([expect.objectContaining({company_id:f.ids.company,source_message_id:p.z13.id,customer_id:f.ids.customer})])
+  expect(additions.businessReferences).toHaveLength(4)
+  expect(new Set(additions.businessReferences.map(row=>row.id)).size).toBe(4)
+  for(const [message,type,value] of expectedReferences){
+   const rows=additions.businessReferences.filter(row=>row.source_message_id===message.id&&row.reference_type===type)
+   expect(rows).toHaveLength(1);const row=rows[0]
+   expect(row.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+   expect(beforeLedger.own.businessReferences.some(previous=>previous.id===row.id)).toBe(false)
+   const created=Date.parse(String(row.created_at));expect(Number.isFinite(created)).toBe(true)
+   expect(created).toBeGreaterThanOrEqual(processingStarted);expect(created).toBeLessThanOrEqual(processingFinished)
+   expect(row).toEqual({id:row.id,company_id:f.ids.company,source_message_id:message.id,reference_type:type,reference_value:value,
+    message_family:message.message_family,message_code:message.message_code,business_object_type:'outbound_request',
+    business_object_id:p.z13.outbound_request_id,customer_id:f.ids.customer,customer_site_id:null,metering_point_id:null,created_at:row.created_at})
+  }
   expect(additions.positiveScope).toHaveLength(1)
   const positiveScope=additions.positiveScope[0]
   expect(Number.isFinite(Date.parse(String(positiveScope.recorded_at)))).toBe(true)
