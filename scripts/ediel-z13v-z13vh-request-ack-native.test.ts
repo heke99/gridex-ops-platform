@@ -13,6 +13,7 @@ import {seedNativeEscoFixture as seed,prepareNativeEscoPermissionFixture as prep
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {omitZ14Field} from './helpers/ediel-z14v-current-native-fixture'
 import {refuseEscoCustomerSource} from './helpers/ediel-esco-z13-customer-source-b6d3'
+import {refuseEscoMissingHistoricalEnd} from './helpers/ediel-esco-request-source-b6d3'
 import {refuseEscoBirthSelector} from './helpers/ediel-esco-birth-selector-b6d3'
 import {escoObjectRefusals,isEscoObjectRefusal,omitEscoObjectField,qualifyEscoObjectDiagnostic,captureEscoObjectOwner,escoObjectRefusalCode,qualifyRequestReferences,type EscoReportingField} from './helpers/ediel-esco-object-refusal-b6d3'
 import {captureEscoTenantBasis,qualifyEscoTenantFirst,expectEscoTenantReplay,type ObservationWindow} from './helpers/ediel-esco-tenant-replay-b6d3'
@@ -53,7 +54,8 @@ const hash=(raw:string)=>createHash('sha256').update(raw).digest('hex')
 beforeEach(resetNativeEscoFixture)
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
 
-async function prospectiveRequest(mode:'V'|'VH',objectReply=false,customerOmission?:'227'|'228'|'316'){
+async function prospectiveRequest(mode:'V'|'VH',objectReply=false,customerOmission?:'227'|'228'|'316',missingHistoricalEnd=false){
+ if(typeof missingHistoricalEnd!=='boolean'||missingHistoricalEnd&&(mode!=='VH'||customerOmission!==undefined))throw Error('native_esco_historical_end_omission_scope_invalid')
  const seeded=await seed(mode,customerOmission?{customerOmission}:undefined)
  const contrlAckProfile=configureProspectiveAckRoute(seeded)
  const objectAckProfile=objectReply?configureProspectiveAckRoute(seeded,'APERAK'):null
@@ -63,7 +65,7 @@ async function prospectiveRequest(mode:'V'|'VH',objectReply=false,customerOmissi
   // Prospective public input, before approval/archival/request. The shared
   // fixture's future-end assignment stays held and byte-for-byte unchanged.
   const day=sql<string>(`SELECT to_jsonb(((clock_timestamp() AT TIME ZONE 'Europe/Stockholm')::date-1)::text)`)
-  const fields={...seeded.fields,data_end:day+'T00:00:00Z'}
+  const fields={...seeded.fields,data_end:missingHistoricalEnd?null:day+'T00:00:00Z'}
   const created=await seeded.command({action:'create_assignment',commandId:randomUUID(),fields})
   expect(created).toMatchObject({status:'held'})
   const assignment=String(created.assignmentId)
@@ -1305,7 +1307,8 @@ async function refuseMissingProducerSource(mode:'V'|'VH',field:'217'|'261'|'222'
  }
  checkSentinel();expect(nativeEscoExternal.send).not.toHaveBeenCalled()
 }
-
+it('VH: missing prospective historical end holds the public Z13 request before pending permission or wire; immutable retry',async()=>{const{f,checkSentinel}=await prospectiveRequest('VH',false,undefined,true)
+ await refuseEscoMissingHistoricalEnd(f,{state:producerState,reviews:currentProducerReviews,sentinel:checkSentinel})})
 for(const mode of ['V','VH'] as const){
  for(const field of ['217','261','222','323'] as const){
   it(`${mode}: missing reviewed producer source field ${field} holds the public Z13 request before wire or rights; immutable retry`,async()=>{
