@@ -140,3 +140,11 @@
 After proxy RELEASE: verify 404s. AT-Z09D: on RESERVED → CLAIM → add 23-DDQ-PRODAT / no NAD+UD / wrong-correlation + mutation assertions to P-08 native test → PR.
 Act on first of: (a) red CI on main or a stalled delivery head with no active owner; (b) proxy refusal/no executor
 for 6102293795; (c) explicit scoped handover to E. Otherwise remain BLOCKED; no polling, no native/GEN/capture.
+
+## 2026-10-11 10:49Z — MERGED AT-Z09D-SUPPLIER (#746)
+- Taken: AT-Z09D-SUPPLIER (owner transfer 6106510767, refs at 0f2ff445).
+- Done: review I1 (C) fixed in 3ae2b0b; reviews ROOT025 C0/I0 + C closed (25-min rule 6107498308); CI 15 success / 0 fail.
+- Merged: expected-head 3ae2b0b → main 7f920e6, parents [c4d5c8f, 3ae2b0b], tree a81ccbc = dry-run. Role-merge via owner override 6108234291 (no ref). MERGED 6108236769.
+- Reviews given: #744 C0/I0 + composition conflict (6106996363), #749 C0/I0 (6107107431), #751 C0/I0 (6107556340), #747 C0/I0 (6107563705).
+- Blocker: release of id-AT-Z09D-SUPPLIER + file ref at 0f2ff445 requested from proxy (6108236769).
+- Next: verify both refs 404; then select next eligible packet from current main.
