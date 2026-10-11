@@ -273,6 +273,12 @@ const positiveProjectionReasons = ['z02_atomic_core_finalized', 'z02_processing_
   'z02_atomic_metering_point_not_verified', 'z02_source_grid_area_missing', 'z02_operation_snapshot_missing',
   'z02_snapshot_site_mismatch', 'site_address_changed_after_request', 'site_grid_owner_changed_after_request',
   'site_facility_changed_after_request', 'z02_atomic_core_apply_failed', 'z02_variant_mismatch',
+  'cross_site_identifier_conflict', 'duplicate_metering_point', 'facility_identifier_conflict', 'grid_owner_conflict',
+  'z02_applied_source_scope_mismatch', 'z02_existing_price_area_conflict', 'z02_grid_area_price_area_unresolved',
+  'z02_metering_point_missing', 'z02_object_already_applied_to_other_request', 'z02_originating_object_ambiguous',
+  'z02_own_canonical_object_ambiguous', 'z02_own_canonical_object_unavailable', 'z02_request_site_customer_mismatch',
+  'z02_selected_point_ambiguous', 'z02_site_not_found', 'z02_source_qualified_point_creation_required',
+  'z02_source_reference_or_subtype_mismatch',
   'absent', 'unlisted'] as const
 function positiveProjectionData(value: unknown, key: string): unknown {
   if (!value || typeof value !== 'object') return undefined
@@ -343,8 +349,11 @@ function positiveEnqueueFailureProjection(value: unknown) {
   return Object.assign(Object.create(null), {observed: true, eventCount, eventOverflow: false,
     requestClass, copiesAgree, classAgreement, bins})
 }
-function observeZ02EnqueueFailureProjection(value: unknown): void {
-  const stage = 'positive.pre606.enqueue_failure_classification'
+type Z02ProjectionPhase = 'positive.pre606.public_projection' | 'wrong_grid.before_result_assertion'
+  | 'mutation.reprocess.before_application_assertion'
+function observeZ02EnqueueFailureProjection(value: unknown,
+  phase: Z02ProjectionPhase = 'positive.pre606.public_projection'): void {
+  const stage = phase === 'positive.pre606.public_projection' ? 'positive.pre606.enqueue_failure_classification' : phase
   const emit = (observation: unknown) => {
     try { console.info('Z02_NATIVE_ENQUEUE_FAILURE_CLASSIFICATION', JSON.stringify(observation)) } catch { /* Preserve assertion606 even if the logger fails. */ }
   }
@@ -415,8 +424,9 @@ function positiveStructuredEnqueueFailureProjection(observation: unknown) {
   return Object.assign(Object.create(null), {observed: true, schemaVersion: 1, requestCount: 1, eventCount,
     eventOverflow: false, copiesAgree, evidenceBins: evidence.bins, sqlStateBins: sqlState.bins, publicLabelBins: publicLabel.bins})
 }
-function observeZ02StructuredEnqueueFailureProjection(observation: unknown): void {
-  const stage = 'positive.pre606.enqueue_structured_classification'
+function observeZ02StructuredEnqueueFailureProjection(observation: unknown,
+  phase: Z02ProjectionPhase = 'positive.pre606.public_projection'): void {
+  const stage = phase === 'positive.pre606.public_projection' ? 'positive.pre606.enqueue_structured_classification' : phase
   const emit = (value: unknown) => {
     try { console.info('Z02_NATIVE_ENQUEUE_STRUCTURED_CLASSIFICATION', JSON.stringify(value)) } catch { /* Preserve the original native oracle. */ }
   }
@@ -427,9 +437,9 @@ function observeZ02StructuredEnqueueFailureProjection(observation: unknown): voi
   }
 }
 
-function observeZ02PositiveProjection(f: Fixture, original: Original, received: Received): void {
-  const stage = 'positive.pre606.public_projection'
-  const emit = (value: unknown) => { try { console.info('Z02_NATIVE_POSITIVE_PROJECTION', JSON.stringify(value)) } catch { /* Diagnostic failure cannot replace assertion606. */ } }
+function observeZ02PositiveProjection(f: Fixture, original: Original, received: Pick<Received, 'id'>,
+  stage: Z02ProjectionPhase = 'positive.pre606.public_projection'): void {
+  const emit = (value: unknown) => { try { console.info('Z02_NATIVE_POSITIVE_PROJECTION', JSON.stringify(value)) } catch { /* Diagnostic failure cannot replace the contract assertion. */ } }
   try {
     const state = (expression: string) => `CASE WHEN ${expression} IS NULL THEN 'absent'
       WHEN ${expression} IN (${positiveProjectionStates.map(literal).join(',')}) THEN ${expression} ELSE 'unlisted' END`
@@ -552,12 +562,12 @@ function observeZ02PositiveProjection(f: Fixture, original: Original, received: 
       request: positiveProjectionObject(positiveProjectionData(observation, 'request'),
         ['originalMatches', 'responseMatches', 'pointMatches'], ['status'], ['blockerCode']), jobs})
     emit(output)
-    observeZ02EnqueueFailureProjection(positiveProjectionData(observation, 'enqueueFailure'))
-    observeZ02StructuredEnqueueFailureProjection(observation)
+    observeZ02EnqueueFailureProjection(positiveProjectionData(observation, 'enqueueFailure'), stage)
+    observeZ02StructuredEnqueueFailureProjection(observation, stage)
   } catch {
     emit(Object.assign(Object.create(null), {stage, observed: false, reason: 'observation_unavailable'}))
-    observeZ02EnqueueFailureProjection(undefined)
-    observeZ02StructuredEnqueueFailureProjection(undefined)
+    observeZ02EnqueueFailureProjection(undefined, stage)
+    observeZ02StructuredEnqueueFailureProjection(undefined, stage)
   }
 }
 
@@ -1346,6 +1356,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     const before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id)
     const received = await receiveZ01SupplierReply(f, reply(f, original, { gridAreaCode: other.gridAreaCode }))
     await acceptedPhysical(f, received)
+    observeZ02PositiveProjection(f, original, received, 'wrong_grid.before_result_assertion')
     assertRefusedEffects(f, original, before, sealed)
     const result = record(received.inboundResponseResult), core = record(result.z02_atomic_core)
     // No source contract prescribes an invented grid-area error code. Require
@@ -1488,6 +1499,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     assertRefusedEffects(f, original, before, originalBytes)
     // The authentic source remains processable after both refused mutations.
     await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: staged.id! })
+    observeZ02PositiveProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion')
     expect(applications(f, original)).toHaveLength(1)
     expect(frozen(staged.id!)).toEqual(sealed)
   })
