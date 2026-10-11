@@ -2136,11 +2136,15 @@
     },
     {
       "id": "SC-037",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-sc-037-future-start-activation.test.ts",
+        "scripts/ediel-sc-037-future-start-sql-regression.mjs",
         "__tests__/ediel-sc-037-future-start.test.ts",
         "__tests__/supplier-switch-activation-sweep.test.ts",
-        "lib/operations/supplierSwitchActivation.ts"
+        "lib/operations/supplierSwitchActivation.ts",
+        "lib/operations/supplierSwitchActivationSweep.ts",
+        "supabase/schema.sql"
       ]
     },
     {
