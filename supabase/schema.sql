@@ -79768,9 +79768,16 @@ begin
   -- and readiness-gated command staff use for catalog versions; it promotes the
   -- pricing, materializes the legal bundle and locks the internal publication.
   -- A structured refusal is raised with its code and blockers.
+  -- Staff who may create contracts may sell a one-off contract without the
+  -- catalog publish rights: authorize exactly this new offer, for this actor,
+  -- in this transaction, and withdraw the authorization right after.
+  perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.create');
+  insert into gridex_one_off_offer_binding.publish_authorizations(offer_id,company_id,actor_user_id,txid)
+  values (v_offer_id,p_company_id,p_actor_user_id,txid_current());
   v_published := public.gridex_publish_internal_contract_version(
     p_company_id,v_offer_id,p_actor_user_id
   );
+  delete from gridex_one_off_offer_binding.publish_authorizations where offer_id=v_offer_id;
   if not coalesce((v_published->>'ok')::boolean,false) then
     raise exception using
       errcode='23514',
@@ -82524,8 +82531,19 @@ declare
   v_pricing jsonb;
   v_canonical uuid;
 begin
-  perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.publish');
-  perform public.gridex_assert_contract_permission(p_actor_user_id,'pricing.publish');
+  -- Owner decision 2026-10-11: a one-off offer created by the manual-binding
+  -- materializer in this same transaction is published under the creator's
+  -- contracts.create right, which the materializer asserts. Every other
+  -- publish keeps the catalog publish rights.
+  if not exists (
+    select 1 from gridex_one_off_offer_binding.publish_authorizations a
+    where a.offer_id=p_offer_id and a.company_id=p_company_id
+      and a.actor_user_id is not distinct from p_actor_user_id
+      and a.txid=txid_current()
+  ) then
+    perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.publish');
+    perform public.gridex_assert_contract_permission(p_actor_user_id,'pricing.publish');
+  end if;
 
   select * into o
   from public.contract_offers
@@ -101249,6 +101267,17 @@ CREATE TABLE gridex_network_registry_sources.revocations (
 );
 
 ALTER TABLE ONLY gridex_network_registry_sources.revocations FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: publish_authorizations; Type: TABLE; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+CREATE TABLE gridex_one_off_offer_binding.publish_authorizations (
+    offer_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    actor_user_id uuid,
+    txid bigint NOT NULL
+);
 
 --
 -- Name: reservations; Type: TABLE; Schema: gridex_one_off_offer_binding; Owner: -
@@ -126044,6 +126073,13 @@ ALTER TABLE ONLY gridex_network_registry_sources.reviews
 
 ALTER TABLE ONLY gridex_network_registry_sources.revocations
     ADD CONSTRAINT revocations_pkey PRIMARY KEY (target_kind, target_id);
+
+--
+-- Name: publish_authorizations publish_authorizations_pkey; Type: CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.publish_authorizations
+    ADD CONSTRAINT publish_authorizations_pkey PRIMARY KEY (offer_id);
 
 --
 -- Name: reservations reservations_pkey; Type: CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
@@ -156080,6 +156116,13 @@ ALTER TABLE ONLY gridex_network_registry_sources.reviews
 
 ALTER TABLE ONLY gridex_network_registry_sources.reviews
     ADD CONSTRAINT reviews_reviewer_user_id_fkey FOREIGN KEY (reviewer_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: publish_authorizations publish_authorizations_offer_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -
+--
+
+ALTER TABLE ONLY gridex_one_off_offer_binding.publish_authorizations
+    ADD CONSTRAINT publish_authorizations_offer_id_fkey FOREIGN KEY (offer_id) REFERENCES public.contract_offers(id) ON DELETE CASCADE;
 
 --
 -- Name: reservations reservations_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_one_off_offer_binding; Owner: -

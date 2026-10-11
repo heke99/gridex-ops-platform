@@ -1,5 +1,17 @@
 # Independent DB05 named-journal component — fixed E
 
+## Current main composition — 2026-10-11 14:04 UTC
+
+TAKEN: same E978c packet a934428c-75bc-4b23-a063-4a0a65a1e809, original two exact refs freshly GET_MATCH8d6d06f under refs/tags/agent-claims/masterplan/, original CLAIM6108944043. Implementation and delivery duty remain E; no whole IDs, foreign manifests or GEN writer duty transferred.
+
+DONE: actual owner-performed checksum-only commit e3064be417be83919ee1fc70f01517636296aa82 adopted by fast-forward after CLAIM6109458335, two independent checksum reviews6109513852/6109514690 and scoped handback6109529061. Exactly the121542/deae entry was added; all265 previous values preserved. Current main d00ca1266fe0f40349f49d9ddab1bb11d59ba187 (actual747delivery) composed without conflicts. Existing main's source/GEN commits are adopted intact; no manual schema/type generation or edits. Source migration/test blobs remain deae7a8c/5b41da91 with applicable corrected45GREEN, TSC/lint0 and independent source reviews A5483357111/B5483357182.
+
+EVIDENCE: original e306 CI now has no failures in qualified snapshot; Z14N actuallySUCCESS. Old fdce failures remain historical. The added main94500 SQL means e306's precomposition automatic capture cannot certify this composed tree. This commit freezes current source for the existing automatic capture workflow, whose concurrency cancels superseded runs; C alone will read/import the qualified output under its newly verified five refs and CLAIM. This is not native, mandatory CI_GREEN or whole DB05/ATDB05/SC070 acceptance.
+
+BLOCKER/NEXT: reuse and update exact C-only branch mandate6109182486 for this composed immutable head after checksum delivery. Actual C adoption/newGEN5custody/import is still required; E edits no GEN path based on absent old refs. Then verify generated composition and affected review applicability, all mandatory current-head gates, expected-head normal merge, actual parents/tree and role-FIRST plus both exact-owner resource DELETE/404. Retained Brave legal/native/fixture/indirect/future/whole duties remain. E takes no next implementation packet before delivery or explicit handover and actual release.
+
+Skill routing: existing Supabase changelog/docs/CLI and SQL proof are reused for unchanged implementation; current managed-cloud runtime/network instructions and targeted parallel delivery/differential review apply. No duplicate advisor/native/capture or artifact reader is introduced by this source composition.
+
 ## Current corrected scope — 2026-10-11 12:39 UTC
 
 TAKEN: the same two NEW file reservations, packet a934428c-75bc-4b23-a063-4a0a65a1e809, receipt 8d6d06f987d6fa83a721fd259748ea17523832c9; CLAIM6108944043 and pre-edit SCOPE_CORRECTION6109074060. Root retains both file refs. The dated shared-helper implementation and its 44-test status-refusal oracle below are superseded, not current acceptance evidence.
