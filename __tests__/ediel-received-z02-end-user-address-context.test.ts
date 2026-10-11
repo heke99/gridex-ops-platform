@@ -1,5 +1,6 @@
 // Component only: finite readonly RPC evidence port; actual wire parser and
 // opaque context ownership. These fixtures assert no native/whole authority.
+// masterplan: AT-Z02L-SUPPLIER, AT-Z02LK-SUPPLIER
 import {createHash} from 'node:crypto'
 import {expect,it,vi} from 'vitest'
 import {source} from './fixtures/prodat-identity'

@@ -1,3 +1,4 @@
+// masterplan: AT-Z02L-SUPPLIER, AT-Z02LK-SUPPLIER
 // Component integration only. Readonly RPC/catalog rows are finite ports;
 // parser, policy, field diagnostics, rulebook and canonical runtime stay real.
 import {createHash} from 'node:crypto'
@@ -140,7 +141,8 @@ it('a retained prior READ token cannot supply D229 after the current executor is
  const f=fixture(['229']),context=await f.context();expect(context).toBeDefined()
  const delegate=io.rpc.getMockImplementation()!
  io.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='gridex_ediel_received_z02_address_source_basis_v1'?{data:null,error:{code:'42501',message:'current executor denied'}}:delegate(name,...args))
- const decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.message,{actorUserId:id(20),receivedZ02EndUserAddressContext:context})
+ const facts={actorUserId:id(20),receivedZ02EndUserAddressContext:context}
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.message,facts)
  expect(io.rpc).toHaveBeenCalledWith('gridex_ediel_received_z02_address_source_basis_v1',{p_source_message_id:f.message.id,p_actor_user_id:id(20)})
  expect(decision.applicationDecision).toBe('manual_review');expect(decision.functionalDecision).toBe('manual_review')
  expect(decision.issues.some(i=>i.code===missingCode)).toBe(false)
@@ -195,8 +197,13 @@ it('FINITE composition does not consume actor getter before physical subtype qua
 
 // A qualified async receiver assessment requires this executor's fresh READ.
 // The detached pure-field entry remains compatible and supplies no authority.
-it.each([undefined,''] as const)('qualified async Z02 without current actor %s holds before runtime owners',async actorUserId=>{
+it.each((['L','LK'] as const).flatMap(subtype=>[undefined,'','not-a-uuid'].map(actorUserId=>({subtype,actorUserId}))))('qualified async Z02 $subtype without valid current actor $actorUserId holds before runtime owners',async({subtype,actorUserId})=>{
  const f=fixture()
+ if(subtype==='LK'){
+  const changed=f.message.raw_payload!.replace('CAV+Z22','CAV+Z23')
+  expect(changed).not.toBe(f.message.raw_payload)
+  f.message.raw_payload=changed;f.message.immutable_payload_hash=hash(changed)
+ }
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.message,{actorUserId})
  expect([decision.applicationDecision,decision.functionalDecision]).toEqual(['manual_review','manual_review'])
  expect(decision.issues.some(i=>i.code==='RECEIVED_Z02_END_USER_ADDRESS_SOURCE_UNAVAILABLE')).toBe(true)

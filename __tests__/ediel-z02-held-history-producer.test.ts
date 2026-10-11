@@ -1,4 +1,5 @@
-// OUTSIDE-GIT prospective unit candidate. Explicit synthetic public IO ports; no native/source authority credit.
+// masterplan: AT-Z02L-SUPPLIER, AT-Z02LK-SUPPLIER
+// Explicit synthetic public IO ports; no native/source authority credit.
 // Declared database/registry/identity ports exercise the actual coordinator,
 // syntax, complete national field engine, opaque owner, ledger and renderer.
 // These unit probes do not prove native replay, authentic sources or transport.
@@ -339,11 +340,23 @@ function semanticDigest(decision:import('@/lib/ediel/core/runtimeDecision').Cano
  return evidenceHash(JSON.stringify(ordered(projection)))
 }
 
-// Frozen from the exact current 5aef actual runtime result for this declared
-// fixture. Key ordering is canonicalized; only rulePackEvidence is omitted.
-// State/issues/reasons/source rules/trace/response and every other report field
-// must retain the original NULL hold, rather than merely matching its code.
+// Full current NULL semantics are frozen from address-only719c, before history.
+// Only rulePackEvidence is omitted. The original5aef/877 oracle is also retained:
+// delivered725/03fbb adds exactly the forbidden306 allowedValues metadata.
+// Exhaustive old/current preimage comparison found no other changed JSON path.
 function expectCurrentNullSemantics(){
  const expected=variant==='L'?'3057dadc8842b80b1bbb07ea9b98e4ba38238bd0fbeea0b38300a9a18cb46799':'05c4a5662feab1f76bd108ab5ce7a0dc8047e282308d8e7a8cff2f4c5c1d5b07'
- expect(semanticDigest(io.actualDecision!),'original full semantic decision/report changed beyond witness').toBe(expected)
+ const currentExpected=variant==='L'?'6368810b88db1e1b1f8a8f064df70bac028499ef962546fb49b3231d5035b2e4':'447890eda0dd0e095b9eb20a04ec0ca3151bf46aa3d10cbd87860b351af8f2d5'
+ expect(semanticDigest(io.actualDecision!),'current full semantic decision/report changed beyond witness').toBe(currentExpected)
+ const legacyProjection=structuredClone(io.actualDecision!)
+ const rules=legacyProjection.policy!.fieldRules
+ expect(rules.filter(rule=>rule.fieldNumber==='306')).toHaveLength(1)
+ expect(rules[32]).toEqual({family:'PRODAT',code:'Z02',fieldNumber:'306',fieldKey:'installation_status',label:'installation_status',
+  segmentPath:'CCI++Z07/CAV',requirement:'forbidden',allowedValues:['Z11','Z12'],source:'static'})
+ // Only the separately cloned legacy diagnostic projection changes; the live
+ // decision and the full current oracle retain the delivered field metadata.
+ const {allowedValues,...legacyRule}=rules[32]!
+ expect(allowedValues).toEqual(['Z11','Z12'])
+ rules[32]=legacyRule
+ expect(semanticDigest(legacyProjection),'original full semantic decision/report changed beyond documented306 metadata').toBe(expected)
 }
