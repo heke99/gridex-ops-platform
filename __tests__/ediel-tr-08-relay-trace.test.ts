@@ -198,6 +198,82 @@ describe('TR-08 relay trace evaluator (synthetic fixtures)', () => {
     })
   })
 
+  describe('review 5483191951 counterexamples (synthetic)', () => {
+    const AR = 'Authentication-Results: inbox.final.example; spf=pass smtp.mailfrom=sender.example'
+    const LOCAL = 'Received: from localhost (localhost [127.0.0.1]) by inbox.final.example with LMTP; Sun, 11 Oct 2026 11:02:00 +0000'
+    const RELAY = 'Received: from relay.example by inbox.final.example with ESMTPS (TLSv1.3); Sun, 11 Oct 2026 11:01:00 +0000'
+    const CLIENT = 'Received: from client.example by relay.example with ESMTPS (TLSv1.3); Sun, 11 Oct 2026 11:00:00 +0000'
+    const raw = (lines: string[]) => [...lines, 'Subject: SYNTHETIC', '', 'b'].join('\r\n')
+
+    it('baseline TLS chain with final loopback LMTP still verifies', () => {
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, LOCAL, RELAY, CLIENT]) })
+      expect(v.reasons).toEqual([])
+      expect(v.verified).toBe(true)
+      expect(v.localFinalDelivery).toBe(true)
+    })
+
+    it('baseline with a remote plaintext ESMTP hop is still refused', () => {
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, LOCAL, RELAY.replace('ESMTPS', 'ESMTP'), CLIENT]) })
+      expect(v.verified).toBe(false)
+      expect(v.reasons).toContain('hop_1_plaintext')
+    })
+
+    it('I1a: any non-loopback sender name/address in the from clause blocks the exception', () => {
+      const local = LOCAL.replace('(localhost [127.0.0.1])', '(localhost) ([203.0.113.9])')
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, local, RELAY, CLIENT]) })
+      expect(v.verified).toBe(false)
+      expect(v.localFinalDelivery).toBe(false)
+      expect(v.reasons).toContain('hop_2_plaintext')
+    })
+
+    it('I1b: the local receiver must be exactly the previous receiver (no suffix match)', () => {
+      const local = LOCAL.replace('by inbox.final.example', 'by delivery.inbox.final.example')
+      for (const ar of [AR, AR.replace('inbox.final.example;', 'delivery.inbox.final.example;')]) {
+        const v = evaluateRelayTrace({ rawHeaders: raw([ar, local, RELAY, CLIENT]) })
+        expect(v.verified, ar).toBe(false)
+        expect(v.localFinalDelivery, ar).toBe(false)
+        expect(v.reasons, ar).toContain('hop_2_plaintext')
+      }
+    })
+
+    it.each([
+      ['extra remote sender comment', LOCAL.replace('(localhost [127.0.0.1])', '(localhost [127.0.0.1]) (relay.example [198.51.100.7])')],
+      ['unrelated leading (localhost) before the from clause', LOCAL.replace('Received: from localhost (localhost [127.0.0.1])', 'Received: (localhost) from mx.remote.example ([203.0.113.9])')],
+    ])('I1a+: %s blocks the exception and keeps the plaintext reason', (_l, local) => {
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, local, RELAY, CLIENT]) })
+      expect(v.verified).toBe(false)
+      expect(v.localFinalDelivery).toBe(false)
+      expect(v.reasons).toContain('hop_2_plaintext')
+    })
+
+    it.each(['TLS v1.0', 'TLS 1.0', 'TLS v1.1', 'TLS 1.1', 'tls V1.1'])('rejects weak spaced version %s', (ver) => {
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, LOCAL, RELAY.replace('TLSv1.3', `using ${ver} with cipher X`), CLIENT]) })
+      expect(v.verified).toBe(false)
+      expect(v.reasons).toContain('hop_1_weak_tls')
+    })
+
+    it('rejects mixed TLS version claims within one hop', () => {
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, LOCAL, RELAY.replace('TLSv1.3', 'TLSv1.3) (TLS 1.0'), CLIENT]) })
+      expect(v.verified).toBe(false)
+      expect(v.reasons).toContain('hop_1_tls_version_ambiguous')
+    })
+
+    it.each(['TLS v1.2', 'TLS 1.2', 'TLSv1.2', 'version=TLS1_2', 'TLS v1.3', 'TLS 1.3', 'TLSv1.3', 'version=TLS1_3'])('accepts %s', (ver) => {
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, LOCAL, RELAY.replace('TLSv1.3', ver), CLIENT]) })
+      expect(v.reasons).toEqual([])
+      expect(v.verified).toBe(true)
+      expect(v.hops[1].tlsVersion).toBe(`TLS1.${ver.slice(-1)}`)
+    })
+
+    it('I2: a receiver comment never manufactures a sender', () => {
+      const noFrom = 'Received: by inbox.final.example (relay.example) with ESMTPS (TLSv1.3); Sun, 11 Oct 2026 11:01:00 +0000'
+      const v = evaluateRelayTrace({ rawHeaders: raw([AR, noFrom, CLIENT]) })
+      expect(v.verified).toBe(false)
+      expect(v.hops[1].fromNames).toEqual([])
+      expect(v.reasons).toContain('hop_1_sender_missing')
+    })
+  })
+
   it('rejects non-string input', () => {
     const v = evaluateRelayTrace({ rawHeaders: 42 as unknown as string })
     expect(v.verified).toBe(false)

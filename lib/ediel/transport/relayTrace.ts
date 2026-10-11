@@ -71,15 +71,16 @@ function fail(reasons: string[], hops: RelayHop[] = [], spf: SpfResult = 'missin
 }
 
 /** Strip RFC 5322 comments with a linear scan; returns null on unbalanced input. */
-export function stripComments(value: string): { text: string; comments: string[] } | null {
+export function stripComments(value: string): { text: string; comments: string[]; commentAt: number[] } | null {
   let depth = 0
   let out = ''
   let current = ''
   const comments: string[] = []
+  const commentAt: number[] = []
   for (let i = 0; i < value.length; i++) {
     const ch = value[i]
     if (ch === '\\' && depth > 0) { current += value[i + 1] ?? ''; i++; continue }
-    if (ch === '(') { if (depth > 0) current += ch; depth++; continue }
+    if (ch === '(') { if (depth > 0) current += ch; else commentAt.push(out.length); depth++; continue }
     if (ch === ')') {
       if (depth === 0) return null
       depth--
@@ -89,7 +90,7 @@ export function stripComments(value: string): { text: string; comments: string[]
     if (depth > 0) current += ch
     else out += ch
   }
-  return depth === 0 ? { text: out, comments } : null
+  return depth === 0 ? { text: out, comments, commentAt } : null
 }
 
 function isLoopbackLiteral(value: string): boolean {
@@ -99,11 +100,24 @@ function isLoopbackLiteral(value: string): boolean {
   return parts.length === 4 && parts[0] === '127' && parts.every((x) => /^\d{1,3}$/.test(x) && Number(x) <= 255)
 }
 
-/** Every name/address recorded for the sender must be loopback. */
-function senderIsLoopback(rawFrom: string | undefined, firstComment: string | undefined): boolean {
-  if (!rawFrom || !isLoopbackLiteral(rawFrom)) return false
-  const tokens = (firstComment ?? '').split(/\s+/).filter(Boolean)
-  return tokens.every((t) => isLoopbackLiteral(t))
+/** Sender-scoped tokens from comments attached to the from clause (HELO, rDNS, address). */
+function senderTokens(fromComments: string[]): string[] {
+  const out: string[] = []
+  for (const c of fromComments) {
+    for (const t of c.split(/\s+/)) {
+      if (!t) continue
+      const eq = t.indexOf('=')
+      out.push(eq >= 0 ? t.slice(eq + 1) : t)
+    }
+  }
+  return out.filter(Boolean)
+}
+
+function isIpLiteral(value: string): boolean {
+  const v = value.replace(/^\[/, '').replace(/\]$/, '').toLowerCase().replace(/^ipv6:/, '')
+  if (v.includes(':')) return /^[0-9a-f:.]+$/.test(v)
+  const parts = v.split('.')
+  return parts.length === 4 && parts.every((x) => /^\d{1,3}$/.test(x) && Number(x) <= 255)
 }
 
 function normalizeHost(value: string | null | undefined): string | null {
@@ -140,8 +154,9 @@ function tlsVersionsOf(value: string): Set<string> {
   const found = new Set<string>()
   const upper = value.toUpperCase()
   if (upper.includes('SSLV2') || upper.includes('SSLV3')) found.add('SSLv3')
-  for (const m of upper.matchAll(/TLSV?1[._]([0-3])/g)) found.add(`TLS1.${m[1]}`)
-  if (/TLSV1(?![._0-9])/.test(upper)) found.add('TLS1.0')
+  // TLSv1.x, TLS v1.x, TLS 1.x, TLS1_x; single optional spaces only (no backtracking).
+  for (const m of upper.matchAll(/TLS ?V? ?1[._]([0-3])/g)) found.add(`TLS1.${m[1]}`)
+  if (/TLS ?V1(?![._0-9])/.test(upper)) found.add('TLS1.0')
   return found
 }
 
@@ -157,12 +172,17 @@ function parseHop(value: string, index: number, reasons: string[]): RelayHop {
   if (Number.isFinite(ts)) hop.timestamp = ts
   else reasons.push(`${p}_timestamp_missing`)
 
-  const tokens = clausesText.split(/\s+/).filter(Boolean)
+  const located = [...clausesText.matchAll(/\S+/g)].map((m) => ({ text: m[0], at: m.index ?? 0 }))
+  const tokens = located.map((t) => t.text)
   const seen = new Map<string, string>()
+  let fromStart = -1
+  let fromEnd = clausesText.length
   let ambiguous = false
   for (let i = 0; i < tokens.length; i++) {
     const kw = tokens[i].toLowerCase()
     if (!CLAUSES.has(kw)) continue
+    if (fromStart >= 0 && fromEnd === clausesText.length) fromEnd = located[i].at
+    if (kw === 'from' && fromStart < 0) fromStart = located[i].at
     const val = tokens[i + 1]
     if (val === undefined || CLAUSES.has(val.toLowerCase())) { reasons.push(`${p}_clause_${kw}_empty`); ambiguous = true; continue }
     if (seen.has(kw)) { reasons.push(`${p}_ambiguous_clause_${kw}`); ambiguous = true }
@@ -172,10 +192,15 @@ function parseHop(value: string, index: number, reasons: string[]): RelayHop {
   hop.from = normalizeHost(seen.get('from'))
   hop.by = normalizeHost(seen.get('by'))
   if (!hop.by) reasons.push(`${p}_by_missing`)
-  // Names the receiver recorded for the sender: HELO plus reverse-DNS in the comment that follows it.
-  const firstComment = stripped.comments[0]?.split(/\s+/)[0]
-  hop.fromLoopback = senderIsLoopback(seen.get('from'), stripped.comments[0])
-  hop.fromNames = [...new Set([hop.from, normalizeHost(firstComment)].filter((h): h is string => Boolean(h)))]
+  // Only comments attached to an actual from clause are sender-scoped.
+  const rawFrom = seen.get('from')
+  const fromComments = fromStart < 0 ? [] : stripped.comments.filter((_c, i) => stripped.commentAt[i] > fromStart && stripped.commentAt[i] <= fromEnd)
+  const sTokens = senderTokens(fromComments)
+  hop.fromLoopback = Boolean(rawFrom && isLoopbackLiteral(rawFrom) && sTokens.every(isLoopbackLiteral))
+  hop.fromNames = rawFrom
+    ? [...new Set([hop.from, ...sTokens.map(normalizeHost)].filter((h): h is string => Boolean(h)))]
+    : []
+  if (!rawFrom || (!hop.from && !isIpLiteral(rawFrom) && !isLoopbackLiteral(rawFrom))) reasons.push(`${p}_sender_missing`)
 
   const protocol = seen.get('with')?.toUpperCase() ?? null
   hop.protocol = protocol
@@ -258,7 +283,7 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
   const prevHop = hops.length > 1 ? hops[hops.length - 2] : null
   const localFinal = Boolean(
     prevHop && last.tls === 'plaintext' && last.protocol && LOCAL_DELIVERY_PROTOCOLS.has(last.protocol) &&
-    last.fromLoopback && last.by && prevHop.by && hostsRelated(last.by, prevHop.by),
+    last.fromLoopback && last.by !== null && last.by === prevHop.by,
   )
   if (localFinal) {
     last.tls = 'local_final_delivery'
