@@ -5,6 +5,7 @@ import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {supabaseService} from '@/lib/supabase/service'
+import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {resolveTenantForInboundEdiel} from '@/lib/inbound-mail/inboundTenantResolver'
@@ -13,7 +14,7 @@ import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSo
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
-import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
+import {tokenizeEdifact,segmentSourceSpan,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
@@ -26,6 +27,7 @@ import {createBilateralSourceOperator,bilateralSourceOperatorPermissions} from '
 import {seedOriginalMailboxNative} from './helpers/originalMailboxNative'
 import {futureNativeSupplyDate,nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {raw,line,characteristic,type Parts} from '../__tests__/fixtures/prodat-register'
+import {registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './helpers/utiltsConsumptionParties'
 
 const external=vi.hoisted(()=>({send:vi.fn()}))
 vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:external.send})}}))
@@ -118,13 +120,18 @@ async function observePostFailureApplicationRead(input:{companyId:string;sourceM
   }catch{return {observation,status:'projection_error'}}
 }
 
-async function receive(f:Fixture,wire:string){
+type ReceiveBoundary={tenant?:Awaited<ReturnType<typeof resolveTenantForInboundEdiel>>;wireHash?:string;mailboxId?:string;inboundEmailMessageId?:string}
+// Optional out-parameter: records the EXACT first tenant resolution produced
+// inside receive(), at that boundary, before its company assertion runs.
+async function receive(f:Fixture,wire:string,boundary?:ReceiveBoundary){
   const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,
     smtpFrom:'synthetic@example.invalid'})
   const match=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed,
     inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
   const tenant=await resolveTenantForInboundEdiel({mailboxCompanyId:f.companyId,mailboxId:mail.mailboxId,
     environment:'test',parsed:mail.parsed})
+  if(boundary)Object.assign(boundary,{tenant,wireHash:createHash('sha256').update(wire).digest('hex'),
+    mailboxId:mail.mailboxId,inboundEmailMessageId:mail.inboundEmailMessageId})
   expect(tenant.companyId).toBe(f.companyId)
   const sourceId=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.reviewer.id,environment:'test',
     inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,meteringPointMatch:match,tenantResolution:tenant.shared})
@@ -229,4 +236,269 @@ it('a contradictory prior meter obtains no positive first effect or final ACK au
   const after=effects(f,source.sourceId)
   expect(after.receipts).toEqual([]);expect(after.acks.filter(ack=>ack.family==='APERAK'&&ack.outcome==='positive')).toEqual([])
   expect(await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.sourceId,rawPayload:change.wire})).toBeNull()
+})
+
+// masterplan: AT-Z10M-SUPPLIER — history boundary: the accepted Z04 baseline is
+// unchanged, Z10 gets its own version effective from the wire change minute,
+// and replayed approval/review is a no-op on versions, receipts and ACKs.
+it('Z10 adds its own effective-boundary version, preserves the accepted Z04 baseline and replays as a no-op',async()=>{
+  const f=await fixture()
+  const readset=async()=>{
+    const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+    const snapshot=await supabaseService.rpc('gridex_source_object_snapshot_v1',{p_company_id:f.companyId,p_environment:'test',p_cutoff:cutoff})
+    expect(snapshot.error).toBeNull()
+    return inspectStructuralReadset({companyId:f.companyId,environment:'test',cutoffAt:cutoff},snapshot.data)
+  }
+  const baselineBefore=(await readset()).versions.find(v=>v.sourceMessageId===f.source)
+  expect(baselineBefore?.wire).toMatchObject({messageCode:'Z04',meterNumber:'METER-1'})
+  const change=changeWire(f),source=await receive(f,change.wire)
+  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:source.sourceId,
+    reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+  const cases=sql<{id:string}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id)),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(source.sourceId)}`)
+  expect(cases).toHaveLength(1)
+  expect(await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:cases[0].id})).toMatchObject({status:'applied'})
+  const after=await readset()
+  expect(after.versions.find(v=>v.sourceMessageId===f.source)).toEqual(baselineBefore)
+  const z10=after.versions.filter(v=>v.sourceMessageId===source.sourceId)
+  expect(z10).toHaveLength(1)
+  expect(z10[0]).toMatchObject({disposition:'accepted',wire:{messageCode:'Z10',businessCase:'meter_exchange',meterNumber:'NEW-METER',oldMeterNumber:'METER-1',
+    effectiveFrom:{marketMinute:change.minute},registers:[{registerId:'101'},{registerId:'102'}]}})
+  expect(z10[0].payloadHash).not.toBe(baselineBefore!.payloadHash)
+  const committed=effects(f,source.sourceId)
+  // Replay: second approval and second review of the same original change nothing.
+  await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:cases[0].id})
+  await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:source.sourceId,
+    reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null}).catch(()=>null)
+  const replayed=await readset()
+  // A second review appends a new dated assessment (assessmentId/factsHash/
+  // availableAt); the stable business version must not change.
+  const stable=(list:typeof after.versions)=>list.filter(v=>[f.source,source.sourceId].includes(v.sourceMessageId))
+    .map(v=>({source:v.sourceMessageId,disposition:v.disposition,payloadHash:v.payloadHash,meter:v.wire.meterNumber,oldMeter:v.wire.oldMeterNumber,
+      registers:v.wire.registers,effectiveFrom:v.wire.effectiveFrom,code:v.wire.messageCode,businessCase:v.wire.businessCase,replaces:v.replaces}))
+  expect(stable(replayed.versions)).toEqual(stable(after.versions))
+  expect(stable(replayed.versions)).toHaveLength(2)
+  expect(effects(f,source.sourceId)).toEqual(committed)
+  expect(committed.receipts).toHaveLength(1)
+})
+
+// masterplan: AT-Z10M-SUPPLIER — wrong role: NAD FR/DO swapped (supplier named
+// as grid owner) must never obtain a structural receipt or a positive APERAK.
+it('a Z10 with swapped FR/DO parties obtains no receipt, positive APERAK or final plan',async()=>{
+  const f=await fixture(),change=changeWire(f)
+  const swapped=change.wire.replace(`NAD+FR+${f.receiver}:160:SVK`,'NAD+XX+SWAP').replace(`NAD+DO+${f.sender}:160:SVK`,`NAD+FR+${f.sender}:160:SVK`).replace('NAD+XX+SWAP',`NAD+DO+${f.receiver}:160:SVK`)
+  expect(swapped).not.toBe(change.wire)
+  // Observation scope is fixed before receive(): this tenant + the exact sent
+  // raw bytes (hash) whose interchange/BGM reference is unique to this case.
+  const payloadHash=createHash('sha256').update(swapped).digest('hex')
+  const scope=()=>sql<{mails:{id:string;mailbox:string}[];sources:{id:string;status:string|null}[];
+    receipts:number;positive:number;companyReceipts:number;companyPositive:number}>(`SELECT jsonb_build_object(
+    'mails',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'mailbox',mailbox_id)),'[]') FROM public.inbound_email_messages WHERE company_id=${literal(f.companyId)} AND encode(sha256(convert_to(raw_edifact_payload,'UTF8')),'hex')=${literal(payloadHash)}),
+    'sources',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'status',status)),'[]') FROM public.ediel_messages WHERE direction='inbound' AND encode(sha256(convert_to(raw_payload,'UTF8')),'hex')=${literal(payloadHash)}),
+    'receipts',(SELECT count(*) FROM gridex_received_sources.structural_object_apply_receipts r JOIN public.ediel_messages m ON m.id=r.source_message_id WHERE encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')=${literal(payloadHash)}),
+    'positive',(SELECT count(*) FROM public.ediel_messages a JOIN public.ediel_messages m ON m.id=a.related_message_id WHERE a.direction='outbound' AND a.message_family='APERAK' AND a.ack_outcome='positive' AND encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')=${literal(payloadHash)}),
+    'companyReceipts',(SELECT count(*) FROM gridex_received_sources.structural_object_apply_receipts WHERE company_id=${literal(f.companyId)}),
+    'companyPositive',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive'))`)
+  const before=scope()
+  expect(before).toMatchObject({mails:[],sources:[],receipts:0,positive:0})
+  // The only accepted refusal is the explicit wrong-legal-receiver tenant
+  // refusal: receive()'s tenant assertion sees no company. Any successful
+  // reception, other assertion, network/permission or DB error fails the case.
+  const boundary:ReceiveBoundary={}
+  const refused=await receive(f,swapped,boundary).then(()=>null,(error:unknown)=>error)
+  const assertion=refused as {actual?:unknown;expected?:unknown}|null
+  expect(refused instanceof Error&&refused.name==='AssertionError'&&assertion!.actual===null&&assertion!.expected===f.companyId,String(refused)).toBe(true)
+  const mails=scope().mails
+  expect(mails).toHaveLength(1)
+  // The ORIGINAL receive() resolution (not a re-run) is the asserted refusal,
+  // bound to the exact sent bytes and the mailbox row that received them.
+  const tenant=boundary.tenant!
+  expect(tenant,'receive() recorded no tenant resolution').toBeDefined()
+  expect(boundary.wireHash).toBe(payloadHash)
+  expect(boundary).toMatchObject({mailboxId:mails[0].mailbox,inboundEmailMessageId:mails[0].id})
+  expect(['held','unassigned','unresolved','unavailable'],JSON.stringify(tenant)).not.toContain(tenant.status)
+  // Parsed identities come from the swapped wire itself: legal receiver (DO) is
+  // the grid owner, the technical UNB recipient is still this supplier.
+  const parsedControl=parseEdifactPayload(change.wire)
+  expect(tenant).toMatchObject({status:'ambiguous',companyId:null,marketActorEdielId:f.receiver,receiverEdielId:f.sender,
+    reasons:['Juridisk mottagare, teknisk transportidentitet och tenantkontext är inte entydigt verifierade; inga lokala objektfel skapas.']})
+  // Ambiguous here means exactly: no verified legal identity for DO, while the
+  // mailbox tenant hint is ours (conflict) — not an incomplete identity read.
+  expect(tenant.evidence.filter(e=>e.source==='verified_legal_identity')).toEqual([])
+  expect(tenant.candidates.filter(Boolean)).toEqual([])
+  // Unswapped control through the same resolver and mailbox resolves to us.
+  const control=await resolveTenantForInboundEdiel({mailboxCompanyId:f.companyId,mailboxId:mails[0].mailbox,environment:'test',parsed:parsedControl})
+  expect(control).toMatchObject({status:'resolved',companyId:f.companyId,marketActorEdielId:f.sender,receiverEdielId:f.sender,source:'verified_legal_identity'})
+  const refusalLayer=`inbound_tenant_resolution:${tenant.status}`
+  const after=scope()
+  // Every branch: zero structural receipts, zero positive APERAK and no final
+  // plan for this scope, and no company-wide receipt/positive ACK delta.
+  expect(after.receipts).toBe(0);expect(after.positive).toBe(0)
+  expect(after.companyReceipts).toBe(before.companyReceipts);expect(after.companyPositive).toBe(before.companyPositive)
+  for(const source of after.sources){
+    expect(effects(f,source.id).receipts).toEqual([])
+    expect(await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.id,rawPayload:swapped})).toBeNull()
+  }
+  expect(after.sources).toEqual([])
+  process.stdout.write(`AT-Z10M party-swap refusal layer: ${refusalLayer}\n`)
+})
+
+// masterplan: AT-Z10M-SUPPLIER — readings across the change boundary: the grid
+// owner's received UTILTS E66 register readings (QTY+220, RFF+AES/MG) pass the
+// real inbound processor. The old meter's final reading (interval ending at the
+// Z10 change minute) binds to the accepted Z04 baseline version, the new
+// meter's start reading (interval starting at it) binds to the Z10 version, and
+// a new-meter reading dated before the boundary obtains no effect or positive ACK.
+function readingWire(f:Fixture,changeMinute:string,side:'old'|'new',meter:string,registers:readonly string[]){
+  const at=(minute:string,days:number)=>{const d=new Date(Date.UTC(+minute.slice(0,4),+minute.slice(4,6)-1,+minute.slice(6,8)+days));return d.toISOString().slice(0,10).replaceAll('-','')+'0000'}
+  const start=side==='old'?at(changeMinute,-1):changeMinute,end=side==='old'?changeMinute:at(changeMinute,1)
+  const document='DOC-'+randomUUID().replaceAll('-','').slice(0,28),transaction='READ-'+randomUUID().replaceAll('-','').slice(0,28)
+  const interchange=randomUUID().replaceAll('-','').slice(0,14)
+  const readings=registers.flatMap((register,index)=>[
+    `SEQ++${index*2+1}'`,`RFF+AES:${register}'`,`RFF+MG:${meter}'`,`QTY+220:${side==='old'?10000+index:20+index}'`,`DTM+597:${start}:203'`,"CCI+++E22::260'","CAV+E27::260'",
+    `SEQ++${index*2+2}'`,`RFF+AES:${register}'`,`QTY+220:${side==='old'?10500+index:520+index}'`,`DTM+597:${end}:203'`,"CCI+++E22::260'","CAV+E27::260'"])
+  const lines=["UNA:+.? '",`UNB+UNOC:3+${f.receiver}:ZZ+${f.sender}:ZZ+260831:1811+${interchange}++23-DDQ-E66-T++1++1'`,"UNH+1+UTILTS:D:02B:UN:E5SE5A'",`BGM+E66::260+${document}+9+AB'`,
+    "DTM+137:202609301811:203'","DTM+735:?+0100:406'","MKS+23+E02::260'",`NAD+MS+${f.receiver}:SVK:260'`,`NAD+MR+${f.sender}:SVK:260'`,"NAD+DDQ'",`IDE+24+${transaction}'`,
+    `LOC+172+${f.external}::9'`,`LOC+239+${f.gridAreaCode}:SVK:260'`,"LIN+++8716867000030:::9'",`DTM+324:${start}${end}:719'`,`DTM+597:${end}:203'`,"DTM+354:1:804'","STS+7++E64::260'","MEA+AAZ++KWH'","CCI+++E12::260'","CAV+E17::260'",
+    ...readings,`SEQ++${registers.length*2+1}'`,"QTY+136:500'"]
+  return {wire:[...lines,`UNT+${lines.length-1}+1'`,`UNZ+1+${interchange}'`].join('\n'),transaction,document,start,end}
+}
+
+async function receiveUtilts(f:Fixture,wire:string){
+  registerUtiltsIssuer(sql,literal,f.receiver,f.reviewer.id)
+  const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,smtpFrom:'synthetic@example.invalid'})
+  const match=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+  const tenant=await resolveTenantForInboundEdiel({mailboxCompanyId:f.companyId,mailboxId:mail.mailboxId,environment:'test',parsed:mail.parsed})
+  expect(tenant.companyId).toBe(f.companyId)
+  const sourceId=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.reviewer.id,environment:'test',
+    inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,meteringPointMatch:match,tenantResolution:tenant.shared})
+  expect(sourceId).toMatch(/^[a-f0-9-]{36}$/)
+  seedUtiltsIssuerHistoryGround(sql,literal,sourceId!,f.reviewer.id)
+  await processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:sourceId!})
+  return sourceId!
+}
+
+// Read globally by immutable source: a wrong company attribution must not
+// disappear behind an own-company filter or a company-equality JOIN.
+const readingState=(_f:Fixture,source:string)=>sql<{message:{status:string;code:string;company:string;environment:string;structure:{comparisons?:{transactionId:string;status:string;codes:string[];selected:{sourceMessageId:string;meterNumber:string;registerIds:string[]}[]}[]}|null};
+  dispositions:Record<string,unknown>[];series:Record<string,unknown>[];contracts:Record<string,unknown>[];
+  meterValues:Record<string,unknown>[];normalizedValues:Record<string,unknown>[];billing:Record<string,unknown>[];
+  values:{id:string;series:string;company:string;quantity:string|null;qualifier:string;reading_at:string;observation:string|null;metadata:Record<string,unknown>}[];
+  acks:{id:string;family:string;code:string;outcome:string;wire:string;company:string;environment:string;source:string;operation:string}[];
+  outbox:{id:string;message:string;source:string;company:string;environment:string;hash:string}[]}>(`SELECT jsonb_build_object(
+  'message',(SELECT jsonb_build_object('status',status,'code',message_code,'company',company_id,'environment',environment,'structure',parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}') FROM public.ediel_messages WHERE id=${literal(source)}),
+  'dispositions',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]') FROM public.ediel_ack_transaction_results d WHERE source_message_id=${literal(source)}),
+  'series',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.meter_reading_series s WHERE source_ediel_message_id=${literal(source)}),
+  'contracts',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.series_id),'[]') FROM gridex_utilts_binding.contracts c WHERE source_message_id=${literal(source)}),
+  'values',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.reading_at,v.id),'[]') FROM (SELECT v.id,v.series_id AS series,v.company_id AS company,v.quantity::text AS quantity,v.qualifier,v.reading_at,v.observation_id AS observation,v.metadata FROM public.meter_reading_values v WHERE v.series_id IN(SELECT id FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source)})) v),
+  'meterValues',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.metering_values v WHERE source_message_id=${literal(source)} OR source_ediel_message_id=${literal(source)}),
+  'normalizedValues',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.normalized_metering_values v WHERE source_message_id=${literal(source)}),
+  'billing',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.id),'[]') FROM public.billing_underlays b WHERE payload->>'edielMessageId'=${literal(source)}),
+  'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'code',message_code,'outcome',ack_outcome,'wire',raw_payload,'company',company_id,'environment',environment,'source',related_message_id,'operation',source_operation_id) ORDER BY id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(source)} AND direction='outbound'),
+  'outbox',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'message',ediel_message_id,'source',source_message_id,'company',company_id,'environment',environment,'hash',immutable_payload_hash) ORDER BY id),'[]') FROM public.ediel_outbox WHERE source_message_id=${literal(source)} OR ediel_message_id IN(SELECT id FROM public.ediel_messages WHERE related_message_id=${literal(source)} AND direction='outbound')))`)
+
+// Also detect unlinked own-tenant sink writes/mutations; accepted siblings are
+// present before the negative reception and must stay byte-for-byte unchanged.
+const readingSinks=(f:Fixture)=>sql(`SELECT jsonb_build_object(
+  'series',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.meter_reading_series s WHERE company_id=${literal(f.companyId)}),
+  'values',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.meter_reading_values v WHERE company_id=${literal(f.companyId)}),
+  'contracts',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.series_id),'[]') FROM gridex_utilts_binding.contracts c WHERE company_id=${literal(f.companyId)}),
+  'meterValues',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.metering_values v WHERE company_id=${literal(f.companyId)}),
+  'normalizedValues',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.normalized_metering_values v WHERE company_id=${literal(f.companyId)}),
+  'billing',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.id),'[]') FROM public.billing_underlays b WHERE company_id=${literal(f.companyId)}))`)
+
+it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to the Z10 version across the change minute',async()=>{
+  const f=await fixture()
+  const change=changeWire(f),z10=await receive(f,change.wire)
+  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:z10.sourceId,
+    reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+  const cases=sql<{id:string}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id)),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(z10.sourceId)}`)
+  expect(cases).toHaveLength(1)
+  expect(await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:cases[0].id})).toMatchObject({status:'applied'})
+  // The Z10 is fully acknowledged; the fixture's disposable ACK profiles now
+  // carries the received E66 application reference (as setOwnAckApplication in
+  // the Z14 suite). No ACK authority/readiness is seeded.
+  expect(sql(`WITH u AS (UPDATE public.ediel_route_profiles SET application_reference='23-DDQ-E66-T' WHERE company_id=${literal(f.companyId)} AND application_reference='23-DDQ-PRODAT' RETURNING id) SELECT to_jsonb(count(*)) FROM u`)).toBeGreaterThan(0)
+  const bound=(state:ReturnType<typeof readingState>)=>(state.message.structure?.comparisons??[]).map(c=>({status:c.status,codes:c.codes,
+    selected:c.selected.map(v=>({source:v.sourceMessageId,meter:v.meterNumber,registers:v.registerIds}))}))
+  const positive=(state:ReturnType<typeof readingState>)=>state.acks.filter(ack=>ack.family==='APERAK'&&ack.outcome==='positive')
+  const readings=(state:ReturnType<typeof readingState>)=>state.values.filter(v=>v.qualifier==='220').map(v=>[v.observation,v.quantity]).sort()
+  // (1) Old meter: interval ending exactly at the Z10 change minute; its final
+  // reading is the old meter's last stand and binds to the Z04 baseline version.
+  const old=readingWire(f,change.minute,'old','METER-1',['101'])
+  const oldSource=await receiveUtilts(f,old.wire),oldState=readingState(f,oldSource)
+  expect(bound(oldState)).toEqual([{status:'matched',codes:[],selected:[{source:f.source,meter:'METER-1',registers:['101']}]}])
+  expect(oldState.dispositions).toMatchObject([{source_transaction_id:old.transaction,disposition:'accepted',persistence_status:'persisted',final_response_type:'positive_aperak'}])
+  expect(readings(oldState)).toEqual([['1','10000'],['2','10500']])
+  expect(positive(oldState)).toHaveLength(1)
+  expect(oldState.dispositions[0]).toMatchObject({response_message_id:positive(oldState)[0].id,persisted_series_id:oldState.values[0].series})
+  expect(positive(oldState)[0].wire).toContain(`RFF+ACW:${old.transaction}'`);expect(positive(oldState)[0].wire).toContain(`+${old.document}'`)
+  // (2) New meter: interval starting at the change minute, both new registers;
+  // its start readings bind to the Z10 version, never to the baseline.
+  const fresh=readingWire(f,change.minute,'new','NEW-METER',['101','102'])
+  const newSource=await receiveUtilts(f,fresh.wire),newState=readingState(f,newSource)
+  expect(bound(newState)).toEqual([{status:'matched',codes:[],selected:[{source:z10.sourceId,meter:'NEW-METER',registers:['101','102']}]}])
+  expect(newState.dispositions).toMatchObject([{source_transaction_id:fresh.transaction,disposition:'accepted',persistence_status:'persisted',final_response_type:'positive_aperak'}])
+  expect(readings(newState)).toEqual([['1','20'],['2','520'],['3','21'],['4','521']])
+  expect(positive(newState)).toHaveLength(1)
+  expect(newState.dispositions[0]).toMatchObject({response_message_id:positive(newState)[0].id})
+  expect(positive(newState)[0].wire).toContain(`RFF+ACW:${fresh.transaction}'`);expect(positive(newState)[0].wire).toContain(`+${fresh.document}'`)
+  expect(newState.values[0].series).not.toBe(oldState.values[0].series)
+  // (3) First receive: E61/E62 produce their physical persisted negative
+  // ERR/TN response after #789. No post-failure repair or second receive may
+  // qualify the first receive; legitimate diagnostic binding receipts remain.
+  const beforeNegative=readingSinks(f)
+  const early=readingWire(f,change.minute,'old','NEW-METER',['101','102'])
+  const earlySource=await receiveUtilts(f,early.wire),earlyState=readingState(f,earlySource)
+  expect(bound(earlyState)).toEqual([{status:'mismatch',codes:['E61','E62'],selected:[{source:f.source,meter:'METER-1',registers:['101']}]}])
+  expect(earlyState.message).toMatchObject({company:f.companyId,environment:'test',code:'E66'})
+  expect(earlyState.acks.filter(ack=>ack.family==='CONTRL')).toHaveLength(1)
+  expect(earlyState.acks.filter(ack=>ack.family==='APERAK')).toEqual([])
+  const errors=earlyState.acks.filter(ack=>ack.family==='UTILTS_ERR')
+  expect(errors).toHaveLength(1)
+  const err=errors[0]
+  expect(earlyState.acks.filter(ack=>ack.family!=='CONTRL')).toEqual([err])
+  expect(err).toMatchObject({family:'UTILTS_ERR',code:'ERR',outcome:'negative',company:f.companyId,environment:'test',source:earlySource,
+    operation:`ediel_ack:${earlySource}:UTILTS_ERR:${early.transaction}`})
+  expect(earlyState.dispositions).toHaveLength(1)
+  expect(earlyState.dispositions[0]).toMatchObject({company_id:f.companyId,environment:'test',source_message_id:earlySource,
+    source_transaction_id:early.transaction,disposition:'processability_rejected',
+    issue_codes:['UTILTS_RECEIVED_STRUCTURE_E61','UTILTS_RECEIVED_STRUCTURE_E62'],persistence_status:'not_applicable',persisted_series_id:null,
+    planned_response_type:'utilts_err',final_response_type:'utilts_err',response_message_id:err.id,finalized_at:expect.any(String)})
+  for(const rows of [earlyState.series,earlyState.values,earlyState.contracts,earlyState.meterValues,earlyState.normalizedValues,earlyState.billing])expect(rows).toEqual([])
+  expect(readingSinks(f)).toEqual(beforeNegative)
+  expect(validateEdifactEnvelope(err.wire).ok).toBe(true)
+  expect(readPhysicalAckSourceCorrelation({id:err.id,company_id:err.company,environment:err.environment,
+    direction:'outbound',message_family:err.family,raw_payload:err.wire})).toMatchObject({classification:{family:'UTILTS_ERR',outcome:'negative',code:'ERR'},scope:'transaction',acknowledgedReferences:[early.transaction,early.transaction]})
+  const sourceWire=tokenizeEdifact(early.wire),errorWire=tokenizeEdifact(err.wire)
+  const element=(wire:typeof sourceWire,tag:string,index:number)=>segmentComposite(wire.segments.find(t=>t.tag===tag),index,wire.una)
+  const legal=(wire:typeof sourceWire,role:string)=>wire.segments.filter(t=>t.tag==='NAD'&&segmentComposite(t,1,wire.una)[0]===role).map(t=>segmentComposite(t,2,wire.una))
+  expect(element(errorWire,'UNB',2)).toEqual(element(sourceWire,'UNB',3))
+  expect(element(errorWire,'UNB',3)).toEqual(element(sourceWire,'UNB',2))
+  expect(element(errorWire,'UNB',7)).toEqual(element(sourceWire,'UNB',7))
+  expect(element(errorWire,'UNB',11)).toEqual(element(sourceWire,'UNB',11))
+  expect(legal(errorWire,'MS')).toEqual(legal(sourceWire,'MR'));expect(legal(errorWire,'MR')).toEqual(legal(sourceWire,'MS'))
+  const ownIdes=errorWire.segments.filter(t=>t.tag==='IDE').map(t=>segmentComposite(t,2,errorWire.una)[0])
+  expect(ownIdes).toHaveLength(2);expect(new Set(ownIdes).size).toBe(2);expect(ownIdes).not.toContain(early.transaction)
+  const codes=errorWire.segments.filter(t=>t.tag==='STS'&&segmentComposite(t,1,errorWire.una)[0]==='E01').map(t=>[segmentComposite(t,1,errorWire.una),segmentComposite(t,2,errorWire.una),segmentComposite(t,3,errorWire.una)])
+  expect(codes).toEqual([[['E01','','260'],['41'],['E61','','260']],[['E01','','260'],['41'],['E62','','260']]])
+  const refs=errorWire.segments.filter(t=>t.tag==='RFF').map(t=>segmentComposite(t,1,errorWire.una))
+  expect(refs.filter(c=>c[0]==='TN')).toEqual([['TN',early.transaction],['TN',early.transaction]])
+  expect(refs.filter(c=>c[0]==='E66')).toEqual([['E66',early.document],['E66',early.document]])
+  // Persisted ERR is the requirement here; neither a send nor a new outbox row
+  // is assumed. Any existing outbox row must own its exact immutable ACK.
+  for(const row of earlyState.outbox){
+    const ack=earlyState.acks.find(a=>a.id===row.message)
+    expect(ack).toBeDefined();expect(row).toMatchObject({company:f.companyId,environment:'test',source:earlySource,
+      hash:createHash('sha256').update(ack!.wire,'utf8').digest('hex')})
+  }
+  expect(new Set(earlyState.outbox.map(row=>row.message)).size).toBe(earlyState.outbox.length)
+  // Replay only after the first persisted ERR passed every assertion.
+  await processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:earlySource})
+  const replay=readingState(f,earlySource)
+  expect(replay.dispositions).toEqual(earlyState.dispositions);expect(replay.acks).toEqual(earlyState.acks);expect(replay.outbox).toEqual(earlyState.outbox)
+  for(const rows of [replay.series,replay.values,replay.contracts,replay.meterValues,replay.normalizedValues,replay.billing])expect(rows).toEqual([])
+  expect(readingSinks(f)).toEqual(beforeNegative)
+  // Earlier old-meter values and both bound readings are unchanged afterwards.
+  expect(readingState(f,oldSource)).toEqual(oldState)
+  expect(readingState(f,newSource)).toEqual(newState)
 })
