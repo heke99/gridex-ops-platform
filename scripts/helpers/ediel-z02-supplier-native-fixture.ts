@@ -31,7 +31,10 @@ import {validateRulebookMessageWithRegistry} from '@/lib/ediel/rulebook/validato
 import {segmentComposite, segmentElementCount, tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {escapeEdifactData} from '@/lib/ediel/core/una'
 import type {CreateEdielMessageInput} from '@/lib/ediel/types'
-import {seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal, type NormalSwitchStageNativeFixture} from './ediel-normal-switch-native-fixture'
+import {normalSwitchNetworkRegistry, seedNormalSwitchNativeFixture, futureNativeSupplyDate, nativeSql as sql, literal, type NormalSwitchStageNativeFixture} from './ediel-normal-switch-native-fixture'
+import {attachNetworkRegistrySourceFixture} from './ediel-network-registry-native-fixture'
+import {archiveNetworkRegistrySource, reviewNetworkRegistrySource, readNetworkRegistrySourceArtifact} from '@/lib/ediel/production/networkRegistrySource'
+import {readContractRequestedMethodSource} from '@/lib/ediel/production/contractRequestedMethodSource'
 import {seedOriginalMailboxNative} from './originalMailboxNative'
 import {observeSentZ01Wire, type ExternalZ02Address} from './ediel-z02-supplier-native-wire'
 import {diagnoseZ01FailedWorker} from './ediel-z02-supplier-native-observations'
@@ -40,6 +43,7 @@ import {classifyZ01CausalFieldRefusal} from './ediel-z02-supplier-field-refusal-
 type Row = Record<string, unknown>
 export type Z01SupplierNativeFixture = NormalSwitchStageNativeFixture & {
   variant: 'L' | 'LK'
+  networkRegistrySource: Awaited<ReturnType<typeof withZ01SupplierCurrentNetworkPrefix>>['networkRegistrySource']
   provider: (email: string) => void
   z01RouteId: string
   z01RouteProfileId: string
@@ -95,6 +99,59 @@ async function importZ01RegistryFixture(f: NormalSwitchStageNativeFixture) {
   return {source, importResult, verification, adminBefore, adminAfter}
 }
 
+type NetworkPrefixScope = Pick<NormalSwitchStageNativeFixture, 'companyId' | 'actorUserId' | 'contractId' | 'marketActorId' | 'receiver'>
+/** Public-owner renewal of the SAME cohort after the registry import changes
+ * current claims. The cached issuer is explicitly synthetic; this restores the
+ * native mechanism without manufacturing authentic customer/issuer authority.
+ */
+export async function withZ01SupplierCurrentNetworkPrefix<T extends {source: {actorId: string; legalEdielId: string}}>(
+  f: NetworkPrefixScope, importRegistry: () => Promise<T>) {
+  const prior = normalSwitchNetworkRegistry(f.companyId)
+  if (!prior) throw Error('native_z01_prior_network_original_required')
+  const issuer = await attachNetworkRegistrySourceFixture(f)
+  expect(issuer.networkActorId).toBe(f.marketActorId)
+  expect(issuer.reviewer.id).not.toBe(issuer.uploader.id)
+  expect(prior.reviewerId).toBe(issuer.reviewer.id)
+  const oldScope = {companyId: f.companyId, actorUserId: issuer.reviewer.id, artifactId: prior.artifact.artifactId}
+  const methodScope = {companyId: f.companyId, contractId: f.contractId, actorUserId: f.actorUserId, environment: 'test' as const}
+  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({...prior.artifact, status: 'authorized'})
+  const method = await readContractRequestedMethodSource(methodScope)
+  expect(method.status).toBe('authorized')
+  // JSONB::text inside a JSON scalar preserves exact numeric/source bytes
+  // without a JavaScript parse/reserialize changing the signed source tuple.
+  const snapshotQuery = `SELECT to_jsonb(jsonb_build_object(
+    'contract',(SELECT to_jsonb(c) FROM public.customer_contracts c WHERE c.company_id=${literal(f.companyId)} AND c.id=${literal(f.contractId)}),
+    'documents',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]'::jsonb) FROM public.customer_contract_documents d WHERE d.company_id=${literal(f.companyId)} AND d.customer_contract_id=${literal(f.contractId)}),
+    'declarations',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]'::jsonb) FROM gridex_metering_method_changes.contract_request_declarations d WHERE d.company_id=${literal(f.companyId)} AND d.contract_id=${literal(f.contractId)}),
+    'oldArtifact',(SELECT to_jsonb(a) FROM gridex_network_registry_sources.artifacts a WHERE a.company_id=${literal(f.companyId)} AND a.id=${literal(prior.artifact.artifactId)}),
+    'oldOrigins',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]'::jsonb) FROM gridex_network_registry_sources.origins o WHERE o.company_id=${literal(f.companyId)} AND o.artifact_id=${literal(prior.artifact.artifactId)}))::text)`
+  const protectedBefore = sql<string>(snapshotQuery)
+  const registry = await importRegistry()
+  expect(registry.source).toMatchObject({actorId: f.marketActorId, legalEdielId: f.receiver})
+  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({...prior.artifact, status: 'held'})
+  expect(await readContractRequestedMethodSource(methodScope)).toEqual({status: 'held', missing: ['ai_bi_network_registry_current_source_unqualified']})
+  const submission = issuer.submission('SYNTHETIC prospective Z01 same-cohort network original', issuer.pdf('prospective Z01 same-cohort network'))
+  expect(submission.source.version).toBe('2')
+  const next = await archiveNetworkRegistrySource({...submission, companyId: f.companyId, actorUserId: issuer.uploader.id})
+  expect(next.missing).toEqual([])
+  expect(next.artifactId).not.toBe(prior.artifact.artifactId)
+  expect(next.sourceHash).not.toBe(prior.artifact.sourceHash)
+  expect(next.claimsHash).not.toBe(prior.artifact.claimsHash)
+  expect(await reviewNetworkRegistrySource({companyId: f.companyId, actorUserId: issuer.reviewer.id,
+    artifactId: next.artifactId, sourceHash: next.sourceHash, claimsHash: next.claimsHash,
+    decision: 'approve', reason: 'SYNTHETIC independent review after same-cohort Z01 registry import', clause: issuer.clause}))
+    .toMatchObject({status: 'authorized', artifactId: next.artifactId})
+  expect(await readNetworkRegistrySourceArtifact({...oldScope, artifactId: next.artifactId})).toMatchObject({
+    status: 'authorized', artifactId: next.artifactId, sourceHash: next.sourceHash, claimsHash: next.claimsHash,
+    sourceVersion: '2', networkActorId: f.marketActorId, networkEdielId: f.receiver})
+  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({...prior.artifact, status: 'held'})
+  expect(sql<string>(snapshotQuery)).toBe(protectedBefore)
+  expect(await readContractRequestedMethodSource(methodScope)).toEqual(method)
+  // Keep the normal-switch map's historical v1 immutable. Explicitly carry
+  // the refreshed handle for continuation through the same Z01/Z02 cohort.
+  return {registry, networkRegistrySource: {artifact: next, reviewerId: issuer.reviewer.id}}
+}
+
 /** Declared disposable upstream inputs. The reused base owns genuine contract
  * publication/signature/PDF/authorization producers and its explicitly
  * synthetic signed source declarations; those are not real customer/issuer
@@ -104,7 +161,7 @@ async function importZ01RegistryFixture(f: NormalSwitchStageNativeFixture) {
  */
 export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provider: (email: string) => void): Promise<Z01SupplierNativeFixture> {
   const f = await seedNormalSwitchNativeFixture({deferOriginal: true, requestedStartDate: futureNativeSupplyDate(), provider})
-  const registry = await importZ01RegistryFixture(f)
+  const {registry, networkRegistrySource} = await withZ01SupplierCurrentNetworkPrefix(f, () => importZ01RegistryFixture(f))
   const z01RouteId = randomUUID(), z01RouteProfileId = randomUUID(), ackRouteId = randomUUID(), ackRouteProfileId = randomUUID()
   const smtp = edielSmtpConfig()
   // Observe the existing producer's literal signed source through the same real
@@ -155,7 +212,7 @@ export async function createZ01SupplierNativeFixture(variant: 'L' | 'LK', provid
   const process = await resolveCustomerSiteProcessContext({companyId: f.companyId, customerId: f.customerId, siteId: f.siteId})
   expect(process.processType, JSON.stringify(process)).toBe(processType)
   await ensureZ01SupplierCanonicalGridPrerequisites(f)
-  return {...f, variant, provider, z01RouteId, z01RouteProfileId, ackRouteId, ackRouteProfileId,
+  return {...f, variant, provider, networkRegistrySource, z01RouteId, z01RouteProfileId, ackRouteId, ackRouteProfileId,
     customerAddress, customerMasterdataSource, installationAddress, registry: {...registry, dispatchSource, environmentResolution}}
 }
 

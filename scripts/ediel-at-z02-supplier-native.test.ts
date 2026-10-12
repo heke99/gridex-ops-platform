@@ -35,9 +35,13 @@ import { requireRegistryDispatchSource } from '@/lib/actor-registry/registryMark
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { nativeSql as sql, literal } from './helpers/ediel-normal-switch-native-fixture'
 import { seedOriginalMailboxNative } from './helpers/originalMailboxNative'
+import * as nativeBase from './helpers/ediel-normal-switch-native-fixture'
+import * as nativeNetworkIssuer from './helpers/ediel-network-registry-native-fixture'
+import * as networkSourceOwners from '@/lib/ediel/production/networkRegistrySource'
+import * as requestedMethodOwner from '@/lib/ediel/production/contractRequestedMethodSource'
 import * as z02DiagnosticRuntime from '@/lib/onboarding/z02EnqueueFailureClassification'
 import { createNativeZ02JobInsertProbe, nativeZ02JobInsertSqlState, observeZ02PositiveProjection, observeZ02SdkEnqueueProjection } from './helpers/ediel-z02-supplier-native-diagnostics'
-import { createZ01SupplierNativeFixture, originateZ01SupplierRequest, receiveZ01SupplierReply,
+import { withZ01SupplierCurrentNetworkPrefix, createZ01SupplierNativeFixture, originateZ01SupplierRequest, receiveZ01SupplierReply,
   ensureZ01SupplierKnownWrongGridArea } from './helpers/ediel-z02-supplier-native-fixture'
 import { fetchReceivedZ02EndUserAddressContext, redeemReceivedZ02EndUserAddressContext } from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
 import { externalZ02Reply, type ExternalZ02Overrides, type Z02OmittableField } from './helpers/ediel-z02-supplier-native-wire'
@@ -1582,5 +1586,75 @@ describe('native diagnostic callback probe controls', () => {
     expect(original.mock.calls).toEqual([['job_insert', error]])
     expect(log.mock.calls).toEqual([['Z02_NATIVE_JOB_INSERT_SQLSTATE', JSON.stringify({ schemaVersion: 1, operationPort: 'job_insert', sqlState: '42702' })]])
     expect(z02DiagnosticRuntime.z02EnqueueDiagnosticPortObserver(input)).toBeUndefined()
+  })
+})
+
+
+// Declared finite owner ports: component controls only, never native credit.
+describe('same-cohort network prefix component controls', () => {
+  const f = { companyId: 'own-company', actorUserId: 'own-actor', contractId: 'own-contract',
+    marketActorId: 'own-network', receiver: 'own-ediel' }
+  function ports() {
+    const old = { artifactId: 'old', sourceHash: 'old-source', claimsHash: 'old-claims' }
+    const next = { status: 'archived' as const, artifactId: 'next', sourceHash: 'next-source', claimsHash: 'next-claims', missing: [] }
+    const method = { status: 'authorized', declarationId: 'same-declaration' }
+    const issuer = { networkActorId: f.marketActorId, uploader: { id: 'own-uploader' }, reviewer: { id: 'own-reviewer' },
+      clause: { locator: 'synthetic', quote: 'synthetic' }, pdf: vi.fn(() => Buffer.from('%PDF-synthetic')),
+      submission: vi.fn(() => ({ environment: 'test', source: { version: '2' } })) }
+    vi.spyOn(nativeBase, 'normalSwitchNetworkRegistry').mockReturnValue({ artifact: old, reviewerId: issuer.reviewer.id })
+    vi.spyOn(nativeNetworkIssuer, 'attachNetworkRegistrySourceFixture').mockResolvedValue(issuer as never)
+    const sql = vi.spyOn(nativeBase, 'nativeSql').mockReturnValue('same immutable contract/PDF/declaration/old-origin bytes')
+    const methodRead = vi.spyOn(requestedMethodOwner, 'readContractRequestedMethodSource')
+      .mockResolvedValueOnce(method as never)
+      .mockResolvedValueOnce({ status: 'held', missing: ['ai_bi_network_registry_current_source_unqualified'] })
+      .mockResolvedValue(method as never)
+    const read = vi.spyOn(networkSourceOwners, 'readNetworkRegistrySourceArtifact')
+      .mockResolvedValueOnce({ ...old, status: 'authorized' } as never)
+      .mockResolvedValueOnce({ ...old, status: 'held' } as never)
+      .mockResolvedValueOnce({ ...next, status: 'authorized', sourceVersion: '2', networkActorId: f.marketActorId, networkEdielId: f.receiver } as never)
+      .mockResolvedValueOnce({ ...old, status: 'held' } as never)
+    const archive = vi.spyOn(networkSourceOwners, 'archiveNetworkRegistrySource').mockResolvedValue(next)
+    const review = vi.spyOn(networkSourceOwners, 'reviewNetworkRegistrySource').mockResolvedValue({ status: 'authorized', artifactId: next.artifactId, registryVersionId: 'next-version' })
+    const operation = vi.fn(async () => ({ source: { actorId: f.marketActorId, legalEdielId: f.receiver } }))
+    return { old, next, method, issuer, sql, methodRead, read, archive, review, operation }
+  }
+  it('uses the same cohort and independent reviewer, preserving source snapshots and import result', async () => {
+    const p = ports(), imported = await p.operation()
+    p.operation.mockClear(); p.operation.mockResolvedValue(imported)
+    const actual = await withZ01SupplierCurrentNetworkPrefix(f, p.operation)
+    expect(actual.registry).toBe(imported)
+    expect(actual.networkRegistrySource).toEqual({ artifact: p.next, reviewerId: 'own-reviewer' })
+    expect(p.operation).toHaveBeenCalledTimes(1)
+    expect(p.archive.mock.calls[0]![0]).toMatchObject({ companyId: f.companyId, actorUserId: 'own-uploader', source: { version: '2' } })
+    expect(p.review.mock.calls[0]![0]).toMatchObject({ companyId: f.companyId, actorUserId: 'own-reviewer', artifactId: 'next', sourceHash: 'next-source', claimsHash: 'next-claims', decision: 'approve' })
+    expect(p.methodRead.mock.calls).toEqual(Array(3).fill([{ companyId: f.companyId, contractId: f.contractId, actorUserId: f.actorUserId, environment: 'test' }]))
+    expect(p.sql).toHaveBeenCalledTimes(2)
+    expect(p.sql.mock.calls[0]![0]).toBe(p.sql.mock.calls[1]![0])
+    expect(nativeBase.normalSwitchNetworkRegistry(f.companyId)!.artifact).toBe(p.old)
+  })
+  it('stops before import when prior authority is unavailable', async () => {
+    const p = ports(); p.read.mockReset().mockResolvedValue({ ...p.old, status: 'held' } as never)
+    await expect(withZ01SupplierCurrentNetworkPrefix(f, p.operation)).rejects.toThrow()
+    expect(p.operation).not.toHaveBeenCalled(); expect(p.archive).not.toHaveBeenCalled()
+  })
+  it('propagates the original import error without creating a replacement source', async () => {
+    const p = ports(), original = { code: 'original-import-error' }; p.operation.mockRejectedValue(original)
+    await expect(withZ01SupplierCurrentNetworkPrefix(f, p.operation)).rejects.toBe(original)
+    expect(p.archive).not.toHaveBeenCalled(); expect(p.review).not.toHaveBeenCalled()
+  })
+  it('rejects a different imported network before archive', async () => {
+    const p = ports(); p.operation.mockResolvedValue({ source: { actorId: 'foreign-network', legalEdielId: f.receiver } })
+    await expect(withZ01SupplierCurrentNetworkPrefix(f, p.operation)).rejects.toThrow()
+    expect(p.archive).not.toHaveBeenCalled()
+  })
+  it('requires a separate reviewer before any replacement archive', async () => {
+    const p = ports(); p.issuer.reviewer.id = p.issuer.uploader.id
+    await expect(withZ01SupplierCurrentNetworkPrefix(f, p.operation)).rejects.toThrow()
+    expect(p.archive).not.toHaveBeenCalled(); expect(p.review).not.toHaveBeenCalled()
+  })
+  it('rejects changed signed-source snapshots after the replacement review', async () => {
+    const p = ports(); p.sql.mockReturnValueOnce('immutable old bytes').mockReturnValueOnce('changed protected bytes')
+    await expect(withZ01SupplierCurrentNetworkPrefix(f, p.operation)).rejects.toThrow()
+    expect(p.review).toHaveBeenCalledTimes(1)
   })
 })
