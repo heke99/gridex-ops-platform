@@ -1,6 +1,6 @@
 # Codex Z02 coupled continuation — current checkpoint
 
-Updated 2026-10-12 01:04:06 UTC.
+Updated 2026-10-12 01:27:47 UTC.
 Owner: codex-ediel-20261006-2f72c8ab. Packet: ac08f5ae-1dd9-4209-8fd6-2a596ffaf10f. Session: 6b167a5e-b92a-4b38-94ee-76e698da36b1.
 Retained pair: AT-Z02L-SUPPLIER / AT-Z02LK-SUPPLIER, both NOT_EXECUTED/evidence[]. No next pair, shared role or whole credit.
 Active board [#766](https://github.com/heke99/gridex-ops-platform/issues/766); #673/#530 retain original history.
@@ -348,3 +348,14 @@ IndependentallowedSOURCEwork identified (planreportcd7b65463ad59b37a3ec5e4f173ef
 Availabilityhelper read-onlyrefresh main95bb314of352/38remaining/13open4draft. Itis reconciling17absentIDtags againstretainedwholeduties/dependencies (absencealone notfree); no claim/release/takeover. NoevidencedredundantPRclosure; PR772owner025normaldelivery custody/review/merge-role requirement remains. ROOTretainscurrentscopeuntilproperexplicitRELEASE/handoff; no sourceconflicts or silenttaking.
 
 Next ROOT: completeindependentactualcleanupSAFEreview; documentenvironmentblocker on766 andownPR762; NEXT currentpagingSOURCE; availabilityhelper checksothertrulypermittedpairs. WholeownNOT_EXECUTED/evidence[]/native83P8F/currentnativeFAIL/SQL7aeSOURCEonly/#759genuine2prefixinputs/GEN72queuepersist. No wholecoverage/CIgreen/merge/closure/refrelease/sharedmemory/newpair.
+
+
+## 2026-10-12 01:27:47 UTC — private collector source scope correction, before editing
+
+Owner codex-ediel-20261006-2f72c8ab retains AT-Z02L-SUPPLIER/AT-Z02LK-SUPPLIER receipt29fd83fe244175831345a7de1810a2bc544abf30 (both fresh GET_MATCH). Actual main95bb437137ce3bc0b0246bed6cf1d149493c92b9/tree7bd2141514d29b9cf6deee8eb412367f1a3f7420 remains 314/352 with38 whole rows open; no next READY pair or proved duplicate/draft closure. PR772 still belongs to025/source3 receipt5e35430a, no documented handoff; the earlier bounded delivery request remains pending. 0b's latest body-only metadata publication/release6116020077/6116020298 does not release other source or whole duties.
+
+Frozen private source-r1 collector d54fed73fd3961ecb6415f1640aeef9d209e94b574c3c0567eeac4d23c44aeb4, Falsecontrols138eaa1c9b86fdbf2d31dfd56a9c64eb48dec82f8fe6635c5bbef2cce742df4b and manifestdc8071f03b1193b218624cd9d615c2b332ad9b945fc5cacd9acf14d0eaca1d42 are preserved. ROOT full source self-review d276a95f17d5b886ffe3f29df754869654399680fc1c7304c239f45e00852a0b checked12 packet pins,16 external source pins, exact complete inverse/prefix/suffix, actual e7 interface/105-byte successful frame overhead, and all51 planned model cases. SOURCE2 are provisional C0 with a concrete boundary: r1 directly observes server_encoding only. B84's separate actual-client qualification requires both server/client UTF8 but has not executed and closes that client; it cannot qualify the future retained catalog connection.
+
+Exact new SOURCE_ONLY scope for helper native_next_cut_readonly: preserve r1 and any intended51 edition unchanged; create separate private source-r2 adding direct client_encoding observation/admission UTF8 on the same before/after snapshot. Keep exact original six-field pg_proc projection, actual e7 client, all current byte/time/frame caps, full catalog count/order/EOF/equality oracles and external authenticated backend/custody requirements unchanged. Preserve every51 control and add two literal refusal cases for initial wrong client encoding and final changed client encoding:53=5 modeled accepts+48 modeled refusals. Update complete inverses/postimage/source pins/plan; no module execution, parser, control run, SQL, database, originals, repository code, coverage or generated-output change. ROOT is sole runtime/GitHub writer; R1/R2 independently review the frozen new edition, ROOT reads all and self-reviews. No intended-True or CONTROL_GO until exact SOURCE2+self and separate CP/board GET_MATCH.
+
+Actual replay remains FAILED IMAGE_LAYER_REGISTRATION_ENOSPC, independently verified owned cleanup/source restoration; canonical success/backend17/full catalog/public chain/forward/clean-upgrade chosen-source GEN proof remain NOT_EXECUTED. Platform environment owner must restore actual Docker-root capacity preserving data/services before any fresh runtime epoch. Original budgets stay CLOSED. Next concrete action: helper author source-r2 under this documented scope, then R1/R2 source reviews; ROOT handles eventual one qualified memory-model control only after new GO. No merges, closure, role/ref release or whole approval.
