@@ -53,6 +53,12 @@ export function utiltsQuantityUnitGuideIssues(raw:string):UtiltsValidationIssue[
       ...(occurrence ? {aperakInvalidOccurrence:occurrence} : {}),
       aperakErcCode:missing ? '41' : '42',aperakFieldCode:field,aperakText:missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',referenceQualifier:transaction.transactionId ? 'ACW' : null,referenceNumber:transaction.transactionId,lineItemReference:transaction.transactionId})
     for(const observation of transaction.observations) for(const quantity of observation.quantities) {
+      // U 25-A-5 p97 §3.9: SG11 carries `STS Status 1 D` (Swedish max one
+      // repetition). A second STS+8 quality (field520), identical or not, is wrong
+      // content; other STS categories are owned by their own field checks.
+      const next=observation.quantities.find(candidate=>candidate.segmentIndex>quantity.segmentIndex)?.segmentIndex ?? Number.POSITIVE_INFINITY
+      const statuses=observation.segments.filter(segment=>segment.tag==='STS' && segmentComposite(segment,1,wire.una)[0]==='8' && segment.index>quantity.segmentIndex && segment.index<next)
+      if(statuses.length>1) report('UTILTS_QUANTITY_STATUS_REPEATED','520','SG11/QTY får ha högst en STS enligt svenska segmentregler (U s97 §3.9).',false,{segmentIndex:statuses[1].index,elementIndex:1,componentIndex:0})
       if(quantity.components[2]) report('UTILTS_QUANTITY_UNIT_NOT_USED','QTY/C186/6411','QTY/C186/6411 används inte enligt U s95; enheten får inte välja eller ändra transaktionens mått.',false,{segmentIndex:quantity.segmentIndex,elementIndex:1,componentIndex:2})
       if(quantity.value==='NULL' && (quantity.qualifier==='136' || (quantity.qualifier==='135' && code==='S02') || (quantity.qualifier==='220' && code==='E30')) && !utiltsMissingQuantityHasOwnQuality(observation,quantity,wire.una)) {
         report('UTILTS_MISSING_QUANTITY_QUALITY_REQUIRED','520','Saknad energi eller E30-mätarställning med NULL kräver egen efterföljande STS+8+46 enligt U s95.',true)

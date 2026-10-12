@@ -1,6 +1,6 @@
 import { canonicalUtiltsDecimal } from './exactDecimal'
 import { utiltsE30StandardEnergyUnit, utiltsPhysicalQuantityUnit } from './quantityUnitScope'
-import { canonicalUtiltsTransactions } from './canonicalObservationScope'
+import { canonicalUtiltsTransactions, utiltsPhysicalQuantityQuality, type CanonicalUtiltsObservation } from './canonicalObservationScope'
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
@@ -10,8 +10,9 @@ import type {
 } from '@/lib/ediel/utiltsEngine'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import { createHash } from 'node:crypto'
-import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
-import { consumptionConflict, consumptionEqual, legacyUtiltsRetryComparison, validateUtiltsConsumptionContract, type UtiltsConsumptionContract } from './consumptionContract'
+import { edifactInstantInDeclaredOffset, localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
+import { addNormalizedResolution, normalizeEdifactResolution } from './resolution'
+import { canonicalAbsoluteInstant, consumptionConflict, consumptionEqual, legacyUtiltsRetryComparison, validateUtiltsConsumptionContract, type UtiltsConsumptionContract } from './consumptionContract'
 
 export { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
@@ -199,6 +200,32 @@ export function buildUtiltsTransactionPersistencePayload(input: {
   })
 }
 
+/** SC-053: an E30/E66 energy value's own interval start, from the same
+ * declared-offset positional arithmetic that prepared the contract (one step
+ * per QTY 136 of the same register). Returned only when it reproduces every
+ * consumed observation's contract start; otherwise no time is invented. */
+function positionalEnergyStarts(contract: UtiltsConsumptionContract, transaction: ReturnType<typeof canonicalUtiltsTransactions>[number], wire: ReturnType<typeof tokenizeEdifact>): Map<number, string> {
+  const starts = new Map<number, string>()
+  if (contract.version === 1 || (contract.messageCode !== 'E30' && contract.messageCode !== 'E66')) return starts
+  const resolution = normalizeEdifactResolution({ value: contract.interpretation.resolutionValue, format: contract.interpretation.resolutionFormat })
+  const timezone = parseEdifactTimezoneOffsetFromSegments(wire.segments.map(segment => segment.raw))
+  const localStart = edifactInstantInDeclaredOffset(contract.interpretation.localPeriodStart, timezone)
+  if (!resolution || !localStart) return starts
+  const ordinals = new Map<string | null, number>()
+  transaction.observations.flatMap(observation => observation.quantities.map(quantity => ({ observation, quantity })))
+    .forEach(({ observation, quantity }, sourceOrdinal) => {
+      if (quantity.qualifier !== '136') return
+      const register = observation.references.find(reference => reference.qualifier === 'AES' && reference.directReferenceSlot)?.value ?? null
+      const ordinal = ordinals.get(register) ?? 0
+      ordinals.set(register, ordinal + 1)
+      const start = addNormalizedResolution(localStart, resolution, ordinal)
+      const absolute = localEdifactDateTimeToUtc(start, timezone)
+      if (absolute) starts.set(sourceOrdinal, canonicalAbsoluteInstant(absolute))
+    })
+  const consistent = contract.observations.length > 0 && contract.observations.every(observation => starts.get(observation.sourceOrdinal) === observation.periodStart)
+  return consistent ? starts : new Map()
+}
+
 export async function persistUtiltsTransactionResults(input: UtiltsBoundPersistenceInput & {actorUserId:string}): Promise<UtiltsTransactionPersistenceResult[]> {
   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.actorUserId)) consumptionConflict('execution_actor_required')
   if (!input.rawPayload || input.contracts.length !== input.transactions.length) consumptionConflict('prepared_contract_missing')
@@ -223,9 +250,21 @@ export async function persistUtiltsTransactionResults(input: UtiltsBoundPersiste
     p_actor_user_id: input.actorUserId,
     p_transactions: input.transactions.map((item, index) => ({ ...item,
       quantities: input.contracts[index].version !== 1 ? item.quantities.map((quantity,quantityIndex) => {
-        if (quantity.value === null) return quantity
         const transaction=physical[index]
         const source=transaction?.observations.flatMap(observation=>observation.quantities)[quantityIndex]
+        // SC-053: each stored value keeps its own source STS+8 quality, so a
+        // missing (46) value and a verified zero (21) stay distinguishable.
+        // PostgreSQL re-derives and compares it; the caller cannot invent it.
+        const quality=(observation:CanonicalUtiltsObservation | null)=>
+          item.disposition==='accepted' && source ? {quality:utiltsPhysicalQuantityQuality(observation,source,wire.una)} : {}
+        if (quantity.value === null) {
+          // The physical token keeps the literal NULL; the runtime value is null.
+          if(!transaction || !source || (source.value!==null && source.value!=='NULL') || source.raw!==quantity.raw || source.qualifier!==quantity.qualifier) return quantity
+          // A missing energy value keeps its own declared interval, so an
+          // authorized period read returns it as NULL rather than omitting it.
+          const readingAt=item.disposition==='accepted' ? positionalEnergyStarts(input.contracts[index],transaction,wire).get(quantityIndex) ?? null : null
+          return {...quantity,...quality(transaction.observations.find(observation=>observation.quantities.includes(source)) ?? null),...(readingAt?{readingAt}:{})}
+        }
         if(!transaction || !source || source.value===null || source.raw!==quantity.raw || source.qualifier!==quantity.qualifier) consumptionConflict('physical_quantity_membership')
         const observation=transaction.observations.find(observation=>observation.quantities.includes(source)) ?? null
         const unit=utiltsPhysicalQuantityUnit(transaction,observation,source,wire.una)
@@ -236,7 +275,7 @@ export async function persistUtiltsTransactionResults(input: UtiltsBoundPersiste
         // (series windows are [start,end)); a quantity no observation consumes
         // keeps no invented time.
         const readingAt=input.contracts[index].observations.find(observation=>observation.sourceOrdinal===quantityIndex)?.periodStart ?? null
-        return {...quantity,value:canonicalUtiltsDecimal(source.value,wire.una.decimalMark),...(readingAt?{readingAt}:{})}
+        return {...quantity,value:canonicalUtiltsDecimal(source.value,wire.una.decimalMark),...quality(observation),...(readingAt?{readingAt}:{})}
       }) : item.quantities, consumptionContract: input.contracts[index] })),
   })
 
