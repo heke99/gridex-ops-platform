@@ -307,8 +307,15 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
   // the TLS chain; SPF is read from that boundary host.
   let receiverIndex = -1
   if (!localFinal) {
-    // A receiver-internal line is exactly `by <host> with ...`: no from clause at all.
-    const internal = chronological.map((pos) => /^by\s/i.test(fields[pos].value.trim()))
+    // A receiver-internal line starts with `by` and has no `from` clause anywhere
+    // (comments stripped, before the date); a late `from` is a real sender hop.
+    const internal = chronological.map((pos) => {
+      const st = stripComments(fields[pos].value)
+      if (!st) return false
+      const semi = st.text.lastIndexOf(';')
+      const tokens = (semi >= 0 ? st.text.slice(0, semi) : st.text).trim().split(/\s+/).map((t) => t.toLowerCase())
+      return tokens[0] === 'by' && !tokens.includes('from')
+    })
     let k = hops.length - 1
     while (k >= 0 && internal[k]) k--
     if (k >= 1 && k < hops.length - 1) {
@@ -329,8 +336,10 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
   if (receiverIndex >= 0) {
     for (const h of hops.slice(receiverIndex + 1)) {
       h.tls = 'receiver_internal'
-      const p = `hop_${h.index}_`
-      for (let i = reasons.length - 1; i >= 0; i--) if (reasons[i].startsWith(p)) reasons.splice(i, 1)
+      // Only the reasons that describe an internal hand-off are cleared; malformed or
+      // ambiguous line failures stay.
+      const drop = new Set([`hop_${h.index}_plaintext`, `hop_${h.index}_sender_missing`, `hop_${h.index}_by_missing`])
+      for (let i = reasons.length - 1; i >= 0; i--) if (drop.has(reasons[i])) reasons.splice(i, 1)
       notes.push(`hop_${h.index}_receiver_internal_excluded_from_tls`)
     }
   }

@@ -47,9 +47,12 @@
 - Result: authenticated-submission trace (iPhone Mail -> smtp.strato.com ESMTPSA TLSv1.3 -> rzone.de -> mx.google.com ESMTPS TLS1_3,
   spf=pass) verified; webmail trace stays unverified (internal host smtp-ox.front outside provider domains). Forged variants fail.
 - Verification: 101 tests across 5 files PASS; tsc and eslint clean; `ediel:masterplan-v2:test-coverage -- --check` exit 0, approved 315/352.
-- Coverage: only the R2-held `TR-08` row -> VERIFIED. `AT-TR-08` (C3 slot) left for C3.
+- Coverage: review 5493996486 (coordinator + peer A, non-coauthors) — TR-08 row kept NOT_VERIFIED: the STRATO submission -> outbound
+  hand-off has no Received TLS line and no published STRATO TLS policy; adjacent TLS hops do not prove that segment. `AT-TR-08` stays with C3.
+- Review P2 fixed: a `by`-first line with a late `from` is no longer receiver-internal; only plaintext/sender_missing/by_missing are cleared.
 - Gap stated openly: STRATO publishes its SPF policy but no TLS policy for its own internal submission -> outbound hand-off.
-- Refs for relayTrace.ts, the new test and evidence file requested on #766 (6128404880); merge only after GET_MATCH.
+- Refs for the 4 packet files created by the proxy (#766 6129038358).
+- Remaining for whole TR-08: STRATO's own statement/policy that its submission -> outbound relay hand-off is TLS (or a trace that records it).
 
 ## Next
 - File refs for the 5 delivered paths can be released; the slot and ID refs stay (TR-08/OPS-04 not whole-approved).

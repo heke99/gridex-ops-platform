@@ -98,6 +98,14 @@ describe('TR-08 genuine STRATO relay traces', () => {
     expect(v.reasons).toContain('not_all_hops_tls')
   })
 
+  it('does not treat a by-first line with a late from clause as receiver-internal (review 5493996486)', () => {
+    const lateFrom = 'Received: by inbox.final.example with SMTP from remote.attacker.example; Mon, 12 Oct 2026 09:30:09 -0700 (PDT)\r\n'
+    const v = run(lateFrom + SUBMISSION)
+    expect(v.verified).toBe(false)
+    expect(v.hops.every((h) => h.tls !== 'receiver_internal' || h.index === 2)).toBe(true)
+    expect(v.hops[3].tls).not.toBe('receiver_internal')
+  })
+
   it('does not accept a hand-off into a host outside the declared provider domains', () => {
     const v = run(SUBMISSION.replaceAll('mo4-p00-ob.smtp.rzone.de', 'mo4.relay.attacker.example'))
     expect(v.verified).toBe(false)
