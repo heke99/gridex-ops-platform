@@ -1,4 +1,4 @@
-// masterplan: UTILTS_ERR own functional facet for received-structure E61/E62 refusals
+// Supporting fix (no masterplan ID): UTILTS_ERR own functional facet for received-structure E61/E62 refusals
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {observationHandoffMessage} from './helpers/utiltsObservationHandoff'
 import {ownerId} from './helpers/sourceOwnerFixtures'
