@@ -21,6 +21,24 @@ import { evaluateSiteFacilityIdentity, resumeCustomerIntake, type CustomerIntake
 import { normalizeUuidOrNull, requireUuid } from '@/lib/validation/uuid'
 import { makeCustomerOperationBlocker, type CustomerOperationBlocker } from '@/lib/customer-operations/blockers'
 import { resolveAutomationActorId } from '@/lib/customer-operations/automationConfig'
+import { z02EnqueueDiagnosticPortObserver, type Z02EnqueueDiagnosticPort, type Z02EnqueueDiagnosticPortObserver } from '@/lib/onboarding/z02EnqueueFailureClassification'
+// Internal fixed evidence only, observed at an actual returned SDK error or
+// rejected thenable. Diagnostic callbacks can never replace the original error.
+function reportZ02EnqueuePortFailure(observer: Z02EnqueueDiagnosticPortObserver | undefined,
+  port: Z02EnqueueDiagnosticPort, error: unknown): void {
+  if (typeof observer !== 'function') return
+  try { observer(port, error) } catch { /* Preserve the actual SDK error and policy. */ }
+}
+function observeZ02EnqueueSdkRejection<T>(pending: PromiseLike<T>, port: Z02EnqueueDiagnosticPort,
+  observer: Z02EnqueueDiagnosticPortObserver | undefined): PromiseLike<T> {
+  // The normal caller retains the original thenable and await exactly.
+  if (typeof observer !== 'function') return pending
+  return Promise.resolve(pending).catch(error => {
+    reportZ02EnqueuePortFailure(observer, port, error)
+    throw error
+  })
+}
+
 
 export type CustomerOperationJobType =
   | 'customer_application_continuation'
@@ -143,6 +161,7 @@ export async function persistOperationSnapshot(input: {
   operationId: string
   requestKind: 'customer_data_request' | 'supplier_switch' | 'inbound_grid_owner_response'
   snapshot: SiteOperationSnapshot
+  onZ02DiagnosticPortFailure?: Z02EnqueueDiagnosticPortObserver
   requestReference?: string | null
   routeProfileId?: string | null
   traceId?: string | null
@@ -158,7 +177,7 @@ export async function persistOperationSnapshot(input: {
     route_profile_id: routeProfileId,
     trace_id: traceId,
   }
-  const { error } = await supabaseService
+  const { error } = await observeZ02EnqueueSdkRejection(supabaseService
     .from('customer_operation_request_snapshots')
     .upsert({
       company_id: requireUuid(input.companyId, 'company_id'),
@@ -175,8 +194,9 @@ export async function persistOperationSnapshot(input: {
       request_reference: input.requestReference ?? null,
       trace_id: traceId,
       snapshot: storedSnapshot,
-    }, { onConflict: 'company_id,operation_id,request_kind' })
+    }, { onConflict: 'company_id,operation_id,request_kind' }), 'snapshot_upsert', input.onZ02DiagnosticPortFailure)
   if (error) {
+    reportZ02EnqueuePortFailure(input.onZ02DiagnosticPortFailure, 'snapshot_upsert', error)
     if (missingSchema(error)) throw new Error('Operationssnapshot saknas. Kör den senaste OPS-migrationen innan extern kommunikation startas.')
     throw error
   }
@@ -210,16 +230,18 @@ export async function originalCustomerDataSnapshot(input: {
   companyId: string
   operationId: string
   requestId: string
+  onZ02DiagnosticPortFailure?: Z02EnqueueDiagnosticPortObserver
 }): Promise<SiteOperationSnapshot | null> {
-  const { data, error } = await supabaseService
+  const { data, error } = await observeZ02EnqueueSdkRejection(supabaseService
     .from('customer_operation_request_snapshots')
     .select('site_address_hash,grid_owner_id,grid_area_code,route_profile_id,snapshot,superseded_at')
     .eq('company_id', requireUuid(input.companyId, 'company_id'))
     .eq('operation_id', requireUuid(input.operationId, 'operation_id'))
     .eq('request_kind', 'customer_data_request')
     .eq('request_reference', input.requestId)
-    .maybeSingle()
+    .maybeSingle(), 'original_snapshot_select', input.onZ02DiagnosticPortFailure)
   if (error) {
+    reportZ02EnqueuePortFailure(input.onZ02DiagnosticPortFailure, 'original_snapshot_select', error)
     if (missingSchema(error)) throw new Error('Operationssnapshot saknas. Kör den senaste OPS-migrationen innan inkommande svar appliceras.')
     throw error
   }
@@ -464,6 +486,7 @@ export async function enqueue(input: {
   priority?: number
   operationId?: string | null
   requestSnapshot?: JsonRecord
+  onZ02DiagnosticPortFailure?: Z02EnqueueDiagnosticPortObserver
 }): Promise<{
   id: string
   duplicate: boolean
@@ -496,12 +519,13 @@ export async function enqueue(input: {
     created_by: normalizeUuidOrNull(input.actorUserId, 'created_by'),
   }
 
-  const { data, error } = await supabaseService
+  const { data, error } = await observeZ02EnqueueSdkRejection(supabaseService
     .from('customer_operation_jobs')
     .insert(row)
     .select('id, operation_id, trace_id, status, result, last_error')
-    .single()
+    .single(), 'job_insert', input.onZ02DiagnosticPortFailure)
 
+  if (error) reportZ02EnqueuePortFailure(input.onZ02DiagnosticPortFailure, 'job_insert', error)
   if (!error && data?.id) {
     return {
       id: String(data.id),
@@ -518,7 +542,7 @@ export async function enqueue(input: {
     throw error
   }
 
-  const { data: existing, error: existingError } = await supabaseService
+  const { data: existing, error: existingError } = await observeZ02EnqueueSdkRejection(supabaseService
     .from('customer_operation_jobs')
     .select('id, operation_id, trace_id, status, result, last_error')
     .eq('company_id', companyId)
@@ -527,8 +551,11 @@ export async function enqueue(input: {
     .in('status', ['queued', 'running', 'waiting_response'])
     .order('created_at', { ascending: false })
     .limit(1)
-    .maybeSingle()
-  if (existingError) throw existingError
+    .maybeSingle(), 'duplicate_job_select', input.onZ02DiagnosticPortFailure)
+  if (existingError) {
+    reportZ02EnqueuePortFailure(input.onZ02DiagnosticPortFailure, 'duplicate_job_select', existingError)
+    throw existingError
+  }
   if (!existing?.id) throw error
   return {
     id: String(existing.id),
@@ -814,6 +841,7 @@ export async function enqueueInboundGridOwnerResponseAutomation(input: {
   meteringPointId?: string | null
   operationId?: string | null
 }) {
+  const onZ02DiagnosticPortFailure = z02EnqueueDiagnosticPortObserver(input)
   const normalized = {
     ...input,
     companyId: requireUuid(input.companyId, 'company_id'),
@@ -828,6 +856,7 @@ export async function enqueueInboundGridOwnerResponseAutomation(input: {
     companyId: normalized.companyId,
     operationId: normalized.operationId,
     requestId: normalized.requestId,
+    onZ02DiagnosticPortFailure,
   })
   if (!requestSnapshot?.site_id || !requestSnapshot.address_hash) {
     throw new Error('Det inkommande svaret saknar en aktiv requestsnapshot. Svaret måste granskas manuellt innan kunddata kan uppdateras.')
@@ -848,6 +877,7 @@ export async function enqueueInboundGridOwnerResponseAutomation(input: {
     },
     requestSnapshot,
     priority: 5,
+    onZ02DiagnosticPortFailure,
   })
   if (!job.duplicate) {
     await persistOperationSnapshot({
@@ -861,6 +891,7 @@ export async function enqueueInboundGridOwnerResponseAutomation(input: {
       requestKind: 'inbound_grid_owner_response',
       requestReference: normalized.requestId,
       snapshot: requestSnapshot,
+      onZ02DiagnosticPortFailure,
     })
   }
   return job
