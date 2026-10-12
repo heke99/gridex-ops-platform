@@ -1,6 +1,8 @@
 import { promises as dns } from 'dns'
 import net from 'net'
 
+import type { RelayTraceVerdict } from './transport/relayTrace'
+
 export type MailReadinessRecord = {
   type: 'MX' | 'TXT' | 'CNAME'
   host: string
@@ -164,6 +166,24 @@ export function resendEventsConfig() {
   }
 }
 
+/**
+ * TR-08: TCP reachability of the first SMTP server (port 465) proves nothing about
+ * relay TLS beyond that hop or SPF. The transport is only reported verified when a
+ * read-back relay trace verdict says so; otherwise the lane stays 'unknown'/'error'.
+ */
+export function relayTransportStatus(verdict: RelayTraceVerdict | null): MailLaneReadiness['statuses'][number] {
+  if (!verdict) {
+    return {
+      key: 'relay_transport',
+      status: 'unknown',
+      message: 'Relä-TLS/SPF är inte verifierat: SMTP-porten bevisar inte nästa serverhopp. Verkligt leveransspår och providerpolicy krävs.',
+    }
+  }
+  return verdict.verified
+    ? { key: 'relay_transport', status: 'ok', message: 'Leveransspåret visar TLS på alla hopp och SPF pass.', diagnostics: verdict.reasons }
+    : { key: 'relay_transport', status: 'error', message: 'Leveransspåret verifierar inte relä-TLS/SPF.', diagnostics: verdict.reasons }
+}
+
 export async function getMailReadiness(): Promise<{ ediel: MailLaneReadiness; events: MailLaneReadiness }> {
   const checkedAt = new Date().toISOString()
   const edielConfig = edielSmtpConfig()
@@ -222,6 +242,7 @@ export async function getMailReadiness(): Promise<{ ediel: MailLaneReadiness; ev
       message: tcp.ok ? 'SMTP-host kan nås via TCP.' : `SMTP TCP kunde inte verifieras: ${tcp.error ?? 'okänt fel'}`,
       diagnostics: tcp,
     },
+    relayTransportStatus(null),
   ]
 
   return {
