@@ -2,6 +2,26 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMatchCandidate, EdielMatchInput } from '@/lib/ediel/matching/matchingTypes'
 import { cleanMatchText, confidenceFromScore } from '@/lib/ediel/matching/matchingTypes'
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// PostgREST quoted value: only `"` and `\` need escaping inside double quotes.
+function quotePostgrestValue(value: string): string {
+  return `"${value.replace(/["\\]/g, (ch) => `\\${ch}`)}"`
+}
+
+/**
+ * Builds a PostgREST `or` list of equality conditions. Every value is quoted so
+ * a sender-controlled reference cannot add conditions, and uuid columns only
+ * receive UUID-shaped references (a non-UUID value there makes PostgREST
+ * reject the whole query with 22P02). Returns '' when nothing is comparable.
+ */
+export function postgrestEqAny(textColumns: string[], uuidColumns: string[], refs: string[]): string {
+  return refs.flatMap((ref) => [
+    ...textColumns.map((column) => `${column}.eq.${quotePostgrestValue(ref)}`),
+    ...(UUID_PATTERN.test(ref) ? uuidColumns.map((column) => `${column}.eq.${quotePostgrestValue(ref)}`) : []),
+  ]).join(',')
+}
+
 function unique(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.map((value) => cleanMatchText(value)).filter((value): value is string => Boolean(value)))]
 }
@@ -78,7 +98,7 @@ export async function matchProcessForAutomation(input: EdielMatchInput): Promise
       .select('id, company_id, customer_id, site_id, metering_point_id, status, external_reference, automation_key')
       .limit(20)
     if (companyId) switchQuery = switchQuery.eq('company_id', companyId)
-    switchQuery = switchQuery.or(refs.flatMap((ref) => [`id.eq.${ref}`, `external_reference.eq.${ref}`, `automation_key.eq.${ref}`]).join(','))
+    switchQuery = switchQuery.or(postgrestEqAny(['external_reference', 'automation_key'], ['id'], refs))
     const { data, error } = await switchQuery
     if (error) throw error
     for (const row of (data ?? []) as Array<Record<string, unknown>>) {
@@ -136,7 +156,8 @@ export async function matchProcessForAutomation(input: EdielMatchInput): Promise
       .select('id, company_id, customer_id, site_id, grid_owner_data_request_id, outbound_request_id, status, request_type, external_reference, transaction_reference, correlation_reference')
       .limit(50)
     if (companyId) customerInfoQuery = customerInfoQuery.eq('company_id', companyId)
-    customerInfoQuery = customerInfoQuery.or(refs.flatMap((ref) => [`id.eq.${ref}`, `grid_owner_data_request_id.eq.${ref}`, `outbound_request_id.eq.${ref}`, `external_reference.eq.${ref}`, `transaction_reference.eq.${ref}`, `correlation_reference.eq.${ref}`]).join(','))
+    customerInfoQuery = customerInfoQuery.or(postgrestEqAny(['external_reference', 'transaction_reference', 'correlation_reference'],
+      ['id', 'grid_owner_data_request_id', 'outbound_request_id'], refs))
     const { data, error } = await customerInfoQuery
     if (!error) {
       for (const row of (data ?? []) as Array<Record<string, unknown>>) {
