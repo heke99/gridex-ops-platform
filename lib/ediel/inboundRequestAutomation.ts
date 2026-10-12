@@ -5,6 +5,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { canonicalUtiltsProfileForMessage } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import {canonicalUtiltsTransactions} from '@/lib/ediel/utilts/canonicalObservationScope'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 
 export type InboundRequestDecisionStatus = 'ready_to_answer' | 'pending_review' | 'not_applicable'
 
@@ -65,10 +66,8 @@ async function matchMeteringPointWithinTenant(input: {
   meteringPointId: string | null
 }) {
   const orParts = [
-    input.meteringPointId ? `metering_point_id.eq.${input.meteringPointId}` : null,
-    input.meteringPointId ? `normalized_metering_point_id.eq.${input.meteringPointId}` : null,
-    input.facilityId ? `site_facility_id.eq.${input.facilityId}` : null,
-    input.facilityId ? `anlage_id.eq.${input.facilityId}` : null,
+    postgrestEqAny(['metering_point_id', 'normalized_metering_point_id'], [], input.meteringPointId ? [input.meteringPointId] : []),
+    postgrestEqAny(['site_facility_id', 'anlage_id'], [], input.facilityId ? [input.facilityId] : []),
   ].filter(Boolean).join(',')
 
   if (!orParts) return { status: 'missing_identifiers' as const, row: null, count: 0 }

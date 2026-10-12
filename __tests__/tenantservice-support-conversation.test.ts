@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { API_DOCUMENTATION_VERSION, WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_DOCUMENTATION_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 /**
  * Tenantservice P4a: customer support conversation over customer_cases.
