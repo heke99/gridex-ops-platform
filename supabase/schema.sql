@@ -34752,7 +34752,7 @@ CREATE FUNCTION gridex_utilts_binding.preserve_committed_projection_v1(c uuid, e
     SET search_path TO 'pg_catalog'
     SET "TimeZone" TO 'UTC'
     AS $$
-DECLARE s public.ediel_messages%rowtype;item jsonb;old_item jsonb;adapted jsonb;answer jsonb:='[]';r gridex_utilts_binding.receipts%rowtype;v public.meter_reading_series%rowtype;
+DECLARE s public.ediel_messages%rowtype;item jsonb;old_item jsonb;adapted jsonb;answer jsonb:='[]';r gridex_utilts_binding.receipts%rowtype;v public.meter_reading_series%rowtype;remove_quality boolean;
 BEGIN
  SELECT * INTO STRICT s FROM public.ediel_messages WHERE company_id=c AND id=sid AND environment=env;
  SELECT * INTO r FROM gridex_utilts_binding.receipts WHERE source_message_id=sid AND company_id=c AND environment=env;
@@ -34763,11 +34763,36 @@ BEGIN
     AND a.disposition='accepted' AND a.persistence_status='persisted' AND a.planned_response_type='positive_aperak' FOR SHARE OF a,series;
   IF FOUND AND v.immutable_hash=encode(sha256(convert_to(v.raw_transaction::text,'UTF8')),'hex') THEN
    old_item:=v.raw_transaction;
-   -- Only the newly introduced metadata fields differ. V1's existing numeric
-   -- comparison remains the immutable private owner's exact original shape.
-   adapted:=(item-'productId')||jsonb_build_object('periodStart',item#>'{consumptionContract,interpretation,localPeriodStart}','periodEnd',item#>'{consumptionContract,interpretation,localPeriodEnd}');
-   IF r.contract_version=1 THEN adapted:=gridex_utilts_binding.legacy_retry_item_v1(adapted);END IF;
-   IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;END IF;
+   -- Compatibility with rows committed before SC-053's added keys. quality is
+   -- stripped only when no committed quantity has one. Independently, readingAt
+   -- is dropped from a retry quantity only where both it and its committed
+   -- counterpart at the same ordinal are qualifier 136 with a NULL value and
+   -- the committed one lacks readingAt. Every other key, including an existing
+   -- quality or time, is still compared against the whole old item exactly.
+   IF jsonb_typeof(item->'quantities')='array' THEN
+    remove_quality:=NOT EXISTS(SELECT FROM jsonb_array_elements(coalesce(old_item->'quantities','[]'::jsonb)) q WHERE q ? 'quality');
+    adapted:=item||jsonb_build_object('quantities',(SELECT coalesce(jsonb_agg(
+      CASE WHEN remove_quality THEN q-'quality' ELSE q END
+      - CASE WHEN q->>'qualifier'='136' AND jsonb_typeof(q->'value')='null'
+         AND jsonb_typeof(old_item->'quantities'->(n::int-1))='object'
+         AND old_item->'quantities'->(n::int-1)->>'qualifier'='136'
+         AND jsonb_typeof(old_item->'quantities'->(n::int-1)->'value')='null'
+         AND NOT (old_item->'quantities'->(n::int-1)) ? 'readingAt'
+        THEN 'readingAt' ELSE '' END ORDER BY n),'[]'::jsonb) FROM jsonb_array_elements(item->'quantities') WITH ORDINALITY x(q,n)));
+    IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;
+    ELSIF adapted IS DISTINCT FROM item THEN
+     adapted:=(adapted-'productId')||jsonb_build_object('periodStart',adapted#>'{consumptionContract,interpretation,localPeriodStart}','periodEnd',adapted#>'{consumptionContract,interpretation,localPeriodEnd}');
+     IF r.contract_version=1 THEN adapted:=gridex_utilts_binding.legacy_retry_item_v1(adapted);END IF;
+     IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;END IF;
+    END IF;
+   END IF;
+   IF item IS DISTINCT FROM old_item THEN
+    -- Only the newly introduced metadata fields differ. V1's existing numeric
+    -- comparison remains the immutable private owner's exact original shape.
+    adapted:=(item-'productId')||jsonb_build_object('periodStart',item#>'{consumptionContract,interpretation,localPeriodStart}','periodEnd',item#>'{consumptionContract,interpretation,localPeriodEnd}');
+    IF r.contract_version=1 THEN adapted:=gridex_utilts_binding.legacy_retry_item_v1(adapted);END IF;
+    IF adapted IS NOT DISTINCT FROM old_item THEN item:=adapted;END IF;
+   END IF;
   END IF;
   answer:=answer||jsonb_build_array(item);
  END LOOP;
@@ -35262,6 +35287,18 @@ BEGIN
   ELSIF jsonb_typeof(supplied->'value') IS DISTINCT FROM 'string'
    OR gridex_utilts_binding.canonical_decimal_v2(source_quantity#>>'{elements,1,1}',decimal_mark) IS DISTINCT FROM supplied->>'value'
    OR gridex_utilts_binding.canonical_decimal_v2(supplied->>'value') IS DISTINCT FROM supplied->>'value' THEN RETURN false; END IF;
+  -- SC-053: a supplied stored quality must be this QTY's own STS+8 code
+  -- (until the next QTY of the same SEQ), or JSON null when it has none.
+  IF supplied ? 'quality' THEN
+   SELECT coalesce(min((t->>'index')::integer),next_sequence) INTO quality_end FROM jsonb_array_elements(tokens) t
+    WHERE t->>'tag'='QTY' AND (t->>'index')::integer>(source_quantity->>'index')::integer AND (t->>'index')::integer<next_sequence;
+   IF (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='STS' AND t#>>'{elements,1,0}'='8'
+     AND (t->>'index')::integer>(source_quantity->>'index')::integer AND (t->>'index')::integer<quality_end)>1
+    OR supplied->'quality' IS DISTINCT FROM coalesce((SELECT to_jsonb(t#>>'{elements,2,0}') FROM jsonb_array_elements(tokens) t
+     WHERE t->>'tag'='STS' AND t#>>'{elements,1,0}'='8'
+      AND (t->>'index')::integer>(source_quantity->>'index')::integer AND (t->>'index')::integer<quality_end),'null'::jsonb)
+   THEN RETURN false; END IF;
+  END IF;
  END LOOP;
  FOR o IN SELECT value FROM jsonb_array_elements(item#>'{consumptionContract,observations}') LOOP
   source_quantity:=quantities->((o->>'sourceOrdinal')::integer);
