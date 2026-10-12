@@ -177,8 +177,8 @@ export const currentReaderForwards: Array<GitInput & {path: string}> = [
   {
     "path": "supabase/migrations/20261012120000_ediel_utilts_source_quantity_quality_v2.sql",
     "mode": "100644",
-    "git_blob_oid": "39b07773fc8a996c0650de530f01fd247a6ace34",
-    "sha256": "00e6e6b624bc19d7810320dbeb1d0c881dc4deb6d32992bece1b1efd5a92681a"
+    "git_blob_oid": "b6ba2018eafe08a6ba67c7ff307ba51c33a2b604",
+    "sha256": "6646ea2bd9f819736ece5c943148c575238e55702a201fcc9b26f46e0f998af9"
   }
 ]
 const currentDatabase = receipt.current_database_basis
@@ -196,8 +196,8 @@ if (!currentDatabase || Object.keys(currentDatabase).length !== 3 || currentData
 if (phase === 'current' && (['current_guard_preparation', 'current_read_forwards', 'current_guard_qualification', 'current_api_schema'].some(name =>
     receipt.phases?.[name]?.status !== 'PASS' || receipt.phases[name].exit_code !== 0) ||
     receipt.current_guard_result?.status !== 'PASS' || receipt.current_guard_result.source_sha !== head ||
-    receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 371 ||
-    receipt.current_guard_result.function_definitions !== 371 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
+    receipt.current_guard_result.reader_function_names !== 233 || receipt.current_guard_result.helper_function_names !== 372 ||
+    receipt.current_guard_result.function_definitions !== 372 || receipt.current_guard_result.delivered_relation_objects !== 18 ||
     !Array.isArray(receipt.current_guard_result.mismatches) || receipt.current_guard_result.mismatches.length !== 0 ||
     receipt.current_api_schema_result?.status !== 'PASS' || receipt.current_api_schema_result.source_sha !== head ||
     JSON.stringify(receipt.current_api_schema_result.rpc_paths) !== JSON.stringify([
