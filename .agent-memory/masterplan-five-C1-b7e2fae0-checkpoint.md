@@ -1,0 +1,25 @@
+# C1 — b7e2fae0 — new epoch 2026-10-12
+
+Agent `codex-five-agent-C1-b7e2fae0`; packet `b7e2fae0-6c59-4140-a5b5-0e1cd15996c4`; epoch `gridex-five-agent-20261012`; branch `codex/five-C1-z02-b7e2fae0`; base `028d2d65d6dfa670474d48adb1b97bf99c959b74`.
+
+Taken: slot-C1 only, CREATE_IF_ABSENT then GET_MATCH to `b971ef0cfa9724b02f4e0e3a985a4436e11a1f60`; [CLAIM](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6124328681). No ID/file/producer acquired yet. Own unique checkpoint is exempt from shared memory/file locks.
+
+Done/verification: actual main/AGENTS/README/baseline JSON/transition/workflow/reservations read; OWNER_STOP6122223028 and ADMIN_RELEASE_COMPLETE6122307591 verified; fresh namespace was empty before own slot claim. Current host workspace free space approximately 30GiB; old762 ENOSPC does not describe this host. Git access succeeds with execution network permission. No old identity contacted; no production/shared staging/GEN/native run or approval credit.
+
+Skill routing: using-superpowers for routing; using-git-worktrees for an isolated branch; systematic-debugging for Z02 and execution failures; dispatching-parallel-agents for independent read-only evidence tasks; Supabase for database-bound code; spec-to-code-compliance for literal requirements in isolated peer tasks; verification-before-completion for evidence limits. Conditional: test-driven-development/requesting-code-review/finishing-a-development-branch upon exact implementation claims; PostgreSQL best practices if SQL is changed. Repository-wide discovery/audit, UI/performance, new feature brainstorming, supply-chain/hook installation and reusable-skill authoring are outside this bounded packet.
+
+Blocker/next: qualify Docker/replay capacity; compare frozen762 job_insert evidence and signing/PDF/current-network prefix with main, then select/acquire the next coherent packet's exact IDs/files/producer. Two read-only helpers have separate source scopes; root owns original failed-log qualification and any future producer. No code changes until verified claims.
+
+## Packet claim
+
+Two Z02 IDs, four exact diagnostic code/test files and producer-z02 acquired sorted CREATE_IF_ABSENT and GET_MATCH to `0b0f365766dffec214e43809ea5b3bb11c9ec71e`. Source is frozen762 `6bb5e7c9718ec6c8fcdb9334b4da289afbaa23c5`. Only its four-file component will be selected, no historical SQL/GEN/coverage/native stack. Docker local daemon28.4/vfs/0running/0images/18.9GB memory verified with authorized socket access. Original native metadata91=83PASS/8FAIL at job_insert/unlisted is reused with limits; no repeated original artifact/log acquisition. Next: unchanged source-specific RED against actual main, selective component adoption, GREEN and fresh affected review.
+
+## Explicit component split
+
+Desired26 RED on unchanged main:16 missing-metadata failures/10 preserved effects pass. Frozen full171 suite on three adopted runtime files:164PASS/7 sandbox subprocess EPERM; permitted subprocess execution167PASS/4 missing unadopted native-observer helper failures. No GREEN/native inference from either. To keep a small independent runtime repair, frozen donor/native/observer source and original oracles remain unchanged on6bb5e7c9; new component-only suite selects its full unchanged first434-line consumer/classifier group. New file __tests__/ediel-z02-enqueue-diagnostics-component.test.ts acquired receipt86bc7e88d5964faec2a228fb3e90eacfbc8ece90 before write. Full donor test intake restored to absence; unused ref will be owner-released. Pure callback/SDK evidence tests will add direct behavioral boundaries. No coverage, applied SQL or GEN changes. Two intake reviewers confirmed synthetic signing declarations and stale-after-import network proof; same-chain genuine prefix, SQLcause/forward/C2 parity and whole physical outcomes remain open. Next: exact Node22 component validation and independent final source reviews.
+
+## Validated runtime component
+
+Node22.23.3:234/234 component+raw-receipt/atomic-worker/physical-metering-match tests PASS; unchanged selected consumer/classifier/SDK/scope/port oracles come from frozen762 and retain original expectations. Actual automation source port program also reports13/13 finite controls; SQL/native false. Full nonincremental app/tests/scripts typechecks PASS; exact4-source/test lint max-warnings0 PASS; unchanged1800-line budget PASS; git diff --check PASS. Coverage SHA256 remains23956fce6dc25f225c069cee624d992e64b279d24b4457247bf5202cb75b6298.
+
+Replay prerequisite: pinned SupabaseCLI2.101.0 cannot even report version on host because /home/agent/.supabase is read-only; supported filesystem permission and XDG overrides do not repair EROFS. No backend/image/replay started by CLI. An isolated Docker tool environment with default writable home is being prepared; no HOME variable is repurposed, no migration/source/gate adjustment. Current29GiB Docker-root free and daemonhealthy. Next: independent final component reviews; diagnose canonical replay with one root-owned producer; no whole approval.
