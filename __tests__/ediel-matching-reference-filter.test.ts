@@ -29,6 +29,9 @@ vi.mock('@/lib/supabase/service', () => {
   }
 })
 
+const canonical = vi.hoisted(() => ({ permissionId: null as string | null }))
+vi.mock('@/lib/ediel/core/canonicalMessage', () => ({ parseCanonicalMessageRow: () => ({ permissionId: canonical.permissionId }) }))
+
 import { matchProcessForAutomation, postgrestEqAny } from '@/lib/ediel/matching/processMatcher'
 import { matchPermissionForAutomation } from '@/lib/ediel/matching/permissionMatcher'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -93,9 +96,21 @@ describe('Ediel matching reference filters', () => {
     ])
   })
 
-  it('applies the same rules to the permission filter shape', () => {
-    // permissionMatcher builds its filter with exactly these column groups.
-    expect(matchPermissionForAutomation).toBeTypeOf('function')
+  it('quotes the permission reference and keeps a non-UUID value off the uuid id column', async () => {
+    canonical.permissionId = 'PERM,id.neq.0'
+    await matchPermissionForAutomation({ message: message({}), companyId: COMPANY })
+    const perm = calls.ors.find((o) => o.table === 'ediel_permissions')!
+    expect(conditions(perm.filter)).toEqual([
+      'permission_reference.eq."PERM,id.neq.0"',
+      'external_permission_id.eq."PERM,id.neq.0"',
+    ])
+    calls.ors.length = 0
+    canonical.permissionId = UUID_REF
+    await matchPermissionForAutomation({ message: message({}), companyId: COMPANY })
+    expect(conditions(calls.ors.find((o) => o.table === 'ediel_permissions')!.filter)).toContain(`id.eq."${UUID_REF}"`)
+  })
+
+  it('builds the same shape for the permission column groups', () => {
     expect(postgrestEqAny(['permission_reference', 'external_permission_id'], ['id'], ['PERM-1'])).toBe(
       'permission_reference.eq."PERM-1",external_permission_id.eq."PERM-1"')
     expect(postgrestEqAny(['permission_reference'], ['id'], [UUID_REF])).toBe(
@@ -104,5 +119,6 @@ describe('Ediel matching reference filters', () => {
 
   it('returns no conditions when no reference is usable', () => {
     expect(postgrestEqAny([], ['id'], ['not-a-uuid'])).toBe('')
+    expect(postgrestEqAny(['external_reference'], ['id'], [])).toBe('')
   })
 })
