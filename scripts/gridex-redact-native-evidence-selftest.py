@@ -164,6 +164,49 @@ for name, payload, expected in [
     check(name, module.scrub(payload) == expected)
 
 
+# Declared plaintext log/XML records are processed without loading the whole
+# file. These public fixtures are not a native run or authentic business proof.
+with tempfile.TemporaryDirectory(prefix='native-redactor-records-selftest-') as directory:
+    root = Path(directory)
+    payload = (b'visible-before\r\n' + password + b' ' + token.encode()
+               + b'\n{"Cookie":"opaque-record-cookie","safe":1}\r\n'
+               + b'<failure>public failure remains</failure>')
+    evidence = root / 'native.log'
+    evidence.write_bytes(payload)
+    try:
+        module.redact_line_records(evidence, [password], max_line_bytes=1024)
+        result = evidence.read_bytes()
+        check('records_auth_removed', all(secret not in result for secret in
+              [password, token.encode(), b'opaque-record-cookie']))
+        check('records_plaintext_xml_and_endings_preserved',
+              result.startswith(b'visible-before\r\n')
+              and result.endswith(b'<failure>public failure remains</failure>')
+              and b'public failure remains' in result)
+        unchanged = b'public unchanged\r\n<testcase/>\nno final newline'
+        evidence.write_bytes(unchanged)
+        module.redact_line_records(evidence, [], max_line_bytes=1024)
+        check('records_secret_free_byte_identity', evidence.read_bytes() == unchanged)
+        oversized = b'x' * 1025
+        evidence.write_bytes(oversized)
+        refused = False
+        try:
+            module.redact_line_records(evidence, [], max_line_bytes=1024)
+        except ValueError as error:
+            refused = str(error) == 'redaction_record_exceeds_memory_bound'
+        check('records_oversized_fail_closed_before_replacement',
+              refused and evidence.read_bytes() == oversized)
+        evidence.write_bytes(payload)
+        refused = False
+        try:
+            module.redact_line_records(evidence, [b'private\nspanning'], max_line_bytes=1024)
+        except ValueError as error:
+            refused = str(error) == 'redaction_record_secret_spans_records'
+        check('records_spanning_secret_fail_closed', refused and evidence.read_bytes() == payload)
+        check('records_failed_temporary_outputs_removed',
+              sorted(path.name for path in root.iterdir()) == ['native.log'])
+    except AttributeError:
+        check('records_actual_bounded_redaction_required', False)
+
 failed = [name for name, okay in checks if not okay]
 for name in failed:
     print('NATIVE_EVIDENCE_SELFTEST_FAIL: ' + name)
