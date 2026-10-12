@@ -64,7 +64,7 @@ print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['cur
     root_source: {blobs: rootInputs}, base_source: {blobs: Object.fromEntries(dependencies.map(path => [path, identities[path].base]))},
     historical_source_basis: historical, current_source_basis: 'ROOT_only_no_legacy_hint_wrapper',
     current_database_basis: {kind: 'BASE56_repair_two_forwards_plus_delivered_reader_guard_closure', forwards: declared.reader, schema_path: 'supabase/schema.sql'},
-    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 371, function_definitions: 371, delivered_relation_objects: 18, mismatches: [],
+    current_guard_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(), reader_function_names: 233, helper_function_names: 372, function_definitions: 372, delivered_relation_objects: 18, mismatches: [],
       source_schema_sha256: createHash('sha256').update(readFileSync(join(root, 'supabase/schema.sql'))).digest('hex')},
     current_api_schema_result: {status: 'PASS', source_sha: git('rev-parse', 'HEAD').trim(),
       rpc_paths: ['/rpc/ediel_read_prodat_h_accepted_original_v1', '/rpc/ediel_read_prodat_customer_masterdata_original_v1']},
@@ -207,7 +207,7 @@ s=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
 s=s.split('cat > "$DB01_PRIVATE/qualify-current-guards.py" <<\'PY\'\n',1)[1].split('\n          PY',1)[0]
 e={}
 exec(textwrap.dedent(s).split('mode=sys.argv[1]',1)[0],e)
-assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==371 and len(e['function_keys'])==371
+assert len(e['reader_names'])==233 and len(e['relation_keys'])==18 and len(e['names'])==372 and len(e['function_keys'])==372
 expected=e['expected']; compare=e['logical_mismatches']
 assert compare(dict(expected))==[]
 keys=[('gridex_ediel_technical_ack','FUNCTION','require_contrl_v1(public.ediel_messages)'),
