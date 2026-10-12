@@ -271,7 +271,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     const enqueueFailurePortEvidence = z02EnqueueDiagnosticPortEvidence(
       enqueueFailureWitness.observed && enqueueFailureWitness.error === enqueueError ? enqueueFailureWitness.port : 'unavailable')
     const errorMessage = enqueueError instanceof Error ? enqueueError.message : String(enqueueError)
-    await supabaseService
+    const { error: reviewUpdateError } = await supabaseService
       .from('customer_info_requests')
       .update({
         status: 'manual_review_required',
@@ -283,6 +283,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
       })
       .eq('company_id', companyId)
       .eq('id', request.id)
+    if (reviewUpdateError) throw reviewUpdateError
     await createEdielMessageEvent({
       actorUserId: eventActorId,
       edielMessageId: params.message.id,
