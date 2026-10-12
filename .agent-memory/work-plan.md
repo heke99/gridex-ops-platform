@@ -1,12 +1,11 @@
-# Work plan — ren fortsättning
+# Work plan — rootledd seriell leverans
 
-1. Läs [masterplan-five-agent-baseline-20261012.md](masterplan-five-agent-baseline-20261012.md), ditt frysta krav och donorhead mot faktisk main.
-2. Claima egen ny slot, nästa pakets ID/exactfiles/applicableproducer och dokumentera#766. Inga gamlaägarsvar.
-3. Återanvänd korrekt gammalt arbete selektivt; implementera/prova alla kvarvarande utfall utan nya parallella producenter.
-4. Två icke-medförfattande peers granskar exakt kandidat. Författare eller avgränsad nyhelper rättar; affectedproof/reviews aktualiseras.
-5. Mandatorycurrentheadgates+genuinewholeproof före serialexpected-headmerge. Verifiera delivery/ledger; roleFIRST och egna receiptmatchade release.
-6. Uppdatera eget checkpoint och fortsätt inomslot. Externa/tekniska hinder kopplas till exactcriterion och oberoende arbete fortsätter.
+1. Läs faktisk main, PR-head, frysta egna kriterier och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). [Full rootauktoritet](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132656380) stoppar tidigare writers/mergers; [specifik ny GEN114e](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132691871) är bevarad enda capturetjänst.
+2. Fortsätt befintlig aktuell delegation: root C1 (786 levererad); R1a0; C3 225/58cb; C2-implementation60cc; R2/docsf99. Kontrollera exakta fil-/ID-/producentrefs före write; ingen andra writer eller originalinsamlare.
+3. Konsumera kvalificerad #792c3d-output för exakta787ac59 och slutliga788be2. Root/R1 komponerar egna källbärare och genomför vardera ett nytt affected originalnative. Bevara alla tidigare assertions, originalbevis och legal-/provider-/LIVE-gränser.
+4. 785 och786 är levererade; leverera redo791 genom root först när finalhead-gates, två icke-medförfattande peers och aktuellt main-träd/evidens styrks. Faktisk785leverans flyttade endastTR08 tillVERIFIED/315; OPS04/AT-TR08 är oförändrade.
+5. C2-implementation färdigställer #784:s fysiska ERR-prov och #790:s kompatibilitetsrättning. Nästa GEN-input går seriellt till114e; gamlaESCOoutput och manifestgrenar importeras inte blint.
+6. Root ensam tar role-merge för normal expected-head-leverans, autentiserar faktisk PR/main/föräldrar/träd/ledger och släpper egen mergeroll först. Endast rätt receiptbundna egna resurser frigörs därefter. #787/#788 kan markeras ersatta först efter levererad792 och källidentitet.
+7. Skriv eget checkpoint/#766 efter meningsfull övergång. Delade tio791-dokument kräver leveransdelegatens exactfilecustody och ownrole-memory; släpp memoryrollen först före CI-väntan. Den skrivande delegaten räknas inte bland sina två finalpeers.
 
-C2 sköter GEN för alla fem. R1/R2 levererar ett faktisktevidensunderlag till C3. Extra reviewers får ansluta; medförfattare kan inte vara slutgranskare.
-
-[Relevant tidigare original](https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/work-plan.md) är historik, inte instruktion till en gammal agent.
+315/352 är main vid denna observation. Extern retention/motpart/LIVE begränsar helgodkännande och #310 förblir PAUSED. Originalhistorik bevaras; avslutad källgranskning, capture-only, modellerat PASS och CI är separata från hela frysta ID.
