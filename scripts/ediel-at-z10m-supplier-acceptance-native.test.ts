@@ -5,6 +5,7 @@ import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
 import {supabaseService} from '@/lib/supabase/service'
+import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
 import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
 import {resolveTenantForInboundEdiel} from '@/lib/inbound-mail/inboundTenantResolver'
@@ -280,16 +281,51 @@ it('a Z10 with swapped FR/DO parties obtains no receipt, positive APERAK or fina
   const f=await fixture(),change=changeWire(f)
   const swapped=change.wire.replace(`NAD+FR+${f.receiver}:160:SVK`,'NAD+XX+SWAP').replace(`NAD+DO+${f.sender}:160:SVK`,`NAD+FR+${f.sender}:160:SVK`).replace('NAD+XX+SWAP',`NAD+DO+${f.receiver}:160:SVK`)
   expect(swapped).not.toBe(change.wire)
-  let sourceId:string|null=null
-  try{sourceId=(await receive(f,swapped)).sourceId}catch{/* refused at reception is an acceptable prohibited-effect outcome */}
-  if(sourceId){
-    await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:sourceId,
-      reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null}).catch(()=>null)
-    const cases=sql<{id:string}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id)),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(sourceId)}`)
-    for(const c of cases)await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:c.id}).catch(()=>null)
-    const after=effects(f,sourceId)
-    expect(after.receipts).toEqual([])
-    expect(after.acks.filter(ack=>ack.family==='APERAK'&&ack.outcome==='positive')).toEqual([])
-    expect(await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:sourceId,rawPayload:swapped})).toBeNull()
+  // Observation scope is fixed before receive(): this tenant + the exact sent
+  // raw bytes (hash) whose interchange/BGM reference is unique to this case.
+  const payloadHash=createHash('sha256').update(swapped).digest('hex')
+  const scope=()=>sql<{mails:{id:string;mailbox:string}[];sources:{id:string;status:string|null}[];
+    receipts:number;positive:number;companyReceipts:number;companyPositive:number}>(`SELECT jsonb_build_object(
+    'mails',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'mailbox',mailbox_id)),'[]') FROM public.inbound_email_messages WHERE company_id=${literal(f.companyId)} AND encode(sha256(convert_to(raw_edifact_payload,'UTF8')),'hex')=${literal(payloadHash)}),
+    'sources',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'status',status)),'[]') FROM public.ediel_messages WHERE direction='inbound' AND encode(sha256(convert_to(raw_payload,'UTF8')),'hex')=${literal(payloadHash)}),
+    'receipts',(SELECT count(*) FROM gridex_received_sources.structural_object_apply_receipts r JOIN public.ediel_messages m ON m.id=r.source_message_id WHERE encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')=${literal(payloadHash)}),
+    'positive',(SELECT count(*) FROM public.ediel_messages a JOIN public.ediel_messages m ON m.id=a.related_message_id WHERE a.direction='outbound' AND a.message_family='APERAK' AND a.ack_outcome='positive' AND encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')=${literal(payloadHash)}),
+    'companyReceipts',(SELECT count(*) FROM gridex_received_sources.structural_object_apply_receipts WHERE company_id=${literal(f.companyId)}),
+    'companyPositive',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_family='APERAK' AND ack_outcome='positive'))`)
+  const before=scope()
+  expect(before).toMatchObject({mails:[],sources:[],receipts:0,positive:0})
+  let refusalLayer:string
+  try{
+    const source=await receive(f,swapped)
+    // Reception accepted: the source-owner review must not establish an
+    // accepted source; any thrown error fails this case.
+    const reviewed=await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:source.sourceId,
+      reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})
+    expect(reviewed,JSON.stringify({reviewed,canonical:source.diagnostic})).not.toMatchObject({sourceDisposition:'accepted'})
+    refusalLayer=`source_review:${reviewed.status}:${reviewed.sourceDisposition}`
+  }catch(error){
+    // Only the intended wrong-party refusal is accepted: receive()'s tenant
+    // assertion saw no company because the swapped legal receiver (DO) is not
+    // this tenant. Anything else (network, permission, other assertion) fails.
+    const assertion=error as {actual?:unknown;expected?:unknown}
+    if(!(error instanceof Error&&error.name==='AssertionError'&&assertion.actual===null&&assertion.expected===f.companyId))throw error
+    const mails=scope().mails
+    expect(mails).toHaveLength(1)
+    const tenant=await resolveTenantForInboundEdiel({mailboxCompanyId:f.companyId,mailboxId:mails[0].mailbox,
+      environment:'test',parsed:parseEdifactPayload(swapped)})
+    expect(tenant.companyId).toBeNull();expect(tenant.status).not.toBe('resolved')
+    refusalLayer=`inbound_tenant_resolution:${tenant.status}`
   }
+  const after=scope()
+  // Every branch: zero structural receipts, zero positive APERAK and no final
+  // plan for this scope, and no company-wide receipt/positive ACK delta.
+  expect(after.receipts).toBe(0);expect(after.positive).toBe(0)
+  expect(after.companyReceipts).toBe(before.companyReceipts);expect(after.companyPositive).toBe(before.companyPositive)
+  for(const source of after.sources){
+    expect(effects(f,source.id).receipts).toEqual([])
+    expect(await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.id,rawPayload:swapped})).toBeNull()
+  }
+  if(refusalLayer.startsWith('inbound_tenant_resolution'))expect(after.sources).toEqual([])
+  expect(refusalLayer).toMatch(/^(inbound_tenant_resolution|source_review):/)
+  process.stdout.write(`AT-Z10M party-swap refusal layer: ${refusalLayer}\n`)
 })
