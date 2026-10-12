@@ -14240,15 +14240,17 @@ CREATE FUNCTION gridex_ediel_retention.customer_receipt_v1(d gridex_ediel_retent
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$
-DECLARE k gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;issued timestamptz;expires timestamptz;deadline timestamptz;
+DECLARE k gridex_ediel_retention.issuers%rowtype;n timestamptz;p jsonb;bytes bytea;issued timestamptz;expires timestamptz;deadline timestamptz;
 BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
  IF jsonb_typeof(d.issuer_receipt) IS DISTINCT FROM 'object' OR coalesce(d.issuer_receipt->>'signatureHex','')!~'^[a-f0-9]{64}$' OR length(coalesce(d.issuer_receipt->>'payloadBase64','')) NOT BETWEEN 1 AND 32768 THEN RETURN NULL;END IF;
  SELECT * INTO k FROM gridex_ediel_retention.issuers WHERE id=(d.issuer_receipt->>'issuerId')::uuid AND company_id=d.company_id FOR SHARE;
- IF k.id IS NULL OR now()<k.valid_from OR now()>=k.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=k.id) OR EXISTS(SELECT FROM gridex_ediel_retention.customer_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
+ -- DB-05: the issuer lock can wait past issuer/policy validity; decide after it.
+ n:=clock_timestamp();
+ IF k.id IS NULL OR n<k.valid_from OR n>=k.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=k.id) OR EXISTS(SELECT FROM gridex_ediel_retention.customer_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
  bytes:=decode(d.issuer_receipt->>'payloadBase64','base64');IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,k.signing_key),'hex') IS DISTINCT FROM d.issuer_receipt->>'signatureHex' THEN RETURN NULL;END IF;
  p:=convert_from(bytes,'UTF8')::jsonb;issued:=(p->>'issuedAt')::timestamptz;expires:=(p->>'expiresAt')::timestamptz;deadline:=(p->>'retainUntil')::timestamptz;
  IF p->>'format' IS DISTINCT FROM 'ediel_customer_retention_policy_v1' OR p->>'retentionClass' IS DISTINCT FROM d.retention_class OR p->>'companyId' IS DISTINCT FROM d.company_id::text OR p->>'customerId' IS DISTINCT FROM d.customer_id::text OR p->>'sourceHash' IS DISTINCT FROM d.source_hash OR p->>'documentHash' IS DISTINCT FROM d.document_hash OR p->>'issuerLegalReference' IS DISTINCT FROM k.legal_reference OR nullif(p->>'legalBasisReference','') IS NULL
- OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR issued>now() OR expires<=now() OR issued<k.valid_from OR expires>k.valid_to THEN RETURN NULL;END IF;RETURN p;
+ OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR issued>n OR expires<=n OR issued<k.valid_from OR expires>k.valid_to THEN RETURN NULL;END IF;RETURN p;
 EXCEPTION WHEN invalid_text_representation OR invalid_parameter_value OR datetime_field_overflow OR character_not_in_repertoire THEN RETURN NULL;
 END$_$;
 
@@ -25217,7 +25219,6 @@ begin
 
   update public.customer_sites
   set facility_id = coalesce(v_facility_id, facility_id),
-      normalized_facility_id = coalesce(v_facility_id, normalized_facility_id),
       grid_area_code = coalesce(v_grid_area, grid_area_code),
       price_area_code = coalesce(v_price_area, price_area_code),
       bidding_zone_code = coalesce(v_price_area, bidding_zone_code),
@@ -46627,13 +46628,27 @@ BEGIN PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'edie
  LOCK TABLE public.customer_supply_periods,public.customer_portal_accounts,public.customer_portal_claims IN SHARE ROW EXCLUSIVE MODE;
  SELECT * INTO STRICT d FROM gridex_ediel_retention.customer_decisions WHERE id=p_decision_id AND company_id=p_company_id FOR UPDATE;
  SELECT * INTO STRICT c FROM public.customers WHERE id=d.customer_id AND company_id=p_company_id FOR UPDATE;
+ -- DB-05: a lock wait can outlast a scheduled DENY or a ban. Re-check the
+ -- purger's current authority after the customer lock, before a replay answer.
+ PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge');
+ IF gridex_ediel_retention.permission_v1(p_company_id,p_actor_user_id,'ediel.retention.customer_fields') IS NOT TRUE THEN RAISE EXCEPTION 'customer_retention_scoped_write_required' USING ERRCODE='42501';END IF;
  SELECT * INTO t FROM gridex_ediel_retention.customer_tombstones WHERE customer_id=c.id;
  IF FOUND THEN IF t.decision_id IS DISTINCT FROM d.id THEN RAISE EXCEPTION 'customer_retention_tombstone_conflict';END IF;RETURN jsonb_build_object('status','pseudonymised','customerId',c.id,'sourceHash',t.source_hash,'pseudonymisedAt',t.created_at,'replay',true);END IF;
  SELECT * INTO r FROM gridex_ediel_retention.customer_reviews WHERE decision_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1 FOR SHARE;
  PERFORM public.ediel_retention_lock_auth_actor_v1(r.actor_user_id);PERFORM id FROM public.user_profiles WHERE id=r.actor_user_id FOR SHARE;PERFORM user_id FROM public.company_memberships WHERE company_id=p_company_id AND user_id=r.actor_user_id FOR SHARE;
  IF NOT public.ediel_retention_lock_auth_actor_v1(r.actor_user_id) OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=r.actor_user_id AND user_status='active') OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=p_company_id AND user_id=r.actor_user_id AND status='active' AND is_active AND accepted_at IS NOT NULL) OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_retention_reviewer_authority']);END IF;
  IF gridex_ediel_retention.class_permission_v1(p_company_id,r.actor_user_id,'customer_canonical_personal_fields') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_retention_class_reviewer_authority']);END IF;claims:=gridex_ediel_retention.customer_receipt_v1(d);
- IF r.outcome IS DISTINCT FROM 'approved' OR claims IS NULL OR (claims->>'retainUntil')::timestamptz>now() THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_customer_class_legal_retention_deadline']);END IF;
+ -- DB-05: the review-row, reviewer and issuer locks above can wait too. After the
+ -- last blocking lock, take the decision instant and re-check the purger's current
+ -- authority before any effect; its locks are already held, so this cannot wait.
+ at:=clock_timestamp();
+ PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge');
+ IF gridex_ediel_retention.permission_v1(p_company_id,p_actor_user_id,'ediel.retention.customer_fields') IS NOT TRUE THEN RAISE EXCEPTION 'customer_retention_scoped_write_required' USING ERRCODE='42501';END IF;
+ -- The same issuer wait can outlast a scheduled reviewer DENY. All reviewer
+ -- rows/registry locks are already held; refresh the time-dependent checks.
+ IF NOT public.ediel_retention_lock_auth_actor_v1(r.actor_user_id) OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=r.actor_user_id AND user_status='active') OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=p_company_id AND user_id=r.actor_user_id AND status='active' AND is_active AND accepted_at IS NOT NULL) OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_retention_reviewer_authority']);END IF;
+ IF gridex_ediel_retention.class_permission_v1(p_company_id,r.actor_user_id,'customer_canonical_personal_fields') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_retention_class_reviewer_authority']);END IF;
+ IF r.outcome IS DISTINCT FROM 'approved' OR claims IS NULL OR (claims->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_customer_class_legal_retention_deadline']);END IF;
  IF c.status IS DISTINCT FROM 'archived' OR EXISTS(SELECT FROM public.customer_supply_periods WHERE company_id=p_company_id AND customer_id=c.id AND status NOT IN('cancelled','rejected','terminated','ended','closed','inactive') AND (coalesce(actual_end_date,end_date) IS NULL OR coalesce(actual_end_date,end_date)>=current_date)) THEN RETURN jsonb_build_object('status','held','missing',ARRAY['operative_customer_closed_and_no_active_supply']);END IF;
  source:=encode(sha256(convert_to(gridex_ediel_retention.customer_personal_fields_v1(c)::text,'UTF8')),'hex');IF source IS DISTINCT FROM d.source_hash THEN RETURN jsonb_build_object('status','held','missing',ARRAY['exact_native_customer_personal_fields_changed']);END IF;
  -- Access is revoked before physical current personal-field erasure. Tenant
@@ -49133,7 +49148,7 @@ DECLARE active boolean;
 BEGIN
  -- The same FOR SHARE lock as the installed actor/reviewer owners prevents a
  -- concurrent deletion/ban from passing a prior unlocked authorization check.
- SELECT deleted_at IS NULL AND (banned_until IS NULL OR banned_until<=now())
+ SELECT deleted_at IS NULL AND (banned_until IS NULL OR banned_until<=clock_timestamp())
  INTO active FROM auth.users WHERE id=p_actor_user_id FOR SHARE;
  IF active IS DISTINCT FROM true THEN RETURN false;END IF;
  PERFORM id FROM public.user_profiles WHERE id=p_actor_user_id FOR SHARE;
@@ -58852,7 +58867,6 @@ begin
 
   update public.customer_sites
   set facility_id=coalesce(v_facility_id,facility_id),
-      normalized_facility_id=coalesce(v_facility_id,normalized_facility_id),
       resolution_id=v_resolution_id,
       resolution_status='facility_verified',
       resolution_confidence=1,
@@ -61187,7 +61201,6 @@ begin
     facility_id,
     site_type,
     status,
-    is_active,
     street,
     postal_code,
     city,
@@ -61216,7 +61229,6 @@ begin
     nullif(btrim(p_facility_id), ''),
     'consumption',
     'draft',
-    true,
     p_street,
     p_postal_code,
     p_city,
