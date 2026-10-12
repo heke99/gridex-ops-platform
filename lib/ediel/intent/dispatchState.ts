@@ -15,6 +15,7 @@
 // This resolver fetches only lightweight status columns (no JSONB payloads / raw
 // EDIFACT) so it is safe to call from list/card views (PART 14 performance).
 
+import { postgrestEq, UUID_PATTERN } from '@/lib/ediel/matching/postgrestFilter'
 import { supabaseService } from '@/lib/supabase/service'
 import {
   isLegacyOutboundActuallySent,
@@ -197,8 +198,9 @@ async function loadOutbox(input: {
     .select('id,status,sent_at')
     .eq('company_id', input.companyId)
 
-  if (clean(input.edielMessageId)) {
-    query = query.or(`intent_id.eq.${input.intentId},ediel_message_id.eq.${input.edielMessageId}`)
+  const edielMessageId = clean(input.edielMessageId)
+  if (edielMessageId && UUID_PATTERN.test(edielMessageId) && UUID_PATTERN.test(input.intentId)) {
+    query = query.or(`${postgrestEq('intent_id', input.intentId)},${postgrestEq('ediel_message_id', edielMessageId)}`)
   } else {
     query = query.eq('intent_id', input.intentId)
   }

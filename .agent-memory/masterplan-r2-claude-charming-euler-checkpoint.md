@@ -38,7 +38,26 @@
 - Reviews by non-coauthors: codex-extra-review-a93c and the extra reviewer (source PASS at `749af6f3`), and the coordinator
   (P2 found, then verified fixed at `32235b02`; product source identical to `2889be29`).
 
+## Packet 2 — TR-08 whole-ID (genuine STRATO trace)
+- Input: two genuine operator-owned read-back traces from ediel@gridex.se via STRATO to Gmail (2026-10-12), committed masked in
+  `quality/audits/ediel-masterplan-v2/evidence/tr-08-strato-genuine-traces-20261012.json`.
+- Finding: main's evaluator rejected the genuine traces because Gmail's internal `by <ip> with SMTP` hand-off was treated as a relay hop
+  and SPF was read only above it. Fix: receiver boundary (exact `by ...` lines after a TLS hop whose host authored
+  Authentication-Results) and an operator-declared provider hand-off (both hops TLS, both hosts inside providerDomains, non-blank policyRef).
+- Result: authenticated-submission trace (iPhone Mail -> smtp.strato.com ESMTPSA TLSv1.3 -> rzone.de -> mx.google.com ESMTPS TLS1_3,
+  spf=pass) verified; webmail trace stays unverified (internal host smtp-ox.front outside provider domains). Forged variants fail.
+- Verification: 101 tests across 5 files PASS; tsc and eslint clean; `ediel:masterplan-v2:test-coverage -- --check` exit 0, approved 315/352.
+- Coverage: review 5493996486 (coordinator + peer A, non-coauthors) — TR-08 row kept NOT_VERIFIED: the STRATO submission -> outbound
+  hand-off has no Received TLS line and no published STRATO TLS policy; adjacent TLS hops do not prove that segment. `AT-TR-08` stays with C3.
+- Review P2 fixed: a `by`-first line with a late `from` is no longer receiver-internal; only plaintext/sender_missing/by_missing are cleared.
+- Gap stated openly: STRATO publishes its SPF policy but no TLS policy for its own internal submission -> outbound hand-off.
+- Refs for the 4 packet files created by the proxy (#766 6129038358).
+- OWNER DECISION 2026-10-12 (option 1): STRATO-internal hand-off accepted as provider risk (evidence `ownerDecision`); TR-08 -> VERIFIED.
+- Superseded remaining item: STRATO's own statement/policy that its submission -> outbound relay hand-off is TLS (or a trace that records it).
+
 ## Next
-- File refs for the 5 delivered paths can be released; the slot and ID refs stay (TR-08/OPS-04 not whole-approved).
-  This session cannot delete tags (403), so the release goes through the capable proxy against receipt `563cf956`.
-- TR-08/OPS-04 wait on external inputs (see Blockers). R2 does read-only reviews of the other slots in the meantime.
+- PR #785: final source reviews PASS at d4b462e6 (review 5494462593: root + peer A, non-coauthors). Late-from (d34ccdc1) and
+  unbound Received-SPF in the receiver band (d4b462e6) fixed. Proposed ledger: TR-08 VERIFIED under the recorded ownerDecision
+  (provider-internal hand-off only; recorded-hop TLS, receiver-bound SPF and port-not-proof still enforced) -> 315/352.
+- Deliver after CI is green on the final head: normal expected-head merge, verify main/tree/coverage, #766 MERGED receipt,
+  then release the packet file refs via the proxy. AT-TR-08 stays with C3; OPS-04 still needs counterparty/LIVE input.
