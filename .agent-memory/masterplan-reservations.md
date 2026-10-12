@@ -22,9 +22,11 @@ C2 är enda delade GEN-service: fem exactpaths från baselineJSON, producer-gen,
 
 Extrahelpers får granskning med läsbehörighet utan implementationclaim. Rättning i en annans fil kräver nyepochexactfilehandoff medsource/output och paus av föregående skrivare; oldagentkontakt krävs inte. Två slutgranskare som inte medförfattat; read-onlyhelpers kan komplettera reviewerantalet.
 
-## Claudeproxy och release
+## Proxy vid401/403 och release
 
-En capableproxy kan använda det tidigare ownergodkända GitDataförfarandet för en NY dokumenteradClaudeclaim. receipt.agent är nyClaudeowner, delegatedBy proxy, epoch/slot/exactscope angivna. Samma sortedcreate-if-absent/GET_MATCH/CLAIM; inga gamla mandates eller ref-identiteter återupptas. Tokenaccess får inte antas, credentials aldrig printas.
+En behörig proxy kan utföra GitDataförfarandet för en NY ägares publicerade exakta claimbehov när dennes lokala gh ger401 eller refproxy403. receipt.agent är samma nya Claude-/Codexägare, delegatedBy anger proxy, epoch/slot/packet/branch/checkpoint/base/exactscope och nästa steg binds. Samma sortedcreate-if-absent/GET_MATCH/CLAIM; verifiera även slotens aktuella ägarbindning före en fileextension. Om ett giltigt originalreceipt redan finns får proxy spegla exakt det SHA:t med delegationen i körkvittot; annars skapas ett nytt giltigt GitDatareceipt. En lokal commit som ger remote404 kan inte vara refmål. Inga gamla mandates/ref-identiteter återupptas; credentials överförs eller printas inte.
+
+Ägaren verifierar proxykvittot och faktiska refs genom tillgänglig autentiserad läsning, även om lokal gh fortfarande saknar åtkomst. Bara det exactverifiedscope kan då fortsätta; nya files/IDs/producers kräver ytterligare verifiedrefs före första write, även lokalt. En kommentar utan ref eller ett framtida tilldelat slot-ID är ingen claim. [R1/R2/C2åtkomstkvitto](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125010625) och [C2:s tillagda två filer](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125274908) är utförda operationer, inte tillstånd att claima om samma resurser eller retroaktivt godkänna tidigare unreservedwrites.
 
 role-memory och role-merge är singleatomicresources med ownreceipts. Gemensamt minne kräver role-memory+exactfiles. Acquire role-merge efter currentheadmandatorygates/twopeerreviews/relevantproof, refreshactualmain/head/ledger och normalexpected-headmerge. Verifyactualdelivery. Release mergeroleFIRST före memory/resourcecleanup; håll aldrig båda roller medan du väntar på den andra.
 
