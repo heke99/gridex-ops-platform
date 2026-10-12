@@ -1,6 +1,6 @@
 # Completed work — verifierad leverans och förberedd output
 
-Observation `2026-10-12T23:48:12.481382+02:00`, maine26. [Handover](handover.md) binder faktiska leveranser: #773/#774/#777/#778/#781/#782/#783/#775/#789/#785. Godkänd ledger är315/352; SC053/SC054 fortfarande PARTIAL. Granskat öppet förslag är inte en leverans.
+Observation `2026-10-12T23:55:01.875707+02:00`, main35ad. [Handover](handover.md) binder faktiska leveranser: #773/#774/#777/#778/#781/#782/#783/#775/#789/#785/#786. Godkänd ledger är315/352; SC053/SC054 fortfarande PARTIAL. Matcher/#786 är levererad till35ad påe26, oförändrad315-ledger. Granskat öppet förslag är inte en leverans.
 
 [Fullt rootövertagande](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132656380) och receiptbundna R1/C3/C2implementation/R2docs-delegationer är administrativa övergångar, ingen coveragecredit. Den [specifika nya GEN114e-tjänsten](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132691871) är ensam; gamla writers/mergers är stoppade medan bevis/branches bevaras.
 

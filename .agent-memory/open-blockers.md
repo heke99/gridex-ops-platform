@@ -1,6 +1,6 @@
 # Open blockers — konkret output och återupptagning
 
-Observation `2026-10-12T23:48:12.481382+02:00`; aktuella PR-versioner och [#766](https://github.com/heke99/gridex-ops-platform/issues/766) har företräde. Root och dess nuvarande delegater är ägare enligt [fullt övertagande](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132656380); tidigare agentväntan gäller inte.
+Observation `2026-10-12T23:55:01.875707+02:00`; aktuella PR-versioner och [#766](https://github.com/heke99/gridex-ops-platform/issues/766) har företräde. Root och dess nuvarande delegater är ägare enligt [fullt övertagande](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132656380); tidigare agentväntan gäller inte.
 
 - C1/#780: v2:s åtta positiva job_insert-fel har verklig SQLSTATE428C9. #787:s tre generated-column-rättningar och COMMIT är källstängda; #792 c3d innehåller autentisk gemensam GEN. **Output:** C1:s nya källbärare och samma original91 native-utfall efter integration. Ingen kopiering av privat forward eller ogrundad SQL-fix.
 - R1/#779: #788 be2 stänger issuer-/purger-/reviewer-källfynden; SQL5d6f/testb21 finns i #792. **Output:** final native10 efter samma GEN, med originalåtta samt två verkliga issuer-lås/reviewer-DENY-kontraster. Gamla 5e/fe107 och överlappande legal-only68-underlag används inte som slutkälla. Juridisk retentionklass/grund/deadline/original kvarstår för hela DB05/ATDB05/SC070.
@@ -9,6 +9,6 @@ Observation `2026-10-12T23:48:12.481382+02:00`; aktuella PR-versioner och [#766]
 - C2/#784: gamla e6 var faktiskt PR-head vid avläsningen23:44; förberedd79a använder fysisk ERR/TN på levererad789 och kräver nytt ägt native-prov. **Output:** slutkälla/två peers, native5 med fysisk negativ ERR/no-positive/no-values, aktuella gates. Ny implementation60cc och soleGEN114e är skilda, verifierade mandates.
 - C2/#790: bed:s accepterade historikhook-P2 och valfria post-GEN-lockguard återstår i ny implementation60cc. **Output:** kompatibilitetsrättning som behåller faktiska auth/source/DB-refusals, egna regressionskontraster, seriell114e-GEN och ny slutgranskning. Gamla Claude är inte fixägare.
 - C3/#776: ny ägd a9c/H101-kedja följs av endast C3-insamlaren. **Output:** faktiska counts/exit/originalinput/restoration/cleanup och domänfel innan rättning/leverans. Äldre förlorad runneroutput har okänd orsak; externa och asynkrona billingkriterier är separat arbete.
-- #786/#791: reviews och daterad grön metadata ersätter inte finalhead-gates. **Output:** aktuell slutversion med två oberoende icke-medförfattande peers och normala kontroller; rootmergeroll först när allt är klart.
+- #791: #786 är levererad till35ad med oförändrad315-ledger. **Output:** docs slutversion med två oberoende icke-medförfattande affected-peers och currenthead-kontroller; rootmergeroll först när allt är klart. Ny faktisk main/state verifieras före merge, utan nya oförändrade sourcepushar.
 
 401/403 är inte frånvaro eller ett godkännande. Exakta refs kräver faktisk GET_MATCH; kommentarer ger inte fil-/producentcustody. Ingen privat processkill, generell native/GEN-credit eller ändrad #310PAUSED-status påstås.
