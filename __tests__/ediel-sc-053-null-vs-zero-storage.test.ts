@@ -53,6 +53,11 @@ const QUALITY_EXTENSION=String.raw`
  const nullPersisted=await persist(uid(33),nullCommitted)
  await db.exec(fs.readFileSync(root+'/supabase/migrations/20261012120000_ediel_utilts_source_quantity_quality_v2.sql','utf8'))
  let sc053=0
+ // A source row carrying the physical STS+8 qualities (the harness message()
+ // stores a QTY-less raw), so preserve can re-derive which keys are required.
+ const sourced=async(id,tx,sourceRaw)=>{
+  await db.query("INSERT INTO public.ediel_messages VALUES($1,$2,'test','inbound','UTILTS','E66',$3)",[id,company,sourceRaw])
+  await db.query("INSERT INTO gridex_utilts_binding.receipts(source_message_id,company_id,environment,message_code,raw_hash,source_context,membership,contract_version) SELECT m.id,m.company_id,m.environment,m.message_code,encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'),gridex_utilts_binding.source_context_v1(m),jsonb_build_object($2::text,true),2 FROM public.ediel_messages m WHERE m.id=$1",[id,tx])}
  const raw="UNH+1+UTILTS'BGM+E66+DOC+9'IDE+24+SC053'MEA+AAZ++KWH'SEQ++1'QTY+136:NULL'STS+8+46'SEQ++2'QTY+136:0'STS+8+21'SEQ++3'QTY+220:123'UNT+11+1'"
  const tokens=(await db.query('SELECT gridex_utilts_binding.wire_tokens_v1($1) t',[raw])).rows[0].t
  const quantities=[{qualifier:'136',value:null,quality:'46',raw:'QTY+136:NULL'},{qualifier:'136',value:'0',quality:'21',raw:'QTY+136:0',readingAt:'2026-09-01T00:15:00Z'},{qualifier:'220',value:'123',quality:null,raw:'QTY+220:123'}]
@@ -107,7 +112,7 @@ const QUALITY_EXTENSION=String.raw`
  assert.equal(await validIn(powerTokens,{...power,quantities:[{...powerQuantities[0],qualifier:'220'},powerQuantities[1]]}),false);sc053++
  assert.equal(await validIn(powerTokens,{...power,unit:'KWH'}),false);sc053++
  // Power stored in its own series with its own qualities, never among energy.
- await message(uid(35),'SC053P')
+ await sourced(uid(35),'SC053P',powerRaw)
  const powerItem={...item('SC053P','2026-10-04T08:00:00Z','7.5'),unit:'KWT',quantities:powerQuantities}
  // A missing power quality key on a new accepted v2 item is refused before storage.
  await assert.rejects(()=>preserve(uid(35),[{...powerItem,consumptionContract:{version:2,observations:[]},quantities:powerQuantities.map(({quality,...q})=>q)}]),/utilts_quantity_quality_required/);sc053++
@@ -152,12 +157,21 @@ const QUALITY_EXTENSION=String.raw`
  // RPC chain (gridex_persist_utilts_consumption_v1 -> before_actor ->
  // preserve -> persist_series_v1), so a sourced 46/21 never becomes 'unknown'.
  // This harness's persist() calls the inner persist_series_v1 directly.
- await message(uid(34),'SC053')
+ await sourced(uid(34),'SC053',raw)
  const dropped={...item('SC053','2026-10-04T08:00:00Z','0'),consumptionContract:{version:2,observations:[]},quantities:quantities.map((q,i)=>{if(i!==0)return q;const {quality,...rest}=q;return rest})}
  await assert.rejects(()=>preserve(uid(34),[dropped]),/utilts_quantity_quality_required/);sc053++
  const notObject={...dropped,quantities:[null,...quantities.slice(1)]}
  await assert.rejects(()=>preserve(uid(34),[notObject]),/utilts_quantity_quality_required/);sc053++
  assert.deepEqual(await preserve(uid(34),[{...dropped,quantities}]),[{...dropped,quantities}]);sc053++
+ // The key is required exactly where the source has STS+8: the third QTY
+ // (220:123) has none, so omitting only its key is not refused here and the
+ // validator re-derives no quality for it.
+ const noSourceQuality={...dropped,quantities:quantities.map((q,i)=>{if(i!==2)return q;const {quality,...rest}=q;return rest})}
+ assert.deepEqual(await preserve(uid(34),[noSourceQuality]),[noSourceQuality]);sc053++
+ assert.equal(await valid({...source,quantities:[quantities[0],quantities[1],{qualifier:'220',value:'123',raw:'QTY+220:123'}]}),true);sc053++
+ // Prohibited: in the SC-053 shape a sourced quality cannot be dropped for
+ // one quantity while others keep theirs (validator, per quantity).
+ assert.equal(await valid({...source,quantities:[{qualifier:'136',value:null,raw:'QTY+136:NULL'},quantities[1],quantities[2]]}),false);sc053++
  // A non-accepted item and a committed legacy retry are not affected.
  const notAccepted={...dropped,disposition:'rejected'}
  const versionOne={...dropped,consumptionContract:{version:1,observations:[]}}
@@ -165,7 +179,7 @@ const QUALITY_EXTENSION=String.raw`
  assert.deepEqual(await preserve(uid(34),[notAccepted]),[notAccepted]);sc053++
  assert.deepEqual(await preserve(uid(32),[committed]),[original]);sc053++
  // Both replaced functions stay private.
- for(const role of ['anon','authenticated','service_role'])for(const fn of ['gridex_utilts_binding.validate_decimal_source_v2(jsonb,jsonb,text)','gridex_utilts_binding.preserve_committed_projection_v1(uuid,text,uuid,jsonb)'])
+ for(const role of ['anon','authenticated','service_role'])for(const fn of ['gridex_utilts_binding.validate_decimal_source_v2(jsonb,jsonb,text)','gridex_utilts_binding.preserve_committed_projection_v1(uuid,text,uuid,jsonb)','gridex_utilts_binding.missing_source_quality_v2(jsonb,jsonb)'])
   assert.equal((await db.query('SELECT has_function_privilege($1,$2,$3) a',[role,fn,'EXECUTE'])).rows[0].a,false)
  sc053++
  console.log('SC053_QUANTITY_QUALITY_RESULT '+JSON.stringify({checks:sc053,boundary:'focused PGlite over real persist/validator/replay functions',native:'NOT_EXERCISED'}))
@@ -261,7 +275,7 @@ describe('SC-053 NULL is not zero in stored UTILTS values',()=>{
   expect(result.error,result.stderr).toBeUndefined()
   expect(result.status,result.stdout+result.stderr).toBe(0)
   const line=result.stdout.split('\n').find(l=>l.startsWith('SC053_QUANTITY_QUALITY_RESULT '))
-  expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(37)
+  expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(40)
 
  },125_000)
 
