@@ -56,6 +56,8 @@
 - Superseded remaining item: STRATO's own statement/policy that its submission -> outbound relay hand-off is TLS (or a trace that records it).
 
 ## Next
-- File refs for the 5 delivered paths can be released; the slot and ID refs stay (TR-08/OPS-04 not whole-approved).
-  This session cannot delete tags (403), so the release goes through the capable proxy against receipt `563cf956`.
-- TR-08/OPS-04 wait on external inputs (see Blockers). R2 does read-only reviews of the other slots in the meantime.
+- PR #785: final source reviews PASS at d4b462e6 (review 5494462593: root + peer A, non-coauthors). Late-from (d34ccdc1) and
+  unbound Received-SPF in the receiver band (d4b462e6) fixed. Proposed ledger: TR-08 VERIFIED under the recorded ownerDecision
+  (provider-internal hand-off only; recorded-hop TLS, receiver-bound SPF and port-not-proof still enforced) -> 315/352.
+- Deliver after CI is green on the final head: normal expected-head merge, verify main/tree/coverage, #766 MERGED receipt,
+  then release the packet file refs via the proxy. AT-TR-08 stays with C3; OPS-04 still needs counterparty/LIVE input.
