@@ -52,7 +52,7 @@ async function permission(n,objects,application=null){
   const begin=header.indexOf(delimiter),end=header.indexOf(delimiter+';',begin+delimiter.length);assert.ok(end>begin,name)
   return header.slice(0,end+delimiter.length+1)
  }
- for(const name of ['wire_tokens_v1','exact_keys_v1','absolute_v1','validate_contract_base_v1','validate_legacy_contract_v1','canonical_decimal_v2','valid_transaction_reference_v2','validate_contract_v1','validate_decimal_source_v2','supported_point_v1','source_context_v1','stored_contract_v1']) await db.exec(capturedFunction('gridex_utilts_binding.'+name))
+ for(const name of ['wire_tokens_v1','exact_keys_v1','absolute_v1','validate_contract_base_v1','validate_legacy_contract_v1','canonical_decimal_v2','valid_transaction_reference_v2','validate_contract_v1','validate_decimal_source_v2','missing_source_quality_v2','supported_point_v1','source_context_v1','stored_contract_v1']) await db.exec(capturedFunction('gridex_utilts_binding.'+name))
  await db.exec(capturedFunction('public.gridex_normalize_metering_point_id'))
  await db.exec(capturedFunction('public.gridex_normalize_facility_id'))
  for(const name of ['public.metering_points','public.customer_sites']){const a=schema.indexOf('CREATE TABLE '+name+' (');assert.ok(a>=0);await db.exec(schema.slice(a,schema.indexOf('\n);',a)+4))}
