@@ -34,7 +34,8 @@ beforeEach(resetNativeEscoFixture)
 const NULL_ZERO = ["SEQ++1'", "QTY+136:NULL'", "DTM+597:202607010000:203'", "STS+8+46'",
   "SEQ++2'", "QTY+136:0'", "DTM+597:202607010015:203'", "STS+8+21'"]
 
-async function nullZeroSource(f: Fixture, reference: string, extra: string[] = []) {
+type Disposition = [string, string]
+async function nullZeroSource(f: Fixture, reference: string, extra: string[] = [], options: { powerTransaction?: string; dispositions?: Disposition[] } = {}) {
   registerUtiltsIssuer(sql, lit, f.receiver, f.ids.actor)
   const physical = utiltsErrGatewayFixture({ company: f.ids.company, receiver: f.sender, transactions: [{ reference, outcome: 'accepted' }] })
   const lines = physical.raw_payload!.replaceAll('91100', f.receiver).replaceAll('23-DDQ-E66-T', '23-DGI-E66-T').replace("NAD+DDQ'", "NAD+DGI'")
@@ -42,7 +43,15 @@ async function nullZeroSource(f: Fixture, reference: string, extra: string[] = [
     .replace('202607010000202607010015:719', '202607010000202607010030:719').split('\n')
   const seq = lines.findIndex(line => line.startsWith('SEQ+')), unt = lines.findIndex(line => line.startsWith('UNT+'))
   expect(lines.slice(seq, unt)).toEqual(["SEQ++1'", "QTY+136:500'", "DTM+597:202607010000:203'", "STS+7++21::260'"])
-  const raw = utiltsRecountUnt([...lines.slice(0, seq), ...NULL_ZERO, ...extra, ...lines.slice(unt)].join('\n'))
+  // A genuine max-demand transaction (U field521, SG11 QTY+42) is its own IDE
+  // whose SG5/MEA+AAZ declares the power unit KWT for the whole transaction.
+  const ide = lines.findIndex(line => line.startsWith('IDE+'))
+  const power = options.powerTransaction ? [...lines.slice(ide, seq).map(line => line.replaceAll(reference, options.powerTransaction!).replace("MEA+AAZ++KWH'", "MEA+AAZ++KWT'")
+    // One max-demand value for its own single quarter.
+    .replace('202607010000202607010030:719', '202607010000202607010015:719')),
+    "SEQ++1'", "QTY+42:7.5'", "STS+8+56'"] : []
+  if (options.powerTransaction) expect(power.filter(line => line === "MEA+AAZ++KWT'")).toHaveLength(1)
+  const raw = utiltsRecountUnt([...lines.slice(0, seq), ...NULL_ZERO, ...extra, ...power, ...lines.slice(unt)].join('\n'))
   const fresh = utiltsNativeSourceFixture(raw, randomUUID()), source = await f.insert(fresh.raw, 'UTILTS', 'E66')
   seedUtiltsIssuerHistoryGround(sql, lit, source.id, f.ids.actor)
   const initial = await initialCanonicalUtiltsDecision(source)
@@ -50,7 +59,8 @@ async function nullZeroSource(f: Fixture, reference: string, extra: string[] = [
   const periodicReasonAuthority = readCanonicalPeriodicReasonAuthority({ decision: initial, message: source }) ?? undefined
   const qualified = await qualifyReceivedUtiltsStructure({ message: source, canonicalPolicy: initial.policy, issuerIdentityAuthority, periodicReasonAuthority,
     runtime: runUtiltsRuntimeForMessage(source, { canonicalPolicy: initial.policy, issuerIdentityAuthority, periodicReasonAuthority }) })
-  expect(qualified.runtime.transactionDispositions.map(x => [x.disposition, x.responseType]), JSON.stringify(qualified.runtime.validation.issues)).toEqual([['accepted', 'positive_aperak']])
+  const dispositions = qualified.runtime.transactionDispositions.map(x => [x.disposition, x.responseType])
+  expect(dispositions, JSON.stringify(qualified.runtime.validation.issues)).toEqual(options.dispositions ?? (options.powerTransaction ? [['accepted', 'positive_aperak'], ['accepted', 'positive_aperak']] : [['accepted', 'positive_aperak']]))
   await recordFinalCanonicalUtiltsDecision({ original: source, validated: source, initialDecision: initial, runtime: qualified.runtime })
   const matches = qualified.runtime.facts.transactions.map(t => ({ transactionReference: t.transactionId, meteringPointId: f.ids.point, customerId: f.ids.customer, siteId: f.ids.site,
     gridOwnerId: f.ids.grid, externalMeteringPointId: f.point, externalGridAreaId: 'TES', matchStatus: 'matched' as const }))
@@ -61,9 +71,10 @@ async function nullZeroSource(f: Fixture, reference: string, extra: string[] = [
   return {
     source, input,
     persist: (override = input) => persistUtiltsTransactionResults(override),
-    ack: () => createCanonicalAckMessage({ actorUserId: f.ids.actor, sourceMessage: source, ackFamily: 'APERAK', outcome: 'positive',
-      draft: buildAperakDraft({ actorUserId: f.ids.actor, sourceMessage: source, outcome: 'positive', relatedTransactionReference: reference, ackScope: 'transaction' }) }),
-    finalize: (ackId: string) => finalizeUtiltsTransactionAck({ companyId: f.ids.company, environment: 'test', sourceMessageId: source.id, transactionId: reference, responseType: 'positive_aperak', responseMessageId: ackId }),
+    runtime: qualified.runtime,
+    ack: (transaction = reference) => createCanonicalAckMessage({ actorUserId: f.ids.actor, sourceMessage: source, ackFamily: 'APERAK', outcome: 'positive',
+      draft: buildAperakDraft({ actorUserId: f.ids.actor, sourceMessage: source, outcome: 'positive', relatedTransactionReference: transaction, ackScope: 'transaction' }) }),
+    finalize: (ackId: string, transaction = reference) => finalizeUtiltsTransactionAck({ companyId: f.ids.company, environment: 'test', sourceMessageId: source.id, transactionId: transaction, responseType: 'positive_aperak', responseMessageId: ackId }),
   }
 }
 
@@ -186,32 +197,50 @@ it.each([
   expect(stored(f, incoming.source.id)!.map(v => [v.quantity, v.quality])).toEqual([[null, '46'], ['0', '21']])
 })
 
-// Prohibited mixing: a QTY+42 power value beside the NULL/0 energy quarters is
-// kept under its own qualifier with its own quality, is never consumed as
-// energy, has no invented interval and is not returned by the energy read.
+const seriesValues = (f: Fixture, seriesId: string) => sql<{ quantity: string | null; quality: string; qualifier: string; unit: string }[]>(
+  `SELECT jsonb_agg(jsonb_build_object('quantity',v.quantity::text,'quality',v.quality,'qualifier',v.qualifier,'unit',v.unit) ORDER BY v.source_order)
+   FROM public.meter_reading_values v WHERE v.company_id=${lit(f.ids.company)} AND v.series_id=${lit(seriesId)}`)
+
+// U field521 (UF-maximum_demand-521-60): maximum demand is SG11 QTY+42 in kW.
+// A genuine power transaction is its own IDE with MEA+AAZ++KWT; it is stored in
+// its own series with unit KWT and its own quality, never among the KWH energy.
 // (A dated QTY+220 meter reading needs an authoritative register readset and
 // is held as internal_review before persistence natively; it is covered by
 // the PGlite regression in __tests__/ediel-sc-053-null-vs-zero-storage.test.ts.)
-it('SC-053 a power QTY+42 beside NULL/0 energy is stored apart and never mixed into energy or the authorized read', async () => {
+it('SC-053 a genuine KWT power transaction (QTY+42) is stored apart from the NULL/0 KWH energy and never mixed into energy or its read', async () => {
   const f = await seedNativeEscoFixture(), authority = await qualifyNativeEscoFixture(f)
-  const reference = 'SC053P-' + randomUUID().slice(0, 8)
-  const incoming = await nullZeroSource(f, reference, ["SEQ++3'", "QTY+42:7.5'", "STS+8+56'"])
-  expect(incoming.input.transactions[0].quantities.map(q => [q.qualifier, q.value])).toEqual([['136', null], ['136', 0], ['42', 7.5]])
+  const reference = 'SC053E-' + randomUUID().slice(0, 8), powerReference = 'SC053W-' + randomUUID().slice(0, 8)
+  const incoming = await nullZeroSource(f, reference, [], { powerTransaction: powerReference })
   // Only the verified zero energy quarter is consumable; power is not energy.
-  expect(incoming.input.contracts[0].observations.map(o => [o.sourceOrdinal, String(o.quantity), o.unit])).toEqual([[1, '0', 'kWh']])
-  const [result] = await incoming.persist()
-  expect(result).toMatchObject({ persistenceStatus: 'persisted', responseType: 'positive_aperak' })
-  expect(stored(f, incoming.source.id)).toEqual([
-    { quantity: null, quality: '46', qualifier: '136', reading_at: '2026-06-30T22:00:00+00:00', unit: 'KWH' },
-    { quantity: '0', quality: '21', qualifier: '136', reading_at: '2026-06-30T22:15:00+00:00', unit: 'KWH' },
-    { quantity: '7.5', quality: '56', qualifier: '42', reading_at: null, unit: 'KWH' },
-  ])
-  expect(sql(`SELECT jsonb_build_object('n',count(*),'sum',sum(quantity)::text) FROM public.meter_reading_values WHERE company_id=${lit(f.ids.company)} AND series_id=${lit(result.seriesId)} AND qualifier='136'`)).toEqual({ n: 2, sum: '0' })
-  const ack = await incoming.ack(); await incoming.finalize(ack.id)
-  expect(disposition(f, incoming.source.id)).toMatchObject({ final_response_type: 'positive_aperak', response_message_id: ack.id, persisted_series_id: result.seriesId })
-  const series = sql<{ start: string; end: string }>(`SELECT jsonb_build_object('start',period_start,'end',period_end) FROM public.meter_reading_series WHERE company_id=${lit(f.ids.company)} AND id=${lit(result.seriesId)}`)
+  expect(incoming.input.contracts.map(c => c.observations.map(o => [o.sourceOrdinal, String(o.quantity), o.unit]))).toEqual([[[1, '0', 'kWh']], []])
+  const [energy, power] = await incoming.persist()
+  expect(energy).toMatchObject({ transactionId: reference, persistenceStatus: 'persisted', responseType: 'positive_aperak' })
+  expect(power).toMatchObject({ transactionId: powerReference, persistenceStatus: 'persisted', responseType: 'positive_aperak' })
+  expect(power.seriesId).not.toBe(energy.seriesId)
+  expect(seriesValues(f, energy.seriesId!)).toEqual([{ quantity: null, quality: '46', qualifier: '136', unit: 'KWH' }, { quantity: '0', quality: '21', qualifier: '136', unit: 'KWH' }])
+  expect(seriesValues(f, power.seriesId!)).toEqual([{ quantity: '7.5', quality: '56', qualifier: '42', unit: 'KWT' }])
+  expect(sql(`SELECT jsonb_build_object('energy',(SELECT unit FROM public.meter_reading_series WHERE id=${lit(energy.seriesId)}),'power',(SELECT unit FROM public.meter_reading_series WHERE id=${lit(power.seriesId)}))`)).toEqual({ energy: 'KWH', power: 'KWT' })
+  expect(sql(`SELECT jsonb_build_object('n',count(*),'sum',sum(quantity)::text) FROM public.meter_reading_values WHERE company_id=${lit(f.ids.company)} AND unit='KWH' AND series_id IN(${lit(energy.seriesId)},${lit(power.seriesId)})`)).toEqual({ n: 2, sum: '0' })
+  for (const transaction of [reference, powerReference]) { const ack = await incoming.ack(transaction); await incoming.finalize(ack.id, transaction) }
+  const series = sql<{ start: string; end: string }>(`SELECT jsonb_build_object('start',period_start,'end',period_end) FROM public.meter_reading_series WHERE company_id=${lit(f.ids.company)} AND id=${lit(energy.seriesId)}`)
   const page = await projectEdielSeriesToBeneficiary({ beneficiaryCompanyId: f.ids.beneficiary, actorUserId: reader(f.ids.beneficiary), grantId: authority.grantId,
     expectedGrantVersion: sql<number>(`SELECT to_jsonb(version) FROM public.ediel_data_access_grants WHERE id=${lit(authority.grantId)}`),
-    purpose: f.fields.purpose, seriesId: result.seriesId!, fields: ['quantity', 'quality', 'qualifier'], startInclusive: series.start, endExclusive: series.end, limit: 100 })
+    purpose: f.fields.purpose, seriesId: energy.seriesId!, fields: ['quantity', 'quality', 'qualifier'], startInclusive: series.start, endExclusive: series.end, limit: 100 })
   expect(page.rows).toEqual([{ quantity: null, quality: '46', qualifier: '136' }, { quantity: '0', quality: '21', qualifier: '136' }])
+})
+
+// Prohibited: power (QTY+42) inside a transaction whose SG5/MEA declares the
+// energy unit KWH would store a kW value as KWH. The guide check refuses the
+// transaction (ERC 42, field264, negative APERAK): no persistence, no ACK.
+it('SC-053 a QTY+42 power value inside the KWH energy transaction is refused before persistence with no effects', async () => {
+  const f = await seedNativeEscoFixture(); await qualifyNativeEscoFixture(f)
+  const reference = 'SC053M-' + randomUUID().slice(0, 8)
+  const incoming = await nullZeroSource(f, reference, ["SEQ++3'", "QTY+42:7.5'", "STS+8+56'"], { dispositions: [['guide_rejected', 'negative_aperak']] })
+  expect(incoming.runtime.validation.issues.find(i => i.code === 'UTILTS_POWER_QUANTITY_UNIT_INVALID')).toMatchObject({ kind: 'application', aperakErcCode: '42', aperakFieldCode: '264', referenceNumber: reference })
+  expect(incoming.input.contracts.every(c => c.observations.length === 0)).toBe(true)
+  const before = f.effects()
+  await expect(incoming.ack()).rejects.toBeDefined()
+  expect(stored(f, incoming.source.id)).toBeNull()
+  expect(ackRows(f, incoming.source.id).filter(a => a.outcome === 'positive')).toEqual([])
+  expect(f.effects()).toEqual(before)
 })

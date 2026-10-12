@@ -97,7 +97,7 @@ jobs:
                       raise SystemExit('native_git_blob_mismatch: ' + path)
                   require(pathlib.Path(path), inputs[path])
               frozen_native = {
-                  'scripts/ediel-sc-053-null-zero-native.test.ts': '137adf80eb25e145fe928f636a8c1e35182aaecb02b99f3b7d804cf2cbcea01e',
+                  'scripts/ediel-sc-053-null-zero-native.test.ts': '9ec366263f9c0f0dd8cf39d0addf88ba964eb4cd4169e74556131e7def83174c',
                   'scripts/ediel-sc-053-null-zero-native.config.ts': '51bd7183975d0c9b38de1cc558ce13b6552471f2766078fad4a325f8acdcc5e1',
               }
               for path, digest in frozen_native.items():
@@ -224,7 +224,8 @@ jobs:
                   'SC-053 forged quality payload (quality key dropped) is rejected by the native RPC with no rows or ACK',
                   'SC-053 forged quality payload (energy relabelled as meter reading) is rejected by the native RPC with no rows or ACK',
                   'SC-053 forged quality payload (energy relabelled as power) is rejected by the native RPC with no rows or ACK',
-                  'SC-053 a power QTY+42 beside NULL/0 energy is stored apart and never mixed into energy or the authorized read',
+                  'SC-053 a genuine KWT power transaction (QTY+42) is stored apart from the NULL/0 KWH energy and never mixed into energy or its read',
+                  'SC-053 a QTY+42 power value inside the KWH energy transaction is refused before persistence with no effects',
               ],
               'ordinary_required_gates': 'NOT_REPLACED',
               'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
