@@ -1,4 +1,5 @@
 import {hasReceivedZ04HStructuralFieldRejection} from '@/lib/ediel/prodat/receivedZ04HStructuralFieldRejection'
+import {hasReceivedZ05RejectedIdentityRejection} from '@/lib/ediel/prodat/receivedZ05RejectedIdentityRejection'
 import {hasReceivedZ04HRequiredFieldRejection} from '@/lib/ediel/prodat/receivedZ04HRequiredFieldRejection'
 import {hasReceivedZ04HRegisterRejection} from '@/lib/ediel/prodat/receivedZ04HRegisterRejection';
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages';
@@ -380,7 +381,8 @@ async function applyCanonicalRuntimeDecision(params: {
   const protectedPhysicalRejection=hasReceivedZ04RequiredStartRejection(decision,params.message,params.actorUserId)
     ||hasReceivedZ04HRegisterRejection(decision,params.message,params.actorUserId)
     ||hasReceivedZ04HRequiredFieldRejection(decision,params.message,params.actorUserId)
-    ||hasReceivedZ04HStructuralFieldRejection(decision,params.message,params.actorUserId);
+    ||hasReceivedZ04HStructuralFieldRejection(decision,params.message,params.actorUserId)
+    ||hasReceivedZ05RejectedIdentityRejection(decision,params.message,params.actorUserId);
   if(params.message.message_family==='PRODAT' && decision.syntaxDecision==='accepted' && (decision.policy||protectedPhysicalRejection) && !registryIncidentReview) {
     if(sourceValidationEvidence.status!=='recorded')throw new Error('prodat_canonical_source_validation_unconfirmed');
     await captureFreshEdielSourceRulePackEvidence(params.resolvedCompanyId,params.message.id);
@@ -1046,7 +1048,8 @@ export async function processInboundEdielMessage(params: {
     ||hasReceivedZ04RequiredStartRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
     ||hasReceivedZ04HRegisterRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
     ||hasReceivedZ04HRequiredFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
-    ||hasReceivedZ04HStructuralFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
+    ||hasReceivedZ04HStructuralFieldRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)
+    ||hasReceivedZ05RejectedIdentityRejection(canonicalRuntime.decision,tenantResolvedMessage,actorUserId)){
     const plan=canonicalRuntime.decision.responsePlan.find(plan=>plan.family==='APERAK'&&plan.outcome==='negative');
     if(!plan?.applicationErrors?.length)throw new Error('prodat_required_start_negative_owner_unavailable');
     await createAckIfMissing({actorUserId,sourceMessage:runtimeMessage,ackFamily:'APERAK',outcome:'negative',
