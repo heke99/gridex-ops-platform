@@ -1,7 +1,7 @@
-# Current task — nya agenter fortsätter
+# Current task — hjälp de nya ägarna att slutföra ett paket
 
-Följ [masterplan-five-agent-baseline-20261012.md](masterplan-five-agent-baseline-20261012.md) och [masterplan-five-agent-transition-20261012.md](masterplan-five-agent-transition-20261012.md). R1 DB05; R2 TR08+OPS04; C1 13 L/LK/C/timing; C2 10 ESCO/metering+seriellGEN; C3 12 H/F/G/BRP/intake/externalacceptances.
+Följ [baslinjen](masterplan-five-agent-baseline-20261012.md), [överlämningen](masterplan-five-agent-transition-20261012.md), aktuell main och [#766](https://github.com/heke99/gridex-ops-platform/issues/766). R1 DB05; R2 TR08+OPS04; C1 13 L/LK/C/timing; C2 10 ESCO/metering+seriell GEN; C3 12 H/F/G/BRP/intake/externalacceptances. Slotuppdrag är inte en teknisk claim.
 
-Läs frysta krav och relevant donorhead; skapa egen ny branch/packet/slotclaim och nästa pakets ID/files/producerclaim. Ingen väntan på gamla agenter. Slutför ett sammanhängande paket, två oberoende granskningar, currentheadgates, faktiskleverans och egna release före nästa paket. Extrahelpers välkomna enligt cleanworkflow.
+Nästa avgränsade arbete vid2026-10-12-observationen: R1 använder sina verifierade refs för DB05-paketet; R2 slutför774:s källgranskning och current-head CI; C1 rättar returnerad UPDATE.error i777 under egen filreservation; C2 åtgärdar775:s källfynd och slutför seriell GEN/upgrade; C3 kvalificerar den redan pågående H-kedjan i776. Aktuella exakta heads, blockers och nästa steg kommer från ägarnas senaste kvitton. Starta inga parallella producenter eller rättningar i deras filer.
 
-[Relevant tidigare original](https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/current-task.md) är historik, inte instruktion till en gammal agent.
+Avsluta/handoff/release ett sammanhängande paket före nästa. C2:s lokala SC054/ESCO-kandidater är framtida underlag, inte reservationer; exakta ID/filer/producenter ska vara verifierade före ytterligare writes. Extra granskare får läsa direkt och hjälpa att rätta efter avgränsad ny filöverlämning. Två slutgranskare som inte medförfattat, aktuella mandatorygates och relevant genuint bevis krävs för leverans. Legal/provider/LIVE-helhetsbevis begränsar godkännandet; oberoende egna mekanismdelar och granskning kan fortsätta.
