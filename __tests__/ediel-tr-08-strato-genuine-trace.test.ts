@@ -116,6 +116,17 @@ describe('TR-08 genuine STRATO relay traces', () => {
     expect(v.hops[3].tls).not.toBe('receiver_internal')
   })
 
+  it('rejects a provider-looking HELO whose receiver-written name is outside the provider (review 6131095804)', () => {
+    const mixed = SUBMISSION.replace(
+      'from mo4-p00-ob.smtp.rzone.de (mo4-p00-ob.smtp.rzone.de. [85.215.255.23])',
+      'from evil.rzone.de (evil.attacker.example. [85.215.255.23])',
+    )
+    const v = run(mixed)
+    expect(v.verified).toBe(false)
+    expect(v.reasons).toContain('hop_chain_discontinuity')
+    expect(v.notes).not.toContain('hop_1_provider_internal_handoff')
+  })
+
   it('does not accept a hand-off into a host outside the declared provider domains', () => {
     const v = run(SUBMISSION.replaceAll('mo4-p00-ob.smtp.rzone.de', 'mo4.relay.attacker.example'))
     expect(v.verified).toBe(false)

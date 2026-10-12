@@ -354,7 +354,10 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
   for (let i = 1; i < relayHops.length; i++) {
     const prev = hops[i - 1], cur = hops[i]
     if (!cur.fromNames.some((n) => hostsRelated(n, prev.by))) {
-      const handoff = prev.tls === 'tls' && cur.tls === 'tls' && inProvider(prev.by) && cur.fromNames.some(inProvider)
+      // Every sender name (HELO and the receiver-written rDNS) must sit inside the
+      // provider scope; one provider-looking name alongside an outside name is a contradiction.
+      const handoff = prev.tls === 'tls' && cur.tls === 'tls' && inProvider(prev.by) &&
+        cur.fromNames.length > 0 && cur.fromNames.every(inProvider)
       if (handoff) notes.push(`hop_${cur.index}_provider_internal_handoff`)
       else if (!reasons.includes('hop_chain_discontinuity')) reasons.push('hop_chain_discontinuity')
     }
