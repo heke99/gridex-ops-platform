@@ -12,7 +12,7 @@ const run=spawnSync(process.execPath,[path.join(__dirname,'ediel-partial-permiss
  cwd:root,encoding:'utf8',env:{...process.env,EDIEL_PGLITE_MODULE:require.resolve('@electric-sql/pglite'),EDIEL_PERMISSION_PROBE_MODULE:path.join(__dirname,'ediel-sc-023-vh-history-sql-regression.mjs')}
 })
 if(run.status!==0){console.error(JSON.stringify({status:run.status,signal:run.signal,error:run.error?.message}));console.error(run.stdout);console.error(run.stderr);process.exit(1)}
-if(!/SC-023 own history SQL: 36 cases PASS;/.test(run.stdout)){console.error('SC023_SQL_NOT_EXECUTED: no completed own SQL result');console.error(run.stderr);process.exit(1)}
+if(!/SC-023 own history SQL: 46 cases PASS;/.test(run.stdout)){console.error('SC023_SQL_NOT_EXECUTED: no completed own SQL result');console.error(run.stderr);process.exit(1)}
 console.log(run.stdout)
 }
 
@@ -74,7 +74,7 @@ async function pgLockProof(){
  const container=process.env.EDIEL_SC023_PG_CONTAINER
  assert.equal(container,'sc023-lock-a889d2bf','use the explicitly owned disposable container only')
  const schema=fs.readFileSync(path.join(root,'supabase/schema.sql'),'utf8')
- const migration=fs.readFileSync(path.join(root,'supabase/migrations/20261012130000_ediel_vh_history_delivery_sc023.sql'),'utf8')
+ const migration=fs.readFileSync(path.join(root,'supabase/migrations/20261012212000_ediel_vh_history_delivery_sc023.sql'),'utf8')
  const hash=x=>crypto.createHash('sha256').update(x).digest('hex')
  function captured(name,source=schema){
   const start=source.indexOf('CREATE FUNCTION '+name+'(');assert.ok(start>=0,name)
@@ -85,7 +85,9 @@ async function pgLockProof(){
  const helpers=['gridex_ediel_ack_replay.lock_current_graph_v2','gridex_ediel_services.lock_evidence_graph_v1','gridex_service_permission.lock_request_writer_v1'].map(name=>captured(name))
  assert.equal(hash(helpers[2].body),'da71d930e83ca1407ef7e192b2a03165069195aab8faa48aa9de8da648c7d1a9')
  const predecessor=captured('public.ediel_apply_permission_source_v1')
- assert.equal(hash(predecessor.body),'4362a82ed71d6526be25caea4f1a01ed3d48cd80468f6b1fc962978dc8f454ef')
+ // CURRENT authentic capture has the early prefix; the migration retains its
+ // distinct historical predecessor hash for actual canonical replay.
+ assert.equal(hash(predecessor.body),'0b24a3fec54ca9e73a235326fcfe3f9c75216a0b146bb1ed9c9d18924b42ec0e')
  let serial=0
  class Session{
   constructor(name){
@@ -113,8 +115,9 @@ async function pgLockProof(){
   // PostgreSQL has no ALL SCHEMAS shorthand: fixture grants are explicit and
   // apply only inside this disposable database, never production migrations.
   setup.pop();setup.push(...['public',...schemas].map(x=>'GRANT USAGE ON SCHEMA '+x+' TO service_role;'),'GRANT ALL ON ALL TABLES IN SCHEMA public,gridex_vh_history TO service_role;')
-  const lockHook=migration.match(/DO \$writer_lock\$[\s\S]*?END \$writer_lock\$;/)?.[0]
-  if(lockHook)setup.push(lockHook)
+  // The installed CURRENT captured writer already contains the prefix. The
+  // production migration keeps its historical predecessor guard; applying
+  // that hook twice to a captured postimage would misrepresent the fixture.
   await observer.sql(setup.join('\n'))
   assert.equal(/ERROR:/.test(observer.errors),false,'actual captured helper/function/guard bootstrap must execute: '+observer.errors)
   const proc=await observer.sql("SELECT json_build_object('writer',p.prosrc,'audit',a.prosrc,'link',l.prosrc)::text FROM pg_proc p,pg_proc a,pg_proc l WHERE p.oid='public.ediel_apply_permission_source_v1(uuid,uuid,uuid,uuid)'::regprocedure AND a.oid='public.ediel_vh_history_delivery_audit_v1(uuid,uuid,uuid)'::regprocedure AND l.oid='public.ediel_link_vh_history_request_v1(uuid,uuid,uuid,uuid,uuid,text,uuid)'::regprocedure;")

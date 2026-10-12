@@ -439,3 +439,63 @@ it('Z15V/S17 ends the V permission and leaves a coexisting VH history permission
  // ESCO-07: no supply (DDQ) change and no new Z13 from ending V.
  expect(vhAfter.supply).toEqual(vhBefore.supply);expect(vhAfter.z13).toBe(vhBefore.z13)
 })
+
+// Source-bound SC-023 hooks: actual mailbox/validation/writer/ACK consumers.
+// History jobs never confer beneficiary, DDQ, send or automatic Z13 authority.
+function z15vh(p:PendingVH){
+ const {f}=p,permission=market(f,p.permissionId).permission
+ const rendered=renderProdat({code:'Z15',variant:'VH',mode:'test',actor:{senderEdielId:f.receiver,receiverEdielId:f.sender},route:{applicationReference:f.app},version,
+  context:{code:'Z15',bgmReference:randomUUID().replaceAll('-','').slice(0,20),transactionReference:String(permission.rff_li_reference),senderEdielId:f.receiver,receiverEdielId:f.sender,
+   legalSenderId:f.receiver,legalReceiverId:f.sender,customerName:'Synthetic Customer',customerId:'199001011234',customerIdCodeListQualifier:'SE2',customerIdAgency:'260',customerCountry:'SE',
+   meterPointId:f.point,siteIdAgency:'9',gridAreaId:'TES',reasonForTransaction:'S18',permissionStatus:'A74',permissionId:String(permission.permission_id),
+   permissionEndDate:f.fields.data_end,permissionEndReason:'B79'}})
+ expect(rendered.issues.filter(x=>x.severity==='error'&&!/_UNDETERMINED$/.test(x.code)),JSON.stringify(rendered.issues)).toEqual([])
+ return envelope(f,rendered.segments)
+}
+const historyRows=(permissionId:string)=>sql<{jobs:Record<string,unknown>[];objects:Record<string,unknown>[];closures:Record<string,unknown>[];skips:Record<string,unknown>[]}>(`SELECT jsonb_build_object(
+ 'jobs',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.permission_id),'[]') FROM gridex_vh_history.deliveries x WHERE permission_id=${lit(permissionId)}),
+ 'objects',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.site_id),'[]') FROM gridex_vh_history.objects x WHERE permission_id=${lit(permissionId)}),
+ 'closures',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.source_message_id,x.site_id),'[]') FROM gridex_vh_history.closures x WHERE permission_id=${lit(permissionId)}),
+ 'skips',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.source_message_id),'[]') FROM gridex_vh_history.skipped_bases x WHERE permission_id=${lit(permissionId)}))`)
+
+it('finite Z14VH opens its history job and same-chain Z15VH closes it without ending the coexisting V or DDQ relation',async()=>{
+ const v=await activeV(),p=await pendingVH({f:v.f,start:'2026-01-01T00:00:00Z',end:'2026-06-01T00:00:00Z'}),{f}=p
+ const opening=await receive(f,z14vh(p),'Z14',VH_PROFILE);await processed(f,opening);await ownAcks(f,opening,VH_PROFILE)
+ const opened=historyRows(p.permissionId)
+ expect(opened.jobs).toHaveLength(1);expect(opened.jobs[0]).toMatchObject({company_id:f.ids.company,permission_id:p.permissionId,opening_source_message_id:opening.id,state:'approved_or_receiving'})
+ expect(opened.objects).toHaveLength(1);expect(opened.skips).toEqual([]);expect(opened.closures).toEqual([])
+ const vBefore=market(v.f,v.permissionId),before=market(f,p.permissionId)
+ const closing=await receive(f,z15vh(p),'Z15','PRODAT:Z15:VH:26.A:r3');await processed(f,closing);await ownAcks(f,closing,'PRODAT:Z15:VH:26.A:r3')
+ const closed=historyRows(p.permissionId),after=market(f,p.permissionId)
+ expect(closed.jobs[0]).toMatchObject({company_id:f.ids.company,permission_id:p.permissionId,state:'historical_delivery_closed'})
+ expect(closed.closures).toHaveLength(1);expect(closed.closures[0]).toMatchObject({company_id:f.ids.company,permission_id:p.permissionId,source_message_id:closing.id,source_payload_hash:createHash('sha256').update(closing.raw_payload!).digest('hex')})
+ // No E66 was supplied: a frozen review must report missing coverage. A
+ // separately held historical admission may also hold that review, never
+ // manufacture complete values or confer beneficiary access.
+ expect(['gaps','held']).toContain(closed.closures[0].coverage_status)
+ expect(closed.closures[0].review).toMatchObject({approvedStart:opened.objects[0].period_start,approvedEnd:opened.objects[0].period_end,intervals:[],dataAccessGranted:false,gaps:expect.arrayContaining([expect.objectContaining({reason:'missing_values'})])})
+ expect(closed.objects).toEqual(opened.objects);expect(closed.skips).toEqual([])
+ expect(after.permission).toMatchObject({status:'ended',inbound_z15_message_id:closing.id})
+ const vAfter=market(v.f,v.permissionId);expect(vAfter.permission).toEqual(vBefore.permission);expect(vAfter.sites).toEqual(vBefore.sites)
+ expect(after.supply).toEqual(before.supply);expect(after.z13).toBe(before.z13)
+ await processed(f,closing);expect(historyRows(p.permissionId)).toEqual(closed)
+ expect(positiveAperaks(f,closing)).toBe(1)
+})
+
+it('admitted NULL-end Z14VH and its same-chain Z15VH preserve primary effects and explicitly skip optional finite history',async()=>{
+ const p=await pendingVH(),{f}=p
+ const opening=await receive(f,z14vh(p,{reportEndDate:null}),'Z14',VH_PROFILE);await processed(f,opening);await ownAcks(f,opening,VH_PROFILE)
+ const opened=historyRows(p.permissionId),before=market(f,p.permissionId)
+ expect(before.permission.status).toBe('active');expect(before.sites).toHaveLength(1);expect(before.sites[0]).toMatchObject({status:'approved',end_at:null})
+ expect(opened.jobs).toEqual([]);expect(opened.objects).toEqual([]);expect(opened.closures).toEqual([])
+ expect(opened.skips).toHaveLength(1);expect(opened.skips[0]).toMatchObject({company_id:f.ids.company,permission_id:p.permissionId,source_message_id:opening.id,opening_source_message_id:opening.id,source_payload_hash:createHash('sha256').update(opening.raw_payload!).digest('hex'),reason:'vh_history_open_ended_approved_window',basis:{status:'skipped',dataAccessGranted:false,transportAuthorityGranted:false}})
+ await processed(f,opening);expect(historyRows(p.permissionId)).toEqual(opened)
+ const closing=await receive(f,z15vh(p),'Z15','PRODAT:Z15:VH:26.A:r3');await processed(f,closing);await ownAcks(f,closing,'PRODAT:Z15:VH:26.A:r3')
+ const closed=historyRows(p.permissionId),after=market(f,p.permissionId)
+ expect(after.permission).toMatchObject({status:'ended',inbound_z15_message_id:closing.id});expect(after.sites.every(s=>s.status==='ended')).toBe(true)
+ expect(closed.jobs).toEqual([]);expect(closed.objects).toEqual([]);expect(closed.closures).toEqual([]);expect(closed.skips).toHaveLength(2)
+ expect(closed.skips.find(row=>row.source_message_id===closing.id)).toMatchObject({company_id:f.ids.company,permission_id:p.permissionId,opening_source_message_id:opening.id,source_payload_hash:createHash('sha256').update(closing.raw_payload!).digest('hex'),reason:'vh_history_open_ended_approved_window',basis:{status:'skipped',dataAccessGranted:false,transportAuthorityGranted:false}})
+ expect(after.supply).toEqual(before.supply);expect(after.z13).toBe(before.z13)
+ await processed(f,closing);expect(historyRows(p.permissionId)).toEqual(closed)
+ expect(positiveAperaks(f,closing)).toBe(1)
+})

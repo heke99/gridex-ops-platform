@@ -76,7 +76,7 @@ async function permission(n,objects,application=null){
  // declared reviewed-original fixture tail. This is not full source approval.
  await db.exec(`CREATE FUNCTION gridex_received_sources.received_z14_reporting_source_basis_v1(p_source_message_id uuid,p_actor_user_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$DECLARE m public.ediel_messages%rowtype;clock_at timestamptz:=clock_timestamp();BEGIN ${readerAuth} RETURN(SELECT jsonb_build_object('objects',coalesce(jsonb_agg(jsonb_build_object('scope',jsonb_build_object('objectId',site.facility_id),'original',jsonb_build_object('permissionId',site.metering_permission_id,'assignmentId','00000000-0000-0000-0000-000000970001'))),'[]')) FROM public.metering_permission_sites site WHERE site.metadata->>'edielMessageId'=p_source_message_id::text);END$$;`)
  await db.query("INSERT INTO public.permission_fixture VALUES($1,$2,'ediel.read')",[id(2),id(1)])
- const migration=new URL('../supabase/migrations/20261012130000_ediel_vh_history_delivery_sc023.sql',import.meta.url)
+ const migration=new URL('../supabase/migrations/20261012212000_ediel_vh_history_delivery_sc023.sql',import.meta.url)
  if(existsSync(migration)) await db.exec(readFileSync(migration,'utf8'))
  const point='735123456789099990',v={point,li:'SC023-OWN-V',permission:'SC023-OWN-V-ID',start:'202601010000',end:'202601020000',status:'A74'},vh={...v,li:'SC023-OWN-VH',permission:'SC023-OWN-VH-ID',reason:'S18'}
  await permission(900010,[v],'23-DGI-PRODAT')
@@ -110,6 +110,54 @@ async function permission(n,objects,application=null){
   assert.equal((await apply(id(901130))).applied,true,'valid metering.write source effect must survive missing unrelated historical read authority')
   const row=(await db.query('SELECT authorization_basis FROM gridex_vh_history.objects WHERE permission_id=$1',[id(901110)])).rows[0]
   assert.equal(row.authorization_basis.status,'held');assert.equal(row.authorization_basis.reason,'vh_history_reviewed_original_unavailable')
+ })
+ // A qualified S18 with a NULL reportEnd remains a valid permission. The
+ // optional finite history model records a bounded skip, never a guessed end
+ // or a partly managed mixed cohort; closing preserves the old primary effect.
+ for(const mixed of [false,true])await isolated(async()=>{
+  const open={...vh,point:'735123456789090301',li:'SC023-NULL-END',permission:'SC023-NULL-END-1',end:undefined}
+  const finite={...open,point:'735123456789090302',permission:'SC023-NULL-END-2',end:vh.end}
+  const objects=mixed?[open,finite]:[open],permissionId=id(903110)
+  await permission(903110,objects,'23-DGI-PRODAT');await incoming(903130,'Z14',objects,objects.map(()=>'accepted'),'accepted','23-DGI-PRODAT')
+  const before=await forbidden()
+  assert.equal((await apply(id(903130))).applied,true,'valid NULL-end S18 Z14 primary effect must commit')
+  assert.deepEqual(await forbidden(),before,'unsupported optional history leaves V/DDQ/assignment/original rows unchanged')
+  const sites=(await db.query('SELECT facility_id,status,end_at FROM public.metering_permission_sites WHERE metering_permission_id=$1 ORDER BY facility_id',[permissionId])).rows
+  assert.equal(sites.length,objects.length);assert.equal(sites[0].end_at,null);assert.ok(sites.every(x=>x.status==='approved'))
+  assert.equal((await db.query('SELECT count(*)::int n FROM gridex_vh_history.deliveries WHERE permission_id=$1',[permissionId])).rows[0].n,0)
+  assert.equal((await db.query('SELECT count(*)::int n FROM gridex_vh_history.objects WHERE permission_id=$1',[permissionId])).rows[0].n,0,'mixed finite/NULL cohort is not partly managed')
+  const skipped=async()=>(await db.query('SELECT source_message_id,source_payload_hash,reason,basis FROM gridex_vh_history.skipped_bases WHERE company_id=$1 AND permission_id=$2 ORDER BY source_message_id',[id(1),permissionId])).rows
+  const opening=await skipped();assert.equal(opening.length,1);assert.equal(opening[0].source_message_id,id(903130));assert.equal(opening[0].reason,'vh_history_open_ended_approved_window');assert.equal(opening[0].basis.status,'skipped');assert.equal(opening[0].basis.dataAccessGranted,false)
+  assert.equal((await apply(id(903130))).idempotent,true);assert.deepEqual(await skipped(),opening,'same opening replay keeps original skip receipt')
+  await incoming(903140,'Z15',objects.map(o=>({...o,permissionEnd:'202601021200',endReason:'B77'})),objects.map(()=>'accepted'),'accepted','23-DGI-PRODAT')
+  assert.equal((await apply(id(903140))).applied,true,'matching NULL-end S18 Z15 primary close must commit')
+  assert.equal((await db.query('SELECT status FROM public.metering_permissions WHERE id=$1',[permissionId])).rows[0].status,'ended')
+  assert.ok((await db.query('SELECT status FROM public.metering_permission_sites WHERE metering_permission_id=$1',[permissionId])).rows.every(x=>x.status==='ended'))
+  assert.equal((await db.query('SELECT count(*)::int n FROM gridex_vh_history.closures WHERE permission_id=$1',[permissionId])).rows[0].n,0)
+  const closed=await skipped();assert.equal(closed.length,2);assert.equal(closed[1].source_message_id,id(903140));assert.equal(closed[1].reason,'vh_history_open_ended_approved_window')
+  assert.equal((await apply(id(903140))).idempotent,true);assert.deepEqual(await skipped(),closed)
+  assert.deepEqual(await forbidden(),before)
+ })
+ for(const deny of ['missing-write','inactive','wrong-company'])await isolated(async()=>{
+  const open={...vh,point:'735123456789090401',li:'SC023-DENIED-NULL-END',permission:'SC023-DENIED-NULL-END-ID',end:undefined}
+  await permission(904110,[open],'23-DGI-PRODAT');await incoming(904130,'Z14',[open],['accepted'],'accepted','23-DGI-PRODAT')
+  if(deny==='missing-write')await db.query("DELETE FROM public.permission_fixture WHERE actor=$1 AND permission='metering.write'",[id(2)])
+  if(deny==='inactive')await db.query("UPDATE public.user_profiles SET user_status='suspended' WHERE id=$1",[id(2)])
+  const snapshot=async()=>(await db.query("SELECT jsonb_build_object('p',(SELECT to_jsonb(p) FROM public.metering_permissions p WHERE id=$1),'sites',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM public.metering_permission_sites s WHERE metering_permission_id=$1),'skips',(SELECT jsonb_agg(to_jsonb(s) ORDER BY source_message_id) FROM gridex_vh_history.skipped_bases s),'transitions',(SELECT count(*) FROM gridex_received_sources.permission_effect_transitions_v1)) b",[id(904110)])).rows[0].b
+  const before=await snapshot();assert.equal((await apply(id(904130),null,id(2),deny==='wrong-company'?id(99):id(1))).applied,false);assert.deepEqual(await snapshot(),before,'unauthorized actor/source never obtains optional skip or primary effects')
+ })
+ const primarySnapshot=async permissionId=>(await db.query("SELECT jsonb_build_object('permission',(SELECT to_jsonb(p) FROM public.metering_permissions p WHERE id=$1),'sites',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM public.metering_permission_sites s WHERE metering_permission_id=$1),'jobs',(SELECT jsonb_agg(to_jsonb(j) ORDER BY permission_id) FROM gridex_vh_history.deliveries j),'skips',(SELECT jsonb_agg(to_jsonb(s) ORDER BY source_message_id) FROM gridex_vh_history.skipped_bases s),'effects',(SELECT jsonb_agg(to_jsonb(t) ORDER BY source_message_id,permission_id) FROM gridex_received_sources.permission_effect_transitions_v1 t)) b",[permissionId])).rows[0].b
+ // Actual reader and persistence failures are not unsupported-shape skips.
+ // A savepoint lets the test inspect the unchanged DB after the real exception.
+ for(const failure of ['reader-42501','skip-insert'])await isolated(async()=>{
+  const open={...vh,point:'735123456789090501',li:'SC023-ROLLBACK',permission:'SC023-ROLLBACK-ID',...(failure==='skip-insert'?{end:undefined}:{})}
+  await permission(905110,[open],'23-DGI-PRODAT');await incoming(905130,'Z14',[open],['accepted'],'accepted','23-DGI-PRODAT')
+  if(failure==='reader-42501')await db.exec(`CREATE OR REPLACE FUNCTION gridex_received_sources.received_z14_reporting_source_basis_v1(p_source_message_id uuid,p_actor_user_id uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$BEGIN RAISE EXCEPTION 'SC023_TEST_READER_42501' USING ERRCODE='42501';END$$;`)
+  else await db.exec(`CREATE FUNCTION pg_temp.reject_skip_receipt() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'SC023_TEST_SKIP_INSERT_FAILURE';END$$;CREATE TRIGGER sc023_test_skip_insert BEFORE INSERT ON gridex_vh_history.skipped_bases FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_skip_receipt();`)
+  const before=await primarySnapshot(id(905110));await db.exec('SAVEPOINT failed_history')
+  await assert.rejects(apply(id(905130)),failure==='reader-42501'?/SC023_TEST_READER_42501/:/SC023_TEST_SKIP_INSERT_FAILURE/)
+  await db.exec('ROLLBACK TO SAVEPOINT failed_history')
+  assert.deepEqual(await primarySnapshot(id(905110)),before,'a real DB/reader failure rolls back every primary permission/history effect')
  })
  // Captured accepted storage/contract/private receipt is real; historic grant
  // admission remains a declared, immutable scope fixture, never live approval.
@@ -280,6 +328,19 @@ async function permission(n,objects,application=null){
  assert.ok(frozen.review.gaps.some(x=>x.reason==='pending_e73_manual_review'))
  assert.equal(frozen.source_message_id,id(900140));assert.equal(frozen.review.dataAccessGranted,false)
  assert.equal((await db.query("SELECT count(*)::int n FROM gridex_vh_history.requests WHERE permission_id=$1 AND state='manual_review' AND closed_by_message_id=$2",[id(900110),id(900140)])).rows[0].n,1,'coverage review pending: open E73 moves to manual review')
+ // Exercise the actual private close hook too: the public writer's early
+ // replay return must not mask duplicate/conflicting closure behavior.
+ const closeWire=(await db.query('SELECT gridex_received_sources.permission_partition_wire_v1(raw_payload) wire FROM public.ediel_messages WHERE id=$1',[id(900140)])).rows[0].wire
+ const closeAgain=wire=>db.query('SELECT gridex_received_sources.close_vh_history_delivery_v1($1,$2,$3,$4,$5,$6,$7)',[id(1),id(900110),id(900140),id(2),wire,frozen.canonical_assessment_id,frozen.object_scopes])
+ const beforeDirectReplay=await dbState();await closeAgain(closeWire);assert.deepEqual(await dbState(),beforeDirectReplay,'same physical source closure is an immutable no-op');cases++
+ await isolated(async()=>{
+  await db.query("UPDATE public.ediel_messages SET raw_payload=raw_payload||'x' WHERE id=$1",[id(900140)])
+  await assert.rejects(closeAgain(closeWire),/vh_history_close_replay_conflict/)
+ })
+ await isolated(async()=>{
+  const wrong=structuredClone(closeWire);wrong.objects[0].permissionId='SIBLING-PERMISSION'
+  await assert.rejects(closeAgain(wrong),/vh_history_close_object_conflict/)
+ })
  assert.equal((await linkRequest()).state,'manual_review')
  assert.deepEqual((await db.query('SELECT to_jsonb(x) b FROM public.grid_owner_data_requests x WHERE id=$1',[requestId])).rows[0].b,originalRequest,'manual review does not cancel/change generic transport status')
  assert.deepEqual((await db.query('SELECT to_jsonb(x) b FROM public.ediel_messages x WHERE id=$1',[e73id])).rows[0].b,originalE73,'sent E73/provider/wire remains intact')
@@ -316,8 +377,8 @@ async function permission(n,objects,application=null){
   assert.equal((await db.query("SELECT has_function_privilege($1,'public.ediel_vh_history_delivery_audit_v1(uuid,uuid,uuid)','EXECUTE') r,has_function_privilege($1,'public.ediel_link_vh_history_request_v1(uuid,uuid,uuid,uuid,uuid,text,uuid)','EXECUTE') w",[role])).rows[0].r,role==='service_role')
   assert.equal((await db.query("SELECT has_function_privilege($1,'public.ediel_link_vh_history_request_v1(uuid,uuid,uuid,uuid,uuid,text,uuid)','EXECUTE') w",[role])).rows[0].w,role==='service_role')
  }
- const rls=(await db.query("SELECT relrowsecurity,relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_vh_history' AND relkind='r'")).rows
- assert.equal(rls.length,5);assert.ok(rls.every(x=>x.relrowsecurity&&x.relforcerowsecurity));cases++
+ const rls=(await db.query("SELECT relname,relrowsecurity,relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_vh_history' AND relkind='r'")).rows
+ assert.deepEqual(rls.map(x=>x.relname).sort(),['closures','deliveries','objects','requests','restorations','skipped_bases']);assert.ok(rls.every(x=>x.relrowsecurity&&x.relforcerowsecurity));cases++
  // AT-Z15V-ESCO: S17 ends the continuous V flow only; VH job/closures, DDQ
  // supply period and other tenant stay; no automatic Z13.
  {
