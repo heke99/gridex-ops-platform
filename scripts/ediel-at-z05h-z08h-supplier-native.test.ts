@@ -55,6 +55,7 @@ import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition'
 import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
 import {readSupplyRescissionMandate} from '@/lib/ediel/production/supplyRescissionOperation'
 import {processPendingInvoiceProviderEvents} from '@/lib/billing/providerEventProcessor'
+import {supabaseService} from '@/lib/supabase/service'
 
 const {originate,actualNationalSourceSession,nationalNativeOperator}=nationalRescissionNativeChain({provider,sourceSession})
 async function authorized(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|'billingAddress'>={}){
@@ -800,11 +801,22 @@ for(const withdrawal of ['supplier_role','reviewer'] as const)it('actual H08 '+w
 it('actual H08 overdue payment alone projects billing but never requests or applies supply rescission',async()=>{
  // The event is a declared synthetic provider input. Its real SQL/PostgREST
  // consumer must actually change payment status; this is not provider acceptance.
- const f=await publicHStart(),runId=randomUUID(),itemId=randomUUID(),eventId=randomUUID(),invoiceGuid='synthetic-overdue-'+itemId
+ const f=await publicHStart(),runId=randomUUID(),underlayId=randomUUID(),pricingRunId=randomUUID(),itemId=randomUUID(),eventId=randomUUID(),invoiceGuid='synthetic-overdue-'+itemId
  const payload={amount_inc_vat:125,currency:'SEK',occurred_at:new Date().toISOString()}
+ // Declare only the disposable invoice prerequisite, keeping canonical tenant,
+ // contract, snapshot, energy-flow and locked-pricing guards enabled. The real
+ // public lock RPC must succeed before the export-item trigger accepts it.
+ sql(`INSERT INTO public.billing_underlays(id,company_id,customer_id,contract_id,customer_contract_id,metering_point_id,supply_period_id,billing_period_start,billing_period_end,contract_price_snapshot_id,pricing_snapshot_id,price_area,payload)
+ SELECT ${literal(underlayId)},c.company_id,c.customer_id,c.id,c.id,${literal(f.pointId)},${literal(f.periodId)},'2026-10-15','2026-11-01',c.contract_price_snapshot_id,c.contract_price_snapshot_id,'SE3','{"synthetic":"payment-only fixture prerequisite; not genuine finance acceptance"}'::jsonb
+ FROM public.customer_contracts c WHERE c.id=${literal(f.contractId)} AND c.company_id=${literal(f.companyId)};
+ INSERT INTO public.pricing_runs(id,company_id,customer_id,billing_underlay_id,billing_period_start,billing_period_end,status,total_ex_vat,vat_amount,total_inc_vat)
+ VALUES(${literal(pricingRunId)},${literal(f.companyId)},${literal(f.customerId)},${literal(underlayId)},'2026-10-15T00:00:00+02:00','2026-11-01T00:00:00+01:00','success',100,25,125);`)
+ const locked=await supabaseService.rpc('gridex_lock_pricing_run',{p_company_id:f.companyId,p_pricing_run_id:pricingRunId,p_actor_user_id:f.actorUserId})
+ expect(locked.error).toBeNull();expect(locked.data).toMatchObject({pricing_run_id:pricingRunId,billing_underlay_id:underlayId,status:'locked'})
+ expect(sql(`SELECT to_jsonb(status='locked' AND locked_at IS NOT NULL) FROM public.pricing_runs WHERE id=${literal(pricingRunId)} AND company_id=${literal(f.companyId)}`)).toBe(true)
  sql(`INSERT INTO public.invoice_export_runs(id,company_id,provider,environment,billing_month,status) VALUES(${literal(runId)},${literal(f.companyId)},'capway_aptic','test','2026-10','sent');
- INSERT INTO public.invoice_export_items(id,company_id,export_run_id,customer_id,customer_contract_id,metering_point_id,provider,environment,status,provider_status,provider_invoice_guid,amount_ex_vat,vat_amount,amount_inc_vat,period_start,period_end)
- VALUES(${literal(itemId)},${literal(f.companyId)},${literal(runId)},${literal(f.customerId)},${literal(f.contractId)},${literal(f.pointId)},'capway_aptic','test','sent','registered',${literal(invoiceGuid)},100,25,125,'2026-10-01','2026-10-31');
+ INSERT INTO public.invoice_export_items(id,company_id,export_run_id,customer_id,customer_contract_id,metering_point_id,billing_underlay_id,pricing_run_id,provider,environment,status,provider_status,provider_invoice_guid,amount_ex_vat,vat_amount,amount_inc_vat,period_start,period_end)
+ VALUES(${literal(itemId)},${literal(f.companyId)},${literal(runId)},${literal(f.customerId)},${literal(f.contractId)},${literal(f.pointId)},${literal(underlayId)},${literal(pricingRunId)},'capway_aptic','test','sent','registered',${literal(invoiceGuid)},100,25,125,'2026-10-15','2026-10-31');
  INSERT INTO public.invoice_provider_events(id,company_id,provider,environment,provider_event_id,provider_invoice_guid,event_type,status,payload,matched_invoice_export_item_id,idempotency_hash)
  VALUES(${literal(eventId)},${literal(f.companyId)},'capway_aptic','test',${literal(eventId)},${literal(invoiceGuid)},'invoice.overdue','received',${literal(JSON.stringify(payload))}::jsonb,${literal(itemId)},${literal('synthetic-overdue:'+eventId)});`)
  const legal=()=>sql(`SELECT jsonb_build_object('artifacts',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM gridex_supply_rescission.artifacts x),'mandates',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM gridex_supply_rescission.mandates x))`)
