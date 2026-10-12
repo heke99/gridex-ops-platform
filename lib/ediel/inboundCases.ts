@@ -10,6 +10,7 @@ import { prodatDateState, prodatDateValue } from '@/lib/ediel/prodat/prodatDateF
 import { prodatDateToIsoDate } from '@/lib/ediel/prodat/render/dates'
 import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
+import { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
 import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -318,7 +319,7 @@ async function maybeFindExistingCustomer(parsed: ParsedInboundProdat, companyId?
     const meteringPointQuery = supabaseService
       .from('metering_points')
       .select('id,site_id,meter_point_id,ediel_reference')
-      .or(`meter_point_id.eq.${meterPointId},ediel_reference.eq.${meterPointId},site_facility_id.eq.${meterPointId}`)
+      .or(postgrestEqAny(['meter_point_id', 'ediel_reference', 'site_facility_id'], [], [meterPointId]))
       .eq('company_id', companyId)
 
     const { data, error } = await meteringPointQuery
