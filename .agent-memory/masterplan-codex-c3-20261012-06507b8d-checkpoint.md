@@ -19,7 +19,7 @@ Status: SOURCE_REVIEW_PENDING; whole H05/H08 NOT_PROVED; coverage314/352 unchang
 - Official Node22.23.3: runtime20 RED=8PASS/12FAIL on unconnected main; correct missing response/actor/ingress behavior, no setup/import failure. /tmp/gridex-c3-h-red.json.
 - Connected runtime plus three owner/birth regressions:173/173 PASS. Affected final eight files:288/288 PASS; /tmp/gridex-c3-h-affected.json.
 - Redactor selftest:107/107 PASS both python3 and python3 -O. No auth values logged.
-- Application nonincremental TypeScript PASS; scripts/tests nonincremental TypeScript pending at source freeze. Nine TS files scoped ESLint PASS. YAML/embedded bash syntax and git diff --check PASS.
+- Application nonincremental TypeScript PASS; scripts/tests nonincremental TypeScript PASS (fresh processes exit0, empty diagnostic logs). Nine TS files scoped ESLint PASS. YAML/embedded bash syntax and git diff --check PASS.
 - All12 adopted paths byte-exact to recorded donor; coverage SHA25623956fce6dc25f225c069cee624d992e64b279d24b4457247bf5202cb75b6298 unchanged. Genuine current native100 and mandatory head CI NOT_EXECUTED yet.
 
 ## Complete requirement boundaries / blockers
@@ -34,3 +34,5 @@ Two independent non-coauthor final source reviews; scripts/tests types; one PR-p
 
 ## Skill routing
 Activated:using-superpowers,using-git-worktrees,dispatching-parallel-agents,systematic-debugging,TDD,differential-review,requesting-code-review,verification-before-completion;Supabase read for actual RPC/CLI boundaries, changelog checked. Conditional:receiving-code-review/finishing-branch for delivery. Skipped:UI/performance/broad-audit/codebase-doc generation (narrow rejection correction).
+
+Final local gates qualified: application/scripts/tests nonincremental types, scopedlint,288affectedtests,107normal/-Oredactor,12donorbytecomparisons,syntax/diff. Prior source freeze7ab00936 now superseded only by this checkpoint confirmation; all12code/proof blobs unchanged. Two source peers must bind their final verdict to the new exact commit/tree before publication.
