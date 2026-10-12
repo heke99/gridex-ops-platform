@@ -38,6 +38,9 @@ concurrency:
 # and parity gates remain mandatory; this does not approve any rule card.
 jobs:
   db05-native:
+    # This custody-bound producer belongs to the one R1 proof branch. Other
+    # PRs retain their ordinary gates after these temporary claims are released.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/r1-db05-20261012-f2c6146b'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
