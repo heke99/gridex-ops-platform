@@ -43,9 +43,9 @@ jobs:
     timeout-minutes: 90
     env:
       NODE_OPTIONS: --max-old-space-size=6144
-      GRIDEX_H_INPUT_EPOCH: gridex-C3-takeover-native-v1
+      GRIDEX_H_INPUT_EPOCH: gridex-C3-takeover-native-v2
       GRIDEX_H_FILE_RECEIPT: 2255742ce5a41aa5968ace2d99baec3dcf40defd
-      GRIDEX_H_PRODUCER_RECEIPT: 58cb780bdd566edc96f96f5c3c66fe82074cc0b1
+      GRIDEX_H_PRODUCER_RECEIPT: f5ca21f4c10647752adc2139a3dd0c1bf8c74e35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,7 +58,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
-          git merge-base --is-ancestor f36dbba1b8c09e0c6e54e027db05d94b171f2058 HEAD
+          git merge-base --is-ancestor 35ad0e6d9fd2e100d22bf5c27cd1958f77063e3c HEAD
           python3 - <<'PY'
           import hashlib,json,os,subprocess
           root='repos/'+os.environ['GITHUB_REPOSITORY']+'/git/ref/tags/agent-claims/masterplan/'
