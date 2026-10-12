@@ -32,6 +32,13 @@
 - Coordinator P2 (blank counterparty IDs) fixed in 32235b02, plus `permittedCertificateFingerprints ?? []`; 87 tests, tsc clean.
 - Helper candidate 8f45597f declined (withdrawn by its author; subset of the same fixes).
 
+## Delivered
+- PR #774 MERGED 2026-10-12: merge `057c664d5e549e706734b4536bba0b2a1c9773ce`, parents `028d2d65` (main) + `2889be29` (head),
+  tree identical to the head; coverage.json unchanged (314/352). CI on `2889be29`: 22 passed, 11 skipped by event conditions, 0 failed.
+- Reviews by non-coauthors: codex-extra-review-a93c and the extra reviewer (source PASS at `749af6f3`), and the coordinator
+  (P2 found, then verified fixed at `32235b02`; product source identical to `2889be29`).
+
 ## Next
-PR #774: CI green on the final head and two independent non-coauthor source reviews bound to it, then normal
-expected-head merge; then docs/handover follow-up, #766 MERGED receipt and release of the file refs (keep slot/ID refs).
+- File refs for the 5 delivered paths can be released; the slot and ID refs stay (TR-08/OPS-04 not whole-approved).
+  This session cannot delete tags (403), so the release goes through the capable proxy against receipt `563cf956`.
+- TR-08/OPS-04 wait on external inputs (see Blockers). R2 does read-only reviews of the other slots in the meantime.
