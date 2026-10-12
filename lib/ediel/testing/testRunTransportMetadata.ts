@@ -7,6 +7,7 @@ import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder'
 import { createSmimeEncryptedPayloadReference } from '@/lib/ediel/transport/smime'
 import { resolveOutboundRecipientCertificate, routeReceiverSubaddress } from '@/lib/ediel/security/outboundRecipientCertificate'
 import { supabaseService } from '@/lib/supabase/service'
+import { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 import type { EdielTestRoleCode, EdielTestSuite } from '@/lib/ediel/types'
 import { assertEdielEnvironmentGate } from '@/lib/ediel/testing/environmentGate'
 
@@ -136,7 +137,7 @@ async function resolveRouteProfile(input: {
       : query.eq('environment', input.environment)
 
     if (input.messageFamily) query = query.eq('message_family', input.messageFamily)
-    if (input.businessCode) query = query.or(`business_code.eq.${input.businessCode},message_code.eq.${input.businessCode},business_code.is.null,message_code.is.null`)
+    if (input.businessCode) query = query.or(`${postgrestEqAny(['business_code', 'message_code'], [], [input.businessCode])},business_code.is.null,message_code.is.null`)
     return query.order('id', { ascending: true }).limit(2)
   }
 
