@@ -91,11 +91,12 @@ for(const [mode,base] of [['S17',800000],['S18',810000]]){
  const denyOther=await apply(id(base+30),null,id(98),id(99));assert.equal(denyOther.applied,false);assert.deepEqual(await snap(),after);cases++
 }
 console.log('ESCO Z13/Z14 outcomes '+JSON.stringify(outcomes))
-// Application-reference binding (DGI vs DDQ) is decided by the upstream legal
-// identity port, declared in this harness; the writer itself does not compare
-// it with the Z13 original. Reported as NOT_VERIFIED, never counted as a pass.
+// Application-reference (DGI vs DDQ) correlation is enforced upstream by the
+// inbound legal-context capture (see __tests__/ediel-esco-z14-process-legal-context.test.ts);
+// this harness's legal context is a declared port, so the writer-level outcome
+// below is documented only and not counted.
 const held=Object.keys(outcomes).filter(l=>l.endsWith('wrong process'))
-console.log('ESCO Z14 wrong-process (DDQ response to DGI Z13) under declared legal port: '+JSON.stringify(held.map(l=>outcomes[l]))+' NOT_VERIFIED')
+console.log('ESCO Z14 wrong-process under declared legal port (enforced upstream at legal-context capture): '+JSON.stringify(held.map(l=>outcomes[l])))
 for(const l of held)delete outcomes[l]
 const bad=Object.entries(outcomes).filter(([,o])=>o.applied||!o.unchanged)
 for(const [l] of Object.entries(outcomes)) if(!bad.find(([b])=>b===l)) cases++
