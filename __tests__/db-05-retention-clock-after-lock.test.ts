@@ -21,31 +21,48 @@ const current = (name: string, end = '$$;\n') => definition(schema, 'CREATE FUNC
 const replaced = (name: string, end = '$$;\n') => definition(migration, 'CREATE OR REPLACE FUNCTION', name, end)
 
 describe('DB-05 retention decides at the post-lock instant', () => {
-  it('purge re-checks the purger after the customer lock and compares the deadline with that instant', () => {
+  it('purge re-checks the purger after the customer lock and again after the last blocking lock', () => {
     const name = 'public.ediel_pseudonymise_customer_retention_v1'
     const after = replaced(name)
     expect(after).not.toMatch(/\bnow\(\)/)
+    const purge = "PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge');"
+    const fields = "permission_v1(p_company_id,p_actor_user_id,'ediel.retention.customer_fields')"
     const lock = after.indexOf('FROM public.customers WHERE id=d.customer_id AND company_id=p_company_id FOR UPDATE;')
-    const instant = after.indexOf('at:=clock_timestamp();', lock)
-    const recheck = after.indexOf("PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge');", lock)
-    const fields = after.indexOf("permission_v1(p_company_id,p_actor_user_id,'ediel.retention.customer_fields')", lock)
     const replay = after.indexOf('FROM gridex_ediel_retention.customer_tombstones WHERE customer_id=c.id')
-    expect([lock, instant, recheck, fields].every((i) => i > 0)).toBe(true)
-    expect(lock < instant && instant < recheck && recheck < fields && fields < replay).toBe(true)
-    expect(after).toContain("(claims->>'retainUntil')::timestamptz>at")
-    // Only the inserted block and the deadline comparison differ.
+    // Early re-check: after the customer lock, before a replay answer.
+    const early = after.indexOf(purge, lock)
+    expect(lock > 0 && early > lock && after.indexOf(fields, early) < replay).toBe(true)
+    // Every later blocking lock (review row, reviewer, issuer via the receipt) precedes
+    // the decision instant, which precedes the final re-check and every effect.
+    const lastBlocking = after.indexOf('claims:=gridex_ediel_retention.customer_receipt_v1(d);')
+    const instant = after.indexOf('at:=clock_timestamp();', lastBlocking)
+    const final = after.indexOf(purge, instant)
+    const finalFields = after.indexOf(fields, final)
+    const deadline = after.indexOf("(claims->>'retainUntil')::timestamptz>at")
+    const firstEffect = after.indexOf('UPDATE public.customer_portal_accounts')
+    for (const blocking of ['FROM gridex_ediel_retention.customer_reviews WHERE decision_id=d.id', 'FROM public.company_memberships WHERE company_id=p_company_id AND user_id=r.actor_user_id FOR SHARE'])
+      expect(after.indexOf(blocking)).toBeLessThan(lastBlocking)
+    expect(replay < lastBlocking && lastBlocking < instant && instant < final && final < finalFields && finalFields < deadline && deadline < firstEffect).toBe(true)
+    expect(after.match(/at:=clock_timestamp\(\);/g)).toHaveLength(1)
+    // Only the two inserted blocks and the deadline comparison differ.
     const before = current(name)
-    const withoutBlock = after.replace(/ -- DB-05: a lock wait[\s\S]*?USING ERRCODE='42501';END IF;\n(?= SELECT \* INTO t FROM)/, '')
+    const withoutBlocks = after
+      .replace(/ -- DB-05: a lock wait[\s\S]*?USING ERRCODE='42501';END IF;\n(?= SELECT \* INTO t FROM)/, '')
+      .replace(/ -- DB-05: the review-row[\s\S]*?USING ERRCODE='42501';END IF;\n(?= IF r\.outcome)/, '')
     // Before GEN schema.sql holds the old body; after C2's re-capture it holds this one.
-    expect(after === before || withoutBlock.replace("timestamptz>at", 'timestamptz>now()') === before).toBe(true)
+    expect(after === before || withoutBlocks.replace('timestamptz>at', 'timestamptz>now()') === before).toBe(true)
   })
 
-  it('receipt validity and bans are evaluated at clock_timestamp(), otherwise unchanged', () => {
+  it('receipt validity is evaluated after the issuer lock and bans at clock_timestamp(), otherwise unchanged', () => {
     const receipt = 'gridex_ediel_retention.customer_receipt_v1'
     const after = replaced(receipt, '$_$;\n')
     expect(after).not.toMatch(/\bnow\(\)/)
     const receiptBefore = current(receipt, '$_$;\n')
-    expect(after === receiptBefore || after.replace('n timestamptz:=clock_timestamp();', '').replace(/\bn([<>]=?|\))/g, 'now()$1')
+    // The instant is sampled after the issuer FOR SHARE, before any validity comparison.
+    const issuer = after.indexOf('FROM gridex_ediel_retention.issuers WHERE')
+    const sample = after.indexOf('n:=clock_timestamp();')
+    expect(issuer > 0 && sample > after.indexOf('FOR SHARE;', issuer) && sample < after.indexOf('n<k.valid_from')).toBe(true)
+    expect(after === receiptBefore || after.replace('n timestamptz;', '').replace(/ -- DB-05: the issuer lock[^\n]*\n n:=clock_timestamp\(\);\n/, '').replace(/\bn([<>]=?|\))/g, 'now()$1')
       .replace(/(issued>|expires<=)n\b/g, '$1now()') === receiptBefore).toBe(true)
     const lockActor = 'public.ediel_retention_lock_auth_actor_v1'
     const lockAfter = replaced(lockActor)
