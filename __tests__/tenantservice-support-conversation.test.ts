@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_DOCUMENTATION_VERSION, WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 /**
  * Tenantservice P4a: customer support conversation over customer_cases.
@@ -281,7 +281,7 @@ describe('OPS adapters', () => {
     const route = readFileSync('app/api/v1/customer/support/cases/route.ts', 'utf8')
     expect(route).toContain("from '@/lib/customer-service/supportApiHandlers'")
     const spec = JSON.parse(readFileSync('docs/openapi/customer-portal-v1.json', 'utf8'))
-    expect(spec.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
+    expect(spec.info.version).toBe(API_DOCUMENTATION_VERSION)
     expect(Object.keys(spec.paths)).toEqual(expect.arrayContaining([
       '/api/v1/customer/support/cases',
       '/api/v1/customer/support/cases/{reference}',

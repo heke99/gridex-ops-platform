@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { canonicalApiError } from '@/lib/api/apiError'
@@ -10,7 +11,9 @@ export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ applicationId: string }> }
 
-export async function GET(request: NextRequest, { params }: Props) {
+export const GET = withApiContractRepresentation('website', getApplication)
+
+async function getApplication(request: NextRequest, { params }: Props) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_switch_status.read'])

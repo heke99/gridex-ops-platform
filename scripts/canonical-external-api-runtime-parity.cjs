@@ -2,7 +2,7 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
-const { currentContractVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion, currentReleasePath } = require('./lib/current-api-contract.cjs')
 
 const root = path.resolve(__dirname, '..')
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8')
@@ -18,7 +18,7 @@ function check(condition, message) {
   }
 }
 
-const version = currentContractVersion
+const version = currentDocumentationVersion
 const website = json('docs/openapi/website-integration-v1.json')
 const portal = json('docs/openapi/customer-portal-v1.json')
 const staff = json('docs/openapi/staff-v1.json')

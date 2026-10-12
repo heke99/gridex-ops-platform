@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { readJsonObject } from '@/lib/api/strictRequest'
@@ -342,7 +343,7 @@ async function buildBundleResponse(input: {
   }
 }
 
-export async function GET(request: NextRequest) {
+ async function profiledGET(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_profile.read', 'customer_sites.read', 'customer_contracts.read', 'customer_invoices.read', 'customer_metering.read', 'customer_legal.read', 'customer_events.read', 'customer_documents.read', 'customer_notifications.read', 'customer_power_of_attorney.read'])
   if (!context.ok) return context.response
   return buildBundleResponse({
@@ -355,7 +356,7 @@ export async function GET(request: NextRequest) {
   })
 }
 
-export async function POST(request: NextRequest) {
+ async function profiledPOST(request: NextRequest) {
   const startedAt = Date.now()
   let client: IntegrationApiClient | null = null
 
@@ -376,3 +377,7 @@ export async function POST(request: NextRequest) {
     return handleCustomerPortalRouteError({ request, client, startedAt, error })
   }
 }
+
+export const GET = withApiContractRepresentation('customer', profiledGET)
+
+export const POST = withApiContractRepresentation('customer', profiledPOST)

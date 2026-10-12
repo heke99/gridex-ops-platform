@@ -1,7 +1,7 @@
 # Independent tenant staff onboarding
 
-The additive onboarding contract is separate from the immutable Staff release
-`2026-10-04.1`. Its active schema is
+The additive onboarding contract is separate from the Staff response contract
+`2026-10-09.1` and the documentation release `2026-10-12.1`. Its active schema is
 [`staff-onboarding-v1.json`](../openapi/staff-onboarding-v1.json), version
 `2026-10-05.2`. The earlier same-database prototype is archived under
 `docs/openapi/prototypes/2026-10-05.1`. Frozen Staff/Website/Customer release
@@ -31,7 +31,7 @@ sequenceDiagram
   OPS-->>Portal: Company-scoped customers and cases
 ```
 
-The server verifies `getUser` before reading a session bearer for transport.
+The tenant backend verifies `getUser` before reading a session bearer for transport.
 Cookie user claims and user metadata grant no authority. There is no implicit
 email match, local/central UUID equality fallback or cached binding admission.
 The tenant Auth SDK uses a registered public key, never the OPS service Auth
@@ -52,7 +52,10 @@ clients require `token_use: staff_access`, `staff_binding_id`,
 `staff_binding_version`, `local_auth_subject`, `local_auth_issuer`.
 Purpose-specific local proofs cannot be exchanged for normal Staff access,
 even when UUIDs collide. Every request checks current binding, client,
-provider, native membership and existing permission rules. Legacy clients
+provider, native membership and existing permission rules. This checks central
+account revocation and durable binding state. A normal already signed Staff
+assertion does not itself re-fetch tenant Auth; the tenant backend checks its
+local session before signing each new assertion. Legacy clients
 without external registration retain their existing central-sub flow.
 
 Every onboarding request expects the verified central API project through

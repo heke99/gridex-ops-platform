@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import publicContractsFixture from '@/docs/fixtures/public-contracts-response-2026-08-04.3.json'
-import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_DOCUMENTATION_VERSION, WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const mocks = vi.hoisted(() => ({
   logIntegrationApiRequest: vi.fn(async () => undefined),
@@ -217,7 +217,7 @@ describe('real public contracts route against published OpenAPI', () => {
     )
     expect(openApiResponse.status).toBe(200)
     expect(openApiResponse.headers.get('x-gridex-contract-version')).toBe(
-      WEBSITE_INTEGRATION_CONTRACT_VERSION,
+      API_DOCUMENTATION_VERSION,
     )
     const openApi = (await openApiResponse.json()) as JsonObject
     const schema = (

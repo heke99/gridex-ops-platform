@@ -2,6 +2,7 @@
 // inbound-review: D
 // inbound-review: E
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { isDeepStrictEqual } from 'node:util';
 
 type Row = Record<string, unknown>;
 
@@ -20,7 +21,9 @@ function itemsBuilder() {
   const filters: Array<[string, string, unknown]> = [];
   let patch: Row | null = null;
   const matches = () =>
-    filters.every(([op, k, v]) => (op === "is" ? (db.item[k] ?? null) === v : db.item[k] === v));
+    filters.every(([op, k, v]) => k === 'status_payload' && typeof v === 'string'
+      ? isDeepStrictEqual(db.item[k], JSON.parse(v))
+      : (op === "is" ? (db.item[k] ?? null) === v : db.item[k] === v));
   const run = () => {
     if (patch) {
       if (db.beforeFirstUpdate) {
@@ -139,6 +142,16 @@ beforeEach(() => {
   db.portalFail = false;
   db.itemWrites = 0;
   db.beforeFirstUpdate = null;
+});
+
+it('rereads a same-state concurrent operator receipt before merging the signed event', async () => {
+  db.item.provider_status = 'disputed';
+  db.beforeFirstUpdate = () => {
+    db.item = { ...db.item, status_payload: { dispute: { receipt: 'new-operator-receipt' } } };
+  };
+  await run(event('same-state-event', 'invoice.disputed'));
+  expect(db.item.status_payload).toMatchObject({ dispute: { receipt: 'new-operator-receipt' }, last_provider_event_id: 'same-state-event' });
+  expect(db.itemWrites).toBe(1);
 });
 
 describe("D: explicit provider-state transition table", () => {

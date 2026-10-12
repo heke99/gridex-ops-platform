@@ -48,7 +48,7 @@ beforeEach(async () => {
 
 async function verify(tokenValue: string | null, provider: Parameters<typeof import('@/lib/customer-portal/customerAssertion')['verifyCustomerAssertion']>[0]['provider'] = tenantKeyProvider, fetchImpl?: typeof fetch) {
   const { verifyCustomerAssertion } = await import('@/lib/customer-portal/customerAssertion')
-  return verifyCustomerAssertion({ token: tokenValue, provider, expectedSubject: PORTAL_USER, consumeJti, fetchImpl })
+  return verifyCustomerAssertion({ token: tokenValue, provider, expectedSubject: PORTAL_USER, consumeJti, fetchImpl, requireIssuedAt: true })
 }
 
 describe('verifyCustomerAssertion (P1c)', () => {
@@ -93,20 +93,25 @@ describe('verifyCustomerAssertion (P1c)', () => {
     expect(await verify(value)).toEqual({ ok: false, reason: 'replayed' })
   })
 
-  it('retains customer default iat/nbf handling and replay expiry without staff skew', async () => {
+  it('requires issued-at on the customer gate and retains replay rows through expiry skew', async () => {
     const { verifyCustomerAssertion } = await import('@/lib/customer-portal/customerAssertion')
     const nowSeconds = now()
     for (const temporal of [
-      { iat: undefined, nbf: nowSeconds, exp: nowSeconds + 900 },
-      { iat: nowSeconds + 60, nbf: nowSeconds, exp: nowSeconds + 960 },
-      { iat: nowSeconds + 86400, nbf: nowSeconds, exp: nowSeconds + 87300 },
+      { iat: undefined, nbf: nowSeconds, exp: nowSeconds + 900, reason: 'malformed' },
+      { iat: nowSeconds, nbf: nowSeconds, exp: nowSeconds + 900, reason: null },
+      { iat: nowSeconds + 86400, nbf: nowSeconds, exp: nowSeconds + 87300, reason: 'not_yet_valid' },
     ]) {
       const consume = vi.fn(async () => true)
       const jti = randomUUID()
-      expect(await verifyCustomerAssertion({ token: token('RS256', claims({ ...temporal, jti })), provider: tenantKeyProvider,
-        expectedSubject: PORTAL_USER, now: new Date(nowSeconds * 1000), consumeJti: consume }))
-        .toMatchObject({ ok: true })
-      expect(consume).toHaveBeenCalledWith(jti, new Date(temporal.exp * 1000))
+      const result = await verifyCustomerAssertion({ token: token('RS256', claims({ ...temporal, jti })), provider: tenantKeyProvider,
+        expectedSubject: PORTAL_USER, now: new Date(nowSeconds * 1000), consumeJti: consume, requireIssuedAt: true })
+      if (temporal.reason) {
+        expect(result).toEqual({ ok: false, reason: temporal.reason })
+        expect(consume).not.toHaveBeenCalled()
+      } else {
+        expect(result).toMatchObject({ ok: true })
+        expect(consume).toHaveBeenCalledWith(jti, new Date((temporal.exp + 60) * 1000))
+      }
     }
   })
 

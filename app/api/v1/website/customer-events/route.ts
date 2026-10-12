@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { customerPortalWriteError, readJsonObject } from '@/lib/api/strictRequest'
 import { canonicalApiError } from '@/lib/api/apiError'
@@ -13,7 +14,9 @@ import { createSupportCaseFromCustomerEvent } from '@/lib/customer-cases/support
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiContractRepresentation('website', publishCustomerEvent)
+
+async function publishCustomerEvent(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_events.write'])

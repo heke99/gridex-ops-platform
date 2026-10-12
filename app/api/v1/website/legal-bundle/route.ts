@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import {
@@ -19,7 +20,9 @@ function legalBundleJson(body: unknown, init: ResponseInit = {}) {
   return customerPortalJson(body, init)
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withApiContractRepresentation('website', getLegalBundle)
+
+async function getLegalBundle(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, { anyOf: ['website_legal.read', 'website_contracts.read'] })
@@ -64,7 +67,26 @@ export async function GET(request: NextRequest) {
       metadata: { offer_reference: offerReference, complete: bundle.complete, missing_types: bundle.missing_types },
     })
     return legalBundleJson(
-      { data: bundle, request_id: requestId, correlation_id: requestId },
+      {
+        data: {
+          offer_reference: bundle.offer_reference,
+          bundle_version: bundle.bundle_version,
+          required_types: bundle.required_types,
+          present_types: bundle.present_types,
+          requirements: bundle.requirements,
+          organization: {
+            name: bundle.tenant.name,
+            org_number: bundle.tenant.org_number,
+            brand_name: bundle.tenant.brand_name,
+            slug: bundle.tenant.slug,
+          },
+          legal: bundle.legal,
+          complete: bundle.complete,
+          missing_types: bundle.missing_types,
+        },
+        request_id: requestId,
+        correlation_id: requestId,
+      },
       { status: statusCode },
     )
   } catch (error) {

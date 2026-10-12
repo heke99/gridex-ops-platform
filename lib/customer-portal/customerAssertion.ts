@@ -265,6 +265,7 @@ export async function gateCustomerAssertion(input: {
     token: input.token,
     provider,
     expectedSubject: input.expectedSubject,
+    requireIssuedAt: true,
     consumeJti: (jti, expiresAt) => consumeAssertionJti(input.companyId, jti, expiresAt),
   })
   if (result.ok) return { allowed: true, verified: true, reason: null, enforcement: provider.enforcement }

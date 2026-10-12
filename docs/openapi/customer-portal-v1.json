@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Customer Portal API",
-    "version": "2026-10-09.1",
+    "version": "2026-10-12.1",
     "description": "Production API for customer portals. Access is organization-scoped by the server-side API credential and customer data is limited to the verified linked customer identity."
   },
   "servers": [
@@ -51,8 +51,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -61,8 +60,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           }
         ],
@@ -176,6 +174,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -196,6 +197,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -223,6 +227,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -250,6 +257,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -277,6 +287,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -304,6 +317,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -334,6 +350,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -361,6 +380,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -388,6 +410,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -397,6 +422,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Link or verify an external customer portal identity.",
@@ -443,8 +474,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -453,8 +483,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -505,6 +534,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -525,6 +557,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -552,6 +587,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -579,6 +617,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -606,6 +647,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -633,6 +677,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -663,6 +710,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -690,6 +740,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -745,8 +825,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -755,8 +834,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -796,6 +874,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -816,6 +897,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -843,6 +927,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -870,6 +957,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -897,6 +987,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -924,6 +1017,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -954,6 +1050,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -981,6 +1080,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1036,8 +1165,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -1046,8 +1174,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -1087,6 +1214,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -1107,6 +1237,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1134,6 +1267,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1161,6 +1297,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1188,6 +1327,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1215,6 +1357,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1245,6 +1390,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1272,6 +1420,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1327,8 +1505,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -1337,8 +1514,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -1378,6 +1554,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -1398,6 +1577,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1425,6 +1607,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1452,6 +1637,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1479,6 +1667,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1506,6 +1697,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1536,6 +1730,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1563,6 +1760,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1627,8 +1854,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -1637,8 +1863,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -1678,6 +1903,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -1698,6 +1926,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1725,6 +1956,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1752,6 +1986,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1779,6 +2016,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1806,6 +2046,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1836,6 +2079,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1863,6 +2109,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1918,8 +2194,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -1928,8 +2203,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -1969,6 +2243,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -1989,6 +2266,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2016,6 +2296,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2043,6 +2326,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2070,6 +2356,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2097,6 +2386,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2127,6 +2419,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2154,6 +2449,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2209,8 +2534,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -2219,8 +2543,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -2260,6 +2583,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -2280,6 +2606,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2307,6 +2636,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2334,6 +2666,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2361,6 +2696,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2388,6 +2726,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2418,6 +2759,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2445,6 +2789,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2500,8 +2874,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -2510,8 +2883,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -2551,6 +2923,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -2571,6 +2946,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2598,6 +2976,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2625,6 +3006,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2652,6 +3036,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2679,6 +3066,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2709,6 +3099,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2736,6 +3129,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2794,8 +3217,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -2804,8 +3226,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -2879,6 +3300,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -2930,6 +3354,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -2950,6 +3377,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2977,6 +3407,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3004,6 +3437,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3031,6 +3467,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3058,6 +3497,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3088,6 +3530,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3115,6 +3560,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3142,6 +3590,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3151,6 +3602,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Submit a customer move-out request.",
@@ -3197,8 +3654,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -3207,8 +3663,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -3248,6 +3703,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -3268,6 +3726,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3295,6 +3756,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3322,6 +3786,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3349,6 +3816,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3376,6 +3846,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3406,6 +3879,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3433,6 +3909,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3491,8 +3997,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -3501,8 +4006,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -3576,6 +4080,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -3596,6 +4103,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3623,6 +4133,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3650,6 +4163,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3677,6 +4193,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3704,6 +4223,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3734,6 +4256,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3761,6 +4286,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3788,6 +4316,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3797,6 +4328,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Mark customer notifications as read.",
@@ -3861,8 +4398,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -3871,8 +4407,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -3912,6 +4447,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -3932,6 +4470,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3959,6 +4500,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3986,6 +4530,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4013,6 +4560,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4040,6 +4590,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4070,6 +4623,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4097,6 +4653,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4168,8 +4754,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -4178,8 +4763,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -4229,6 +4813,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -4249,6 +4836,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4276,6 +4866,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4303,6 +4896,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4330,6 +4926,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4357,6 +4956,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4387,6 +4989,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4414,6 +5019,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4469,8 +5104,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -4479,8 +5113,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -4520,6 +5153,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -4540,6 +5176,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4567,6 +5206,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4594,6 +5236,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4621,6 +5266,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4648,6 +5296,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4678,6 +5329,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4705,6 +5359,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4769,8 +5453,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -4779,8 +5462,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -4854,6 +5536,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -4874,6 +5559,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4901,6 +5589,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4928,6 +5619,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4955,6 +5649,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4982,6 +5679,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5012,6 +5712,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5039,6 +5742,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5066,6 +5772,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5075,6 +5784,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-scope-mode": "any-per-request; both required when both operations are present",
@@ -5131,8 +5846,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -5141,8 +5855,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -5182,6 +5895,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -5202,6 +5918,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5229,6 +5948,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5256,6 +5978,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5283,6 +6008,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5310,6 +6038,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5340,6 +6071,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5367,6 +6101,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5425,8 +6189,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -5435,8 +6198,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -5510,6 +6272,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -5530,6 +6295,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5557,6 +6325,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5584,6 +6355,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5611,6 +6385,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5638,6 +6415,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5668,6 +6448,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5695,6 +6478,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5722,6 +6508,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5731,6 +6520,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Submit customer data required to complete an existing customer record or process.",
@@ -5856,6 +6651,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -5876,6 +6674,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5903,6 +6704,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5930,6 +6734,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5957,6 +6764,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5984,6 +6794,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6014,6 +6827,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6041,6 +6857,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6142,6 +6988,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -6162,6 +7011,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6189,6 +7041,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6216,6 +7071,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6243,6 +7101,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6270,6 +7131,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6300,6 +7164,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6327,6 +7194,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6354,6 +7224,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6363,6 +7236,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Submit a customer-facing integration event.",
@@ -6412,6 +7291,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -6432,6 +7314,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6459,6 +7344,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6501,7 +7416,11 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "$ref": "#/components/headers/GridexContractVersion"
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-12.1"
+                }
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -6535,7 +7454,11 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "$ref": "#/components/headers/GridexContractVersion"
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-12.1"
+                }
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -6577,7 +7500,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-02.1"
@@ -6615,7 +7538,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-02.1"
@@ -6661,7 +7584,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-03.1"
@@ -6699,7 +7622,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-03.1"
@@ -6745,7 +7668,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.1"
@@ -6792,7 +7715,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.1"
@@ -6847,7 +7770,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.3"
@@ -6885,7 +7808,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.3"
@@ -6931,7 +7854,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.2"
@@ -6978,7 +7901,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-04.2"
@@ -7033,7 +7956,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-05.1"
@@ -7071,7 +7994,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-05.1"
@@ -7117,7 +8040,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-05.2"
@@ -7155,7 +8078,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-05.2"
@@ -7201,7 +8124,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-10.1"
@@ -7239,7 +8162,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-10.1"
@@ -7285,7 +8208,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-14.1"
@@ -7332,7 +8255,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-14.1"
@@ -7387,7 +8310,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-19.1"
@@ -7434,7 +8357,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-19.1"
@@ -7489,7 +8412,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-19.2"
@@ -7536,7 +8459,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-19.2"
@@ -7591,7 +8514,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-20.1"
@@ -7638,7 +8561,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-20.1"
@@ -7693,7 +8616,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-20.2"
@@ -7731,7 +8654,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-20.2"
@@ -7777,7 +8700,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-22.2"
@@ -7815,7 +8738,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-08-22.2"
@@ -7861,7 +8784,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-01.1"
@@ -7899,7 +8822,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-01.1"
@@ -7945,7 +8868,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.1"
@@ -7983,7 +8906,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.1"
@@ -8029,7 +8952,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.2"
@@ -8067,7 +8990,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.2"
@@ -8113,7 +9036,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.3"
@@ -8151,7 +9074,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.3"
@@ -8224,8 +9147,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -8234,8 +9156,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -8325,6 +9246,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -8345,6 +9269,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8372,6 +9299,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8399,6 +9329,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8426,6 +9359,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8453,6 +9389,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8483,6 +9422,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8510,6 +9452,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8566,8 +9538,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -8576,8 +9547,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -8651,6 +9621,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -8671,6 +9644,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8698,6 +9674,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8725,6 +9704,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8752,6 +9734,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8779,6 +9764,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8809,6 +9797,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8836,6 +9827,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8863,6 +9857,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8872,6 +9869,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Opens a support case with the customer’s first message. The same Idempotency-Key and payload replay the same case; a different payload is rejected with 409. Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned.",
@@ -8928,8 +9931,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -8938,8 +9940,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -9009,6 +10010,9 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -9029,6 +10033,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9056,6 +10063,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9083,6 +10093,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9110,6 +10123,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9137,6 +10153,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9164,6 +10183,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9194,6 +10216,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9221,6 +10246,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9286,8 +10341,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -9296,8 +10350,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -9379,6 +10432,9 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -9399,6 +10455,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9426,6 +10485,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9453,6 +10515,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9480,6 +10545,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9507,6 +10575,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9534,6 +10605,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9564,6 +10638,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9591,6 +10668,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9657,8 +10764,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -9667,8 +10773,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -9742,6 +10847,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -9762,6 +10870,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9789,6 +10900,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9816,6 +10930,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9843,6 +10960,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9870,6 +10990,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9897,6 +11020,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9927,6 +11053,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9954,6 +11083,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9981,6 +11113,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9990,6 +11125,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Closed cases reject new messages with 409. Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned. Closure versus replay: authentication, scope and case ownership are always checked first. A retry with the same Idempotency-Key and the same payload of a write that already succeeded replays the original result (Idempotency-Replayed: true, nothing new is stored) even if the case was closed in between; a new write on a closed case returns 409 support_case_closed.",
@@ -10046,8 +11187,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -10056,8 +11196,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -10139,6 +11278,9 @@
                 "schema": {
                   "type": "string"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -10159,6 +11301,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10186,6 +11331,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10213,6 +11361,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10240,6 +11391,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10267,6 +11421,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10294,6 +11451,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10324,6 +11484,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10351,6 +11514,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10417,8 +11610,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -10427,8 +11619,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -10528,6 +11719,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             }
           },
@@ -10548,6 +11742,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10575,6 +11772,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10602,6 +11802,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10629,6 +11832,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10656,6 +11862,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10683,6 +11892,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10710,6 +11922,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10737,6 +11952,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10767,6 +11985,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10794,6 +12015,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10821,6 +12045,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10830,6 +12057,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Send the raw file as the request body with Content-Type application/pdf, image/png or image/jpeg (at most 4 MB) and an optional URL-encoded X-File-Name header. The file is stored in quarantine and released only after a content check (real type from the bytes, no active PDF content such as JavaScript, launch actions or embedded files). Rejected files return 422 and are never served. Closed cases return 409. At most 20 attachments per customer per 24 hours (429). The same Idempotency-Key with the same bytes replays the result. Requires an actively linked portal user. Only released (content-checked), customer-visible attachments are ever listed or served; internal staff files are never returned. Closure versus replay: authentication, scope and case ownership are always checked first. A retry with the same Idempotency-Key and the same payload of a write that already succeeded replays the original result (Idempotency-Replayed: true, nothing new is stored) even if the case was closed in between; a new write on a closed case returns 409 support_case_closed.",
@@ -10896,8 +12129,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -10906,8 +12138,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid",
-              "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+              "format": "uuid"
             }
           },
           {
@@ -10942,6 +12173,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10982,6 +12216,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11009,6 +12246,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11036,6 +12276,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11063,6 +12306,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11090,6 +12336,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11117,6 +12366,9 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11147,6 +12399,9 @@
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11174,6 +12429,36 @@
               },
               "X-RateLimit-Reset": {
                 "$ref": "#/components/headers/RateLimitReset"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "503": {
+            "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "$ref": "#/components/headers/GridexContractVersion"
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11202,7 +12487,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.4"
@@ -11240,7 +12525,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-02.4"
@@ -11286,7 +12571,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-04.1"
@@ -11324,7 +12609,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-04.1"
@@ -11370,7 +12655,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-09.1"
@@ -11408,7 +12693,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-09.1"
@@ -11437,6 +12722,90 @@
         },
         "x-required-scopes": [],
         "operationId": "getApiV1Openapi202610091CustomerPortalV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
+    },
+    "/api/v1/openapi/2026-10-12.1/customer-portal-v1.json": {
+      "get": {
+        "summary": "Immutable Customer Portal OpenAPI release 2026-10-12.1",
+        "description": "Immutable Customer Portal OpenAPI release 2026-10-12.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-12.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-12.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202610121CustomerPortalV1Json",
         "x-scope-mode": "all",
         "x-rate-limit-class": "read",
         "x-idempotency-required": false,
@@ -11514,8 +12883,7 @@
         "required": true,
         "schema": {
           "type": "string",
-          "format": "uuid",
-          "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+          "format": "uuid"
         }
       },
       "AuthUserId": {
@@ -11524,8 +12892,7 @@
         "required": true,
         "schema": {
           "type": "string",
-          "format": "uuid",
-          "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+          "format": "uuid"
         }
       }
     },
@@ -11603,6 +12970,9 @@
           },
           "X-RateLimit-Reset": {
             "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
           }
         }
       },
@@ -11679,6 +13049,9 @@
           },
           "X-RateLimit-Reset": {
             "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
           }
         }
       },
@@ -11755,6 +13128,9 @@
           },
           "X-RateLimit-Reset": {
             "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
           }
         }
       },
@@ -11831,6 +13207,9 @@
           },
           "X-RateLimit-Reset": {
             "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
           }
         }
       },
@@ -11907,6 +13286,9 @@
           },
           "X-RateLimit-Reset": {
             "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
           }
         }
       },
@@ -11934,6 +13316,9 @@
           },
           "X-Request-ID": {
             "$ref": "#/components/headers/RequestId"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
           }
         },
         "content": {
@@ -12043,6 +13428,9 @@
           },
           "X-RateLimit-Reset": {
             "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
           }
         }
       },
@@ -12108,6 +13496,9 @@
           },
           "X-RateLimit-Reset": {
             "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
           }
         }
       },
@@ -12135,6 +13526,51 @@
           },
           "X-RateLimit-Reset": {
             "$ref": "#/components/headers/RateLimitReset"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "OrganizationGone": {
+        "description": "Organization is closed or inactive. Error codes: organization_closed, organization_inactive.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "OrganizationPaused": {
+        "description": "Organization API access is paused. Error codes: organization_paused.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
           }
         }
       }
@@ -13198,8 +14634,7 @@
           },
           "identity_id": {
             "type": "string",
-            "format": "uuid",
-            "description": "Optional verified organization-portal user UUID. Must be supplied together with auth_user_id and must match it."
+            "format": "uuid"
           }
         }
       },
@@ -13238,6 +14673,25 @@
           "contract_schema_version": {
             "type": "string",
             "const": "2026-10-09.1"
+          },
+          "page": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PortalPage"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "sites"
+                ],
+                "properties": {
+                  "sites": {
+                    "$ref": "#/components/schemas/PortalPage"
+                  }
+                }
+              }
+            ]
           }
         }
       },
@@ -13334,7 +14788,8 @@
           },
           "authenticated_user_reference": {
             "type": "string",
-            "maxLength": 200
+            "maxLength": 200,
+            "description": "Authenticated customer's account or user subject from the organization's login system. Resolves an already linked active portal account or identity within the API credential's organization (external account subject; portal/Auth user UUID aliases are supported). This is not a central Gridex database ID or an opaque Gridex public reference. An unlinked, disabled or other-organization subject never grants access or creates a link; email and customer-number matches alone do not establish identity."
           },
           "profile": {
             "type": "object",
@@ -13600,7 +15055,8 @@
           },
           "authenticated_user_reference": {
             "type": "string",
-            "maxLength": 200
+            "maxLength": 200,
+            "description": "Authenticated customer's account or user subject from the organization's login system. Resolves an already linked active portal account or identity within the API credential's organization (external account subject; portal/Auth user UUID aliases are supported). This is not a central Gridex database ID or an opaque Gridex public reference. An unlinked, disabled or other-organization subject never grants access or creates a link; email and customer-number matches alone do not establish identity."
           },
           "customer_contract_reference": {
             "type": "string"
@@ -13699,6 +15155,11 @@
           },
           "replayed": {
             "type": "boolean"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-issued timestamp of the stored move-out completion, retained on replay."
           }
         }
       },
@@ -14617,19 +16078,19 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "staff_openapi_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "runtime_contract_version": {
             "type": "string",
@@ -14637,7 +16098,7 @@
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "released_at": {
             "type": "string",
@@ -14725,7 +16186,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "url": {
             "type": "string",
@@ -14817,6 +16278,13 @@
         "schema": {
           "type": "string"
         }
+      },
+      "GridexDocumentationVersion": {
+        "description": "Optional documentation revision associated with this business response. It does not change contract_schema_version or the supported wire schema.",
+        "schema": {
+          "type": "string",
+          "const": "2026-10-12.1"
+        }
       }
     }
   },
@@ -14838,7 +16306,7 @@
       "description": "Verifiera API-nyckelns tenantkontext, fasta base URL och one-secret readiness."
     }
   ],
-  "x-gridex-release-version": "2026-10-09.1",
+  "x-gridex-release-version": "2026-10-12.1",
   "x-error-codes": [
     "missing_api_token",
     "invalid_api_token",
@@ -14851,19 +16319,20 @@
     "api_rate_limit_invalid",
     "api_rate_limiter_unavailable",
     "api_auth_unavailable",
-    "tenant_status_unavailable",
-    "tenant_not_operationally_ready",
-    "tenant_paused",
-    "tenant_closed",
-    "tenant_suspended",
-    "tenant_inactive",
+    "organization_status_unavailable",
+    "organization_not_operationally_ready",
+    "organization_paused",
+    "organization_closed",
+    "organization_suspended",
+    "organization_inactive",
     "platform_schema_not_ready",
     "PUBLIC_CONTRACT_FEED_INCONSISTENT",
     "PUBLICATION_GRAPH_INCONSISTENT",
     "PUBLIC_CONTRACT_SCHEMA_INVALID",
     "PUBLIC_CONTRACT_SCHEMA_OUTDATED",
     "PUBLIC_CONTRACTS_TEMPORARILY_UNAVAILABLE",
-    "offer_reference_mismatch"
+    "offer_reference_mismatch",
+    "api_contract_profile_unavailable"
   ],
   "x-scope-aliases": {
     "customer_portal.read": {

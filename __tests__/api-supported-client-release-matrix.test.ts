@@ -11,6 +11,7 @@ import {
 } from '@/lib/integrations/apiContractCompatibility'
 import {
   API_COMPATIBILITY_CLASSIFICATION,
+  API_DOCUMENTATION_VERSION,
   MINIMUM_TENANT_INTEGRATION_VERSION,
   STAFF_API_CONTRACT_VERSION,
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
@@ -40,9 +41,10 @@ describe('supported client release matrix', () => {
     for (const surface of ['website', 'customer'] as const) {
       expect(profiles(surface).map((p) => p.revision)).toEqual(['2026-10-02.3', '2026-10-04.1', '2026-10-09.1'])
     }
-    for (const surface of ['staff', 'staff_onboarding'] as const) {
+    for (const surface of ['staff'] as const) {
       expect(profiles(surface).map((p) => p.revision)).toEqual(['2026-10-04.1', '2026-10-09.1'])
     }
+    expect(profiles('staff_onboarding').map((p) => p.revision)).toEqual(['2026-10-05.2'])
   })
 
   it.each(SURFACES)('accepts every registered %s profile with its capabilities', (surface) => {
@@ -61,20 +63,21 @@ describe('supported client release matrix', () => {
 
   it.each(SURFACES)('the current release equals the newest registered %s profile and is the default', (surface) => {
     const newest = [...profiles(surface)].sort((a, b) => a.revision.localeCompare(b.revision, 'en', { numeric: true })).at(-1)
-    expect(newest?.revision).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
+    const expected = surface === 'staff_onboarding' ? '2026-10-05.2' : WEBSITE_INTEGRATION_CONTRACT_VERSION
+    expect(newest?.revision).toBe(expected)
     const defaulted = assessApiContractCompatibility({ surface, major: 'v1', clientProfile: null, requiredCapabilities: [], registry: API_CONTRACT_PROFILE_REGISTRY })
-    expect(defaulted.ok && defaulted.profile.revision).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
+    expect(defaulted.ok && defaulted.profile.revision).toBe(expected)
   })
 
   it('published OpenAPI documents and the manifest carry the current release', () => {
     for (const document of [website, customer, staff]) {
-      expect(document.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
+      expect(document.info.version).toBe(API_DOCUMENTATION_VERSION)
       expect(document['x-contract-schema-version']).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     }
     const manifest = buildOpenApiReleaseManifest()
-    expect(manifest.release_version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
-    expect(manifest.specifications.website.immutable_url).toContain(`/api/v1/openapi/${WEBSITE_INTEGRATION_CONTRACT_VERSION}/`)
-    expect(manifest.specifications.staff.immutable_url).toContain(`/api/v1/openapi/${WEBSITE_INTEGRATION_CONTRACT_VERSION}/`)
+    expect(manifest.release_version).toBe(API_DOCUMENTATION_VERSION)
+    expect(manifest.specifications.website.immutable_url).toContain(`/api/v1/openapi/${API_DOCUMENTATION_VERSION}/`)
+    expect(manifest.specifications.staff.immutable_url).toContain(`/api/v1/openapi/${API_DOCUMENTATION_VERSION}/`)
   })
 
   it('the docs-only release did not raise the minimum and stays backward-compatible', () => {

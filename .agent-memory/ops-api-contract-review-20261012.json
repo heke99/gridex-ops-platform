@@ -1,0 +1,31 @@
+{
+  "scope": "Gridex OPS API code/database/docs only; Gridex Web excluded",
+  "baseline": "f36dbba1",
+  "branch": "codex/ops-api-contract-review-20261012",
+  "audit": "quality/audits/2026-10-12-ops-api-contracts/README.md",
+  "status": "SOURCE_CORRECTED_FINAL_VERIFICATION_PENDING",
+  "authority": "Actual source and read-only native metadata; tests support local regressions only",
+  "native_project": "piidsfebjqjmnepdpnas",
+  "native_writes": 0,
+  "business_rpc_invocations": 0,
+  "deployments": 0,
+  "native_blockers": [
+    "51 missing required RPCs (five retention guards plus 46 internal command functions)",
+    "Native actor gate lacks source deny predicates",
+    "Native Partner registration lacks atomic offer/site direction guard"
+  ],
+  "documentation_version": "2026-10-12.1 prospective",
+  "wire_version": "2026-10-09.1",
+  "onboarding_wire_version": "2026-10-05.2",
+  "old_frozen_docs": "preserved byte-identical; no version-header admission gate",
+  "independent_reviewers": [
+    "final_api_source_review",
+    "final_api_database_docs_review"
+  ],
+  "scope_limits": [
+    "No configured real Staff/customer integration qualification",
+    "No all-native or provider end-to-end readiness claim",
+    "No canonical schema/type GEN or active Ediel claims/shared memory writes"
+  ],
+  "next_action": "Commit source, integrate disjoint origin/main35ad0e6d, freeze source, finish local verification and create reviewable draft PR without deploying."
+}

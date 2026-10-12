@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requireAdminApiAccess, requireAdminOperationalCompany } from '@/lib/admin/apiGuards'
 import { calculatePricingPreviewForBillingMonth, calculatePricingPreviewForUnderlay } from '@/lib/pricing/engine'
 
 export const runtime = 'nodejs'
@@ -16,7 +15,7 @@ export async function POST(request: Request) {
   if (access.response) return access.response
 
   try {
-    const companyId = await requireOperationalCompanyId(access.guard.userId)
+    const companyId = await requireAdminOperationalCompany(access.guard)
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const billingUnderlayId = typeof body.billing_underlay_id === 'string' ? body.billing_underlay_id : typeof body.billingUnderlayId === 'string' ? body.billingUnderlayId : ''
     const billingMonth = typeof body.billing_month === 'string' ? body.billing_month : typeof body.billingMonth === 'string' ? body.billingMonth : ''

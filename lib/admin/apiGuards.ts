@@ -8,6 +8,7 @@ import {
 import { type GuardResult } from '@/lib/admin/guards'
 import { ADMIN_SELECTED_COMPANY_COOKIE } from '@/lib/admin/navigationPreferences'
 import { normalizeRoleKey, resolveRoleKey } from '@/lib/rbac/roleKeys'
+import { assertTenantUserCanReadCompany, assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 
 type UserRoleRpcRow = string | {
   role_id?: string | null
@@ -31,6 +32,20 @@ type CanonicalTenantContext = {
 type ApiGuardResult =
   | { guard: GuardResult; response?: never }
   | { guard?: never; response: NextResponse }
+
+/** Keep operational writes in the company for which permissions were resolved. */
+export async function requireAdminOperationalCompany(guard: GuardResult): Promise<string> {
+  if (!guard.companyId && !guard.isPlatformAdmin) {
+    throw new Error('Bolaget för behörighetskontrollen saknas.')
+  }
+  return assertUserCanOperateCompany(guard.userId, guard.companyId)
+}
+
+/** Allow paused history reads while retaining normal company visibility limits. */
+export async function requireAdminReadableCompany(guard: GuardResult): Promise<string> {
+  if (guard.isPlatformAdmin) return guard.companyId ?? requireOperationalCompanyId(guard.userId)
+  return assertTenantUserCanReadCompany(guard.userId, guard.companyId)
+}
 
 function roleFromRpcRow(row: UserRoleRpcRow): string | null {
   if (typeof row === 'string') return normalizeRoleKey(row)
@@ -59,7 +74,8 @@ export function apiErrorResponse(error: unknown, fallbackStatus = 500) {
 }
 
 export async function requireAdminApiAccess(
-  requiredPermissions: string[] | PermissionRequirement = []
+  requiredPermissions: string[] | PermissionRequirement = [],
+  options: { companyId?: string | null } = {},
 ): Promise<ApiGuardResult> {
   const supabase = await createSupabaseServerClient()
   const {
@@ -76,8 +92,9 @@ export async function requireAdminApiAccess(
   // names, which is the same defect the page guards had. Both now come from the
   // canonical, company-scoped tenant context.
   const cookieStore = await cookies()
+  const requestedCompanyId = options.companyId?.trim() || null
   const selectedCompanyId =
-    cookieStore.get(ADMIN_SELECTED_COMPANY_COOKIE)?.value?.trim() || null
+    requestedCompanyId ?? (cookieStore.get(ADMIN_SELECTED_COMPANY_COOKIE)?.value?.trim() || null)
 
   const { data: contextData, error: contextError } = await supabase.rpc(
     'canonical_authenticated_tenant_context',
@@ -93,6 +110,12 @@ export async function requireAdminApiAccess(
 
   if (!context.authorized || context.user_id !== user.id) {
     return { response: jsonError('Ej behörig', 403) }
+  }
+
+  // An explicit target must resolve to that exact company; neither a fallback
+  // selection nor permissions from the cookie company authorize its effects.
+  if (requestedCompanyId && context.selected_company_id !== requestedCompanyId) {
+    return { response: jsonError('Ej behörig för valt bolag', 403) }
   }
 
   const permissions = (Array.isArray(context.permissions) ? context.permissions : [])

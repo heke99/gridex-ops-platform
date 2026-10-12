@@ -13,9 +13,9 @@ import { PUBLIC_API_ROUTES, publicRouteContract } from '@/lib/api/publicRouteReg
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 import { GET as currentStaffDocument } from '@/app/api/v1/openapi/staff-v1.json/route'
-import { GET as immutableStaffDocument } from '@/app/api/v1/openapi/2026-10-09.1/staff-v1.json/route'
+import { GET as immutableStaffDocument } from '@/app/api/v1/openapi/2026-10-12.1/staff-v1.json/route'
 import { GET as firstStaffReleaseDocument } from '@/app/api/v1/openapi/2026-10-04.1/staff-v1.json/route'
-import { STAFF_API_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_DOCUMENTATION_VERSION, STAFF_API_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const { validateSchema, validateResponse } = createRequire(import.meta.url)('../scripts/lib/openapi-schema-validator.cjs') as {
   validateSchema: (document: unknown, value: unknown, schema: unknown) => string[]
@@ -119,7 +119,7 @@ describe('Staff API public contract', () => {
 
   it('publishes exact checksums in a closed third manifest family', () => {
     const manifest = buildOpenApiReleaseManifest()
-    expect(manifest.specifications.staff.contract_version).toBe(STAFF_API_CONTRACT_VERSION)
+    expect(manifest.specifications.staff.contract_version).toBe(API_DOCUMENTATION_VERSION)
     expect(manifest.specifications.staff.sha256).toBe(createHash('sha256').update(serializeOpenApiDocument(staff)).digest('hex'))
     for (const spec of [staff, website, customer]) {
       const schema = { $ref: '#/components/schemas/OpenApiReleaseManifest' }
@@ -137,11 +137,11 @@ describe('Staff API public contract', () => {
     const immutable = await immutableStaffDocument(request)
     expect(await current.text()).toBe(serializeOpenApiDocument(staff))
     expect(await immutable.text()).toBe(serializeOpenApiDocument(staff))
-    expect(current.headers.get('x-gridex-contract-version')).toBe(STAFF_API_CONTRACT_VERSION)
+    expect(current.headers.get('x-gridex-contract-version')).toBe(API_DOCUMENTATION_VERSION)
     expect(immutable.headers.get('cache-control')).toContain('immutable')
     const cached = await immutableStaffDocument(new NextRequest(request.url, { headers: { 'if-none-match': immutable.headers.get('etag')! } }))
     expect(cached.status).toBe(304)
-    expect(cached.headers.get('x-gridex-contract-version')).toBe(STAFF_API_CONTRACT_VERSION)
+    expect(cached.headers.get('x-gridex-contract-version')).toBe(API_DOCUMENTATION_VERSION)
     const first = await firstStaffReleaseDocument(request)
     expect(await first.text()).toBe(serializeOpenApiDocument(JSON.parse(readFileSync('docs/openapi/releases/2026-10-04.1/staff-v1.json', 'utf8'))))
     expect(first.headers.get('cache-control')).toContain('immutable')
@@ -174,12 +174,12 @@ describe('Staff API public contract', () => {
       mkdirSync(resolve(dir, 'scripts/lib'), { recursive: true })
       copyFileSync(resolve('scripts/lib/unit-loopback-network-boundary.cjs'), resolve(dir, 'scripts/lib/unit-loopback-network-boundary.cjs'))
       copyFileSync(resolve('scripts/lib/refactor-safe-static-read.cjs'), resolve(dir, 'scripts/lib/refactor-safe-static-read.cjs'))
-      for (const name of ['website-integration-v1', 'customer-portal-v1', 'staff-v1']) writeFileSync(resolve(dir, `docs/openapi/${name}.json`), JSON.stringify({ info: { version: STAFF_API_CONTRACT_VERSION }, 'x-contract-schema-version': STAFF_API_CONTRACT_VERSION }))
+      for (const name of ['website-integration-v1', 'customer-portal-v1', 'staff-v1']) writeFileSync(resolve(dir, `docs/openapi/${name}.json`), JSON.stringify({ info: { version: API_DOCUMENTATION_VERSION }, 'x-contract-schema-version': STAFF_API_CONTRACT_VERSION }))
       const script = resolve('scripts/materialize-openapi-release.cjs')
       execFileSync(process.execPath, [script], { cwd: dir })
-      const release = resolve(dir, `docs/openapi/releases/${STAFF_API_CONTRACT_VERSION}/staff-v1.json`)
+      const release = resolve(dir, `docs/openapi/releases/${API_DOCUMENTATION_VERSION}/staff-v1.json`)
       const before = readFileSync(release, 'utf8')
-      writeFileSync(resolve(dir, 'docs/openapi/staff-v1.json'), JSON.stringify({ info: { version: STAFF_API_CONTRACT_VERSION, title: 'Mutation' }, 'x-contract-schema-version': STAFF_API_CONTRACT_VERSION }))
+      writeFileSync(resolve(dir, 'docs/openapi/staff-v1.json'), JSON.stringify({ info: { version: API_DOCUMENTATION_VERSION, title: 'Mutation' }, 'x-contract-schema-version': STAFF_API_CONTRACT_VERSION }))
       expect(() => execFileSync(process.execPath, [script], { cwd: dir, stdio: 'pipe' })).toThrow('Refusing to mutate immutable OpenAPI release artifact')
       expect(readFileSync(release, 'utf8')).toBe(before)
     } finally { rmSync(dir, { recursive: true, force: true }) }

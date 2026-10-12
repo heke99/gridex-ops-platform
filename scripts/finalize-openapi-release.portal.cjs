@@ -1,4 +1,5 @@
 'use strict'
+const { documentCredentialResponseProfileErrors } = require('./lib/openapi-release-schemas.cjs')
 
 module.exports = function finalizeCustomerPortalRelease({
   application,
@@ -20,6 +21,7 @@ module.exports = function finalizeCustomerPortalRelease({
   string,
   uuid,
   version,
+  runtimeContractVersion,
   website,
   websitePath,
 }) {
@@ -27,7 +29,7 @@ module.exports = function finalizeCustomerPortalRelease({
     email: { type: 'string', format: 'email', maxLength: 320 },
     customer_number: { type: 'string', maxLength: 100 },
     external_customer_id: { type: 'string', maxLength: 200 },
-    authenticated_user_reference: { type: 'string', maxLength: 200 },
+    authenticated_user_reference: { type: 'string', maxLength: 200, description: 'Authenticated account subject from the organization login system. Resolves only an already linked active account within the API credential organization; an unlinked, disabled or foreign subject never grants access or creates a link.' },
   }
   portal.components.schemas.CustomerSyncRequest = {
     type: 'object',
@@ -221,6 +223,7 @@ module.exports = function finalizeCustomerPortalRelease({
       requested_move_out_date: { type: 'string', format: 'date' },
       status: { type: 'string', const: 'submitted' },
       replayed: { type: 'boolean' },
+      submitted_at: { type: 'string', format: 'date-time' },
     },
   }
   setResponse(
@@ -936,7 +939,7 @@ module.exports = function finalizeCustomerPortalRelease({
     portal.components.schemas.CustomerSupportCaseDetail = customerSupportCaseDetail(portal.components.schemas.CustomerSupportCase)
   }
   for (const document of [website, portal]) {
-    Object.assign(document.components.schemas, releaseManifestSchemas(version, '2026-10-02.3'))
+    Object.assign(document.components.schemas, releaseManifestSchemas(version, '2026-10-02.3', { runtimeVersion: runtimeContractVersion, includeStaff: true }))
     document['x-gridex-release-version'] = version
     documentVersionedOpenApiHeaders(document)
   }
@@ -945,14 +948,15 @@ module.exports = function finalizeCustomerPortalRelease({
   assertLocalRefs(portal, 'customer portal')
 
   // Re-normalize after late example assignment so fixture/example versions cannot
-  // drift from info.version / x-contract-schema-version.
+  // drift from the independent documentation / runtime schema revisions.
   for (const document of [website, portal]) {
     normalizeContractVersionMetadata(document)
+    documentCredentialResponseProfileErrors(document)
   }
 
   fs.writeFileSync(websitePath, `${JSON.stringify(website, null, 2)}\n`)
   fs.writeFileSync(portalPath, `${JSON.stringify(portal, null, 2)}\n`)
-  fs.writeFileSync(`docs/fixtures/public-contracts-response-${version}.json`, `${JSON.stringify(publicContractsExample, null, 2)}\n`)
+  fs.writeFileSync(`docs/fixtures/public-contracts-response-${runtimeContractVersion}.json`, `${JSON.stringify(publicContractsExample, null, 2)}\n`)
   const hashes = {
     website: crypto
       .createHash('sha256')

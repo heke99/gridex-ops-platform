@@ -6,12 +6,20 @@ This guide explains what changes between documentation revisions of the V1 contr
 
 ## V1 has no breaking changes
 
+### Documentation 2026-10-12.1
+
+Documentation and wire revisions are now independent. The default Website, Customer Portal and Staff response revision remains `2026-10-09.1`; this documentation publication does not require a request header or client upgrade. Staff onboarding retains its independent `2026-10-05.2` representation. Older qualified response profiles can be pinned on the credential by the platform operator, including the older closed response field sets and version constants.
+
+This publication corrects descriptions of existing pagination, move-out `submitted_at`, fixed-quote absence of a market reference, lifecycle `410`/`423`, and JSON payload `413` errors. It also distinguishes central account revocation from the integration backend's local-login checks. Previously published immutable documents retain their bytes.
+
+The accompanying implementation corrections enforce the documented authorization and input rules, preserve complete contract and measurement results, and make retry/audit behavior truthful. They do not grant additional permissions or accept stale legal evidence. See [the operation inventory](api-index.md) for the source and database verification boundaries.
+
 Every documentation revision of V1 (Website, Customer Portal, Staff, Staff onboarding and Partner) is backward-compatible:
 
 - existing endpoints, required request fields, field types, units, idempotency and business semantics are unchanged;
 - no new header, query parameter or body field is required;
 - an API credential and a V1 endpoint remain enough; there is no mandatory version header;
-- the minimum supported revision is `2026-10-02.3`. A documentation-only release never raises it.
+- the Website and Customer Portal minimum supported revision is `2026-10-02.3`; Staff and independent onboarding have their own support matrices. A documentation-only release never raises a surface's minimum.
 
 Supported revisions per surface:
 
@@ -20,7 +28,7 @@ Supported revisions per surface:
 | Website | `2026-10-02.3` (minimum), `2026-10-04.1`, `2026-10-09.1` (current) |
 | Customer Portal | `2026-10-02.3`, `2026-10-04.1`, `2026-10-09.1` |
 | Staff | `2026-10-04.1`, `2026-10-09.1` |
-| Staff onboarding | `2026-10-04.1`, `2026-10-09.1` |
+| Staff onboarding | `2026-10-05.2` (separate identity contract) |
 
 Responses carry `X-Gridex-Contract-Version` and `contract_schema_version` with the revision that produced the representation. Accept any well-formed V1 revision (`YYYY-MM-DD.N`) and validate the business payload; do not reject a response only because its revision is newer than the one you generated your client from. Immutable OpenAPI documents for each revision stay available under `/api/v1/openapi/<revision>/` and are never rewritten.
 

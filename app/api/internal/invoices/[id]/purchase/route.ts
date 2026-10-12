@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requireAdminApiAccess, requireAdminOperationalCompany } from '@/lib/admin/apiGuards'
+import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 import { requestCapwayInvoicePurchase } from '@/lib/integrations/billing/capway/purchase'
 
@@ -11,13 +11,13 @@ export const dynamic = 'force-dynamic'
 type Props = { params: Promise<{ id: string }> }
 
 export async function POST(request: Request, { params }: Props) {
-  const access = await requireAdminApiAccess(['billing.write', 'billing.export'])
-  if (access.response) return access.response
   try {
     const { id } = await params
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const requestedCompanyId = typeof body.companyId === 'string' ? body.companyId : typeof body.company_id === 'string' ? body.company_id : null
-    const companyId = requestedCompanyId ? await assertUserCanOperateCompany(access.guard.userId, requestedCompanyId) : await requireOperationalCompanyId(access.guard.userId)
+    const access = await requireAdminApiAccess(['billing.write', 'billing.export'], { companyId: requestedCompanyId })
+    if (access.response) return access.response
+    const companyId = requestedCompanyId?.trim() ? await assertUserCanOperateCompany(access.guard.userId, requestedCompanyId) : await requireAdminOperationalCompany(access.guard)
     const financingMode = body.financing_mode === 'factoring_with_recourse' || body.financingMode === 'factoring_with_recourse' ? 'factoring_with_recourse' : 'factoring_without_recourse'
 
     const { data: item, error } = await supabaseService

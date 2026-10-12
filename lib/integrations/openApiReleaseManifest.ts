@@ -8,6 +8,7 @@ import {
   CUSTOMER_PORTAL_OPENAPI_URL,
   CUSTOMER_PORTAL_VERSIONED_OPENAPI_URL,
   API_COMPATIBILITY_CLASSIFICATION,
+  API_DOCUMENTATION_VERSION,
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
   WEBSITE_INTEGRATION_OPENAPI_URL,
   WEBSITE_INTEGRATION_VERSIONED_OPENAPI_URL,
@@ -16,7 +17,7 @@ import {
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
 // Deterministic release preparation instant; publication is verified separately after deployment.
-export const OPENAPI_RELEASED_AT = '2026-10-09T12:00:00.000Z' as const
+export const OPENAPI_RELEASED_AT = '2026-10-12T12:00:00.000Z' as const
 
 function sha256(document: unknown): string {
   return createHash('sha256')
@@ -25,13 +26,13 @@ function sha256(document: unknown): string {
 }
 
 export function buildOpenApiReleaseManifest() {
-  const version = WEBSITE_INTEGRATION_CONTRACT_VERSION
+  const version = API_DOCUMENTATION_VERSION
   return {
     release_version: version,
     website_openapi_version: websiteIntegrationOpenApi.info.version,
     customer_portal_openapi_version: customerPortalOpenApi.info.version,
     staff_openapi_version: staffOpenApi.info.version,
-    runtime_contract_version: version,
+    runtime_contract_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
     guide_version: version,
     released_at: OPENAPI_RELEASED_AT,
     generated_at: OPENAPI_RELEASED_AT,

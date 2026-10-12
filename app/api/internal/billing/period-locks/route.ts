@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
-import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
-import { requireOperationalCompanyId } from '@/lib/tenant/scope'
+import { requireAdminApiAccess, requireAdminOperationalCompany } from '@/lib/admin/apiGuards'
 import { getBillingPeriodLock, lockBillingPeriod, unlockBillingPeriod } from '@/lib/billing/invoiceReadiness'
 
 export const runtime = 'nodejs'
@@ -16,7 +15,7 @@ export async function GET(request: Request) {
   if (access.response) return access.response
 
   try {
-    const companyId = await requireOperationalCompanyId(access.guard.userId)
+    const companyId = await requireAdminOperationalCompany(access.guard)
     const url = new URL(request.url)
     const billingMonth = readBillingMonth(url.searchParams.get('billing_month') ?? url.searchParams.get('billingMonth'))
     if (!billingMonth) return NextResponse.json({ error: 'billing_month måste anges som YYYY-MM.' }, { status: 400 })
@@ -33,7 +32,7 @@ export async function POST(request: Request) {
   if (access.response) return access.response
 
   try {
-    const companyId = await requireOperationalCompanyId(access.guard.userId)
+    const companyId = await requireAdminOperationalCompany(access.guard)
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const billingMonth = readBillingMonth(body.billing_month ?? body.billingMonth)
     const action = typeof body.action === 'string' ? body.action.trim() : 'lock'

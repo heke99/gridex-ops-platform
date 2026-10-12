@@ -15,7 +15,7 @@ function customerSupportCaseDetail(caseSchema) {
   }
 }
 
-function releaseManifestSchemas(version, minimumVersion, { includeStaff = false } = {}) {
+function releaseManifestSchemas(version, minimumVersion, { includeStaff = false, runtimeVersion = version } = {}) {
   const contractVersion = { type: 'string', const: version }
   const dateTime = { type: 'string', format: 'date-time' }
   const compatibility = { type: 'string', enum: ['backward-compatible', 'breaking-client-update-required', 'breaking'] }
@@ -24,7 +24,7 @@ function releaseManifestSchemas(version, minimumVersion, { includeStaff = false 
     website_openapi_version: contractVersion,
     customer_portal_openapi_version: contractVersion,
     ...(includeStaff ? { staff_openapi_version: contractVersion } : {}),
-    runtime_contract_version: contractVersion,
+    runtime_contract_version: { type: 'string', const: runtimeVersion },
     guide_version: contractVersion,
     released_at: dateTime,
     generated_at: dateTime,
@@ -91,4 +91,25 @@ function documentVersionedOpenApiHeaders(document) {
   }
 }
 
-module.exports = { customerSupportCaseDetail, releaseManifestSchemas, documentVersionedOpenApiHeaders }
+function documentCredentialResponseProfileErrors(document) {
+  const codes = document['x-error-codes'] ?? []
+  document['x-error-codes'] = [...new Set([...codes, 'api_contract_profile_unavailable'])]
+  for (const [path, item] of Object.entries(document.paths ?? {})) {
+    if (path.includes('/openapi/')) continue
+    for (const [method, operation] of Object.entries(item)) {
+      if (!['get', 'post', 'put', 'patch', 'delete'].includes(method)) continue
+      operation.responses = operation.responses ?? {}
+      operation.responses['503'] = operation.responses['503'] ?? {
+        description: 'The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.',
+        headers: {
+          'X-Gridex-Contract-Version': { $ref: '#/components/headers/GridexContractVersion' },
+          'X-Request-ID': { $ref: '#/components/headers/RequestId' },
+          'X-Gridex-Documentation-Version': { $ref: '#/components/headers/GridexDocumentationVersion' },
+        },
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorEnvelope' } } },
+      }
+    }
+  }
+}
+
+module.exports = { customerSupportCaseDetail, releaseManifestSchemas, documentVersionedOpenApiHeaders, documentCredentialResponseProfileErrors }

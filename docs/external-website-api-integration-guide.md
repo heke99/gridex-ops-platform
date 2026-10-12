@@ -1,6 +1,8 @@
 # Gridex Website Integration API
 
-Current contract: **2026-10-09.1**
+Current documentation: **2026-10-12.1**. Default response contract: **2026-10-09.1**.
+
+Documentation revisions describe the API and never require matching version headers on business requests. A newer documentation copy does not change the supported V1 response representation. Gridex can pin an older supported representation on the credential; see [API compatibility policy](api-compatibility-policy.md).
 
 You do not need to match the latest documentation revision exactly to use a supported API version. See the [compatibility policy](api-compatibility-policy.md) and the [migration guide](api-migration-guide.md).
 
@@ -128,9 +130,9 @@ Before deploying an integration update, read:
 
 `GET /api/v1/openapi/release-manifest.json`
 
-Verify that the release version, minimum supported integration version and SHA-256 digests match the OpenAPI documents you generated your client from. Immutable release URLs in the manifest can be retained for audit and reproducible builds.
+The manifest's release version identifies the current documentation; it does not have to equal the revision used to generate an existing supported client. Verify the SHA-256 digest for the exact OpenAPI document you fetch and retain its immutable URL for audit and reproducible builds. The minimum and per-surface compatibility policy describe support; neither creates a new documentation-version header requirement.
 
-For contract **2026-10-09.1**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
+For the stable response contract **2026-10-09.1**, an existing integration can keep its supported frozen specification, including the documented historical errata. Use verified request fields and business rules; updating the documentation copy is optional.
 
 ## Production checklist
 

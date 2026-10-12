@@ -1,12 +1,16 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-10-09.1**
+Current documentation: **2026-10-12.1**. Default response contract: **2026-10-09.1**.
+
+Documentation-only revisions leave the default wire contract unchanged. Business requests need no documentation-version header. An older supported representation can be pinned on the credential in OPS; the tenant does not need to copy the latest documentation to keep using the API.
 
 You do not need to match the latest documentation revision exactly to use a supported API version. See the [compatibility policy](api-compatibility-policy.md) and the [migration guide](api-migration-guide.md).
 
 Release 2026-10-09.1 is documentation-only: the OpenAPI document now describes support message and attachment continuation (`X-Gridex-Next-Cursor` / `cursor`), closure-versus-replay precedence, `503 idempotency_completion_uncertain`, `409 idempotency_reconciliation_required` and that metering values are a bounded detail list rather than complete-month totals. Request requirements and response fields are unchanged.
 
-Release 2026-10-02.4 corrected the closed support-case detail schema so its existing `messages` field validates, and aligned the closed release-manifest schema with its response. Release 2026-10-04.1 adds the separate Staff API family and its manifest metadata. Customer portal request requirements and business response fields remain unchanged. Integrations using 2026-10-02.3 remain supported; strict schema snapshots must include the 2026-10-02.4 support-detail correction or a later release. Earlier immutable specifications retain their original bytes and document-version headers.
+Release 2026-10-02.4 corrected the contradictory closed support-case detail schema so its existing `messages` field validates, and aligned the closed release-manifest schema with its response. Release 2026-10-04.1 adds the separate Staff API family and its manifest metadata. Integrations using 2026-10-02.3 keep their V1 business requests; credential pinning projects closed object fields where the historical schema is coherent. The contradictory support-detail validator requires its specific schema correction, as described in the compatibility policy. Earlier immutable specifications retain their original bytes and document-version headers.
+
+The 2026-10-12.1 documentation records pagination on resource envelopes and the existing `submitted_at` field on move-out results. `authenticated_user_reference` is your tenant login account/user subject. It resolves an existing active same-organization portal account; it is not a central database resource UUID and never creates an implicit email-based grant. Customer support always requires that active account binding, including on reads. Customer assertions require integer `iat`, a short permitted lifetime and a fresh `jti`.
 
 The attachment download headers introduced by 2026-10-02.3 are retained: binary responses send `X-Gridex-Contract-Version` and `X-Request-ID`. Both the 2026-10-02.2 and 2026-10-02.3 immutable releases remain unchanged.
 

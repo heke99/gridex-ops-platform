@@ -1,0 +1,42 @@
+{
+  "scope": "Gridex OPS code/docs/database; Gridex Web excluded",
+  "baseline": "f36dbba1",
+  "branch": "codex/ops-api-contract-review-20261012",
+  "authority": "Actual code and native database metadata; tests are supporting verification only",
+  "documentation_version": "2026-10-12.1 (prospective)",
+  "runtime_contract_version": "2026-10-09.1",
+  "onboarding_contract_version": "2026-10-05.2",
+  "live_writes": 0,
+  "native_business_rpcs": 0,
+  "deployments": 0,
+  "root_corrections": [
+    "Independent documentation/wire versions and correct onboarding matrix",
+    "Authenticated server-owned request-local response profiles; malformed maps fail before business execution and auth denials retain precedence",
+    "Public legacy feed diagnostics project documented fields without widening identifier guards",
+    "Actual organization_* error registry and profile availability documentation",
+    "Inbound message source scoped to trusted authorized company before parsing/effects",
+    "Guard-bound default billing/pricing company and exact shared document read scope; paused history remains readable",
+    "Operational lifecycle enforced before inbound/billing/pricing/provider mutations",
+    "Dispute and canonical provider-event writes compare full JSONB receipt plus timestamp/state, preserve event clocks, reread conflicts and report uncertain post-provider completion honestly"
+  ],
+  "native_release_blockers": [
+    "Five required customer/document retention guards absent",
+    "46 internal RPCs absent on 74 traced valid-command method chains",
+    "Installed actor permission gate lacks source deny predicates",
+    "Native Partner contract transaction needs atomic offer/site direction guard"
+  ],
+  "latest_native_receipt": "final-native-state.json",
+  "latest_missing_functions_receipt": "required-native-preflight-result.json",
+  "historical_errata": [
+    "Customer02.3 support detail closed allOf contradiction",
+    "Website02.3/04.1 fixed quote market_reference nonnullable schema differs from actual null"
+  ],
+  "review_status": "Two independent read-only reviewers identified concrete issues; corrections applied; final correction review pending",
+  "verification_status": "Final local checks in progress; no production/native readiness claim",
+  "limits": [
+    "No configured live customer/Staff binding to qualify end-to-end flows",
+    "Boundary coverage is not complete business-callee or provider/native campaign acceptance",
+    "SQL proposals are unapplied and not registered migrations",
+    "Canonical GEN and shared Ediel claims/memory remain under existing owners"
+  ]
+}

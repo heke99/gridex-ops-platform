@@ -185,6 +185,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         }
       }
@@ -368,6 +374,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         }
       }
@@ -529,6 +541,28 @@
             "enum": [
               "2026-10-05.2"
             ]
+          }
+        }
+      }
+    },
+    "responses": {
+      "OrganizationGone": {
+        "description": "Organization is closed or inactive. Error codes: organization_closed, organization_inactive.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+            }
+          }
+        }
+      },
+      "OrganizationPaused": {
+        "description": "Organization API access is paused. Error codes: organization_paused.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/StaffOnboardingErrorResponse"
+            }
           }
         }
       }

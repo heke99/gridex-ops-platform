@@ -1,0 +1,1750 @@
+{
+  "schema": "ops-partner-operation-contract-review-v1",
+  "reviewed_at_utc": "2026-10-12T21:24:30.836Z",
+  "base_main": "f36dbba1",
+  "scope": {
+    "workspace": "/tmp/gridex-api-audit-ops",
+    "source": [
+      "app/api/partner/v1/[[...path]]/route.ts",
+      "lib/partner-api/**",
+      "lib/integrations/apiAuth.ts",
+      "lib/api/strictRequest.ts",
+      "lib/integrations/webhooks.ts",
+      "lib/integrations/webhookCredentialPolicy.ts",
+      "lib/integrations/publicWebhookTransport.ts",
+      "lib/integrations/webhookVaultSecrets.ts",
+      "supabase/migrations/*partner_api*",
+      "app/developers/customer-portal-api/page.tsx"
+    ],
+    "excluded": [
+      "gridex-web",
+      "tenant projects",
+      "production/staging writes",
+      "secret retrieval",
+      "frozen release edits",
+      "Ediel producer/GEN execution"
+    ]
+  },
+  "skill_routing": {
+    "activated": [
+      "spec-to-code-compliance: operation/spec/source inventory adapted to explicitly delegated no-further-subagents scope",
+      "code-review: complete route/callee/ownership/compatibility review",
+      "fp-check: direct executable proof and source refutation for each material finding; operational defects not mislabeled privilege-escalation vulnerabilities",
+      "supabase: service-role/RPC/Storage/paging boundaries",
+      "supabase-postgres-best-practices: tenant isolation/grants/source transaction traces"
+    ],
+    "conditional": [
+      "systematic-debugging/test-driven-development: activated after root exact-file handoffs",
+      "variant-analysis: measurement core/simple and POA core/simple variants compared"
+    ],
+    "skipped": [
+      "UI/React/design: source UI read-only docs surface, no component edits",
+      "GEN/live/native producers: explicitly prohibited",
+      "external messaging/plugins/deployments: no authorization or task need",
+      "independent subagent refutation: parent explicitly forbade further agents; root integrates independent final review"
+    ]
+  },
+  "runtime_spec": {
+    "file": "lib/partner-api/businessOpenApi.ts",
+    "served_at": "/api/partner/v1/openapi.json",
+    "openapi": "3.1.0",
+    "version": "2026-08-17.1",
+    "path_count": 15,
+    "operation_count": 16
+  },
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/location",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleBusinessPartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/business.ts",
+        "line": 453,
+        "function": "getLocation"
+      },
+      "scopes": {
+        "anyOf": [
+          "website_energy_area.resolve",
+          "customer_sites.read",
+          "partner_sites.write",
+          "partner_contracts.write"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "postal_code",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^\\d{5}$"
+          },
+          "description": "Swedish five-digit postal code."
+        },
+        {
+          "name": "address",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Street address. Recommended and required when the postal code is ambiguous."
+        },
+        {
+          "name": "city",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string"
+          },
+          "description": "City. Recommended together with address."
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "LocationResponse",
+        "required": [
+          "location"
+        ],
+        "fields": [
+          "location"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "tables": [
+        "platform_postal_code_grid_mappings",
+        "platform_address_lookup_cache",
+        "platform_grid_areas",
+        "platform_grid_owners",
+        "energy_geodata_versions",
+        "customer_site_resolution"
+      ],
+      "rpcs": [
+        "gridex_point_to_grid_area",
+        "gridex_lonlat_to_grid_area"
+      ],
+      "tests": [
+        "__tests__/partner-location-assurance.test.ts",
+        "__tests__/partner-location-multi-owner.test.ts",
+        "__tests__/partner-response-schema-validation.test.ts"
+      ],
+      "assessment": "Ambiguous and unresolved locations are explicit errors; stale identifiers stay provisional. Geographic owner assurance is separate from operational Ediel eligibility."
+    },
+    {
+      "method": "GET",
+      "path": "/price/current",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleBusinessPartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/business.ts",
+        "line": 503,
+        "function": "getCurrentPrice"
+      },
+      "scopes": {
+        "anyOf": [
+          "website_market_prices.read",
+          "customer_contracts.read",
+          "partner_contracts.write"
+        ]
+      },
+      "parameters": [
+        {
+          "name": "postal_code",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^\\d{5}$"
+          },
+          "description": "Swedish five-digit postal code."
+        },
+        {
+          "name": "address",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Street address. Recommended and required when the postal code is ambiguous."
+        },
+        {
+          "name": "city",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string"
+          },
+          "description": "City. Recommended together with address."
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "CurrentPriceResponse",
+        "required": [
+          "location",
+          "market_price"
+        ],
+        "fields": [
+          "location",
+          "market_price"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "409",
+        "422",
+        "503"
+      ],
+      "tables": [
+        "customer_site_resolution",
+        "company_market_price_sources",
+        "spot_price_intervals",
+        "spot_price_daily_summaries"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/market-price-api-contract.test.ts",
+        "__tests__/market-price-source-selection.test.ts"
+      ],
+      "assessment": "Canonical company-owned resolution binds price area; policy-backed fresh interval returns bare SEK/ore per kWh excluding VAT, supplier and grid fees."
+    },
+    {
+      "method": "POST",
+      "path": "/price",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleBusinessPartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/business.ts",
+        "line": 555,
+        "function": "createPrice"
+      },
+      "scopes": {
+        "anyOf": [
+          "website_quotes.write",
+          "customer_contracts.read",
+          "partner_contracts.write"
+        ]
+      },
+      "parameters": [],
+      "request_dto": {
+        "name": "PriceRequest",
+        "required": [
+          "postal_code",
+          "annual_consumption_kwh"
+        ],
+        "fields": [
+          "postal_code",
+          "address",
+          "city",
+          "country",
+          "annual_consumption_kwh",
+          "customer_type",
+          "start_date",
+          "invoice_delivery_method"
+        ]
+      },
+      "response_dto": {
+        "status": 200,
+        "name": "PriceResponse",
+        "required": [
+          "quote_reference",
+          "valid_until",
+          "location",
+          "offer",
+          "customer_price",
+          "estimated_cost",
+          "price_components",
+          "is_binding",
+          "warnings",
+          "assumptions"
+        ],
+        "fields": [
+          "quote_reference",
+          "valid_until",
+          "location",
+          "offer",
+          "customer_price",
+          "estimated_cost",
+          "price_components",
+          "is_binding",
+          "warnings",
+          "assumptions"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ],
+      "tables": [
+        "canonical_public_contract_diagnostics_v",
+        "contract_publication_versions",
+        "canonical_public_contract_delivery_readiness_v",
+        "customer_site_resolution",
+        "website_contract_quotes"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-api-channel-quote.test.ts",
+        "__tests__/partner-price-invalid-request.test.ts",
+        "__tests__/offer-quote-invoice-fee.test.ts",
+        "__tests__/offer-quote-public-option-adapter.test.ts"
+      ],
+      "assessment": "API publication channel and resolved area feed the quote calculator. Estimated unit price derives from VAT-inclusive monthly total divided by annual_kWh/12. This write has no Idempotency-Key requirement; result is nonbinding."
+    },
+    {
+      "method": "POST",
+      "path": "/contract",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleBusinessPartnerApi -> handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 731,
+        "function": "createContract"
+      },
+      "scopes": [
+        "partner_contracts.write"
+      ],
+      "parameters": [
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          },
+          "description": "Unique key for the business write. Reuse the same key only when retrying the same request. A completed write replays its stored result. `503 idempotency_completion_uncertain` means the write may already be saved: retry with the same key and payload, never with a new key."
+        }
+      ],
+      "request_dto": {
+        "name": "CreateContractRequest",
+        "required": [
+          "customer",
+          "site"
+        ],
+        "fields": [
+          "customer",
+          "site",
+          "power_of_attorney"
+        ]
+      },
+      "response_dto": {
+        "status": 201,
+        "name": "CreateContractResponse",
+        "required": [
+          "entity_id",
+          "customer",
+          "site",
+          "power_of_attorney"
+        ],
+        "fields": [
+          "entity_id",
+          "customer",
+          "site",
+          "power_of_attorney"
+        ]
+      },
+      "documented_statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "409",
+        "413",
+        "422"
+      ],
+      "tables": [
+        "canonical_public_contract_diagnostics_v",
+        "customers",
+        "customer_sites",
+        "customer_contracts",
+        "powers_of_attorney",
+        "customer_portal_write_idempotency",
+        "domain_events",
+        "webhook_subscriptions",
+        "webhook_deliveries"
+      ],
+      "rpcs": [
+        "gridex_create_partner_contract_v1",
+        "gridex_resolve_partner_api_offer_v1"
+      ],
+      "tests": [
+        "__tests__/partner-poa-commit-ownership.test.ts",
+        "__tests__/partner-poa-pdf-structure.test.ts",
+        "__tests__/partner-contract-offer-direction.test.ts"
+      ],
+      "assessment": "Business wrapper delegates to simple then best-effort resolves the created site. Native RPC commits customer/site/contract/optional POA and resource event/outbox effects atomically. POA Storage upload precedes native transaction; completion failure retains committed file. The actual native published-offer resolver now qualifies the requested site direction at start of claimed execution, before upload and mutation; invalid pairing422."
+    },
+    {
+      "method": "POST",
+      "path": "/customer",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 544,
+        "function": "createCustomer"
+      },
+      "scopes": [
+        "partner_customers.write"
+      ],
+      "parameters": [
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          },
+          "description": "Unique key for the business write. Reuse the same key only when retrying the same request. A completed write replays its stored result. `503 idempotency_completion_uncertain` means the write may already be saved: retry with the same key and payload, never with a new key."
+        }
+      ],
+      "request_dto": {
+        "name": "CustomerInput",
+        "required": [
+          "soc_id",
+          "customer_type",
+          "email"
+        ],
+        "fields": [
+          "first_name",
+          "last_name",
+          "soc_id",
+          "customer_type",
+          "company_name",
+          "invoice_address",
+          "zip_code",
+          "city",
+          "country",
+          "email",
+          "cell_phone"
+        ]
+      },
+      "response_dto": {
+        "status": 201,
+        "name": "EntityResponse",
+        "required": [
+          "entity_id"
+        ],
+        "fields": [
+          "entity_id"
+        ]
+      },
+      "documented_statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "tables": [
+        "customers",
+        "customer_portal_write_idempotency",
+        "domain_events",
+        "webhook_deliveries"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-response-schema-validation.test.ts"
+      ],
+      "assessment": "Company is credential-bound; deterministic client/key external customer identifier and explicit customer DTO; recursive tenant selectors rejected."
+    },
+    {
+      "method": "POST",
+      "path": "/customer/{customer_id}/site",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleBusinessPartnerApi -> handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 600,
+        "function": "createSite"
+      },
+      "scopes": [
+        "partner_sites.write"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CustomerId"
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          },
+          "description": "Unique key for the business write. Reuse the same key only when retrying the same request. A completed write replays its stored result. `503 idempotency_completion_uncertain` means the write may already be saved: retry with the same key and payload, never with a new key."
+        }
+      ],
+      "request_dto": {
+        "name": "SiteInput",
+        "required": [
+          "address",
+          "zip_code",
+          "city",
+          "site_electricity_type"
+        ],
+        "fields": [
+          "address",
+          "zip_code",
+          "city",
+          "country",
+          "site_electricity_type"
+        ]
+      },
+      "response_dto": {
+        "status": 201,
+        "name": "EntityResponse",
+        "required": [
+          "entity_id"
+        ],
+        "fields": [
+          "entity_id"
+        ]
+      },
+      "documented_statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ],
+      "tables": [
+        "customers",
+        "customer_sites",
+        "customer_portal_write_idempotency",
+        "customer_site_resolution",
+        "domain_events",
+        "webhook_deliveries"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-response-schema-validation.test.ts"
+      ],
+      "assessment": "Company+customer reference resolved before insert, idempotency customer scoped. Business wrapper resolves newly created site best-effort; replay does not create another site."
+    },
+    {
+      "method": "POST",
+      "path": "/customer/{customer_id}/site/{site_id}/powerofattorney",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 644,
+        "function": "createPowerOfAttorney"
+      },
+      "scopes": [
+        "partner_power_of_attorney.write"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CustomerId"
+        },
+        {
+          "$ref": "#/components/parameters/SiteId"
+        },
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          },
+          "description": "Unique key for the business write. Reuse the same key only when retrying the same request. A completed write replays its stored result. `503 idempotency_completion_uncertain` means the write may already be saved: retry with the same key and payload, never with a new key."
+        }
+      ],
+      "request_dto": {
+        "name": "PowerOfAttorneyInput",
+        "required": [
+          "poa_type",
+          "transaction_type",
+          "file_base64",
+          "file_extension"
+        ],
+        "fields": [
+          "poa_type",
+          "transaction_type",
+          "file_base64",
+          "file_extension"
+        ]
+      },
+      "response_dto": {
+        "status": 201,
+        "name": "EntityResponse",
+        "required": [
+          "entity_id"
+        ],
+        "fields": [
+          "entity_id"
+        ]
+      },
+      "documented_statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "409",
+        "413",
+        "422"
+      ],
+      "tables": [
+        "customers",
+        "customer_sites",
+        "powers_of_attorney",
+        "customer_portal_write_idempotency",
+        "domain_events",
+        "webhook_deliveries"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-poa-site-idempotency.test.ts",
+        "__tests__/partner-poa-commit-ownership.test.ts",
+        "__tests__/partner-poa-pdf-structure.test.ts"
+      ],
+      "assessment": "Company-bound customer/site relationship before upload. Hash covers normalized PDF bytes. Historical body-only ledger hashes retained; replay POA reference must resolve for exact company/customer/site."
+    },
+    {
+      "method": "GET",
+      "path": "/customer/{customer_id}/site/{site_id}/powerofattorney",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 890,
+        "function": "getPowerOfAttorney"
+      },
+      "scopes": [
+        "customer_power_of_attorney.read"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CustomerId"
+        },
+        {
+          "$ref": "#/components/parameters/SiteId"
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "PowerOfAttorney",
+        "required": [
+          "entity_id",
+          "poa_type",
+          "transaction_type",
+          "file_base64",
+          "file_extension"
+        ],
+        "fields": [
+          "entity_id",
+          "poa_type",
+          "transaction_type",
+          "file_base64",
+          "file_extension"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "tables": [
+        "customers",
+        "customer_sites",
+        "powers_of_attorney"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-api-surface.test.ts"
+      ],
+      "assessment": "Exact company/customer/site POA, newest row, bounded private PDF read; no storage path in DTO. No specific behavioral GET POA fixture in executed Partner tests; SQL/source trace only."
+    },
+    {
+      "method": "GET",
+      "path": "/contract/{contract_id}/state",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 847,
+        "function": "getContractState"
+      },
+      "scopes": [
+        "customer_contracts.read"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ContractId"
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "ContractState",
+        "required": [
+          "entity_id",
+          "state"
+        ],
+        "fields": [
+          "entity_id",
+          "state"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "tables": [
+        "customer_contracts"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-api-surface.test.ts"
+      ],
+      "assessment": "Lookup company+public contract reference; emits entity_id/state. Machine credential authorizes company-wide reads; customer assertion is not a Partner prerequisite."
+    },
+    {
+      "method": "GET",
+      "path": "/customer/{customer_id}",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 866,
+        "function": "getCustomer"
+      },
+      "scopes": [
+        "customer_profile.read"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CustomerId"
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "Customer",
+        "required": [
+          "entity_id",
+          "first_name",
+          "last_name",
+          "soc_id",
+          "customer_type",
+          "company_name",
+          "invoice_address",
+          "zip_code",
+          "city",
+          "country",
+          "email",
+          "cell_phone"
+        ],
+        "fields": [
+          "entity_id",
+          "first_name",
+          "last_name",
+          "soc_id",
+          "customer_type",
+          "company_name",
+          "invoice_address",
+          "zip_code",
+          "city",
+          "country",
+          "email",
+          "cell_phone"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "tables": [
+        "customers"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-response-schema-validation.test.ts"
+      ],
+      "assessment": "Company+public reference; PRIVATE/COMPANY mapping, nullable contact fields, explicit public DTO."
+    },
+    {
+      "method": "GET",
+      "path": "/customer/{customer_id}/site/{site_id}",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 878,
+        "function": "getSite"
+      },
+      "scopes": [
+        "customer_sites.read"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CustomerId"
+        },
+        {
+          "$ref": "#/components/parameters/SiteId"
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "Site",
+        "required": [
+          "entity_id",
+          "address",
+          "zip_code",
+          "city",
+          "country",
+          "site_electricity_type"
+        ],
+        "fields": [
+          "entity_id",
+          "address",
+          "zip_code",
+          "city",
+          "country",
+          "site_electricity_type"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "tables": [
+        "customers",
+        "customer_sites"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-response-schema-validation.test.ts"
+      ],
+      "assessment": "Company+customer/site references and customer_id relation before emitting site DTO."
+    },
+    {
+      "method": "GET",
+      "path": "/customer/{customer_id}/site/{site_id}/invoice",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 922,
+        "function": "getInvoices"
+      },
+      "scopes": [
+        "customer_invoices.read"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CustomerId"
+        },
+        {
+          "$ref": "#/components/parameters/SiteId"
+        },
+        {
+          "name": "from_date",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        {
+          "name": "to_date",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "string"
+          },
+          "description": "Opaque continuation value from X-Gridex-Next-Cursor of the previous page."
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "InvoiceList",
+        "required": [
+          "invoices"
+        ],
+        "fields": [
+          "invoices"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422"
+      ],
+      "tables": [
+        "customers",
+        "customer_sites",
+        "customer_contracts",
+        "customer_invoices"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-site-invoice-pagination.test.ts",
+        "__tests__/partner-invoice-visibility-and-stockholm-dates.test.ts"
+      ],
+      "assessment": "Site contract filter before limit; modern customer_contract_id wins with null legacy contract_id fallback. Visible statuses allowlisted; opaque company/customer/site/date-bound cursor; newest issued_at/id, nulls last; Stockholm calendar filters."
+    },
+    {
+      "method": "GET",
+      "path": "/invoice/{invoice_id}",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 1007,
+        "function": "getInvoice"
+      },
+      "scopes": [
+        "customer_invoices.read"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/InvoiceId"
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "Invoice",
+        "required": [
+          "entity_id",
+          "invoice_number",
+          "invoice_date",
+          "due_date",
+          "amount",
+          "currency",
+          "status"
+        ],
+        "fields": [
+          "entity_id",
+          "invoice_number",
+          "invoice_date",
+          "due_date",
+          "amount",
+          "currency",
+          "status"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "404"
+      ],
+      "tables": [
+        "customer_invoices"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-invoice-visibility-and-stockholm-dates.test.ts"
+      ],
+      "assessment": "Company+public invoice reference+visible statuses, amount_inc_vat, Stockholm invoice_date; drafts and failed records return404."
+    },
+    {
+      "method": "GET",
+      "path": "/invoice/{invoice_id}/pdf",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 1027,
+        "function": "getInvoicePdf"
+      },
+      "scopes": [
+        "customer_invoices.read"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/InvoiceId"
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "PdfDocument",
+        "required": [
+          "entity_id",
+          "file_base64",
+          "file_extension"
+        ],
+        "fields": [
+          "entity_id",
+          "file_base64",
+          "file_extension"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "413"
+      ],
+      "tables": [
+        "customer_invoices",
+        "customer_invoice_documents"
+      ],
+      "rpcs": [
+        "ediel_require_invoice_file_copy_available_v1"
+      ],
+      "tests": [
+        "__tests__/partner-invoice-visibility-and-stockholm-dates.test.ts",
+        "__tests__/partner-api-surface.test.ts"
+      ],
+      "assessment": "Visible company-owned invoice then company+invoice-owned document, retention-copy guard, allowlisted private buckets and15MB maximum; no arbitrary URL fetch."
+    },
+    {
+      "method": "GET",
+      "path": "/customer/{customer_id}/site/{site_id}/measurement",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 1057,
+        "function": "getMeasurements"
+      },
+      "scopes": [
+        "customer_metering.read"
+      ],
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CustomerId"
+        },
+        {
+          "$ref": "#/components/parameters/SiteId"
+        },
+        {
+          "name": "from_date",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        {
+          "name": "to_date",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        {
+          "name": "resolution",
+          "in": "query",
+          "schema": {
+            "type": "string",
+            "enum": [
+              "15m",
+              "1h"
+            ],
+            "default": "1h"
+          }
+        }
+      ],
+      "request_dto": null,
+      "response_dto": {
+        "status": 200,
+        "name": "MeasurementResponse",
+        "required": [
+          "site_id",
+          "measurements"
+        ],
+        "fields": [
+          "site_id",
+          "measurements"
+        ]
+      },
+      "documented_statuses": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "422"
+      ],
+      "tables": [
+        "customers",
+        "customer_sites",
+        "normalized_metering_values"
+      ],
+      "rpcs": [],
+      "tests": [
+        "__tests__/partner-measurement-completeness.test.ts",
+        "__tests__/partner-current-metering-dto.test.ts",
+        "__tests__/partner-invoice-visibility-and-stockholm-dates.test.ts"
+      ],
+      "assessment": "Company/site/current revision/gross direction filters precede every page. Stable period_start,id traversal until empty, including capped short pages. Canonical ingest kWh quantity, gross CONSUMPTION/PRODUCTION, Stockholm half-open days and1..366day bound. No cross-page snapshot guarantee."
+    },
+    {
+      "method": "POST",
+      "path": "/webhook/subscription",
+      "dispatch": [
+        "app/api/partner/v1/[[...path]]/route.ts:dispatch",
+        "handleSimplePartnerApi"
+      ],
+      "handler": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 1107,
+        "function": "createWebhook"
+      },
+      "scopes": [
+        "partner_webhooks.manage"
+      ],
+      "parameters": [
+        {
+          "name": "Idempotency-Key",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 200
+          },
+          "description": "Unique key for the business write. Reuse the same key only when retrying the same request. A completed write replays its stored result. `503 idempotency_completion_uncertain` means the write may already be saved: retry with the same key and payload, never with a new key."
+        }
+      ],
+      "request_dto": {
+        "name": "WebhookSubscriptionInput",
+        "required": [
+          "webhook_event",
+          "target_url",
+          "signing_secret"
+        ],
+        "fields": [
+          "webhook_event",
+          "target_url",
+          "notification_email",
+          "signing_secret"
+        ]
+      },
+      "response_dto": {
+        "status": 201,
+        "name": "EntityResponse",
+        "required": [
+          "entity_id"
+        ],
+        "fields": [
+          "entity_id"
+        ]
+      },
+      "documented_statuses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "409",
+        "422"
+      ],
+      "tables": [
+        "webhook_subscriptions",
+        "customer_portal_write_idempotency",
+        "vault.secrets"
+      ],
+      "rpcs": [
+        "gridex_create_partner_webhook_subscription_v1"
+      ],
+      "tests": [
+        "__tests__/partner-single-auth-budget.test.ts",
+        "__tests__/webhook-revocation-policy.test.ts",
+        "__tests__/public-webhook-transport.test.ts"
+      ],
+      "assessment": "Public HTTPS/DNS/IP preflight before creation and pinned target at delivery; request-local shared auth avoids double budget. Secret minimum32chars; ledger contains only SHA256 secret digest, private Vault secret never returned. Simple enum maps to canonical resource events."
+    }
+  ],
+  "compatibility": {
+    "policy": "Accept existing valid V1 callers and historical same-site ledger replays; do not require latest docs release or opaque-cursor adoption.",
+    "preserved": [
+      "Legacy plural core handlers and enriched envelope fields remain.",
+      "GET /contract/{reference} canonical alias, GET/DELETE /webhook/subscription aliases remain.",
+      "Site invoices first page body remains {invoices}; continuation is optional header.",
+      "Measurement response remains {site_id,measurements}; internal pagination is invisible.",
+      "Same-site POA cached result and existing body-only request hash remain.",
+      "x-api-key accepted compatibility credential; malformed Authorization cannot fall back to it."
+    ],
+    "legacy_operation_inventory": [
+      {
+        "method": "POST",
+        "path": "/contracts",
+        "file": "lib/partner-api/core.ts",
+        "function": "createContract",
+        "line": 671
+      },
+      {
+        "method": "GET",
+        "path": "/contracts/{reference}",
+        "file": "lib/partner-api/core.ts",
+        "function": "getContract",
+        "line": 846
+      },
+      {
+        "method": "GET",
+        "path": "/contracts/{reference}/status",
+        "file": "lib/partner-api/core.ts",
+        "function": "getContract",
+        "line": 846
+      },
+      {
+        "method": "POST",
+        "path": "/customers",
+        "file": "lib/partner-api/core.ts",
+        "function": "createCustomer",
+        "line": 435
+      },
+      {
+        "method": "GET",
+        "path": "/customers/{reference}",
+        "file": "lib/partner-api/core.ts",
+        "function": "getCustomer",
+        "line": 822
+      },
+      {
+        "method": "GET",
+        "path": "/customers/{reference}/invoices",
+        "file": "lib/partner-api/core.ts",
+        "function": "invoicesForCustomer",
+        "line": 902
+      },
+      {
+        "method": "POST",
+        "path": "/sites",
+        "file": "lib/partner-api/core.ts",
+        "function": "createSite",
+        "line": 491
+      },
+      {
+        "method": "GET",
+        "path": "/sites/{reference}",
+        "file": "lib/partner-api/core.ts",
+        "function": "getSite",
+        "line": 834
+      },
+      {
+        "method": "GET",
+        "path": "/sites/{reference}/measurements",
+        "file": "lib/partner-api/core.ts",
+        "function": "measurements",
+        "line": 1006
+      },
+      {
+        "method": "POST",
+        "path": "/powers-of-attorney",
+        "file": "lib/partner-api/core.ts",
+        "function": "createPowerOfAttorney",
+        "line": 601
+      },
+      {
+        "method": "GET",
+        "path": "/powers-of-attorney/{reference}",
+        "file": "lib/partner-api/core.ts",
+        "function": "getPoa",
+        "line": 869
+      },
+      {
+        "method": "GET",
+        "path": "/invoices/{reference}",
+        "file": "lib/partner-api/core.ts",
+        "function": "getInvoice",
+        "line": 954
+      },
+      {
+        "method": "GET",
+        "path": "/invoices/{reference}/pdf",
+        "file": "lib/partner-api/core.ts",
+        "function": "getInvoice",
+        "line": 954
+      },
+      {
+        "method": "GET",
+        "path": "/webhooks/subscriptions",
+        "file": "lib/partner-api/core.ts",
+        "function": "listWebhooks",
+        "line": 1061
+      },
+      {
+        "method": "POST",
+        "path": "/webhooks/subscriptions",
+        "file": "lib/partner-api/core.ts",
+        "function": "createWebhook",
+        "line": 776
+      },
+      {
+        "method": "DELETE",
+        "path": "/webhooks/subscriptions/{reference}",
+        "file": "lib/partner-api/core.ts",
+        "function": "deleteWebhook",
+        "line": 1079
+      }
+    ],
+    "shadowed_canonical_functions": "Singular simple routes match first. Old getCanonicalSiteInvoices implementation (client filtering after200, no visible status filter, UTC date filters) is unreachable through actual route dispatch, therefore not reported as a runtime defect.",
+    "legacy_alias_inventory": [
+      {
+        "method": "GET",
+        "path": "/contract/{reference}",
+        "dispatch": "canonical -> core.getContract"
+      },
+      {
+        "method": "GET",
+        "path": "/webhook/subscription",
+        "dispatch": "canonical -> core.listWebhooks"
+      },
+      {
+        "method": "DELETE",
+        "path": "/webhook/subscription/{reference}",
+        "dispatch": "canonical -> core.deleteWebhook"
+      }
+    ]
+  },
+  "ownership_matrix": {
+    "credential": "authenticate_integration_request_v1 determines company/client/scopes/IP/origin/status/expiry; request-local scope-keyed WeakMap does not cross requests.",
+    "writes": "Every business write uses credential company. Customer/site/POA relationships resolve within company; key ledger is company/client/customer/route/key scoped.",
+    "reads": "Company-wide Partner machine authorization expected. All direct entity queries have company predicates; nested site routes check customer relation.",
+    "contract_rpc": "service_role-only GRANT and explicit active company-bound client; one native function inserts customer/site/contract/POA/events/outboxes or raises with PostgreSQL rollback.",
+    "storage": "POA path scoped partner-api/company/random.pdf, upload after idempotency claim. Delete only on definitive returned DB rejection; commit/completion uncertainty retains upload.",
+    "webhooks": "Subscription company/client owner checked on list/delete; Vault read joins company/subscription. Canonical resource event triggers fan out only within company. Dispatch checks tenant policy and linked credential revocation before transport.",
+    "invoice_projection": "Visible status gate matches customer portal. Modern contract linkage overrides legacy column; exact own document +retention predicate precede private byte read.",
+    "metering": "Current ingest-normalized kWh, tenant/site/range/resolution filters on every page; gross-only simple vocabulary; net directions retained only in legacy richer DTO."
+  },
+  "sql_dependencies": {
+    "source_migrations": [
+      "supabase/migrations/20260816101505_partner_api_v1_multicompany_foundation.sql",
+      "supabase/migrations/20260816135746_partner_api_v1_transactional_contract_create.sql",
+      "supabase/migrations/20260816170000_partner_api_v1_canonical_surface_events.sql"
+    ],
+    "functions": [
+      "gridex_create_partner_contract_v1",
+      "gridex_resolve_partner_api_offer_v1",
+      "gridex_create_partner_webhook_subscription_v1",
+      "gridex_delete_partner_webhook_subscription_v1",
+      "gridex_read_webhook_signing_secret_v1",
+      "private.gridex_emit_partner_resource_event_v2",
+      "private.gridex_partner_customer_event_v2",
+      "private.gridex_partner_site_event_v2",
+      "private.gridex_partner_poa_event_v2",
+      "private.gridex_partner_invoice_event_v2",
+      "gridex_partner_contract_event_v1"
+    ],
+    "live_metadata": "Root independent database-code-review.json now includes actual live Partner RPC/resolver bodies and normalized equality SHA256 with defining migrations. No live mutation or native rollback execution occurred. Earlier initial ops-live-catalog.json contained9staff/portal bodies only."
+  },
+  "findings": [
+    {
+      "id": "PARTNER-001",
+      "severity": "P1",
+      "status": "fixed_local",
+      "title": "POA idempotency replay was not bound to requested site",
+      "original_location": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 658
+      },
+      "current_location": {
+        "file": "lib/partner-api/simple.ts",
+        "line": 703
+      },
+      "trace": [
+        "POST nested POA route -> requireCustomerSite(company,customerRef,siteRef)",
+        "Ledger customerId is same across sites; operation path is literal template; hash includes body and PDF digest but not site path",
+        "Completed key replays first POA response before second execute callback"
+      ],
+      "reproduction": "Actual handler+actual strictRequest with stateful ledger: same customer has site_A/site_B; first key+PDF commits POA site_A, second identical key+PDF for site_B returned201 site_A ref with no site_B insert. RED:4 failures/1 control pass.",
+      "impact": "Integration can believe authority was registered for second site while only first has POA. No cross-company privilege escalation claimed.",
+      "fix": "On replay, bounded query for cached POA ref by exact credential company, customer, site; absent/wrong ownership ->409 idempotency_conflict, no upload or mutation. Existing hashes preserved.",
+      "regression": "__tests__/partner-poa-site-idempotency.test.ts",
+      "verification": "5tests GREEN plus original POA commit/cleanup regression."
+    },
+    {
+      "id": "PARTNER-002",
+      "severity": "P1",
+      "status": "fixed_local",
+      "title": "Measurement range silently truncated by backend cap or40000 client limit",
+      "original_locations": [
+        {
+          "file": "lib/partner-api/simple.ts",
+          "line": 1056
+        },
+        {
+          "file": "lib/partner-api/core.ts",
+          "line": 1027
+        },
+        {
+          "file": "supabase/config.toml",
+          "line": 18
+        }
+      ],
+      "current_location": {
+        "file": "lib/partner-api/measurementRead.ts",
+        "line": 25
+      },
+      "trace": [
+        "Supported1..366day range -> one normalized_metering_values query",
+        "limit40000 does not override PostgREST max_rows1000",
+        "Simple returns200 measurements without continuation/count/truncation flag; legacy core same omission"
+      ],
+      "reproduction": "Actual simple/core handlers with SQL-like pre-limit filters and cap1000:1100 own current intervals returned1000. Cap137:300 rows returned137. Gross dual-direction15m allowed209-day range41000rows also truncated. RED:7 failures.",
+      "impact": "Successful API response loses legitimate intervals and yields incorrect consumption/export totals for partner integrations.",
+      "fix": "Stable ordered period_start,id range pages, actual received offset, never stop on short cap page; only empty terminal page completes. Page errors/repetition/invalid ordering/150000rows/2000pages fail instead of returning partial response. DTO preserved.",
+      "regression": "__tests__/partner-measurement-completeness.test.ts",
+      "limitations": "Concurrent revisions are not a single database snapshot; range ordering detects nonadvancing data but cannot certify snapshot consistency. Hosted max_rows not queried; defect confirmed against committed local config and representative capped backend."
+    },
+    {
+      "id": "PARTNER-003",
+      "severity": "P2",
+      "status": "fixed_local",
+      "title": "Malformed price JSON escaped as500 and body size was unbounded",
+      "original_location": {
+        "file": "lib/partner-api/business.ts",
+        "line": 557
+      },
+      "current_location": {
+        "file": "lib/partner-api/business.ts",
+        "line": 561
+      },
+      "trace": [
+        "POST /price -> direct request.json -> SyntaxError",
+        "normalizeError recognizes domain errors only ->500 partner_api_internal_error",
+        "Arrays/scalars become{} and produce422 field errors instead of invalid JSON object400"
+      ],
+      "reproduction": "Actual business handler: { and emptybody ->500, []/null/string ->422; oversized256001byte header and actual body not rejected before domain checks. RED:7 failures.",
+      "impact": "Clients treat malformed permanent input as server outage; excessive JSON can consume unbounded parse memory.",
+      "fix": "Use existing256000byte readJsonObject boundary and preserve ApiInputError status/code in business error normalization; invalid objects400, oversized413; reject before resolution/quote persistence.",
+      "regression": "__tests__/partner-price-invalid-request.test.ts",
+      "verification": "7tests GREEN and API-channel quote/closed response schema tests remain green."
+    },
+    {
+      "id": "PARTNER-004",
+      "severity": "P1",
+      "status": "fixed_local",
+      "title": "Missing-secret subscription projection error aborted independent claimed deliveries",
+      "original_location": {
+        "file": "lib/integrations/webhooks.ts",
+        "line": 619
+      },
+      "current_location": {
+        "file": "lib/integrations/webhooks.ts",
+        "line": 619
+      },
+      "trace": [
+        "dispatchDueWebhookDeliveries claims finite batch queued/failed ->processing",
+        "first missing-signing-secret delivery correctly finalizedfailed",
+        "secondary updateSubscriptionFailure returnederror escaped loop; second delivery remainedprocessing though nevertransported",
+        "recoverStaleDeliveries changes those staleprocessing rows todelivery_uncertain rather than retryqueue"
+      ],
+      "reproduction": "Actualdispatcher stateful2-delivery port: firstmissingsecret+subscriptionprojectionUPDATE error rejects batch; secondvalidsigned delivery remainsprocessing and no transport occurred. RED1failed/1canonical-ledger controlpassed.",
+      "impact": "An unrelated valid notification is withheld and later classified uncertain without receiver transport, requiring reconciliation.",
+      "fix": "Catch/log secondary missing-secret subscription projection error after canonical deliveryfailedpersisted, then continuebatch. Canonical deliveryupdatefailure still rejects; no false sent/failedcounts.",
+      "regression": "__tests__/webhook-batch-subscription-failure.test.ts",
+      "verification": "GREEN2tests plus12 existing webhook revocation/policy tests."
+    },
+    {
+      "id": "PARTNER-005",
+      "severity": "P1",
+      "status": "fixed_local_application_boundary_native_gap_open",
+      "title": "Production site can be bound to consumption offer and contract",
+      "source_locations": [
+        {
+          "file": "lib/partner-api/simple.ts",
+          "line": 482
+        },
+        {
+          "file": "lib/partner-api/simple.ts",
+          "line": 731
+        },
+        {
+          "file": "lib/partner-api/core.ts",
+          "line": 671
+        },
+        {
+          "file": "supabase/migrations/20260816135746_partner_api_v1_transactional_contract_create.sql",
+          "line": 116
+        }
+      ],
+      "actual_code_live_chain": [
+        "Actual route POST /contract -> business.createContractWithResolution -> simple.createContract, accepts SiteInput.PRODUCTION",
+        "Default API offer selection filters company/channel/visible/customer_type, not site energy direction",
+        "Live currently1 visible API consumptionpublication,0productionpublication and0clientswithconfigured default",
+        "Actual nativeRPC sets v_site_type production -> v_energy_direction production, then calls resolverwithout site direction input",
+        "Actual live resolver returns consumption offer and nativeRPC overwrites v_energy_direction with offer.energy_direction",
+        "Native inserts site_type production, contract.energy_direction consumption; independent database reviewer read41enabled customer/site/contract triggerdefinitions and constraints, foundno site-contract directionequality gate",
+        "Legacycore blank electricity_type previously normalized toconsumption inapp while actual native SQL nullif(trim(primary),blank) fell back toproduction alias; mutationpayload now uses validated canonical primarytype."
+      ],
+      "live_definition_proof": [
+        {
+          "schema_name": "public",
+          "name": "gridex_create_partner_contract_v1",
+          "oid": 344914,
+          "live_body_sha256": "9a9a392d8e3a6a761dbc07d7f7b349537c5a79b34f1e473cf5d834b17445308e",
+          "latest_defining_source": {
+            "file": "supabase/migrations/20260816135746_partner_api_v1_transactional_contract_create.sql",
+            "line": 4
+          },
+          "body_comparison": "normalized_equal",
+          "source_body_sha256": "9a9a392d8e3a6a761dbc07d7f7b349537c5a79b34f1e473cf5d834b17445308e"
+        },
+        {
+          "schema_name": "public",
+          "name": "gridex_resolve_partner_api_offer_v1",
+          "oid": 344896,
+          "live_body_sha256": "fdc3397f710456a42339bde687cfcd3cb720173da1db476e4b446db6ec6413ea",
+          "latest_defining_source": {
+            "file": "supabase/migrations/20260816101505_partner_api_v1_multicompany_foundation.sql",
+            "line": 142
+          },
+          "body_comparison": "normalized_equal",
+          "source_body_sha256": "fdc3397f710456a42339bde687cfcd3cb720173da1db476e4b446db6ec6413ea"
+        }
+      ],
+      "live_observed_counts": [
+        {
+          "customers": 0,
+          "staff_identity_bindings": 0,
+          "active_api_clients": 1,
+          "api_consumption_publications": 1,
+          "api_production_publications": 0,
+          "visible_api_publications": 1,
+          "active_clients_with_configured_default_offer": 0
+        }
+      ],
+      "live_evidence_artifact": "quality/audits/2026-10-12-ops-api-contracts/database-code-review.json",
+      "proof_kind": "Direct application-source plus actual live SQL/catalog structural proof; no mutatingRPC/live request invoked. Behavioral regression is supporting validation, not sole proof.",
+      "impact": "Generation site can receive a consumption supply product/contract and wrong billing/direction configuration. Customerscurrently0: no historicalcorruptrows claimed.",
+      "planned_application_fix": "Resolve selected offer through same stable service-only native resolver and compare canonical energy_direction before POAupload/customer/site/native mutation, return422site_offer_direction_mismatch. Run inside idempotent execute to preserve historicalcompleted replay and release pre-mutation failedclaim.",
+      "native_boundary_limit": "Root owns any forward SQLproposal; directnative mutationRPC retainsdirection omission until an approvedforward migration is delivered. No native fix or live write by this agent.",
+      "regression": "__tests__/partner-contract-offer-direction.test.ts",
+      "application_fix": "Both simple and core contract mutation callbacks first call requirePartnerOfferDirection using existing stable native published-offer resolver, company/reference/customer-type input and requested site direction. Mismatch422site_offer_direction_mismatch; unavailablecanonicaldirection503offer_direction_unavailable. Validation runs before privatePDFupload and businessRPC, releases unstartedclaim, and completedretries preserve oldresult without revalidation. Legacy nativeRPC payload alone canonicalizes site.electricity_type to validatedtype; historical requesthash preserves callerrawaliases for completedreplaycompatibility.",
+      "current_locations": [
+        {
+          "file": "lib/partner-api/offerDirection.ts",
+          "line": 9
+        },
+        {
+          "file": "lib/partner-api/simple.ts",
+          "line": 821
+        },
+        {
+          "file": "lib/partner-api/core.ts",
+          "line": 762
+        }
+      ],
+      "regression_support": "Directsource/liveSQL proof supplemented by mounted RED5failures/1validproductioncontrol; an additional legacyblankprimary/productionalias mismatch was RED then canonicalizednativepayload only. Final7mountedroute tests +16existingPOA/publicsurface tests GREEN."
+    }
+  ],
+  "false_positives": [
+    {
+      "claim": "Webhook preflight authenticates/charges twice",
+      "resolution": "Same request object/scope requirement is cached request-locally. Actual dispatcher test proves one auth RPC/budget and revocation between separate requests."
+    },
+    {
+      "claim": "Committed POA bytes deleted when ledger completion fails",
+      "resolution": "withStoredPoaPdf cleanup only for returned error; postcommit completion uncertain is503 and retains linked bytes. Existing F18/F19/F37 tests pass."
+    },
+    {
+      "claim": "Simple measurements double-convert Wh/MWh or include replaced revisions/net gross values",
+      "resolution": "Only quantity_kwh,current revision, gross directions before pages; canonical unitkWh. Existing behavior tests retained."
+    },
+    {
+      "claim": "Unreachable canonical invoice implementation exposes draft invoices and truncates site list",
+      "resolution": "Actual route runs simple first for same method/path. Singular old canonical function is shadowed, so unsafe-looking source is not runtime finding."
+    },
+    {
+      "claim": "Partner machine company-wide reads require customer assertion",
+      "resolution": "Credential company/scopes are intended machine authorization. Customer assertion requirement belongs customer portal; nested relation and company predicates enforced."
+    },
+    {
+      "claim": "POST /price start_date/invoice_delivery_method unvalidated",
+      "resolution": "Real calculateOfferQuote validates startDate via dateOnly and delivery method against canonical offer commercial model, so no handler-only absence finding."
+    },
+    {
+      "claim": "Security revocation does not stop previously queued Partner webhook",
+      "resolution": "Credential lifecycle decision after claim rejects security_revocation/tenant_offboarding; rotation/expiry/pause behavior intentionally retained. Executed revocation tests cover real dispatcher."
+    }
+  ],
+  "unverified_candidates": [
+    {
+      "id": "PARTNER-C02",
+      "claim": "Fallback default offer selects before customer-type filter and only20 rows may hide actual customer-type offer or second distinct offer",
+      "evidence": [
+        "business.ts candidates.limit20 then JS customer-type filter",
+        "simple.ts same pattern"
+      ],
+      "status": "Not executed against complete native catalogue; do not count as confirmed."
+    }
+  ],
+  "blocked_checks": [
+    {
+      "check": "webhook-transport-pinned-lookup TCP loopback tests",
+      "command": "Node22 +unit-loopback preload +vitest webhook-transport-pinned-lookup.test.ts --maxWorkers=1",
+      "outcome": "listen EPERM127.0.0.1; beforeAll timed out10s;2tests skipped. Environment restriction, not product finding."
+    },
+    {
+      "check": "Native Partner transaction rollback execution",
+      "outcome": "Root independent read-only database evidence now confirms actual live Partner RPC/resolver definitions normalized equal to defining source. Mutating native rollback execution remains unperformed; no livewrites authorized."
+    }
+  ],
+  "verification": [
+    {
+      "command": "Node22 --require scripts/lib/unit-loopback-network-boundary.cjs vitest run initial11Partnerfiles --maxWorkers=1",
+      "outcome": "PASS11files84tests"
+    },
+    {
+      "command": "Actual stateful POA RED/GREEN permanent regression",
+      "outcome": "RED4failures/1same-sitecontrol;GREEN5tests"
+    },
+    {
+      "command": "Actual capped measurement RED/GREEN permanent regression",
+      "outcome": "RED7failures;GREEN9tests including bound checks"
+    },
+    {
+      "command": "Actual invalid price RED/GREEN permanent regression",
+      "outcome": "RED7failures;GREEN7tests"
+    },
+    {
+      "command": "Node22 --require scripts/lib/unit-loopback-network-boundary.cjs vitest run __tests__/partner-*.test.ts __tests__/webhook-revocation-policy.test.ts __tests__/public-webhook-transport.test.ts __tests__/integration-rate-limit-metadata-preserved.test.ts __tests__/customer-merge-partner-idempotency.test.ts --maxWorkers=1",
+      "outcome": "PASS19files179tests"
+    },
+    {
+      "command": "Node22 node_modules/eslint/bin/eslint.js scoped4source+5testfiles",
+      "outcome": "PASS"
+    },
+    {
+      "command": "Node22 node_modules/typescript/bin/tsc --noEmit --incremental false",
+      "outcome": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "outcome": "PASS"
+    },
+    {
+      "command": "Node22 unit-loopback preload vitest run __tests__/webhook-batch-subscription-failure.test.ts __tests__/webhook-revocation-policy.test.ts --maxWorkers=1",
+      "outcome": "PASS2files14tests;REDfirst1failure/1canonical-ledgercontrolpass"
+    },
+    {
+      "command": "Node22 unit-loopback preload vitest run market-price-api-contract,market-price-source-selection,offer-quote-invoice-fee,offer-quote-public-option-adapter,energy-resolution-capabilities,energy-resolution-rebinding --maxWorkers=1",
+      "outcome": "5files65tests PASS;1market-price-api-contract assertion failed against concurrent release edit: websiteSpec2026-10-12.1 vs contract constant2026-10-09.1. Parent informed; final parity rerun required."
+    },
+    {
+      "command": "Node22 tsc --noEmit --incremental false -p tsconfig.tests.json",
+      "outcome": "Initial test-project check found2 Partner fixture return-type errors, corrected to explicit id/period_start intersection;4 errors in root-owned api-credential-response-profile.test.ts callback Promise signature sent parent. Final parent-wide gate pending."
+    },
+    {
+      "command": "Node22 tsc --noEmit --incremental false -p /tmp/partner-contract-probes/tsconfig.json (six exact edited Partner/webhook test files plus imported application graph)",
+      "outcome": "PASS after fixture-return type correction"
+    },
+    {
+      "command": "Node22 unit-loopback preload vitest run __tests__/partner-contract-offer-direction.test.ts __tests__/partner-poa-commit-ownership.test.ts __tests__/partner-api-surface.test.ts --maxWorkers=1",
+      "outcome": "PASS3files23tests after aliasguard refinement; RED5initialfailures plus1legacyaliasdataflow failure, validcontrols preserved."
+    },
+    {
+      "command": "Node22 tsc --noEmit --incremental false -p /tmp/partner-contract-probes/tsconfig.json (eight edited Partner/webhook tests and importedapplication graph)",
+      "outcome": "PASS currenthead after nativepayload alias normalization."
+    }
+  ],
+  "authorized_changes": [
+    "lib/partner-api/simple.ts",
+    "lib/partner-api/core.ts",
+    "lib/partner-api/business.ts",
+    "lib/partner-api/measurementRead.ts",
+    "__tests__/partner-poa-site-idempotency.test.ts",
+    "__tests__/partner-measurement-completeness.test.ts",
+    "__tests__/partner-price-invalid-request.test.ts",
+    "__tests__/partner-current-metering-dto.test.ts (mock adapter only)",
+    "__tests__/partner-invoice-visibility-and-stockholm-dates.test.ts (mock adapter only)",
+    "quality/audits/2026-10-12-ops-api-contracts/partner-review.json",
+    "lib/integrations/webhooks.ts",
+    "__tests__/webhook-batch-subscription-failure.test.ts",
+    "lib/partner-api/offerDirection.ts",
+    "__tests__/partner-contract-offer-direction.test.ts",
+    "__tests__/partner-poa-commit-ownership.test.ts (stable native resolver mock adapter only)"
+  ],
+  "remediation_plan": [
+    "Parent integrate independently reviewed local fixes, current-head checks and API-contract response documentation additions (price413, measurement503); resolve intermediate current release parity before final gates.",
+    "Leave unverified SQL/worker/catalogue candidates open with exact source trace; root may obtain read-only live metadata and independent reviewer refutation.",
+    "No deployment/merge/live writes performed by this component agent."
+  ],
+  "checks_not_performed": [
+    "Native Partner SQL RPC transaction/rollback or Storage upload against a disposable backend; source/read-only metadata and finite stateful ports only.",
+    "Direct full response-schema behavioral validation for Partner current market-price, contractstate, POA GET, positive PDF GET and delivered WebhookNotification were not independently added here; listed existing tests/source traces are explicit peroperation.",
+    "Cross-page snapshot consistency during concurrent metering revision changes.",
+    "Live secret Vault reads, webhook sends, production/staging writes or deploys."
+  ]
+}

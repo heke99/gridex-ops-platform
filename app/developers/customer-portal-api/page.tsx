@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { CopyCodeBlock } from '@/components/developers/CopyCodeBlock'
 import { PUBLIC_API_ENDPOINT_ROWS } from '@/lib/api/publicRouteRegistry'
+import { STAFF_ONBOARDING_CONTRACT_VERSION } from '@/lib/staff-api/onboardingContract'
 import {
+  API_DOCUMENTATION_VERSION,
   CUSTOMER_PORTAL_OPENAPI_URL,
   WEBSITE_INTEGRATION_BASE_URL,
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
@@ -21,6 +23,8 @@ export const metadata: Metadata = {
 }
 
 export const revalidate = 3600
+
+const documentationVersion = API_DOCUMENTATION_VERSION
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -313,7 +317,7 @@ export default function CustomerPortalApiDocumentationPage() {
         <article className="min-w-0 space-y-10">
           <header id="overview" className="scroll-mt-24 space-y-5">
             <div className="text-sm font-medium text-slate-500">
-              Gridex Developers · API contract {WEBSITE_INTEGRATION_CONTRACT_VERSION}
+              Gridex Developers · Documentation {documentationVersion} · Response schema {WEBSITE_INTEGRATION_CONTRACT_VERSION}
             </div>
             <h1 className="text-4xl font-semibold tracking-tight text-slate-950">Gridex API</h1>
             <p className="max-w-4xl text-lg leading-8 text-slate-600">
@@ -322,7 +326,10 @@ export default function CustomerPortalApiDocumentationPage() {
               customer portal data and signed webhooks. Your integration stays focused on the customer experience.
             </p>
             <p className="max-w-4xl text-base leading-7 text-slate-700">
-              You do not need to match the latest documentation revision exactly to use a supported API version. Earlier supported V1 revisions keep working; see the compatibility policy and migration guide.
+              You do not need to match the latest documentation revision exactly to use a supported API version. Documentation updates do not change the business response schema or require an integration upgrade. Earlier supported V1 response profiles remain available; see the compatibility policy and migration guide. Independent Staff onboarding uses its own schema, {STAFF_ONBOARDING_CONTRACT_VERSION}.
+            </p>
+            <p className="max-w-4xl text-base leading-7 text-slate-700">
+              Deployment qualification remains pending: the October 12 source and live database review found missing retention functions affecting customer reads, document retrieval and signing continuation. A published specification or passing local checks do not establish a working production integration.
             </p>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-700">
@@ -429,6 +436,9 @@ export default function CustomerPortalApiDocumentationPage() {
             <p className="leading-7 text-slate-700">
               The Customer Portal API exposes only data belonging to the verified linked customer identity. Use granular scopes and request only the capabilities your portal needs.
               Available resources include profile data, contracts, sites, invoices, metering values, documents, legal acceptances, powers of attorney, events and notifications.
+            </p>
+            <p className="leading-7 text-slate-700">
+              For customer sync, <code>authenticated_user_reference</code> is the authenticated account subject from your organization&apos;s login system. It must resolve an already linked active account in the API credential&apos;s organization. An unlinked, disabled or other-organization subject does not grant access or create a link.
             </p>
             <h3 className="text-lg font-semibold text-slate-950">Support cases and attachments</h3>
             <p className="leading-7 text-slate-700">

@@ -2,8 +2,9 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 const path = require('node:path')
+const { documentCredentialResponseProfileErrors } = require('./lib/openapi-release-schemas.cjs')
 
-const { currentContractVersion: VERSION } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion: VERSION, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 const SPEC_FILES = [
   'docs/openapi/website-integration-v1.json',
   'docs/openapi/customer-portal-v1.json',
@@ -181,7 +182,7 @@ for (const file of SPEC_FILES) {
 
   document.info = document.info ?? {}
   document.info.version = VERSION
-  document['x-contract-schema-version'] = VERSION
+  document['x-contract-schema-version'] = runtimeContractVersion
   if (file.includes('website-integration')) {
     document.info.title = 'Gridex Website Integration API'
     document.info.description =
@@ -212,6 +213,7 @@ for (const file of SPEC_FILES) {
       'True when the configured website checkout and customer portal capabilities are ready for production use.'
   }
 
+  documentCredentialResponseProfileErrors(document)
   const serialized = JSON.stringify(document, null, 2) + '\n'
   const forbidden = [
     /tenant_reference/i,

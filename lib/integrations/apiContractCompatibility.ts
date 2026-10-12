@@ -10,6 +10,7 @@ import {
   MINIMUM_TENANT_INTEGRATION_VERSION,
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
 } from '@/lib/integrations/websiteIntegrationContract'
+import { STAFF_ONBOARDING_CONTRACT_VERSION } from '@/lib/staff-api/onboardingContract'
 
 export type ApiSurface = 'website' | 'customer' | 'staff' | 'staff_onboarding' | 'partner'
 export type ApiContractProfile = {
@@ -26,8 +27,9 @@ export type CompatibilityResult =
 export const API_CONTRACT_REVISION_PATTERN = /^\d{4}-\d{2}-\d{2}\.\d+$/
 
 /**
- * Qualified client profiles. A profile is listed only after its format was
- * proven against the current server (see __tests__/api-legacy-client-profiles.test.ts).
+ * Supported V1 profile/capability selection, not universal validation of every
+ * frozen document. Historical schema contradictions are documented in
+ * docs/api-compatibility-policy.md; field projection cannot repair them.
  * The first entry of a surface is not special; the default is the newest
  * `supported` profile of the surface.
  */
@@ -58,8 +60,7 @@ export const API_CONTRACT_PROFILE_REGISTRY: readonly ApiContractProfile[] = [
   { surface: 'customer', major: 'v1', revision: WEBSITE_INTEGRATION_CONTRACT_VERSION, status: 'supported', capabilities: CUSTOMER_CAPABILITIES },
   { surface: 'staff', major: 'v1', revision: STAFF_FIRST_RELEASE_REVISION, status: 'supported', capabilities: STAFF_CAPABILITIES },
   { surface: 'staff', major: 'v1', revision: WEBSITE_INTEGRATION_CONTRACT_VERSION, status: 'supported', capabilities: STAFF_CAPABILITIES },
-  { surface: 'staff_onboarding', major: 'v1', revision: STAFF_FIRST_RELEASE_REVISION, status: 'supported', capabilities: STAFF_ONBOARDING_CAPABILITIES },
-  { surface: 'staff_onboarding', major: 'v1', revision: WEBSITE_INTEGRATION_CONTRACT_VERSION, status: 'supported', capabilities: STAFF_ONBOARDING_CAPABILITIES },
+  { surface: 'staff_onboarding', major: 'v1', revision: STAFF_ONBOARDING_CONTRACT_VERSION, status: 'supported', capabilities: STAFF_ONBOARDING_CAPABILITIES },
 ]
 
 function defaultProfile(surface: ApiSurface, registry: readonly ApiContractProfile[]) {

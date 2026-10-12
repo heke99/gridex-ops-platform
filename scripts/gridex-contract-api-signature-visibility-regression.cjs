@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 const path = require('node:path')
-const { currentContractVersion } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion } = require('./lib/current-api-contract.cjs')
 
 const root = process.cwd()
 const read = (file) => {
@@ -91,7 +91,7 @@ const docsPage = read('app/developers/customer-portal-api/page.tsx')
 const websiteDocs = read('docs/openapi/website-integration-v1.json')
 const portalDocs = read('docs/openapi/customer-portal-v1.json')
 check(/WEBSITE_INTEGRATION_CONTRACT_VERSION/.test(docsPage) && /signature_snapshot_sha256/.test(docsPage), 'Publika dokumentationssidan använder canonical kontraktsversion och visar signeringshash')
-for (const term of ['/api/v1/website/public-contracts/diagnostics', 'website_contracts.diagnostics', 'can_send_agreement_confirmation', 'offer_reference_mismatch', currentContractVersion]) {
+for (const term of ['/api/v1/website/public-contracts/diagnostics', 'website_contracts.diagnostics', 'can_send_agreement_confirmation', 'offer_reference_mismatch', currentDocumentationVersion]) {
   check(websiteDocs.includes(term), `Website OpenAPI dokumenterar ${term}`)
 }
 check(/offer_reference_mismatch/.test(websiteDocs) && /public-contracts\/diagnostics/.test(websiteDocs), 'Website OpenAPI dokumenterar strikt offer_reference och canonical diagnostik')

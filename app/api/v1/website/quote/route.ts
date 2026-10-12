@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { scheduleUsageEvent } from '@/lib/audit/actionLogger'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
@@ -99,7 +100,9 @@ function errorBody(input: {
   })
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withApiContractRepresentation('website', createQuote)
+
+async function createQuote(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, [
@@ -176,6 +179,7 @@ export async function POST(request: NextRequest) {
     }
 
     const requiredCommercialFields = [
+      'customer_type',
       'invoice_delivery_method',
       'selected_component_references',
       'site_count',
@@ -191,6 +195,16 @@ export async function POST(request: NextRequest) {
           retryable: false,
         }),
         { status: 400 },
+      )
+    }
+
+    const customerType = text(body, 'customer_type')
+    if (!customerType) {
+      throw new OfferQuoteError(
+        'customer_type måste vara private eller business.',
+        'invalid_customer_type',
+        400,
+        'customer_type',
       )
     }
 
@@ -212,7 +226,7 @@ export async function POST(request: NextRequest) {
     const quoteInput = {
       resolution_id: text(body, 'resolution_id'),
       offer_reference: text(body, 'offer_reference') ?? '',
-      customer_type: text(body, 'customer_type'),
+      customer_type: customerType,
       annual_consumption_kwh:
         numeric(body, 'annual_consumption_kwh') ?? Number.NaN,
       start_date: text(body, 'start_date'),

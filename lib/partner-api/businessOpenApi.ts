@@ -59,6 +59,7 @@ export const partnerPublicOpenApi = {
           '401': errorResponse,
           '403': errorResponse,
           '409': errorResponse,
+          '413': errorResponse,
           '422': errorResponse,
         },
       },

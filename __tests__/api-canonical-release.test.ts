@@ -11,15 +11,16 @@ import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 import { buildPublicWebhookPayload } from '@/lib/integrations/webhooks'
 import {
   API_COMPATIBILITY_CLASSIFICATION,
+  API_DOCUMENTATION_VERSION,
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
 } from '@/lib/integrations/websiteIntegrationContract'
 
 describe('canonical public API release', () => {
   it('publishes one version and a release-manifest operation', () => {
     const manifest = buildOpenApiReleaseManifest()
-    expect(websiteOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
-    expect(customerPortalOpenApi.info.version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
-    expect(manifest.release_version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
+    expect(websiteOpenApi.info.version).toBe(API_DOCUMENTATION_VERSION)
+    expect(customerPortalOpenApi.info.version).toBe(API_DOCUMENTATION_VERSION)
+    expect(manifest.release_version).toBe(API_DOCUMENTATION_VERSION)
     expect(manifest.compatibility_classification).toBe(
       API_COMPATIBILITY_CLASSIFICATION.release,
     )

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Gridex Staff API",
-    "version": "2026-10-09.1",
-    "description": "Staff accounts and customer service from your own backend. Every staff call requires an API credential and a signed proof of the acting staff login. The platform derives the organization and permissions from those two identities. Every response carries a server-issued X-Request-ID equal to request_id in the body. The optional x-gridex-expected-project-ref header pins the storage project (412 storage_project_mismatch otherwise), and list endpoints accept the opt-in x-gridex-query-parsing: strict profile."
+    "version": "2026-10-12.1",
+    "description": "Staff accounts and customer service from your own backend. Every staff call requires an API credential and a signed proof of the acting staff login. The platform derives the organization and permissions from those two identities. Every response carries a server-issued X-Request-ID equal to request_id in the body. The optional x-gridex-expected-project-ref header pins the storage project (412 storage_project_mismatch otherwise), and list endpoints accept the opt-in x-gridex-query-parsing: strict profile. Central account state and current identity bindings authorize normal signed requests. Local Auth sessions are verified at identity resolution, invitation acceptance and by the portal backend before signing."
   },
   "servers": [
     {
@@ -11,7 +11,7 @@
     }
   ],
   "x-contract-schema-version": "2026-10-09.1",
-  "x-gridex-release-version": "2026-10-09.1",
+  "x-gridex-release-version": "2026-10-12.1",
   "paths": {
     "/api/v1/staff/users": {
       "get": {
@@ -36,7 +36,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "page",
@@ -116,6 +116,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -154,6 +157,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -192,6 +198,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -230,6 +239,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -268,6 +280,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -306,6 +321,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -341,6 +359,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -379,6 +400,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -420,6 +444,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -458,6 +485,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -496,6 +526,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -505,6 +538,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -540,7 +579,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -588,6 +627,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -626,6 +668,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -664,6 +709,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -702,6 +750,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -740,6 +791,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -778,6 +832,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -813,6 +870,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -851,6 +911,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -892,6 +955,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -930,6 +996,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -968,6 +1037,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -977,6 +1049,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -1024,7 +1105,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "id",
@@ -1081,6 +1162,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1119,6 +1203,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1157,6 +1244,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1195,6 +1285,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1233,6 +1326,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1271,6 +1367,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1306,6 +1405,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1344,6 +1446,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1385,6 +1490,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1423,6 +1531,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1461,6 +1572,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1470,6 +1584,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -1517,7 +1640,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "id",
@@ -1574,6 +1697,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1612,6 +1738,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1650,6 +1779,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1688,6 +1820,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1726,6 +1861,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1764,6 +1902,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1799,6 +1940,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1837,6 +1981,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1878,6 +2025,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1916,6 +2066,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1954,6 +2107,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -1963,6 +2119,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -2010,7 +2175,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "id",
@@ -2067,6 +2232,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2105,6 +2273,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2143,6 +2314,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2181,6 +2355,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2219,6 +2396,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2257,6 +2437,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2292,6 +2475,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2330,6 +2516,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2371,6 +2560,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2409,6 +2601,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2447,6 +2642,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2456,6 +2654,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -2503,7 +2710,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "$ref": "#/components/parameters/ExpectedProjectRef"
@@ -2538,6 +2745,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2576,6 +2786,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2614,6 +2827,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2652,6 +2868,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2690,6 +2909,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2728,6 +2950,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2763,6 +2988,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2801,6 +3029,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2842,6 +3073,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2880,6 +3114,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2918,6 +3155,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -2927,6 +3167,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -2964,7 +3210,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "page",
@@ -3066,6 +3312,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3104,6 +3353,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3142,6 +3394,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3180,6 +3435,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3218,6 +3476,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3256,6 +3517,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3291,6 +3555,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3329,6 +3596,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3370,6 +3640,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3408,6 +3681,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3446,6 +3722,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3455,6 +3734,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -3492,7 +3777,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "ref",
@@ -3537,6 +3822,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3575,6 +3863,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3613,6 +3904,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3651,6 +3945,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3689,6 +3986,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3727,6 +4027,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3762,6 +4065,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3800,6 +4106,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3841,6 +4150,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3879,6 +4191,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3917,6 +4232,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -3926,6 +4244,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -3963,7 +4287,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "ref",
@@ -4021,6 +4345,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4059,6 +4386,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4097,6 +4427,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4135,6 +4468,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4173,6 +4509,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4211,6 +4550,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4246,6 +4588,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4284,6 +4629,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4325,6 +4673,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4363,6 +4714,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4401,6 +4755,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4410,6 +4767,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -4457,7 +4823,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "ref",
@@ -4515,6 +4881,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4553,6 +4922,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4591,6 +4963,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4629,6 +5004,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4667,6 +5045,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4705,6 +5086,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4740,6 +5124,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4778,6 +5165,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4819,6 +5209,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4857,6 +5250,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4895,6 +5291,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -4904,6 +5303,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -4951,7 +5359,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "limit",
@@ -5045,6 +5453,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5083,6 +5494,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5121,6 +5535,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5159,6 +5576,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5197,6 +5617,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5235,6 +5658,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5270,6 +5696,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5308,6 +5737,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5349,6 +5781,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5387,6 +5822,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5425,6 +5863,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5434,6 +5875,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -5469,7 +5916,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "$ref": "#/components/parameters/IdempotencyKey"
@@ -5517,6 +5964,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5555,6 +6005,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5593,6 +6046,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5631,6 +6087,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5669,6 +6128,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5707,6 +6169,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5742,6 +6207,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5780,6 +6248,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5821,6 +6292,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5859,6 +6333,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5897,6 +6374,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -5906,6 +6386,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -5953,7 +6442,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -5998,6 +6487,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6036,6 +6528,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6074,6 +6569,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6112,6 +6610,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6150,6 +6651,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6188,6 +6692,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6223,6 +6730,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6261,6 +6771,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6302,6 +6815,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6340,6 +6856,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6378,6 +6897,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6387,6 +6909,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -6424,7 +6952,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -6482,6 +7010,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6520,6 +7051,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6558,6 +7092,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6596,6 +7133,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6634,6 +7174,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6672,6 +7215,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6707,6 +7253,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6745,6 +7294,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6786,6 +7338,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6824,6 +7379,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6862,6 +7420,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -6871,6 +7432,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -6918,7 +7488,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -6976,6 +7546,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7014,6 +7587,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7052,6 +7628,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7090,6 +7669,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7128,6 +7710,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7166,6 +7751,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7201,6 +7789,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7239,6 +7830,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7280,6 +7874,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7318,6 +7915,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7356,6 +7956,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7365,6 +7968,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -7412,7 +8024,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -7470,6 +8082,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7508,6 +8123,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7546,6 +8164,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7584,6 +8205,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7622,6 +8246,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7660,6 +8287,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7695,6 +8325,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7733,6 +8366,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7774,6 +8410,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7812,6 +8451,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7850,6 +8492,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -7859,6 +8504,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -7906,7 +8560,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -7964,6 +8618,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8002,6 +8659,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8040,6 +8700,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8078,6 +8741,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8116,6 +8782,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8154,6 +8823,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8189,6 +8861,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8227,6 +8902,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8268,6 +8946,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8306,6 +8987,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8344,6 +9028,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8353,6 +9040,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -8400,7 +9096,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -8458,6 +9154,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8496,6 +9195,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8534,6 +9236,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8572,6 +9277,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8610,6 +9318,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8648,6 +9359,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8683,6 +9397,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8721,6 +9438,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8762,6 +9482,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8800,6 +9523,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8838,6 +9564,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -8847,6 +9576,15 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "x-required-scopes": [
@@ -8894,7 +9632,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -8962,6 +9700,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9000,6 +9741,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9038,6 +9782,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9076,6 +9823,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9114,6 +9864,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9152,6 +9905,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9187,6 +9943,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9225,6 +9984,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9266,6 +10028,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9304,6 +10069,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9342,6 +10110,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9351,6 +10122,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -9386,7 +10163,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -9466,6 +10243,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9504,6 +10284,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9542,6 +10325,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9580,6 +10366,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9618,6 +10407,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9656,6 +10448,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9691,6 +10486,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9729,6 +10527,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9767,6 +10568,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9805,6 +10609,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9846,6 +10653,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9884,6 +10694,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9922,6 +10735,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -9931,6 +10747,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -9994,7 +10816,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -10049,6 +10871,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10100,6 +10925,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10138,6 +10966,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10176,6 +11007,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10214,6 +11048,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10252,6 +11089,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10287,6 +11127,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10325,6 +11168,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10366,6 +11212,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10404,6 +11253,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10442,6 +11294,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10451,6 +11306,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -10550,7 +11411,11 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "$ref": "#/components/headers/GridexContractVersion"
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-12.1"
+                }
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -10584,7 +11449,11 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "$ref": "#/components/headers/GridexContractVersion"
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-12.1"
+                }
               },
               "X-Request-ID": {
                 "$ref": "#/components/headers/RequestId"
@@ -10626,7 +11495,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-04.1"
@@ -10664,7 +11533,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-04.1"
@@ -10723,7 +11592,7 @@
               "maxLength": 8192,
               "pattern": "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"
             },
-            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+            "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
           },
           {
             "name": "reference",
@@ -10791,6 +11660,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10829,6 +11701,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10867,6 +11742,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10905,6 +11783,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10943,6 +11824,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -10981,6 +11865,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11016,6 +11903,9 @@
                   "type": "string",
                   "pattern": "^[a-f0-9]{64}$"
                 }
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11054,6 +11944,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11095,6 +11988,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11133,6 +12029,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11171,6 +12070,9 @@
               },
               "X-Gridex-Project-Ref": {
                 "$ref": "#/components/headers/ProjectRef"
+              },
+              "X-Gridex-Documentation-Version": {
+                "$ref": "#/components/headers/GridexDocumentationVersion"
               }
             },
             "content": {
@@ -11180,6 +12082,12 @@
                 }
               }
             }
+          },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-required-scopes": [
@@ -11204,7 +12112,7 @@
             "description": "Versionerad OpenAPI JSON",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-09.1"
@@ -11242,7 +12150,7 @@
             "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
             "headers": {
               "X-Gridex-Contract-Version": {
-                "description": "Contract version of this immutable OpenAPI document.",
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
                 "schema": {
                   "type": "string",
                   "const": "2026-10-09.1"
@@ -11277,6 +12185,90 @@
         "x-cache-policy": "public-immutable",
         "x-public-id-policy": "none"
       }
+    },
+    "/api/v1/openapi/2026-10-12.1/staff-v1.json": {
+      "get": {
+        "summary": "Immutable Staff OpenAPI release 2026-10-04",
+        "description": "Immutable Staff OpenAPI release 2026-10-12.1.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Versionerad OpenAPI JSON",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-12.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not Modified. The supplied If-None-Match value matches the current ETag.",
+            "headers": {
+              "X-Gridex-Contract-Version": {
+                "description": "Revision of the OpenAPI document being fetched; business responses use x-contract-schema-version.",
+                "schema": {
+                  "type": "string",
+                  "const": "2026-10-12.1"
+                }
+              },
+              "X-Request-ID": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Vary": {
+                "$ref": "#/components/headers/Vary"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/CacheControl"
+              },
+              "Content-Type": {
+                "$ref": "#/components/headers/ContentType"
+              },
+              "Content-Disposition": {
+                "$ref": "#/components/headers/ContentDisposition"
+              }
+            }
+          }
+        },
+        "x-required-scopes": [],
+        "operationId": "getApiV1Openapi202610121StaffV1Json",
+        "x-scope-mode": "all",
+        "x-rate-limit-class": "read",
+        "x-idempotency-required": false,
+        "x-cache-policy": "public-immutable",
+        "x-public-id-policy": "none"
+      }
     }
   },
   "components": {
@@ -11290,7 +12282,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "x-gridex-staff-assertion",
-        "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub is the acting staff Gridex user UUID; iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Active membership and server-calculated permissions are checked for every request."
+        "description": "Compact JWT signed by your backend with RS256, PS256 or ES256. iss/aud must equal the configured staff identity provider. sub identifies the central OPS staff actor. iat/exp define a lifetime of at most 900 seconds; jti is unique and accepted only once. Each request checks the central account state, company membership and server-calculated permissions. Independent tenant Auth identities also require the current registered local-to-central binding ID/version and verified local identity claims. Tenant Auth getUser verifies the login during identity resolution, invitation acceptance and backend session verification; normal Staff API calls validate the already signed proof and current central binding without calling tenant Auth getUser again."
       }
     },
     "parameters": {
@@ -11415,6 +12407,13 @@
           "type": "string",
           "pattern": "^[a-z0-9]{20}$"
         }
+      },
+      "GridexDocumentationVersion": {
+        "description": "Optional documentation revision associated with this business response. It does not change contract_schema_version or the supported wire schema.",
+        "schema": {
+          "type": "string",
+          "const": "2026-10-12.1"
+        }
       }
     },
     "schemas": {
@@ -11439,19 +12438,19 @@
         "properties": {
           "release_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "website_openapi_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "customer_portal_openapi_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "staff_openapi_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "runtime_contract_version": {
             "type": "string",
@@ -11459,7 +12458,7 @@
           },
           "guide_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "released_at": {
             "type": "string",
@@ -11547,7 +12546,7 @@
           },
           "contract_version": {
             "type": "string",
-            "const": "2026-10-09.1"
+            "const": "2026-10-12.1"
           },
           "url": {
             "type": "string",
@@ -13971,6 +14970,74 @@
           }
         }
       }
+    },
+    "responses": {
+      "OrganizationGone": {
+        "description": "Organization is closed or inactive. Error codes: organization_closed, organization_inactive.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "OrganizationPaused": {
+        "description": "Organization API access is paused. Error codes: organization_paused.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        },
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "description": "JSON body exceeds the allowed size (payload_too_large).",
+        "headers": {
+          "X-Gridex-Contract-Version": {
+            "$ref": "#/components/headers/GridexContractVersion"
+          },
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "X-Gridex-Documentation-Version": {
+            "$ref": "#/components/headers/GridexDocumentationVersion"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      }
     }
-  }
+  },
+  "x-error-codes": [
+    "api_contract_profile_unavailable"
+  ]
 }

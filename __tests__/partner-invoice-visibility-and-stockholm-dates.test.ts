@@ -18,6 +18,7 @@ vi.mock('@/lib/supabase/service', () => ({
       const filters: Array<(row: Row) => boolean> = []
       const orders: Array<{ column: string; ascending: boolean; nullsFirst?: boolean }> = []
       let limit = Infinity
+      let offset = 0
       const cmp = (k: string, f: (a: string, b: string) => boolean) => (v: string) => { filters.push((row) => row[k] !== null && row[k] !== undefined && f(new Date(String(row[k])).toISOString(), new Date(v).toISOString())); return b }
       const b: Record<string, unknown> = {
         select: () => b,
@@ -30,9 +31,10 @@ vi.mock('@/lib/supabase/service', () => ({
         lt: (k: string, v: string) => cmp(k, (a, c) => a < c)(v),
         order: (column: string, o?: { ascending?: boolean; nullsFirst?: boolean }) => { orders.push({ column, ascending: o?.ascending ?? true, nullsFirst: o?.nullsFirst }); return b },
         limit: (n: number) => { limit = n; return b },
+        range: (from: number, to: number) => { offset = from; limit = to - from + 1; return b },
         insert: () => { m.inserts.push(table); return b },
         single: async () => ({ data: null, error: { message: 'insert reached' } }),
-        rows: () => sortRows((m.tables[table] ?? []).filter((row) => filters.every((f) => f(row))), orders).slice(0, limit),
+        rows: () => sortRows((m.tables[table] ?? []).filter((row) => filters.every((f) => f(row))), orders).slice(offset, offset + limit),
         maybeSingle: async () => ({ data: (b.rows as () => Row[])()[0] ?? null, error: null }),
         then: (resolve: (v: unknown) => unknown) => resolve({ data: (b.rows as () => Row[])(), error: null }),
       }
@@ -51,7 +53,7 @@ function invoice(ref: string, status: string, issuedAt: string): Row {
 }
 function value(start: string, minutes = 60): Row {
   const s = new Date(start)
-  return { company_id: 'company_synthetic', customer_site_id: 'site_internal', period_start: s.toISOString(), period_end: new Date(s.getTime() + minutes * 60_000).toISOString(), resolution: '1h', revision_status: 'current', quantity_kwh: 1, unit: 'kWh', direction: 'consumption', quality_status: null }
+  return { id: id(), company_id: 'company_synthetic', customer_site_id: 'site_internal', period_start: s.toISOString(), period_end: new Date(s.getTime() + minutes * 60_000).toISOString(), resolution: '1h', revision_status: 'current', quantity_kwh: 1, unit: 'kWh', direction: 'consumption', quality_status: null }
 }
 
 beforeEach(() => {

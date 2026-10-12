@@ -35,7 +35,7 @@ export const partnerOpenApi = {
     '/contract': {
       post: {
         summary: 'Create contract',
-        description: 'Combined registration. Creates the customer, site and contract in one transaction. A power of attorney may be included.',
+        description: 'Combined registration. Creates the customer, site and contract in one transaction. A power of attorney may be included. The site electricity type must match the selected published offer; a mismatch returns 422 site_offer_direction_mismatch before registration or document upload. An unavailable canonical offer direction returns 503 offer_direction_unavailable.',
         parameters: [idempotencyHeader],
         requestBody: {
           required: true,
@@ -56,6 +56,8 @@ export const partnerOpenApi = {
           '409': errorResponse,
           '413': errorResponse,
           '422': errorResponse,
+          '503': errorResponse,
+          '404': errorResponse,
         },
       },
     },
@@ -226,11 +228,12 @@ export const partnerOpenApi = {
           { name: 'resolution', in: 'query', schema: { type: 'string', enum: ['15m', '1h'], default: '1h' } },
         ],
         responses: {
-          '200': { description: 'Measurements', content: { 'application/json': { schema: { $ref: '#/components/schemas/MeasurementResponse' } } } },
+          '200': { description: 'Complete measurements for the requested supported interval. Backend pagination is drained; results are never silently truncated. A failed or bounded-out read returns 503 measurement_read_incomplete. Concurrent writes are not represented by an atomic snapshot.', content: { 'application/json': { schema: { $ref: '#/components/schemas/MeasurementResponse' } } } },
           '401': errorResponse,
           '403': errorResponse,
           '404': errorResponse,
           '422': errorResponse,
+          '503': errorResponse,
         },
       },
     },
