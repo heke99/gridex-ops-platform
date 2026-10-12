@@ -1,11 +1,16 @@
 # Codex Z02 coupled continuation — current checkpoint
 
-Updated 2026-10-11 23:09:30 UTC.
+Updated 2026-10-12 00:15:01 UTC.
 Owner: codex-ediel-20261006-2f72c8ab. Packet: ac08f5ae-1dd9-4209-8fd6-2a596ffaf10f. Session: 6b167a5e-b92a-4b38-94ee-76e698da36b1.
 Retained pair: AT-Z02L-SUPPLIER / AT-Z02LK-SUPPLIER, both NOT_EXECUTED/evidence[]. No next pair, shared role or whole credit.
 Active board [#766](https://github.com/heke99/gridex-ops-platform/issues/766); #673/#530 retain original history.
 
 This replaces repeated current-state narratives, not original evidence. Complete custody, source pins, first failures, intended GO and actual receipts are preserved in [checkpoint 2f2aa67ff2679f0e0e858ba0fbedd8929080c442](https://github.com/heke99/gridex-ops-platform/blob/2f2aa67ff2679f0e0e858ba0fbedd8929080c442/.agent-memory/masterplan-codex-2f72-coupled-continuation-checkpoint.md), which links original full history f2dd5bee and intermediate immutable checkpoints. Never relabel those first failures or reopen closed original budgets.
+
+
+## Current status — 2026-10-12 00:15:01 UTC
+
+Main95bb437137ce3bc0b0246bed6cf1d149493c92b9 GET_MATCH; own PR7626bb5e7c remains OPEN/non-draft. Actual main includes owner0b PR750; this is distinct from selected6bb/f77 native/replay source. Own pair refs29fd83 fresh GET_MATCH; no new pair, foreign/ref/shared-memory write, merge/closure or coverage approval. Native91=83PASS/8FAIL remains mandatory blocker. Historical sections below retain dated source/result scope; latest current decisions are recorded at the end.
 
 ## Actual delivery
 
@@ -264,3 +269,16 @@ CONTROL_GO only, after current checkpoint and board full GET_MATCH: ROOT runs fi
 Next ROOT reads both35 results/precise counts/no protectedports and independent actual SAFE review, then separately documents default assertions-only real operator GO. Author/reviewers may prepare a distinct one-Boolean diagnostic authorizationTrue successor/fullinverse but no original use until current actual controls and exact NEED/USE checkpoint/board; strict40 cannot be relaxed or replaced by a producer. Canonical/backend17 coordinator repair continues independently as SOURCE-only until exact corrected bindings/source2/self/fresh runtime/new-output GO.
 
 Current pair whole NOT_EXECUTED/evidence[], native83/8 remains; no coverage/PRmerge/closure/sharedmemory/refrelease. No other agent custody transfer through silence.
+
+
+## Qualified actual35 and separate Q_ONLY_GO — 2026-10-12 00:15:01 UTC
+
+First actual35 normal00:03:07.919569–08.108413 and optimized08.108697–08.570439 each EXIT0/stdout42B/stderr0, after CP0fee26fc5f288f3c5cae5138bf62524c94e37cec/#7666115381412 full GET_MATCH. Resultc869b267bd93bfbd8e9250484b69e71113e75b02a319f304718831bd95635e40 /0b426893b56949fa246320e35f3d316c23399e6e763318e208d785451dfd18fd full70rows ROOT-read: each35distinct=1SAFE memory-positive+34exact refusals, zero original ports. Desired wrongsize240545 refuses QUALIFIED_ORIGINAL_SIZE_BINDING after6SAFE reads/0writes. No real projection/file output or original USE credit. ROOT actualself30b110fe25970c01c39e70b502224ad953c111105632f6e4a7b6c73f17a72c68. Independent actualR1 fullROOT-read9ce8009873ff5b6dbc24362b5666264b8310c55fbdc6b7441324f31cab17030d C0/I0/M0 agrees complete70rows/currentpins/processreceipts+streams; no actual parser40/old13/81 rerun or borrowed result.
+
+Independent backend actualR2 fullROOT-read20560481cf2f7bf11f2446a680676f67706802f8adf770827be7217dd4b44ff0 C0/I1/M0 corroborates firstca4c/082e/d0b3: coordinator launched then Path.open(opener) refused BEFORE replay/17backend. Full253842B before/after snapshots5d89 identical over1150entries, empty owned session/project resources+ports/noobserverrefusals support this attempt's cleanupVERIFIED only. Minimal coherent C/B/J/O v3 SOURCE author NEXT; independent SOURCE A R1 and B R2, ROOT owns fourcontrols and any later actualruntime; no runtime retry by this entry.
+
+True-only diagnostic5c8273229e3ccc9fb0be30c8ca5dc2f91f603918fbce767b84fe556af2bfbf53 ready SOURCE2: A01a2a09bf835b973e968cdac4e8fc0cc4408bf46cba8cef36e8d9081c042ac63 and Bedeadf3cb43b5293b561a71fc0af9545a5e37fdbf421b7bb4c152d32c821f077 fully ROOT-read C0/I0/M0. Exactly oneBoolean inverse64c9→False8fe0, wholefunctions unchanged2a13; all6manifest a044pins/current6c918/f6c80/size240544/ZIP037/logf840/strict40privacy retained. ROOTself222d8f882966975695d29c3b7194561b333326f4efd603a0bde5af307e7e3979. CapabilityTrue is NOT original USE_GO; original/old1990 budgets remain CLOSED until separate concrete NEED/custody/onceUSE entry.
+
+Q_ONLY_GO, effective only after this checkpoint AND #766 exact full GET_MATCH: ROOT runs Python-I-S-B once with exact False-source /tmp/z02-native-port-2f72-6b167a5e/current6bb-diagnostic-final-census-bindings/project-diagnostics40.census-bound.py SHA8fe0d8dab6580928dc95efde35d419e8a4cf885d7c7d2337edc742586aed739a, default assertions mode, NO --archive, output /tmp/z02-native-port-2f72-6b167a5e/current6bb-qualified-fail-diagnostic-author/root-qualified-assertions.json. Current selectedHEAD6bb/tree5e75/nativec8a/identities591/grammar58667/finalcontract20e/qualified6c918/censusf6c80/source3580/SQL1148/official38179736202-a1-114589555309-11717433019. Both production outputs freshABSENT; real HERE independently corrected3f3 earlier; output exclusive0600/O_EXCL/O_NOFOLLOW. Scoped NEED is accurate same-case assertion attribution for current8FAIL; no original/log/member/JUnit/stat/hash/ZIP/SQL/backend/native/qualifier/GEN port. Preserve first subprocess receipt/stdout/stderr/output/refusal in new root-first-q-only-assertions-v1; no blind retry or overwritten output. Actual memorycontrols prove sourceadmission, not realfilesystem projection; this operation supplies that separate disposition. Whole/latercause/public/GEN remain NOT_GRANTED/NOT_INFERRED.
+
+Next ROOT: record exact first q-only outcome, full8finite rows/hash/mode and independent SAFE readback; then separate concrete finite8FAIL diagnostic NEED/currentcustody and once-only USE_GO for5c827 if still needed. Parallel R2 finishes backendv3 SOURCE B; SOURCE2+self/new4CONTROL_GO/freshsource+runtime/newoutput custody required before any canonical/17backend attempt. No newpair/refrelease/PRclosure/sharedcampaignfile changes.
