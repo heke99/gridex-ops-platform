@@ -45,7 +45,6 @@ jobs:
     timeout-minutes: 45
     env:
       NODE_OPTIONS: --max-old-space-size=6144
-      SUPABASE_HOME: ${{ runner.temp }}/db05-supabase-home
       SUPABASE_TELEMETRY_DISABLED: 'true'
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +61,7 @@ jobs:
       - name: Prove canonical customer close and same-decision due purge
         shell: bash
         env:
+          SUPABASE_HOME: ${{ runner.temp }}/db05-supabase-home
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
           GH_TOKEN: ${{ github.token }}
           DB05_EXPECTED_SOURCE: ${{ github.event.pull_request.head.sha }}
