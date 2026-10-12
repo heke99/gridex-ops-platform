@@ -3630,8 +3630,14 @@
     },
     {
       "id": "AT-TR-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-tr-08-strato-genuine-trace.test.ts",
+        "__tests__/ediel-tr-08-relay-trace.test.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/tr-08-strato-genuine-traces-20261012.json",
+        "lib/ediel/transport/relayTrace.ts",
+        "lib/ediel/mailReadiness.ts"
+      ]
     },
     {
       "id": "AT-TR-09",
