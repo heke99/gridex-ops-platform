@@ -2,7 +2,7 @@
   "project": "gridex-ops-platform",
   "schema": "five-new-agent-routing-v2",
   "epoch": "gridex-five-agent-20261012",
-  "observed_main": "69e50f4f0f8267dcdf4fe8414dac75ac1ab3e07a",
+  "observed_main": "f36dbba1b8c09e0c6e54e027db05d94b171f2058",
   "campaign_complete": false,
   "status": "IN_PROGRESS",
   "coverage": {
@@ -75,8 +75,8 @@
   "old_private_process_termination": "NOT_AVAILABLE; use isolated new epoch",
   "new_dispatch": "FRESH_SLOT_ID_FILE_PRODUCER_CLAIMS_REQUIRED; no former-owner waits",
   "main_scheduled_e2e": "NOT_QUALIFIED_AT_OBSERVED_MAIN",
-  "next_action": "Use affected closures784e6/785dbab/787ac/7885e. Qualify785 declared Gmail input and current CI,786/789 gates; C2 corrects two forward pins and canonical GEN, plus physicalERR/oracle after789. Existing R1/C1/C3/C2 natives stay single-source; read actual heads/refs/latest766, no duplicate writer/producer.",
-  "observed_at": "2026-10-12T19:41:44.806238+00:00",
+  "next_action": "Delivered789 supports the same-C2 physical ERR/oracle update in784. C2 fixes790 accepted S18-history compatibility defect without bypassing actual auth/source/DB errors, then repins/serialGEN/newreview. Two forwardpins/GEN then sameR1/C1native remain; qualify785 Gmail scope/CI and786 delivery; no duplicate writer/producer.",
+  "observed_at": "2026-10-12T20:44:33.506938+00:00",
   "observed_timezone": "Etc/UTC",
   "baseline_pull_request": 773,
   "baseline_delivery": "MERGED",
@@ -87,17 +87,19 @@
     "R1": 779,
     "R2": 785,
     "C1": 780,
-    "C2": 784,
+    "C2": [
+      784,
+      790
+    ],
     "C3": 776
   },
   "main_scheduled_e2e_cause_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6123693726",
   "main_scheduled_e2e_coordination_owner": "C3",
-  "observed_tree": "4f7c5680c4633a7c790cabdddaa567705abe5931",
+  "observed_tree": "ac2c19eb674f79043f87ca3156bdef42132e7c7c",
   "helper_proposals": {
-    "786": "filter follow-ups: source-approved, current CI/custody delivery remain",
+    "786": "bda main-import source-approved; seven product blobs unchanged, actual CI/custody delivery remains",
     "787": "three SQL generated-column fixes/COMMIT source-closed; C2 stale pin/canonical GEN then C1 native",
-    "788": "issuer/late-purger P1 source-closed; C2 stale pin/canonical GEN then R1 native",
-    "789": "ERR qualifier source-approved; current CI and physical same-C2 native separate"
+    "788": "issuer/late-purger P1 source-closed; C2 stale pin/canonical GEN then R1 native"
   },
   "source_heads_at_observation": {
     "776": "781a5215003b6622fb49ecefa8e632350e7964d9",
@@ -105,10 +107,11 @@
     "780": "7cfc209d473e450c08c328f95cea897798dbf466",
     "784": "e6f165cd0ab8c4cf7ca97958f0e9e871e9f08fca",
     "785": "dbab49350575a47c2d592058cfb59e92afe60908",
-    "786": "0376acf652f29dcaa79dc9d4f33fca3b4e569acc",
+    "786": "bda69a7d91723a93d4f1e22de6ece87ffe914a38",
     "787": "ac59ebadb30f2ccec53759c33446a3c990d64e95",
     "788": "5e6c7a4bc0a71e55f410c09ecc55c4948aed8000",
-    "789": "cf6605ba39a79dcd711bcb5f073fb53bb369bd7e"
+    "789": "cf6605ba39a79dcd711bcb5f073fb53bb369bd7e",
+    "790": "bed533a27fac07662e2e59ae2bc965bc84898b2a"
   },
   "delivered_proposals": [
     773,
@@ -118,7 +121,8 @@
     781,
     782,
     783,
-    775
+    775,
+    789
   ],
   "historical_main_scheduled_e2e": "Earlier FAILURE predates current delivery; cause receipt remains historical.",
   "tr08_owner_risk_decision": "https://github.com/heke99/gridex-ops-platform/pull/785#issuecomment-6129576518",
@@ -126,6 +130,8 @@
   "whole_credit_in_current_delivery_wave": 0,
   "shared_gen_manifest_writer": "C2",
   "original_execution_collection": "Existing designated chain collector only; root source/metadata review is not borrowed native evidence.",
-  "source_review_reconciled_at": "2026-10-12T20:05:38.658191+00:00",
-  "tr08_source_scope": "Declared genuine operator-read Gmail plus unchanged owner internal-provider risk decision; generic unknown raw-header trust not approved and no new owner reapproval required."
+  "source_review_reconciled_at": "2026-10-12T20:44:33.506938+00:00",
+  "tr08_source_scope": "Declared genuine operator-read Gmail plus unchanged owner internal-provider risk decision; generic unknown raw-header trust not approved and no new owner reapproval required.",
+  "esco_custody_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132190256",
+  "esco_source_review": "https://github.com/heke99/gridex-ops-platform/pull/790#pullrequestreview-5495687846"
 }

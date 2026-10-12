@@ -1,14 +1,16 @@
 # Verification matrix — omfattning och gräns
 
-Observation `2026-10-12T19:41:44.806238+00:00`. Aktuell ledger: 314/352; SHA256 `23956fce6dc25f225c069cee624d992e64b279d24b4457247bf5202cb75b6298`.
+Observation `2026-10-12T20:44:33.506938+00:00`. Aktuell ledger: 314/352; SHA256 `23956fce6dc25f225c069cee624d992e64b279d24b4457247bf5202cb75b6298`.
 
 | Kontroll | Verifierat | Gräns |
 | --- | --- | --- |
 | #782 slutkälla och faktisk c1a-merge | 23 SUCCESS/10 villkorliga SKIP; exakt träd/föräldrar | Ingen ny helhetscoverage |
 | #783 slutkälla och faktisk efba-merge | 16 SUCCESS/10 SKIP; exakt träd/föräldrar | SC054 PARTIAL; extern mergeroll inte retroattesterad |
 | #775 slutkälla och faktisk 69e-merge | 32 SUCCESS/10 SKIP; exakt gemensamt träd 4f7c | SC053 PARTIAL; käll-CI är inte körning vid komponerad main |
+| #789 slutkälla och faktisk f36-merge | 25 SUCCESS/10 SKIP; exakt förgranskat ac2-träd/föräldrar | Stödfix; fysisk ERR och hela ID är separat, extern mergeroll inte retroattesterad |
 | #786/#789 affected source | Två oberoende icke-medförfattande källpeers | Aktuellt CI/normalleverans och fysisk ERR förblir separata |
 | #784/#785/#787/#788 nya heads | Tidigare tenant/HELO/COMMIT/SQL-låsfynd source-closed med två affected peers | Forwardpins/GEN, fysisk ERR och same-chain native/CI återstår; Gmail-godkännande ger ingen generell raw-header-tillit |
+| #790bed source/GEN-bindningar | Två källpeers; migrationspin, sju captureinputs och tre outputhashar matchar | P2-historikregression ska rättas av C2; source/hashanalys är ingen ny GEN/native |
 | Root leveransguard | 12 äldre recovery-, 35 source- och 20 nya simulerade felkontraster | Offline/mocks; inget native/GEN/CI-bevis |
 | Proxyreservationer | Receiptmatchade CREATE_IF_ABSENT/GET_MATCH för deklarerat scope | Ingen retroaktiv attest av arbete före reservation |
 
