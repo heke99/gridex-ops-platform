@@ -34754,6 +34754,20 @@ CREATE FUNCTION gridex_utilts_binding.preserve_committed_projection_v1(c uuid, e
     AS $$
 DECLARE s public.ediel_messages%rowtype;item jsonb;old_item jsonb;adapted jsonb;answer jsonb:='[]';r gridex_utilts_binding.receipts%rowtype;v public.meter_reading_series%rowtype;remove_quality boolean;
 BEGIN
+ -- SC-053: a NEW accepted v2 transaction must carry each quantity's own source
+ -- quality key (validate_decimal_source_v2 then checks its value). Only a retry
+ -- of a series already committed (possibly before SC-053, without the key)
+ -- may omit it. This runs before every persistence owner, unlike the
+ -- validator, which also re-checks committed pre-SC-053 rows.
+ IF EXISTS(SELECT FROM jsonb_array_elements(transactions) x(t)
+  WHERE t->>'disposition'='accepted' AND t#>'{consumptionContract,version}'='2'::jsonb
+   AND jsonb_typeof(t->'quantities')='array'
+   AND EXISTS(SELECT FROM jsonb_array_elements(t->'quantities') q WHERE jsonb_typeof(q)<>'object' OR NOT q ? 'quality')
+   AND NOT EXISTS(SELECT FROM public.ediel_ack_transaction_results a
+    WHERE a.company_id=c AND a.environment=env AND a.source_message_id=sid AND a.source_transaction_id=t->>'transactionId'
+     AND a.disposition='accepted' AND a.persistence_status='persisted' AND a.persisted_series_id IS NOT NULL)) THEN
+  RAISE EXCEPTION 'utilts_quantity_quality_required' USING ERRCODE='P0U01';
+ END IF;
  SELECT * INTO STRICT s FROM public.ediel_messages WHERE company_id=c AND id=sid AND environment=env;
  SELECT * INTO r FROM gridex_utilts_binding.receipts WHERE source_message_id=sid AND company_id=c AND environment=env;
  IF r.source_message_id IS NULL OR r.raw_hash IS DISTINCT FROM encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex') OR r.source_context IS DISTINCT FROM gridex_utilts_binding.source_context_v1(s) THEN RETURN transactions;END IF;

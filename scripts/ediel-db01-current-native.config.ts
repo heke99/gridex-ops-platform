@@ -177,8 +177,8 @@ export const currentReaderForwards: Array<GitInput & {path: string}> = [
   {
     "path": "supabase/migrations/20261012120000_ediel_utilts_source_quantity_quality_v2.sql",
     "mode": "100644",
-    "git_blob_oid": "c8d74064d150ac3a77d822d8e4e2409b6b62c6fc",
-    "sha256": "5854ac342e6b78cadb4bffdcbd368a8e62e8c3adf24d82bdf37f661635db9bd5"
+    "git_blob_oid": "39b07773fc8a996c0650de530f01fd247a6ace34",
+    "sha256": "00e6e6b624bc19d7810320dbeb1d0c881dc4deb6d32992bece1b1efd5a92681a"
   }
 ]
 const currentDatabase = receipt.current_database_basis
