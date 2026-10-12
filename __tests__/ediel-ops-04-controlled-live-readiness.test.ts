@@ -202,4 +202,19 @@ describe('OPS-04 controlled live readiness (synthetic)', () => {
       expect(evaluateControlledLiveReadiness(i).ready).toBe(true)
     }
   })
+
+  it.each(['', ' '])('rejects an unidentified counterparty even when both IDs are equal (%j)', (id) => {
+    const r = reasonsOf((i) => {
+      i.route!.counterpartyId = id
+      i.counterpartyAgreement!.counterpartyId = id
+    })
+    expect(r).toEqual(expect.arrayContaining(['route_counterparty_missing', 'counterparty_agreement_counterparty_missing']))
+  })
+
+  it('fails closed when a loaded route lacks its permitted certificate list', () => {
+    const r = reasonsOf((i) => {
+      delete (i.route as { permittedCertificateFingerprints?: string[] }).permittedCertificateFingerprints
+    })
+    expect(r).toContain('certificate_not_permitted_for_route')
+  })
 })

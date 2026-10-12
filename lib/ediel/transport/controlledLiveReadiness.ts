@@ -106,6 +106,7 @@ export function evaluateControlledLiveReadiness(input: ControlledLiveInput): Con
   else {
     if (route.tenantId !== t) reasons.push('route_tenant_mismatch')
     if (route.environment !== env) reasons.push('route_environment_mismatch')
+    if (blank(route.counterpartyId)) reasons.push('route_counterparty_missing')
   }
 
   if (!certificate || blank(certificate.fingerprint)) reasons.push('certificate_missing')
@@ -116,7 +117,7 @@ export function evaluateControlledLiveReadiness(input: ControlledLiveInput): Con
     const w = within(now, certificate.notBefore, certificate.notAfter)
     if (w === 'invalid') reasons.push('certificate_validity_invalid')
     else if (w === 'outside') reasons.push('certificate_not_valid_now')
-    if (route && !route.permittedCertificateFingerprints.includes(certificate.fingerprint))
+    if (route && !(route.permittedCertificateFingerprints ?? []).includes(certificate.fingerprint))
       reasons.push('certificate_not_permitted_for_route')
   }
 
@@ -131,6 +132,7 @@ export function evaluateControlledLiveReadiness(input: ControlledLiveInput): Con
   else {
     if (agr.tenantId !== t) reasons.push('counterparty_agreement_tenant_mismatch')
     if (agr.environment !== env) reasons.push('counterparty_agreement_environment_mismatch')
+    if (blank(agr.counterpartyId)) reasons.push('counterparty_agreement_counterparty_missing')
     if (route && (agr.routeId !== route.id || agr.counterpartyId !== route.counterpartyId))
       reasons.push('counterparty_agreement_route_mismatch')
     const w = within(now, agr.validFrom, agr.validTo)
