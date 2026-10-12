@@ -2,6 +2,7 @@ import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMatchCandidate, EdielMatchInput } from '@/lib/ediel/matching/matchingTypes'
 import { cleanMatchText, confidenceFromScore } from '@/lib/ediel/matching/matchingTypes'
+import { postgrestEqAny } from '@/lib/ediel/matching/processMatcher'
 
 export async function matchPermissionForAutomation(input: EdielMatchInput): Promise<EdielMatchCandidate[]> {
   const canonical = parseCanonicalMessageRow(input.message)
@@ -18,7 +19,7 @@ export async function matchPermissionForAutomation(input: EdielMatchInput): Prom
     .eq('company_id', companyId)
     .limit(20)
 
-  query = query.or(`permission_reference.eq.${permissionId},external_permission_id.eq.${permissionId},id.eq.${permissionId}`)
+  query = query.or(postgrestEqAny(['permission_reference', 'external_permission_id'], ['id'], [permissionId]))
 
   const { data, error } = await query
   if (error) throw error
