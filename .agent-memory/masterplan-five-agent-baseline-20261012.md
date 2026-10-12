@@ -33,19 +33,19 @@ De nya agenterna skaffar egna atomiska slot-, ID-, fil- och producentreservation
 
 | Donor | Slot | Vad som ska återanvändas och slutföras |
 | --- | --- | --- |
-| [#638](https://github.com/heke99/gridex-ops-platform/pull/638) | C1 | Whole-Z01 fortsätter i #771; originalbranch/checkpoint/felbevis bevarade; inga refs frigivna. |
+| [#638](https://github.com/heke99/gridex-ops-platform/pull/638) | C1 | Arkiveringen av #638 bevarade hela Z01-beviset i #771. Den senare administrativa reseten har frigivit gamla claims. Ny C1 fortsätter från frysta #771/#762-källor med egna claims. |
 | [#744](https://github.com/heke99/gridex-ops-platform/pull/744) | C2 | Kvalificera db01-historical-upgrade-felets faktiska orsak och exakt GEN/schema/quality-proof. |
 | [#745](https://github.com/heke99/gridex-ops-platform/pull/745) | C2 | Kvalificera avbrutet native och befintlig consumerinverse; nationell request→ACK→beständig effekt. |
 | [#749](https://github.com/heke99/gridex-ops-platform/pull/749) | C2 | Slutför komponentleverans; hela SC054 behöver verkligt DB-lagringsfel/rollback/deadline och ACK-exclusion. |
 | [#753](https://github.com/heke99/gridex-ops-platform/pull/753) | C2 | Slutför GEN/main-komposition; genuine512/532 äldre-last persistens→SQL-authority→ACK→receipt/replay. |
 | [#755](https://github.com/heke99/gridex-ops-platform/pull/755) | C1 | Exakt124500-checksum/GEN och publicZ04→samma giltiga period före/vid start; wholeSC037 kvar. |
 | [#758](https://github.com/heke99/gridex-ops-platform/pull/758) | C3 | Rätta och bevisa ignored-occurrence/matcher med syskon/topologi/repetition och oförändrad affärsdata. |
-| [#759](https://github.com/heke99/gridex-ops-platform/pull/759) | C1 | Kvalificera34-fallsfel och leverera två genuina signing/PDF/current-network-prefixpaket till Z02-ägaren. |
-| [#762](https://github.com/heke99/gridex-ops-platform/pull/762) | C1 | Återställ replayvärdens Docker-root-kapacitet genom dess ansvariga; kvalificera exakt job_insert-orsak och forward20261011220811. |
+| [#759](https://github.com/heke99/gridex-ops-platform/pull/759) | C1 | Ny C1 kvalificerar34-fallsunderlaget och skapar två genuina signing/PDF/current-network-prefixpaket för samma Z02-kedja, utan tidigare ägares svar. |
+| [#762](https://github.com/heke99/gridex-ops-platform/pull/762) | C1 | Ny C1 kontrollerar kapaciteten i sin separata disponibla backend och kvalificerar job_insert-orsak/forward från publicerade kriterier. Gamla värdens ENOSPC är endast historik. |
 | [#764](https://github.com/heke99/gridex-ops-platform/pull/764) | C2 | Exakt140000-checksum/schema/GEN, public originals och populatedVH/V/DDQ-separation samt riktiga effekter. |
-| [#768](https://github.com/heke99/gridex-ops-platform/pull/768) | C3 | Kvalificera current H05/H08-nativefel och rätta reproducerad orsak under originalcustody. |
+| [#768](https://github.com/heke99/gridex-ops-platform/pull/768) | C3 | Ny C3 kvalificerar fryst H05/H08-felbevis och rättar reproducerad orsak under sina egna nya claims. |
 | [#771](https://github.com/heke99/gridex-ops-platform/pull/771) | C1 | Återanvänd #762:s faktiska kompatibla output, fyra Z02-förutsättningar och en motiverad94-falls successor. |
-| [#772](https://github.com/heke99/gridex-ops-platform/pull/772) | Baslinjen, dokumentation | Befintlig025 levererar sina tre filer eller explicit lämnar över. Den nya baslinjen ändrar inte deras custody. |
+| [#772](https://github.com/heke99/gridex-ops-platform/pull/772) | Baslinjen, dokumentation | Pensionerat dokumentationsunderlag. Dess tre gamla claims är administrativt frigivna; den nya baslinjen ersätter aktiv routing utan tidigare ägares leverans eller svar. |
 
 Varje donor har fryst head/branch, originalbodyhash, arkivkvitto och ändradepaths/blob-SHA i maskinunderlaget. Läs de slutna PR:ernas originalreviews och körresultat vid relevant återstart. Inga källgrenar eller bevisartefakter har raderats. Privat-only opublicerad kod är inte tillgänglig och får inte antas finnas i en PR; nya agenter härleder då en korrigering från publicerad kod, felbevis och frysta krav.
 
@@ -136,4 +136,4 @@ PY
 git diff --check
 ```
 
-Kontrollen verifierar exakt3+35fördelning, ordagranna krav, oförändrad ledger/spec/schema, kvittobunden205adminrelease, donorbevarande och113hashbundna historikposter. Den gör inga nät-/beteendetestoperationer; liveclaims kontrolleras vid faktisk start.
+Inlinekontrollen verifierar endast ledgerns bytehash och att alla3regler och35kontrakt fördelas exakt en gång. Den oberoende dokumentationsgranskningen verifierar även frysta krav, oförändrade kod-/schemafiler, sparade adminrelease-/donorkvitton och113historikreferenser. Detta är dokumentations- och inventeringskontroller, inga nya nät-/beteende-/wholeprov. Liveclaims kontrolleras vid faktisk start.

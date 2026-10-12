@@ -1807,7 +1807,8 @@
         "wholeCredit": 0,
         "resourceRefsReleased": []
       },
-      "next": "Whole-Z01 fortsätter i #771; originalbranch/checkpoint/felbevis bevarade; inga refs frigivna."
+      "next": "Arkiveringen av #638 bevarade hela Z01-beviset i #771. Den senare administrativa reseten har frigivit gamla claims. Ny C1 fortsätter från frysta #771/#762-källor med egna claims.",
+      "priorNext": "Whole-Z01 fortsätter i #771; originalbranch/checkpoint/felbevis bevarade; inga refs frigivna."
     },
     {
       "number": 744,
@@ -2417,7 +2418,7 @@
       },
       "disposition": "CLOSED_UNMERGED_PRESERVED_DONOR",
       "targetSlot": "C1",
-      "next": "Kvalificera34-fallsfel och leverera två genuina signing/PDF/current-network-prefixpaket till Z02-ägaren.",
+      "next": "Ny C1 kvalificerar34-fallsunderlaget och skapar två genuina signing/PDF/current-network-prefixpaket för samma Z02-kedja, utan tidigare ägares svar.",
       "headSnapshotOnly": true,
       "priorRecommendation": "KEEP_CONTINUE",
       "actualArchive": {
@@ -2474,7 +2475,8 @@
           }
         ],
         "wholeCredit": 0
-      }
+      },
+      "priorNext": "Kvalificera34-fallsfel och leverera två genuina signing/PDF/current-network-prefixpaket till Z02-ägaren."
     },
     {
       "number": 762,
@@ -2489,7 +2491,7 @@
       },
       "disposition": "CLOSED_UNMERGED_PRESERVED_DONOR",
       "targetSlot": "C1",
-      "next": "Återställ replayvärdens Docker-root-kapacitet genom dess ansvariga; kvalificera exakt job_insert-orsak och forward20261011220811.",
+      "next": "Ny C1 kontrollerar kapaciteten i sin separata disponibla backend och kvalificerar job_insert-orsak/forward från publicerade kriterier. Gamla värdens ENOSPC är endast historik.",
       "headSnapshotOnly": true,
       "priorRecommendation": "KEEP_CONTINUE",
       "actualArchive": {
@@ -2658,7 +2660,8 @@
           }
         ],
         "wholeCredit": 0
-      }
+      },
+      "priorNext": "Återställ replayvärdens Docker-root-kapacitet genom dess ansvariga; kvalificera exakt job_insert-orsak och forward20261011220811."
     },
     {
       "number": 764,
@@ -2745,7 +2748,7 @@
       },
       "disposition": "CLOSED_UNMERGED_PRESERVED_DONOR",
       "targetSlot": "C3",
-      "next": "Kvalificera current H05/H08-nativefel och rätta reproducerad orsak under originalcustody.",
+      "next": "Ny C3 kvalificerar fryst H05/H08-felbevis och rättar reproducerad orsak under sina egna nya claims.",
       "headSnapshotOnly": true,
       "priorRecommendation": "KEEP_CONTINUE",
       "actualArchive": {
@@ -2837,7 +2840,8 @@
           }
         ],
         "wholeCredit": 0
-      }
+      },
+      "priorNext": "Kvalificera current H05/H08-nativefel och rätta reproducerad orsak under originalcustody."
     },
     {
       "number": 771,
@@ -2944,7 +2948,7 @@
       },
       "disposition": "CLOSED_UNMERGED_PRESERVED_DONOR",
       "targetSlot": "DOCS_EXISTING_OWNER",
-      "next": "Adopt only the useful documentation/reconciliation facts in this new baseline. Former owner and its proposal are retired; no former-owner wait.",
+      "next": "Pensionerat dokumentationsunderlag. Dess tre gamla claims är administrativt frigivna; den nya baslinjen ersätter aktiv routing utan tidigare ägares leverans eller svar.",
       "headSnapshotOnly": true,
       "priorRecommendation": "KEEP_CONTINUE",
       "actualArchive": {
@@ -2980,7 +2984,8 @@
           }
         ],
         "wholeCredit": 0
-      }
+      },
+      "priorNext": "Adopt only the useful documentation/reconciliation facts in this new baseline. Former owner and its proposal are retired; no former-owner wait."
     }
   ],
   "legacyDecisions": [
