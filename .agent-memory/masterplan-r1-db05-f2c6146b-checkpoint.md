@@ -4,7 +4,7 @@ Epoch: gridex-five-agent-20261012
 Packet: f2c6146b-1b31-4abd-b483-f347ed050268
 Branch: codex/r1-db05-20261012-f2c6146b
 Source/main: 028d2d65d6dfa670474d48adb1b97bf99c959b74
-Status: BLOCKED_BEFORE_CLAIM; bounded read-only donor/requirements assessments COMPLETE.
+Status: RESUMED / VERIFIED_CLAIM; previous pre-claim assessment below is dated history.
 Assigned ID: DB-05. Owned IDs/files/producers: NONE. No slot/ID/file/producer ref acquired.
 Checkpoint is uniquely owned and exempt from shared-file locking.
 
@@ -67,3 +67,11 @@ Final verification:
 - Initial #766 blocker6124312738 authenticated by GET readback. This final assessment is published via the same own checkpoint branch, followed by a final board receipt.
 
 Next concrete action: restore authenticated Git Data tag CREATE/GET/DELETE capability in the current execution host; refresh current main/board/refs and acquire R1 slot/packet. Then implement only the three proposed proof paths, qualify a single isolated chain and share exact output with C3. Full DB05 delivery remains blocked pending real legal original and final proof/reviews/current-head gates.
+
+## Resumed after user continuation
+Taken: authenticated gh/read and git fetch now succeed; actualmain028d unchanged. ProxyCLAIM6124812469 authenticated; all six exactrefs GET_MATCH independently verified. Own slot873dcbee and packet c0ee5452 bind this same agent/packet/branch/DB-05, three exactfiles and producer-db05. No new or foreign ref overwritten.
+Done: isolated /workspace/db05-r1 checkout at4d239880, parent chain toactualmain028d; read current canonical customer archive/decision functions and preserved718workflow.
+Verification: all6GET_MATCH PASS. First npmci failed due default cache path outside workspace; retry uses dedicated /tmp/r1-db05-npm-cache without changingHOME. No product/native execution yet.
+Plan: implement only claimed three proof paths; use canonical customer-scope withdrawal→archive, separate submit/review/purge actors, same signed retentiondecision before and after realdue time, negativeauthority/source/issuer contrasts, replay/tombstone/conservedhistory. Adapt718workflow with exactsource/input/runepoch and one canonical disposable backend; no GEN or ledger edits. Legaloriginal remains externally required forwhole credit.
+Next: write connected native tests/config/workflow, qualify syntax/type and two independent source reviews, publish newdraft PR, execute one hosted canonical replay. A demonstrated productdefect requires additionalexactclaim and RED/GREENforward; unavailable legaloriginal does not block this mechanismcarrier.
+Skills activated: using-git-worktrees for isolatedcheckout, writing-plans for checkpoint-integrated scopedplan, TDD for any reproduced productionfix; prior Supabase/security/verification routing retained. User already authorizes isolation/execution; no additional plan-choicepause.
