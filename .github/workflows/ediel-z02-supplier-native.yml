@@ -18,17 +18,18 @@ concurrency:
 
 jobs:
   z02-supplier-native:
+    if: github.event.pull_request.head.repo.full_name == 'heke99/gridex-ops-platform' && github.event.pull_request.head.ref == 'codex/five-C1-z02-native-b7e2fae0'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
       NODE_OPTIONS: --max-old-space-size=6144
       COMPONENT_SOURCE: c0d228788882565a7a86bf0cf5ba52089502a2e8
-      QUALIFIED_BASE: 243eb6bdfe26e3de861e13996cdd14142c6d0390
+      QUALIFIED_BASE: c1ce82a7475a0c6e5ae4bdc0ae41989ea482f466
       QUALIFIED_GEN_SOURCE: c3d0f79b57aacdc37d42e8d9490b729cfee09f8b
       QUALIFIED_GEN_CAPTURE_RUN: '38309588529'
       FILE_RECEIPT: 52841148fabcbf8a1ceb9e24959a421d2edd8b1f
       DONOR_SOURCE: 6bb5e7c9718ec6c8fcdb9334b4da289afbaa23c5
-      PRODUCER_RECEIPT: a7719653de4f5829c1420b13d8703316392ca347
+      PRODUCER_RECEIPT: 29217ea28652cb9a6b18ca46f92c6d63153d766f
       SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
       SUPABASE_TELEMETRY_DISABLED: '1'
       SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
@@ -92,7 +93,7 @@ jobs:
           root = pathlib.Path(info['DockerRootDir'])
           stat = os.statvfs(root)
           available = stat.f_bavail * stat.f_frsize
-          if subprocess.check_output(['docker','ps','-q'], text=True).strip(): raise SystemExit('disposable_runner_not_quiescent')
+          if subprocess.check_output(['docker','ps','-aq'], text=True).strip(): raise SystemExit('disposable_runner_not_quiescent')
           # vfs copies complete layer trees; the measured 29GiB host could not
           # register this pin. The hosted overlay driver shares those layers.
           required = (40 if info['Driver'] == 'vfs' else 15) * 1024**3
@@ -141,7 +142,7 @@ jobs:
             p = pathlib.Path(name)
             if p.is_symlink() or not p.is_file() or hashlib.sha256(p.read_bytes()).hexdigest() != expected:
               raise SystemExit('native_runtime_input_changed')
-          if subprocess.check_output(['docker','ps','-q'], text=True).strip():
+          if subprocess.check_output(['docker','ps','-aq'], text=True).strip():
             raise SystemExit('native_backend_cleanup_unqualified')
           replay = pathlib.Path(os.environ['RUNNER_TEMP'],'c1-z02-canonical-replay.log').read_text()
           if '[GRIDEX-REM-002 replay] PASS: empty local Supabase' not in replay:
