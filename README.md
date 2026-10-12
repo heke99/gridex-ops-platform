@@ -1,5 +1,10 @@
 # Gridex OPS platform
 
+## Aktuell Ediel-baslinje — fem nya agenter
+
+[Starta här](.agent-memory/masterplan-five-agent-baseline-20261012.md) och använd [Claude-/Codex-prompterna](.agent-memory/masterplan-five-agent-prompt-20261012.md). Användaren har pensionerat gamla agenter; alla205 gamla claims är verifierat frigivna och13 gamla förslag bevarade som slutna donorkällor.314/352krav godkända,38 kvar. Nyaagenter får egna reservationer för uppdrag/ID/filer/producenter och behöver inte hitta tidigare ägare. Extra granskare med läsbehörighet och avgränsade agenter som hjälper med kod är välkomna.
+
+
 Gridex OPS is the multi-tenant operations platform for electricity companies:
 customer, contract, pricing, customer-portal, customer-service and staff
 workflows, exposed to tenants through versioned HTTP APIs.

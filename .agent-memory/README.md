@@ -1,97 +1,13 @@
-# Gridex OPS project memory
+# Gridex OPS — en aktiv startpunkt
 
-This directory is the single canonical progress system for long-running agent
-work. It records current state and resumability; code, live schema, forward
-migrations, executed tests, runtime evidence, OpenAPI and active architecture
-decisions remain higher-authority sources.
+Börja i [masterplan-five-agent-baseline-20261012.md](masterplan-five-agent-baseline-20261012.md). **Fem nya agenter:** R1/R2för3 regler och C1/C2/C3för35 kontrakt. Gamla agenter är pensionerade genom användarens beslut; de två gamla automationerna är pausade och205 gamla claims verifierat frigivna.
 
-Current entry: [masterplan-current-start.md](masterplan-current-start.md).
+Läs därefter [ny överlämning](masterplan-five-agent-transition-20261012.md), [gemensam prompt](masterplan-five-agent-prompt-20261012.md), [workflow](masterplan-agent-workflow.md), [reservationer](masterplan-reservations.md) och faktisk main/ledger/berörda donorPR-källor. Aktiva kvitton endast[#766](https://github.com/heke99/gridex-ops-platform/issues/766). Du behöver inte kontakta tidigare ägare.
 
-Coordination: [#766](https://github.com/heke99/gridex-ops-platform/issues/766) is active after actual [#767 delivery](https://github.com/heke99/gridex-ops-platform/pull/767) and the [explicit transition on #673](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6110433111). Its single owner/resumption table and GEN queue route current work. New operational receipts go only to #766. Preserve [#673](https://github.com/heke99/gridex-ops-platform/issues/673)/#530 original proof links; the move releases no custody.
+**314/352 godkända;38 kvar.** [Maskinunderlaget](masterplan-five-agent-baseline-20261012.json) har alla ordagranna kvarvarande krav. [Historikindexet](masterplan-five-agent-retired-memory-index-20261012.json) ersätter113 gamla agent-/statusfiler i aktiv katalog; återställ bara relevant originalbevis. Coverage.json är den enda approvalledgern. Current-state/current-task/checkpoint/handover/open-blockers/work-plan och current-start/work-queue är korta samstämmiga ingångar, inte separata planer.
 
-Reuse the [existing portable foundation](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109033320); this directory remains the single progress system. Six startup paths below are concise compatibility wrappers; exact original bytes remain in [history](history/20261010-before-startup-cleanup/README.md). Read relevant historical owner/criterion material as needed, not all accumulated history at every start.
+Extra agenter får granska read-only direkt och hjälpa till att rätta efter exakt ny filöverlämning. En skrivare perfil, en producent perkälla och två oberoende reviewers för slutversionen. C2 är ensam seriell GEN-skrivare för alla fem. Inga reservationer för uppdrag/ID/filer/producenter följer automatiskt med prompten.
 
-## Read order
+Sidospår behåller sina egna scopes: [tenantservice](tenantservice-checkpoint.md), [kundportfölj](customer-portfolio-checkpoint.md), [kund/admin-UI](customer-ui-checkpoint.md). Reset gäller Edielkampanjen. Inga secrets, produktionskunddata eller gamla fulla chattar i minnet.
 
-1. `current-state.md`
-2. `current-task.md`
-3. `checkpoint.json`
-4. `handover.md`
-5. `open-blockers.md`
-6. active item in `work-plan.md`
-7. relevant domain files
-8. `decisions.md` and `known-failures.md`
-9. `masterplan-agent-workflow.md`, `masterplan-reservations.md` and your own checkpoint
-10. `masterplan-legacy-pr-register.json`, relevant dated status evidence, latest
-    announced active-board receipts and linked historical #673/#530 evidence, actual main/coverage,
-    current PR heads/checks and live remote refs; read `masterplan-work-queue.md`
-    for dated owner actions, exact dependency/handoff criteria and chat resumption
-
-Read active startup sections and your checkpoint first; consult relevant dated
-history as needed. Current code, coverage, head-bound checks and remote refs
-override old current/paused/next-action labels. The announced active board is
-#766; historical #673/#530 evidence remains unchanged. The six startup wrappers
-(including checkpoint.json) retain their dated b566/311 observation; use current-start and
-actual evidence for current progress and resumption.
-
-Before implementation or another work item, every agent must save ownership, actual
-completed work, verification, blockers and the exact next action. Technical
-agents update their own checkpoints; the current memory-role holder maintains
-shared status only within its exact file custody. PLANAGENT selects and atomically
-reserves its own eligible rule packet or acceptance-only packet, with the existing
-final-single-eligible exception; BLOCKERARAGENT stays on sequential, evidenced
-blockers; GRANSKARE keeps its independent read-only role. New agents get a role,
-not rule assignments. Direct GitData and the already owner-authorized Claude
-proxy both require verified actual refs before code; proxy success does not
-prove direct tag capability.
-
-Use `masterplan-next-wave-prompt.md` for plan agents and
-`masterplan-blocker-agent-prompt.md` for blocker agents. After documented actual
-delivery or explicit handoff/release, refresh state and choose the next eligible
-work item within that role. Legacy CLOSED_UNMERGED requirements remain resumable
-through their preserved branches; evaluate them before selecting new work.
-
-## Parallel side track: tenantservice
-
-The active Ediel campaign owns `checkpoint.json`, `current-task.md` and
-`handover.md`. The user-approved tenantservice side track (customer support
-API + tenant OPS UI) keeps its single resumable checkpoint in
-`tenantservice-checkpoint.md` and its evidence in `quality/tenantservice/`.
-Do not mix the two: an Ediel agent must not resume tenantservice items from the
-Ediel checkpoint, and the tenantservice agent must not edit the Ediel files.
-
-## Parallel side track: customer portfolio
-
-Customer portfolio / white-label analytics (user-approved 2026-10-03) keeps its
-checkpoint in `customer-portfolio-checkpoint.md` and its evidence in
-`quality/customer-portfolio/`. It does not edit the Ediel files either.
-
-## Update rules
-
-Customer and daily admin UI simplification (user-approved 2026-10-05) keeps its checkpoint in
-`customer-ui-checkpoint.md` and local verification evidence in
-`quality/customer-ui/`, preserving the Ediel campaign's global progress files.
-
-- Maintain exactly one active work item and subtask.
-- Update the checkpoint after implementation, verification, failure or blocker.
-- Put only actually verified work in `completed-work.md`.
-- Append concise evidence to `verification-matrix.md` and `session-log.md`.
-- Archive superseded progress; do not run two current-task systems.
-- Resolve conflicts by inspecting implementation, schema, migrations and tests,
-  then mark stale observations `SUPERSEDED`; preserve historical bytes and verify the affected invariants. Use meaningful regression tests for behavior changes.
-
-Allowed statuses: `NOT_STARTED`, `IN_PROGRESS`, `PARTIAL`, `BLOCKED`,
-`IMPLEMENTED_NOT_VERIFIED`, `VERIFIED`, `FAILED`, `SUPERSEDED`,
-`NOT_APPLICABLE`.
-
-Never store API keys, tokens, secrets, `.env` content, private keys, passwords,
-full identity numbers, production customer data, raw webhook secrets, entire
-chats, chain-of-thought or complete terminal output.
-
-Current continuation: follow the role-specific instructions in `AGENTS.md`,
-the active sections of current-state.md/current-task.md/work-plan.md,
-masterplan-agent-workflow.md, masterplan-reservations.md and the legacy register.
-Older integration/freeze/pre-dispatch snapshots are historical. Specific HOLD,
-external decisions, ownership and delivery gates remain in force. If no task is
-READY, record the responsible owner and exact resumption event; a blocked state
-does not imply the plan is complete.
+[Relevant tidigare original](https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/README.md) är historik, inte instruktion till en gammal agent.

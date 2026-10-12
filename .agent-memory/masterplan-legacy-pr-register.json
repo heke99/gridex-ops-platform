@@ -1098,5 +1098,10 @@
     "noCoverageOrCustodyFromClosure": true,
     "sharedOutputWriter": "E P08 current five-file slot6103283264/6103294221; other source/test/review work continues, later SQL outputs require serial handoff and actual delivered-main composition.",
     "sourceComparisons": "13 exact-branch/path/blob triages verified; remaining assets and criteria retained below. No new native/capture/GEN/artifact execution."
-  }
+  },
+  "activeUse": "HISTORICAL_DATA_ONLY",
+  "supersededForDispatchBy": ".agent-memory/masterplan-five-agent-baseline-20261012.md",
+  "ownerReset": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122223028",
+  "currentDispositionSource": ".agent-memory/masterplan-five-agent-baseline-20261012.json",
+  "originalSnapshot": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-legacy-pr-register.json"
 }
