@@ -831,9 +831,16 @@ it('actual H08 overdue payment alone projects billing but never requests or appl
  const after=graph(),projected=after.invoices.filter(x=>x.invoice_export_item_id===itemId)
  expect(projected).toHaveLength(1)
  expect(projected[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,customer_contract_id:f.contractId,contract_id:f.contractId,canonical_export_item_id:itemId,partner_invoice_reference:invoiceGuid,status:'overdue',amount_ex_vat:100,vat_amount:25,amount_inc_vat:125,source_system:'canonical_invoice_export',raw_payload:payload})
- // Only the exact billing projection may differ. Every old invoice, all own
- // and foreign business rows, source history and physical ACKs stay identical.
- expect({...after,invoices:after.invoices.filter(x=>x.invoice_export_item_id!==itemId)}).toEqual(before)
+ // The enabled invoice projection also marks this exact own underlay invoiced.
+ // Permit only its four documented projection fields, preserving every other
+ // column and every old/foreign row rather than excluding the underlay table.
+ const priorUnderlay=before.underlays.find(x=>x.id===underlayId),projectedUnderlay=after.underlays.find(x=>x.id===underlayId)
+ expect(priorUnderlay).toMatchObject({company_id:f.companyId,customer_id:f.customerId,invoice_readiness_status:null,invoice_export_run_id:null,invoice_export_locked_at:null})
+ expect(projectedUnderlay).toMatchObject({invoice_readiness_status:'invoiced',invoice_export_run_id:runId})
+ expect(Number.isFinite(Date.parse(String(projectedUnderlay?.invoice_export_locked_at)))).toBe(true)
+ expect(projectedUnderlay?.updated_at).toBe(projectedUnderlay?.invoice_export_locked_at)
+ const expectedUnderlay={...priorUnderlay,invoice_readiness_status:'invoiced',invoice_export_run_id:runId,invoice_export_locked_at:projectedUnderlay?.invoice_export_locked_at,updated_at:projectedUnderlay?.updated_at}
+ expect({...after,invoices:after.invoices.filter(x=>x.invoice_export_item_id!==itemId)}).toEqual({...before,underlays:before.underlays.map(x=>x.id===underlayId?expectedUnderlay:x)})
  expect(rejectedIdentityEffects()).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(legal()).toEqual(legalBefore)
  expect(sql(`SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM public.ediel_messages x WHERE message_code='Z08'`)).toEqual(originals)
  expect(provider).toHaveBeenCalledTimes(calls)
