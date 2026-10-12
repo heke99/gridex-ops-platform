@@ -1518,7 +1518,46 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     observeZ02PositiveProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion')
     observeZ02SdkEnqueueProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion', true)
     expect(applications(f, original)).toHaveLength(1)
-    expect(frozen(staged.id!)).toEqual(sealed)
+    // First processing legitimately captures rule authority after its committed
+    // source assessment. Every birth/context field remains exactly unchanged.
+    const afterFirstConsumer = record(frozen(staged.id!)), firstRules = record(afterFirstConsumer.sourceRules)
+    const birthCanonical = record(record(sealed).canonical)
+    const assessment = sql<Row>(`SELECT to_jsonb(a) FROM gridex_received_sources.validation_assessments a
+      WHERE id=${literal(String(firstRules.canonical_assessment_id))}`)
+    expect(firstRules.canonical_assessment_id).toMatch(/^[a-f0-9-]{36}$/)
+    expect(assessment).toMatchObject({ source_message_id: staged.id!, company_id: f.companyId,
+      environment: 'test', source_payload_hash: hash(rawPayload), owner: 'canonical-runtime-with-registry-v1' })
+    expect(assessment.facts_hash).toBe(hash(String(assessment.facts_text)))
+    const namedBasis = sql<Row>(`SELECT jsonb_build_object('rulePack',to_jsonb(p),'messageProfile',to_jsonb(v),
+      'guideSources',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]')
+        FROM public.ediel_rule_pack_sources s WHERE s.rule_pack_id=p.id))
+      FROM public.ediel_rule_packs p JOIN public.ediel_message_profiles v ON v.rule_pack_id=p.id
+      WHERE p.id=${literal(String(birthCanonical.canonical_rule_pack_id))}
+        AND v.id=${literal(String(birthCanonical.rule_profile_version_id))}`)
+    const namedProfileKey = record(namedBasis.messageProfile).profile_key
+    expect(record(birthCanonical.rule_pack_snapshot).profileKey).toBe(birthCanonical.rule_profile_key)
+    const evidence = { profileKey: namedProfileKey,
+      messageProfileId: birthCanonical.rule_profile_version_id, rulePackId: birthCanonical.canonical_rule_pack_id,
+      sourceHash: birthCanonical.rule_pack_checksum, version: birthCanonical.rule_profile_version,
+      snapshot: { profileKey: namedProfileKey, profileVersionId: birthCanonical.rule_profile_version_id,
+        version: birthCanonical.rule_profile_version, checksum: birthCanonical.rule_pack_checksum,
+        originalMessageSnapshot: birthCanonical.rule_pack_snapshot, ...namedBasis,
+        identitySourceEdition: record(record(sealed).executionContext).sourceEdition ?? null } }
+    expect(JSON.parse(String(assessment.facts_text))).toMatchObject({ owner: 'canonical-runtime-with-registry-v1',
+      rulePackEvidence: { profileKey: evidence.profileKey, messageProfileId: evidence.messageProfileId,
+        rulePackId: evidence.rulePackId, sourceHash: evidence.sourceHash } })
+    expect(firstRules).toEqual({ source_message_id: staged.id!, company_id: f.companyId,
+      environment: 'test', direction: 'inbound', payload_sha256: hash(rawPayload),
+      captured_at: firstRules.captured_at, canonical_assessment_id: assessment.id,
+      original_source_message_id: null, evidence })
+    expect(Number.isFinite(Date.parse(String(firstRules.captured_at)))).toBe(true)
+    expect(Date.parse(String(firstRules.captured_at))).toBeGreaterThanOrEqual(Date.parse(String(record(sealed).receipt)))
+    expect(afterFirstConsumer).toEqual({ ...record(sealed), sourceRules: firstRules })
+    // Freeze the complete post-capture observation, including all timestamps
+    // and named rule rows, then prove the genuine source is immutable on replay.
+    await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: staged.id! })
+    expect(frozen(staged.id!)).toEqual(afterFirstConsumer)
+    expect(applications(f, original)).toHaveLength(1)
   })
   it('the actual incoming consumer refuses the genuine outgoing original without customer or supply execution', async () => {
     const { f, original } = await sent(variant), before = protectedEffects(f, original), sealed = frozen(original.originalZ01.id)
