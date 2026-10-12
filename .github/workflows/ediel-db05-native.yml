@@ -128,6 +128,8 @@ jobs:
               'a canonical archive with remaining active supply stays held without erasing its customer or history',
               'a correctly signed but expired class policy stays held without erasure',
               'a policy expiring during an observed customer lock wait cannot authorize erasure when the request resumes',
+              'a scheduled ediel.retention.purge DENY activating during an observed customer lock wait prevents erasure when the request resumes',
+              'a scheduled ediel.retention.customer_fields DENY activating during an observed customer lock wait prevents erasure when the request resumes',
           }
           junit = pathlib.Path('db05-native-working/native-junit.xml')
           cases = list(ET.parse(junit).getroot().iter('testcase')) if junit.is_file() else []

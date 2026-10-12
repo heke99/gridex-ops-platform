@@ -372,3 +372,66 @@ it('a policy expiring during an observed customer lock wait cannot authorize era
  expect(f.state()).toEqual(initial)
  expect(f.preserved()).toEqual(f.historical)
 },180000)
+
+for(const permission of ['ediel.retention.purge','ediel.retention.customer_fields']) {
+ it(`a scheduled ${permission} DENY activating during an observed customer lock wait prevents erasure when the request resumes`,async()=>{
+  const f=await fixture(),initial=f.state()
+  const due=sql<string>("SELECT to_jsonb(clock_timestamp()-interval '1 second')")
+  // Keep legal competence valid for an hour: this contrasts P's authority,
+  // independently of the legal-policy expiry case above. R stays authorized.
+  const submitted=await f.submit(f.token(due))
+  expect(submitted.error).toBeNull()
+  expect(submitted.data).toMatchObject({issuerQualified:true})
+  const decision=submitted.data.decisionId as string
+  const approved=await f.review(decision)
+  expect(approved.error).toBeNull()
+  expect(approved.data).toMatchObject({status:'approved'})
+  const activates=sql<string>("SELECT to_jsonb(clock_timestamp()+interval '6 seconds')")
+  sql(`INSERT INTO public.user_permission_overrides(id,user_id,company_id,permission_key,effect,is_active,valid_from)
+   VALUES(${literal(randomUUID())},${literal(f.purger.id)},${literal(f.company)},${literal(permission)},'deny',true,${literal(activates)}::timestamptz)`)
+  expect(sql<boolean>(`SELECT to_jsonb(gridex_ediel_retention.permission_v1(${literal(f.company)},${literal(f.purger.id)},${literal(permission)}))`)).toBe(true)
+  const lock=customerLock(f.company,f.customer)
+  let result:Awaited<ReturnType<typeof f.purge>>|undefined
+  let pending:Promise<Awaited<ReturnType<typeof f.purge>>>|undefined
+  try {
+   const holderPid=await lock.ready
+   pending=Promise.resolve(f.purge(decision))
+   let waiting:{started:string;observed:string}|null=null
+   for(let attempt=0;attempt<30;attempt++) {
+    waiting=sql<{started:string;observed:string}|null>(`SELECT (SELECT to_jsonb(x) FROM (
+     SELECT xact_start AS started,clock_timestamp() AS observed FROM pg_stat_activity
+     WHERE usename='authenticator' AND state='active' AND wait_event_type='Lock'
+       AND ${holderPid}=ANY(pg_blocking_pids(pid))
+       AND query LIKE '%ediel_pseudonymise_customer_retention_v1%'
+     LIMIT 1) x)`)
+    if(waiting)break
+    await delay(100)
+   }
+   expect(waiting,'actual PostgREST request must wait on the held customer row').not.toBeNull()
+   expect(Date.parse(waiting!.started)).toBeLessThan(Date.parse(activates))
+   expect(Date.parse(waiting!.observed)).toBeLessThan(Date.parse(activates))
+   const remaining=sql<number>(`SELECT to_jsonb(greatest(0,extract(epoch FROM (${literal(activates)}::timestamptz-clock_timestamp())))*1000)`)
+   await delay(remaining+100)
+   expect(sql<boolean>(`SELECT to_jsonb(clock_timestamp()>=${literal(activates)}::timestamptz)`)).toBe(true)
+   lock.release()
+   await lock.done
+   result=await pending
+  } finally {
+   lock.release()
+   await lock.done
+   if(pending)await pending
+  }
+  // The current SQL helper and a fresh JWT request must both see the DENY.
+  // Entry actor checks precede replay, so this control remains meaningful even
+  // if a defective first request has already created the customer's tombstone.
+  expect(sql<boolean>(`SELECT to_jsonb(gridex_ediel_retention.permission_v1(${literal(f.company)},${literal(f.purger.id)},${literal(permission)}))`)).toBe(false)
+  const fresh=await f.purge(decision)
+  expect(fresh.error?.code).toBe('42501')
+  const refusal=permission==='ediel.retention.purge'?'ediel_retention_current_actor_forbidden':'customer_retention_scoped_write_required'
+  expect(fresh.error?.message).toContain(refusal)
+  expect(result!.error?.code).toBe('42501')
+  expect(result!.error?.message).toContain(refusal)
+  expect(f.state()).toEqual(initial)
+  expect(f.preserved()).toEqual(f.historical)
+ },180000)
+}
