@@ -120,13 +120,18 @@ async function observePostFailureApplicationRead(input:{companyId:string;sourceM
   }catch{return {observation,status:'projection_error'}}
 }
 
-async function receive(f:Fixture,wire:string){
+type ReceiveBoundary={tenant?:Awaited<ReturnType<typeof resolveTenantForInboundEdiel>>;wireHash?:string;mailboxId?:string;inboundEmailMessageId?:string}
+// Optional out-parameter: records the EXACT first tenant resolution produced
+// inside receive(), at that boundary, before its company assertion runs.
+async function receive(f:Fixture,wire:string,boundary?:ReceiveBoundary){
   const mail=await seedOriginalMailboxNative(sql,literal,{companyId:f.companyId,environment:'test',raw:wire,
     smtpFrom:'synthetic@example.invalid'})
   const match=await matchMeteringPointForInbound({companyId:f.companyId,parsed:mail.parsed,
     inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
   const tenant=await resolveTenantForInboundEdiel({mailboxCompanyId:f.companyId,mailboxId:mail.mailboxId,
     environment:'test',parsed:mail.parsed})
+  if(boundary)Object.assign(boundary,{tenant,wireHash:createHash('sha256').update(wire).digest('hex'),
+    mailboxId:mail.mailboxId,inboundEmailMessageId:mail.inboundEmailMessageId})
   expect(tenant.companyId).toBe(f.companyId)
   const sourceId=await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.reviewer.id,environment:'test',
     inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,meteringPointMatch:match,tenantResolution:tenant.shared})
@@ -298,15 +303,22 @@ it('a Z10 with swapped FR/DO parties obtains no receipt, positive APERAK or fina
   // The only accepted refusal is the explicit wrong-legal-receiver tenant
   // refusal: receive()'s tenant assertion sees no company. Any successful
   // reception, other assertion, network/permission or DB error fails the case.
-  const refused=await receive(f,swapped).then(()=>null,(error:unknown)=>error)
+  const boundary:ReceiveBoundary={}
+  const refused=await receive(f,swapped,boundary).then(()=>null,(error:unknown)=>error)
   const assertion=refused as {actual?:unknown;expected?:unknown}|null
   expect(refused instanceof Error&&refused.name==='AssertionError'&&assertion!.actual===null&&assertion!.expected===f.companyId,String(refused)).toBe(true)
   const mails=scope().mails
   expect(mails).toHaveLength(1)
+  // The ORIGINAL receive() resolution (not a re-run) is the asserted refusal,
+  // bound to the exact sent bytes and the mailbox row that received them.
+  const tenant=boundary.tenant!
+  expect(tenant,'receive() recorded no tenant resolution').toBeDefined()
+  expect(boundary.wireHash).toBe(payloadHash)
+  expect(boundary).toMatchObject({mailboxId:mails[0].mailbox,inboundEmailMessageId:mails[0].id})
+  expect(['held','unassigned','unresolved','unavailable'],JSON.stringify(tenant)).not.toContain(tenant.status)
   // Parsed identities come from the swapped wire itself: legal receiver (DO) is
   // the grid owner, the technical UNB recipient is still this supplier.
-  const parsedSwap=parseEdifactPayload(swapped),parsedControl=parseEdifactPayload(change.wire)
-  const tenant=await resolveTenantForInboundEdiel({mailboxCompanyId:f.companyId,mailboxId:mails[0].mailbox,environment:'test',parsed:parsedSwap})
+  const parsedControl=parseEdifactPayload(change.wire)
   expect(tenant).toMatchObject({status:'ambiguous',companyId:null,marketActorEdielId:f.receiver,receiverEdielId:f.sender,
     reasons:['Juridisk mottagare, teknisk transportidentitet och tenantkontext är inte entydigt verifierade; inga lokala objektfel skapas.']})
   // Ambiguous here means exactly: no verified legal identity for DO, while the
