@@ -41,7 +41,7 @@ function base(): ControlledLiveInput {
     tenantId: T,
     environment: 'production',
     incident: { id: 'inc-1', tenantId: T, status: 'corrected', correctionRef: 'fix-1' },
-    route: { id: 'route-1', tenantId: T, environment: 'production', counterpartyId: 'cp-1', profileId: 'prof-1' },
+    route: { id: 'route-1', tenantId: T, environment: 'production', counterpartyId: 'cp-1', profileId: 'prof-1', permittedCertificateFingerprints: ['AA:BB', 'CC:DD'] },
     certificate: {
       fingerprint: 'AA:BB',
       tenantId: T,
@@ -62,7 +62,7 @@ function base(): ControlledLiveInput {
     },
     liveMandate: { ref: 'mandate-1', tenantId: T, environment: 'production', incidentId: 'inc-1' },
     plan: { references: ['msg-1'], source: 'single_controlled', resend: null },
-    relayTrace: tlsTrace,
+    relayEvidence: { verdict: tlsTrace, evidenceRef: 'trace-1', routeId: 'route-1', tenantId: T, environment: 'production' },
   }
 }
 
@@ -143,8 +143,63 @@ describe('OPS-04 controlled live readiness (synthetic)', () => {
 
   it('TR-08: a reachable port with plaintext next hop does not verify the transport', () => {
     expect(plaintextNextHop.verified).toBe(false)
-    const r = reasonsOf((i) => { i.relayTrace = plaintextNextHop })
+    const r = reasonsOf((i) => { i.relayEvidence!.verdict = plaintextNextHop })
     expect(r).toContain('relay_trace_not_verified')
-    expect(reasonsOf((i) => { i.relayTrace = null })).toContain('relay_trace_not_verified')
+    expect(reasonsOf((i) => { i.relayEvidence = null })).toContain('relay_trace_not_verified')
+  })
+
+  it('TR-08: a genuine all-TLS verdict from another route/tenant/environment does not count', () => {
+    for (const patch of [
+      (i: ControlledLiveInput) => { i.relayEvidence!.routeId = 'route-other' },
+      (i: ControlledLiveInput) => { i.relayEvidence!.tenantId = 'tenant-b' },
+      (i: ControlledLiveInput) => { i.relayEvidence!.environment = 'test' },
+    ]) {
+      const i = base()
+      patch(i)
+      const v = evaluateControlledLiveReadiness(i)
+      expect(v.reasons).toContain('relay_evidence_context_mismatch')
+      expect(v.transportVerified).toBe(false)
+    }
+    expect(reasonsOf((i) => { i.relayEvidence!.evidenceRef = '' })).toContain('relay_evidence_ref_missing')
+  })
+
+  it('rejects a same-tenant certificate the route does not permit, accepts another permitted one', () => {
+    expect(reasonsOf((i) => { i.certificate!.fingerprint = 'EE:FF' })).toContain('certificate_not_permitted_for_route')
+    const i = base()
+    i.certificate!.fingerprint = 'CC:DD'
+    expect(evaluateControlledLiveReadiness(i).ready).toBe(true)
+  })
+
+  it.each([
+    ['certificate.notBefore', 'certificate_validity_invalid', (i: ControlledLiveInput) => { i.certificate!.notBefore = new Date('x') }],
+    ['certificate.notAfter', 'certificate_validity_invalid', (i: ControlledLiveInput) => { i.certificate!.notAfter = new Date('x') }],
+    ['agreement.validFrom', 'counterparty_agreement_validity_invalid', (i: ControlledLiveInput) => { i.counterpartyAgreement!.validFrom = new Date('x') }],
+    ['agreement.validTo', 'counterparty_agreement_validity_invalid', (i: ControlledLiveInput) => { i.counterpartyAgreement!.validTo = new Date('x') }],
+    ['now', 'clock_invalid', (i: ControlledLiveInput) => { i.now = new Date('x') }],
+  ])('fails closed on Invalid Date in %s', (_f, reason, patch) => {
+    expect(reasonsOf(patch)).toContain(reason)
+  })
+
+  it('invalid now never hides already-expired evidence', () => {
+    const r = reasonsOf((i) => {
+      i.now = new Date('x')
+      i.certificate!.notAfter = new Date('2026-01-02T00:00:00Z')
+      i.counterpartyAgreement!.validTo = new Date('2026-10-02T00:00:00Z')
+    })
+    expect(r).toEqual(expect.arrayContaining(['clock_invalid', 'certificate_validity_invalid', 'counterparty_agreement_validity_invalid']))
+  })
+
+  it('rejects reversed intervals and accepts exact boundaries', () => {
+    expect(reasonsOf((i) => {
+      i.certificate!.notBefore = new Date('2027-02-01T00:00:00Z')
+    })).toContain('certificate_validity_invalid')
+    expect(reasonsOf((i) => {
+      i.counterpartyAgreement!.validFrom = new Date('2026-11-01T00:00:00Z')
+    })).toContain('counterparty_agreement_validity_invalid')
+    for (const at of [new Date('2026-10-01T00:00:00Z'), new Date('2026-10-31T00:00:00Z')]) {
+      const i = base()
+      i.now = at
+      expect(evaluateControlledLiveReadiness(i).ready).toBe(true)
+    }
   })
 })
