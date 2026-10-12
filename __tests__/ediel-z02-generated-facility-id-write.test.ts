@@ -60,6 +60,10 @@ describe('Z02 generated customer_sites column writes (428C9)', () => {
     const schema = readFileSync(path.join(root, 'supabase/schema.sql'), 'utf8')
     const migration = readFileSync(path.join(root, MIGRATION), 'utf8')
     // Only the three replacements: a plain CREATE of an existing function fails native replay.
+    // Replay runs each file in its own psql session; an uncommitted BEGIN rolls back on close.
+    const statements = migration.replace(/^--.*$/gm, '').trim()
+    expect(statements.startsWith('BEGIN;') && statements.endsWith('\nCOMMIT;'), 'one committed transaction').toBe(true)
+    expect(migration.match(/^(BEGIN|COMMIT);$/gm)).toEqual(['BEGIN;', 'COMMIT;'])
     expect(migration.match(/^CREATE\b.*$/gm)).toEqual(FUNCTIONS.map(({ signature }) => expect.stringContaining(`CREATE OR REPLACE FUNCTION ${signature}`)))
     for (const { signature, fix } of FUNCTIONS) {
       const current = body(schema, 'CREATE FUNCTION', signature)

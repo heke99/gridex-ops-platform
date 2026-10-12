@@ -9,8 +9,8 @@
 -- public.gridex_create_customer_site_with_address likewise inserted a literal
 -- into the GENERATED ALWAYS customer_sites.is_active (428C9 on site creation);
 -- that column is dropped from its INSERT list here.
--- Both are replaced verbatim from their current definitions with only that
--- assignment removed; the generated column follows facility_id by itself.
+-- All three are replaced verbatim from their current definitions with only those
+-- writes removed; the generated columns follow facility_id and status by themselves.
 -- Owners, grants and comments are kept by CREATE OR REPLACE.
 BEGIN;
 
@@ -720,3 +720,5 @@ begin
   return v_site_id;
 end;
 $_$;
+
+COMMIT;
