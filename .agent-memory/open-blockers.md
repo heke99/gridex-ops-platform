@@ -1,12 +1,11 @@
-# Open blockers — faktiska återstående kriterier
+# Open blockers — aktuellt kriterium, ägare och återupptagning
 
-[masterplan-five-agent-baseline-20261012.md](masterplan-five-agent-baseline-20261012.md) är enda aktiva blockerunderlaget. Ingen post ska blockeras av en pensionerad agent.
+Använd [baslinjens frysta helhetskrav](masterplan-five-agent-baseline-20261012.md) och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766), inte gamla agentväntan eller ett supersederat CI-fel.
 
-- Dagens mainE2E är röd; en ny loggläsare/fixägare kvalificerar orsak.
-- Z02 job_insert/unlisted saknar kvalificeradSQLSTATE; ny replaymiljö och genuina kontrastinputs krävs. Den gamla diskbristen är inte observation om den nya värden.
-- Checksum/schema/manifestoutput kräver C2:s enda seriella GEN-service. Saknade privata utkast rekonstrueras från publiccode/frysta krav.
-- Behöriga legal/provider/normativa/LIVEinputs krävs där criterion säger det. #310PAUSED/HOLD-original bevaras.
+- **Reservationsåtkomst:** R1/R2/C2 har verifierade proxyrefs; deras tidigare lokala401/ref403 är ingen kvarvarande startgrind för exakt reserverat scope. Nya filer kräver nya refs före write. C2:s två DB01-filer är [reserverade](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125274908); SC054/ESCO/Z10M är inte atomiskt claimed av ett kommentarkvitto.
+- **C1/Z02:** ägaren rättar returnerad request-UPDATE.error i777 utan native/GEN. Hela Z02:s verkliga job_insert/SQLSTATE, signing/PDF/current-network-prefix och beständiga/physicaleffekter återstår. Kanonisk Supabase-replay behöver en stödd körmiljö och kapacitet för den pinnade kedjan; generisk Postgres-failure kvalificerar inte Z02-orsaken. [Exakt miljöblocker](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125066127). Ingen indirekt väg runt det avvisade hostsocketförslaget.
+- **C2/SC053:**775 behöver rättade/kvalificerade källfynd samt tillämplig current-head GEN/schema/manifest/upgrade och slutgranskning. C2 är ensam seriell GEN-ägare; inga extra captures eller handskrivna generationer. Nästa paket väntar på avslut eller uttrycklig ny handoff, inte pensionerade agenter.
+- **C3/H och main-E2E:** C3 kvalificerar sin befintliga H-native-producent. Den tidigare main-E2E-orsaken är [staging-policy/inputförutsättningar](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6123693726); C3 samordnar rätt behörigt miljömandat och autentiska fixtures innan återupptagning.403 för sekretinventering bevisar inte frånvarande värden. Hämta inga secretvärden och kör inga dubbla beviskedjor.
+- **R1/R2 externa helhetskriterier:** behörig legal retentiongrund, autentisk provider/TLS/SPF-trace och överenskommet verkligt motpartsprov med befintligt LIVE-mandat återstår. Mekanismkod/granskning kan fortsätta inom egna claims. Syntetiska beslut ger ingen helhetscredit;#310 förblir PAUSED.
 
-Review får börja direkt; kod behöver nya exakta claims. Dokumentera exactcriterion/output/resumption, inte blanketväntan på gammalowner eller oförändradpolling.
-
-[Relevant tidigare original](https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/open-blockers.md) är historik, inte instruktion till en gammal agent.
+Slutversionernas vanliga CI/gransknings-/mergekrav består. Dokumentera blockerägare, exakt output och återupptagningsvillkor i eget checkpoint+#766; undvik oförändrad polling och blindreruns.
