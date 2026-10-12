@@ -75,7 +75,7 @@
   "old_private_process_termination": "NOT_AVAILABLE; use isolated new epoch",
   "new_dispatch": "FRESH_SLOT_ID_FILE_PRODUCER_CLAIMS_REQUIRED; no former-owner waits",
   "main_scheduled_e2e": "NOT_QUALIFIED_AT_OBSERVED_MAIN",
-  "next_action": "Continue corrected779/780/776/784/785 chains; qualify786/789 gates. Correct787/788, integrate only reviewed forward source through C2 sole manifest/GEN and existing R1/C1 natives. Read actual heads/refs/latest766; no duplicate writer/producer.",
+  "next_action": "Use affected closures784e6/785dbab/787ac/7885e. Qualify785 declared Gmail input and current CI,786/789 gates; C2 corrects two forward pins and canonical GEN, plus physicalERR/oracle after789. Existing R1/C1/C3/C2 natives stay single-source; read actual heads/refs/latest766, no duplicate writer/producer.",
   "observed_at": "2026-10-12T19:41:44.806238+00:00",
   "observed_timezone": "Etc/UTC",
   "baseline_pull_request": 773,
@@ -94,10 +94,10 @@
   "main_scheduled_e2e_coordination_owner": "C3",
   "observed_tree": "4f7c5680c4633a7c790cabdddaa567705abe5931",
   "helper_proposals": {
-    "786": "filter follow-ups: source-approved, CI/custody delivery gates remain",
-    "787": "C1 product forward: transaction closure/GEN/source follow-up",
-    "788": "R1 product forward: issuer/late-lock source findings and serial GEN",
-    "789": "C2 ERR qualifier: source-approved, actual-head CI and physical native separate"
+    "786": "filter follow-ups: source-approved, current CI/custody delivery remain",
+    "787": "three SQL generated-column fixes/COMMIT source-closed; C2 stale pin/canonical GEN then C1 native",
+    "788": "issuer/late-purger P1 source-closed; C2 stale pin/canonical GEN then R1 native",
+    "789": "ERR qualifier source-approved; current CI and physical same-C2 native separate"
   },
   "source_heads_at_observation": {
     "776": "781a5215003b6622fb49ecefa8e632350e7964d9",
@@ -125,5 +125,7 @@
   "tr08_candidate_315_is_delivered": false,
   "whole_credit_in_current_delivery_wave": 0,
   "shared_gen_manifest_writer": "C2",
-  "original_execution_collection": "Existing designated chain collector only; root source/metadata review is not borrowed native evidence."
+  "original_execution_collection": "Existing designated chain collector only; root source/metadata review is not borrowed native evidence.",
+  "source_review_reconciled_at": "2026-10-12T20:05:38.658191+00:00",
+  "tr08_source_scope": "Declared genuine operator-read Gmail plus unchanged owner internal-provider risk decision; generic unknown raw-header trust not approved and no new owner reapproval required."
 }

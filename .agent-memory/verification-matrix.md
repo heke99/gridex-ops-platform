@@ -8,7 +8,7 @@ Observation `2026-10-12T19:41:44.806238+00:00`. Aktuell ledger: 314/352; SHA256 
 | #783 slutkälla och faktisk efba-merge | 16 SUCCESS/10 SKIP; exakt träd/föräldrar | SC054 PARTIAL; extern mergeroll inte retroattesterad |
 | #775 slutkälla och faktisk 69e-merge | 32 SUCCESS/10 SKIP; exakt gemensamt träd 4f7c | SC053 PARTIAL; käll-CI är inte körning vid komponerad main |
 | #786/#789 affected source | Två oberoende icke-medförfattande källpeers | Aktuellt CI/normalleverans och fysisk ERR förblir separata |
-| #784/#785/#787/#788 | Exakta källfynd återkopplade | Ny rättad head behöver affected kvalificering |
+| #784/#785/#787/#788 nya heads | Tidigare tenant/HELO/COMMIT/SQL-låsfynd source-closed med två affected peers | Forwardpins/GEN, fysisk ERR och same-chain native/CI återstår; Gmail-godkännande ger ingen generell raw-header-tillit |
 | Root leveransguard | 12 äldre recovery-, 35 source- och 20 nya simulerade felkontraster | Offline/mocks; inget native/GEN/CI-bevis |
 | Proxyreservationer | Receiptmatchade CREATE_IF_ABSENT/GET_MATCH för deklarerat scope | Ingen retroaktiv attest av arbete före reservation |
 
