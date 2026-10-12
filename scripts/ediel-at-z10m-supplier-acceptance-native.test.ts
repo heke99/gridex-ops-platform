@@ -230,3 +230,66 @@ it('a contradictory prior meter obtains no positive first effect or final ACK au
   expect(after.receipts).toEqual([]);expect(after.acks.filter(ack=>ack.family==='APERAK'&&ack.outcome==='positive')).toEqual([])
   expect(await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:source.sourceId,rawPayload:change.wire})).toBeNull()
 })
+
+// masterplan: AT-Z10M-SUPPLIER — history boundary: the accepted Z04 baseline is
+// unchanged, Z10 gets its own version effective from the wire change minute,
+// and replayed approval/review is a no-op on versions, receipts and ACKs.
+it('Z10 adds its own effective-boundary version, preserves the accepted Z04 baseline and replays as a no-op',async()=>{
+  const f=await fixture()
+  const readset=async()=>{
+    const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
+    const snapshot=await supabaseService.rpc('gridex_source_object_snapshot_v1',{p_company_id:f.companyId,p_environment:'test',p_cutoff:cutoff})
+    expect(snapshot.error).toBeNull()
+    return inspectStructuralReadset({companyId:f.companyId,environment:'test',cutoffAt:cutoff},snapshot.data)
+  }
+  const baselineBefore=(await readset()).versions.find(v=>v.sourceMessageId===f.source)
+  expect(baselineBefore?.wire).toMatchObject({messageCode:'Z04',meterNumber:'METER-1'})
+  const change=changeWire(f),source=await receive(f,change.wire)
+  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:source.sourceId,
+    reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+  const cases=sql<{id:string}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id)),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(source.sourceId)}`)
+  expect(cases).toHaveLength(1)
+  expect(await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:cases[0].id})).toMatchObject({status:'applied'})
+  const after=await readset()
+  expect(after.versions.find(v=>v.sourceMessageId===f.source)).toEqual(baselineBefore)
+  const z10=after.versions.filter(v=>v.sourceMessageId===source.sourceId)
+  expect(z10).toHaveLength(1)
+  expect(z10[0]).toMatchObject({disposition:'accepted',wire:{messageCode:'Z10',businessCase:'meter_exchange',meterNumber:'NEW-METER',oldMeterNumber:'METER-1',
+    effectiveFrom:{marketMinute:change.minute},registers:[{registerId:'101'},{registerId:'102'}]}})
+  expect(z10[0].payloadHash).not.toBe(baselineBefore!.payloadHash)
+  const committed=effects(f,source.sourceId)
+  // Replay: second approval and second review of the same original change nothing.
+  await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:cases[0].id})
+  await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:source.sourceId,
+    reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null}).catch(()=>null)
+  const replayed=await readset()
+  // A second review appends a new dated assessment (assessmentId/factsHash/
+  // availableAt); the stable business version must not change.
+  const stable=(list:typeof after.versions)=>list.filter(v=>[f.source,source.sourceId].includes(v.sourceMessageId))
+    .map(v=>({source:v.sourceMessageId,disposition:v.disposition,payloadHash:v.payloadHash,meter:v.wire.meterNumber,oldMeter:v.wire.oldMeterNumber,
+      registers:v.wire.registers,effectiveFrom:v.wire.effectiveFrom,code:v.wire.messageCode,businessCase:v.wire.businessCase,replaces:v.replaces}))
+  expect(stable(replayed.versions)).toEqual(stable(after.versions))
+  expect(stable(replayed.versions)).toHaveLength(2)
+  expect(effects(f,source.sourceId)).toEqual(committed)
+  expect(committed.receipts).toHaveLength(1)
+})
+
+// masterplan: AT-Z10M-SUPPLIER — wrong role: NAD FR/DO swapped (supplier named
+// as grid owner) must never obtain a structural receipt or a positive APERAK.
+it('a Z10 with swapped FR/DO parties obtains no receipt, positive APERAK or final plan',async()=>{
+  const f=await fixture(),change=changeWire(f)
+  const swapped=change.wire.replace(`NAD+FR+${f.receiver}:160:SVK`,'NAD+XX+SWAP').replace(`NAD+DO+${f.sender}:160:SVK`,`NAD+FR+${f.sender}:160:SVK`).replace('NAD+XX+SWAP',`NAD+DO+${f.receiver}:160:SVK`)
+  expect(swapped).not.toBe(change.wire)
+  let sourceId:string|null=null
+  try{sourceId=(await receive(f,swapped)).sourceId}catch{/* refused at reception is an acceptable prohibited-effect outcome */}
+  if(sourceId){
+    await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:sourceId,
+      reviewerUserId:f.reviewer.id,confirmedOriginal:true,replacesSourceMessageId:null}).catch(()=>null)
+    const cases=sql<{id:string}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('id',id)),'[]') FROM public.ediel_inbound_cases WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(sourceId)}`)
+    for(const c of cases)await approveEdielInboundCase({companyId:f.companyId,actorUserId:f.reviewer.id,caseId:c.id}).catch(()=>null)
+    const after=effects(f,sourceId)
+    expect(after.receipts).toEqual([])
+    expect(after.acks.filter(ack=>ack.family==='APERAK'&&ack.outcome==='positive')).toEqual([])
+    expect(await readReceivedProdatFinalResponsePlan({companyId:f.companyId,sourceMessageId:sourceId,rawPayload:swapped})).toBeNull()
+  }
+})
