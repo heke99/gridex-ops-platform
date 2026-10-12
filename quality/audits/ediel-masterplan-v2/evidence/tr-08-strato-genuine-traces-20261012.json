@@ -25,5 +25,13 @@
    "path": "STRATO webmail -> smtp-ox.front (ESMTPSA TLSv1.2) -> mo4-p00-ob.smtp.rzone.de -> mx.google.com (ESMTPS TLS1_3); spf=pass dmarc=pass",
    "rawHeaders": "Delivered-To: <recipient>@gmail.com\r\nReceived: by 2002:ac8:7a8b:0:b0:534:83c3:ba32 with SMTP id x11csp6600614qtr; Mon, 12 Oct 2026 08:34:56 -0700 (PDT)\r\nReturn-Path: <ediel@gridex.se>\r\nReceived: from mo4-p00-ob.smtp.rzone.de (mo4-p00-ob.smtp.rzone.de. [81.169.146.163]) by mx.google.com with ESMTPS id ffacd0b85a97d-48de0c177cfsi29108f8f.468.2026.10.12.08.34.55 for <<recipient>@gmail.com> (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256); Mon, 12 Oct 2026 08:34:56 -0700 (PDT)\r\nReceived-SPF: pass (google.com: domain of ediel@gridex.se designates 81.169.146.163 as permitted sender) client-ip=81.169.146.163;\r\nAuthentication-Results: mx.google.com; arc=pass (i=1); spf=pass (google.com: domain of ediel@gridex.se designates 81.169.146.163 as permitted sender) smtp.mailfrom=ediel@gridex.se; dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=gridex.se\r\nARC-Authentication-Results: i=1; strato.com; arc=none; dkim=none\r\nX-RZG-CLASS-ID: mo00\r\nReceived: from open-xchange-core-mw-gw-6.open-xchange-core-mw-hazelcast-headless.open-xchange.svc.cluster.local by smtp-ox.front (RZmta 55.6.3 AUTH) with ESMTPSA id yfc9b929CFYt0fc (using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256 bits)) (Client did not present a certificate) for <<recipient>@gmail.com>; Mon, 12 Oct 2026 17:34:55 +0200 (CEST)\r\nDate: Mon, 12 Oct 2026 17:34:55 +0200 (CEST)\r\nFrom: Ediel Test <ediel@gridex.se>\r\nTo: <recipient>@gmail.com\r\nMessage-ID: <1786173346.92313.1791819295715@webmail.strato.com>\r\nSubject: test\r\n\r\n"
   }
- ]
+ ],
+ "ownerDecision": {
+  "decidedAt": "2026-10-12",
+  "decidedBy": "repository owner (heke99), explicit instruction in Claude session session_01We9W3ZyxCkKCwiL5WTBfqc",
+  "ref": "owner-decision-20261012-strato-internal-handoff",
+  "decision": "The STRATO-internal hand-off from the authenticated submission server (smtp.strato.com) to STRATO's outbound relays (*.smtp.rzone.de) is accepted as provider-internal risk. It never leaves STRATO's own infrastructure; both observable network hops around it are proven TLS1.3 and SPF passes.",
+  "scope": "Only the unrecorded hop between two TLS hops whose hosts are inside providerDomains. Every other TR-08 condition (TLS on every recorded hop including the next server hop, SPF pass at the receiving boundary, port reachability never sufficient) is enforced by the evaluator and tests.",
+  "openItem": "STRATO has not published a TLS policy for this internal hop; a written STRATO statement would replace this owner decision."
+ }
 }

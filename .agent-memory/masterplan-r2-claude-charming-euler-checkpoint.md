@@ -52,7 +52,8 @@
 - Review P2 fixed: a `by`-first line with a late `from` is no longer receiver-internal; only plaintext/sender_missing/by_missing are cleared.
 - Gap stated openly: STRATO publishes its SPF policy but no TLS policy for its own internal submission -> outbound hand-off.
 - Refs for the 4 packet files created by the proxy (#766 6129038358).
-- Remaining for whole TR-08: STRATO's own statement/policy that its submission -> outbound relay hand-off is TLS (or a trace that records it).
+- OWNER DECISION 2026-10-12 (option 1): STRATO-internal hand-off accepted as provider risk (evidence `ownerDecision`); TR-08 -> VERIFIED.
+- Superseded remaining item: STRATO's own statement/policy that its submission -> outbound relay hand-off is TLS (or a trace that records it).
 
 ## Next
 - File refs for the 5 delivered paths can be released; the slot and ID refs stay (TR-08/OPS-04 not whole-approved).

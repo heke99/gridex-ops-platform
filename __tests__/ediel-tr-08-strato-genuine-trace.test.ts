@@ -14,13 +14,14 @@ import { relayTransportStatus } from '@/lib/ediel/mailReadiness'
 
 type Evidence = {
   providerPolicy: { providerDomains: string[]; spfPolicy: string }
+  ownerDecision: { ref: string }
   traces: Array<{ name: string; rawHeaders: string }>
 }
 
 const evidence = JSON.parse(
   readFileSync(join(process.cwd(), 'quality/audits/ediel-masterplan-v2/evidence/tr-08-strato-genuine-traces-20261012.json'), 'utf8'),
 ) as Evidence
-const policy = { providerDomains: evidence.providerPolicy.providerDomains, policyRef: evidence.providerPolicy.spfPolicy }
+const policy = { providerDomains: evidence.providerPolicy.providerDomains, policyRef: evidence.ownerDecision.ref }
 const trace = (name: string) => evidence.traces.find((t) => t.name === name)!.rawHeaders
 const SUBMISSION = trace('trace-2-authenticated-submission')
 const WEBMAIL = trace('trace-1-strato-webmail')
