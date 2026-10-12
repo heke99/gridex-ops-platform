@@ -92,6 +92,15 @@ describe('TR-08 genuine STRATO relay traces', () => {
     expect(v.reasons).toContain('spf_missing')
   })
 
+  it('ignores an unbound Received-SPF pass in the receiver band when Authentication-Results has no SPF (review 5494238293)', () => {
+    const noSpfInAr = SUBMISSION.replace(/(\r\nAuthentication-Results: mx\.google\.com;[^\r]*?) spf=pass[^;]*;[^;]*;/, '$1;')
+    expect(noSpfInAr).toContain('Received-SPF: pass')
+    expect(noSpfInAr).not.toMatch(/\r\nAuthentication-Results:[^\r]*spf=/)
+    const v = run(noSpfInAr)
+    expect(v.verified).toBe(false)
+    expect(v.reasons).toContain('spf_missing')
+  })
+
   it('does not treat a later hop with a sender as receiver-internal', () => {
     const extra = 'Received: from relay.attacker.example (relay.attacker.example [192.0.2.66]) by inbox.example.invalid with SMTP id z; Mon, 12 Oct 2026 09:30:09 -0700 (PDT)\r\n'
     const v = run(extra + SUBMISSION)

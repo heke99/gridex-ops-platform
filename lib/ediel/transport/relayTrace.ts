@@ -373,8 +373,11 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
   const finalBy = relayHops[relayHops.length - 1].by
   const spfResults = new Set<SpfResult>()
   const spfScope = receiverIndex >= 1 ? chronological[receiverIndex - 1] : receivedPositions[0]
-  for (const f of fields.slice(0, spfScope)) {
+  for (const [i, f] of fields.slice(0, spfScope).entries()) {
     if (f.name !== 'authentication-results' && f.name !== 'received-spf') continue
+    // Below the newest Received (the widened receiver band) only receiver-bound
+    // Authentication-Results count: Received-SPF carries no authserv-id there.
+    if (i >= receivedPositions[0] && f.name !== 'authentication-results') continue
     const r = spfOf(f, finalBy, reasons)
     if (r) spfResults.add(r)
   }
