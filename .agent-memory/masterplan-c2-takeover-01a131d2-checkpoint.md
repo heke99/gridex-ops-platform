@@ -1,0 +1,21 @@
+# C2 takeover — codex-takeover-C2-01a131d2
+
+User explicitly directed this chat to take over C2 and execute the next steps in order. Receipt114e4841c59dcf4194eb081face614b2bb7a2547/claim6132682196: exactslot-C2/producer-gen/GEN5 actualGET_MATCH7; replaced only original4ca-bound same7resources, preserving oldsource/receipts/remainingC2/foreignrefs. One post-delete ambiguous read was stopped and reconciled with actual404/empty matchingrefs before same-receipt continuation. No privateprocesskill or LIVEsharedservice claimed; late oldC2 output has no newcredit.
+
+Worktree already isolated, branchcodex/c2-gen-01a131d2, actualbasef36dbba1b8c09e0c6e54e027db05d94b171f2058. Fresh inputepochgridex-C2-takeover-GEN-787-788-v1. Sole originalhostedcapture/archivecollector/importer is THIS C2root. All previoushostedcapture jobs terminal at handoff. C1/R1/C3 originalnativeowners androotserialdeliveryauthority preserved.
+
+Initial packet: consume unchanged reviewed787ac59 SQL/test and final788be2 SQL/test. SQLpins8c40b128/5d6f26fc; every887currentmainhistorypin plusSC053 and everyexistingSQL preserved; only2sourcepins added. No ESCO790source/output mixed into thisminimumunion. Main generatedbytes/capturehistory leftunchanged pendingauthenticcapture. composition_capture_pending explicitlytrue; sourcepreparation offers0native/whole/GENcredit.
+
+Skillrouting: cloud-runtime/access/network; Supabase/Postgres/canonical security and locking; using-git-worktrees isolation; differential/code-review; verification-before-completion; exactrepo reservation/delivery workflow. No UI/performance/newpackage implementation or LIVEsend. PeerAgen_union_reviewer andpeerBdb05_requirement_review are read-only noncoauthors; GEN/inputproposal author excludedfromfinalpeers.
+
+Next: initialchecksum/sourcepreservationchecks; one draftPR-triggered authentic clean-replay capture; qualify exactrun/head/tree/inputhashes/threeoutputs/cleanup; importbyteexact schema/types/fingerprint and correctly archivepreviousactivemanifest/provenance. Thenmandatoryclean/upgrade/schema/type/currentgates andtwofinalsourcepeers; publishsameGENoutputstoC1/R1 fororiginalsamechainnative. Capturebyitselfdoesnotrun native/browser/upgradeparity, norcloseanywholeID. NextC2packets784then790sequentiallywithnewverifiedcustody.
+
+## Authentic capture imported
+
+Sourcecb092/tree72227b1b/run38309588529/a1 originalartifact11774700887/ZIPsha1d395031f35ce9fe47aeb99670bff8e6eef4ca58f6ad449584274127c05c4363 qualified by thissoleoriginalcollector. Eightactualinputsha matchimmutableGit;3RAWoutputs matchoriginalreceipt. Publictypesbyteexactmain; exactlysixreviewedfunctionbodypostimages and nootherschemabytechange; fingerprintonlyfunctionssectiondiff/noobjectcountchange. CanonicalSupabaseCLI2.101.0/Postgres17server/matching17client; actuallatestSQL5d6f.
+
+RAW3 importedbyteexact; nohandwrittenoutput. Updatedactivecapture/provenance correctlypointsnewsource/run; all13replacedactivefields preservedinsnapshotwithcompleteGitpointer; allotherhistoricalfields unchanged. Capturelimitsnative/browser/type-schema/upgradeNOT_RUN remain; localmanifesthash/type/diff/unitchecksseparate. ExistingownerEXITtrap andhostedterminalsuccess areobserved; workflowemitsnoindependentzeroDocker/source-restorationreceipt, so nonedisclaimed.
+
+Ownedintermediatecb092noncapture18runsstoppedonlyafterexacthead/branchmatchtoservicequeuedcapture; currentfinalgeneratedsuccessorwillrunALLmandatorygates, nocancelledgatecredited. Nexttwofinalnoncoauthors/actualC1-R1outputhandoff and originalaffectednativebeforeordinaryserialdelivery. Subsequentautomaticcaptureonfinalimportheadisaseparateinputepoch; holdproduceruntilterminal, qualifywithoutrecursiveprovenancerewriteifRAW3identical.
+
+Actual local postimport generated-type/hash/tail checkPASS; migrationintegrity1152/1055PASS; sevencomponentcontrols rerun onimportedschemaPASS; tests nonincrementalTypeScriptPASS (actual completed exit0, imported-source check); lint/diffPASS. Bothindependentpeers independentlyreconstructed entireactualschema+6exactDDLpostimages and verifiedoriginalcachedZIP/digest/receipt/RAW4/run/eightinputs/fingerprint/counts/typebytes; capture-onlyPASS, no newnative/upgrade/whole claim. Finalcapture/importsourcehead reviews pendingthiscommit; generated output is nowreadyfororiginalC1/R1 consumption, finalnative/CI deliveryheld.
