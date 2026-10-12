@@ -665,8 +665,7 @@ async function linkInboundProdatMessageCanonically(params: {
     siteId: siteAndCustomer?.siteId ?? null,
     meteringPointId,
     gridOwnerId: siteAndCustomer?.gridOwnerId ?? null,
-    // Z02's original relation belongs to its authoritative atomic core writer.
-    relatedMessageId: params.message.message_code === 'Z02' ? undefined : null,
+    relatedMessageId: null,
   });
 
   return {

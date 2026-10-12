@@ -1514,6 +1514,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     expect(frozen(staged.id!)).toEqual(sealed)
     assertRefusedEffects(f, original, before, originalBytes)
     // The authentic source remains processable after both refused mutations.
+    expect(record(sealed).sourceRules).toBeNull()
     await processInboundEdielMessage({ actorUserId: f.actorUserId, edielMessageId: staged.id! })
     observeZ02PositiveProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion')
     observeZ02SdkEnqueueProjection(f, original, { id: staged.id! }, 'mutation.reprocess.before_application_assertion', true)
@@ -1522,6 +1523,11 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
     // source assessment. Every birth/context field remains exactly unchanged.
     const afterFirstConsumer = record(frozen(staged.id!)), firstRules = record(afterFirstConsumer.sourceRules)
     const birthCanonical = record(record(sealed).canonical)
+    const inboundBasis = record(record(sealed).inboundContext), inboundIdentity = record(inboundBasis.context)
+    expect(inboundBasis).toMatchObject({ source_message_id: staged.id!, company_id: f.companyId,
+      environment: 'test', direction: 'inbound', payload_sha256: hash(rawPayload), status: 'ready' })
+    expect(inboundIdentity.sourceEdition).toBeDefined()
+    expect(inboundIdentity.sourceEdition).not.toBeNull()
     const assessment = sql<Row>(`SELECT to_jsonb(a) FROM gridex_received_sources.validation_assessments a
       WHERE id=${literal(String(firstRules.canonical_assessment_id))}`)
     expect(firstRules.canonical_assessment_id).toMatch(/^[a-f0-9-]{36}$/)
@@ -1542,7 +1548,7 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
       snapshot: { profileKey: namedProfileKey, profileVersionId: birthCanonical.rule_profile_version_id,
         version: birthCanonical.rule_profile_version, checksum: birthCanonical.rule_pack_checksum,
         originalMessageSnapshot: birthCanonical.rule_pack_snapshot, ...namedBasis,
-        identitySourceEdition: record(record(sealed).executionContext).sourceEdition ?? null } }
+        identitySourceEdition: inboundIdentity.sourceEdition ?? null } }
     expect(JSON.parse(String(assessment.facts_text))).toMatchObject({ owner: 'canonical-runtime-with-registry-v1',
       rulePackEvidence: { profileKey: evidence.profileKey, messageProfileId: evidence.messageProfileId,
         rulePackId: evidence.rulePackId, sourceHash: evidence.sourceHash } })

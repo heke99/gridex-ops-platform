@@ -44,3 +44,7 @@ normal integration, sole native publication and current-head gates. This helper
 explicitly authorizes root's receipt-matched transfer of only these five file
 refs after source freeze; no producer, GEN, ID, slot, ledger or other C3 refs.
 No remote push or CI_GREEN/whole approval asserted for this local prepared source.
+
+
+## 2026-10-12 23:12 UTC — independent review false-positive correction
+A/B proved actualdb.ts linkEdielMessage maps BOTH null andundefined to omission. The earlier synthetic link-port treated null as clearing, so that modeledRED/reset claim was false. Root removed behavior-equivalent inboundProcessing source delta and redundant invalidport test; actual core2310 initialrelated_message_id fix and realworker resultretention remain. Earlierhelper210PASS included that synthetic port; it is datedverification, not evidence of a generic-linker defect. Positive firstreceipt oracle now reads exactauthoritative sealed.inboundContext.context.sourceEdition, matching SQLrequire_v1, plus ready/sourceidentity and nonnull checks; no assumptionthat executionContext owns edition. Explicit preconsumer sourceRulesNULL retained, fullbirth/firstnamedreceipt/fullpostcapture replay asserted, alloldnegative regiona085 byteexact. Next exactnewsourcepeerrebind before sole114e GEN; original113/newnative stillNOT_RUN.
