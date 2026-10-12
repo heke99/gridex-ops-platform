@@ -1,0 +1,123 @@
+{
+  "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
+  "runtime": "Node22.22.0, synthetic local Supabase configuration, loopback-only network preload for unit/build execution",
+  "status": "FINAL_FULL_UNIT_AND_BUILD_PENDING",
+  "authority": "Local validation only. Native readiness is assessed from actual SQL/caller/catalog receipts, not these checks.",
+  "passed": [
+    {
+      "command": "npm run typecheck",
+      "scope": "final79333e8a app source",
+      "result": "exit0"
+    },
+    {
+      "command": "npm run typecheck:tests",
+      "scope": "final79333e8a test source",
+      "result": "exit0"
+    },
+    {
+      "command": "npm run typecheck:scripts",
+      "scope": "reviewed merge source; final correction does not change scripts",
+      "result": "exit0"
+    },
+    {
+      "command": "ESLint changed TS/TSX versus origin/main plus supplementary final3files",
+      "result": "exit0; three pre-existing unused apiAuth helper warnings"
+    },
+    {
+      "command": "npm run api:docs",
+      "result": "exit0:122registry routes/145OpenAPIoperations/58reachable schemas, currentdocs12.1"
+    },
+    {
+      "command": "npm run api:compatibility",
+      "result": "exit0"
+    },
+    {
+      "command": "npm run api:release:verify",
+      "result": "exit0: local prospective12.1 artifacts, no deployed-byte verification"
+    },
+    {
+      "command": "npm run api:error-registry",
+      "result": "exit0:25codes"
+    },
+    {
+      "command": "npm run db:migrations:check",
+      "result": "exit0: source SQL/checksum/type integrity only, not native parity"
+    },
+    {
+      "command": "npm run tenant:service-role-ratchet",
+      "result": "exit0:2321callsites <=2353baseline; no baseline rewrite"
+    },
+    {
+      "command": "npm run security:rbac",
+      "result": "exit0:24checks/0warnings"
+    },
+    {
+      "command": "npm run ops:hardening-regression",
+      "result": "exit0:18staticchecks"
+    },
+    {
+      "command": "npm run api:error-boundaries",
+      "result": "exit0:244routefiles"
+    },
+    {
+      "command": "npm run quality:large-file-budget",
+      "result": "exit0:1800linebudget"
+    },
+    {
+      "command": "npm run quality:performance",
+      "result": "exit0: APItenant patterns,N+1budget,SLOcontract; no load-performance measurement claim"
+    },
+    {
+      "command": "Compare sha256 of46 old frozen files and bytes of3prospectivecopies",
+      "result": "all old frozen byte-identical and new copies equal current docs"
+    },
+    {
+      "command": "git diff --check",
+      "result": "exit0"
+    }
+  ],
+  "supporting_targeted_runs": [
+    {
+      "scope": "Event serialization/legacy profiles",
+      "result": "44checks/4files passed"
+    },
+    {
+      "scope": "Authorized message + quoted sender identifiers",
+      "result": "10checks/2files passed; malicious own-company match rejected, all4normalcolumnmatches preserved"
+    },
+    {
+      "scope": "Exactcompany reads, operational guards, fullJSONB provider receipt CAS and businessmetadata preservation",
+      "result": "95checks/12files passed"
+    }
+  ],
+  "failed_or_blocked": [
+    {
+      "command": "node scripts/gridex-hardening-static-audit.cjs",
+      "result": "One pre-existing unchanged-main assertion expects monthlybilling cron?send_to_partner=true; current vercel.json absent query string. No change to cron/provider delivery was made to satisfy this checker."
+    },
+    {
+      "command": "GRIDEX_AUDIT_ATTEMPTS=1 GRIDEX_AUDIT_TIMEOUT_MS=45000 npm run security:audit-production",
+      "result": "Not executed. Automatic approval review rejected npm audit because dependency manifest/lock metadata would be sent to external npm registry without specific authorization. No workaround/indirect retry."
+    },
+    {
+      "command": "ggshield / semgrep / codeql discovery",
+      "result": "CLIs absent; no available Semgrep MCP, no authenticated GitGuardian setup. Scans not qualified."
+    },
+    {
+      "command": "Native business replay, canonical GEN, authenticated liveStaff/customer flow and deployed-byte verification",
+      "result": "Not executed in this bounded API side task; owner/native/configuration qualification remains open."
+    }
+  ],
+  "full_unit": {
+    "status": "RUNNING",
+    "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs vitest run --maxWorkers=2 --testTimeout=15000",
+    "log": "/tmp/gridex-api-review/final-unit-full-79333e8a.log"
+  },
+  "build": {
+    "status": "QUEUED_AFTER_UNIT",
+    "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs npm run build"
+  },
+  "native_writes": 0,
+  "native_business_rpcs": 0,
+  "deployments": 0
+}
