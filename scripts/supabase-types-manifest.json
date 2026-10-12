@@ -5,7 +5,7 @@
   "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
   "latest_migration": "20261012120000_ediel_utilts_source_quantity_quality_v2.sql",
   "latest_migration_schema_effect": "SC-053: validate_decimal_source_v2 re-derives per-value STS+8 quality from source; NULL requires 46; forged quality rejected; in the SC-053 shape a sourced quality key cannot be dropped per quantity. New private missing_source_quality_v2 re-derives which quantities have a source STS+8; preserve_committed_projection_v1 raises utilts_quantity_quality_required only when such a sourced key is missing on a non-committed accepted v2 item (no key required without source STS+8; committed pre-SC-053 replays exempt); quality/readingAt replay compat.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-12T16:03:07.032531+00:00",
@@ -285,7 +285,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "False only for byte-exact import of this authentic ec4 full-prefix capture. Earlier pending/NOT_RUN records stay historical; resulting-head mandatory CI and affected native proof remain separate.",
+  "composition_capture_pending_scope": "User-directed sole C2 takeover: exact main f36 + reviewed 787ac59/788be2; corrected source SQL pins; authentic capture pending for latest 20261012193000. Existing SC053 generation remains historical/current bytes until one canonical capture imports new outputs. Native/browser/type-schema/upgrade/whole NOT_RUN by this source preparation.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",

@@ -1,0 +1,11 @@
+# C2 takeover — codex-takeover-C2-01a131d2
+
+User explicitly directed this chat to take over C2 and execute the next steps in order. Receipt114e4841c59dcf4194eb081face614b2bb7a2547/claim6132682196: exactslot-C2/producer-gen/GEN5 actualGET_MATCH7; replaced only original4ca-bound same7resources, preserving oldsource/receipts/remainingC2/foreignrefs. One post-delete ambiguous read was stopped and reconciled with actual404/empty matchingrefs before same-receipt continuation. No privateprocesskill or LIVEsharedservice claimed; late oldC2 output has no newcredit.
+
+Worktree already isolated, branchcodex/c2-gen-01a131d2, actualbasef36dbba1b8c09e0c6e54e027db05d94b171f2058. Fresh inputepochgridex-C2-takeover-GEN-787-788-v1. Sole originalhostedcapture/archivecollector/importer is THIS C2root. All previoushostedcapture jobs terminal at handoff. C1/R1/C3 originalnativeowners androotserialdeliveryauthority preserved.
+
+Initial packet: consume unchanged reviewed787ac59 SQL/test and final788be2 SQL/test. SQLpins8c40b128/5d6f26fc; every887currentmainhistorypin plusSC053 and everyexistingSQL preserved; only2sourcepins added. No ESCO790source/output mixed into thisminimumunion. Main generatedbytes/capturehistory leftunchanged pendingauthenticcapture. composition_capture_pending explicitlytrue; sourcepreparation offers0native/whole/GENcredit.
+
+Skillrouting: cloud-runtime/access/network; Supabase/Postgres/canonical security and locking; using-git-worktrees isolation; differential/code-review; verification-before-completion; exactrepo reservation/delivery workflow. No UI/performance/newpackage implementation or LIVEsend. PeerAgen_union_reviewer andpeerBdb05_requirement_review are read-only noncoauthors; GEN/inputproposal author excludedfromfinalpeers.
+
+Next: initialchecksum/sourcepreservationchecks; one draftPR-triggered authentic clean-replay capture; qualify exactrun/head/tree/inputhashes/threeoutputs/cleanup; importbyteexact schema/types/fingerprint and correctly archivepreviousactivemanifest/provenance. Thenmandatoryclean/upgrade/schema/type/currentgates andtwofinalsourcepeers; publishsameGENoutputstoC1/R1 fororiginalsamechainnative. Capturebyitselfdoesnotrun native/browser/upgradeparity, norcloseanywholeID. NextC2packets784then790sequentiallywithnewverifiedcustody.
