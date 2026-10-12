@@ -100,7 +100,7 @@ jobs:
                       raise SystemExit('native_git_blob_mismatch: ' + path)
                   require(pathlib.Path(path), inputs[path])
               frozen_native = {
-                  'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'efcd5fe817677d5a3e64a359b5b82dda7ba51350000a4f050245d0f1412f6418',
+                  'scripts/ediel-at-z10m-supplier-acceptance-native.test.ts': 'c24fb785261f0f38d44ff04892d407a399f5b76b0610081af288765cf7dfe549',
                   'scripts/ediel-at-z10m-supplier-acceptance-native.config.ts': '458b8c838e1bf52740b422b04207dc2cf23a1f299744f2130a184123e90438b1',
               }
               for path, digest in frozen_native.items():
@@ -222,6 +222,9 @@ jobs:
               'test_case_names': [
                   'first genuine two-register Z10 is staged, reviewed, applied and physically acknowledged once',
                   'a contradictory prior meter obtains no positive first effect or final ACK authority',
+                  'Z10 adds its own effective-boundary version, preserves the accepted Z04 baseline and replays as a no-op',
+                  'a Z10 with swapped FR/DO parties obtains no receipt, positive APERAK or final plan',
+                  'UTILTS readings bind the old meter to the Z04 baseline and the new meter to the Z10 version across the change minute',
               ],
               'ordinary_required_gates': 'NOT_REPLACED',
               'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
