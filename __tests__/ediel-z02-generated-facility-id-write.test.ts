@@ -33,7 +33,11 @@ function body(sql: string, prefix: string, signature: string): string {
   const start = sql.indexOf(`${prefix} ${signature}`)
   expect(start, `${prefix} ${signature}`).toBeGreaterThanOrEqual(0)
   const as = sql.indexOf('AS $', start)
-  return sql.slice(start + prefix.length, sql.indexOf('$$;\n', as + 6) + 4)
+  // Close on this body's own dollar-quote tag ($$ or $_$), not the next function's.
+  const tag = sql.slice(as + 3, sql.indexOf('$', as + 4) + 1)
+  const end = sql.indexOf(`\n${tag};\n`, as + 3 + tag.length)
+  expect(end, `${signature} body end`).toBeGreaterThan(as)
+  return sql.slice(start + prefix.length, end + tag.length + 3)
 }
 
 describe('Z02 generated customer_sites column writes (428C9)', () => {
@@ -55,6 +59,8 @@ describe('Z02 generated customer_sites column writes (428C9)', () => {
   it('replaces the three writers with their definitions minus only the generated-column writes', () => {
     const schema = readFileSync(path.join(root, 'supabase/schema.sql'), 'utf8')
     const migration = readFileSync(path.join(root, MIGRATION), 'utf8')
+    // Only the three replacements: a plain CREATE of an existing function fails native replay.
+    expect(migration.match(/^CREATE\b.*$/gm)).toEqual(FUNCTIONS.map(({ signature }) => expect.stringContaining(`CREATE OR REPLACE FUNCTION ${signature}`)))
     for (const { signature, fix } of FUNCTIONS) {
       const current = body(schema, 'CREATE FUNCTION', signature)
       const replaced = body(migration, 'CREATE OR REPLACE FUNCTION', signature)

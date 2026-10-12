@@ -720,24 +720,3 @@ begin
   return v_site_id;
 end;
 $_$;
-
---
--- Name: gridex_create_external_staff_invitation_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_create_external_staff_invitation_v1(p_command jsonb) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog'
-    AS $$
-DECLARE membership text;
-BEGIN
- PERFORM public.gridex_staff_identity_registration_v1(p_command,true);
- SELECT membership_role INTO membership FROM public.canonical_tenant_access_role_mapping WHERE role_key=p_command->>'role_key' AND is_assignable;
- RETURN public.canonical_create_tenant_invitation(jsonb_build_object('company_id',(p_command->>'company_id')::uuid,'actor_user_id',(p_command->>'actor_user_id')::uuid,
-  'api_client_id',(p_command->>'api_client_id')::uuid,'channel','ops','staff_operation','invite','external_staff_identity',true,
-  'email',p_command->>'email','full_name',p_command->>'full_name','role_key',p_command->>'role_key','membership_role',membership,
-  'idempotency_key',p_command->>'idempotency_key','source','ops_external_staff_bootstrap'));
-END $$;
-
-
-COMMIT;
