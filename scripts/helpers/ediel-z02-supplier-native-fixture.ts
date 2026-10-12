@@ -128,7 +128,7 @@ export async function withZ01SupplierCurrentNetworkPrefix<T extends {source: {ac
   const protectedBefore = sql<string>(snapshotQuery)
   const registry = await importRegistry()
   expect(registry.source).toMatchObject({actorId: f.marketActorId, legalEdielId: f.receiver})
-  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({...prior.artifact, status: 'held'})
+  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({...prior.artifact, status: 'held', missing: ['current_network_registry_authority_missing_or_revoked']})
   expect(await readContractRequestedMethodSource(methodScope)).toEqual({status: 'held', missing: ['ai_bi_network_registry_current_source_unqualified']})
   const submission = issuer.submission('SYNTHETIC prospective Z01 same-cohort network original', issuer.pdf('prospective Z01 same-cohort network'))
   expect(submission.source.version).toBe('2')
@@ -144,7 +144,7 @@ export async function withZ01SupplierCurrentNetworkPrefix<T extends {source: {ac
   expect(await readNetworkRegistrySourceArtifact({...oldScope, artifactId: next.artifactId})).toMatchObject({
     status: 'authorized', artifactId: next.artifactId, sourceHash: next.sourceHash, claimsHash: next.claimsHash,
     sourceVersion: '2', networkActorId: f.marketActorId, networkEdielId: f.receiver})
-  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({...prior.artifact, status: 'held'})
+  expect(await readNetworkRegistrySourceArtifact(oldScope)).toMatchObject({...prior.artifact, status: 'held', missing: ['current_network_registry_authority_missing_or_revoked']})
   expect(sql<string>(snapshotQuery)).toBe(protectedBefore)
   expect(await readContractRequestedMethodSource(methodScope)).toEqual(method)
   // Keep the normal-switch map's historical v1 immutable. Explicitly carry

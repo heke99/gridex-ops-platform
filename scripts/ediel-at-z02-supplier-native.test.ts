@@ -40,7 +40,7 @@ import * as nativeNetworkIssuer from './helpers/ediel-network-registry-native-fi
 import * as networkSourceOwners from '@/lib/ediel/production/networkRegistrySource'
 import * as requestedMethodOwner from '@/lib/ediel/production/contractRequestedMethodSource'
 import * as z02DiagnosticRuntime from '@/lib/onboarding/z02EnqueueFailureClassification'
-import { createNativeZ02JobInsertProbe, nativeZ02JobInsertSqlState, observeZ02PositiveProjection, observeZ02SdkEnqueueProjection } from './helpers/ediel-z02-supplier-native-diagnostics'
+import { createNativeZ02JobInsertProbe, nativeZ02JobInsertSdkCode, nativeZ02JobInsertSqlState, observeZ02PositiveProjection, observeZ02SdkEnqueueProjection } from './helpers/ediel-z02-supplier-native-diagnostics'
 import { withZ01SupplierCurrentNetworkPrefix, createZ01SupplierNativeFixture, originateZ01SupplierRequest, receiveZ01SupplierReply,
   ensureZ01SupplierKnownWrongGridArea } from './helpers/ediel-z02-supplier-native-fixture'
 import { fetchReceivedZ02EndUserAddressContext, redeemReceivedZ02EndUserAddressContext } from '@/lib/ediel/prodat/receivedZ02EndUserAddressContext'
@@ -1535,15 +1535,22 @@ describe.each(['L', 'LK'] as const)('native whole SUPPLIER Z02%s proposals', var
 // These declared modeled controls qualify only the read-only callback probe.
 // They do not contribute whole-contract or native business acceptance credit.
 describe('native diagnostic callback probe controls', () => {
-  it.each(['42702', '42804', '23503', 'P0001'])('projects only exact public SQLSTATE %s', code => {
+  it.each(['42702', '42804', '23503', 'P0001', '42846', '22004', '42P17'])('projects only exact public SQLSTATE %s', code => {
     expect(nativeZ02JobInsertSqlState({ code, message: 'private', details: 'private', hint: 'private' })).toBe(code)
+  })
+  it.each(['PGRST121', 'PGRST303', 'PGRSTX00'])('labels public SDK code %s separately from SQLSTATE', code => {
+    expect(nativeZ02JobInsertSqlState({ code })).toBe('unavailable')
+    expect(nativeZ02JobInsertSdkCode({ code })).toBe(code)
   })
   it('rejects unknown, inherited, accessor, array and proxy code without touching traps', () => {
     const touch = vi.fn(() => { throw Error('private') })
     const inputs = [undefined, null, { code: 'private' }, Object.create({ code: '42702' }),
       Object.defineProperty({}, 'code', { get: touch }), ['42702'],
       new Proxy({}, { get: touch, ownKeys: touch, getOwnPropertyDescriptor: touch, getPrototypeOf: touch })]
-    for (const error of inputs) expect(nativeZ02JobInsertSqlState(error)).toBe('unavailable')
+    for (const error of inputs) {
+      expect(nativeZ02JobInsertSqlState(error)).toBe('unavailable')
+      expect(nativeZ02JobInsertSdkCode(error)).toBe('unavailable')
+    }
     expect(touch).not.toHaveBeenCalled()
   })
   it('preserves absent original observation authority', () => {
@@ -1561,7 +1568,7 @@ describe('native diagnostic callback probe controls', () => {
     probe(original)!('job_insert', { code: '23514' })
     expect(original).toHaveBeenCalledTimes(4)
     expect(original.mock.calls[1]![1]).toBe(first)
-    expect(report.mock.calls).toEqual([[{ schemaVersion: 1, operationPort: 'job_insert', sqlState: '42702' }]])
+    expect(report.mock.calls).toEqual([[{ schemaVersion: 1, operationPort: 'job_insert', sqlState: '42702', sdkCode: '42702' }]])
     expect(first).toEqual({ code: '42702', details: 'private' })
   })
   it('preserves original callback exception identity', () => {
@@ -1584,7 +1591,7 @@ describe('native diagnostic callback probe controls', () => {
       callback('job_insert', error)
     }, original)
     expect(original.mock.calls).toEqual([['job_insert', error]])
-    expect(log.mock.calls).toEqual([['Z02_NATIVE_JOB_INSERT_SQLSTATE', JSON.stringify({ schemaVersion: 1, operationPort: 'job_insert', sqlState: '42702' })]])
+    expect(log.mock.calls).toEqual([['Z02_NATIVE_JOB_INSERT_SQLSTATE', JSON.stringify({ schemaVersion: 1, operationPort: 'job_insert', sqlState: '42702', sdkCode: '42702' })]])
     expect(z02DiagnosticRuntime.z02EnqueueDiagnosticPortObserver(input)).toBeUndefined()
   })
 })
@@ -1595,7 +1602,7 @@ describe('same-cohort network prefix component controls', () => {
   const f = { companyId: 'own-company', actorUserId: 'own-actor', contractId: 'own-contract',
     marketActorId: 'own-network', receiver: 'own-ediel' }
   function ports() {
-    const old = { artifactId: 'old', sourceHash: 'old-source', claimsHash: 'old-claims' }
+    const old = { status: 'archived' as const, artifactId: 'old', sourceHash: 'old-source', claimsHash: 'old-claims', missing: [] as string[] }
     const next = { status: 'archived' as const, artifactId: 'next', sourceHash: 'next-source', claimsHash: 'next-claims', missing: [] }
     const method = { status: 'authorized', declarationId: 'same-declaration' }
     const issuer = { networkActorId: f.marketActorId, uploader: { id: 'own-uploader' }, reviewer: { id: 'own-reviewer' },
@@ -1610,9 +1617,9 @@ describe('same-cohort network prefix component controls', () => {
       .mockResolvedValue(method as never)
     const read = vi.spyOn(networkSourceOwners, 'readNetworkRegistrySourceArtifact')
       .mockResolvedValueOnce({ ...old, status: 'authorized' } as never)
-      .mockResolvedValueOnce({ ...old, status: 'held' } as never)
+      .mockResolvedValueOnce({ ...old, status: 'held', missing: ['current_network_registry_authority_missing_or_revoked'] } as never)
       .mockResolvedValueOnce({ ...next, status: 'authorized', sourceVersion: '2', networkActorId: f.marketActorId, networkEdielId: f.receiver } as never)
-      .mockResolvedValueOnce({ ...old, status: 'held' } as never)
+      .mockResolvedValueOnce({ ...old, status: 'held', missing: ['current_network_registry_authority_missing_or_revoked'] } as never)
     const archive = vi.spyOn(networkSourceOwners, 'archiveNetworkRegistrySource').mockResolvedValue(next)
     const review = vi.spyOn(networkSourceOwners, 'reviewNetworkRegistrySource').mockResolvedValue({ status: 'authorized', artifactId: next.artifactId, registryVersionId: 'next-version' })
     const operation = vi.fn(async () => ({ source: { actorId: f.marketActorId, legalEdielId: f.receiver } }))
