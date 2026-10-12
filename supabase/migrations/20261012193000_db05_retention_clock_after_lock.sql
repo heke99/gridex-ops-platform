@@ -6,7 +6,8 @@
 -- * ediel_pseudonymise_customer_retention_v1: re-check the purger's
 --   actor/permission authority after the customer lock (before a replay
 --   answer) and again after the last blocking lock (review row, reviewer,
---   issuer); take the decision instant there and compare the deadline with it.
+--   issuer); refresh reviewer operation/class authority there too, then compare
+--   the deadline with the decision instant.
 -- * customer_receipt_v1: evaluate issuer and policy validity at clock_timestamp()
 --   sampled after the issuer FOR SHARE lock.
 -- * ediel_retention_lock_auth_actor_v1: a ban counts as lifted only once
@@ -80,6 +81,10 @@ BEGIN PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'edie
  at:=clock_timestamp();
  PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge');
  IF gridex_ediel_retention.permission_v1(p_company_id,p_actor_user_id,'ediel.retention.customer_fields') IS NOT TRUE THEN RAISE EXCEPTION 'customer_retention_scoped_write_required' USING ERRCODE='42501';END IF;
+ -- The same issuer wait can outlast a scheduled reviewer DENY. All reviewer
+ -- rows/registry locks are already held; refresh the time-dependent checks.
+ IF NOT public.ediel_retention_lock_auth_actor_v1(r.actor_user_id) OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=r.actor_user_id AND user_status='active') OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=p_company_id AND user_id=r.actor_user_id AND status='active' AND is_active AND accepted_at IS NOT NULL) OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_retention_reviewer_authority']);END IF;
+ IF gridex_ediel_retention.class_permission_v1(p_company_id,r.actor_user_id,'customer_canonical_personal_fields') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_retention_class_reviewer_authority']);END IF;
  IF r.outcome IS DISTINCT FROM 'approved' OR claims IS NULL OR (claims->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_customer_class_legal_retention_deadline']);END IF;
  IF c.status IS DISTINCT FROM 'archived' OR EXISTS(SELECT FROM public.customer_supply_periods WHERE company_id=p_company_id AND customer_id=c.id AND status NOT IN('cancelled','rejected','terminated','ended','closed','inactive') AND (coalesce(actual_end_date,end_date) IS NULL OR coalesce(actual_end_date,end_date)>=current_date)) THEN RETURN jsonb_build_object('status','held','missing',ARRAY['operative_customer_closed_and_no_active_supply']);END IF;
  source:=encode(sha256(convert_to(gridex_ediel_retention.customer_personal_fields_v1(c)::text,'UTF8')),'hex');IF source IS DISTINCT FROM d.source_hash THEN RETURN jsonb_build_object('status','held','missing',ARRAY['exact_native_customer_personal_fields_changed']);END IF;
