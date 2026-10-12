@@ -2,28 +2,13 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMatchCandidate, EdielMatchInput } from '@/lib/ediel/matching/matchingTypes'
 import { cleanMatchText, confidenceFromScore } from '@/lib/ediel/matching/matchingTypes'
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { canonicalUuidOrText, postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 
-// PostgREST quoted value: only `"` and `\` need escaping inside double quotes.
-function quotePostgrestValue(value: string): string {
-  return `"${value.replace(/["\\]/g, (ch) => `\\${ch}`)}"`
-}
-
-/**
- * Builds a PostgREST `or` list of equality conditions. Every value is quoted so
- * a sender-controlled reference cannot add conditions, and uuid columns only
- * receive UUID-shaped references (a non-UUID value there makes PostgREST
- * reject the whole query with 22P02). Returns '' when nothing is comparable.
- */
-export function postgrestEqAny(textColumns: string[], uuidColumns: string[], refs: string[]): string {
-  return refs.flatMap((ref) => [
-    ...textColumns.map((column) => `${column}.eq.${quotePostgrestValue(ref)}`),
-    ...(UUID_PATTERN.test(ref) ? uuidColumns.map((column) => `${column}.eq.${quotePostgrestValue(ref)}`) : []),
-  ]).join(',')
-}
+export { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 
 function unique(values: Array<string | null | undefined>): string[] {
-  return [...new Set(values.map((value) => cleanMatchText(value)).filter((value): value is string => Boolean(value)))]
+  // UUID-shaped refs are lower-cased so exact-match scoring agrees with Postgres.
+  return [...new Set(values.map((value) => cleanMatchText(value)).filter((value): value is string => Boolean(value)).map(canonicalUuidOrText))]
 }
 
 function refsFromInput(input: EdielMatchInput): string[] {

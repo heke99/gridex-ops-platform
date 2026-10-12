@@ -66,7 +66,8 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
       in(column: string, values: unknown[]) { filters.push(row => values.includes(row[column])); return query },
       or(expression: string) {
         const tenant = expression.match(/^company_id\.eq\.([^,]+),and\(company_id\.is\.null,scope\.eq\.platform_shared\)$/)
-        const code = expression.match(/^business_code\.eq\.([^,]+),message_code\.eq\.\1,business_code\.is\.null,message_code\.is\.null$/)
+        // Values are PostgREST-quoted by the route profile reader.
+        const code = expression.match(/^business_code\.eq\."([^"\\]+)",message_code\.eq\."\1",business_code\.is\.null,message_code\.is\.null$/)
         if (tenant) filters.push(row => row.company_id === tenant[1] || (row.company_id === null && row.scope === 'platform_shared'))
         else if (code) filters.push(row => row.business_code === code[1] || row.message_code === code[1] || row.business_code === null || row.message_code === null)
         else throw new Error(`unexpected_or:${expression}`)
