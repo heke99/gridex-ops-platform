@@ -1,7 +1,7 @@
 {
   "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
-  "runtime": "Node22.22.0, synthetic local Supabase configuration, loopback-only network preload for unit/build execution",
-  "status": "FINAL_FULL_UNIT_AND_BUILD_PENDING",
+  "runtime": "Node22.23.3, synthetic local Supabase configuration, loopback-only network preload for unit/build execution",
+  "status": "LOCAL_SOURCE_VERIFICATION_RECORDED_NATIVE_RELEASE_PENDING",
   "authority": "Local validation only. Native readiness is assessed from actual SQL/caller/catalog receipts, not these checks.",
   "passed": [
     {
@@ -93,7 +93,7 @@
   "failed_or_blocked": [
     {
       "command": "node scripts/gridex-hardening-static-audit.cjs",
-      "result": "One pre-existing unchanged-main assertion expects monthlybilling cron?send_to_partner=true; current vercel.json absent query string. No change to cron/provider delivery was made to satisfy this checker."
+      "result": "Checker exits1 on one pre-existing assertion demanding monthly billing cron?send_to_partner=true. Actual unchanged route explicitly returns mode:prepare_only/approval_required:true, and monthlyAutomation creates review drafts with export_requested/export_confirmed:false. The static send requirement conflicts with the current preparation/approval behavior; no provider delivery was enabled to satisfy it."
     },
     {
       "command": "GRIDEX_AUDIT_ATTEMPTS=1 GRIDEX_AUDIT_TIMEOUT_MS=45000 npm run security:audit-production",
@@ -109,15 +109,61 @@
     }
   ],
   "full_unit": {
-    "status": "RUNNING",
+    "status": "INITIAL_FULL_RUN_FAILED_FIXTURE_FOLLOWUP_PASSED",
     "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs vitest run --maxWorkers=2 --testTimeout=15000",
-    "log": "/tmp/gridex-api-review/final-unit-full-79333e8a.log"
+    "log": "/tmp/gridex-api-review/final-unit-full-79333e8a.log",
+    "result": "1097files:1096passed/1failed;17691checks:17688passed/3failed;675.33seconds",
+    "cause": "All3 failures in existing SC018 finite mock missing new assertTenantUserCanReadCompany export; actual caller and guard checked directly. Fixture-only4b3a32ab adds that port and exact actor/company assertions; business expectations unchanged. No source policy relaxed.",
+    "follow_up": {
+      "commit": "4b3a32ab328821d9763e22b0aff527da098d3509",
+      "result": "5files/31checks passed exit0 in11.69s; original business expectations retained; tests typecheck and fixture lint exit0",
+      "scope": [
+        "ediel-sc-018-056-independent-service-and-incident.test.ts",
+        "internal-api-readable-company.test.ts",
+        "internal-api-authorized-company.test.ts",
+        "inbound-api-message-company.test.ts",
+        "inbound-api-identifier-filter.test.ts"
+      ],
+      "whole_suite_rerun": false,
+      "interpretation": "The initial full run validated all other1096files; the only failed file and shared guard boundary were rechecked after a fixture-only change. Do not report the initial full command as exit0.",
+      "log": "/tmp/gridex-api-review/final-unit-scope-followup-4b3a32ab.log",
+      "log_sha256": "cc58cdd15d8f7753b96cb9addead0a7a1dbb7e0d57ce1587e26ef99bd6311adb"
+    },
+    "log_sha256": "a945db1d93565934a88588270a57d0ffd01101aa0da993a7330f09f3cb637844"
   },
   "build": {
-    "status": "QUEUED_AFTER_UNIT",
-    "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs npm run build"
+    "status": "PASSED",
+    "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs npm run build",
+    "log": "/tmp/gridex-api-review/final-build-79333e8a.log",
+    "exit_code": 0,
+    "webpack_seconds": 90,
+    "typescript_seconds": 79,
+    "static_pages": 23,
+    "new_docs_routes_present": 3,
+    "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
+    "log_sha256": "38d2cc5acd914bfa96f0170ae3601e53fa9819f239ed55c08eefb221d1b33b86"
   },
   "native_writes": 0,
   "native_business_rpcs": 0,
-  "deployments": 0
+  "deployments": 0,
+  "actual_native_delivery_recheck": {
+    "receipt": "delivery-native-preflight.json",
+    "checked_at": "2026-10-12 22:56:02 UTC",
+    "result": "51missing/52examined names, present tombstonebody MD5/ACL unchanged",
+    "native_writes": 0,
+    "business_rpc_invocations": 0
+  },
+  "false_positive_receipts": [
+    {
+      "claim": "Absent send_to_partner=true necessarily breaks monthly billing API",
+      "source_evidence": [
+        "app/api/cron/billing/monthly/route.ts:35",
+        "lib/billing/monthlyAutomation.ts:59",
+        "lib/billing/monthlyAutomation.ts:95"
+      ],
+      "resolution": "Preparation-only workflow is explicit in current source. Old checker expectation is not a confirmed business failure."
+    }
+  ],
+  "fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
+  "source_composition": "Runtime app/lib/scripts/docs/supabase bytes unchanged after reviewed79333e8a; only one existing finite mock fixture corrected. Later commits record audit/checkpoint only."
 }

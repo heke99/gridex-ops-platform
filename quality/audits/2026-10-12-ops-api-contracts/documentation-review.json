@@ -1,6 +1,6 @@
 {
   "scope": "OPS machine-readable documentation only",
-  "status": "DOCUMENTATION_SCOPE_COMPLETE; ROOT_PROSE_AND_PROFILE_TEST_VERIFICATION_PENDING",
+  "status": "DOCUMENTATION_SOURCE_COMPLETE_PROSPECTIVE_RELEASE_NATIVE_LIVE_QUALIFICATION_PENDING",
   "documentation_version": "2026-10-12.1",
   "runtime_contract_version": "2026-10-09.1",
   "minimum_tenant_integration_version": "2026-10-02.3",
@@ -305,5 +305,6 @@
     "scripts/lib/current-api-contract.cjs",
     "scripts/lib/openapi-release-schemas.cjs",
     "quality/audits/2026-10-12-ops-api-contracts/documentation-review.json"
-  ]
+  ],
+  "root_final_receipt": "verification.json"
 }

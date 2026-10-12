@@ -3,7 +3,7 @@
   "baseline": "f36dbba1",
   "branch": "codex/ops-api-contract-review-20261012",
   "audit": "quality/audits/2026-10-12-ops-api-contracts/README.md",
-  "status": "SOURCE_CORRECTED_FINAL_VERIFICATION_PENDING",
+  "status": "DRAFT_PR_DELIVERED_NATIVE_RELEASE_PENDING",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
   "native_writes": 0,
@@ -27,5 +27,15 @@
     "No all-native or provider end-to-end readiness claim",
     "No canonical schema/type GEN or active Ediel claims/shared memory writes"
   ],
-  "next_action": "Commit source, integrate disjoint origin/main35ad0e6d, freeze source, finish local verification and create reviewable draft PR without deploying."
+  "next_action": "Review native release packet, reconcile forward migrations/grants with existing native/GEN owners, then qualify an authorized real Staff/customer integration. Npm audit awaiting specific external-metadata permission.",
+  "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
+  "review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
+  "integrated_main": "35ad0e6d9fd2e100d22bf5c27cd1958f77063e3c",
+  "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
+  "independent_review": "Two noncoauthor peers confirm no remaining introduced P1/P2 in reviewed final source",
+  "verification_record": "quality/audits/2026-10-12-ops-api-contracts/verification.json",
+  "fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
+  "local_verification": "Build/app/scripts/tests typechecks/lint/docs/compatibility/migration/RBAC/static source gates passed as recorded. Initial fullunit3fixturefailures corrected and5files31checks passed; entire suite not rerun. Local checks are not live/native proof.",
+  "latest_native_preflight": "2026-10-12 22:56:02 UTC:51missing/52examined names; tombstone alreadypresent",
+  "handover": "Source corrections and prospective docs ready in draftPR794. Native proposals are unapplied; no merge/deploy/GEN; existing owners keep producer resources. Shared Ediel campaign current memory is untouched."
 }

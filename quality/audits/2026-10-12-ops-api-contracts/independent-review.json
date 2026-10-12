@@ -29,5 +29,12 @@
     "Unapplied native release",
     "Configured authenticated Staff/customer end-to-end readiness",
     "Deployed documentation/artifact hashes"
-  ]
+  ],
+  "release_packet_cleanup_review": {
+    "reviewers": [
+      "final_api_source_review",
+      "final_api_database_docs_review"
+    ],
+    "result": "Unrelated ACK graph-lock copy removed from unapplied actor proposal; exact actor gate body remains byte-identical to source; no production/migration/GEN changes."
+  }
 }

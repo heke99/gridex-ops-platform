@@ -3,6 +3,8 @@
 -- Supabase CLI 2.118.0 forward. Preserve actual positive resolver and OID/ACL;
 -- active own-company/global denies constrain every existing current actor gate.
 -- No permission assignment, historic migration edit, or positive resolver change.
+-- Extracted actor-gate definition only. The source migration's separate ACK replay
+-- graph-lock replacement is outside this proposal and remains with its owner.
 BEGIN;
 create or replace function public.gridex_actor_has_company_permission(
   p_actor_user_id uuid,
@@ -61,14 +63,4 @@ as $function$
       and (d.valid_from is null or d.valid_from<=now()) and (d.valid_to is null or now()<d.valid_to)
   )
 $function$;
-CREATE OR REPLACE FUNCTION gridex_ediel_ack_replay.lock_current_graph_v2() RETURNS void
-LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$BEGIN
- LOCK TABLE auth.users,public.user_profiles,public.companies,public.company_memberships,public.admin_users,
-  public.user_roles,public.roles,public.role_permissions,public.permissions,public.user_permissions,public.user_permission_overrides,
-  public.tenant_actor_identifiers,public.tenant_actor_roles,public.tenant_ediel_profiles,public.tenant_counterparty_relations,public.platform_actor_identifiers,
-  public.ediel_service_assignments,public.ediel_service_evidence,public.ediel_data_access_grants,public.ediel_assignment_permission_links,
-  public.metering_permissions,public.metering_permission_sites,public.ediel_ack_transaction_results,public.meter_reading_series,
-  gridex_utilts_binding.receipts,gridex_utilts_binding.contracts,gridex_service_administration.scope_versions,
-  gridex_received_sources.permission_transitions,gridex_received_sources.validation_assessments IN SHARE MODE;
-END $$;
 COMMIT;
