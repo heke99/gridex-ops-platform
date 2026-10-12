@@ -5,7 +5,7 @@
   "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
   "latest_migration": "20261012193000_db05_retention_clock_after_lock.sql",
   "latest_migration_schema_effect": "Exact reviewed787 generated customer-site write removals and final788 post-lock legal/purger/reviewer clock/currentness correction; six same-signature function bodies only. Public types and every other schema/ACL/RLS/DDL byte unchanged versus mainf36. This authentic capture creates no native, legal or whole-ID credit.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-12T21:27:45.048113+00:00",
@@ -284,7 +284,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "Exact cb092a73 prefix authentically captured and RAW3 imported; resulting-head mandatory checks and C1/R1 original affected native still pending. Capture itself did not run native/browser/type-schema/upgrade parity.",
+  "composition_capture_pending_scope": "Current main35ad plus authentic joint792c3 GEN/787ac59/788be2 plus exactly12 reviewed1796 non-GEN postimages; latest source2120 SHA21df4277. Canonical new capture/import pending. All earlier active captures/RAW3 remain source-bound to prior prefix; donor BED GEN and old1300 pin excluded. No native, browser, upgrade, whole or final-HEAD CI credit.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
@@ -15899,5 +15899,17 @@
     "parent_main": "f36dbba1b8c09e0c6e54e027db05d94b171f2058",
     "parent_main_manifest_sha256": "ad80f7e20810ca450b953e3e6f97f85f7a52b876170e05e3b7571e21976019a7",
     "purpose": "Complete immutable preimport manifest and original main remain in Git; every replaced active value is preserved in the adjacent snapshot. Prior captures/native/gates are historical and are not relabeled."
+  },
+  "pre_c2_esco_790_pending_active_state": {
+    "replacedActiveFields": {
+      "composition_capture_pending": false,
+      "composition_capture_pending_scope": "Exact cb092a73 prefix authentically captured and RAW3 imported; resulting-head mandatory checks and C1/R1 original affected native still pending. Capture itself did not run native/browser/type-schema/upgrade parity."
+    },
+    "completePreviousManifestPointer": {
+      "source": "c3d0f79b57aacdc37d42e8d9490b729cfee09f8b",
+      "path": "scripts/supabase-types-manifest.json",
+      "gitBlob": "535ae48f9f8aefd22df42b5e7d0972a9248b4eff",
+      "sha256": "f71a7c83938c66387732df55b3777f0311d8ff4fd67f2bc3f0f9f6b8f6b6f375"
+    }
   }
 }

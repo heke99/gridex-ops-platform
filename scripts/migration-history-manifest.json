@@ -912,7 +912,8 @@
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
     "ediel_rules.sql": "2f9249c6c34999258472580e87da8aa2a1658cf5d4c272fbe22b17b4f1d3dca2",
     "20261012190000_ediel_z02_generated_facility_id_write.sql": "8c40b128dfb466c14a4d00f10320c87db32ceb70ffe659275fcee7275cbb0aad",
-    "20261012193000_db05_retention_clock_after_lock.sql": "5d6f26fc300e3a8adee8103669f09174f396875741feda3d1be5a1b868db28d3"
+    "20261012193000_db05_retention_clock_after_lock.sql": "5d6f26fc300e3a8adee8103669f09174f396875741feda3d1be5a1b868db28d3",
+    "20261012212000_ediel_vh_history_delivery_sc023.sql": "21df427774e3dd983686e65c95dcdea97288aa413b156ecdbe2ba3e292def87d"
   },
   "generatedAt": "2026-08-04T07:35:00.000Z",
   "schemaVersion": 1
