@@ -12,102 +12,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 This is a long-lived production project.
 
-## Masterplan coordination board — announced transition, 2026-10-11
+## Ediel — five NEW agents, user decision2026-10-12
 
-[#766](https://github.com/heke99/gridex-ops-platform/issues/766) is the active board
-after actual [#767 delivery](https://github.com/heke99/gridex-ops-platform/pull/767)
-and the [explicit transition on #673](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6110433111).
-Read its single owner/resumption table and GEN queue as dated evidence; refresh
-actual sources and custody before action. New CLAIM/READY/CI_GREEN/BLOCKED/MERGED/RELEASE
-and bounded handover receipts go only to #766. Do not duplicate receipts across boards.
+Read [.agent-memory/masterplan-five-agent-baseline-20261012.md](.agent-memory/masterplan-five-agent-baseline-20261012.md) first. The user explicitly retires ALL previous Ediel agents and assigns the remaining work to five NEW agents. [OWNER_STOP](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122223028) and [verified administrative release of205oldclaims](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122307591) are the completed handover; new agents do not contact/wait for former owners.
 
-Operational posting instructions in older memory files or prompts pointing to
-#530 or #673 refer to #766. Preserve all original links and evidence:
-[#530](https://github.com/heke99/gridex-ops-platform/issues/530) reached GitHub's
-2,500-comment limit; [#673](https://github.com/heke99/gridex-ops-platform/issues/673) retains the subsequent original receipts. The channel
-move grants no scope or release. Exact reservation refs, retained duties, HOLD
-criteria, review/CI, normal merge and verified owner-only release remain unchanged.
-
-Use the [existing portable foundation](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109033320)
-and your recorded fixed-role checkpoint; no second foundation or inherited
-packet is created. Shared-memory publication requires the verified writer's
-role-memory and exact file custody. The [existing continuation request](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6109005878)
-remains dated evidence; actual handover, CLAIM and release receipts determine custody.
-
-## Autonomous Masterplan roles — owner continuation, 2026-10-08
-
-Keep the role authorized for this chat; a new agent receives a role, not assigned
-rule IDs. This distinction applies to blanket two-ID and pre-dispatch wording
-in older memory. The current continuation authorizes eligible work, while
-specific HOLD/PAUSED criteria, external decisions and existing custody remain.
-
-- **PLANAGENT:** finish your existing packet/PR, then select two executable,
-  unapproved and unowned rule IDs with their contracts; use two contract/scenario
-  IDs for acceptance-only work, or a final single eligible ID. Follow the
-  existing atomic ID/file reservation, review, coverage and delivery contract.
-- **BLOCKERARAGENT:** retain this fixed role. Choose one evidenced blocker
-  affecting the plan, finish or explicitly hand it over, then choose another.
-  Code changes are allowed after verified exact file custody and any required
-  ID reservation/owner handoff. Do not take unrelated plan pairs.
-- **GRANSKARE:** perform the agreed bounded independent read-only review of
-  an exact source and its relevant execution path. Report findings and limits;
-  review does not transfer implementation scope or approve unproved whole IDs.
-
-Use `.agent-memory/masterplan-next-wave-prompt.md` for PLANAGENT and
-`.agent-memory/masterplan-blocker-agent-prompt.md` for BLOCKERARAGENT. Existing
-reviewers keep their role. The prompts support new and resumed Claude/Codex
-sessions; a new session never inherits another session's locks by assumption.
-
-Read the active sections of startup memory and your checkpoint, then relevant
-dated history. Refresh actual main, coverage, PR heads/checks, the announced active board and remote
-refs before selection. Old status labels and chat activity neither establish nor release custody.
-Reconcile live refs with explicit retained-duty, RELEASE and authorized
-handover receipts; absence of a tag does not erase retained whole responsibility.
-Classify candidates as READY, OCCUPIED, WAITING_DEPENDENCY, EXTERNAL_DECISION
-or DONE in existing checkpoints/queue entries; these are selection aids, not
-new locks or coverage statuses. Selection READY means a feasible candidate;
-`READY <IDs> — PR #N` is a published reviewable delivery, not permission or release.
-Acceptance-only describes a packet, not completion of all rules globally. The
-existing final-single-eligible exception applies when only one executable,
-eligible ID is available; record the selection basis rather than adding a
-blocked second ID.
-
-Read `.agent-memory/masterplan-work-queue.md` for dated owner actions and startup
-recovery. Attach dependencies to the exact remaining criterion/output. Whole
-proof can wait while an independent authorized correction proceeds. A blocked
-entry names the owner, deliverable and resumption event. Check existing explicit
-releases before requesting a handoff; do not require repeat informal permission
-for an already valid exact release. If custody remains, make one bounded
-delivery/handoff request with IDs/files, source, criteria, exclusions and next
-action, reusing an existing request instead of duplicating it. An unavailable
-original chat requires an explicit authorized handover under the existing
-protocol; silence never releases custody. Remain read-only until scope and
-required refs are verified. No duplicate native/capture/GEN/artifact work.
-
-Instructions and board comments do not start a stopped chat. Resume that chat
-with its role prompt, or record an authorized scoped handoff to a new identity.
-No new chat inherits another session's packet or reservations.
-
-Every role records taken/done/verification/blocker/next in its own checkpoint
-and the active board before another work item. Keep receipts concise. Shared summaries
-require both role-memory and exact file custody; the role does not grant files
-reserved by another writer. Preserve dated evidence instead of copying whole
-audit narratives into each transition.
-
-Direct self-reservation requires working authenticated Git Data operations in
-the current execution host. The already owner-authorized Claude proxy remains
-valid ([decision6056938983](https://github.com/heke99/gridex-ops-platform/issues/673#issuecomment-6056938983)):
-Claude is `receipt.agent`, the capable coordinator is `delegatedBy`, and the
-same create-if-absent, exact scope, SHA verification and owner-requested release
-checks apply. No implementation before verified refs and documented CLAIM.
-Comments/branches are never locks. Proxy success is not direct Claude tag
-capability; hosted Cloud restrictions do not establish Local/SSH capabilities.
-Do not create probes or expose credentials to test access.
-
-Reuse existing review/verification only when the exact source, relevant
-environment and asserted behavior remain applicable and the relevant comparison
-is recorded. Changed behavior/environment or conflicts require fresh affected
-checks. All mandatory checks for the current PR head still apply before merge.
+- R1: DB-05. R2: TR-08+OPS-04. C1:13 L/LK/C/timingcontracts; C2:10 ESCO/meteringcontracts and sole serial GEN-service; C3:12 H/F/G/BRP/intake/externalcontracts. Exact disjoint IDs/frozencriteria are in the baselineJSON.
+- Create new branch/packet/identity/sourceepoch, claim own slot and next-packet ID/exactfiles/producerresources, GET_MATCH and CLAIM/#766 beforecode. All old open proposals are closed preserved donors. No late old code/CI or unknown private draft qualifies newwork.
+- Extraagents can join granskning med läsbehörighet immediately and fix after exactfilehandoff within the NEWepoch. One writer/file and one producer/source. Two independentnon-coauthorreviews perfinalhead; code/test/fixture/proof/GENhelpers are coauthors and replaced asfinalpeers.
+- Use isolated new backends/inputepochs. The old two enabled Ediel automations are paused, and no activelegacyActions was observed; physicalprivateClaude termination is not claimed. SharedLIVEservice needs faktiskt avslutad gammal producent and explicitmandate.
+- Currentcoverage314/352with3rules+35contractsremaining. Same-main later scheduledE2EFAILURE retained. Frozenregister/security/legal/provider/LIVE/#310PAUSED/currentCI/normalmergegates stay unchanged; gammalt självval/two-ID/fixedrole/ownerwait instructions are superseded.
+- One startpoint/sharedprompt, oneapprovalledger and one activeboard#766. Prior checkpoints/statusfiles are indexed in immutableGit history, not activeassignments. Relevant originalproof and all sourcebranches are preserved.
 
 Before every non-trivial task:
 
@@ -123,10 +37,9 @@ Before every non-trivial task:
 10. Search `.agent-memory/known-failures.md`.
 11. Inspect `git status` and `git diff` when Git metadata is available.
 12. Inspect the actual implementation.
-13. For Masterplan work, read `.agent-memory/masterplan-agent-workflow.md`,
-    `.agent-memory/masterplan-reservations.md`, your own checkpoint, the legacy PR register,
-    latest active-board receipts, relevant historical #530 receipts, the dated owner-action
-    queue and live remote locks before selecting a packet.
+13. For Masterplan work, read the five-agent baseline/transition/prompt, workflow/reservations,
+    your own new checkpoint, current #766 receipts and actual slot/ID/file/producer refs.
+    Restore only relevant immutable donor/history evidence before selecting the next packet.
 14. Continue from the recorded next action.
 
 Do not restart completed work because chat context is missing. Code, current
@@ -368,42 +281,30 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
    remaining partial cards.
 7. **Shared work:** before starting a cluster, check open PRs and
    `.agent-memory/handover.md` so two sessions never fix the same thing.
-8. **Self-selection and reservation (mandatory, Claude and Codex):** maintain
-   the authorized role above. PLANAGENT chooses
-   two eligible unapproved rule IDs and their contracts independently from current
-   main, priority and dependencies (or two remaining contract/scenario IDs when
-   work is acceptance-only; a final single eligible ID is allowed). Read the active board
-   and relevant historical #530 receipts,
-   current PRs, checkpoints and live remote locks. Atomically reserve IDs and
-   exact file scope using `.agent-memory/masterplan-reservations.md`, then post
-   `CLAIM <IDs> — <agent> — packet <UUID> — branch <branch>` with the receipt
-   and next action before code. Conflicts require selecting other free work.
-   Direct self-reservation needs no user allocation, coordinator acknowledgement
-   or staggered launch. A restricted session using the already-authorized proxy
-   must obtain and verify its actual reservation receipt before implementation.
-   The active board carries new progress; #673/#530 preserve earlier evidence. Atomic refs
-   establish ownership. Acquire the
-   merge-role lock for serial current-head delivery. Post `READY <IDs> — PR #N` for reviewable work,
-   `CI_GREEN` only for the current head, and `MERGED <IDs> — PR #N — <main SHA>`
-   after actual delivery. Only then select the next pair. A legacy `DONE` comment
-   about a green open PR is not a merge receipt or released ownership.
-   Post `RELEASE <ID> — <reason/remaining work/checkpoint>` on explicit handover.
-   Never edit `coverage.json` rows for IDs you have not claimed.
-   Each agent maintains its checkpoint, mirrors actual receipts under the
-   shared-memory role lock, releases its own resources after documentation and
-   delivery/handover, and selects the next eligible packet without another prompt.
+8. **Assigned new-agent slots and reservations:** use the explicit R1/R2/C1/C2/C3
+   allocation in the five-agent baseline. Old agent identities and their producer
+   mandates are retired by the owner's verified administrative handover. New agents
+   do not wait for former owners. Claim a new slot and the next coherent packet's
+   IDs, exact files and applicable producer resources using the atomic protocol.
+   Require the new epoch, CREATE_IF_ABSENT, GET_MATCH and CLAIM before code.
+   Additional reviewers may join read-only; fixing helpers need a bounded file
+   handover between new agents. Keep one writer per file and one producer per source.
+   READY and CI_GREEN must refer to the exact current candidate; MERGED only follows
+   authenticated delivery. Use role-merge for serial expected-head delivery and
+   role-memory plus exact file custody for shared summaries. Never edit an
+   unclaimed coverage row. Finish delivery/handover, documentation and receipt-bound
+   resource release before choosing the next packet within the assigned slot.
 9. **Mandatory documentation before more work:** each agent records what it
    claimed, what it completed, exact commit/verification, blockers/dependencies
    and its next action before starting and after each meaningful transition.
    No next packet without current memory and atomically confirmed ownership. Follow
    `.agent-memory/masterplan-agent-workflow.md` for the complete contract.
-10. **Retained PR work first:** assess relevant entries in
-    `.agent-memory/masterplan-legacy-pr-register.json` against current main and
-    original requirements before new implementation. CLOSED_UNMERGED preserves
-    reusable work and unresolved HOLD/PAUSED criteria. Reopen suitable original
-    PRs individually after scope/owner confirmation, or reuse unique changes in
-    a small current-main PR linked to the original. Do not import historic stacks
-    wholesale or redo delivered work.
+10. **Preserved donor work first:** compare the baseline's frozen donor heads,
+    relevant historical register entries and original requirements with actual main.
+    Create a new branch and small PR linked to the precise reused source. Do not
+    reopen old proposals for retired agents, import historical stacks wholesale
+    or rebuild delivered effects. Preserve unique proofs and HOLD/PAUSED/external
+    criteria; old owner-response waits are superseded by the administrative handover.
 
 ## Non-negotiable project invariants
 

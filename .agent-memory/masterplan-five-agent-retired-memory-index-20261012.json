@@ -1,0 +1,1082 @@
+{
+  "schema": "retired-memory-index-v1",
+  "base": "95bb437137ce3bc0b0246bed6cf1d149493c92b9",
+  "authority": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122223028",
+  "scope": "113 unused old agent/status/prompt files removed from active tree; 18 ledger-referenced evidence checkpoints and pinnedOPS03 kept byteidentical.",
+  "files": [
+    {
+      "path": ".agent-memory/masterplan-93e252d8-source657-memory-closeout-checkpoint.md",
+      "sha256": "0cd32695efddd0553dee124090eb2f5715a22eec8ba6ed03f9c5c30eee2af343",
+      "bytes": 2028,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-93e252d8-source657-memory-closeout-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-93e252d8-source657-memory-closeout-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-advisor-definition-parser-maintenance-20261005.md",
+      "sha256": "095c95d5c77ce153e0f8bc0a696997926b254ca618d5af395c8f44fd9550fbb6",
+      "bytes": 6930,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-advisor-definition-parser-maintenance-20261005.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-advisor-definition-parser-maintenance-20261005.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-agent-roles-root-20261008-checkpoint.md",
+      "sha256": "5f1cbe4ee647247c505e59177c978f15c5b0d36ad3064708b5abbca952e59844",
+      "bytes": 3425,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-agent-roles-root-20261008-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-agent-roles-root-20261008-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-p04-parent-applicability-checkpoint.md",
+      "sha256": "b67d66e31c3e24f1a38e68ac657f940e077c4caa21c7d92ace88e0d324241345",
+      "bytes": 2480,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-p04-parent-applicability-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-p04-parent-applicability-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z01l-z01lk-supplier-checkpoint.md",
+      "sha256": "f7151eff8086e16a2077a71503b3a1d46d1268fe13a66de51ad58be1968fab12",
+      "bytes": 8087,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z01l-z01lk-supplier-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z01l-z01lk-supplier-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z02l-z02lk-supplier-checkpoint.md",
+      "sha256": "1f8827147005d2b6572df5d85e8924380b9bc47c5f2c4f6c9103f8960a645e25",
+      "bytes": 8888,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z02l-z02lk-supplier-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z02l-z02lk-supplier-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z03l-z03lk-supplier-checkpoint.md",
+      "sha256": "1b0717f57f34a473c2ee96a418552dfc637eff75bfd1dd66b58391876f88d73c",
+      "bytes": 5702,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z03l-z03lk-supplier-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z03l-z03lk-supplier-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z05l-z05lk-supplier-checkpoint.md",
+      "sha256": "1a273462eda9e10c075b48da68af1dd6e8bf51836b2771a728d48786169a0e1d",
+      "bytes": 4030,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z05l-z05lk-supplier-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z05l-z05lk-supplier-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z06f-z06g-supplier-checkpoint.md",
+      "sha256": "a4810295db6f7b6d61c1d83801955952a33d59dbef72a1ee06a6fbda1050a1c9",
+      "bytes": 14016,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z06f-z06g-supplier-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z06f-z06g-supplier-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z09b-z09d-supplier-checkpoint.md",
+      "sha256": "24532984872d07188f58bd6ccb4078f3529ccdfae7438b02a488170a24cb8f48",
+      "bytes": 4333,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z09b-z09d-supplier-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z09b-z09d-supplier-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z09f-z09g-supplier-checkpoint.md",
+      "sha256": "955a6c16f7f24b211b3d2cc62bdb57d153b6132e899e5975638aa097ee37413a",
+      "bytes": 7703,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z09f-z09g-supplier-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z09f-z09g-supplier-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z13v-z14v-esco-checkpoint.md",
+      "sha256": "5957f7710939769770cc22585c4ed0cc01d4903dba8cb6d1cca4130a8f5d985c",
+      "bytes": 40089,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z13v-z14v-esco-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z13v-z14v-esco-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z13vh-z14vh-esco-checkpoint.md",
+      "sha256": "bec456bdc716a6b4b22dcd20ab5e00248c2a4dba837a71b80bbdd09d29dd4eba",
+      "bytes": 16750,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z13vh-z14vh-esco-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z13vh-z14vh-esco-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-at-z15v-z15vh-esco-checkpoint.md",
+      "sha256": "0e8fdd8679b4437ece22565614d3c3db076037fac8c0ab82bdaee64b6b42e60a",
+      "bytes": 25091,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-at-z15v-z15vh-esco-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-at-z15v-z15vh-esco-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-baseline-93e252d8-20261011T154118Z-c1837eca-checkpoint.md",
+      "sha256": "6ed46addb894832ee2e7a591c37a3befb7d2343d6d33257957886f099bbb52d0",
+      "bytes": 13676,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-baseline-93e252d8-20261011T154118Z-c1837eca-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-baseline-93e252d8-20261011T154118Z-c1837eca-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-blocker-claude-uwoj7c-checkpoint.md",
+      "sha256": "6495f7674eefc9c7328df44e5b8eeeeee4c70dff0c7fa3f07f0e87e132e25045",
+      "bytes": 3673,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-blocker-claude-uwoj7c-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-blocker-claude-uwoj7c-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-blocker-claude-wmtl91-checkpoint.md",
+      "sha256": "0968503f9bf76eee31f0280773d899602d211f0cb053cab2b721518d8398df00",
+      "bytes": 4466,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-blocker-claude-wmtl91-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-blocker-claude-wmtl91-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-blocker-proxy-20261008-checkpoint.md",
+      "sha256": "0a77a1b2e5a229846d9af07a30d7251a8552625ac9361dc8db2cdee64cabd0a8",
+      "bytes": 9299,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-blocker-proxy-20261008-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-blocker-proxy-20261008-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-c65-imp05-db04-checkpoint.md",
+      "sha256": "abb074f3b3b7257829fdc4ccb691b4330b869b9a92125f61092c59f949ea3e92",
+      "bytes": 48693,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-c65-imp05-db04-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-c65-imp05-db04-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-c65-z01-1a8250da-checkpoint.md",
+      "sha256": "84dec784d3db9dd2068411b9b8bcb1050ef923b763de10f2034283b81cfaea49",
+      "bytes": 8272,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-c65-z01-1a8250da-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-c65-z01-1a8250da-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-c65-z03-route-a66abf9a-checkpoint.md",
+      "sha256": "3b1452303f6322cb2687000d3627f17041ad53146a1e3afae30cc589e86a1b43",
+      "bytes": 17720,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-c65-z03-route-a66abf9a-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-c65-z03-route-a66abf9a-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-claude-compassionate-rubin-checkpoint.md",
+      "sha256": "2772da88b0b7edcbc6669473bcc0b8a5290df2fd578316e331001c4db05e5381",
+      "bytes": 12347,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-claude-compassionate-rubin-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-claude-compassionate-rubin-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-claude-granskare-c-01WoELFu-checkpoint.md",
+      "sha256": "85b5ea301b3d0d0d7c2f0f806d8545bf87c1219d55a1d400bd70154252569983",
+      "bytes": 3767,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-claude-granskare-c-01WoELFu-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-claude-granskare-c-01WoELFu-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-claude-planagent-017fQ9L4-checkpoint.md",
+      "sha256": "140c2aa12de51c46920799d9c171013669d149bbdc0de1537df3f6ebf1c74fe9",
+      "bytes": 4027,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-claude-planagent-017fQ9L4-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-claude-planagent-017fQ9L4-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-claude-planagent-esco-z14vh-z15v-checkpoint.md",
+      "sha256": "a91042b0cd712286f1398372376fce6279ed4c9a0ecdbb41b0d1d324aff48ae5",
+      "bytes": 4423,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-claude-planagent-esco-z14vh-z15v-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-claude-planagent-esco-z14vh-z15v-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-claude-planagent-tr09db01-checkpoint.md",
+      "sha256": "02b1cfbefd918a85d5d0ec5edaf6d8013d3f5173989475815d20245c5d7809fb",
+      "bytes": 4554,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-claude-planagent-tr09db01-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-claude-planagent-tr09db01-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-cleanup-handoff-20261010-941f92a0-checkpoint.md",
+      "sha256": "24cd4f070f53924d257bd15c45f8b587a3b396138e0307641a16ea91aa1da7a2",
+      "bytes": 1374,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-cleanup-handoff-20261010-941f92a0-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-cleanup-handoff-20261010-941f92a0-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-20261006-2c0823a3eed5-checkpoint.md",
+      "sha256": "376ca7aa62306bd3779e0cd72f59c26b57e41fb9e50426687f0105f32a71acec",
+      "bytes": 328190,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-20261006-2c0823a3eed5-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-20261006-2c0823a3eed5-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-20261006-95bc00df11da-ad-checkpoint.md",
+      "sha256": "b63c560febfa4beb851bd1865e2ddeba2dced362398a1df46029e30d55a6f7aa",
+      "bytes": 181113,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-20261006-95bc00df11da-ad-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-20261006-95bc00df11da-ad-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-20261006-95bc00df11da-ad-closeout-checkpoint.md",
+      "sha256": "bf2ca024e92bb116c13f5873f575bdf976a0c1ec62fb6972d21a06a89bc2c493",
+      "bytes": 10319,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-20261006-95bc00df11da-ad-closeout-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-20261006-95bc00df11da-ad-closeout-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-20261006-95bc00df11da-checkpoint.md",
+      "sha256": "017403c5d7fa5aa1a8ab8c7f4fb2e1a03a5c3427e1506fdb5077cd8eeded6174",
+      "bytes": 7962,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-20261006-95bc00df11da-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-20261006-95bc00df11da-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-20261006-95bc00df11da-replay-cleanup-checkpoint.md",
+      "sha256": "01b7cb4ecf855ed245f3bb8d02265630b86124657bf4273496491d042825998b",
+      "bytes": 39737,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-20261006-95bc00df11da-replay-cleanup-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-20261006-95bc00df11da-replay-cleanup-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-20261006-95bc00df11da-z05-checkpoint.md",
+      "sha256": "3e7c79541856e398da013b5cbee21a29ac2a2a712f1907108f1d122410fe1be7",
+      "bytes": 13392,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-20261006-95bc00df11da-z05-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-20261006-95bc00df11da-z05-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-20261006T134154Z-c3ae376b9893-checkpoint.md",
+      "sha256": "6bd035f09982450199c3013cb07094d6392c545cad50ccb9298e728b33d76b1b",
+      "bytes": 12985,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-20261006T134154Z-c3ae376b9893-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-20261006T134154Z-c3ae376b9893-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-24fa8502b8-checkpoint.md",
+      "sha256": "5dcae37e0e752a94cefea957e032bd5fa3147d9bc76bb3b5ffb34dc131bfc235",
+      "bytes": 10258,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-24fa8502b8-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-24fa8502b8-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-95bc-memory-closeout-checkpoint.md",
+      "sha256": "891c317002e957f264417fadb51e3873ae821cd77df95d99bf82473a2ac08714",
+      "bytes": 2684,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-95bc-memory-closeout-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-95bc-memory-closeout-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-aa4f29d3-c65-checkpoint.md",
+      "sha256": "02c7720237dcd93364927631d9facf26f6f1cc31c83782b2bb1d4d72cafe44a5",
+      "bytes": 23787,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-aa4f29d3-c65-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-aa4f29d3-c65-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-b6d3-ci-history-checkpoint.md",
+      "sha256": "f1dc0f017dfa51c8a575ff8ef3eb651320798d515766a34f1f2e7e0a69eb7127",
+      "bytes": 7862,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-b6d3-ci-history-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-b6d3-ci-history-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-b6d3-memory-closeout-checkpoint.md",
+      "sha256": "732788457201dccffc80913f53b7ec920c7802339981919e763ae8e21660f916",
+      "bytes": 3295,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-b6d3-memory-closeout-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-b6d3-memory-closeout-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-b6d3a0172885-atp01-checkpoint.md",
+      "sha256": "4b32523841aa24baa4063d58743aeb490877834b4077cd8711867834f060a455",
+      "bytes": 11664,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-b6d3a0172885-atp01-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-b6d3a0172885-atp01-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-blocker-db01-tag-20261011-fae8b466-checkpoint.md",
+      "sha256": "620b1b745b44306bf4814b126024d1e3db634450d5b0adcb132457cb329a29c1",
+      "bytes": 3768,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-blocker-db01-tag-20261011-fae8b466-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-blocker-db01-tag-20261011-fae8b466-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-c3ae-campaign-status-checkpoint.md",
+      "sha256": "66de10fe2034950b518ec061a1a54f97064c0c5d1eb790d1bb702d1c3d098eb9",
+      "bytes": 2872,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-c3ae-campaign-status-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-c3ae-campaign-status-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-c3ae376b9893-campaign-checkpoint.md",
+      "sha256": "072850dc45c282a5c44585f82c1d683588bb1faa9d047630139cbc5069ce347b",
+      "bytes": 4678,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-c3ae376b9893-campaign-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-c3ae376b9893-campaign-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-checkpoint.md",
+      "sha256": "f4afdbf485f63255b07e228d7239dd213ee75300dcb1e1c6f5231b86e096f0ad",
+      "bytes": 11237,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-ci-dns-blocker-20261011-c680a3d1ab-checkpoint.md",
+      "sha256": "f2a9816e36787dbe0111cdb59398dccab27670de3e25ab3ab42dba158ebbc95d",
+      "bytes": 11427,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-ci-dns-blocker-20261011-c680a3d1ab-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-ci-dns-blocker-20261011-c680a3d1ab-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-db05-http-20261010T233147Z-596eca1e-checkpoint.md",
+      "sha256": "a76fa7ded4daafe7243930077e84c340972cb27d521038c76bb83fa3be14040e",
+      "bytes": 5634,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-db05-http-20261010T233147Z-596eca1e-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-db05-http-20261010T233147Z-596eca1e-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-dsn-checkpoint.md",
+      "sha256": "e627165cf4ca5abc38244f3eaa8a27df6a536b7a808260d183f17680f95eb7bf",
+      "bytes": 15111,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-dsn-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-dsn-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-ediel-20261006-2f72c8ab-checkpoint.md",
+      "sha256": "1a182c63669c5a821195459959092372202ef74da874af4574e6599cfb93b79b",
+      "bytes": 7875,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-ediel-20261006-2f72c8ab-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-ediel-20261006-2f72c8ab-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-ediel-20261006-93e252d8-checkpoint.md",
+      "sha256": "80426fa4740622cf091966175108e1273c406d8d98d18538cd254cd5998516e8",
+      "bytes": 952607,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-ediel-20261006-93e252d8-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-ediel-20261006-93e252d8-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-ediel-93e252d8-h-campaign-memory-a012879b-checkpoint.md",
+      "sha256": "5ea89fd390347ac1c75df0614bb5ca330b7c59f967addca2ccb6304659374190",
+      "bytes": 6879,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-ediel-93e252d8-h-campaign-memory-a012879b-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-ediel-93e252d8-h-campaign-memory-a012879b-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-ediel-93e252d8-h-reading-producer-checkpoint.md",
+      "sha256": "2cf944c5d9f0233b92c54c2333d077ce4ce4e81ffa2c1212d34fdc29411625e1",
+      "bytes": 42306,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-ediel-93e252d8-h-reading-producer-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-ediel-93e252d8-h-reading-producer-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-main-merge-window-20261005.md",
+      "sha256": "5182362d7830143693458da6d7d036c8f5fb71e1eb95c69a2881efe07e02e260",
+      "bytes": 17595,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-main-merge-window-20261005.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-main-merge-window-20261005.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-retry-checkpoint.md",
+      "sha256": "e036e7d48d28606819533eb54e6e624f47a0041a6ebe04288995dc760e832b99",
+      "bytes": 58456,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-retry-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-retry-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-sc003-sc005-checkpoint.md",
+      "sha256": "edb29aa7ef8c6fe626488c7cf4e29891022b944b618cd50ed7ebdfc1808df7df",
+      "bytes": 4456,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-sc003-sc005-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-sc003-sc005-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-sc015-sc016-checkpoint.md",
+      "sha256": "5e9b589f098b37cbc0edcfaa76f78a46b206e8cf0a53b79d3b1ca5737e4c1423",
+      "bytes": 6778,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-sc015-sc016-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-sc015-sc016-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-sc057-sc059-checkpoint.md",
+      "sha256": "64788aeeb7cb099b2c2837f3b04ce58d27c5c6744069dfc0133c231416a32cc3",
+      "bytes": 5401,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-sc057-sc059-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-sc057-sc059-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-tr05-whole-contrl-checkpoint.md",
+      "sha256": "4691c1b4ab2b99accb7df0f1c139a496491ce80a22214134707efc087a13db41",
+      "bytes": 1808,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-tr05-whole-contrl-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-tr05-whole-contrl-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-uncertain-case-checkpoint.md",
+      "sha256": "6a812386da3fc3d554812df35af71f31ff4e91d71c1b051cc0072a6e77abe962",
+      "bytes": 4484,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-uncertain-case-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-uncertain-case-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-z05c-ce01569a4b-checkpoint.md",
+      "sha256": "5c5bf0ab90830393c07ab3d3fbff918dc74b1ce3242fa1ca6e3e27450b8ac8ee",
+      "bytes": 22731,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-z05c-ce01569a4b-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-z05c-ce01569a4b-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "sha256": "fc282e42afa125d931b8ece1e800475096d9c3f9a61bb1c3c7c00019e8433054",
+      "bytes": 25582,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-combined-source-capture-checkpoint-20261005.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-db05-journals-978c8191-checkpoint.md",
+      "sha256": "e61734a35621a44411ec0798bddb2e9b8545ef354e5f56e3c40bccc5fca8f8a1",
+      "bytes": 15489,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-db05-journals-978c8191-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-db05-journals-978c8191-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-doc-routing-preservation-20261008-cbb78781-checkpoint.md",
+      "sha256": "fbb936a2db840914672c7b01066d18e591e7252267b59ff0f373860105ddb795",
+      "bytes": 4577,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-doc-routing-preservation-20261008-cbb78781-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-doc-routing-preservation-20261008-cbb78781-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-help699-delivery-20261009-checkpoint.md",
+      "sha256": "aa3af8081a1e17d4115523999817713de49c82741fdf7d7aae4b1c7f16eb6bdf",
+      "bytes": 33873,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-help699-delivery-20261009-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-help699-delivery-20261009-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-help699-final-fixes-20261010-checkpoint.md",
+      "sha256": "d680f0c21b91f166af74b3a14cca5355f665f50f2efc1543c9dc582fcbda89a4",
+      "bytes": 35969,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-help699-final-fixes-20261010-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-help699-final-fixes-20261010-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-help699-h-final-fixes-20261010-checkpoint.md",
+      "sha256": "3d2b78b4328d1512f7949e556696b120db83ef3efa0971d72ad473287cbbbfef",
+      "bytes": 32451,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-help699-h-final-fixes-20261010-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-help699-h-final-fixes-20261010-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-imp01-checkpoint.md",
+      "sha256": "c16637a0a96423f8a34d13fd9650ade91011a18f249e9e9a35374c0c205ee7fd",
+      "bytes": 2861,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-imp01-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-imp01-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-imp02-checkpoint.md",
+      "sha256": "ee7a59a126da861240c5c1014789f656b6d42f686813d3edaae210450da8730a",
+      "bytes": 2864,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-imp02-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-imp02-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-imp05-recipient-binding-checkpoint.md",
+      "sha256": "6466c63c5d02994d78b579a3cd3a2125ee0f573b4b185c9c5b4811fc05c203dd",
+      "bytes": 30558,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-imp05-recipient-binding-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-imp05-recipient-binding-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-ops03-independent-review-checkpoint.md",
+      "sha256": "59791a2643e4054644a4f4a2f45d262288a6a57ce94098d066a5de81ed7d2e91",
+      "bytes": 8309,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-ops03-independent-review-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-ops03-independent-review-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-ops05-checkpoint.md",
+      "sha256": "6e56a6e26d41e324c61a1f72f204024b50387ac46aee1929cb15b6c011d5a84a",
+      "bytes": 7827,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-ops05-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-ops05-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-parallel-coordination.md",
+      "sha256": "af93ffa5b031e13ef67491ba1aa5303f4ada3e361912648ce156a20dc0ee2663",
+      "bytes": 66745,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-parallel-coordination.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-parallel-coordination.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-plan-b-20261010-3dae9a7c-checkpoint.md",
+      "sha256": "a3bd034ab75dd2eb61ab04adead80cafb50173b77694a38aab97c04ce281f729",
+      "bytes": 79042,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-plan-b-20261010-3dae9a7c-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-plan-b-20261010-3dae9a7c-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-plan-b-m2-66520864-checkpoint.md",
+      "sha256": "6ae945d7f9856e9f72b7cd61616afe120fead21ca0716d0ecc9bd90ea8fa0fa5",
+      "bytes": 5157,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-plan-b-m2-66520864-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-plan-b-m2-66520864-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-pr-delivery-root-20261011-02525622-checkpoint.json",
+      "sha256": "615bf4a750057c5d6c04ac898a17c429893141aad03a841b28a218577025d69b",
+      "bytes": 3298,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-pr-delivery-root-20261011-02525622-checkpoint.json",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-pr-delivery-root-20261011-02525622-checkpoint.json",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-pr602-postmerge-documentation-20261005.md",
+      "sha256": "e7231757450f692157cc89f4a3e4f9cdc6be5d0d3495b26c5ffd895df5a08982",
+      "bytes": 2030,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-pr602-postmerge-documentation-20261005.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-pr602-postmerge-documentation-20261005.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-root-board-routing-20261007-checkpoint.md",
+      "sha256": "3dd95bc27e4666beb48f7b485f840359d73a7d5720284024a83938258add4bf5",
+      "bytes": 1869,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-root-board-routing-20261007-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-root-board-routing-20261007-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-root-current699-composition-20261008-checkpoint.md",
+      "sha256": "f52f0b62e426d5c6ecd38992a46058792ce875a197cc3be380c060f3d9a650b6",
+      "bytes": 10398,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-root-current699-composition-20261008-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-root-current699-composition-20261008-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-root-gen19-adoption-20261008-checkpoint.md",
+      "sha256": "0b2b6b11e249b7ec46362c42e9f0c8a0b24d53d9a295faf16ccf64c44984ae47",
+      "bytes": 3937,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-root-gen19-adoption-20261008-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-root-gen19-adoption-20261008-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-root-gen4-adoption-20261008-checkpoint.md",
+      "sha256": "117cfd409a0dbd5a5f0ee447d58c31d300bae8c361397c9cfdb28796bc3fe29c",
+      "bytes": 5521,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-root-gen4-adoption-20261008-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-root-gen4-adoption-20261008-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-root-native-positive-fixture-20261008-checkpoint.md",
+      "sha256": "32c45d5c29fcc8e88a49e5fc2f088a1fb20d3620bfa8de594bbf7c0f04f00de6",
+      "bytes": 5917,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-root-native-positive-fixture-20261008-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-root-native-positive-fixture-20261008-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-root-z10-birth-20261011-checkpoint.md",
+      "sha256": "1939780cf035ff8e97d95a60b0dd1c1be4748c819d5f61f0bdfe51c970872b6e",
+      "bytes": 5042,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-root-z10-birth-20261011-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-root-z10-birth-20261011-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-root-z10-predecessor-f2dcd955-checkpoint.md",
+      "sha256": "9d39c127e0c6609883550c21728f5512f876a39ca1491619c66069d38c72bd58",
+      "bytes": 3377,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-root-z10-predecessor-f2dcd955-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-root-z10-predecessor-f2dcd955-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-root503-ci-integration-20261005.md",
+      "sha256": "14363afc4a8d4fc8d07579b82c8081d38eec9b7bc43af7ec44778fff9891c3e5",
+      "bytes": 8436,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-root503-ci-integration-20261005.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-root503-ci-integration-20261005.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-root503-publication-receipt-20261005.md",
+      "sha256": "63c96a74250b376726d2503a633b3cf92fd148aff1641654040b6364aa78b351",
+      "bytes": 48697,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-root503-publication-receipt-20261005.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-root503-publication-receipt-20261005.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc004-sc006-integration-checkpoint.md",
+      "sha256": "8e0f1ea82b0ff6e6ff81653f6264a0b2488d4764cc288a6a26dc2a95a577b2da",
+      "bytes": 3259,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc004-sc006-integration-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc004-sc006-integration-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc010-sc071-checkpoint.md",
+      "sha256": "3c28d57e08f5d3a68e99c4cdb2778e7089875b1846206cb74f863e7d09497e9f",
+      "bytes": 49862,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc010-sc071-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc010-sc071-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc010-sc071-sql-component-checkpoint.md",
+      "sha256": "8724f0721dd25f92b111255e1b91840873446ac5e4aef760a5d35c4d136ccaba",
+      "bytes": 6605,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc010-sc071-sql-component-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc010-sc071-sql-component-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc012-checkpoint.md",
+      "sha256": "06b4e3826b6d2f9bbca7cb702c27ef3665eb1da295c34a795d9cb70ab889614e",
+      "bytes": 24287,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc012-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc012-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc014-checkpoint.md",
+      "sha256": "60e8aff268829fda7b4a53c83a506330be554f1bdbabe25009dd29711b08b02e",
+      "bytes": 70928,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc014-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc014-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc014-native-checkpoint.md",
+      "sha256": "1cdda9536303fc6a3be811d8a4d13587bc007138b006a87c8e811083a274817f",
+      "bytes": 15685,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc014-native-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc014-native-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc014-repair-plan.md",
+      "sha256": "fd1e67992f4339cc40cc0354f7b30096c02ed70eae63efdd90417e062f1e5ce9",
+      "bytes": 34469,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc014-repair-plan.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc014-repair-plan.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc021-checkpoint.md",
+      "sha256": "dc6cde407d82ea1a9b36995fb19fdddfa4dff5a2fb307adf0cbbb7bd2f451811",
+      "bytes": 20823,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc021-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc021-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc022-checkpoint.md",
+      "sha256": "538696df6f1b05c88f838ba998bec52c041b2a6ff5f41e7aea1c452c3079da06",
+      "bytes": 18537,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc022-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc022-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc031-sc034-review-checkpoint.md",
+      "sha256": "d29c5b16dae371d65d059b1d0c12a351f2af71b360bd5e73e3e3df84cc66196a",
+      "bytes": 7845,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc031-sc034-review-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc031-sc034-review-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc035-sc039-review-checkpoint.md",
+      "sha256": "5dd14f8eceb9b071d96d0b3f04755c885cbc60b794ed8c701bdf1cdfef546092",
+      "bytes": 8699,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc035-sc039-review-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc035-sc039-review-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc037-sc052-review-checkpoint.md",
+      "sha256": "1542daa663c69ba68d7fb04a3aae4c195b1dac42782adbc47d411bacfc37907c",
+      "bytes": 7482,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc037-sc052-review-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc037-sc052-review-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc038-sc045-review-checkpoint.md",
+      "sha256": "aac789066fe5c9d0fa1528de073e41c29fd86e4fd547532633c97ab6770a0fb6",
+      "bytes": 3423,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc038-sc045-review-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc038-sc045-review-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc042-checkpoint.md",
+      "sha256": "7208b9a66318a3d086c40ab6c5dd68313360fdbbbff5b32342d108c2a9d91103",
+      "bytes": 16057,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc042-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc042-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc046-sc047-review-checkpoint.md",
+      "sha256": "06f726272e202e5d62cf1774dc9db4c5203b22f5500cb8a00db78d1a29960ab6",
+      "bytes": 3031,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc046-sc047-review-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc046-sc047-review-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc047-joined-native-checkpoint.md",
+      "sha256": "10fc9c1f46e17324a49f7007233bfa9742e1eb7109497850d674d12079f047c8",
+      "bytes": 5702,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc047-joined-native-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc047-joined-native-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc053-sc054-review-checkpoint.md",
+      "sha256": "09f51d5f2d5e5c1d29e27cad4346305149919c2234b5829a01d12f73c030b9c2",
+      "bytes": 7525,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc053-sc054-review-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc053-sc054-review-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc055-checkpoint.md",
+      "sha256": "55b0c14f1f93a5f233bf9aa804b5b04f54830d5a481f3bf69e58f1c7e7c69b33",
+      "bytes": 19096,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc055-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc055-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc058-checkpoint.md",
+      "sha256": "ead2a8fd87aeef14d565249aa74bda3f281a9c7e40973fe697d91df07367688e",
+      "bytes": 12779,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc058-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc058-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc069-checkpoint.md",
+      "sha256": "4395097752e79906e13f968da95fb14a4dd5adf4bb73b6302831a8be4734aba5",
+      "bytes": 16895,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc069-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc069-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc071-checkpoint.md",
+      "sha256": "47abf3956d7d20000e6c3d9431b3c8af8f0d1923dbbaf9223bf5fed20abc237d",
+      "bytes": 21202,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc071-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc071-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-sc072-checkpoint.md",
+      "sha256": "da608fa197e7dc9b32bbc193f0866d8f1fa0743ac0e6f51727facb7f65bb684f",
+      "bytes": 15895,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc072-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc072-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-self-selection-checkpoint.md",
+      "sha256": "d7b0bb67d61678d3b16fcd79fc08b530b7b24dd2befeb37443f5f13a867f3855",
+      "bytes": 1960,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-self-selection-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-self-selection-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-startup-recovery-root-20261008-checkpoint.md",
+      "sha256": "5fa20a0d1765cc507ed6dd25dc984c8e4ac9a6f42f1de78eea08590080ec8eb9",
+      "bytes": 2770,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-startup-recovery-root-20261008-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-startup-recovery-root-20261008-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-startup-takeover-0b3416c0-checkpoint.md",
+      "sha256": "c7600735f2e2409507547d830641da3b9239dd485fb8940b6b711cb5aa5d4940",
+      "bytes": 2784,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-startup-takeover-0b3416c0-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-startup-takeover-0b3416c0-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-status-20261006.json",
+      "sha256": "29302db911bb7391d725ed2ca9261e98b878755da60aec00a534a47fabc3702d",
+      "bytes": 131289,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-status-20261006.json",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-status-20261006.json",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-tr06-checkpoint.md",
+      "sha256": "ac0e8cb3e0de51a34b661f935469343b2d2f1c00ea2f51e74c461a628d29070b",
+      "bytes": 14369,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-tr06-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-tr06-checkpoint.md",
+      "activeInstructions": false
+    },
+    {
+      "path": ".agent-memory/masterplan-next-wave-prompt.md",
+      "sha256": "fcfc6ee93349bae0ab55d728f020ca90882a204bec135d2403ed327284c9fb08",
+      "bytes": 6947,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-next-wave-prompt.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-next-wave-prompt.md",
+      "activeInstructions": false,
+      "retirementReason": "Old continuation prompt explicitly removed by user request."
+    },
+    {
+      "path": ".agent-memory/masterplan-blocker-agent-prompt.md",
+      "sha256": "126927b77a21465e8cb92074496cc99b647847fe1fc2e9db9fa993d0640ba95e",
+      "bytes": 6842,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-blocker-agent-prompt.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-blocker-agent-prompt.md",
+      "activeInstructions": false,
+      "retirementReason": "Old continuation prompt explicitly removed by user request."
+    }
+  ],
+  "keptPinnedCheckpoint": {
+    "path": ".agent-memory/masterplan-ops03-checkpoint.md",
+    "reason": "Referenced by the production E2E input descriptor; preserve exact bytes. Historical evidence, not new dispatch authority."
+  },
+  "preservedLedgerEvidence": [
+    {
+      "path": ".agent-memory/masterplan-c65-sc014-z14v-checkpoint.md",
+      "sha256": "56db89e70ae42cf4c9e0ef37d6738b46f1aa16fc895f94ff533e9044794b05e8",
+      "bytes": 264167,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-c65-sc014-z14v-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-c65-sc014-z14v-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-archive-checkpoint.md",
+      "sha256": "fc3d01b91132d5f5eed48c981e9be8ed49b3e22831435991be0e4f704d34edba",
+      "bytes": 6745,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-archive-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-archive-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-plan-next-20261011T002655Z-53d604e536-checkpoint.md",
+      "sha256": "75d71658827b964c8379b2397e04f07968efa1c5993fbb8a7709c73a7fd70d03",
+      "bytes": 23168,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-plan-next-20261011T002655Z-53d604e536-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-plan-next-20261011T002655Z-53d604e536-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-codex-transport-checkpoint.md",
+      "sha256": "c399350e6169c798619307ca5da9a60badd54c93d8327774ca53d90df93d0c2e",
+      "bytes": 9343,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-codex-transport-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-codex-transport-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-db02-checkpoint.md",
+      "sha256": "1a3228ff9a2e817cadabac26f6b8a8e7102369e9519c6ede2765006a650707a6",
+      "bytes": 36813,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-db02-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-db02-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-db03-checkpoint.md",
+      "sha256": "0ac841793a9c315f1fb5f953aef843cedef5a6407287a7bd6256ba8b524b2325",
+      "bytes": 6460,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-db03-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-db03-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-env01-checkpoint.md",
+      "sha256": "787c89c720c0aa6b940bde6bf08f39bdcb213f4a74d567a6bc7a4dc29ce87b8e",
+      "bytes": 5506,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-env01-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-env01-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-env02-checkpoint.md",
+      "sha256": "2ea0ceef95b2154ab0fa0d047f8955034aca428b8f732a16204893b0ff05e410",
+      "bytes": 4612,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-env02-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-env02-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-env05-checkpoint.md",
+      "sha256": "0db4a3e614f9de4dd2431fc2725a6d5db51bc923379f9768c0f5f7c7e8504b63",
+      "bytes": 7533,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-env05-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-env05-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-env06-checkpoint.md",
+      "sha256": "9a3763728b3429853e021652f94bade202c9f203fb5f24588687c2550a1b4a60",
+      "bytes": 5333,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-env06-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-env06-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-env10-checkpoint.md",
+      "sha256": "ad408ce6d30834c4422768a3f45b86bcb8ffd4f8b9e80f4b4c74ba67833f5864",
+      "bytes": 3624,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-env10-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-env10-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-gov01-checkpoint.md",
+      "sha256": "85c1dd4512fcd4a6ea64b271833bf83003145a0607abf154f00e8456987bfcce",
+      "bytes": 44620,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-gov01-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-gov01-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-gov05-checkpoint.md",
+      "sha256": "fb18725997309a219adb608b13900c0868ceae488ce082c571ee30ae526e98ba",
+      "bytes": 6012,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-gov05-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-gov05-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-gov08-checkpoint.md",
+      "sha256": "b22cae87652d1ee2f3946393310358356ced4920cced2eecf5962363b86803fe",
+      "bytes": 17374,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-gov08-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-gov08-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-imp03-05-checkpoint.md",
+      "sha256": "23b706ea607a22daca8068016c2cc5f30ee759005eee7a639a52135443d8ea31",
+      "bytes": 10508,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-imp03-05-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-imp03-05-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-sc009-sc019-checkpoint.md",
+      "sha256": "739a31cbf2348abe1c1dd9ab7777b28dfe8131cfaedaadbc3362963f903aa1aa",
+      "bytes": 9597,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc009-sc019-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc009-sc019-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-sc011-sc023-checkpoint.md",
+      "sha256": "1ffa5c579714998e2adaa5368e6b4fba04a14e8d910e408e05471bd49c0a4feb",
+      "bytes": 17182,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc011-sc023-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc011-sc023-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    },
+    {
+      "path": ".agent-memory/masterplan-sc013-sc020-checkpoint.md",
+      "sha256": "01c975ea53de12a2d17616c419bff45b48f23a7015ae6a8bb1552ab16a7b6059",
+      "bytes": 9586,
+      "originalUrl": "https://github.com/heke99/gridex-ops-platform/blob/95bb437137ce3bc0b0246bed6cf1d149493c92b9/.agent-memory/masterplan-sc013-sc020-checkpoint.md",
+      "restorationCommand": "git show 95bb437137ce3bc0b0246bed6cf1d149493c92b9:.agent-memory/masterplan-sc013-sc020-checkpoint.md",
+      "activeInstructions": false,
+      "retirementReason": "Keep exact bytes: referenced by the approval ledger as evidence. Historical proof, not active owner/prompt."
+    }
+  ]
+}
