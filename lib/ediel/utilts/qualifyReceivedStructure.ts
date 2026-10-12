@@ -120,7 +120,7 @@ async function qualifyReceivedUtiltsStructureCore(input:{message:EdielMessageRow
   const issues:UtiltsValidationIssue[]=comparisons.flatMap(comparison=>comparison.codes.map(code=>({severity:'error' as const,kind:'functional' as const,
     code:`UTILTS_RECEIVED_STRUCTURE_${code}`,title:code==='E61'?'Mätar-id avviker från godkänt strukturunderlag':'Register avviker från godkänt strukturunderlag',
     description:code==='E61'?'Mätar-id jämfördes med godkänd PRODAT-struktur för leveransperioden.':'Register-id och fullständigt registerantal jämfördes med godkänd PRODAT-struktur för leveransperioden.',
-    utiltsErrCode:code,edielErrorCode:code,referenceQualifier:'ACW',referenceNumber:comparison.transactionId,lineItemReference:comparison.transactionId})))
+    utiltsErrCode:code,edielErrorCode:code,referenceQualifier:'TN',referenceNumber:comparison.transactionId,lineItemReference:comparison.transactionId})))
   result.hasNationalMismatch=issues.length>0
   let qualified=issues.length?rebuildUtiltsRuntimeResult({message,result:runtime,issues:[...runtime.validation.issues,...issues]}):runtime
   const held=new Set(comparisons.filter(comparison=>comparison.status==='unavailable').map(comparison=>comparison.transactionId))
