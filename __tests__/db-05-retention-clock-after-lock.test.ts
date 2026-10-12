@@ -1,4 +1,5 @@
-// masterplan: DB-05 (mechanism component only; no coverage approval)
+// masterplan: DB-05
+// Mechanism component only; no coverage approval.
 // The behaviour is proven by the three lock-wait probes in
 // scripts/db-05-customer-close-due-purge-native.test.ts (R1's native chain).
 // This guard pins that the forward migration is the current definitions with
