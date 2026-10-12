@@ -2,7 +2,7 @@
   "project": "gridex-ops-platform",
   "schema": "five-new-agent-routing-v2",
   "epoch": "gridex-five-agent-20261012",
-  "observed_main": "028d2d65d6dfa670474d48adb1b97bf99c959b74",
+  "observed_main": "69e50f4f0f8267dcdf4fe8414dac75ac1ab3e07a",
   "campaign_complete": false,
   "status": "IN_PROGRESS",
   "coverage": {
@@ -74,21 +74,56 @@
   "old_automations_paused": true,
   "old_private_process_termination": "NOT_AVAILABLE; use isolated new epoch",
   "new_dispatch": "FRESH_SLOT_ID_FILE_PRODUCER_CLAIMS_REQUIRED; no former-owner waits",
-  "main_scheduled_e2e": "FAILURE",
-  "next_action": "Current new owners finish one exact packet. Review/fix777 and775 findings; qualify existing774/775/776/777 CI/proof without duplicate producers. Further scopes require actual refs before write; external whole-ID gates remain.",
-  "observed_at": "2026-10-12T13:34:00Z",
-  "observed_timezone": "Europe/Stockholm",
+  "main_scheduled_e2e": "NOT_QUALIFIED_AT_OBSERVED_MAIN",
+  "next_action": "Continue corrected779/780/776/784/785 chains; qualify786/789 gates. Correct787/788, integrate only reviewed forward source through C2 sole manifest/GEN and existing R1/C1 natives. Read actual heads/refs/latest766; no duplicate writer/producer.",
+  "observed_at": "2026-10-12T19:41:44.806238+00:00",
+  "observed_timezone": "Etc/UTC",
   "baseline_pull_request": 773,
   "baseline_delivery": "MERGED",
   "new_owner_reservations": "R1/R2/C1/C2/C3 slots observed; exact refs and latest board receipts must be refreshed before write",
   "reservation_access_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125010625",
   "c2_scope_extension_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125274908",
   "active_proposals": {
-    "R2": 774,
-    "C2": 775,
-    "C3": 776,
-    "C1": 777
+    "R1": 779,
+    "R2": 785,
+    "C1": 780,
+    "C2": 784,
+    "C3": 776
   },
   "main_scheduled_e2e_cause_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6123693726",
-  "main_scheduled_e2e_coordination_owner": "C3"
+  "main_scheduled_e2e_coordination_owner": "C3",
+  "observed_tree": "4f7c5680c4633a7c790cabdddaa567705abe5931",
+  "helper_proposals": {
+    "786": "filter follow-ups: source-approved, CI/custody delivery gates remain",
+    "787": "C1 product forward: transaction closure/GEN/source follow-up",
+    "788": "R1 product forward: issuer/late-lock source findings and serial GEN",
+    "789": "C2 ERR qualifier: source-approved, actual-head CI and physical native separate"
+  },
+  "source_heads_at_observation": {
+    "776": "781a5215003b6622fb49ecefa8e632350e7964d9",
+    "779": "309e90e594101dfbbcffa77f6364b492a6c86af1",
+    "780": "7cfc209d473e450c08c328f95cea897798dbf466",
+    "784": "e6f165cd0ab8c4cf7ca97958f0e9e871e9f08fca",
+    "785": "dbab49350575a47c2d592058cfb59e92afe60908",
+    "786": "0376acf652f29dcaa79dc9d4f33fca3b4e569acc",
+    "787": "ac59ebadb30f2ccec53759c33446a3c990d64e95",
+    "788": "5e6c7a4bc0a71e55f410c09ecc55c4948aed8000",
+    "789": "cf6605ba39a79dcd711bcb5f073fb53bb369bd7e"
+  },
+  "delivered_proposals": [
+    773,
+    774,
+    777,
+    778,
+    781,
+    782,
+    783,
+    775
+  ],
+  "historical_main_scheduled_e2e": "Earlier FAILURE predates current delivery; cause receipt remains historical.",
+  "tr08_owner_risk_decision": "https://github.com/heke99/gridex-ops-platform/pull/785#issuecomment-6129576518",
+  "tr08_candidate_315_is_delivered": false,
+  "whole_credit_in_current_delivery_wave": 0,
+  "shared_gen_manifest_writer": "C2",
+  "original_execution_collection": "Existing designated chain collector only; root source/metadata review is not borrowed native evidence."
 }

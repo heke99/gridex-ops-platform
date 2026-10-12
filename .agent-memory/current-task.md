@@ -1,7 +1,11 @@
-# Current task — hjälp de nya ägarna att slutföra ett paket
+# Current task — fortsätt de kvarvarande kedjorna
 
-Följ [baslinjen](masterplan-five-agent-baseline-20261012.md), [överlämningen](masterplan-five-agent-transition-20261012.md), aktuell main och [#766](https://github.com/heke99/gridex-ops-platform/issues/766). R1 DB05; R2 TR08+OPS04; C1 13 L/LK/C/timing; C2 10 ESCO/metering+seriell GEN; C3 12 H/F/G/BRP/intake/externalacceptances. Slotuppdrag är inte en teknisk claim.
+Läs [current-state](current-state.md), [baslinjen](masterplan-five-agent-baseline-20261012.md), ditt ordagranna frysta krav och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). Återanvänd en aktuell reserverad kedja; skapa ingen andra skrivare eller producent.
 
-Nästa avgränsade arbete vid2026-10-12-observationen: R1 använder sina verifierade refs för DB05-paketet; R2 slutför774:s källgranskning och current-head CI; C1 rättar returnerad UPDATE.error i777 under egen filreservation; C2 åtgärdar775:s källfynd och slutför seriell GEN/upgrade; C3 kvalificerar den redan pågående H-kedjan i776. Aktuella exakta heads, blockers och nästa steg kommer från ägarnas senaste kvitton. Starta inga parallella producenter eller rättningar i deras filer.
+- R1: granska/integrera den korrigerade DB05-forwarden #788 genom C2:s GEN-kö; kvalificera sedan samma #779-native, inklusive relevanta låsväntande kontraster. Legal retentiongrund behövs för helgodkännande, inte för oberoende mekanismrättning.
+- R2: rätta #785:s provideridentitet och avgränsa tilliten till Authentication-Results; bevara ägarens STRATO-riskbeslut. OPS04 behöver fortfarande verkligt motpartsprov och befintligt LIVE-mandat.
+- C1: kvalificera rättad generated-column-forward #787 och C2:s integrerade output, följt av samma Z02-native i #780. #777:s diagnosfix är redan levererad.
+- C2: #775/#783 är levererade. Kvalificera #789:s verkliga slutversion; rätta #784:s första tenant-resultat och bind den fysiska UTILTS_ERR-kontrasten efter integration. Sköt sedan granskade #787/#788/ESCO-inputs i en seriell GEN-kö.
+- C3: kvalificera aktuell H101-kedja #776. DB05/SC070 konsumerar R1:s samma kedja; starta ingen egen DB05-producent. Externa helhetskriterier kvarstår.
 
-Avsluta/handoff/release ett sammanhängande paket före nästa. C2:s lokala SC054/ESCO-kandidater är framtida underlag, inte reservationer; exakta ID/filer/producenter ska vara verifierade före ytterligare writes. Extra granskare får läsa direkt och hjälpa att rätta efter avgränsad ny filöverlämning. Två slutgranskare som inte medförfattat, aktuella mandatorygates och relevant genuint bevis krävs för leverans. Legal/provider/LIVE-helhetsbevis begränsar godkännandet; oberoende egna mekanismdelar och granskning kan fortsätta.
+Extra helpers får läsa direkt. Rättning kräver exakta aktuella filrefs/handoff; delad migrationsmanifest är alltid C2:s. Hjälp med kod/test/fixture/GEN gör agenten till medförfattare som ersätts i slutgranskningen. Två oberoende slutpeers, aktuella mandatorygates och ärligt kvalificerat bevis krävs före leverans.
