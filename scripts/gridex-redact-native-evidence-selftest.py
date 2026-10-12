@@ -207,6 +207,11 @@ with tempfile.TemporaryDirectory(prefix='native-redactor-records-selftest-') as 
     except AttributeError:
         check('records_actual_bounded_redaction_required', False)
 
+for kind in ['secret','publishable']:
+    key=('sb_'+kind+'_DECLARED_fake_opaque_api_key-0123456789').encode()
+    result=module.scrub(b'public visible '+key+b' remains')
+    check('opaque_supabase_'+kind+'_removed', key not in result and b'public visible' in result)
+
 failed = [name for name, okay in checks if not okay]
 for name in failed:
     print('NATIVE_EVIDENCE_SELFTEST_FAIL: ' + name)

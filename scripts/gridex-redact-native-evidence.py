@@ -13,6 +13,7 @@ import zipfile
 SENSITIVE = {'password', 'access_token', 'refresh_token', 'id_token', 'authorization', 'cookie', 'set-cookie', 'apikey', 'api_key', 'service_role_key', 'anon_key', 'jwt_secret'}
 REDACTED = '[REDACTED_LOCAL_CREDENTIAL]'
 JWT = re.compile(rb'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b')
+OPAQUE_API_KEY = re.compile(rb'sb_(?:secret|publishable)_[A-Za-z0-9_-]+')
 EMBEDDED_ZIP = re.compile(rb'data:application/zip;base64,([A-Za-z0-9+/=]+)')
 JWT_RUN = re.compile(rb'[A-Za-z0-9_-]+')
 JWT_START = re.compile(rb'\beyJ[A-Za-z0-9_-]')
@@ -58,6 +59,7 @@ def scrub(data, secrets=()):
     for secret in secrets:
         data = data.replace(secret, REDACTED.encode())
     data = scrub_jwts(data)
+    data = OPAQUE_API_KEY.sub(REDACTED.encode(), data)
     data = EMBEDDED_ZIP.sub(lambda m: b'data:application/zip;base64,' + base64.b64encode(scrub(base64.b64decode(m[1]), secrets)), data)
     try:
         text = data.decode('utf-8')

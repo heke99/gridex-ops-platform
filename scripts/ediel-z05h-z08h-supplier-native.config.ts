@@ -22,7 +22,10 @@ function publicErrorField(error:unknown,key:string){
   const chunk=value.slice(offset,end);hash.update(chunk);bytes+=Buffer.byteLength(chunk);offset=end
  }
  return {characters:value.length,bytes,sha256:hash.digest('hex'),truncated:value.length>8192,
-  first:value.slice(0,4096),last:value.length>4096?value.slice(-4096):''}
+  // Cutting a credential creates an unrecognizable fragment. Short text stays
+  // complete for the downstream redactor; oversized private text is withheld.
+  first:value.length<=8192?value:'',last:'',
+  textPolicy:value.length<=8192?'COMPLETE_FOR_REDACTION':'WITHHELD_OVERSIZED'}
 }
 function boundedError(error:unknown){
  return Object.fromEntries(['name','code','message','stack','stderr','diff'].map(key=>[key,publicErrorField(error,key)]))
@@ -81,6 +84,7 @@ export class BoundedHNativeReporter implements Reporter {
 
 // Genuine public reception only; inherited local ownership and permission setup.
 export default defineConfig({...owner,test:{...owner.test,fileParallelism:false,
+ includeTaskLocation:true,
  // Failure formatting only: compare the complete values and retain every
  // test/assertion/outcome, while avoiding multi-GB copies of global graphs.
  diff:{truncateThreshold:200,maxDepth:6},
