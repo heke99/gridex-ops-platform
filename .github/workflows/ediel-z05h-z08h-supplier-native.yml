@@ -14,6 +14,12 @@ on:
       - 'scripts/gridex-redact-native-evidence.py'
       - 'scripts/migration-history-manifest*.json'
       - 'lib/ediel/**'
+      - 'lib/billing/**'
+      - 'lib/events/**'
+      - 'lib/platform/schemaReadiness.ts'
+      - 'lib/integrations/webhooks.ts'
+      - 'lib/integrations/billing/**'
+      - 'lib/time/stockholm.ts'
       - 'lib/inbound-mail/**'
       - 'lib/supabase/**'
       - 'supabase/**'
@@ -49,6 +55,34 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
+      - name: Record public runner preflight without native credit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,os,pathlib,shutil,subprocess
+          memory={}
+          for line in pathlib.Path('/proc/meminfo').read_text().splitlines():
+              key,_,value=line.partition(':')
+              if key in {'MemTotal','MemAvailable'}: memory[key]=int(value.split()[0])
+          disk=shutil.disk_usage('.')
+          source=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          receipt={'format':'gridex_h_runner_preflight_v1','source_head':source,'source_tree':tree,
+                   'run_id':os.environ['GITHUB_RUN_ID'],'run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
+                   'runner_os':os.environ['RUNNER_OS'],'runner_arch':os.environ['RUNNER_ARCH'],
+                   'cpu_count':os.cpu_count(),'memory_kib':memory,
+                   'disk_bytes':{'total':disk.total,'used':disk.used,'free':disk.free},
+                   'native':'NOT_EXECUTED','whole_h05_h08':'NOT_APPROVED'}
+          target=pathlib.Path('h05h08-native-preflight');target.mkdir()
+          (target/'preflight.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+      - name: Upload public runner preflight
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-z05h-z08h-supplier-preflight-${{ github.run_id }}
+          path: h05h08-native-preflight
+          if-no-files-found: error
+          retention-days: 14
       - name: Run genuine public H04 predecessor and H05 H08 consumers
         shell: bash
         env:
@@ -80,6 +114,26 @@ jobs:
           printf '%s\n' 'H05H08_BOUNDARY INPUTS_FROZEN'
           # Replay owns its EXIT cleanup. Disposable status/credentials stay local.
           echo BOOTSTRAP > "$RUNNER_TEMP/h05h08-stage"
+          # The previous runner lost communication before any log/artifact
+          # survived. Stream only allowlisted phases and numeric host resources
+          # so a later host incident can be located without exposing raw inputs.
+          diagnostic_owner=$$
+          (
+            for sample in {1..180}; do
+              kill -0 "$diagnostic_owner" 2>/dev/null || break
+              phase=$(cat "$RUNNER_TEMP/h05h08-stage" 2>/dev/null || true)
+              case "$phase" in
+                BOOTSTRAP|STATUS|NATIVE|POST_NATIVE|SOURCE_IDENTITY|REDACTION) ;;
+                *) phase=UNKNOWN ;;
+              esac
+              memory=$(awk '/^MemTotal:|^MemAvailable:/ {printf "%s ", $2}' /proc/meminfo)
+              load=$(cut -d ' ' -f1-3 /proc/loadavg)
+              disk=$(df -Pm "$GITHUB_WORKSPACE" | awk 'NR==2 {print $2, $3, $4}')
+              printf 'H05H08_RESOURCE phase=%s memory_kib_total_available=%s load=%s disk_mib_total_used_available=%s\n' "$phase" "$memory" "$load" "$disk"
+              sleep 30
+            done
+          ) &
+          diagnostic_pid=$!
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/h05h08-replay.log" 2>&1
           printf '%s\n' 'H05H08_BOUNDARY REPLAY_RETURNED'
           echo STATUS > "$RUNNER_TEMP/h05h08-stage"
@@ -145,6 +199,8 @@ jobs:
           printf '%s\n' 'H05H08_BOUNDARY EVIDENCE_REDACTED'
           cat h05h08-native-evidence/native.log
           rm -f "$GRIDEX_NATIVE_STATUS" "$GRIDEX_H_GIT_INPUTS"
+          kill "$diagnostic_pid" 2>/dev/null || true
+          wait "$diagnostic_pid" 2>/dev/null || true
           exit "$native_exit"
       - name: Preserve original failed stage without false execution credit
         if: failure()

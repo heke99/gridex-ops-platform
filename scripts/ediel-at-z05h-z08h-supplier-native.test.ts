@@ -1,6 +1,7 @@
 // masterplan: AT-Z05H-SUPPLIER, AT-Z08H-SUPPLIER
 // Retained665/9c1c668f: original96 cases preserved, then two strict H209 tails.
-// Two additional H05 country omissions make 100 cases; current native NOT RUN.
+// Two additional H05 country omissions retain 100 cases. The additive payment
+// consumer contrast makes 101 planned cases; current native NOT RUN.
 // Proposed whole H05/H08 proof. No masterplan approval tags until authentic
 // public-birth integration, actual native execution and literal review pass.
 import {createHash,createHmac,randomUUID} from 'node:crypto'
@@ -53,6 +54,7 @@ import {readVerifiedEdielTransportCopy} from '@/lib/ediel/transport/verifiedCopy
 import {applySupplyMarketSource} from '@/lib/ediel/flows/supplyMarketTransition'
 import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
 import {readSupplyRescissionMandate} from '@/lib/ediel/production/supplyRescissionOperation'
+import {processPendingInvoiceProviderEvents} from '@/lib/billing/providerEventProcessor'
 
 const {originate,actualNationalSourceSession,nationalNativeOperator}=nationalRescissionNativeChain({provider,sourceSession})
 async function authorized(input:Pick<NormalSwitchFixtureInput,'bindingMonths'|'billingAddress'>={}){
@@ -793,6 +795,38 @@ for(const withdrawal of ['supplier_role','reviewer'] as const)it('actual H08 '+w
  expect(await prepareAndQueueSupplyRescissionZ08({companyId:f.companyId,actorUserId:f.currentExecutor,mandateId:f.mandateId,preferredRouteId:f.routeId})).toEqual(held)
  assertNegativeGlobalEffects(globalBefore)
  expect(provider).toHaveBeenCalledTimes(calls);expect(graph()).toEqual(before);expect(effects(f.companyId)).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(custody(f.original.id)).toEqual(input)
+},120000)
+
+it('actual H08 overdue payment alone projects billing but never requests or applies supply rescission',async()=>{
+ // The event is a declared synthetic provider input. Its real SQL/PostgREST
+ // consumer must actually change payment status; this is not provider acceptance.
+ const f=await publicHStart(),runId=randomUUID(),itemId=randomUUID(),eventId=randomUUID(),invoiceGuid='synthetic-overdue-'+itemId
+ const payload={amount_inc_vat:125,currency:'SEK',occurred_at:new Date().toISOString()}
+ sql(`INSERT INTO public.invoice_export_runs(id,company_id,provider,environment,billing_month,status) VALUES(${literal(runId)},${literal(f.companyId)},'capway_aptic','test','2026-10','sent');
+ INSERT INTO public.invoice_export_items(id,company_id,export_run_id,customer_id,customer_contract_id,metering_point_id,provider,environment,status,provider_status,provider_invoice_guid,amount_ex_vat,vat_amount,amount_inc_vat,period_start,period_end)
+ VALUES(${literal(itemId)},${literal(f.companyId)},${literal(runId)},${literal(f.customerId)},${literal(f.contractId)},${literal(f.pointId)},'capway_aptic','test','sent','registered',${literal(invoiceGuid)},100,25,125,'2026-10-01','2026-10-31');
+ INSERT INTO public.invoice_provider_events(id,company_id,provider,environment,provider_event_id,provider_invoice_guid,event_type,status,payload,matched_invoice_export_item_id,idempotency_hash)
+ VALUES(${literal(eventId)},${literal(f.companyId)},'capway_aptic','test',${literal(eventId)},${literal(invoiceGuid)},'invoice.overdue','received',${literal(JSON.stringify(payload))}::jsonb,${literal(itemId)},${literal('synthetic-overdue:'+eventId)});`)
+ const legal=()=>sql(`SELECT jsonb_build_object('artifacts',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM gridex_supply_rescission.artifacts x),'mandates',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM gridex_supply_rescission.mandates x))`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_supply_rescission.mandates WHERE company_id=${literal(f.companyId)}`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_supply_rescission.artifacts WHERE company_id=${literal(f.companyId)}`)).toBe(0)
+ const before=graph(),saved=rejectedIdentityEffects(),privateSaved=protectedOriginals(),legalBefore=legal(),calls=provider.mock.calls.length
+ const originals=sql(`SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM public.ediel_messages x WHERE message_code='Z08'`)
+ expect(before.invoices.some(x=>x.invoice_export_item_id===itemId)).toBe(false)
+ expect(await processPendingInvoiceProviderEvents({companyId:f.companyId})).toEqual({processed:1,needsReview:0,failed:0,results:[{eventId,outcome:'processed'}]})
+ expect(sql(`SELECT jsonb_build_object('state',provider_status,'event',status_payload->>'last_provider_event_id','reconciliation',reconciliation_status) FROM public.invoice_export_items WHERE id=${literal(itemId)}`)).toEqual({state:'overdue',event:eventId,reconciliation:'matched'})
+ expect(sql(`SELECT jsonb_build_object('status',status,'reason',failure_reason) FROM public.invoice_provider_events WHERE id=${literal(eventId)}`)).toEqual({status:'processed',reason:null})
+ const after=graph(),projected=after.invoices.filter(x=>x.invoice_export_item_id===itemId)
+ expect(projected).toHaveLength(1)
+ expect(projected[0]).toMatchObject({company_id:f.companyId,customer_id:f.customerId,customer_contract_id:f.contractId,contract_id:f.contractId,canonical_export_item_id:itemId,partner_invoice_reference:invoiceGuid,status:'overdue',amount_ex_vat:100,vat_amount:25,amount_inc_vat:125,source_system:'canonical_invoice_export',raw_payload:payload})
+ // Only the exact billing projection may differ. Every old invoice, all own
+ // and foreign business rows, source history and physical ACKs stay identical.
+ expect({...after,invoices:after.invoices.filter(x=>x.invoice_export_item_id!==itemId)}).toEqual(before)
+ expect(rejectedIdentityEffects()).toEqual(saved);expect(protectedOriginals()).toEqual(privateSaved);expect(legal()).toEqual(legalBefore)
+ expect(sql(`SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM public.ediel_messages x WHERE message_code='Z08'`)).toEqual(originals)
+ expect(provider).toHaveBeenCalledTimes(calls)
+ expect(await processPendingInvoiceProviderEvents({companyId:f.companyId})).toEqual({processed:0,needsReview:0,failed:0,results:[]})
+ expect(graph()).toEqual(after);expect(rejectedIdentityEffects()).toEqual(saved);expect(legal()).toEqual(legalBefore)
 },120000)
 
 it('actual H08 archived but unreviewed legal original never becomes a mandate or outgoing rescission',async()=>{
