@@ -186,8 +186,6 @@ jobs:
           echo NATIVE > "$RUNNER_TEMP/h05h08-stage"
           GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
             --config scripts/ediel-z05h-z08h-supplier-native.config.ts \
-            --reporter=default --reporter=junit \
-            --outputFile=h05h08-native-working/native-junit.xml \
             > h05h08-native-working/native.log 2>&1 || native_exit=$?
           printf '%s\n' 'H05H08_BOUNDARY NATIVE_RETURNED'
           export GRIDEX_H_NATIVE_EXIT="$native_exit"
@@ -200,7 +198,12 @@ jobs:
           trap - EXIT
           set -euo pipefail
           test -z "$(docker ps -aq)"
-          rg -q '\[GRIDEX-REM-002 replay\] PASS: empty local Supabase' "$RUNNER_TEMP/h05h08-replay.log"
+          python3 - <<'PY'
+          import os,pathlib
+          marker='[GRIDEX-REM-002 replay] PASS: empty local Supabase'
+          if marker not in (pathlib.Path(os.environ['RUNNER_TEMP'])/'h05h08-replay.log').read_text():
+              raise RuntimeError('h_canonical_replay_pass_marker_missing')
+          PY
           echo SOURCE_IDENTITY > "$RUNNER_TEMP/h05h08-stage"
           python3 - <<'PY'
           import hashlib,json,os,pathlib,subprocess,xml.etree.ElementTree as ET
@@ -216,8 +219,16 @@ jobs:
           if set(changed)-allowed: raise RuntimeError('unexpected_replay_runtime_source_change:'+','.join(sorted(set(changed)-allowed)))
           junit=ET.parse('h05h08-native-working/native-junit.xml').getroot()
           cases=junit.findall('.//testcase')
-          if len(cases)!=101 or junit.findall('.//skipped'):
+          if len(cases)!=101 or junit.findall('.//skipped') or int(junit.attrib.get('errors','0')):
               raise RuntimeError('h_native_complete_101_cases_required')
+          counts=json.loads(pathlib.Path('h05h08-native-working/native-summary.json').read_text())['counts']
+          failures=len(junit.findall('.//failure'))
+          native_exit=int(os.environ['GRIDEX_H_NATIVE_EXIT'])
+          if (counts['tests']!=101 or counts['failures']!=failures or counts['passed']!=101-failures
+                  or counts['errors'] or counts['skipped']
+                  or counts['reason']!=('failed' if failures else 'passed')
+                  or (native_exit==0)!=(failures==0)):
+              raise RuntimeError('h_native_outcome_receipt_mismatch')
           original={}
           for path in pathlib.Path('h05h08-native-working').iterdir():
               if path.is_file():
@@ -234,6 +245,7 @@ jobs:
               'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
               'native_exit_code':int(os.environ['GRIDEX_H_NATIVE_EXIT']),
               'native_case_count':len(cases),'native_skipped_count':0,
+              'native_counts':counts,
               'canonical_replay':'PASSED','cleanup':'ZERO_CONTAINERS',
               'input_epoch':os.environ['GRIDEX_H_INPUT_EPOCH'],
               'file_receipt':os.environ['GRIDEX_H_FILE_RECEIPT'],
