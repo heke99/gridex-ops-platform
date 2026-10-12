@@ -44,6 +44,13 @@ function runExtendedHarness(base:string,seam:string,after:boolean,extension:stri
 
 const QUALITY_EXTENSION=String.raw`
  await db.exec(fs.readFileSync(root+'/supabase/migrations/20260930161718_ediel_utilts_e30_energy_source_and_null_quality.sql','utf8'))
+ // Series committed BEFORE SC-053 is applied carry no quantity quality key.
+ await message(uid(32),'PREFIX')
+ const committed={...item('PREFIX','2026-10-05T08:00:00Z','4'),productId:null,periodStart:null,periodEnd:null}
+ await persist(uid(32),committed)
+ await message(uid(33),'PRENULL')
+ const nullCommitted={...committed,transactionId:'PRENULL',quantities:[{value:null,qualifier:'136',raw:'QTY+136:NULL'},{...committed.quantities[0]}]}
+ const nullPersisted=await persist(uid(33),nullCommitted)
  await db.exec(fs.readFileSync(root+'/supabase/migrations/20261012120000_ediel_utilts_source_quantity_quality_v2.sql','utf8'))
  let sc053=0
  const raw="UNH+1+UTILTS'BGM+E66+DOC+9'IDE+24+SC053'MEA+AAZ++KWH'SEQ++1'QTY+136:NULL'STS+8+46'SEQ++2'QTY+136:0'STS+8+21'SEQ++3'QTY+220:123'UNT+11+1'"
@@ -60,7 +67,8 @@ const QUALITY_EXTENSION=String.raw`
  assert.equal(await valid({...source,quantities:[{...quantities[0],quality:null},quantities[1],quantities[2]]}),false);sc053++
  // A zero is never a missing value: 0 with quality 46 is refused.
  assert.equal(await valid({...source,quantities:[quantities[0],{...quantities[1],quality:'46'},quantities[2]]}),false);sc053++
- // Callers that supply no quality key keep the prior validation result.
+ // The validator alone still accepts an absent key: it also re-checks
+ // committed pre-SC-053 rows. New rows are guarded before storage (below).
  assert.equal(await valid({...source,quantities:quantities.map(({quality,...q})=>q)}),true);sc053++
 
  const stored=async tx=>(await db.query("SELECT v.quantity::text q,v.quality,v.qualifier,v.source_order FROM public.meter_reading_values v JOIN public.meter_reading_series s ON s.id=v.series_id WHERE s.source_transaction_reference=$1 ORDER BY v.source_order",[tx])).rows
@@ -81,9 +89,6 @@ const QUALITY_EXTENSION=String.raw`
  // now supplied with qualities, is compared without that key and keeps the
  // committed immutable item; any other difference is not adapted.
  const preserve=async(id,items)=>(await db.query("SELECT gridex_utilts_binding.preserve_committed_projection_v1($1,'test',$2,$3::jsonb) r",[company,id,JSON.stringify(items)])).rows[0].r
- await message(uid(32),'PREFIX')
- const committed={...item('PREFIX','2026-10-05T08:00:00Z','4'),productId:null,periodStart:null,periodEnd:null}
- await persist(uid(32),committed)
  const original=(await db.query("SELECT raw_transaction r FROM public.meter_reading_series WHERE source_transaction_reference='PREFIX'")).rows[0].r
  const retry={...committed,quantities:committed.quantities.map(q=>({...q,quality:'21'}))}
  assert.deepEqual(await preserve(uid(32),[retry]),[original]);sc053++
@@ -91,9 +96,6 @@ const QUALITY_EXTENSION=String.raw`
  assert.deepEqual(await preserve(uid(32),[changed]),[changed]);sc053++
  // A pre-SC-053 NULL quantity committed without readingAt: the retry now
  // supplies its quality and readingAt; only those added keys are ignored.
- await message(uid(33),'PRENULL')
- const nullCommitted={...committed,transactionId:'PRENULL',quantities:[{value:null,qualifier:'136',raw:'QTY+136:NULL'},{...committed.quantities[0]}]}
- const nullPersisted=await persist(uid(33),nullCommitted)
  assert.equal(nullPersisted[0].persistenceStatus,'persisted',JSON.stringify(nullPersisted));sc053++
  const nullOriginal=(await db.query("SELECT raw_transaction r FROM public.meter_reading_series WHERE source_transaction_reference='PRENULL'")).rows[0].r
  const nullRetry={...nullCommitted,quantities:[{...nullCommitted.quantities[0],quality:'46',readingAt:'2026-09-01T00:00:00Z'},{...nullCommitted.quantities[1],quality:'21'}]}
@@ -118,6 +120,23 @@ const QUALITY_EXTENSION=String.raw`
  assert.deepEqual(await preserve(uid(31),[requality]),[requality]);sc053++
  const moved={...timed,quantities:[timed.quantities[0],{...timed.quantities[1],readingAt:'2026-09-01T00:30:00Z'},timed.quantities[2]]}
  assert.deepEqual(await preserve(uid(31),[moved]),[moved]);sc053++
+ // Prohibited: a NEW accepted v2 transaction that drops a quality key is
+ // refused by preserve_committed_projection_v1, the first step of the live
+ // RPC chain (gridex_persist_utilts_consumption_v1 -> before_actor ->
+ // preserve -> persist_series_v1), so a sourced 46/21 never becomes 'unknown'.
+ // This harness's persist() calls the inner persist_series_v1 directly.
+ await message(uid(34),'SC053')
+ const dropped={...item('SC053','2026-10-04T08:00:00Z','0'),consumptionContract:{version:2,observations:[]},quantities:quantities.map((q,i)=>{if(i!==0)return q;const {quality,...rest}=q;return rest})}
+ await assert.rejects(()=>preserve(uid(34),[dropped]),/utilts_quantity_quality_required/);sc053++
+ const notObject={...dropped,quantities:[null,...quantities.slice(1)]}
+ await assert.rejects(()=>preserve(uid(34),[notObject]),/utilts_quantity_quality_required/);sc053++
+ assert.deepEqual(await preserve(uid(34),[{...dropped,quantities}]),[{...dropped,quantities}]);sc053++
+ // A non-accepted item and a committed legacy retry are not affected.
+ const notAccepted={...dropped,disposition:'rejected'}
+ const versionOne={...dropped,consumptionContract:{version:1,observations:[]}}
+ assert.deepEqual(await preserve(uid(34),[versionOne]),[versionOne]);sc053++
+ assert.deepEqual(await preserve(uid(34),[notAccepted]),[notAccepted]);sc053++
+ assert.deepEqual(await preserve(uid(32),[committed]),[original]);sc053++
  // Both replaced functions stay private.
  for(const role of ['anon','authenticated','service_role'])for(const fn of ['gridex_utilts_binding.validate_decimal_source_v2(jsonb,jsonb,text)','gridex_utilts_binding.preserve_committed_projection_v1(uuid,text,uuid,jsonb)'])
   assert.equal((await db.query('SELECT has_function_privilege($1,$2,$3) a',[role,fn,'EXECUTE'])).rows[0].a,false)
@@ -195,7 +214,7 @@ describe('SC-053 NULL is not zero in stored UTILTS values',()=>{
   expect(result.error,result.stderr).toBeUndefined()
   expect(result.status,result.stdout+result.stderr).toBe(0)
   const line=result.stdout.split('\n').find(l=>l.startsWith('SC053_QUANTITY_QUALITY_RESULT '))
-  expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(21)
+  expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(27)
 
  },125_000)
 
