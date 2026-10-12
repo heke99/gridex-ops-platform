@@ -20,7 +20,7 @@ export const RELAY_TRACE_MAX_HOPS = 30
 /** Accepted backwards clock skew between consecutive hops. */
 export const RELAY_TRACE_CLOCK_SKEW_MS = 30_000
 
-export type HopTls = 'tls' | 'plaintext' | 'unknown' | 'ambiguous' | 'local_final_delivery'
+export type HopTls = 'tls' | 'plaintext' | 'unknown' | 'ambiguous' | 'local_final_delivery' | 'receiver_internal'
 export type SpfResult = 'pass' | 'fail' | 'softfail' | 'neutral' | 'none' | 'temperror' | 'permerror' | 'missing' | 'conflicting'
 
 export type RelayHop = {
@@ -53,6 +53,13 @@ export type RelayTraceInput = {
   rawHeaders: string
   /** Informational only: reachability is never transport proof. */
   smtpPortReachable?: boolean
+  /**
+   * Operator-owned provider policy. A provider's submission server may hand a
+   * message to its own outbound relay without a Received line for that step;
+   * the gap is accepted only between two TLS hops whose hosts both sit inside
+   * these declared provider domains, and only with a policy reference.
+   */
+  providerPolicy?: { providerDomains: string[]; policyRef: string } | null
 }
 
 // RFC 3848: the trailing S (STARTTLS/implicit TLS) is the only accepted TLS signal.
@@ -294,12 +301,65 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
     for (let i = reasons.length - 1; i >= 0; i--) if (drop.has(reasons[i])) reasons.splice(i, 1)
     notes.push(`hop_${last.index}_local_final_delivery_excluded_from_tls`)
   }
-  const relayHops = localFinal ? hops.slice(0, -1) : hops
+  // Receiver boundary: the newest TLS hop whose `by` host authored an
+  // Authentication-Results header above the newest Received. Later hops are the
+  // receiver's own internal hand-offs (no `from` clause) and are excluded from
+  // the TLS chain; SPF is read from that boundary host.
+  let receiverIndex = -1
+  if (!localFinal) {
+    // A receiver-internal line starts with `by` and has no `from` clause anywhere
+    // (comments stripped, before the date); a late `from` is a real sender hop.
+    const internal = chronological.map((pos) => {
+      const st = stripComments(fields[pos].value)
+      if (!st) return false
+      const semi = st.text.lastIndexOf(';')
+      const tokens = (semi >= 0 ? st.text.slice(0, semi) : st.text).trim().split(/\s+/).map((t) => t.toLowerCase())
+      return tokens[0] === 'by' && !tokens.includes('from')
+    })
+    let k = hops.length - 1
+    while (k >= 0 && internal[k]) k--
+    if (k >= 1 && k < hops.length - 1) {
+      const h = hops[k]
+      // Results the receiving hop wrote sit above the previous hop's Received line
+      // (Gmail writes them directly below its own). RFC 8601 s.5: a receiver strips
+      // incoming results that claim its own authserv-id, so these cannot be forged upstream.
+      const authservs: string[] = []
+      for (const f of fields.slice(0, chronological[k - 1])) {
+        if (f.name !== 'authentication-results') continue
+        const st = stripComments(f.value)
+        const a = st && normalizeHost(st.text.split(';')[0]?.trim().split(/\s+/)[0])
+        if (a) authservs.push(a)
+      }
+      if (h.tls === 'tls' && h.by && authservs.some((a) => hostsRelated(a, h.by))) receiverIndex = k
+    }
+  }
+  if (receiverIndex >= 0) {
+    for (const h of hops.slice(receiverIndex + 1)) {
+      h.tls = 'receiver_internal'
+      // Only the reasons that describe an internal hand-off are cleared; malformed or
+      // ambiguous line failures stay.
+      const drop = new Set([`hop_${h.index}_plaintext`, `hop_${h.index}_sender_missing`, `hop_${h.index}_by_missing`])
+      for (let i = reasons.length - 1; i >= 0; i--) if (drop.has(reasons[i])) reasons.splice(i, 1)
+      notes.push(`hop_${h.index}_receiver_internal_excluded_from_tls`)
+    }
+  }
+  const relayHops = localFinal ? hops.slice(0, -1) : receiverIndex >= 0 ? hops.slice(0, receiverIndex + 1) : hops
+
+  const policy = input?.providerPolicy
+  const providerDomains = policy && typeof policy.policyRef === 'string' && policy.policyRef.trim() !== '' && Array.isArray(policy.providerDomains)
+    ? policy.providerDomains.map((d) => normalizeHost(d)).filter((d): d is string => d !== null)
+    : []
+  const inProvider = (h: string | null) => h !== null && providerDomains.some((d) => h === d || h.endsWith('.' + d))
 
   for (let i = 1; i < relayHops.length; i++) {
     const prev = hops[i - 1], cur = hops[i]
     if (!cur.fromNames.some((n) => hostsRelated(n, prev.by))) {
-      if (!reasons.includes('hop_chain_discontinuity')) reasons.push('hop_chain_discontinuity')
+      // Every sender name (HELO and the receiver-written rDNS) must sit inside the
+      // provider scope; one provider-looking name alongside an outside name is a contradiction.
+      const handoff = prev.tls === 'tls' && cur.tls === 'tls' && inProvider(prev.by) &&
+        cur.fromNames.length > 0 && cur.fromNames.every(inProvider)
+      if (handoff) notes.push(`hop_${cur.index}_provider_internal_handoff`)
+      else if (!reasons.includes('hop_chain_discontinuity')) reasons.push('hop_chain_discontinuity')
     }
     if (prev.timestamp !== null && cur.timestamp !== null && cur.timestamp + RELAY_TRACE_CLOCK_SKEW_MS < prev.timestamp) {
       if (!reasons.includes('hop_timestamps_out_of_order')) reasons.push('hop_timestamps_out_of_order')
@@ -313,10 +373,14 @@ export function evaluateRelayTrace(input: RelayTraceInput): RelayTraceVerdict {
   if (relayHops.some((h) => h.tls !== 'tls')) reasons.push('not_all_hops_tls')
 
   // Only SPF results the final receiving server added (above the newest Received) count.
-  const finalBy = hops[hops.length - 1].by
+  const finalBy = relayHops[relayHops.length - 1].by
   const spfResults = new Set<SpfResult>()
-  for (const f of fields.slice(0, receivedPositions[0])) {
+  const spfScope = receiverIndex >= 1 ? chronological[receiverIndex - 1] : receivedPositions[0]
+  for (const [i, f] of fields.slice(0, spfScope).entries()) {
     if (f.name !== 'authentication-results' && f.name !== 'received-spf') continue
+    // Below the newest Received (the widened receiver band) only receiver-bound
+    // Authentication-Results count: Received-SPF carries no authserv-id there.
+    if (i >= receivedPositions[0] && f.name !== 'authentication-results') continue
     const r = spfOf(f, finalBy, reasons)
     if (r) spfResults.add(r)
   }
