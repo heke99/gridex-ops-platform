@@ -222,7 +222,10 @@ function positionalEnergyStarts(contract: UtiltsConsumptionContract, transaction
       const absolute = localEdifactDateTimeToUtc(start, timezone)
       if (absolute) starts.set(sourceOrdinal, canonicalAbsoluteInstant(absolute))
     })
-  const consistent = contract.observations.length > 0 && contract.observations.every(observation => starts.get(observation.sourceOrdinal) === observation.periodStart)
+  // With no consumed observation (an all-NULL source) the grid comes only from
+  // the declared period start and resolution; otherwise every consumed
+  // observation must reproduce it exactly or no positional start is used.
+  const consistent = contract.observations.every(observation => starts.get(observation.sourceOrdinal) === observation.periodStart)
   return consistent ? starts : new Map()
 }
 

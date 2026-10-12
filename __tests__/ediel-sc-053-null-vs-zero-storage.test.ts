@@ -89,6 +89,33 @@ const QUALITY_EXTENSION=String.raw`
  // now supplied with qualities, is compared without that key and keeps the
  // committed immutable item; any other difference is not adapted.
  const preserve=async(id,items)=>(await db.query("SELECT gridex_utilts_binding.preserve_committed_projection_v1($1,'test',$2,$3::jsonb) r",[company,id,JSON.stringify(items)])).rows[0].r
+
+ // Review R2: maximum demand (power, U field521 QTY+42 in kW, own MEA+AAZ++KWT
+ // IDE) is not energy (136) or a meter reading (220). It keeps its own quality,
+ // cannot be consumed as an energy observation and is stored apart.
+ const powerRaw="UNH+1+UTILTS'BGM+E66+DOC+9'IDE+24+SC053P'MEA+AAZ++KWT'SEQ++1'QTY+42:7.5'STS+8+56'SEQ++2'QTY+42:0'STS+8+21'UNT+11+1'"
+ const powerTokens=(await db.query('SELECT gridex_utilts_binding.wire_tokens_v1($1) t',[powerRaw])).rows[0].t
+ const validIn=async(t,i)=>(await db.query('SELECT gridex_utilts_binding.validate_decimal_source_v2($1::jsonb,$2::jsonb,$3) v',[JSON.stringify(t),JSON.stringify(i),'.'])).rows[0].v
+ const powerQuantities=[{qualifier:'42',value:'7.5',quality:'56',raw:'QTY+42:7.5'},{qualifier:'42',value:'0',quality:'21',raw:'QTY+42:0'}]
+ const power={transactionId:'SC053P',disposition:'accepted',unit:'KWT',quantities:powerQuantities,consumptionContract:{observations:[]}}
+ assert.equal(await validIn(powerTokens,power),true);sc053++
+ // Prohibited: swapped power quality, a power value consumed as energy,
+ // a power value relabelled as energy/reading, or power borrowing the KWH scope.
+ assert.equal(await validIn(powerTokens,{...power,quantities:[{...powerQuantities[0],quality:'21'},{...powerQuantities[1],quality:'56'}]}),false);sc053++
+ assert.equal(await validIn(powerTokens,{...power,consumptionContract:{observations:[{sourceOrdinal:0,quantity:'7.5'}]}}),false);sc053++
+ assert.equal(await validIn(powerTokens,{...power,quantities:[{...powerQuantities[0],qualifier:'136'},powerQuantities[1]]}),false);sc053++
+ assert.equal(await validIn(powerTokens,{...power,quantities:[{...powerQuantities[0],qualifier:'220'},powerQuantities[1]]}),false);sc053++
+ assert.equal(await validIn(powerTokens,{...power,unit:'KWH'}),false);sc053++
+ // Power stored in its own series with its own qualities, never among energy.
+ await message(uid(35),'SC053P')
+ const powerItem={...item('SC053P','2026-10-04T08:00:00Z','7.5'),unit:'KWT',quantities:powerQuantities}
+ // A missing power quality key on a new accepted v2 item is refused before storage.
+ await assert.rejects(()=>preserve(uid(35),[{...powerItem,consumptionContract:{version:2,observations:[]},quantities:powerQuantities.map(({quality,...q})=>q)}]),/utilts_quantity_quality_required/);sc053++
+ const [powerResult]=await persist(uid(35),powerItem)
+ assert.equal(powerResult.persistenceStatus,'persisted',JSON.stringify(powerResult));sc053++
+ assert.deepEqual(await stored('SC053P'),[{q:'7.5',quality:'56',qualifier:'42',source_order:1},{q:'0',quality:'21',qualifier:'42',source_order:2}]);sc053++
+ assert.deepEqual((await db.query("SELECT v.qualifier,count(*)::int n,sum(v.quantity)::text total,string_agg(DISTINCT s.unit,',') unit FROM public.meter_reading_values v JOIN public.meter_reading_series s ON s.id=v.series_id WHERE s.source_transaction_reference IN ('SC053','SC053P') GROUP BY v.qualifier ORDER BY v.qualifier")).rows,
+  [{qualifier:'136',n:2,total:'0',unit:'KWH'},{qualifier:'220',n:1,total:'123',unit:'KWH'},{qualifier:'42',n:2,total:'7.5',unit:'KWT'}]);sc053++
  const original=(await db.query("SELECT raw_transaction r FROM public.meter_reading_series WHERE source_transaction_reference='PREFIX'")).rows[0].r
  const retry={...committed,quantities:committed.quantities.map(q=>({...q,quality:'21'}))}
  assert.deepEqual(await preserve(uid(32),[retry]),[original]);sc053++
@@ -173,9 +200,10 @@ function nullAndZeroMessage(nullStatuses:string[]=["STS+8+46'"]){
  return message
 }
 
-async function captured(){
- const message=nullAndZeroMessage(),runtime=runUtiltsRuntimeForMessage(message),policy=resolveCanonicalMessagePolicy(message)!
+async function captured(mutate:(contracts:Awaited<ReturnType<typeof prepareUtiltsConsumptionContracts>>)=>void=()=>{},message=nullAndZeroMessage()){
+ const runtime=runUtiltsRuntimeForMessage(message),policy=resolveCanonicalMessagePolicy(message)!
  const contracts=await prepareUtiltsConsumptionContracts({message,runtime,policy,matches:[],dataRequest:null,fallback:{customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null},allowConsumption:true})
+ mutate(contracts)
  const transactions=buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:runtime.facts.transactions,dispositions:runtime.transactionDispositions,matches:[]})
  let sent:{p_transactions:Array<{quantities:Array<{qualifier:string|null;value:string|null;quality?:string|null;readingAt?:string}>}>}|null=null
  native.rpc.mockReset();native.rpc.mockImplementation(async(_name:string,args:typeof sent)=>{sent=args;return {data:null,error:{message:'captured'}}})
@@ -200,6 +228,25 @@ describe('SC-053 NULL is not zero in stored UTILTS values',()=>{
   expect(missing.value).toBeNull();expect(missing.quality).not.toBe(zero.quality)
   expect(zero.value).toBe('0')
  })
+ it('fails closed: an inconsistent contract period start gives the missing value no invented readingAt',async()=>{
+  // The positional E66 start of the consumed zero (ordinal 1) is 22:15; a
+  // contract claiming 22:20 does not reproduce it, so no positional start is used.
+  const {sent}=await captured(contracts=>{const o=contracts[0].observations[0] as {periodStart:string};o.periodStart='2026-06-30T22:20:00.000Z'})
+  const [missing,zero]=sent.p_transactions[0].quantities
+  expect(missing).toMatchObject({qualifier:'136',value:null,quality:'46'})
+  expect('readingAt' in missing).toBe(false)
+  expect(zero.readingAt).toBe('2026-06-30T22:20:00.000Z')
+ })
+ it('keeps every interval of an all-NULL source (no consumed observation) as NULL/46 with its own readingAt',async()=>{
+  const message=nullAndZeroMessage()
+  message.raw_payload=recountEdifactUnt(message.raw_payload!.replace("QTY+136:0'","QTY+136:NULL'").replace("STS+8+21'","STS+8+46'"))
+  const {contracts,sent}=await captured(()=>{},message)
+  expect(contracts[0].observations).toHaveLength(0)
+  const quantities=sent.p_transactions[0].quantities
+  expect(quantities).toHaveLength(2)
+  for(const q of quantities) expect(q).toMatchObject({qualifier:'136',value:null,quality:'46'})
+  expect(quantities.map(q=>q.readingAt)).toEqual(['2026-06-30T22:00:00.000Z','2026-06-30T22:15:00.000Z'])
+ })
  it('returns the missing value as NULL/46 through the real authorized interval read (PGlite)',()=>{
   const result=runExtendedHarness('ediel-service-grant-set-sql-regression.mjs',` await db.query("INSERT INTO meter_reading_values VALUES($1,$2,$3,'2026-01-02',17.250,'KWH','56','220')",[uid(540),uid(1),uid(211)])`,true,INTERVAL_EXTENSION,
    {EDIEL_SQL_REPOSITORY:process.cwd()},[['.ediel-grant-set-runner.tmp.mjs','.ediel-sc053-grant-set-runner.tmp.mjs'],['.ediel-grant-set-consumer.tmp.mjs','.ediel-sc053-grant-set-consumer.tmp.mjs']])
@@ -214,7 +261,7 @@ describe('SC-053 NULL is not zero in stored UTILTS values',()=>{
   expect(result.error,result.stderr).toBeUndefined()
   expect(result.status,result.stdout+result.stderr).toBe(0)
   const line=result.stdout.split('\n').find(l=>l.startsWith('SC053_QUANTITY_QUALITY_RESULT '))
-  expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(27)
+  expect(JSON.parse(line!.slice('SC053_QUANTITY_QUALITY_RESULT '.length)).checks).toBe(37)
 
  },125_000)
 
