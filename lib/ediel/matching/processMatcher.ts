@@ -2,25 +2,16 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMatchCandidate, EdielMatchInput } from '@/lib/ediel/matching/matchingTypes'
 import { cleanMatchText, confidenceFromScore } from '@/lib/ediel/matching/matchingTypes'
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { canonicalUuidOrText, postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 
-// PostgREST quoted value: only `"` and `\` need escaping inside double quotes.
-function quotePostgrestValue(value: string): string {
-  return `"${value.replace(/["\\]/g, (ch) => `\\${ch}`)}"`
+// uuid ids compare case-insensitively in Postgres; refs keep their original text
+// for the case-sensitive text columns, so only the id comparison is canonical.
+function refsIncludeId(refs: string[], id: unknown): boolean {
+  const clean = cleanMatchText(id)
+  return clean !== null && refs.some((ref) => canonicalUuidOrText(ref) === canonicalUuidOrText(clean))
 }
 
-/**
- * Builds a PostgREST `or` list of equality conditions. Every value is quoted so
- * a sender-controlled reference cannot add conditions, and uuid columns only
- * receive UUID-shaped references (a non-UUID value there makes PostgREST
- * reject the whole query with 22P02). Returns '' when nothing is comparable.
- */
-export function postgrestEqAny(textColumns: string[], uuidColumns: string[], refs: string[]): string {
-  return refs.flatMap((ref) => [
-    ...textColumns.map((column) => `${column}.eq.${quotePostgrestValue(ref)}`),
-    ...(UUID_PATTERN.test(ref) ? uuidColumns.map((column) => `${column}.eq.${quotePostgrestValue(ref)}`) : []),
-  ]).join(',')
-}
+export { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 
 function unique(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.map((value) => cleanMatchText(value)).filter((value): value is string => Boolean(value)))]
@@ -102,7 +93,7 @@ export async function matchProcessForAutomation(input: EdielMatchInput): Promise
     const { data, error } = await switchQuery
     if (error) throw error
     for (const row of (data ?? []) as Array<Record<string, unknown>>) {
-      const exact = refs.includes(cleanMatchText(row.id) ?? '') || refs.includes(cleanMatchText(row.external_reference) ?? '')
+      const exact = refsIncludeId(refs, row.id) || refs.includes(cleanMatchText(row.external_reference) ?? '')
       addCandidate(candidates, {
         entityId: cleanMatchText(row.id),
         score: exact ? 165 : 100,
@@ -130,7 +121,7 @@ export async function matchProcessForAutomation(input: EdielMatchInput): Promise
     if (!error) {
       for (const row of (data ?? []) as Array<Record<string, unknown>>) {
         const haystack = JSON.stringify(row)
-        const exactId = refs.includes(cleanMatchText(row.id) ?? '')
+        const exactId = refsIncludeId(refs, row.id)
         const payloadMatch = refs.some((ref) => haystack.includes(ref))
         if (!exactId && !payloadMatch) continue
         addCandidate(candidates, {
