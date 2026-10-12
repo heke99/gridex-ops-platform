@@ -16,6 +16,7 @@ on:
       - 'lib/ediel/retention/**'
       - 'lib/customer-portal/customerLifecycle.ts'
       - 'lib/supabase/**'
+      - 'lib/env/**'
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig*.json'

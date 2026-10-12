@@ -84,3 +84,7 @@ Next: two fresh noncoauthor sourcepeers review exact localcommittedcandidate, fi
 
 ## Source1 reviews / source2 correction
 Fresh independentnoncoauthorA approves boundedsourcef966; B reportsP2 missingtransitivedependencyworkflowtriggers (A likewiseP3). Ownwriter corrects onlyclaimedworkflowfilter: portalcustomerfence/nativepermissionsetup/Supabaseclient/redactor/replayinputs/package/lock/config nowactivate feedback. Native/config blobs unchanged; prior45unit/targetedTS/lint applicability retained. YAML/bash/Python syntax recheckedPASS,diffPASS. No nativeexecution or GEN/coverage change. Next: bothpeers bind finalversion then newdraftPR/onehostedrun; exactsource/data/legal limits unchanged.
+
+## Draft779 / final remaining dependency correction
+Published draftPR779 atd3c72ba6. A approves that exactsource; Bfinalrebindidentified direct Supabaseclient→lib/env edge stilloutsideworkflowfilter. EarlierPRbodyclaim of2approvals on d3c was premature and is corrected; Bhasnotapprovedd3c. Ownwriteradds lib/env/**, no native/configblobchange.
+First DB05run38259335482 queuedatlastobservation. Automaticapprovalreview rejected cancelling thatownqueuedrun (authorization consideredinsufficient); no cancellationexecuted. Safe continuation letsoriginalrunfinish beforepublishing nextsourceversion; concurrencyalso serializes samePRnative. Originalrunresult canonlyqualifyitsactualhead/inputscope, nevernewheadCI. No indirectcancelattempt. Next: rebindbothpeers tocorrectedlocalversion, correctPRbody, qualifyoriginalterminalrun and thenpublishnewsource/fullcurrentheadgates.
