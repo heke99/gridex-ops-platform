@@ -1,10 +1,5 @@
 # Gridex Ediel — master-masterplan v2.0
 
-## Aktuellt implementationsarbete
-
-[Gemensam baslinje](../../../.agent-memory/masterplan-five-agent-baseline-20261012.md) och [fem nya agentprompter](../../../.agent-memory/masterplan-five-agent-prompt-20261012.md) styr fortsatt arbete. Nuvarande godkännandeledger visar314/352 godkända (118regler+196kontrakt),38 kvar. Denna specifikations originaldatum och dess importerade "Inte körd"-fält nedan är frysta historiska kravdata; aktuellt utförande/godkännande finns endast i coverage.json. Gamla agenters fortsättningsmandat är pensionerade.
-
-
 Datum: 2026-09-10. Omfattning: svensk elmarknad, multitenant, elhandel/DDQ och energitjänster/DGI, inklusive provider som juridisk ESCO åt andra tenants.
 
 ## Börja här
