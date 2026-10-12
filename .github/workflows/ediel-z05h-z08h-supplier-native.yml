@@ -31,21 +31,57 @@ permissions:
   contents: read
 
 concurrency:
-  group: ediel-z05h-z08h-supplier-native-${{ github.event.pull_request.number }}
+  group: ediel-z05h-z08h-supplier-native-owned
   cancel-in-progress: true
 
 # Additional genuine feedback. Ordinary full-native, clean/upgrade, browser,
 # tenant, parity and certificate gates remain mandatory. No receipt approves a whole contract.
 jobs:
   h05h08-native:
+    if: github.event.pull_request.head.ref == 'codex/c3-h-20261012' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       NODE_OPTIONS: --max-old-space-size=6144
+      GRIDEX_H_INPUT_EPOCH: gridex-C3-takeover-native-v1
+      GRIDEX_H_FILE_RECEIPT: 2255742ce5a41aa5968ace2d99baec3dcf40defd
+      GRIDEX_H_PRODUCER_RECEIPT: 58cb780bdd566edc96f96f5c3c66fe82074cc0b1
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Validate handed-off source and exact resource custody
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
+          git merge-base --is-ancestor f36dbba1b8c09e0c6e54e027db05d94b171f2058 HEAD
+          python3 - <<'PY'
+          import hashlib,json,os,subprocess
+          root='repos/'+os.environ['GITHUB_REPOSITORY']+'/git/ref/tags/agent-claims/masterplan/'
+          files=['lib/ediel/core/runtimeDecision.ts','lib/ediel/flows/inboundProcessing.ts',
+                 'lib/ediel/prodat/receivedZ05RejectedIdentityRuntime.ts',
+                 '__tests__/ediel-z05-rejected-identity-runtime.test.ts',
+                 '.github/workflows/ediel-z05h-z08h-supplier-native.yml',
+                 '__tests__/ediel-supply-end-field-omissions.test.ts',
+                 'scripts/ediel-at-z05h-z08h-supplier-native.test.ts',
+                 'scripts/ediel-z05h-z08h-supplier-native.config.ts',
+                 'scripts/helpers/ediel-h05h08-normal-switch-native-fixture.ts',
+                 'scripts/helpers/ediel-supply-end-field-omissions.ts',
+                 'scripts/gridex-redact-native-evidence.py',
+                 'scripts/gridex-redact-native-evidence-selftest.py']
+          expected={key:os.environ['GRIDEX_H_FILE_RECEIPT'] for key in
+                    ['slot-C3','id-AT-Z05H-SUPPLIER','id-AT-Z08H-SUPPLIER']+
+                    ['file-'+hashlib.sha256(path.encode()).hexdigest() for path in files]}
+          expected['producer-h']=os.environ['GRIDEX_H_PRODUCER_RECEIPT']
+          for name,sha in sorted(expected.items()):
+              actual=json.loads(subprocess.check_output(['gh','api',root+name]))
+              if actual['object']['sha']!=sha: raise RuntimeError('h_custody_mismatch:'+name)
+          print('H05H08_CUSTODY exact16refs verified; one source/inputepoch')
+          PY
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -71,6 +107,9 @@ jobs:
                    'runner_os':os.environ['RUNNER_OS'],'runner_arch':os.environ['RUNNER_ARCH'],
                    'cpu_count':os.cpu_count(),'memory_kib':memory,
                    'disk_bytes':{'total':disk.total,'used':disk.used,'free':disk.free},
+                   'input_epoch':os.environ['GRIDEX_H_INPUT_EPOCH'],
+                   'file_receipt':os.environ['GRIDEX_H_FILE_RECEIPT'],
+                   'producer_receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT'],
                    'native':'NOT_EXECUTED','whole_h05_h08':'NOT_APPROVED'}
           target=pathlib.Path('h05h08-native-preflight');target.mkdir()
           (target/'preflight.json').write_text(json.dumps(receipt,indent=2)+'\n')
@@ -88,6 +127,10 @@ jobs:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
         run: |
           set -euo pipefail
+          # Preserve the runner's HOME. Only the supported CLI cache is isolated.
+          export SUPABASE_HOME="$RUNNER_TEMP/h05h08-supabase-home"
+          export SUPABASE_TELEMETRY_DISABLED=true
+          test -z "$(docker ps -aq)"
           mkdir -p h05h08-native-working
           export GRIDEX_H_GIT_INPUTS="$RUNNER_TEMP/h05h08-git-inputs.json"
           # Freeze original Git blobs before replay generates local types/schema.
@@ -156,9 +199,11 @@ jobs:
           printf '%s\n' 'H05H08_BOUNDARY CLEANUP_RETURNED'
           trap - EXIT
           set -euo pipefail
+          test -z "$(docker ps -aq)"
+          rg -q '\[GRIDEX-REM-002 replay\] PASS: empty local Supabase' "$RUNNER_TEMP/h05h08-replay.log"
           echo SOURCE_IDENTITY > "$RUNNER_TEMP/h05h08-stage"
           python3 - <<'PY'
-          import hashlib,json,os,pathlib,subprocess
+          import hashlib,json,os,pathlib,subprocess,xml.etree.ElementTree as ET
           source=json.loads(pathlib.Path(os.environ['GRIDEX_H_GIT_INPUTS']).read_text())
           changed={}
           for name,identity in source.items():
@@ -169,6 +214,16 @@ jobs:
           allowed={'supabase/database.types.ts','supabase/schema.sql','supabase/schema.fingerprint.json',
                    'scripts/supabase-types-manifest.json'}
           if set(changed)-allowed: raise RuntimeError('unexpected_replay_runtime_source_change:'+','.join(sorted(set(changed)-allowed)))
+          junit=ET.parse('h05h08-native-working/native-junit.xml').getroot()
+          cases=junit.findall('.//testcase')
+          if len(cases)!=101 or junit.findall('.//skipped'):
+              raise RuntimeError('h_native_complete_101_cases_required')
+          original={}
+          for path in pathlib.Path('h05h08-native-working').iterdir():
+              if path.is_file():
+                  with path.open('rb') as stream: digest=hashlib.file_digest(stream,'sha256').hexdigest()
+                  original[path.name]={'bytes':path.stat().st_size,'sha256':digest}
+          pathlib.Path('h05h08-native-working/original-output-sha256.json').write_text(json.dumps(original,indent=2)+'\n')
           receipt={
               'purpose':'supplemental_actual_native_feedback',
               'checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
@@ -178,6 +233,11 @@ jobs:
               'workflow_run_id':os.environ['GITHUB_RUN_ID'],
               'workflow_run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],
               'native_exit_code':int(os.environ['GRIDEX_H_NATIVE_EXIT']),
+              'native_case_count':len(cases),'native_skipped_count':0,
+              'canonical_replay':'PASSED','cleanup':'ZERO_CONTAINERS',
+              'input_epoch':os.environ['GRIDEX_H_INPUT_EPOCH'],
+              'file_receipt':os.environ['GRIDEX_H_FILE_RECEIPT'],
+              'producer_receipt':os.environ['GRIDEX_H_PRODUCER_RECEIPT'],
               'input_identity':'immutable_checkout_before_replay',
               'source_blobs':source,
               'input_sha256':{name:identity['sha256'] for name,identity in source.items()},
@@ -193,10 +253,12 @@ jobs:
           printf '%s\n' 'H05H08_BOUNDARY SOURCE_IDENTITY_WRITTEN'
           echo REDACTION > "$RUNNER_TEMP/h05h08-stage"
           python3 scripts/gridex-redact-native-evidence.py \
-            --local-secrets "$GRIDEX_NATIVE_STATUS" --root h05h08-native-working
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root h05h08-native-working \
+            --line-records h05h08-native-working/native.log \
+            --line-records h05h08-native-working/native-junit.xml
           mv h05h08-native-working h05h08-native-evidence
           printf '%s\n' 'H05H08_BOUNDARY EVIDENCE_REDACTED'
-          cat h05h08-native-evidence/native.log
+          tail -n 160 h05h08-native-evidence/native.log
           rm -f "$GRIDEX_NATIVE_STATUS" "$GRIDEX_H_GIT_INPUTS"
           kill "$diagnostic_pid" 2>/dev/null || true
           wait "$diagnostic_pid" 2>/dev/null || true
@@ -233,8 +295,15 @@ jobs:
                    'whole_h05_h08':'NOT_APPROVED','ordinary_required_gates':'NOT_REPLACED'}
           pathlib.Path('h05h08-native-working/failure-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
           PY
+            record_args=()
+            for file in bootstrap.log native.log native-junit.xml; do
+              if [[ -f "h05h08-native-working/$file" ]]; then
+                record_args+=(--line-records "h05h08-native-working/$file")
+              fi
+            done
             python3 scripts/gridex-redact-native-evidence.py \
-              --local-secrets "$RUNNER_TEMP/h05h08-native-status.json" --root h05h08-native-working
+              --local-secrets "$RUNNER_TEMP/h05h08-native-status.json" --root h05h08-native-working \
+              "${record_args[@]}"
             mv h05h08-native-working h05h08-native-evidence
           fi
       - name: Upload redacted native proof
