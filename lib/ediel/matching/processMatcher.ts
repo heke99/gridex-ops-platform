@@ -4,11 +4,17 @@ import { cleanMatchText, confidenceFromScore } from '@/lib/ediel/matching/matchi
 
 import { canonicalUuidOrText, postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 
+// uuid ids compare case-insensitively in Postgres; refs keep their original text
+// for the case-sensitive text columns, so only the id comparison is canonical.
+function refsIncludeId(refs: string[], id: unknown): boolean {
+  const clean = cleanMatchText(id)
+  return clean !== null && refs.some((ref) => canonicalUuidOrText(ref) === canonicalUuidOrText(clean))
+}
+
 export { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 
 function unique(values: Array<string | null | undefined>): string[] {
-  // UUID-shaped refs are lower-cased so exact-match scoring agrees with Postgres.
-  return [...new Set(values.map((value) => cleanMatchText(value)).filter((value): value is string => Boolean(value)).map(canonicalUuidOrText))]
+  return [...new Set(values.map((value) => cleanMatchText(value)).filter((value): value is string => Boolean(value)))]
 }
 
 function refsFromInput(input: EdielMatchInput): string[] {
@@ -87,7 +93,7 @@ export async function matchProcessForAutomation(input: EdielMatchInput): Promise
     const { data, error } = await switchQuery
     if (error) throw error
     for (const row of (data ?? []) as Array<Record<string, unknown>>) {
-      const exact = refs.includes(cleanMatchText(row.id) ?? '') || refs.includes(cleanMatchText(row.external_reference) ?? '')
+      const exact = refsIncludeId(refs, row.id) || refs.includes(cleanMatchText(row.external_reference) ?? '')
       addCandidate(candidates, {
         entityId: cleanMatchText(row.id),
         score: exact ? 165 : 100,
@@ -115,7 +121,7 @@ export async function matchProcessForAutomation(input: EdielMatchInput): Promise
     if (!error) {
       for (const row of (data ?? []) as Array<Record<string, unknown>>) {
         const haystack = JSON.stringify(row)
-        const exactId = refs.includes(cleanMatchText(row.id) ?? '')
+        const exactId = refsIncludeId(refs, row.id)
         const payloadMatch = refs.some((ref) => haystack.includes(ref))
         if (!exactId && !payloadMatch) continue
         addCandidate(candidates, {

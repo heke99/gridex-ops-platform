@@ -61,7 +61,15 @@ describe('processMatcher UUID canonicalisation', () => {
     const candidates = await matchProcessForAutomation({ message, companyId: COMPANY })
     const sw = candidates.find((c) => c.details?.processType === 'supplier_switch')!
     expect(sw.reason).toBe('supplier_switch_reference_exact')
-    expect(db.ors.find((o) => o.table === 'supplier_switch_requests')!.filter).toContain(`id.eq."${UUID}"`)
+    expect(db.ors.find((o) => o.table === 'supplier_switch_requests')!.filter).toContain(`id.eq."${UUID.toUpperCase()}"`)
+  })
+
+  it('keeps an upper-case UUID-shaped reference unchanged for case-sensitive text columns', async () => {
+    db.rows.supplier_switch_requests = [{ id: COMPANY, company_id: COMPANY, external_reference: UUID.toUpperCase() }]
+    const message = { id: 'm', company_id: COMPANY, external_reference: UUID.toUpperCase() } as unknown as EdielMessageRow
+    const candidates = await matchProcessForAutomation({ message, companyId: COMPANY })
+    expect(db.ors.find((o) => o.table === 'supplier_switch_requests')!.filter).toContain(`external_reference.eq."${UUID.toUpperCase()}"`)
+    expect(candidates.find((c) => c.details?.processType === 'supplier_switch')!.reason).toBe('supplier_switch_reference_exact')
   })
 })
 
