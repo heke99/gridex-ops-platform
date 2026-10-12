@@ -435,3 +435,93 @@ for(const permission of ['ediel.retention.purge','ediel.retention.customer_field
   expect(f.preserved()).toEqual(f.historical)
  },180000)
 }
+
+// Keep the original eight cases byte-identical above. This holder targets the
+// later issuer lock, after the old purge body has checked reviewer authority.
+function issuerLock(company:string,issuer:string) {
+ if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('db05_owned_local_only')
+ const child=spawn('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
+ let output='',errors='',acquired=false
+ let resolveReady:(pid:number)=>void=()=>{},rejectReady:(error:Error)=>void=()=>{}
+ const ready=new Promise<number>((resolve,reject)=>{resolveReady=resolve;rejectReady=reject})
+ const timer=setTimeout(()=>{child.kill('SIGTERM');rejectReady(Error('db05_issuer_lock_not_observed'))},8000)
+ child.stdout.setEncoding('utf8');child.stderr.setEncoding('utf8')
+ child.stdout.on('data',(data:string)=>{
+  output+=data
+  const marker=/DB05_ISSUER_LOCK_HELD:(\d+)/.exec(output)
+  if(!acquired&&marker){acquired=true;clearTimeout(timer);resolveReady(Number(marker[1]))}
+ })
+ child.stderr.on('data',(data:string)=>{errors+=data})
+ const done=new Promise<void>((resolve,reject)=>{
+  child.on('error',(error:Error)=>{clearTimeout(timer);rejectReady(error);reject(error)})
+  child.on('close',(code:number|null)=>{
+   clearTimeout(timer)
+   if(!acquired)rejectReady(Error('db05_issuer_lock_holder_closed_before_marker'))
+   if(code===0)resolve();else reject(Error('db05_issuer_lock_holder_failed:'+String(code)+':'+errors))
+  })
+ })
+ child.stdin.write(`BEGIN;SELECT id FROM gridex_ediel_retention.issuers WHERE id=${literal(issuer)} AND company_id=${literal(company)} FOR UPDATE;SELECT 'DB05_ISSUER_LOCK_HELD:'||pg_backend_pid();\n`)
+ return {ready,done,release:()=>{if(!child.stdin.writableEnded)child.stdin.end('ROLLBACK;\n')}}
+}
+
+for(const permission of ['ediel.retention.review','ediel.retention.customer_fields']) {
+ it(`a scheduled reviewer ${permission} DENY activating during an observed issuer lock wait holds the SAME customer without erasure`,async()=>{
+  const f=await fixture(),initial=f.state()
+  const due=sql<string>("SELECT to_jsonb(clock_timestamp()-interval '1 second')")
+  const submitted=await f.submit(f.token(due))
+  expect(submitted.error).toBeNull()
+  expect(submitted.data).toMatchObject({issuerQualified:true})
+  const decision=submitted.data.decisionId as string
+  const approved=await f.review(decision)
+  expect(approved.error).toBeNull()
+  expect(approved.data).toMatchObject({status:'approved'})
+  // Reviewer alone changes with elapsed time. Purger and signed legal policy
+  // remain valid; no authorization/source row is mutated during the request.
+  const activates=sql<string>("SELECT to_jsonb(clock_timestamp()+interval '6 seconds')")
+  sql(`INSERT INTO public.user_permission_overrides(id,user_id,company_id,permission_key,effect,is_active,valid_from)
+   VALUES(${literal(randomUUID())},${literal(f.reviewer.id)},${literal(f.company)},${literal(permission)},'deny',true,${literal(activates)}::timestamptz)`)
+  expect(sql<boolean>(`SELECT to_jsonb(gridex_ediel_retention.permission_v1(${literal(f.company)},${literal(f.reviewer.id)},${literal(permission)}))`)).toBe(true)
+  const lock=issuerLock(f.company,f.issuer)
+  let result:Awaited<ReturnType<typeof f.purge>>|undefined
+  let pending:Promise<Awaited<ReturnType<typeof f.purge>>>|undefined
+  try {
+   const holderPid=await lock.ready
+   pending=Promise.resolve(f.purge(decision))
+   let waiting:{started:string;observed:string}|null=null
+   for(let attempt=0;attempt<30;attempt++) {
+    waiting=sql<{started:string;observed:string}|null>(`SELECT (SELECT to_jsonb(x) FROM (
+     SELECT xact_start AS started,clock_timestamp() AS observed FROM pg_stat_activity
+     WHERE usename='authenticator' AND state='active' AND wait_event_type='Lock'
+       AND ${holderPid}=ANY(pg_blocking_pids(pid))
+       AND query LIKE '%ediel_pseudonymise_customer_retention_v1%'
+     LIMIT 1) x)`)
+    if(waiting)break
+    await delay(100)
+   }
+   expect(waiting,'actual PostgREST purge must wait on the held issuer row').not.toBeNull()
+   expect(Date.parse(waiting!.started)).toBeLessThan(Date.parse(activates))
+   expect(Date.parse(waiting!.observed)).toBeLessThan(Date.parse(activates))
+   const remaining=sql<number>(`SELECT to_jsonb(greatest(0,extract(epoch FROM (${literal(activates)}::timestamptz-clock_timestamp())))*1000)`)
+   await delay(remaining+100)
+   expect(sql<boolean>(`SELECT to_jsonb(clock_timestamp()>=${literal(activates)}::timestamptz)`)).toBe(true)
+   lock.release()
+   await lock.done
+   result=await pending
+  } finally {
+   lock.release()
+   await lock.done
+   if(pending)await pending
+  }
+  expect(sql<boolean>(`SELECT to_jsonb(gridex_ediel_retention.permission_v1(${literal(f.company)},${literal(f.reviewer.id)},${literal(permission)}))`)).toBe(false)
+  const missing=permission==='ediel.retention.review'?'current_retention_reviewer_authority':'current_retention_class_reviewer_authority'
+  // Entry checks must also refuse a fresh request on this exact same decision;
+  // a defective first erasure would return its tombstone instead of this HOLD.
+  const fresh=await f.purge(decision)
+  expect(fresh.error).toBeNull()
+  expect(fresh.data).toMatchObject({status:'held',missing:[missing]})
+  expect(result!.error).toBeNull()
+  expect(result!.data).toMatchObject({status:'held',missing:[missing]})
+  expect(f.state()).toEqual(initial)
+  expect(f.preserved()).toEqual(f.historical)
+ },180000)
+}
