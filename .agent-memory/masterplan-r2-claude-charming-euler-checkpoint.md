@@ -38,6 +38,19 @@
 - Reviews by non-coauthors: codex-extra-review-a93c and the extra reviewer (source PASS at `749af6f3`), and the coordinator
   (P2 found, then verified fixed at `32235b02`; product source identical to `2889be29`).
 
+## Packet 2 — TR-08 whole-ID (genuine STRATO trace)
+- Input: two genuine operator-owned read-back traces from ediel@gridex.se via STRATO to Gmail (2026-10-12), committed masked in
+  `quality/audits/ediel-masterplan-v2/evidence/tr-08-strato-genuine-traces-20261012.json`.
+- Finding: main's evaluator rejected the genuine traces because Gmail's internal `by <ip> with SMTP` hand-off was treated as a relay hop
+  and SPF was read only above it. Fix: receiver boundary (exact `by ...` lines after a TLS hop whose host authored
+  Authentication-Results) and an operator-declared provider hand-off (both hops TLS, both hosts inside providerDomains, non-blank policyRef).
+- Result: authenticated-submission trace (iPhone Mail -> smtp.strato.com ESMTPSA TLSv1.3 -> rzone.de -> mx.google.com ESMTPS TLS1_3,
+  spf=pass) verified; webmail trace stays unverified (internal host smtp-ox.front outside provider domains). Forged variants fail.
+- Verification: 101 tests across 5 files PASS; tsc and eslint clean; `ediel:masterplan-v2:test-coverage -- --check` exit 0, approved 315/352.
+- Coverage: only the R2-held `TR-08` row -> VERIFIED. `AT-TR-08` (C3 slot) left for C3.
+- Gap stated openly: STRATO publishes its SPF policy but no TLS policy for its own internal submission -> outbound hand-off.
+- Refs for relayTrace.ts, the new test and evidence file requested on #766 (6128404880); merge only after GET_MATCH.
+
 ## Next
 - File refs for the 5 delivered paths can be released; the slot and ID refs stay (TR-08/OPS-04 not whole-approved).
   This session cannot delete tags (403), so the release goes through the capable proxy against receipt `563cf956`.

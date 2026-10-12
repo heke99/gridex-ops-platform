@@ -1344,8 +1344,17 @@
     {
       "id": "TR-08",
       "acceptance_id": "AT-TR-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/relayTrace.ts",
+        "lib/ediel/mailReadiness.ts",
+        "lib/ediel/transport/controlledLiveReadiness.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/tr-08-strato-genuine-traces-20261012.json",
+        "__tests__/ediel-tr-08-strato-genuine-trace.test.ts",
+        "__tests__/ediel-tr-08-relay-trace.test.ts",
+        "__tests__/ediel-tr-08-mail-readiness-relay.test.ts",
+        "__tests__/ediel-ops-04-controlled-live-readiness.test.ts"
+      ]
     },
     {
       "id": "TR-09",
