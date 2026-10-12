@@ -2,7 +2,7 @@
 // Mechanism proof only: synthetic people, manual retained history and explicit
 // synthetic legal competence. This neither decides a lawful retention period
 // nor approves DB-05, AT-DB-05 or SC-070. C3 consumes this single native chain.
-import {execFileSync} from 'node:child_process'
+import {execFileSync,spawn} from 'node:child_process'
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {setTimeout as delay} from 'node:timers/promises'
 import {createClient} from '@supabase/supabase-js'
@@ -18,6 +18,32 @@ function sql<T>(input:string):T {
   input,encoding:'utf8',timeout:10000,maxBuffer:2_000_000,
  }).trim()
  return output?JSON.parse(output) as T:undefined as T
+}
+function customerLock(company:string,customer:string) {
+ if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('db05_owned_local_only')
+ const child=spawn('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
+ let output='',errors='',acquired=false
+ let resolveReady:(pid:number)=>void=()=>{},rejectReady:(error:Error)=>void=()=>{}
+ const ready=new Promise<number>((resolve,reject)=>{resolveReady=resolve;rejectReady=reject})
+ const timer=setTimeout(()=>{child.kill('SIGTERM');rejectReady(Error('db05_customer_lock_not_observed'))},8000)
+ child.stdout.setEncoding('utf8');child.stderr.setEncoding('utf8')
+ child.stdout.on('data',(data:string)=>{
+  output+=data
+  const marker=/DB05_CUSTOMER_LOCK_HELD:(\d+)/.exec(output)
+  if(!acquired&&marker){acquired=true;clearTimeout(timer);resolveReady(Number(marker[1]))}
+ })
+ child.stderr.on('data',(data:string)=>{errors+=data})
+ const done=new Promise<void>((resolve,reject)=>{
+  child.on('error',(error:Error)=>{clearTimeout(timer);rejectReady(error);reject(error)})
+  child.on('close',(code:number|null)=>{
+   clearTimeout(timer)
+   if(!acquired)rejectReady(Error('db05_lock_holder_closed_before_marker'))
+   if(code===0)resolve();else reject(Error('db05_lock_holder_failed:'+String(code)+':'+errors))
+  })
+ })
+ // Observe a real held row lock; keep stdin open until the caller releases it.
+ child.stdin.write(`BEGIN;SELECT id FROM public.customers WHERE id=${literal(customer)} AND company_id=${literal(company)} FOR UPDATE;SELECT 'DB05_CUSTOMER_LOCK_HELD:'||pg_backend_pid();\n`)
+ return {ready,done,release:()=>{if(!child.stdin.writableEnded)child.stdin.end('ROLLBACK;\n')}}
 }
 async function actor(company:string,permissions:string[]) {
  const email=randomUUID()+'@example.invalid',password=randomUUID()+'Aa1!'
@@ -280,6 +306,69 @@ it('a correctly signed but expired class policy stays held without erasure',asyn
  const held=await f.purge(submitted.data.decisionId)
  expect(held.error).toBeNull()
  expect(held.data).toMatchObject({status:'held',missing:['current_customer_class_legal_retention_deadline']})
+ expect(f.state()).toEqual(initial)
+ expect(f.preserved()).toEqual(f.historical)
+},180000)
+
+it('a policy expiring during an observed customer lock wait cannot authorize erasure when the request resumes',async()=>{
+ const f=await fixture(),initial=f.state()
+ const now=sql<string>('SELECT to_jsonb(clock_timestamp())')
+ const expires=new Date(Date.parse(now)+6000).toISOString()
+ const due=new Date(Date.parse(now)-1000).toISOString()
+ const submitted=await f.submit(f.token(due,{expiresAt:expires}))
+ expect(submitted.error).toBeNull()
+ expect(submitted.data).toMatchObject({issuerQualified:true})
+ const decision=submitted.data.decisionId as string
+ const approved=await f.review(decision)
+ expect(approved.error).toBeNull()
+ expect(approved.data).toMatchObject({status:'approved'})
+ const lock=customerLock(f.company,f.customer)
+ let result:Awaited<ReturnType<typeof f.purge>>|undefined
+ let pending:Promise<Awaited<ReturnType<typeof f.purge>>>|undefined
+ try {
+  const holderPid=await lock.ready
+  // Consume the thenable now, so PostgREST begins a real request while the
+  // policy is valid. A later invocation would miss the stale-clock contrast.
+  pending=Promise.resolve(f.purge(decision))
+  let waiting:{started:string;observed:string}|null=null
+  for(let attempt=0;attempt<30;attempt++) {
+   waiting=sql<{started:string;observed:string}|null>(`SELECT (SELECT to_jsonb(x) FROM (
+    SELECT xact_start AS started,clock_timestamp() AS observed FROM pg_stat_activity
+    WHERE usename='authenticator' AND state='active' AND wait_event_type='Lock'
+      AND ${holderPid}=ANY(pg_blocking_pids(pid))
+      AND query LIKE '%ediel_pseudonymise_customer_retention_v1%'
+    LIMIT 1) x)`)
+   if(waiting)break
+   await delay(100)
+  }
+  expect(waiting,'actual PostgREST request must wait on the held customer row').not.toBeNull()
+  expect(Date.parse(waiting!.started)).toBeLessThan(Date.parse(expires))
+  expect(Date.parse(waiting!.observed)).toBeLessThan(Date.parse(expires))
+  const remaining=sql<number>(`SELECT to_jsonb(greatest(0,extract(epoch FROM (${literal(expires)}::timestamptz-clock_timestamp())))*1000)`)
+  await delay(remaining+100)
+  expect(sql<boolean>(`SELECT to_jsonb(clock_timestamp()>=${literal(expires)}::timestamptz)`)).toBe(true)
+  lock.release()
+  await lock.done
+  result=await pending
+ } finally {
+  lock.release()
+  await lock.done
+  if(pending)await pending
+ }
+ // Paired fresh target: a request admitted after expiry already stays held.
+ // Do not use a retry of f, whose tombstone deliberately bypasses revalidation.
+ const control=await fixture(),controlInitial=control.state()
+ const expired=await control.submit(control.token(due,{expiresAt:expires,issuedAt:new Date(Date.parse(now)-1000).toISOString()}))
+ expect(expired.error).toBeNull()
+ expect(expired.data).toMatchObject({issuerQualified:false})
+ expect((await control.review(expired.data.decisionId)).data).toMatchObject({status:'held'})
+ const after=await control.purge(expired.data.decisionId)
+ expect(after.error).toBeNull()
+ expect(after.data).toMatchObject({status:'held',missing:['current_customer_class_legal_retention_deadline']})
+ expect(control.state()).toEqual(controlInitial)
+ expect(control.preserved()).toEqual(control.historical)
+ expect(result!.error).toBeNull()
+ expect(result!.data).toMatchObject({status:'held',missing:['current_customer_class_legal_retention_deadline']})
  expect(f.state()).toEqual(initial)
  expect(f.preserved()).toEqual(f.historical)
 },180000)
