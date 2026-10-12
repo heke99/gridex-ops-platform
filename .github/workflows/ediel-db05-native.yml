@@ -1,0 +1,246 @@
+name: Ediel DB05 customer close and due purge native
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/db-05-customer-close-due-purge-native.test.ts'
+      - 'scripts/db-05-native.config.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-aud-003-*'
+      - 'scripts/gridex-redact-native-evidence.py'
+      - 'scripts/helpers/ediel-native-permission-catalog.setup.ts'
+      - 'scripts/lib/**'
+      - 'scripts/sql/**'
+      - 'scripts/migration-history-manifest*.json'
+      - 'lib/ediel/retention/**'
+      - 'lib/customer-portal/customerLifecycle.ts'
+      - 'lib/supabase/**'
+      - 'lib/env/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - 'supabase/migrations/**'
+      - 'supabase/bootstrap/**'
+      - 'supabase/config.toml'
+      - 'supabase/seed.sql'
+      - 'supabase/schema.sql'
+      - '.github/workflows/ediel-db05-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-db05-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+# Supplemental feedback only. All ordinary OPS clean/upgrade/native/browser
+# and parity gates remain mandatory; this does not approve any rule card.
+jobs:
+  db05-native:
+    # This custody-bound producer belongs to the one R1 proof branch. Other
+    # PRs retain their ordinary gates after these temporary claims are released.
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/r1-db05-20261012-f2c6146b'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+      SUPABASE_TELEMETRY_DISABLED: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Prove canonical customer close and same-decision due purge
+        shell: bash
+        env:
+          SUPABASE_HOME: ${{ runner.temp }}/db05-supabase-home
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          GH_TOKEN: ${{ github.token }}
+          DB05_EXPECTED_SOURCE: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          export DB05_NATIVE_SOURCE_SHA="$(git rev-parse HEAD)"
+          test "$DB05_NATIVE_SOURCE_SHA" = "$DB05_EXPECTED_SOURCE"
+          # One isolated backend for this exact source/input epoch.
+          test -z "$(docker ps -aq)"
+          available_bytes="$(df -PB1 "$RUNNER_TEMP" | awk 'NR==2 {print $4}')"
+          docker_driver="$(docker info --format '{{.Driver}}')"
+          minimum_bytes=16106127360
+          if [[ "$docker_driver" == vfs ]]; then minimum_bytes=42949672960; fi
+          if (( available_bytes < minimum_bytes )); then
+            echo 'db05_native_runner_capacity_insufficient'; exit 1
+          fi
+          export DB05_AVAILABLE_BYTES="$available_bytes" DB05_DOCKER_DRIVER="$docker_driver"
+          export DB05_CUSTODY_RECEIPT=a0c05d50e72588a99da3d85c642c33db71033afa
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          repo=os.environ['GITHUB_REPOSITORY']
+          prefix='tags/agent-claims/masterplan/'
+          files=['.github/workflows/ediel-db05-native.yml','scripts/db-05-native.config.ts','scripts/db-05-customer-close-due-purge-native.test.ts']
+          refs=['slot-R1','id-DB-05']+['file-'+hashlib.sha256(p.encode()).hexdigest() for p in files]
+          for ref in refs:
+              actual=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/git/ref/{prefix}{ref}']))
+              if actual['object']['sha']!=os.environ['DB05_CUSTODY_RECEIPT']: raise SystemExit('db05_custody_mismatch:'+ref)
+          producer=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/git/ref/{prefix}producer-db05']))['object']['sha']
+          commit=json.loads(subprocess.check_output(['gh','api',f'repos/{repo}/git/commits/{producer}']))
+          receipt=json.loads(commit['message'])
+          head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          if (receipt.get('agent')!='codex-takeover-R1-20261012' or receipt.get('epoch')!='gridex-five-agent-20261012'
+              or receipt.get('slot')!='R1' or receipt.get('source')!=head): raise SystemExit('db05_producer_source_mismatch')
+          pathlib.Path(os.environ['RUNNER_TEMP'],'db05-producer-receipt.json').write_text(json.dumps({'sha':producer,'receipt':receipt},sort_keys=True)+'\n')
+          PY
+          mkdir -p db05-native-working
+          # The existing owner keeps its EXIT cleanup trap. Replay/status
+          # output can contain disposable credentials and is never uploaded.
+          native_tests=(scripts/db-05-customer-close-due-purge-native.test.ts)
+          export DB05_NATIVE_TEST_SCOPE
+          DB05_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
+          export DB05_INPUT_RECEIPT="$RUNNER_TEMP/db05-inputs.json"
+          # Hash the actual checkout before canonical replay temporarily stages
+          # CLI ledger marker migrations; those staged bytes are not source.
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          test_scope = os.environ['DB05_NATIVE_TEST_SCOPE'].splitlines()
+          tracked = subprocess.check_output(['git','ls-files','-z'],text=True).split('\0')
+          exact = {
+              '.github/workflows/ediel-db05-native.yml',
+              'scripts/db-05-native.config.ts',
+              'scripts/ediel-source-owner-native.config.ts',
+              'scripts/gridex-aud-003-clean-replay.sh',
+              'scripts/gridex-redact-native-evidence.py',
+              'scripts/migration-history-manifest.json',
+              'scripts/migration-history-manifest.additions.json',
+              'scripts/migration-history-manifest.runtime.additions.json',
+              'scripts/supabase-types-manifest.json',
+              'supabase/schema.sql', 'package.json', 'package-lock.json',
+              'vitest.config.ts', '__tests__/setup.ts',
+              '__tests__/db-05-retained-audit-ediel-journals.test.ts',
+          }
+          paths = sorted(set(test_scope) | exact | {p for p in tracked if p and pathlib.Path(p).is_file()})
+          missing = [p for p in paths if not pathlib.Path(p).is_file()]
+          if missing: raise RuntimeError('required_native_input_missing:' + ','.join(missing))
+          pathlib.Path(os.environ['DB05_INPUT_RECEIPT']).write_text(json.dumps({p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},sort_keys=True)+'\n')
+          PY
+          unset GRIDEX_REPLAY_DB_URL
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/db05-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/db05-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/db-05-native.config.ts \
+            "${native_tests[@]}" \
+            --reporter=default --reporter=junit \
+            --outputFile=db05-native-working/native-junit.xml \
+            > db05-native-working/native.log 2>&1 || native_exit=$?
+          export DB05_NATIVE_EXIT="$native_exit"
+          # Restore actual inputs and destroy this stack before attesting them.
+          cleanup
+          set -euo pipefail
+          trap - EXIT
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, xml.etree.ElementTree as ET
+          inputs = json.loads(pathlib.Path(os.environ['DB05_INPUT_RECEIPT']).read_text())
+          for path, expected in inputs.items():
+              original = pathlib.Path(path)
+              if hashlib.sha256(original.read_bytes()).hexdigest() != expected:
+                  raise SystemExit('db05_source_input_changed:' + path)
+          expected_names = {
+              'canonical customer closure then the SAME decision holds before its real deadline and later purges with separate authority, replay and retained history',
+              'absent legal competence stays held and a revoked SAME approved decision cannot erase its canonically closed customer',
+              'current issuer revocation prevents due purge despite an earlier independent approval',
+              'a canonical archive with remaining active supply stays held without erasing its customer or history',
+              'a correctly signed but expired class policy stays held without erasure',
+              'a policy expiring during an observed customer lock wait cannot authorize erasure when the request resumes',
+              'a scheduled ediel.retention.purge DENY activating during an observed customer lock wait prevents erasure when the request resumes',
+              'a scheduled ediel.retention.customer_fields DENY activating during an observed customer lock wait prevents erasure when the request resumes',
+              'a scheduled reviewer ediel.retention.review DENY activating during an observed issuer lock wait holds the SAME customer without erasure',
+              'a scheduled reviewer ediel.retention.customer_fields DENY activating during an observed issuer lock wait holds the SAME customer without erasure',
+          }
+          junit = pathlib.Path('db05-native-working/native-junit.xml')
+          cases = list(ET.parse(junit).getroot().iter('testcase')) if junit.is_file() else []
+          qualified = (len(cases) == len(expected_names)
+              and {c.get('name') for c in cases} == expected_names
+              and all(not any(c.find(t) is not None for t in ('failure', 'error', 'skipped')) for c in cases))
+          replay=pathlib.Path(os.environ['RUNNER_TEMP'],'db05-replay.log').read_text()
+          if '[GRIDEX-REM-002 replay] PASS: empty local Supabase' not in replay: raise SystemExit('db05_canonical_replay_unqualified')
+          if subprocess.check_output(['docker','ps','-aq'],text=True).strip(): raise SystemExit('db05_backend_cleanup_unqualified')
+          if subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()!=os.environ['DB05_NATIVE_SOURCE_SHA']: raise SystemExit('db05_source_identity_changed')
+          result = {'expected_tests': len(expected_names), 'executed_tests': len(cases),
+              'qualified': qualified, 'source_inputs_preserved': True,
+              'canonical_replay': 'PASS', 'backend_cleanup':'PASS_NO_CONTAINERS'}
+          pathlib.Path('db05-native-working/qualification.json').write_text(json.dumps(result, sort_keys=True) + '\n')
+          PY
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          test_scope = os.environ['DB05_NATIVE_TEST_SCOPE'].splitlines()
+          receipt = {
+              'purpose': 'supplemental_same_customer_same_decision_due_purge',
+              'epoch': 'gridex-five-agent-20261012',
+              'source_input_epoch': os.environ['GITHUB_RUN_ID'] + ':' + os.environ['GITHUB_RUN_ATTEMPT'],
+              'legal_basis_acceptance': 'NOT_PROVIDED_SYNTHETIC_MECHANISM_ONLY',
+              'retained_history': 'SYNTHETIC_MANUAL_ROWS_NOT_MARKET_ACK_EMISSION',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'custody_receipt': os.environ['DB05_CUSTODY_RECEIPT'],
+              'producer': json.loads(pathlib.Path(os.environ['RUNNER_TEMP'],'db05-producer-receipt.json').read_text()),
+              'runner': {'docker_driver':os.environ['DB05_DOCKER_DRIVER'],'available_bytes':int(os.environ['DB05_AVAILABLE_BYTES'])},
+              'native_exit_code': int(os.environ['DB05_NATIVE_EXIT']),
+              'input_sha256': json.loads(pathlib.Path(os.environ['DB05_INPUT_RECEIPT']).read_text()),
+              'test_scope': test_scope,
+              'test_data': 'SYNTHETIC_DISPOSABLE_BACKEND_DESTROYED_ON_EXIT',
+              'business_source_acceptance': 'NOT_PROVIDED',
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('db05-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root db05-native-working
+          python3 - <<'PY'
+          import importlib.util, json, os, pathlib, re
+          spec = importlib.util.spec_from_file_location('canonical_redactor', 'scripts/gridex-redact-native-evidence.py')
+          redactor = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(redactor)
+          status = json.loads(pathlib.Path(os.environ['GRIDEX_NATIVE_STATUS']).read_text())
+          extra = [str(value).encode() for key, value in status.items()
+                   if key.lower() in ('secret_key', 'db_url') and isinstance(value, str)]
+          extra.append(b'postgresql://postgres:postgres@127.0.0.1:54322/postgres')
+          remaining = re.compile(rb'\b(?:eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+)\b|postgres(?:ql)?://[^/\s:]+:[^@\s]+@')
+          for path in pathlib.Path('db05-native-working').rglob('*'):
+              if path.is_file():
+                  data = path.read_bytes()
+                  tokens = re.findall(rb'\bsb_secret_[A-Za-z0-9_-]+\b', data)
+                  data = redactor.scrub(data, secrets=extra + tokens)
+                  if remaining.search(data): raise SystemExit('db05_redaction_incomplete_no_artifact_published')
+                  path.write_bytes(data)
+          PY
+          # Only successfully redacted files enter the uploaded directory.
+          # Receipt/redaction failure leaves no artifact directory to upload.
+          mv db05-native-working db05-native-evidence
+          cat db05-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          if [[ "$native_exit" != 0 ]]; then exit "$native_exit"; fi
+          python3 - <<'PY'
+          import json, pathlib
+          if not json.loads(pathlib.Path('db05-native-evidence/qualification.json').read_text())['qualified']:
+              raise SystemExit('db05_actual_ten_case_native_proof_unqualified')
+          PY
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-db05-native-${{ github.event.pull_request.head.sha }}
+          path: db05-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
