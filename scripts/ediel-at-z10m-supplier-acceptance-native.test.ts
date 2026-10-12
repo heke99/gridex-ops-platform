@@ -14,7 +14,7 @@ import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSo
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
-import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
+import {tokenizeEdifact,segmentSourceSpan,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
@@ -377,14 +377,34 @@ async function receiveUtilts(f:Fixture,wire:string){
   return sourceId!
 }
 
-const readingState=(f:Fixture,source:string)=>sql<{message:{status:string;code:string;structure:{comparisons?:{transactionId:string;status:string;codes:string[];selected:{sourceMessageId:string;meterNumber:string;registerIds:string[]}[]}[]}|null};
-  dispositions:Record<string,unknown>[];
-  values:{id:string;series:string;quantity:string|null;qualifier:string;reading_at:string;observation:string|null;metadata:Record<string,unknown>}[];
-  acks:{id:string;family:string;outcome:string;wire:string}[]}>(`SELECT jsonb_build_object(
-  'message',(SELECT jsonb_build_object('status',status,'code',message_code,'structure',parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}') FROM public.ediel_messages WHERE id=${literal(source)} AND company_id=${literal(f.companyId)}),
-  'dispositions',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]') FROM public.ediel_ack_transaction_results d WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(source)}),
-  'values',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.reading_at,v.id),'[]') FROM (SELECT v.id,v.series_id AS series,v.quantity::text AS quantity,v.qualifier,v.reading_at,v.observation_id AS observation,v.metadata FROM public.meter_reading_values v JOIN public.meter_reading_series s ON s.id=v.series_id AND s.company_id=v.company_id WHERE s.company_id=${literal(f.companyId)} AND s.source_ediel_message_id=${literal(source)}) v),
-  'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'outcome',ack_outcome,'wire',raw_payload) ORDER BY id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(source)} AND direction='outbound'))`)
+// Read globally by immutable source: a wrong company attribution must not
+// disappear behind an own-company filter or a company-equality JOIN.
+const readingState=(_f:Fixture,source:string)=>sql<{message:{status:string;code:string;company:string;environment:string;structure:{comparisons?:{transactionId:string;status:string;codes:string[];selected:{sourceMessageId:string;meterNumber:string;registerIds:string[]}[]}[]}|null};
+  dispositions:Record<string,unknown>[];series:Record<string,unknown>[];contracts:Record<string,unknown>[];
+  meterValues:Record<string,unknown>[];normalizedValues:Record<string,unknown>[];billing:Record<string,unknown>[];
+  values:{id:string;series:string;company:string;quantity:string|null;qualifier:string;reading_at:string;observation:string|null;metadata:Record<string,unknown>}[];
+  acks:{id:string;family:string;code:string;outcome:string;wire:string;company:string;environment:string;source:string;operation:string}[];
+  outbox:{id:string;message:string;source:string;company:string;environment:string;hash:string}[]}>(`SELECT jsonb_build_object(
+  'message',(SELECT jsonb_build_object('status',status,'code',message_code,'company',company_id,'environment',environment,'structure',parsed_payload#>'{normalizedMeteringPayload,receivedStructureQualification}') FROM public.ediel_messages WHERE id=${literal(source)}),
+  'dispositions',(SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.id),'[]') FROM public.ediel_ack_transaction_results d WHERE source_message_id=${literal(source)}),
+  'series',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.meter_reading_series s WHERE source_ediel_message_id=${literal(source)}),
+  'contracts',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.series_id),'[]') FROM gridex_utilts_binding.contracts c WHERE source_message_id=${literal(source)}),
+  'values',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.reading_at,v.id),'[]') FROM (SELECT v.id,v.series_id AS series,v.company_id AS company,v.quantity::text AS quantity,v.qualifier,v.reading_at,v.observation_id AS observation,v.metadata FROM public.meter_reading_values v WHERE v.series_id IN(SELECT id FROM public.meter_reading_series WHERE source_ediel_message_id=${literal(source)})) v),
+  'meterValues',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.metering_values v WHERE source_message_id=${literal(source)} OR source_ediel_message_id=${literal(source)}),
+  'normalizedValues',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.normalized_metering_values v WHERE source_message_id=${literal(source)}),
+  'billing',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.id),'[]') FROM public.billing_underlays b WHERE payload->>'edielMessageId'=${literal(source)}),
+  'acks',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'family',message_family,'code',message_code,'outcome',ack_outcome,'wire',raw_payload,'company',company_id,'environment',environment,'source',related_message_id,'operation',source_operation_id) ORDER BY id),'[]') FROM public.ediel_messages WHERE related_message_id=${literal(source)} AND direction='outbound'),
+  'outbox',(SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'message',ediel_message_id,'source',source_message_id,'company',company_id,'environment',environment,'hash',immutable_payload_hash) ORDER BY id),'[]') FROM public.ediel_outbox WHERE source_message_id=${literal(source)} OR ediel_message_id IN(SELECT id FROM public.ediel_messages WHERE related_message_id=${literal(source)} AND direction='outbound')))`)
+
+// Also detect unlinked own-tenant sink writes/mutations; accepted siblings are
+// present before the negative reception and must stay byte-for-byte unchanged.
+const readingSinks=(f:Fixture)=>sql(`SELECT jsonb_build_object(
+  'series',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.meter_reading_series s WHERE company_id=${literal(f.companyId)}),
+  'values',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.meter_reading_values v WHERE company_id=${literal(f.companyId)}),
+  'contracts',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.series_id),'[]') FROM gridex_utilts_binding.contracts c WHERE company_id=${literal(f.companyId)}),
+  'meterValues',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.metering_values v WHERE company_id=${literal(f.companyId)}),
+  'normalizedValues',(SELECT coalesce(jsonb_agg(to_jsonb(v) ORDER BY v.id),'[]') FROM public.normalized_metering_values v WHERE company_id=${literal(f.companyId)}),
+  'billing',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.id),'[]') FROM public.billing_underlays b WHERE company_id=${literal(f.companyId)}))`)
 
 it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to the Z10 version across the change minute',async()=>{
   const f=await fixture()
@@ -423,18 +443,61 @@ it('UTILTS readings bind the old meter to the Z04 baseline and the new meter to 
   expect(newState.dispositions[0]).toMatchObject({response_message_id:positive(newState)[0].id})
   expect(positive(newState)[0].wire).toContain(`RFF+ACW:${fresh.transaction}'`);expect(positive(newState)[0].wire).toContain(`+${fresh.document}'`)
   expect(newState.values[0].series).not.toBe(oldState.values[0].series)
-  // (3) Negative: the NEW meter/registers dated before the boundary are compared
-  // with the baseline (E61 meter, E62 registers) and refused before persistence.
-  // Actual runtime: the planned UTILTS_ERR is not created; the processor throws
-  // utilts_err_own_functional_facet_required. Asserted as observed: no effects.
+  // (3) First receive: E61/E62 produce their physical persisted negative
+  // ERR/TN response after #789. No post-failure repair or second receive may
+  // qualify the first receive; legitimate diagnostic binding receipts remain.
+  const beforeNegative=readingSinks(f)
   const early=readingWire(f,change.minute,'old','NEW-METER',['101','102'])
-  await expect(receiveUtilts(f,early.wire)).rejects.toMatchObject({message:'utilts_err_own_functional_facet_required'})
-  const earlySource=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='inbound' AND raw_payload=${literal(early.wire)}`)
-  const earlyState=readingState(f,earlySource)
+  const earlySource=await receiveUtilts(f,early.wire),earlyState=readingState(f,earlySource)
   expect(bound(earlyState)).toEqual([{status:'mismatch',codes:['E61','E62'],selected:[{source:f.source,meter:'METER-1',registers:['101']}]}])
-  expect(earlyState.dispositions).toMatchObject([{source_transaction_id:early.transaction,disposition:'processability_rejected',
-    issue_codes:['UTILTS_RECEIVED_STRUCTURE_E61','UTILTS_RECEIVED_STRUCTURE_E62'],persistence_status:'not_applicable',persisted_series_id:null,response_message_id:null}])
-  expect(earlyState.values).toEqual([]);expect(earlyState.acks.filter(ack=>ack.family!=='CONTRL')).toEqual([])
+  expect(earlyState.message).toMatchObject({company:f.companyId,environment:'test',code:'E66'})
+  expect(earlyState.acks.filter(ack=>ack.family==='CONTRL')).toHaveLength(1)
+  expect(earlyState.acks.filter(ack=>ack.family==='APERAK')).toEqual([])
+  const errors=earlyState.acks.filter(ack=>ack.family==='UTILTS_ERR')
+  expect(errors).toHaveLength(1)
+  const err=errors[0]
+  expect(earlyState.acks.filter(ack=>ack.family!=='CONTRL')).toEqual([err])
+  expect(err).toMatchObject({family:'UTILTS_ERR',code:'ERR',outcome:'negative',company:f.companyId,environment:'test',source:earlySource,
+    operation:`ediel_ack:${earlySource}:UTILTS_ERR:${early.transaction}`})
+  expect(earlyState.dispositions).toHaveLength(1)
+  expect(earlyState.dispositions[0]).toMatchObject({company_id:f.companyId,environment:'test',source_message_id:earlySource,
+    source_transaction_id:early.transaction,disposition:'processability_rejected',
+    issue_codes:['UTILTS_RECEIVED_STRUCTURE_E61','UTILTS_RECEIVED_STRUCTURE_E62'],persistence_status:'not_applicable',persisted_series_id:null,
+    planned_response_type:'utilts_err',final_response_type:'utilts_err',response_message_id:err.id,finalized_at:expect.any(String)})
+  for(const rows of [earlyState.series,earlyState.values,earlyState.contracts,earlyState.meterValues,earlyState.normalizedValues,earlyState.billing])expect(rows).toEqual([])
+  expect(readingSinks(f)).toEqual(beforeNegative)
+  expect(validateEdifactEnvelope(err.wire).ok).toBe(true)
+  expect(readPhysicalAckSourceCorrelation({id:err.id,company_id:err.company,environment:err.environment,
+    direction:'outbound',message_family:err.family,raw_payload:err.wire})).toMatchObject({classification:{family:'UTILTS_ERR',outcome:'negative',code:'ERR'},scope:'transaction',acknowledgedReferences:[early.transaction,early.transaction]})
+  const sourceWire=tokenizeEdifact(early.wire),errorWire=tokenizeEdifact(err.wire)
+  const element=(wire:typeof sourceWire,tag:string,index:number)=>segmentComposite(wire.segments.find(t=>t.tag===tag),index,wire.una)
+  const legal=(wire:typeof sourceWire,role:string)=>wire.segments.filter(t=>t.tag==='NAD'&&segmentComposite(t,1,wire.una)[0]===role).map(t=>segmentComposite(t,2,wire.una))
+  expect(element(errorWire,'UNB',2)).toEqual(element(sourceWire,'UNB',3))
+  expect(element(errorWire,'UNB',3)).toEqual(element(sourceWire,'UNB',2))
+  expect(element(errorWire,'UNB',7)).toEqual(element(sourceWire,'UNB',7))
+  expect(element(errorWire,'UNB',11)).toEqual(element(sourceWire,'UNB',11))
+  expect(legal(errorWire,'MS')).toEqual(legal(sourceWire,'MR'));expect(legal(errorWire,'MR')).toEqual(legal(sourceWire,'MS'))
+  const ownIdes=errorWire.segments.filter(t=>t.tag==='IDE').map(t=>segmentComposite(t,2,errorWire.una)[0])
+  expect(ownIdes).toHaveLength(2);expect(new Set(ownIdes).size).toBe(2);expect(ownIdes).not.toContain(early.transaction)
+  const codes=errorWire.segments.filter(t=>t.tag==='STS'&&segmentComposite(t,1,errorWire.una)[0]==='E01').map(t=>[segmentComposite(t,1,errorWire.una),segmentComposite(t,2,errorWire.una),segmentComposite(t,3,errorWire.una)])
+  expect(codes).toEqual([[['E01','','260'],['41'],['E61','','260']],[['E01','','260'],['41'],['E62','','260']]])
+  const refs=errorWire.segments.filter(t=>t.tag==='RFF').map(t=>segmentComposite(t,1,errorWire.una))
+  expect(refs.filter(c=>c[0]==='TN')).toEqual([['TN',early.transaction],['TN',early.transaction]])
+  expect(refs.filter(c=>c[0]==='E66')).toEqual([['E66',early.document],['E66',early.document]])
+  // Persisted ERR is the requirement here; neither a send nor a new outbox row
+  // is assumed. Any existing outbox row must own its exact immutable ACK.
+  for(const row of earlyState.outbox){
+    const ack=earlyState.acks.find(a=>a.id===row.message)
+    expect(ack).toBeDefined();expect(row).toMatchObject({company:f.companyId,environment:'test',source:earlySource,
+      hash:createHash('sha256').update(ack!.wire,'utf8').digest('hex')})
+  }
+  expect(new Set(earlyState.outbox.map(row=>row.message)).size).toBe(earlyState.outbox.length)
+  // Replay only after the first persisted ERR passed every assertion.
+  await processInboundEdielMessage({actorUserId:f.reviewer.id,edielMessageId:earlySource})
+  const replay=readingState(f,earlySource)
+  expect(replay.dispositions).toEqual(earlyState.dispositions);expect(replay.acks).toEqual(earlyState.acks);expect(replay.outbox).toEqual(earlyState.outbox)
+  for(const rows of [replay.series,replay.values,replay.contracts,replay.meterValues,replay.normalizedValues,replay.billing])expect(rows).toEqual([])
+  expect(readingSinks(f)).toEqual(beforeNegative)
   // Earlier old-meter values and both bound readings are unchanged afterwards.
   expect(readingState(f,oldSource)).toEqual(oldState)
   expect(readingState(f,newSource)).toEqual(newState)
