@@ -7,6 +7,8 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { MeteringPermissionRow } from '@/lib/onboarding/infoRequests'
 import { enqueueInboundGridOwnerResponseAutomation } from '@/lib/customer-operations/automation'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
+import { classifyZ02EnqueueFailure, classifyZ02EnqueueFailureSdkEvidence, classifyZ02EnqueueFailureSdkSupplementEvidence,
+  withZ02EnqueueDiagnosticPortWitness, z02EnqueueDiagnosticPortEvidence, type Z02EnqueueDiagnosticPort } from '@/lib/onboarding/z02EnqueueFailureClassification'
 
 type JsonRecord = Record<string, unknown>
 
@@ -246,8 +248,10 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
 
   const operationId = uuidOrNull(request.operation_id)
   let responseJob: Awaited<ReturnType<typeof enqueueInboundGridOwnerResponseAutomation>>
+  const enqueueFailureWitness: { port: Z02EnqueueDiagnosticPort | 'unavailable'; error: unknown; observed: boolean }
+    = { port: 'unavailable', error: undefined, observed: false }
   try {
-    responseJob = await enqueueInboundGridOwnerResponseAutomation({
+    const enqueueInput = {
       companyId,
       customerId: linkedCustomerId,
       siteId: linkedSiteId,
@@ -256,10 +260,18 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
       edielMessageId: params.message.id,
       actorUserId: persistenceActorId,
       operationId,
-    })
+    }
+    responseJob = await withZ02EnqueueDiagnosticPortWitness(enqueueInput,
+      () => enqueueInboundGridOwnerResponseAutomation(enqueueInput),
+      (port, error) => { enqueueFailureWitness.port = port; enqueueFailureWitness.error = error; enqueueFailureWitness.observed = true })
   } catch (enqueueError) {
+    const enqueueFailureClassification = classifyZ02EnqueueFailure(enqueueError)
+    const enqueueFailureSdkEvidence = classifyZ02EnqueueFailureSdkEvidence(enqueueError)
+    const enqueueFailureSdkSupplementEvidence = classifyZ02EnqueueFailureSdkSupplementEvidence(enqueueError)
+    const enqueueFailurePortEvidence = z02EnqueueDiagnosticPortEvidence(
+      enqueueFailureWitness.observed && enqueueFailureWitness.error === enqueueError ? enqueueFailureWitness.port : 'unavailable')
     const errorMessage = enqueueError instanceof Error ? enqueueError.message : String(enqueueError)
-    await supabaseService
+    const { error: reviewUpdateError } = await supabaseService
       .from('customer_info_requests')
       .update({
         status: 'manual_review_required',
@@ -271,13 +283,15 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
       })
       .eq('company_id', companyId)
       .eq('id', request.id)
+    if (reviewUpdateError) throw reviewUpdateError
     await createEdielMessageEvent({
       actorUserId: eventActorId,
       edielMessageId: params.message.id,
       eventType: 'manual_note',
       eventStatus: 'error',
       message: 'Z02 kunde inte starta canonical verifiering och applicerades inte.',
-      payload: { customerInfoRequestId: request.id, error: errorMessage },
+      payload: { customerInfoRequestId: request.id, error: errorMessage, enqueueFailureClassification, enqueueFailureSdkEvidence,
+        enqueueFailureSdkSupplementEvidence, enqueueFailurePortEvidence },
     })
     return { applied: false, targetId: String(request.id), reason: 'z02_processing_enqueue_failed' }
   }

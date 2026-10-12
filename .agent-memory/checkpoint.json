@@ -2,7 +2,7 @@
   "project": "gridex-ops-platform",
   "schema": "five-new-agent-routing-v2",
   "epoch": "gridex-five-agent-20261012",
-  "observed_main": "95bb437137ce3bc0b0246bed6cf1d149493c92b9",
+  "observed_main": "028d2d65d6dfa670474d48adb1b97bf99c959b74",
   "campaign_complete": false,
   "status": "IN_PROGRESS",
   "coverage": {
@@ -75,5 +75,20 @@
   "old_private_process_termination": "NOT_AVAILABLE; use isolated new epoch",
   "new_dispatch": "FRESH_SLOT_ID_FILE_PRODUCER_CLAIMS_REQUIRED; no former-owner waits",
   "main_scheduled_e2e": "FAILURE",
-  "next_action": "Five new agents read frozen donor proof/currentmain, claim one next coherent packet and continue with independent peers."
+  "next_action": "Current new owners finish one exact packet. Review/fix777 and775 findings; qualify existing774/775/776/777 CI/proof without duplicate producers. Further scopes require actual refs before write; external whole-ID gates remain.",
+  "observed_at": "2026-10-12T13:34:00Z",
+  "observed_timezone": "Europe/Stockholm",
+  "baseline_pull_request": 773,
+  "baseline_delivery": "MERGED",
+  "new_owner_reservations": "R1/R2/C1/C2/C3 slots observed; exact refs and latest board receipts must be refreshed before write",
+  "reservation_access_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125010625",
+  "c2_scope_extension_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125274908",
+  "active_proposals": {
+    "R2": 774,
+    "C2": 775,
+    "C3": 776,
+    "C1": 777
+  },
+  "main_scheduled_e2e_cause_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6123693726",
+  "main_scheduled_e2e_coordination_owner": "C3"
 }
