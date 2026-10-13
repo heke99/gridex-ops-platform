@@ -13,9 +13,9 @@ const platformHighlights = [
 
 const capabilities = [
   {
-    title: 'Operations för elhandel',
+    title: 'Daglig drift för elhandel',
     description:
-      'Samla kundintag, fullmakter, switchärenden, anläggningsdata och avvikelser i en arbetsyta som är byggd för daglig drift.',
+      'Samla kundintag, fullmakter, leverantörsbyten, anläggningsdata och avvikelser i en arbetsyta som är byggd för daglig drift.',
   },
   {
     title: 'Bolagsseparerad SaaS-modell',
@@ -28,7 +28,7 @@ const capabilities = [
       'Meddelanden och kvittenser ska kopplas till rätt kund, anläggning, mätpunkt och ärende utan att blanda driftdata mellan bolag.',
   },
   {
-    title: 'Redo för partnerhandoff',
+    title: 'Överlämning till partner',
     description:
       'Exportera och följ upp data till faktureringspartner, integrationsflöden och interna kontrollpunkter med tydlig spårbarhet.',
   },
@@ -40,7 +40,7 @@ const workflowSteps = [
   'Samla fullmakt och anläggningsdata',
   'Starta och följ leverantörsbyte',
   'Synka mätvärden och underlag',
-  'Följ avvikelser i operations',
+  'Följ avvikelser och åtgärder',
 ]
 
 export default function LandingPage() {
@@ -59,7 +59,7 @@ export default function LandingPage() {
                 Gridex
               </span>
               <span className="block text-xs font-medium text-slate-500">
-                Energy Operations Platform
+                Driftplattform för elhandel
               </span>
             </span>
           </Link>
@@ -137,7 +137,7 @@ export default function LandingPage() {
               <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">
-                    Operations
+                    Drift
                   </p>
                   <h2 className="mt-1 text-xl font-semibold">Daglig prioritering</h2>
                 </div>

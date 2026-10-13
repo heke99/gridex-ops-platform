@@ -1,5 +1,5 @@
 {
-  "kind": "APPLICATION_ONLY_RUNTIME_COMPOSITION_PREVIEW_SOURCE",
+  "kind": "APPLICATION_ONLY_FROZEN_API_AND_QUALIFIED_ADMIN_COMPOSITION",
   "admin_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
   "frozen_already_deployed_api_source": "d899ac6b36d754aa784333ed4da07702e47619e0",
   "shared_main_base": "4e52854ecc19f0bd1266825cb114c19a3e983f27",
@@ -128,7 +128,47 @@
     "portfolio_api_assertions": 68,
     "copied_behavior_tests": "Exact3 immutable deployedAPI testfiles; no authoredAPIbehavior changes"
   },
-  "full_local_suite": "IN_PROGRESS; sandboxchildNodeEPERMcases preserved and requalified with processpermissions, no testweakening",
-  "production": "NOT_DEPLOYED; nextbuild mustuse configuredVercelprojectenv and verifyactualproject/runtimealias beforecutover",
-  "admin_native_prefix_qualification": "64e exact required26workflows+fourOPSjobsSUCCESS; 1117unitfiles18116assertions, source1301protectedinputs unchanged. This is sourceapplicability for adminprefix, not cleanprefixAPI-expandednativeparity."
+  "full_local_suite": "Initial default-sandbox run INTERRUPTED_NOT_QUALIFICATION: confirmed childNodeEPERM and exact own Python zip child stuck reading stdin. Successful source-bound proper-process requalifications do not replace complete final-source CI.",
+  "production": "NOT_DEPLOYED; two legacy constraints intentionally remain until verified compatible deployment and writer drain.",
+  "admin_native_prefix_qualification": "64e exact required26workflows+fourOPSjobsSUCCESS; 1117unitfiles18116assertions, source1301protectedinputs unchanged. This is sourceapplicability for adminprefix, not cleanprefixAPI-expandednativeparity.",
+  "current_main_preserved": "636f1fdc8e9dc9dd5b66169b749dcd6c17aafe0a",
+  "current_main_delta": "Seven source-bound history/evidence files only; no runtime/SQL/types/workflow delta; merge preserved bytes.",
+  "admin_runtime_files_exact": 65,
+  "additional_exact_frozen_application_inputs": {
+    "scripts/lib/openapi-release-schemas.cjs": "ef1068369f2861cfbc2ce723adc424a35729f6537ec56001a8594775dbc4b1fa",
+    "scripts/materialize-openapi-release.cjs": "1e140c774dfc95447a4ba69faac04cffbdefb885ff3b7cebd8c526b2f0b3e843",
+    "README.md": "01b42d6cfff45ef08433481c5910355f1a34721013232ce75de049f8203ede4f",
+    "docs/api-compatibility-policy.md": "0eaa0b2dab39914265b23e5052c8d80956dabdf0014354e5c3b5a335139e86fb",
+    "docs/api-migration-guide.md": "5c3842ce19054aafd02049ecf0d008568280b5723c2ca663a23295f18fdf1dea",
+    "docs/external-website-api-integration-guide.md": "12feca3d251bc4ef1ebd248f059e6d1ef89d15e54e2039a46b1b3c36d5ee6a10",
+    "docs/gridex-customer-portal-api.md": "d6b3bc0f44f28787deb538654647a6d8c9fcc0f5c74b9cf3589008ecd101ab3a",
+    "docs/gridex-staff-api.md": "fb3cb7ae2965015bed8242623775889824b08f4ccdb41b6731c174b6d8f1bbdb",
+    "docs/api-index.md": "e896e323f82dc65d17bf219d2d61de0530eca845cf72199ef5903242046b5457"
+  },
+  "additional_root_operator_copy": {
+    "app/page.tsx": "e216ffea3bd6fc81308f7e1d4036e82c9c7418f8be3ed2f09da2cd5149632e18",
+    "app/login/page.tsx": "840b43760dc99b9dfac5c84ec4def79e80e8d89aca5eebb6dac5c9a39866df82"
+  },
+  "focused_current_api_regression": {
+    "files": 47,
+    "assertions": 400,
+    "failed": 0,
+    "skipped": 0,
+    "receipt": "api47-focused-qualification.json"
+  },
+  "current_permission_fixture": {
+    "file": "__tests__/admin-context-current-permission-deny-forward.test.ts",
+    "assertions": 34,
+    "result": "PASS",
+    "deployed_api_context_body_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+    "main_forward_and_metadata": "UNCHANGED_AND_RESTORED_WITH_ROLLBACK_ONLY_API_FIXTURE"
+  },
+  "signature_and_customer_merge_fixture": {
+    "files": 2,
+    "assertions": 11,
+    "result": "PASS",
+    "strengthened_CAS_and_archive_assertions": true
+  },
+  "full_final_source_ci": "PENDING_CURRENT_SOURCE_PULL_REQUEST",
+  "preview": "READY dpl_EKziiavnJMtht6cCArsz4xBRebmF on source416; configuredVercelGitbuild. Final source preview still required after commit."
 }

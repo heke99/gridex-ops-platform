@@ -13,7 +13,7 @@ workflows, exposed to tenants through versioned HTTP APIs.
 The release manifest is the authority for the current contract version and the
 checksum of every published specification:
 `https://app.gridex.se/api/v1/openapi/release-manifest.json`
-(currently `2026-10-09.1`, source `docs/openapi/`). Frozen release bytes live in
+(documentation `2026-10-12.1`, default wire `2026-10-09.1`, source `docs/openapi/`). Documentation-only updates do not change the wire representation. Frozen release bytes live in
 `docs/openapi/releases/<version>/` and are never rewritten.
 
 | API | Current OpenAPI | Guide | Developer page |
@@ -28,6 +28,11 @@ Tenant onboarding and credentials:
 [docs/single-api-key-tenant-integration.md](docs/single-api-key-tenant-integration.md),
 [docs/electricity-company-onboarding-production-readiness.md](docs/electricity-company-onboarding-production-readiness.md),
 [docs/public-api-id-policy.md](docs/public-api-id-policy.md).
+
+[API operation inventory and verification boundaries](docs/api-index.md) maps the public
+API families to their handlers and database dependencies. Internal administration,
+scheduled jobs and signed provider webhooks have separate authorization boundaries;
+they are not tenant-facing API credentials.
 
 ## Development
 

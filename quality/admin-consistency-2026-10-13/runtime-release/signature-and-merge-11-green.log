@@ -1,0 +1,21 @@
+
+ RUN  v4.1.9 /workspace/gridex-admin-api-runtime-release
+
+ ✓ __tests__/signed-contract-receipt-continuation.test.ts > F27: durable signed-contract confirmation continuation > archive failure after signing leaves a pending continuation, not a false queued state 9ms
+ ✓ __tests__/signed-contract-receipt-continuation.test.ts > F27: durable signed-contract confirmation continuation > worker retry queues the confirmation without signing again, with a stable idempotency key 5ms
+ ✓ __tests__/signed-contract-receipt-continuation.test.ts > F27: durable signed-contract confirmation continuation > an already queued confirmation is not delivered twice 1ms
+ ✓ __tests__/signed-contract-receipt-continuation.test.ts > F27: durable signed-contract confirmation continuation > stops retrying after the maximum attempts and reports failed 1ms
+ ✓ __tests__/signed-contract-receipt-continuation.test.ts > bug-hunt: worker isolation and leases > a broken row records its own failure and does not stop the next row 2ms
+ ✓ __tests__/signed-contract-receipt-continuation.test.ts > bug-hunt: worker isolation and leases > a leased row is not delivered concurrently by the worker 1ms
+ ✓ __tests__/signed-contract-receipt-continuation.test.ts > F27: continuation is created inside the signing transaction (native) > marking a request used inserts exactly one pending delivery, rolled back with the signing 2855ms
+ ✓ __tests__/customer-merge-application-resume.test.ts > website cached customer resume across customer merges > returns a controlled 409 for the cached-source identity UPSERT while preserving the application error shape 80ms
+ ✓ __tests__/customer-merge-application-resume.test.ts > website cached customer resume across customer merges > preserves unknown error 500: '23514' / 'customer_portal_customer_not_found_fo…' 15ms
+ ✓ __tests__/customer-merge-application-resume.test.ts > website cached customer resume across customer merges > preserves unknown error 500: '42501' / 'customer_merged_write_conflict' 2ms
+ ✓ __tests__/customer-merge-application-resume.test.ts > website cached customer resume across customer merges > preserves unknown error 500: 'XX000' / 'unrelated_database_failure' 1ms
+
+ Test Files  2 passed (2)
+      Tests  11 passed (11)
+   Start at  23:21:39
+   Duration  4.93s (transform 665ms, setup 41ms, import 1.02s, tests 3.01s, environment 0ms)
+
+JSON report written to /tmp/gridex-api-release-cleanup-fixture-results.json

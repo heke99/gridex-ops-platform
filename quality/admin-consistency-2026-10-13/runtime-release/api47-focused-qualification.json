@@ -1,0 +1,294 @@
+{
+  "kind": "47_FILE_CURRENT_SOURCE_FOCUSED_API_QUALIFICATION",
+  "files": 47,
+  "assertions": 400,
+  "failures": 0,
+  "skips": 0,
+  "method": "46 byte-unchanged successful files in the corrected47 run plus complete isolated final internal-billing run; failed earlier result replaced only for that exact file after its catalog-key fixture correction. Not a full-repository CI result.",
+  "sources": [
+    {
+      "file": "__tests__/admin-api-current-permission-context.test.ts",
+      "source_sha256": "db16a77fd5669141267810126e0239055538bcb37de32f9c84f2e977c7ae9602",
+      "assertions": 9,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/api-canonical-release.test.ts",
+      "source_sha256": "0c6290a326a5e4d28e10c2155de82da9a818d4bfb2bbc327fa610b5ff965a586",
+      "assertions": 12,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/api-channel-contract-etag.test.ts",
+      "source_sha256": "14bfed8cc2f84f1c3540b7d9391b5d74eca12cb7aa89268c987aed03ae76ed3b",
+      "assertions": 3,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/api-channel-contract-feed.test.ts",
+      "source_sha256": "523b483c50b7089474dc84cc02e8dbe8cd0dc1ee1eaafaa37347c7446c7a943b",
+      "assertions": 5,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/api-credential-response-profile.test.ts",
+      "source_sha256": "c9c3efd054ce038a9b7b573f01e6ab719dbba320568221b58a8caf3b0d174af4",
+      "assertions": 10,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/api-documentation-wire-revision.test.ts",
+      "source_sha256": "217fd63d71afb4eeea96712c271a5a69386ea16062bc826cff524e66f5fbe3fa",
+      "assertions": 7,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/api-supported-client-release-matrix.test.ts",
+      "source_sha256": "89b5d94dcca55e3bef7d890e2f01b5e77badcf793cdee582e6332dc6674b1569",
+      "assertions": 16,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/billing-provider-event-transitions.test.ts",
+      "source_sha256": "27795a1c9ab89b40bd3446a57344324d998d17559e6004949d870cbbe7895b30",
+      "assertions": 10,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/contract-channel-publication-completion.test.ts",
+      "source_sha256": "9f617e321e55ecf66b5fc2735e28d982bdba0cfd1aea02c2c4671227eb4466bb",
+      "assertions": 4,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/customer-api-operation-contracts.test.ts",
+      "source_sha256": "35922c18e5fb5243276928cc33971e194bc50ade886d4ab7c0122adc871b890f",
+      "assertions": 16,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/customer-profile-address-public-response.test.ts",
+      "source_sha256": "69e2f70cfa27ec0894e33430d5835b9d658231564da7e8d4757b0c62072a8035",
+      "assertions": 4,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/customer-sync-authenticated-reference.test.ts",
+      "source_sha256": "440b069c53c39027d251b8f938a1a3ff0aae1bc14be5046a14221581076dd27b",
+      "assertions": 9,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/ediel-sc-018-056-independent-service-and-incident.test.ts",
+      "source_sha256": "732abd796ef458ef43a4e7731e64901c080fd658680940e074b474794637a809",
+      "assertions": 6,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/global-permission-override-deny-only.test.ts",
+      "source_sha256": "7b3cde00ceb9b5dbdf96cb3311396e63715dbe3eb22969c3df7eda5706b73512",
+      "assertions": 15,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/inbound-api-identifier-filter.test.ts",
+      "source_sha256": "3e72105ed67d3223de81e85bb5cfc1c99d723d35bedc34b60a27fead650e01cb",
+      "assertions": 8,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/inbound-api-message-company.test.ts",
+      "source_sha256": "85e7b4e0f59a8dd3e6aada4a079d088f7a54f7de95e2f8f0d15e98faee873ddc",
+      "assertions": 2,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/internal-api-authorized-company.test.ts",
+      "source_sha256": "6c55cbb2c23a636518e91becb3b5c79394494fae7880e393b8646e34a1f1b077",
+      "assertions": 7,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/internal-api-readable-company.test.ts",
+      "source_sha256": "4e1a21dcaf9bdd2ca4d0b96c69c65cbe81c113298936615acc139b4626a8076d",
+      "assertions": 8,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/internal-billing-target-company-authorization.test.ts",
+      "source_sha256": "de80860de7d56e14148acb7d4ee0de7fd418d6b66c1ade6a4988b20192fca5e9",
+      "assertions": 24,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/internal-invoice-provider-status-read-only.test.ts",
+      "source_sha256": "d0621ad32011787736dba139e67e95928974c88fdcdb1496e3aee94f5008861c",
+      "assertions": 3,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/invoice-dispute-provider-clock.test.ts",
+      "source_sha256": "546201111bbb27e5acca61be52450df1f912986bb2850104332ce4e25277ec01",
+      "assertions": 3,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/market-price-api-contract.test.ts",
+      "source_sha256": "519c6198cf8fce2cde894e43de40377c79bc7616bb5967b96f2baa2e220cde40",
+      "assertions": 5,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/online-signature-confirmation-recovery.test.ts",
+      "source_sha256": "6ea987a03bed9396c738cbca8601ae1b5aebb1232088f97dfea7f2f1355ec493",
+      "assertions": 6,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/online-signature-null-pricing.test.ts",
+      "source_sha256": "c5a744373ea8eab7080797bcb2d2668cedaf908c3d0a2192a28af71e4bec265e",
+      "assertions": 3,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/ops-customer-contract-audit.test.ts",
+      "source_sha256": "2d89694114722e5b8bbabf441ca7b70c89d50734461d4a0c4e21b9c5c2b5ab30",
+      "assertions": 7,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/ops-customer-support-binding-audit.test.ts",
+      "source_sha256": "6e131bc20a415dfdb8df764e52a2a7c7f97e0d16b12d20f1fd2a3cc9fd40b859",
+      "assertions": 2,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/partner-contract-offer-direction.test.ts",
+      "source_sha256": "60d2f6531325fdd3bd53524146623586382c5874e38a6012de24e96c2d44fc59",
+      "assertions": 7,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/partner-current-metering-dto.test.ts",
+      "source_sha256": "e6b95e7e219b75d4ec2aabd00b0c614d7a04791dce7db5f4e4b8c0a5fde6881f",
+      "assertions": 5,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/partner-invoice-visibility-and-stockholm-dates.test.ts",
+      "source_sha256": "93bb76b2294d0d20f089febd35cd43e331cad67d4c9f5bb37169283b32ab9a03",
+      "assertions": 11,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/partner-measurement-completeness.test.ts",
+      "source_sha256": "5225823d2fe81ca57b343dc4fdc79b03528a668259baaebc9db70ed6c35f86ed",
+      "assertions": 9,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/partner-poa-commit-ownership.test.ts",
+      "source_sha256": "6e15a20f8cca99e62de2a9744e9ab8fcdaaf16cc0a91147cc05fd91f3fa9eeff",
+      "assertions": 6,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/partner-poa-site-idempotency.test.ts",
+      "source_sha256": "3a6c7c82018cf3dd9a91aa93435a2913777f5e472a295c2af4639ca942179374",
+      "assertions": 5,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/partner-price-invalid-request.test.ts",
+      "source_sha256": "900796cc7cf9582cf37daa2daa817c3e3600420d8a0f401d5149ae4ce42c169a",
+      "assertions": 7,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/post-128-openapi-tip-residuals.test.ts",
+      "source_sha256": "40efd0263e32b6628c0c6cfd3ae641fcab4e7b11e281dfac8bceee4affe72083",
+      "assertions": 2,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/public-contract-route-openapi-regression.test.ts",
+      "source_sha256": "050b9fc4b89e9e1276ba62981f15f5c6cb496401e0350c10c8508b17928cc39f",
+      "assertions": 2,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/public-events-envelope-serialization.test.ts",
+      "source_sha256": "e273b707818ef7427fe5695f3f1d9f20bdf3d73380a455deefdea39fd0465324",
+      "assertions": 14,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/staff-api-openapi.test.ts",
+      "source_sha256": "4434938f8db1fb9434f6c368cf2287533070ef6ed3ffd1e28329e3793734cc25",
+      "assertions": 11,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/staff-download-request-id.test.ts",
+      "source_sha256": "f3cadf53d82f2f13800ec7b309ed4517ce93e215c4a3a550d214bee3286737d0",
+      "assertions": 2,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/support-detail-openapi-schema.test.ts",
+      "source_sha256": "903669f54293ee4164ab52e4b8ebad610a136489ece35048351c7c15aab5d601",
+      "assertions": 25,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/tenant-website-go-live-hardening.test.ts",
+      "source_sha256": "b3aa39cbdffb965a468f9a585ad03d81a95102f4538c5c258e6a385c9e63fe37",
+      "assertions": 12,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/tenantservice-customer-assertion.test.ts",
+      "source_sha256": "0122eae8a09289c0140ddff24fa5ca5229c706840aecc935dd80cc8af6c8a0cd",
+      "assertions": 21,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/tenantservice-support-conversation.test.ts",
+      "source_sha256": "15ad02290f767c5a8ac90dfaa965a89645fbac7977e070f7f11cf8ba44cec7f4",
+      "assertions": 17,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/webhook-batch-subscription-failure.test.ts",
+      "source_sha256": "233fbb32379f8742b4dacf4bd39da53113b2135e6edd739c850ef30fb5fb9765",
+      "assertions": 2,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/website-api-operation-contracts.test.ts",
+      "source_sha256": "f6a4d90a08609f9bbbee14d5e83938c46a84fbea9608c397f747d8f798934012",
+      "assertions": 26,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/website-application-settlement-contract.test.ts",
+      "source_sha256": "83d340dc18b89e51bbec21a6f660e85fc8baaaabf66b6040fde914d0e0384e31",
+      "assertions": 1,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/website-quote-input-contract.test.ts",
+      "source_sha256": "b361594386dbe406e6ec1858821327b359d6fd1830c0bacdcd273474b041a67d",
+      "assertions": 10,
+      "result": "PASS"
+    },
+    {
+      "file": "__tests__/website-quote-validate-contract-parity.test.ts",
+      "source_sha256": "29736614503e0524266d9a2d509362f025492702468b1126c5f95353a7978c8a",
+      "assertions": 1,
+      "result": "PASS"
+    }
+  ],
+  "runtime_api_source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+  "admin_runtime_source": "64e09149da5194d2b3208e20b16a1c69b6577119"
+}

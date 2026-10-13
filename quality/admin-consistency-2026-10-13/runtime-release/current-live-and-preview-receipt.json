@@ -1,0 +1,137 @@
+{
+  "kind": "CURRENT_READ_ONLY_ADMIN_AND_ALREADY_INSTALLED_API_RUNTIME_STATE",
+  "recorded_at": "2026-10-13T23:12:08Z",
+  "customer_flow_assertion": [
+    {
+      "result": "all_reviewed_customer_flows_empty",
+      "empty_graph_tables": 140,
+      "zero_reviewed_scopes": 17
+    }
+  ],
+  "writer_catalog": [
+    {
+      "state": {
+        "writers": [
+          {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "body_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+            "settings": [
+              "search_path=public, auth, pg_temp"
+            ],
+            "signature": "canonical_authenticated_tenant_context_v1_scoped(uuid)",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+            "owner": "postgres",
+            "body_md5": "a41e40cb3385fbaac24675d2a0d264f6",
+            "settings": [
+              "search_path=public, auth, pg_temp"
+            ],
+            "signature": "canonical_authenticated_tenant_context(uuid)",
+            "volatility": "s",
+            "security_definer": true
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "body_md5": "5a267754feb565b43c86ec9fe2591c19",
+            "settings": [
+              "search_path=public, extensions, pg_temp"
+            ],
+            "signature": "gridex_persist_pricing_run(uuid,uuid,jsonb,jsonb)",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "body_md5": "4a6cf2926abf0b911e9fe6a9a49fc9f3",
+            "settings": [
+              "search_path=public, extensions, pg_temp",
+              "TimeZone=UTC"
+            ],
+            "signature": "gridex_read_interval_pricing_snapshot_v1(uuid,uuid,timestamp with time zone,timestamp with time zone,text,text,jsonb)",
+            "volatility": "s",
+            "security_definer": true
+          },
+          {
+            "acl": "{postgres=X/postgres}",
+            "owner": "postgres",
+            "body_md5": "b846cdceecf7811c754a48c41496b2a4",
+            "settings": [
+              "search_path=public, pg_temp"
+            ],
+            "signature": "gridex_reconcile_dashboard_alerts_internal_v1(uuid)",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "body_md5": "87df98b11787c478271e9d66f5ed63c3",
+            "settings": [
+              "search_path=public, pg_temp"
+            ],
+            "signature": "gridex_scan_data_quality_v1(uuid,date,uuid)",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "body_md5": "29df95a4d8240c493f10de36b762f1af",
+            "settings": [
+              "search_path=public, pg_temp"
+            ],
+            "signature": "gridex_upsert_dashboard_alert_v1(uuid,text,text,text,text,text,uuid,text)",
+            "volatility": "v",
+            "security_definer": true
+          },
+          {
+            "acl": "{postgres=X/postgres,service_role=X/postgres}",
+            "owner": "postgres",
+            "body_md5": "35e77f99993c61767e2ae99583cbd8e8",
+            "settings": [
+              "search_path=public, pg_temp"
+            ],
+            "signature": "gridex_upsert_data_quality_issue_v1(uuid,uuid,text,text,text,date)",
+            "volatility": "v",
+            "security_definer": true
+          }
+        ],
+        "observed_at": "2026-10-13T23:12:08.466913+00:00",
+        "legacy_constraints": 2,
+        "active_quality_writers": 0
+      }
+    }
+  ],
+  "production_cutover": "PENDING_UNTIL_COMPATIBLE_APPLICATION_DELIVERY_AND_OLD_WRITER_DRAIN",
+  "application_only_dependencies": "Already installed API functions were only read, never imported or replayed from held producer sources.",
+  "preview": {
+    "deployment_id": "dpl_EKziiavnJMtht6cCArsz4xBRebmF",
+    "source": "4160462f748ad66c52d67623a66f7dbc9da63039",
+    "project": "prj_xA3EDI1xztkkyx21e3LY4UhgYrWt",
+    "target": "preview",
+    "status": "BUILDING"
+  },
+  "approval_review": {
+    "first_preview_request": "REJECTED: private-source export and unestablished ownership",
+    "new_trusted_evidence": {
+      "github_repository": "heke99/gridex-ops-platform",
+      "repo_id": 1190539955,
+      "private": false,
+      "authenticated_permissions": {
+        "admin": true,
+        "push": true
+      },
+      "vercel_authenticated_team": "team_e3htkJPyBNSw3Ix1KQLlf180",
+      "existing_project": "prj_xA3EDI1xztkkyx21e3LY4UhgYrWt",
+      "existing_production_alias": "app.gridex.se",
+      "existing_deployment_source": "636f1fdc8e9dc9dd5b66169b749dcd6c17aafe0a"
+    },
+    "new_review": "ACCEPTED_WITH_PUBLIC_REPOSITORY_METADATA; actual preview created by same connector; no alternate transport or workaround"
+  }
+}
