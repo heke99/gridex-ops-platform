@@ -1299,3 +1299,348 @@ Limits remain substantial and correctly explicit: canonical/parser/provider/perm
 The new supplement resolves project-Node22 compatibility for this unchanged finite component only. It must not replace existing exact-source review/current mandatory CI, native/physical owner qualification, multiple-original/full-object proof or the three TS consumer checks. Runner is an execution-proof coauthor and cannot serve as an independent final reviewer of a packet incorporating it. Existing applicable independent peers and owner source applicability may be reused; this report creates no additional gate, publication authority, ledger promotion or merge role.
 
 ````
+
+
+PR800 currentheadCI TRANSITION / authenticated2026-10-13T15:07UTC: all18checkruns boundexactfba453cc7cc9de8a26ec75d29248e1733316fcd1/base95d areterminal9SUCCESS+9alreadyowner-scoped conditionalSKIP, zeroFAIL/PENDING; clean anddependentcertificate nowSUCCESS. Solemetadatawatch exit0, no rerun/cancel/originals. Technicalreceipt6148690687. Skips are NOTexecutedPASS. ExistingC1independentA/C currentfinalCI/source qualification andordinaryserialmerge stillrequired. PR OPEN/unmerged/currentmain95d at snapshot, provisional merge_commit_sha18119 is NOTactualdelivery. Candidate323 NOTcredited. Actualmerged/closed/orderedparents/tree/ledger mustbe readnext; source3dff test+aa4stillheld/paused/unchanged and thisownbranchonlydocsource.
+
+NEW FOURCARD Z03/Z04L/LK source-gap support (distinctfromexistingZ01writers): sourceactual95d/fa5/public795894/99f. Allfourliteralcards map existingprofile/date/source/birth/persisted-response/normal-owner assertions withexplicitfinite/native/IO boundaries. LK rejection hypothesis refuted byactualZ22/Z23 protectednormal dispatch/currentownoriginal/reversedparty/customer/start/reason/point/LI/legal/signedguard blocks. Fullschemasdiffer, FIVErelevantcompleteeffectiveblocks match; no newactualproductbug/sourcefix inferred. CurrentL/H-onlyhelper/not-LK andSC03770/3TS/physicalstart limits reusedfromexistingowner, notnewbugs or blanketgates. Missingwholebinding is subtype-qualifiedsentownZ03→actualincomingrequestACK→causalownZ04/applicableoutgoingresponse receipts; oldHassertions givea reusable physicalshape butnotwholeL/LKapproval. Existingqualifiedretainedoriginalscaseindex shouldbe assessedFIRST; separateapplicableproofs mayclosejoin, no mandatorynewwholechain/nativeallnegatives/clockoverride/LIVE/GENrequired. ExistingC1/producer-z03/collectors/ownedsharedhelpers keepcustody.
+
+Report9960ddfed249bd5745e0764880571926061cbdc5c0dd6e630afb0af9457a9038 andTWO independentnoncoauthor source-supportpeers A937df109214d5779d6ad7a4cdcdeee9b573566cf0d2cdd17f69ba6476baae817+B31a39235a53963d52195989b5d764f896be91854e97de14960c5b692c467ec61 supportthatboundedjoin/refutation, noexecution/currentoriginal/whole/gate/custody/approvalcount claims. ROOTread allthreefullreports. No original/logartifact/private acquisition or source/claim/ref/ledgerwrites. PreserveallthreeoriginalsandselectednewCI metadata verbatim below.
+
+Original ediel-helper-20261013-pr800-terminal-metadata-only.json SHA256c156c15c3a2f857f0e5fc680b82952f677aa4d383deda5250ce2f228c694067a:
+
+````json
+{
+  "scope": "AUTHENTICATED_CURRENT_HEAD_CI_METADATA_ONLY_NOT_ORIGINAL_CONTENT_OR_MERGE_APPROVAL",
+  "pr": 800,
+  "state_at_snapshot": "open",
+  "merged_at_snapshot": false,
+  "head": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+  "base": "95d8d160491e79b172342654d8dc643346758105",
+  "all_check_runs_head_match": true,
+  "checks": [
+    {
+      "id": 115348395882,
+      "name": "pr-certificate",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-13T14:23:17Z",
+      "completed_at": "2026-10-13T15:06:30Z"
+    },
+    {
+      "id": 115342280568,
+      "name": "k6-staging-load",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-13T14:08:26Z",
+      "completed_at": "2026-10-13T14:08:16Z"
+    },
+    {
+      "id": 115342255525,
+      "name": "browser-staging",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-13T14:08:23Z",
+      "completed_at": "2026-10-13T14:08:16Z"
+    },
+    {
+      "id": 115342203397,
+      "name": "staging-quality-certificate",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-13T14:08:16Z",
+      "completed_at": "2026-10-13T14:08:16Z"
+    },
+    {
+      "id": 115342202996,
+      "name": "nightly-release-certificate",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-13T14:08:16Z",
+      "completed_at": "2026-10-13T14:08:16Z"
+    },
+    {
+      "id": 115342201580,
+      "name": "zap-staging-baseline",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-13T14:08:16Z",
+      "completed_at": "2026-10-13T14:08:16Z"
+    },
+    {
+      "id": 115342201215,
+      "name": "runtime-staging",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-13T14:08:16Z",
+      "completed_at": "2026-10-13T14:08:16Z"
+    },
+    {
+      "id": 115342200585,
+      "name": "real-customer-staging",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-13T14:08:16Z",
+      "completed_at": "2026-10-13T14:08:16Z"
+    },
+    {
+      "id": 115342200193,
+      "name": "browser-public",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-13T14:08:19Z",
+      "completed_at": "2026-10-13T14:09:53Z"
+    },
+    {
+      "id": 115342200186,
+      "name": "k6-staging-soak",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-13T14:08:16Z",
+      "completed_at": "2026-10-13T14:08:16Z"
+    },
+    {
+      "id": 115342199774,
+      "name": "full",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "skipped",
+      "started_at": "2026-10-13T14:08:16Z",
+      "completed_at": "2026-10-13T14:08:16Z"
+    },
+    {
+      "id": 115342198201,
+      "name": "smoke",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-13T14:08:19Z",
+      "completed_at": "2026-10-13T14:09:54Z"
+    },
+    {
+      "id": 115342197394,
+      "name": "coverage",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-13T14:08:19Z",
+      "completed_at": "2026-10-13T14:20:53Z"
+    },
+    {
+      "id": 115342195884,
+      "name": "upgrade-migration-replay",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-13T14:08:19Z",
+      "completed_at": "2026-10-13T14:18:19Z"
+    },
+    {
+      "id": 115342195877,
+      "name": "quality-release-gates",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-13T14:08:18Z",
+      "completed_at": "2026-10-13T14:25:57Z"
+    },
+    {
+      "id": 115342195753,
+      "name": "targeted-regressions",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-13T14:08:18Z",
+      "completed_at": "2026-10-13T14:16:17Z"
+    },
+    {
+      "id": 115342195597,
+      "name": "clean-migration-replay",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-13T14:08:18Z",
+      "completed_at": "2026-10-13T15:06:18Z"
+    },
+    {
+      "id": 115342195328,
+      "name": "verify",
+      "head_sha": "fba453cc7cc9de8a26ec75d29248e1733316fcd1",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-13T14:08:18Z",
+      "completed_at": "2026-10-13T14:09:40Z"
+    }
+  ]
+}
+
+````
+
+Original ediel-helper-20261013-z03-z04-contract-support.md SHA2569960ddfed249bd5745e0764880571926061cbdc5c0dd6e630afb0af9457a9038:
+
+````markdown
+# Z03L/Z03LK → Z04L/Z04LK: bounded read-only contract support
+
+2026-10-13. Only this temporary report was written. No execution, SQL/backend/native/GEN/CI, original/log/artifact/private-input acquisition, source/ref/shared-document/claim/PR/merge action. No approval or ledger count.
+
+## Sources and applicability
+
+- Actual main: `95d8d160491e79b172342654d8dc643346758105`, tree `fa5ab60527a40bd642749365fc275d1d4a69e277`.
+- Public #795 candidate: `894b085ef22b48989375822beb5b483a356d10ed`, tree `99f4168315927d59107606d497b4a2a087f99d12`.
+- Read through Git objects in `/workspace/codex-ediel-helper-20261013-358d1615`; its checkout and stale origin/main were not treated as actual main.
+- Frozen `docs/ediel/masterplan-v2/registers/acceptance_tests.json` blob `3717ce88daaf98c916bb996edc6fe7887bf65b6c`, identical in both trees. Four cards at lines 2776–2781, 2792–2797, 2856–2861, 2872–2877. No frozen criterion edited.
+- Latest #766 overlap check included comments after 14:57:45Z through `6148567034` (15:03:07Z). `6148224187`, `6148345794`, `6148458306`, and new two-file claim `6148567034` cover distinct Z01 literal/native preparation or cb17 existing-data intake. They are not this Z03/Z04 review. No overlapping explicit Z03/Z04 contract-review receipt was found in that bounded check; this does not grant file/ID/producer custody.
+- Existing C1/source/producer-z03 retain IDs, shared files, native execution and originals. Existing SC037 receipt `6148045546` retains its 70-case component/three-consumer boundary and explicitly L/H-not-LK native applicability. That boundary is reused, not a new finding or re-audit. C1 Z02L/Z02LK/SC035 113-case receipt is not whole Z03/Z04 approval.
+
+The eleven profile/dispatch/birth/intent/native-helper/native-owner/H-native/P11/normal-SQL/SC036 sources below, and the normal-confirmation migration, have identical Git blobs between the two heads. Entire `supabase/schema.sql` differs. Relevant normal wire, normal confirmation, scoped normal effect, bilateral partition consumer and activation blocks were individually checked as unchanged. The outer public apply wrapper changes a Z05 rescission selector in #795; it is not a new Z04/LK rejection.
+
+## Literal clause → existing explicit assertion → limit
+
+| Frozen clause | Existing source/assertion | Applicability and remaining join |
+|---|---|---|
+| Z03 SUPPLIER; valid own supply agreement; L switch, LK move/customer switch; DDQ/Z03 and field223 Z22/Z23 | `__tests__/ediel-at-z03l-z03lk-supplier-profile.test.ts` 26–29 selects both subtypes; 278–317 tokenizes the actual rendered/stored wire and checks DDQ, BGM, exact own LIN, UTC start minute, adjacent CCI/CAV reason, own LI/grid/POA, separate legal FR/DO, own customer/address, selected BRP, absence of stale/sibling decoys. 562–580 refuses missing signed-method source, wrong selected site and wrong BRP/legal-method receiver. | Actual ordinary producer→intent→renderer→finalizer is used with declared IO ports. Restricted native binding deliberately returns HOLD at 270–272. 534–561 expects `switch_original_native_binding_required`, draft/unsubmitted original, pending ACK policy, no queue and unchanged business/sibling effects. This is not proof of a genuinely sent LK or physical incoming ACKs. File itself states these limits at 1–6. |
+| L D-14; LK no later than move-in; no earlier than 14 calendar months | `__tests__/ediel-z03-dispatch-window.test.ts` 113–150 explicitly separates L 2026-10-20 vs 10-19 and LK 10-06 vs 10-05; both 2027-12-06 vs 12-07 boundaries. 153–158 refuses caller date overriding persisted expired LK date; 161–169 applies actual environment gates. | Finite actual readiness/automation consumers with producer/IO ports. Reuse these exact subtype/date assertions; no new requirement to run every date-negative through a native producer. |
+| Create own case/timers, not active supply; CONTRL, APERAK and right Z04 are separate expectations | `scripts/ediel-source-owner-native.test.ts` 298–321 inspects the genuinely persisted ordinary Z03: outbound/sent, both ACKs required/pending, physical UNB request bit, finite 30-minute ACK deadline, scoped non-admin membership, actual accepted transport record and current sent-source guard. Its normal helper 310–315 queues through real producer, checks native original binding, sends through SMTP adapter and checks current sealed source. | This owner source has a declared synthetic SMTP provider, not remote DSO receipt. Helper input 59 allows L/H, not LK; default normal fixture is L (302). Its L sent-request prerequisite is reusable. A timer-request assertion does not itself witness actual incoming CONTRL, incoming APERAK, or business Z04 fulfillment. The existing owner already declares the L/H-not-LK limit. |
+| Z04 may precede positive APERAK; ACK never supplies business authority | `scripts/ediel-p-11-z04-order-sql-regression.mjs` 14–25 confirms actual normal-SQL apply while own originals are only `sent`, preserves confirmed periods after late ACK-column updates and verifies replay. `__tests__/ediel-sc-036-late-ack-after-z04.test.ts` 39–47 exercises the actual canonical updater for both ACK families and retains confirmed business status/Z04 payload. | Declared SQL fixtures / finite ACK-consumer ports, not genuine own physical receipt admission. Existing SC037 source/consumer adoption boundary remains owned elsewhere; no new audit or whole temporal gate is inferred. |
+| Nätägarens affärsbekräftelse på egen Z03; same LI alone insufficient | Effective `supabase/schema.sql` normal-confirmation 25723–25744 requires exactly one current sent own Z03, reversed physical sender/receiver, LI + customer + start + reason + point, rechecks locked original, exact tenant/customer/site/point/grid and signed agreement. Actual scoped effect has the same exact checks at 25826–25847. `scripts/ediel-source-owner-native.test.ts` 188–201 binds actual received Z04 wire to mailbox/parse/reception hashes and clocks; 210–223 requires complete canonical APP/function/register/source evidence; 346–353 commits accepted L source and confirmed own period. | Source refutes the LI-only correlation bug. Native owner source gives a genuine L received-source/business confirmation path, with preserved current legal/source admission. Its seed 130 has a mature original date and 355–372 uses manual canonical activation. It does not assert the four-card physical request-ACK/reply join for LK or future-start cron crossing. |
+| Z04 DDQ/BGM/field223 Z22 or Z23; correct L/LK profile and no borrowed source | `__tests__/ediel-normal-switch-birth-profile.test.ts` 27–43 binds exact database-profile witness for both Z22 and Z23 with own actual wire/receipt-date conversion; 45–70 refuses mixed normal reasons, assigned/production reason, missing/duplicate reason, foreign code/family/DDQ and later-register borrowing. 107–120 refuses invalid receipt clock, association and database-key substitution. | Catalog is an explicit IO port; this does not mint original admission, legal or business authority. It is reusable exact-profile evidence, not whole native LK proof. |
+| Return CONTRL and applicable APERAK for received Z04 | `__tests__/ediel-prodat-z04-persisted-ack.test.ts` uses actual canonical/ACK consumers with protected owner/table ports; 108–111/160/209 bind response ownership, source hash and stored response. Numerous specific header/register rejection assertions retain zero business effects. | Direction matters: outgoing ACKs for received Z04 are distinct from incoming ACKs for sent Z03. The normal native owner complete() 263–280 invokes business apply/source-owner finish, and does not itself assert the outgoing Z04 ACK pair. Existing response components can be reused only with their source/port limits. A full subtype original→reply receipt join remains unqualified here. |
+| Confirm future own period; activate at correct start and unchanged valid case | Normal SQL component `scripts/ediel-normal-switch-source-sql-regression.mjs` 65–79 refuses cancelled case, partial transport, early activation and changed date/site/agreement; 71–74 confirms periods and keeps future period not-due; 93–101 enforces exact-minute source bounds and current signed agreement. Effective schema activation 36044–36076 requires immutable confirmation, current recorded profile/source/bytes, `proof.market_start_at <= now()`, current legal supplier, unchanged sealed sent original/period/case and valid protected agreement. | SQL component includes synthetic reduced-schema owner facts and is explicitly not native/original proof at 107. Mature L native manual activation is reusable narrower evidence. Future wall-clock source qualification is the already recorded SC037 owner/collector continuation, not a new defect or demand for another producer, blanket wait, clock override or LIVE gate. |
+| Wrong role/direction, missing R/D, bad correlation or mutation must not execute | Actual effective schema checks inbound Z04/source/actor/legal/canonical acceptance before writes (normal confirmation 25690–25715), exact own-object scope and source-cohort binding (25722–25744 / scoped effect 25813–25847); activation has fresh unchanged-source/case/agreement checks above. Existing profile/birth/route/canonical required-field and source-owner refusals are reusable at their stated layer. | Rendering a positive LK profile is not exhaustive R/D-negative or native role/mutation qualification. H subtype-native negatives, Z04A required-start response authority and outgoing Z04D dependent guards must not be relabeled as full L/LK evidence. No new native-all-negatives requirement is introduced; first map the existing qualified guard/component receipt to the exact omitted field/direction before proposing any extra assertion. |
+
+## LK rejection hypothesis refuted at source
+
+There is no demonstrated product rejection of lawful LK. Effective `normal_switch_wire_v1` (schema 25873 onward; migration 42–57) physically groups own LIN/register fields without an L-only subtype restriction. The actual protected partition consumer `gridex_bilateral_prodat.apply_supply_before_h_v1` selects normal Z04 for **both** `Z22` and `Z23` at schema 3410–3411, calling `normal_switch_scope_effect_v1`. Its whole source/actor/legal/application/register guards at 3359–3385 remain prerequisites. Scoped normal effect accepts both reasons at 25816 and matches the original's **same** reason/customer/start/point and reversed parties at 25826–25847. The preserved global normal dispatch also includes both reasons at 24098; normal confirmation includes both at 25713.
+
+These checks admit a lawful same-reason LK source when its real sent-original/current-legal/canonical inputs qualify. The absent LK native helper witness is an evidence boundary already stated by its owner, not a productbug inferred from test-title absence. Positive finite LK rendering/profile binding supplements this source refutation but does not manufacture the missing native inputs.
+
+Individual unchanged effective-schema block SHA256 (from its `CREATE FUNCTION` through the next `CREATE`, including intervening dump comments):
+
+- normal wire: `75c3aa38dd3914ed63d699b7a2a9480656ed3e620e2e31e9d19c1c8b2e2ad7cf`.
+- normal confirmation: `60fb22ba24dee77d0acc481c67b5a6c8a28fa17e2725fec5e927081f9777a911`.
+- scoped normal effect: `a7db27c5699e75f45317532927035b4ebc01f6bac67e4d967a5b618aade65e72`.
+- bilateral partition consumer: `6d93e5778b0e140d6275173a2679a70e1c380cdf56085c78b7d0e4403546cc51`.
+- activation: `db3ed4abc4478c382d2f470a4fe41035f112cc8ba42b50461243538305b60c35`.
+
+## Smallest remaining join and custody
+
+The publishable finding is a **subtype-qualified receipt join**, not a required source correction. Existing actual sent L prerequisite, own L confirmation source, finite L/LK profile/date guards and exact-source/activation mechanics are useful components. The reviewed sources do not establish the missing L/LK-specific linkage of the sent own original to physically admitted incoming request ACKs and its causally matched Z04/appropriate outgoing reply receipts. Existing confirmation/start-boundary components retain their narrower qualification separately. This is especially an already known LK witness boundary, rather than evidence that the runtime refuses LK. Separate qualified component receipts may supply the join; no single test/file or newly executed whole chain is required by this review.
+
+H source supplies an exact reusable request-ACK shape: `scripts/ediel-at-z03h-z04h-supplier-native.test.ts` 1506–1589 checks actual accepted transport, provider-anchored technical watch, physical reversed envelope/UCI or ACW+LI+point/legal parties, real intake/processor, committed `exact_receipt` on the unchanged original, ACK source/hash correlations and unchanged market state. It is genuinely incoming request-ACK evidence for H; it does **not** become L/LK whole-card approval. The owner may reuse that assertion shape against already qualified own L/LK sources after explicit custody/applicability, without altering shared helper or taking over a producer.
+
+Z04A is a separate assigned-supply reason Z26 and source-authority path. Existing normal birth assertions explicitly reject Z26 as a normal L/LK profile (birth test 48/50). A qualified Z04A component can support its own alternative legal process, but cannot substitute for these frozen cards' literal “nätägarens affärsbekräftelse på egen Z03”/Z22-or-Z23 witness. No extra reply/activation condition is invented for assigned supply.
+
+Next owner action is to compare the sole collector's existing qualified source/case/receipt index with this exact join. If retained originals already witness the join, qualify their original hash, subtype/customer/date/party scope and physical ACK/business-response direction against the unchanged applicable source; no duplicate execution is justified by this review. If that concrete witness is absent, the existing source/producer/collector owner decides the narrow supplemental assertion/preparation and source union. Real sent-original/accepted-provider/current-source guards, physical ACK authority, R/D gates and actual start timestamp remain intact. Existing SC037 future-start handoff remains the continuation for its own missing physical boundary; this report neither restarts it nor adds a new all-contract temporal gate.
+
+No actual productbug or mandatory source change was established. This report does not qualify originals, runtime success, whole IDs, CI, merge, or approval counts.
+
+````
+
+Original ediel-helper-20261013-z03-z04-contract-peer-a.md SHA256937df109214d5779d6ad7a4cdcdeee9b573566cf0d2cdd17f69ba6476baae817:
+
+````markdown
+# Independent contract support review A — Z03/Z04 L/LK
+
+Verdict: **SUPPORT bounded subtype-qualified receipt join; LK source-rejection hypothesis refuted at effective source.** No required product correction or universal absence of retained evidence is established. This is a new read-only contract source/applicability review, not execution, native/whole-ID or final delivery approval.
+
+Reviewer `/root/sc031_outbound_peer_a` did not coauthor the support report, source, tests, fixtures or originals and did not consult peer B. Support report SHA256 independently matched `9960ddfed249bd5745e0764880571926061cbdc5c0dd6e630afb0af9457a9038` at `/tmp/ediel-helper-20261013-z03-z04-contract-support.md`.
+
+Exact bindings: actual main `95d8d160491e79b172342654d8dc643346758105` / tree `fa5ab60527a40bd642749365fc275d1d4a69e277`; public #795 `894b085ef22b48989375822beb5b483a356d10ed` / tree `99f4168315927d59107606d497b4a2a087f99d12`. Source read from exact Git objects, not stale checkout/main labels. Frozen four AT-Z03L/Z03LK/Z04L/Z04LK cards independently read; normal source must use Z22/Z23 respectively, own Z03 business confirmation, separate request ACK/business expectations, prescribed return ACKs, signed/current case and correct activation time. Actual source same-LI alone is insufficient.
+
+## LK acceptance checked at effective call chain
+
+Independently reconstructed and matched all five reported main/public schema blocks and their SHA256:
+
+* `gridex_received_sources.normal_switch_wire_v1`: `75c3aa38dd3914ed63d699b7a2a9480656ed3e620e2e31e9d19c1c8b2e2ad7cf`.
+* `gridex_received_sources.normal_switch_confirm_v1`: `60fb22ba24dee77d0acc481c67b5a6c8a28fa17e2725fec5e927081f9777a911`.
+* `gridex_received_sources.normal_switch_scope_effect_v1`: `a7db27c5699e75f45317532927035b4ebc01f6bac67e4d967a5b618aade65e72`.
+* `gridex_bilateral_prodat.apply_supply_before_h_v1`: `6d93e5778b0e140d6275173a2679a70e1c380cdf56085c78b7d0e4403546cc51`.
+* `public.activate_customer_supply_v1`: `db3ed4abc4478c382d2f470a4fe41035f112cc8ba42b50461243538305b60c35`.
+
+Schema lines3410–3411 select normal Z04 scope for both `Z22` and `Z23`, then call scoped normal effect. Whole protected consumer's current source/actor/legal/canonical register/own-application gates remain intact. Scoped normal effect's lines25813–25847 permit both normal reasons and qualify the same reason/customer/start/point/LI and physically reversed sender/receiver against exactly one current sent own Z03. The original is re-read under lock, source cohort and current tenant/customer/site/point/grid/signed contract checked. Normal confirmation lines25713 onward independently accepts both reasons. Normal wire has no L-only restriction.
+
+Thus no lawful-LK rejection follows from the helper's absence of an LK native fixture. The refutation is source-level: actual canonical, sent-source and legal input must still qualify. It is not a claim that an LK native receipt executed successfully.
+
+## Existing assertions and honest direction limits
+
+Independently matched ten relevant published file blobs across main/public: L/LK producer profile, dispatch window, normal birth profile, persisted Z04 ACK component, source-owner native source, its normal helper, H-native source, P11 ordering SQL component, normal source SQL regression and SC036 updater. Their preserved assertions are useful before considering new work.
+
+* `__tests__/ediel-at-z03l-z03lk-supplier-profile.test.ts:278–317` checks actual ordinary producer/intent/renderer/finalizer stored wire for both subtypes with own physical tuple and no sibling/stale decoys. `:534–561` explicitly asserts `switch_original_native_binding_required`, retained draft, pending ACK policy, no queue and unchanged business/sibling state. Positive rendering is not sent-original or incoming-ACK qualification. Its early refusal controls562–580 exercise source method/selected site/BRP scope.
+* `ediel-z03-dispatch-window.test.ts:113–159` actually differentiates L D-14 and LK move-day limits plus14 calendar-month horizon; readiness/automation retains persisted subtype/date and rejects caller replacement of expired LK date. Those component assertions should be reused at their declared layer, not unnecessarily re-executed through native for every negative.
+* `ediel-normal-switch-birth-profile.test.ts:27–70` gives exact normal catalog/profile witness for bothZ22/Z23, refusing mixed/assignedZ26/missing/duplicate/later-register reasons and foreign scope. Declared catalog port is not source admission authority. Z04A/Z26 cannot replace normal business confirmation on ownZ03.
+* `scripts/helpers/ediel-normal-switch-native-fixture.ts:59–64` explicitly permits initialSubtype L/H only and defaultsL at302. Its310–315 actual producer/native-bind/send/current guard is a reusable L prerequisite, not an LK defect. Source-owner native298–321 proves saved/sent Z03, requested pending ACKs and bounded sender watch/provider current source; it does not ingest both remote requestACKs. The file mocks ACK creator, which is another reason not to infer universal return-ACK qualification from that owner test.
+* Normal received-source native path preserves mailbox/source parse/context/canonical acceptance and actual L business apply. Its mature-date/manual activation and owned SC03770/three-consumer boundaries retain their already-declared applicability. No new timing bug or producer request follows here.
+* `ediel-prodat-z04-persisted-ack.test.ts:108–111` and actual atomic-owner/table ports meaningfully bind source hash and own outbound response effects to receivedZ04. This is outgoing reply direction, distinct from incoming requestACKs for sentZ03. No actual current native-pair claim is inferred.
+* `scripts/ediel-p-11-z04-order-sql-regression.mjs:14–25` exercises confirmation while originals remain sent and preserves periods after ACK updates/replay; `ediel-sc-036-late-ack-after-z04.test.ts:39–47` retains confirmed business state/Z04 response after each actual ACK updater. These are already useful finite order components, not invented replacement for physical receipt custody.
+* H-native1506–1589 actually describes incoming CONTRL and APERAK on accepted own original through real intake/processor and immutable receipts, not outgoing reply shape. Its exact H binding does not approve L/LK. Only the assertion shape and unchanged source mechanics can be reused without subtype/original-qualified adoption.
+
+## Minimum useful continuation
+
+The remaining support task is to join subtype-qualified own sent original, incoming request CONTRL/APERAK and causally matched business Z04/its appropriate own reply receipts using existing qualified evidence where available. This may be a join of separate receipts/components; no single new whole-chain native test is required by this review. Sole collector/source owner should first check retained source/case/receipt indices. If a qualified exact L/LK join already exists, explicitly bind original hash, own subtype/date/customer/parties and direction rather than rerun. If that bounded witness is absent, only the existing producer decides narrow supplemental preparation with custody/source applicability.
+
+Do not require complete ACKs before Z04; frozen given and effective ordering permit Z04 before positiveAPERAK. Do not add LIVE/legal/external publication approval, clock override, blanket waiting, mandatory fresh native-all-negatives or a new universal temporal gate. Normal confirmation's existing exact own scope/signed agreement/source gates and SC037 owner continuation remain intact.
+
+I inspected source, not existing protected originals or current native receipts. Source metadata/test absence is not universal absence of a qualified witness. No product bug, current CI/native execution, whole-ID approval, ledger increase, normal merge or custody transfer is claimed. Only write is this own `/tmp` report; no tests/SQL/backend/native/GEN/CI, private originals/log/artifact collection, source/ref/checkpoint/claim/PR actions.
+
+````
+
+Original ediel-helper-20261013-z03-z04-contract-peer-b.md SHA25631a39235a53963d52195989b5d764f896be91854e97de14960c5b692c467ec61:
+
+````markdown
+# Independent contract-support review B — Z03/Z04 L/LK
+
+Verdict: SUPPORT the bounded source/evidence-gap analysis. No actionable requirement overclaim, invented gate, or confirmed product defect identified. The publishable gap is subtype-qualified linkage of existing originals and request/business/response receipts; lack of an LK native helper does not establish a product rejection.
+
+Reviewer `/root/sc031_outbound_peer_b` is a noncoauthor and did not consult peer A. Read-only review; sole output is this report. No test/SQL/backend/native/GEN/CI execution, private input/original/log/artifact collection, producer/source/ref/docs/claim/PR/merge action. Applied focused code-review, literal contract comparison and verification guidance; previously read Supabase/Postgres guidance informs the finite-vs-actual-authority distinction, not a new broad audit.
+
+## Exact source/report binding
+
+Reviewed support report SHA256 `9960ddfed249bd5745e0764880571926061cbdc5c0dd6e630afb0af9457a9038`, path `/tmp/ediel-helper-20261013-z03-z04-contract-support.md`.
+
+Exact supplied actual-main source `95d8d160491e79b172342654d8dc643346758105`, tree `fa5ab60527a40bd642749365fc275d1d4a69e277`; public #795 source `894b085ef22b48989375822beb5b483a356d10ed`, tree `99f4168315927d59107606d497b4a2a087f99d12`. These are the reviewed exact objects; no fresh remote-main/CI status is inferred. Existing SC037 source/base/consumer limits remain separate and unchanged.
+
+Independently read the four frozen AT-Z03L/LK-SUPPLIER and AT-Z04L/LK-SUPPLIER cards. They require correct DDQ/Z03/Z04 and Z22/Z23, separate technical/application/business expectations, literal subtype dispatch dates, creation of permitted case/timers without active supply, return applicable ACKs for Z04, future-period/start/unchanged-case gating, and refusal of wrong role/direction/missing R/D/correlation/mutation. Z04 may precede positive APERAK; same LI alone is insufficient.
+
+Independently verified main95d/public894 equality for acceptance register, Z03 profile and date tests, normal birth-profile tests, SC036, persisted Z04 ACK suite, source-owner native, P11 and normal-source SQL components. Whole schema differs, so block-specific applicability is necessary. Independently extracted and checked unchanged normal-wire, normal-confirmation, scoped normal effect, protected partition consumer and activation blocks; all five hashes match the support report. In particular normal-confirmation function is `gridex_received_sources.normal_switch_confirm_v1`, SHA256 `60fb22ba24dee77d0acc481c67b5a6c8a28fa17e2725fec5e927081f9777a911`.
+
+## Source assertions and correct qualification limits
+
+- Z03 profile suite actually traverses ordinary producer→persisted intent/source consumers→renderer→canonical finalizer/stored original through declared IO, asserts its own exact DDQ/Z03/LIN/date/reason/LI/customer/legal/signed-source tuple for both L and LK, and refuses selected source/method/site/BRP errors. Its restricted original-binding port deliberately returns HOLD. Draft/pending ACK and zero queue/business effects are asserted. This proves valuable component behavior, not a genuinely sent source or request ACK completion.
+- Date consumers explicitly cover L D-14, LK by move-in, 14-calendar-month boundaries, persisted date precedence and environment. Their reuse is sufficient for those component predicates; no new requirement for a native run of every date-negative follows.
+- Normal birth-profile suite accepts Z22→L and Z23→LK with exact catalog witness/receipt-date conversion, rejecting foreign/mixed/assigned/repeated/borrowed reason. Catalog is declared IO and does not create source/legal/business admission.
+- Existing source-owner native source has a real L sent-original prerequisite and qualified L received Z04/business effect at its retained scope. L/H helper restriction and mature/manual activation are explicit limits. Neither timer defaults nor synthetic SMTP send alone prove the missing incoming request ACK pair.
+- Actual P11/SC036 and current activation SQL component prove useful independent business-vs-ACK/start guards through declared ports. Source-owner finish/normal completion and persisted ACK components do not automatically establish every subtype's outgoing Z04 response receipt. Direction and source identity must remain explicit.
+
+These statements describe existing assertions and source applicability. I did not re-execute them or qualify an unseen original/receipt archive.
+
+## Lawful LK rejection hypothesis refuted
+
+Read actual unchanged normal wire and scoped consumer/effect SQL. The protected partition consumer selects Z04 reasons both Z22 and Z23 and dispatches to `normal_switch_scope_effect_v1`. That effect accepts both reasons while retaining current source/application/register/legal/tenant checks, exact same own original reason/customer/start/point, reversed parties, current sent-source guard, and owned signed case/agreement. Normal confirmation also selects both reasons. There is no L-only runtime restriction established by these source predicates.
+
+A lawful same-reason LK source is supported when its genuine current authority qualifies. Absence of the LK native helper/receipt witness remains an evidence limit; it is not a reason for a source correction or weakening protected source gates. Positive finite LK rendering/profile proof supplements that refutation but cannot mint the genuine admission witness.
+
+## Smallest next join, without new blanket gates
+
+The report correctly asks the existing owner/collector to map already qualified source/case/receipt evidence first. Preserve exact original hash/subtype/customer/date/parties and distinguish:
+
+1. Incoming CONTRL/APERAK for sent own Z03.
+2. Causally matched received Z04 business confirmation for that same own original.
+3. Applicable outgoing CONTRL/APERAK for the received Z04.
+
+Separate qualified components/receipts can supply this linkage. There is no requirement from this review for one new all-in-one test, a fresh whole chain, native versions of all negative variants, a new GEN producer or LIVE/counterparty/legal gate. Only a genuinely absent exact witness justifies narrow owner-authorized supplementation. Existing R/D/role/source refusals should be reused with explicit applicability rather than treated as missing merely because a card-specific title is absent.
+
+Z04A/Z26 remains its own assigned-supply process and does not substitute for the literal normal confirmation on own Z03/Z22 or Z23. Positive Z04 before APERAK remains valid. Real future start/cancellation/agreement/source guards remain intact; the existing SC037 physical-start/three-TS-consumer handoff is reused at its exact limits and is not converted into a new all-contract wall-clock or blanket-wait requirement.
+
+No whole-ID approval, original qualification, current runtime/CI/native claim, ledger increase or merge authorization is supported here. Existing source/native/collector/serial owners retain actual closure duties.
+
+````
