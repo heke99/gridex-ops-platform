@@ -6,6 +6,7 @@ import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { ipAllowedByRules, trustedClientIp } from '@/lib/integrations/ipPolicy'
 import { tenantContextForIntegration, type TenantContext } from '@/lib/tenant/context'
 import { publicRouteCost } from '@/lib/api/publicRouteRegistry'
+import { bindAuthenticatedApiResponseProfile } from '@/lib/integrations/apiResponseProfile'
 
 export type IntegrationApiClient = {
   id: string
@@ -460,6 +461,9 @@ export async function requireIntegrationApiAccess(
     rateLimit: result.rateLimit,
     retryAfterSeconds: result.ok ? undefined : result.retryAfterSeconds,
   })
+  // A recognized credential may format its denial too, but configuration must
+  // never replace authentication/revocation/rate-limit denial with a new error.
+  if (result.client) bindAuthenticatedApiResponseProfile(result.client, { strict: result.ok })
   return result
 }
 

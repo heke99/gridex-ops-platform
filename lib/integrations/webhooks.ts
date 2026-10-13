@@ -616,7 +616,15 @@ export async function dispatchDueWebhookDeliveries(limit = 25) {
         locked_by: null,
         target_url: targetUrl,
       })
-      await updateSubscriptionFailure(subscription, deadLetter)
+      try {
+        await updateSubscriptionFailure(subscription, deadLetter)
+      } catch (subscriptionError) {
+        console.error('[webhooks] missing-secret failure persisted but subscription projection failed', {
+          deliveryId: delivery.id,
+          subscriptionId: subscription.id,
+          error: subscriptionError,
+        })
+      }
       failed += 1
       continue
     }

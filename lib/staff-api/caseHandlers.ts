@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import type { NextRequest } from 'next/server'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'
 import { withStaffApi, staffApiJson } from '@/lib/staff-api/http'
@@ -239,7 +239,6 @@ export function getStaffCaseAttachmentFile(request: NextRequest, params: CaseAtt
       'Content-Length': String(bytes.length), 'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'none'; sandbox", 'Cache-Control': 'private, no-store',
       'X-Gridex-Sha256': row.sha256, 'X-Gridex-Contract-Version': WEBSITE_INTEGRATION_CONTRACT_VERSION,
-      'X-Request-ID': request.headers.get('x-request-id')?.trim() || randomUUID(),
     } })
   })
 }

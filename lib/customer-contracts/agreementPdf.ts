@@ -38,6 +38,8 @@ export type AgreementPdfInput = {
   spotMarkupOrePerKwh?: number | null
   fixedPriceOrePerKwh?: number | null
   variableFeeOrePerKwh?: number | null
+  /** Exact customer-facing components from the accepted frozen price snapshot. */
+  priceLines?: string[]
   bindingMonths?: number | null
   noticeMonths?: number | null
   legalVersions: AgreementPdfLegalVersion[]
@@ -176,7 +178,7 @@ function agreementLines(input: AgreementPdfInput): PdfLine[] {
   const brand = input.brandName?.trim() || input.companyName
   const address = cleanAddress(input.companyAddress) || '-'
   const contractTypeLabel = customerContractTypeLabel(input.contractType)
-  const priceLines = [
+  const priceLines = input.priceLines ?? [
     formatAmount(input.monthlyFeeSek, 'kr/mån'),
     formatAmount(input.invoiceFeeSek, 'kr/faktura'),
     formatAmount(input.spotMarkupOrePerKwh, 'öre/kWh spotpåslag'),
@@ -204,7 +206,7 @@ function agreementLines(input: AgreementPdfInput): PdfLine[] {
   lines.push({ text: '' })
   lines.push({ text: 'PRIS', style: 'heading' })
   if (priceLines.length > 0) {
-    for (const price of priceLines) lines.push({ text: price })
+    for (const price of priceLines) addWrapped(lines, price)
   } else {
     addWrapped(lines, 'Pris enligt det publicerade erbjudande som accepterades när avtalet tecknades.')
   }

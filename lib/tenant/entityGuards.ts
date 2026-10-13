@@ -1,10 +1,11 @@
 import { isPlatformAdminContext, type GuardResult } from "@/lib/admin/guards";
+import { assertAdminApiCompanyPermissions } from "@/lib/admin/apiGuards";
 import { supabaseService } from "@/lib/supabase/service";
-import { requireOperationalCompanyId } from "@/lib/tenant/scope";
+import { assertTenantUserCanReadCompany } from "@/lib/tenant/scope";
 
 type TenantGuard = Pick<
   GuardResult,
-  "userId" | "roles" | "permissions" | "isPlatformAdmin"
+  "userId" | "roles" | "permissions" | "isPlatformAdmin" | "companyId"
 >;
 
 type CustomerTenantRow = {
@@ -34,13 +35,14 @@ export async function assertCompanyAccessForGuard(
     companyId,
     "Raden saknar bolagskoppling och kan därför inte hanteras säkert.",
   );
+  await assertAdminApiCompanyPermissions(guard, normalizedCompanyId);
 
   if (guardIsPlatformAdmin(guard)) return normalizedCompanyId;
 
-  const operationalCompanyId = await requireOperationalCompanyId(guard.userId);
-  if (operationalCompanyId !== normalizedCompanyId) {
+  if (!guard.companyId || guard.companyId !== normalizedCompanyId) {
     throw new Error("Du saknar behörighet för valt bolag.");
   }
+  await assertTenantUserCanReadCompany(guard.userId, guard.companyId);
 
   return normalizedCompanyId;
 }

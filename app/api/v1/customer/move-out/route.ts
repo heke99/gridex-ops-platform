@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import {
   ApiInputError,
@@ -27,7 +28,7 @@ function record(value: unknown): JsonRecord {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {}
 }
 
-export async function POST(request: NextRequest) {
+ async function profiledPOST(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_facility_data.write'])
   if (!context.ok) return context.response
 
@@ -122,3 +123,5 @@ export async function POST(request: NextRequest) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
 }
+
+export const POST = withApiContractRepresentation('customer', profiledPOST)

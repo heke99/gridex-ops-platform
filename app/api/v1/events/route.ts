@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { ApiInputError, customerPortalWriteError, readJsonObject } from '@/lib/api/strictRequest'
 import { canonicalApiError } from '@/lib/api/apiError'
@@ -43,7 +44,9 @@ function validateQuery(request: NextRequest) {
   return { eventType, externalCustomerId: singleQueryValue(request, 'external_customer_id'), before, limit: parseLimit(singleQueryValue(request, 'limit')) }
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withApiContractRepresentation(['website', 'customer'], getEvents)
+
+async function getEvents(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['events.read'])
@@ -76,7 +79,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withApiContractRepresentation(['website', 'customer'], publishEvent)
+
+async function publishEvent(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_events.write'])

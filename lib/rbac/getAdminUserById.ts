@@ -67,6 +67,7 @@ export async function getAdminUserById(userId: string) {
     .select('id, user_id, role_id, is_active, created_at, updated_at, roles(id, key, name)')
     .eq('user_id', userId)
     .eq('is_active', true)
+    .is('company_id', null)
 
   if (rolesError) throw rolesError
 
@@ -89,6 +90,7 @@ export async function getAdminUserById(userId: string) {
     .select('id, permission_key, effect, reason, valid_from, valid_to, granted_at, expires_at')
     .eq('user_id', userId)
     .eq('is_active', true)
+    .is('company_id', null)
 
   if (overridesError) throw overridesError
 

@@ -98,54 +98,54 @@
       "tenant_authenticated"
     ]
   },
-  "tenant_status_unavailable": {
+  "organization_status_unavailable": {
     "http_status": 503,
-    "public_message": "Tenantens driftstatus kunde inte verifieras.",
+    "public_message": "The organization status could not be verified.",
     "retryable": true,
     "security_sensitive": false,
     "routes": [
       "tenant_authenticated"
     ]
   },
-  "tenant_not_operationally_ready": {
+  "organization_not_operationally_ready": {
     "http_status": 403,
-    "public_message": "Tenantens onboarding är inte klar.",
+    "public_message": "The organization is not ready for production API access.",
     "retryable": false,
     "security_sensitive": false,
     "routes": [
       "tenant_authenticated"
     ]
   },
-  "tenant_paused": {
+  "organization_paused": {
     "http_status": 423,
-    "public_message": "Tenantens API-åtkomst är pausad.",
+    "public_message": "API access for the organization is paused.",
     "retryable": false,
     "security_sensitive": false,
     "routes": [
       "tenant_authenticated"
     ]
   },
-  "tenant_closed": {
+  "organization_closed": {
     "http_status": 410,
-    "public_message": "Tenantens konto är stängt.",
+    "public_message": "The organization account is closed.",
     "retryable": false,
     "security_sensitive": false,
     "routes": [
       "tenant_authenticated"
     ]
   },
-  "tenant_suspended": {
+  "organization_suspended": {
     "http_status": 403,
-    "public_message": "Tenantens konto är avstängt.",
+    "public_message": "API access for the organization is suspended.",
     "retryable": false,
     "security_sensitive": false,
     "routes": [
       "tenant_authenticated"
     ]
   },
-  "tenant_inactive": {
+  "organization_inactive": {
     "http_status": 410,
-    "public_message": "Tenantens konto är inte aktivt.",
+    "public_message": "The organization is not active.",
     "retryable": false,
     "security_sensitive": false,
     "routes": [
@@ -213,6 +213,15 @@
     "security_sensitive": false,
     "routes": [
       "POST /api/v1/website/customer-applications"
+    ]
+  },
+  "api_contract_profile_unavailable": {
+    "http_status": 503,
+    "public_message": "The configured API representation is unavailable.",
+    "retryable": false,
+    "security_sensitive": false,
+    "routes": [
+      "credential_profile_authenticated"
     ]
   }
 }

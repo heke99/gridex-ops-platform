@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { readJsonWithLimit } from '@/lib/http/payloadLimit'
@@ -113,7 +114,9 @@ function responseError(input: {
   })
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withApiContractRepresentation('website', validateQuote)
+
+async function validateQuote(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_quotes.validate'])

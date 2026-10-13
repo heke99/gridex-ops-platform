@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest, NextResponse } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
@@ -48,7 +49,9 @@ function responseHeaders(input: { etag?: string; limit: number; remaining: numbe
   }
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withApiContractRepresentation('website', getPublicContracts)
+
+async function getPublicContracts(request: NextRequest) {
   const startedAt = Date.now()
   const currentRequestId = requestId()
   let query
@@ -223,7 +226,30 @@ export async function GET(request: NextRequest) {
     }
 
     const diagnosticsPayload = diagnostics
-      ? { publication: diagnostics, source_of_truth: 'canonical_public_contract_delivery_readiness_v' }
+      ? {
+          publication: {
+            total: diagnostics.total,
+            visible: diagnostics.visible,
+            hidden: diagnostics.hidden,
+            offers: diagnostics.offers.map((offer) => ({
+              offer_reference: offer.offer_reference,
+              name: offer.name,
+              product_code: offer.product_code,
+              publication_status: offer.publication_status,
+              channel_state: offer.channel_state,
+              website_enabled: offer.website_enabled,
+              valid_from: offer.valid_from,
+              valid_to: offer.valid_to,
+              customer_type: offer.customer_type,
+              visible: offer.visible,
+              blockers: offer.blockers,
+              graph: offer.graph,
+              pricing_readiness: offer.pricing_readiness,
+              readiness: offer.readiness,
+            })),
+          },
+          source_of_truth: 'canonical_public_contract_delivery_readiness_v',
+        }
       : null
     const emptyFeedAuthorization = (() => {
       if (data.length > 0) return null

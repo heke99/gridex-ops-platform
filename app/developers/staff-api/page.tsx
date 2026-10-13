@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { CopyCodeBlock } from '@/components/developers/CopyCodeBlock'
 import { PUBLIC_API_ENDPOINT_ROWS } from '@/lib/api/publicRouteRegistry'
-import { STAFF_API_CONTRACT_VERSION, STAFF_OPENAPI_URL, STAFF_VERSIONED_OPENAPI_URL } from '@/lib/integrations/websiteIntegrationContract'
+import { STAFF_ONBOARDING_CONTRACT_VERSION } from '@/lib/staff-api/onboardingContract'
+import { API_DOCUMENTATION_VERSION, STAFF_API_CONTRACT_VERSION, STAFF_OPENAPI_URL, STAFF_VERSIONED_OPENAPI_URL } from '@/lib/integrations/websiteIntegrationContract'
 
 export const metadata: Metadata = {
   title: 'Gridex Staff API Documentation',
@@ -44,7 +45,8 @@ const errors = [
   ['403', 'api_scope_missing, staff_provider_missing, staff_provider_invalid, staff_membership_inactive, staff_permission_denied, staff_role_ceiling_exceeded', 'Check configured scopes, provider, active membership and permissions.'],
   ['404', 'Resource unavailable in this organization', 'Use a current reference from the same organization.'],
   ['409', 'version_conflict, staff_self_disable_forbidden, staff_last_admin_required, staff_invalid_user_state, staff_self_role_change_forbidden, idempotency conflict', 'Reload and reconcile the operation without bypassing safeguards.'],
-  ['413 / 415', 'Attachment size or type rejected', 'Use PDF, PNG or JPEG within 4 MiB.'],
+  ['410 / 423', 'organization_closed, organization_inactive, organization_paused', 'Resolve the organization lifecycle restriction before retrying.'],
+  ['413 / 415', 'payload_too_large or attachment size/type rejected', 'Reduce the JSON body or use PDF, PNG or JPEG within 4 MiB.'],
   ['429', 'Rate limit exceeded', 'Observe Retry-After and sign a fresh assertion for the retry.'],
   ['412', 'storage_project_mismatch', 'Use the deployment serving the expected project; nothing was executed.'],
   ['500 / 503', 'Processing or service unavailable', 'Keep the request ID; retry only when safe and retryable.'],
@@ -53,14 +55,18 @@ const errors = [
 export default function StaffApiGuide() {
   const endpoints = PUBLIC_API_ENDPOINT_ROWS.filter(([, path]) => path.startsWith('/api/v1/staff/'))
   return (
-    <main className="mx-auto max-w-6xl space-y-10 px-6 py-12 text-slate-800">
+    <main lang="en" className="mx-auto max-w-6xl space-y-10 px-6 py-12 text-slate-800">
       <header className="space-y-4">
         <a className="underline" href="/developers/customer-portal-api">Gridex API documentation</a>
         <h1 className="text-4xl font-semibold text-slate-950">Gridex Staff API</h1>
-        <p>Release {STAFF_API_CONTRACT_VERSION}. Manage staff accounts and customer service from your own backend.</p>
-        <p>You do not need to match the latest documentation revision exactly to use a supported API version. Integrations built against an earlier supported Staff revision keep working.</p>
+        <p>Documentation {API_DOCUMENTATION_VERSION}. Staff response schema {STAFF_API_CONTRACT_VERSION}. Manage staff accounts and customer service from your own backend.</p>
+        <p>You do not need to match the latest documentation revision exactly to use a supported API version. Documentation updates do not change the business response schema or require an integration upgrade. Earlier supported Staff response profiles remain available. Independent staff onboarding has its own schema, {STAFF_ONBOARDING_CONTRACT_VERSION}.</p>
         <p><a className="underline" href={STAFF_OPENAPI_URL}>Current OpenAPI</a> · <a className="underline" href={STAFF_VERSIONED_OPENAPI_URL}>Immutable release</a> · <a className="underline" href="/api/v1/openapi/release-manifest.json">Release manifest</a></p>
       </header>
+      <section className="space-y-4">
+        <h2 className="text-2xl font-semibold">Deployment qualification</h2>
+        <p>The October 12 review did not establish a working live Staff integration. Source review and local probes do not establish production readiness. Qualify the organization&apos;s credential, identity provider, current bindings and required OPS database functions before relying on these endpoints.</p>
+      </section>
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Configure staff login</h2>
         <p>Create an API credential with the specific staff scopes you need. In Settings → Customer login, add an OIDC provider or your backend public signing key with purpose Staff. Copy its issuer and audience exactly. Existing website and customer scopes do not grant staff access.</p>
@@ -70,7 +76,8 @@ export default function StaffApiGuide() {
         <h2 className="text-2xl font-semibold">Sign each request</h2>
         <p>Send Authorization: Bearer &lt;GRIDEX_API_KEY&gt; and x-gridex-staff-assertion: &lt;SIGNED_JWT&gt; on every call. Supported algorithms are RS256, PS256 and ES256. The JWT requires the configured iss and aud, sub equal to the staff Gridex user UUID, integer iat and exp with a lifetime of at most 900 seconds, and a unique jti. Optional nbf controls the earliest valid time.</p>
         <p>Clients registered for an independent staff identity additionally send token_use &quot;staff_access&quot;, company_id, local_auth_issuer, local_auth_subject, staff_binding_id and staff_binding_version from onboarding; sub stays the central Gridex user UUID. A removed or revoked registration is rejected and never falls back to the central flow. See the independent staff onboarding guide in docs/staff-api/independent-onboarding.md.</p>
-        <p>Each assertion is accepted once. Generate a new assertion and jti for every attempt, including reads and retries. Gridex checks active organization membership and calculates the person&apos;s role permissions and overrides for every request.</p>
+        <p>Each assertion is accepted once. Generate a new assertion and jti for every attempt, including reads and retries. Gridex checks the current central account, active organization membership, current identity binding where required, and the person&apos;s role permissions and overrides for every request.</p>
+        <p>Your backend verifies the local Auth session before signing. Gridex also calls the registered local Auth getUser during identity resolution and invitation acceptance. A normal Staff request validates the signed proof and current central authority; it does not call local Auth getUser again for an already signed proof.</p>
         <CopyCodeBlock code={signingExample} />
       </section>
       <section className="space-y-4">
@@ -103,7 +110,7 @@ export default function StaffApiGuide() {
       </section>
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold">Errors</h2>
-        <p>JSON errors contain error.code, error.message, error.retryable, error.field and error.blockers, plus request_id, correlation_id and contract_schema_version. Success and error responses carry X-Request-ID and X-Gridex-Contract-Version.</p>
+        <p>JSON errors contain error.code, error.message, error.retryable, error.field and error.blockers, plus request_id, correlation_id and contract_schema_version. Success and error responses carry X-Request-ID and X-Gridex-Contract-Version. X-Gridex-Documentation-Version identifies the associated documentation revision. When fetching OpenAPI itself, X-Gridex-Contract-Version identifies that document&apos;s revision.</p>
         <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr>{['HTTP', 'Reason or code', 'Action'].map(h => <th key={h} className="border-b p-3">{h}</th>)}</tr></thead><tbody>{errors.map(([status, reason, action]) => <tr key={status}><td className="border-b p-3">{status}</td><td className="border-b p-3">{reason}</td><td className="border-b p-3">{action}</td></tr>)}</tbody></table></div>
       </section>
     </main>

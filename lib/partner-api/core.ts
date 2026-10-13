@@ -17,12 +17,13 @@ import {
 } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import { PARTNER_API_VERSION, partnerOpenApi } from './openApi'
+import { readCompletePartnerMeasurements } from './measurementRead'
+import { requirePartnerOfferDirection } from './offerDirection'
 import { PARTNER_VISIBLE_INVOICE_STATUSES, calendarDaysInclusive, stockholmDayStartUtc, stockholmNextDayStartUtc } from './partnerTime'
 
 const POA_BUCKET = 'customer-documents'
 const MAX_POA_BYTES = 5 * 1024 * 1024
 const MAX_MEASUREMENT_DAYS = 366
-const MAX_MEASUREMENT_ROWS = 40_000
 
 type Json = Record<string, unknown>
 
@@ -79,6 +80,8 @@ function safeError(error: unknown): { status: number; code: string; message: str
   }
   const message = String((error as { message?: unknown } | null)?.message ?? '')
   const known: Array<[RegExp, number, string, string]> = [
+    [/partner_api_site_offer_direction_mismatch/i, 422, 'site_offer_direction_mismatch', 'The site electricity type does not match the selected published offer.'],
+    [/partner_api_offer_direction_unavailable/i, 503, 'offer_direction_unavailable', 'The selected offer energy direction could not be verified.'],
     [/partner_api_offer_not_found/i, 404, 'offer_not_found', 'The published offer was not found for this API client.'],
     [/partner_api_offer_reference_required/i, 422, 'offer_reference_required', 'offer_reference is required.'],
     [/partner_api_customer_email_required/i, 422, 'customer_email_required', 'customer.email is required.'],
@@ -678,9 +681,9 @@ async function createContract(request: NextRequest) {
       'power_of_attorney', 'requested_start_date', 'requested_start_mode', 'metadata',
     ])
     const customerBody = record(body.customer)
-    customerWrite({ ...customerBody, external_customer_id: customerBody.external_customer_id ?? body.external_customer_id })
+    const customer = customerWrite({ ...customerBody, external_customer_id: customerBody.external_customer_id ?? body.external_customer_id })
     const siteBody = record(body.site)
-    normalizeSiteType(siteBody.electricity_type ?? siteBody.site_electricity_type)
+    const siteType = normalizeSiteType(siteBody.electricity_type ?? siteBody.site_electricity_type)
     const siteAddress = record(siteBody.address)
     const siteStreet = text(
       siteAddress.street ??
@@ -706,7 +709,8 @@ async function createContract(request: NextRequest) {
       city: siteCity,
       country: siteCountry,
     }
-    if (!text(body.offer_reference)) throw new PartnerApiError('offer_reference is required.', 'offer_reference_required', 422)
+    const offerReference = text(body.offer_reference)
+    if (!offerReference) throw new PartnerApiError('offer_reference is required.', 'offer_reference_required', 422)
     if (body.requested_start_date) requireIsoDate(body.requested_start_date, 'requested_start_date')
     const startMode = lower(body.requested_start_mode) ?? 'earliest_possible'
     if (!['earliest_possible', 'specific_date'].includes(startMode)) {
@@ -757,10 +761,19 @@ async function createContract(request: NextRequest) {
       operation: '/api/partner/v1/contracts',
       payload: idempotencyPayload,
       execute: async () => {
+        await requirePartnerOfferDirection({
+          companyId: context.client.company_id,
+          offerReference,
+          customerType: customer.customerType === 'association' ? null : customer.customerType,
+          siteType,
+          field: 'site.electricity_type',
+        })
         const result = await withStoredPoaPdf(poaFile, () => supabaseService.rpc('gridex_create_partner_contract_v1', {
           p_company_id: context.client.company_id,
           p_api_client_id: context.client.id,
-          p_payload: body,
+          // Bind the native mutation to exactly the direction validated above.
+          // Keep the historical request hash unchanged for completed retries.
+          p_payload: { ...body, site: { ...record(body.site), electricity_type: siteType } },
         }))
         if (result.error) throw result.error
         return { statusCode: 201, body: { data: result.data as unknown } }
@@ -1023,9 +1036,9 @@ async function measurements(request: NextRequest, siteReference: string) {
     const resolutionValues = resolution === '15m'
       ? ['15m', 'PT15M', 'quarterly']
       : ['1h', 'PT1H', 'hourly']
-    const result = await supabaseService
+    const rows = await readCompletePartnerMeasurements((offset, size) => supabaseService
       .from('normalized_metering_values')
-      .select('period_start,period_end,resolution,quantity_kwh,unit,direction,quality_status')
+      .select('id,period_start,period_end,resolution,quantity_kwh,unit,direction,quality_status')
       .eq('company_id', context.client.company_id)
       .eq('customer_site_id', site.id)
       .eq('revision_status', 'current')
@@ -1033,9 +1046,9 @@ async function measurements(request: NextRequest, siteReference: string) {
       .lt('period_start', stockholmNextDayStartUtc(to).toISOString())
       .in('resolution', resolutionValues)
       .order('period_start', { ascending: true })
-      .limit(MAX_MEASUREMENT_ROWS)
-    if (result.error) throw result.error
-    const values = (result.data ?? []).map((row) => ({
+      .order('id', { ascending: true })
+      .range(offset, offset + size - 1))
+    const values = rows.map((row) => ({
       timestamp: row.period_start,
       period_end: row.period_end,
       resolution,

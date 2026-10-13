@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { withApiContractRepresentation } from "@/lib/integrations/apiResponseProfile";
 import { NextRequest } from "next/server";
 import { customerPortalJson } from "@/lib/customer-portal/externalApi";
 import {
@@ -24,7 +25,9 @@ function records(value: unknown): Record<string, unknown>[] {
     : [];
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withApiContractRepresentation('website', getPortfolioPrices)
+
+async function getPortfolioPrices(request: NextRequest) {
   const startedAt = Date.now();
   const auth = await requireIntegrationApiAccess(request, [
     "website_contracts.read",
@@ -125,6 +128,17 @@ export async function GET(request: NextRequest) {
         !priceArea ||
         canonicalSwedishPriceArea(row.price_area_code) === priceArea,
     );
+    const publicMethod =
+      pricing.portfolio_method &&
+      typeof pricing.portfolio_method === "object" &&
+      !Array.isArray(pricing.portfolio_method)
+        ? (pricing.portfolio_method as Record<string, unknown>)
+        : {};
+    const pricingModel =
+      typeof publicMethod.pricing_model === "string" &&
+      publicMethod.pricing_model.trim()
+        ? publicMethod.pricing_model.trim()
+        : "portfolio_monthly_settlement";
     await logIntegrationApiRequest({
       client: auth.client,
       request,
@@ -139,7 +153,7 @@ export async function GET(request: NextRequest) {
     return customerPortalJson({
       data: {
         offer_reference: offerReference,
-        method: pricing.portfolio_method ?? null,
+        method: pricingModel,
         historical_final_prices: historical,
         market_price_responsibility: "gridex_quote",
         calculator_market_price_supplied_by_gridex: true,

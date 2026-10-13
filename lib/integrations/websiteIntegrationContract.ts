@@ -7,7 +7,9 @@
  * request contract.
  */
 export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-09.1' as const
-// Documentation-only release: the minimum supported revision is never raised by a docs release.
+// Documentation revisions are independent of the stable business response schema.
+export const API_DOCUMENTATION_VERSION = '2026-10-12.1' as const
+// Documentation-only releases never raise the minimum supported wire revision.
 export const MINIMUM_TENANT_INTEGRATION_VERSION = '2026-10-02.3' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
@@ -17,8 +19,8 @@ export const WEBSITE_INTEGRATION_BASE_URL = `${WEBSITE_INTEGRATION_ORIGIN}${WEBS
 export const WEBSITE_INTEGRATION_OPENAPI_PATH = '/api/v1/openapi/website-integration-v1.json' as const
 export const CUSTOMER_PORTAL_OPENAPI_PATH = '/api/v1/openapi/customer-portal-v1.json' as const
 export const OPENAPI_RELEASE_MANIFEST_PATH = '/api/v1/openapi/release-manifest.json' as const
-export const WEBSITE_INTEGRATION_VERSIONED_OPENAPI_PATH = `/api/v1/openapi/${WEBSITE_INTEGRATION_CONTRACT_VERSION}/website-integration-v1.json` as const
-export const CUSTOMER_PORTAL_VERSIONED_OPENAPI_PATH = `/api/v1/openapi/${WEBSITE_INTEGRATION_CONTRACT_VERSION}/customer-portal-v1.json` as const
+export const WEBSITE_INTEGRATION_VERSIONED_OPENAPI_PATH = `/api/v1/openapi/${API_DOCUMENTATION_VERSION}/website-integration-v1.json` as const
+export const CUSTOMER_PORTAL_VERSIONED_OPENAPI_PATH = `/api/v1/openapi/${API_DOCUMENTATION_VERSION}/customer-portal-v1.json` as const
 export const WEBSITE_INTEGRATION_OPENAPI_URL = `${WEBSITE_INTEGRATION_ORIGIN}${WEBSITE_INTEGRATION_OPENAPI_PATH}` as const
 export const CUSTOMER_PORTAL_OPENAPI_URL = `${WEBSITE_INTEGRATION_ORIGIN}${CUSTOMER_PORTAL_OPENAPI_PATH}` as const
 export const OPENAPI_RELEASE_MANIFEST_URL = `${WEBSITE_INTEGRATION_ORIGIN}${OPENAPI_RELEASE_MANIFEST_PATH}` as const
@@ -126,6 +128,6 @@ export const TENANT_WEBSITE_RECOMMENDED_SCOPES = [
 /** Additive Staff API release; existing website and customer business contracts stay compatible. */
 export const STAFF_API_CONTRACT_VERSION = WEBSITE_INTEGRATION_CONTRACT_VERSION
 export const STAFF_OPENAPI_PATH = '/api/v1/openapi/staff-v1.json' as const
-export const STAFF_VERSIONED_OPENAPI_PATH = `/api/v1/openapi/${STAFF_API_CONTRACT_VERSION}/staff-v1.json` as const
+export const STAFF_VERSIONED_OPENAPI_PATH = `/api/v1/openapi/${API_DOCUMENTATION_VERSION}/staff-v1.json` as const
 export const STAFF_OPENAPI_URL = `${WEBSITE_INTEGRATION_ORIGIN}${STAFF_OPENAPI_PATH}` as const
 export const STAFF_VERSIONED_OPENAPI_URL = `${WEBSITE_INTEGRATION_ORIGIN}${STAFF_VERSIONED_OPENAPI_PATH}` as const

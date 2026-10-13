@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { logIntegrationApiRequest, requireIntegrationApiAccess } from '@/lib/integrations/apiAuth'
@@ -11,7 +12,9 @@ import { loadPublicationRevision } from '@/lib/website/publicContractApi'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
+export const GET = withApiContractRepresentation('website', getApiContractDiagnostics)
+
+async function getApiContractDiagnostics(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['api_contracts.diagnostics'])
@@ -28,10 +31,31 @@ export async function GET(request: NextRequest) {
     ])
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
     if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
+    const publicPublication = {
+      total: publication.total,
+      visible: publication.visible,
+      hidden: publication.hidden,
+      offers: publication.offers.map((offer) => ({
+        offer_reference: offer.offer_reference,
+        name: offer.name,
+        product_code: offer.product_code,
+        publication_status: offer.publication_status,
+        channel_state: offer.channel_state,
+        website_enabled: offer.website_enabled,
+        valid_from: offer.valid_from,
+        valid_to: offer.valid_to,
+        customer_type: offer.customer_type,
+        visible: offer.visible,
+        blockers: offer.blockers,
+        graph: offer.graph,
+        pricing_readiness: offer.pricing_readiness,
+        readiness: offer.readiness,
+      })),
+    }
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { request_id: requestId, channel: 'api', result_count: publication.total } })
     return customerPortalJson({
-      data: publication.offers,
-      diagnostics: { publication, source_of_truth: 'canonical_public_contract_diagnostics_v' },
+      data: publicPublication.offers,
+      diagnostics: { publication: publicPublication, source_of_truth: 'canonical_public_contract_diagnostics_v' },
       meta: { count: publication.total, organization_reference: organizationReference, api_version: 'v1', channel: 'api', publication_revision: revision.revision },
       request_id: requestId,
     }, { status: 200, headers: { ETag: revision.etag, 'Cache-Control': 'no-store' } })

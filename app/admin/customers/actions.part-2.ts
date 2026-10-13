@@ -15,6 +15,7 @@ import { matchCustomerIdentity, type CustomerMatchSignal } from "@/lib/customers
 
 import type { IntakeActionState, IntakeField, IntakeFieldErrors, IntakeFormValues } from "./actionState"
 import { getContractOfferById } from "@/lib/customer-contracts/db"
+import { SWEDISH_STANDARD_VAT_RATE } from "@/lib/pricing/vat"
 
 import { saveCustomerAuthorizationDocument } from "@/lib/operations/db"
 import { signedAgreementDocumentTiming } from "@/lib/customer-contracts/signingMethod"
@@ -924,7 +925,7 @@ export async function createCustomerGraph(
           break_fee_sek: params.breakFeeSek ?? offer?.break_fee_sek ?? null,
           discount_value: offer?.discount_value ?? null,
           discount_unit: offer?.discount_unit ?? null,
-          vat_rate: offer?.vat_rate ?? 25,
+          vat_rate: offer?.vat_rate ?? SWEDISH_STANDARD_VAT_RATE,
           green_fee_mode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
           green_fee_value: params.greenFeeValue ?? offer?.green_fee_value ?? null,
           binding_months: params.bindingMonths ?? offer?.default_binding_months ?? null,
@@ -970,7 +971,7 @@ export async function createCustomerGraph(
             discountUnit: offer?.discount_unit ?? null,
             greenFeeMode: params.greenFeeMode ?? offer?.green_fee_mode ?? "none",
             greenFeeValue: params.greenFeeValue ?? offer?.green_fee_value ?? null,
-            vatRate: offer?.vat_rate ?? 25,
+            vatRate: offer?.vat_rate ?? SWEDISH_STANDARD_VAT_RATE,
             optionalFeeLines: params.optionalFeeLines.length > 0 ? params.optionalFeeLines : (offer?.optional_fee_lines ?? []),
           },
           valid_from: normalizeOptionalString(params.contractStartDate) ?? normalizeOptionalString(params.confirmedStartDate) ?? normalizeOptionalString(params.expectedStartDate),

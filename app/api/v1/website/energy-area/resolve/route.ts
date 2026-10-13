@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import { deriveEnergyResolutionReadiness } from '@/lib/energy/resolutionBinding'
@@ -40,7 +41,9 @@ function publicPriceAreaAssuranceSource(source: unknown):
   return null
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withApiContractRepresentation('website', resolveEnergyArea)
+
+async function resolveEnergyArea(request: NextRequest) {
   const startedAt = Date.now()
   const requestId = randomUUID()
   const auth = await requireIntegrationApiAccess(request, ['website_energy_area.resolve'])

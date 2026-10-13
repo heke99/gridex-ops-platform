@@ -45,6 +45,9 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
 
+  { method: 'GET', path: '/api/v1/openapi/2026-10-12.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI documentation release 2026-10-12.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-10-12.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI documentation release 2026-10-12.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-10-12.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI documentation release 2026-10-12.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/release-manifest.json', scopes: [], description: 'Machine-readable release manifest containing versions and SHA-256 digests for the public OpenAPI contracts.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/website-integration-v1.json', scopes: [], description: 'Current OpenAPI specification for website integrations.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-02.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-08-02.1.', rateLimitClass: 'read' },

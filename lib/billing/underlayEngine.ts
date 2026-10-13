@@ -885,8 +885,8 @@ export async function generateBillingUnderlaysForMonth(input: {
           });
           continue;
         }
-        // No values yet: bill a preliminary period from the customer's own
-        // history; it is reconciled on a later invoice when final values arrive.
+        // History can describe missing consumption, but does not supply a
+        // normalized source value that can be used for a billing item.
         const estimate =
           estimationEnabled &&
           canonicalContractDirection === "consumption" &&
@@ -902,76 +902,15 @@ export async function generateBillingUnderlaysForMonth(input: {
               })
             : null;
         if (estimate && estimate.estimatedKwh > 0) {
-          const now = new Date().toISOString();
-          const siteId = text(period.customer_site_id) ?? text(period.site_id);
-          const pricePlanId = text(contract?.price_plan_id) ?? text(snapshot?.price_plan_id);
-          const items = estimatedItems(estimate, {
-            customer_id: customerId,
-            customer_site_id: siteId,
-            site_id: siteId,
-            metering_point_id: meteringPointId,
-            contract_id: contractId,
-            price_plan_id: pricePlanId,
-            price_plan_version_id: text(snapshot?.price_plan_version_id),
-            price_book_id: text(snapshot?.price_book_id),
-            campaign_id: text(snapshot?.campaign_version_id),
-            price_area: contractAreaContext.priceArea,
-            energy_direction: "consumption",
-            settlement_type: "invoice",
-            unit: "kWh",
-          });
-          pendingStores.push({
-            underlay: {
-              customer_id: customerId,
-              site_id: siteId,
-              customer_site_id: siteId,
-              metering_point_id: meteringPointId,
-              supply_period_id: text(period.id),
-              contract_id: contractId,
-              customer_contract_id: contractId,
-              pricing_snapshot_id: text(snapshot?.id),
-              contract_price_snapshot_id: text(snapshot?.id),
-              price_plan_id: pricePlanId,
-              price_plan_version_id: text(snapshot?.price_plan_version_id),
-              price_book_id: text(snapshot?.price_book_id),
-              campaign_id: text(snapshot?.campaign_version_id),
-              price_area: contractAreaContext.priceArea,
-              energy_direction: "consumption",
-              settlement_type: "invoice",
-              underlay_month: bounds.month,
-              underlay_year: bounds.year,
-              billing_period_start: entry.start,
-              billing_period_end: entry.end,
-              status: "validated",
-              readiness_status: "ready",
-              readiness_issues: [],
-              billing_block_reason: null,
-              total_kwh: estimate.estimatedKwh,
-              currency: "SEK",
-              source_system: "consumption_estimate",
-              source_meter_value_count: 0,
-              missing_values_count: 0,
-              payload: {
-                billing_month: input.billingMonth,
-                source_row_ids: [],
-                supply_period_id: text(period.id),
-                generated_from: "consumption_estimate",
-                energy_direction: "consumption",
-                settlement_type: "invoice",
-                estimate: estimatePayload(estimate, 0),
-                timezone: "Europe/Stockholm",
-              },
-              pricing_snapshot: snapshotJson,
-              received_at: now,
-              validated_at: now,
-            },
-            items,
-            result: {
-              status: "ready_for_pricing",
-              sourceTable: "normalized_metering_values",
-              sourceRows: 0,
-              warnings: [`preliminary_estimate: Preliminär förbrukning (${estimate.method}).`],
-            },
+          results.push({
+            underlayId: null,
+            status: "needs_review",
+            sourceTable: "normalized_metering_values",
+            sourceRows: 0,
+            warnings: [
+              "estimated_source_missing: Uppskattad förbrukning saknar kvalificerade mätvärden för perioden. Fakturaunderlaget väntar på mätvärden.",
+              "missing_meter_values: Mätvärden saknas i fakturasegmentet.",
+            ],
           });
           continue;
         }
@@ -1187,8 +1126,7 @@ export async function generateBillingUnderlaysForMonth(input: {
           entry.start,
           entry.end,
         );
-        // Gaps in consumption are filled from the customer's history and
-        // billed as preliminary; overlaps and other blockers stay blocking.
+        // A history estimate does not establish a source for missing intervals.
         let gapEstimate: ConsumptionEstimate | null = null;
         if (
           coverage.missing > 0 &&
@@ -1203,6 +1141,20 @@ export async function generateBillingUnderlaysForMonth(input: {
             windows: missingWindows(segmentRows, entry.start, entry.end),
             stepMs: estimateStepMs(contract, snapshotJson),
           });
+        }
+        if (gapEstimate) {
+          results.push({
+            underlayId: null,
+            status: "needs_review",
+            sourceTable: "normalized_metering_values",
+            sourceRows: segmentRows.length,
+            warnings: [...new Set([
+              ...warnings,
+              ...coverage.warnings,
+              "estimated_source_missing: Uppskattad förbrukning saknar kvalificerade mätvärden för perioden. Fakturaunderlaget väntar på mätvärden.",
+            ])],
+          });
+          continue;
         }
         if (
           coverage.missing > 0 &&
@@ -1225,15 +1177,7 @@ export async function generateBillingUnderlaysForMonth(input: {
             warnings.push(`history_request_failed: Historikbegäran kunde inte skapas (${error instanceof Error ? error.message : "okänt fel"}).`);
           }
         }
-        warnings.push(
-          ...(gapEstimate
-            ? coverage.warnings.filter(
-                (warning) =>
-                  !warning.startsWith("Mätvärdeslucka") &&
-                  !warning.startsWith("Mätvärden saknas"),
-              )
-            : coverage.warnings),
-        );
+        warnings.push(...coverage.warnings);
 
         const first = segmentRows[0];
         const siteId = text(first.site_id) ?? text(first.customer_site_id);
@@ -1326,27 +1270,7 @@ export async function generateBillingUnderlaysForMonth(input: {
           },
         }));
 
-        if (gapEstimate) {
-          items.push(
-            ...estimatedItems(gapEstimate, {
-              customer_id: customerId,
-              customer_site_id: customerSiteId,
-              site_id: siteId,
-              metering_point_id: meteringPointId,
-              contract_id: contractId,
-              price_plan_id: pricePlanId,
-              price_plan_version_id: pricePlanVersionId,
-              price_book_id: text(snapshot?.price_book_id),
-              campaign_id: text(snapshot?.campaign_version_id),
-              price_area: priceArea,
-              energy_direction: energyDirection,
-              settlement_type: settlementType,
-              unit: "kWh",
-            }).map((item) => ({ ...item, status: ready ? "ready_for_pricing" : "needs_review" })),
-          );
-        }
-        const actualKwh = totalKwh;
-        const billedKwh = gapEstimate ? totalKwh + gapEstimate.estimatedKwh : totalKwh;
+        const billedKwh = totalKwh;
 
         const underlay = {
           customer_id: customerId,
@@ -1375,9 +1299,9 @@ export async function generateBillingUnderlaysForMonth(input: {
           readiness_issues: readinessIssues(uniqueWarnings),
           total_kwh: billedKwh,
           currency: "SEK",
-          source_system: gapEstimate ? "normalized_metering_values+consumption_estimate" : "normalized_metering_values",
+          source_system: "normalized_metering_values",
           source_meter_value_count: segmentRows.length,
-          missing_values_count: gapEstimate ? 0 : coverage.missing,
+          missing_values_count: coverage.missing,
           payload: {
             billing_month: input.billingMonth,
             source_row_ids: segmentRows.map((row) => text(row.id)),
@@ -1393,7 +1317,6 @@ export async function generateBillingUnderlaysForMonth(input: {
               revision_number: row.revision_number ?? null,
               energy_direction: energyDirection,
             })),
-            ...(gapEstimate ? { estimate: estimatePayload(gapEstimate, actualKwh) } : {}),
             timezone: "Europe/Stockholm",
           },
           pricing_snapshot: snapshotJson,

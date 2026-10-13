@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
@@ -154,7 +155,7 @@ async function resolveFacilitySite(input: {
   return String(result.data.id)
 }
 
-export async function POST(request: NextRequest) {
+ async function profiledPOST(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, {
     anyOf: ['customer_contact.write', 'customer_facility_data.write'],
   })
@@ -221,7 +222,14 @@ export async function POST(request: NextRequest) {
               metadata: { payload_type: 'profile_update', ...(payload.metadata ?? {}) },
             },
           })
-          addressResult = applied
+          // Internal address results carry siteId for OPS orchestration. Project
+          // the customer response before persisting its replay receipt.
+          addressResult = {
+            status: applied.status,
+            address_hash: applied.addressHash,
+            normalized: applied.normalized,
+            ...(applied.reason ? { reason: applied.reason } : {}),
+          }
           if (applied.status === 'updated' || applied.status === 'unchanged') {
             // Awaited (F13): a fire-and-forget promise can be dropped when the serverless
             // function is frozen after the response. A failure is logged and never undoes
@@ -302,3 +310,5 @@ export async function POST(request: NextRequest) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
 }
+
+export const POST = withApiContractRepresentation('customer', profiledPOST)
