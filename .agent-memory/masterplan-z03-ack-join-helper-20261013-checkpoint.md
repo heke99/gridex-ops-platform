@@ -1,3 +1,1301 @@
+# COMPLETED TWO-FILE SOURCE PREPARATION — two independent final source reviews preserved
+
+The exact corrected technical source is complete and both independent noncoauthor reviewers approved it: A **APP_COMPONENT_SOURCE** and B **APPROVE_SOURCE_PREPARATION**, with no blocking findings in this two-file packet. Both reviews bind reviewed final head `dc22a2745c2ffb68d128a61de3f8b0f5a6151007`, tree `9a028669244bd9a24d4177e787a78e0b36f0fe7e`, sole ordered parent/technical source `9a849a8bba86835e42c885a194a49a0b49369b2e`, technical tree `670eebe6971a5b88223c170dff9ff7a97f689177`, technical parent `7fd384584e2929c1567618c737d648f328ba0d1c`, and explicit actual-public base `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / `e3b6c11677a2b871a128504f1616def7d22dba1e`. This new commit adds documentation only to the author's unique checkpoint. The two technical postimages, all prior checkpoint bytes, the 201 registered qualification originals and prior 154 originals remain unchanged. The old review histories and superseded source freezes below retain their original meanings.
+
+The completed source prepares genuine prospective L/Z22 and LK/Z23 own sealed sent request → physically received own inbound CONTRL/APERAK → causal right received Z04 joined to the same original/LI/customer/point/start/reason/hash → its distinct outgoing responses through unchanged actual current APIs. L and LK retain opposite ACK/Z04 ordering to preserve separation of technical acknowledgement from business confirmation. Future supply remains inactive. Owned original, nonempty unrelated/sibling controls, receipt and replay oracles remain. The config only appends this file to the unchanged current source-owner config and preserves its ordinary backend/catalog/status/setup/serial/timeout gates.
+
+Current exact-source captured qualification remains **10 finite PASS / 0 FAIL / 2 native NOT SELECTED**, strict semantic TypeScript and two-file project ESLint exit0/no diagnostics, with diff/source preservation. The meaningful pre-fix actual `sendEdielEmail` RAW+ATTACHMENT failures and corrected final outputs are retained. The finite adapter controls execute the unchanged real adapter with explicitly modeled lower MIME archive/storage, Nodemailer SMTP session and beforeProviderCall database-fence ports; they prove the argument/return contract and do not prove real storage, SQL acceptance or provider delivery. No test, controller qualification, SQL child, native/backend/CI/GEN/provider/capture or original collection was rerun for this documentation change.
+
+**NATIVE_NOT_RUN; SOURCE INPUT HOLD / QUALIFICATION PENDING.** Genuine disposable current actor/company/signed prospective L/LK cohorts and routes must be supplied by the retained serial source/GEN producer `codex-takeover-delivery-20261012`. Data-only selectors grant no issuer/context/original/canonical/accepted authority. AT-Z03L-SUPPLIER and AT-Z03LK-SUPPLIER remain NOT_EXECUTED; ledger/count and whole acceptance stay unchanged. Separate calendar P1 late queued national cutoff and P2 too_early classifier findings in [6149872172](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149872172) remain unqualified in their retained owners' paths. The positive observedAt-versus-own-original-start oracle supplies no late-queue fix or whole calendar approval. H assertion form is source reuse only, with no H execution credit.
+
+Publication remains **NOT_PUSHED / PAUSED**. The prepared source-only plan is: obtain two independent documentation-only rebinds of this final checkpoint commit, then ROOT coordinates a fresh authenticated main/fullreceipt/all-two-refs/remote-branch read and a fresh unchanged-workflow preflight, then an explicit source-only branch push and public selective technical handoff. No PR, native/GEN chain, merge, release or custody-ref release is authorized by this checkpoint. Both held two-file refs remain bound to `e24766be665f684886b465bb1a06fd6168bc2bbe`, IDs `[]`; no shared producer/whole-card/native/original-collection scope transfers. Latest corrected public milestone is [6150868162](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6150868162); original claim is [6149828468](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149828468).
+
+The actual 41 workflows are byte-identical to frozen d798. All seven push workflows exclude this exact branch: six list only main and browser-deps-lock-sync-temporary lists only agent/release-certification-hardening-20260817. None declares workflow_run or repository_dispatch. Thus the audited source-only push has zero matching repository push predicates and no such indirect event chain; manual dispatch was not invoked and no PR exists. This is a preparation audit, not a performed push or runtime/CI result.
+
+## Independent final source review originals — verbatim
+
+### Reviewer A: final-a/corrected-final.md
+
+Bytes 14480; SHA256 `f540eeed51d9bf92ae40a443e52cf278894644ee594600ab57dc5dd6828a7604`. Original bytes preserved verbatim within this presentation fence.
+
+````text
+# Independent corrected final source review A — APP_COMPONENT_SOURCE
+
+The corrected exact candidate is **APP_COMPONENT_SOURCE**, restricted to the two-file positive Z03L/LK ACK→causal-Z04 source preparation and its declared finite adapter assertions. A1, the prior blocking P2 SMTP argument mismatch, is closed in this source. There are no new blocking findings in the affected review. This is not whole AT, native, backend, actual journal acceptance, field, current CI, publication or merge approval.
+
+Reviewer `/root/z03_final_a` remains an independent noncoauthor. No code, fixture, checkpoint or proof original was edited, and no peer B consultation occurred. ROOT and the retained author/runner are not counted as this review. The earlier `report.md` and `verification.json` remain unchanged and continue to record CHANGES_REQUIRED for their exact old head `7fd38458`.
+
+## Exact corrected freeze
+
+- Final head `dc22a2745c2ffb68d128a61de3f8b0f5a6151007`; tree `9a028669244bd9a24d4177e787a78e0b36f0fe7e`; ordered sole parent `9a849a8bba86835e42c885a194a49a0b49369b2e`.
+- Technical source `9a849a8bba86835e42c885a194a49a0b49369b2e`; tree `670eebe6971a5b88223c170dff9ff7a97f689177`; ordered sole parent `7fd384584e2929c1567618c737d648f328ba0d1c`.
+- Explicit frozen base `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`; tree `e3b6c11677a2b871a128504f1616def7d22dba1e`.
+- Branch `codex/ediel-z03-ack-join-helper-20261013`, author PAUSED, clean exact worktree `/workspace/scratch/gridex-z03-ack-join-helper-20261013`.
+
+| Exact postimage | Git blob | SHA256 |
+| --- | --- | --- |
+| `scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.test.ts`, 651 lines | `97af108c460d2e64108290270c7217676f8ba234` | `ea2aeea8b0731bce7e34c34a042df7e2523be5b10998a8c112ab6d68c6c6a77c` |
+| `scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.config.ts`, unchanged 8 lines | `324261dc8d442ed72e32dce19cb55962f9c1101d` | `411756e455969e5b04dad4f24007d17d2937c4db74bd840dc615eaa168bd1117` |
+| `.agent-memory/masterplan-z03-ack-join-helper-20261013-checkpoint.md` | `d85557090a67104606d3a69185332c7e1d936625` | `590bf4160979281ceedded847348e57d2831c852eb5deb09e5aee409b633609d` |
+
+Verified all 9,843 base paths retain exact modes/blobs, with only these three added paths; all 12 selected source pins remain exact. This binds source applicability to the selected frozen d798 base, not a fresh actual-main/runtime/delivery qualification. Shared product/SQL/types/fixtures/config/workflows/ledger are unchanged. Resume originals show receipt `e24766be665f684886b465bb1a06fd6168bc2bbe` with exact main tree/sole parent, IDs empty, same two file refs GET_MATCH and exit0 before author resumption. No new custody or producer scope was acquired by this reviewer.
+
+## A1/P2 closure through the actual production adapter
+
+The old native mock read `mail.to`, but actual unchanged `lib/email/sendEdielEmail.ts:56–62,91` calls Nodemailer with `envelope:{from,to:[input.to]}` plus Buffer `raw`. The new shared `configureSyntheticSmtp` at test `:82–95` treats the actual argument as unknown, requires the real raw Buffer and nonempty `envelope.from`, requires exactly one nonempty string in actual `envelope.to`, and returns only that recipient. It has no top-level-to, input selector, default recipient or fallback-from authority. Native entry `:457` calls the same function; its later actual transport/journal/original assertions are not replaced or weakened.
+
+The new finite cases at `:605–650` dynamically import and invoke the **actual unchanged `sendEdielEmail`** for both raw and attachment inputs. This exercises real `assertEdielSmtpReadiness`/`edielSmtpConfig`, actual raw-copy or MailComposer compilation, actual provider-binding construction and actual result normalization. The recipient assertion is independently fixed to `recipient@example.invalid`, the literal actual call input, rather than inferred from the mock's own return. Gate-binding mode/from/to, archive selector, MIME rawBase64 byte hash and length are checked. Calling the actual adapter with `to:''` must propagate `z03_join_actual_smtp_envelope_required`, so the modeled session cannot invent acceptance when the actual envelope is empty.
+
+The lower **MIME archive/storage**, **Nodemailer SMTP session**, and **beforeProviderCall database fence** are openly modeled. The latter collects a real adapter-generated binding; it does not run a real database fence, transport journal, current admission or provider authorization. Raw MIME does not prove real archive storage. These finite adapter controls establish the argument/return contract needed to fix A1, not native journal acceptance or the whole source chain.
+
+The captured pre-fix `smtp-red-source.test.ts` SHA256 `71960a5de5e36e856c879671d4f0c14a919f0a1709992cd33a06b04c6028f247` has the shared old `accepted:[mail.to]` callback and those actual adapter controls. Its raw and attachment cases both produce `accepted:[undefined]` instead of the literal recipient: genuine meaningful **2 RED**, exit1, with the other ten cases name-filtered. The exact corrected final originals report **10 finite PASS/0FAIL/2 native name-filtered**, not merely a test that directly calls the mock. Type/lint checks resolve the actual import closure and report exit0/no diagnostics. The initial problem is now covered at its actual affected adapter layer.
+
+`vi.doMock(rawMimeArchive)` remains confined to finite callbacks, `vi.doUnmock`, module reset and environment restoration run in `finally`, and native `nativePorts()` retains its real production modules. The change adds no native skip or backend setup. Actual mail readiness is invoked without its DNS/TCP probing API, and the mocked SMTP factory performs no network call.
+
+## Complete affected source applicability
+
+The full prior path review remains applicable because the diff preserves every prior assertion/body outside extraction of the SMTP callback and finite adapter extension. Read the complete corrected test/config/checkpoint and compared exact old/new diff; all immutable imported production files remain byte-identical. The following current line bindings were checked:
+
+- Strict JSON selectors remain `:31–50`; source head/tree/epoch and tracked-clean-source bind `:123–135`. Genuine current company/actor/contract/masterdata/requested-method/process premises remain before origination at `:138–198`. L/Z22 and LK/Z23 must exist prospectively before original binding. No bound L→LK relabel, executable adapter, private issuer/source/accepted/context seed or old helper's private declaration producer is invoked. Missing/current-inadmissible cohorts remain INPUT_HOLD or test failure, never skip/pass. GoTrue checks use the existing disposable user; actual mutation authorities remain unchanged downstream.
+- Actual `prepareAndQueueEdielZ03` → unchanged `prodatSwitch.ts` → `switchRenderGateway.ts` → original binding and queue is retained at `:459–472`. Exact immutable original/source/company/hash/actor/contract and previous subtype facts are asserted. Supplier Z04 preparation remains blocked and unused.
+- `sendOwn :238–253` retains actual claimed outbox send, accepted journal projection, original hash, exact frozen recipient and receipt, without manufacturing acceptance. Current lawful-positive oracle `:473–499` evaluates unchanged canonical subtype/start policy at the actual accepted provider `observedAt`, and checks technical watch/timers at the same instant. No JS/SQL clock is changed; it is a positive execution-time assertion only, not a late-send guard fix.
+- `physicalReceive :256–287` retains physical raw mailbox/parser/current tenant/canonical birth/reception/runtime acceptance. Incoming request ACK `:322–340` uses the supplier original's direction-reversed view solely for synthetic external wire rendering, then requires actual processing, `readCommittedInboundAck` and native own source/hash/company/environment correlation. A parsed original candidate never grants authority.
+- `causalZ04 :377–449` retains exact physical own tuple comparison, actual inbound processing and own normal confirmation/native future period/transition joined to the same original. Unchanged native owner source qualifies its immutable accepted source/canonical leaf/exact sent original/signed graph before business writes; no global all-ACK-before-Z04 prerequisite is added. Correct Z04's outgoing CONTRL and APERAK stay distinct from incoming request receipts, with raw identity, technical source basis or actual APERAK owner/facet consumption and separate send projection.
+- L gets CONTRL+APERAK before Z04; LK gets correct Z04 after CONTRL but before APERAK `:501–515`. Final request acceptance is separately required at `:517–527`. The H1506–1589 donor is assertion form only, never L/LK native or whole credit.
+- Read-only market/immutable/unrelated/sibling controls remain nonempty and exact; a future Z04 permits one new `confirmed_by_grid_owner` period while preserving customer/site/point/contract and activation rows. Replay `:530–546` preserves original, source receipts/correlations, confirmations/transitions, outboxes/attempts and send count. No activation worker is introduced.
+- The eight prior finite selector/raw/Z04 controls remain unchanged, plus the two actual adapter cases. Both native cases remain registered and unselected/uninvoked in captured qualification. The eight-line config still imports and spreads the unchanged owner config and appends only the include, preserving local-status/backend prerequisites, aliases, permission/catalog setup, serial behavior/timeouts and ordinary gates. No workflow or shared-config changes occurred.
+
+## Independent full proof checks
+
+Verified **all 201 registered artifacts**, byte count and SHA256, with **zero mismatches**. Verified all **prior 154** originals independently remain exact. Full registry SHA256 `acacc23ef76c8c1843c80d92531c7a56e18e80f4e5763f6c74129e65159c5faf`; executed controller source SHA256 `418033a579fa738e9a0b8139150c3af326eab371f3a460eeee4747cfa91946d9`; final source/command registry SHA256 `9dadd1ee1ba6a7bb0898108ee9f8b47219d9c82a85c910e58ed9b1ddefa56609`; final tuple file SHA256 `c81c22dbc688b7e64d24b66ac02e9d6abc6ff2bc79c2d80bf393af27b0ab79be`.
+
+The controller verifies final technical hashes, current check exits, captured SMTP RED source/exit, all prior original hashes, preservation, pins and diff before registering its artifacts; controller exit0/no diagnostics is retained. This reviewer independently checked those inputs, exact trees/blobs and hashes without re-executing the controller or tests. All 96 checkpoint embedded original blocks have matching byte/SHA metadata and complete readable contents apart from the explicitly understood single leading/trailing newline presentation in code fences. Earlier source/proof histories are superseded at the top and preserved, not relabeled as current. The earlier exploratory-source capture limitation remains explicit.
+
+Current captured commands use the same isolated finite config with `-t 'finite Z03 join input and raw boundary'`, empty setup/globalSetup and one fork/worker. They invoke 10 finite cases and never `nativePorts`, native callbacks, source admission, SQL child, backend, GEN, actual storage/provider collection or CI. The modeled archive module prevents real storage/backend initialization in the newly added adapter controls. Strict semantic noEmit TS and actual two-file project ESLint report exit0 with empty streams. Reviewer actions were read-only source/proof/hash/diff checks; no native/backend/test rerun, private donor read, external original collection, publishing/ref/claim action, code or checkpoint edit occurred.
+
+Old request-changes report SHA256 remains `fe4213bf6ed64ade6e8cd38e0c3f27665eae8c973dfdef5c1cabd68e5b6f6b92`; old verification SHA256 remains `a77881f82db4cf35bec9085132c2630737ffadc5ac034c5b2f95bffdbeb526a5`. New `corrected-verification.json` records all 201 independent checks and exact corrected tuples.
+
+## Unchanged separately owned criteria and approval limits
+
+**Calendar [P1] remains open/unqualified:** three callers gate preparation (`startSupplierSwitch.ts:91`, `edielAutomation.ts:178`, `switchReadiness.ts:439`), but `prodatSwitch.ts:228–272` omits intent timing fields and actual queued send `sendOutboxItem.ts:265–270` → current admission `transport/index.part-2.ts:414` → `outboundAttempt.ts:74–88` → `sendEdielEmail.ts:88–91` does not recheck the immutable original's national window. Native original guard `schema.sql:49119–49176` calls readiness `:54262–54283`, whose `start_date_ready :110173` checks presence, not L D−14/LK day0/max14months. Outbox claim `:43464–43473` and intent guard `:18793–18834` do not supply that cutoff. Admission-date staleness checks protect one attempt, not a fresh later attempt. Concrete unchanged source example is L start2026-10-27, queued2026-10-13, later provider entry2026-10-14; no violating send was executed. Retained calendar/transport owners must guard actual current prepare/enter from the qualified sealed original while preserving graph locks and accepted historical no-resend replay.
+
+**Classifier [P2] remains open/unqualified:** current scheduler `supplierSwitchScheduler.ts:267` emits `supplier_switch_send_window_too_early`, classifier `automation.part-2.ts:900–902` recognizes only obsolete `supplier_switch_send_window_not_open`, so actual queued `runAfter=sendNotBefore` branch `automation.part-3.ts:112–147` is missed and `:227` falls to `needs_review`. Its retained owner must qualify the exclusively scheduleable actual too-early case while preserving expired/malformed/mixed/manual refusals. Old four-card map `35ced72c` is source reuse only. These P1/P2 are distinct from now-closed SMTP A1/P2 and do not become fixed by a positive observed-window oracle.
+
+AT-Z03L-SUPPLIER and AT-Z03LK-SUPPLIER remain **NOT_EXECUTED**, native status **NATIVE_NOT_RUN**, and genuine producer cohort input qualification **INPUT_HOLD/PENDING**. Only the retained sole producer may supply admissible current private issuer/original/canonical/accepted facts and invoke the coherent current union under its real gates. This review neither runs that path nor pre-approves its result. Mandatory current delivery checks, actual-main applicability, the other final independent review and separately owned criteria remain outside APP_COMPONENT_SOURCE. No whole acceptance or ledger change is implied.
+````
+
+### Reviewer B: final-b/FINAL_REVIEW_B_SMTP.md
+
+Bytes 11841; SHA256 `8155e2ed6e7fdf22f5b9518bd46fe475604aacda9ae94c0e4a367b8786a2bdce`. Original bytes preserved verbatim within this presentation fence.
+
+````text
+# Independent final review B — corrected SMTP source
+
+**Verdict: APPROVE_SOURCE_PREPARATION** for the exact corrected version below. No blocking P1/P2 finding remains in this new two-file source preparation. Genuine native input is still held and neither native callback has run. This verdict gives no whole-contract, ledger, backend, native, current-CI, GEN, publication or merge credit.
+
+Reviewer `/root/z03_final_b`, noncoauthor of code, tests, fixtures and qualification evidence. ROOT relayed the SMTP P2 after both initial independent reviews; I directly verified it against the actual adapter and corrected source without consulting reviewer A. My initial review missed that contract. The old report and old verdict remain unmodified historical artifacts and do not approve this new version. For this follow-up I performed only read-only source/metadata/hash inspection and wrote this new report outside the repository. I authored or ran no test, fixture, qualification/controller proof, SQL child, native/backend/CI/GEN/capture or external action.
+
+## Exact source binding
+
+| Binding | Value |
+| --- | --- |
+| Worktree | `/workspace/scratch/gridex-z03-ack-join-helper-20261013` |
+| Final head | `dc22a2745c2ffb68d128a61de3f8b0f5a6151007` |
+| Final tree | `9a028669244bd9a24d4177e787a78e0b36f0fe7e` |
+| Ordered final parents | `[9a849a8bba86835e42c885a194a49a0b49369b2e]` |
+| Technical source | `9a849a8bba86835e42c885a194a49a0b49369b2e` |
+| Technical tree | `670eebe6971a5b88223c170dff9ff7a97f689177` |
+| Ordered technical parents | `[7fd384584e2929c1567618c737d648f328ba0d1c]` |
+| Actual main/source base | `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` |
+| Base tree | `e3b6c11677a2b871a128504f1616def7d22dba1e` |
+| Status inspected | Clean; no source branch publication/native run; writer paused for final reviews |
+
+| Added path relative to worktree | Size | Git blob | SHA256 |
+| --- | --- | --- | --- |
+| `scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.test.ts` | 651 lines | `97af108c460d2e64108290270c7217676f8ba234` | `ea2aeea8b0731bce7e34c34a042df7e2523be5b10998a8c112ab6d68c6c6a77c` |
+| `scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.config.ts` | 8 lines | `324261dc8d442ed72e32dce19cb55962f9c1101d` | `411756e455969e5b04dad4f24007d17d2937c4db74bd840dc615eaa168bd1117` |
+| `.agent-memory/masterplan-z03-ack-join-helper-20261013-checkpoint.md` | 156,455 bytes | `d85557090a67104606d3a69185332c7e1d936625` | `590bf4160979281ceedded847348e57d2831c852eb5deb09e5aee409b633609d` |
+
+The complete delta from the previous final source is the corrected shared SMTP callback, its native invocation, two finite adapter controls, the expanded finite-scope comment and the unique checkpoint. The config and all preexisting product/helper/schema/type/register/workflow files are unchanged. I reviewed every changed line, the complete new controls, the retained native orchestration and the actual SMTP/readiness/evidence/attempt boundary. The prior full targeted join/source review is reused only for byte-unchanged paths and asserting oracles; its missed SMTP conclusion is superseded here.
+
+## Confirmed P2 correction
+
+The old callback read top-level `mail.to`. Actual [sendEdielEmail.ts](/workspace/scratch/gridex-z03-ack-join-helper-20261013/lib/email/sendEdielEmail.ts:56) supplies `{ envelope: { from, to: [input.to] }, raw }` in both raw and attachment branches (56–62 and 91). Neither provides top-level `to`. Thus the old callback returned `accepted:[undefined]`. The real observation path at [outboundAttempt.ts](/workspace/scratch/gridex-z03-ack-join-helper-20261013/lib/ediel/transport/outboundAttempt.ts:91) passes provider evidence to native observation and throws uncertainty unless classification is accepted. This consequence is source-traced; the packet never executed that SQL/native failure.
+
+The new [test callback](/workspace/scratch/gridex-z03-ack-join-helper-20261013/scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.test.ts:82), lines 82–95, validates the actual envelope/from/single nonempty recipient and raw Buffer. It returns only that actual envelope recipient. It has no top-level-to, selector, hardcoded-recipient or from fallback. The same function is installed at native line 457 and by both finite controls at 626. Actual `sendOutboxItem` → production transport → `sendEdielEmail` receives this callback unchanged; no production adapter or observation gate was rewritten to accommodate the test.
+
+The new controls at 605–650 call the real `sendEdielEmail`, rather than a replacement of it:
+
+- Raw mode exercises the real raw-buffer copy, adapter binding construction, envelope call and return normalization. Attachment mode additionally exercises real `MailComposer` compilation. The bare Nodemailer mock leaves its MailComposer submodule real.
+- Both use literal independent input and expected recipient `recipient@example.invalid`; they assert the returned accepted recipient, one adapter binding, mode/from/to, raw-base64 digest and length. Their positive oracle reaches the actual call that the old finite tests omitted.
+- With `to:''`, both require the real adapter to propagate the declared SMTP session's envelope refusal. That is a modeled external session refusal, not a newly proven production validation/native refusal. No accepted recipient is fabricated for it.
+- MIME archive/storage is replaced with a declared lower port that checks company/message context and Message-ID and returns a modeled ref plus digest/length from actual bytes. `beforeProviderCall` records the actual adapter binding; the SQL entry fence is modeled in these controls. SMTP session/acceptance is also modeled. These tests establish the adapter/callback contract and do not establish genuine archive persistence, SMTP network delivery, SQL entry/observation, or business acceptance.
+- Dynamic archive mocking is registered before adapter import and is removed in `finally`; modules reset and stubbed environments are restored. The native code retains its real archive, source, gate and database imports. Ordinary tests are sequential; no concurrent test or new setup mode was introduced.
+
+The captured pre-fix source `smtp-red-source.test.ts` SHA256 `71960a5de5e36e856c879671d4f0c14a919f0a1709992cd33a06b04c6028f247` contains the same actual-adapter controls with the old top-level-to callback. Both captured RAW and ATTACHMENT RED failures explicitly show `accepted:[undefined]` versus the literal expected recipient, exit1. This is an actual finite adapter reproduction, not a source-string assertion or native failure. Corrected final-source output records both controls green alongside all eight earlier finite cases.
+
+## Retained join and configuration applicability
+
+The frozen contracts still require SUPPLIER outbound Z03, application `23-DDQ-PRODAT`, physical L/Z22 or LK/Z23, separate CONTRL/APERAK/right received Z04 expectations, permitted switch/future timer effects and no premature active supply. Nothing in the SMTP correction changes those requirements or grants whole credit.
+
+The retained oracles remain meaningful business assertions through actual unchanged consumers: exact data-only source/head/tree/input-epoch selectors; actual prospective L/LK graph and signed method/masterdata/actor preparation; real original rendering/finalization/native binding before queue; claimed outbox and protected accepted projection/watch; physical raw mailbox/parser/current tenant/canonical birth/runtime; exact committed own request ACK receipts/correlation; causal received Z04 with same original/LI/customer/point/start/reason/hash; exact own confirmation/future period/transition; distinct owned outgoing Z04 responses; immutable original, nonempty unrelated/sibling preservation and durable replay.
+
+Current native lines 501–515 retain L with request pair before Z04 and LK with Z04 before final positive APERAK. Full request ACK pair is still not a Z04 prerequisite. Current lines 477–481 retain the unchanged policy call using this original's physical start/subtype and actual accepted provider observation. This is only a lawful selected-positive assertion; it introduces no clock override or cutoff correction. The supplier Z04 preparer remains blocked and untouched; DSO Z04 is disclosed external raw wire admitted only through the existing real physical ingress.
+
+No public normal-switch helper prefix is invoked to seed private issuer/signed declaration/acceptance/context facts, and no bound L is relabelled as LK. Genuine producer-supplied prospective cohorts remain **SOURCE INPUT HOLD / QUALIFICATION PENDING**. Missing selectors raise INPUT_HOLD and actual source premises remain subject to real consumer refusals, with no automatic native skip, fake green or new generic legal approval gate.
+
+The unchanged 8-line config imports/spreads the public source-owner config and appends one include; old includes, local status/backend validation, catalog/setup, aliases, serial execution and timeouts remain. No ordinary delivery gate is weakened. Custody remains the same helper receipt `e24766be665f684886b465bb1a06fd6168bc2bbe`, IDs `[]`, exact two-file/unique-checkpoint scope. ROOT's resumed owner correction does not create a new producer/collector or reviewer authorship. Existing C1/native/GEN/serial and original-collection holders stay retained.
+
+## Independent proof integrity and limits
+
+Fresh read-only hash/tree verification in this follow-up established:
+
+- All **201** registry raw originals match their registered byte lengths and SHA256. Registry SHA256: `acacc23ef76c8c1843c80d92531c7a56e18e80f4e5763f6c74129e65159c5faf`. All prior **154** originals and their prior index remain byte-exact.
+- Controller bytes match SHA256 `418033a579fa738e9a0b8139150c3af326eab371f3a460eeee4747cfa91946d9`. Its captured source/count/exit record agrees. I read and hashed it; I did not run it.
+- All exact final source/CP bytes, blobs, head/tree/parents and technical source/tree/parents match the freeze. Every one of **9,843** old leaf modes/blobs and **12** pins is preserved; exactly the two technical files plus unique checkpoint are added over actual d798.
+- **96** checkpoint-embedded raw sections match their exact original bytes/hashes. Current SMTP freeze supersedes the preserved earlier banner/history; historical uncaptured exploratory source hashes are not invented.
+- The exact current command registry binds test/config SHA256 values above. Captured final-source result is **10 finite PASS / 0 FAIL / 2 native NOT SELECTED**, with final-source semantic TypeScript and two-file project ESLint exit0/no diagnostics. Controller/diff evidence is exit0. These are captured results independently checked by hash, not reviewer reruns or current CI.
+- Captured modeled ports explicitly include MIME archive/storage, Nodemailer SMTP session and `beforeProviderCall` database fence. Native callbacks and backend commands are recorded as zero. No physical native result or full contract result is inferred.
+
+The separate public calendar findings `6149872172` remain open: P1 current queued sends lack the national cutoff in the unchanged send/transport path; P2 scheduler `supplier_switch_send_window_too_early` is not recognized by the unchanged automation classifier. The positive window assertion and new finite SMTP controls qualify neither correction. No ledger/count promotion, whole timing proof, current CI, native/backend/GEN execution or delivery authority is supplied here.
+
+**New blocking findings: none.** This corrected exact source is suitable for source-only selective handoff under the existing coordination, with genuine input/native qualification and mandatory ordinary delivery gates still belonging to their retained owners. The old final-B report is preserved solely as historical evidence of the earlier version and missed SMTP issue.
+````
+
+## Documentation-only input and publication-preparation evidence
+
+### handoff-doc-inputs.json
+
+Bytes 4207; SHA256 `35ff5c6b6378c778270451d391094cc8a495177249633bec28dde6414b6a9834`.
+
+`````text
+{
+  "reviewedFinal": {
+    "finalHead": "dc22a2745c2ffb68d128a61de3f8b0f5a6151007",
+    "finalTree": "9a028669244bd9a24d4177e787a78e0b36f0fe7e",
+    "orderedParents": [
+      "9a849a8bba86835e42c885a194a49a0b49369b2e"
+    ],
+    "source": {
+      "sourceHead": "9a849a8bba86835e42c885a194a49a0b49369b2e",
+      "sourceTree": "670eebe6971a5b88223c170dff9ff7a97f689177",
+      "orderedParents": [
+        "7fd384584e2929c1567618c737d648f328ba0d1c"
+      ],
+      "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "supersedesTechnicalHead": "cee450283bbc5cd66dbb30ace71cf1572e3d0e9b",
+      "technicalFiles": [
+        {
+          "path": "scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.test.ts",
+          "blob": "97af108c460d2e64108290270c7217676f8ba234",
+          "sha256": "ea2aeea8b0731bce7e34c34a042df7e2523be5b10998a8c112ab6d68c6c6a77c",
+          "lines": 651
+        },
+        {
+          "path": "scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.config.ts",
+          "blob": "324261dc8d442ed72e32dce19cb55962f9c1101d",
+          "sha256": "411756e455969e5b04dad4f24007d17d2937c4db74bd840dc615eaa168bd1117",
+          "lines": 8
+        }
+      ]
+    },
+    "checkpoint": {
+      "path": ".agent-memory/masterplan-z03-ack-join-helper-20261013-checkpoint.md",
+      "blob": "d85557090a67104606d3a69185332c7e1d936625",
+      "sha256": "590bf4160979281ceedded847348e57d2831c852eb5deb09e5aee409b633609d",
+      "bytes": 156455
+    },
+    "branch": "codex/ediel-z03-ack-join-helper-20261013",
+    "worktree": "/workspace/scratch/gridex-z03-ack-join-helper-20261013",
+    "status": "",
+    "native": "NATIVE_NOT_RUN",
+    "publication": "NOT_PUSHED"
+  },
+  "reviews": [
+    {
+      "path": "final-a/corrected-final.md",
+      "bytes": 14480,
+      "sha256": "f540eeed51d9bf92ae40a443e52cf278894644ee594600ab57dc5dd6828a7604",
+      "reviewer": "A"
+    },
+    {
+      "path": "final-b/FINAL_REVIEW_B_SMTP.md",
+      "bytes": 11841,
+      "sha256": "8155e2ed6e7fdf22f5b9518bd46fe475604aacda9ae94c0e4a367b8786a2bdce",
+      "reviewer": "B"
+    }
+  ],
+  "inputRecords": [
+    {
+      "path": "continuation-prepublish-main.json",
+      "bytes": 350,
+      "sha256": "8c70466de17099e0e9f2c6b89c180561408330fee528d1913f8691598ff329f5"
+    },
+    {
+      "path": "continuation-prepublish-receipt.json",
+      "bytes": 2265,
+      "sha256": "04dfb4457ee76455f1fc83e1f1e30ad3ebaa3b3e34e11009ed815c33f4808020"
+    },
+    {
+      "path": "continuation-prepublish-test-ref.json",
+      "bytes": 646,
+      "sha256": "d7fb1a9fa652500830941aab8e02ef384fb1f272823dc0d8edc87d62b4e93188"
+    },
+    {
+      "path": "continuation-prepublish-config-ref.json",
+      "bytes": 646,
+      "sha256": "e68c501c77b0e90439ebf85ab6be5b016c81d64cc62a7fa775d685805ad42bf0"
+    },
+    {
+      "path": "continuation-prepublish-claim.json",
+      "bytes": 6076,
+      "sha256": "36562081630e2b1f5d808128d4ea152c03b64c27a9e3f56b630e47ba5a4dc686"
+    },
+    {
+      "path": "artifact-index-smtp.json",
+      "bytes": 32905,
+      "sha256": "acacc23ef76c8c1843c80d92531c7a56e18e80f4e5763f6c74129e65159c5faf"
+    },
+    {
+      "path": "artifact-index-window.json",
+      "bytes": 25197,
+      "sha256": "5fc972f19d60fbe508dac390aa1635b01b229709c2bffdb102ad4ebf56272628"
+    },
+    {
+      "path": "final-freeze-smtp.json",
+      "bytes": 1574,
+      "sha256": "c81c22dbc688b7e64d24b66ac02e9d6abc6ff2bc79c2d80bf393af27b0ab79be"
+    },
+    {
+      "path": "source-freeze-smtp.json",
+      "bytes": 853,
+      "sha256": "20a499580dd378c3dac34fb666922242f9e6eaaa66eeda952c5c633a1b19b9d6"
+    },
+    {
+      "path": "handoff-doc-workflow-audit.json",
+      "bytes": 14604,
+      "sha256": "f194db1a84b2dad7a87307ef51fc37e42af6cd7296303387487b4217ad29ff52"
+    }
+  ],
+  "originalsVerified": {
+    "artifact-index-smtp.json": 201,
+    "artifact-index-window.json": 154
+  },
+  "preexistingPreserved": 9843,
+  "sourcePinsPreserved": 12,
+  "writeScope": [
+    ".agent-memory/masterplan-z03-ack-join-helper-20261013-checkpoint.md"
+  ],
+  "technicalWrites": 0,
+  "testReruns": 0,
+  "nativeCallbacksInvoked": 0,
+  "publication": "NOT_PUSHED",
+  "controllerSha256": "54182804e5dd21f78d5016b13188cb12012effdc71cddc6d7c0cf76e6402b254"
+}
+`````
+
+### handoff-doc-workflow-audit.json
+
+Bytes 14604; SHA256 `f194db1a84b2dad7a87307ef51fc37e42af6cd7296303387487b4217ad29ff52`.
+
+`````text
+{
+  "candidate": "dc22a2745c2ffb68d128a61de3f8b0f5a6151007",
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "branch": "codex/ediel-z03-ack-join-helper-20261013",
+  "workflowCount": 41,
+  "workflowsUnchanged": true,
+  "pushWorkflowCount": 7,
+  "pushBranchMatches": 0,
+  "workflowRunCount": 0,
+  "repositoryDispatchCount": 0,
+  "pullRequestCreated": false,
+  "auditScope": "actual repository event predicates for proposed source-only branch push; no push performed",
+  "workflows": [
+    {
+      "path": ".github/workflows/browser-deps-lock-sync-temporary.yml",
+      "blob": "34764b6d22556146bce400d590f0efcae2f5ad8c",
+      "sha256": "6c6c7fe045496292486af35b515c8d615e343fdf13f6906d4b993d4df633d2ae",
+      "events": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "pushPredicate": {
+        "branches": [
+          "agent/release-certification-hardening-20260817"
+        ]
+      },
+      "branchMatches": false
+    },
+    {
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "blob": "ad0365c8bdc26c725d71dad2330b31893d098cec",
+      "sha256": "1b22d834938a7929224d71a8791daffd5a8b877baf83af193763a938cf033787",
+      "events": [
+        "pull_request",
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "pushPredicate": {
+        "branches": [
+          "main"
+        ]
+      },
+      "branchMatches": false
+    },
+    {
+      "path": ".github/workflows/canonical-quote-db-release-gate.yml",
+      "blob": "3deca6d2816d4a7679cd37f4387672d522065a6d",
+      "sha256": "60e7cbdabf0178a5ece58dee6ae3f41f0cbc1636a29f84153bb421c93f585c0c",
+      "events": [
+        "workflow_dispatch",
+        "workflow_call"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "blob": "02f52e83f9208f81e5adfcb9f2047e309013e112",
+      "sha256": "18f63c741ff4dd17d8b248bbb2c7c66c2a5d6b1924d2f550a3d7ec2f3a9c2151",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-cancellation-public-birth-native.yml",
+      "blob": "7fa53b933740e3f7ec538b8a690d6914d82aa9b6",
+      "sha256": "20485c74970eeae7516e37c21ef9526b4834cf616396b52c01316540a642f601",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-db01-current-native.yml",
+      "blob": "54a3e62bef8733624dcc84c714b7e33564519c7b",
+      "sha256": "d28e9e9d296c8a9c7cf5fa92a293cd5fadc352357213d0c7f379776921b59efb",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-db04-current-consumers-native.yml",
+      "blob": "21965423a543f47cc179d8b997be22bddf8dcea0",
+      "sha256": "f189bbc8ae70cf8fcd4a6a690996c1a3d6213933f7511679d7216cae5ac51615",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-db05-native.yml",
+      "blob": "7fda5db222a77263b70eaecb188b91b548cd1691",
+      "sha256": "0d3d859bb41f2d7810fedfe17b8b603e48acc61286a23c54af2d4458c7465704",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+      "blob": "96ec0f94e9d7a14e42dfb0e3fec4feb853c69d5a",
+      "sha256": "7f38047f3bfe4ee59b82e39c52fe2fd4ddaaad0db7d6bb49f4c206dbbb6d4f9b",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-masterplan-v2.yml",
+      "blob": "d020a6546206d4f2e92ff01234b2d4c18e484080",
+      "sha256": "570fee485c20cab4fd33b5ff048589cf20a807dde68585e29969450b3b023f36",
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "pushPredicate": {
+        "branches": [
+          "main"
+        ]
+      },
+      "branchMatches": false
+    },
+    {
+      "path": ".github/workflows/ediel-p08-native.yml",
+      "blob": "4b27e49167f6f3aeaeb124ee4f1c9a02f3953117",
+      "sha256": "1accd8fce133bf0cadda4fe8f61e3f2d8d3d7643a9773c1802a531c4280f2e7f",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-prodat-response-hold-native.yml",
+      "blob": "894476478fa8d9aa7a6f71080446a3600895a270",
+      "sha256": "8caa813a36578d61eb66e832ae44d3a76ee1dc2aec3637f02cccd9bb80e7f0bc",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-recovery-native.yml",
+      "blob": "76b1465e04f40d1174d54f8ea2999b96feed0398",
+      "sha256": "5cc097dccc90f4649250e40b45dff7c297f10bdad5dc57ce3c795916c069de52",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-sc003-sc005-native.yml",
+      "blob": "629606d3b8a3721e8683d5842b1b677a37cc1998",
+      "sha256": "a5ab28cb335dc108a8b8065b0aba170661b43b35ac1b72b971f0f2f12b98a4ac",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-sc014-z14v-native.yml",
+      "blob": "4b48c6fddfdc27d09ea6bcd752be6e9628431ce0",
+      "sha256": "8734e192537021d3830bffcbb394f6b0c43b7e64341bcabbca3d6da38f256724",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-sc053-native.yml",
+      "blob": "43bf8340ab620acc2caa50a92644d2bb834eb60d",
+      "sha256": "d5c25abcee97c45da479a641e66d0930e77a08f4fc1ed1483447d281cf6c7a9b",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-sc054-native.yml",
+      "blob": "bcf464a6689b98c0a3d7ac8bba709bdb77abb8ee",
+      "sha256": "bb7ea54eb195739a5cfd2acce91cdb346e44280276c139d04152043419ed96da",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-sc064-native.yml",
+      "blob": "b98ac8854944e782a81c02d701b1ed1141d7f5f2",
+      "sha256": "7bb0d19009baeac92573887661f2514fc683331f86ff5b0df2a737efef091b0d",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-sc071-native.yml",
+      "blob": "e47d024da6bf0957af34af4ba22e51117a3f0cdb",
+      "sha256": "0e7e7269c54b8f89473e92e4015bf77c1ae855cee7fe0c7501b8ccdc5b97a977",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-tr09-current-native.yml",
+      "blob": "65101bb99b29d823c5b970fb0648a07065761e16",
+      "sha256": "e156aa10bb7ea27e773500ae8b76553471b967a5b96a4841cbd987bac036b350",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z02-supplier-native.yml",
+      "blob": "ab55c2ed9a050accf86c8b5b2a8f3f3e5cdac599",
+      "sha256": "45df7047094a2ec7d2207a9ade6f21487999d3635851c8d15bfd9484ac3c10b8",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z03h-z04h-supplier-native.yml",
+      "blob": "dba1dccc2017d3cbd10f8bc8db75b8fb3eb37a75",
+      "sha256": "002aa1172a537ac8f6f70fd32967154487a09dec3d042190dd1faee26da932be",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z04a-assigned-supply-native.yml",
+      "blob": "35aaa7292d01150940f44b458c658e573d1dd33b",
+      "sha256": "a685bff1acb6cf3523b7bddfb3e1992cbf68f6dab1b3ee3a88b336961f5cea79",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z05-public-birth-native.yml",
+      "blob": "ebeace0733098caa38cdf5c19bedf5f20b6ad033",
+      "sha256": "091db1d78dd0210853a5cafff7128891556d7663d51cf0b2be9c7d485e55c13e",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z05-supplier-native.yml",
+      "blob": "7b9d122fbe3c4f7f31338289105de95d818653ac",
+      "sha256": "27aef63ea8526b41099e196dc23e22ec05690010d00280f20353a5c4d433db0b",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z06e-z09e-native.yml",
+      "blob": "6efd0c8591d63858c2a6ead8ee7d24f8a050a24b",
+      "sha256": "500937dd634c8f3288466847cf438fad532f167a6e74eab4d71f99b358cb4c3a",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z08lk-native.yml",
+      "blob": "08812cfe25f3ce91b7c351c70dc05f875e6b63ec",
+      "sha256": "649b853685415bc25659a177c426dafc7ac3cd84dc5afc9bb375d44b882d02e2",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z10m-supplier-native.yml",
+      "blob": "d027fb427a4d30b89a63b1ac446791f768be833b",
+      "sha256": "7e9d089ff0d1a4ed90cad7c0c40d72b71ccc2e1407ba82ab53ad102457832458",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z14n-native.yml",
+      "blob": "1c0f2e4d6658b588d904378b7d6d94b4b6cd6d56",
+      "sha256": "e460efeb65d18053b225a3714022568c16a9e05923357434ceffbdb760e4cdd8",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ediel-z15c-z18v-native.yml",
+      "blob": "003929ed4623c8e39e35141375e41dee97ba22b6",
+      "sha256": "e6b5a842d8fa5b57f927b8de8571a0ce6ff74a76ba788380d5a1d7dde01a11e0",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "blob": "83fba5e4e2e64f89696cf9fc698a0de45cb92cbd",
+      "sha256": "4b596a8e9b72835a89a6fff9bb77fdcad7eabb52bd1de5b03fa208344fa4bd31",
+      "events": [
+        "pull_request",
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "pushPredicate": {
+        "branches": [
+          "main"
+        ]
+      },
+      "branchMatches": false
+    },
+    {
+      "path": ".github/workflows/one-off-offer-binding-native.yml",
+      "blob": "8532ccc16202a49cf3d3b4f1e5263dc51a9187af",
+      "sha256": "4a9405ed2079a558e49dc64aa1500bc0cd44448edd0e1075f70f4d922736f020",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/one-shot-operation-id-fix.yml",
+      "blob": "0e59d4a92e5b9c8f8e7b5f9f55fe1f5804a177fc",
+      "sha256": "45ddcf525c6657e99f2c39d727d8be3ecdc16a5841fb5bf303be4729a4c20167",
+      "events": [
+        "workflow_dispatch"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "blob": "3acc65a152b79233130fe29fbebb8d2cdfc9bc46",
+      "sha256": "f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d",
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "pushPredicate": {
+        "branches": [
+          "main"
+        ]
+      },
+      "branchMatches": false
+    },
+    {
+      "path": ".github/workflows/production-certification-e2e.yml",
+      "blob": "370a2fbc662026184c6745063138f6fe71594dbe",
+      "sha256": "e98e59fe75e1ddc988d048132769eef368b7f6bdde1dd5ce95b7da33ac8ff4f7",
+      "events": [
+        "workflow_dispatch"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/repair-generated-supabase-types.yml",
+      "blob": "a50bbf8856cc3d4411c5fc05c8ff2adfebd28d75",
+      "sha256": "7dacb59f5e7889eec16c1222ffd24476816bec0e33585fbb0cd6750168b45ce4",
+      "events": [
+        "workflow_dispatch"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "blob": "54d21d8d8a0688695a65846012822a5dd1757b9b",
+      "sha256": "5675989bfc158868e2c2a8508c74c5a05043052934dd1f7f79da8df06e272adf",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/tenant-integrity-regression.yml",
+      "blob": "231bdd5c1c299aaa0c9f498f6f0c80736b9ae98c",
+      "sha256": "46d45b2364ad8b7bf2d80e7399b40a5835565bd34003c274d06f4e6dd6ebb890",
+      "events": [
+        "pull_request",
+        "push"
+      ],
+      "pushPredicate": {
+        "branches": [
+          "main"
+        ],
+        "paths": [
+          "supabase/migrations/**",
+          "lib/tenant/integrity.ts",
+          "lib/tenant/scope.ts",
+          "lib/tenant/lifecycle.ts",
+          "lib/tenant/operationPolicy.ts",
+          "lib/integrations/apiAuth.ts",
+          "lib/integrations/webhooks.ts",
+          "lib/email/emailOutbox.ts",
+          "lib/ediel/orchestrator.ts",
+          "app/admin/companies/**",
+          "app/admin/system/tenant-integrity/**",
+          "scripts/gridex-tenant-integrity-regression.cjs",
+          "scripts/gridex-tenant-shutdown-regression.cjs",
+          "lib/supabase/service.ts",
+          "lib/supabase/tenantDb.ts",
+          "lib/admin/guards.ts",
+          "lib/admin/apiGuards.ts",
+          "scripts/check-service-role-tenant-ratchet.cjs",
+          "scripts/service-role-tenant-ratchet.json",
+          "scripts/sql/tenant-isolation-invariants.sql",
+          ".github/workflows/tenant-integrity-regression.yml"
+        ]
+      },
+      "branchMatches": false
+    },
+    {
+      "path": ".github/workflows/tenant-isolation-invariants.yml",
+      "blob": "022e01cf0538770ef162d86d6450203ef989a7cc",
+      "sha256": "e49b8a1444602f95cd8410aa891a7af54c4f817349e7c7cb201dbd500bb58367",
+      "events": [
+        "workflow_dispatch",
+        "workflow_call",
+        "schedule"
+      ],
+      "pushPredicate": null
+    },
+    {
+      "path": ".github/workflows/vercel-production-deploy.yml",
+      "blob": "1b5a9ffdf0252f240715fc8b2c9f5d83c3bb095f",
+      "sha256": "2ab42b283d76821709ec50f546daf75c80a64030e651cf34767603172ff7c9d3",
+      "events": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "pushPredicate": {
+        "branches": [
+          "main"
+        ]
+      },
+      "branchMatches": false
+    },
+    {
+      "path": ".github/workflows/zero-admin-production-crawler.yml",
+      "blob": "cf1681e6ef40d6850d5fdc6d30a970d5b4697988",
+      "sha256": "b9bd2f5bb02a972c02f842bdaa507c28fd20c425f8c39b3e2753de18f395d74d",
+      "events": [
+        "pull_request"
+      ],
+      "pushPredicate": null
+    }
+  ]
+}
+`````
+
+### handoff-doc-prepare-final.stdout
+
+Bytes 909; SHA256 `d4f57d57fb67ec9b8d3737a882ce5ac581fe6ac55e8795925771def4ccab8ab3`.
+
+`````text
+{
+  "stage": "prepare",
+  "workflowAudit": {
+    "path": "handoff-doc-workflow-audit.json",
+    "bytes": 14604,
+    "sha256": "f194db1a84b2dad7a87307ef51fc37e42af6cd7296303387487b4217ad29ff52"
+  },
+  "inputRecord": {
+    "path": "handoff-doc-inputs.json",
+    "bytes": 4207,
+    "sha256": "35ff5c6b6378c778270451d391094cc8a495177249633bec28dde6414b6a9834"
+  },
+  "reviews": [
+    {
+      "path": "final-a/corrected-final.md",
+      "bytes": 14480,
+      "sha256": "f540eeed51d9bf92ae40a443e52cf278894644ee594600ab57dc5dd6828a7604",
+      "reviewer": "A"
+    },
+    {
+      "path": "final-b/FINAL_REVIEW_B_SMTP.md",
+      "bytes": 11841,
+      "sha256": "8155e2ed6e7fdf22f5b9518bd46fe475604aacda9ae94c0e4a367b8786a2bdce",
+      "reviewer": "B"
+    }
+  ],
+  "originalsVerified": {
+    "artifact-index-smtp.json": 201,
+    "artifact-index-window.json": 154
+  },
+  "technicalWrites": 0,
+  "repositoryWrites": 0
+}
+`````
+
+### handoff-doc-prepare-final.stderr
+
+Bytes 0; SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+
+`````text
+
+`````
+
+### handoff-doc-prepare-final.exit
+
+Bytes 1; SHA256 `5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9`.
+
+`````text
+0
+`````
+
+### handoff-doc-prepare.stdout
+
+Bytes 0; SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+
+`````text
+
+`````
+
+### handoff-doc-prepare.stderr
+
+Bytes 372; SHA256 `5243c1c08a58d3ecd0cd659de0f68856b8fb6306bb68d1b76d1c79e70979728e`.
+
+`````text
+  File "/workspace/scratch/ediel-z03-ack-join-20261013/handoff-doc-controller.py", line 196
+    sections.extend([b'## Preserved complete previous checkpoint — byte-identical historical suffix\n\n', old])
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: bytes can only contain ASCII literal characters
+`````
+
+### handoff-doc-prepare.exit
+
+Bytes 1; SHA256 `6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b`.
+
+`````text
+1
+`````
+
+### handoff-doc-controller-initial.py
+
+Bytes 15327; SHA256 `456ea42303c826f95e3ca42e77f3c7216988197ff80a5d9070a84b51a1a52f11`.
+
+`````text
+from pathlib import Path
+import hashlib
+import json
+import subprocess
+import sys
+import yaml
+
+R = Path('/workspace/scratch/gridex-z03-ack-join-helper-20261013')
+P = Path('/workspace/scratch/ediel-z03-ack-join-20261013')
+HEAD = 'dc22a2745c2ffb68d128a61de3f8b0f5a6151007'
+BASE = 'd798eb36f35cd4f437d44c8d234b4dbb81adc7a6'
+BASE_TREE = 'e3b6c11677a2b871a128504f1616def7d22dba1e'
+BRANCH = 'codex/ediel-z03-ack-join-helper-20261013'
+CP = '.agent-memory/masterplan-z03-ack-join-helper-20261013-checkpoint.md'
+RECEIPT = 'e24766be665f684886b465bb1a06fd6168bc2bbe'
+REVIEWS = [
+    ('A', 'final-a/corrected-final.md', 'f540eeed51d9bf92ae40a443e52cf278894644ee594600ab57dc5dd6828a7604'),
+    ('B', 'final-b/FINAL_REVIEW_B_SMTP.md', '8155e2ed6e7fdf22f5b9518bd46fe475604aacda9ae94c0e4a367b8786a2bdce'),
+]
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def git(*args):
+    return subprocess.check_output(['git', *args], cwd=R).decode().strip()
+
+
+def write_new(name, data):
+    with (P / name).open('xb') as output:
+        output.write(data)
+
+
+def encoded(obj):
+    return (json.dumps(obj, indent=2, ensure_ascii=False) + '\n').encode()
+
+
+def record(name):
+    data = (P / name).read_bytes()
+    return {'path': name, 'bytes': len(data), 'sha256': sha(data)}
+
+
+def verify_originals():
+    counts = {}
+    for name, count in [('artifact-index-smtp.json', 201), ('artifact-index-window.json', 154)]:
+        registry = json.loads((P / name).read_bytes())
+        assert len(registry['artifacts']) == count
+        for item in registry['artifacts']:
+            data = (P / item['name']).read_bytes()
+            assert len(data) == item['bytes'] and sha(data) == item['sha256'], item['name']
+        counts[name] = count
+    assert sha((P / 'artifact-index-smtp.json').read_bytes()) == 'acacc23ef76c8c1843c80d92531c7a56e18e80f4e5763f6c74129e65159c5faf'
+    assert sha((P / 'artifact-index-window.json').read_bytes()) == '5fc972f19d60fbe508dac390aa1635b01b229709c2bffdb102ad4ebf56272628'
+    return counts
+
+
+def leaves(ref):
+    return {line.split('\t', 1)[1]: line.split('\t', 1)[0]
+            for line in git('ls-tree', '-r', ref).splitlines()}
+
+
+def verify_source(ref):
+    source = json.loads((P / 'source-freeze-smtp.json').read_bytes())
+    for item in source['technicalFiles']:
+        assert sha((R / item['path']).read_bytes()) == item['sha256']
+        assert git('rev-parse', ref + ':' + item['path']) == item['blob']
+    old, current = leaves(BASE), leaves(ref)
+    assert len(old) == 9843 and all(current.get(path) == value for path, value in old.items())
+    assert set(current) - set(old) == {item['path'] for item in source['technicalFiles']} | {CP}
+    pins = json.loads((P / 'readonly-source-pins.json').read_bytes())
+    assert len(pins) == 12
+    for item in pins:
+        assert sha((R / item['path']).read_bytes()) == item['actualSha256']
+        assert git('rev-parse', ref + ':' + item['path']) == item['blob']
+    return source
+
+
+def verify_reviews():
+    result = []
+    for reviewer, name, expected in REVIEWS:
+        item = record(name)
+        assert item['sha256'] == expected
+        item['reviewer'] = reviewer
+        result.append(item)
+    return result
+
+
+def prepare():
+    assert git('rev-parse', 'HEAD') == HEAD and git('status', '--porcelain') == ''
+    frozen = json.loads((P / 'final-freeze-smtp.json').read_bytes())
+    assert git('rev-parse', 'HEAD^{tree}') == frozen['finalTree']
+    assert sha((R / CP).read_bytes()) == frozen['checkpoint']['sha256']
+    counts = verify_originals()
+    source = verify_source(HEAD)
+    reviews = verify_reviews()
+    main = json.loads((P / 'continuation-prepublish-main.json').read_bytes())
+    receipt = json.loads((P / 'continuation-prepublish-receipt.json').read_bytes())
+    assert main['object']['sha'] == BASE
+    assert receipt['sha'] == RECEIPT and receipt['tree']['sha'] == BASE_TREE
+    assert [item['sha'] for item in receipt['parents']] == [BASE]
+    payload = json.loads(receipt['message'])
+    assert payload['protocol'] == 'masterplan-reservation-v1'
+    assert payload['epoch'] == 'gridex-five-agent-20261012' and payload['slot'] == 'helper'
+    assert payload['agent'] == 'codex-ediel-z03-ack-join-helper-20261013'
+    assert payload['packet'] == 'd3617284-ab1b-4eab-923a-2b279f14afa7'
+    assert payload['ids'] == [] and payload['files'] == [item['path'] for item in source['technicalFiles']]
+    assert payload['branch'] == BRANCH and payload['checkpoint'] == CP and payload['base'] == BASE
+    for name in ['continuation-prepublish-test-ref.json', 'continuation-prepublish-config-ref.json']:
+        assert json.loads((P / name).read_bytes())['object']['sha'] == RECEIPT
+    claim = json.loads((P / 'continuation-prepublish-claim.json').read_bytes())
+    assert claim['id'] == 6149828468 and payload['packet'] in claim['body']
+    workflows = []
+    for path in sorted(path for path in leaves(HEAD) if path.startswith('.github/workflows/') and path.endswith(('.yml', '.yaml'))):
+        data = subprocess.check_output(['git', 'show', HEAD + ':' + path], cwd=R)
+        assert data == subprocess.check_output(['git', 'show', BASE + ':' + path], cwd=R)
+        document = yaml.load(data, Loader=yaml.BaseLoader)
+        events = document['on']
+        if isinstance(events, str):
+            events = {events: None}
+        elif isinstance(events, list):
+            events = {event: None for event in events}
+        assert isinstance(events, dict)
+        assert 'workflow_run' not in events and 'repository_dispatch' not in events
+        row = {'path': path, 'blob': git('rev-parse', HEAD + ':' + path),
+               'sha256': sha(data), 'events': list(events), 'pushPredicate': None}
+        if 'push' in events:
+            predicate = events['push']
+            assert isinstance(predicate, dict) and 'branches' in predicate
+            branches = predicate['branches']
+            assert isinstance(branches, list) and len(branches) > 0
+            assert all(not any(c in branch for c in '*?[]!+{}') for branch in branches)
+            assert BRANCH not in branches
+            row['pushPredicate'] = predicate
+            row['branchMatches'] = False
+        workflows.append(row)
+    assert len(workflows) == 41 and sum(row['pushPredicate'] is not None for row in workflows) == 7
+    audit = {'candidate': HEAD, 'base': BASE, 'branch': BRANCH, 'workflowCount': 41,
+             'workflowsUnchanged': True, 'pushWorkflowCount': 7, 'pushBranchMatches': 0,
+             'workflowRunCount': 0, 'repositoryDispatchCount': 0, 'pullRequestCreated': False,
+             'auditScope': 'actual repository event predicates for proposed source-only branch push; no push performed',
+             'workflows': workflows}
+    write_new('handoff-doc-workflow-audit.json', encoded(audit))
+    records = ['continuation-prepublish-main.json', 'continuation-prepublish-receipt.json',
+               'continuation-prepublish-test-ref.json', 'continuation-prepublish-config-ref.json',
+               'continuation-prepublish-claim.json', 'artifact-index-smtp.json', 'artifact-index-window.json',
+               'final-freeze-smtp.json', 'source-freeze-smtp.json', 'handoff-doc-workflow-audit.json']
+    inputs = {'reviewedFinal': frozen, 'reviews': reviews, 'inputRecords': [record(name) for name in records],
+              'originalsVerified': counts, 'preexistingPreserved': 9843, 'sourcePinsPreserved': 12,
+              'writeScope': [CP], 'technicalWrites': 0, 'testReruns': 0, 'nativeCallbacksInvoked': 0,
+              'publication': 'NOT_PUSHED', 'controllerSha256': sha(Path(__file__).read_bytes())}
+    write_new('handoff-doc-inputs.json', encoded(inputs))
+    print(json.dumps({'stage': 'prepare', 'workflowAudit': record('handoff-doc-workflow-audit.json'),
+                      'inputRecord': record('handoff-doc-inputs.json'), 'reviews': reviews,
+                      'originalsVerified': counts, 'technicalWrites': 0, 'repositoryWrites': 0}, indent=2))
+
+
+def assemble():
+    assert git('rev-parse', 'HEAD') == HEAD and git('status', '--porcelain') == ''
+    verify_originals()
+    verify_source(HEAD)
+    reviews = verify_reviews()
+    inputs = json.loads((P / 'handoff-doc-inputs.json').read_bytes())
+    assert sha(Path(__file__).read_bytes()) == inputs['controllerSha256']
+    old = (R / CP).read_bytes()
+    assert sha(old) == inputs['reviewedFinal']['checkpoint']['sha256']
+    banner = '''# COMPLETED TWO-FILE SOURCE PREPARATION — two independent final source reviews preserved
+
+The exact corrected technical source is complete and both independent noncoauthor reviewers approved it: A **APP_COMPONENT_SOURCE** and B **APPROVE_SOURCE_PREPARATION**, with no blocking findings in this two-file packet. Both reviews bind reviewed final head `dc22a2745c2ffb68d128a61de3f8b0f5a6151007`, tree `9a028669244bd9a24d4177e787a78e0b36f0fe7e`, sole ordered parent/technical source `9a849a8bba86835e42c885a194a49a0b49369b2e`, technical tree `670eebe6971a5b88223c170dff9ff7a97f689177`, technical parent `7fd384584e2929c1567618c737d648f328ba0d1c`, and explicit actual-public base `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / `e3b6c11677a2b871a128504f1616def7d22dba1e`. This new commit adds documentation only to the author's unique checkpoint. The two technical postimages, all prior checkpoint bytes, the 201 registered qualification originals and prior 154 originals remain unchanged. The old review histories and superseded source freezes below retain their original meanings.
+
+The completed source prepares genuine prospective L/Z22 and LK/Z23 own sealed sent request → physically received own inbound CONTRL/APERAK → causal right received Z04 joined to the same original/LI/customer/point/start/reason/hash → its distinct outgoing responses through unchanged actual current APIs. L and LK retain opposite ACK/Z04 ordering to preserve separation of technical acknowledgement from business confirmation. Future supply remains inactive. Owned original, nonempty unrelated/sibling controls, receipt and replay oracles remain. The config only appends this file to the unchanged current source-owner config and preserves its ordinary backend/catalog/status/setup/serial/timeout gates.
+
+Current exact-source captured qualification remains **10 finite PASS / 0 FAIL / 2 native NOT SELECTED**, strict semantic TypeScript and two-file project ESLint exit0/no diagnostics, with diff/source preservation. The meaningful pre-fix actual `sendEdielEmail` RAW+ATTACHMENT failures and corrected final outputs are retained. The finite adapter controls execute the unchanged real adapter with explicitly modeled lower MIME archive/storage, Nodemailer SMTP session and beforeProviderCall database-fence ports; they prove the argument/return contract and do not prove real storage, SQL acceptance or provider delivery. No test, controller qualification, SQL child, native/backend/CI/GEN/provider/capture or original collection was rerun for this documentation change.
+
+**NATIVE_NOT_RUN; SOURCE INPUT HOLD / QUALIFICATION PENDING.** Genuine disposable current actor/company/signed prospective L/LK cohorts and routes must be supplied by the retained serial source/GEN producer `codex-takeover-delivery-20261012`. Data-only selectors grant no issuer/context/original/canonical/accepted authority. AT-Z03L-SUPPLIER and AT-Z03LK-SUPPLIER remain NOT_EXECUTED; ledger/count and whole acceptance stay unchanged. Separate calendar P1 late queued national cutoff and P2 too_early classifier findings in [6149872172](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149872172) remain unqualified in their retained owners' paths. The positive observedAt-versus-own-original-start oracle supplies no late-queue fix or whole calendar approval. H assertion form is source reuse only, with no H execution credit.
+
+Publication remains **NOT_PUSHED / PAUSED**. The prepared source-only plan is: obtain two independent documentation-only rebinds of this final checkpoint commit, then ROOT coordinates a fresh authenticated main/fullreceipt/all-two-refs/remote-branch read and a fresh unchanged-workflow preflight, then an explicit source-only branch push and public selective technical handoff. No PR, native/GEN chain, merge, release or custody-ref release is authorized by this checkpoint. Both held two-file refs remain bound to `e24766be665f684886b465bb1a06fd6168bc2bbe`, IDs `[]`; no shared producer/whole-card/native/original-collection scope transfers. Latest corrected public milestone is [6150868162](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6150868162); original claim is [6149828468](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149828468).
+
+The actual 41 workflows are byte-identical to frozen d798. All seven push workflows exclude this exact branch: six list only main and browser-deps-lock-sync-temporary lists only agent/release-certification-hardening-20260817. None declares workflow_run or repository_dispatch. Thus the audited source-only push has zero matching repository push predicates and no such indirect event chain; manual dispatch was not invoked and no PR exists. This is a preparation audit, not a performed push or runtime/CI result.
+
+## Independent final source review originals — verbatim
+
+'''
+    sections = [banner.encode()]
+    for item in reviews:
+        data = (P / item['path']).read_bytes()
+        sections.extend([f"### Reviewer {item['reviewer']}: {item['path']}\n\nBytes {item['bytes']}; SHA256 `{item['sha256']}`. Original bytes preserved verbatim within this presentation fence.\n\n````text\n".encode(), data,
+                         (b'' if data.endswith(b'\n') else b'\n'), b'````\n\n'])
+    sections.append(b'## Documentation-only input and publication-preparation evidence\n\n')
+    for name in ['handoff-doc-inputs.json', 'handoff-doc-workflow-audit.json',
+                 'handoff-doc-prepare.stdout', 'handoff-doc-prepare.stderr', 'handoff-doc-prepare.exit',
+                 'handoff-doc-controller.py']:
+        data = (P / name).read_bytes()
+        sections.extend([f"### {name}\n\nBytes {len(data)}; SHA256 `{sha(data)}`.\n\n`````text\n".encode(), data,
+                         (b'' if data.endswith(b'\n') else b'\n'), b'`````\n\n'])
+    sections.extend([b'## Preserved complete previous checkpoint — byte-identical historical suffix\n\n', old])
+    new = b''.join(sections)
+    assert new.endswith(old)
+    for item in reviews:
+        assert (P / item['path']).read_bytes() in new
+    (R / CP).write_bytes(new)
+    assert git('diff', '--name-only') == CP
+    assert git('diff', '--cached', '--name-only') == ''
+    subprocess.run(['git', 'diff', '--check'], cwd=R, check=True)
+    verify_originals()
+    verify_source(HEAD)
+    print(json.dumps({'stage': 'assemble', 'reviewedHead': HEAD, 'deltaPaths': [CP],
+                      'oldCheckpointBytes': len(old), 'oldCheckpointSha256': sha(old),
+                      'newCheckpointBytes': len(new), 'newCheckpointSha256': sha(new),
+                      'oldCheckpointVerbatimSuffix': True, 'bothReviewsVerbatim': True,
+                      'technicalWrites': 0, 'testReruns': 0, 'publication': 'NOT_PUSHED'}, indent=2))
+
+
+if sys.argv[1] == 'prepare':
+    prepare()
+elif sys.argv[1] == 'assemble':
+    assemble()
+else:
+    raise ValueError('unsupported stage')
+`````
+
+### handoff-doc-controller.py
+
+Bytes 15512; SHA256 `54182804e5dd21f78d5016b13188cb12012effdc71cddc6d7c0cf76e6402b254`.
+
+`````text
+from pathlib import Path
+import hashlib
+import json
+import subprocess
+import sys
+import yaml
+
+R = Path('/workspace/scratch/gridex-z03-ack-join-helper-20261013')
+P = Path('/workspace/scratch/ediel-z03-ack-join-20261013')
+HEAD = 'dc22a2745c2ffb68d128a61de3f8b0f5a6151007'
+BASE = 'd798eb36f35cd4f437d44c8d234b4dbb81adc7a6'
+BASE_TREE = 'e3b6c11677a2b871a128504f1616def7d22dba1e'
+BRANCH = 'codex/ediel-z03-ack-join-helper-20261013'
+CP = '.agent-memory/masterplan-z03-ack-join-helper-20261013-checkpoint.md'
+RECEIPT = 'e24766be665f684886b465bb1a06fd6168bc2bbe'
+REVIEWS = [
+    ('A', 'final-a/corrected-final.md', 'f540eeed51d9bf92ae40a443e52cf278894644ee594600ab57dc5dd6828a7604'),
+    ('B', 'final-b/FINAL_REVIEW_B_SMTP.md', '8155e2ed6e7fdf22f5b9518bd46fe475604aacda9ae94c0e4a367b8786a2bdce'),
+]
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def git(*args):
+    return subprocess.check_output(['git', *args], cwd=R).decode().strip()
+
+
+def write_new(name, data):
+    with (P / name).open('xb') as output:
+        output.write(data)
+
+
+def encoded(obj):
+    return (json.dumps(obj, indent=2, ensure_ascii=False) + '\n').encode()
+
+
+def record(name):
+    data = (P / name).read_bytes()
+    return {'path': name, 'bytes': len(data), 'sha256': sha(data)}
+
+
+def verify_originals():
+    counts = {}
+    for name, count in [('artifact-index-smtp.json', 201), ('artifact-index-window.json', 154)]:
+        registry = json.loads((P / name).read_bytes())
+        assert len(registry['artifacts']) == count
+        for item in registry['artifacts']:
+            data = (P / item['name']).read_bytes()
+            assert len(data) == item['bytes'] and sha(data) == item['sha256'], item['name']
+        counts[name] = count
+    assert sha((P / 'artifact-index-smtp.json').read_bytes()) == 'acacc23ef76c8c1843c80d92531c7a56e18e80f4e5763f6c74129e65159c5faf'
+    assert sha((P / 'artifact-index-window.json').read_bytes()) == '5fc972f19d60fbe508dac390aa1635b01b229709c2bffdb102ad4ebf56272628'
+    return counts
+
+
+def leaves(ref):
+    return {line.split('\t', 1)[1]: line.split('\t', 1)[0]
+            for line in git('ls-tree', '-r', ref).splitlines()}
+
+
+def verify_source(ref):
+    source = json.loads((P / 'source-freeze-smtp.json').read_bytes())
+    for item in source['technicalFiles']:
+        assert sha((R / item['path']).read_bytes()) == item['sha256']
+        assert git('rev-parse', ref + ':' + item['path']) == item['blob']
+    old, current = leaves(BASE), leaves(ref)
+    assert len(old) == 9843 and all(current.get(path) == value for path, value in old.items())
+    assert set(current) - set(old) == {item['path'] for item in source['technicalFiles']} | {CP}
+    pins = json.loads((P / 'readonly-source-pins.json').read_bytes())
+    assert len(pins) == 12
+    for item in pins:
+        assert sha((R / item['path']).read_bytes()) == item['actualSha256']
+        assert git('rev-parse', ref + ':' + item['path']) == item['blob']
+    return source
+
+
+def verify_reviews():
+    result = []
+    for reviewer, name, expected in REVIEWS:
+        item = record(name)
+        assert item['sha256'] == expected
+        item['reviewer'] = reviewer
+        result.append(item)
+    return result
+
+
+def prepare():
+    assert git('rev-parse', 'HEAD') == HEAD and git('status', '--porcelain') == ''
+    frozen = json.loads((P / 'final-freeze-smtp.json').read_bytes())
+    assert git('rev-parse', 'HEAD^{tree}') == frozen['finalTree']
+    assert sha((R / CP).read_bytes()) == frozen['checkpoint']['sha256']
+    counts = verify_originals()
+    source = verify_source(HEAD)
+    reviews = verify_reviews()
+    main = json.loads((P / 'continuation-prepublish-main.json').read_bytes())
+    receipt = json.loads((P / 'continuation-prepublish-receipt.json').read_bytes())
+    assert main['object']['sha'] == BASE
+    assert receipt['sha'] == RECEIPT and receipt['tree']['sha'] == BASE_TREE
+    assert [item['sha'] for item in receipt['parents']] == [BASE]
+    payload = json.loads(receipt['message'])
+    assert payload['protocol'] == 'masterplan-reservation-v1'
+    assert payload['epoch'] == 'gridex-five-agent-20261012' and payload['slot'] == 'helper'
+    assert payload['agent'] == 'codex-ediel-z03-ack-join-helper-20261013'
+    assert payload['packet'] == 'd3617284-ab1b-4eab-923a-2b279f14afa7'
+    assert payload['ids'] == [] and payload['files'] == [item['path'] for item in source['technicalFiles']]
+    assert payload['branch'] == BRANCH and payload['checkpoint'] == CP and payload['base'] == BASE
+    for name in ['continuation-prepublish-test-ref.json', 'continuation-prepublish-config-ref.json']:
+        assert json.loads((P / name).read_bytes())['object']['sha'] == RECEIPT
+    claim = json.loads((P / 'continuation-prepublish-claim.json').read_bytes())
+    assert claim['id'] == 6149828468 and payload['packet'] in claim['body']
+    workflows = []
+    for path in sorted(path for path in leaves(HEAD) if path.startswith('.github/workflows/') and path.endswith(('.yml', '.yaml'))):
+        data = subprocess.check_output(['git', 'show', HEAD + ':' + path], cwd=R)
+        assert data == subprocess.check_output(['git', 'show', BASE + ':' + path], cwd=R)
+        document = yaml.load(data, Loader=yaml.BaseLoader)
+        events = document['on']
+        if isinstance(events, str):
+            events = {events: None}
+        elif isinstance(events, list):
+            events = {event: None for event in events}
+        assert isinstance(events, dict)
+        assert 'workflow_run' not in events and 'repository_dispatch' not in events
+        row = {'path': path, 'blob': git('rev-parse', HEAD + ':' + path),
+               'sha256': sha(data), 'events': list(events), 'pushPredicate': None}
+        if 'push' in events:
+            predicate = events['push']
+            assert isinstance(predicate, dict) and 'branches' in predicate
+            branches = predicate['branches']
+            assert isinstance(branches, list) and len(branches) > 0
+            assert all(not any(c in branch for c in '*?[]!+{}') for branch in branches)
+            assert BRANCH not in branches
+            row['pushPredicate'] = predicate
+            row['branchMatches'] = False
+        workflows.append(row)
+    assert len(workflows) == 41 and sum(row['pushPredicate'] is not None for row in workflows) == 7
+    audit = {'candidate': HEAD, 'base': BASE, 'branch': BRANCH, 'workflowCount': 41,
+             'workflowsUnchanged': True, 'pushWorkflowCount': 7, 'pushBranchMatches': 0,
+             'workflowRunCount': 0, 'repositoryDispatchCount': 0, 'pullRequestCreated': False,
+             'auditScope': 'actual repository event predicates for proposed source-only branch push; no push performed',
+             'workflows': workflows}
+    write_new('handoff-doc-workflow-audit.json', encoded(audit))
+    records = ['continuation-prepublish-main.json', 'continuation-prepublish-receipt.json',
+               'continuation-prepublish-test-ref.json', 'continuation-prepublish-config-ref.json',
+               'continuation-prepublish-claim.json', 'artifact-index-smtp.json', 'artifact-index-window.json',
+               'final-freeze-smtp.json', 'source-freeze-smtp.json', 'handoff-doc-workflow-audit.json']
+    inputs = {'reviewedFinal': frozen, 'reviews': reviews, 'inputRecords': [record(name) for name in records],
+              'originalsVerified': counts, 'preexistingPreserved': 9843, 'sourcePinsPreserved': 12,
+              'writeScope': [CP], 'technicalWrites': 0, 'testReruns': 0, 'nativeCallbacksInvoked': 0,
+              'publication': 'NOT_PUSHED', 'controllerSha256': sha(Path(__file__).read_bytes())}
+    write_new('handoff-doc-inputs.json', encoded(inputs))
+    print(json.dumps({'stage': 'prepare', 'workflowAudit': record('handoff-doc-workflow-audit.json'),
+                      'inputRecord': record('handoff-doc-inputs.json'), 'reviews': reviews,
+                      'originalsVerified': counts, 'technicalWrites': 0, 'repositoryWrites': 0}, indent=2))
+
+
+def assemble():
+    assert git('rev-parse', 'HEAD') == HEAD and git('status', '--porcelain') == ''
+    verify_originals()
+    verify_source(HEAD)
+    reviews = verify_reviews()
+    inputs = json.loads((P / 'handoff-doc-inputs.json').read_bytes())
+    assert sha(Path(__file__).read_bytes()) == inputs['controllerSha256']
+    old = (R / CP).read_bytes()
+    assert sha(old) == inputs['reviewedFinal']['checkpoint']['sha256']
+    banner = '''# COMPLETED TWO-FILE SOURCE PREPARATION — two independent final source reviews preserved
+
+The exact corrected technical source is complete and both independent noncoauthor reviewers approved it: A **APP_COMPONENT_SOURCE** and B **APPROVE_SOURCE_PREPARATION**, with no blocking findings in this two-file packet. Both reviews bind reviewed final head `dc22a2745c2ffb68d128a61de3f8b0f5a6151007`, tree `9a028669244bd9a24d4177e787a78e0b36f0fe7e`, sole ordered parent/technical source `9a849a8bba86835e42c885a194a49a0b49369b2e`, technical tree `670eebe6971a5b88223c170dff9ff7a97f689177`, technical parent `7fd384584e2929c1567618c737d648f328ba0d1c`, and explicit actual-public base `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / `e3b6c11677a2b871a128504f1616def7d22dba1e`. This new commit adds documentation only to the author's unique checkpoint. The two technical postimages, all prior checkpoint bytes, the 201 registered qualification originals and prior 154 originals remain unchanged. The old review histories and superseded source freezes below retain their original meanings.
+
+The completed source prepares genuine prospective L/Z22 and LK/Z23 own sealed sent request → physically received own inbound CONTRL/APERAK → causal right received Z04 joined to the same original/LI/customer/point/start/reason/hash → its distinct outgoing responses through unchanged actual current APIs. L and LK retain opposite ACK/Z04 ordering to preserve separation of technical acknowledgement from business confirmation. Future supply remains inactive. Owned original, nonempty unrelated/sibling controls, receipt and replay oracles remain. The config only appends this file to the unchanged current source-owner config and preserves its ordinary backend/catalog/status/setup/serial/timeout gates.
+
+Current exact-source captured qualification remains **10 finite PASS / 0 FAIL / 2 native NOT SELECTED**, strict semantic TypeScript and two-file project ESLint exit0/no diagnostics, with diff/source preservation. The meaningful pre-fix actual `sendEdielEmail` RAW+ATTACHMENT failures and corrected final outputs are retained. The finite adapter controls execute the unchanged real adapter with explicitly modeled lower MIME archive/storage, Nodemailer SMTP session and beforeProviderCall database-fence ports; they prove the argument/return contract and do not prove real storage, SQL acceptance or provider delivery. No test, controller qualification, SQL child, native/backend/CI/GEN/provider/capture or original collection was rerun for this documentation change.
+
+**NATIVE_NOT_RUN; SOURCE INPUT HOLD / QUALIFICATION PENDING.** Genuine disposable current actor/company/signed prospective L/LK cohorts and routes must be supplied by the retained serial source/GEN producer `codex-takeover-delivery-20261012`. Data-only selectors grant no issuer/context/original/canonical/accepted authority. AT-Z03L-SUPPLIER and AT-Z03LK-SUPPLIER remain NOT_EXECUTED; ledger/count and whole acceptance stay unchanged. Separate calendar P1 late queued national cutoff and P2 too_early classifier findings in [6149872172](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149872172) remain unqualified in their retained owners' paths. The positive observedAt-versus-own-original-start oracle supplies no late-queue fix or whole calendar approval. H assertion form is source reuse only, with no H execution credit.
+
+Publication remains **NOT_PUSHED / PAUSED**. The prepared source-only plan is: obtain two independent documentation-only rebinds of this final checkpoint commit, then ROOT coordinates a fresh authenticated main/fullreceipt/all-two-refs/remote-branch read and a fresh unchanged-workflow preflight, then an explicit source-only branch push and public selective technical handoff. No PR, native/GEN chain, merge, release or custody-ref release is authorized by this checkpoint. Both held two-file refs remain bound to `e24766be665f684886b465bb1a06fd6168bc2bbe`, IDs `[]`; no shared producer/whole-card/native/original-collection scope transfers. Latest corrected public milestone is [6150868162](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6150868162); original claim is [6149828468](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149828468).
+
+The actual 41 workflows are byte-identical to frozen d798. All seven push workflows exclude this exact branch: six list only main and browser-deps-lock-sync-temporary lists only agent/release-certification-hardening-20260817. None declares workflow_run or repository_dispatch. Thus the audited source-only push has zero matching repository push predicates and no such indirect event chain; manual dispatch was not invoked and no PR exists. This is a preparation audit, not a performed push or runtime/CI result.
+
+## Independent final source review originals — verbatim
+
+'''
+    sections = [banner.encode()]
+    for item in reviews:
+        data = (P / item['path']).read_bytes()
+        sections.extend([f"### Reviewer {item['reviewer']}: {item['path']}\n\nBytes {item['bytes']}; SHA256 `{item['sha256']}`. Original bytes preserved verbatim within this presentation fence.\n\n````text\n".encode(), data,
+                         (b'' if data.endswith(b'\n') else b'\n'), b'````\n\n'])
+    sections.append(b'## Documentation-only input and publication-preparation evidence\n\n')
+    for name in ['handoff-doc-inputs.json', 'handoff-doc-workflow-audit.json',
+                 'handoff-doc-prepare-final.stdout', 'handoff-doc-prepare-final.stderr', 'handoff-doc-prepare-final.exit',
+                 'handoff-doc-prepare.stdout', 'handoff-doc-prepare.stderr', 'handoff-doc-prepare.exit',
+                 'handoff-doc-controller-initial.py',
+                 'handoff-doc-controller.py']:
+        data = (P / name).read_bytes()
+        sections.extend([f"### {name}\n\nBytes {len(data)}; SHA256 `{sha(data)}`.\n\n`````text\n".encode(), data,
+                         (b'' if data.endswith(b'\n') else b'\n'), b'`````\n\n'])
+    sections.extend(['## Preserved complete previous checkpoint — byte-identical historical suffix\n\n'.encode(), old])
+    new = b''.join(sections)
+    assert new.endswith(old)
+    for item in reviews:
+        assert (P / item['path']).read_bytes() in new
+    (R / CP).write_bytes(new)
+    assert git('diff', '--name-only') == CP
+    assert git('diff', '--cached', '--name-only') == ''
+    subprocess.run(['git', 'diff', '--check'], cwd=R, check=True)
+    verify_originals()
+    verify_source(HEAD)
+    print(json.dumps({'stage': 'assemble', 'reviewedHead': HEAD, 'deltaPaths': [CP],
+                      'oldCheckpointBytes': len(old), 'oldCheckpointSha256': sha(old),
+                      'newCheckpointBytes': len(new), 'newCheckpointSha256': sha(new),
+                      'oldCheckpointVerbatimSuffix': True, 'bothReviewsVerbatim': True,
+                      'technicalWrites': 0, 'testReruns': 0, 'publication': 'NOT_PUSHED'}, indent=2))
+
+
+if sys.argv[1] == 'prepare':
+    prepare()
+elif sys.argv[1] == 'assemble':
+    assemble()
+else:
+    raise ValueError('unsupported stage')
+`````
+
+## Preserved complete previous checkpoint — byte-identical historical suffix
+
 # CURRENT FINAL SOURCE CANDIDATE — actual SMTP envelope P2 corrected
 
 Technical source `9a849a8bba86835e42c885a194a49a0b49369b2e`, tree `670eebe6971a5b88223c170dff9ff7a97f689177`, ordered parent `7fd384584e2929c1567618c737d648f328ba0d1c`, source base actuald798/e3b6. This supersedes preliminary7fd/cee450 and earlier freezes preserved below as immutable history. Author PAUSED pending TWO fresh noncoauthor final rebinds. Same full e247receipt/all2GET_MATCH authenticated BEFORE resumed writes. No new file/producer/whole scope or production change. Localbranch only; no push/PR/native.
