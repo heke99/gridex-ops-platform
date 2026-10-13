@@ -1,7 +1,7 @@
 # Ediel helper checkpoint — 2026-10-13
 
 Agent codex-ediel-helper-20261013-358d1615; branch codex/ediel-helper-20261013-358d1615; epoch gridex-five-agent-20261012.
-Actual main efed3683115c06d1925f8b80c05c801a54db9885, tree dc439c2e017a9633471db53919b745f587abb67b. READ_ONLY / IMPLEMENTATION_BID_DEFERRED_TO_EXISTING_WRITER. No inherited retired C3 writer/collector authority or technical claims.
+Actual main efed3683115c06d1925f8b80c05c801a54db9885, tree dc439c2e017a9633471db53919b745f587abb67b. OWN_NEW_FILE_COMPONENT / EXISTING_INBOUND_IMPLEMENTATION_BID_DEFERRED. No inherited retired C3 writer/collector authority or technical claims.
 
 Taken: current user-authorized masterplan support. Actual-main AGENTS/current-start/memory/workflow/reservations and latest766 read. Existing codex-five-agent-C1-b7e2fae0 serial delivery, C3 takeover225 and current delegated sole GEN v3 owner retained. Retired C3 paths/originals6132192795/6132203410 are untouched.
 Done: recomputed119VERIFIED+201PASSED=320/352; ledger SHA2564a1560a0b16ae37d68aa30c5f67ef616a516c5306e29edf4269b7b1fa9fea850. Delivered793/796/797 IDs excluded. Two fresh read-only helpers classified SC031 callpath gaps and unchanged780/795 readiness. ROOT read both reports and actual source; no repeated full unchanged review or native/original collection.
@@ -131,3 +131,110 @@ Original ediel-helper-20261013-own-builder-results.json SHA256 77fdba62455cd165d
 Five-card qualification report SHA2567ef100e352de456a9dde46b24722685429a561f97c9b1ca3c1aa2ab4f6a8920d consumed by ROOT; actual source joins checked. SC023 actualmain lacks migration2120/VH history consumers; public existing-owner2e073 has corrected positive finite Z14VH→same-chain Z15VH closure/coverage/V invariance (nativefileSHA68e418...). Populated DDQ preservation is the explicit SQLcomponent sentinel, not the native emptyarray; join both existing qualified witnesses after source adoption/currentgates/twofinalpeers. No invented LIVE/DDQ-billing execution prerequisite, no new producer. DB05/ATDB05 known unchanged HOLD: record_receipt uses transaction-now afterissuer locks and recordconsumer44282–44295 has furthertarget locks before effects; processconsumer46779 validates before processbasis/portal locks46780–46781/effects46782–46785. Existing writer must check actual wallclock and authority after allblocking waits before irreversible effects with genuine expiry/noeffects and validpositive contrasts; simple early now replacement is insufficient. Source/source-known debt only, not freshly reproduced DBfailure. Separate sixfunction/private publication request preserved. OPS04/ATOPS04 alone genuinely needs existing operator/counterparty agreement/context and real controlled-flow outcome; delivered readiness/TR08 is applicable mechanics, not that actual flow. No repeat input question or restart310.
 
 Fresh authenticated final-read actualmain remains efed; PR780 draftOPEN/head2e073/unmerged. Its merge_commit_sha while OPEN is only synthetic merge metadata, not a delivered normalmerge; noordered-parent proof/credit invented. Existing sole C1 delivery and GENv3 collector retain current actions. ROOT has no authorized technicalfiles; boundedSC031 request deferred, exactwritecustody never granted. New meaningful public correction/explicit handoff or owner-qualified output is the resume trigger; no unchanged source-review repetition or blind CI rerun. Own branch includes only this unique checkpoint; no PR/newnative dispatch.
+
+New authorized free-file component: user continuation and verified free resources; fresh ROOT+helper GET404/all169refs/all5openPRs/latest explicit scopes established NO previous writer for __tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts. Fileref file-d27f347312742298580e5f7925f6a4353638ac114b469dd8d21ec23f0e346a57 CREATE_IF_ABSENT=aa4dd96ceba805c08c94ca657d0d1bb8af49c769, independent GET_MATCH exactagent/path/actualmaintree/soleparent BEFORE firstwrite; CLAIM6145732783. Receipt slothelper/idsEMPTY as existing current free-file component protocol; no five-slot/wholeSC031/ledger/producer takeover. ROOT is sole writer, only new testfile plus ownuniquecheckpoint. Existing inboundCases/a93c/GEN/C1/serial/source/original lanes untouched.
+
+New testsourceSHA2567326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d. Literal SC031 outbound-prohibition component uses REAL renderProdat(mode production)→serializeEdifact→tokenizeEdifact/segmentComposite, bothL/Z22 andLK/Z23. Declared synthetic context/independent address+invoicee selections only, not sourceauthorization. Positive wire requires realtuple/LIN/LI/UD/IT/reason/date/document; tokenqualifiers forbid RFFMG/QTY31/CCI Z02/Z05 even with literal RFF+MG inside legitimate escaped customername. Positive optional-IT and absent-IT contrast preservesUD. Explicit annualConsumption/meterConstant/meterDigitCount in ownscalar or registers-array must throw canonical ProdatRenderValidationError/FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT before serialization, with unchangedcallerinput. No renderer mocks/source-text assertions/sharedfixture writes. DBfrom/rpc and fetch throw; no IO observed.
+
+Verification: officialNode22.23.3/Vitest4.1.9 final unmodified source run16/16PASS; targeted actualnewfile+importclosure TypeScript exit0. Earlier fixture improperly supplied high-level supplier process string to lifeevent-only businessContext type; removed the irrelevant field (no cast or policy weakening), then types and all16pass on finalsource. No runtime/product/frozen/ledger change. TDD production-change trigger absent for existing-behavior proof only; read writing-good-tests and applied real-observable assertions plus six explicit isolated/tmp source-mutant RED controls: appendRFFMG/QTY31/CCI Z02/CCI Z05 AFTER enginevalidation each2desiredassertionFAIL; remove legitimateIT2FAIL; disableproductionrefusal12FAIL (expected wrong errorclass). No productfile mutated; alias exactengine to publicbase copy only for mutationruns. Healthyfinal16PASS independently restores ordinaryalias. Bothabsence and refusal oracle sensitivity established; no CIrerun, original/native/GEN/backend/capture.
+
+Independent final review pending TWO noncoauthor peers on exactcandidate head/base/tree after thiscommit; planhelper authored no code but is excluded from final reviewer selection to avoid proof-design overlap. Existing suppliercallpath9/9 reused only with explicit unchangedsource applicability. This new pureproof does NOT add RFFMG assertion to that real prepare/DB-port callpath, does NOT prove physical DB/outbox/ACK/SMTP/inbound-businessignore or wholeSC031. Ledger320 unchanged.
+
+Publication: new __tests__ path would trigger existing nativeworkflows on PR. NO standalone PR/manualCI/native/GEN/sourcecapture is authorized from this local component. After localproof/twofinalpeers, publish only own non-PR branch under its ordinarymain-only push predicates; hand exactpublicsource to existing source/producer/serialowner for one coordinated adoption/mandatorycurrentchecks/normalmerge. No filter/folder/gate bypass or duplicateproducer. Retain exactfileref until explicit bounded custodyhandoff or receiptmatchingrelease; no old/private/publication/refDELETE approval bypass.
+
+Current-readiness helper reportSHA028715f60bf579d7bbe320ea99ef2f7d73051fa49d87de620db884978be6ec53 consumed: exact7802e073 has31SUCCESS/11conditionalSKIP/cleanreplay+downstreamPRcert2PENDING; owner reportsV6113/all9840/cleanupqualified. Two whole-sourcepeers alreadypublic6145001433 (A4505/B76b0); helperdelta is supplementary. Body/draft metadata needownerrefresh aftercurrentgates; no extraGEN/fullreview/gate. Waiting changedoutput/terminalgates only while this genuinelynew free-file proof progresses.
+
+Declared finite original ediel-helper-20261013-sc031-proof-final-run.json SHA256d564ad41fa5ac47dcf7128ff1f56dbbb072f88e29e0b925cfa5df95a6dc3d5e0:
+
+```json
+{"numTotalTestSuites":3,"numPassedTestSuites":3,"numFailedTestSuites":0,"numPendingTestSuites":0,"numTotalTests":16,"numPassedTests":16,"numFailedTests":0,"numPendingTests":0,"numTodoTests":0,"snapshot":{"added":0,"failure":false,"filesAdded":0,"filesRemoved":0,"filesRemovedList":[],"filesUnmatched":0,"filesUpdated":0,"matched":0,"total":0,"unchecked":0,"uncheckedKeysByFile":[],"unmatched":0,"updated":0,"didUpdate":false},"startTime":1791895535093,"success":true,"testResults":[{"assertionResults":[{"ancestorTitles":["SC031 outbound Z01'L' serializer component"],"fullName":"SC031 outbound Z01'L' serializer component keeps its real tuple and optional installation while omitting forbidden extras","status":"passed","title":"keeps its real tuple and optional installation while omitting forbidden extras","duration":104.59643300000016,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'L' serializer component"],"fullName":"SC031 outbound Z01'L' serializer component omits only the absent optional installation without losing the end user","status":"passed","title":"omits only the absent optional installation without losing the end user","duration":18.675316000000294,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'L' serializer component"],"fullName":"SC031 outbound Z01'L' serializer component refuses explicit forbidden annualConsumption in context before serialization","status":"passed","title":"refuses explicit forbidden annualConsumption in context before serialization","duration":20.632192000000032,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'L' serializer component"],"fullName":"SC031 outbound Z01'L' serializer component refuses explicit forbidden annualConsumption in registers before serialization","status":"passed","title":"refuses explicit forbidden annualConsumption in registers before serialization","duration":25.970432000000073,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'L' serializer component"],"fullName":"SC031 outbound Z01'L' serializer component refuses explicit forbidden meterConstant in context before serialization","status":"passed","title":"refuses explicit forbidden meterConstant in context before serialization","duration":25.79230600000028,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'L' serializer component"],"fullName":"SC031 outbound Z01'L' serializer component refuses explicit forbidden meterConstant in registers before serialization","status":"passed","title":"refuses explicit forbidden meterConstant in registers before serialization","duration":17.899745000000166,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'L' serializer component"],"fullName":"SC031 outbound Z01'L' serializer component refuses explicit forbidden meterDigitCount in context before serialization","status":"passed","title":"refuses explicit forbidden meterDigitCount in context before serialization","duration":16.330112999999983,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'L' serializer component"],"fullName":"SC031 outbound Z01'L' serializer component refuses explicit forbidden meterDigitCount in registers before serialization","status":"passed","title":"refuses explicit forbidden meterDigitCount in registers before serialization","duration":10.870214999999916,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'LK' serializer component"],"fullName":"SC031 outbound Z01'LK' serializer component keeps its real tuple and optional installation while omitting forbidden extras","status":"passed","title":"keeps its real tuple and optional installation while omitting forbidden extras","duration":11.773359999999684,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'LK' serializer component"],"fullName":"SC031 outbound Z01'LK' serializer component omits only the absent optional installation without losing the end user","status":"passed","title":"omits only the absent optional installation without losing the end user","duration":6.298356999999669,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'LK' serializer component"],"fullName":"SC031 outbound Z01'LK' serializer component refuses explicit forbidden annualConsumption in context before serialization","status":"passed","title":"refuses explicit forbidden annualConsumption in context before serialization","duration":7.549888999999894,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'LK' serializer component"],"fullName":"SC031 outbound Z01'LK' serializer component refuses explicit forbidden annualConsumption in registers before serialization","status":"passed","title":"refuses explicit forbidden annualConsumption in registers before serialization","duration":8.88693000000012,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'LK' serializer component"],"fullName":"SC031 outbound Z01'LK' serializer component refuses explicit forbidden meterConstant in context before serialization","status":"passed","title":"refuses explicit forbidden meterConstant in context before serialization","duration":9.927749999999833,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'LK' serializer component"],"fullName":"SC031 outbound Z01'LK' serializer component refuses explicit forbidden meterConstant in registers before serialization","status":"passed","title":"refuses explicit forbidden meterConstant in registers before serialization","duration":7.30909900000006,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'LK' serializer component"],"fullName":"SC031 outbound Z01'LK' serializer component refuses explicit forbidden meterDigitCount in context before serialization","status":"passed","title":"refuses explicit forbidden meterDigitCount in context before serialization","duration":6.682458000000224,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":["SC031 outbound Z01'LK' serializer component"],"fullName":"SC031 outbound Z01'LK' serializer component refuses explicit forbidden meterDigitCount in registers before serialization","status":"passed","title":"refuses explicit forbidden meterDigitCount in registers before serialization","duration":6.9250700000002325,"failureMessages":[],"meta":{},"tags":[]}],"startTime":1791895537272,"endTime":1791895537578.925,"status":"passed","message":"","name":"/workspace/codex-ediel-helper-20261013-358d1615/__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts"}]}
+```
+
+Declared finite original ediel-helper-20261013-sc031-mutation-summary.json SHA256cfbbc5b051753bec3c14cbe24526793b68e4fe83652c761cd6e9423dd5a313f2:
+
+```json
+[
+  {
+    "mutant": "rffmg",
+    "exit_code": 1,
+    "total": 16,
+    "passed": 14,
+    "failed": 2,
+    "failed_names": [
+      "SC031 outbound Z01'L' serializer component keeps its real tuple and optional installation while omitting forbidden extras",
+      "SC031 outbound Z01'LK' serializer component keeps its real tuple and optional installation while omitting forbidden extras"
+    ],
+    "result_sha256": "322bba4d25ff87e6202b801b8e0b331fb6887a401c3cb87185cb62298e1c5a76"
+  },
+  {
+    "mutant": "qty31",
+    "exit_code": 1,
+    "total": 16,
+    "passed": 14,
+    "failed": 2,
+    "failed_names": [
+      "SC031 outbound Z01'L' serializer component keeps its real tuple and optional installation while omitting forbidden extras",
+      "SC031 outbound Z01'LK' serializer component keeps its real tuple and optional installation while omitting forbidden extras"
+    ],
+    "result_sha256": "77837211f06293dee6f117c3763ce81a5755a0f75ecd55bd0e7d4f53987f9adf"
+  },
+  {
+    "mutant": "cciz02",
+    "exit_code": 1,
+    "total": 16,
+    "passed": 14,
+    "failed": 2,
+    "failed_names": [
+      "SC031 outbound Z01'L' serializer component keeps its real tuple and optional installation while omitting forbidden extras",
+      "SC031 outbound Z01'LK' serializer component keeps its real tuple and optional installation while omitting forbidden extras"
+    ],
+    "result_sha256": "b36498574da58653d743a56f604421a66e1c5ce2bb3aecba74029906ca927890"
+  },
+  {
+    "mutant": "cciz05",
+    "exit_code": 1,
+    "total": 16,
+    "passed": 14,
+    "failed": 2,
+    "failed_names": [
+      "SC031 outbound Z01'L' serializer component keeps its real tuple and optional installation while omitting forbidden extras",
+      "SC031 outbound Z01'LK' serializer component keeps its real tuple and optional installation while omitting forbidden extras"
+    ],
+    "result_sha256": "7aa7d89522d303bf60916bf1797d7316cb94eff92ffbf97a957b9af0fab4a14a"
+  },
+  {
+    "mutant": "omitit",
+    "exit_code": 1,
+    "total": 16,
+    "passed": 14,
+    "failed": 2,
+    "failed_names": [
+      "SC031 outbound Z01'L' serializer component keeps its real tuple and optional installation while omitting forbidden extras",
+      "SC031 outbound Z01'LK' serializer component keeps its real tuple and optional installation while omitting forbidden extras"
+    ],
+    "result_sha256": "3bf5fd4e3bd3beaa0e4329e658814c3a4a9fd12b8c165a8dc75dc2dacc2c60ba"
+  },
+  {
+    "mutant": "norefusal",
+    "exit_code": 1,
+    "total": 16,
+    "passed": 4,
+    "failed": 12,
+    "failed_names": [
+      "SC031 outbound Z01'L' serializer component refuses explicit forbidden annualConsumption in context before serialization",
+      "SC031 outbound Z01'L' serializer component refuses explicit forbidden annualConsumption in registers before serialization",
+      "SC031 outbound Z01'L' serializer component refuses explicit forbidden meterConstant in context before serialization",
+      "SC031 outbound Z01'L' serializer component refuses explicit forbidden meterConstant in registers before serialization",
+      "SC031 outbound Z01'L' serializer component refuses explicit forbidden meterDigitCount in context before serialization",
+      "SC031 outbound Z01'L' serializer component refuses explicit forbidden meterDigitCount in registers before serialization",
+      "SC031 outbound Z01'LK' serializer component refuses explicit forbidden annualConsumption in context before serialization",
+      "SC031 outbound Z01'LK' serializer component refuses explicit forbidden annualConsumption in registers before serialization",
+      "SC031 outbound Z01'LK' serializer component refuses explicit forbidden meterConstant in context before serialization",
+      "SC031 outbound Z01'LK' serializer component refuses explicit forbidden meterConstant in registers before serialization",
+      "SC031 outbound Z01'LK' serializer component refuses explicit forbidden meterDigitCount in context before serialization",
+      "SC031 outbound Z01'LK' serializer component refuses explicit forbidden meterDigitCount in registers before serialization"
+    ],
+    "result_sha256": "77d2e27e8d45a8e63aac2aef8c77bf8f1de0da06641644b71a223bbb921db151"
+  }
+]
+```
