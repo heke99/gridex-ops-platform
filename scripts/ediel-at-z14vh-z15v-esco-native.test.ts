@@ -439,3 +439,103 @@ it('Z15V/S17 ends the V permission and leaves a coexisting VH history permission
  // ESCO-07: no supply (DDQ) change and no new Z13 from ending V.
  expect(vhAfter.supply).toEqual(vhBefore.supply);expect(vhAfter.z13).toBe(vhBefore.z13)
 })
+
+// Source-bound SC-023 hooks: actual mailbox/validation/writer/ACK consumers.
+// History jobs never confer beneficiary, DDQ, send or automatic Z13 authority.
+function z15vh(p:PendingVH){
+ const {f}=p,permission=market(f,p.permissionId).permission
+ const rendered=renderProdat({code:'Z15',variant:'VH',mode:'test',actor:{senderEdielId:f.receiver,receiverEdielId:f.sender},route:{applicationReference:f.app},version,
+  context:{code:'Z15',bgmReference:randomUUID().replaceAll('-','').slice(0,20),transactionReference:String(permission.rff_li_reference),senderEdielId:f.receiver,receiverEdielId:f.sender,
+   legalSenderId:f.receiver,legalReceiverId:f.sender,customerName:'Synthetic Customer',customerId:'199001011234',customerIdCodeListQualifier:'SE2',customerIdAgency:'260',customerCountry:'SE',
+   meterPointId:f.point,siteIdAgency:'9',gridAreaId:'TES',reasonForTransaction:'S18',permissionStatus:'A74',permissionId:String(permission.permission_id),
+   permissionEndDate:f.fields.data_end,permissionEndReason:'B79'}})
+ expect(rendered.issues.filter(x=>x.severity==='error'&&!/_UNDETERMINED$/.test(x.code)),JSON.stringify(rendered.issues)).toEqual([])
+ return envelope(f,rendered.segments)
+}
+const historyRows=(permissionId:string)=>sql<{jobs:Record<string,unknown>[];objects:Record<string,unknown>[];closures:Record<string,unknown>[];skips:Record<string,unknown>[]}>(`SELECT jsonb_build_object(
+ 'jobs',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.permission_id),'[]') FROM gridex_vh_history.deliveries x WHERE permission_id=${lit(permissionId)}),
+ 'objects',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.site_id),'[]') FROM gridex_vh_history.objects x WHERE permission_id=${lit(permissionId)}),
+ 'closures',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.source_message_id,x.site_id),'[]') FROM gridex_vh_history.closures x WHERE permission_id=${lit(permissionId)}),
+ 'skips',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.source_message_id),'[]') FROM gridex_vh_history.skipped_bases x WHERE permission_id=${lit(permissionId)}))`)
+
+it('finite Z14VH opens its history job and same-chain Z15VH closes it without ending the coexisting V or DDQ relation',async()=>{
+ const v=await activeV(),p=await pendingVH({f:v.f,start:'2026-01-01T00:00:00Z',end:'2026-06-01T00:00:00Z'}),{f}=p
+ const opening=await receive(f,z14vh(p),'Z14',VH_PROFILE);await processed(f,opening);await ownAcks(f,opening,p.profile)
+ const opened=historyRows(p.permissionId)
+ expect(opened.jobs).toHaveLength(1);expect(opened.jobs[0]).toMatchObject({company_id:f.ids.company,permission_id:p.permissionId,opening_source_message_id:opening.id,state:'approved_or_receiving'})
+ expect(opened.objects).toHaveLength(1);expect(opened.skips).toEqual([]);expect(opened.closures).toEqual([])
+ const vBefore=market(v.f,v.permissionId),before=market(f,p.permissionId)
+ const closing=await receive(f,z15vh(p),'Z15','PRODAT:Z15:VH:26.A:r3');await processed(f,closing);await ownAcks(f,closing,p.profile)
+ const closed=historyRows(p.permissionId),after=market(f,p.permissionId)
+ expect(closed.jobs[0]).toMatchObject({company_id:f.ids.company,permission_id:p.permissionId,state:'historical_delivery_closed'})
+ expect(closed.closures).toHaveLength(1);expect(closed.closures[0]).toMatchObject({company_id:f.ids.company,permission_id:p.permissionId,source_message_id:closing.id,source_payload_hash:createHash('sha256').update(closing.raw_payload!).digest('hex')})
+ // No E66 was supplied: a frozen review must report missing coverage. A
+ // separately held historical admission may also hold that review, never
+ // manufacture complete values or confer beneficiary access.
+ expect(['gaps','held']).toContain(closed.closures[0].coverage_status)
+ expect(closed.closures[0].review).toMatchObject({approvedStart:opened.objects[0].period_start,approvedEnd:opened.objects[0].period_end,intervals:[],dataAccessGranted:false,gaps:expect.arrayContaining([expect.objectContaining({reason:'missing_values'})])})
+ expect(closed.objects).toEqual(opened.objects);expect(closed.skips).toEqual([])
+ expect(after.permission).toMatchObject({status:'ended',inbound_z15_message_id:closing.id})
+ const vAfter=market(v.f,v.permissionId);expect(vAfter.permission).toEqual(vBefore.permission);expect(vAfter.sites).toEqual(vBefore.sites)
+ expect(after.supply).toEqual(before.supply);expect(after.z13).toBe(before.z13)
+ await processed(f,closing);expect(historyRows(p.permissionId)).toEqual(closed)
+ expect(positiveAperaks(f,closing)).toBe(1)
+})
+
+// The actual signed request is bounded. Omitting its own reply end is a
+// field-321 rejection, not an admitted open-ended primary history effect.
+// The separately declared SQL component preserves already-admitted NULL-end
+// primary effects; this public VH producer requires a finite historical end.
+it('bounded Z14VH missing own report end gets a correlated negative APERAK and leaves every market/history effect unchanged on retry',async()=>{
+ const p=await pendingVH(),{f}=p,c=lit(f.ids.company)
+ const snapshot=()=>sql(`SELECT jsonb_build_object(
+  'permissions',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM public.metering_permissions x WHERE company_id=${c}),
+  'sites',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM public.metering_permission_sites x WHERE company_id=${c}),
+  'grants',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM public.ediel_data_access_grants x WHERE company_id=${c}),
+  'supply',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM public.customer_supply_periods x WHERE company_id=${c}),
+  'assignments',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM public.ediel_service_assignments x WHERE company_id=${c}),
+  'links',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM public.ediel_assignment_permission_links x WHERE company_id=${c}),
+  'z13',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM public.ediel_messages x WHERE company_id=${c} AND message_code='Z13'),
+  'receipts',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.id),'[]') FROM gridex_received_sources.permission_effect_receipts x WHERE company_id=${c}),
+  'transitions',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.source_message_id,x.permission_id),'[]') FROM gridex_received_sources.permission_effect_transitions_v1 x WHERE company_id=${c}))`)
+ const before=snapshot(),historyBefore=historyRows(p.permissionId)
+ expect(historyBefore).toEqual({jobs:[],objects:[],closures:[],skips:[]})
+ const raw=z14vh(p,{reportEndDate:null}),wire=tokenizeEdifact(raw)
+ expect(wire.segments.filter(s=>s.tag==='DTM'&&segmentComposite(s,1,wire.una)[0]==='91')).toEqual([])
+ const requestWire=tokenizeEdifact(p.z13.raw_payload!)
+ expect(requestWire.segments.filter(s=>s.tag==='DTM'&&segmentComposite(s,1,requestWire.una)[0]==='91')).toHaveLength(1)
+ const source=await receive(f,raw,'Z14',VH_PROFILE),actual=await processed(f,source)
+ expect(actual.validation_report).toMatchObject({applicationDecision:'rejected',canonicalRuntime:{issues:expect.arrayContaining([
+  expect.objectContaining({code:'PRODAT_RECEIVED_REPORTING_321_MISSING',prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:'321',errorKind:'missing'})}),
+ ])}})
+ expect(snapshot()).toEqual(before);expect(historyRows(p.permissionId)).toEqual(historyBefore)
+ expect(positiveAperaks(f,source)).toBe(0)
+ const readAcks=()=>sql<{acks:EdielMessageRow[];outbox:Record<string,unknown>[]}>(`SELECT jsonb_build_object(
+  'acks',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.message_family,a.id),'[]') FROM public.ediel_messages a WHERE related_message_id=${lit(source.id)} AND direction='outbound'),
+  'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o WHERE source_message_id=${lit(source.id)} OR EXISTS(SELECT FROM public.ediel_messages a WHERE a.id=o.ediel_message_id AND a.related_message_id=${lit(source.id)} AND a.direction='outbound')))`)
+ const acks=readAcks()
+ expect(acks.acks.map(a=>a.message_family)).toEqual(['APERAK','CONTRL'])
+ expect(acks.outbox).toHaveLength(2)
+ const env=EdifactEnvelopeCodec.decode(raw),line=wire.segments.find(s=>s.tag==='LIN')!
+ const document=segmentComposite(wire.segments.find(s=>s.tag==='BGM'),2,wire.una)[0]
+ for(const ack of acks.acks){
+  const outcome=ack.message_family==='APERAK'?'negative':'positive'
+  expect(ack).toMatchObject({company_id:f.ids.company,environment:'test',direction:'outbound',related_message_id:source.id,ack_outcome:outcome})
+  expect(validateEdifactEnvelope(ack.raw_payload!).syntaxOk).toBe(true)
+  const ackEnv=EdifactEnvelopeCodec.decode(ack.raw_payload!)
+  expect([ackEnv.sender,ackEnv.receiver]).toEqual([env.receiver,env.sender])
+  const correlation=readPhysicalAckSourceCorrelation(ack,source)
+  expect(correlation.classification.outcome).toBe(outcome)
+  if(ack.message_family==='CONTRL')expect(correlation.acknowledgedReferences).toEqual([env.interchangeReference])
+  else{
+   expect(ack.route_profile_id).toBe(p.profile)
+   expect(correlation.lookupReferences).toContainEqual({type:'BGM_REF',value:document})
+   expect(correlation.acknowledgedReferences).toEqual([p.li])
+   expect(correlation.prodatObjectOutcomes).toEqual([{objectId:f.point,identityAgency:'9',firstLineIndex:line.index,lineItemReference:p.li,outcome:'negative'}])
+  }
+  expect(acks.outbox.filter(o=>o.ediel_message_id===ack.id)).toEqual([expect.objectContaining({company_id:f.ids.company,source_message_id:source.id,message_family:ack.message_family,ack_outcome:outcome})])
+ }
+ await processed(f,source)
+ expect(snapshot()).toEqual(before);expect(historyRows(p.permissionId)).toEqual(historyBefore)
+ expect(readAcks()).toEqual(acks);expect(positiveAperaks(f,source)).toBe(0)
+})

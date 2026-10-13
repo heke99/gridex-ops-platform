@@ -3,6 +3,7 @@ import { evaluateEdielDeadline } from '@/lib/ediel/calendar/deadlineCalculator'
 import { assertUserCanOperateCompany, requireOperationalCompanyId } from '@/lib/tenant/scope'
 import type { MeteringPointRow } from '@/lib/masterdata/types'
 import { hasMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
+import { consumeSupplierSwitchWorkerAuthority, type SupplierSwitchWorkerAuthority } from './supplierSwitchWorkerAuthority'
 
 export type BusinessActionPreflightIssue = {
   code: string
@@ -27,7 +28,7 @@ function firstNonBlank(...values: unknown[]): string | null {
   return null
 }
 
-export async function actionPreflight(input: {
+type PreflightInput = {
   actorUserId: string
   customerId: string
   switchRequestId?: string | null
@@ -37,8 +38,22 @@ export async function actionPreflight(input: {
   requestedDate?: string | null
   historicalStartDate?: string | null
   historicalEndDate?: string | null
-}): Promise<BusinessActionPreflightResult> {
+}
+
+export async function actionPreflight(input: PreflightInput): Promise<BusinessActionPreflightResult> {
   const scopedCompanyId = await requireOperationalCompanyId(input.actorUserId)
+  return preflightInCompany(input, scopedCompanyId, false)
+}
+
+export async function actionPreflightForSupplierSwitchWorker(input: PreflightInput,
+  authority: SupplierSwitchWorkerAuthority): Promise<BusinessActionPreflightResult> {
+  if (input.actionType !== 'start_supplier_switch') throw new Error('supplier_switch_worker_scope_forbidden')
+  const companyId = await consumeSupplierSwitchWorkerAuthority(authority, supabaseService, input, 'start_supplier_switch')
+  return preflightInCompany(input, companyId, true)
+}
+
+async function preflightInCompany(input: PreflightInput, scopedCompanyId: string,
+  currentWorkerAuthorized: boolean): Promise<BusinessActionPreflightResult> {
   const { data: customer, error: customerError } = await supabaseService
     .from('customers')
     .select('id, company_id, status, full_name, email, personal_number, org_number')
@@ -49,7 +64,8 @@ export async function actionPreflight(input: {
   if (customerError) throw customerError
   if (!customer) throw new Error('Kunden hittades inte inom ditt bolag.')
 
-  const companyId = await assertUserCanOperateCompany(input.actorUserId, (customer as { company_id: string }).company_id)
+  const companyId = currentWorkerAuthorized ? scopedCompanyId
+    : await assertUserCanOperateCompany(input.actorUserId, (customer as { company_id: string }).company_id)
 
   const siteQuery = supabaseService
     .from('customer_sites')

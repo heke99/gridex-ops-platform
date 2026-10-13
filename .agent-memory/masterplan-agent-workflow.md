@@ -1,14 +1,14 @@
-# Aktivt arbetssätt — fem nya agenter
+# Aktivt arbetssätt — befintliga ägare och extra granskare
 
-[masterplan-five-agent-baseline-20261012.md](masterplan-five-agent-baseline-20261012.md) är auktoritativ startpunkt. [Verifierad adminöverlämning](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122307591) och användarens STOP ersätter gamla agent-/owner-waits. Frysta krav, säkerhet, legal/provider/LIVEgrindar och ordinarymergekrav kvarstår.
+[masterplan-current-start.md](masterplan-current-start.md), faktisk main/ledger och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) är aktiv startpunkt. Daterad baslinje och resetfördelning är historik, inte nya claims. [Verifierad adminöverlämning](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122307591) och användarens STOP ersätter gamla agent-/owner-waits. Frysta krav, säkerhet, legal/provider/LIVEgrindar och ordinarymergekrav kvarstår.
 
 ## En ny ägare och ett paket
 
-- En ny identitet per R1/R2/C1/C2/C3slot, skyddad med atomisk slotclaim. Läs aktuell main/ledger/frysta krav och exakt bevarat donorhead/reviews/orakel.
-- Skapa egen branch/worktree/packet och nyepochreceipt. Claima bara nästa sammanhängande pakets ID/exactfiles och applicableproducer. Saknas publicerat private-onlyunderlag rekonstrueras det från publicerade krav; det är ingen väntan på gammalagent.
+- Läs senaste uttryckliga ägarhandoff, faktisk main/ledger/frysta krav, relevant publicerat donorhead/reviews/orakel och exakta liveclaims. Välj inte godkända eller aktivt ägda ID. En ny granskare börjar read-only; gamla slotnamn ger inget nytt ägarskap.
+- Befintlig ägare fortsätter sitt receiptbundna paket. Ett nytt skrivuppdrag kräver uttrycklig bounded source/files/output-handoff, paus för föregående skrivare inom exakt scope och verifierad egen custody före första write. Claima inte samma filer eller producenter igen. Privat opublicerat underlag hämtas inte utan uttrycklig auktorisation; offentliga krav kan granskas read-only.
 - En fil har en skrivare. Extra agenter får reviewa direkt. Skrivhjälp får documentedexactsource/files/output/pause-handoff och verifiedownrefs inom NYepok, ingen samtidig write i annans workspace.
 - En producent per native/GEN/capture/artifactkedja/källa, låst med producerresource. Separata disponibla backends och qualifiedsource/inputepochs. Lateoldcode/CI kan inte ge nycredit. Live/sharedservice behöver verklig quiescence och behörigt mandat.
-- C2 sköter delad GEN/schema/types/manifest seriellt. R1/R2 skapar en DB-/transport/LIVEkedja som C3 använder i acceptansen; inga duplicateproducenter.
+- Den enligt senaste verifierade handoff befintliga GEN-ägaren sköter delad GEN/schema/types/manifest seriellt; ett historiskt C2-slot utser ingen ny producent. R1/R2 skapar en DB-/transport/LIVEkedja som C3 använder i acceptansen; inga duplicateproducenter.
 
 ## Review och rättning
 
