@@ -4854,3 +4854,246 @@ Original ediel-helper-20261013-sc031-e49-applicability.json, 2569 bytes, SHA256 
 }
 
 ````
+
+
+## 2026-10-13 Z03C actual transport/source refutation and reuse-first continuation
+
+NEW sourceaudit6150887553 COMPLETE: no confirmednew Cqueuedproductbug. Existingactualprepare/enter invokescurrent sealedCcontext andderivesownL-D4/LK-day0. Originalsimplecached-contractwait hypothesis isREFUTED: priorcustomer-masterdata guard→customer_draft→customer_source/context locks original/switch/contract/point/site/intent/request; laterlowertransportrequirecurrent refreshescontextafter thoseownlocks retained. ActualTSguide-date checks after awaitenter rejectordinaryStockholm midnightcrossing. Three exactpublic independentreports below agree, no tests/native/backend/GEN/CI/original/privateDB05/claims/writes.
+
+Distinctcalendardomain difference issourceevident: currentSQLCcontext usesfixed+1currentday whilepurecanonical Cdeadline policy andguide reference useEurope/Stockholm. Actualgeneric registry sendvalidator doesnotcallpure Cdeadlinehelper; ENV08 fixed+1payload rule doesnotexplicitly definecalendar-zone of frozenCdeadline. FrozenTM80–99 calendar_days/card itself lackexplicitzone. Consequently this isUNRESOLVEDSOURCECALENDARINCONSISTENCY/contractimpactUNESTABLISHED, NOTconfirmedP2/productfailure, nonewlegal/clockwait/allnativegate. Repeatedcontextrefresh and historicacceptedreceipt/laterACKsemantics arepreserved;no sourcefix proposed toforceone timezone. Existingowner maybindchosenbusiness calendar/actualboundaryevidence initswholequalification.
+
+NEW reuse-first subtask to nonauthorpeerB: trace whetherexistingactualSQL/componentexecutedcontrols alreadyqualify L4accept/L3refusal/LKday0accept/expired; distinguishreal source/currenttransport guard frommocked authorizeddeadlineDTO/earlierunrelatedhold. ExistingROOTwholeC03 audit requiringgenuinebounds isread asboundary, NOTautomaticallynew all-native/temporal-wait requirement. No clockadvance, newbackend/producer, test/rerun/archive/log/currentoriginalcollection. Readsource/publicqualifiedATTRIBUTIONonly, labelcases/executionknownvsunknown;identify smallestexistingqualifiedreuse orONEbounded missingtestproposal. Actualcode/sourcewrite needssemanticappointment andreceiptcustody; no wholeC03writer takeover.
+
+Newroot normalZ03 queuedguard sourcehandoff6150841777 belongs requesting a93c/solewriter; scope isdistinct, notthishelper. Current795e49 nativejob terminalFAILURE16:58:24/uploadSUCCESS atlatermetadata read;cause/counts stillUNKNOWNtohelper, ownersolecollector qualifiesactualoriginals once. NewSC03797d component7f6 sourceoffer isexistingowner-backed andstillrequiresactualcallerintegration/custody; no offeredpostimage silentlyaddedto795. OurpendingZ13request6149872726 remainsnotrepeated;source3dff/aa4unchangedheldpaused. Actualmain323/29remaining, no countorclaimchanges.
+
+Original ediel-helper-20261013-z03c-queued-window-support.md, 13434 bytes, SHA256 `492994fa4bb7639ca569c6bb75f25fadd047a29a73b955cee050b187ac5df6cd`; preserved verbatim:
+
+````markdown
+# AT-Z03C: actual queued-send calendar boundary
+
+READ_ONLY source support, 2026-10-13. Actual main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / tree `e3b6c11677a2b871a128504f1616def7d22dba1e`; public #795 `e49a23d4897f1cb4063a57bf3b1c810321723c3a` / tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`. No test/native/backend/GEN/CI/log/original/private-proposal acquisition or source/ref/claim/writer action. Only this temporary report. Postgres locking/security guidance applied; no schema optimization or gate relaxation proposed.
+
+**Result: no newly confirmed C queued-send productbug.** The “preparation-only cutoff” hypothesis is refuted by actual prepare/enter source checks. The simple “last context keeps a pre-contract-lock day” hypothesis is refuted by earlier customer-source contexts acquiring those same locks and the later C context refreshing its day. A narrower UTC+1-versus-Stockholm calendar-domain question is concrete source evidence, but its normative timezone boundary is unresolved by the frozen card/timer text; it must not be promoted to a demonstrated late-send defect.
+
+## Literal authority and clocks
+
+- Frozen `acceptance_tests.json:2904–2909`: own original/case/object/customer; L no later than four days before, LK no later than moving day; own DDQ/Z03/Z24 cancellation, ACKs and applicable Z04C; SMTP250 alone does not complete cancellation.
+- Frozen `timers.json:80–99`, TM-Z03C-L/LK: anchors supply_start/move_in_day, **calendar_days**, -4 days / latest moving day, HB26A197–199. These rows do not specify the day-boundary timezone.
+- Frozen ENV-08 (`rules.json:518–520`) governs **payload** fixed standard time; `prodat_fields.json:350/357` governs field206 fixed UTC+1. This is evidence for wire conversion, not an independently explicit definition of cancellation send-calendar timezone.
+- Actual guide-derived `deadlinePolicy.ts:88–91` maps the same HB197 C constraints; its pure C projection at307–319 declares calendar `Europe/Stockholm`. This is an existing implementation declaration, not a new frozen normative clause or automatic proof that every transport owner consumes it.
+- Actual C SQL context uses timezoneUTC and initializes `today := (clock_timestamp()+interval '1 hour')::date` at schema32818/32822 (original migration20260930214933:23/26). It is wallclock sampled once per function invocation, **not transaction now()**. Immutable original start conversion remains separate from that execution-day sample.
+
+## Reached ordinary source/provider path
+
+1. Genuine C owner derives cancellation from sealed accepted own normal Z03. Effective context schema32837–32866 checks native original/hash, own Z22-or-Z23/LI/customer/point/grid/current supplier and unchanged case/agreement/site. It derives `start_day` from the immutable own source; deadline is **Z22=start_day-4, Z23=start_day**. Same original start must equal the persisted request date. Source window is enforced at32866; the returned basis includes originalSubtype/deadline at32876. Caller C/Z24 metadata cannot choose a different source subtype/window.
+2. `sendEdielMessageViaSmtp`, `transport/index.part-2.ts:412–427`, executes actual registry send admission (`sendGuards.ts:27–38`, mode='send', persisted messageRow). There is no `admitEdielOutgoingWire` symbol in either inspected public tree; the actual path is named above. `validator.ts:162–176/586–606/686–706` captures fresh admission and resolves the actual registry rule pack. `messagePolicy.ts:62–89` separates fresh outbound admission from physical document/period clocks, using Stockholm date for the guide. Source-wide callers show no `canonicalSupplierSwitchSendPolicy` C evaluation in this transport/registry path; the pure helper is reached by its facade/projections, not used here to compare original C deadline. `dateEventContext.ts:21–23` excludes Z03, so it cannot silently add that missing C original-subtype check.
+3. `outboundAttempt.ts:57–88` runs date-current guard before prepare, after prepare and **after enter**. The final check compares the recorded admission.referenceDate with current Stockholm guide day; it does not compare C originalSubtype/start/deadline. `sendEdielEmail.ts:55–56/88–91` awaits that callback before the actual provider invocation. A midnight crossing in the guide clock therefore refuses provider entry and requires full admission again.
+4. Each RPC reaches `public.gridex_ediel_transport_attempt_v1` schema66154 onward and actual `gridex_ediel_transport.mutate_v1`18502–18505. Graph/source locks and the existing sealed message/current actor/attempt reservation/worker fence remain. The lower core writes entered state18352–18354, but later wrappers execute within the same transaction and can still refuse/roll back that result before the RPC returns.
+5. Effective `mutate_before_production_contract_source_v1:18106–18114` calls `ediel_require_switch_cancellation_source_current_v1` on **both prepare and enter when proceed=true**. Guard49083–49112 rechecks exact sealed C private origin, current native own normal-source context, intent/request and original method; context is invoked at49105. This is actual current-send source qualification, not solely preparer validation. Ordinary queued C that starts after the existing SQL calendar deadline is held.
+
+## Repeated contexts and lock-order refutation
+
+Do not infer a bug from context's entry-time `today` alone. Actual outer `mutate_before_requested_method_entry_v1:18221–18234` prelocks customer message sources and calls `gridex_customer_masterdata.require_current_v1(...,'send')` **before** delegating to lower transport mutations. For genuine cancellation preparation:
+
+- require_current schema9046–9048 calls `require_cancellation_preparation_v1`9001–9023.
+- That invokes `customer_draft_v1`9013 → `customer_source_v1`32893 → context32957; customer_draft then invokes context again32894 after customer_source has finished.
+- Each context obtains own original/switch/contract/point/site locks (32826–32836/32850–32852). The subsequent C transport guard49105 invokes context yet again.
+
+Consequently, a proposed contract/point wait inside the **first** context is followed by a new context after those locks are held. A wait released after the fixed+1 rollover makes the subsequent context see the new day and reject an expired deadline. The final-context contract/point-lock example cannot simply assume those locks were not already obtained by the actual customer-source entry guard. This refutes that specific cached-day example; it does not establish a blanket absence of every possible late outer lock.
+
+Complete effective wrapper-call order was inspected through the current mutate chain, including pre-source/customer entry, actual C guard, late consumed-record/bilateral/registry/reference/duplicate guards. Registry transport check occurs later (`mutate_before_prodat_unused_document_v1:18097–18098` → `gridex_registry_import.require_message_market_v1:30302–30320`, with SHARE table locks at30303). No later C context invocation was found after those outer guards. However a bare late-lock statement is not an independent reached failure: some locks may already be held, graph serialization may order a legitimate competing owner before the C sample, and final Stockholm guide-date checking can reject a cross-day result. No newly confirmed outer-lock C race is claimed here.
+
+## Narrower clock-domain hypothesis, not normative productbug proof
+
+During DST the fixedUTC+1 cancellation-day rollover and Europe/Stockholm guide-day rollover differ. For deadline D=2026-10-13:
+
+- At22:30UTC, the SQL current day is D, while Stockholm/guide day is D+1. All freshly repeated C contexts can still accept `deadline=D`; a final guide check against a freshly admitted D+1 guide is unchanged. Pure C policy's declared Stockholm calendar would call that day expired, but that pure projection is not the reached transport cutoff owner.
+- In the proposed22:59:59→23:00:01UTC example, SQL day changes D→D+1 while Stockholm guide stays D+1. Thus the **guide-date comparison alone** cannot prove freshness of the fixed+1 C day. Yet the repeated actual C context after a contract wait can reject it, as above. A different genuinely last post-context wait still needs an independently demonstrated admissible call/lock ordering before being called a productbug.
+- In winter, when both clocks roll at23UTC, the final guide-date guard rejects a crossing even if a prior SQL sample were stale. A generic “cached clock means late provider send” extension is false.
+
+This report establishes an actual calendar-domain implementation difference and missing standalone transport consumption of the pure C policy; it does **not** establish from ENV-08 or an implementation-only timezone label which day boundary HB197 normatively mandates for C send. No time-of-day cutoff borrowed from BRP, no four-day real-time wait, production clock override, new LIVE condition or all-negative native gate follows.
+
+## Timely sent ACK and accepted replay
+
+The fresh-send C guard is applied only to prepare/enter with proceed=true (`18112–18113`). Source-qualified positive/negative TGT branches in49085–49098 explicitly authorize no production cancellation/business effect and are not a fallback for an expired genuine C request. Existing accepted/replayed attempt returns proceed=false rather than authorizing a new provider call; SQL guard is then skipped and TS accepted-projection path (`outboundAttempt.ts:75–80`) returns the recorded provider observation. The actual customer entry wrapper also delegates established attempt states18228–18231 before fresh source checks. This must remain historical/no-resend behavior.
+
+Repository-wide callsite inspection found no incoming-ACK call to `ediel_require_switch_cancellation_source_current_v1`; other context calls are C source/reservation/bind/customer prepare/send functions. Do not introduce this outgoing deadline as a new rejection condition for a timely sent original's later physically correlated ACK or stored replay. ACK receipt/original/hash/current actor/source authority remain with their existing owners; this narrow audit neither requalifies native31 nor approves whole C03.
+
+## Existing assertions and minimal retained-owner follow-up
+
+Read, not rerun: `scripts/ediel-switch-cancellation-sql-regression.mjs:59–61` distinguishes L+3 expired and LK-1 expired; exact-source/refusal/replay assertions preserve own origin. `__tests__/ediel-switch-cancellation-source.test.ts:44` preserves fixedUTC+1 **payload start** in summer, not a send-calendar deadline oracle. These do not prove a DST-boundary/post-last-lock provider test, but no new native execution is mandated merely because it is absent.
+
+Next useful owner action: adjudicate the exact **send-calendar** timezone from its already qualified HB197/TM authority, keeping fixedUTC+1 payload conversion unchanged, then bind an explicit original-subtype/deadline/day-domain oracle to the existing reached guard. Two fresh independent source refutations should first challenge (a) the repeated-context/lock-order analysis and (b) whether an actual earlier transport admission owner already supplies a normative C cutoff. If timezone/currentness correction is actually justified after that, route only a bounded source/forward/component through retained C cancellation/serial/GEN custody; refresh the chosen current day after relevant waits and preserve accepted replay/later-ACK separation. No claim, correction implementation, new producer or whole-chain gate has been made by this support.
+
+## Byte pins and limits
+
+All listed file bytes are equal d798↔e49; entire schemas are not asserted equal:
+
+- C origination migration20260930214933 SHA256 `633c87d3109963fd1535b7b1e371303e5d65f764c2ad59ed81febc461ab91163`.
+- Original-method forward20261007132500 `9f64ac10d037d5084520d22706fa3d351621d091f5ece54ad8896105223e4086`.
+- Customer preparation forward20261009082553 `d1d5ed8a3731f281826de39e4ebd4868a3090016dfef4544d6964352242cf351`.
+- outboundAttempt `9736a44959de820a5a923cd89c29b405d182d4256665c0fb2d65e2a824bc217b`; sendEdielEmail `8a2850527daa3f8f95671860150d47b1268467911fe7791fc250c812aed3011b`.
+- deadlinePolicy `12ec133d44866aaf4cffae628ee74def5d811a5a07ac12e8cf49e40ac1c24dbf`; messagePolicy `6539b87ff3cfdabfc85ed2378026704f8018bde9063dacfe6a2869b95d1d1aa1`.
+- Registry sendGuards `f70b22c76a3d25099422fb839b05ea21cc41b9cec81be45540539e2cd8157a0f`; validator `be78da306d7efa75208a1c29c76e797928f311e1c1849078c2df37fe58a44018`.
+- Frozen timers `f00f75cf30363b127c9e0dbfeb21106973351bd0891404789b2afb96f0b48c38`.
+
+Effective schema blocks (CREATE FUNCTION through next CREATE, including intervening dump comments) also match: context `96f0855f1dd54977c4124330e7ade57bf4ca931ac2b5d1580d622c552fd80846`; current C guard `6959b6519d190922403bcc0c975b5d298e30c00e6eb78a87800957ee68ad8949`; actual C transport wrapper `2511ab422894883ee84031bae8f1cc239878528911b9830cfa873c99c2c616f4`; outer mutate `e8f2acc6c77e58127e58f9a7e6f25ae94fc80cd8c6f2ac5097c035f433a9dedf`.
+
+No measured late send/concurrency failure, no original outcome qualification and no approval count. Existing C03 whole adjudication/cancellation31 producer/collector/source owners are retained. Existing a93c normal-Z03 and BRP findings remain separate active requests and were neither taken over nor repeated here.
+
+````
+
+Original ediel-helper-20261013-z03c-queued-window-refutation-a.md, 14844 bytes, SHA256 `775a393dfbc06882cd9395228c31a4b8a87a4e9aa115191a739336d097cfa676`; preserved verbatim:
+
+````markdown
+# Independent Z03C queued-window refutation A
+
+**The specified own-switch/contract/point/site/intent lock-wait escape is REFUTED by the actual entry call graph.** A later cancellation-source context is recomputed within the same RPC transaction after the earlier checks have obtained those locks. The separate summer fixed-UTC+1 versus Stockholm date-domain difference is visible in source, but this review does not establish which calendar zone the frozen C contract prescribes and does not confirm a product defect. Fresh canonical guide admission is not independently shown to enforce the C deadline policy.
+
+Exact public source: `e49a23d4897f1cb4063a57bf3b1c810321723c3a`, tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`; actual-main comparison `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. All inspected transport/validator/source-policy files and listed cancellation SQL function fragments are byte-identical between these versions; whole schema line numbers differ where unrelated prior candidate migrations change layout. This is a new narrow source-only audit, not a repetition of the old C03 whole31/basic-deadline review.
+
+Independent reviewer A consulted no source-agent report or peer B. Scope is ordinary genuine source-bound C cancellation, not source-qualified certification fixtures, private DB05 state, arbitrary generic wall-clock expiry, BRP time-of-day, or an executed concurrency witness. No test, backend, SQL, native, GEN, CI, original/log/archive/private-input acquisition, reservation/ref/code/shared-document change or publication occurred. Sole output is this report. If a later correction adopts this diagnosis, conservatively exclude this diagnosis author from its independent final reviewers.
+
+## Actual clocks and frozen requirement
+
+`gridex_switch_cancellations.context_v1`, schema32815–32878, sets session `TimeZone='UTC'` and initializes `today := (clock_timestamp()+interval '1 hour')::date` at function entry (32822). Deadline is actual original start day minus4 for Z22/L or that day for Z23/LK; the held check is at32864–32866. This really is a cached fixed UTC+1 calendar date in each invocation; inspecting that declaration alone would support the proposed suspicion.
+
+`stockholmBusinessDate`, `lib/ediel/core/executionContext.ts:197–205`, uses `Europe/Stockholm`. `assertEdielAdmissionDateCurrent`, `lib/ediel/transport/outboundAttempt.ts:37–40`, compares the retained canonical guide/admission `referenceDate` with that current Stockholm date. The gate calls it before prepare, after prepare and after awaiting enter (60/83/88). It checks admission-date continuity, not the original C deadline itself.
+
+The frozen `AT-Z03C-SUPPLIER` row states own original/point/customer, L no later than4days before, LK no later than move-in day, cancellation requested rather than complete from SMTP250, and no wrong-role/direction/correlation/mutation execution. It names no explicit timezone. The canonical deadline catalogue `deadlinePolicy.ts:88–91` models those offsets, while `canonicalSupplierSwitchSendPolicy` chooses `calendar:'Europe/Stockholm'` at307–319. Payload field206/ENV-08 declares year-round UTC+1; that does not automatically specify every business-process calendar. The frozen masterplan expressly requires process-specific date boundaries and rejects blanket global Stockholm conversion of all payload values (MASTERMASTERPLAN_v2.md:415). Consequently this review does not resolve the C calendar’s normative zone from a payload offset or merely from implementation metadata.
+
+## Ordinary C provider path and decisive repeated context
+
+A well-formed Z03C reaches `sendEdielMessageViaSmtp` in `transport/index.part-2.ts`. Existing accepted-journal replay returns at352–359 before new send admission. Fresh send loads actual immutable customer/source context at383, validates the canonical registry at414 and captures its guide referenceDate at425. `sendCorrectionFencedEmail` chooses ordinary generic transport for a physical Z03 rather than the Z08 lane (`sources/correctionOutboundDispatch.ts:37–44`). The generic callback requires actual prepare/enter RPC success before the provider is called; an RPC error propagates and cannot authorize I/O.
+
+`public.gridex_ediel_transport_attempt_v1`, schema66252–66259, requires service role and calls `gridex_ediel_transport.mutate_v1`. The latter acquires the current graph/source-receipt locks and traverses the real nested mutator chain (18502–18505). The key ordering is:
+
+1. Outer `mutate_before_requested_method_entry_v1` (18209–18234) obtains customer-source/message/reservation locks and calls `gridex_customer_masterdata.require_current_v1(...,'send')` **before** delegating inward (18233 then18234). A normal prepared C cannot skip this via the already-entered/observed branch; that branch is no fresh provider admission.
+2. `require_current_v1` (9031–9051) calls actual cancellation prelock and locks the message (9035–9036), reads the existing protected preparation, then invokes `require_cancellation_preparation_v1` (9048).
+3. `require_cancellation_preparation_v1` calls `customer_draft_v1` (9013). That calls `customer_source_v1` (32893), which calls context at32957; then `customer_draft_v1` calls context **again** at32894. Context locks the own original (32827), own switch (32836), signed contract, metering point and site (32850–32852). After the second context, draft additionally locks the actual origin, intent and outbound request (32895–32897). These transaction locks persist when the outer mutator continues. `customer_source_v1` also invokes current masterdata/source checks; its recursion is to the ordinary original’s preparation, not another unchecked cancellation authority.
+4. The inward shared transport core obtains actual message/reservation/attempt/worker locks, validates authority and sets entered state (18260–18354). Additional mandatory-intent validation acquires intent/profile/route/point locks (18793–18834). There is still no SMTP call inside SQL.
+5. While unwinding, `mutate_before_production_contract_source_v1` calls `ediel_require_switch_cancellation_source_current_v1` after its inner delegate returns proceed=true (18111–18113). This is a **new** check, not reuse of an earlier JSON context. At49195 it invokes `context_v1(...,false)` again; at49196–49197 it rereads/locks intent and outbound request and at49201 rejects a held/changed source. `false` separates current send from prepare execution; it does not disable the calendar check. The own switch/contract/point/site/intent/original locks named in the hypothesis are already retained from steps1–3.
+
+The prelock functions at33036/33050 obtain graph and ordered original/customer-source message locks and check the source epoch. They do not themselves lock every own switch/contract/site/intent row. The refutation therefore relies on the demonstrated earlier canonical preparation/source calls and later fresh context, not an inaccurate assertion that the first prelock acquired everything.
+
+Suppose deadline day is D and the first context starts in summer at22:59:59UTC. Its fixed+1 date is D. If its own switch/contract/point/site/intent lock wait returns at23:00:01UTC, that first cached check can still pass. But the later context at49195 initializes a new fixed+1 date D+1 while those rows are already locked, returns held at32866, and causes `switch_cancellation_current_source_held` at49201. Any lower entered-state writes in this same RPC transaction roll back. The RPC cannot return proceed=true; the TS callback cannot enter SMTP. Stockholm’s unchanged D+1 guide date over those two seconds is therefore irrelevant to this specific escape. This refutes the proposed named-lock schedule without asserting that every conceivable delay after the final check is harmless.
+
+## Separate summer date-domain hypothesis
+
+At22:30UTC in summer on day D, fixed UTC+1 date is D while Stockholm date is D+1. A fresh SQL context can regard a deadlineD C as still in its window. The guide-date guard can also remain stable atD+1 before/after enter. Recomputing SQL context does not remove this distinct calendar-domain disagreement.
+
+I traced the actual transport validator to avoid treating the pure deadline projection as a live blocker: `index.part-2.ts:414` -> `assertRegistryRulebookAllowsSend` (`sendGuards.ts:27–39`) -> `validateRulebookMessageWithRegistry`/`policyForValidation` (`validator.ts:346–388,444–478,687–698`). The resulting policy selects current guide/subtype/field/registered source requirements. The PRODAT policy construction (`canonicalEdielPolicy.ts:286–310`) contains no supplier cancellation deadline evaluation. No call from this traced validator/source-gate path to `canonicalSupplierSwitchSendPolicy`, its C `cancellationOfSubtype`, or the operations cancellation scheduler was found. The actual C deadline-policy callers are the canonical facade projection and `operations/supplierSwitchScheduler.ts` (44,189–192,237–245), not a demonstrated fresh generic-send gate.
+
+The genuine original subtype/start are available to the SQL owner in original wire/context (32842–32866) and to `readSwitchCancellationSource` for preparing C. Fresh customer masterdata send context (`sendValidationSources.ts:19–20`; `customerMasterdataSource.ts:39–47`) obtains actual canonical source approval through `ediel_customer_masterdata_message_basis_v1` (45930–45938), which invokes current C context checks. Its returned typed projection contains customer/address/source metadata; it is not a call to the pure C deadline policy carrying `cancellationOfSubtype` and deadline. A detached row/intent C/Z24 marker is likewise not proof that this immutable-original-dependent deadline evaluation occurs inside the outgoing field validator.
+
+Thus the simpler hypothesis is **not refuted by a proven Stockholm C-deadline gate**. It remains an implementation date-domain inconsistency to adjudicate against the process-specific normative calendar, not a confirmed late-send product bug or current native failure. The frozen source inspected here does not establish the missing normative zone, and no genuine controlled-clock/native/locking proof was executed. Do not label it P2, alter a calendar, run a new producer or add a merge gate solely from this preliminary support report.
+
+## Historical behavior and next boundary
+
+Retain the historical accepted-transport replay at transport352–359 and ordinary no-resend behavior (`outboundAttempt.ts:75–79`); a later deadline cannot relabel an accepted original or authorize another provider entry. Timely sent C may receive a later ACK without a new send-window admission: this audit targets fresh provider entry only, not receipt/replay/business-response retroactive refusal. This report supplies no reason to change those semantics.
+
+Conclusion: **REFUTE** the proposed cached-date escape through the named own-row waits. **UNRESOLVED SOURCE CALENDAR INCONSISTENCY**, with no confirmed product finding, for the independent22:30summer zone hypothesis. A future finding needs process-specific calendar authority and a complete actual applicable path/controlled witness under the existing qualified owner. Current tests/native/GEN/CI and whole C03 closure remain outside this review.
+
+## Exact source/function byte pins
+
+All listed files/functions are byte-identical main d798 -> publice49. Function hashes below cover the exact CREATE FUNCTION fragment through the following schema separator, including its retained newline; they do not assert that the entire schemas are identical.
+
+| File | SHA256 |
+|---|---|
+| `lib/ediel/transport/index.part-2.ts` | `135d67fc9ef2c2ab0eeb6fd5b0679f09e9bcae05ab5335c39a5d45db68e3227d` |
+| `lib/ediel/transport/outboundAttempt.ts` | `9736a44959de820a5a923cd89c29b405d182d4256665c0fb2d65e2a824bc217b` |
+| `lib/ediel/sources/correctionOutboundDispatch.ts` | `f47bde04a3766b4efe0144d5144a3739a3a5cc926c4f0eb481ba3cd5f3d79863` |
+| `lib/ediel/rulebook/sendGuards.ts` | `f70b22c76a3d25099422fb839b05ea21cc41b9cec81be45540539e2cd8157a0f` |
+| `lib/ediel/rulebook/validator.ts` | `be78da306d7efa75208a1c29c76e797928f311e1c1849078c2df37fe58a44018` |
+| `lib/ediel/rulebook/canonicalEdielPolicy.ts` | `b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9` |
+| `lib/ediel/rulebook/deadlinePolicy.ts` | `12ec133d44866aaf4cffae628ee74def5d811a5a07ac12e8cf49e40ac1c24dbf` |
+| `lib/ediel/production/customerMasterdataSource.ts` | `b17471223726a9cc3344220c338d28401246643e1af5ab393b4c1b523931eb2e` |
+| `lib/ediel/production/sendValidationSources.ts` | `162ce13b24d3e5d4befaedd4e7c52e111666caba97ec6e63ac47a84bdb509deb` |
+| `lib/ediel/production/switchCancellationSource.ts` | `ecba3bfaa1fbfc177c581c6ede413c7eacc5f1ebc6c08342a49f6791b3900fd5` |
+| `lib/ediel/core/executionContext.ts` | `903c503c140c41753d10c34fd22df438d3f28c1ce36d4544f3ebe4d9cd877276` |
+| `lib/operations/supplierSwitchScheduler.ts` | `605a83a75c473f451847c2432e9ad42e6bf3728e793ef40c46b2ece516639c2c` |
+
+| SQL function | e49 line | Main line | SHA256 |
+|---|---|---|---|
+| `gridex_switch_cancellations.context_v1` | 32815 | 32815 | `cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f` |
+| `gridex_switch_cancellations.customer_draft_v1` | 32884 | 32884 | `5df04f3d3059df0a77b0e23fbbbdaa99246bbccc9f9465050aecee00cacb7830` |
+| `gridex_switch_cancellations.customer_source_v1` | 32948 | 32948 | `b2ebd4d2350650c5c9ff7c02e711c452a449efbec803b1c1a572200da5131d30` |
+| `gridex_switch_cancellations.prelock_customer_message_v1` | 33036 | 33036 | `90202778a85f6d2c6426a86b5554047a58f1ac5b20029fef20e8f8b4a68eeb39` |
+| `gridex_switch_cancellations.prelock_customer_source_v1` | 33050 | 33050 | `ce745f37437c05ca6c9443baf821dd217700d9523f9848baaa129e8bc5bfc4d5` |
+| `gridex_customer_masterdata.require_cancellation_preparation_v1` | 9001 | 9001 | `79ed881edaa0b91de26f817810a5003e3db9b4eedd3b7eb176bdf7dd33621120` |
+| `gridex_customer_masterdata.require_current_v1` | 9031 | 9031 | `213278d6f1661fb3e0baff54043d4c653fe183b71ceae06d20297620b4f00278` |
+| `gridex_ediel_transport.mutate_before_requested_method_entry_v1` | 18209 | 18209 | `a28fa01ffcf512db60292bcc5e74c0f1172813a32f3ca1175388c9592f642e2d` |
+| `gridex_ediel_transport.mutate_before_production_contract_source_v1` | 18106 | 18106 | `cf2d17ac1f60b179f0342bc858019891db43eee4579bf1ec55a020cf1792b3f7` |
+| `public.ediel_require_switch_cancellation_source_current_v1` | 49167 | 49077 | `3775ae7f2dfd1fe98b6d6cedc027112e8e8f2b80f1c0b2d60da88246198c8911` |
+| `gridex_ediel_transport.require_message_intent_v1` | 18793 | 18793 | `a03c163b8efa10a2603605adf68d637ac15056ccd70b4f9c279bee889bf0bdae` |
+| `gridex_ediel_transport.mutate_v1` | 18502 | 18502 | `39e9da79ab6976370271349caf32694ee69f3a729280ac7c1033712d52a9e48e` |
+
+````
+
+Original ediel-helper-20261013-z03c-queued-window-refutation-b.md, 9991 bytes, SHA256 `67c47b926ddfe14b2457ed54a8c376f96f3aa2f8a5dc6e5870cdfeb3347403c6`; preserved verbatim:
+
+````markdown
+# Independent narrow Z03C queued-cutoff refutation B
+
+**Outcome: REFUTE the stated own-lock/cache midnight-crossing finding. Separately, a reachable calendar-domain inconsistency is present in source but its frozen-contract impact is NOT_ESTABLISHED; no confirmed product bug or source correction is authorized by this preliminary review.**
+
+Reviewer `/root/sc031_outbound_peer_a` performed fresh read-only analysis without consulting the source agent report or peer A. This is preliminary refutation/qualification, not code or wholeC03 approval. Exact actual main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / tree `e3b6c11677a2b871a128504f1616def7d22dba1e`; public source `e49a23d4897f1cb4063a57bf3b1c810321723c3a` / tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`. All relevant SQL blocks and TS file blobs below independently equal across these sources.
+
+## 1. Actual fresh transport graph refutes early-cache-as-final-authority
+
+C context really initializes `today := (clock_timestamp()+interval '1 hour')::date` at function entry, before its own row locks (schema32822). It checks L original reasonZ22 deadline=startDay-4 or LKZ23 deadline=startDay at32864–32866. That local observation alone is not the complete reachable transport graph.
+
+Fresh prepared/enter path `gridex_ediel_transport.mutate_before_requested_method_entry_v1` prelocks customer source/message and reservation at18223–18230. For a genuinely fresh attempt (prepared reservation, not alreadyentered/observed), it runs `gridex_customer_masterdata.require_current_v1(...,'send')` at18233 **before delegating** to lower transport wrappers. Existing entered/observed replay branch delegates without new authority; lower attempt state prevents a new proceed/provider call.
+
+`require_current_v1` at9036 prelocks cancellation lineage/message and reads the real sealed customer preparation; at9052 it invokes `require_cancellation_preparation_v1`. A lawful actual cancellation private origin requires its matching cancellation preparation; a missing preparation does not bypass this guard. That calls `customer_draft_v1` at9013.
+
+The actual refresh sequence is:
+
+1. `customer_draft_v1` prelocks own original/message/source lineage at32892.
+2. It calls `customer_source_v1` at32893. That calls `context_v1` at32957; then locks/qualifies original preparation and runs actual original customer current/basis reads at32960 onward. Locks acquired by context on own switch, original, contract, point/site remain held for the transaction.
+3. `customer_draft_v1` calls **another `context_v1`** at32894 after the preceding source read. It subsequently locks cancellation origin, own intent and outbound request at32895–32897 and verifies exact stored bindings. Any earlier own-switch/contract/point/site wait is therefore followed by another current-day calculation; original-context entry time is not a permanent cached deadline authority.
+4. The lower actual transport wrapper return chain then reaches `mutate_before_production_contract_source_v1` at18111–18113, which invokes `public.ediel_require_switch_cancellation_source_current_v1` on both prepare and enter when proceed=true.
+5. That function prelocks the same cancellation message/source lineage at49173, verifies private original/hash and calls **fresh `context_v1(...,false)` at49195**, then reads/qualifies the same intent/outbound request and requested-method source. Those own rows have already been acquired by the earlier customer-draft guard, so the described own-row wait does not newly occur after this last C context sample.
+
+Thus the proposed enter at22:59:59UTC, wait on its own switch/contract/point/site/intent until23:00:01, and still authorize solely using the initial fixed+1dayD is refuted for this genuine fresh C path: a later reachable context invocation samples fixed+1dayD+1 after the stated waiting locks and fails its window if deadlineD. A test invoking only context_v1 once would not reproduce the complete provider-entry graph.
+
+I inspected the complete generic wrapper delegation/postcheck chain from mutate_v1 down to the base journal function and back, including source/customer guards. This refutes the specific own-row cache hypothesis; it is not a universal theorem that every possible downstream delay or arbitrary unrelated lock is clock-safe. No generic “now() is stale” or BRP intra-day defect is claimed.
+
+## 2. Distinct summer day-domain issue remains a source inconsistency
+
+SQL C context is explicitly TimeZoneUTC and fixed+1 civil date (32818/32822). At a summer22:30UTC instant it observes dayD. TS `stockholmBusinessDate` uses Europe/Stockholm (executionContext197–205), which observesD+1. `canonicalSupplierSwitchSendPolicy` declares C policy calendarEurope/Stockholm atdeadlinePolicy307–319, with L D-4/LKday0 constraints at88–91. These domains differ for an hour each summer night.
+
+Actual transport path is `sendEdielMessageViaSmtp` → `assertRegistryRulebookAllowsSend` atindex.part-2:414 → registry validator/canonical policy. The name `admitEdielOutgoingWire` is absent from these exact published sources; I traced the actual equivalent entry instead. Send guard passes actual row/raw/context and enforces canonical field/application/guide issues. Canonical policy derives current guide referenceDate from Stockholm admission atvalidator359–380. It does not supply C cancellationOfSubtype/own start to the C scheduler window evaluator. Whole-lib call-site search locates `canonicalSupplierSwitchSendPolicyProjection` use in supplierSwitchScheduler policy/window evaluation, not a new sender finalization cutoff on each queued C transport entry.
+
+The authentic originalSubtype/start/deadline do exist in SQL protected cancellation basis and TS switchCancellationSource DTO; mere DTO availability does not prove that registry admission evaluates cancellation deadline. Actual TS `assertEdielAdmissionDateCurrent` atoutboundAttempt37–40/83/88 compares `decision.referenceDate` to fresh Stockholm **guide/admission date**, after awaitenter too. It does not compare original cancellation deadline. At22:30UTC, a fresh admission alreadydatedStockholmD+1 can pass this date-stability check while the fresh SQL cancellation context observes fixed+1D. I found no actual cancellation scheduler call on that provider-entry path that refutes the discrepancy.
+
+This is separate from the failed cached-date hypothesis: repeated fresh SQL contexts fix a wait crossing the fixed+1 boundary but do not convert that date domain into Stockholm. Conversely, a guide-date guard is not automatically a cancellation-window guard.
+
+## 3. Frozen requirement interpretation prevents a confirmed productbug claim
+
+Frozen AT-Z03C-SUPPLIER2904–2911 states L no later than4days before/LK by move-in day, original/object/customer scope, allowed cancellation window, and no completion merely from SMTP250. It does **not explicitly specify a timezone for the cancellation calendar**. ENV-08 rules513–520 explicitly regulates **payload date encoding** and fixed normal-time intervals; it cannot alone prove that all business-calendar deadline dates must use fixed+1. The source's canonical C calendarEurope/Stockholm conflicts with effective SQL context domain, but a pure declared policy is not proof of the actual current transport cutoff or external national-calendar semantics.
+
+Accordingly do not label lawful/late actual dispatch, loosen source gates or silently pick a new timezone on this review alone. Smallest next qualification is to establish the authoritative calendar meaning for the C day boundary and bind it to the existing protected source/send path; only then can a narrowly scoped source correction and meaningful exact-boundary test be chosen if required. This introduces no new LIVE gate, clock override, broad native producer or blanket wait.
+
+## Source pins
+
+Effective SQL blocks (CREATE FUNCTION through next CREATE, including intervening dump comments), equal d798/e49:
+
+* Ccontext_v1 `96f0855f1dd54977c4124330e7ade57bf4ca931ac2b5d1580d622c552fd80846`.
+* Ccustomer_source_v1 `164a0c72069b09434dd179fc392ffb2dd52f2203d384202af47152d92e47e986`.
+* Ccustomer_draft_v1 `9d013431a497d282444e6b6a1034cfe4ba33efb14e15fb95b8478c1418dbf807`.
+* Customerrequire_current_v1 `8f32538c374f403fef3caeca61bca2b8b446e06b288c2f90ce1d0146873962fe`.
+* Customerrequire_cancellation_preparation_v1 `299bda8652f1cd7e8c052e28a5be9321e44082d1e1ae5d23b0b018f310411baf`.
+* Transportmutate_before_requested_method_entry_v1 `c035bfd6ecfd14a949bed07cbdc7889246d2256eb028e89fd3dad2fb7955071c`.
+* Publicediel_require_switch_cancellation_source_current_v1 `6959b6519d190922403bcc0c975b5d298e30c00e6eb78a87800957ee68ad8949`.
+* Transportmutate_before_production_contract_source_v1 `2511ab422894883ee84031bae8f1cc239878528911b9830cfa873c99c2c616f4`.
+
+Equal TS blobs: outboundAttempt681806523c55e298ef4eb5f15dc0e9eec237a8d3; executionContext09384d712aac3c9fb205d11269231f3e86875f26; sendGuardsddd5fc940bb9fbc45c8485f22154af130c3e430a; validator7f5f47d2e803e6dac6e5d1684a71bd82b4d9ee62; deadlinePolicye47f2e27078c3c6d1b6401e55c9421fe72985db2; transportindex.part-2a218836057af2ee604a5fc49a3a5d96f1939aa2a.
+
+## Scope and preservation
+
+Historical accepted projection is returned before fresh transport admission (index.part-2:349 onward), so a timely sent C's later ACK/replay does not acquire a new expiry gate here. The existing transport prepared/enter/current-source cutoff itself is present; its alleged complete absence remains refuted. No changes to accepted histories, late ACK handling, source locks, frozen requirements or current custody.
+
+Source-only fresh analysis; no test/SQL/backend/native/GEN/CI execution, private DB05/source or original/log/archive/artifact acquisition, reservations/refs/docs/PR/merge/source write. Only this own report is written. If an adopted fix later uses this diagnosis, treat reviewer as a diagnosis/evidence contributor rather than counting it as an independent final reviewer of that same fix.
+
+````
