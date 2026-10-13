@@ -1,3 +1,587 @@
+# CURRENT DATED SUPPORT — qualified components and corrected caller integration handoff
+
+2026-10-13 19:36 Europe/Stockholm. Owner codex-ediel-brp-history-helper-20261013. Unique-checkpoint-only technical support on the continuing own documentation branch; no new shared baseline, source dispatch, receipt transfer or runtime approval. Source-plan applicability is pinned to public actual-main d798eb36f35cd4f437d44c8d234b4dbb81adc7a6 / tree e3b6c11677a2b871a128504f1616def7d22dba1e. The branch's archival source base remains efed. Complete prior checkpoint bytes below remain historical, not active dispatch.
+
+Completed qualified own offers:
+- SC037 public7f6ce08cb76ecea551719cfc8b80c4719517b87e/tree9299d93141380b315869364a2cec371441dde013;87 scoped modeled PASS and two independent exact final reviews; selected3 at #7666150835060.
+- Z03L/LK positive ACK→causal-Z04 source public91c739ef931d5939cc471db839c980174f11eecd/tree0d3d337c81e6ef31ed54591075b66025bb5eece8;10 finite PASS and two current source+DOC finals; selected2 at #7666151319102.
+- Own97d/e247 custody remains HELD/PAUSED pending explicit bounded recipient acknowledgment and verified custody cutover. Native input/actual callers/current coherent GEN/CI/whole proof remain recipient duties. BRP0bcc remains separately HELD/PAUSED, native unexecuted.
+
+## Corrected actionable caller plan — supersedes the omitted hold handling in the original proposal
+
+Retained a93c caller coordinator can use only the already scoped inboundAckProcessing.ts and canonicalInboundAckStatusUpdater.ts after its own current custody. C3 inboundStatusUpdater.ts remains outside this handoff pending its existing owner. This is source-derived support, no code permission/ref transfer or repeated unanswered request.
+
+1. Pass the COMPLETE unchanged raw select('*') own switch row as CAS preimage, without reconstruction from the narrower TypeScript row type. Pins use genuine committed ACK/source raw hashes/company/environment and the actual current invocation actor. Reader permission never supplies mutation authority. Keep failed/rejected conventions. The SQL operation alone owns its atomic switch event; surface stale/refused/not_applicable dispositions, no direct/compensating patch.
+2. Use an exact eligible committed-negative projection-only route for interrupted projection retry; repeat no source apply/link/outbound/grid-owner/customer-case/actor-testing/protocol event/mail task. Generic dispatch's outer earlyreturn remains a separately owned reachability dependency, not a new diagnosis or permission to edit another file.
+3. Read genuine committed authority FIRST. A prior successful generic mail pass MAY already have supplied an exact receipt: use only projection then. WHEN protected read returns none, email persistence alone is insufficient; use the genuine first-reception creator, real canonical resolver and SAME-invocation validation ledger, protected original/source issuer, then actual committed readback. Never fabricate context/accepted assessment, reuse a cached validation_report or recurse through full business processors. The later generic mail-engine call does not supply synchronous authority to the earlier canonical call.
+4. REQUIRED PLAN P2 CORRECTION: catch the creator's InboundReceptionHeldError LOCALLY inside retained applyCanonicalInboundAckStatusUpdate; return held/manual_review with exact hold reason/retained selector. Preserve genuine reception/prescribed native obligations. After hold invoke NO resolver/issuer/projection/bulk diagnostics/new negative task/event. Preserve other error/security semantics; do not borrow non-ACK duplicate103 response authority. Otherwise the uncaught hold is outside the parent's non-ACK handler and the queue makes processor_failed retries/eventual failure. Exact main lines are in the independent report. This is a PLAN compatibility blocker, not a demonstrated native failure or switch-kernel defect.
+
+Original plan remains immutable evidence; item4 supersedes its missing hold conversion and item3 makes missing-receipt wording conditional. Both helpers performed read-only source/hash inspection. No changed caller, runtime import-cycle/issuer/RLS/concurrency/currentclock/activation/LK/native/currentCI/whole SC037 qualification follows.
+
+Frozen P11 late-ACK preservation/SC037 before-at-start activation criteria are unchanged. Public6d80 original-dispatch leaf is a separately selected dependency, not whole-branch adoption. Existing serial/soleGEN/native/originalcollector/main owner codex-takeover-delivery-20261012 handles current795's qualified catalogue test correction and mandatory final gates. Last authenticated actualmain d798 ledger119VERIFIED+204PASSED=323/352; +0 from components/support. No ledger/frozen/sharedmemory/product/SQL/types/config/workflow writes, test reruns, original collection or producer actions.
+
+The three complete source-support originals and honest documentation-setup note are preserved below with byte sizes/SHA256. Every previous checkpoint byte follows as an exact suffix, including earlier dated approvals/partial findings. Initial assembly SyntaxError occurred before any statement/write; no invented initial controller hash or execution credit.
+
+## Original read-only implementation plan
+
+Source /workspace/scratch/ediel-sc037-cas-20261013/integration-support/integration-plan.md; bytes 23081; SHA256 c170236ef11f5a7750282216a64096360843ebd5509c4001e3be9fa57211241c. Verbatim body:
+
+```text
+# SC037 retained-caller integration plan
+
+**Goal:** Give the retained a93c caller coordinator an exact, bounded mapping from the public receipt-bound switch operation to fresh negative ACK projection and interrupted committed replay.
+
+**Architecture:** Keep the existing immutable ACK issuer and reader as authority. Add one projection-only route inside the retained `inboundAckProcessing.ts`, and have the retained canonical email caller supply a genuine ACK original and committed receipt to it. The database operation owns the switch mutation and its event; callers own presentation and retry routing.
+
+**Tech stack:** TypeScript, existing Supabase service RPC, PostgreSQL JSONB full-row CAS. This is a read-only plan, not source authoring, a descendant review, execution, or acceptance evidence.
+
+## Exact boundary and sources
+
+- Authenticated GitHub main: `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Ignore the shared local remote-tracking main candidate.
+- Select only the three public component postimages at `7f6ce08cb76ecea551719cfc8b80c4719517b87e`, tree `9299d93141380b315869364a2cec371441dde013`: adapter, component test, new `20261013155649` migration. Corrected technical source is `cb643da002924b726c2bdc7be606342988f88154`; no whole-branch/checkpoint adoption.
+- [READY 6150835060](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6150835060) attributes 87 finite modeled passes and two independent final source reviews to the component owner. This plan neither reruns nor independently requalifies that evidence.
+- [Explicit handoff 6149512642](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149512642) leaves a93c's public `6d80d3bd079e0f7eca65768202f3b60394176fc9` leaf/test and later caller coordination retained. `lib/inbound-mail/inboundStatusUpdater.ts` remains C3 `ce073` custody, with the previous bounded request pending. No new request, claim, resource transfer, or writer follows from this plan.
+- Two retained caller targets: `lib/ediel/flows/inboundAckProcessing.ts` and `lib/inbound-mail/canonicalInboundAckStatusUpdater.ts`. Third-caller mapping is informational until its existing owner makes the cutover.
+- Public current795 `e49a23d4897f1cb4063a57bf3b1c810321723c3a` C3 updater was read through authenticated GitHub contents and compared in memory. It is byte-identical to main: blob `8ae5df1d9907a7c90a37572cc226c16714ee063e`, SHA256 `3d582e8bff449bf657ec84574ddf5fcccf19a6b291f9923ab2a01d7f29154196`. This does not establish private C3 successor applicability or current795 native qualification.
+
+## Input mapping: no projected field supplies authority
+
+Use `applyInboundAckSwitchTransition`, exactly as exported by the selected adapter. Its ten input fields map as follows.
+
+| Input | Actual caller value | Constraint |
+|---|---|---|
+| `companyId` | Verified `exact_receipt.result.sourceMessage.company_id` | Reader validates this against its retained correlation and ACK scope. A nullable contemporary ACK tenant can use only the protected retained tenant, never matcher/mailbox/route attribution. |
+| `environment` | Actual ACK original `message.environment`, matching committed source environment | Must already be `test` or `production`; never default from a route or infer from parser/test flags. |
+| `actorUserId` | Actual current invocation actor | Require an actual UUID; no `ensureActorUserId` fallback to `system`, creator, correlation's historical actor, or mailbox operator. Reader success permits READ or WRITE; the operation independently requires current communication.WRITE. |
+| `ackMessageId` | Genuine persisted inbound ACK original `message.id` | An inbound UUID is a selector, not received context or an apply receipt. |
+| `ackPayloadHash` | `evidenceHash(message.raw_payload)` over exact original UTF-8 raw text | Do not hash parsed JSON, trimmed/re-rendered EDIFACT, or email wrapper text. |
+| `sourceMessageId` | `exact_receipt.sourceMessageId`, equal to its result's own source `id` | Never matcher entity ID, first outbound sibling, or an alternate source found via outbound request. |
+| `sourcePayloadHash` | `evidenceHash(exact_receipt.result.sourceMessage.raw_payload)` | Reader and operation independently compare this with the sealed original hash and retained correlation. |
+| `switchRequestId` | Committed own source `switch_request_id` | This is a recipient candidate only. SQL requires exact private `switch_originals`, original `switch_request_id`/`source_operation_id`, and current own switch. Do not let `outbound.source_id` confer authority. |
+| `negativeStatus` | `failed` for `inboundAckProcessing`; `rejected` for canonical email and C3 legacy email | Preserve the existing entry point convention. The operation accepts only these two literal values. |
+| `expectedRequest` | Entire raw row returned by `.from('supplier_switch_requests').select('*').eq('id', switchRequestId).eq('company_id', companyId).maybeSingle()` | Pass the complete discovery row unchanged. Preserve nulls, aliases, timestamps, nested metadata/readiness, and every DB column. Do not reconstruct from `SupplierSwitchRequestRow`: that TypeScript type omits DB fields. Do not select a subset, normalize Dates, add defaults, or spread in ACK metadata. |
+
+The adapter serializes the complete row before its await, pins scalar inputs, and binds `expectedRequestHash` to exact serialized text. The SQL compares `to_jsonb(locked_current)` to this complete JSONB preimage only when the independently qualified own unconfirmed edge could mutate. A full snapshot can inhibit an effect; it never creates authority. A confirmed or terminal no-op can legitimately return despite an older discovery snapshot.
+
+## One projection-only route in the retained processor
+
+- [ ] Add an internal/exported projection route in the retained `inboundAckProcessing.ts` that consumes **actual ACK row + current actor + validated exact committed receipt + literal negativeStatus**, discovers the full own switch row, calls the adapter, and returns the adapter disposition and returned current request. Keep this route limited to the switch operation: no source-ACK application, linking, outbound-request sync, grid-owner-request sync, cancellation/customer-case sync, actor-testing sync, protocol event, or mail-task creation.
+- [ ] Gate the route on `receipt.result.outcome === 'negative'`, `wholeSourceRejected === true`, and `sourceAccepted === false`. Positive, mixed/partial, unavailable legacy summaries, and unsupported original families do not create whole negative authority. The SQL still independently rechecks all these facts.
+- [ ] In a **fresh** `processInboundAckMessage` invocation, retain the existing genuine source apply. After `patchSourceMessageFromAck`, read back `readCommittedInboundAck` and require its exact receipt before supplier negative projection. Do not manufacture the missing complete receipt from `sourcePatch`: it currently exposes only a subset. Replace only the negative supplier switch patch/event with the projection route using `negativeStatus: 'failed'`; preserve the positive branch and the preexisting once-only fresh processing of other request/customer effects.
+- [ ] In its **committed** branch, retain the legacy diagnostic return and the positive/partial exact return. For an eligible exact negative, run only the projection route before returning the immutable ACK summary. Do not continue through the fresh branch. That is how a committed ACK whose switch projection was interrupted reaches the operation without repeating any source diagnostics, links, mail/protocol events, outbound/customer effects, or actor-testing work.
+- [ ] Return the operation disposition as a projection result alongside the ACK result (or through an explicit projection retry entry). The existing `AckProcessResult` currently exposes IDs and ACK booleans only; `not_applicable` and `stale_preimage` must not be silently presented as switch projection success.
+
+The generic outer `processInboundEdielMessage` committed return is a known routing dependency, not a new finding: main `inboundProcessing.ts:948–956` returns before the retained processor. A repair attempt must use the projection entry directly, or the existing owner must route eligible exact replay through it under that file's own custody. Editing only the inner two call sites cannot qualify generic-dispatch retry reachability. Do not rerun the full fresh pipeline as the repair route.
+
+## Canonical email: supply the genuine receipt first
+
+The entry at main `canonicalInboundAckStatusUpdater.ts:250–318` receives actor, environment, mail, and parse selectors; these are available to propagate rather than reconstruct. Its private `updateOutboundAck` currently receives only company, inbound UUID, parsed envelope, and matcher. Passing those four values to the new helper is insufficient.
+
+- [ ] For the authorized **negative supplier** path, carry actual actor and exact environment to persistence and projection. Missing current actor, parse selector, or exact environment is a hold; do not default them. Keep unrelated positive classification/update logic unchanged.
+- [ ] Use the existing genuine reception creator `createInboundEdielMessage` for the prospective negative ACK original, with actual actor, company, environment, mail ID, parse ID, parsed raw, and existing tenant/match inputs. It already obtains current WRITE authority, reads the retained mail's actual receipt clock, preserves birth fields, checks duplicate raw/scope, records actual reception, and calls `requireFirstReception`. Do not backfill `receivedAckContext` into an existing original, or bypass a held/new protocol duplicate. A deferred runtime import avoids introducing a new eager initialization cycle with the existing C3 file's import of `OUTBOUND_BUSINESS_RESPONSE_STATUSES`; no C3 source edit is proposed here.
+- [ ] Reload the actual persisted ACK row and call the protected committed reader **before** contemporary matcher-based source diagnostics, task/event emission, or fresh issuer work. An eligible exact negative replay goes straight to the projection-only route with `negativeStatus: 'rejected'`, then returns the existing negative/manual-review presentation. A legacy diagnostic retains unknown aggregate facts and does not get a new summary or a switch write.
+- [ ] When there is no committed receipt, the fresh email path must invoke the real ACK canonical owner and immutable source issuer, not the full business processor. The existing public ports are `resolveCanonicalRuntimeDecisionWithRegistry(actualOriginal, { actorUserId })`, followed by `recordReceivedSourceValidation({ original: actualOriginal, validated: actualOriginal, resolvedCompanyId, decision })` with that **same invocation's real result**. Require recorded evidence and accepted syntax/application/functional validation; a valid negative ACK is accepted as an ACK document while its referenced business outcome is negative. Cached `validation_report`, `canonicalAck` parser classification, or transport matcher guard cannot stand in for this evidence.
+- [ ] Reuse the protected exact original selection and `gridex_apply_inbound_ack_source_v1` from the retained processor, then read its exact committed result and invoke the projection route. A bounded fresh-issuer port may be placed in the already retained processor file and called by canonical email; it must not call `processInboundEdielMessage`/`processInboundAckMessage` as a convenience because those full paths also synchronize other requests and customers.
+- [ ] For this negative route, let atomic source apply own exact source ACK diagnostics once; avoid the email updater's bulk source diagnostic UPDATE afterwards. Preserve the email/outbound-request and manual-review presentation once on genuine fresh processing, with the supplier patch removed. On exact replay call neither that diagnostic projection nor `persistInboundAck`'s UPDATE/event path nor task creation again. Return existing negative/manual-review facts without converting a preserved business state into a positive ACK.
+
+**Compatibility blocker to a one-line replacement:** On pinned main, `persistInboundAck` plus `updateOutboundAck` supplies public diagnostics and matcher links, but does not invoke the canonical validation ledger or committed source apply. The new operation reads only a genuine retained correlation/receipt; with correlation absent it returns `not_applicable`, not a mutation. Merely adding the helper after email persistence therefore cannot preserve the current fresh failure behavior or establish successful integration. This is a new-operation prerequisite, not a repetition of the already documented unsafe negative/early-return defect. The prescribed bounded fresh-issuer port resolves it without replaying unrelated business consumers or inventing received/canonical context.
+
+## Third C3 path, mapping only
+
+At main/public e49 `inboundStatusUpdater.ts:911–957`, pass actual environment through the existing `applySafeInboundStatusUpdate` input into the negative ACK projection context, preserve `createInboundEdielMessage` and actual reception/birth gates, and replace only the supplier ACK negative branch with the same receipt/issuer/projection route using `rejected`. `source_type` and `source_id` remain discovery hints. The real immutable original/receipt must supply source pins and select the own recipient. Do not patch the PRODAT Z04 positive path, H birth/refusal, other requests, or existing task logic in this plan. The retained C3 owner remains the sole writer; private successor bytes have not been inspected.
+
+## Response, retry, and event ownership
+
+| Result | Caller routing | Switch/event effect |
+|---|---|---|
+| `mutated_failure` | Use returned row/status and mark this switch projection complete; ACK remains negative/manual-review where applicable. | Operation writes exactly one `ack_failed` or `ack_rejected` event atomically with its switch change. Remove caller negative `createSupplierSwitchEvent` and direct status UPDATE; do not add a second success/failure event. |
+| `preserved_confirmation` | Present negative ACK diagnostics and the actual retained `accepted`/`completed` business state. | Zero switch/event writes. No caller failure event or status normalization. This does not attest present contract validity or activation; existing activation gates still apply. |
+| `already_terminal` | Treat projection as complete without revival; report actual returned terminal status. | Zero writes. It need not equal requested `negativeStatus`, and it does not prove that this ACK created that terminal state. If processor `failed` won first, a later email `rejected` request does not convert it. |
+| `stale_preimage` | Mark projection pending/held. A new bounded projection invocation may refresh only `select('*')` and call this same operation with unchanged ACK/original/company/env pins and the actual current actor. | Zero writes. Never retry the full fresh ACK/business path, reuse a sliced old row, or patch around CAS. No unbounded automatic loop. |
+| `not_applicable` | Hold/refusal for this switch projection; keep actual committed negative diagnostic. Do not claim the business transition happened. | Zero writes even if returned own row is non-null. Unsupported/legacy/partial/current-invalid/ambiguous evidence is not fallback authority. |
+| Transport error or adapter-invalid response | Commit outcome is unknown. Surface pending/error and retry this **same operation**; retain the serialized preimage/pins for the uncertain retry. A later fresh discovery can follow an actual `stale_preimage`. | The transaction might already have committed. No direct/compensating status patch or client-generated event. A retry returns terminal/no-op after a successful prior mutation. |
+| `42501` actor refusal or input/correlation conflict | Surface security/refusal/held state with original error; resume only when an actual authorized invocation exists. | No actor substitution, permission downgrade, or fallback. Reader authorization does not imply mutation-grade actor authorization, including no-op calls to this operation. |
+
+Only protocol/mail diagnostics belong to their existing first-apply presentation owners. The operation supplies its own immutable negative failure reason; caller parser text, metadata, `externalReference`, or requested clock is not a patch input. Do not write switch `metadata`, `external_reference`, `failed_at`, start, contract, confirmation, or lifecycle values after the operation to recreate the old payload.
+
+## Bounded verification handoff, not executed here
+
+The retained owner should qualify its selected caller descendant with behavior assertions that invoke the actual changed entry points and assert:
+
+- Fresh whole negative: actual ACK/raw/canonical/source binding reaches the adapter; raw complete `select('*')` preimage retains an extra DB field, null, and nested state; `failed` versus `rejected` is bound exactly.
+- Interruption after committed source apply: retry through the selected projection entry performs only switch discovery + bound operation, with zero source reapply, link, outbound/grid-owner/customer-case, actor-testing, protocol event, or task calls.
+- Lost adapter response after SQL commit: uncertain retry produces no second switch event. An event insertion failure rolls back the switch change; do not infer success from a generic patch response.
+- A genuine confirmation arriving between discovery and locked apply preserves actual accepted/completed state; a full-row drift produces stale/held routing, not a direct patch.
+- Exact positive replay, legacy diagnostic replay, partial/object negative, wrong own source/hash/company/environment, absent current WRITE actor, new protocol duplicate, and unsupported original each preserve their actual appropriate outcome and produce no invented switch authority.
+- Both email entry points sharing the same ACK cannot force `failed`↔`rejected` on terminal replay. No-op or refused outcomes cannot produce the old “Switch markerad som failed” event.
+- Existing positive late-ACK tests (`ediel-sc-036-late-ack-after-z04.test.ts`) and protected committed-reader assertions remain applicable; extend behavior coverage only for the selected new integration, do not rewrite frozen requirements/old assertions to make it pass.
+
+Do not run native/backend/GEN/provider/SMTP/current795 jobs, fetch originals/ZIPs/logs/artifacts, or recapture proof for this support task. The component's 87 modeled controls do not qualify these caller paths, actual issuer, full RLS, concurrency, current clock, LK, activation, or whole SC037.
+
+## Frozen requirement limits
+
+P-11 condition: “Kontrollera rätt objekt, parter, LI, undertyp och datum. En giltig Z04 kan komma före positiv APERAK.” Its on-pass remains confirmed future supply and activation at the correct time if still valid. Its on-failure includes: “SMTP250, CONTRL, APERAK och Z02 räcker inte för aktivering. Sena kvittenser får inte backa ett giltigt affärstillstånd.”
+
+SC-037 given: “Ett korrekt Z04 har mottagits med ett framtida startdatum.” When: “Kör aktiveringsjobbet före och vid starttidpunkten.” Expected: “Ingen förtida aktivering. Endast rätt, fortsatt giltiga period aktiveras vid rätt start.” Prohibited: “SMTP-acceptans eller en teknisk kvittens får inte tidigarelägga startdatumet.” Layer remains Integration/E2E.
+
+The public6d80 prospective original-status leaf remains a separate selected dependency: the switch operation never restores or fixes the original dispatch status. No coverage approval follows from this plan or component-only preservation. Actual main ledger remains 119 VERIFIED +204 PASSED =323/352 per the authenticated current handoff; no ledger write was performed.
+
+## Source line map and skill routing
+
+Exact blobs and byte hashes are in `source-pins.json`; all line coordinates below refer to the named immutable revision, not mutable worktree lines.
+
+| Revision / file | Lines | Relevance |
+|---|---:|---|
+| 7f6ce adapter | 5–22, 30–66 | Exact input/result types, pre-await pinning, strict response validation, no fallback. |
+| 7f6ce new migration | 24–47, 48–78, 109–160, 168–190 | Scope/actor/committed read, own original/recipient, confirmation/full CAS, exact response/event/grant. |
+| 7f6ce component test | 216–273, 314–338, 420–455 | Attributed interrupted projection, status conventions, CAS, actor/refusal, event rollback and unknown-response controls; modeled ports. |
+| d798 inboundAckProcessing | 185–207, 209–239, 382–433, 435–483, 558–564, 629–687 | Source issuer, full switch discovery, negative/positive split, exact replay and fresh once-only effects. |
+| d798 committedInboundAck | 6–8, 12–32 | Exact versus legacy result, raw hash/tenant/env binding; reader permission is not WRITE proof. |
+| d798 canonicalInboundAckStatusUpdater | 81–180, 185–248, 250–318 | Current persistence/diagnostic scope, missing actor/env in private updater, rejected convention, presentation. |
+| d798 inboundStatusUpdater (= public e49) | 313–340, 370–457, 505–569, 911–957, 1022–1048 | Existing actor/birth/reception creator, exact duplicate check, third projection, actual input selectors. |
+| d798 inboundProcessing | 350–379, 948–956, 1256–1268 | Real canonical invocation/ledger, known outer replay routing dependency, fresh ACK dispatch. |
+| d798 edielInboundProcessor | 251–256, 302–331 | Actual parse/mail/actor/env propagation to canonical ACK entry. |
+| d798 schema | 873–940, 999–1008, 92741–92804 | Committed authority/null/legacy behavior, READ-or-WRITE versus WRITE, atomic switch event ownership. |
+| d798 receivedSourceValidationEvidence | 24–64, 92–96 | Real same-invocation canonical evidence; database-born context and rule witness cannot be manufactured. |
+| d798 receivedSourceValidationLedger | 23–57 | Existing evidence RPC and recorded/unconfirmed result; no forged success. |
+| d798 receptions | 126–146, 149–159 | Actual reception and first-versus-held duplicate routing. |
+| d798 operations/types | 159–212 | Public TypeScript row type is not a complete DB snapshot schema. |
+
+Applied skills: cloud-environment runtime (observed enforced network and environment readiness); writing-plans (this bounded implementation handoff); Supabase/Postgres guidance (existing service-role/actor/CAS boundaries); verification-before-completion (fresh source/pin/artifact checks, no claim that implementation tests ran). User/parent scope overrides default in-repository plan location and execution handoff. `using-superpowers` explicitly excludes dispatched subagents. Repository-level codebase mapping, formal whole-contract compliance/review, remediation/testing, worktree/branch delivery, UI/performance, security scanners, and producer skills are not invoked: this task authorizes one narrow source-based plan with no technical writes, tests, producer, or final qualification.
+
+```
+
+## Original independent plan refutation
+
+Source /workspace/scratch/ediel-sc037-cas-20261013/integration-plan-review/independent-plan-refutation.md; bytes 12351; SHA256 f1a0fb9011c0c37a169c67817751bb550978786c1d5c80a33f3297e22e590685. Verbatim body:
+
+```text
+# Independent read-only SC037 integration-plan refutation
+
+Review target: retained a93c caller coordination. Result: the authority sequence is source-compatible in principle for a genuine, authorized ACK original, but the plan needs one material caller-routing addition before implementation. This report is plan support, not component re-review, an authored descendant's final peer review, or whole SC037 approval.
+
+## Exact binding
+
+- Plan: `/workspace/scratch/ediel-sc037-cas-20261013/integration-support/integration-plan.md`, SHA256 `c170236ef11f5a7750282216a64096360843ebd5509c4001e3be9fa57211241c`.
+- Source pins: `/workspace/scratch/ediel-sc037-cas-20261013/integration-support/source-pins.json`, SHA256 `defe0c6281ea6f3273c7668faa7390447b3787bb904c89b75cece83515546c2a`.
+- Main: `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`; provided authenticated main, not the mutable shared remote-tracking candidate.
+- Selected public component: `7f6ce08cb76ecea551719cfc8b80c4719517b87e`, tree `9299d93141380b315869364a2cec371441dde013`. Its 87 modeled controls and two final source reviews remain attributed to PUBLIC #766/6150835060. No component tests or qualification were repeated here.
+- All 28 source-file/component postimage entries in the supplied pins matched the named local public Git objects by blob, SHA256, and recorded byte count. Authentication and the e49-to-main C3 comparison are inherited from the supplied source-pins record; e49/private successor applicability was not refreshed. The main C3 content itself was independently read and hash-checked.
+
+## Material plan gap: canonical ACK reception holds escape to queue retry/failure
+
+**Classification: confirmed P2 integration-plan blocker, not an existing switch-operation defect.** Plan lines 52–53 prescribe `createInboundEdielMessage` before the committed reader and say to preserve held/new protocol duplicates. The creator can throw `InboundReceptionHeldError`, while the real canonical ACK parent currently has no handler for this error.
+
+The actual main chain is concrete:
+
+1. `inboundStatusUpdater.ts:444–451` calls `recordInboundReception`, then `requireFirstReception`; the fresh-success path also calls this at 557–558. `receptions.ts:149–158` throws `InboundReceptionHeldError` for a held/non-first reception.
+2. `schema.sql:48420–48430` classifies a different mail bound to the same ACK as `protocol_duplicate` and commits its native response request and mail manual-review hold. A canonical-email original previously inserted without `mailbox_message_id` also cannot be silently upgraded into first reception. Same-mail genuine first-reception replay is distinct: 48414–48418 returns its retained first reception idempotently.
+3. The canonical ACK call in `edielInboundProcessor.ts:302–331` is before and outside the non-ACK `try` at 337. Its existing `InboundReceptionHeldError` catch at 371–399 therefore does not cover the newly proposed creator invocation.
+4. `edielMailboxPoller.part-2.ts:667–688` handles an uncaught exception as `processor_failed`, scheduling `retry` and eventually `failed`; a returned hold/manual-review outcome is instead finalized as `manual_review` at 672–675.
+
+**Trigger and impact:** a negative ACK's newly observed protocol duplicate, or an unqualified preexisting canonical-email original, reaches the proposed creator. A literal implementation of the listed steps throws before committed reading, issuance, or projection. The native mail hold remains, but the processing job is routed as a generic failure and repeatedly retried instead of yielding the intended held/manual-review result. This is a caller compatibility omission beyond the already known unsafe negative patch and committed early returns.
+
+**Bounded correction for a93c:** explicitly catch the creator's `InboundReceptionHeldError` inside the retained `applyCanonicalInboundAckStatusUpdate` boundary and return a manual-review/held outcome with an explicit hold reason and existing source selector. Preserve the genuine held reception; do not invoke the resolver, issuer, committed projection, old bulk diagnostic update, or negative task/event creation after this error. Other errors retain their security/error semantics. This fits the two retained files and requires no C3/parent/poller custody change. Do not extend the non-ACK parent duplicate-103 responder to ACKs without its separate actual family/source authority.
+
+The retained owner should later assert this behavior through the actual canonical-email entry and its queue consumer; this report did not construct or run such a test.
+
+## Wording precision: missing authority is conditional on the protected read
+
+Plan line 58 is correct when read literally: `persistInboundAck` and `updateOutboundAck` do not themselves invoke canonical validation or committed source apply. `edielInboundProcessor.ts:251–256,302–331` supplies a real parse ID, actor, and environment, but the canonical email invocation ends without that validation/apply chain.
+
+However, the actual mail-engine owner subsequently can supply those facts. `edielMailboxPoller.part-3.ts:87–91` first executes canonical mail jobs, then 108–127 obtains their persisted message IDs and calls `processInboundEdielMessage`. The generic owner invokes its real resolver and same-invocation ledger at `inboundProcessing.ts:364–379,1100–1105`, then calls `processInboundAckMessage` at 1256–1261; the latter uses protected original selection and atomic source apply at 185–206,629–634.
+
+Therefore, do not generalize the plan's statement to “mail ingestion never produces a receipt.” Precise wording is: **“When the protected committed reader returns no receipt for this ACK, email persistence alone is insufficient; the bounded genuine validation/issuer path is required. A prior successful generic pass may already have supplied an exact receipt, in which case use only the projection route.”** A later generic invocation cannot supply authority synchronously before a new operation inserted into the current canonical-email call. Nor is eventual success established merely because that later caller exists; its source and actor gates still apply.
+
+The same distinction applies to the third public main/e49 C3 mapping. Its direct creator/status-updater path does not itself run the canonical ledger/issuer; a separate actual owner may already have done so. Third-caller source writes and handoff remain ce073's responsibility.
+
+## Source/authority compatibility observations
+
+- The genuine creator binds actual mail/parse/raw/environment and current WRITE actor, loads actual receipt time, and preserves first-reception/duplicate gates. The database owns `receivedAckContext` at insert (`schema.sql:1028–1037`) and forbids later context backfill (1021–1027). No invented private context is needed or permitted.
+- The suggested real resolver API is compatible. For ACKs it reads the protected sent-original rule-pack owner (`runtimeDecision.ts:1067–1097`; `ackSourceRulePackEvidence.ts:24–33`) and can produce accepted ACK-document syntax/application/function facets independently of the ACK's negative business outcome. Missing/invalid source evidence remains manual review. Same-invocation `recordReceivedSourceValidation` needs the actual original and exact decision, requires the born context and valid rule-pack witness, and returns recorded/unconfirmed rather than manufactured success (`receivedSourceValidationEvidence.ts:24–64`; ledger 23–57).
+- Protected source apply independently demands current WRITE actor, authentic born source, accepted validation assessment and unique sealed sent original (`schema.sql:410–440`), then retains the immutable correlation/result. The bounded fresh port must reuse these protected ports, not call either complete business processor. The projection route begins only after a validated exact committed read.
+- The deferred creator import avoids the direct eager canonical-email-to-C3-to-canonical-email cycle: public C3 imports `OUTBOUND_BUSINESS_RESPONSE_STATUSES` from canonical email at line 3. No proposed port requires a call back into `processInboundEdielMessage` or `processInboundAckMessage`. This is source-path inspection, not a bundler/runtime execution proof.
+- The plan correctly confines switch authority to exact negative/whole rejection with sourceAccepted false, actual current actor, exact ACK/source hashes/company/environment and complete unchanged `select('*')` preimage. Parser/matcher hints, partial/legacy summaries and READ success cannot authorize fallback switch writes. Preserve `failed` versus `rejected` conventions and surface stale/refused/not-applicable outcomes; the component's own transaction owns its event. These are compatibility observations, not renewed qualification of the component.
+- The separate public `6d80d3bd079e0f7eca65768202f3b60394176fc9` original-dispatch leaf remains separate. Main's `apply_before_committed_replay_v1` prosrc hashes to its required old preimage `411317aec4133e8b580331c5202264c29de10fe31bc0330e7236d99a03c9e692`, with exactly one retained replacement anchor. This proves the selected public leaf's textual dependency matches pinned main; no migration/test was applied or run and no whole-branch adoption follows. The new switch projection cannot repair original dispatch status by itself.
+
+## Supplementary public-source pins
+
+All main rows below use `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`; all leaf rows use public `6d80d3bd079e0f7eca65768202f3b60394176fc9`.
+
+| Revision | Path | Blob | SHA256 |
+|---|---|---|---|
+| main | `lib/ediel/core/runtimeDecision.ts` | `3d87b3d7316a7d36f5931f50a4b9e69627cec2dd` | `d0f6be4c7fc8b84d5c1fccc43896bc5fd376e0b8c92e30d3b96452e1a14e11b3` |
+| main | `lib/ediel/core/ackSourceRulePackEvidence.ts` | `a15ad815d4e73e22425d87be44cad4de1de548b0` | `61ef75cb0a9fd1d526fe3d69d9cd274ea24d60011b5284864f27f7f9cd13d85d` |
+| main | `lib/ediel/rulebook/canonicalRulePackRegistry.ts` | `3681bb52efa59209447b520e69f4003cb042cc39` | `9108db82514ee36b40fb6376dc1560dec4901de89a9d479788ddda8fffc49470` |
+| main | `lib/ediel/prodat/receivedZ14ReportingContext.ts` | `b33d99f7a2eadd9862d310e5588c874ff020f1d6` | `a612619c003929f50958476bae5ac912a66c8e3834d11d9172929268310e5599` |
+| main | `lib/inbound-mail/edielMailboxPoller.part-2.ts` | `23817537d4b362d34eee4f77a2ba6c7334558387` | `526a837c8ff789c697256125a40fc9cc400c85904ba91b708243e41d60e3056d` |
+| main | `lib/inbound-mail/edielMailboxPoller.part-3.ts` | `f660a7512d3939e0bfd8361f28dc2b98949f3735` | `a74090c31e69ed0e1fbeac3d4b8ec4011f1e7e8fc3f123af8438a9209c4cc07e` |
+| leaf | `supabase/migrations/20261013133852_sc037_late_ack_confirmed_dispatch.sql` | `b275f5e852a2b09564dbc8f8ba4e5295176b9d83` | `05307f9bd208ad31be393bd506b21e9c58445b4f3e85d6d0422086abf0df724b` |
+| leaf | `__tests__/ediel-sc-037-confirmed-dispatch-late-ack.test.ts` | `30ad8e4afadeb76bbd2c1fb6aefe1a8981cbad7f` | `9ebc7335af4a5e65d9d722e6d0283bb99a39f3b1e5fa1ebc17160e5cd5b3b7e8` |
+
+## Verification and limits
+
+Executed only read-only Git show/grep/rev-parse/diff/status and in-memory pin/prosrc hashing, plus managed-environment status. Repository status/diff were clean at inspection. No source, test, fixture, proof, checkpoint, configuration, ref, claim, custody, database, native/backend, GEN, CI, collector, log, ZIP, private publication, SMTP, or board action was performed. Only this report was saved outside the repository; neither plan nor source pins were modified.
+
+Skill routing: applied repository code-review for caller/design compatibility and verification-before-completion for fresh exact-source/report checks; Supabase and cloud-environment-runtime for the service-RPC/current-actor and managed-runtime boundaries. Equivalent direct caller/source tracing was used for the suspected routing defect; fp-check's security-vulnerability workflow was not activated for this non-security plan omission. Whole-repository audit, source authoring, implementation planning/testing, worktrees/delivery, UI/performance, producer/scanner workflows and additional delegation were outside this narrow scope. No claims of passed runtime integration, full RLS/concurrency, current795/private successor compatibility, activation, LK/native proof or whole SC037 acceptance follow.
+
+```
+
+## Original exact public-source pins
+
+Source /workspace/scratch/ediel-sc037-cas-20261013/integration-support/source-pins.json; bytes 17735; SHA256 defe0c6281ea6f3273c7668faa7390447b3787bb904c89b75cece83515546c2a. Verbatim body:
+
+```text
+{
+  "kind": "read_only_integration_plan_source_pins",
+  "observed_at_utc": "2026-10-13T17:20:54.681824+00:00",
+  "main": {
+    "commit": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+    "tree": "e3b6c11677a2b871a128504f1616def7d22dba1e",
+    "parents": [
+      "95d8d160491e79b172342654d8dc643346758105",
+      "fba453cc7cc9de8a26ec75d29248e1733316fcd1"
+    ],
+    "authentication": "GitHub connector GET git/ref/heads/main returned exact d798; not local remote-tracking ref"
+  },
+  "component": {
+    "commit": "7f6ce08cb76ecea551719cfc8b80c4719517b87e",
+    "tree": "9299d93141380b315869364a2cec371441dde013",
+    "technical_commit": "cb643da002924b726c2bdc7be606342988f88154",
+    "selected_postimages": [
+      {
+        "revision": "7f6ce08cb76ecea551719cfc8b80c4719517b87e",
+        "path": "lib/ediel/ack/switchRequestAckTransition.ts",
+        "blob": "82d0dcf351631ec344d426c56b4bf9aa9327c6e3",
+        "bytes": 4834,
+        "sha256": "574abe3b80f157960386fd644a1600c1c86f5011e60aae9d6d57de0d4c81b7f3",
+        "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/7f6ce08cb76ecea551719cfc8b80c4719517b87e/lib/ediel/ack/switchRequestAckTransition.ts"
+      },
+      {
+        "revision": "7f6ce08cb76ecea551719cfc8b80c4719517b87e",
+        "path": "__tests__/ediel-sc-037-inbound-ack-switch-transition.test.ts",
+        "blob": "d06064ac9e0b5f6984d8b90aa41c596b6365e0b9",
+        "bytes": 33429,
+        "sha256": "4e9dba5fb220286c5aa79148efe0fb32e3f268b82ad6d5120ae99b876ccf0b89",
+        "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/7f6ce08cb76ecea551719cfc8b80c4719517b87e/__tests__/ediel-sc-037-inbound-ack-switch-transition.test.ts"
+      },
+      {
+        "revision": "7f6ce08cb76ecea551719cfc8b80c4719517b87e",
+        "path": "supabase/migrations/20261013155649_ediel_ack_bound_switch_transition.sql",
+        "blob": "62efe4d827ab6661fc5b39dd4b701c2c40e7619c",
+        "bytes": 16003,
+        "sha256": "b1583cbebee3228b48cd920cd8e683bef05e69ee7c152c9e7fa31c793dc96b9d",
+        "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/7f6ce08cb76ecea551719cfc8b80c4719517b87e/supabase/migrations/20261013155649_ediel_ack_bound_switch_transition.sql"
+      }
+    ],
+    "authentication": "GitHub connector GET git/commits/7f6ce matched exact commit/tree/ordered parent"
+  },
+  "separate_original_status_dependency": {
+    "commit": "6d80d3bd079e0f7eca65768202f3b60394176fc9",
+    "tree": "f68c79a26c9ad9bb294fcfd4cc04be0a29f412e3",
+    "retained_owner": "a93c",
+    "not_adopted": true
+  },
+  "source_files": [
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "AGENTS.md",
+      "blob": "44932b8be0d4a3a861e4b9a46e7956d10335516e",
+      "bytes": 17130,
+      "sha256": "26d1c4a4a61c01bb48649e985a6df0ad1fd65ef06a08e488c1f5476226f21b81",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/AGENTS.md"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": ".agent-memory/README.md",
+      "blob": "8de6806460bebfabe83fe540dbef307142ce6fa6",
+      "bytes": 2025,
+      "sha256": "dfadff5de1070f272e959cf73eb9a2c9a68c3931e2175fbc89fa9c866049afbb",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/.agent-memory/README.md"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": ".agent-memory/masterplan-current-start.md",
+      "blob": "c4d743677b24205d43603380a72f8c12ab6dab08",
+      "bytes": 1887,
+      "sha256": "0044ed3ba4ea985862e78b13636558a48ffd47029d0b1fd8ce3195c53ddbec9d",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/.agent-memory/masterplan-current-start.md"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": ".agent-memory/masterplan-agent-workflow.md",
+      "blob": "1c5bf878f6cdbf8ee3d4828f63760ca759727556",
+      "bytes": 4170,
+      "sha256": "c3473667c819f879699edbec29b1160367ffe10ad9b6b35505d3e15e61e4bd5d",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/.agent-memory/masterplan-agent-workflow.md"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": ".agent-memory/masterplan-five-agent-baseline-20261012.md",
+      "blob": "4a87c73af9e6ea9710a187ff0d76283bccaf108e",
+      "bytes": 1015,
+      "sha256": "64ec164f3d70730cb02ede86c7147ac237f630c665bb6f3ee88a13119dcb5d10",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/.agent-memory/masterplan-five-agent-baseline-20261012.md"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": ".agent-memory/masterplan-five-agent-prompt-20261012.md",
+      "blob": "b2017715063c218b1741a863c23c13c5d3f31212",
+      "bytes": 3775,
+      "sha256": "9b98ba913fbd0b865e9e1a7ae0ab3776f2249dfcc6f117d1bfcb2b3d1640a054",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/.agent-memory/masterplan-five-agent-prompt-20261012.md"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": ".agent-memory/masterplan-five-agent-transition-20261012.md",
+      "blob": "fd311fb7182f83f9e9cd969aca8f50bb7253da27",
+      "bytes": 766,
+      "sha256": "17a3e54fbcee81eb1c7e1584b12341863772dac05c7b87b327b0537284c2f66a",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/.agent-memory/masterplan-five-agent-transition-20261012.md"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": ".agent-memory/masterplan-reservations.md",
+      "blob": "1ca4b434c87c5a52278f4e8fa5f6e5b907117e79",
+      "bytes": 6068,
+      "sha256": "830c4e4da5d1cbed2beedbcbeae96e9ca3584f409cb26abd1d60c77a305f005d",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/.agent-memory/masterplan-reservations.md"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/ediel/flows/inboundAckProcessing.ts",
+      "blob": "c5aee26bd5fc281c2de5a749794ce3d1b344e0d2",
+      "bytes": 25083,
+      "sha256": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/ediel/flows/inboundAckProcessing.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+      "blob": "a6e87f4dd718b8a377372f645d30e1562f4bcc77",
+      "bytes": 15082,
+      "sha256": "46ffcae646308bda20efcab6fd0b13beed8b1f1af0793ddcc416ee3492261f6b",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/inbound-mail/canonicalInboundAckStatusUpdater.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/inbound-mail/inboundStatusUpdater.ts",
+      "blob": "8ae5df1d9907a7c90a37572cc226c16714ee063e",
+      "bytes": 56940,
+      "sha256": "3d582e8bff449bf657ec84574ddf5fcccf19a6b291f9923ab2a01d7f29154196",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/inbound-mail/inboundStatusUpdater.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/ediel/ack/committedInboundAck.ts",
+      "blob": "51ec84a1bd2516a4d596ab77be0912715db7c4c0",
+      "bytes": 3657,
+      "sha256": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/ediel/ack/committedInboundAck.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "blob": "86242cab00519ced855d900a37329074d587be51",
+      "bytes": 73133,
+      "sha256": "e617ce5f322e220b8fec7448fc2e9faec33710be6cdb65b86d8a5f763d283e4f",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/ediel/flows/inboundProcessing.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/inbound-mail/edielInboundProcessor.ts",
+      "blob": "9e606c7b44ce7e00c548bedca41e76006837e03f",
+      "bytes": 19047,
+      "sha256": "a3a6fa3a421b2c0b81b9fe7d0bb1ffb4aa328fc5e4847e991154a03da273ad9e",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/inbound-mail/edielInboundProcessor.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "blob": "9e10ac7e2c3dcba021ddbe191a50ff5b26455abe",
+      "bytes": 11963,
+      "sha256": "3446840314ab8ae6d1f0f9d3c2baf711656cc8c0b9777ad5cd48f0709f469f40",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/ediel/core/receivedSourceValidationEvidence.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "blob": "45aa5d107c776df557f6f5b397c2ae75fc613ecf",
+      "bytes": 6095,
+      "sha256": "df98572339726111c2e426ac39e4286b211e3597f32bc66c22980a35e8877789",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/ediel/core/receivedSourceValidationLedger.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/ediel/inbound/receptions.ts",
+      "blob": "13a7a6615653ef286e6fc91a4fe1dfc537445817",
+      "bytes": 7470,
+      "sha256": "1e5647867da934101244bee7f8c982573eccdae1077b641cfe86f74b7f42e167",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/ediel/inbound/receptions.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/ediel/flows/shared.ts",
+      "blob": "9f14a26a319a11fd2a0c41786209bf9770cd943d",
+      "bytes": 12333,
+      "sha256": "e555e45fee1762e2b19cba794354207ae170f62f7f49230f06ca31f815f74f49",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/ediel/flows/shared.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/ediel/operationalBridge.ts",
+      "blob": "bc229b655923761e458dab5865fdb1e74559a493",
+      "bytes": 7569,
+      "sha256": "d72e8644791d1d0aec36cc61932759671f0a2e9f8141db9cc99f2a45fe233a62",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/ediel/operationalBridge.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "lib/operations/types.ts",
+      "blob": "e8aa77d6e5646092c062291f578d242fdef7d0ea",
+      "bytes": 7025,
+      "sha256": "598065b7206119a35895e8a776c594fdb229b5f9f0bfaa04bf8c1fef5a359b16",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/lib/operations/types.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "supabase/schema.sql",
+      "blob": "306dc80578fd60590ee5b6f3a13fa5bb66898418",
+      "bytes": 11819961,
+      "sha256": "0a9a8e147f94a03c62870a39e363a60567e22fa6e91196ccef6b41795372c559",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/supabase/schema.sql"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "blob": "2108c9c297457c288364b9ed669809aedd21e21e",
+      "bytes": 91487,
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/docs/ediel/masterplan-v2/registers/rules.json"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c",
+      "bytes": 150753,
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/docs/ediel/masterplan-v2/registers/acceptance_tests.json"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
+      "blob": "43241276379767b9a9300d3f40c23e10925689ce",
+      "bytes": 4387,
+      "sha256": "0ea477f9bddb75a4cbbc1286a845f52c3f69a7aaf2f04cfd7693931ea0015426",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/__tests__/ediel-sc-036-late-ack-after-z04.test.ts"
+    },
+    {
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "__tests__/ediel-committed-inbound-ack.test.ts",
+      "blob": "8b56263d8e27cf24da8e9d32924c504cacb45dfb",
+      "bytes": 5395,
+      "sha256": "45f66682c6b348432d98296f1291d3e367264ab9b03b5dec27b25de86b8d36e8",
+      "immutable_url": "https://github.com/heke99/gridex-ops-platform/blob/d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/__tests__/ediel-committed-inbound-ack.test.ts"
+    }
+  ],
+  "public_c3_comparison": {
+    "revision": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+    "path": "lib/inbound-mail/inboundStatusUpdater.ts",
+    "blob": "8ae5df1d9907a7c90a37572cc226c16714ee063e",
+    "sha256": "3d582e8bff449bf657ec84574ddf5fcccf19a6b291f9923ab2a01d7f29154196",
+    "matches_main_byte_for_byte": true,
+    "method": "authenticated GitHub contents fetch; in-memory Python exact unified diff was empty",
+    "private_successor_applicability": "unknown; no private source read"
+  },
+  "board_receipts": [
+    {
+      "id": 6149512642,
+      "url": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149512642",
+      "body_sha256": "5651165ef0e8cd42bc13157be71da96f00758a7c4aacf9b756f2d8867027791c"
+    },
+    {
+      "id": 6150835060,
+      "url": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6150835060",
+      "body_sha256": "adc6193d913673ef98ef9427b1609403f07ef0582325e81677edf6e7d379662b"
+    },
+    {
+      "id": 6148045546,
+      "url": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6148045546",
+      "body_sha256": "8cbeb6d056dfa357c52704da7b57e22c2846fb84b95bbd58091a9f24ded1a506"
+    },
+    {
+      "id": 6148342225,
+      "url": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6148342225",
+      "body_sha256": "43fb3ffb374b8fd73bb187bde4a80e329285724c3c561923ed88d69f5c4ae9da"
+    }
+  ],
+  "frozen_requirements": [
+    {
+      "id": "P-11",
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "row": {
+        "id": "P-11",
+        "area": "Z03/Z04",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z03/Z04 av typen L eller LK",
+        "trigger": "Bekräftelse av byte eller flytt",
+        "condition": "Kontrollera rätt objekt, parter, LI, undertyp och datum. En giltig Z04 kan komma före positiv APERAK.",
+        "on_pass": "Registrera bekräftad framtida leverans; aktivera vid rätt tid om ärendet fortfarande är giltigt.",
+        "on_failure": "SMTP250, CONTRL, APERAK och Z02 räcker inte för aktivering. Sena kvittenser får inte backa ett giltigt affärstillstånd.",
+        "callsite_owner": "prodatLifecycle / supply period service",
+        "source": "P §3.2; HB kap.4",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-P-11"
+      },
+      "row_sha256_utf8_compact_json": "fd677eb0ec598a39836915320b9cbf56789ca4a0cf4024e3c093f8e349ff3b07"
+    },
+    {
+      "id": "SC-037",
+      "revision": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "row": {
+        "id": "SC-037",
+        "name": "Leveransstart ligger i framtiden",
+        "given": "Ett korrekt Z04 har mottagits med ett framtida startdatum.",
+        "when": "Kör aktiveringsjobbet före och vid starttidpunkten.",
+        "expected": "Ingen förtida aktivering. Endast rätt, fortsatt giltiga period aktiveras vid rätt start.",
+        "prohibited": "SMTP-acceptans eller en teknisk kvittens får inte tidigarelägga startdatumet.",
+        "rule_ids": [
+          "P-11"
+        ],
+        "layer": "Integration/E2E",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "row_sha256_utf8_compact_json": "b375a2619fbddaa9405e0dbf767b15e14574bcc31a484ab089e4de696166cfac"
+    }
+  ],
+  "scope_limits": [
+    "no technical repository writes",
+    "no claims/resources/refs/handoff request",
+    "no backend/native/GEN/tests/originals/logs/artifacts/ZIP/SMTP",
+    "no component or descendant final qualification",
+    "no whole SC037/coverage approval"
+  ]
+}
+
+```
+
+## Documentation setup observation note
+
+Source /workspace/scratch/ediel-sc037-cas-20261013/integration-support/support-doc-assembly-setup-note.md; bytes 507; SHA256 e4bfdbab40b24ccb54faa8b71ef6f081fac69d060176de1bae6fc744aa2603c8. Verbatim body:
+
+```text
+The first documentation-assembly command failed during Python parsing before any statement executed: `SyntaxError: bytes can only contain ASCII literal characters`, at the em dash in a bytes-literal history heading. No repository write, stage or commit occurred. The successful replacement uses UTF-8 encoded text for headings and separately verifies the exact clean 49ab preimage before writing. This was documentation setup, not a test/native/GEN failure; no original initial-controller hash is asserted.
+
+```
+
+---
+
+## Complete unchanged prior checkpoint — historical support/source versions
+
 # BRP dated-history proof component
 
 2026-10-13 14:51 Europe/Stockholm. Owner `codex-ediel-brp-history-helper-20261013`; branch `codex/ediel-brp-history-helper-20261013`; actual base `efed3683115c06d1925f8b80c05c801a54db9885`, tree `dc439c2e017a9633471db53919b745f587abb67b`. Existing linked worktree is reused; prior read-only checkpoint remains preserved at publicee3caa64. No shared-memory role or whole-ID/producer/merge custody.
