@@ -1,0 +1,1016 @@
+{
+  "schema": "ediel-source-bound-literal-contract-proof-v1",
+  "ids": [
+    "AT-Z02L-SUPPLIER",
+    "AT-Z02LK-SUPPLIER",
+    "SC-035"
+  ],
+  "frozenAcceptanceCards": {
+    "SC-035": {
+      "id": "SC-035",
+      "name": "Z02 verifierar uppgifter, inte leverans",
+      "given": "En behörig uppgiftsförfrågan kan entydigt korreleras.",
+      "when": "Ta emot ett giltigt Z02.",
+      "expected": "Lagra tillåten verifierad information och gör en separat prövning av nästa affärssteg.",
+      "prohibited": "Skapa inte aktiv leverans eller ett Z04-bekräftat tillstånd.",
+      "rule_ids": [
+        "P-10"
+      ],
+      "layer": "Integration/E2E",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    },
+    "AT-Z02L-SUPPLIER": {
+      "id": "AT-Z02L-SUPPLIER",
+      "name": "Meddelandefall Z02L",
+      "given": "SUPPLIER; Inte Z03 eller Z04; får inte aktivera leverans.",
+      "when": "Svar på egen korrelerad Z01.",
+      "expected": "23-DDQ-PRODAT; BGM=Z02; fält223=Z22; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+      "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "rule_ids": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "layer": "Planerat meddelande-/rollprov",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    },
+    "AT-Z02LK-SUPPLIER": {
+      "id": "AT-Z02LK-SUPPLIER",
+      "name": "Meddelandefall Z02LK",
+      "given": "SUPPLIER; Inte Z03 eller Z04; får inte aktivera leverans.",
+      "when": "Svar på egen korrelerad Z01.",
+      "expected": "23-DDQ-PRODAT; BGM=Z02; fält223=Z23; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+      "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "rule_ids": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "layer": "Planerat meddelande-/rollprov",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    }
+  },
+  "executedSource": {
+    "head": "2e073477c43c6a133a01710772e65cefc43f6162",
+    "tree": "fa5ab60527a40bd642749365fc275d1d4a69e277",
+    "preparedParent": "b967d45cc02b18f804b6f315aa6293217c8e5080",
+    "baseAtExecution": "efed3683115c06d1925f8b80c05c801a54db9885",
+    "epoch": "gridex-C1-b7e2fae0-native-v6",
+    "producerReceipt": "63ddbdb563b96324b47b49fbb008e6bce8010742",
+    "trackedInputCount": 9840,
+    "allModesAndHashes": "MATCH"
+  },
+  "actualSourceAdoption": {
+    "pr": 780,
+    "merge": "95d8d160491e79b172342654d8dc643346758105",
+    "orderedParents": [
+      "efed3683115c06d1925f8b80c05c801a54db9885",
+      "2e073477c43c6a133a01710772e65cefc43f6162"
+    ],
+    "tree": "fa5ab60527a40bd642749365fc275d1d4a69e277",
+    "state": "CLOSED_MERGED",
+    "mergedAt": "2026-10-13T13:22:09Z"
+  },
+  "genuineNative": {
+    "run": 38392686441,
+    "attempt": 1,
+    "job": 115280099706,
+    "artifact": 11811540157,
+    "runUrl": "https://github.com/heke99/gridex-ops-platform/actions/runs/38392686441",
+    "jobConclusion": "SUCCESS",
+    "total": 113,
+    "passed": 113,
+    "failed": 0,
+    "skipped": 0,
+    "canonicalReplay": "PASS",
+    "inputRestoration": "EXACT",
+    "backendCleanup": "QUALIFIED_ZERO_ALL",
+    "postgresImagePin": "17.6.1.155",
+    "dockerDriver": "overlay2",
+    "availableBytes": 89683656704,
+    "soleOriginalCollector": "ROOT",
+    "originalDownloads": 1,
+    "originalExtractions": 1,
+    "originalArchivePath": "quality/audits/ediel-masterplan-v2/c1-z02-v6/native-2e073477-38392686441-a1.zip",
+    "archiveSHA256": "3883679bde9dbbb7ccd69382ec2f27a72cd7a67dd0e5c39b2523590e75792856",
+    "archiveBytes": 538139,
+    "originalMemberSHA256": {
+      "receipt.json": "5139dd6b6a94bcb3252835b44f6107d57b1d9fb86dc8ee711f49b3c0c6dc62d4",
+      "native.log": "fa2503d48bec868a7e9f8880f3621c2ae2ccc6edda8d25e738cbf553c6b0b4fc",
+      "native-junit.xml": "0df2f03dc4d781aa9ff3c265c2824be04132b33a166c6ed4523a3795c65a258f"
+    },
+    "originalCreditAtCollection": "NONE; native result alone never promoted the ledger"
+  },
+  "cases": [
+    {
+      "name": "native Z02 prospective catalog evidence (not whole acceptance) > pins real current Z22 catalog witnesses without replacing admission",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native Z02 prospective catalog evidence (not whole acceptance) > pins real current Z23 catalog witnesses without replacing admission",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native Z02 prospective catalog evidence (not whole acceptance) > refuses mixed physical subtype rather than borrowing another object",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native Z02 prospective catalog evidence (not whole acceptance) > refuses Z02 register repetition even when both reasons agree",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native Z02 prospective catalog evidence (not whole acceptance) > refuses foreign application reference as physical input",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > applies genuine own Z02 before any incoming ACK, executes separate Z03 readiness, replies physically and replays without supply activation",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > accepts genuine own Z02 with field313 NA, executes separate Z03 readiness, replies physically and replays without supply activation",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 311 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 312 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 202 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 203 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 313 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 205 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 206 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 207 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 208 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 314 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 209 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 217 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 223 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 260 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 226 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 227 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 228 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 231 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 232 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 316 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 233 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 234 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission 229 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission END_USER_GROUP cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > actual physical omission INSTALLATION_GROUP cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a complete but wrong LI cannot borrow the own sent source",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a complete but wrong customer cannot borrow the own sent source",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a complete but wrong agency cannot borrow the own sent source",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a complete but wrong subtype cannot borrow the own sent source",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a different genuinely existing object cannot change either company",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a known different grid area in the same price area cannot replace the original grid",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a wrong physical legalSender cannot borrow the source namespace",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a wrong physical legalReceiver cannot borrow the source namespace",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a wrong physical transportSender cannot borrow the source namespace",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a wrong physical transportReceiver cannot borrow the source namespace",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > current supplier recipient role is required before fresh Z02, even with the correct original identity",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a genuinely known SUPPLIER issuer cannot borrow the DSO sender namespace of the own Z01",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > a genuine foreign actor cannot perform the first processing of the own received Z02",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > test source and route cannot authorize the same physical Z02 through a production mailbox",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > received raw bytes and direction reject mutation before the first business consumer",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02L proposals > the actual incoming consumer refuses the genuine outgoing original without customer or supply execution",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > applies genuine own Z02 before any incoming ACK, executes separate Z03 readiness, replies physically and replays without supply activation",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > accepts genuine own Z02 with field313 NA, executes separate Z03 readiness, replies physically and replays without supply activation",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 311 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 312 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 202 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 203 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 313 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 205 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 206 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 207 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 208 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 314 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 209 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 217 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 223 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 260 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 226 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 227 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 228 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 231 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 232 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 316 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 233 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 234 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission 229 cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission END_USER_GROUP cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > actual physical omission INSTALLATION_GROUP cannot replace verified customer/site/point, permission or supply facts",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a complete but wrong LI cannot borrow the own sent source",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a complete but wrong customer cannot borrow the own sent source",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a complete but wrong agency cannot borrow the own sent source",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a complete but wrong subtype cannot borrow the own sent source",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a different genuinely existing object cannot change either company",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a known different grid area in the same price area cannot replace the original grid",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a wrong physical legalSender cannot borrow the source namespace",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a wrong physical legalReceiver cannot borrow the source namespace",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a wrong physical transportSender cannot borrow the source namespace",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a wrong physical transportReceiver cannot borrow the source namespace",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > current supplier recipient role is required before fresh Z02, even with the correct original identity",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a genuinely known SUPPLIER issuer cannot borrow the DSO sender namespace of the own Z01",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > a genuine foreign actor cannot perform the first processing of the own received Z02",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > test source and route cannot authorize the same physical Z02 through a production mailbox",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > received raw bytes and direction reject mutation before the first business consumer",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native whole SUPPLIER Z02LK proposals > the actual incoming consumer refuses the genuine outgoing original without customer or supply execution",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > projects only exact public SQLSTATE 42702",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > projects only exact public SQLSTATE 42804",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > projects only exact public SQLSTATE 23503",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > projects only exact public SQLSTATE P0001",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > projects only exact public SQLSTATE 42846",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > projects only exact public SQLSTATE 22004",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > projects only exact public SQLSTATE 42P17",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > labels public SDK code PGRST121 separately from SQLSTATE",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > labels public SDK code PGRST303 separately from SQLSTATE",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > labels public SDK code PGRSTX00 separately from SQLSTATE",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > rejects unknown, inherited, accessor, array and proxy code without touching traps",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > preserves absent original observation authority",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > delegates every original callback with exact error identity and reports first job_insert only",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > preserves original callback exception identity",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > keeps logger failures from changing the original callback",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "native diagnostic callback probe controls > qualifies the installed probe on the actual scoped runtime factory",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "same-cohort network prefix component controls > uses the same cohort and independent reviewer, preserving source snapshots and import result",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "same-cohort network prefix component controls > stops before import when prior authority is unavailable",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "same-cohort network prefix component controls > propagates the original import error without creating a replacement source",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "same-cohort network prefix component controls > rejects a different imported network before archive",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "same-cohort network prefix component controls > requires a separate reviewer before any replacement archive",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    },
+    {
+      "name": "same-cohort network prefix component controls > rejects changed signed-source snapshots after the replacement review",
+      "classname": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "failure": false,
+      "error": false,
+      "skipped": false
+    }
+  ],
+  "wholeProofPartition": {
+    "Z02L": 43,
+    "Z02LK": 43,
+    "catalogWitnesses": 5,
+    "diagnosticAndPrefixControls": 22,
+    "controlLimit": "Only the43+43 executed business-case assertions establish whole L/LK behavior; finite controls provide supplementary diagnostics."
+  },
+  "literalEffectAssertions": {
+    "supplierIdentityAndOwnCorrelation": {
+      "source": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "lines": [
+        193,
+        201,
+        205,
+        997,
+        1004,
+        1090
+      ],
+      "proof": "Real own sent Z01 immutable source and native transport journal; own received23-DDQ-PRODAT/Z02/Z22 orZ23, actual customer/object/grid/LI/agency correspondence."
+    },
+    "verifiedStorageAndSeparateDecision": {
+      "source": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "lines": [
+        646,
+        677,
+        1004,
+        1019,
+        1090,
+        1111
+      ],
+      "proof": "Actual atomic verification/storage and subsequently executed separate readiness call, nonempty durable decision and attempts greater than0 for each L/LK andAB/NA positive. A blocked or scheduled next step is a separate decision; successful external Z03 dispatch is not asserted."
+    },
+    "physicalAcknowledgementsBeforeIncomingAck": {
+      "source": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "lines": [
+        466,
+        479,
+        490,
+        502,
+        508,
+        512,
+        1010,
+        1013,
+        1096,
+        1110
+      ],
+      "proof": "No incoming ACK prerequisite. Actual physical CONTRL/applicableAPERAK wire, reversed party tuples, original interchange/message/ACW/LI/object references and native outbox/journal; external sender is explicitly a declared SMTP double."
+    },
+    "nonActivationAndReplay": {
+      "source": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "lines": [
+        235,
+        241,
+        1062,
+        1149
+      ],
+      "proof": "Full supply-period rows, selected contract id/status/starts_at, customer activated_at and confirmationcount unchanged after separate readiness and replay. No active supply or Z04-confirmed state; does not claim snapshots of all contract columns."
+    },
+    "prohibitedEffects": {
+      "source": "scripts/ediel-at-z02-supplier-native.test.ts",
+      "lines": [
+        1165,
+        1695
+      ],
+      "proof": "Actually passed role/direction, physicalR-D omission, wrongparty/customer/object/grid/LI, source/reference/namespace, actor/environment and mutation refusals with protected effects unchanged; early refusal is attributed only to its reached stage."
+    }
+  },
+  "behaviorInputSHA256": {
+    ".github/workflows/ediel-z02-supplier-native.yml": "45df7047094a2ec7d2207a9ade6f21487999d3635851c8d15bfd9484ac3c10b8",
+    "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts": "b2278560af93c1779c3630daa2b47e2a89886d7688f08906b0b9647e1ef8149e",
+    "__tests__/ediel-z02-worker-result-preservation.test.ts": "ad664be1b37d36be6d3e0ab6ecdca744edc8bc51ee7bd09d92c933cb8a545ab4",
+    "lib/customer-operations/automation.part-2.ts": "c0fe64a8ed8e8a97355280cb8f20e09b34a0b85a07bf091a8f3a3802985e9299",
+    "lib/customer-operations/automation.part-3.ts": "cfe8b6f694247fe40fc422798dbc8cfd88f50dfdfb060aa6740ff83af8076014",
+    "lib/ediel/flows/inboundProcessing.ts": "e617ce5f322e220b8fec7448fc2e9faec33710be6cdb65b86d8a5f763d283e4f",
+    "lib/operations/businessActions/startSupplierSwitch.ts": "c95b49cb8b6370a3ee69a3af4dde93661155428c6e6861ab6deb9d4b3a83eff6",
+    "scripts/ediel-at-z02-supplier-native.test.ts": "440d69500c16a4bf41cb79139b81390dcf45a34b1f099f753f35a70be8e082f2",
+    "scripts/ediel-p-10-z02-correlation-sql-regression.mjs": "37d804c77d2cd9cf08a4e92e7391e9d2957704362c4994f6278c188e61b61897",
+    "scripts/test-ediel-p-10-z02-correlation.cjs": "bb6975b4da3e95dbc7cb180eb486a19500b85e82de56b775c153427ae328c76e",
+    "supabase/migrations/20261012231000_ediel_z02_original_grid_refusal.sql": "10bd57cc1dcb2611df82fcc05826c60c76a30323130c3f321431720ac8ba00ac"
+  },
+  "sourceApplicability": {
+    "mainAfterAdoption": "95d8d160491e79b172342654d8dc643346758105",
+    "entireMainTreeEqualsExecutedSource": true,
+    "successorScope": "Only3 acceptance status/evidence rows, this proof, bytecopy original archive and uniquecheckpoint. All executed product, assertions, SQL, generated schema/types, runner/workflow and frozen criteria remain exact. New metadata is not claimed to have existed in the executed9840-input map.",
+    "newNativeRequired": false,
+    "newGENRequired": false,
+    "allOtherIdsUnchanged": 349,
+    "allRulesUnchanged": 121,
+    "frozenGlobalLedgerMetadataUnchanged": true
+  },
+  "existingIndependentBehaviorReviews": [
+    {
+      "reviewer": "c1_final_a",
+      "sha256": "4fb2d637cddb38c37643a2fd506a0d02cbf5b49608cfe8b3525eaf37dab1535c"
+    },
+    {
+      "reviewer": "c1_final_b",
+      "sha256": "19a39e6d4b4aeb38da7e39b2f9bc0d41b77290ad987c7abc564fbc0e1154631a"
+    }
+  ],
+  "deliveryGates": {
+    "executedSourceChecks": {
+      "total": 44,
+      "success": 33,
+      "qualifiedConditionalSkipped": 11,
+      "CodeRabbit": "SUCCESS"
+    },
+    "metadataSuccessor": "Requires two independent final exact-head/source/base/tree reviews and its own current mandatory checks plus normal serial main merge; candidate ledger is not actual-main credit."
+  },
+  "limits": [
+    "Synthetic actor/legal/registry/mail/PDF premises are declared GIVEN checked by actual native owners, not authentic issuer or counterparty approval.",
+    "External SMTP/provider is a declared port; physical code bytes/journal are proven, external market/LIVE evidence NOT_PROVIDED.",
+    "SC035 existing tagged CJS covers correlation mechanics only; the unchanged genuine four positive L/LK×AB/NA cases additionally establish actual separate-decision/storage/nonactivation behavior.",
+    "No approval of Z01/Z03/Z04/C/H/ESCO/other cards or release of legal/provider/LIVE boundaries.",
+    "Neither original native result nor future metadata is relabelled as another execution."
+  ]
+}
