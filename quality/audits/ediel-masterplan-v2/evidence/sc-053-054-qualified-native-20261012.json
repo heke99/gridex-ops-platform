@@ -1,0 +1,216 @@
+{
+  "scope": "SC-053 and SC-054 frozen literal implementation acceptance; market/provider/legal/LIVE remain separate",
+  "source_base": "94d39dfb53d3adc537f2d63bfd8b0f3425a87bb6",
+  "custody": {
+    "row_receipt": "9ff9d69fae8dc8b614346a3761f37dfd7040120e",
+    "coverage_writer": "f99cda54522f0832df332adde8d7d23f3108bf80",
+    "claim": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6134468364"
+  },
+  "published_qualification": {
+    "sha256": "77933be052992fd788be69fa2aeacd1198914c7a94bce03f0b9370e9584bf1f1",
+    "sole_original_collector": "codex-takeover-R1-20261012",
+    "new_original_collection": false
+  },
+  "contracts": {
+    "SC-053": {
+      "frozen_card": {
+        "given": "En observation saknas och representeras enligt profilens NULL-regel. En annan innehåller ett verifierat nollvärde.",
+        "when": "Lagra data och bygg behörigt underlag.",
+        "expected": "Skilda värde- och kvalitetsrepresentationer; ingen automatisk nollifyllnad.",
+        "prohibited": "Mätarställning, energi och effekt får inte blandas ihop.",
+        "rule_ids": [
+          "U-09"
+        ],
+        "layer": "Integration/E2E"
+      },
+      "native": {
+        "source": "77020ad74d31cbcf58b3b207dfd7252da34f1953",
+        "tree": "acbea4dfe2b10218ad7826dd23dc23e939c4a2cb",
+        "run": 38280585475,
+        "attempt": 1,
+        "jobID": 114916623208,
+        "artifactID": 11761082716,
+        "zipSHA256": "ca270cdd071d3d7e2f93f1e8a875bbeec2b65b8bb15c169a2f2a4de534da16b6",
+        "actualTests": 10,
+        "passed": 10,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "nativeExit": 0,
+        "immutableInputs": 9771,
+        "allModesBlobOIDsSHA256Match": true
+      },
+      "executed_native_source": {
+        "path": "scripts/ediel-sc-053-null-zero-native.test.ts",
+        "sha256": "9ec366263f9c0f0dd8cf39d0addf88ba964eb4cd4169e74556131e7def83174c"
+      },
+      "run_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38280585475",
+      "asserted_effects": [
+        "NULL/46 and verified 0/21 persist/read separately through actual authorized series projection; no automatic zero-fill or consumption of missing quarter.",
+        "Seven native RPC forgery negatives: swapped/dropped qualities, missing↔verified/zero, energy→QTY220/QTY42; no rows/disposition/ACK effects.",
+        "Genuine QTY42/KWT power is a separate series; QTY42 in KWH fails before persistence/positive ACK."
+      ],
+      "source_anchors": {
+        "storage_and_authorized_underlay": 97,
+        "forged_quality_and_type_negatives": 169,
+        "power_separation": 210,
+        "wrong_quantity_unit_refusal": 235
+      }
+    },
+    "SC-054": {
+      "frozen_card": {
+        "given": "UTILTS-transaktionen är korrekt men databastransaktionen misslyckas.",
+        "when": "Pröva skapandet av kvittensjobbet.",
+        "expected": "Ingen extern positiv APERAK före beständigt genomförd, föreskriven affärsbehandling. Fel och tidsfrist bevakas.",
+        "prohibited": "Enbart köstatus får inte betraktas som lagring i mottagande applikation.",
+        "rule_ids": [
+          "U-14"
+        ],
+        "layer": "Integration/E2E"
+      },
+      "native": {
+        "source": "5d479b872ad9d523de99230532b9316dbcd871c1",
+        "tree": "f30c4eb8222ed9d458a1e5cad4f48a6f748bb703",
+        "run": 38282156510,
+        "attempt": 1,
+        "jobID": 114921762010,
+        "artifactID": 11762990482,
+        "zipSHA256": "137455918eb069e92effdff126c651a8f3301024cbf1a11510971b418a47af00",
+        "actualTests": 1,
+        "passed": 1,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "nativeExit": 0,
+        "immutableInputs": 9780,
+        "allModesBlobOIDsSHA256Match": true
+      },
+      "executed_native_source": {
+        "path": "scripts/ediel-sc-054-storage-failure-native.test.ts",
+        "sha256": "36f09b56f4ee75684b318c48f8e347fb3c20f5cf14378726c99b38ae5a3ab545"
+      },
+      "run_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38282156510",
+      "asserted_effects": [
+        "Actual source-scoped trigger raises 53100 after transient series exists; actual transaction rolls back series/values and positive ACK binding.",
+        "No business APERAK/UTILTS_ERR/outbox on failure; real SQL authority rejects failed source and pending/failed planned-positive reservations as storage.",
+        "Durable retryable journal/open deadline; controlled production sweep expires real timer/emits source error; foreign source/journal/timers unchanged.",
+        "Fault removal stores same source and binds positive DOC/E66+ACW response to actual reservation/disposition/send authority; history and replay stable."
+      ],
+      "clock": {
+        "received_at_literal": "2026-10-15T20:00:00Z",
+        "hosted_junit_timestamp": "2026-10-12T17:23:26.896Z",
+        "deadline_minutes": 30,
+        "actual_case_seconds": 4.294740635,
+        "sweep_now": "dueAt-15min then dueAt+1sec passed explicitly to production function",
+        "true_elapsed_database_clock_proved": false
+      },
+      "source_anchors": {
+        "source_scoped_database_failure": 105,
+        "rollback_and_ack_absence": 153,
+        "queue_is_not_storage": 164,
+        "durable_failure_and_deadline": 179,
+        "controlled_production_sweep": 191,
+        "same_source_recovery_and_authority": 203
+      }
+    }
+  },
+  "current_applicability": {
+    "reviewed_main": "f1cc4e7dad153c2229ea984659a9d87ca68b2849",
+    "source_base": "94d39dfb53d3adc537f2d63bfd8b0f3425a87bb6",
+    "delta": "#791 changes only ten disjoint documentation files",
+    "relevant_source_paths": {
+      "scripts/ediel-sc-053-null-zero-native.test.ts": "9ec366263f9c0f0dd8cf39d0addf88ba964eb4cd4169e74556131e7def83174c",
+      ".github/workflows/ediel-sc053-native.yml": "d5c25abcee97c45da479a641e66d0930e77a08f4fc1ed1483447d281cf6c7a9b",
+      "package.json": "241f6cc84f581ec3acac22d970add3c9646e74603bac4a86d895e8864cbefa9c",
+      "package-lock.json": "8bf0aca13c2f57d92db355bda81f38e526b3bd50a33db7859d272daad8d9f5c5",
+      "lib/ediel/utilts/transactionPersistence.ts": "7c0089d2b4018c9d04039bfeeb04e28f3c290d5605538614b7ddb89f017b675c",
+      "lib/ediel/utilts/quantityUnitScope.ts": "b8c62c1eb9748272ae92b0cd05e8ccfc8ae7763bf07a5be11f59a77343cc7265",
+      "lib/ediel/utilts/qualifyReceivedStructure.ts": "cb827de89ced19d8dfd089b6c4173b4947408d81ff52f9d29f526a16ab7ef348",
+      "lib/ediel/services/projection.ts": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+      "lib/ediel/sla/checkAckDeadlines.ts": "c8c5944feb85c5c73f369e4345ace928bf22327836f3013a1d226a9d5377fa2f",
+      "lib/ediel/utilts/positiveAckAuthority.ts": "abd8f3fe9b88d8ed6eaec062e67cf89ebf96984b08cb1dfdcdc998a97c3f959b",
+      "lib/ediel/core/kernel.ts": "3273e28234a17da8da4bd0d0326b22d14a9ec7cb361ccf34d4391e013167a931",
+      "lib/ediel/flows/inboundProcessing.ts": "438927f3cc78fcd696b0978d45a9a6e5d9e9c14814a5035d385f82634b68b344",
+      "lib/ediel/transport/inboundProcessor.ts": "1692dd4b7d61439554039160a3bd30561ac7e77ce0dbafcb3b666fc2146f8ad0",
+      "supabase/database.types.ts": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
+      "scripts/ediel-sc-053-null-zero-native.config.ts": "51bd7183975d0c9b38de1cc558ce13b6552471f2766078fad4a325f8acdcc5e1",
+      "scripts/ediel-sc-054-storage-failure-native.test.ts": "36f09b56f4ee75684b318c48f8e347fb3c20f5cf14378726c99b38ae5a3ab545",
+      ".github/workflows/ediel-sc054-native.yml": "bb7ea54eb195739a5cfd2acce91cdb346e44280276c139d04152043419ed96da",
+      "scripts/ediel-sc-054-storage-failure-native.config.ts": "a76d34ee512b57e79cd6bbf978c4b0d8fd2207c67f5135bb1321c7d97947bd10"
+    },
+    "schema_sha256": "ced195d0f8af67b8a400ba71c2eca110cbcd639a0dba880d19e7dccff7a14492",
+    "persistence_finalize_positive_ack_functions": 14,
+    "function_bodies": "Exact reviewed bodies preserved by byte-identical schema from f1cc to current source base",
+    "SC054_changed_adapter": "SC053 added own quality/null and positional NULL readingAt. SC054 non-NULL QTY136/KWH+STS7 avoids the new NULL-position, QTY42 and repeated-STS8 branches; rollback/storage authority/journal/timer boundaries are preserved. Old packet is not execution of the new raw_transaction shape.",
+    "review_receipts": {
+      "A_SC053": {
+        "sha256": "e6c6ed680bf8a4b396eabaa6c1db0f9e38bc48a8153625a78f02f2458330180b",
+        "noncoauthor": true,
+        "base": "36504d0f9022eac60a1d27475d9e7015e0b4fe47"
+      },
+      "A_SC054": {
+        "sha256": "8a54d9026f1b81caf5f3096463bfcb3ee03dd1d09c3e15e0a48cbd30452fc3c7",
+        "noncoauthor": true,
+        "base": "36504d0f9022eac60a1d27475d9e7015e0b4fe47"
+      },
+      "B_current_applicability": {
+        "sha256": "f8de1f8f88bee39337b583a06cd914b05904660a96a68300f2f12ef20ba8599e",
+        "noncoauthor": true,
+        "base": "f1cc4e7dad153c2229ea984659a9d87ca68b2849"
+      }
+    },
+    "review_scope": "Existing literal/source applicability reviews precede this concrete ledger proposal; final exact-head proposal approvals remain mandatory."
+  },
+  "preserved_limits": [
+    "No explicit post-cleanup restoration/all-Docker-zero attestation in either old packet; canonical transforms checked before replay, before native and after native.",
+    "Physical sources/upstream transport are synthetic; market/provider/legal/LIVE approval absent.",
+    "SC054: injected production-sweep now, no elapsed30-minute DB-clock/scheduler proof; downstream billing mocked, remote SMTP unobserved.",
+    "SC053: authorized series underlay and no type mixing; full billing and native positive QTY220 storage unclaimed.",
+    "No extra frozen criterion, current-head native execution or other whole-ID approval is inferred."
+  ],
+  "proposal": {
+    "only_changed_contract_ids": [
+      "SC-053",
+      "SC-054"
+    ],
+    "prior_approved": 315,
+    "approved_after_actual_merge": 317,
+    "rules_verified": 119,
+    "contracts_passed_after_merge": 198,
+    "remaining_after_merge": 35,
+    "mandatory_gate": "Two independent exact-head noncoauthor final reviews and current mandatory CI before root-only normal merge"
+  },
+  "current_verification": {
+    "targeted_existing_behavior_tests": {
+      "pass": 19,
+      "fail": 0,
+      "skip": 0,
+      "kind": "Existing unit behavior plus focused PGlite SQL mechanics; no new hosted native/backend"
+    },
+    "full_tagged_coverage_check": {
+      "ids": 352,
+      "approved_in_proposal": 317,
+      "tagged_green": 339,
+      "tagged_failing": 0,
+      "untagged": 13,
+      "command": "node scripts/ediel-masterplan-test-coverage.cjs --check"
+    },
+    "frozen_specification": {
+      "original_files": 33,
+      "rules": 121,
+      "contracts": 231,
+      "command": "node scripts/check-ediel-masterplan-v2.cjs"
+    },
+    "migration_integrity": {
+      "files": 1152,
+      "version_groups": 1055,
+      "checksums": "PASS",
+      "command": "node scripts/check-migration-versions.cjs"
+    },
+    "unrelated_ledger_rows": {
+      "unchanged_json_and_serialized_bytes": 350,
+      "all_rule_rows_unchanged": 121
+    },
+    "current_mandatory_ci_and_final_peer_reviews": "PENDING_PUBLICATION"
+  }
+}
