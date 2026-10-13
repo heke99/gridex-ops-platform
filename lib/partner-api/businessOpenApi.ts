@@ -229,7 +229,10 @@ export const partnerPublicOpenApi = {
           unit: nullableString,
           unit_price_ex_vat: nullableNumber,
           amount_ex_vat: nullableNumber,
-          vat_rate: nullableNumber,
+          vat_rate: {
+            ...nullableNumber,
+            description: 'Decimal VAT fraction: 0.25 means 25%; 0 means a VAT exemption. Null means the rate is unknown or not determined.',
+          },
           vat_amount: nullableNumber,
           amount_inc_vat: nullableNumber,
         },

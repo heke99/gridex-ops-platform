@@ -1,0 +1,58 @@
+{
+  "scope": "Actual Gridex OPS source/native VAT units; no business/customer/provider invocation or database writes",
+  "source_files": [
+    {
+      "path": "components/admin/customers/contracts/ContractForms.tsx",
+      "sha256": "f4aa0b9006996c518d86d2b851e71ed327e45e5755bdb210c96364a4392f61b0"
+    },
+    {
+      "path": "components/admin/customers/contracts/actions.ts",
+      "sha256": "171125c4846b2562ee6d1810fbe6324a4776318e9c3a8ae34814d382b657550c"
+    },
+    {
+      "path": "lib/partner-api/businessOpenApi.ts",
+      "sha256": "8ea9a0c70357bcf36f76a538210dc8d12b47654d61d058c0d428c821c8af7725"
+    }
+  ],
+  "confirmed_manual_draft_failure": "Manual Moms(%)25 input was passed raw through actions to customer_contracts.vat_rate; unbound draft had no canonical offer fee override; actual CHECK0..1 rejected the save. Existing fractional0.25 displayed as0.25%.",
+  "manual_fix": {
+    "future_consumption": "Readonly25percent form; shared helper accepts25/.25 and returns25percent; storedfraction25/100=.25; blankdefaultsstandard25percent",
+    "production": "Existing unbound unlocked producerdraft uses percentage display and divides by100; explicit0 preserved; blank preserves before.vat_rate including NULL/unknown",
+    "frozen_bound": "Bound/signed/locked or nondraft VAT comes from tenant/customer/contract-verified before row; NULL remains NULL",
+    "energy_direction": "Manual create currentUI/native consumption default passed explicitly to required native-binding source helper. Update passes verified before.energy_direction. No production inference/feature added.",
+    "production_configuration": "Only unbound/unlocked producerdraft update carries exact allowed canonical settlement config fields from before.price_snapshot.production. No full old snapshot/hash/binding/customer/publication identities copied."
+  },
+  "native_unit_proof": {
+    "metadata_path": "/tmp/gridex-api-review/vat25-additional-unit-native-metadata.json",
+    "customer_contract_column": "numeric default0.25; fraction0..1 CHECK",
+    "invoice_line_column": "numeric(6,3); fraction0..1 CHECK",
+    "bound_contract_fee_trigger": "gridex_apply_contract_offer_standard_fees,b8d78aa1c6b9267550bfa65d404e9321 copies bound offer.vat_rate",
+    "manual_authoring": "db.ts478/519 percent25 is valid legacy native authoring input; actual core/pricing producer normalize25 to.25; not itself a unit error",
+    "frozen_customer_trigger": "gridex_lock_signed_customer_contract,e37e13a157f91f401e526b53d5eefdc1 preserves immutable VAT/price/receipt terms"
+  },
+  "partner_api_units": {
+    "reachable": "business.ts pricing response copies canonical quote.lines.vat_rate directly; actual aggregate148active+14consumed lines=.25; explicit fee exemptions may0",
+    "documentation": "PriceComponent.vat_rate description only: decimalfraction0.25=25%,0exemption,nullunknown; nullable type/responses/schema pins unchanged",
+    "dormant_helper": "upsertPartnerCustomerInvoice has no app/lib callers/imports; decimal input multiplied directly and native0..1 CHECK rejects percentage25. No confirmed reachable API arithmetic defect."
+  },
+  "source_validation": {
+    "app_command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH npm run typecheck",
+    "app_exit_code": 0,
+    "app_log": "/tmp/gridex-api-review/vat25-manual-source-app-typecheck-final.log",
+    "eslint_command": "PATH=/tmp/gridex-audit-runtime/node_modules/node/bin:$PATH ./node_modules/.bin/eslint components/admin/customers/contracts/ContractForms.tsx components/admin/customers/contracts/actions.ts lib/partner-api/businessOpenApi.ts",
+    "eslint_exit_code": 0,
+    "eslint_log": "/tmp/gridex-api-review/vat25-manual-source-eslint-final.log",
+    "git_diff_check_exit_code": 0,
+    "tests_executed": false
+  },
+  "peer_status": {
+    "native_forward_independent_review": "Independent noncoauthor APPROVED exactfinal3 hashes f4aa/171125/8ea; source/canonical/native metadata used, no edits",
+    "final_api_source_review": "Approved previous f4aa/46bbb+description8ea; minimal producerNULL fix171125 sent for final refreshed approval; parent owns final gate"
+  },
+  "business_data_limits": "Native current financial tables contain0 customer contracts/underlays/pricing/invoice lines; actual handler/native shape qualification is not configured customer E2E evidence",
+  "additional_confirmed_separate_intake_issue": {
+    "path": "app/admin/customers/actions.part-2.ts",
+    "trigger": "Manual no-offer DRAFT defaultvat25 scalar passed to actual generic native row writer, fraction CHECK rejects",
+    "status": "Root handed off separately after this3source freeze; not included in this receipt; no global genericwriter normalization"
+  }
+}
