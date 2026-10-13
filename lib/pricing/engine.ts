@@ -15,10 +15,16 @@ import {
 } from "@/lib/pricing/priceSourceResolver";
 import { ensureSpotPricesForBillingMonth } from "@/lib/pricing/spot/spotImportScheduler";
 import { assertBillingPeriodOpen } from "@/lib/billing/invoiceReadiness";
-import { stockholmMonthBounds } from "@/lib/time/stockholm";
+import {
+  stockholmDateForInstant,
+  stockholmLocalToUtc,
+  stockholmMonthBounds,
+  strictIsoDate,
+} from "@/lib/time/stockholm";
 import {
   resolveIntervalSpotPricing,
   type IntervalPriceEvidence,
+  type IntervalInputSnapshot,
 } from "@/lib/pricing/intervalPricing";
 import { buildProductionSettlement } from "@/lib/pricing/productionSettlement";
 import {
@@ -46,13 +52,73 @@ function isObject(value: unknown): value is Record<string, unknown> {
 function dateFromUnderlayMonth(
   year: unknown,
   month: unknown,
-): { start: string; end: string; billingMonth: string } | null {
+): {
+  start: string;
+  end: string;
+  startDate: string;
+  endDate: string;
+  billingMonth: string;
+} | null {
   const y = numberValue(year);
   const m = numberValue(month);
   if (!y || !m || m < 1 || m > 12) return null;
   const billingMonth = `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}`;
   const bounds = stockholmMonthBounds(billingMonth);
-  return { start: bounds.start, end: bounds.end, billingMonth };
+  return {
+    start: bounds.start,
+    end: bounds.end,
+    startDate: bounds.startDate,
+    endDate: bounds.endDateExclusive,
+    billingMonth,
+  };
+}
+
+function underlayIntervalPeriod(
+  underlay: Record<string, unknown>,
+  period: NonNullable<ReturnType<typeof dateFromUnderlayMonth>>,
+): { start: string; end: string } {
+  const payload = isObject(underlay.payload) ? underlay.payload : {};
+  const explicitStart = payload.billing_period_start_instant;
+  const explicitEnd = payload.billing_period_end_instant;
+  const hasExplicitPeriod = explicitStart !== undefined || explicitEnd !== undefined;
+  const instant = (value: unknown, field: string): string => {
+    const text = stringValue(value);
+    if (!text || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(text)
+      || !Number.isFinite(Date.parse(text))) {
+      throw new Error(`Fakturaperiodens ${field} saknar en giltig tidpunkt med tidszon.`);
+    }
+    return text;
+  };
+  const legacyBoundary = (value: unknown, fallback: string, field: string): string => {
+    const text = stringValue(value);
+    if (!text) return fallback;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return instant(text, field);
+    const [year, month, day] = strictIsoDate(text, field).split("-").map(Number);
+    return stockholmLocalToUtc({ year, month, day }).toISOString();
+  };
+  const start = hasExplicitPeriod
+    ? instant(explicitStart, "billing_period_start_instant")
+    : legacyBoundary(underlay.billing_period_start, period.start, "billing_period_start");
+  const end = hasExplicitPeriod
+    ? instant(explicitEnd, "billing_period_end_instant")
+    : legacyBoundary(underlay.billing_period_end, period.end, "billing_period_end");
+  if (Date.parse(end) <= Date.parse(start)) {
+    throw new Error("Fakturaperiodens slut måste ligga efter dess början.");
+  }
+  if (hasExplicitPeriod) {
+    if ((payload.billing_period_timezone !== undefined && payload.billing_period_timezone !== "Europe/Stockholm")
+      || (payload.billing_period_end_exclusive !== undefined && payload.billing_period_end_exclusive !== true)) {
+      throw new Error("Fakturaperiodens tidszon eller exklusiva slutgräns är ogiltig.");
+    }
+    for (const [field, boundary] of [["billing_period_start", start], ["billing_period_end", end]] as const) {
+      const civilDate = stringValue(underlay[field]);
+      if (civilDate && /^\d{4}-\d{2}-\d{2}$/.test(civilDate)
+        && strictIsoDate(civilDate, field) !== stockholmDateForInstant(boundary)) {
+        throw new Error("Fakturaperiodens bevarade tidpunkt motsäger dess svenska kalenderdatum.");
+      }
+    }
+  }
+  return { start, end };
 }
 
 async function loadBillingUnderlay(
@@ -174,7 +240,7 @@ function underlayToInput(
   underlay: Record<string, unknown>,
   contract: Record<string, unknown> | null,
   snapshot: Record<string, unknown> | null,
-): BillingUnderlayInput {
+): BillingUnderlayInput & { periodStartInstant: string; periodEndInstant: string } {
   const period = dateFromUnderlayMonth(
     underlay.underlay_year,
     underlay.underlay_month,
@@ -190,8 +256,9 @@ function underlayToInput(
   const priceArea = isPriceArea(priceAreaRaw) ? priceAreaRaw : null;
 
   if (!period) throw new Error("Fakturaperiod saknas på underlaget.");
+  const intervalPeriod = underlayIntervalPeriod(underlay, period);
   const periodStart =
-    stringValue(underlay.billing_period_start) ?? period.start;
+    stringValue(underlay.billing_period_start) ?? period.startDate;
   const contractStart =
     stringValue(contract?.starts_at) ??
     stringValue(contract?.actual_start_at);
@@ -236,7 +303,9 @@ function underlayToInput(
         : "invoice";
     })(),
     periodStart,
-    periodEnd: stringValue(underlay.billing_period_end) ?? period.end,
+    periodEnd: stringValue(underlay.billing_period_end) ?? period.endDate,
+    periodStartInstant: intervalPeriod.start,
+    periodEndInstant: intervalPeriod.end,
     activeFrom: contractStart,
     activeTo: stringValue(contract?.ends_at),
     siteCount: 1,
@@ -254,6 +323,7 @@ async function persistPricingRun(
   result: PricingPreviewResult,
   underlay: BillingUnderlayInput,
   intervalEvidence: IntervalPriceEvidence[] = [],
+  intervalInputSnapshot?: IntervalInputSnapshot,
 ) {
   if (!underlay.billingUnderlayId)
     throw new Error("Faktureringsunderlagets ID saknas.");
@@ -278,6 +348,7 @@ async function persistPricingRun(
       metadata: line.metadata ?? {},
     })),
     interval_evidence: intervalEvidence,
+    ...(intervalInputSnapshot ? { interval_input_snapshot: intervalInputSnapshot } : {}),
   };
   const { data, error } = await supabaseService.rpc(
     "gridex_persist_pricing_run",
@@ -456,6 +527,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
         ? "hourly"
         : "monthly");
   let intervalEvidence: IntervalPriceEvidence[] = [];
+  let intervalInputSnapshot: IntervalInputSnapshot | undefined;
   if (
     requiresSpotPrice &&
     (intervalResolution === "hourly" || intervalResolution === "quarterly")
@@ -467,13 +539,16 @@ export async function calculatePricingPreviewForUnderlay(input: {
       companyId: input.companyId,
       billingUnderlayId: input.billingUnderlayId,
       priceArea: underlay.priceArea as PriceArea,
-      periodStart: underlay.periodStart,
-      periodEnd: underlay.periodEnd,
+      periodStart: underlay.periodStartInstant,
+      periodEnd: underlay.periodEndInstant,
       requiredResolution: intervalResolution,
       spotWeightPercent: spotWeight,
+      expectedQuantityKwh: underlay.quantityKwh,
+      expectedUnderlay: underlayRow,
     });
     errors.push(...intervalPricing.errors);
     intervalEvidence = intervalPricing.evidence;
+    intervalInputSnapshot = intervalPricing.inputSnapshot;
     sourceValues.spotSekPerKwh = intervalPricing.weightedAverageSekPerKwh;
   }
 
@@ -555,6 +630,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
         result,
         underlay,
         intervalEvidence,
+        intervalInputSnapshot,
       )
     : null;
   return { ...result, pricingRunId };

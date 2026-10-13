@@ -190,11 +190,17 @@ check(
 check(
   /API_CONTRACT_RESPONSE_SCHEMA_VERSION\s*=\s*WEBSITE_INTEGRATION_CONTRACT_VERSION/.test(dto) &&
     read("lib/integrations/websiteIntegrationContract.ts").includes(
-      `WEBSITE_INTEGRATION_CONTRACT_VERSION = '${openapi.info.version}'`,
+      `WEBSITE_INTEGRATION_CONTRACT_VERSION = '${openapi["x-contract-schema-version"]}'`,
     ) &&
     /X-Gridex-Contract-Version/.test(apiRoute) &&
     /contract_schema_version/.test(apiRoute),
   "canonical contract version drives DTO, header and response metadata",
+);
+check(
+  read("lib/integrations/websiteIntegrationContract.ts").includes(
+    `API_DOCUMENTATION_VERSION = '${openapi.info.version}'`,
+  ),
+  "documentation version matches OpenAPI independently of the response contract",
 );
 check(
   !/company_id|contract_product_version_id/.test(

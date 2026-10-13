@@ -1,0 +1,422 @@
+{
+  "scope": "Gridex OPS only. Customer online signature, active Website application finalization, signed confirmation/recovery, frozen pricing/time/identity. Gridex Web excluded.",
+  "authority": "Actual project code and READ ONLY OPS PostgreSQL definitions/catalog. Synthetic checks support but do not establish authority. No business signing RPC, provider/email/storage request, customer-row read, native mutation, GEN or historical migration edit by this subagent.",
+  "native_project_id": "piidsfebjqjmnepdpnas",
+  "native_link_id": "link_6aa08570afb48191a4eb728ab8e93c81",
+  "updated_utc": "2026-10-13T08:50:28.697705+00:00",
+  "evidence_files": [
+    "/tmp/gridex-api-review/signing-native-functions.json",
+    "/tmp/gridex-api-review/signing-native-relations.json",
+    "/tmp/gridex-api-review/signing-effective-current-native.json",
+    "/tmp/gridex-api-review/signing-direct-prerequisite-metadata.json",
+    "/tmp/gridex-api-review/signing-expiry-body-patches.json",
+    "/tmp/gridex-api-review/signing-withdrawal-body-patches.json",
+    "/tmp/gridex-api-review/signing-normalization-prerequisite-metadata.json"
+  ],
+  "native_functions": [
+    {
+      "signature": "gridex_finalize_website_contract_signature(uuid,uuid,uuid,uuid,text,timestamp with time zone,jsonb,jsonb,text,text,text)",
+      "body_md5": "de908da1a91b83e91ce1748c13e17412",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "proconfig": [
+        "search_path=public, pg_temp"
+      ]
+    },
+    {
+      "signature": "gridex_finalize_admin_imported_signed_agreement_v1()",
+      "body_md5": "d6c883742207cd007b31d82a75c32ba3",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, private, extensions, pg_catalog, pg_temp"
+      ]
+    },
+    {
+      "signature": "gridex_finalize_website_contract_signature(uuid,uuid,uuid,uuid,text,timestamp with time zone,jsonb,jsonb,jsonb,text,text,text)",
+      "body_md5": "dc8e70d83602c629515f7c872961f532",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, extensions, pg_temp"
+      ]
+    },
+    {
+      "signature": "gridex_finalize_customer_contract_signature_v1(text,text,text)",
+      "body_md5": "feab13c1e520c8c62daeaa253d261412",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, extensions, pg_temp"
+      ]
+    },
+    {
+      "signature": "gridex_prepare_customer_contract_signature_request_v1(uuid,uuid,uuid,text,text,timestamp with time zone,uuid,text)",
+      "body_md5": "2be908317a4861f6f38fcc293df30845",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, private, extensions, pg_temp"
+      ]
+    },
+    {
+      "signature": "gridex_mark_customer_contract_signature_request_sent_v1(uuid,uuid)",
+      "body_md5": "5d99ec748bab1306b86645ee71702ded",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, pg_temp"
+      ]
+    },
+    {
+      "signature": "gridex_get_customer_contract_signature_receipt_v1(text)",
+      "body_md5": "d960224f357b26db4c52e01c9a62515d",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, extensions, pg_temp"
+      ]
+    },
+    {
+      "signature": "gridex_retry_website_contract_signature(uuid,uuid,uuid)",
+      "body_md5": "4578a7a1bed7db8e8e84c16bf4297862",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, extensions, auth, pg_catalog, pg_temp"
+      ]
+    }
+  ],
+  "native_relations": [
+    {
+      "name": "customer_contracts",
+      "owner": "postgres",
+      "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "column_count": 142,
+      "trigger_count": 25,
+      "constraint_count": 45
+    },
+    {
+      "name": "contract_price_snapshots",
+      "owner": "postgres",
+      "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "column_count": 37,
+      "trigger_count": 7,
+      "constraint_count": 8
+    },
+    {
+      "name": "legal_bundle_version_documents",
+      "owner": "postgres",
+      "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "column_count": 16,
+      "trigger_count": 2,
+      "constraint_count": 5
+    },
+    {
+      "name": "customer_contract_documents",
+      "owner": "postgres",
+      "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "column_count": 13,
+      "trigger_count": 2,
+      "constraint_count": 4
+    },
+    {
+      "name": "customer_contract_signature_requests",
+      "owner": "postgres",
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "column_count": 14,
+      "trigger_count": 3,
+      "constraint_count": 11
+    },
+    {
+      "name": "customer_contract_confirmation_deliveries",
+      "owner": "postgres",
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "column_count": 12,
+      "trigger_count": 0,
+      "constraint_count": 7
+    }
+  ],
+  "findings": [
+    {
+      "id": "SIGN-01",
+      "priority": "P2",
+      "problem": "Number(null)/Number(empty) turned missing scalar price into0, suppressing valid frozen components.",
+      "status": "source fixed; shared frozenPriceDisplay sole writer website_confirmation_price_fix, online consumes projection and typed frozenPriceLines. Null/blank absent, valid0 retained, selected arrays authoritative, unit/VAT/site/weighted-base retained.",
+      "paths": [
+        "lib/customer-contracts/onlineSigning.ts",
+        "lib/customer-contracts/frozenPriceDisplay.ts"
+      ],
+      "native": "Existing nullable snapshot scalar values lawful; no schema mutation required."
+    },
+    {
+      "id": "SIGN-02",
+      "priority": "P2",
+      "problem": "Native expiry checks used transaction-start now() after waits; company FOR SHARE occurs after initial token expiry check, allowing further delay. Signature accepted_at also used transaction-start now() and could predate actual post-lock acceptance.",
+      "status": "exact forward DDL prepared, not applied",
+      "fix": "Expiry uses clock_timestamp; after all blocking request/contract/company locks and locked legal/price validation, one v_accepted_at:=clock_timestamp() is captured, expiry rechecked immediately before signature construction and first acceptance mutation. Signature accepted_at uses this one instant; existing signature-derived acceptance/evidence/signed/locked/used/event times remain coherent. Prepare repeats expiry after locks before request revocation/insertion. Other now audit timestamps and used-token replay unchanged.",
+      "native_proof": "Actual3core pg_proc bodies; reviewed25contract/3request/7price/2legal/2document triggers contain no direct downstream token-expiry guard.",
+      "proposal": {
+        "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/signing-expiry-forward.sql",
+        "sha256": "f346076b7684fc43d4d413b13524c46e4fbb0aa1484921d6a0717a03afdcd4bb",
+        "applied_by_subagent": false
+      }
+    },
+    {
+      "id": "SIGN-03",
+      "priority": "P2",
+      "problem": "Confirmation retry regenerated/archived signed PDF from mutable contact name/email before checking bound document SHA; legitimate contact change blocked durable retry.",
+      "status": "source fixed",
+      "fix": "Bound SHA takes priority: company+contract+type+SHA+bucket+MIME archived+verified document row required; actual retention-aware download hashes stored bytes, no regeneration/rearchive/rewrite. Recipient from signature_snapshot.recipient_email, captured signature identity name preferred.",
+      "paths": [
+        "lib/customer-contracts/onlineSigning.ts",
+        "lib/customer-contracts/documents.ts"
+      ],
+      "legacy": "Bound artifact always wins; no historical evidence rewrite. Without historical frozen name, existing receipt fallback retained for unbound legacy generation only."
+    },
+    {
+      "id": "SIGN-04",
+      "priority": "P2",
+      "problem": "Request metadata and acceptance identity omitted full_name; future first signed PDF after contact change could use mutable current name.",
+      "status": "future-only native capture prepared, not applied",
+      "fix": "New request metadata.customer_full_name same-company actual name. Finalizer embeds customer_identity_snapshot with name BEFORE signature SHA; same identity object in acceptance, acceptance SHA binds signature SHA. Receipt prefers captured name/recipient. Existing used-token replay untouched, no backfill/re-sign.",
+      "privacy": "Name added within existing record-class-controlled request metadata/signature_snapshot/acceptance identity objects; no public DTO keys/newcolumns, raw bearer/IP not stored.",
+      "proposal": {
+        "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/signing-expiry-forward.sql",
+        "sha256": "f346076b7684fc43d4d413b13524c46e4fbb0aa1484921d6a0717a03afdcd4bb",
+        "applied_by_subagent": false
+      }
+    },
+    {
+      "id": "SIGN-05",
+      "priority": "P2",
+      "problem": "Persisted UTC14day deadline, PDF deadline instant and reconstructed Stockholm-calendar mail date disagree at DST. Accepted2026-03-15T22:30Z -> stored2026-03-29T22:30Z (StockholmMarch30), old mailMarch29.",
+      "status": "online source mail fixed to actual immutable stored deadline Stockholm date; same value for PDF+both mails. Separate future-only native packet prepared, not applied. Website/PDF parallel source writer website_confirmation_price_fix.",
+      "existing_policy": "lib/time/stockholm.ts:141-149 explicitly inclusive end of Stockholm calendar day14days after signing. Default withdrawal_right source 20260716223000:255 refers to confirmation deadline, no conflicting fixed arithmetic. No withdrawal_days customduration found on inspected source/native surfaces.",
+      "native_fix": "Future successful private signing only, existing withdrawal-required predicates unchanged: acceptance Stockholm date+15 midnight Stockholm minus1microsecond. Historical rows/deadlines/bound PDFs/locked legal versions untouched, existing signed replay returns before assignment.",
+      "proposal": {
+        "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/signing-withdrawal-deadline-forward.sql",
+        "sha256": "917cd9af78a6d9974649a121aaf74ef95781b1c5ad4a182f9612b0511f45671d",
+        "applied_by_subagent": false
+      }
+    },
+    {
+      "id": "SIGN-07",
+      "priority": "P2",
+      "problem": "Website confirmation/PDF used original publicOffer legacy prices although signed contract holds quote-specific frozen snapshot.",
+      "status": "handoff to website_confirmation_price_fix; shared helper created/online integrated; communication/repair/agreementPdf owned separately",
+      "paths": [
+        "lib/website/customerApplicationCommunication.ts",
+        "lib/website/customerApplicationRepair.ts",
+        "lib/customer-contracts/agreementPdf.ts"
+      ]
+    }
+  ],
+  "positive_source_native_evidence": [
+    "64hex bearer input, SHA256 token_hash storage, HMAC IP evidence, bounded user-agent. Admin prepare path requires contracts.write plus trusted same-company customer/contract context before RPC.",
+    "Prepare validates operational tenant, company/customer/contract state and exact locked publication/product/price/legal chain; snapshot scoped to company+contract. Real native immutable/hash triggers guard price/legal/evidence state.",
+    "Finalize transaction persists legal acceptances, acceptance SHA, signature evidence, signed contract, used token and domain event atomically. Successful used-token replay precedes expiry checks and returns existing receipt.",
+    "Actual request used_at trigger enqueues durable pending confirmation; actual delivery table exists with unique company/request, pending/queued/failed checks and service-side ACL. Earlier missing-table prose is refuted.",
+    "Action recovery loads receipt after finalizer error and redirects alreadySigned when persisted; continuation uses stable per-request confirmation/cooling-off mail idempotency keys, bounded retry attempts/lease scheduling. No end-to-end provider success claimed.",
+    "Active Website12arg finalizer body md5dc8e70d83602c629515f7c872961f532 source/native identical, exact legal/POA binding. Old11arg overload postgres-only and not app service-callable. Website retry/admin import bodies source/native identical.",
+    "Direct signing entrypoints postgres owner/SECURITYDEFINER/service-only execute with bounded search_path. Forward replacements preserve actual OID/owner/ACL/config/defaults, failclosed unknown body; existing public retention wrappers left unchanged."
+  ],
+  "direct_prerequisites": [
+    {
+      "schema": "extensions",
+      "name": "digest",
+      "signature": "digest(bytea,text)",
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X*/postgres,dashboard_user=X/postgres}",
+      "body_md5": "926ba3fbdb45dc078b3e3cafddc392cc"
+    },
+    {
+      "schema": "extensions",
+      "name": "digest",
+      "signature": "digest(text,text)",
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X*/postgres,dashboard_user=X/postgres}",
+      "body_md5": "926ba3fbdb45dc078b3e3cafddc392cc"
+    },
+    {
+      "schema": "public",
+      "name": "gridex_assert_contract_permission",
+      "signature": "gridex_assert_contract_permission(uuid,text)",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "body_md5": "8e5ee1ad54029badf695246569a31063"
+    },
+    {
+      "schema": "public",
+      "name": "gridex_ensure_internal_contract_publication",
+      "signature": "gridex_ensure_internal_contract_publication(uuid,uuid,uuid)",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "body_md5": "8de415319f6977a31ab675d8ff310d63"
+    },
+    {
+      "schema": "public",
+      "name": "gridex_legacy_legal_type_for_module",
+      "signature": "gridex_legacy_legal_type_for_module(text)",
+      "owner": "postgres",
+      "acl": "{=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "body_md5": "a3f91ad452e69020a6dac1fab2257ecd"
+    },
+    {
+      "schema": "public",
+      "name": "gridex_prepare_manual_contract_binding",
+      "signature": "gridex_prepare_manual_contract_binding(uuid,jsonb,jsonb,uuid)",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "body_md5": "2e350f61d1467bd1d320c21380cc9c46"
+    },
+    {
+      "schema": "public",
+      "name": "gridex_record_customer_contract_event_v1",
+      "signature": "gridex_record_customer_contract_event_v1(uuid,uuid,uuid,text,timestamp with time zone,text,jsonb,uuid,timestamp with time zone,text)",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "body_md5": "2d805ae5a23ec35cf5330be3d1d20744"
+    },
+    {
+      "signature": "private.gridex_normalize_fixed_area_snapshot_v1(jsonb)",
+      "schema": "private",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "body_md5": "e8e5a6fc4d6ef6b111f02da7ffe49f8f"
+    }
+  ],
+  "proposals": [
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/signing-expiry-forward.sql",
+      "sha256": "f346076b7684fc43d4d413b13524c46e4fbb0aa1484921d6a0717a03afdcd4bb",
+      "applied_by_subagent": false
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/signing-withdrawal-deadline-forward.sql",
+      "sha256": "917cd9af78a6d9974649a121aaf74ef95781b1c5ad4a182f9612b0511f45671d",
+      "applied_by_subagent": false
+    }
+  ],
+  "clock_identity_changes": [
+    {
+      "signature": "public.gridex_finalize_customer_contract_signature_v1(text,text,text)",
+      "before_md5": "feab13c1e520c8c62daeaa253d261412",
+      "after_md5": "cccedc219621a3ebef668c1d368f92a4"
+    },
+    {
+      "signature": "public.gridex_finalize_customer_contract_signature_v1(text,text,text)",
+      "before_md5": "3d7aba42bee835b241cbb2fe2c414d3c",
+      "after_md5": "4a9bb79238bb9a006d79b5620990e6d9"
+    },
+    {
+      "signature": "public.gridex_finalize_signature_before_record_retention_v1(text,text,text)",
+      "before_md5": "feab13c1e520c8c62daeaa253d261412",
+      "after_md5": "cccedc219621a3ebef668c1d368f92a4"
+    },
+    {
+      "signature": "public.gridex_finalize_signature_before_record_retention_v1(text,text,text)",
+      "before_md5": "3d7aba42bee835b241cbb2fe2c414d3c",
+      "after_md5": "4a9bb79238bb9a006d79b5620990e6d9"
+    },
+    {
+      "signature": "public.gridex_get_customer_contract_signature_receipt_v1(text)",
+      "before_md5": "d960224f357b26db4c52e01c9a62515d",
+      "after_md5": "620d2a202a7fe821b0f6f0b4cd90306c"
+    },
+    {
+      "signature": "public.gridex_get_signature_before_record_retention_v1(text)",
+      "before_md5": "d960224f357b26db4c52e01c9a62515d",
+      "after_md5": "620d2a202a7fe821b0f6f0b4cd90306c"
+    },
+    {
+      "signature": "public.gridex_prepare_customer_contract_signature_request_v1(uuid,uuid,uuid,text,text,timestamptz,uuid,text)",
+      "before_md5": "2be908317a4861f6f38fcc293df30845",
+      "after_md5": "8bd61eb144c72df71c050350a6ed0e57"
+    },
+    {
+      "signature": "public.gridex_prepare_signature_before_record_retention_v1(uuid,uuid,uuid,text,text,timestamptz,uuid,text)",
+      "before_md5": "2be908317a4861f6f38fcc293df30845",
+      "after_md5": "8bd61eb144c72df71c050350a6ed0e57"
+    }
+  ],
+  "future_deadline_changes": [
+    {
+      "signature": "public.gridex_finalize_customer_contract_signature_v1(text,text,text)",
+      "mode": "core",
+      "before": "cccedc219621a3ebef668c1d368f92a4",
+      "after": "86e49c3db54add3887de13f00bf63b7b"
+    },
+    {
+      "signature": "public.gridex_finalize_customer_contract_signature_v1(text,text,text)",
+      "mode": "core",
+      "before": "4a9bb79238bb9a006d79b5620990e6d9",
+      "after": "5fb8cb915ab7eb2d4f0b218d4a9ddbd4"
+    },
+    {
+      "signature": "public.gridex_finalize_customer_contract_signature_v1(text,text,text)",
+      "mode": "wrapper",
+      "before": "772abfbaeb6fdf4a2130a87d3e50284b",
+      "after": "772abfbaeb6fdf4a2130a87d3e50284b"
+    },
+    {
+      "signature": "public.gridex_finalize_signature_before_record_retention_v1(text,text,text)",
+      "mode": "core",
+      "before": "cccedc219621a3ebef668c1d368f92a4",
+      "after": "86e49c3db54add3887de13f00bf63b7b"
+    },
+    {
+      "signature": "public.gridex_finalize_signature_before_record_retention_v1(text,text,text)",
+      "mode": "core",
+      "before": "4a9bb79238bb9a006d79b5620990e6d9",
+      "after": "5fb8cb915ab7eb2d4f0b218d4a9ddbd4"
+    },
+    {
+      "signature": "public.gridex_finalize_website_contract_signature(uuid,uuid,uuid,uuid,text,timestamp with time zone,jsonb,jsonb,jsonb,text,text,text)",
+      "mode": "core",
+      "before": "dc8e70d83602c629515f7c872961f532",
+      "after": "aeb3e4cd457ca99d257720e7f1794521"
+    }
+  ],
+  "apply_order": [
+    "Root canonical full prerequisites/retention/signing module",
+    "signing-expiry-forward.sql",
+    "signing-withdrawal-deadline-forward.sql",
+    "Root genuine isolated PostgreSQL compile/semantic review and independent approval, then controlled native apply and fresh catalog verification"
+  ],
+  "supporting_verification": {
+    "synthetic_checks": "2files7checks passed after final canonical shared billing normalization; null/zero/validfrozencomponent VAT contrasts, capturedname+recipient, boundbytes/hash/company denials and persistedDSTdeadline. Supporting-only; actual code/native authority.",
+    "eslint": "ownedonlineSigning+2focusedregression files passed",
+    "typescript": "Full app tsc --noEmit --incremental false passed after final captured-name source preference and shared billing-normalizer imports.",
+    "sql_parser": "Latest both outer packets plus8clock/identity and5futuredeadline nestedCREATE+PLpgSQL bodies parse with genuine pglast7.7. Actual isolated native compile not claimed."
+  },
+  "limits": [
+    "No actual signing/business RPC/customer rows/mail/provider/storage/mutations performed; code/definitions/catalog establish findings.",
+    "Public canonical wrappers/aliases and missing retention helpers remain pending root assembly; no false runtime green claim.",
+    "Legacy identities are not all historically frozen; no backfill/claim otherwise; bound original artifact always preserved.",
+    "Broader Staff account/invitation proof and persisted contract read projections belong root Staff review.",
+    "Custom locked tenant customer legal rows not read; existing global source policy/default templates reviewed, no existing terms modified."
+  ],
+  "refuted_findings": [
+    {
+      "id": "SIGN-06",
+      "earlier_claim": "Normalization helper missing based on public namespace query",
+      "correction": "Exact native prepare references private.gridex_normalize_fixed_area_snapshot_v1(jsonb). Schema-qualified native pg_proc verifies present postgres-owner, owner-only ACL, bodyMD5e8e5a6fc4d6ef6b111f02da7ffe49f8f. No extra public helper/root required.",
+      "authority": "signing-normalization-prerequisite-metadata.json"
+    }
+  ],
+  "independent_review": {
+    "final_api_source_review": {
+      "status": "approved latest native signing SQL and bounded online source; shared price projection conditional on separately-owned metadata/alias corrections",
+      "signing_expiry_sha256": "f346076b7684fc43d4d413b13524c46e4fbb0aa1484921d6a0717a03afdcd4bb",
+      "signing_withdrawal_sha256": "917cd9af78a6d9974649a121aaf74ef95781b1c5ad4a182f9612b0511f45671d"
+    },
+    "native_forward_independent_review": "pending"
+  }
+}

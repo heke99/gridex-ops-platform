@@ -1,9 +1,12 @@
 #!/usr/bin/env node
+// Historical command/file names are retained for callers. This checks local
+// migration sources only; it does not inspect a native database or certify a
+// production schema, applied migration ledger or runtime is_ready result.
 const fs = require('node:fs')
 const { execFileSync } = require('node:child_process')
 
 function fail(message) {
-  console.error(`PRODUCTION MIGRATION READINESS FAILED: ${message}`)
+  console.error(`LOCAL MIGRATION SOURCE INTEGRITY FAILED: ${message}`)
   process.exitCode = 1
 }
 
@@ -58,5 +61,6 @@ if (!fs.existsSync('scripts/reconcile-live-platform-schema-2026-08-03.sql')) {
 
 if (!process.exitCode) {
   const collisionSummary = duplicates.map((item) => `${item.version} (${item.count} documented files)`).join(', ')
-  console.log(`Production migration readiness passed. Historical collisions are explicit aliases: ${collisionSummary || 'none'}.`)
+  console.log(`Local migration source integrity passed. Historical collisions are explicit aliases: ${collisionSummary || 'none'}.`)
+  console.log('Native database schema, applied migration ledger parity and runtime is_ready were NOT_CHECKED. Production migration readiness remains UNVERIFIED.')
 }

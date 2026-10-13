@@ -1,0 +1,186 @@
+{
+  "schema": "ops_api_pricing_quote_isolated_compile_v1",
+  "status": "PASS_COMPILE_AND_EXACT_BODY_ACL_QUALIFICATION",
+  "created_at_utc": "2026-10-13T09:41:22.122865+00:00",
+  "scope": "Gridex OPS pricing snapshot + exact quote-expiry guard removal; isolated PostgreSQL native compilation only, no full business-flow qualification.",
+  "oracle": "Actual OPS read-only function/column/constraint/enum/default/index metadata and exact current forward source. No tests, invented helper bodies, prior migration replay, disabled function checking or native business invocations.",
+  "environment": {
+    "container": "gridex-ops-api-native-20261013",
+    "network_mode_verified": "none",
+    "image": "postgres:17.6-alpine",
+    "database": "ops_api_pricing_quote_compile_20261013",
+    "version": "PostgreSQL 17.6 on x86_64-pc-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "check_function_bodies": "on",
+    "baseline_data": "empty",
+    "counts": {
+      "underlay_count": 0,
+      "quote_count": 0,
+      "pricing_run_count": 0
+    },
+    "shared_big_database_untouched": "ops_api_full_upgrade_20261013"
+  },
+  "actual_metadata": {
+    "project": "piidsfebjqjmnepdpnas",
+    "function_capture_at_utc": "2026-10-13T09:29:14.030342+00:00",
+    "expanded_capture_at_utc": "2026-10-13T09:32:08.58205+00:00",
+    "relations": 83,
+    "tables": 82,
+    "views": 1,
+    "functions": 19,
+    "enum_types": 1,
+    "standalone_unique_indexes": 131,
+    "restored": "Actual ordered columns/types, NOTNULL, defaults/generated expressions, checks/PK/UQ/FK, unique indexes, actual view definition, actual real function bodies/owners/EXECUTE ACL; RLS enabled where native metadata marks it enabled.",
+    "native_search_path": "\"$user\", public, extensions",
+    "native_timezone": "UTC",
+    "baseline_view_resolution": "Isolated transaction uses public,extensions for actual unqualified digest in pg_get_viewdef; no function/body source rewriting."
+  },
+  "forwards": [
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/interval-pricing-snapshot-forward.sql",
+      "sha256": "c96cfbf2d734da41900782b265c7137c4a4fda82ccce3958588aec365b9db2a5",
+      "compile_exit_code": 0,
+      "predecessor_persist_body_md5": "40e5c757d605d6a899e2189cf36e16b0",
+      "supersedes": "pricing-run-instant-forward.sql; old0cf proposal never executed"
+    },
+    {
+      "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/website-quote-expiry-forward.sql",
+      "sha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+      "compile_exit_code": 0,
+      "predecessor_body_md5": "4daec568bdaf10d1354ddd39145d0d94"
+    }
+  ],
+  "postcompile_functions": [
+    {
+      "signature": "gridex_onboard_customer_graph_quote_commit_v2(jsonb)",
+      "name": "gridex_onboard_customer_graph_quote_commit_v2",
+      "body_md5": "007d078d9d0065395edf2190d4f1d3b6",
+      "return_type": "jsonb",
+      "volatile": "v",
+      "security_definer": true,
+      "config": [
+        "search_path=public, pg_catalog, pg_temp"
+      ],
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "owner": "postgres",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "signature": "gridex_persist_pricing_run(uuid,uuid,jsonb,jsonb)",
+      "name": "gridex_persist_pricing_run",
+      "body_md5": "5a267754feb565b43c86ec9fe2591c19",
+      "return_type": "uuid",
+      "volatile": "v",
+      "security_definer": true,
+      "config": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "owner": "postgres",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    },
+    {
+      "signature": "gridex_read_interval_pricing_snapshot_v1(uuid,uuid,timestamp with time zone,timestamp with time zone,text,text,jsonb)",
+      "name": "gridex_read_interval_pricing_snapshot_v1",
+      "body_md5": "4a6cf2926abf0b911e9fe6a9a49fc9f3",
+      "return_type": "jsonb",
+      "volatile": "s",
+      "security_definer": true,
+      "config": [
+        "search_path=public, extensions, pg_temp",
+        "TimeZone=UTC"
+      ],
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "owner": "postgres",
+      "anon_execute": false,
+      "authenticated_execute": false,
+      "service_execute": true
+    }
+  ],
+  "raw_source_body_assertions": {
+    "persist": "Exact composed four-anchor transform raw prosrc equality; all other existing body bytes retained.",
+    "quote": "Exactly one complete elapsed wall-clock block removed; all remaining actual predecessor raw body bytes retained.",
+    "snapshot": "Raw prosrc equals exact helper source between $snapshot$ delimiters.",
+    "status": "PASS"
+  },
+  "initial_preparation_failures": [
+    {
+      "log": "/tmp/gridex-api-review/pricing-quote-isolated-baseline.log",
+      "exit_code": 3,
+      "reason": "Actual composite FK target requires standalone unique index, not a pg_constraint UNIQUE row.",
+      "remediation": "Captured and restored exact131 native standalone unique-index definitions; no constraint softened."
+    },
+    {
+      "log": "/tmp/gridex-api-review/pricing-quote-isolated-baseline-final.log",
+      "exit_code": 3,
+      "reason": "Actual canonical view renders unqualified digest; initial isolated search_path omitted native extensions context.",
+      "remediation": "Actual metadata read confirms native search_path includes extensions; isolated CREATE context restored to public,extensions. No source view rewrite, stub or body-check bypass."
+    }
+  ],
+  "final_baseline_compile": {
+    "exit_code": 0,
+    "transaction": "COMMIT",
+    "log": "/tmp/gridex-api-review/pricing-quote-isolated-baseline-with-native-context.log"
+  },
+  "artifacts": [
+    {
+      "path": "/tmp/gridex-api-review/pricing-quote-compile-functions.json",
+      "sha256": "878f9d5c2a606bb5024605fe5f2214453d20bddac1c328e7743fcecc454519f4"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pricing-quote-compile-metadata-expanded.json",
+      "sha256": "95b73ffc97ddf98a1b4476d2c9fc08f6feb14167f8817fb901e836f21f44be48"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pricing-quote-compile-unique-indexes.json",
+      "sha256": "fc49021c50d74d3df4c0216d279ff792bbecc82952e5bc819cf1dea59c832bf1"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pricing-quote-isolated-baseline.sql",
+      "sha256": "13357a7a610c24933c5958aa9d859df8d07c9cd5708d668a54cae9467a6dc46b"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pricing-quote-isolated-baseline-with-native-context.log",
+      "sha256": "43f8e79848120c971349e5421005838d7e9e12b2a745b4e494b8066bed7711ae"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pricing-snapshot-forward-isolated-compile.log",
+      "sha256": "5f4fe09b453c1f9c6d6d0308981534ac8e5b0d9711372b2342cd9cfe9029d71e"
+    },
+    {
+      "path": "/tmp/gridex-api-review/quote-expiry-forward-isolated-compile.log",
+      "sha256": "870559a6089f73079358045ae7416189207961699b796fcdd5f6e895e1fa5322"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pricing-quote-isolated-postcompile.json",
+      "sha256": "0de3a475f411d85ff333eb56fe0c8e78a5c05bd145b0ff6505d88083c31e1164"
+    },
+    {
+      "path": "/tmp/gridex-api-review/pricing-quote-isolated-body-qualification.log",
+      "sha256": "9992c3a6f728b249190795e70575d85185620a06368fd93ca72d6db3a779f411"
+    }
+  ],
+  "native_application": {
+    "performed_by_this_reviewer": false,
+    "parent_reported": "Root reported exact c96 financial and7ece quote applied successfully at2026-10-13 09:40UTC; parent captures actual post-application metadata and compares against these isolated hashes.",
+    "actual_postapply_verified_by_this_receipt": false
+  },
+  "limits": [
+    "Native CREATE FUNCTION validates PLpgSQL syntax/composite declarations; SQL statements inside PLpgSQL are normally planned on invocation. No business RPC was invoked, including on isolated empty rows.",
+    "This isolated baseline does not reproduce all production trigger bodies, nonunique indexes, RLS policies or table ACL/ownership. No claim of end-to-end tenant/business behavior from compilation.",
+    "No actual OPS DDL/data/provider writes, customer/person/pricing-row reads or canonical GEN by this reviewer.",
+    "No old pricing-run-instant forward applied; integrated financial module is the sole financial native repair."
+  ]
+}

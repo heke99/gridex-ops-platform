@@ -3,11 +3,13 @@
 import { createHash } from "node:crypto";
 import type { IntegrationApiClient } from "@/lib/integrations/apiAuth";
 import { supabaseService } from "@/lib/supabase/service";
-import { stockholmWithdrawalDeadlineDate } from "@/lib/time/stockholm";
+import { stockholmDateForInstant } from "@/lib/time/stockholm";
 import { canonicalSwedishOrganizationNumber, canonicalSwedishPersonalNumber } from "@/lib/validation/customerFields";
 import { triggerEmailEvent } from "@/lib/email/emailEvents";
 import { legalAcceptanceTypeForModule, type PublicContractOffer } from "@/lib/website/publicContracts";
 import { buildAgreementPdfAttachment } from "@/lib/customer-contracts/agreementPdf";
+import { frozenPriceLines, frozenPriceSummary } from "@/lib/customer-contracts/frozenPriceDisplay";
+import { requireContractRecordsAvailable } from "@/lib/ediel/retention/customerRecordClasses";
 import {
   archiveSignedCustomerContractPdf,
   downloadAndVerifyCustomerContractDocument,
@@ -84,7 +86,7 @@ export function eventVariables(input: {
     metering_point_id: input.meteringPointId ?? "",
     support_email: input.supportEmail ?? "",
     cancellation_deadline:
-      stockholmWithdrawalDeadlineDate({ storedDeadlineAt: input.withdrawalDeadline }) ?? "",
+      input.withdrawalDeadline ? stockholmDateForInstant(input.withdrawalDeadline) : "",
     portal_url: input.portalUrl ?? "",
   };
 }
@@ -314,6 +316,41 @@ type WebsiteEmailDispatchResult = {
   result: unknown;
 };
 
+async function acceptedContractPricing(input: {
+  companyId: string;
+  customerId: string;
+  contractId: string;
+}): Promise<{ snapshot: Record<string, unknown>; snapshotId: string; snapshotHash: string }> {
+  await requireContractRecordsAvailable({ companyId: input.companyId, contractId: input.contractId });
+  // Read the persisted contract binding, rather than trusting the caller's offer or snapshot ID.
+  const contract = await supabaseService.from("customer_contracts")
+    .select("contract_price_snapshot_id")
+    .eq("company_id", input.companyId).eq("customer_id", input.customerId)
+    .eq("id", input.contractId).single();
+  if (contract.error) throw contract.error;
+  const snapshotId = clean(contract.data?.contract_price_snapshot_id);
+  if (!snapshotId) throw new Error("website_confirmation_price_snapshot_binding_missing");
+  const result = await supabaseService.from("contract_price_snapshots")
+    .select("id,snapshot_hash,snapshot_json,base_price_components_snapshot,price_components_snapshot")
+    .eq("company_id", input.companyId).eq("contract_id", input.contractId)
+    .eq("id", snapshotId).single();
+  if (result.error) throw result.error;
+  const row = result.data;
+  const snapshotHash = clean(row?.snapshot_hash);
+  if (!row || !snapshotHash || !/^[a-f0-9]{64}$/.test(snapshotHash) || !isObject(row.snapshot_json) ||
+      !Array.isArray(row.base_price_components_snapshot) || !Array.isArray(row.price_components_snapshot)) {
+    throw new Error("website_confirmation_price_snapshot_evidence_missing");
+  }
+  return {
+    snapshotId, snapshotHash,
+    snapshot: {
+      ...row.snapshot_json,
+      base_price_components_snapshot: row.base_price_components_snapshot,
+      price_components_snapshot: row.price_components_snapshot,
+    },
+  };
+}
+
 export function communicationStatusSnapshot(input: {
   events: string[];
   results: WebsiteEmailDispatchResult[];
@@ -358,28 +395,9 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
     input.companyId,
     input.contract?.id,
   );
-  const priceParts = [
-    input.publicOffer?.monthly_fee_sek !== null &&
-    input.publicOffer?.monthly_fee_sek !== undefined
-      ? `${input.publicOffer.monthly_fee_sek} kr/mån`
-      : null,
-    input.publicOffer?.invoice_fee_sek !== null &&
-    input.publicOffer?.invoice_fee_sek !== undefined
-      ? `${input.publicOffer.invoice_fee_sek} kr/faktura`
-      : null,
-    input.publicOffer?.spot_markup_ore_per_kwh !== null &&
-    input.publicOffer?.spot_markup_ore_per_kwh !== undefined
-      ? `${input.publicOffer.spot_markup_ore_per_kwh} öre/kWh spotpåslag`
-      : null,
-    input.publicOffer?.variable_fee_ore_per_kwh !== null &&
-    input.publicOffer?.variable_fee_ore_per_kwh !== undefined
-      ? `${input.publicOffer.variable_fee_ore_per_kwh} öre/kWh rörlig avgift`
-      : null,
-    input.publicOffer?.fixed_price_ore_per_kwh !== null &&
-    input.publicOffer?.fixed_price_ore_per_kwh !== undefined
-      ? `${input.publicOffer.fixed_price_ore_per_kwh} öre/kWh fast pris`
-      : null,
-  ].filter((value): value is string => Boolean(value));
+  const acceptedPrice = input.contract?.signed_at
+    ? await acceptedContractPricing({ companyId: input.companyId, customerId: input.customer.id, contractId: input.contract.id })
+    : null;
   const legalVersionsSummary = input.legalVersions
     .map((version) => `${version.title} v${version.version}`)
     .join(", ");
@@ -397,7 +415,7 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
     signedAt: input.contract?.signed_at,
     withdrawalDeadline: input.contract?.withdrawal_deadline_at,
     offerReference: input.offerReference,
-    priceSummary: priceParts.join(", "),
+    priceSummary: acceptedPrice ? frozenPriceSummary(acceptedPrice.snapshot) : "",
     legalVersionsSummary,
     startDate: input.startDate ?? input.contract?.starts_at,
     supportEmail: company.supportEmail,
@@ -407,7 +425,7 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
   let agreementAttachment =
     input.contract?.contract_number &&
     input.contract.signed_at &&
-    input.publicOffer &&
+    input.publicOffer && acceptedPrice &&
     input.offerReference
       ? buildAgreementPdfAttachment({
           companyName: company.legalName,
@@ -441,11 +459,7 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
             input.publicOffer.legal_bundle_version_id ?? null,
           tenantSnapshotSha256: company.snapshotSha256,
           evidenceId: `contract:${input.contract.id}`,
-          monthlyFeeSek: input.publicOffer.monthly_fee_sek,
-          invoiceFeeSek: input.publicOffer.invoice_fee_sek,
-          spotMarkupOrePerKwh: input.publicOffer.spot_markup_ore_per_kwh,
-          fixedPriceOrePerKwh: input.publicOffer.fixed_price_ore_per_kwh,
-          variableFeeOrePerKwh: input.publicOffer.variable_fee_ore_per_kwh,
+          priceLines: frozenPriceLines(acceptedPrice.snapshot),
           bindingMonths: input.publicOffer.binding_months ?? null,
           noticeMonths: input.publicOffer.notice_months ?? null,
           legalVersions: input.legalVersions.map((version) => ({
@@ -512,6 +526,8 @@ export async function dispatchInitialWebsiteApplicationEmails(input: {
       const pdfBuffer = Buffer.from(agreementAttachment.content, "base64");
       const documentSha256 = createHash("sha256").update(pdfBuffer).digest("hex");
       const generationSnapshot = {
+        contract_price_snapshot_id: acceptedPrice?.snapshotId,
+        pricing_snapshot_sha256: acceptedPrice?.snapshotHash,
         offer_reference: input.offerReference,
         contract_number: input.contract.contract_number,
         signed_at: input.contract.signed_at,

@@ -6,7 +6,7 @@
   "status": "AUTHORIZED_ACTUAL_DATABASE_RECONCILIATION_IN_PROGRESS",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
-  "native_writes": 4,
+  "native_writes": 8,
   "business_rpc_invocations": 0,
   "deployments": 0,
   "native_blockers": [
@@ -62,6 +62,34 @@
       "sha256": "b61bc1aaeec78fdc06579e9ed02878d3f5dde54c3de93c96e37ea272dcc48fce",
       "actual_ledger_sql_md5": "74088b458d625435ec3ea652d0bf72de",
       "receipt": "quality/audits/2026-10-12-ops-api-contracts/staff-governance-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013093430",
+      "file": "supabase/migrations/20261013093430_ops_api_signing_expiry_and_immutable_identity.sql",
+      "sha256": "f346076b7684fc43d4d413b13524c46e4fbb0aa1484921d6a0717a03afdcd4bb",
+      "actual_ledger_sql_md5": "ea6aeb814397927253350f67e62eba32",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/signing-expiry-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013093621",
+      "file": "supabase/migrations/20261013093621_ops_api_signing_stockholm_withdrawal_deadline.sql",
+      "sha256": "917cd9af78a6d9974649a121aaf74ef95781b1c5ad4a182f9612b0511f45671d",
+      "actual_ledger_sql_md5": "2bc4da18b8c8bfebf4f4acfdf37b4160",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/signing-withdrawal-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013093906",
+      "file": "supabase/migrations/20261013093906_ops_api_website_quote_nonexpiring_policy.sql",
+      "sha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+      "actual_ledger_sql_md5": "83e3ae82d64ffd7eb56d3bf67612a66c",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/website-quote-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013093922",
+      "file": "supabase/migrations/20261013093922_ops_api_atomic_interval_pricing_snapshot.sql",
+      "sha256": "c96cfbf2d734da41900782b265c7137c4a4fda82ccce3958588aec365b9db2a5",
+      "actual_ledger_sql_md5": "a96554f43de8586ddbec2b120acd20ac",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/pricing-snapshot-native-apply-receipt.json"
     }
   ],
   "native_corrected": "Actor current-active permission and deny precedence, additive canonical override columns/deny-only constraints, Partner atomic site/offer direction guard; OIDs/ownership/grants preserved and actual postcatalog verified. Pure gridowner native body unchanged; new forward source corrects future replay escaping.",
@@ -74,9 +102,12 @@
     "Frozen confirmation prices and verified archived artifacts: source corrected, final review in progress",
     "Canonical context and older native permission helper deny/catalog differences: exact policy qualification in progress"
   ],
-  "native_forward_migration_writes": 3,
+  "native_forward_migration_writes": 7,
   "native_metadata_population_writes": 1,
   "metadata_receipt_count": 14,
   "staff_deny_status": "Actual native two permission functions patched and service-only/VOLATILE/body/OID/grants verified. Configured Staff provider/client/binding still absent; no authenticated E2E readiness claim.",
-  "governance_status": "Service-role aggregate reads now succeed without raw ledger USAGE/SELECT; 13 actual exact-input receipts + distinct historical lineage inserted. Strict old governance false remains truthful (385unmapped), no fake repair/history replay."
+  "governance_status": "Service-role aggregate reads now succeed without raw ledger USAGE/SELECT; 13 actual exact-input receipts + distinct historical lineage inserted. Strict old governance false remains truthful (385unmapped), no fake repair/history replay.",
+  "signing_native_status": "Actual three cores expiry/one acceptance instant/frozen name corrected and future online+website Stockholm withdrawal deadline applied; exact nativebody hashes match isolated qualification, existingOID/ACL preserved, no signingRPC invoked",
+  "pricing_native_status": "Actual atomic interval snapshot+persist locked resnapshot installed, body/OID/grants verified; code release and populated business lifecycle remain unqualified",
+  "quote_native_status": "Actual retired technical TTL removed; exactbody/OID/grants verified; status/version/hash/publication/idempotency preserved"
 }

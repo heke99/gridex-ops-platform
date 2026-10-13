@@ -1,0 +1,228 @@
+{
+  "scope": "Gridex OPS accepted website contract communication only; Gridex Web excluded",
+  "status": "CODE_FIXED_NATIVE_METADATA_VERIFIED_PENDING_INDEPENDENT_REVIEW",
+  "checked_at": "2026-10-13T08:42:36.924Z",
+  "custody": {
+    "writer": "website_confirmation_price_fix",
+    "root_handoff": true,
+    "exact_file_claim_refs": "404 confirmed for all five scoped paths before write",
+    "written": [
+      "lib/customer-contracts/frozenPriceDisplay.ts",
+      "lib/customer-contracts/agreementPdf.ts",
+      "lib/website/customerApplicationCommunication.ts",
+      "lib/pricing/snapshotComponents.ts",
+      "lib/pricing/priceSourceResolver.ts"
+    ],
+    "read_only_continuation": "lib/website/customerApplicationRepair.ts",
+    "billing_extraction_handoff": "Root approved after exact two path claims404; normalization source byte bodies preserved except export modifier; existing billing callers import same pure function."
+  },
+  "skill_routing": {
+    "activated": [
+      "systematic-debugging (trace persisted snapshot to email/PDF)",
+      "fp-check (actual source and native column/trigger comparison)",
+      "verification-before-completion (actual typecheck/lint and pure execution)",
+      "supabase (service query and actual native metadata)",
+      "receiving-code-review (confirm P2 directly against actual billing source)",
+      "refactor (bounded unchanged normalizer extraction to avoid divergent rules)"
+    ],
+    "inherited_root_baseline": "Repository-wide audit skills already routed by root; this is bounded remediation. No test is used as the authority for contract prices, legal policy or native qualification.",
+    "skipped": "No UI, component refactor, deployment, provider-send, new migration, GEN or scan capability introduced."
+  },
+  "finding": {
+    "severity": "high",
+    "confirmed": "Website initial and repair continuation emails/PDF used raw publicOffer scalar prices although canonical onboarding freezes selected SE-area base price, invoice method, selected component references and site count into contract_price_snapshots.",
+    "source_evidence": [
+      "lib/website/customerApplicationOnboarding.ts: frozenBaseComponents/frozenPriceComponents and snapshot_json selected price identity",
+      "lib/website/customerApplicationCommunication.ts: previous priceParts and scalar PDF inputs taken from input.publicOffer",
+      "lib/website/customerApplicationRepair.ts: continuation public_offer_snapshot enters the same dispatch"
+    ],
+    "impact": "Customer confirmation could disagree with signed/billing price selection.",
+    "fix": "Resolve persisted customer_contracts company+customer+contract binding to exact contract_price_snapshots company+contract+id; require native stored SHA evidence and typed arrays; render exact frozen components in mail and new PDF; bind new archive generation receipt to snapshot ID/hash.",
+    "price_invariants": [
+      "Zero preserved; null/undefined/blank remain absent",
+      "Authoritative resolved component arrays including empty arrays precede scalar compatibility",
+      "Fixed base price keeps SEK/kWh and exact displayed precision",
+      "Explicit canonical units, VAT labels, selected/eligible/calculation exclusions follow pricing engine semantics",
+      "Per-site month rate and frozen site count shown; no new price calculations or re-quote",
+      "Unknown internal component/calculation keys not printed as customer labels"
+    ]
+  },
+  "withdrawal": {
+    "change": "Website email date uses actual stored deadline instant in Stockholm; PDF continues to show actual stored deadline timestamp.",
+    "no_policy_mutation": true,
+    "no_historical_pdf_rewrite": true
+  },
+  "database": {
+    "project_id": "piidsfebjqjmnepdpnas",
+    "read_only": true,
+    "customer_values_read": false,
+    "columns": [
+      {
+        "relname": "contract_price_snapshots",
+        "attname": "base_price_components_snapshot",
+        "type": "jsonb"
+      },
+      {
+        "relname": "contract_price_snapshots",
+        "attname": "company_id",
+        "type": "uuid"
+      },
+      {
+        "relname": "contract_price_snapshots",
+        "attname": "contract_id",
+        "type": "uuid"
+      },
+      {
+        "relname": "contract_price_snapshots",
+        "attname": "customer_id",
+        "type": "uuid"
+      },
+      {
+        "relname": "contract_price_snapshots",
+        "attname": "price_components_snapshot",
+        "type": "jsonb"
+      },
+      {
+        "relname": "contract_price_snapshots",
+        "attname": "snapshot_hash",
+        "type": "text"
+      },
+      {
+        "relname": "contract_price_snapshots",
+        "attname": "snapshot_json",
+        "type": "jsonb"
+      },
+      {
+        "relname": "customer_contracts",
+        "attname": "company_id",
+        "type": "uuid"
+      },
+      {
+        "relname": "customer_contracts",
+        "attname": "contract_price_snapshot_id",
+        "type": "uuid"
+      },
+      {
+        "relname": "customer_contracts",
+        "attname": "customer_id",
+        "type": "uuid"
+      },
+      {
+        "relname": "customer_contracts",
+        "attname": "snapshot_hash",
+        "type": "text"
+      },
+      {
+        "relname": "customer_contracts",
+        "attname": "withdrawal_deadline_at",
+        "type": "timestamp with time zone"
+      }
+    ],
+    "triggers": [
+      {
+        "tgname": "aa_contract_price_snapshots_normalize_fixed_area_v1",
+        "definition": "CREATE TRIGGER aa_contract_price_snapshots_normalize_fixed_area_v1 BEFORE INSERT ON public.contract_price_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_normalize_contract_price_snapshot_row_v1()",
+        "proname": "gridex_normalize_contract_price_snapshot_row_v1",
+        "function_definition_md5": "b0fc5ea2910a20b1c3c27d48a250b4c8"
+      },
+      {
+        "tgname": "aab_contract_price_snapshots_canonical_binding_v1",
+        "definition": "CREATE TRIGGER aab_contract_price_snapshots_canonical_binding_v1 BEFORE INSERT ON public.contract_price_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_fill_contract_price_snapshot_binding_v1()",
+        "proname": "gridex_fill_contract_price_snapshot_binding_v1",
+        "function_definition_md5": "eb287f987000a6065bcf094e51776c4e"
+      },
+      {
+        "tgname": "contract_price_snapshots_quote_binding",
+        "definition": "CREATE TRIGGER contract_price_snapshots_quote_binding BEFORE INSERT ON public.contract_price_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_bind_contract_snapshot_to_quote_v1()",
+        "proname": "gridex_bind_contract_snapshot_to_quote_v1",
+        "function_definition_md5": "89941468edd5215546773d209f98149f"
+      },
+      {
+        "tgname": "gridex_contract_price_snapshots_company_guard_tg",
+        "definition": "CREATE TRIGGER gridex_contract_price_snapshots_company_guard_tg BEFORE INSERT OR UPDATE ON public.contract_price_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_contract_price_snapshots_company_guard()",
+        "proname": "gridex_contract_price_snapshots_company_guard",
+        "function_definition_md5": "8728759f675fd3679fe0ca7202b15316"
+      },
+      {
+        "tgname": "gridex_contract_price_snapshots_immutable_tg",
+        "definition": "CREATE TRIGGER gridex_contract_price_snapshots_immutable_tg BEFORE DELETE OR UPDATE ON public.contract_price_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_block_contract_price_snapshot_mutation()",
+        "proname": "gridex_block_contract_price_snapshot_mutation",
+        "function_definition_md5": "01fc9c8941c5f0865fc082a9125d9476"
+      },
+      {
+        "tgname": "gridex_history_truncate_guard",
+        "definition": "CREATE TRIGGER gridex_history_truncate_guard BEFORE TRUNCATE ON public.contract_price_snapshots FOR EACH STATEMENT EXECUTE FUNCTION gridex_guard_history_truncate_v1()",
+        "proname": "gridex_guard_history_truncate_v1",
+        "function_definition_md5": "4ede3470870735a50f55dc88b1289484"
+      },
+      {
+        "tgname": "zzzz_contract_price_snapshots_hash_integrity_v1",
+        "definition": "CREATE TRIGGER zzzz_contract_price_snapshots_hash_integrity_v1 BEFORE INSERT ON public.contract_price_snapshots FOR EACH ROW EXECUTE FUNCTION gridex_enforce_contract_price_snapshot_hash_v1()",
+        "proname": "gridex_enforce_contract_price_snapshot_hash_v1",
+        "function_definition_md5": "107d908c34e0744a2064ea3e41e09dc9"
+      }
+    ],
+    "authority": "Native snapshot company guard, quote binding, insert hash-integrity and UPDATE/DELETE immutability triggers observed. Hash validity is read from this boundary, not falsely rehashed via JavaScript JSON serialization."
+  },
+  "verification": {
+    "projection_pdf": {
+      "command": "/tmp/gridex-audit-runtime/node_modules/node/bin/node /tmp/gridex-api-review/website-confirmation-projection-qualification.cjs",
+      "assertions": 26,
+      "status": "PASS",
+      "log": "/tmp/gridex-api-review/website-confirmation-projection-qualification.log",
+      "qualification": "Supporting direct pure code/PDF execution with synthetic canonical-shaped input, no live business call or provider transmission."
+    },
+    "typecheck": {
+      "command": "Node22 tsc --noEmit -p tsconfig.app.json",
+      "status": "PASS final extraction rerun, exit0",
+      "log": "/tmp/gridex-api-review/website-confirmation-typecheck.log"
+    },
+    "lint": {
+      "command": "Node22 eslint scoped three files",
+      "status": "PASS final five scoped files,0errors, one pre-existing unused stage warning",
+      "log": "/tmp/gridex-api-review/website-confirmation-lint.log"
+    },
+    "diff_check": "PASS scoped tracked diff whitespace check"
+  },
+  "preserved": [
+    "All company/customer/contract binding predicates",
+    "Existing legal mail readiness and event idempotency",
+    "Hash-bound archived PDF download/verification reuse; original bytes untouched",
+    "Shared Ediel ownership, generated files and main checksum manifest untouched",
+    "No native data writes, legal actions, provider sends or business RPC invocations by this agent"
+  ],
+  "remaining": [
+    "Two independent non-coauthor source reviews",
+    "Root-owned native prerequisites/release qualification",
+    "No live customer confirmation business acceptance claimed"
+  ],
+  "final_source_sha256": {
+    "lib/customer-contracts/frozenPriceDisplay.ts": "5c0a48ece7f150c0dbfc33216e6798c61cd3023159777e14b65f4ace9efda868",
+    "lib/customer-contracts/agreementPdf.ts": "2dc99a4c2f14921fe1be510091b1ad7d030835324422d879327a3ae2ccf87eee",
+    "lib/website/customerApplicationCommunication.ts": "1cdc70c0b83e3bf6da1f5132ea78d691a5ad09eb8999150591b1360b4ae7936f",
+    "lib/pricing/snapshotComponents.ts": "2243de2a23ca86b47f57a04ee403645de1ed2d2aa700c9f4aa8cccc5aa1d0ccc",
+    "lib/pricing/priceSourceResolver.ts": "a767f0a08011d102e71dd29dbed79997f660493f22b41364f90be74ccb7283a8"
+  },
+  "independent_review_fix": {
+    "finding": "Confirmed P2: metadata selected/eligibility/calculation_inclusion and legacy value_amount/calculation_unit/component_label originally omitted by new display",
+    "correction": "One unchanged billing normalizePriceComponent implementation now shared with email/PDF; normalized top-level booleans and metadata fallback retain exact precedence; calculator exclusion predicates apply afterward.",
+    "source_bodies": {
+      "function legacyComponentShape(": {
+        "sha256": "a41f2b1fb95a9d3e6177b3203d02b9660754b4ba49c8a23e2828c1f2ed46102b",
+        "exact_source_body_preserved": true
+      },
+      "function normalizePriceComponent(": {
+        "sha256": "369fb8584df81e9212ed65b17af5a3205956cdaadd337fc06876041959f1228a",
+        "exact_source_body_preserved": true
+      }
+    },
+    "source_contrasts": [
+      "invoice_fee 49 metadata.selected=false is excluded by source normalization+calculator and now display",
+      "metadata eligibility=ineligible and calculation_inclusion=excluded are excluded",
+      "Explicit selected/eligible true + calculation_inclusion included override contradictory metadata, as billing does",
+      "Legacy value_amount49/calculation_unit per_invoice/component_label retain exact readable amount/unit/name",
+      "Explicit amount0 precedes legacy value_amount49"
+    ],
+    "preserved_existing_source_limitation": "Billing numberValue blank numeric string parses as0; extraction deliberately unchanged. Canonical authoring amount schema requires finite numeric value. Display scalar blank remains absent. No new billing behavior claim for malformed legacy raw strings."
+  }
+}

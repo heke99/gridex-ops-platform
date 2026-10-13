@@ -137,6 +137,10 @@ export async function updateUserPermissionOverridesAction(
       return { ok: false, message: 'User ID saknas.' }
     }
 
+    if (allowKeys.length > 0) {
+      return { ok: false, message: 'Globala permission overrides kan endast neka behörighet. Listan allow_permissions måste vara tom.' }
+    }
+
     const overlap = allowKeys.filter((key) => denyKeys.includes(key))
     if (overlap.length > 0) {
       return {
@@ -371,16 +375,18 @@ export async function addUserPermissionOverrideAction(formData: FormData): Promi
   const reason = formText(formData, 'reason') || null
 
   if (!userId) throw new Error('User ID saknas.')
+  if (effectRaw !== 'deny') {
+    throw new Error('Globala permission overrides kan endast neka behörighet. Välj deny.')
+  }
 
   const permissionKey = await resolvePermissionKeyFromForm(formData)
-  const effect = effectRaw === 'deny' ? 'deny' : 'allow'
 
   await runCanonicalPlatformAccessCommand({
     actorUserId: await getCurrentActorUserId(),
     targetUserId: userId,
     action: 'upsert_override',
     permissionKey,
-    effect,
+    effect: 'deny',
     reason,
   })
 
