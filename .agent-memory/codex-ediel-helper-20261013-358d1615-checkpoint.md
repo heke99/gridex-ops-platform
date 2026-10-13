@@ -7176,3 +7176,392 @@ Thus inventory completeness, source/event/repository matching and uniqueness are
 Source pins: EAB workflow blob `83fba5e4e2e64f89696cf9fc698a0de45cb92cbd`, SHA256 `4b596a8e9b72835a89a6fff9bb77fdcad7eabb52bd1de5b03fa208344fa4bd31`; complete workflow bytes equal E49. Existing native40/corroboration/cancellation SUCCESS metadata neither releases this OPS dependency nor qualifies case counts. All original/output/runtime counts, current-head final proof reviews and normal serial merge remain with the existing sole owner. No gate PASS, whole acceptance or ledger increase is claimed by this diagnosis.
 
 `````
+
+
+## NEW C04 source compatibility and anticipated merge tree checked
+
+Parallel C04 support complete: exact7914two-postimage selectiveoverlay on currentEAB8353113dffa6db78b688dbbbdaabf841148705e9,9861→9863, allunselectedtuplespreserved. Conservative754repo staticclosure/752existingdependencies: solechangedconsumedtuple isgenerateddatabase.types e53d→aaef; no changedexecutablerepo/source/configimports, zero unresolvedliteralrepoimport. Source/runtime package/compiler/nativegates/setup/aliases/serial retained. No currentcompile/native/GEN/backend/inputepochqualified bystaticmap; native2NOTRUN. Exactsource/runtime/backendepochmanifest bindings needexistingqualifiedproducer applicability, not arbitraryoldD798pins.
+
+LiteralmapA is storedunmatchedC pluslater deliberatelyNONmatchingoriginal/replay/noeffect; B is alreadySENTownZ03→C beforeanyperiod→lateLheld/nonemptyunchangedsibling. NeitherclaimsC-before-futureEXACToriginal. Existingmain lifecycledeclaredRPC/finiteSQLfutureperiod mechanics areusefulretainedlayers, notwholecompensation/currentnative. No extraall-native/timeadvance/LIVEgate introduced.
+
+New anticipated795serial-merge tree check completed byreadonlycurrent_delivery_review: synthetic5406152157ef775c3a728503e45308f142639df4 hasorderedparentsD798,EAB andtree50de06 EXACTcandidate. All9861leaf tuples/all5325classifiedtechnicalpaths exact; all4lateractualmainproof/checkpoint/ZIP/coverage tuples carried unchanged; contents ofCP/proof/ZIP NOTread. Coverage0d8965 exact119VERIFIED+204PASSED=323, all323currentmainapprovedIDsretained,+0. PROPEN/unmerged/mainD798 remainsactual. No realnormalmerge/role/gate/native/proof-final approval. FullpublicmetadataJSON1860407bytes SHA95d346b23e681c83844343b157a75a95090fe17560d9dc8e83579662ebe971ca remainsoriginal /tmp/ediel-helper-20261013-pr795-eab-synthetic-merge-support.json; immutablepubliccommit/treepins +originalsummary preserved here, noduplicate2MBGitinventory/baseline.
+
+Next usefulboundedstep: prepare focused virtual/read-only TypeScript compatibility of SELECTIVEtwoC04postimages and exact EABgeneratedDBtypes, toclose the actuallychangedconsumedtype tuple. Exactpublicsource/config/compiler/options/outputbindings first; compileONLY (doNOTload native/config/module code orglobalsetup); no repo/source/test/custodywrite, fake type fallback, compilerdiagnosticfiltering, network/backend/native/GEN/original/currentCI. ExistingownerD798typePASS may be reused forunchangedtuples butisnotEABtypePASSwithoutapplicablequalification. Newproofauthor/root excluded independentfinalreview ofthatproof. No typecheckyetexecuted or extra mandatorygate invented.
+
+Original ediel-helper-20261013-c04-eab-integration-support.json 6066bytes SHA2566375c40e7100d3da2a13b1bcaef48bf51b188ba370ffe810accfa4c081500f54
+
+`````text
+{
+  "scope": "READ_ONLY_TWO_NEW_C04_POSTIMAGE_SOURCE_IMPORT_CONFIG_SUPPORT_NOT_EXECUTION_CURRENTCI_NATIVE_GEN_OR_WHOLE",
+  "reviewer": "/root/sc031_outbound_peer_b",
+  "source": "7914ea0ce6f0af44097b437b752894309ff5bb6d",
+  "source_tree": "6eec90317e00481945aebdf9ea79afaf0ccd7f8b",
+  "source_base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "source_base_tree": "e3b6c11677a2b871a128504f1616def7d22dba1e",
+  "target": "eab659f5d0ebe3b7a084e4701f60ee636b2db771",
+  "target_tree": "50de06f93e89fc698f06906bebfb49e1ac4b8516",
+  "selected_postimages": [
+    {
+      "path": "scripts/ediel-z04c-arrival-order-native-6f94.test.ts",
+      "tuple": [
+        "100644",
+        "blob",
+        "f5f97f30951abe4ff30cb2bd469da726711e803a"
+      ],
+      "sha256": "88b6a7b3a0bf035e89db1c59d55ba275ad5025f80c9c8b648e5970484fcb8833",
+      "target_before": null
+    },
+    {
+      "path": "scripts/ediel-z04c-arrival-order-native-6f94.config.ts",
+      "tuple": [
+        "100644",
+        "blob",
+        "1f80837b82b9d3c18883d9854bec110d6dfe146e"
+      ],
+      "sha256": "51f96689a1120a8825b4d3fd79349e93b86a45dd10f0e0148f3f1cd90e86a5a6",
+      "target_before": null
+    }
+  ],
+  "direct_and_transitive_import_resolution": "Conservative lexical literal import/export-from/dynamic-import closure, including type imports; repo alias @ and standard relative TS/JS/JSON/index resolution. No compiler/runtime/module execution. Dynamic external/environment dependencies not inferred.",
+  "closure_repository_paths": 754,
+  "existing_dependency_count": 752,
+  "unresolved_repo_literal_imports": [],
+  "external_module_specifiers": [
+    "@supabase/ssr",
+    "@supabase/supabase-js",
+    "child_process",
+    "crypto",
+    "dns",
+    "fast-xml-parser",
+    "fs/promises",
+    "imapflow",
+    "net",
+    "next/headers",
+    "next/server",
+    "node-forge",
+    "node:async_hooks",
+    "node:buffer",
+    "node:child_process",
+    "node:crypto",
+    "node:dns/promises",
+    "node:fs",
+    "node:fs/promises",
+    "node:https",
+    "node:net",
+    "node:os",
+    "node:path",
+    "node:util",
+    "node:zlib",
+    "nodemailer",
+    "nodemailer/lib/addressparser",
+    "nodemailer/lib/mail-composer",
+    "nodemailer/lib/smtp-transport",
+    "os",
+    "path",
+    "react",
+    "resend",
+    "server-only",
+    "util",
+    "vitest",
+    "vitest/config",
+    "zod"
+  ],
+  "changed_consumed_dependency_tuples": [
+    {
+      "path": "supabase/database.types.ts",
+      "base": [
+        "100644",
+        "blob",
+        "e53d47718b389167a72bdd2fbe321bea9ca85f6e"
+      ],
+      "target": [
+        "100644",
+        "blob",
+        "aaef46072c0d4ae93bf219b4e52e324bf509a011"
+      ]
+    }
+  ],
+  "package_compiler_native_config_bindings": {
+    "package.json": {
+      "base": [
+        "100644",
+        "blob",
+        "bf3a30b706a96bacf8dbcf158ed99ae405881689"
+      ],
+      "target": [
+        "100644",
+        "blob",
+        "bf3a30b706a96bacf8dbcf158ed99ae405881689"
+      ],
+      "identical": true
+    },
+    "package-lock.json": {
+      "base": [
+        "100644",
+        "blob",
+        "0e19ad13ea476c169f63f0cb8f6c4d2164c13847"
+      ],
+      "target": [
+        "100644",
+        "blob",
+        "0e19ad13ea476c169f63f0cb8f6c4d2164c13847"
+      ],
+      "identical": true
+    },
+    "tsconfig.json": {
+      "base": [
+        "100644",
+        "blob",
+        "60bca066cc72efd2a8303216c1e3a425c8aea097"
+      ],
+      "target": [
+        "100644",
+        "blob",
+        "60bca066cc72efd2a8303216c1e3a425c8aea097"
+      ],
+      "identical": true
+    },
+    "tsconfig.tests.json": {
+      "base": [
+        "100644",
+        "blob",
+        "224ade1b6b174428d3ea27323a839e75cfcfef22"
+      ],
+      "target": [
+        "100644",
+        "blob",
+        "224ade1b6b174428d3ea27323a839e75cfcfef22"
+      ],
+      "identical": true
+    },
+    "vitest.config.ts": {
+      "base": [
+        "100644",
+        "blob",
+        "704630e71883fdc027fedfba1ff96a5215470160"
+      ],
+      "target": [
+        "100644",
+        "blob",
+        "704630e71883fdc027fedfba1ff96a5215470160"
+      ],
+      "identical": true
+    },
+    "scripts/ediel-source-owner-native.config.ts": {
+      "base": [
+        "100644",
+        "blob",
+        "bc031b12e0c85e45f5427868871648b994780b3b"
+      ],
+      "target": [
+        "100644",
+        "blob",
+        "bc031b12e0c85e45f5427868871648b994780b3b"
+      ],
+      "identical": true
+    },
+    "scripts/helpers/ediel-native-permission-catalog.setup.ts": {
+      "base": [
+        "100644",
+        "blob",
+        "2d9c82ad4fb8586dae2f9ecf07ed0ae3da4ae5c5"
+      ],
+      "target": [
+        "100644",
+        "blob",
+        "2d9c82ad4fb8586dae2f9ecf07ed0ae3da4ae5c5"
+      ],
+      "identical": true
+    }
+  },
+  "unrelated_changed_national_end_helper_consumed": false,
+  "target_original_leaf_count": 9861,
+  "overlay_leaf_count": 9863,
+  "hypothetical_selective_overlay_tree": "8353113dffa6db78b688dbbbdaabf841148705e9",
+  "only_overlay_delta": [
+    "scripts/ediel-z04c-arrival-order-native-6f94.config.ts",
+    "scripts/ediel-z04c-arrival-order-native-6f94.test.ts"
+  ],
+  "all_unselected_target_leaf_tuples_preserved": true,
+  "checkpoint_branch_ledger_imported": false,
+  "backend_epoch_limit": "D798 to EAB schema/generated types/migration deltas and existing source/backend/input epoch qualification remain owner/GEN duties. C04input checks executed head/tree, installed function-body hash/schema/migration and source epoch; previous pins cannot be silently reused. No new SQL or GEN qualification claimed.",
+  "native2": "NOT_RUN",
+  "new_execution": false,
+  "actual_adoption": false,
+  "custody_transfer": false,
+  "new_approvals": 0,
+  "source_ordered_parents": [
+    "bcbfba76c895873daeb3e30a88454f3665a43443"
+  ],
+  "source_delta_from_d798": [
+    "ADD .agent-memory/ediel-z04c-arrival-order-20261013-6f94-checkpoint.md",
+    "ADD scripts/ediel-z04c-arrival-order-native-6f94.config.ts",
+    "ADD scripts/ediel-z04c-arrival-order-native-6f94.test.ts"
+  ],
+  "source_shared_config_matches_source_base_and_target": true
+}
+
+`````
+
+Original ediel-helper-20261013-c04-eab-integration-support.md 5898bytes SHA2563decb5d786cc09cd43fefc26ecb7bc07c8778301c467aa87e10d7f372046d908
+
+`````text
+# New C04 arrival source → public EAB integration support
+
+Verdict: SUPPORTED selective two-file import/configuration compatibility, with explicit current generated-type/backend/input-epoch qualification limits. No introduced executable source/import/config incompatibility found. This is new joint-target support, not a repeat of the existing7914 full-source final review or a new assertion/native/CI/whole-contract approval.
+
+Reviewer `/root/sc031_outbound_peer_b` read only public code/metadata and wrote only the requested temporary JSON/report. No private checkpoint/proof read, source/test/checkpoint edit, module/test/compiler/SQL/native/backend/GEN/CI execution, original/capture/log/artifact collection, claim/ref/publication/release/producer takeover. Native2 remains NOT_RUN.
+
+## Exact two-postimage selection
+
+Public C04 source `7914ea0ce6f0af44097b437b752894309ff5bb6d`, tree `6eec90317e00481945aebdf9ea79afaf0ccd7f8b`, sole parent `bcbfba76c895873daeb3e30a88454f3665a43443`. Source base is actualD798 `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Source-to-base delta is only new test/config and own checkpoint; checkpoint contents were not read or selected.
+
+Target current supplied public795 EAB `eab659f5d0ebe3b7a084e4701f60ee636b2db771`, tree `50de06f93e89fc698f06906bebfb49e1ac4b8516`.
+
+- `scripts/ediel-z04c-arrival-order-native-6f94.test.ts`:100644/blob `f5f97f30951abe4ff30cb2bd469da726711e803a`, SHA256 `88b6a7b3a0bf035e89db1c59d55ba275ad5025f80c9c8b648e5970484fcb8833`.
+- `scripts/ediel-z04c-arrival-order-native-6f94.config.ts`:100644/blob `1f80837b82b9d3c18883d9854bec110d6dfe146e`, SHA256 `51f96689a1120a8825b4d3fd79349e93b86a45dd10f0e0148f3f1cd90e86a5a6`.
+
+Both are absent on EAB. Independently added only these tuples in memory:9861→9863 leaves. Every unselected original target mode/type/blob tuple is preserved; no checkpoint, whole branch, ledger or old76aZ09/FG postimages are imported. Recursive raw Git tree/SHA1 calculation reconstructs target50de06 and gives hypothetical selective overlay `8353113dffa6db78b688dbbbdaabf841148705e9`. No Git object/commit/index/ref was written; this is an adoption description, not adoption.
+
+## Import and configuration comparison
+
+Conservative static literal import/export-from/dynamic-import closure includes type imports and both new files:754 repo paths,752 existing dependencies. Repo @ and relative TS/TSX/JS/MJS/JSON/index specifiers all resolve on the selective overlay; zero unresolved literal repository imports. This is lexical source metadata, not compiler/module execution or proof of dynamic environment/package resolution.
+
+Comparing these752 dependency mode/type/blob tuples from D798 to EAB reveals exactly one change: `supabase/database.types.ts`, old blob `e53d47718b389167a72bdd2fbe321bea9ca85f6e` → EAB blob `aaef46072c0d4ae93bf219b4e52e324bf509a011`. No executable lib/helper/import dependency tuple changes in that closure. The separately changed national-end helper is not consumed by this C04 closure; it does not cause a callback/signature dependency here. All lib source is unchanged across the target delta, but that does not qualify installed SQL behavior.
+
+Package.json/lockfile, tsconfig.json/tests, Vitest config, shared owner native config and permission-catalog setup tuples all remain identical D798→EAB. The source7914 shared config also matches its D798 base. New supplemental config imports that actual owner config, spreads every test setting/include and appends exactly the C04 file. Mandatory native-status and exact127.0.0.1 status/key checks, server aliases, catalog/setup, timeouts and serial fileParallelism:false are retained. No unit placeholder or hosted backend fallback is introduced.
+
+Generated types are a real changed consumed source tuple. A base-only C04 compiler result cannot silently become an EAB compiler result; affected compatibility/current mandatory qualification remains with existing owners. No typecheck was executed here. Other packets' virtual type results must not be relabeled as a C04 check without an applicable graph binding.
+
+## Backend/source/input-epoch boundary
+
+D798→EAB includes schema/generated types and existing forward migrations (H original identity, registered guard priority and OPS/admin-related forwards). That is a separate installed-SQL/generator/application boundary, not resolved by unchanged TS imports. No unrelated API/Admin audit was expanded here.
+
+C04 `input()` lines175–178 reads the producer manifest and checks actual executed Git head/tree, exact installed engine/schema/migration/function-body hash and current `gridex_received_sources.epoch.opened_at`. Consequently7914/D798 source/backend/epoch pins cannot be silently reused after EAB selective adoption. Existing GEN/producer/collector owners must qualify the real selected union, installed closure and authorized genuine source inputs/current epoch. Missing qualified input remains a held/failure boundary; no fabricated credential/source/helper or alternate writer was introduced.
+
+This map itself changes no SQL or generator source. It does not demand a new GEN run solely for adding two TS postimages where actual installed/generator closure is already qualified. Existing owners decide explicit reuse/applicability and affected mandatory checks under their current scope. No old whole-branch/native proof is imported; no competing Z09 callback writer or new producer is started.
+
+Machine-readable result `/tmp/ediel-helper-20261013-c04-eab-integration-support.json`, SHA256 `6375c40e7100d3da2a13b1bcaef48bf51b188ba370ffe810accfa4c081500f54`. Existing source reviews/finite outputs retain their original bindings; Native2, current native/CI/backend/GEN/original inputs and wholeC04 remain unqualified by this support. No custody transfer, publication approval, ledger/count increase or merge role follows.
+
+`````
+
+Original ediel-helper-20261013-c04-arrival-clause-map.md 12282bytes SHA256d97383e0b5d0f8f2fd6b9bcdd5a5b0fde05459324218c21fd0dce2af73cefd92
+
+`````text
+# AT-Z04C arrival-order literal/layer map — public7914 source
+
+**New source prepares two bounded arrival-order witnesses: A unmatched stored C before later NONmatching origination; B C after alreadySENT ownZ03 but before any own period, then delayedL cannot reactivate it. Neither demonstrates C-before-future-EXACT-original recovery. Native A/B are NOT_RUN by this review; +0 whole/ledger/current CI credit.**
+
+Read-only helper `/root/sc031_outbound_peer_a`; only this own `/tmp` output. No full7914 final/controller/evidence audit, sibling import graph, native/SQL/test/backend/GEN/CI, original/log/artifact/privateCP acquisition, source/ref/claim/adoption/PR action. Existing source writer and sole producer/collector/serial owner retain adoption/cohort duties. The separate Z09 writer/callback work is not part of this map.
+
+## Exact versions and selected scope
+
+Public source `7914ea0ce6f0af44097b437b752894309ff5bb6d`, tree `6eec90317e00481945aebdf9ea79afaf0ccd7f8b`, parent `bcbfba76c895873daeb3e30a88454f3665a43443`. Actual base main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / tree `e3b6c11677a2b871a128504f1616def7d22dba1e`; current public carrier EAB `eab659f5d0ebe3b7a084e4701f60ee636b2db771` / tree `50de06f93e89fc698f06906bebfb49e1ac4b8516`.
+
+Only selected technical new test/config read. Compared base diff identifies those two additions plus owner's excluded checkpoint; no branch adoption performed. New test blob `f5f97f30951abe4ff30cb2bd469da726711e803a`, SHA256 `88b6a7b3a0bf035e89db1c59d55ba275ad5025f80c9c8b648e5970484fcb8833`; new config blob `1f80837b82b9d3c18883d9854bec110d6dfe146e`, SHA256 `51f96689a1120a8825b4d3fd79349e93b86a45dd10f0e0148f3f1cd90e86a5a6`.
+
+Frozen acceptance blob `3717ce88daaf98c916bb996edc6fe7887bf65b6c`, equal actualmain/EAB/new7914. AT-Z04C given: preserve original/cancellation order; cancellation before original stored for bounded correlation, no arbitrary activation. Expected: DDQ/BGMZ04/223Z24, CONTRL and applicableAPERAK, cancel only correct confirmed/future period, initiate controlled compensation if effect already executed. Prohibited: wrong role/direction, missingR/D, bad correlation/mutation do not execute. No stronger future-exact-arrival success clause or mandatory one-file whole-chain gate is invented by this map.
+
+## New A: literal storage/bounded nonmatching correlation
+
+Prepared nativeA315–342 requires an **already prospectively stored received C** with actual mail ID, parse ID, receive time, context hash and raw hash, and validates physical DDQ/Z04/Z24 own scope. It asserts current outbound matching is missing, later ready switch has no own original yet, and no C effect/business change. It invokes the real processor and binds observed decisive guard to the source/assessment/facts hash.
+
+The discriminator122–132 allows either genuinely observed native-original unavailable branch or an actual earlier canonical-field diagnostic. If canonical fields reject first, the oracle correctly does not claim the native original branch ran. This preserves required-field gates and prevents caller-provided expectedGuard from fabricating authority.
+
+Then actual ordinary prepare/send produces the later current qualified ownZ03; line332 explicitly requires its **LI differs from C's LI** and receive(C)<send(laterZ03). Repeated matcher/intake/processor replay335–341 must retain missing match, same stored C ID, correct current guard, no C effect, unchanged legitimate later original/business and original custody. Duplicate receptions may be appended only under exact protocol-duplicate source/mail/parse/hash/scope rules; first custody and all prior rows remain unchanged.
+
+This prepares meaningful assertions for storing an unmatched C, bounded repeated correlation and refusing unrelated future origin. It does **not** show an early C later finding its future exact own original: the test deliberately prohibits that equality. It also does not require an arbitrary futureLI forecast, matching clock override or manual accepted-history seed. Source-level helper/control correctness and existing owner review evidence are narrower than actual native intake execution, which remains owned elsewhere.
+
+## New B: cancellation before period/business confirmation, not before ownZ03
+
+Prepared nativeB345–383 first requires **alreadySENT sealed current accepted ownZ03** and nonempty same-tenant unrelated sibling. qualifiedSent uses actual Z03/Z22/L single own physical tuple, SE2 customer/agency9 point and current source/accepted transport reads. Thus it does not qualify LK or every lawful original shape by itself.
+
+Line349 requires zero own periods/no prior Z04L. C is derived from this exact own original scope, admitted physically, and line353 asserts send(ownZ03)<receive(C). Prepared cancellation processing354–367 must actually commit one effect/partition/transition, no normal confirmation, exact source/company/hash/assessment/LIN/customer/point/LI/startZ24 binding and explicit `cancel_start` with `periodId:null`. Own switch becomes cancelled_before_start; exact permitted update columns and receipt previous/resulting switch states are checked. No period is fabricated, original/sibling/otherbusiness remains unchanged.
+
+After own positive C response assertions/sends, a later actual Z04L is admitted with same originalLI. Lines370–374 require receive(C)<receive(L), actual held native partition `normal_z04_locked_original_scope_required`, no L effects/period, and no positive businessAPERAK for that held source. Both source replays retain committed C receipts, cancelled switch, original bytes, both custody records and nonempty sibling/otherbusiness. Protocol replay is read-only, avoiding a resend of retained positive ACK.
+
+This prepares the relevant cancellation-first **business response** order: ownZ03→C→lateL with no prior period. It does not prove “C before the ownZ03 original arrives,” because the ownZ03 is a mandatory alreadySENT prerequisite. It does not cancel an existing confirmed future period or perform compensation of an already active effect: periodIdnull/zero-period oracles deliberately select a different case.
+
+## Literal clause/layer mapping
+
+| Literal part | New prepared assertion | Existing useful component / remaining boundary |
+|---|---|---|
+| Early cancellation stored and bounded correlation; no arbitrary activation | A stored source/mail/parse/context identity, initial unmatched selector, later deliberately nonmatching original and replay/noeffect bookends | No future-exact-original recovery shown. Actual native prospective input must be provided by retained producer; stored source selectors are not admission authority. |
+| Preserve cancellation/business-response order | B receivedC before receivedL, zero own period and cancelled original prevents lateL reactivation | Covers C before business confirmation only. Existing actualmain order/supply mechanics retain their narrower applicability; do not relabel B as before-ownZ03. |
+| DDQ/Z04/Z24 correct own physical scope | arrivalWireScope88 onward and prospectiveArrivalC use actual tokenizer/envelope and ownpoint/customer/LI/start/reason; no root-only status assertion | Source assertions conditional on actual qualified input. Current installed catalog/source/role/RD/actor qualification is not proven by wire encoding or finite pure-controller model alone. |
+| CONTRL and applicableAPERAK | protocol helper280–313 checks actual outgoing ACK rows, physical correlation, own source hash/outbox/creationreceipt. Positive C branch requires exact positive pair and committed final effect plan; held branch prohibits positive businessAPERAK and requires negative only when actual decision prescribes it. | These are meaningful prepared reply-direction oracles, not completed current native ACK receipts. Distinguish semantic field rejection versus missing-original hold; do not invent unconditional positiveAPERAK for held A/L. |
+| Cancel only correct confirmed/future period | B exactly cancels own start with no period and preserves nonempty sibling | Existing partial-supply SQLcomponent has actual installed writer mechanics cancelling a qualified future confirmed period, with explicit modeled input authority. Native source/cohort applicability still needs retained-owner binding; no new whole-native rerun demanded. |
+| Already executed effect starts controlled compensation | B does not enter this case | Main lifecycle component preserves compensation-required refusal/manual-review warning. It does not itself execute a real compensation transaction/workflow. Existing qualified compensation evidence may close it if appropriately joined; no absence across all retained producer evidence is inferred. |
+| Wrong source/mutation/roles/fields do not execute | A actual observed guard/no effects, B exact own original/hash/sibling and lateL guard, immutable receipt/custody replay | This is not exhaustive wrong-role/direction/RD mutation qualification for the whole card. Reuse existing qualified canonical/source/guard components first, mapped to exact source/layer. |
+
+## Existing main evidence attribution
+
+`__tests__/ediel-at-z04c-supplier-acceptance.test.ts` blob `4236a0fd6f15f8e3782312157c6ca283ef960f95`, byte-identical main/EAB/7914. Its source explicitly says component evidence only. First case runs actual lifecycle/writer adapter with **declared RPC response** and asserts cancelled semantic outcome/no ancillary activation announcement. Second supplies compensation-required RPC refusal and asserts actual manual review/warning/no direct storage or notification. Third asserts transaction failure propagates before success/ancillary effects. These are real asserting adapters with modeled storage results, not actual native cancellation/compensation receipt proof. They remain useful and must not be discarded because the new source addresses different arrival cases.
+
+`scripts/ediel-partial-supply-source-sql-regression.mjs` blob `e3c3e0c48a18391ab03ca7389d7864580344e3ed`, also identical. Around141–154 it creates a modeled sent source/transport/canonical fixture, confirms a future own period through real installed writer bodies, applies C to that own future period, retains held sibling and exact namespace refusal. Final source label explicitly limits it to named application/legal/rule/transport fixtures, not native/original evidence. This provides narrower future-period/partition mechanics alongside B's zero-period case. No SQL probe was executed or new case totals asserted in this map.
+
+The new config imports existing owner config and appends its source test while retaining its guards/setup/aliases/serial predicates. The separate peer owns current dependency/config overlay support; I did not repeat an import graph or whole config/source final audit. No CI/runtime dispatch follows from this source read.
+
+## Retained-owner next concrete step
+
+Retained source/sole producer should map these precise A/B subsets to existing qualified card components and current genuine source/input/index. Choose any already retained suitable prospective stored C and alreadySENT own L+sibling with no period; qualify their exact adopted source/backend/input epoch before native execution or reuse. A sourceBaseD798 selector does not imply current EAB installed-source qualification, and read-back of one backend function hash does not replace source union/cohort authority. Any adoption remains selective exact two postimages under bounded file custody; owner's checkpoint/whole branch is not imported here.
+
+Do not upgrade A to futureEXACToriginal or B to C-before-ownZ03. Do not count prepared native2 as passed, reuse old whole-source reviewers for a changed technical union without applicable binding, or invent extra mandatory all-native/future-time-advance/LIVE gates. Existing genuine inputs and retained components may close the remaining whole clauses with explicit applicability; only concrete unmatched clauses justify a narrow owned follow-up. No private C1 seed or unrelated writer takeover.
+
+This map does not judge whole7914/EAB delivery, publish/merge, qualify CI/GEN/current native/originals or raise ledger counts. It records exact prepared assertions and their limits so the existing owner can choose the next actual evidence join.
+
+`````
+
+Original ediel-helper-20261013-pr795-eab-synthetic-merge-support.md 4914bytes SHA256257512665c5945a6a97140202c08c0a5e89e486c1038e8aaf3ce20277588fcde
+
+`````text
+# PR795 EAB synthetic-merge preservation support
+
+**Preservation verified; actual delivery is not established.** Authenticated PR metadata reports OPEN, merged=false, merged_at=null, headEAB/baseD798 and synthetic merge540615. Authenticated main ref remainsD798. The synthetic Git commit has ordered parents **D798, EAB**, and its tree is byte-identical to the candidate tree. This is GitHub's unmerged test projection, not a completed normal merge, new ledger credit or current-gate/native proof.
+
+| Identity | Exact value |
+|---|---|
+| Actual main/base | `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` |
+| Main tree | `e3b6c11677a2b871a128504f1616def7d22dba1e` |
+| Current PR795 candidate | `eab659f5d0ebe3b7a084e4701f60ee636b2db771` |
+| Candidate parent | `c3dd36d406cd1e1b919c43ba6e145689bb6558c7` |
+| Synthetic commit | `5406152157ef775c3a728503e45308f142639df4` |
+| Ordered synthetic parents | `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, `eab659f5d0ebe3b7a084e4701f60ee636b2db771` |
+| Candidate and synthetic tree | `50de06f93e89fc698f06906bebfb49e1ac4b8516` |
+| GitHub synthetic committer date | `2026-10-13T17:45:16Z` |
+
+Read-only authenticated GitHub APIs: PR795 metadata, main Git ref, exact synthetic Git commit, and recursive Git tree50de. The full recursive tree reports truncated=false. Local candidate/main comparison uses exact existing public Git objects; no fetch, index/ref/branch update or merge operation was performed.
+
+## Entire tree and later main delivery
+
+Compared every candidate leaf tuple `(path, mode, type, blob/gitlink SHA)` with the public synthetic tree: **9861 tuples, zero added/removed/changed tuples**. Canonical tuple digest is identical:
+`b37b53624ef61541d5d26cdbfc49de2b850c14bc7ab65745f0d4da8f7447dbe5`.
+
+The candidate's5325 code/test/script/SQL/workflow/GEN/preimage-classified tuples all remain exact; every remaining leaf tuple is also exact under the full comparison. This is an identity check, not a repeated source/adoption/native audit. No synthetic-only alteration or unreviewed resolution is present.
+
+The four later actual-main tuples delivered95d8→D798 are present in EAB and synthetic projection exactly:
+
+| Actual-main carried path | Retained blob SHA |
+|---|---|
+| `.agent-memory/c1-z02-qualified-ledger-20261013-checkpoint.md` | `83d4de38872015bb8142fa19c21c5228cf7f9c58` |
+| `quality/audits/ediel-masterplan-v2/c1-z02-v6/contract-proof.json` | `e5bca294f7e8e34d363cb1b73f8e1ff7f3def60e` |
+| `quality/audits/ediel-masterplan-v2/c1-z02-v6/native-2e073477-38392686441-a1.zip` | `afc275f2686ca4b56081fc0c8d4d3a7e567b4308` |
+| `quality/audits/ediel-masterplan-v2/coverage.json` | `0d8965aed23e768886fba0074b19b2abd3fd5d67` |
+
+All four retain100644/blob identity in main, EAB and projection. Only coverage.json content was read to count current status. Checkpoint, proof JSON and ZIP were compared by Git tuples only; no private checkpoint, native original/archive/log/artifact was read or downloaded.
+
+There are27 main→projection path differences, exactly the existing candidate’s differences from actual main, listed in the JSON report. They include the existing candidate source/SQL/type/manifests/workflow/tests/checkpoints. They are not extra changes introduced by the synthetic merge. Candidate→projection is empty, so all source/preimage/GEN tuples and all later-main additions already present in the candidate survive without a new resolution. This report does not reapprove their implementation or acquire their custody.
+
+## Ledger and delivery limit
+
+Main/EAB/projection coverage tuple is identical blob `0d8965aed23e768886fba0074b19b2abd3fd5d67`. Counted actual-main status: **119 VERIFIED rules +204 PASSED acceptance contracts =323/352**. All323 current-main approved IDs are retained, with complete ID lists and retention entries in the JSON. New approval/delivery credit from this synthetic check is **0**.
+
+PR remained unmerged in the authenticated observation. No current mandatory gate, actual terminal native/GEN output, genuine source applicability, two final proof reviews or normal merge is inferred from tree metadata. The existing serial owner alone decides actual normal merge after its existing required gates and qualified proof/finals. This helper acquires no merge role, controls no PR and adds no review gate. Its C03 authored proof is not an independent final review of that proof.
+
+Only the requested two temporary reports were written. No repository/source/ledger/shared-doc/ref/reservation/claim mutation, backend/native/GEN/CI execution, capture/collector duplication, private hold bypass or publication occurred.
+
+JSON evidence (full tree leaf tuples, parent/base/head/state binding, all main-approved IDs, carried four tuple matrix, main→candidate differences): `/tmp/ediel-helper-20261013-pr795-eab-synthetic-merge-support.json`.
+
+Frozen JSON SHA256 `95d346b23e681c83844343b157a75a95090fe17560d9dc8e83579662ebe971ca`.
+
+`````
