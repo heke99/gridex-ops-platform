@@ -1,0 +1,6 @@
+BEGIN
+SET
+SET
+SET
+ERROR:  ops_atomic_protected_auth_owner_prerequisite_required
+CONTEXT:  PL/pgSQL function inline_code_block line 8 at RAISE

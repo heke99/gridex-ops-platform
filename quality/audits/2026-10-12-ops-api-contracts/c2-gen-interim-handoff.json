@@ -147,10 +147,10 @@
   "latest_actual_own_ledger_version": "20261013151412",
   "native_observed_at": "2026-10-13T16:08:24.249524Z",
   "remaining_delivery": [
-    "Official Supabase final atomic call returns authentication-refresh error on3attempts; exact62second latest interval, no native registration/module/activeinstaller. Root/source reviewers cannot establish technical cause. See native-atomic-install-connector-block-receipt.json.",
-    "Complete module and six qualified dependent semantic inputs only after connector resolution and actual successful source/native postflight.",
-    "Configured authenticated Staff/client/tenant remains absent at13:32; user integration facts pending; no fabricated green.",
-    "Auth owner prerequisites require genuine owner/platform execution; normal postgres/dashboard cannot grant them. New guarded owner-capability packet and actual-role fixture under review. No applied source/history rewrite or canonical GEN capture."
+    "Three historical unqualified-eaa connector authentication-refresh errors retain undetermined cause, with no final native registration/module; receipt preserved. No identical retry.",
+    "Qualified mainfa0 and six reviewed/genuine-qualified dependent inputs require actual protected-owner prerequisites followed by official successful installation and exact source/native postflight.",
+    "Configured Staff provider/client/binding/Auth-registration counts all0 at16:47:42UTC; real integration facts pending; no authenticated green.",
+    "Final four owner-capability SQL sources and genuine NOSUPER pipeline proof approved by both independent peers. Actual Auth owner prerequisite execution unavailable; postgres/dashboard cannot grant missingrights or assume protectedowners. No applied history rewrite/competing GEN capture."
   ],
   "source_alignment_delivery": "All53 native-aligned stage/actor SQL files are committed and pushed in5e63abe4. Subsequent canonical review-packet copies, capability-status summaries and metadata receipts are a new delivery; no applied SQL bytes change.",
   "actually_applied_transport_migrations": [
@@ -472,5 +472,18 @@
   "metadata_actions_applied": 3,
   "native_completed_writes": 71,
   "input_provenance_receipts": 81,
-  "next_input_metadata_action_receipt": "next-forward-input-receipts-native-apply.json"
+  "next_input_metadata_action_receipt": "next-forward-input-receipts-native-apply.json",
+  "latest_published_source_commit": "77528ede3463b0afc10f4d0aa247c601319f1856",
+  "installer_qualification": {
+    "packet": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/manifest.json",
+    "packet_sha256": "c06ceb1d7d2d365f12be4958d731f838635b78d45dd42fc7426d3c0f985afdcd",
+    "receipt": "quality/audits/2026-10-12-ops-api-contracts/installer-nonsuper-final-pipeline-isolated-compile-receipt.json",
+    "receipt_sha256": "541e238e93ff6fee64206abe51d11494f19a844f2f57051943bdf98360cbee1e",
+    "first_replay_six_final_main_replay": "PASS_ISOLATED_NOSUPER",
+    "negative_cases": 14,
+    "independent_final_proof_reviews": 2,
+    "actual_applied": false,
+    "protected_owner_connection_available": false
+  },
+  "next_action": "Legitimate protected-owner001/002 execution, then exact qualified module and six semantic inputs; actual metadata/source alignment before sole C2 canonical capture. No competing GEN producer."
 }

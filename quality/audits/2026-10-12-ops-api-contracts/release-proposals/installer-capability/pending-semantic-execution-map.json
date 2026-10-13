@@ -1,0 +1,67 @@
+{
+  "source_effects_unapplied": true,
+  "protected_owner_prerequisites": [
+    "001-protected-auth-schema-usage.sql",
+    "002-protected-auth-users-select-update.sql"
+  ],
+  "module_install": "003-qualified-atomic-install.sql",
+  "pending_inputs": [
+    {
+      "order": 4,
+      "source_path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part1-forward.sql",
+      "source_sha256": "d821d77e00f5dbb25d599e339bc3d36cfd73b78133e2d2f36e29b56557420ff7",
+      "ordinary_installer_ddl_authority": "postgres_owns_replaced_or_created_objects_or_metadata_only",
+      "qualification": "PASS_direct_NOSUPER_first_and_replay",
+      "installer_envelope": null
+    },
+    {
+      "order": 5,
+      "source_path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part2-forward.sql",
+      "source_sha256": "edcd6154285a0f960ecf3599e34e2e961a2075531434c7ae8e139e42b3e74858",
+      "ordinary_installer_ddl_authority": "postgres_owns_replaced_or_created_objects_or_metadata_only",
+      "qualification": "PASS_direct_NOSUPER_first_and_replay",
+      "installer_envelope": null
+    },
+    {
+      "order": 6,
+      "source_path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-extra-z02-forward.sql",
+      "source_sha256": "1e6af520f4946864bd3626fc5e4fc9b711380df1dce2875a649da788aadce448",
+      "ordinary_installer_ddl_authority": "postgres_owns_replaced_or_created_objects_or_metadata_only",
+      "qualification": "PASS_direct_NOSUPER_first_and_replay",
+      "installer_envelope": null
+    },
+    {
+      "order": 7,
+      "source_path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-existing-trigger-forward.sql",
+      "source_sha256": "5feebfef8c7935867b6846b1c841ca15b46ccab284474c0912406614ddd5535a",
+      "ordinary_installer_ddl_authority": "postgres_owns_replaced_or_created_objects_or_metadata_only",
+      "qualification": "PASS_direct_NOSUPER_first_and_replay",
+      "installer_envelope": null
+    },
+    {
+      "order": 8,
+      "source_path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-retention-audit-harddelete-forward.sql",
+      "source_sha256": "19624482d3a4df867e999848e8b7b8ed72f9c8f2b4962ebb3c75b369c937d4ad",
+      "ordinary_installer_ddl_authority": "requires_controlled_RET_envelope",
+      "qualification": "PASS_NOSUPER_exact_controlled_owner_envelope_first_replay_rollback",
+      "installer_envelope": "/tmp/gridex-api-review/installer-capability-proposals/004-qualified-retention-install.sql"
+    },
+    {
+      "order": 9,
+      "source_path": "/tmp/gridex-api-audit-ops/quality/audits/2026-10-12-ops-api-contracts/release-proposals/semantic-forward-metadata-integrity.sql",
+      "source_sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9",
+      "ordinary_installer_ddl_authority": "postgres_owns_replaced_or_created_objects_or_metadata_only",
+      "qualification": "PASS_direct_NOSUPER_first_and_replay",
+      "installer_envelope": null
+    }
+  ],
+  "no_actual_writes_by_mapper": true,
+  "source_function_bodies_preserved": true,
+  "all_prior_SUPER_chain_proofs_are_insufficient_for_ordinary_role_authority": true,
+  "module_install_sha256": "fa0af500fb71a8b4d41a269b58f2ce0879ab6d8d4cd7b35d734d613100b8b53d",
+  "controlled_retention_install_sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425",
+  "controlled_retention_source_writer": "/root/events_serialization_fix",
+  "ordinary_installer_source_reviews": "Both independent bounded source reviews clear for mainfa0, owner9041/5ab3 and retention2ff; finalgenuine pipeline/negativeproof pending",
+  "genuine_qualification": "PASS_actual_shaped_NOSUPER_first_replay_finalmodule_replay_after_six",
+  "qualification_receipt_sha256": "541e238e93ff6fee64206abe51d11494f19a844f2f57051943bdf98360cbee1e"
+}

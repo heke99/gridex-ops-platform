@@ -1,0 +1,15 @@
+{
+  "project": "piidsfebjqjmnepdpnas",
+  "scope": "Read-only aggregate counts only; no names, credentials or business rows returned",
+  "query": "BEGIN READ ONLY; SET LOCAL statement_timeout='20s'; SELECT clock_timestamp() captured_at,\n(SELECT count(*) FROM public.tenant_staff_identity_bindings) staff_bindings,\n(SELECT count(*) FROM public.tenant_customer_identity_providers WHERE purpose='staff' AND is_active) active_staff_providers,\n(SELECT count(*) FROM public.integration_api_clients c WHERE status='active' AND revoked_at IS NULL AND deleted_at IS NULL AND (expires_at IS NULL OR expires_at>clock_timestamp()) AND EXISTS(SELECT FROM unnest(c.scopes) s WHERE s~'^staff_(users|customers|cases)\\.(read|write)$')) active_explicit_staff_clients,\n(SELECT count(*) FROM public.integration_api_clients WHERE jsonb_typeof(metadata->'staff_tenant_auth')='object') registered_staff_auth_clients;\nCOMMIT;",
+  "observation": {
+    "captured_at": "2026-10-13 16:47:42.635117+00",
+    "staff_bindings": 0,
+    "active_staff_providers": 0,
+    "active_explicit_staff_clients": 0,
+    "registered_staff_auth_clients": 0
+  },
+  "configured_staff_e2e": "NOT_QUALIFIED",
+  "business_invocations": 0,
+  "reason": "No configured real Staff tenant/provider/client/binding identified; pending supplied integration facts"
+}

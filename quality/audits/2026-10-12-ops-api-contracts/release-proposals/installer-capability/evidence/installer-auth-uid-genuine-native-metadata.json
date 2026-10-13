@@ -1,0 +1,47 @@
+{
+  "acl": [
+    "=X/supabase_auth_admin",
+    "supabase_auth_admin=X/supabase_auth_admin",
+    "dashboard_user=X/supabase_auth_admin"
+  ],
+  "proc": {
+    "oid": "16542",
+    "proacl": [
+      "=X/supabase_auth_admin",
+      "supabase_auth_admin=X/supabase_auth_admin",
+      "dashboard_user=X/supabase_auth_admin"
+    ],
+    "probin": null,
+    "prosrc": "\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.sub', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')\n  )::uuid\n",
+    "procost": 100,
+    "prokind": "f",
+    "prolang": "14",
+    "proname": "uid",
+    "prorows": 0,
+    "pronargs": 0,
+    "proowner": "16545",
+    "proconfig": null,
+    "proretset": false,
+    "prosecdef": false,
+    "prorettype": "2950",
+    "prosqlbody": null,
+    "prosupport": "-",
+    "proargmodes": null,
+    "proargnames": null,
+    "proargtypes": [],
+    "proisstrict": false,
+    "proparallel": "u",
+    "protrftypes": null,
+    "provariadic": "0",
+    "provolatile": "s",
+    "proleakproof": false,
+    "pronamespace": "16498",
+    "proallargtypes": null,
+    "proargdefaults": null,
+    "pronargdefaults": 0
+  },
+  "owner": "supabase_auth_admin",
+  "body_md5": "cdef18c69c4f4cbbced2eaf81e628b49",
+  "signature": "auth.uid()",
+  "definition": "CREATE OR REPLACE FUNCTION auth.uid()\n RETURNS uuid\n LANGUAGE sql\n STABLE\nAS $function$\n  select \n  coalesce(\n    nullif(current_setting('request.jwt.claim.sub', true), ''),\n    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')\n  )::uuid\n$function$\n"
+}
