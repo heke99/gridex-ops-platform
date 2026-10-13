@@ -66,18 +66,19 @@ describe('central data-quality and aggregate-alert lifecycle', () => {
       create table public.grid_owner_data_requests(id uuid primary key default gen_random_uuid(),
         company_id uuid not null,status text,created_at timestamptz);
     `)
-    // Use the existing production-shaped issue/alert table DDL and legacy keys.
+    // Forecasts use the current table shape; issue/alert rollout starts before
+    // open_key existed, with the genuine predecessor's original UNIQUE keys.
     const schema = readFileSync(resolve('supabase/schema.sql'), 'utf8')
     for (const table of ['forecast_runs', 'forecast_run_items']) {
       const tableSql = schema.match(new RegExp(`CREATE TABLE public\\.${table} \\([\\s\\S]*?\\n\\);`))?.[0]
       if (!tableSql) throw new Error(`Missing fixture DDL for ${table}`)
       await db.exec(tableSql)
     }
+    const predecessor = readFileSync(resolve('supabase/migrations/20260531160000_analytics_forecasting_module.sql'), 'utf8')
     for (const table of ['data_quality_issues', 'dashboard_alerts']) {
-      const tableSql = schema.match(new RegExp(`CREATE TABLE public\\.${table} \\([\\s\\S]*?\\n\\);`))?.[0]
-      const keySql = schema.match(new RegExp(`ALTER TABLE ONLY public\\.${table}\\n\\s+ADD CONSTRAINT [^\\n]+ UNIQUE [^\\n]+;`))?.[0]
-      if (!tableSql || !keySql) throw new Error(`Missing fixture DDL for ${table}`)
-      await db.exec(`${tableSql}\n${keySql}`)
+      const tableSql = predecessor.match(new RegExp(`create table if not exists public\\.${table} \\([\\s\\S]*?\\n\\);`, 'i'))?.[0]
+      if (!tableSql) throw new Error(`Missing predecessor DDL for ${table}`)
+      await db.exec(tableSql)
     }
     const migration = readFileSync(resolve('supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql'), 'utf8')
     // Production cutover first expands RPCs/columns while the old app's keys

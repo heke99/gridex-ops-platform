@@ -1,6 +1,6 @@
 {
   "task": "admin-consistency-remediation",
-  "status": "FINAL_QUALITY64_GREEN_CURRENT_CI_PENDING",
+  "status": "FULL_SUITE_BOUNDARY_REPAIRS49_GREEN_FINAL_CI_PENDING",
   "date": "2026-10-13",
   "initial_source_head": "51f5fa5e80c42350d697bfed42520672749d4467",
   "delivery_base": "95d8d160491e79b172342654d8dc643346758105",
@@ -10,7 +10,7 @@
   "source_or_database_mutations": true,
   "authorization": "User explicitly authorized emptying customer flows and correcting future consistency; accounts, company configuration and independent technical/reference history are preserved.",
   "live_verified": {
-    "approved_residual_rows_removed": 745,
+    "approved_residual_rows_removed": 747,
     "empty_customer_graph_tables": 140,
     "zero_reviewed_scopes": 17,
     "companies_checked": 3,
@@ -22,8 +22,8 @@
     "empty_monthly_rebuilds_skip": true,
     "forward_migrations_applied": 9,
     "dqi_expand_only_until_new_app_deployment": true,
-    "latest_full_empty_assertion": "PASS:140 empty customer graph tables and17 zero reviewed scopes after guarded classified raw/derived pair removal. Source retirement lookup returns true; technical hash marker retained. Original-provider equality unproven.",
-    "retired_source_hashes": 1,
+    "latest_full_empty_assertion": "PASS16:10UTC:140 empty customer graph tables and17zero scopes after retiring/removing second distinct classified manual source plus emailprojection. Different key than prior retired source; message-content/original-provider equality unproven.",
+    "retired_source_hashes": 2,
     "manual_inbound_messages": 0
   },
   "verification": {
@@ -51,7 +51,10 @@
     "first_composed_ci": "Upgrade migration replayPASS and browser/qualityE2EPASS. Verify stops at two obsolete loader-shape assertions now corrected. Current result-head required gates pending.",
     "complete_quality_config": "PASS:64/64 across4suites using exact CI quality config and loopback boundary. Real unchanged open-key function from94514 now defined before current generated-column tableDDL; no assertions weakened.",
     "preview": "READY:dpl_D4sHKqrxrgXjWVa9LQjV9YmdKwHu built exact6abcd34f789a251f61b478b64653c05b53e82739 application source. Subsequent change affects only proof dependency order/docs; production remains pending.",
-    "six_abcd_ci": "verifyPASS; types/lint/mechanicalPASS. quality gate fails only our missing fixture dependency, now fixed. Clean/upgrade/native jobs in progress, no current release claim."
+    "six_abcd_ci": "verifyPASS; types/lint/mechanicalPASS. quality gate fails only our missing fixture dependency, now fixed. Clean/upgrade/native jobs in progress, no current release claim.",
+    "full_suite_current_ci": "Actual full CI8daaa19e:1109passed/4failed files;17953passed/7failed/19skipped assertions. Failures confined to3old scope/performance test interfaces and1DQI predecessor fixture. All4repaired with preserved domain assertions; combined49/49PASS. Current complete suite required.",
+    "scope_error_contract": "Missing tenantcompany case now asserts real TenantCompanyRequiredError plus exact shared Swedish message, retaining no-provider-write check. Platform selection message unchanged.",
+    "read_only_final_peers": "Three reviewers confirmed final portfolio/source/nativecatalog contracts; no additional production blocker. IMAP Seen literal was independently counted as valid runtime singlebackslash, no code change."
   },
   "next_action": "Publish snapshot/static-copy/regression finalhead, wait current mandatory CI. Deploy only when gates green, verify new production runtime and old-writer drain, then execute only2legacy-constraint drops preserving later-forward function bodies. Current database customerflows140/17zero; UI app not yet deployed.",
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/799",
