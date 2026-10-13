@@ -221,12 +221,6 @@ CREATE SCHEMA gridex_ediel_wire_namespace;
 CREATE SCHEMA gridex_internal;
 
 --
--- Name: gridex_manual_inbound; Type: SCHEMA; Schema: -; Owner: -
---
-
-CREATE SCHEMA gridex_manual_inbound;
-
---
 -- Name: gridex_metering_method_changes; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -273,12 +267,6 @@ CREATE SCHEMA gridex_private;
 --
 
 CREATE SCHEMA gridex_prodat_object_batch;
-
---
--- Name: gridex_quality; Type: SCHEMA; Schema: -; Owner: -
---
-
-CREATE SCHEMA gridex_quality;
 
 --
 -- Name: gridex_received_err_response; Type: SCHEMA; Schema: -; Owner: -
@@ -3898,9 +3886,9 @@ BEGIN
    IF coalesce(cardinality(ids),0)<>1 THEN RETURN jsonb_build_object('applied',false,'reason','z05_accepted_relationship_baseline_required');END IF;
    SELECT * INTO sp FROM public.customer_supply_periods WHERE id=ids[1] AND company_id=m.company_id FOR UPDATE;
    SELECT * INTO origin FROM public.ediel_messages WHERE id=sp.source_message_id AND company_id=m.company_id AND environment=m.environment FOR SHARE;
-   original:=gridex_received_sources.supply_wire_v1(origin.raw_payload);
+   original:=gridex_received_sources.normal_switch_wire_v1(origin.raw_payload);
    IF original IS NULL OR original->>'code' IS DISTINCT FROM 'Z04' OR original->>'sender' IS DISTINCT FROM wire->>'sender' OR original->>'receiver' IS DISTINCT FROM wire->>'receiver'
-    OR NOT EXISTS(SELECT FROM jsonb_array_elements(original->'objects') o WHERE o->>'point'=own->>'point' AND o->>'customerIdentity'=own->>'customerIdentity' AND o->>'gridArea'=own->>'gridArea' AND gridex_received_sources.permission_time_v1(o->>'start')<event_at)
+    OR NOT EXISTS(SELECT FROM jsonb_array_elements(original->'objects') o WHERE o->>'point'=own->>'point' AND o->>'identityAgency'=own->>'identityAgency' AND o->>'customerIdentity'=own->>'customerIdentity' AND o->>'gridArea'=own->>'gridArea' AND gridex_received_sources.permission_time_v1(o->>'start')<event_at)
     OR (m.customer_id IS NOT NULL AND m.customer_id<>sp.customer_id) OR (m.metering_point_id IS NOT NULL AND m.metering_point_id<>sp.metering_point_id) THEN RETURN jsonb_build_object('applied',false,'reason','z05_original_object_mismatch');END IF;
    before_states:=before_states||jsonb_build_array(to_jsonb(sp));plans:=plans||jsonb_build_array(jsonb_build_object('kind','end','periodId',sp.id,'eventAt',event_at,'object',own));
   ELSE RETURN jsonb_build_object('applied',false,'reason','supply_profile_not_qualified');END IF;
@@ -19039,76 +19027,6 @@ $$;
 COMMENT ON FUNCTION gridex_internal.actor_open_blocking_conflict_counts() IS 'GRIDEX-OPS-O-008: internal aggregate-only open blocking conflict counts for readiness views.';
 
 --
--- Name: lock_manual_source_key_v1(bytea); Type: FUNCTION; Schema: gridex_manual_inbound; Owner: -
---
-
-CREATE FUNCTION gridex_manual_inbound.lock_manual_source_key_v1(p_key bytea) RETURNS void
-    LANGUAGE sql
-    SET search_path TO 'pg_catalog', 'pg_temp'
-    AS $$
- select pg_advisory_xact_lock(hashtextextended('manual-inbound-source:'||encode(p_key,'hex'),0))
-$$;
-
---
--- Name: manual_source_key_v1(text, text); Type: FUNCTION; Schema: gridex_manual_inbound; Owner: -
---
-
-CREATE FUNCTION gridex_manual_inbound.manual_source_key_v1(p_mailbox text, p_provider_id text) RETURNS bytea
-    LANGUAGE sql IMMUTABLE
-    SET search_path TO 'pg_catalog', 'pg_temp'
-    AS $$
- select case when nullif(btrim(p_mailbox),'') is null or nullif(btrim(p_provider_id),'') is null then null
-  else sha256(convert_to(jsonb_build_array(lower(btrim(p_mailbox)),btrim(p_provider_id))::text,'UTF8')) end
-$$;
-
---
--- Name: reject_retired_key_mutation_v1(); Type: FUNCTION; Schema: gridex_manual_inbound; Owner: -
---
-
-CREATE FUNCTION gridex_manual_inbound.reject_retired_key_mutation_v1() RETURNS trigger
-    LANGUAGE plpgsql
-    SET search_path TO 'pg_catalog', 'pg_temp'
-    AS $$
-begin raise exception 'retired_manual_source_keys_immutable' using errcode='55000';end$$;
-
---
--- Name: reject_retired_source_v1(); Type: FUNCTION; Schema: gridex_manual_inbound; Owner: -
---
-
-CREATE FUNCTION gridex_manual_inbound.reject_retired_source_v1() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare v_key bytea;begin
- v_key:=gridex_manual_inbound.manual_source_key_v1(new.mailbox,new.provider_message_id);
- if v_key is not null then
-  perform gridex_manual_inbound.lock_manual_source_key_v1(v_key);
-  -- VOLATILE SPI reads take a fresh snapshot after any advisory-lock wait.
-  if exists(select 1 from gridex_manual_inbound.retired_source_keys where source_key=v_key) then
-   raise exception 'manual_inbound_source_retired' using errcode='23514';
-  end if;
- end if;
- return new;
-end$$;
-
---
--- Name: retire_deleted_source_v1(); Type: FUNCTION; Schema: gridex_manual_inbound; Owner: -
---
-
-CREATE FUNCTION gridex_manual_inbound.retire_deleted_source_v1() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare v_key bytea;begin
- v_key:=gridex_manual_inbound.manual_source_key_v1(old.mailbox,old.provider_message_id);
- if v_key is not null then
-  perform gridex_manual_inbound.lock_manual_source_key_v1(v_key);
-  insert into gridex_manual_inbound.retired_source_keys(source_key) values(v_key) on conflict(source_key) do nothing;
- end if;
- return old;
-end$$;
-
---
 -- Name: bind_message_v1(); Type: FUNCTION; Schema: gridex_metering_method_changes; Owner: -
 --
 
@@ -21652,29 +21570,6 @@ DECLARE m public.ediel_messages%rowtype;s gridex_received_sources.sources%rowtyp
  IF (SELECT count(DISTINCT o->>'objectId') FROM jsonb_array_elements(app->'objects')o)<>jsonb_array_length(app->'objects') THEN RAISE EXCEPTION 'prodat_object_batch_namespace_unsupported';END IF;
  RETURN jsonb_build_object('version',1,'sourceMessage',to_jsonb(m),'sourcePayloadHash',s.payload_hash,'assessmentId',a.id,'applicationValidation',app-'assessmentId');
 END $$;
-
---
--- Name: operational_customer_source_v1(uuid, text, uuid); Type: FUNCTION; Schema: gridex_quality; Owner: -
---
-
-CREATE FUNCTION gridex_quality.operational_customer_source_v1(p_company uuid, p_entity_type text, p_entity_id uuid) RETURNS boolean
-    LANGUAGE sql STABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
- select not exists(
-  select 1 from public.customers c where p_entity_type='customer'
-   and c.company_id=p_company and c.id=p_entity_id and c.source='ediel_portal_test'
-  union all
-  select 1 from public.metering_points p join public.customers c
-   on c.id=p.customer_id and c.company_id=p.company_id
-   where p_entity_type='metering_point' and p.company_id=p_company and p.id=p_entity_id and c.source='ediel_portal_test'
-  union all
-  select 1 from public.metering_values v join public.metering_points p
-   on p.id=v.metering_point_id and p.company_id=v.company_id
-   join public.customers c on c.id=p.customer_id and c.company_id=p.company_id
-   where p_entity_type='metering_value' and v.company_id=p_company and v.id=p_entity_id and c.source='ediel_portal_test'
- )
-$$;
 
 --
 -- Name: bind_final_v1(); Type: FUNCTION; Schema: gridex_received_err_response; Owner: -
@@ -37338,7 +37233,24 @@ begin
     and coalesce(user_role.status,'active')='active'
     and coalesce(user_role.is_active,true)
     and (user_role.company_id is null or user_role.company_id=v_selected_company_id)
-    and coalesce(role_permission.effect,'allow')='allow';
+    and coalesce(role_permission.effect,'allow')='allow'
+    -- Catalog and current DENY precedence match the canonical actor oracle.
+    -- Keep this list's original grants and historical/lifecycle semantics;
+    -- the operational actor oracle itself is not a history-read list filter.
+    and permission.is_active
+    and not exists(
+      select 1 from public.user_permissions d left join public.permissions p on p.id=d.permission_id
+      where d.user_id=v_user_id and (d.company_id is null or d.company_id=v_selected_company_id)
+        and d.is_active and d.status='active' and d.effect='deny'
+        and coalesce(nullif(d.permission_key,''),p.key)=permission.key
+    )
+    and not exists(
+      select 1 from public.user_permission_overrides d
+      where d.user_id=v_user_id and (d.company_id is null or d.company_id=v_selected_company_id)
+        and d.is_active and d.effect='deny' and d.permission_key=permission.key
+        and (d.valid_from is null or d.valid_from<=clock_timestamp())
+        and (d.valid_to is null or clock_timestamp()<d.valid_to)
+    );
 
   if v_selected_company_id is not null then
     select jsonb_build_object(
@@ -44382,12 +44294,40 @@ CREATE FUNCTION public.ediel_apply_supply_source_v1(p_company_id uuid, p_source_
     SET search_path TO 'pg_catalog'
     AS $$DECLARE m public.ediel_messages%rowtype;w jsonb;own jsonb;b jsonb;plans jsonb:='[]';r jsonb;prior boolean;BEGIN
  PERFORM gridex_supply_rescission.lock_original_v1();SELECT * INTO m FROM public.ediel_messages WHERE id=p_source_message_id AND company_id=p_company_id FOR UPDATE;IF m.id IS NOT NULL THEN PERFORM public.ediel_require_source_bytes_available_v1(m.company_id,m.id);END IF;w:=gridex_received_sources.normal_switch_wire_v1(m.raw_payload);
- IF m.direction='inbound' AND m.message_family='PRODAT' AND w->>'code'='Z05' AND EXISTS(SELECT FROM jsonb_array_elements(w->'objects') o WHERE gridex_supply_rescission.has_end_selector_v1(m,o)) THEN
+ IF m.direction='inbound' AND m.message_family='PRODAT' AND w->>'code'='Z05' AND EXISTS(SELECT FROM jsonb_array_elements(w->'objects') o WHERE (gridex_supply_rescission.has_end_selector_v1(m,o) OR (
+    o->>'reason'='Z22' AND EXISTS(
+     SELECT FROM gridex_supply_rescission.outbound_operations recorded
+     JOIN gridex_supply_rescission.mandates legal ON legal.id=recorded.mandate_id AND legal.company_id=recorded.company_id AND legal.environment=recorded.environment
+     JOIN public.ediel_messages saved_request ON saved_request.id=recorded.message_id AND saved_request.company_id=recorded.company_id AND saved_request.environment=recorded.environment
+     JOIN public.customer_supply_periods pending_period ON pending_period.id::text=legal.scope->>'periodId' AND pending_period.company_id=legal.company_id
+     WHERE recorded.company_id=m.company_id AND recorded.environment=m.environment
+      AND saved_request.direction='outbound' AND saved_request.message_family='PRODAT' AND saved_request.message_code='Z08'
+      AND saved_request.source_operation_id=legal.id::text AND saved_request.immutable_payload_hash=recorded.payload_hash
+      AND recorded.capability#>>'{objects,0,objectId}'=o->>'point' AND recorded.capability#>>'{objects,0,identityAgency}'=o->>'identityAgency'
+      AND legal.scope->>'externalPoint'=o->>'point' AND legal.scope->>'identityAgency'=o->>'identityAgency'
+      AND pending_period.customer_id::text=legal.scope->>'customerId' AND pending_period.metering_point_id::text=legal.scope->>'pointId'
+      AND pending_period.market_state_version::text=legal.scope->>'stateVersion'
+      AND pending_period.source_end_message_id IS NULL AND pending_period.market_end_at IS NULL
+    )))) THEN
   IF gridex_supply_rescission.actor_v1(p_company_id,p_actor_user_id,'archive') IS NOT TRUE THEN RAISE EXCEPTION 'supply_rescission_execution_actor_forbidden' USING ERRCODE='42501';END IF;
   IF EXISTS(SELECT FROM jsonb_array_elements(w->'objects') o WHERE(o->>'reason' IN('Z22','Z23','Z25')) IS NOT TRUE) THEN RETURN jsonb_build_object('applied',false,'reason','supply_rescission_whole_known_scope_required');END IF;
   prior:=EXISTS(SELECT FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=m.id AND company_id=m.company_id);
   IF prior THEN IF gridex_supply_rescission.recorded_end_current_v1(m.company_id,m.id) IS NOT TRUE THEN RAISE EXCEPTION 'supply_rescission_recorded_current_source_required';END IF;
-  ELSE FOR own IN SELECT o FROM jsonb_array_elements(w->'objects') o WHERE gridex_supply_rescission.has_end_selector_v1(m,o) LOOP b:=gridex_supply_rescission.matched_end_v1(m,w,own);IF b IS NULL THEN RAISE EXCEPTION 'supply_rescission_exact_sent_original_required';END IF;plans:=plans||jsonb_build_array(jsonb_build_object('object',own,'binding',b));END LOOP;END IF;
+  ELSE FOR own IN SELECT o FROM jsonb_array_elements(w->'objects') o WHERE (gridex_supply_rescission.has_end_selector_v1(m,o) OR (
+    o->>'reason'='Z22' AND EXISTS(
+     SELECT FROM gridex_supply_rescission.outbound_operations recorded
+     JOIN gridex_supply_rescission.mandates legal ON legal.id=recorded.mandate_id AND legal.company_id=recorded.company_id AND legal.environment=recorded.environment
+     JOIN public.ediel_messages saved_request ON saved_request.id=recorded.message_id AND saved_request.company_id=recorded.company_id AND saved_request.environment=recorded.environment
+     JOIN public.customer_supply_periods pending_period ON pending_period.id::text=legal.scope->>'periodId' AND pending_period.company_id=legal.company_id
+     WHERE recorded.company_id=m.company_id AND recorded.environment=m.environment
+      AND saved_request.direction='outbound' AND saved_request.message_family='PRODAT' AND saved_request.message_code='Z08'
+      AND saved_request.source_operation_id=legal.id::text AND saved_request.immutable_payload_hash=recorded.payload_hash
+      AND recorded.capability#>>'{objects,0,objectId}'=o->>'point' AND recorded.capability#>>'{objects,0,identityAgency}'=o->>'identityAgency'
+      AND legal.scope->>'externalPoint'=o->>'point' AND legal.scope->>'identityAgency'=o->>'identityAgency'
+      AND pending_period.customer_id::text=legal.scope->>'customerId' AND pending_period.metering_point_id::text=legal.scope->>'pointId'
+      AND pending_period.market_state_version::text=legal.scope->>'stateVersion'
+      AND pending_period.source_end_message_id IS NULL AND pending_period.market_end_at IS NULL
+    ))) LOOP b:=gridex_supply_rescission.matched_end_v1(m,w,own);IF b IS NULL THEN RAISE EXCEPTION 'supply_rescission_exact_sent_original_required';END IF;plans:=plans||jsonb_build_array(jsonb_build_object('object',own,'binding',b));END LOOP;END IF;
   r:=gridex_supply_rescission.confirm_end_v1(p_company_id,p_source_message_id,p_actor_user_id);IF r->>'applied'='true' AND NOT prior THEN PERFORM gridex_supply_rescission.record_end_v1(m,plans);END IF;
   IF gridex_supply_rescission.actor_v1(p_company_id,p_actor_user_id,'archive') IS NOT TRUE THEN RAISE EXCEPTION 'supply_rescission_post_write_actor_forbidden' USING ERRCODE='42501';END IF;
   IF r->>'applied'='true' AND gridex_supply_rescission.recorded_end_current_v1(m.company_id,m.id) IS NOT TRUE THEN RAISE EXCEPTION 'supply_rescission_post_write_current_source_required';END IF;
@@ -46149,6 +46089,24 @@ CREATE FUNCTION public.ediel_fresh_business_incident_access_v1(p_company_id uuid
 END $$;
 
 --
+-- Name: ediel_guard_received_h05_original_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_guard_received_h05_original_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF TG_OP<>'UPDATE' OR TG_TABLE_SCHEMA<>'public' OR TG_TABLE_NAME<>'ediel_messages' THEN
+  RAISE EXCEPTION 'ediel_h05_original_priority_owner_required' USING ERRCODE='23514';END IF;
+ IF NEW.raw_payload IS NOT NULL AND (NEW.raw_payload,NEW.direction) IS DISTINCT FROM (OLD.raw_payload,OLD.direction)
+  AND public.ediel_is_received_h05_original_v1(OLD)
+ THEN RAISE EXCEPTION 'ediel_registered_reception_original_immutable';END IF;
+ RETURN NEW;
+END
+$$;
+
+--
 -- Name: ediel_inbound_reception_request_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -46250,6 +46208,33 @@ CREATE FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.
  SELECT oldrow.raw_payload IS NOT NULL AND newrow.raw_payload IS NULL AND newrow.parsed_payload='{}'::jsonb AND newrow.validation_report='{}'::jsonb AND coalesce(newrow.metadata,'{}')='{}'::jsonb
  AND (to_jsonb(oldrow)-ARRAY['raw_payload','parsed_payload','validation_report','metadata','updated_at']) IS NOT DISTINCT FROM (to_jsonb(newrow)-ARRAY['raw_payload','parsed_payload','validation_report','metadata','updated_at'])
  AND EXISTS(SELECT FROM gridex_ediel_retention.blob_tombstones t WHERE t.retention_class='received_ediel_message_content' AND t.target_id=oldrow.id AND t.company_id=oldrow.company_id AND t.source_hash=encode(sha256(convert_to(oldrow.raw_payload,'UTF8')),'hex') AND t.public_content_hash=encode(sha256(convert_to(gridex_ediel_retention.public_content_v1(oldrow)::text,'UTF8')),'hex'))
+$$;
+
+--
+-- Name: ediel_is_received_h05_original_v1(public.ediel_messages); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_is_received_h05_original_v1(m public.ediel_messages) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT coalesce(m.direction='inbound' AND m.message_standard='edifact' AND m.message_family='PRODAT' AND m.message_code='Z05'
+  AND m.raw_payload IS NOT NULL AND m.immutable_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+  AND m.execution_context_snapshot#>'{receivedProdatContext,version}'='1'::jsonb
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,contextOrigin}'='database_insert'
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,sourceMessageId}'=m.id::text
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,companyId}'=m.company_id::text
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,environment}'=m.environment
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,messageCode}'=m.message_code
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,payloadHash}'=m.immutable_payload_hash
+  AND EXISTS(SELECT FROM gridex_ediel_inbound_receptions.receptions r WHERE r.source_message_id=m.id AND r.company_id=m.company_id AND r.environment=m.environment AND r.canonical_payload_hash=m.immutable_payload_hash)
+  AND EXISTS(SELECT FROM gridex_ediel_inbound_context.receipts basis JOIN public.ediel_messages original ON original.id=basis.source_message_id AND original.company_id=basis.company_id WHERE basis.source_message_id=m.id
+   AND ROW(original.company_id,original.environment,original.direction,original.message_standard,original.message_family,original.message_code,original.raw_payload,original.sender_ediel_id,original.receiver_ediel_id,original.application_reference,original.interchange_reference,original.mailbox_message_id,original.immutable_payload_hash,original.message_received_at,original.execution_context_snapshot->'receivedProdatContext')
+    IS NOT DISTINCT FROM ROW(m.company_id,m.environment,m.direction,m.message_standard,m.message_family,m.message_code,m.raw_payload,m.sender_ediel_id,m.receiver_ediel_id,m.application_reference,m.interchange_reference,m.mailbox_message_id,m.immutable_payload_hash,m.message_received_at,m.execution_context_snapshot->'receivedProdatContext')
+   AND basis.status='ready' AND basis.company_id=m.company_id AND basis.environment=m.environment AND basis.direction=m.direction
+   AND basis.source_received_at=m.message_received_at AND basis.payload_sha256=m.immutable_payload_hash
+   AND basis.context @> jsonb_build_object('basisKind','observed_source_persistence','companyId',m.company_id,
+    'environment',m.environment,'direction','inbound','family','PRODAT','code','Z05','subtype','H')),false)
 $$;
 
 --
@@ -51344,28 +51329,6 @@ CREATE FUNCTION public.gridex_address_is_complete(p_value jsonb) RETURNS boolean
 $$;
 
 --
--- Name: gridex_data_quality_source_exists_v1(uuid, text, uuid, boolean); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_data_quality_source_exists_v1(p_company uuid, p_entity_type text, p_entity_id uuid, p_requires_active boolean DEFAULT false) RETURNS boolean
-    LANGUAGE sql STABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
- select case p_entity_type
-  when 'metering_point' then exists(select 1 from public.metering_points p
-   where p.company_id=p_company and p.id=p_entity_id and (not p_requires_active or (
-    public.gridex_data_quality_active_status_v1(p.status)
-    and gridex_quality.operational_customer_source_v1(p_company,p_entity_type,p_entity_id))))
-  when 'customer' then exists(select 1 from public.customers p where p.company_id=p_company and p.id=p_entity_id
-   and (not p_requires_active or (public.gridex_data_quality_active_status_v1(p.status)
-    and gridex_quality.operational_customer_source_v1(p_company,p_entity_type,p_entity_id))))
-  when 'metering_value' then exists(select 1 from public.metering_values p where p.company_id=p_company and p.id=p_entity_id)
-  when 'ediel_message' then exists(select 1 from public.ediel_messages p where p.company_id=p_company and p.id=p_entity_id)
-  when 'grid_owner_data_request' then exists(select 1 from public.grid_owner_data_requests p where p.company_id=p_company and p.id=p_entity_id)
-  else null end
-$$;
-
---
 -- Name: gridex_new_external_tenant_reference(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -51398,32 +51361,6 @@ CREATE FUNCTION public.gridex_normalize_metering_point_id(p_value text) RETURNS 
     SET search_path TO 'public', 'auth', 'extensions'
     AS $$
   select nullif(upper(regexp_replace(coalesce(p_value, ''), '[^A-Za-z0-9]', '', 'g')), '')
-$$;
-
---
--- Name: gridex_pending_website_application_count(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_pending_website_application_count(p_company_id uuid DEFAULT NULL::uuid) RETURNS bigint
-    LANGUAGE sql STABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-  select count(*) from public.gridex_website_application_work_items_v
-  where is_pending and (p_company_id is null or company_id=p_company_id)
-$$;
-
---
--- Name: gridex_quality_open_key_v1(uuid, text, text, uuid, text, date); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_quality_open_key_v1(p_company uuid, p_source text, p_entity_type text, p_entity_id uuid, p_kind text, p_period date DEFAULT NULL::date) RETURNS text
-    LANGUAGE sql IMMUTABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-  select case when p_source is null then null else md5(jsonb_build_array(
-    p_company::text,p_source,p_entity_type,p_entity_id::text,p_kind,
-    extract(year from p_period)::integer,extract(month from p_period)::integer
-  )::text) end
 $$;
 
 --
@@ -51844,15 +51781,7 @@ CREATE TABLE public.data_quality_issues (
     detected_at timestamp with time zone DEFAULT now(),
     resolved_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    source text,
-    period_month date,
-    resolution_reason text,
-    open_key text GENERATED ALWAYS AS (
-CASE
-    WHEN (status = 'open'::text) THEN public.gridex_quality_open_key_v1(company_id, source, entity_type, entity_id, issue_type, period_month)
-    ELSE NULL::text
-END) STORED
+    updated_at timestamp with time zone DEFAULT now()
 );
 
 --
@@ -51981,48 +51910,6 @@ CREATE TABLE public.grid_owner_data_requests (
     partner_response_log jsonb DEFAULT '[]'::jsonb NOT NULL,
     last_partner_response_at timestamp with time zone
 );
-
---
--- Name: gridex_data_quality_rule_catalog_v; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.gridex_data_quality_rule_catalog_v WITH (security_invoker='true') AS
- SELECT issue_type,
-    entity_type,
-    requires_active,
-    period_dependent,
-    scanner,
-    severity,
-    message,
-    alert_type,
-    alert_title,
-    alert_message
-   FROM ( VALUES ('missing_bidding_zone'::text,'metering_point'::text,true,false,true,'warning'::text,'Mätpunkt saknar SE-område.'::text,'missing_bidding_zone'::text,'mätpunkter saknar SE-område'::text,'Komplettera SE-område eller lägg till en säker nätområdesmappning.'::text), ('missing_grid_owner'::text,'metering_point'::text,true,false,true,'warning'::text,'Mätpunkt saknar nätägare.'::text,'missing_grid_owner'::text,'mätpunkter saknar nätägare'::text,'Komplettera nätägare innan prognos och mätvärdesuppföljning används.'::text), ('missing_start_date'::text,'metering_point'::text,true,false,true,'warning'::text,'Mätpunkt saknar startdatum.'::text,NULL::text,NULL::text,NULL::text), ('missing_estimated_annual_consumption'::text,'metering_point'::text,true,false,true,'warning'::text,'Mätpunkt saknar både uppskattad årsförbrukning och historiska mätvärden.'::text,NULL::text,NULL::text,NULL::text), ('active_metering_point_without_active_customer'::text,'metering_point'::text,true,false,true,'warning'::text,'Mätpunkt är aktiv men kunden är inte aktiv.'::text,NULL::text,NULL::text,NULL::text), ('missing_metering_values'::text,'metering_point'::text,true,true,true,'critical'::text,'Mätvärden saknas för perioden.'::text,'missing_metering_values'::text,'mätpunkter saknar mätvärden'::text,'Följ upp saknade mätvärden för vald period.'::text), ('invalid_metering_value'::text,'metering_value'::text,false,false,true,'critical'::text,'Mätvärde är negativt och behöver kontrolleras.'::text,NULL::text,NULL::text,NULL::text), ('missing_customer_contract'::text,'customer'::text,true,false,true,'warning'::text,'Aktiv kund saknar aktiv mätpunkt.'::text,NULL::text,NULL::text,NULL::text), ('incomplete_customer_onboarding'::text,'customer'::text,true,false,true,'warning'::text,'Kunddata är ofullständig för aktiv kund.'::text,'incomplete_customer_onboarding'::text,'kunder har ofullständig kunddata'::text,'Komplettera kunddata innan statistik, prognos och drift används fullt ut.'::text), ('failed_ediel_message'::text,'ediel_message'::text,false,false,true,'critical'::text,'Ediel-meddelande misslyckades.'::text,'failed_ediel_message'::text,'Ediel-meddelanden har misslyckats'::text,'Följ upp misslyckade PRODAT, UTILTS, CONTRL eller APERAK-meddelanden.'::text), ('slow_grid_owner_response'::text,'grid_owner_data_request'::text,false,false,true,'warning'::text,'Nätägarsvar har inte kommit inom 72 timmar.'::text,'slow_grid_owner_response'::text,'nätägarsvar är försenade'::text,'Följ upp uppgifts- eller mätvärdesbegäran som väntar på svar.'::text), ('forecast_deviation'::text,'metering_point'::text,true,true,true,'warning'::text,'Prognosen avviker mot faktiskt utfall.'::text,'forecast_deviation'::text,'prognoser avviker mot faktiskt utfall'::text,'Granska prognosavvikelser per mätpunkt och kund.'::text), ('forecast_basis_missing'::text,'metering_point'::text,true,true,false,'warning'::text,'Prognosunderlag saknas för mätpunkten.'::text,NULL::text,NULL::text,NULL::text)) r(issue_type, entity_type, requires_active, period_dependent, scanner, severity, message, alert_type, alert_title, alert_message);
-
---
--- Name: gridex_actionable_data_quality_issues_v; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.gridex_actionable_data_quality_issues_v WITH (security_invoker='true') AS
- SELECT q.id,
-    q.company_id,
-    q.entity_type,
-    q.entity_id,
-    q.issue_type,
-    q.severity,
-    q.message,
-    q.status,
-    q.detected_at,
-    q.resolved_at,
-    q.created_at,
-    q.updated_at,
-    q.source,
-    q.period_month,
-    q.resolution_reason,
-    q.open_key
-   FROM (public.data_quality_issues q
-     LEFT JOIN public.gridex_data_quality_rule_catalog_v r ON (((r.issue_type = q.issue_type) AND (r.entity_type = q.entity_type))))
-  WHERE ((q.status = 'open'::text) AND COALESCE(public.gridex_data_quality_source_exists_v1(q.company_id, q.entity_type, q.entity_id, COALESCE(r.requires_active, false)), true) AND ((r.issue_type IS NULL) OR gridex_quality.operational_customer_source_v1(q.company_id, q.entity_type, q.entity_id)) AND ((q.period_month IS NULL) OR (q.period_month = (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date)));
 
 --
 -- Name: metering_points; Type: TABLE; Schema: public; Owner: -
@@ -52515,105 +52402,78 @@ COMMENT ON COLUMN public.webhook_deliveries.delivery_uncertain_at IS 'Timestamp 
 --
 
 CREATE VIEW public.company_dashboard_summary_v WITH (security_invoker='true') AS
- SELECT company_id,
-    company_name,
-    customers_total,
-    contracts_total,
-    sites_total,
-    metering_points_total,
-    open_tasks,
-    open_grid_owner_requests,
-    open_switches,
-    outbound_requests_total,
-    metering_values_total,
-    billing_underlays_total,
-    ongoing_supplier_switches,
-    waiting_for_grid_owner,
-    negative_acknowledgements,
+ SELECT id AS company_id,
+    name AS company_name,
     ( SELECT count(*) AS count
-           FROM public.gridex_actionable_data_quality_issues_v q
-          WHERE ((q.company_id = base.company_id) AND (q.issue_type = 'missing_metering_values'::text))) AS missing_metering_values,
-    customers_action_required,
-    latest_metering_values,
-    upcoming_terminations,
-    ( SELECT public.gridex_pending_website_application_count(base.company_id) AS gridex_pending_website_application_count) AS pending_customer_applications,
-    billing_blocked_or_failed,
-    api_errors,
-    webhook_failures,
-    customers_blocked_or_data_issues,
-    route_missing_or_not_ready
-   FROM ( SELECT c.id AS company_id,
-            c.name AS company_name,
-            ( SELECT count(*) AS count
-                   FROM public.customers x
-                  WHERE ((x.company_id = c.id) AND (COALESCE(x.source, ''::text) <> 'ediel_portal_test'::text) AND (COALESCE(x.status, ''::text) <> ALL (ARRAY['archived'::text, 'deleted'::text, 'deleted_test_only'::text, 'pending_deletion'::text])))) AS customers_total,
-            ( SELECT count(*) AS count
-                   FROM public.customer_contracts x
-                  WHERE (x.company_id = c.id)) AS contracts_total,
-            ( SELECT count(*) AS count
-                   FROM public.customer_sites x
-                  WHERE (x.company_id = c.id)) AS sites_total,
-            ( SELECT count(*) AS count
-                   FROM public.metering_points x
-                  WHERE (x.company_id = c.id)) AS metering_points_total,
-            ( SELECT count(*) AS count
-                   FROM public.customer_operation_tasks x
-                  WHERE ((x.company_id = c.id) AND (x.status = 'open'::text))) AS open_tasks,
-            ( SELECT count(*) AS count
-                   FROM public.grid_owner_data_requests x
-                  WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['sent'::text, 'waiting_response'::text, 'queued'::text, 'pending'::text])))) AS open_grid_owner_requests,
-            ( SELECT count(*) AS count
-                   FROM public.supplier_switch_requests x
-                  WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['open'::text, 'draft'::text, 'queued'::text, 'submitted'::text, 'accepted'::text, 'cancellation_requested'::text, 'cancellation_sent'::text, 'manual_followup_required'::text])))) AS open_switches,
-            ( SELECT count(*) AS count
-                   FROM public.outbound_requests x
-                  WHERE (x.company_id = c.id)) AS outbound_requests_total,
-            ( SELECT count(*) AS count
-                   FROM public.metering_values x
-                  WHERE (x.company_id = c.id)) AS metering_values_total,
-            ( SELECT count(*) AS count
-                   FROM public.billing_underlays x
-                  WHERE (x.company_id = c.id)) AS billing_underlays_total,
-            ( SELECT count(*) AS count
-                   FROM public.supplier_switch_requests x
-                  WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['draft'::text, 'queued'::text, 'submitted'::text, 'accepted'::text, 'cancellation_requested'::text, 'cancellation_sent'::text, 'manual_followup_required'::text])))) AS ongoing_supplier_switches,
-            ( SELECT count(*) AS count
-                   FROM public.grid_owner_data_requests x
-                  WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['sent'::text, 'waiting_response'::text, 'queued'::text])))) AS waiting_for_grid_owner,
-            ( SELECT count(*) AS count
-                   FROM public.ediel_messages x
-                  WHERE ((x.company_id = c.id) AND (x.ack_outcome = 'negative'::text))) AS negative_acknowledgements,
-            ( SELECT count(*) AS count
-                   FROM public.data_quality_issues x
-                  WHERE ((x.company_id = c.id) AND (x.status = 'open'::text) AND (x.issue_type = 'missing_metering_values'::text))) AS missing_metering_values,
-            ( SELECT count(*) AS count
-                   FROM public.customer_operation_tasks x
-                  WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['open'::text, 'in_progress'::text, 'blocked'::text])))) AS customers_action_required,
-            ( SELECT count(*) AS count
-                   FROM public.metering_values x
-                  WHERE ((x.company_id = c.id) AND (x.created_at >= (now() - '7 days'::interval)))) AS latest_metering_values,
-            ( SELECT count(*) AS count
-                   FROM public.customer_contracts x
-                  WHERE ((x.company_id = c.id) AND (x.ends_at >= CURRENT_DATE) AND (x.ends_at <= (CURRENT_DATE + '30 days'::interval)))) AS upcoming_terminations,
-            ( SELECT count(*) AS count
-                   FROM public.external_contract_intakes x
-                  WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['needs_review'::text, 'partially_created'::text, 'failed'::text])))) AS pending_customer_applications,
-            ( SELECT count(*) AS count
-                   FROM public.billing_underlays x
-                  WHERE ((x.company_id = c.id) AND (COALESCE(x.readiness_status, x.status) = ANY (ARRAY['blocked'::text, 'failed'::text, 'needs_review'::text])))) AS billing_blocked_or_failed,
-            ( SELECT count(*) AS count
-                   FROM public.integration_api_requests x
-                  WHERE ((x.company_id = c.id) AND (COALESCE(x.status_code, 200) >= 400))) AS api_errors,
-            ( SELECT count(*) AS count
-                   FROM public.webhook_deliveries x
-                  WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['failed'::text, 'dead'::text, 'dead_letter'::text, 'retrying'::text])))) AS webhook_failures,
-            ( SELECT COALESCE(sum(r.issue_count), (0)::numeric) AS "coalesce"
-                   FROM public.gridex_company_launch_blocker_reasons_v r
-                  WHERE ((r.company_id = c.id) AND (r.issue_count > 0))) AS customers_blocked_or_data_issues,
-            ( SELECT count(*) AS count
-                   FROM public.gridex_route_readiness_v x
-                  WHERE (x.readiness_status = ANY (ARRAY['critical_missing_route'::text, 'recommended_missing_route'::text, 'not_sendable'::text, 'needs_review'::text]))) AS route_missing_or_not_ready
-           FROM public.companies c) base;
+           FROM public.customers x
+          WHERE ((x.company_id = c.id) AND (COALESCE(x.source, ''::text) <> 'ediel_portal_test'::text) AND (COALESCE(x.status, ''::text) <> ALL (ARRAY['archived'::text, 'deleted'::text, 'deleted_test_only'::text, 'pending_deletion'::text])))) AS customers_total,
+    ( SELECT count(*) AS count
+           FROM public.customer_contracts x
+          WHERE (x.company_id = c.id)) AS contracts_total,
+    ( SELECT count(*) AS count
+           FROM public.customer_sites x
+          WHERE (x.company_id = c.id)) AS sites_total,
+    ( SELECT count(*) AS count
+           FROM public.metering_points x
+          WHERE (x.company_id = c.id)) AS metering_points_total,
+    ( SELECT count(*) AS count
+           FROM public.customer_operation_tasks x
+          WHERE ((x.company_id = c.id) AND (x.status = 'open'::text))) AS open_tasks,
+    ( SELECT count(*) AS count
+           FROM public.grid_owner_data_requests x
+          WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['sent'::text, 'waiting_response'::text, 'queued'::text, 'pending'::text])))) AS open_grid_owner_requests,
+    ( SELECT count(*) AS count
+           FROM public.supplier_switch_requests x
+          WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['open'::text, 'draft'::text, 'queued'::text, 'submitted'::text, 'accepted'::text, 'cancellation_requested'::text, 'cancellation_sent'::text, 'manual_followup_required'::text])))) AS open_switches,
+    ( SELECT count(*) AS count
+           FROM public.outbound_requests x
+          WHERE (x.company_id = c.id)) AS outbound_requests_total,
+    ( SELECT count(*) AS count
+           FROM public.metering_values x
+          WHERE (x.company_id = c.id)) AS metering_values_total,
+    ( SELECT count(*) AS count
+           FROM public.billing_underlays x
+          WHERE (x.company_id = c.id)) AS billing_underlays_total,
+    ( SELECT count(*) AS count
+           FROM public.supplier_switch_requests x
+          WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['draft'::text, 'queued'::text, 'submitted'::text, 'accepted'::text, 'cancellation_requested'::text, 'cancellation_sent'::text, 'manual_followup_required'::text])))) AS ongoing_supplier_switches,
+    ( SELECT count(*) AS count
+           FROM public.grid_owner_data_requests x
+          WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['sent'::text, 'waiting_response'::text, 'queued'::text])))) AS waiting_for_grid_owner,
+    ( SELECT count(*) AS count
+           FROM public.ediel_messages x
+          WHERE ((x.company_id = c.id) AND (x.ack_outcome = 'negative'::text))) AS negative_acknowledgements,
+    ( SELECT count(*) AS count
+           FROM public.data_quality_issues x
+          WHERE ((x.company_id = c.id) AND (x.status = 'open'::text) AND (x.issue_type = 'missing_metering_values'::text))) AS missing_metering_values,
+    ( SELECT count(*) AS count
+           FROM public.customer_operation_tasks x
+          WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['open'::text, 'in_progress'::text, 'blocked'::text])))) AS customers_action_required,
+    ( SELECT count(*) AS count
+           FROM public.metering_values x
+          WHERE ((x.company_id = c.id) AND (x.created_at >= (now() - '7 days'::interval)))) AS latest_metering_values,
+    ( SELECT count(*) AS count
+           FROM public.customer_contracts x
+          WHERE ((x.company_id = c.id) AND (x.ends_at >= CURRENT_DATE) AND (x.ends_at <= (CURRENT_DATE + '30 days'::interval)))) AS upcoming_terminations,
+    ( SELECT count(*) AS count
+           FROM public.external_contract_intakes x
+          WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['needs_review'::text, 'partially_created'::text, 'failed'::text])))) AS pending_customer_applications,
+    ( SELECT count(*) AS count
+           FROM public.billing_underlays x
+          WHERE ((x.company_id = c.id) AND (COALESCE(x.readiness_status, x.status) = ANY (ARRAY['blocked'::text, 'failed'::text, 'needs_review'::text])))) AS billing_blocked_or_failed,
+    ( SELECT count(*) AS count
+           FROM public.integration_api_requests x
+          WHERE ((x.company_id = c.id) AND (COALESCE(x.status_code, 200) >= 400))) AS api_errors,
+    ( SELECT count(*) AS count
+           FROM public.webhook_deliveries x
+          WHERE ((x.company_id = c.id) AND (x.status = ANY (ARRAY['failed'::text, 'dead'::text, 'dead_letter'::text, 'retrying'::text])))) AS webhook_failures,
+    ( SELECT COALESCE(sum(r.issue_count), (0)::numeric) AS "coalesce"
+           FROM public.gridex_company_launch_blocker_reasons_v r
+          WHERE ((r.company_id = c.id) AND (r.issue_count > 0))) AS customers_blocked_or_data_issues,
+    ( SELECT count(*) AS count
+           FROM public.gridex_route_readiness_v x
+          WHERE (x.readiness_status = ANY (ARRAY['critical_missing_route'::text, 'recommended_missing_route'::text, 'not_sendable'::text, 'needs_review'::text]))) AS route_missing_or_not_ready
+   FROM public.companies c;
 
 --
 -- Name: gridex_admin_dashboard_summary(uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -59104,19 +58964,6 @@ end;
 $$;
 
 --
--- Name: gridex_company_has_customer_data(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_company_has_customer_data(p_company_id uuid) RETURNS boolean
-    LANGUAGE sql STABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
- select exists(select 1 from public.customers c where c.company_id=p_company_id
-   and coalesce(c.source,'')<>'ediel_portal_test'
-   and coalesce(c.status,'') not in ('deleted','deleted_test_only','pending_deletion'))
-$$;
-
---
 -- Name: gridex_company_legal_contract_runtime_health(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -62922,6 +62769,14 @@ begin
     v_offer_reference,
     case when v_customer_type = 'association' then null else v_customer_type end
   );
+  -- Verify the offer selected inside this transaction before any customer/site/contract insert.
+  if not coalesce(v_offer->>'energy_direction' in ('consumption', 'production'), false) then
+    raise exception using errcode='22023', message='partner_api_offer_direction_unavailable';
+  end if;
+  if v_offer->>'energy_direction' is distinct from v_site_type then
+    raise exception using errcode='22023', message='partner_api_site_offer_direction_mismatch';
+  end if;
+
   v_publication_version_id := (v_offer->>'publication_version_id')::uuid;
   v_contract_product_version_id := (v_offer->>'contract_product_version_id')::uuid;
   v_contract_product_id := (v_offer->>'contract_product_id')::uuid;
@@ -63682,24 +63537,6 @@ begin
 
   return jsonb_build_object('contract',to_jsonb(v_contract),'contract_price_snapshot_id',v_snapshot_id);
 end
-$$;
-
---
--- Name: gridex_current_point_forecasts_v1(uuid, date); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_current_point_forecasts_v1(p_company uuid, p_month date) RETURNS TABLE(metering_point_id uuid, forecast_run_id uuid, diff_percent numeric)
-    LANGUAGE sql STABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
- select distinct on(i.metering_point_id) i.metering_point_id,i.forecast_run_id,i.diff_percent
- from public.forecast_run_items i join public.forecast_runs r
-  on r.id=i.forecast_run_id and r.company_id=i.company_id
- where i.company_id=p_company and r.status='completed' and r.forecast_type='consumption'
-  and i.period_start>=date_trunc('month',p_month)::date
-  and i.period_start<(date_trunc('month',p_month)+interval '1 month')::date
- order by i.metering_point_id,coalesce(r.completed_at,r.created_at) desc nulls last,
-  r.created_at desc nulls last,r.id desc,i.created_at desc nulls last,i.id desc
 $$;
 
 --
@@ -64716,27 +64553,10 @@ $$;
 CREATE FUNCTION public.gridex_customer_portfolio_cohorts(p_company_id uuid, p_months integer DEFAULT 12) RETURNS TABLE(cohort_month date, customers integer, retained_1m numeric, retained_3m numeric, retained_6m numeric, retained_12m numeric)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
-    SET "TimeZone" TO 'UTC'
-    AS $$
-begin
-  perform public.gridex_customer_portfolio_assert_read(p_company_id);
-  return query select * from public.gridex_customer_portfolio_cohorts_at(p_company_id, current_date, p_months);
-end;
-$$;
-
---
--- Name: gridex_customer_portfolio_cohorts_at(uuid, date, integer); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_customer_portfolio_cohorts_at(p_company_id uuid, p_as_of date, p_months integer DEFAULT 12) RETURNS TABLE(cohort_month date, customers integer, retained_1m numeric, retained_3m numeric, retained_6m numeric, retained_12m numeric)
-    LANGUAGE plpgsql STABLE SECURITY DEFINER
-    SET search_path TO 'public', 'auth', 'pg_temp'
-    SET "TimeZone" TO 'UTC'
     AS $$
 declare
-  v_as_of date := coalesce(p_as_of, current_date);
   v_months integer := least(greatest(coalesce(p_months, 12), 1), 36);
-  v_from date := (date_trunc('month', v_as_of) - make_interval(months => v_months - 1))::date;
+  v_from date := (date_trunc('month', current_date) - make_interval(months => v_months - 1))::date;
 begin
   perform public.gridex_customer_portfolio_assert_read(p_company_id);
 
@@ -64750,7 +64570,7 @@ begin
     select p.customer_id, date_trunc('month', min(p.start_date))::date as cohort
     from periods p
     group by p.customer_id
-    having min(p.start_date) >= v_from and min(p.start_date) <= v_as_of
+    having min(p.start_date) >= v_from
   ),
   checks as (
     select mb.cohort, mb.customer_id, k.k,
@@ -64767,12 +64587,12 @@ begin
   ),
   rates as (
     select r.cohort, r.k,
-           case when max(r.at_date) < v_as_of then round(avg(case when r.active then 1 else 0 end), 4) end as rate
+           case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end as rate
     from results r
     group by r.cohort, r.k
   )
   select mb.cohort,
-         count(distinct mb.customer_id)::integer,
+         count(*)::integer,
          max(ra.rate) filter (where ra.k = 1),
          max(ra.rate) filter (where ra.k = 3),
          max(ra.rate) filter (where ra.k = 6),
@@ -64791,27 +64611,21 @@ $$;
 CREATE FUNCTION public.gridex_customer_portfolio_expiring_poa(p_company_id uuid, p_days integer DEFAULT 30) RETURNS TABLE(power_of_attorney_id uuid, customer_id uuid, customer_name text, scope text, valid_to date, days_left integer)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
-    SET "TimeZone" TO 'UTC'
     AS $$
-declare
-  v_today date := (now() at time zone 'UTC')::date;
 begin
   perform public.gridex_customer_portfolio_assert_read(p_company_id);
+
   return query
-  with expiring as (
-    select x.*, (x.valid_to::timestamptz at time zone 'UTC')::date as expiry_date
-    from public.powers_of_attorney x
-    where x.company_id = p_company_id
-      and x.status in ('signed', 'accepted', 'active', 'completed')
-  )
   select x.id, x.customer_id,
          coalesce(nullif(trim(c.full_name), ''), nullif(trim(c.company_name), ''),
                   nullif(trim(concat_ws(' ', c.first_name, c.last_name)), ''), c.customer_number),
-         x.scope, x.expiry_date, (x.expiry_date - v_today)::integer
-  from expiring x
+         x.scope, x.valid_to, (x.valid_to - current_date)::integer
+  from public.powers_of_attorney x
   left join public.customers c on c.id = x.customer_id and c.company_id = x.company_id
-  where x.expiry_date between v_today and v_today + least(greatest(coalesce(p_days, 30), 1), 365)
-  order by x.expiry_date, x.id
+  where x.company_id = p_company_id
+    and x.status in ('signed', 'accepted', 'active', 'completed')
+    and x.valid_to between current_date and current_date + least(greatest(coalesce(p_days, 30), 1), 365)
+  order by x.valid_to, x.id
   limit 500;
 end;
 $$;
@@ -64880,12 +64694,11 @@ $$;
 CREATE FUNCTION public.gridex_customer_portfolio_forecast_cached_internal(p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE) RETURNS TABLE(month date, month_index integer, forecast_kwh numeric, low_kwh numeric, high_kwh numeric, metering_points integer, points_with_history integer)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
-    SET "TimeZone" TO 'UTC'
     AS $$
 declare
   v_month date := date_trunc('month', coalesce(p_as_of, current_date))::date;
 begin
-  if v_month < date_trunc('month', current_date)::date and exists (
+  if exists (
     select 1 from public.customer_portfolio_forecast_snapshots s
     where s.company_id = p_company_id and s.as_of_month = v_month
   ) then
@@ -64895,7 +64708,7 @@ begin
     where s.company_id = p_company_id and s.as_of_month = v_month
     order by s.month;
   else
-    return query select * from public.gridex_customer_portfolio_forecast_internal(p_company_id, coalesce(p_as_of, current_date), 12);
+    return query select * from public.gridex_customer_portfolio_forecast_internal(p_company_id, v_month, 12);
   end if;
 end;
 $$;
@@ -64907,7 +64720,6 @@ $$;
 CREATE FUNCTION public.gridex_customer_portfolio_forecast_internal(p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE, p_months integer DEFAULT 12) RETURNS TABLE(month date, month_index integer, forecast_kwh numeric, low_kwh numeric, high_kwh numeric, metering_points integer, points_with_history integer)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
-    SET "TimeZone" TO 'UTC'
     AS $$
 declare
   v_start date := date_trunc('month', coalesce(p_as_of, current_date))::date;
@@ -64919,7 +64731,7 @@ begin
     from generate_series(0, v_months - 1) i
   ),
   pp as (
-    select * from public.gridex_customer_portfolio_point_forecast_internal(p_company_id, coalesce(p_as_of, current_date), v_months)
+    select * from public.gridex_customer_portfolio_point_forecast_internal(p_company_id, v_start, v_months)
   )
   select t.t_month, t.idx,
          round(coalesce(sum(pp.kwh), 0), 3),
@@ -64941,7 +64753,6 @@ $$;
 CREATE FUNCTION public.gridex_customer_portfolio_monthly_internal(p_company_id uuid, p_from date, p_to date) RETURNS TABLE(month date, active_customers_start integer, active_customers integer, new_customers integer, churned_customers integer, net_change integer, churn_rate numeric, active_metering_points integer, poa_requested integer, poa_signed integer, poa_active integer, metering_requests_total integer, metering_requests_historical integer, metering_requests_ongoing integer, metering_requests_failed integer)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
-    SET "TimeZone" TO 'UTC'
     AS $$
 declare
   v_from date := date_trunc('month', p_from)::date;
@@ -64991,8 +64802,7 @@ begin
   ),
   poa as (
     select x.created_at::date as created_on, x.signed_at::date as signed_on,
-           (x.valid_from::timestamptz at time zone 'UTC')::date as valid_from,
-           (x.valid_to::timestamptz at time zone 'UTC')::date as valid_to, x.status
+           x.valid_from, x.valid_to, x.status
     from public.powers_of_attorney x
     where x.company_id = p_company_id
   ),
@@ -65012,15 +64822,14 @@ begin
   ),
   req as (
     select date_trunc('month', x.requested_at)::date as m,
-           count(*) filter (where x.request_scope in ('meter_values', 'billing_underlay')) as total,
+           count(*) as total,
            count(*) filter (where x.request_scope in ('meter_values', 'billing_underlay')
              and x.requested_period_start is not null
              and x.requested_period_start < date_trunc('month', x.requested_at)::date) as historical,
            count(*) filter (where x.request_scope in ('meter_values', 'billing_underlay')
              and (x.requested_period_start is null
                   or x.requested_period_start >= date_trunc('month', x.requested_at)::date)) as ongoing,
-           count(*) filter (where x.request_scope in ('meter_values', 'billing_underlay')
-             and x.status in ('failed', 'rejected', 'error')) as failed
+           count(*) filter (where x.status in ('failed', 'rejected', 'error')) as failed
     from public.grid_owner_data_requests x
     where x.company_id = p_company_id
       and x.requested_at >= v_from
@@ -65061,10 +64870,8 @@ $$;
 CREATE FUNCTION public.gridex_customer_portfolio_point_forecast_internal(p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE, p_months integer DEFAULT 12) RETURNS TABLE(month date, month_index integer, metering_point_id uuid, kwh numeric, has_history boolean, exact boolean)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
-    SET "TimeZone" TO 'UTC'
     AS $$
 declare
-  v_as_of date := coalesce(p_as_of, current_date);
   v_start date := date_trunc('month', coalesce(p_as_of, current_date))::date;
   v_hist_from date := (date_trunc('month', coalesce(p_as_of, current_date)) - interval '12 months')::date;
   v_months integer := least(greatest(coalesce(p_months, 12), 1), 24);
@@ -65090,8 +64897,8 @@ begin
     from public.customer_supply_periods sp
     where sp.company_id = p_company_id
       and sp.status <> 'cancelled'
-      and sp.start_date <= v_as_of
-      and (sp.end_date is null or sp.end_date > v_as_of)
+      and sp.start_date <= v_start
+      and (sp.end_date is null or sp.end_date >= v_start)
     group by sp.metering_point_id
   ),
   history as (
@@ -65124,7 +64931,7 @@ begin
     and h.month_number = extract(month from t.t_month)::integer
   left join point_avg pa on pa.metering_point_id = pt.metering_point_id
   left join profile pr on pr.month_number = extract(month from t.t_month)::integer
-  where pt.supply_end is null or pt.supply_end > t.t_month;
+  where pt.supply_end is null or pt.supply_end >= t.t_month;
 end;
 $$;
 
@@ -65229,16 +65036,6 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_customer_status_counts_v1(p_company_id uuid, p_customer_type text, p_exclude_test_data boolean) IS 'Service-role aggregate for OPS customer status chips; preserves tenant/test/customer-type filters while collapsing nine count round-trips into one scan.';
-
---
--- Name: gridex_data_quality_active_status_v1(text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_data_quality_active_status_v1(p_status text) RETURNS boolean
-    LANGUAGE sql IMMUTABLE
-    AS $$
-  select lower(coalesce(p_status,''))=any(array['active','live','ongoing'])
-$$;
 
 --
 -- Name: gridex_db1_default_company_id(); Type: FUNCTION; Schema: public; Owner: -
@@ -72403,15 +72200,16 @@ end $$;
 
 CREATE FUNCTION public.gridex_grid_owner_name_key(p_name text) RETURNS text
     LANGUAGE sql IMMUTABLE PARALLEL SAFE
+    SET search_path TO 'public', 'pg_temp'
     AS $_$
   select regexp_replace(
     regexp_replace(
       regexp_replace(lower(btrim(coalesce(p_name, ''))), '[^a-z0-9åäö]+', ' ', 'g'),
-      '\\s+(ab|aktiebolag)$',
+      '\s+(ab|aktiebolag)$',
       '',
       'g'
     ),
-    '\\s+',
+    '\s+',
     '',
     'g'
   );
@@ -75271,23 +75069,6 @@ CREATE FUNCTION public.gridex_make_source_hash(p_payload jsonb) RETURNS text
 $$;
 
 --
--- Name: gridex_manual_inbound_source_retired_v1(text, text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_manual_inbound_source_retired_v1(p_mailbox text, p_provider_id text) RETURNS boolean
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare v_key bytea;begin
- if auth.role() is distinct from 'service_role' then
-  raise exception 'manual_inbound_service_role_required' using errcode='42501';end if;
- v_key:=gridex_manual_inbound.manual_source_key_v1(p_mailbox,p_provider_id);
- if v_key is null then return false;end if;
- perform gridex_manual_inbound.lock_manual_source_key_v1(v_key);
- return exists(select 1 from gridex_manual_inbound.retired_source_keys where source_key=v_key);
-end$$;
-
---
 -- Name: gridex_mark_customer_contract_signature_request_sent_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -77116,37 +76897,6 @@ begin
   return jsonb_build_object('primary_customer_id', p_primary_customer_id, 'merged', v_results);
 end
 $_$;
-
---
--- Name: gridex_missing_metering_points_count_v1(uuid, date, uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_missing_metering_points_count_v1(p_company uuid, p_month date, p_customer uuid DEFAULT NULL::uuid) RETURNS bigint
-    LANGUAGE sql STABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
- select count(*) from public.gridex_missing_metering_points_v1(p_company,date_trunc('month',p_month)::date) missing
- join public.metering_points p on p.id=missing.metering_point_id and p.company_id=p_company
- where p_customer is null or p.customer_id=p_customer
-$$;
-
---
--- Name: gridex_missing_metering_points_v1(uuid, date); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_missing_metering_points_v1(p_company uuid, p_month date) RETURNS TABLE(metering_point_id uuid, grid_owner_id uuid)
-    LANGUAGE sql STABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
- with bounds as(select date_trunc('month',p_month)::date as month_start)
- select p.id,p.grid_owner_id from public.metering_points p cross join bounds b
- where p.company_id=p_company and b.month_start is not null
-  and public.gridex_data_quality_source_exists_v1(p_company,'metering_point',p.id,true)
-  and not exists(select 1 from public.metering_values v
-   where v.company_id=p_company and v.metering_point_id=p.id
-    and v.period_start>=(b.month_start::timestamp at time zone 'UTC')
-    and v.period_start<((b.month_start+interval '1 month')::timestamp at time zone 'UTC'))
-$$;
 
 --
 -- Name: gridex_new_offer_reference(text); Type: FUNCTION; Schema: public; Owner: -
@@ -80084,10 +79834,6 @@ CREATE FUNCTION public.gridex_platform_dashboard_summary_v1() RETURNS jsonb
     LANGUAGE sql STABLE
     SET search_path TO 'public', 'pg_temp'
     AS $$
-        select base.summary || jsonb_build_object(
-          'pending_customer_applications',public.gridex_pending_website_application_count(null),
-          'missing_metering_values',(select count(*) from public.gridex_actionable_data_quality_issues_v where issue_type='missing_metering_values'))
-        from (
 with
 customer_stats as (
   select count(*) filter (
@@ -80264,8 +80010,8 @@ cross join ediel_message_stats ems
 cross join route_stats rs
 cross join profile_stats prs
 cross join test_stats tes
-cross join platform_stats ps) as base(summary)
-      $$;
+cross join platform_stats ps;
+$$;
 
 --
 -- Name: gridex_platform_default_legal_templates_set_updated_at(); Type: FUNCTION; Schema: public; Owner: -
@@ -83824,20 +83570,6 @@ from missing;
 $$;
 
 --
--- Name: gridex_quality_lock_company_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_quality_lock_company_v1(p_company uuid) RETURNS void
-    LANGUAGE plpgsql
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-begin
- if auth.role() is distinct from 'service_role' then raise exception 'data_quality_service_role_required' using errcode='42501';end if;
- if p_company is null or not exists(select 1 from public.companies where id=p_company) then raise exception 'data_quality_company_required' using errcode='22023';end if;
- perform pg_advisory_xact_lock(hashtextextended('data_quality:'||p_company::text,0));
-end$$;
-
---
 -- Name: gridex_queue_billing_export_run(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -84152,8 +83884,6 @@ declare
   v_zones integer;
   v_owners integer;
 begin
-    if p_company_id is null or p_month is null then raise exception 'company_id and month are required' using errcode='22023';end if;
-    if not public.gridex_company_has_customer_data(p_company_id) then return jsonb_build_object('month',date_trunc('month',p_month)::date,'forecast_run_id',null,'customers',0,'bidding_zones',0,'grid_owners',0,'skipped','no_customer_data'); end if;
   if p_company_id is null or p_month is null then
     raise exception 'company_id and month are required' using errcode = '22023';
   end if;
@@ -84185,7 +83915,8 @@ begin
          (select count(*) from public.metering_points mp where mp.company_id = p_company_id),
          (select count(*) from public.metering_points mp where mp.company_id = p_company_id and mp.status in ('active', 'live', 'ongoing')),
          (select coalesce(sum(a.value_count), 0) from public.gridex_analytics_point_month_internal(p_company_id, v_month) a),
-         (select count(*) from public.gridex_missing_metering_points_v1(p_company_id,v_month)),
+         (select count(*) from public.data_quality_issues q
+           where q.company_id = p_company_id and q.status = 'open' and q.issue_type = 'missing_metering_values'),
          (select count(*) from public.grid_owner_data_requests g
            where g.company_id = p_company_id and g.created_at >= v_month and g.created_at < v_next),
          (select count(*) from public.grid_owner_data_requests g
@@ -84333,10 +84064,9 @@ begin
     group by 1
   ),
   missing as (
-     select m.grid_owner_id,count(*) as cnt
-     from public.gridex_missing_metering_points_v1(p_company_id,v_month) m
-     where m.grid_owner_id is not null group by m.grid_owner_id
-    ),
+    select count(*) as cnt from public.data_quality_issues q
+    where q.company_id = p_company_id and q.status = 'open' and q.issue_type = 'missing_metering_values'
+  ),
   rows_upserted as (
     insert into public.grid_owner_monthly_metrics as g (
       company_id, grid_owner_id, month, customers_count, sites_count, metering_points_count,
@@ -84344,14 +84074,13 @@ begin
       failed_requests_count, forecast_kwh, actual_kwh, updated_at
     )
     select p_company_id, o.id, v_month, coalesce(p.customers, 0), coalesce(s.cnt, 0), coalesce(p.cnt, 0),
-           coalesce(r.requested, 0), coalesce(p.values_received, 0), coalesce(missing_counts.cnt,0),
+           coalesce(r.requested, 0), coalesce(p.values_received, 0), (select cnt from missing),
            coalesce(r.failed, 0), coalesce(f.kwh, 0), coalesce(p.kwh, 0), now()
     from owners o
     left join pts p on p.grid_owner_id = o.id
     left join sites s on s.grid_owner_id = o.id
     left join reqs r on r.grid_owner_id = o.id
     left join fc f on f.grid_owner_id = o.id
-    left join missing missing_counts on missing_counts.grid_owner_id = o.id
     on conflict (company_id, coalesce(grid_owner_id, '00000000-0000-0000-0000-000000000000'::uuid), month) do update set
       customers_count = excluded.customers_count,
       sites_count = excluded.sites_count,
@@ -84899,65 +84628,6 @@ begin
   );
 end;
 $$;
-
---
--- Name: gridex_reconcile_dashboard_alerts_internal_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_reconcile_dashboard_alerts_internal_v1(p_company uuid) RETURNS void
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-begin
- perform pg_advisory_xact_lock(hashtextextended('data_quality:'||p_company::text,0));
- update public.dashboard_alerts a set status='resolved',resolved_at=now(),updated_at=now(),resolution_reason='no_current_issues'
- where a.company_id=p_company and a.source='gridex_data_quality' and a.status='open' and a.entity_type is null and a.entity_id is null
- and (a.alert_type='data_quality' or exists(select 1 from public.gridex_data_quality_rule_catalog_v r where r.alert_type=a.alert_type))
- and not exists(select 1 from public.gridex_actionable_data_quality_issues_v q join public.gridex_data_quality_rule_catalog_v r on r.issue_type=q.issue_type and r.entity_type=q.entity_type
-  where q.company_id=p_company and q.source='gridex_data_quality' and (a.alert_type='data_quality' or r.alert_type=a.alert_type));
- insert into public.dashboard_alerts(company_id,alert_type,severity,title,message,status,source,updated_at)
- select p_company,c.alert_type,case when bool_or(q.severity='critical') then 'critical' else 'warning' end,
-  count(distinct q.entity_id)||' '||c.alert_title,c.alert_message,'open','gridex_data_quality',now()
- from public.gridex_actionable_data_quality_issues_v q join public.gridex_data_quality_rule_catalog_v c on c.issue_type=q.issue_type and c.entity_type=q.entity_type
- where q.company_id=p_company and q.source='gridex_data_quality' and c.alert_type is not null
- group by c.alert_type,c.alert_title,c.alert_message
- on conflict(company_id,open_key) do update set severity=excluded.severity,title=excluded.title,message=excluded.message,updated_at=excluded.updated_at;
- insert into public.dashboard_alerts(company_id,alert_type,severity,title,message,status,source,updated_at)
- select p_company,'data_quality','warning',count(*)||' datakvalitetsfrågor kräver uppföljning','Öppna avvikelser för detaljer och åtgärder.','open','gridex_data_quality',now()
- from public.gridex_actionable_data_quality_issues_v q join public.gridex_data_quality_rule_catalog_v c on c.issue_type=q.issue_type and c.entity_type=q.entity_type
- where q.company_id=p_company and q.source='gridex_data_quality' having count(*)>0
- on conflict(company_id,open_key) do update set title=excluded.title,message=excluded.message,updated_at=excluded.updated_at;
-end$$;
-
---
--- Name: gridex_reconcile_dashboard_alerts_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_reconcile_dashboard_alerts_v1(p_company uuid) RETURNS void
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-begin
- perform public.gridex_quality_lock_company_v1(p_company);
- perform public.gridex_reconcile_dashboard_alerts_internal_v1(p_company);
-end$$;
-
---
--- Name: gridex_reconcile_data_quality_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_reconcile_data_quality_v1(p_company uuid) RETURNS void
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-begin
- perform public.gridex_quality_lock_company_v1(p_company);
- update public.data_quality_issues q set status='resolved',resolved_at=now(),updated_at=now(),resolution_reason='source_missing_or_inactive'
- from public.gridex_data_quality_rule_catalog_v r
- where q.company_id=p_company and q.source='gridex_data_quality' and q.status='open' and r.issue_type=q.issue_type and r.entity_type=q.entity_type
- and not public.gridex_data_quality_source_exists_v1(p_company,q.entity_type,q.entity_id,r.requires_active);
- perform public.gridex_reconcile_dashboard_alerts_v1(p_company);
-end$$;
 
 --
 -- Name: gridex_reconcile_grid_owner_mappings_v1(boolean); Type: FUNCTION; Schema: public; Owner: -
@@ -88296,58 +87966,6 @@ end;
 $$;
 
 --
--- Name: gridex_resolve_dashboard_alert_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_resolve_dashboard_alert_v1(p_company uuid, p_alert uuid) RETURNS void
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-begin
- perform public.gridex_quality_lock_company_v1(p_company);
- update public.dashboard_alerts set status='resolved',resolved_at=now(),updated_at=now(),resolution_reason='explicit_resolution'
- where company_id=p_company and id=p_alert and status='open';
-end$$;
-
---
--- Name: gridex_resolve_data_quality_issue_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_resolve_data_quality_issue_v1(p_company uuid, p_issue uuid) RETURNS void
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-begin
- perform public.gridex_quality_lock_company_v1(p_company);
- update public.data_quality_issues set status='resolved',resolved_at=now(),updated_at=now(),resolution_reason='explicit_resolution'
- where company_id=p_company and id=p_issue and status='open';
- perform public.gridex_reconcile_dashboard_alerts_v1(p_company);
-end$$;
-
---
--- Name: gridex_resolve_deleted_quality_sources_v1(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_resolve_deleted_quality_sources_v1() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-declare v_company uuid;
-begin
- for v_company in select distinct company_id from deleted_quality_sources where company_id is not null order by company_id loop
-  perform pg_advisory_xact_lock(hashtextextended('data_quality:'||v_company::text,0));
-  update public.data_quality_issues q set status='resolved',resolved_at=now(),updated_at=now(),resolution_reason='source_deleted'
-  from deleted_quality_sources d
-  where q.company_id=v_company and d.company_id=v_company and q.entity_id=d.id and q.entity_type=tg_argv[0] and q.source='gridex_data_quality' and q.status='open'
-   and exists(select 1 from public.gridex_data_quality_rule_catalog_v r where r.issue_type=q.issue_type and r.entity_type=q.entity_type);
-  -- Physical source deletion has already been authorized by its table/RPC.
-  -- The private primitive also closes aggregates for owner maintenance without JWT.
-  perform public.gridex_reconcile_dashboard_alerts_internal_v1(v_company);
- end loop;
- return null;
-end$$;
-
---
 -- Name: gridex_resolve_ediel_route_for_process(uuid, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -88449,26 +88067,6 @@ begin
   );
 end;
 $$;
-
---
--- Name: gridex_resolve_managed_quality_rule_v1(uuid, uuid, text, date); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_resolve_managed_quality_rule_v1(p_company uuid, p_entity uuid, p_issue_type text, p_period date DEFAULT NULL::date) RETURNS void
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-declare v_rule record;v_period date;
-begin
- perform public.gridex_quality_lock_company_v1(p_company);
- select * into v_rule from public.gridex_data_quality_rule_catalog_v where issue_type=p_issue_type;
- if not found or p_entity is null or (v_rule.period_dependent and p_period is null) then raise exception 'data_quality_resolution_scope_invalid' using errcode='22023';end if;
- v_period:=case when v_rule.period_dependent then date_trunc('month',p_period)::date end;
- update public.data_quality_issues q set status='resolved',resolved_at=now(),updated_at=now(),resolution_reason='condition_cleared_by_producer'
- where q.company_id=p_company and q.source='gridex_data_quality' and q.status='open' and q.entity_type=v_rule.entity_type and q.entity_id=p_entity and q.issue_type=p_issue_type
- and q.period_month is not distinct from v_period;
- perform public.gridex_reconcile_dashboard_alerts_internal_v1(p_company);
-end$$;
 
 --
 -- Name: gridex_resolve_or_create_legal_source_bundle(uuid, jsonb, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -89409,71 +89007,6 @@ begin
     'contract_created', v_contract_created);
 end;
 $$;
-
---
--- Name: gridex_scan_data_quality_v1(uuid, date, uuid); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_scan_data_quality_v1(p_company uuid, p_month date DEFAULT CURRENT_DATE, p_point uuid DEFAULT NULL::uuid) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-declare v_scan uuid:=gen_random_uuid();v_month date:=date_trunc('month',p_month)::date;v_next date;v_issues integer;
-begin
- perform public.gridex_quality_lock_company_v1(p_company);
- if v_month is null then raise exception 'data_quality_month_required' using errcode='22023';end if;
- v_next:=(v_month+interval '1 month')::date;
- create temporary table if not exists gridex_quality_findings(scan_id uuid,entity_type text,entity_id uuid,issue_type text,period_month date,severity text,message text) on commit drop;
- insert into pg_temp.gridex_quality_findings
- with missing as materialized (
-  select m.metering_point_id from public.gridex_missing_metering_points_v1(p_company,v_month) m
- ), points as (
-  select p.*,c.status as customer_status,
-   exists(select 1 from public.metering_values v where v.company_id=p_company and v.metering_point_id=p.id) as has_history,
-   m.metering_point_id is null as has_period_values
-  from public.metering_points p left join public.customers c on c.id=p.customer_id and c.company_id=p.company_id
-  left join missing m on m.metering_point_id=p.id
-  where p.company_id=p_company and public.gridex_data_quality_source_exists_v1(p_company,'metering_point',p.id,true) and (p_point is null or p.id=p_point)
- ), detected(entity_type,entity_id,issue_type) as (
-  select 'metering_point',p.id,r.kind from points p cross join lateral(values
-   ('missing_bidding_zone',p.bidding_zone_code is null),('missing_grid_owner',p.grid_owner_id is null),('missing_start_date',p.start_date is null),
-   ('missing_estimated_annual_consumption',coalesce(p.estimated_annual_consumption_kwh,0)=0 and not p.has_history),
-   ('active_metering_point_without_active_customer',p.customer_status is not null and not public.gridex_data_quality_active_status_v1(p.customer_status)),
-   ('missing_metering_values',not p.has_period_values)) r(kind,failed) where r.failed
-  union all select 'metering_value',v.id,'invalid_metering_value' from public.metering_values v where p_point is null and v.company_id=p_company and gridex_quality.operational_customer_source_v1(p_company,'metering_value',v.id) and coalesce(v.value_kwh,v.quantity_kwh)<0
-  union all select 'customer',c.id,'missing_customer_contract' from public.customers c where p_point is null and c.company_id=p_company and public.gridex_data_quality_source_exists_v1(p_company,'customer',c.id,true)
-   and not exists(select 1 from public.metering_points p where p.company_id=p_company and p.customer_id=c.id and public.gridex_data_quality_active_status_v1(p.status))
-  union all select 'customer',c.id,'incomplete_customer_onboarding' from public.customers c where p_point is null and c.company_id=p_company and public.gridex_data_quality_source_exists_v1(p_company,'customer',c.id,true)
-   and (c.email is null or c.email='' or lower(coalesce(c.onboarding_status,'')) in('draft','incomplete','pending'))
-  union all select 'ediel_message',e.id,'failed_ediel_message' from public.ediel_messages e where p_point is null and e.company_id=p_company and e.status in('failed','error','rejected','blocked')
-  union all select 'grid_owner_data_request',g.id,'slow_grid_owner_response' from public.grid_owner_data_requests g where p_point is null and g.company_id=p_company and g.status in('pending','queued','sent','waiting_response') and g.created_at<now()-interval '72 hours'
-  union select 'metering_point',i.metering_point_id,'forecast_deviation' from public.gridex_current_point_forecasts_v1(p_company,v_month) i join points p on p.id=i.metering_point_id
-   where abs(i.diff_percent)>10
- )
- select v_scan,d.entity_type,d.entity_id,d.issue_type,case when r.period_dependent then v_month end,r.severity,r.message
- from detected d join public.gridex_data_quality_rule_catalog_v r on r.issue_type=d.issue_type and r.entity_type=d.entity_type;
-
- -- Only rules and periods fully evaluated by THIS successful statement are
- -- resolved. A source/query/write error aborts every transition and alert update.
- update public.data_quality_issues q set status='resolved',resolved_at=now(),updated_at=now(),resolution_reason='condition_cleared'
- from public.gridex_data_quality_rule_catalog_v r
- where q.company_id=p_company and q.source='gridex_data_quality' and q.status='open' and r.scanner and r.issue_type=q.issue_type and r.entity_type=q.entity_type
- and (p_point is null or (q.entity_type='metering_point' and q.entity_id=p_point))
- and (not r.period_dependent or q.period_month=v_month)
- -- Missing numerical evidence is not a positive healthy evaluation. Source
- -- deletion/inactivity is handled independently by lifecycle reconciliation.
- and (q.issue_type<>'forecast_deviation' or exists(select 1 from public.gridex_current_point_forecasts_v1(p_company,v_month) i where i.metering_point_id=q.entity_id and i.diff_percent is not null))
- and (q.issue_type<>'invalid_metering_value' or exists(select 1 from public.metering_values v where v.company_id=p_company and v.id=q.entity_id and coalesce(v.value_kwh,v.quantity_kwh) is not null))
- and not exists(select 1 from pg_temp.gridex_quality_findings f where f.scan_id=v_scan and f.entity_type=q.entity_type and f.entity_id=q.entity_id and f.issue_type=q.issue_type and f.period_month is not distinct from q.period_month);
- insert into public.data_quality_issues(company_id,entity_type,entity_id,issue_type,severity,message,status,source,period_month,detected_at,updated_at)
- select p_company,f.entity_type,f.entity_id,f.issue_type,f.severity,f.message,'open','gridex_data_quality',f.period_month,now(),now()
- from pg_temp.gridex_quality_findings f where f.scan_id=v_scan
- on conflict(company_id,open_key) do update set severity=excluded.severity,message=excluded.message,detected_at=excluded.detected_at,updated_at=excluded.updated_at;
- select count(*)::integer into v_issues from pg_temp.gridex_quality_findings where scan_id=v_scan;
- delete from pg_temp.gridex_quality_findings where scan_id=v_scan;
- perform public.gridex_reconcile_data_quality_v1(p_company);
- return jsonb_build_object('issues',v_issues);
-end$$;
 
 --
 -- Name: gridex_scan_ediel_canonical_repairs(uuid, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -90845,8 +90378,6 @@ declare
   v_current date := date_trunc('month', current_date)::date;
   v_row public.company_monthly_metrics;
 begin
-    if p_company_id is null or p_month is null then raise exception 'company_id and month are required' using errcode='22023';end if;
-    if not public.gridex_company_has_customer_data(p_company_id) then return null; end if;
   if p_company_id is null or p_month is null then
     raise exception 'company_id and month are required' using errcode = '22023';
   end if;
@@ -94156,52 +93687,6 @@ begin
 end $$;
 
 --
--- Name: gridex_upsert_dashboard_alert_v1(uuid, text, text, text, text, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_upsert_dashboard_alert_v1(p_company uuid, p_alert_type text, p_severity text, p_title text, p_message text, p_entity_type text DEFAULT NULL::text, p_entity uuid DEFAULT NULL::uuid, p_source text DEFAULT 'manual'::text) RETURNS uuid
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-declare v_id uuid;
-begin
- perform public.gridex_quality_lock_company_v1(p_company);
- if p_source is null or p_source='' or p_alert_type is null or p_title is null or p_severity is null or p_severity not in('info','warning','critical') then raise exception 'dashboard_alert_payload_invalid' using errcode='22023';end if;
- insert into public.dashboard_alerts(company_id,alert_type,severity,title,message,entity_type,entity_id,status,source,updated_at)
- values(p_company,p_alert_type,p_severity,p_title,p_message,p_entity_type,p_entity,'open',p_source,now())
- on conflict(company_id,open_key) do update set severity=excluded.severity,title=excluded.title,message=excluded.message,updated_at=excluded.updated_at
- returning id into v_id;
- return v_id;
-end$$;
-
---
--- Name: gridex_upsert_data_quality_issue_v1(uuid, uuid, text, text, text, date); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_upsert_data_quality_issue_v1(p_company uuid, p_entity uuid, p_issue_type text, p_severity text, p_message text, p_period date DEFAULT NULL::date) RETURNS uuid
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-declare r record;v_id uuid;v_period date;
-begin
- perform public.gridex_quality_lock_company_v1(p_company);
- select * into r from public.gridex_data_quality_rule_catalog_v where issue_type=p_issue_type;
- if not found then raise exception 'data_quality_rule_unknown' using errcode='22023';end if;
- -- Historical forecasts may evaluate an inactive but retained source. Ownership
- -- validation requires physical existence; the registry controls actionability.
- if p_entity is null or not public.gridex_data_quality_source_exists_v1(p_company,r.entity_type,p_entity,false) then
-  raise exception 'data_quality_source_not_found_for_company' using errcode='23503';end if;
- if p_severity is null or p_severity not in ('warning','critical') or p_message is null then raise exception 'data_quality_payload_invalid' using errcode='22023';end if;
- v_period:=case when r.period_dependent then date_trunc('month',coalesce(p_period,current_date))::date end;
- insert into public.data_quality_issues(company_id,entity_type,entity_id,issue_type,severity,message,status,source,period_month,detected_at,updated_at)
- values(p_company,r.entity_type,p_entity,p_issue_type,p_severity,p_message,'open','gridex_data_quality',v_period,now(),now())
- on conflict(company_id,open_key) do update set severity=excluded.severity,message=excluded.message,detected_at=excluded.detected_at,updated_at=excluded.updated_at
- returning id into v_id;
- perform public.gridex_reconcile_dashboard_alerts_internal_v1(p_company);
- return v_id;
-end$$;
-
---
 -- Name: gridex_upsert_internal_contract_offer(uuid, uuid, jsonb, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -96806,50 +96291,14 @@ BEGIN
 END $$;
 
 --
--- Name: gridex_website_application_status(text, text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_website_application_status(p_status text, p_source_table text) RETURNS text
-    LANGUAGE sql IMMUTABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-  select case when p_source_table = 'external_contract_intakes' then
-    case coalesce(nullif(trim(p_status), ''), 'received')
-      when 'created' then 'customer_created'
-      when 'partially_created' then 'pending_review'
-      when 'duplicate_ignored' then 'duplicate_facility_id'
-      else coalesce(nullif(trim(p_status), ''), 'received') end
-    else coalesce(nullif(trim(p_status), ''), 'received') end
-$$;
-
---
--- Name: gridex_website_application_work_state(text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_website_application_work_state(p_status text) RETURNS text
-    LANGUAGE sql IMMUTABLE
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-  select case
-    when p_status in ('active','completed','switch_confirmed','linked_existing_customer') then 'completed'
-    when p_status in ('cancelled','duplicate_ignored','archived','deleted') then 'closed'
-    when p_status in ('failed','rejected','switch_rejected') then 'failed'
-    when p_status in ('ready_for_switch','facility_data_received','pending_validation') then 'ready'
-    when p_status in ('information_request_sent','waiting_grid_owner_response','waiting_response','switch_requested') then 'waiting'
-    else 'action_required' end
-$$;
-
---
 -- Name: gridex_whitelabel_portfolio_overview(uuid, date); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.gridex_whitelabel_portfolio_overview(p_white_label_platform_id uuid, p_month date DEFAULT CURRENT_DATE) RETURNS TABLE(company_id uuid, company_name text, company_status text, active_customers integer, new_customers integer, churned_customers integer, net_change integer, poa_requested integer, poa_active integer, metering_requests_total integer, metering_requests_historical integer, forecast_month_kwh numeric, forecast_3m_kwh numeric, forecast_6m_kwh numeric, forecast_12m_kwh numeric)
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
-    SET "TimeZone" TO 'UTC'
     AS $$
 declare
-  v_as_of date := coalesce(p_month, current_date);
   v_month date := date_trunc('month', coalesce(p_month, current_date))::date;
 begin
   if not public.gridex_user_can_read_whitelabel_platform(p_white_label_platform_id)
@@ -96870,7 +96319,7 @@ begin
            sum(x.forecast_kwh) filter (where x.month_index <= 3) as m3,
            sum(x.forecast_kwh) filter (where x.month_index <= 6) as m6,
            sum(x.forecast_kwh) as m12
-    from public.gridex_customer_portfolio_forecast_cached_internal(c.id, v_as_of) x
+    from public.gridex_customer_portfolio_forecast_cached_internal(c.id, v_month) x
   ) f
   where c.white_label_platform_id = p_white_label_platform_id
     and c.status <> 'deleted_test_only'
@@ -102096,22 +101545,6 @@ CREATE TABLE gridex_ediel_wire_namespace.reservations (
 );
 
 ALTER TABLE ONLY gridex_ediel_wire_namespace.reservations FORCE ROW LEVEL SECURITY;
-
---
--- Name: retired_source_keys; Type: TABLE; Schema: gridex_manual_inbound; Owner: -
---
-
-CREATE TABLE gridex_manual_inbound.retired_source_keys (
-    source_key bytea NOT NULL,
-    retired_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT retired_source_keys_source_key_check CHECK ((octet_length(source_key) = 32))
-);
-
---
--- Name: TABLE retired_source_keys; Type: COMMENT; Schema: gridex_manual_inbound; Owner: -
---
-
-COMMENT ON TABLE gridex_manual_inbound.retired_source_keys IS 'Immutable SHA256 identities of authorized deleted manual-mail sources; no mailbox, provider identifier, body or sender is stored.';
 
 --
 -- Name: contract_request_revocations; Type: TABLE; Schema: gridex_metering_method_changes; Owner: -
@@ -112581,14 +112014,7 @@ CREATE TABLE public.dashboard_alerts (
     status text DEFAULT 'open'::text,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    resolved_at timestamp with time zone,
-    source text,
-    resolution_reason text,
-    open_key text GENERATED ALWAYS AS (
-CASE
-    WHEN (status = 'open'::text) THEN public.gridex_quality_open_key_v1(company_id, source, entity_type, entity_id, alert_type, NULL::date)
-    ELSE NULL::text
-END) STORED
+    resolved_at timestamp with time zone
 );
 
 --
@@ -120921,255 +120347,6 @@ CREATE VIEW public.gridex_verified_grid_owners_v WITH (security_invoker='true') 
 COMMENT ON VIEW public.gridex_verified_grid_owners_v IS 'Canonical grid-owner verification view. Direct platform_market_actor_id is authoritative; EDIEL/org/name fallback matching runs only when the direct actor link is absent, preventing duplicate fallback matches and the measured full actor-registry OR scan.';
 
 --
--- Name: website_customer_applications; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.website_customer_applications (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    api_client_id uuid,
-    customer_id uuid,
-    customer_site_id uuid,
-    metering_point_id uuid,
-    contract_id uuid,
-    external_customer_id text NOT NULL,
-    external_account_id text,
-    customer_number text,
-    source text DEFAULT 'external_website'::text NOT NULL,
-    status text DEFAULT 'application_received'::text NOT NULL,
-    idempotency_key text,
-    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    response_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    warnings jsonb DEFAULT '[]'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
-    error_stage text,
-    error_code text,
-    error_message text,
-    processed_at timestamp with time zone,
-    reviewed_at timestamp with time zone,
-    reviewed_by uuid,
-    admin_note text,
-    missing_fields text[] DEFAULT '{}'::text[] NOT NULL,
-    blocking_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
-    next_step text,
-    requested_start_date date,
-    confirmed_start_date date,
-    actual_start_date date,
-    timeline jsonb DEFAULT '[]'::jsonb NOT NULL,
-    audit_log jsonb DEFAULT '[]'::jsonb NOT NULL,
-    assigned_to uuid,
-    grid_owner_id uuid,
-    electricity_supplier_id uuid,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    resolution_id uuid,
-    grid_owner_information_request_id uuid,
-    grid_area_code text,
-    price_area_code text,
-    resolution_status text,
-    resolution_confidence numeric(5,4),
-    requested_start_mode text DEFAULT 'earliest_possible'::text NOT NULL,
-    calculated_earliest_start_date date,
-    facility_data_verified_at timestamp with time zone,
-    application_number text,
-    contract_number text,
-    price_plan_id uuid,
-    price_plan_version_id uuid,
-    contract_price_snapshot_id uuid,
-    payload_hash text,
-    request_id text,
-    trace_id text,
-    intake_id uuid,
-    business_key_hash text,
-    public_contract_offer_id uuid,
-    offer_reference text,
-    quote_reference text,
-    contract_product_version_id uuid,
-    contract_product_id uuid,
-    contract_publication_version_id uuid,
-    price_book_id uuid,
-    legal_bundle_version_id uuid,
-    energy_direction text,
-    portal_identity_required boolean DEFAULT true NOT NULL,
-    repair_status text,
-    repair_owner text,
-    repair_owner_user_id uuid,
-    repair_reason_code text,
-    repair_sla_due_at timestamp with time zone,
-    repair_attempts integer DEFAULT 0 NOT NULL,
-    last_repair_at timestamp with time zone,
-    portal_identity_submission_mode text DEFAULT 'pre_auth_required'::text NOT NULL,
-    CONSTRAINT website_customer_applications_energy_direction_check CHECK (((energy_direction IS NULL) OR (energy_direction = ANY (ARRAY['consumption'::text, 'production'::text])))),
-    CONSTRAINT website_customer_applications_portal_identity_submission_mode_c CHECK ((portal_identity_submission_mode = ANY (ARRAY['pre_auth_required'::text, 'post_auth_allowed'::text, 'legacy'::text]))),
-    CONSTRAINT website_customer_applications_repair_status_check CHECK (((repair_status IS NULL) OR (repair_status = ANY (ARRAY['awaiting_input'::text, 'ready_to_retry'::text, 'queued'::text, 'processing'::text, 'completed'::text, 'needs_review'::text, 'failed'::text])))),
-    CONSTRAINT website_customer_applications_requested_start_mode_check CHECK ((requested_start_mode = ANY (ARRAY['earliest_possible'::text, 'specific_date'::text]))),
-    CONSTRAINT website_customer_applications_status_check CHECK ((status = ANY (ARRAY['processing'::text, 'received'::text, 'customer_created'::text, 'customer_matched'::text, 'contract_created'::text, 'confirmation_pending'::text, 'confirmation_sent'::text, 'cooling_off_sent'::text, 'webhook_pending'::text, 'completed'::text, 'application_received'::text, 'linked_existing_customer'::text, 'needs_address_resolution'::text, 'address_resolved'::text, 'grid_area_resolved'::text, 'needs_facility_data'::text, 'information_request_ready'::text, 'information_request_sent'::text, 'waiting_grid_owner_response'::text, 'facility_data_received'::text, 'needs_information'::text, 'pending_validation'::text, 'ready_for_switch'::text, 'switch_requested'::text, 'switch_confirmed'::text, 'switch_rejected'::text, 'active'::text, 'pending_review'::text, 'manual_review'::text, 'rejected'::text, 'failed'::text, 'cancelled'::text, 'facility_data_invalid'::text, 'customer_information_mismatch'::text, 'grid_owner_rejected_request'::text, 'negative_aperak_received'::text, 'z02_rejected'::text, 'needs_customer_correction'::text, 'needs_grid_owner_followup'::text, 'protected_identity'::text, 'duplicate_facility_id'::text, 'cross_tenant_facility_conflict'::text, 'partial'::text, 'repaired'::text])))
-);
-
---
--- Name: TABLE website_customer_applications; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON TABLE public.website_customer_applications IS 'Canonical source for website signups in OPS admin. External contract intakes may be shown as mirrors/fallbacks but must not hide this row.';
-
---
--- Name: COLUMN website_customer_applications.payload_hash; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.website_customer_applications.payload_hash IS 'SHA-256 of the normalized website application payload. The same Idempotency-Key may only be replayed with the same hash.';
-
---
--- Name: COLUMN website_customer_applications.business_key_hash; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.website_customer_applications.business_key_hash IS 'SHA-256 of external customer + site identity + offer + requested start date. Prevents parallel applications for the same business event under new idempotency keys.';
-
---
--- Name: COLUMN website_customer_applications.energy_direction; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.website_customer_applications.energy_direction IS 'Direction copied from the validated quote; never selected from a mutable latest product.';
-
---
--- Name: COLUMN website_customer_applications.portal_identity_required; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.website_customer_applications.portal_identity_required IS 'True when the canonical customer lifecycle requires a portal identity. This does not imply that authentication must happen before checkout; portal_identity_submission_mode records that tenant-specific timing policy.';
-
---
--- Name: COLUMN website_customer_applications.portal_identity_submission_mode; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.website_customer_applications.portal_identity_submission_mode IS 'Immutable submission-time tenant policy: pre_auth_required, post_auth_allowed, or legacy for historical rows.';
-
---
--- Name: gridex_website_application_work_items_v; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW public.gridex_website_application_work_items_v WITH (security_invoker='true') AS
- WITH external_identity AS (
-         SELECT e.id,
-            e.company_id,
-            e.status,
-            e.source_channel,
-            e.idempotency_key,
-            e.customer_type,
-            e.first_name,
-            e.last_name,
-            e.company_name,
-            e.email,
-            e.phone,
-            e.personal_number,
-            e.org_number,
-            e.facility_id,
-            e.meter_point_id,
-            e.street,
-            e.postal_code,
-            e.city,
-            e.move_in_date,
-            e.price_area_code,
-            e.contract_offer_id,
-            e.requested_start_date,
-            e.created_customer_id,
-            e.created_site_id,
-            e.created_metering_point_id,
-            e.created_contract_id,
-            e.created_case_id,
-            e.created_info_request_id,
-            e.payload,
-            e.issues,
-            e.created_at,
-            e.updated_at,
-            e.external_customer_id,
-            e.customer_number,
-            e.application_number,
-            e.contract_number,
-            e.payload_hash,
-            e.request_id,
-            e.trace_id,
-            e.intake_id,
-            e.public_contract_offer_id,
-            e.offer_reference,
-            e.price_plan_id,
-            e.price_plan_version_id,
-                CASE
-                    WHEN (NULLIF(TRIM(BOTH FROM (e.payload ->> 'website_application_id'::text)), ''::text) IS NOT NULL) THEN ( SELECT w.id
-                       FROM public.website_customer_applications w
-                      WHERE ((w.company_id = e.company_id) AND ((w.id)::text = lower(TRIM(BOTH FROM (e.payload ->> 'website_application_id'::text))))))
-                    WHEN (e.intake_id IS NOT NULL) THEN ( SELECT
-                            CASE
-                                WHEN (count(*) = 1) THEN (min((w.id)::text))::uuid
-                                ELSE NULL::uuid
-                            END AS "case"
-                       FROM public.website_customer_applications w
-                      WHERE ((w.company_id = e.company_id) AND (w.intake_id = e.intake_id)))
-                    WHEN (e.idempotency_key IS NOT NULL) THEN ( SELECT
-                            CASE
-                                WHEN (count(*) = 1) THEN (min((w.id)::text))::uuid
-                                ELSE NULL::uuid
-                            END AS "case"
-                       FROM public.website_customer_applications w
-                      WHERE ((w.company_id = e.company_id) AND (w.idempotency_key = e.idempotency_key)))
-                    ELSE NULL::uuid
-                END AS canonical_application_id
-           FROM public.external_contract_intakes e
-        ), canonical AS (
-         SELECT w.id AS application_id,
-            w.company_id,
-            'website_customer_applications'::text AS source_table,
-            public.gridex_website_application_status(w.status, 'website_customer_applications'::text) AS status,
-            public.gridex_website_application_work_state(w.status) AS work_state,
-            w.created_at,
-            w.updated_at,
-            ( SELECT e.id
-                   FROM external_identity e
-                  WHERE ((e.company_id = w.company_id) AND (e.canonical_application_id = w.id))
-                  ORDER BY e.created_at DESC, e.id
-                 LIMIT 1) AS linked_external_intake_id
-           FROM public.website_customer_applications w
-        ), fallback AS (
-         SELECT e.id AS application_id,
-            e.company_id,
-            'external_contract_intakes'::text AS source_table,
-            public.gridex_website_application_status(e.status, 'external_contract_intakes'::text) AS status,
-            public.gridex_website_application_work_state(e.status) AS work_state,
-            e.created_at,
-            e.updated_at,
-            e.id AS linked_external_intake_id
-           FROM external_identity e
-          WHERE (e.canonical_application_id IS NULL)
-        )
- SELECT application_id,
-    company_id,
-    source_table,
-    status,
-    work_state,
-    created_at,
-    updated_at,
-    linked_external_intake_id,
-    (work_state <> ALL (ARRAY['completed'::text, 'closed'::text])) AS is_pending
-   FROM ( SELECT canonical.application_id,
-            canonical.company_id,
-            canonical.source_table,
-            canonical.status,
-            canonical.work_state,
-            canonical.created_at,
-            canonical.updated_at,
-            canonical.linked_external_intake_id
-           FROM canonical
-        UNION ALL
-         SELECT fallback.application_id,
-            fallback.company_id,
-            fallback.source_table,
-            fallback.status,
-            fallback.work_state,
-            fallback.created_at,
-            fallback.updated_at,
-            fallback.linked_external_intake_id
-           FROM fallback) a;
-
---
 -- Name: inbound_ediel_match_attempts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -121213,11 +120390,6 @@ CREATE TABLE public.inbound_operation_events (
     idempotency_key text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    manual_inbound_message_id uuid GENERATED ALWAYS AS (
-CASE
-    WHEN (source_transport = 'email'::text) THEN (source_id)::uuid
-    ELSE NULL::uuid
-END) STORED,
     CONSTRAINT inbound_operation_events_processing_state_check CHECK ((processing_state = ANY (ARRAY['received'::text, 'normalized'::text, 'matched'::text, 'ambiguous'::text, 'needs_review'::text, 'applied'::text, 'supplemental_evidence'::text, 'conflict'::text, 'ignored'::text, 'unmatched'::text, 'failed'::text]))),
     CONSTRAINT inbound_operation_events_source_transport_check CHECK ((source_transport = ANY (ARRAY['edifact'::text, 'email'::text, 'webhook'::text, 'api'::text]))),
     CONSTRAINT inbound_operation_events_tenant_resolution_status_check CHECK ((tenant_resolution_status = ANY (ARRAY['matched'::text, 'ambiguous'::text, 'unmatched'::text, 'ignored'::text])))
@@ -121228,12 +120400,6 @@ END) STORED,
 --
 
 COMMENT ON TABLE public.inbound_operation_events IS 'Cross-transport inbound orchestration index. source_id points to the canonical transport row; raw payload remains in the source table.';
-
---
--- Name: COLUMN inbound_operation_events.manual_inbound_message_id; Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON COLUMN public.inbound_operation_events.manual_inbound_message_id IS 'Stored email-only manual source UUID: malformed email IDs fail, late orphan writes fail, and deleting the source removes only its derived email events.';
 
 --
 -- Name: integration_api_client_profiles; Type: TABLE; Schema: public; Owner: -
@@ -124280,6 +123446,129 @@ COMMENT ON TABLE public.tenant_customer_identity_providers IS 'Tenantservice P1c
 COMMENT ON COLUMN public.tenant_customer_identity_providers.purpose IS 'customer for Mina sidor; staff for signed staff assertions with sub=Gridex user id and mandatory enforcement.';
 
 --
+-- Name: website_customer_applications; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.website_customer_applications (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    api_client_id uuid,
+    customer_id uuid,
+    customer_site_id uuid,
+    metering_point_id uuid,
+    contract_id uuid,
+    external_customer_id text NOT NULL,
+    external_account_id text,
+    customer_number text,
+    source text DEFAULT 'external_website'::text NOT NULL,
+    status text DEFAULT 'application_received'::text NOT NULL,
+    idempotency_key text,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    response_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    warnings jsonb DEFAULT '[]'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    raw_payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    error_stage text,
+    error_code text,
+    error_message text,
+    processed_at timestamp with time zone,
+    reviewed_at timestamp with time zone,
+    reviewed_by uuid,
+    admin_note text,
+    missing_fields text[] DEFAULT '{}'::text[] NOT NULL,
+    blocking_reasons jsonb DEFAULT '[]'::jsonb NOT NULL,
+    next_step text,
+    requested_start_date date,
+    confirmed_start_date date,
+    actual_start_date date,
+    timeline jsonb DEFAULT '[]'::jsonb NOT NULL,
+    audit_log jsonb DEFAULT '[]'::jsonb NOT NULL,
+    assigned_to uuid,
+    grid_owner_id uuid,
+    electricity_supplier_id uuid,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    resolution_id uuid,
+    grid_owner_information_request_id uuid,
+    grid_area_code text,
+    price_area_code text,
+    resolution_status text,
+    resolution_confidence numeric(5,4),
+    requested_start_mode text DEFAULT 'earliest_possible'::text NOT NULL,
+    calculated_earliest_start_date date,
+    facility_data_verified_at timestamp with time zone,
+    application_number text,
+    contract_number text,
+    price_plan_id uuid,
+    price_plan_version_id uuid,
+    contract_price_snapshot_id uuid,
+    payload_hash text,
+    request_id text,
+    trace_id text,
+    intake_id uuid,
+    business_key_hash text,
+    public_contract_offer_id uuid,
+    offer_reference text,
+    quote_reference text,
+    contract_product_version_id uuid,
+    contract_product_id uuid,
+    contract_publication_version_id uuid,
+    price_book_id uuid,
+    legal_bundle_version_id uuid,
+    energy_direction text,
+    portal_identity_required boolean DEFAULT true NOT NULL,
+    repair_status text,
+    repair_owner text,
+    repair_owner_user_id uuid,
+    repair_reason_code text,
+    repair_sla_due_at timestamp with time zone,
+    repair_attempts integer DEFAULT 0 NOT NULL,
+    last_repair_at timestamp with time zone,
+    portal_identity_submission_mode text DEFAULT 'pre_auth_required'::text NOT NULL,
+    CONSTRAINT website_customer_applications_energy_direction_check CHECK (((energy_direction IS NULL) OR (energy_direction = ANY (ARRAY['consumption'::text, 'production'::text])))),
+    CONSTRAINT website_customer_applications_portal_identity_submission_mode_c CHECK ((portal_identity_submission_mode = ANY (ARRAY['pre_auth_required'::text, 'post_auth_allowed'::text, 'legacy'::text]))),
+    CONSTRAINT website_customer_applications_repair_status_check CHECK (((repair_status IS NULL) OR (repair_status = ANY (ARRAY['awaiting_input'::text, 'ready_to_retry'::text, 'queued'::text, 'processing'::text, 'completed'::text, 'needs_review'::text, 'failed'::text])))),
+    CONSTRAINT website_customer_applications_requested_start_mode_check CHECK ((requested_start_mode = ANY (ARRAY['earliest_possible'::text, 'specific_date'::text]))),
+    CONSTRAINT website_customer_applications_status_check CHECK ((status = ANY (ARRAY['processing'::text, 'received'::text, 'customer_created'::text, 'customer_matched'::text, 'contract_created'::text, 'confirmation_pending'::text, 'confirmation_sent'::text, 'cooling_off_sent'::text, 'webhook_pending'::text, 'completed'::text, 'application_received'::text, 'linked_existing_customer'::text, 'needs_address_resolution'::text, 'address_resolved'::text, 'grid_area_resolved'::text, 'needs_facility_data'::text, 'information_request_ready'::text, 'information_request_sent'::text, 'waiting_grid_owner_response'::text, 'facility_data_received'::text, 'needs_information'::text, 'pending_validation'::text, 'ready_for_switch'::text, 'switch_requested'::text, 'switch_confirmed'::text, 'switch_rejected'::text, 'active'::text, 'pending_review'::text, 'manual_review'::text, 'rejected'::text, 'failed'::text, 'cancelled'::text, 'facility_data_invalid'::text, 'customer_information_mismatch'::text, 'grid_owner_rejected_request'::text, 'negative_aperak_received'::text, 'z02_rejected'::text, 'needs_customer_correction'::text, 'needs_grid_owner_followup'::text, 'protected_identity'::text, 'duplicate_facility_id'::text, 'cross_tenant_facility_conflict'::text, 'partial'::text, 'repaired'::text])))
+);
+
+--
+-- Name: TABLE website_customer_applications; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.website_customer_applications IS 'Canonical source for website signups in OPS admin. External contract intakes may be shown as mirrors/fallbacks but must not hide this row.';
+
+--
+-- Name: COLUMN website_customer_applications.payload_hash; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.website_customer_applications.payload_hash IS 'SHA-256 of the normalized website application payload. The same Idempotency-Key may only be replayed with the same hash.';
+
+--
+-- Name: COLUMN website_customer_applications.business_key_hash; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.website_customer_applications.business_key_hash IS 'SHA-256 of external customer + site identity + offer + requested start date. Prevents parallel applications for the same business event under new idempotency keys.';
+
+--
+-- Name: COLUMN website_customer_applications.energy_direction; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.website_customer_applications.energy_direction IS 'Direction copied from the validated quote; never selected from a mutable latest product.';
+
+--
+-- Name: COLUMN website_customer_applications.portal_identity_required; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.website_customer_applications.portal_identity_required IS 'True when the canonical customer lifecycle requires a portal identity. This does not imply that authentication must happen before checkout; portal_identity_submission_mode records that tenant-specific timing policy.';
+
+--
+-- Name: COLUMN website_customer_applications.portal_identity_submission_mode; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.website_customer_applications.portal_identity_submission_mode IS 'Immutable submission-time tenant policy: pre_auth_required, post_auth_allowed, or legacy for historical rows.';
+
+--
 -- Name: tenant_customer_intake_tracking_v; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -127243,13 +126532,6 @@ ALTER TABLE ONLY gridex_ediel_wire_namespace.coverage
 
 ALTER TABLE ONLY gridex_ediel_wire_namespace.reservations
     ADD CONSTRAINT reservations_pkey PRIMARY KEY (environment, sender_namespace, application_namespace, reference_kind, wire_reference);
-
---
--- Name: retired_source_keys retired_source_keys_pkey; Type: CONSTRAINT; Schema: gridex_manual_inbound; Owner: -
---
-
-ALTER TABLE ONLY gridex_manual_inbound.retired_source_keys
-    ADD CONSTRAINT retired_source_keys_pkey PRIMARY KEY (source_key);
 
 --
 -- Name: contract_request_declarations contract_request_declarations_company_id_environment_contra_key; Type: CONSTRAINT; Schema: gridex_metering_method_changes; Owner: -
@@ -130542,11 +129824,25 @@ ALTER TABLE ONLY public.customers
     ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
 
 --
+-- Name: dashboard_alerts dashboard_alerts_company_id_alert_type_entity_type_entity_i_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.dashboard_alerts
+    ADD CONSTRAINT dashboard_alerts_company_id_alert_type_entity_type_entity_i_key UNIQUE (company_id, alert_type, entity_type, entity_id, status);
+
+--
 -- Name: dashboard_alerts dashboard_alerts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.dashboard_alerts
     ADD CONSTRAINT dashboard_alerts_pkey PRIMARY KEY (id);
+
+--
+-- Name: data_quality_issues data_quality_issues_company_id_entity_type_entity_id_issue__key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_quality_issues
+    ADD CONSTRAINT data_quality_issues_company_id_entity_type_entity_id_issue__key UNIQUE (company_id, entity_type, entity_id, issue_type, status);
 
 --
 -- Name: data_quality_issues data_quality_issues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -136104,18 +135400,6 @@ CREATE INDEX customers_staff_public_reference_idx ON public.customers USING btre
 --
 
 CREATE INDEX customers_test_data_idx ON public.customers USING btree (company_id, is_test_data) WHERE (is_test_data = true);
-
---
--- Name: dashboard_alerts_open_key_uidx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX dashboard_alerts_open_key_uidx ON public.dashboard_alerts USING btree (company_id, open_key);
-
---
--- Name: data_quality_issues_open_key_uidx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX data_quality_issues_open_key_uidx ON public.data_quality_issues USING btree (company_id, open_key);
 
 --
 -- Name: document_ai_extractions_company_customer_idx; Type: INDEX; Schema: public; Owner: -
@@ -142100,12 +141384,6 @@ CREATE INDEX inbound_operation_events_fingerprint_idx ON public.inbound_operatio
 CREATE UNIQUE INDEX inbound_operation_events_idempotency_uidx ON public.inbound_operation_events USING btree (idempotency_key);
 
 --
--- Name: inbound_operation_events_manual_source_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX inbound_operation_events_manual_source_idx ON public.inbound_operation_events USING btree (manual_inbound_message_id) WHERE (manual_inbound_message_id IS NOT NULL);
-
---
 -- Name: inbound_processing_jobs_manual_review_queue_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -142488,12 +141766,6 @@ CREATE INDEX manual_email_outbox_status_queued_idx ON public.manual_email_outbox
 --
 
 CREATE INDEX manual_inbound_messages_company_customer_idx ON public.manual_inbound_messages USING btree (company_id, customer_id, received_at DESC) WHERE ((company_id IS NOT NULL) AND (customer_id IS NOT NULL));
-
---
--- Name: manual_inbound_messages_company_id_id_uidx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX manual_inbound_messages_company_id_id_uidx ON public.manual_inbound_messages USING btree (company_id, id);
 
 --
 -- Name: manual_inbound_messages_company_idx; Type: INDEX; Schema: public; Owner: -
@@ -147413,18 +146685,6 @@ CREATE TRIGGER no_truncate BEFORE TRUNCATE ON gridex_ediel_transport.dsn_observa
 CREATE TRIGGER immutable_reservations BEFORE DELETE OR UPDATE ON gridex_ediel_wire_namespace.reservations FOR EACH ROW EXECUTE FUNCTION gridex_ediel_wire_namespace.immutable();
 
 --
--- Name: retired_source_keys retired_source_keys_immutable; Type: TRIGGER; Schema: gridex_manual_inbound; Owner: -
---
-
-CREATE TRIGGER retired_source_keys_immutable BEFORE DELETE OR UPDATE ON gridex_manual_inbound.retired_source_keys FOR EACH ROW EXECUTE FUNCTION gridex_manual_inbound.reject_retired_key_mutation_v1();
-
---
--- Name: retired_source_keys retired_source_keys_no_truncate; Type: TRIGGER; Schema: gridex_manual_inbound; Owner: -
---
-
-CREATE TRIGGER retired_source_keys_no_truncate BEFORE TRUNCATE ON gridex_manual_inbound.retired_source_keys FOR EACH STATEMENT EXECUTE FUNCTION gridex_manual_inbound.reject_retired_key_mutation_v1();
-
---
 -- Name: contract_request_declarations contract_copy_insert; Type: TRIGGER; Schema: gridex_metering_method_changes; Owner: -
 --
 
@@ -150877,6 +150137,12 @@ CREATE TRIGGER ediel_00_lock_prodat_ack_scope BEFORE INSERT ON public.ediel_mess
 CREATE TRIGGER ediel_00_reference_profile_bounds BEFORE INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ack_guide.require_reference_profile_before_birth_v1();
 
 --
+-- Name: ediel_messages ediel_00_registered_h05_original_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER ediel_00_registered_h05_original_immutable BEFORE UPDATE OF raw_payload, direction ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION public.ediel_guard_received_h05_original_v1();
+
+--
 -- Name: ediel_messages ediel_00_unused_unh_guide; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -151223,12 +150489,6 @@ CREATE TRIGGER gridex_companies_legal_field_validation BEFORE INSERT OR UPDATE O
 --
 
 CREATE TRIGGER gridex_companies_legal_profile_sync AFTER INSERT OR UPDATE OF name, legal_name, org_number, vat_number, address_line_1, address_line_2, postal_code, city, country_code, primary_contact_name, primary_contact_email, support_email, phone, website, customer_service_hours, complaints_contact_name, complaints_email, complaints_phone, complaints_address_line_1, complaints_address_line_2, complaints_postal_code, complaints_city, complaints_country_code, complaints_description, data_protection_contact_name, data_protection_email, data_protection_phone, data_protection_address_line_1, data_protection_address_line_2, data_protection_postal_code, data_protection_city, data_protection_country_code, billing_contact_email, billing_contact_phone, billing_address_line_1, billing_address_line_2, billing_postal_code, billing_city, billing_country_code, billing_terms_summary, dispute_resolution_override ON public.companies FOR EACH ROW EXECUTE FUNCTION public.gridex_sync_company_legal_profile_trigger();
-
---
--- Name: forecast_runs gridex_consumption_forecast_customer_source; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER gridex_consumption_forecast_customer_source BEFORE INSERT ON public.forecast_runs FOR EACH ROW EXECUTE FUNCTION private.gridex_require_consumption_forecast_customer_source();
 
 --
 -- Name: contract_price_snapshots gridex_contract_price_snapshots_immutable_tg; Type: TRIGGER; Schema: public; Owner: -
@@ -153295,36 +152555,6 @@ CREATE TRIGGER gridex_pricing_runs_locked_guard_tg BEFORE DELETE OR UPDATE ON pu
 CREATE TRIGGER gridex_project_terminal_application_continuation AFTER UPDATE OF status ON public.customer_operation_jobs FOR EACH ROW EXECUTE FUNCTION public.gridex_project_terminal_application_continuation();
 
 --
--- Name: customers gridex_quality_source_deleted; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON public.customers REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_resolve_deleted_quality_sources_v1('customer');
-
---
--- Name: ediel_messages gridex_quality_source_deleted; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON public.ediel_messages REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_resolve_deleted_quality_sources_v1('ediel_message');
-
---
--- Name: grid_owner_data_requests gridex_quality_source_deleted; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON public.grid_owner_data_requests REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_resolve_deleted_quality_sources_v1('grid_owner_data_request');
-
---
--- Name: metering_points gridex_quality_source_deleted; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON public.metering_points REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_resolve_deleted_quality_sources_v1('metering_point');
-
---
--- Name: metering_values gridex_quality_source_deleted; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON public.metering_values REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_resolve_deleted_quality_sources_v1('metering_value');
-
---
 -- Name: ediel_messages gridex_seal_received_ack_source; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -153569,18 +152799,6 @@ CREATE TRIGGER legal_text_versions_set_updated_at BEFORE INSERT OR UPDATE ON pub
 --
 
 CREATE TRIGGER manual_email_outbox_verified_site_owner_tg BEFORE INSERT OR UPDATE OF status, external_delivery, request_id ON public.manual_email_outbox FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_verified_site_owner_for_manual_outbox();
-
---
--- Name: manual_inbound_messages manual_inbound_reject_retired_source; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER manual_inbound_reject_retired_source BEFORE INSERT ON public.manual_inbound_messages FOR EACH ROW EXECUTE FUNCTION gridex_manual_inbound.reject_retired_source_v1();
-
---
--- Name: manual_inbound_messages manual_inbound_retire_deleted_source; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER manual_inbound_retire_deleted_source BEFORE DELETE ON public.manual_inbound_messages FOR EACH ROW EXECUTE FUNCTION gridex_manual_inbound.retire_deleted_source_v1();
 
 --
 -- Name: manual_inbound_messages manual_inbound_tenant_graph_guard; Type: TRIGGER; Schema: public; Owner: -
@@ -165192,34 +164410,6 @@ ALTER TABLE ONLY public.external_contract_intakes
     ADD CONSTRAINT external_contract_intakes_public_offer_fk FOREIGN KEY (public_contract_offer_id) REFERENCES public.public_contract_offers(id) ON DELETE SET NULL;
 
 --
--- Name: external_contract_intakes external_intake_created_contract_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.external_contract_intakes
-    ADD CONSTRAINT external_intake_created_contract_fk FOREIGN KEY (company_id, created_contract_id) REFERENCES public.customer_contracts(company_id, id) ON DELETE SET NULL (created_contract_id);
-
---
--- Name: external_contract_intakes external_intake_created_customer_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.external_contract_intakes
-    ADD CONSTRAINT external_intake_created_customer_fk FOREIGN KEY (company_id, created_customer_id) REFERENCES public.customers(company_id, id) ON DELETE SET NULL (created_customer_id);
-
---
--- Name: external_contract_intakes external_intake_created_meter_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.external_contract_intakes
-    ADD CONSTRAINT external_intake_created_meter_fk FOREIGN KEY (company_id, created_metering_point_id) REFERENCES public.metering_points(company_id, id) ON DELETE SET NULL (created_metering_point_id);
-
---
--- Name: external_contract_intakes external_intake_created_site_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.external_contract_intakes
-    ADD CONSTRAINT external_intake_created_site_fk FOREIGN KEY (company_id, created_site_id) REFERENCES public.customer_sites(company_id, id) ON DELETE SET NULL (created_site_id);
-
---
 -- Name: facility_data_quality_issues facility_data_quality_issues_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -165554,20 +164744,6 @@ ALTER TABLE ONLY public.inbound_email_messages
 
 ALTER TABLE ONLY public.inbound_operation_events
     ADD CONSTRAINT inbound_operation_events_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE SET NULL;
-
---
--- Name: inbound_operation_events inbound_operation_events_manual_source_company_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inbound_operation_events
-    ADD CONSTRAINT inbound_operation_events_manual_source_company_fk FOREIGN KEY (company_id, manual_inbound_message_id) REFERENCES public.manual_inbound_messages(company_id, id) ON DELETE CASCADE;
-
---
--- Name: inbound_operation_events inbound_operation_events_manual_source_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.inbound_operation_events
-    ADD CONSTRAINT inbound_operation_events_manual_source_fk FOREIGN KEY (manual_inbound_message_id) REFERENCES public.manual_inbound_messages(id) ON DELETE CASCADE;
 
 --
 -- Name: inbound_processing_jobs inbound_processing_jobs_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -169363,18 +168539,6 @@ ALTER TABLE gridex_ediel_wire_namespace.coverage ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE gridex_ediel_wire_namespace.reservations ENABLE ROW LEVEL SECURITY;
-
---
--- Name: retired_source_keys; Type: ROW SECURITY; Schema: gridex_manual_inbound; Owner: -
---
-
-ALTER TABLE gridex_manual_inbound.retired_source_keys ENABLE ROW LEVEL SECURITY;
-
---
--- Name: retired_source_keys retired_source_keys_service_read; Type: POLICY; Schema: gridex_manual_inbound; Owner: -
---
-
-CREATE POLICY retired_source_keys_service_read ON gridex_manual_inbound.retired_source_keys FOR SELECT TO service_role USING (true);
 
 --
 -- Name: contract_request_declarations; Type: ROW SECURITY; Schema: gridex_metering_method_changes; Owner: -
@@ -188816,12 +187980,6 @@ GRANT USAGE ON SCHEMA gridex_internal TO authenticated;
 GRANT USAGE ON SCHEMA gridex_internal TO service_role;
 
 --
--- Name: SCHEMA gridex_manual_inbound; Type: ACL; Schema: -; Owner: -
---
-
-GRANT USAGE ON SCHEMA gridex_manual_inbound TO service_role;
-
---
 -- Name: SCHEMA gridex_metering_method_changes; Type: ACL; Schema: -; Owner: -
 --
 
@@ -188853,13 +188011,6 @@ GRANT USAGE ON SCHEMA gridex_outbound_dispatch TO gridex_ediel_retention_owner;
 
 GRANT USAGE ON SCHEMA gridex_private TO authenticated;
 GRANT USAGE ON SCHEMA gridex_private TO service_role;
-
---
--- Name: SCHEMA gridex_quality; Type: ACL; Schema: -; Owner: -
---
-
-GRANT USAGE ON SCHEMA gridex_quality TO authenticated;
-GRANT USAGE ON SCHEMA gridex_quality TO service_role;
 
 --
 -- Name: SCHEMA gridex_received_sources; Type: ACL; Schema: -; Owner: -
@@ -192926,36 +192077,6 @@ GRANT ALL ON FUNCTION gridex_internal.actor_open_blocking_conflict_counts() TO a
 GRANT ALL ON FUNCTION gridex_internal.actor_open_blocking_conflict_counts() TO service_role;
 
 --
--- Name: FUNCTION lock_manual_source_key_v1(p_key bytea); Type: ACL; Schema: gridex_manual_inbound; Owner: -
---
-
-REVOKE ALL ON FUNCTION gridex_manual_inbound.lock_manual_source_key_v1(p_key bytea) FROM PUBLIC;
-
---
--- Name: FUNCTION manual_source_key_v1(p_mailbox text, p_provider_id text); Type: ACL; Schema: gridex_manual_inbound; Owner: -
---
-
-REVOKE ALL ON FUNCTION gridex_manual_inbound.manual_source_key_v1(p_mailbox text, p_provider_id text) FROM PUBLIC;
-
---
--- Name: FUNCTION reject_retired_key_mutation_v1(); Type: ACL; Schema: gridex_manual_inbound; Owner: -
---
-
-REVOKE ALL ON FUNCTION gridex_manual_inbound.reject_retired_key_mutation_v1() FROM PUBLIC;
-
---
--- Name: FUNCTION reject_retired_source_v1(); Type: ACL; Schema: gridex_manual_inbound; Owner: -
---
-
-REVOKE ALL ON FUNCTION gridex_manual_inbound.reject_retired_source_v1() FROM PUBLIC;
-
---
--- Name: FUNCTION retire_deleted_source_v1(); Type: ACL; Schema: gridex_manual_inbound; Owner: -
---
-
-REVOKE ALL ON FUNCTION gridex_manual_inbound.retire_deleted_source_v1() FROM PUBLIC;
-
---
 -- Name: FUNCTION bind_message_v1(); Type: ACL; Schema: gridex_metering_method_changes; Owner: -
 --
 
@@ -193505,14 +192626,6 @@ REVOKE ALL ON FUNCTION gridex_prodat_object_batch.require_wire_projection_v1(raw
 --
 
 REVOKE ALL ON FUNCTION gridex_prodat_object_batch.source_v1(c uuid, source_id uuid, actor uuid) FROM PUBLIC;
-
---
--- Name: FUNCTION operational_customer_source_v1(p_company uuid, p_entity_type text, p_entity_id uuid); Type: ACL; Schema: gridex_quality; Owner: -
---
-
-REVOKE ALL ON FUNCTION gridex_quality.operational_customer_source_v1(p_company uuid, p_entity_type text, p_entity_id uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION gridex_quality.operational_customer_source_v1(p_company uuid, p_entity_type text, p_entity_id uuid) TO authenticated;
-GRANT ALL ON FUNCTION gridex_quality.operational_customer_source_v1(p_company uuid, p_entity_type text, p_entity_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION bind_final_v1(); Type: ACL; Schema: gridex_received_err_response; Owner: -
@@ -196940,6 +196053,13 @@ REVOKE ALL ON FUNCTION public.ediel_fresh_business_incident_access_v1(p_company_
 GRANT ALL ON FUNCTION public.ediel_fresh_business_incident_access_v1(p_company_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION ediel_guard_received_h05_original_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_guard_received_h05_original_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_guard_received_h05_original_v1() TO service_role;
+
+--
 -- Name: FUNCTION ediel_inbound_reception_request_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_inbound_email_message_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -197004,6 +196124,13 @@ GRANT ALL ON FUNCTION public.ediel_is_qualified_process_retention_transition_v1(
 REVOKE ALL ON FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.ediel_messages, newrow public.ediel_messages) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.ediel_messages, newrow public.ediel_messages) TO authenticated;
 GRANT ALL ON FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.ediel_messages, newrow public.ediel_messages) TO service_role;
+
+--
+-- Name: FUNCTION ediel_is_received_h05_original_v1(m public.ediel_messages); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_is_received_h05_original_v1(m public.ediel_messages) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_is_received_h05_original_v1(m public.ediel_messages) TO service_role;
 
 --
 -- Name: FUNCTION ediel_link_vh_history_request_v1(p_company_id uuid, p_permission_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_transaction_id text, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
@@ -198637,12 +197764,6 @@ GRANT ALL ON FUNCTION public.gridex_address_is_complete(p_value jsonb) TO authen
 GRANT ALL ON FUNCTION public.gridex_address_is_complete(p_value jsonb) TO service_role;
 
 --
--- Name: FUNCTION gridex_data_quality_source_exists_v1(p_company uuid, p_entity_type text, p_entity_id uuid, p_requires_active boolean); Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON FUNCTION public.gridex_data_quality_source_exists_v1(p_company uuid, p_entity_type text, p_entity_id uuid, p_requires_active boolean) TO service_role;
-
---
 -- Name: FUNCTION gridex_new_external_tenant_reference(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -198662,20 +197783,6 @@ GRANT ALL ON FUNCTION public.gridex_normalize_facility_id(p_value text) TO servi
 
 GRANT ALL ON FUNCTION public.gridex_normalize_metering_point_id(p_value text) TO authenticated;
 GRANT ALL ON FUNCTION public.gridex_normalize_metering_point_id(p_value text) TO service_role;
-
---
--- Name: FUNCTION gridex_pending_website_application_count(p_company_id uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_pending_website_application_count(p_company_id uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_pending_website_application_count(p_company_id uuid) TO service_role;
-GRANT ALL ON FUNCTION public.gridex_pending_website_application_count(p_company_id uuid) TO authenticated;
-
---
--- Name: FUNCTION gridex_quality_open_key_v1(p_company uuid, p_source text, p_entity_type text, p_entity_id uuid, p_kind text, p_period date); Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON FUNCTION public.gridex_quality_open_key_v1(p_company uuid, p_source text, p_entity_type text, p_entity_id uuid, p_kind text, p_period date) TO service_role;
 
 --
 -- Name: TABLE billing_underlays; Type: ACL; Schema: public; Owner: -
@@ -198712,7 +197819,7 @@ GRANT SELECT,UPDATE ON TABLE public.customer_sites TO gridex_ediel_retention_own
 -- Name: TABLE data_quality_issues; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,MAINTAIN ON TABLE public.data_quality_issues TO authenticated;
+GRANT ALL ON TABLE public.data_quality_issues TO authenticated;
 GRANT ALL ON TABLE public.data_quality_issues TO service_role;
 
 --
@@ -198735,20 +197842,6 @@ GRANT ALL ON TABLE public.external_contract_intakes TO service_role;
 
 GRANT ALL ON TABLE public.grid_owner_data_requests TO authenticated;
 GRANT ALL ON TABLE public.grid_owner_data_requests TO service_role;
-
---
--- Name: TABLE gridex_data_quality_rule_catalog_v; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.gridex_data_quality_rule_catalog_v TO service_role;
-GRANT SELECT ON TABLE public.gridex_data_quality_rule_catalog_v TO authenticated;
-
---
--- Name: TABLE gridex_actionable_data_quality_issues_v; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.gridex_actionable_data_quality_issues_v TO service_role;
-GRANT SELECT ON TABLE public.gridex_actionable_data_quality_issues_v TO authenticated;
 
 --
 -- Name: TABLE metering_points; Type: ACL; Schema: public; Owner: -
@@ -199505,14 +198598,6 @@ REVOKE ALL ON FUNCTION public.gridex_company_go_live_readiness(p_company_id uuid
 GRANT ALL ON FUNCTION public.gridex_company_go_live_readiness(p_company_id uuid) TO service_role;
 
 --
--- Name: FUNCTION gridex_company_has_customer_data(p_company_id uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_company_has_customer_data(p_company_id uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_company_has_customer_data(p_company_id uuid) TO service_role;
-GRANT ALL ON FUNCTION public.gridex_company_has_customer_data(p_company_id uuid) TO authenticated;
-
---
 -- Name: FUNCTION gridex_company_legal_contract_runtime_health(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -199925,14 +199010,6 @@ REVOKE ALL ON FUNCTION public.gridex_create_website_customer_contract(p_company_
 GRANT ALL ON FUNCTION public.gridex_create_website_customer_contract(p_company_id uuid, p_contract_payload jsonb, p_customer_number text) TO service_role;
 
 --
--- Name: FUNCTION gridex_current_point_forecasts_v1(p_company uuid, p_month date); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_current_point_forecasts_v1(p_company uuid, p_month date) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_current_point_forecasts_v1(p_company uuid, p_month date) TO service_role;
-GRANT ALL ON FUNCTION public.gridex_current_point_forecasts_v1(p_company uuid, p_month date) TO authenticated;
-
---
 -- Name: FUNCTION gridex_current_user_context(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -200096,14 +199173,6 @@ GRANT ALL ON FUNCTION public.gridex_customer_portfolio_cohorts(p_company_id uuid
 GRANT ALL ON FUNCTION public.gridex_customer_portfolio_cohorts(p_company_id uuid, p_months integer) TO authenticated;
 
 --
--- Name: FUNCTION gridex_customer_portfolio_cohorts_at(p_company_id uuid, p_as_of date, p_months integer); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_cohorts_at(p_company_id uuid, p_as_of date, p_months integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_customer_portfolio_cohorts_at(p_company_id uuid, p_as_of date, p_months integer) TO service_role;
-GRANT ALL ON FUNCTION public.gridex_customer_portfolio_cohorts_at(p_company_id uuid, p_as_of date, p_months integer) TO authenticated;
-
---
 -- Name: FUNCTION gridex_customer_portfolio_expiring_poa(p_company_id uuid, p_days integer); Type: ACL; Schema: public; Owner: -
 --
 
@@ -200176,12 +199245,6 @@ GRANT ALL ON FUNCTION public.gridex_customer_retention_until_v1(p_customer_id uu
 
 REVOKE ALL ON FUNCTION public.gridex_customer_status_counts_v1(p_company_id uuid, p_customer_type text, p_exclude_test_data boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_customer_status_counts_v1(p_company_id uuid, p_customer_type text, p_exclude_test_data boolean) TO service_role;
-
---
--- Name: FUNCTION gridex_data_quality_active_status_v1(p_status text); Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON FUNCTION public.gridex_data_quality_active_status_v1(p_status text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_db1_default_company_id(); Type: ACL; Schema: public; Owner: -
@@ -201323,13 +200386,6 @@ GRANT ALL ON FUNCTION public.gridex_make_source_hash(p_payload jsonb) TO authent
 GRANT ALL ON FUNCTION public.gridex_make_source_hash(p_payload jsonb) TO service_role;
 
 --
--- Name: FUNCTION gridex_manual_inbound_source_retired_v1(p_mailbox text, p_provider_id text); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_manual_inbound_source_retired_v1(p_mailbox text, p_provider_id text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_manual_inbound_source_retired_v1(p_mailbox text, p_provider_id text) TO service_role;
-
---
 -- Name: FUNCTION gridex_mark_customer_contract_signature_request_sent_v1(p_request_id uuid, p_company_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -201403,22 +200459,6 @@ GRANT ALL ON FUNCTION public.gridex_materialize_supplier_switch_process_variant(
 
 REVOKE ALL ON FUNCTION public.gridex_merge_customers_v1(p_company_id uuid, p_primary_customer_id uuid, p_source_customer_ids uuid[], p_actor_user_id uuid, p_reason text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_merge_customers_v1(p_company_id uuid, p_primary_customer_id uuid, p_source_customer_ids uuid[], p_actor_user_id uuid, p_reason text) TO service_role;
-
---
--- Name: FUNCTION gridex_missing_metering_points_count_v1(p_company uuid, p_month date, p_customer uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_missing_metering_points_count_v1(p_company uuid, p_month date, p_customer uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_missing_metering_points_count_v1(p_company uuid, p_month date, p_customer uuid) TO service_role;
-GRANT ALL ON FUNCTION public.gridex_missing_metering_points_count_v1(p_company uuid, p_month date, p_customer uuid) TO authenticated;
-
---
--- Name: FUNCTION gridex_missing_metering_points_v1(p_company uuid, p_month date); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_missing_metering_points_v1(p_company uuid, p_month date) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_missing_metering_points_v1(p_company uuid, p_month date) TO service_role;
-GRANT ALL ON FUNCTION public.gridex_missing_metering_points_v1(p_company uuid, p_month date) TO authenticated;
 
 --
 -- Name: FUNCTION gridex_new_offer_reference(p_seed text); Type: ACL; Schema: public; Owner: -
@@ -202075,13 +201115,6 @@ REVOKE ALL ON FUNCTION public.gridex_published_website_offer_integrity(p_company
 GRANT ALL ON FUNCTION public.gridex_published_website_offer_integrity(p_company_id uuid) TO service_role;
 
 --
--- Name: FUNCTION gridex_quality_lock_company_v1(p_company uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_quality_lock_company_v1(p_company uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_quality_lock_company_v1(p_company uuid) TO service_role;
-
---
 -- Name: FUNCTION gridex_queue_billing_export_run(p_company_id uuid, p_export_run_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -202219,26 +201252,6 @@ GRANT ALL ON FUNCTION public.gridex_received_source_snapshot_v1(p_company_id uui
 
 REVOKE ALL ON FUNCTION public.gridex_reconcile_company_onboarding_tasks_v1(p_company_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_reconcile_company_onboarding_tasks_v1(p_company_id uuid) TO service_role;
-
---
--- Name: FUNCTION gridex_reconcile_dashboard_alerts_internal_v1(p_company uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_reconcile_dashboard_alerts_internal_v1(p_company uuid) FROM PUBLIC;
-
---
--- Name: FUNCTION gridex_reconcile_dashboard_alerts_v1(p_company uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_reconcile_dashboard_alerts_v1(p_company uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_reconcile_dashboard_alerts_v1(p_company uuid) TO service_role;
-
---
--- Name: FUNCTION gridex_reconcile_data_quality_v1(p_company uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_reconcile_data_quality_v1(p_company uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_reconcile_data_quality_v1(p_company uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_reconcile_grid_owner_mappings_v1(p_apply boolean); Type: ACL; Schema: public; Owner: -
@@ -202712,38 +201725,11 @@ REVOKE ALL ON FUNCTION public.gridex_resolve_customer_match_review_case(p_case_i
 GRANT ALL ON FUNCTION public.gridex_resolve_customer_match_review_case(p_case_id uuid, p_resolution_type text, p_selected_customer_id uuid, p_actor_user_id uuid, p_resolution_note text) TO service_role;
 
 --
--- Name: FUNCTION gridex_resolve_dashboard_alert_v1(p_company uuid, p_alert uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_resolve_dashboard_alert_v1(p_company uuid, p_alert uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_resolve_dashboard_alert_v1(p_company uuid, p_alert uuid) TO service_role;
-
---
--- Name: FUNCTION gridex_resolve_data_quality_issue_v1(p_company uuid, p_issue uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_resolve_data_quality_issue_v1(p_company uuid, p_issue uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_resolve_data_quality_issue_v1(p_company uuid, p_issue uuid) TO service_role;
-
---
--- Name: FUNCTION gridex_resolve_deleted_quality_sources_v1(); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_resolve_deleted_quality_sources_v1() FROM PUBLIC;
-
---
 -- Name: FUNCTION gridex_resolve_ediel_route_for_process(p_company_id uuid, p_message_family text, p_process_type text, p_receiver_source text, p_counterparty_ediel_id text); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_resolve_ediel_route_for_process(p_company_id uuid, p_message_family text, p_process_type text, p_receiver_source text, p_counterparty_ediel_id text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_resolve_ediel_route_for_process(p_company_id uuid, p_message_family text, p_process_type text, p_receiver_source text, p_counterparty_ediel_id text) TO service_role;
-
---
--- Name: FUNCTION gridex_resolve_managed_quality_rule_v1(p_company uuid, p_entity uuid, p_issue_type text, p_period date); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_resolve_managed_quality_rule_v1(p_company uuid, p_entity uuid, p_issue_type text, p_period date) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_resolve_managed_quality_rule_v1(p_company uuid, p_entity uuid, p_issue_type text, p_period date) TO service_role;
 
 --
 -- Name: FUNCTION gridex_resolve_or_create_legal_source_bundle(p_company_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
@@ -202844,13 +201830,6 @@ GRANT ALL ON FUNCTION public.gridex_save_portfolio_settlement_draft(p_actor_user
 
 REVOKE ALL ON FUNCTION public.gridex_save_website_application_review_v1(p_company_id uuid, p_application_id uuid, p_site jsonb, p_metering_point jsonb, p_contract jsonb, p_application jsonb, p_customer jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_save_website_application_review_v1(p_company_id uuid, p_application_id uuid, p_site jsonb, p_metering_point jsonb, p_contract jsonb, p_application jsonb, p_customer jsonb) TO service_role;
-
---
--- Name: FUNCTION gridex_scan_data_quality_v1(p_company uuid, p_month date, p_point uuid); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_scan_data_quality_v1(p_company uuid, p_month date, p_point uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_scan_data_quality_v1(p_company uuid, p_month date, p_point uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_scan_ediel_canonical_repairs(p_company_id uuid, p_apply_safe_repairs boolean, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
@@ -203382,20 +202361,6 @@ REVOKE ALL ON FUNCTION public.gridex_upsert_customer_action_task(p_company_id uu
 GRANT ALL ON FUNCTION public.gridex_upsert_customer_action_task(p_company_id uuid, p_customer_id uuid, p_task_type text, p_title text, p_description text, p_priority text, p_metadata jsonb) TO service_role;
 
 --
--- Name: FUNCTION gridex_upsert_dashboard_alert_v1(p_company uuid, p_alert_type text, p_severity text, p_title text, p_message text, p_entity_type text, p_entity uuid, p_source text); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_upsert_dashboard_alert_v1(p_company uuid, p_alert_type text, p_severity text, p_title text, p_message text, p_entity_type text, p_entity uuid, p_source text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_upsert_dashboard_alert_v1(p_company uuid, p_alert_type text, p_severity text, p_title text, p_message text, p_entity_type text, p_entity uuid, p_source text) TO service_role;
-
---
--- Name: FUNCTION gridex_upsert_data_quality_issue_v1(p_company uuid, p_entity uuid, p_issue_type text, p_severity text, p_message text, p_period date); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_upsert_data_quality_issue_v1(p_company uuid, p_entity uuid, p_issue_type text, p_severity text, p_message text, p_period date) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_upsert_data_quality_issue_v1(p_company uuid, p_entity uuid, p_issue_type text, p_severity text, p_message text, p_period date) TO service_role;
-
---
 -- Name: FUNCTION gridex_upsert_internal_contract_offer(p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -203601,22 +202566,6 @@ GRANT ALL ON FUNCTION public.gridex_verify_contract_schema_alignment() TO servic
 --
 
 REVOKE ALL ON FUNCTION public.gridex_version_ediel_route_profile_v2() FROM PUBLIC;
-
---
--- Name: FUNCTION gridex_website_application_status(p_status text, p_source_table text); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_website_application_status(p_status text, p_source_table text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_website_application_status(p_status text, p_source_table text) TO service_role;
-GRANT ALL ON FUNCTION public.gridex_website_application_status(p_status text, p_source_table text) TO authenticated;
-
---
--- Name: FUNCTION gridex_website_application_work_state(p_status text); Type: ACL; Schema: public; Owner: -
---
-
-REVOKE ALL ON FUNCTION public.gridex_website_application_work_state(p_status text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.gridex_website_application_work_state(p_status text) TO service_role;
-GRANT ALL ON FUNCTION public.gridex_website_application_work_state(p_status text) TO authenticated;
 
 --
 -- Name: FUNCTION gridex_whitelabel_portfolio_overview(p_white_label_platform_id uuid, p_month date); Type: ACL; Schema: public; Owner: -
@@ -203993,12 +202942,6 @@ GRANT SELECT,UPDATE ON TABLE gridex_outbound_dispatch.attempts TO gridex_ediel_r
 --
 
 GRANT SELECT,UPDATE ON TABLE gridex_outbound_dispatch.events TO gridex_ediel_retention_owner;
-
---
--- Name: TABLE retired_source_keys; Type: ACL; Schema: gridex_manual_inbound; Owner: -
---
-
-GRANT SELECT ON TABLE gridex_manual_inbound.retired_source_keys TO service_role;
 
 --
 -- Name: TABLE discovery_attempts; Type: ACL; Schema: gridex_received_sources; Owner: -
@@ -205438,7 +204381,7 @@ GRANT SELECT,UPDATE ON TABLE public.customer_supply_periods TO gridex_ediel_rete
 -- Name: TABLE dashboard_alerts; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,MAINTAIN ON TABLE public.dashboard_alerts TO authenticated;
+GRANT ALL ON TABLE public.dashboard_alerts TO authenticated;
 GRANT ALL ON TABLE public.dashboard_alerts TO service_role;
 
 --
@@ -207058,20 +206001,6 @@ GRANT ALL ON TABLE public.gridex_verified_grid_owners_v TO authenticated;
 GRANT ALL ON TABLE public.gridex_verified_grid_owners_v TO service_role;
 
 --
--- Name: TABLE website_customer_applications; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.website_customer_applications TO authenticated;
-GRANT ALL ON TABLE public.website_customer_applications TO service_role;
-
---
--- Name: TABLE gridex_website_application_work_items_v; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.gridex_website_application_work_items_v TO service_role;
-GRANT SELECT ON TABLE public.gridex_website_application_work_items_v TO authenticated;
-
---
 -- Name: TABLE inbound_ediel_match_attempts; Type: ACL; Schema: public; Owner: -
 --
 
@@ -207771,6 +206700,13 @@ GRANT ALL ON TABLE public.tenant_customer_assertion_replays TO service_role;
 --
 
 GRANT ALL ON TABLE public.tenant_customer_identity_providers TO service_role;
+
+--
+-- Name: TABLE website_customer_applications; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.website_customer_applications TO authenticated;
+GRANT ALL ON TABLE public.website_customer_applications TO service_role;
 
 --
 -- Name: TABLE tenant_customer_intake_tracking_v; Type: ACL; Schema: public; Owner: -

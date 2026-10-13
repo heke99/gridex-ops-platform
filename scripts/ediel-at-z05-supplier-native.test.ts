@@ -1,5 +1,6 @@
 // masterplan: AT-Z05L-SUPPLIER, AT-Z05LK-SUPPLIER
 import {type SupabaseClient} from '@supabase/supabase-js'
+import {createHash} from 'node:crypto'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
 const provider=vi.hoisted(()=>vi.fn())
@@ -12,8 +13,10 @@ vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:provider})}})
 vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>
  (await import('../__tests__/helpers/p16bHold')).captureP16bPreflight(importOriginal))
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
+import * as c1NativeBase from './helpers/ediel-normal-switch-native-fixture'
 import {nationalRescissionNativeChain} from './helpers/nationalRescissionNative'
 import {nationalEndNativeChain,type ReceivedEndCandidate} from './helpers/ediel-national-end-native-fixture'
+import {prepareIndependentNationalEndTarget} from './helpers/ediel-z05-independent-end-native-fixture'
 import {bilateralClosureNativeChain} from './helpers/ediel-bilateral-lk-native-fixture'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {getEdielMessageById} from '@/lib/ediel/db'
@@ -57,10 +60,11 @@ async function configureAckProfile(companyId:string,raw:string){
   routeActive:true,routeScope:'ediel_ack',routeEnvironment:'bilateral_test',target:'recipient@example.invalid',
  }])
 }
-async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEndCandidate={}){
+async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEndCandidate={},independent=false){
  candidate={...candidate,retainOriginalMailbox:true}
  if(variant==='L'){
-  const f=await receivedNationalRescissionEnd(true,false,candidate)
+  const f=await receivedNationalRescissionEnd(true,false,candidate,
+   independent?sibling=>prepareIndependentNationalEndTarget(sibling,provider):undefined)
   await configureAckProfile(f.companyId,f.endWire)
   return{...f,sourceId:f.endSourceId,wire:f.endWire,startSourceId:f.sourceId,effects:()=>nationalEndEffects(f)}
  }
@@ -190,16 +194,161 @@ async function missingFieldAcknowledgements(f:Awaited<ReturnType<typeof received
 }
 afterEach(()=>{sourceSession.client=null;vi.unstubAllEnvs();vi.restoreAllMocks()})
 
+// This supplement runs before this file's retained cases. It observes real C1
+// preparation/importer calls without replacing any input, query, result or
+// error. It does not reconstruct the unrecorded historical113 owner domain.
+it('C1 grid-owner name relationship preserves complete actual L/LK candidate and importer choices and detects divergent aliases',async()=>{
+ const {createZ01SupplierNativeFixture,ensureZ01SupplierKnownWrongGridArea}=await import('./helpers/ediel-z02-supplier-native-fixture')
+ for(const [key,value]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_EMAIL_PROVIDER:'strato',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',GRIDEX_CUSTOMER_DATA_EDIEL_ENVIRONMENT:'test'}))vi.stubEnv(key,value)
+ const actualSql=c1NativeBase.nativeSql,actualRpc=supabaseService.rpc.bind(supabaseService)
+ // Exact old prosrc from frozen2e/b5429f0d, evaluated only as a scalar SELECT.
+ // String.raw retains TWO backslashes in each old SQL string literal.
+ const oldBody=String.raw`
+  select regexp_replace(
+    regexp_replace(
+      regexp_replace(lower(btrim(coalesce(p_name, ''))), '[^a-z0-9åäö]+', ' ', 'g'),
+      '\\s+(ab|aktiebolag)$',
+      '',
+      'g'
+    ),
+    '\\s+',
+    '',
+    'g'
+  );
+`
+ expect(createHash('sha256').update(oldBody).digest('hex')).toBe('b5429f0ddf476ecc1a1f079ecd32fa468d89b576888ef41bd65a143314f309cf')
+ const oldKey=(operand:string)=>oldBody.trim().replace(/^select\s+/,'').replace(/;$/,'').replace(/\bp_name\b/g,operand)
+ type Owner={id:string;name:string;is_active:boolean|null;ediel_id:string|null;ops_grid_owner_id:string|null;market_actor_id:string|null;source:string|null;old_key:string;current_key:string;old_match:boolean;current_match:boolean;canonical:boolean;lower_exact:boolean}
+ type Domain={target:{name:string;oldKey:string;currentKey:string};universeCount:number;universeHash:string;owners:Owner[];oldIds:string[];currentIds:string[];oldCanonicalIds:string[];currentCanonicalIds:string[];lowerExactIds:string[]}
+ const readDomain=(name:string,values=false):Domain=>actualSql<Domain>(`WITH target AS(SELECT ${literal(name)}::text name),
+ owners AS(${values?`SELECT * FROM(VALUES
+  ('COUNTER-EXACT','Synthetic normal grid',true,'60000','DECLARED-OPS',NULL::text,'VALUES_ONLY'),
+  ('COUNTER-COMPACT','Syntheticnormalgrid',true,'60001','DECLARED-OPS',NULL::text,'VALUES_ONLY'),
+  ('COUNTER-SUFFIX','Synthetic normal grid AB',true,'60002','DECLARED-OPS',NULL::text,'VALUES_ONLY')) v(id,name,is_active,ediel_id,ops_grid_owner_id,market_actor_id,source)`:
+  'SELECT id::text,name,is_active,ediel_id,ops_grid_owner_id::text,market_actor_id::text,source FROM public.platform_grid_owners'}),
+ evaluated AS(SELECT pgo.*,${oldKey('pgo.name')} old_key,public.gridex_grid_owner_name_key(pgo.name) current_key,
+  ${oldKey('pgo.name')}=${oldKey('target.name')} old_match,
+  public.gridex_grid_owner_name_key(pgo.name)=public.gridex_grid_owner_name_key(target.name) current_match,
+  coalesce(pgo.is_active,true)=true AND nullif(btrim(pgo.ediel_id),'') IS NOT NULL AND pgo.ops_grid_owner_id IS NOT NULL canonical,
+  lower(pgo.name)=lower(btrim(target.name)) lower_exact FROM owners pgo CROSS JOIN target)
+ SELECT jsonb_build_object('target',(SELECT jsonb_build_object('name',name,'oldKey',${oldKey('target.name')},'currentKey',public.gridex_grid_owner_name_key(name)) FROM target),
+ 'universeCount',(SELECT count(*) FROM evaluated),'universeHash',(SELECT encode(sha256(convert_to(coalesce(jsonb_agg(to_jsonb(e) ORDER BY id)::text,'[]'),'UTF8')),'hex') FROM evaluated e),
+ 'owners',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]') FROM evaluated e WHERE old_match OR current_match OR lower_exact),
+ 'oldIds',(SELECT coalesce(jsonb_agg(id ORDER BY id),'[]') FROM evaluated WHERE old_match),
+ 'currentIds',(SELECT coalesce(jsonb_agg(id ORDER BY id),'[]') FROM evaluated WHERE current_match),
+ 'oldCanonicalIds',(SELECT coalesce(jsonb_agg(id ORDER BY id),'[]') FROM evaluated WHERE old_match AND canonical),
+ 'currentCanonicalIds',(SELECT coalesce(jsonb_agg(id ORDER BY id),'[]') FROM evaluated WHERE current_match AND canonical),
+ 'lowerExactIds',(SELECT coalesce(jsonb_agg(id ORDER BY id),'[]') FROM evaluated WHERE lower_exact))`)
+ const choice=(d:Domain,old:boolean)=>{
+  const ids=old?d.oldIds:d.currentIds,canonical=old?d.oldCanonicalIds:d.currentCanonicalIds
+  // Helpers use JS trim; the importer uses SQL btrim. Keep each real filter,
+  // rather than assuming unrestricted public Ediel strings normalize alike.
+  const helperCanonical=d.owners.filter(r=>(old?r.old_match:r.current_match)&&r.is_active!==false
+   && typeof r.ediel_id==='string'&&Boolean(r.ediel_id.trim())&&r.ops_grid_owner_id!==null).map(r=>r.id)
+  return{helperCandidateCount:ids.length,helperCanonicalIds:helperCanonical,helperCanonicalCount:helperCanonical.length,
+   helper343HoldIfImportRequired:ids.length>0&&helperCanonical.length!==1,helper424HoldIfImportRequired:ids.length>0&&helperCanonical.length!==1,
+   importerCanonicalCount:canonical.length,lowerExactCount:d.lowerExactIds.length,
+   importerBranch:canonical.length===1?'reuse_canonical':d.lowerExactIds.length?'lower_name_update':'insert_owner',
+   selectedOwnerId:canonical.length===1?canonical[0]:d.lowerExactIds[0]??null}
+ }
+ const sameRelation=(d:Domain)=>{
+  expect(d.currentIds,'Complete unrestricted helper343/424 match domain').toEqual(d.oldIds)
+  expect(d.currentCanonicalIds,'Complete active+Ediel+OPS importer canonical domain').toEqual(d.oldCanonicalIds)
+  expect(choice(d,false),'Canonical count/min-ID and lowercase fallback branch').toEqual(choice(d,true))
+ }
+ const emit=(phase:string,value:unknown)=>console.info('C1_NAME_RELATION',JSON.stringify({phase,...value as Record<string,unknown>}))
+ const catalog=actualSql<Record<string,unknown>>(`SELECT jsonb_build_object('standardConformingStrings',current_setting('standard_conforming_strings'),
+  'serverEncoding',current_setting('server_encoding'),'collation',(SELECT datcollate FROM pg_catalog.pg_database WHERE datname=current_database()),
+  'function',(SELECT jsonb_build_object('oid',p.oid,'definition',pg_get_functiondef(p.oid),'prosrcHash',encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'),'config',p.proconfig,'volatility',p.provolatile,'parallel',p.proparallel,'securityDefiner',p.prosecdef)
+   FROM pg_proc p WHERE p.oid='public.gridex_grid_owner_name_key(text)'::regprocedure),
+  'indexes',(SELECT jsonb_agg(jsonb_build_object('name',indexname,'definition',indexdef) ORDER BY indexname) FROM pg_indexes WHERE schemaname='public' AND tablename='platform_grid_owners'))`)
+ emit('runtime-catalog',{catalog,oldProsrcHash:createHash('sha256').update(oldBody).digest('hex')})
+ expect(catalog).toMatchObject({standardConformingStrings:'on',serverEncoding:'UTF8',function:{prosrcHash:'b4597732d33dd066a4c6883db44b62948e56769c894a4ea9b2cf99c23c9118ef',config:['search_path=public, pg_temp'],volatility:'i',parallel:'s',securityDefiner:false}})
+ const counters=readDomain('Synthetic normal grid',true)
+ emit('VALUES-countermodels',{domain:counters,oldChoice:choice(counters,true),currentChoice:choice(counters,false),acceptedRowsInserted:false})
+ expect(counters.target).toEqual({name:'Synthetic normal grid',oldKey:'synthetic normal grid',currentKey:'syntheticnormalgrid'})
+ expect(counters.oldIds).toEqual(['COUNTER-EXACT'])
+ expect(counters.currentIds).toEqual(['COUNTER-COMPACT','COUNTER-EXACT','COUNTER-SUFFIX'])
+ expect(counters.oldCanonicalIds).toEqual(['COUNTER-EXACT']);expect(counters.currentCanonicalIds).toHaveLength(3)
+ expect(()=>sameRelation(counters)).toThrow()
+ let phase='',provenance:Record<string,unknown>|null=null
+ const reached:Array<{phase:string;site:string;target:string}>=[]
+ const sqlObserver=vi.spyOn(c1NativeBase,'nativeSql').mockImplementation(<T>(input:string):T=>{
+  const comparison=/public\.gridex_grid_owner_name_key\(name\)\s*=\s*public\.gridex_grid_owner_name_key\(('(?:[^']|'')*')\)\s*;?\s*$/.exec(input)
+  if(!comparison){
+   const result=actualSql<T>(input),row=result as {source?:{grid?:Record<string,unknown>};grid?:Record<string,unknown>}
+   const grid=row?.source?.grid??row?.grid
+   if(grid&&typeof grid.name==='string'&&typeof grid.id==='string')provenance={gridId:grid.id,companyId:grid.company_id,name:grid.name,edielId:grid.ediel_id}
+   return result
+  }
+  const name=comparison[1].slice(1,-1).replaceAll("''","'"),before=readDomain(name)
+  emit(phase+'.query-entry',{site:phase.endsWith('setup')?'helper343':'helper424',provenance,domain:before,oldChoice:choice(before,true),currentChoice:choice(before,false)})
+  expect(provenance?.name,'Reached right operand from actual source-grid snapshot').toBe(name)
+  const result=actualSql<T>(input),after=readDomain(name)
+  emit(phase+'.query-exit',{domain:after,returnedIds:(result as Owner[]).map(r=>r.id)})
+  sameRelation(before);expect(after).toEqual(before)
+  expect((result as Owner[]).map(r=>r.id)).toEqual(before.currentIds)
+  reached.push({phase,site:phase.endsWith('setup')?'helper343':'helper424',target:name})
+  return result
+ })
+ // This selected public importer awaits RPC directly. Its original argument
+ // references and exact response/error are passed through; no other RPC wraps.
+ const rpcObserver=vi.spyOn(supabaseService,'rpc').mockImplementation(((...args:Parameters<typeof actualRpc>)=>{
+  if(args[0]!=='gridex_import_grid_area_master_row')return actualRpc(...args)
+  const input=args[1] as Record<string,unknown>,name=String(input.p_grid_owner_name),before=readDomain(name)
+  emit(phase+'.importer-entry',{site:'importer73329',provenance,input:{name,areaCode:input.p_grid_area_code,priceArea:input.p_price_area,source:input.p_source},domain:before,oldChoice:choice(before,true),currentChoice:choice(before,false)})
+  expect(provenance?.name).toBe(name);sameRelation(before)
+  return Promise.resolve(actualRpc(...args)).then(response=>{
+   const after=readDomain(name),area=response.data?actualSql<{ownerId:string;ownerName:string;code:string}>(`SELECT jsonb_build_object('ownerId',grid_owner_id,'ownerName',grid_owner_name,'code',grid_area_code) FROM public.platform_grid_areas WHERE id=${literal(response.data)}`):null
+   emit(phase+'.importer-exit',{domain:after,result:{area,errorCode:response.error?.code??null}})
+   sameRelation(after)
+   if(!response.error){expect(area?.ownerName).toBe(name);if(choice(before,false).selectedOwnerId)expect(area?.ownerId).toBe(choice(before,false).selectedOwnerId);else expect(after.lowerExactIds).toEqual([area!.ownerId])}
+   reached.push({phase,site:'importer73329',target:name})
+   return response
+  })
+ }) as typeof supabaseService.rpc)
+ try{
+  for(const variant of variants){
+   phase=variant+'.setup';provenance=null
+   const f=await createZ01SupplierNativeFixture(variant,email=>provider.mockResolvedValue({accepted:[email],rejected:[],messageId:'synthetic-C1-name-relationship',response:'250 synthetic accepted'}))
+   const source=actualSql<{gridId:string;companyId:string;name:string;edielId:string;actorId:string;actorName:string}>(`SELECT jsonb_build_object('gridId',g.id,'companyId',g.company_id,'name',g.name,'edielId',g.ediel_id,'actorId',a.id,'actorName',a.name) FROM public.grid_owners g JOIN public.platform_market_actors a ON a.id=${literal(f.marketActorId)} WHERE g.id=${literal(f.gridId)} AND g.company_id=${literal(f.companyId)}`)
+   expect(source).toMatchObject({gridId:f.gridId,companyId:f.companyId,name:'Synthetic normal grid',edielId:f.receiver,actorId:f.marketActorId,actorName:`Synthetic normal grid ${f.marketActorId}`})
+   expect(provenance).toEqual({gridId:source.gridId,companyId:source.companyId,name:source.name,edielId:source.edielId})
+   expect(reached.filter(r=>r.phase===phase&&r.site==='helper343')).toHaveLength(1)
+   const before=readDomain(source.name);emit(variant+'.known-area-before',{source,domain:before,oldChoice:choice(before,true),currentChoice:choice(before,false)});sameRelation(before)
+   expect(before.target.oldKey).not.toBe(before.target.currentKey)
+   phase=variant+'.known-area'
+   const known=await ensureZ01SupplierKnownWrongGridArea(f),after=readDomain(source.name)
+   emit(variant+'.known-area-after',{domain:after,branch:known.importResult===null?'existing_valid_reference_reused':'public_reference_import',
+    area:{id:known.row.id,ownerId:known.row.grid_owner_id,ownerName:known.row.grid_owner_name,code:known.gridAreaCode,priceArea:known.priceArea,isActive:known.row.is_active,validFrom:known.row.valid_from,validTo:known.row.valid_to},
+    mapping:known.mapping,reached:reached.filter(r=>r.phase===phase)})
+   sameRelation(after);expect(known.gridOwnerName).toBe(source.name)
+   if(known.importResult===null){expect(after).toEqual(before);expect(reached.filter(r=>r.phase===phase)).toEqual([])}
+   else expect(reached.filter(r=>r.phase===phase&&r.site==='importer73329')).toHaveLength(1)
+  }
+  expect(reached.some(r=>r.site==='importer73329'),'At least one actual setup/reference importer must reach the real function').toBe(true)
+  emit('qualification-boundary',{scope:'THIS_L_LK_SETUP_AND_KNOWN_AREA_SUPPLEMENT_ONLY',reached,completeCurrentMatchedDomains:true,
+   historical113OwnerDomain:'NOT_RETAINED_OR_RECONSTRUCTED',current113Execution:'NOT_RUN',universalAliasEquivalence:false})
+ }finally{sqlObserver.mockRestore();rpcObserver.mockRestore()}
+},120000)
+
 it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linked:false}] as const)(
  'actual Z05$variant (request linkage $linked) commits its own end, physical acknowledgements and scoped final-value task while preserving history and every unrelated graph',async({variant,linked})=>{
- const f=await receivedEnd(variant,linked?{}:{lineItemReference:'L-INDEPENDENT-OWN-NOTICE'}),before=f.effects() as {period:Record<string,unknown>;watches?:unknown}
+ const f=await receivedEnd(variant,linked?{}:{lineItemReference:'L-INDEPENDENT-OWN-NOTICE'},!linked),before=f.effects() as {period:Record<string,unknown>;watches?:unknown}
+ const preserveSibling=()=>{
+  if(linked)return
+  if(!('assertSiblingPreserved' in f)||!f.assertSiblingPreserved)throw Error('independent_end_sibling_preservation_required')
+  f.assertSiblingPreserved()
+ }
  const sourceBefore=immutable(f.sourceId),originalBefore=immutable(f.original.id),startBefore=immutable(f.startSourceId),unrelatedBefore=unrelated(f.periodId,f.sourceId)
  const businessBefore=sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_family='PRODAT'`)
  expect(before.period).toMatchObject({id:f.periodId,source_end_message_id:null})
+ preserveSibling()
  const startedAt=processingClock()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
  const finishedAt=processingClock()
  const after=f.effects()
+ preserveSibling()
  expect(after).toMatchObject({period:{id:f.periodId,company_id:f.companyId,customer_id:f.customerId,
   metering_point_id:f.pointId,source_message_id:f.startSourceId,start_date:before.period.start_date,
   market_start_at:before.period.market_start_at,market_state_version:Number(before.period.market_state_version)+1,
@@ -265,6 +414,7 @@ it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linke
  expect(unrelated(f.periodId,f.sourceId)).toEqual(expectedGraph)
  expect(immutable(f.original.id)).toEqual(originalBefore);expect(immutable(f.startSourceId)).toEqual(startBefore);expect(immutable(f.sourceId)).toEqual(sourceBefore)
  if(!linked)expect(ordinaryReceiptState()).toEqual(ordinaryAfter)
+ preserveSibling()
 },120000)
 
 // IV is physically present in both candidates. Absence of the ordinary optional

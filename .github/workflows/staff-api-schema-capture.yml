@@ -82,17 +82,178 @@ jobs:
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+          SOURCE_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           export CAPTURE_CHECKOUT_SHA="$(git rev-parse HEAD)"
           export CAPTURE_CHECKOUT_TREE="$(git rev-parse 'HEAD^{tree}')"
           unset GRIDEX_REPLAY_DB_URL
+          export CAPTURE_INPUT_STATE="$RUNNER_TEMP/staff-schema-capture-inputs.json"
+          python3 - <<'PY_FREEZE'
+          import hashlib, json, os, pathlib, shutil, stat, subprocess, urllib.request
+
+          manifest = json.loads(pathlib.Path('scripts/supabase-types-manifest.json').read_text())
+          pending = manifest.get('pending_joint_c3_capture', {})
+          epoch = 'gridex-C2-joint-C3-GEN-20261013-v3'
+          own_branch = os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-joint-c3-20261013', 'codex/c2-gen-esco-01a131d2')
+          primary = own_branch and manifest.get('composition_capture_pending') is True and pending.get('input_epoch') == epoch
+          corroboration = (own_branch and manifest.get('composition_capture_pending') is False
+                           and manifest.get('capture', {}).get('source_epoch_attestation', {}).get('custody', {}).get('input_epoch') == epoch)
+          if own_branch and not (primary or corroboration):
+              raise SystemExit('capture_owned_epoch_unqualified')
+          if not (primary or corroboration):
+              pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).write_text(json.dumps({'epoch_attestation_enabled': False}) + '\n')
+              print('Existing ordinary capture: no joint-C3 producer or epoch attestation is required.')
+              raise SystemExit(0)
+          def git(*args):
+              return subprocess.check_output(['git', *args])
+          def working(path):
+              mode = path.lstat().st_mode
+              if stat.S_ISLNK(mode):
+                  data, kind = os.fsencode(os.readlink(path)), '120000'
+              elif stat.S_ISREG(mode):
+                  data, kind = path.read_bytes(), '100755' if mode & 0o111 else '100644'
+              else:
+                  raise SystemExit('capture_nonregular_input: ' + str(path))
+              return {'mode': kind, 'sha256': hashlib.sha256(data).hexdigest()}
+          def directory(path):
+              return {p.relative_to(path).as_posix(): working(p)
+                      for p in sorted(path.rglob('*')) if not p.is_dir() or p.is_symlink()}
+          inputs = {}
+          for record in git('ls-tree', '-rz', '--full-tree', 'HEAD').split(b'\0'):
+              if not record:
+                  continue
+              meta, name = record.split(b'\t', 1)
+              mode, kind, oid = meta.decode().split()
+              path = os.fsdecode(name)
+              if kind != 'blob' or mode not in ('100644', '100755', '120000'):
+                  raise SystemExit('capture_unsupported_git_input: ' + path)
+              expected = {'mode': mode, 'sha256': hashlib.sha256(git('cat-file', 'blob', oid)).hexdigest()}
+              if working(pathlib.Path(path)) != expected:
+                  raise SystemExit('capture_git_input_mismatch: ' + path)
+              inputs[path] = expected
+          initial = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
+          if initial:
+              raise SystemExit('capture_initial_container_quiescence_unqualified')
+          custody = {'mode': 'ordinary_capture_or_corroboration', 'producer_checked': False}
+          if primary:
+              import re
+              owner = 'codex-takeover-C2-GEN-joint-C3-20261013'
+              writer = 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+              producer = pending.get('producer_receipt', '')
+              if not re.fullmatch(r'[0-9a-f]{40}', producer) or pending.get('owner') != owner or pending.get('custody_receipt') != writer:
+                  raise SystemExit('capture_primary_receipt_not_bound')
+              def api(endpoint):
+                  request = urllib.request.Request(
+                      'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/' + endpoint,
+                      headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                               'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'})
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      return json.load(response)
+              refs = {'slot-C2': writer, 'producer-gen': producer}
+              own_files = ['scripts/migration-history-manifest.json', 'scripts/supabase-types-manifest.json',
+                           'supabase/database.types.ts', 'supabase/schema.fingerprint.json', 'supabase/schema.sql',
+                           'scripts/ediel-at-z14vh-z15v-esco-native.test.ts',
+                           '.github/workflows/ediel-esco-z14vh-z15v-native.yml',
+                           '.github/workflows/staff-api-schema-capture.yml',
+                           '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md']
+              refs.update({'file-' + hashlib.sha256(path.encode()).hexdigest(): writer for path in own_files})
+              for path, expected in pending['portable_source_inputs'].items():
+                  if inputs[path]['sha256'] != expected['sha256'] or inputs[path]['mode'] != expected['mode']:
+                      raise SystemExit('capture_portable_source_mismatch: ' + path)
+                  refs['file-' + hashlib.sha256(path.encode()).hexdigest()] = expected['receipt']
+              for resource, expected in sorted(refs.items()):
+                  if api('git/ref/tags/agent-claims/masterplan/' + resource)['object']['sha'] != expected:
+                      raise SystemExit('capture_custody_mismatch: ' + resource)
+              commit = api('git/commits/' + producer)
+              receipt = json.loads(commit['message'])
+              base = pending['base']
+              required = ('protocol', 'packet', 'agent', 'branch', 'checkpoint', 'ids', 'files',
+                          'base', 'createdAt', 'nextAction', 'inputEpoch',
+                          'sources', 'preparedSourceHead', 'preparedSourceTree')
+              if any(key not in receipt for key in required):
+                  raise SystemExit('capture_primary_producer_receipt_incomplete')
+              from datetime import datetime
+              from uuid import UUID
+              UUID(receipt['packet'])
+              if datetime.fromisoformat(receipt['createdAt'].replace('Z', '+00:00')).tzinfo is None:
+                  raise SystemExit('capture_primary_producer_created_at_unqualified')
+              if (receipt.get('protocol') != 'masterplan-reservation-v1' or receipt.get('agent') != owner
+                  or receipt.get('inputEpoch') != pending['input_epoch'] or receipt.get('base') != base
+                  or receipt.get('branch') != 'codex/c2-gen-joint-c3-20261013'
+                  or receipt.get('checkpoint') != '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md'
+                  or not isinstance(receipt.get('nextAction'), str) or not receipt['nextAction'].strip()
+                  or not isinstance(receipt.get('ids'), list) or not isinstance(receipt.get('files'), list)
+                  or [parent['sha'] for parent in commit['parents']] != [base]
+                  or commit['tree']['sha'] != api('git/commits/' + base)['tree']['sha']):
+                  raise SystemExit('capture_primary_producer_protocol_mismatch')
+              if (receipt['sources'] != pending['producer_sources']
+                  or pending['portable_source_inputs'] != receipt['sources']['immutableSourceInputs']):
+                  raise SystemExit('capture_primary_producer_sources_mismatch')
+              prepared_head, prepared_tree = receipt['preparedSourceHead'], receipt['preparedSourceTree']
+              if not all(isinstance(value, str) and re.fullmatch(r'[0-9a-f]{40}', value) for value in (prepared_head, prepared_tree)):
+                  raise SystemExit('capture_primary_prepared_source_not_bound')
+              prepared_commit = api('git/commits/' + prepared_head)
+              if prepared_commit.get('sha') != prepared_head or prepared_commit.get('tree', {}).get('sha') != prepared_tree:
+                  raise SystemExit('capture_primary_prepared_source_not_bound')
+              source_head = os.environ['CAPTURE_CHECKOUT_SHA']
+              comparison = api('compare/' + base + '...' + source_head)
+              expected_compare_url = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/compare/' + base + '...' + source_head
+              if (comparison.get('status') not in ('ahead', 'identical')
+                  or comparison.get('base_commit', {}).get('sha') != base
+                  or comparison.get('merge_base_commit', {}).get('sha') != base
+                  or comparison.get('url') != expected_compare_url
+                  or (comparison['status'] == 'identical' and source_head != base)):
+                  raise SystemExit('capture_primary_source_ancestry_unqualified')
+              binding = api('compare/' + prepared_head + '...' + source_head)
+              expected_binding_url = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/compare/' + prepared_head + '...' + source_head
+              allowed_binding_paths = {'scripts/supabase-types-manifest.json', '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md'}
+              if (binding.get('status') != 'ahead' or binding.get('base_commit', {}).get('sha') != prepared_head
+                  or binding.get('merge_base_commit', {}).get('sha') != prepared_head
+                  or binding.get('url') != expected_binding_url
+                  or {file['filename'] for file in binding.get('files', [])} != allowed_binding_paths
+                  or any(file.get('status') != 'modified' for file in binding.get('files', []))):
+                  raise SystemExit('capture_primary_final_binding_scope_unqualified')
+              custody = {'mode': 'owned_primary', 'agent': owner, 'writer_receipt': writer,
+                         'producer_receipt': producer, 'input_epoch': pending['input_epoch'],
+                         'producer_checked': True, 'refs_get_match': refs,
+                         'prepared_source_head': prepared_head, 'prepared_source_tree': prepared_tree,
+                         'producer_sources': receipt['sources']}
+          state = {'epoch_attestation_enabled': True, 'checkout_sha': os.environ['CAPTURE_CHECKOUT_SHA'],
+                   'checkout_tree': os.environ['CAPTURE_CHECKOUT_TREE'], 'tracked_inputs': inputs,
+                   'migration_directory': directory(pathlib.Path('supabase/migrations')),
+                   'custody': custody, 'runner': {'docker_driver': subprocess.check_output(
+                       ['docker', 'info', '--format', '{{.Driver}}'], text=True).strip(),
+                       'free_bytes_before_replay': shutil.disk_usage(os.environ['RUNNER_TEMP']).free,
+                       'initial_container_ids': initial}}
+          pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).write_text(json.dumps(state, indent=2) + '\n')
+          print('Frozen exact capture source and measured runner; primary custody verified when applicable.')
+          PY_FREEZE
           echo 'Running the existing local clean replay; raw output stays on the disposable runner.'
           # Do not upload replay/status output: startup output can contain local
           # credentials. Source the exact owner script so its EXIT trap keeps
           # the database alive until capture finishes, then stops/restores it.
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/staff-schema-capture-replay.log" 2>&1
           CAPTURE_DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          CAPTURE_DB_URL="$CAPTURE_DB_URL" python3 - <<'PY_EMPTY'
+          import json, os, pathlib, subprocess
+
+          path = pathlib.Path(os.environ['CAPTURE_INPUT_STATE'])
+          state = json.loads(path.read_text())
+          if state['epoch_attestation_enabled']:
+              count = subprocess.check_output([
+                  'psql', os.environ['CAPTURE_DB_URL'], '-XAtq', '-v', 'ON_ERROR_STOP=1',
+                  '-c', 'SELECT count(*) FROM public.user_permission_overrides;'], text=True).strip()
+              if count != '0':
+                  raise SystemExit('capture_atomic_canonical_empty_input_unqualified')
+              state['atomic_canonical_input'] = {
+                  'relation': 'public.user_permission_overrides', 'row_count': 0,
+                  'measurement_phase': 'AFTER_CANONICAL_REPLAY_BEFORE_GEN',
+                  'approved_scope': 'COMPLETE_CANONICAL_EMPTY_ISOLATED_INPUT_ONLY',
+                  'populated_partial_legacy_upgrade': 'NOT_QUALIFIED_P2_OPEN'}
+              path.write_text(json.dumps(state, indent=2) + '\n')
+          PY_EMPTY
           export CAPTURE_LATEST_MIGRATION_VERSION="$REPLAY_MIGRATION_VERSION"
           export CAPTURE_REPLAY_MIGRATIONS="$TIMESTAMP_EXEC"
           export CAPTURE_SERVER_VERSION="$(psql "$CAPTURE_DB_URL" -XAtq -v ON_ERROR_STOP=1 -c 'show server_version;')"
@@ -156,6 +317,51 @@ jobs:
           (output / 'capture-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
           print('Capture-only artifacts and receipt written; native tests and parity were not run.')
           PY
+          if python3 -c 'import json,os; raise SystemExit(0 if json.load(open(os.environ["CAPTURE_INPUT_STATE"]))["epoch_attestation_enabled"] else 1)'; then
+          # Finish the unchanged owner's actual cleanup before attesting its result.
+          cleanup
+          trap - EXIT
+          set -euo pipefail
+          python3 - <<'PY_RESTORED'
+          import hashlib, json, os, pathlib, stat, subprocess
+
+          state = json.loads(pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).read_text())
+          def working(path):
+              mode = path.lstat().st_mode
+              if stat.S_ISLNK(mode):
+                  data, kind = os.fsencode(os.readlink(path)), '120000'
+              elif stat.S_ISREG(mode):
+                  data, kind = path.read_bytes(), '100755' if mode & 0o111 else '100644'
+              else:
+                  raise SystemExit('capture_nonregular_restored_input: ' + str(path))
+              return {'mode': kind, 'sha256': hashlib.sha256(data).hexdigest()}
+          if (subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != state['checkout_sha']
+              or subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip() != state['checkout_tree']):
+              raise SystemExit('capture_checkout_changed')
+          for path, expected in state['tracked_inputs'].items():
+              if working(pathlib.Path(path)) != expected:
+                  raise SystemExit('capture_input_restoration_mismatch: ' + path)
+          directory = pathlib.Path('supabase/migrations')
+          restored = {p.relative_to(directory).as_posix(): working(p)
+                      for p in sorted(directory.rglob('*')) if not p.is_dir() or p.is_symlink()}
+          if restored != state['migration_directory']:
+              raise SystemExit('capture_migration_directory_restoration_mismatch')
+          remaining = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
+          if remaining:
+              raise SystemExit('capture_zero_all_containers_unqualified')
+          path = pathlib.Path('staff-schema-capture/capture-receipt.json')
+          receipt = json.loads(path.read_text())
+          receipt['source_epoch_attestation'] = {
+              'checkout_sha': state['checkout_sha'], 'checkout_tree': state['checkout_tree'],
+              'tracked_input_count': len(state['tracked_inputs']), 'tracked_inputs': state['tracked_inputs'],
+              'custody': state['custody'], 'runner': state['runner'],
+              'atomic_canonical_input': state['atomic_canonical_input'],
+              'input_restoration': 'EXACT_MODES_AND_BYTES', 'migration_directory_restoration': 'EXACT',
+              'docker_remaining_container_ids': remaining, 'zero_all_containers': True}
+          path.write_text(json.dumps(receipt, indent=2) + '\n')
+          print('Exact original inputs restored and all disposable containers absent; capture-only limits retained.')
+          PY_RESTORED
+          fi
       - name: Upload capture-only artifacts
         if: always() && steps.capture_turn.outputs.pending == 'true'
         uses: actions/upload-artifact@v4
