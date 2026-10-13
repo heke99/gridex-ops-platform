@@ -1,0 +1,18 @@
+{
+  "id": "dpl_2no3yiQFfC4DXdmztxeK8de4tLQo",
+  "state": "READY",
+  "target": "production",
+  "source_commit": "0256dddc21691726f4e63bd0dc34df628077b8c9",
+  "source_branch": "codex/ops-api-contract-review-20261012",
+  "project_id": "prj_xA3EDI1xztkkyx21e3LY4UhgYrWt",
+  "production_domain": "app.gridex.se",
+  "aliases": [
+    "app.gridex.se",
+    "gridex-ops-platform.vercel.app",
+    "gridex-ops-platform-div3rsa.vercel.app",
+    "gridex-ops-platform-git-codex-ops-api-contract-r-b0619c-div3rsa.vercel.app"
+  ],
+  "ready_at_utc": "2026-10-13T18:11:48.668Z",
+  "created_at_utc": "2026-10-13T18:07:13.281Z",
+  "alias_error": null
+}

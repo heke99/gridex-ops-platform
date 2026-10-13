@@ -3,19 +3,21 @@
   "baseline": "f36dbba1",
   "branch": "codex/ops-api-contract-review-20261012",
   "audit": "quality/audits/2026-10-12-ops-api-contracts/README.md",
-  "status": "REVIEWED_SOURCE_READY_ACTUAL_PROTECTED_AUTH_OWNER_CAPABILITY_BLOCKED",
+  "status": "APPLICATION_DEPLOYED_DATABASE_PROTECTED_OWNER_AND_REPLAY_BLOCKS_REMAIN",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
   "native_writes": 71,
   "business_rpc_invocations": 0,
-  "deployments": 0,
+  "deployments": 1,
   "native_blockers": [
     "Actual postgres cannot grant Auth schemaUSAGE/usersUPDATE or assume protected owners.001 requires auth owner supabase_admin;002 requires auth.users owner supabase_auth_admin.",
     "Main qualified installer and all six semantic inputs remain NOT_APPLIED; transport contains code only.",
     "Staff provider/client/binding aggregates all0 at16:47:42UTC; authenticated Staff E2E NOT_QUALIFIED.",
-    "Sole C2 canonical schema/type capture pending actual module and semantic installation."
+    "Sole C2 canonical schema/type capture pending actual module and semantic installation.",
+    "Genuine clean/upgrade replay stops at published quote guard: canonical complete007d versus allowed native-onlyprebody4daec. Historical applied SQL/checksum not rewritten.",
+    "Canonical type-tail metadata is stale relative to actual own new forwards; sole GEN producer follow-up remains pending."
   ],
-  "documentation_version": "2026-10-12.1 prospective",
+  "documentation_version": "2026-10-12.1 published and exact-source HTTP verified",
   "wire_version": "2026-10-09.1",
   "onboarding_wire_version": "2026-10-05.2",
   "old_frozen_docs": "preserved byte-identical; no version-header admission gate",
@@ -28,22 +30,22 @@
     "No all-native or provider end-to-end readiness claim",
     "No canonical schema/type GEN or active Ediel claims/shared memory writes"
   ],
-  "next_action": "Obtain legitimate protected-owner execution of001/002 in the uploaded qualified packet; existing database authorization persists. Fresh-read exact capabilities/ACLs/source before applying qualified main and six inputs. Keep CLI candidates outside active queue until actual application/source alignment. C2 alone performs coherent canonical GEN handoff.",
+  "next_action": "User/platform protected Auth owners execute exact001/002; verify capabilities then apply qualified main+six actualsemantic inputs. Resolve published quote clean-replay compatibility and sole-C2 GEN tail without source-history rewrite. Integrate branch-held API fixes before a subsequent main deployment.",
   "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
   "review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
-  "integrated_main": "51f5fa5e80c42350d697bfed42520672749d4467",
+  "integrated_main": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
   "independent_review": "Two noncoauthor peers confirm no remaining introduced P1/P2 in reviewed final source",
   "verification_record": "quality/audits/2026-10-12-ops-api-contracts/verification.json",
   "fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
   "local_verification": "Build/app/scripts/tests typechecks/lint/docs/compatibility/migration/RBAC/static source gates passed as recorded. Initial fullunit3fixturefailures corrected and5files31checks passed; entire suite not rerun. Local checks are not live/native proof.",
   "latest_native_preflight": "2026-10-13 16:56:28 UTC:506 ledger entries;51 source parts exactbacf; no module/origin/atomic registration; required retention Auth rights missing",
-  "handover": "PR794 has16 actual scoped forwards,52 source-only transports and3 metadata actions. Final four owner-qualified proposals and all six semantic inputs are source-reviewed and genuinely NOSUPER-qualified but NOT_APPLIED.",
+  "handover": "Application source0256 deployed toapp.gridex.se byexplicituserinstruction. Realbuild281.14s/twoindependentsourceapprovals/VercelREADY/exactthreeHTTPspecs/wire09.1 preserved. No SQLinstallation/GENcapture/mainmerge performed. PR794 stilldraft; latermainrelease mustintegrate APIchanges to retain them.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "77528ede3463b0afc10f4d0aa247c601319f1856",
+  "current_source_head": "0256dddc21691726f4e63bd0dc34df628077b8c9",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "1220sourcefiles/1123versiongroups checksums verified after source alignment of52actual transport migrations and actor20261013151412. The unapplied final CLI loader is parked outside the active migration queue until actual timestamp alignment; no false successful registration.",
-  "gen_owner": "C2 sole GEN/current producer ref03d8419671865554c0b8684de125320a2ef98f72 observed; first OPS atomic source imported in joint epoch; later actual forwards require next coherent handoff, no API-owned GEN",
+  "gen_owner": "No competing capture. Historical producer03d observation retained; current existing main d798 canonicalGEN outputs imported byte-identically. Fresh module/semantic capture requires actual owningproducer follow-up.",
   "native_applied_migrations": [
     {
       "version": "20261012235455",
@@ -522,5 +524,16 @@
     "protected_owner_connection_available": false
   },
   "official_cli_qualified_pending_receipt": "quality/audits/2026-10-12-ops-api-contracts/qualified-installer-cli-pending-receipt.json",
-  "connector_diagnosis_status": "Historicaleaa3connector authentication-renewal responses remain causeundetermined. Qualifiedsourcefa0 separately fixes proven actual-role gaps, with authorized protected-owner prerequisites still unavailable. No identicallive retry."
+  "connector_diagnosis_status": "Historicaleaa3connector authentication-renewal responses remain causeundetermined. Qualifiedsourcefa0 separately fixes proven actual-role gaps, with authorized protected-owner prerequisites still unavailable. No identicallive retry.",
+  "application_release": {
+    "source_commit": "0256dddc21691726f4e63bd0dc34df628077b8c9",
+    "deployment_id": "dpl_2no3yiQFfC4DXdmztxeK8de4tLQo",
+    "production_domain": "app.gridex.se",
+    "ready_at_utc": "2026-10-13T18:11:48.668Z",
+    "public_specs_match_source": true,
+    "authenticated_business_E2E_qualified": false,
+    "sql_migrations_run_by_deploy": false,
+    "proof": "quality/audits/2026-10-12-ops-api-contracts/deployment-source-qualification.json"
+  },
+  "latest_integrated_migration_integrity": "1222 sourcefiles/1125 groups; two existing main-owned migrations and canonical outputs imported byte-identically from d798, no competing capture"
 }

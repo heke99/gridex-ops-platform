@@ -485,5 +485,19 @@
     "actual_applied": false,
     "protected_owner_connection_available": false
   },
-  "next_action": "Legitimate protected-owner001/002 execution, then exact qualified module and six semantic inputs; actual metadata/source alignment before sole C2 canonical capture. No competing GEN producer."
+  "next_action": "Legitimate protected-owner001/002 execution, then exact qualified module and six semantic inputs; actual metadata/source alignment before sole C2 canonical capture. No competing GEN producer.",
+  "application_only_release": {
+    "source_commit": "0256dddc21691726f4e63bd0dc34df628077b8c9",
+    "domain": "app.gridex.se",
+    "actual_status": "READY_LIVE_VERIFIED",
+    "SQL_or_GEN_execution": false,
+    "proof": "deployment-source-qualification.json"
+  },
+  "later_existing_main_GEN_import": {
+    "main_commit": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+    "source_files_preserved_exact": true,
+    "canonical_schema_sha256": "0a9a8e147f94a03c62870a39e363a60567e22fa6e91196ccef6b41795372c559",
+    "root_capture_performed": false,
+    "earlier_canonical_sha_is_historical_snapshot": true
+  }
 }
