@@ -1,4 +1,4 @@
-// masterplan: DB-05
+// masterplan: DB-05, SC-070
 // Mechanism component only; no coverage approval.
 // The behaviour is proven by the three lock-wait probes in
 // scripts/db-05-customer-close-due-purge-native.test.ts (R1's native chain).
