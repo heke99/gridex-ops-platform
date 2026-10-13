@@ -9,7 +9,8 @@ import { getGridOwnerVerification } from '@/lib/grid-owners/verification'
 
 import { createSupplierSwitchRequest, findCustomerSiteById, findOpenSupplierSwitchRequestForSite, listMeteringPointsForSite, listPowersOfAttorneyByCustomerId, syncOperationTasksFromReadiness } from '@/lib/operations/db'
 import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
-import { startSupplierSwitch } from '@/lib/operations/businessActions/startSupplierSwitch'
+import { startSupplierSwitchForWorker } from '@/lib/operations/businessActions/startSupplierSwitch'
+import { authorizeSupplierSwitchWorkerJob } from '@/lib/operations/businessActions/supplierSwitchWorkerAuthority'
 import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import { emitCustomerOperationEvent } from '@/lib/customers/customerOperationEvents'
 import { transitionCorrelatedCustomerApplicationWorkflow } from '@/lib/website/customerApplicationWorkflowBridge'
@@ -22,17 +23,18 @@ import { getMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
 import { makeCustomerOperationBlocker } from '@/lib/customer-operations/blockers'
 import { AUTOMATION_USER_REQUIRED_ADMIN_ACTION, isAutomationConfigurationError, missingAutomationUserJobResult } from '@/lib/customer-operations/automationConfig'
 import type { JobOutcome, JobRow } from './automation.part-1'
-import { automationActorId, blockerResult, clean, duplicate, mapWithConcurrency, missingSchema, nowIso, operationEventStatus, operationOutcomeMessage, operationTitle, projectCustomerApplicationContinuationState, record, retryAt, safeRunAfter, staleSnapshotReason, updateJob } from './automation.part-1'
+import { blockerResult, clean, mapWithConcurrency, missingSchema, nowIso, operationEventStatus, operationOutcomeMessage, operationTitle, projectCustomerApplicationContinuationState, record, retryAt, safeRunAfter, staleSnapshotReason, updateJob } from './automation.part-1'
 import { classifySupplierSwitchDispatch, linkOperationResources, normalizeVerifiedMeteringPointIdentity, persistSupplierSwitchBlockerMetadata, processCustomerDataRequest, processInboundResponse } from './automation.part-2'
 
 export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   const siteId = job.customer_site_id
   if (!siteId) return { status: 'failed', result: { reason: 'missing_site_id' } }
+  const authority = await authorizeSupplierSwitchWorkerJob(job, supabaseService)
+  const actorUserId = authority.actorUserId
   const site = await findCustomerSiteById(supabaseService, siteId)
   if (!site || site.company_id !== job.company_id || site.customer_id !== job.customer_id) {
     return { status: 'failed', result: { reason: 'site_not_found_or_wrong_tenant' } }
   }
-  const actorUserId = automationActorId(job.created_by)
   const operationId = job.operation_id ?? job.id
   const [meteringPoints, powers] = await Promise.all([
     listMeteringPointsForSite(supabaseService, siteId),
@@ -93,14 +95,14 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
     supplierSwitchRequestId: String(request.id),
   })
 
-  const started = await startSupplierSwitch({
+  const started = await startSupplierSwitchForWorker({
     actorUserId,
     customerId: job.customer_id,
     switchRequestId: request.id,
     siteId,
     meteringPointId: candidate.id,
     idempotencyKey: `customer-operation-start:${request.id}`,
-  })
+  }, authority)
   if (!started.ok) {
     const classification = classifySupplierSwitchDispatch(started as unknown as Parameters<typeof classifySupplierSwitchDispatch>[0])
 
