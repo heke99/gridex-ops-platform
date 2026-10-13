@@ -8,7 +8,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 const state = vi.hoisted(() => ({ calls: [] as Array<{ table: string; select?: string; filters: Array<[string, unknown]> }>, failOwners: false }))
 vi.mock('@/lib/admin/guards', () => ({ requireAdminPageKeyAccess: async () => ({ userId: 'actor-a', email: 'admin@example.test' }), isPlatformAdminContext: () => false }))
 vi.mock('@/lib/tenant/scope', () => ({ getOperationalCompanyScope: async () => ({ companyId: 'company-a' }) }))
-vi.mock('@/lib/tenant/adminScope', () => ({ tenantReadCompanyId: (_platform: boolean, companyId: string) => companyId }))
+vi.mock('@/lib/tenant/adminScope', () => ({ resolveAdminTenantReadScope: async () => ({ companyId: 'company-a', companyName: null, isPlatformAdmin: false }) }))
 vi.mock('@/lib/facility/workQueue', () => ({ listFacilityWorkQueue: async () => [], facilityMissingFieldLabel: (value: string) => value, facilityStatusLabel: (value: string) => value }))
 vi.mock('@/app/admin/facility-requests/actions', () => ({ markFacilityLookupSentManuallyAction: async () => {}, completeFacilityLookupAction: async () => {} }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({ from: (table: string) => {

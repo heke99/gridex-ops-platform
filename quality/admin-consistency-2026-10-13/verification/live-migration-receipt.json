@@ -36,9 +36,9 @@
     }
   ],
   "compatibility": {
-    "data_quality_lifecycle_consistency_expand": "Full forward file minus two legacy UNIQUE constraint drops; retained for currently deployed onConflict writer. Apply full migration cutover only after updated application is deployed.",
+    "data_quality_lifecycle_consistency_expand": "Full second-forward expansion minus2legacyUNIQUEdrops. After verified appdeployment/oldwriterdrain execute only those2drops. Do not reapply earlier functionDDL because later source7 overrides must be preserved.",
     "frontend_rollout": "Pending pull request, gates and deployment",
-    "canonical_schema_capture": "Pending authentic complete CI capture; no owner/ACL metadata guessed",
+    "canonical_schema_capture": "Complete authenticated CI capture imported; current result-head gates pending",
     "empty_consumption_forecasts": "Database INSERT safeguard installed; old direct writer fails closed, new app producer skips before insertion and continues other companies.",
     "manual_source_retries": "Exact-source hash retirement prevents deleted raw source recreation. Service-only lookup/ingestion ignore adapter source is pending frontend/backend application deployment."
   },

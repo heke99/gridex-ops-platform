@@ -352,7 +352,7 @@ export default async function FacilityRequestsPage() {
         <section className="grid grid-cols-2 gap-2 xl:grid-cols-5">
           <StatCard label="Saknar fullmakt" value={missingAuthorization} description="Utskick stoppas tills signerad fullmakt finns." />
           <StatCard label="Saknar uppgifter" value={needsFacilityData} description="Anläggnings-ID, mätpunkt eller elområde saknas." />
-          <StatCard label="Nätägare behöver verifieras" value={needsGridOwnerReview} description="Resolver-förslag räcker inte för switch." />
+          <StatCard label="Nätägare behöver verifieras" value={needsGridOwnerReview} description="Förslag måste verifieras före leverantörsbyte." />
           <StatCard label="Väntar nätägare" value={awaitingGridOwner} description="Begäran är skickad eller köad." />
           <StatCard label="Redo" value={readyForSwitch} description="Kan fortsätta mot leverantörsbyte." />
         </section>
@@ -361,7 +361,7 @@ export default async function FacilityRequestsPage() {
           <section className="space-y-4">
             <div>
               <h2 className="text-lg font-bold text-slate-950">Aktiva nätägarbegäranden</h2>
-              <p className="mt-1 text-sm text-slate-600">Hantera manuell skickning och registrera svar från nätägaren. Inga Ediel- eller SMTP-utskick sker från dessa knappar.</p>
+              <p className="mt-1 text-sm text-slate-600">Registrera manuellt skickade begäranden och nätägarens svar.</p>
             </div>
             <div className="grid gap-4">
               {facilityRequests.map((request) => <FacilityLookupRequestCard key={request.id} request={request} showTechnicalLinks={isPlatformAdmin} />)}
@@ -373,7 +373,7 @@ export default async function FacilityRequestsPage() {
           <div className="border-b border-slate-200 px-6 py-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-lg font-bold text-slate-950">Facility-arbetskö</h2>
+                <h2 className="text-lg font-bold text-slate-950">Arbetskö för anläggningsuppgifter</h2>
                 <p className="mt-1 text-sm text-slate-600">Visar bara kundkopplade anläggningar med aktiv brist, väntande nätägarsvar eller nästa åtgärd.</p>
               </div>
               <Link href="/admin/work-queue" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50">

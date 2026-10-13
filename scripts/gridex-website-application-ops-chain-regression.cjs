@@ -23,11 +23,14 @@ const actions = read('app/admin/website-applications/actions.ts')
 const migration = read('supabase/migrations/20260701090000_website_application_ops_chain_hardening.sql')
 
 expect(
-  /const \[website, external\] = await Promise\.all\(\[\s*listLegacyWebsiteApplications\(input\),\s*listExternalContractIntakes\(input\),\s*\]\)/s.test(adminOps),
-  'website_customer_applications loads before external_contract_intakes'
+  /from\("gridex_website_application_work_items_v"\)/.test(adminOps) &&
+    /const \[website, external\] = await Promise\.all\(\[\s*websiteIds\.length \? listLegacyWebsiteApplications\(\{ companyId, ids: websiteIds \}\)/s.test(adminOps) &&
+    /externalIds\.length \? listExternalContractIntakes\(\{ companyId, ids: externalIds \}\)/.test(adminOps),
+  'shared application identity is hydrated through company-scoped website and intake IDs'
 )
 expect(
-  /mergeExternalMirrorIntoWebsiteRow\(existing, row\)/.test(adminOps),
+  /state\.source_table === "website_customer_applications" && mirror\s*\? mergeExternalMirrorIntoWebsiteRow\(primary,\s*mirror\) : primary/s.test(adminOps) &&
+    /return applyWorkMetadata\(resolved, state\)/.test(adminOps),
   'external intake mirror is merged into canonical website row instead of replacing it'
 )
 expect(

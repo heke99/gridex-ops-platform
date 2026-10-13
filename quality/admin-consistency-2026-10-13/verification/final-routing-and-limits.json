@@ -6,6 +6,6 @@
     "finishing_branch": "Draft PR is the concrete reversible delivery. Full-suite incompleteness and CI checks remain explicit; no merge/deploy or all-green claim"
   },
   "authenticated_browser": "NOT_RUN; no real session supplied",
-  "canonical_schema_capture": "Pending authentic CI capture; incomplete-owner local fallback intentionally rejected",
+  "canonical_schema_capture": "PASS:authentic complete CI capture imported; current-head gates separate",
   "scope": "Customer-flow/admin remediation; no Ediel whole-ID certification or global campaign ownership changed"
 }
