@@ -12,7 +12,7 @@ Faktisk main/base är `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`/tree `e3b6c1167
 
 Alla fyra refs är färskt GET_MATCH till ursprunglig receipt3f4b; ingen mottagartransfer har skett. [Exakt två-fils writerresume6149882155](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149882155) namnger `/root/z06fg_requirements`, som måste självständigt kontrollera fullreceipt/source/tree/parents/branch/preimages före första write. Root PAUSAR två testpaths och skriver endast detta eget checkpoint. Helper- och konfigurationsfil är read-only i denna revision. Mottagaradoption/native/GEN/CI/mainmerge ligger kvar hos befintlig seriell ägare och producent.
 
-Skrivaren har fryst de två testerna vid 054abdeee5dff896b71af5b763be34a1a95b4488/tree d9f5c403888f8882702ea49f2aa21dd56bf1f47d, med 34 tillagda rader och 66 passerande finita kontroller. Native12 är fortfarande NOT_RUN. Nästa steg är root dokumentfreeze, två nya fristående slutgranskningar och ett exakt superseding sourcekvitto. C1/a93c:s decoder/saved-case-korrigering6144860660/inboundCases051ec är ett upptaget beroende, ingen filöverlämning till oss. Aktuell parser kan fortfarande ge den staged-projection som våra skärpta orakel ska fånga; ingen nativegreen/wholeSC031/ledgercredit fabriceras.
+Skrivaren har fryst de två testerna vid 054abdeee5dff896b71af5b763be34a1a95b4488/tree d9f5c403888f8882702ea49f2aa21dd56bf1f47d, med 34 tillagda rader och 66 passerande finita kontroller. Native12 är fortfarande NOT_RUN. Två nya fristående fullständiga slutgranskningar godkänner H1 2cb27b3c/tree55163270 med SOURCE_APPROVE_WITH_UPSTREAM_LIMIT. Root införlivar originalrapporterna genom en dokumentändring; nästa steg är båda granskarnas exakta rebind av denna dokumentversion, source-only publicering och superseding sourcekvitto. C1/a93c:s decoder/saved-case-korrigering6144860660/inboundCases051ec är ett upptaget beroende, ingen filöverlämning till oss. Aktuell parser kan fortfarande ge den staged-projection som våra skärpta orakel ska fånga; ingen nativegreen/wholeSC031/ledgercredit fabriceras.
 
 ## Custody och mandat
 
@@ -2797,3 +2797,424 @@ module.exports={parse,keys,expected,scope,wireApi,token,changed,project,pick,obs
 ```
 
 </details>
+
+
+## Nya oberoende fullständiga slutgranskningar och dokumentfrysning
+
+H1 `2cb27b3c939a1f0046e73f1b5d36cd7a314d7349`, tree `55163270e8b74fc1f5fa3498270dc9b0c8e12b23`, enda parent `054abdeee5dff896b71af5b763be34a1a95b4488`, source467d/ac21, actualbase d798/e3b6. Två fristående noncoauthors har vardera granskat alla fem filer, frozen krav, aktuella verkliga decoder/case/approval-vägar, alla22 nya sparade original, tidigare P2-assertions och selektiv C10 UD-positive återanvändning. Båda: **SOURCE_APPROVE_WITH_UPSTREAM_LIMIT**, ingen ny owned-component P1/P2. C1:s upptagna decoder/saved-case-fix är fortfarande UNFIXED/UNADOPTED. Native12 NOT_RUN och whole/currentCI/GEN/backend/ledger/mainmerge +0. Rapporterna nedan bevaras ordagrant; kod/hashar ändras inte i dokumentversionen. Sourcewriters fortsatt PAUSED.
+
+### Nytt original final A
+
+Original `/tmp/ediel-fg-6f94-sc031-final-review-a-2cb27b3c.md`, 15159 bytes, SHA256 `dc19ef3d9049c16e0467272be51504191326cdc424a3ba78c1a836f439d979e8`.
+
+```text
+# Independent full final F/G source/oracle review A
+
+**Verdict: SOURCE_APPROVE_WITH_UPSTREAM_LIMIT** for the complete five-file carrier below. No new confirmed P1/P2 must-fix in the owned fixture/test/config/checkpoint component. The disclosed current decoder defect remains UNFIXED/UNADOPTED and prevents treating this source preparation as passing native/whole-SC031/F/G evidence or merge readiness.
+
+## Exact immutable binding and independence
+
+- Final carrier H1: `2cb27b3c939a1f0046e73f1b5d36cd7a314d7349`; tree `55163270e8b74fc1f5fa3498270dc9b0c8e12b23`; ordered parents [`054abdeee5dff896b71af5b763be34a1a95b4488`].
+- Frozen code: `054abdeee5dff896b71af5b763be34a1a95b4488`; tree `d9f5c403888f8882702ea49f2aa21dd56bf1f47d`; ordered parents [`467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c`].
+- Integrated source preimage: `467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c`; tree `ac21a93c50ddb575497ec3ce209ebc22a29d7ff2`; ordered parents [`0dbc3101138e6ebe041bc280d9f7b68e4876e0ce`, `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`].
+- Historical public F/G source: `0dbc3101138e6ebe041bc280d9f7b68e4876e0ce`, tree `989dd2927f4acd9f783cb6644a0b971078153ec7`.
+- Actual base: `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`; tree `e3b6c11677a2b871a128504f1616def7d22dba1e`; ordered parents [`95d8d160491e79b172342654d8dc643346758105`, `fba453cc7cc9de8a26ec75d29248e1733316fcd1`].
+- Workspace: `/workspace/ediel-fg-proof-20261013-6f94`, clean at exact H1 when inspected.
+- Retained receipt: `3f4b1b494ec70bd0217cd935352946416a4d51eb`; packet `cf251c2f-a87c-4c82-aaa5-4d711a754b5c`; resumed two-test handoff `6149882155`; concrete oracle finding `6149259115`. Helper metadata/IDs remain empty and no producer scope is added. Source writer `/root/z06fg_requirements` and root are paused.
+
+| Whole owned path | Final SHA256 |
+| --- | --- |
+| `scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts` | `bb9d77bb25a0d98cecba59ba0b2faa60d306e6b1a4ac3ea35022cf3170119961` |
+| `scripts/ediel-at-z06f-supplier-acceptance-native.test.ts` | `64fd6cfe7b6dad4ab4e6f7c8bcadad54882cbcecd34c11e0f9b4a8844d5a7d81` |
+| `scripts/ediel-at-z06g-supplier-acceptance-native.test.ts` | `34d394d5a681757d0aa9e3a59d77206f04129dd385b7f83b9f91d3b0f9a58ce0` |
+| `scripts/ediel-source-owner-native.config.ts` | `7350c100a0587a8dc3ea964bac2aef1df3bfcc38c8825c768f4cb84739327087` |
+| `.agent-memory/ediel-fg-proof-20261013-6f94-checkpoint.md` | `b79f8a63702a9ccf93f76d600d187c15acd5de1d03fbc54ddac714933d0bbd0f` |
+
+Checkpoint size is 255,768 bytes. F/G blobs are respectively `68b94eb06f469b0d85b9a21cfc44d9390ad11135` and `d0fe3d47a9832302d41c5a07b9247ed7b515943e`. Code adds exactly 17 lines per test, with no removal; the carrier adds only root's checkpoint change to frozen code. Base→carrier contains exactly the five owned paths.
+
+I am an independent noncoauthor: no implementation, test, fixture, controller, checkpoint, proof, or GEN authorship or execution. I did not consult the other final reviewer. This is a fresh assessment of the full current component, not automatic reuse of an old approval. Read-only source/diff/hash/metadata checks were performed; no tests or controls were executed. Only this original `/tmp` report was written. Code-review/differential-review, frozen spec-to-code, direct false-positive verification, source/Supabase/Postgres boundary guidance, and verification-before-completion informed this bounded review. Broad audits, remediation, UI/performance, producer workflows, private fetches, and delivery actions are outside this scope.
+
+## Requirements and complete source frame
+
+I reviewed the entire helper/config and F/G source, their common code and all actual differences, the new diff and active checkpoint/evidence frame, and the current real consumer path. Frozen AT-Z06F/G require DDQ Z06/E64 or E32, guide ACKs, dated own structure, F follow-up versus G no invented readings, no customer identity from forbidden NAD+UD, and concrete role/direction/R-D/correlation/mutation refusals. Frozen P-02 requires preserving raw payload while ignoring unused national information for business projection; SC-031 requires valid extras neither cause a negative APERAK by themselves nor affect business data, without relaxing the outgoing builder. These literal requirements and TEN-05/P-01/ENV-06 remain unchanged.
+
+The fixture still admits new physical originals, records real canonical validation, captures the source-rule basis, completes the actual owner session, and obtains explicit structural review before application. `captureChange` supplies an original without invented acceptance; deferred change preserves all qualification steps but withholds first application. Changed inputs are constructed before admission and UNT is recounted. Defaults remain intact. The first-case tests perform intake, then a fresh real structural review, before first approval. The shared config retains its mandatory loopback/status/key gates, all previous includes/setup, 120-second limits, and serial file execution; this revision changes no gate or include.
+
+I traced current `parseInboundProdatBusinessData`, `createOrUpdateInboundProdatCase`, `approveEdielInboundCase`, the coordinator's structural case path, `reviewReceivedStructuralSource`, and `approveSafeMasterdataChanges`. The native evidence SQL queries bind company/source and read actual original, case, structural receipt/batch, ignored facet, ACK/outbox, and follow-up tables. The existing structural-object SQL defines the queried scope/hash/assessment/actor/timing/effect shapes, and the source-owned follow-up SQL distinguishes F expectations from G no-reading status. These SQL/source observations are not evidence of execution or installed backend state.
+
+Existing whole-frame assertions remain meaningful source controls: own physical ACK correlation/parties/ERC100 and outbox binding; actual first object/batch receipts; original/raw/hash and customer/site/supply graph preservation; installation/register/date semantics; F's actual E66 consumer path and observation immediately after persistence before read reconciliation; G's empty expectations/observations and `not_required_by_this_change`; original replay; and foreign tenant/actor/graph/LIN, physical R-D/LI, wrong parties/foreign point/direction/mutation refusals. Nodemailer remains the explicitly synthetic external transport port.
+
+The earlier P2 correction is preserved: negatives require ready or precise source-held context, actual frozen rule basis, own canonical/object/witness hashes and scope, recorded disposition and concrete cause, and exact apply errors. Generic unconfirmed/missing-prerequisite outcomes cannot satisfy them. Positive captured controls use the same real capture/qualification path. I independently removed only the new customer helper and three new phase calls from each final source as a read-only text comparison: both files then match their integrated preimages byte for byte, and those preimages match public0dbc. This establishes preservation of all old source ASTs/assertions/order, not just selected regex counts. Four direct cases plus the two `it.each([false,true])` variants per file remain: native 12 prepared cases, not 12 executed results.
+
+## New oracle strengths and causal reach
+
+At F396–404/G395–403, `expectCleanStagedCustomer` requires a real saved case and binds its own case ID/company/source/Z06/precise phase status. It checks a non-array object projection and independently reads every one of the 15 named customer DTO keys. The baseline is 14 null values and actual no-UD label `Ej angivet`. A missing key reads as undefined and fails equality; poisoned values fail regardless of the FORBIDDEN sentinel string. No missing-case/projection fallback, substring-only exclusion, or whole-case equality across UUID/timestamp variants is used.
+
+The actual call sites are F413/420/444 and G412/419/443: persisted pending-review case after staging; persisted applied case after actual approval; and persisted applied case after replay. Each lies in the body common to both no-UD and extra-UD positive variants. The approval/replay expected IDs come from the real returned rows, and each reread remains independently tied to its own source and company. Existing evidence still checks raw/ignored facets, original identity/hash, and legitimate structure; the oracle does not demand stripping received raw or nested evidence of UD.
+
+The preserved finite controller reads the actual new assertion ASTs and current pure parser AST/dependencies. It separately establishes the actual no-UD baseline and counted syntax-valid extra-UD original, supplies explicit modeled case rows to each phase, rejects the actual dirty parser projection, poisons all 15 keys individually with a non-sentinel value, and rejects missing case/projection/key and wrong case/source/company/status. The real tokenizer/envelope and canonical field validator identify the seven national ignored facets. Physical evidence and legitimate named installation/register/site/contract projections are preserved. Those controls qualify the assertion's discrimination and source registration; modeled clean rows do not establish real case persistence or a corrected native path.
+
+## Known upstream limitation — remains open
+
+Current `lib/ediel/inboundCases.ts` is blob `c08e51d67c98b8b7be0fc726f2509059cf4aaec0`, SHA256 `39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f`. Its parser reads raw UD at line167 and maps its ID/name/address values into first-class customer fields at lines192–216. The case writer stores `parsed.customer` as `parsed_customer` at line422. Structural approval at lines801–808 updates decision/status/reviewer metadata and does not clean that existing customer projection.
+
+Thus the saved actual-parser observations of eight dirty fields are causally supported by current source: `customerId`, `fullName`, `firstName`, `lastName`, `address`, `postalCode`, `city`, `country`. The counted final finite control rejects this projection with the new native helper. This is neither an executed native failure nor proof of mutation to actual customer rows. The extra-UD native path is expected to fail its staging oracle if it reaches that current writer, and its later phase checks do not thereby become executed proof.
+
+The existing C1/a93c decoder/saved-case correction owner (`051ec`/handoff `6144860660`) remains occupied. That owner's corrected adopted source and affected producer qualification are required before claiming native/whole effects. No private correction was fetched or copied, no decoder/product/SQL source was written, and no assertion was weakened to force green. This known upstream issue is a condition on runtime/whole acceptance, not a new request for this test writer to take that owner's files.
+
+## Qualification originals, applicability, and limits
+
+Qualification JSON `/tmp/ediel-fg-6f94-sc031-oracle-qualification.json` has SHA256 `adea061a2708cb7f74a3349d51988334849dbdeb51f6dbb77f038638521670a9` and is embedded byte-exactly. I verified all six saved execution-metadata records, all 22 indexed output/controller/preimage artifacts' recorded sizes/hashes, and their exact embedded original bytes, including empty streams. The final control reports **66 PASS/0 FAIL**, stdout SHA256 `f59248db272f50fcc826e572be94cf451bcf7b2089ed228ccdb0b7e6ba24a55e`, stderr empty/e3b0. First scripts TypeScript and exact two-file lint records show exit0 against the final two source hashes; staged diff-check outputs are empty. Their metadata records precommit HEAD467d plus exact changed file hashes; those hashes match frozen code054ab and this carrier. I did not rerun any green check.
+
+The finite parser loader uses real pure parser dependencies and no case writer/database execution. Its shared loader, SHA256 `b8dfa24628319ed7c51a6770c7e4ce657dd518894bd9c0c551d993f669a6cb63`, matches the read-only derivation specified in the preserved old physical controller from exact seam source SHA256 `f54ed1f173c5265262743b1444c6e2079e9694320f0392ce829fa94bbfa71b89`. This closes the loader-source applicability without executing it. The two observation-scaffold failures are accurately retained: invalid export wrapping before observation, then an overly broad nested/evidence equality. Neither is product RED/fix proof; the final counted control narrows the actual named-business oracle while retaining raw/nested evidence.
+
+Applicable UD remains separately covered by selective existing C/Z24 finite original reuse: public Z04C429c/tree3e3d, codee627/tree855ca, test SHA256 `1f0f529be7fbe2f8acc84a9a4b30d22dce411c1a466843f0feeb4db06d457cb2`, first10 stdout SHA256 `255f4a00b1e1e272a8b702e4c7d96eae82d981a8419518f0d32baba12c48f936`. I verified these source/output pins and all seven declared parser/db/reading-SDK/owner-fixture/package-lock dependency hashes match current base/carrier and codee627. The actual C case consumer preserves applicable personalNumber199001011234 under declared modeled ports. This is selective positive applicability, not permission to use UD in F/G, a native proof, or a rerun.
+
+Runtime/SQL/helper/test dependencies outside these owned additions are byte-identical to public0dbc; the integrated preimage adds exactly the four actual-main proof/checkpoint/archive/ledger paths. The archive was not opened and its originals were not collected. Earlier approvals and 42/9/4/69 checks remain historically attributed; they do not automatically approve this changed source or supply native/current-CI proof.
+
+The frozen rules, acceptance register, and ledger match actual base byte for byte: SHA256 `48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8`, `e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10`, and `7266ee57be5ac633ec0e8ca3f169aaf7d048da45ca0abfc6004284eae75c822e`. Base ledger remains119 VERIFIED+204 PASSED=323/352; SC-031 remains PARTIAL and both F/G rows NOT_EXECUTED. This component grants +0.
+
+## Assessment and next ownership
+
+Accept the exact carrier for superseding bounded source handoff with **SOURCE_APPROVE_WITH_UPSTREAM_LIMIT**. The checkpoint correctly distinguishes active two-test work, historical originals/approvals, the actual-base merge, first finite results, and the unfixed parser boundary. No new producer, protected acceptance seeding, product fix, activation gate, existing assertion weakening, global unlock, or custody transfer is introduced.
+
+**Native12: NOT_RUN. Whole SC031/F/G, mandatory current CI, GEN/backend/environment/input-epoch qualification, genuine logs/originals, adoption, and normal main merge: not established.** The current decoder owner must deliver the applicable correction; the existing sole qualified producer and serial delivery owner retain actual union/admission/installed SQL/source authority, native/genuine evidence, current CI, and normal delivery. This reviewer performed no test/control/native/SQL/backend/GEN/log-collector/CI/ref/PR/publish/merge action and accessed no private ROOTf8 or decoder correction. Any changed adopted source or input environment requires affected qualification and exact-version binding. I pause after this original report.
+```
+
+### Nytt original final B
+
+Original `/tmp/ediel-fg-6f94-sc031-final-review-b-2cb27b3c.md`, 16561 bytes, SHA256 `da78c4815b3b7171e59d740f8c2914a0148ba846d8cbc32661620bd086451354`.
+
+```text
+# Independent final full F/G source/oracle review B
+
+**SOURCE_APPROVE_WITH_UPSTREAM_LIMIT** for the complete five-file carrier H1 `2cb27b3c939a1f0046e73f1b5d36cd7a314d7349` / tree `55163270e8b74fc1f5fa3498270dc9b0c8e12b23`. No new must-fix was confirmed in the prepared oracle/component. The actual current decoder remains **UNFIXED/UNADOPTED** and promotes ignored UD values into named staged customer business fields. This is source-scope approval with that concrete upstream limit, not approval of current product behavior or native acceptance.
+
+**Native12 NOT_RUN. Whole SC-031/F/G, genuine SQL/backend/GEN/current CI, ledger/main/merge credit: none, +0.** The new with-UD native staging assertion is expected to fail on the current parser; no native run was performed or made green.
+
+Reviewer `/root/fg_final_review_b` is a noncoauthor of this revision's code/tests/fixtures/executable proof. I did not consult another current final reviewer or coordinate findings. Only this original `/tmp` report was written. No test/rerun/native/SQL/backend/GEN/current CI/log collector, private ROOTf8/C1 decoder/unpublished correction/original/artifact fetch, source/ref write, PR or publication occurred.
+
+## Exact full-version binding
+
+| Identity | Verified value |
+| --- | --- |
+| Workspace | `/workspace/ediel-fg-proof-20261013-6f94` |
+| Full H1 carrier | `2cb27b3c939a1f0046e73f1b5d36cd7a314d7349` |
+| Full H1 tree | `55163270e8b74fc1f5fa3498270dc9b0c8e12b23` |
+| H1 ordered parent | `[054abdeee5dff896b71af5b763be34a1a95b4488]` |
+| Revised code source/tree | `054abdeee5dff896b71af5b763be34a1a95b4488` / `d9f5c403888f8882702ea49f2aa21dd56bf1f47d` |
+| Code ordered parent | `[467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c]` |
+| Integrated preimage/tree | `467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c` / `ac21a93c50ddb575497ec3ce209ebc22a29d7ff2` |
+| Preimage ordered parents | `[0dbc3101138e6ebe041bc280d9f7b68e4876e0ce, d798eb36f35cd4f437d44c8d234b4dbb81adc7a6]` |
+| Historical public F/G/tree | `0dbc3101138e6ebe041bc280d9f7b68e4876e0ce` / `989dd2927f4acd9f783cb6644a0b971078153ec7` |
+| Current actual-main base/tree | `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / `e3b6c11677a2b871a128504f1616def7d22dba1e` |
+| Actual-base ordered parents | `[95d8d160491e79b172342654d8dc643346758105, fba453cc7cc9de8a26ec75d29248e1733316fcd1]` |
+
+| Entire reviewed owned file | SHA256 |
+| --- | --- |
+| `scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts` | `bb9d77bb25a0d98cecba59ba0b2faa60d306e6b1a4ac3ea35022cf3170119961` |
+| `scripts/ediel-at-z06f-supplier-acceptance-native.test.ts` | `64fd6cfe7b6dad4ab4e6f7c8bcadad54882cbcecd34c11e0f9b4a8844d5a7d81` |
+| `scripts/ediel-at-z06g-supplier-acceptance-native.test.ts` | `34d394d5a681757d0aa9e3a59d77206f04129dd385b7f83b9f91d3b0f9a58ce0` |
+| `scripts/ediel-source-owner-native.config.ts` | `7350c100a0587a8dc3ea964bac2aef1df3bfcc38c8825c768f4cb84739327087` |
+| `.agent-memory/ediel-fg-proof-20261013-6f94-checkpoint.md` | `b79f8a63702a9ccf93f76d600d187c15acd5de1d03fbc54ddac714933d0bbd0f` |
+
+HEAD is exact H1 and tracked worktree is clean. The checkpoint is255768 bytes. Code diff from467d contains exactly17 added lines per test and no old code line removed. F/G blobs are `68b94eb06f469b0d85b9a21cfc44d9390ad11135` / `d0fe3d47a9832302d41c5a07b9247ed7b515943e`. The whole current base delta is precisely the five owned paths. Integrated main changes are only the four delivered proof/checkpoint/archive/ledger paths; no archive was opened or new original captured by this reviewer.
+
+Custody is retained receipt `3f4b1b494ec70bd0217cd935352946416a4d51eb`, IDs EMPTY, four exact resources, with bounded two-test RESUME6149882155 to sole writer `/root/z06fg_requirements`. Helper/config remain read-only; root owns its unique checkpoint. Remote full-receipt/ref authentication is attributed to the existing owner/writer. No occupied decoder/runtime/SQL/helper/producer scope is acquired.
+
+## Frozen requirements and independent whole-version assessment
+
+Read literal frozen AT-Z06F/G-SUPPLIER, SC-031 and P-02. F/G forbid customer identity writes from extra NAD+UD, require supplier DDQ/Z06 E64/E32, own guide responses and structural versioning; F additionally owns its applicable reading expectation while G requires no invented reading. SC-031/P-02 require syntax-tolerated unused national fields to affect no business projection, preserve raw payload and not create a negative APERAK solely for the extras, while outgoing omission remains required. Both copied F/G contracts match the register exactly.
+
+Frozen acceptance SHA256 `e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10`; rules SHA256 `48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8`. Current d798 ledger SHA256 `7266ee57be5ac633ec0e8ca3f169aaf7d048da45ca0abfc6004284eae75c822e` is323/352; F/G remain NOT_EXECUTED and SC-031 PARTIAL. This revision changes no row or approval count.
+
+Applied the narrow source/code/differential/spec/false-positive/verification review approach with Supabase/Postgres boundaries, under unchanged AGENTS/current-start/workflow/reservations and existing paused producer/serial ownership. Broad audit/scanners, UI/performance, implementation, executable qualification and delivery are not triggered. Earlier0dbc approvals are historical and apply only to unchanged byte components; this is a fresh assessment of the complete current carrier with its new oracle and disclosed upstream failure.
+
+Independently confirmed helper/config remain byte-identical to0dbc; the recorded F/G preimages match integrated467d exactly. Reached current inboundProcessing, inboundCases, safeApplyReview, structural reviewer, runtimeDecision, final response reader and F/G wire source all match currentbase and their historical source bytes. Their original actual call-chain assessment remains applicable by explicit byte/source identity, not by old approval status. Re-read the relevant current staging/approval/source paths and new assertion boundaries.
+
+## Retained real native frame
+
+The helper still creates prospective transformed physical inputs before admission, recounts only UNT and preserves default already-applied reuse. Deferred mode records real canonical validation, captures rule evidence, finishes its actual source owner and reviews without first apply. The processor then stages through the real intake/case path; `pendingFirstApplication` performs a fresh explicit review after intake before case approval. No protected accepted source/context/effect is seeded by this revision. Declared disposable public source/legal/SMTP inputs and the retained E66 issuer/history premise retain their earlier producer qualification limits.
+
+Existing native evidence reads actual own company/source-bound originals, public business graph, structural object/batch receipts, ignored facets, expectations/observations, case, physical ACKs and outbox. First-effect controls require zero object/batch/reading effects before approval, exact source/hash/actor/LIN/date/register-bound first structural receipts after approval, preserved raw/original/customer/site/supply graph and retained replay. Effective source time remains the real admission clock; market validity uses the existing fixed UTC+1 conversion. Scalar public method/status cannot substitute for the private structural receipts.
+
+F retains its own pending reading expectation and E66 observation only after actual accepted persistence, before reconciliation, with replay and no automatic request. G retains empty expectations/observations and explicit not_required_by_this_change. Own CONTRL/APERAK physical reverse parties/references/object outcome, positive final plan and exact outbox relationships remain asserted. Route inputs are disposable; SMTP is explicitly synthetic, not provider/counterparty trust.
+
+Earlier precise P2 refusal controls remain intact: successful recorded current canonical/application/object/witness/context/rule tuples bind R/D/LI missing causes or accepted-application foreign-point unavailability, instead of generic not_established/recorder failure. Wrong parties require the actual held context, reason, original hash/clock and zero own receiver. Exact apply errors remain anchored; intact captureChange controls prepare the same real basis after refusal probes. Foreign actor/graph/scope, outbound insertion and sealed original mutation controls retain their actual owner guards and no-effect assertions. All12 native cases and all old expect statements remain present in unchanged order; no catch/skip or authority substitute was added.
+
+Shared config remains exact7350c1: mandatory GRIDEX_NATIVE_STATUS, strict127.0.0.1:54321/key checks, all existing includes, real server-only alias, permission catalogue setup,120s limits and serial files are preserved. No global workflow or product gate changes.
+
+## New named customer oracle and causal reach
+
+F396–405 / G395–404 define the new helper; F415/420/444 and G414/419/443 call it on actual persisted case evidence after staging, approval and replay in both false/true UD variants. The helper requires a case, exact case ID/company/source/Z06/phase status, a non-null non-array customer object and the exact15 named DTO fields. Fourteen values are null; the actual clean no-UD qualifier label is `Ej angivet`. It compares named values, not a FORBIDDEN substring or whole cases across different IDs/timestamps. Missing named keys become undefined and fail equality; wrong case/scope/status cannot supply a clean unrelated row.
+
+These fields cover identity/qualifier/type/national IDs/birth/name/address/postcode/city/country. The clean baseline is independently supported by the actual unchanged pure parser on this no-UD wire; cached customer hints are not source authority. Installation/register/structure/customer graph/raw/ignored-facet assertions remain separate and unchanged. Raw and nested register evidence may retain the extra UD; the helper does not improperly demand full nested evidence equality or strip source bytes.
+
+All three calls consume the database case returned by `evidence` rather than a constructed expected customer object. Staging occurs before approval, so a dirty projection cannot be excused by later successful structural application. Approval/replay reads preserve the same own case/source/status binding. These are registered native assertions; no actual native phase was executed in the finite qualification.
+
+## Concrete upstream limit, independently confirmed
+
+Actual current `lib/ediel/inboundCases.ts` blob `c08e51d67c98b8b7be0fc726f2509059cf4aaec0`, SHA256 `39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f`, remains unchanged. At167 it reads physical UD;192–216 project it into the15-field customer DTO without the F/G ignored-field mask;406/422 pass that DTO directly into `parsed_customer` for case storage. The structural guard accepts the own application and avoids graph matching, but does not clear this staged business projection. Current structural approval preserves the saved case projection; whole customer-row immutability does not refute the staging gap.
+
+The declared extra-UD input thus supplies eight dirty named values: customerId, fullName, firstName, lastName, address, postalCode, city, country. The recorded actual pure-parser observation and66 control rejection agree with this source-visible path. This is not a newly executed native failure or proof of actual customer-row mutation. The new with-UD native cases should fail at the first staging oracle until the rightful C1/a93c051ec decoder/saved-case owner supplies and independently qualifies its correction. No private correction was fetched, copied, written or silently adopted.
+
+This upstream issue is a concrete required downstream correction, not a new defect in the test oracle. Source approval does not authorize forcing native green, weakening expected values, inventing acceptance facts, or replacing the owner's correction with another decoder writer. The coherent adopted source and current native producer qualification remain necessary for any later whole F/G/SC-031 assessment.
+
+## Finite evidence integrity and limits
+
+Independently extracted and hashed embedded qualification JSON: `adea061a2708cb7f74a3349d51988334849dbdeb51f6dbb77f038638521670a9`. Its code/tree/parents/base/final two hashes bind the reviewed source. All22 new raw/controller/preimage/diff artifacts match declared byte lengths and SHA256 values; both preserved preimages exactly match467d. First-oracle/type/lint metadata bind the current two test hashes and exit0. First66 stdout SHA256 `f59248db272f50fcc826e572be94cf451bcf7b2089ed228ccdb0b7e6ba24a55e`; stderr empty SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`. These are author-produced source-bound results, not reviewer runs.
+
+Read the source-visible controllers and retained seam loader. The new controller extracts actual new assertion helper AST, actual parser/helper AST with real pure parser/party/date/reference/label dependencies, tokenizer/envelope/field validator and actual recount helper. It declares constructed raw inputs and modeled persisted case rows; no createOrUpdateInboundProdatCase persistence, native fixture producer, PostgreSQL authority, structural apply, physical ACK or phase execution occurs. The retained loader's external source/SQL/runtime mocks do not become native evidence. The66 count is33 controls per F/G: baseline/count/syntax, clean and actual-dirty rows in three phases,15 independently poisoned fields, missing/wrong scope/projection/key controls, raw/ignored/installation preservation and old assertion/phase-registration checks.
+
+The poison values are NON_SENTINEL_CUSTOMER_VALUE, so every named field is tested beyond simple marker exclusion. Current actual dirty parser projections are rejected in each modeled phase and exact clean rows accepted. The initial narrow observation alone did not qualify counted syntax; the final66 controller adds actual recount and syntax checks on clean/dirty physical inputs and actual seven ignored national facets. It does not claim the full canonical native source was admitted or persisted.
+
+Two observation scaffold failures remain preserved: temporary export-wrapper syntax and an overbroad nested meter/evidence comparison. The correction narrowed only temporary observation to legitimate named values and retained raw evidence; it is not a product RED/fix claim. No successful unchanged test was rerun for documentation. First scripts typecheck/exact two-file lint/diff success is preserved without broad native/SQL/GEN/current CI claims.
+
+Applicable UD is selectively supported by the public Z04C C/Z24 source component at429c/e627: its existing first10 finite result asserts actual case parser/writer personalNumber199001011234 against modeled lower storage, not native authority. All seven declared parser/db/reading-SDK/fixture/lock pins independently match public429c, actuald798 and this carrier; test/output pins are the unchanged previously reviewed originals. It was not rerun, imported into these native tests or used as permission to apply UD in F/G. After any decoder correction, its affected applicable-UD behavior needs source-qualified reassessment on the adopted union.
+
+## Checkpoint and final disposition
+
+The complete current checkpoint updates active source/base/resume context, preserves dated old P2/source/review/finite originals and attributes historical0dbc approvals correctly. Current323 ledger and unresolved c08e dependency are explicit. It labels current parser UNFIXED_UNADOPTED_STAGED_BUSINESS_PROJECTION, finite constructed rows/pure AST separately from actual native case persistence, native12 NOT_RUN and +0 whole/CI/GEN/main credit. It preserves raw/ignored-facet and applicable-positive boundaries and holds existing occupied decoder/producer/serial ownership. No copied old report substitutes for this new verdict.
+
+**SOURCE_APPROVE_WITH_UPSTREAM_LIMIT** applies to exact whole H1 `2cb27b3c939a1f0046e73f1b5d36cd7a314d7349` / tree `55163270e8b74fc1f5fa3498270dc9b0c8e12b23`. No new oracle/source must-fix confirmed. The actual decoder projection is still unfixed; only its rightful owner correction plus coherent adopted-source/native/genuine-output/current mandatory CI qualification can remove this limit. Native12 NOT_RUN; whole SC-031/F/G/GEN/ledger/main/merge credit none. Any source/checkpoint/base/relevant dependency change requires affected qualification and exact review binding. Reviewer B pauses after this original report.
+```
+
+### Aktuell source-only push-triggeraudit
+
+Actual H1; alla41 workflow-YAML parsade och hashbundna. Sju push-events matchar inte egen branch; inga workflow_run/repository_dispatch-kedjor. Inga dispatch/native/GEN/producent/PR-/mainåtgärder startas av sourcepush. Färsk fjärrmain d798, publicFG0dbc och alla fyra refs3f4 GET_MATCH före dokumentwrite. Endast eget checkpoint ändras. Audit SHA256 `d961379a36b9e7170692752d8484e278cbb66577ef88c1bddacd58b53d04ccca`.
+
+```json
+{
+  "schema": "ediel_source_only_push_trigger_audit_v1",
+  "sourceH1": "2cb27b3c939a1f0046e73f1b5d36cd7a314d7349",
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "branch": "codex/ediel-fg-proof-20261013-6f94",
+  "workflowCount": 41,
+  "push": [
+    {
+      "file": ".github/workflows/browser-deps-lock-sync-temporary.yml",
+      "branches": [
+        "agent/release-certification-hardening-20260817"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/browser-quality-e2e.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/ediel-masterplan-v2.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/full-e2e.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/ops-hardening.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/tenant-integrity-regression.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/vercel-production-deploy.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    }
+  ],
+  "indirectChainTriggers": [],
+  "workflowPins": [
+    {
+      "file": ".github/workflows/browser-deps-lock-sync-temporary.yml",
+      "sha256": "6c6c7fe045496292486af35b515c8d615e343fdf13f6906d4b993d4df633d2ae"
+    },
+    {
+      "file": ".github/workflows/browser-quality-e2e.yml",
+      "sha256": "1b22d834938a7929224d71a8791daffd5a8b877baf83af193763a938cf033787"
+    },
+    {
+      "file": ".github/workflows/canonical-quote-db-release-gate.yml",
+      "sha256": "60e7cbdabf0178a5ece58dee6ae3f41f0cbc1636a29f84153bb421c93f585c0c"
+    },
+    {
+      "file": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "sha256": "18f63c741ff4dd17d8b248bbb2c7c66c2a5d6b1924d2f550a3d7ec2f3a9c2151"
+    },
+    {
+      "file": ".github/workflows/ediel-cancellation-public-birth-native.yml",
+      "sha256": "20485c74970eeae7516e37c21ef9526b4834cf616396b52c01316540a642f601"
+    },
+    {
+      "file": ".github/workflows/ediel-db01-current-native.yml",
+      "sha256": "d28e9e9d296c8a9c7cf5fa92a293cd5fadc352357213d0c7f379776921b59efb"
+    },
+    {
+      "file": ".github/workflows/ediel-db04-current-consumers-native.yml",
+      "sha256": "f189bbc8ae70cf8fcd4a6a690996c1a3d6213933f7511679d7216cae5ac51615"
+    },
+    {
+      "file": ".github/workflows/ediel-db05-native.yml",
+      "sha256": "0d3d859bb41f2d7810fedfe17b8b603e48acc61286a23c54af2d4458c7465704"
+    },
+    {
+      "file": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+      "sha256": "7f38047f3bfe4ee59b82e39c52fe2fd4ddaaad0db7d6bb49f4c206dbbb6d4f9b"
+    },
+    {
+      "file": ".github/workflows/ediel-masterplan-v2.yml",
+      "sha256": "570fee485c20cab4fd33b5ff048589cf20a807dde68585e29969450b3b023f36"
+    },
+    {
+      "file": ".github/workflows/ediel-p08-native.yml",
+      "sha256": "1accd8fce133bf0cadda4fe8f61e3f2d8d3d7643a9773c1802a531c4280f2e7f"
+    },
+    {
+      "file": ".github/workflows/ediel-prodat-response-hold-native.yml",
+      "sha256": "8caa813a36578d61eb66e832ae44d3a76ee1dc2aec3637f02cccd9bb80e7f0bc"
+    },
+    {
+      "file": ".github/workflows/ediel-recovery-native.yml",
+      "sha256": "5cc097dccc90f4649250e40b45dff7c297f10bdad5dc57ce3c795916c069de52"
+    },
+    {
+      "file": ".github/workflows/ediel-sc003-sc005-native.yml",
+      "sha256": "a5ab28cb335dc108a8b8065b0aba170661b43b35ac1b72b971f0f2f12b98a4ac"
+    },
+    {
+      "file": ".github/workflows/ediel-sc014-z14v-native.yml",
+      "sha256": "8734e192537021d3830bffcbb394f6b0c43b7e64341bcabbca3d6da38f256724"
+    },
+    {
+      "file": ".github/workflows/ediel-sc053-native.yml",
+      "sha256": "d5c25abcee97c45da479a641e66d0930e77a08f4fc1ed1483447d281cf6c7a9b"
+    },
+    {
+      "file": ".github/workflows/ediel-sc054-native.yml",
+      "sha256": "bb7ea54eb195739a5cfd2acce91cdb346e44280276c139d04152043419ed96da"
+    },
+    {
+      "file": ".github/workflows/ediel-sc064-native.yml",
+      "sha256": "7bb0d19009baeac92573887661f2514fc683331f86ff5b0df2a737efef091b0d"
+    },
+    {
+      "file": ".github/workflows/ediel-sc071-native.yml",
+      "sha256": "0e7e7269c54b8f89473e92e4015bf77c1ae855cee7fe0c7501b8ccdc5b97a977"
+    },
+    {
+      "file": ".github/workflows/ediel-tr09-current-native.yml",
+      "sha256": "e156aa10bb7ea27e773500ae8b76553471b967a5b96a4841cbd987bac036b350"
+    },
+    {
+      "file": ".github/workflows/ediel-z02-supplier-native.yml",
+      "sha256": "45df7047094a2ec7d2207a9ade6f21487999d3635851c8d15bfd9484ac3c10b8"
+    },
+    {
+      "file": ".github/workflows/ediel-z03h-z04h-supplier-native.yml",
+      "sha256": "002aa1172a537ac8f6f70fd32967154487a09dec3d042190dd1faee26da932be"
+    },
+    {
+      "file": ".github/workflows/ediel-z04a-assigned-supply-native.yml",
+      "sha256": "a685bff1acb6cf3523b7bddfb3e1992cbf68f6dab1b3ee3a88b336961f5cea79"
+    },
+    {
+      "file": ".github/workflows/ediel-z05-public-birth-native.yml",
+      "sha256": "091db1d78dd0210853a5cafff7128891556d7663d51cf0b2be9c7d485e55c13e"
+    },
+    {
+      "file": ".github/workflows/ediel-z05-supplier-native.yml",
+      "sha256": "27aef63ea8526b41099e196dc23e22ec05690010d00280f20353a5c4d433db0b"
+    },
+    {
+      "file": ".github/workflows/ediel-z06e-z09e-native.yml",
+      "sha256": "500937dd634c8f3288466847cf438fad532f167a6e74eab4d71f99b358cb4c3a"
+    },
+    {
+      "file": ".github/workflows/ediel-z08lk-native.yml",
+      "sha256": "649b853685415bc25659a177c426dafc7ac3cd84dc5afc9bb375d44b882d02e2"
+    },
+    {
+      "file": ".github/workflows/ediel-z10m-supplier-native.yml",
+      "sha256": "7e9d089ff0d1a4ed90cad7c0c40d72b71ccc2e1407ba82ab53ad102457832458"
+    },
+    {
+      "file": ".github/workflows/ediel-z14n-native.yml",
+      "sha256": "e460efeb65d18053b225a3714022568c16a9e05923357434ceffbdb760e4cdd8"
+    },
+    {
+      "file": ".github/workflows/ediel-z15c-z18v-native.yml",
+      "sha256": "e6b5a842d8fa5b57f927b8de8571a0ce6ff74a76ba788380d5a1d7dde01a11e0"
+    },
+    {
+      "file": ".github/workflows/full-e2e.yml",
+      "sha256": "4b596a8e9b72835a89a6fff9bb77fdcad7eabb52bd1de5b03fa208344fa4bd31"
+    },
+    {
+      "file": ".github/workflows/one-off-offer-binding-native.yml",
+      "sha256": "4a9405ed2079a558e49dc64aa1500bc0cd44448edd0e1075f70f4d922736f020"
+    },
+    {
+      "file": ".github/workflows/one-shot-operation-id-fix.yml",
+      "sha256": "45ddcf525c6657e99f2c39d727d8be3ecdc16a5841fb5bf303be4729a4c20167"
+    },
+    {
+      "file": ".github/workflows/ops-hardening.yml",
+      "sha256": "f1c03e2be5a38d2b41d96c2cfcb53259c6a2dd9af99f5a17311c693c91237d9d"
+    },
+    {
+      "file": ".github/workflows/production-certification-e2e.yml",
+      "sha256": "e98e59fe75e1ddc988d048132769eef368b7f6bdde1dd5ce95b7da33ac8ff4f7"
+    },
+    {
+      "file": ".github/workflows/repair-generated-supabase-types.yml",
+      "sha256": "7dacb59f5e7889eec16c1222ffd24476816bec0e33585fbb0cd6750168b45ce4"
+    },
+    {
+      "file": ".github/workflows/staff-api-schema-capture.yml",
+      "sha256": "5675989bfc158868e2c2a8508c74c5a05043052934dd1f7f79da8df06e272adf"
+    },
+    {
+      "file": ".github/workflows/tenant-integrity-regression.yml",
+      "sha256": "46d45b2364ad8b7bf2d80e7399b40a5835565bd34003c274d06f4e6dd6ebb890"
+    },
+    {
+      "file": ".github/workflows/tenant-isolation-invariants.yml",
+      "sha256": "e49b8a1444602f95cd8410aa891a7af54c4f817349e7c7cb201dbd500bb58367"
+    },
+    {
+      "file": ".github/workflows/vercel-production-deploy.yml",
+      "sha256": "2ab42b283d76821709ec50f546daf75c80a64030e651cf34767603172ff7c9d3"
+    },
+    {
+      "file": ".github/workflows/zero-admin-production-crawler.yml",
+      "sha256": "b9bd2f5bb02a972c02f842bdaa507c28fd20c425f8c39b3e2753de18f395d74d"
+    }
+  ],
+  "noDispatchOrNativeInvoked": true
+}
+```
