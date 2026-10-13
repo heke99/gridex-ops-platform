@@ -199,3 +199,44 @@ The private C3 creator birth-refusal test was not imported or executed in this
 GEN source; no private13-case or whole90-case runtime credit is borrowed.
 No actual canonical backend, generated output, producer claim or publication
 has occurred in this preparation.
+
+## Approved EMPTY atomic input — corrective prepared source, before producer
+
+ROOT explicitly authorized only this owned workflow and checkpoint correction
+after preparedee776959/treeb261: measure real COUNT(*) on
+public.user_permission_overrides after unchanged canonical replay and BEFORE
+GEN; accept exactly0 and store measured0 with that actual measurement phase in
+the capture-only receipt. It is not labeled as a before-atomic observation.
+Ordinary unrelated captures do not query or gate on this relation. Owned primary
+and owned corroboration retain the approved canonical-empty input scope; no
+populated partiallegacy upgrade is qualified or repaired.
+
+Source reasoning: authentic795 pre-atomic canonical table already has BOTH
+created_at/updated_at plus current company FK/unique/global DENY CHECK, and its
+actor has active catalog/time-aware global/company DENY semantics. Atomic442
+does not insert/delete override rows. The four later forwards00500/01000/23000/
+40000 only change/create declared functions/trigger or perform strict existing
+retention metadata checks; none insert/delete/truncate/clear overrides. Stock
+helper orders checksum-pinned timestamps, clears only the already empty seed
+FILE before initial startup, and runs no later db reset/seed. Its sole final
+readiness refresh writes public.platform_runtime_readiness, not overrides.
+Thus the measured post-replay0 plus this source closure qualifies the approved
+empty atomic input; unknown rows cannot be erased between atomic and measure.
+No migration/helper/seed/config/runtime checksum/donor/native/GEN output bytes
+change. All171 source cases/fullTSC stay applicable by exact unchanged inputs;
+only workflow runtime ports/syntax/actionlint/source scope are rechecked. The
+next corrected prepared head/tree supersedes ee only for workflow+thisCP and
+requires ROOT freshproducer, two final source peers and explicit one captureGO.
+
+Corrected EMPTY controls:60/60 actual-workflow port cases PASS (all previous57
+plus nonempty/non-numeric/SQL-error refusals); ordinary/foreign-branch controls
+actually execute the new block and prove no SQL query or receipt alteration.
+Measured0 and its AFTER_CANONICAL_REPLAY_BEFORE_GEN phase are carried unchanged
+into the final source-epoch receipt. Four Python blocks/four shell run blocks
+and official actionlint1.7.12 PASS. Exact source closure proves all20 declared
+interleaved artifacts occur before atomic (latest before20260815095427), and
+the only four timestamped post-atomic sources are the frozen C3/Admin/retention
+forwards. No post-atomic seed/reset/override clearing dependency remains.
+The171 source controls/fullTypeScript/fullcatalog895pin/donor proofs are reused
+only because every source outside this owned workflow+CP remains byte/mode
+exact preparedee; no broad repeat or new backend/native/capture credit.

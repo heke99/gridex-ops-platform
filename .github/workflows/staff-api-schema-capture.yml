@@ -234,6 +234,24 @@ jobs:
           # the database alive until capture finishes, then stops/restores it.
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/staff-schema-capture-replay.log" 2>&1
           CAPTURE_DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          CAPTURE_DB_URL="$CAPTURE_DB_URL" python3 - <<'PY_EMPTY'
+          import json, os, pathlib, subprocess
+
+          path = pathlib.Path(os.environ['CAPTURE_INPUT_STATE'])
+          state = json.loads(path.read_text())
+          if state['epoch_attestation_enabled']:
+              count = subprocess.check_output([
+                  'psql', os.environ['CAPTURE_DB_URL'], '-XAtq', '-v', 'ON_ERROR_STOP=1',
+                  '-c', 'SELECT count(*) FROM public.user_permission_overrides;'], text=True).strip()
+              if count != '0':
+                  raise SystemExit('capture_atomic_canonical_empty_input_unqualified')
+              state['atomic_canonical_input'] = {
+                  'relation': 'public.user_permission_overrides', 'row_count': 0,
+                  'measurement_phase': 'AFTER_CANONICAL_REPLAY_BEFORE_GEN',
+                  'approved_scope': 'COMPLETE_CANONICAL_EMPTY_ISOLATED_INPUT_ONLY',
+                  'populated_partial_legacy_upgrade': 'NOT_QUALIFIED_P2_OPEN'}
+              path.write_text(json.dumps(state, indent=2) + '\n')
+          PY_EMPTY
           export CAPTURE_LATEST_MIGRATION_VERSION="$REPLAY_MIGRATION_VERSION"
           export CAPTURE_REPLAY_MIGRATIONS="$TIMESTAMP_EXEC"
           export CAPTURE_SERVER_VERSION="$(psql "$CAPTURE_DB_URL" -XAtq -v ON_ERROR_STOP=1 -c 'show server_version;')"
@@ -335,6 +353,7 @@ jobs:
               'checkout_sha': state['checkout_sha'], 'checkout_tree': state['checkout_tree'],
               'tracked_input_count': len(state['tracked_inputs']), 'tracked_inputs': state['tracked_inputs'],
               'custody': state['custody'], 'runner': state['runner'],
+              'atomic_canonical_input': state['atomic_canonical_input'],
               'input_restoration': 'EXACT_MODES_AND_BYTES', 'migration_directory_restoration': 'EXACT',
               'docker_remaining_container_ids': remaining, 'zero_all_containers': True}
           path.write_text(json.dumps(receipt, indent=2) + '\n')
