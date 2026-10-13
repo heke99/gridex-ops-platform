@@ -6,11 +6,12 @@
   "status": "AUTHORIZED_ACTUAL_DATABASE_RECONCILIATION_IN_PROGRESS",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
-  "native_writes": 8,
+  "native_writes": 11,
   "business_rpc_invocations": 0,
   "deployments": 0,
   "native_blockers": [
-    "51 missing required RPCs (five retention guards plus 46 internal command functions); exact source/native dependency closure under additive reconciliation"
+    "Complete API/RPC/trigger additive dependency reconciliation remains pending; current397RPC-name inventory supersedes initial51-only scope",
+    "Confirmed preserved-body semantic gaps in legal supply activation, locked billing source bindings/gates, object onboarding, Ediel receipts and facility completion are under bounded remediation"
   ],
   "documentation_version": "2026-10-12.1 prospective",
   "wire_version": "2026-10-09.1",
@@ -25,7 +26,7 @@
     "No all-native or provider end-to-end readiness claim",
     "No canonical schema/type GEN or active Ediel claims/shared memory writes"
   ],
-  "next_action": "Compile and peer-review corrected additive native dependencies; compile and apply approved financial/quote/signing forwards; qualify current authorization helper gaps; finalize source documentation and genuine C2 GEN handoff.",
+  "next_action": "Finish portable complete-state additive native dependencies and bounded preserved-body semantic forwards; apply prospective VAT25 authoring/publication guards after exact peer and compile/replay approval; final source/docs and genuine C2 GEN handoff.",
   "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
   "review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
   "integrated_main": "51f5fa5e80c42350d697bfed42520672749d4467",
@@ -35,11 +36,11 @@
   "fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
   "local_verification": "Build/app/scripts/tests typechecks/lint/docs/compatibility/migration/RBAC/static source gates passed as recorded. Initial fullunit3fixturefailures corrected and5files31checks passed; entire suite not rerun. Local checks are not live/native proof.",
   "latest_native_preflight": "2026-10-12 22:56:02 UTC:51missing/52examined names; tombstone alreadypresent",
-  "handover": "Draft PR794 source plus first actually applied native migration; remaining dependency reconciliation in progress. No merge/deploy/business mutation or competing GEN. Existing Ediel owners keep producer resources/shared campaign memory.",
+  "handover": "Draft PR794 contains reviewed source and ten actually applied native forwards; full dependency/semantic reconciliation and prospective VAT native guards continue. No merge/deploy/business mutation or competing GEN.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "1a506d1104252437178a6b39468b42209ed1bb93",
+  "current_source_head": "e97ec65fd0442196263afc9316d0c07cd36b8a3c",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
-  "migration_scope": "All1152sources/1055groups checksummed; native416registrations and actualcatalog inspected; no blind replay or fakehistoricalregistration.",
+  "migration_scope": "1162 migration source files/1065 version groups integrity passed; actual427 registrations as of10:56:48UTC; no blind replay or fake historical registration.",
   "gen_owner": "C2 sole GEN/current producer ref03d8419671865554c0b8684de125320a2ef98f72 observed; first OPS atomic source imported in joint epoch; later actual forwards require next coherent handoff, no API-owned GEN",
   "native_applied_migrations": [
     {
@@ -90,24 +91,45 @@
       "sha256": "c96cfbf2d734da41900782b265c7137c4a4fda82ccce3958588aec365b9db2a5",
       "actual_ledger_sql_md5": "a96554f43de8586ddbec2b120acd20ac",
       "receipt": "quality/audits/2026-10-12-ops-api-contracts/pricing-snapshot-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013095628",
+      "file": "supabase/migrations/20261013095628_ops_api_current_context_permission_denies.sql",
+      "sha256": "c0b42937d124b8a50e77e2d773a4a9ce03062a24eff3abb6d93eb49b0affc418",
+      "actual_ledger_sql_md5": "e5faa53793ebd0059a27906a2962454e",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/auth-context-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013104143",
+      "file": "supabase/migrations/20261013104143_ops_api_seven_permission_catalog_keys.sql",
+      "sha256": "2ce4e07ee2dee8ffb352e0e387092e7eb8a9bc6802723d408b40b9e0671e4519",
+      "actual_ledger_sql_md5": "2b21d1da3aa6bcfbb86571f01aaacb82",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/seven-catalog-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013105521",
+      "file": "supabase/migrations/20261013105521_ops_api_current_auth_token_expiry.sql",
+      "sha256": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
+      "actual_ledger_sql_md5": "17428f943864c6a5426861ec58019355",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/auth-expiry-native-apply-receipt.json"
     }
   ],
   "native_corrected": "Actor current-active permission and deny precedence, additive canonical override columns/deny-only constraints, Partner atomic site/offer direction guard; OIDs/ownership/grants preserved and actual postcatalog verified. Pure gridowner native body unchanged; new forward source corrects future replay escaping.",
   "confirmed_additional_findings_in_progress": [
-    "Current Staff denies installed; no configured authenticated Staff integration",
-    "Atomic interval-price snapshot and Stockholm civil/instant separation: approved source/native proposal, isolated compilation pending",
-    "Nonexpiring website quote policy: approved native TTL removal, isolated compilation pending",
-    "Signing expiry after locks and immutable identity: approved native proposal, isolated compilation pending",
-    "Future inclusive Stockholm withdrawal deadline: approved native proposal, isolated compilation pending",
-    "Frozen confirmation prices and verified archived artifacts: source corrected, final review in progress",
-    "Canonical context and older native permission helper deny/catalog differences: exact policy qualification in progress"
+    "Ten actual scoped forwards verified, including signing/pricing/quote/current permission/Staff/auth expiry corrections",
+    "Complete-state portable additive native upgrade and preserved-body semantic composition in progress",
+    "Consumption VAT unit source corrected and approved; prospective native25% guards pending final replay qualification",
+    "Three historical wrong-VAT price versions remain preserved: two frozen published versions and draft predecessor referenced by frozen successor; inactive history is not rewritten"
   ],
-  "native_forward_migration_writes": 7,
+  "native_forward_migration_writes": 10,
   "native_metadata_population_writes": 1,
   "metadata_receipt_count": 14,
   "staff_deny_status": "Actual native two permission functions patched and service-only/VOLATILE/body/OID/grants verified. Configured Staff provider/client/binding still absent; no authenticated E2E readiness claim.",
-  "governance_status": "Service-role aggregate reads now succeed without raw ledger USAGE/SELECT; 13 actual exact-input receipts + distinct historical lineage inserted. Strict old governance false remains truthful (385unmapped), no fake repair/history replay.",
+  "governance_status": "Service-only aggregate reads verified without raw ledger grants;14 prior append-only provenance receipts.385unmapped is historical09:09 snapshot; no full-history/effect qualification or invented registrations.",
   "signing_native_status": "Actual three cores expiry/one acceptance instant/frozen name corrected and future online+website Stockholm withdrawal deadline applied; exact nativebody hashes match isolated qualification, existingOID/ACL preserved, no signingRPC invoked",
   "pricing_native_status": "Actual atomic interval snapshot+persist locked resnapshot installed, body/OID/grants verified; code release and populated business lifecycle remain unqualified",
-  "quote_native_status": "Actual retired technical TTL removed; exactbody/OID/grants verified; status/version/hash/publication/idempotency preserved"
+  "quote_native_status": "Actual retired technical TTL removed; exactbody/OID/grants verified; status/version/hash/publication/idempotency preserved",
+  "auth_native_status": "Five actual native context/permission helpers corrected and verified; source platform authority preserves current catalog/deny precedence and actual entity company;11route permission-key corrections approved",
+  "permission_catalog_status": "Actual69existing rows preserved,7source-owned keys registered; native76/76active, no user/role assignments or new grants. Portable complete/empty/extra-key/replay/inactive preservation qualified",
+  "auth_expiry_native_status": "Actualfive currentAuth/identity/invitation cores installed, expiry afterlocks/provider/ratewait andStaffrevalidation beforeidentitymutation; exactnativebody/attrs/OID/ACLproof, nohistory/credentialwrite"
 }

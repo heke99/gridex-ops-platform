@@ -1,0 +1,455 @@
+{
+  "scope": "Gridex OPS only, current Admin/internal Node API permissions and actual native permission helpers. Gridex Web excluded.",
+  "authority": "Actual project source, READ ONLY OPS pg_proc/pg_policy/pg_attribute/ACL metadata, exact separately-owned Admin GitHub donor. No live business calls, customer-row read, mutation/provider/email/native write or GEN edits. Supporting synthetic checks do not establish authority.",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "link_id": "link_6aa08570afb48191a4eb728ab8e93c81",
+  "updated_utc": "2026-10-13T10:36:55.230439+00:00",
+  "qualified_admin_donor": {
+    "git_commit": "30985a79fa99a75a17bae6d3b6352b42a4d0a4e9",
+    "path": "supabase/migrations/20261013023000_admin_context_current_permission_deny.sql",
+    "sha256": "7df4dc9d9f3023ba9a05f9066837a4bfd8bfe058d4dc58fc74a0d839c14b40a5",
+    "native_before": "b0dea96f47a97fd921850bcb8c39da89",
+    "donor_after": "20800ecdbc19c53dd48b5bd8f3376bc1",
+    "qualification": "Fresh native scoped context matches donor exact preimage. Active permission catalog and global/current-company direct/valid override DENY predicates are source-qualified. Published owner file/history unchanged; ours integrates its exact permission query in a new guarded forward.",
+    "policy": "Donor explicitly preserved platform bypass policy. OPS canonical actor already applies explicit DENY outside its platform OR. Our API forward preserves implicit platform authority for available non-denied keys while enforcing that existing negative precedence."
+  },
+  "findings": [
+    {
+      "id": "AUTH-01",
+      "priority": "P1",
+      "problem": "Native global gridex_get_user_permissions direct_permissions lacks status/is_active/effect filters; a direct DENY row joined through permission_id becomes a positive candidate. No catalog or global/current-scope negative filter follows. gridex_has_permission then treats candidate membership as permission.",
+      "actual_path": "Native authenticated table ACLs and RLS policies on price_areas/price_area_localities use gridex_has_permission; these two tables have no restrictive current-session/tenant policies in inspected native metadata. No actual business call or user-row configuration needed to establish the definition-level incorrect precedence.",
+      "fix": "Global helper retains original role/direct/platform-fallback branches, requires direct active ALLOW and active catalog, filters global DENY plus each candidate grant own company DENY. A foreign company DENY cannot revoke a legitimate grant in another company for shared data."
+    },
+    {
+      "id": "AUTH-02",
+      "priority": "P2",
+      "problem": "Actual scoped context returns role ALLOW despite current global/company direct DENY, valid override DENY or inactive permission catalog. Older company helper likewise omits catalog/current negative precedence.",
+      "fix": "Integrates qualified Admin query correction; scoped helper filters candidate array using exact global/selected-company DENY predicates from actually applied actor oracle without its operational-company gate. Paused/history read semantics preserved."
+    },
+    {
+      "id": "AUTH-03",
+      "priority": "P2",
+      "problem": "Node API skipped all requirements for platform admins; filtering ordinary context.permissions alone cannot make explicit current denial/catalog unavailability outrank platform authority.",
+      "fix": "Add internal context active_permission_keys and denied_permissions. Platform effective requirement candidates are active catalog minus current negatives; ordinary candidates intersect that with context.permissions. Existing anyOf/allOf semantics retained, unknown/inactive catalog keys refused. Required fields absent and requirement nonempty =>503; empty requirement preserves base Admin behavior. No public/frozen API DTO keys changed."
+    },
+    {
+      "id": "AUTH-04",
+      "priority": "P2",
+      "problem": "Entity APIs resolve required permissions for cookie company before learning actual entity company, then platform entity helper skips company binding. A denial for actual other company could be missed.",
+      "fix": "API-only WeakMap records requirement and client; private enumerable symbol references original guard, surviving object spread without leaking through JSON. Entity guard revalidates native context for actual company before platform return; operational/readable helpers revalidate actual resolved company. Page guards retain existing policy. Repository search found direct original access.guard passing on current entity APIs and no spread/destructured guard copies; copied guard regression verifies retained requirement."
+    },
+    {
+      "id": "AUTH-05",
+      "priority": "P2",
+      "problem": "Native permission list/wrapper decisions did not re-evaluate current canonical Auth/profile state and could use permission rows for deleted/banned/inactive identities.",
+      "fix": "Reuse exact canonical context identity invariant (undeleted Auth user, wall-clock unbanned, confirmed email, active user_profile). No auth.uid equality restriction on service-supplied target IDs; legitimate service actor remains allowed. No invented deleted/disabled metadata fields, no new operational-company gate. Dynamic clock-dependent five functions become VOLATILE."
+    }
+  ],
+  "preserved": [
+    "Existing role/direct/platform fallback grant branches and function signatures/defaults/return types.",
+    "Actual OIDs, owners, ACLs, SECURITY DEFINER, search_path, language, argument names/types, strict/leakproof/parallel/cost/rows; VOLATILE is the sole intentional function-property change for fresh clocks.",
+    "Explicit platform authority even admin_users-only identity without ordinary role grants; negative/canonical catalog precedence outranks it.",
+    "Paused/history reads and explicit same-company resolution; no blanket operational gate.",
+    "Existing Auth.getUser plus native identity comparison before Node API permissions; no persistent Node role cache. React page cache is separate from this uncached API guard.",
+    "Admin donor and C2 source/GEN/history untouched."
+  ],
+  "source_files": [
+    {
+      "path": "lib/admin/apiGuards.ts",
+      "sha256": "3a8343c364638b651ba1aa629b443bb0dda75f985caf071bab2c7bd988ac513d"
+    },
+    {
+      "path": "lib/tenant/entityGuards.ts",
+      "sha256": "4b8d664432b3f656b83f8b911938c531140e826ac657dc2c69185e35ca932903"
+    }
+  ],
+  "proposal": {
+    "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/admin-current-context-permission-forward.sql",
+    "sha256": "c0b42937d124b8a50e77e2d773a4a9ce03062a24eff3abb6d93eb49b0affc418",
+    "applied_by_subagent": false,
+    "function_changes": [
+      {
+        "signature": "public.canonical_authenticated_tenant_context_v1_scoped(uuid)",
+        "before": [
+          "b0dea96f47a97fd921850bcb8c39da89",
+          "20800ecdbc19c53dd48b5bd8f3376bc1"
+        ],
+        "after": "d205c4e8ba1989b27b4df6b1b76af631",
+        "attributes": {
+          "signature": "canonical_authenticated_tenant_context_v1_scoped(uuid)",
+          "oid": 341351,
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres}",
+          "proargnames": [
+            "p_selected_company_id"
+          ],
+          "argtypes": "2950",
+          "return_type": "jsonb",
+          "pronargdefaults": 1,
+          "defaults": "NULL::uuid",
+          "prosecdef": true,
+          "provolatile": "s",
+          "proconfig": [
+            "search_path=public, auth, pg_temp"
+          ],
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 0,
+          "lanname": "plpgsql"
+        }
+      },
+      {
+        "signature": "public.gridex_get_user_permissions(uuid)",
+        "before": [
+          "3816b4a0580cdd25aefa05af8715fdf2"
+        ],
+        "after": "abc7cf42141a02abdfab33cbd013fee8",
+        "attributes": {
+          "signature": "gridex_get_user_permissions(uuid)",
+          "oid": 19281,
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "proargnames": [
+            "p_user_id"
+          ],
+          "argtypes": "2950",
+          "return_type": "text[]",
+          "pronargdefaults": 0,
+          "defaults": null,
+          "prosecdef": true,
+          "provolatile": "s",
+          "proconfig": [
+            "search_path=public, auth, pg_temp"
+          ],
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 0,
+          "lanname": "sql"
+        }
+      },
+      {
+        "signature": "public.gridex_get_user_permissions_in_company(uuid,uuid)",
+        "before": [
+          "cbd5976b0516a7aef697f297d0bd0e49"
+        ],
+        "after": "cd48d5a1fc77db9fc4cfb62b58e5ad5c",
+        "attributes": {
+          "signature": "gridex_get_user_permissions_in_company(uuid,uuid)",
+          "oid": 356774,
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres,service_role=X/postgres}",
+          "proargnames": [
+            "p_user_id",
+            "p_company_id"
+          ],
+          "argtypes": "2950 2950",
+          "return_type": "text[]",
+          "pronargdefaults": 0,
+          "defaults": null,
+          "prosecdef": true,
+          "provolatile": "s",
+          "proconfig": [
+            "search_path=public, auth, pg_temp"
+          ],
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 0,
+          "lanname": "sql"
+        }
+      },
+      {
+        "signature": "public.gridex_has_permission(uuid,text)",
+        "before": [
+          "95f70460c927b0b7133872ee8418bafe"
+        ],
+        "after": "62ab7072f95952b588f784c9e5956870",
+        "attributes": {
+          "signature": "gridex_has_permission(uuid,text)",
+          "oid": 19282,
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+          "proargnames": [
+            "p_user_id",
+            "p_permission"
+          ],
+          "argtypes": "2950 25",
+          "return_type": "boolean",
+          "pronargdefaults": 0,
+          "defaults": null,
+          "prosecdef": true,
+          "provolatile": "s",
+          "proconfig": [
+            "search_path=public, auth, pg_temp"
+          ],
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 0,
+          "lanname": "sql"
+        }
+      },
+      {
+        "signature": "public.gridex_has_permission_in_company(uuid,text)",
+        "before": [
+          "d1dfece66dc545141e0a1677e60263c6"
+        ],
+        "after": "c734e54d5f3a33eaa3b2f5a0bbd4d9ba",
+        "attributes": {
+          "signature": "gridex_has_permission_in_company(uuid,text)",
+          "oid": 356773,
+          "owner": "postgres",
+          "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+          "proargnames": [
+            "p_company_id",
+            "p_permission"
+          ],
+          "argtypes": "2950 25",
+          "return_type": "boolean",
+          "pronargdefaults": 0,
+          "defaults": null,
+          "prosecdef": true,
+          "provolatile": "s",
+          "proconfig": [
+            "search_path=public, auth, pg_temp"
+          ],
+          "proisstrict": false,
+          "proleakproof": false,
+          "proparallel": "u",
+          "procost": 100,
+          "prorows": 0,
+          "lanname": "sql"
+        }
+      }
+    ],
+    "unknown_body_or_attributes": "failclosed; exact replay permitted",
+    "native_status": "Root reports controlled actual OPS installation 2026-10-13T09:56:28Z. This subagent fresh READ ONLY pg_proc confirms all5 exact reviewed after hashes, same OIDs/owners/ACL/config, all VOLATILE.",
+    "post_native_metadata": [
+      {
+        "oid": 341351,
+        "signature": "canonical_authenticated_tenant_context_v1_scoped(uuid)",
+        "name": "public.canonical_authenticated_tenant_context_v1_scoped",
+        "body_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "provolatile": "v"
+      },
+      {
+        "oid": 19281,
+        "signature": "gridex_get_user_permissions(uuid)",
+        "name": "public.gridex_get_user_permissions",
+        "body_md5": "abc7cf42141a02abdfab33cbd013fee8",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "provolatile": "v"
+      },
+      {
+        "oid": 356774,
+        "signature": "gridex_get_user_permissions_in_company(uuid,uuid)",
+        "name": "public.gridex_get_user_permissions_in_company",
+        "body_md5": "cd48d5a1fc77db9fc4cfb62b58e5ad5c",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "provolatile": "v"
+      },
+      {
+        "oid": 19282,
+        "signature": "gridex_has_permission(uuid,text)",
+        "name": "public.gridex_has_permission",
+        "body_md5": "62ab7072f95952b588f784c9e5956870",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "provolatile": "v"
+      },
+      {
+        "oid": 356773,
+        "signature": "gridex_has_permission_in_company(uuid,text)",
+        "name": "public.gridex_has_permission_in_company",
+        "body_md5": "c734e54d5f3a33eaa3b2f5a0bbd4d9ba",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "proconfig": [
+          "search_path=public, auth, pg_temp"
+        ],
+        "provolatile": "v"
+      }
+    ]
+  },
+  "supporting_verification": {
+    "parser": "Genuine pglast7.7 parses outer SQL, all5nestedCREATE definitions, four SQL helper bodies and scoped PLpgSQL body.",
+    "finite_node_contrasts": "9selected meaningful tests passed: implicit platform flag, allOf/anyOf denial, inactive/unknown catalog, missingfields503, empty requirements, ordinary denial, copied-guard target-company denial, paused read without operational gate.",
+    "lint": "Owned API/entity/onlineSigning source and two related focused regressions ESLint passed.",
+    "isolated_pg17_6": "Network-none dedicated ops_api_auth_context_compile_20261013: 73 actual tables, 21 actual helper bodies and113 native indexes; exact5 after-MD5/default/ACL/OID/owner/config/security attributes verified. SQL helper query compilation passed. Context PLpgSQL runtime planning deferred; no business invocation.",
+    "peer_review": "Both independent noncoauthors native_forward_independent_review and final_api_source_review approved exact c0b42937 SQL and3a8343c3/4b8d6644 source bytes."
+  },
+  "evidence_files": [
+    "/tmp/gridex-api-review/admin-current-context-deny-native-metadata.json",
+    "/tmp/gridex-api-review/admin-current-context-deny-native-dependencies.json",
+    "/tmp/gridex-api-review/admin-current-context-deny-policy-metadata.json",
+    "/tmp/gridex-api-review/admin-current-context-deny-masterdata-policies.json",
+    "/tmp/gridex-api-review/admin-current-context-deny-rls-qualification.json",
+    "/tmp/gridex-api-review/admin-current-context-deny-rls-helpers.json",
+    "/tmp/gridex-api-review/admin-current-permission-native-attributes.json",
+    "/tmp/gridex-api-review/admin-current-permission-body-patches.json"
+  ],
+  "rls_qualification": {
+    "table_metadata": [
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "name": "public.customer_authorization_documents",
+        "owner": "postgres",
+        "force_rls": false,
+        "authenticated_select": true,
+        "authenticated_update": true
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "name": "public.electricity_suppliers",
+        "owner": "postgres",
+        "force_rls": false,
+        "authenticated_select": true,
+        "authenticated_update": true
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "name": "public.price_area_localities",
+        "owner": "postgres",
+        "force_rls": false,
+        "authenticated_select": true,
+        "authenticated_update": true
+      },
+      {
+        "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+        "rls": true,
+        "name": "public.price_areas",
+        "owner": "postgres",
+        "force_rls": false,
+        "authenticated_select": true,
+        "authenticated_update": true
+      }
+    ],
+    "restrictive_policies": [
+      {
+        "cmd": "DELETE",
+        "name": "tenant_lifecycle_delete_guard",
+        "qual": "gridex_can_write_company(company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "customer_authorization_documents",
+        "schema": "public",
+        "permissive": "RESTRICTIVE",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "name": "tenant_lifecycle_insert_guard",
+        "qual": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "customer_authorization_documents",
+        "schema": "public",
+        "permissive": "RESTRICTIVE",
+        "with_check": "gridex_can_write_company(company_id)"
+      },
+      {
+        "cmd": "SELECT",
+        "name": "tenant_lifecycle_select_guard",
+        "qual": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "customer_authorization_documents",
+        "schema": "public",
+        "permissive": "RESTRICTIVE",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "name": "tenant_lifecycle_update_guard",
+        "qual": "gridex_can_write_company(company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "customer_authorization_documents",
+        "schema": "public",
+        "permissive": "RESTRICTIVE",
+        "with_check": "gridex_can_write_company(company_id)"
+      },
+      {
+        "cmd": "DELETE",
+        "name": "tenant_lifecycle_delete_guard",
+        "qual": "gridex_can_write_company(company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "electricity_suppliers",
+        "schema": "public",
+        "permissive": "RESTRICTIVE",
+        "with_check": null
+      },
+      {
+        "cmd": "INSERT",
+        "name": "tenant_lifecycle_insert_guard",
+        "qual": null,
+        "roles": [
+          "authenticated"
+        ],
+        "table": "electricity_suppliers",
+        "schema": "public",
+        "permissive": "RESTRICTIVE",
+        "with_check": "gridex_can_write_company(company_id)"
+      },
+      {
+        "cmd": "SELECT",
+        "name": "tenant_lifecycle_select_guard",
+        "qual": "(( SELECT gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT gridex_user_company_ids() AS gridex_user_company_ids))))",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "electricity_suppliers",
+        "schema": "public",
+        "permissive": "RESTRICTIVE",
+        "with_check": null
+      },
+      {
+        "cmd": "UPDATE",
+        "name": "tenant_lifecycle_update_guard",
+        "qual": "gridex_can_write_company(company_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "electricity_suppliers",
+        "schema": "public",
+        "permissive": "RESTRICTIVE",
+        "with_check": "gridex_can_write_company(company_id)"
+      }
+    ],
+    "limit": "Customer/electricity supplier restrictive current-session/company policies remain real safeguards; no broad banned/crosscompany customer leak claimed from permission helper alone. This review corrects exact helper precedence and Node API requirements, not every membership-only policy."
+  },
+  "other_permission_display": "getUserPermissions TS coded fallback is used only by Admin user detail display, not current Node API authorization. Its fallback presentation is not an authorization oracle.",
+  "release_order": "Reviewed forward is installed on OPS; source change remains subject to root release/deployment. Five installed function bodies independently observed READ ONLY; no live business/API call or blanket runtime-green claim."
+}

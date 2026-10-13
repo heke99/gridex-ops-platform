@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { slugifyContract } from "@/lib/contracts/slug";
+import { standardConsumptionVatPercent } from "@/lib/pricing/vat";
 import {
   commercialComponentSchema,
   commercialModelSchema,
@@ -448,7 +449,10 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     "Brytavgift",
   );
 
-  const vatRate = nullableNumber(raw(formData, "vat_rate"), "Moms") ?? 25;
+  const productionEnabled = booleanValue(formData, "production_enabled");
+  const vatRate = productionEnabled
+    ? nullableNumber(raw(formData, "vat_rate"), "Moms") ?? 25
+    : standardConsumptionVatPercent(raw(formData, "vat_rate"));
   if (vatRate < 0 || vatRate > 100) throw new Error("Moms måste vara mellan 0 och 100 procent.");
 
   const priceOptions = z
@@ -703,7 +707,7 @@ export function parseAdminContractForm(formData: FormData): ParsedAdminContractF
     portfolioWeightPercent,
     fixedWeightPercent,
     spotIntervalResolution: raw(formData, "spot_interval_resolution") || "monthly",
-    productionEnabled: booleanValue(formData, "production_enabled"),
+    productionEnabled,
     productionCompensationOrePerKwh: raw(formData, "production_compensation_ore_per_kwh"),
     productionVatRate: raw(formData, "production_vat_rate"),
     productionSettlementMode: raw(formData, "production_settlement_mode") || "credit_invoice",

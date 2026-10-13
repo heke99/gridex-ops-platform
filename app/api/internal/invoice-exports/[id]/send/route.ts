@@ -14,7 +14,7 @@ export async function POST(request: Request, { params }: Props) {
     const { id } = await params
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const requestedCompanyId = typeof body.companyId === 'string' ? body.companyId : typeof body.company_id === 'string' ? body.company_id : null
-    const access = await requireAdminApiAccess(['billing.write', 'billing.export'], { companyId: requestedCompanyId })
+    const access = await requireAdminApiAccess(['billing_underlay.export'], { companyId: requestedCompanyId })
     if (access.response) return access.response
     const companyId = requestedCompanyId?.trim()
       ? await assertUserCanOperateCompany(access.guard.userId, requestedCompanyId)

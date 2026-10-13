@@ -3,7 +3,7 @@
   "authority": "Actual project code and READ ONLY OPS PostgreSQL definitions/catalog. Synthetic checks support but do not establish authority. No business signing RPC, provider/email/storage request, customer-row read, native mutation, GEN or historical migration edit by this subagent.",
   "native_project_id": "piidsfebjqjmnepdpnas",
   "native_link_id": "link_6aa08570afb48191a4eb728ab8e93c81",
-  "updated_utc": "2026-10-13T08:50:28.697705+00:00",
+  "updated_utc": "2026-10-13T10:36:55.230439+00:00",
   "evidence_files": [
     "/tmp/gridex-api-review/signing-native-functions.json",
     "/tmp/gridex-api-review/signing-native-relations.json",
@@ -296,12 +296,14 @@
     {
       "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/signing-expiry-forward.sql",
       "sha256": "f346076b7684fc43d4d413b13524c46e4fbb0aa1484921d6a0717a03afdcd4bb",
-      "applied_by_subagent": false
+      "applied_by_subagent": false,
+      "native_status": "Root reports controlled actual OPS installation around2026-10-13T09:34Z/09:37Z; independently fresh READ ONLY observed expected effective after-MD5 and preserved OID/owner/ACL/config. No native writes by this subagent."
     },
     {
       "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/signing-withdrawal-deadline-forward.sql",
       "sha256": "917cd9af78a6d9974649a121aaf74ef95781b1c5ad4a182f9612b0511f45671d",
-      "applied_by_subagent": false
+      "applied_by_subagent": false,
+      "native_status": "Root reports controlled actual OPS installation around2026-10-13T09:34Z/09:37Z; independently fresh READ ONLY observed expected effective after-MD5 and preserved OID/owner/ACL/config. No native writes by this subagent."
     }
   ],
   "clock_identity_changes": [
@@ -391,10 +393,11 @@
     "Root genuine isolated PostgreSQL compile/semantic review and independent approval, then controlled native apply and fresh catalog verification"
   ],
   "supporting_verification": {
-    "synthetic_checks": "2files7checks passed after final canonical shared billing normalization; null/zero/validfrozencomponent VAT contrasts, capturedname+recipient, boundbytes/hash/company denials and persistedDSTdeadline. Supporting-only; actual code/native authority.",
+    "synthetic_checks": "9 focused supporting contrasts passed, including canonical component null/zero/VAT projection, captured recipient/name, verified bound bytes/company/hash, persisted DST deadline, successful CAS matching binding and zero-row CAS denial. Actual code/native remains authority.",
     "eslint": "ownedonlineSigning+2focusedregression files passed",
     "typescript": "Full app tsc --noEmit --incremental false passed after final captured-name source preference and shared billing-normalizer imports.",
-    "sql_parser": "Latest both outer packets plus8clock/identity and5futuredeadline nestedCREATE+PLpgSQL bodies parse with genuine pglast7.7. Actual isolated native compile not claimed."
+    "sql_parser": "Both exact forward outer SQL +8 signing/clock and5 deadline nested bodies parse with genuine pglast7.7; actual isolated PG compile separately completed.",
+    "isolated_pg17_6": "Dedicated network-none ops_api_signing_compile_20261013 compiled both exact forwards on actual3 signing cores +actualWebsite12arg body/ACL with13 real shaped tables+6actual helpers. All4 active after-MD5/OID/default/owner/ACL/config preserved. Pure rollback clock and Stockholm spring/fall expressions verified; no signing/business invocation."
   },
   "limits": [
     "No actual signing/business RPC/customer rows/mail/provider/storage/mutations performed; code/definitions/catalog establish findings.",
@@ -412,11 +415,70 @@
     }
   ],
   "independent_review": {
-    "final_api_source_review": {
-      "status": "approved latest native signing SQL and bounded online source; shared price projection conditional on separately-owned metadata/alias corrections",
-      "signing_expiry_sha256": "f346076b7684fc43d4d413b13524c46e4fbb0aa1484921d6a0717a03afdcd4bb",
-      "signing_withdrawal_sha256": "917cd9af78a6d9974649a121aaf74ef95781b1c5ad4a182f9612b0511f45671d"
+    "final_api_source_review": "Approved exact f346076b signing,917cd9af deadline and final f1de883d online CAS source; shared price helper independently approved after actual billing normalizer extraction.",
+    "native_forward_independent_review": "Approved same exact signing/deadline packets and final f1de883d online CAS binding."
+  },
+  "source_final_online_sha256": "f1de883d844e5531e004081c7618b05cb5e20fcb16bff68e26560f81cc952fab",
+  "native_installed_post_metadata": [
+    {
+      "oid": 136078,
+      "signature": "gridex_finalize_website_contract_signature(uuid,uuid,uuid,uuid,text,timestamp with time zone,jsonb,jsonb,text,text,text)",
+      "name": "public.gridex_finalize_website_contract_signature",
+      "body_md5": "de908da1a91b83e91ce1748c13e17412",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "proconfig": [
+        "search_path=public, pg_temp"
+      ],
+      "provolatile": "v"
     },
-    "native_forward_independent_review": "pending"
-  }
+    {
+      "oid": 137946,
+      "signature": "gridex_finalize_website_contract_signature(uuid,uuid,uuid,uuid,text,timestamp with time zone,jsonb,jsonb,jsonb,text,text,text)",
+      "name": "public.gridex_finalize_website_contract_signature",
+      "body_md5": "aeb3e4cd457ca99d257720e7f1794521",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "provolatile": "v"
+    },
+    {
+      "oid": 345286,
+      "signature": "gridex_get_customer_contract_signature_receipt_v1(text)",
+      "name": "public.gridex_get_customer_contract_signature_receipt_v1",
+      "body_md5": "620d2a202a7fe821b0f6f0b4cd90306c",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "provolatile": "v"
+    },
+    {
+      "oid": 345283,
+      "signature": "gridex_prepare_customer_contract_signature_request_v1(uuid,uuid,uuid,text,text,timestamp with time zone,uuid,text)",
+      "name": "public.gridex_prepare_customer_contract_signature_request_v1",
+      "body_md5": "8bd61eb144c72df71c050350a6ed0e57",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, private, extensions, pg_temp"
+      ],
+      "provolatile": "v"
+    },
+    {
+      "oid": 345287,
+      "signature": "gridex_finalize_customer_contract_signature_v1(text,text,text)",
+      "name": "public.gridex_finalize_customer_contract_signature_v1",
+      "body_md5": "86e49c3db54add3887de13f00bf63b7b",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "proconfig": [
+        "search_path=public, extensions, pg_temp"
+      ],
+      "provolatile": "v"
+    }
+  ]
 }

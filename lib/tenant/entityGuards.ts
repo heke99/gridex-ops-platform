@@ -1,4 +1,5 @@
 import { isPlatformAdminContext, type GuardResult } from "@/lib/admin/guards";
+import { assertAdminApiCompanyPermissions } from "@/lib/admin/apiGuards";
 import { supabaseService } from "@/lib/supabase/service";
 import { assertTenantUserCanReadCompany } from "@/lib/tenant/scope";
 
@@ -34,6 +35,7 @@ export async function assertCompanyAccessForGuard(
     companyId,
     "Raden saknar bolagskoppling och kan därför inte hanteras säkert.",
   );
+  await assertAdminApiCompanyPermissions(guard, normalizedCompanyId);
 
   if (guardIsPlatformAdmin(guard)) return normalizedCompanyId;
 

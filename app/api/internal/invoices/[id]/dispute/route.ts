@@ -17,7 +17,7 @@ export async function POST(request: Request, { params }: Props) {
     const { id } = await params
     const body = await request.json().catch(() => ({})) as Record<string, unknown>
     const requestedCompanyId = typeof body.companyId === 'string' ? body.companyId : null
-    const access = await requireAdminApiAccess(['billing.write'], { companyId: requestedCompanyId })
+    const access = await requireAdminApiAccess(['billing_underlay.export'], { companyId: requestedCompanyId })
     if (access.response) return access.response
     const companyId = requestedCompanyId?.trim() ? await assertUserCanOperateCompany(access.guard.userId, requestedCompanyId) : await requireAdminOperationalCompany(access.guard)
     const { data: item, error } = await supabaseService.from('invoice_export_items').select('*').eq('company_id', companyId).eq('id', id).single()

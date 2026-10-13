@@ -27,24 +27,66 @@ type CanonicalTenantContext = {
   selected_company_id?: string | null
   roles?: unknown[]
   permissions?: unknown[]
+  active_permission_keys?: unknown[]
+  denied_permissions?: unknown[]
 }
 
 type ApiGuardResult =
   | { guard: GuardResult; response?: never }
   | { guard?: never; response: NextResponse }
 
+const API_GUARD_SOURCE = Symbol('admin-api-permission-source')
+const apiPermissionContexts = new WeakMap<GuardResult, {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
+  requirement: PermissionRequirement
+}>()
+
+function permissionKeys(context: CanonicalTenantContext, requirement: PermissionRequirement): string[] | null {
+  if (!(requirement.anyOf?.length || requirement.allOf?.length)) return []
+  const active = context.active_permission_keys
+  const denied = context.denied_permissions
+  if (!Array.isArray(active) || !Array.isArray(denied) ||
+    !active.every((key) => typeof key === 'string') || !denied.every((key) => typeof key === 'string')) return null
+  const available = new Set(active)
+  const blocked = new Set(denied)
+  const granted = context.is_platform_admin ? active : (Array.isArray(context.permissions) ? context.permissions : [])
+  return granted.filter((key): key is string => typeof key === 'string' && available.has(key) && !blocked.has(key))
+}
+
+/** Recheck an API requirement for the actual entity company; page guards retain their policy. */
+export async function assertAdminApiCompanyPermissions(guard: Pick<GuardResult, 'userId'>, companyId: string): Promise<void> {
+  const source = (guard as GuardResult & { [API_GUARD_SOURCE]?: GuardResult })[API_GUARD_SOURCE]
+  if (!source) return
+  const state = apiPermissionContexts.get(source)
+  if (!state || guard.userId !== source.userId) throw new Error('Kunde inte verifiera behörighet')
+  const { data, error } = await state.supabase.rpc('canonical_authenticated_tenant_context', { p_selected_company_id: companyId })
+  if (error) throw new Error('Kunde inte verifiera behörighet')
+  const context = (data ?? {}) as CanonicalTenantContext
+  if (!context.authorized || context.user_id !== guard.userId || context.selected_company_id !== companyId) {
+    throw new Error('Ej behörig för valt bolag')
+  }
+  const current = permissionKeys(context, state.requirement)
+  if (current === null) throw new Error('Kunde inte verifiera behörighet')
+  if (!hasPermissionRequirement(current, state.requirement)) throw new Error('Saknar behörighet')
+}
+
 /** Keep operational writes in the company for which permissions were resolved. */
 export async function requireAdminOperationalCompany(guard: GuardResult): Promise<string> {
   if (!guard.companyId && !guard.isPlatformAdmin) {
     throw new Error('Bolaget för behörighetskontrollen saknas.')
   }
-  return assertUserCanOperateCompany(guard.userId, guard.companyId)
+  const companyId = await assertUserCanOperateCompany(guard.userId, guard.companyId)
+  await assertAdminApiCompanyPermissions(guard, companyId)
+  return companyId
 }
 
 /** Allow paused history reads while retaining normal company visibility limits. */
 export async function requireAdminReadableCompany(guard: GuardResult): Promise<string> {
-  if (guard.isPlatformAdmin) return guard.companyId ?? requireOperationalCompanyId(guard.userId)
-  return assertTenantUserCanReadCompany(guard.userId, guard.companyId)
+  const companyId = guard.isPlatformAdmin
+    ? guard.companyId ?? await requireOperationalCompanyId(guard.userId)
+    : await assertTenantUserCanReadCompany(guard.userId, guard.companyId)
+  await assertAdminApiCompanyPermissions(guard, companyId)
+  return companyId
 }
 
 function roleFromRpcRow(row: UserRoleRpcRow): string | null {
@@ -131,8 +173,9 @@ export async function requireAdminApiAccess(
     permissions,
     roles,
     isAdmin:
+      Boolean(context.is_platform_admin) || (
       (permissions.length > 0 || roles.some((role) => role === 'super_admin' || role === 'platform_admin')) &&
-      !(roles.length === 1 && roles[0] === 'customer'),
+      !(roles.length === 1 && roles[0] === 'customer')),
     isPlatformAdmin: Boolean(context.is_platform_admin),
     companyId:
       typeof context.selected_company_id === 'string' && context.selected_company_id
@@ -144,12 +187,18 @@ export async function requireAdminApiAccess(
     return { response: jsonError('Ej behörig', 403) }
   }
 
-  if (!guard.isPlatformAdmin) {
-    const requirement = normalizeRequirement(requiredPermissions)
-    if (!hasPermissionRequirement(guard.permissions, requirement)) {
-      return { response: jsonError('Saknar behörighet', 403) }
-    }
+  const requirement = normalizeRequirement(requiredPermissions)
+  const currentPermissions = permissionKeys(context, requirement)
+  if (currentPermissions === null) {
+    return { response: jsonError('Kunde inte verifiera behörighet', 503) }
   }
+  if (!hasPermissionRequirement(currentPermissions, requirement)) {
+    return { response: jsonError('Saknar behörighet', 403) }
+  }
+
+  apiPermissionContexts.set(guard, { supabase, requirement })
+  // Enumerable symbols survive object spread while staying outside JSON responses.
+  Object.defineProperty(guard, API_GUARD_SOURCE, { value: guard, enumerable: true })
 
   return { guard }
 }

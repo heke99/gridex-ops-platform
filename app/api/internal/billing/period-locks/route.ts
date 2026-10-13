@@ -11,7 +11,7 @@ function readBillingMonth(value: unknown): string | null {
 }
 
 export async function GET(request: Request) {
-  const access = await requireAdminApiAccess(['billing.read'])
+  const access = await requireAdminApiAccess(['billing_underlay.read'])
   if (access.response) return access.response
 
   try {
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const access = await requireAdminApiAccess(['billing.write'])
+  const access = await requireAdminApiAccess(['billing_underlay.export'])
   if (access.response) return access.response
 
   try {

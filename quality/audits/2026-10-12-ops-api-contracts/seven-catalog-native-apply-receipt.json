@@ -1,0 +1,79 @@
+{
+  "scope": "OPS actual source-owned portable permission catalog forward",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "sql_sha256": "2ce4e07ee2dee8ffb352e0e387092e7eb8a9bc6802723d408b40b9e0671e4519",
+  "source_created_by": "Official Supabase CLI2.101.0 initial20261013103323; unpublished file aligned to actual assigned20261013104143 preserving exact bytes",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "isolated_compile_receipt": "seven-catalog-portable-isolated-compile-receipt.json",
+  "native_postflight": {
+    "checked_at": "2026-10-13 10:42:31.325867+00",
+    "migration_count": 426,
+    "migration": [
+      {
+        "name": "ops_api_seven_permission_catalog_keys",
+        "sql_md5": "2b21d1da3aa6bcfbb86571f01aaacb82",
+        "version": "20261013104143"
+      }
+    ],
+    "permission_count": 76,
+    "source_keys": [
+      {
+        "key": "communication.write",
+        "name": "Förbereda kommunikation",
+        "is_active": true,
+        "description": "Kan skapa och förbereda källbundna meddelanden; medger inte extern leverans."
+      },
+      {
+        "key": "ediel.ai_purpose.review",
+        "name": "Granska AI/BI-ändamålsunderlag",
+        "is_active": true,
+        "description": null
+      },
+      {
+        "key": "ediel.bilateral_profile.review",
+        "name": "Review bilateral PRODAT ground",
+        "is_active": true,
+        "description": "Separate own-company review of issuer-authenticated bilateral PRODAT original bytes."
+      },
+      {
+        "key": "ediel.network_registry.review",
+        "name": "Granska autentiska nätregisterunderlag",
+        "is_active": true,
+        "description": null
+      },
+      {
+        "key": "ediel.regulated_supply.review",
+        "name": "Review regulated supply ground",
+        "is_active": true,
+        "description": "Separate own-company review of issuer-authenticated regulated supply original bytes."
+      },
+      {
+        "key": "ediel.source.review",
+        "name": "Review own Ediel source artifacts",
+        "is_active": true,
+        "description": "Separate, company-scoped review of actual archived source artifacts; does not establish issuer authority."
+      },
+      {
+        "key": "ediel.supply_rescission.review",
+        "name": "Review archived legal supply rescission source",
+        "is_active": true,
+        "description": "Independent review of authenticated national Z08H legal original"
+      }
+    ],
+    "permission_table_identity": {
+      "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "oid": "17545",
+      "rls": true,
+      "owner": "postgres",
+      "force_rls": false
+    }
+  },
+  "first_tool_attempt": "Automatic permission review timed out, not rejected. Actual10:41catalog/ledger confirmed unapplied; single exact-SQL retry succeeded.",
+  "business_rpc_invocations": 0,
+  "role_or_user_assignments": 0,
+  "canonical_gen": 0,
+  "qualification": "Exact seven current source catalog keys appended. Locked pre/post SQL assertions preserve all existing complete rows, UUIDs, activation flags and role assignments plus table identity/ACL/RLS. Portable empty and extra-key catalog baselines also qualified; replay does not reactivate disabled keys. Catalog presence alone is not provider/API lifecycle readiness."
+}

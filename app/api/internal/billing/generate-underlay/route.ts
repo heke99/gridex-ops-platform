@@ -11,7 +11,7 @@ function isBillingPeriodLockError(message: string): boolean {
 }
 
 export async function POST(request: Request) {
-  const access = await requireAdminApiAccess(['billing.write'])
+  const access = await requireAdminApiAccess(['billing_underlay.export'])
   if (access.response) return access.response
 
   try {

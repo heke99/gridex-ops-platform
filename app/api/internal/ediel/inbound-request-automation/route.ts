@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
-  const access = await requireAdminApiAccess(['ediel.write'])
+  const access = await requireAdminApiAccess(['communication.write'])
   if (access.response) return access.response
   if (!access.guard.companyId) return NextResponse.json({ error: 'Välj ett behörighetskontrollerat bolag.' }, { status: 403 })
 

@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: Props) {
     const { id } = await params
     const url = new URL(request.url)
     const requestedCompanyId = url.searchParams.get('companyId') ?? url.searchParams.get('company_id')
-    const access = await requireAdminApiAccess(['billing.read'], { companyId: requestedCompanyId })
+    const access = await requireAdminApiAccess(['billing_underlay.read'], { companyId: requestedCompanyId })
     if (access.response) return access.response
     const companyId = await requireAdminReadableCompany(access.guard)
     const result = await getInvoiceExportRun({ companyId, exportRunId: id })
