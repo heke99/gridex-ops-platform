@@ -4314,8 +4314,15 @@
     },
     {
       "id": "AT-Z15V-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z15v-esco-profile.test.ts",
+        "scripts/test-ediel-sc-023-vh-history.cjs",
+        "scripts/ediel-partial-permission-source-sql-regression.mjs",
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts",
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/esco-z14vh-z15v-z15vh-qualified-coord2-20261013.json"
+      ]
     },
     {
       "id": "AT-Z13VH-ESCO",
@@ -4324,13 +4331,29 @@
     },
     {
       "id": "AT-Z14VH-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z14vh-esco-profile.test.ts",
+        "__tests__/ediel-esco-z14-process-legal-context.test.ts",
+        "scripts/test-ediel-esco-z13-z14vh.cjs",
+        "lib/ediel/prodat/receivedZ14ReportingContext.ts",
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts",
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/esco-z14vh-z15v-z15vh-qualified-coord2-20261013.json"
+      ]
     },
     {
       "id": "AT-Z15VH-ESCO",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-at-z15vh-esco-profile.test.ts",
+        "scripts/test-ediel-sc-023-vh-history.cjs",
+        "scripts/ediel-sc-023-vh-history-sql-regression.mjs",
+        "lib/ediel/services/vhHistoryDelivery.ts",
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts",
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "quality/audits/ediel-masterplan-v2/evidence/esco-z14vh-z15v-z15vh-qualified-coord2-20261013.json"
+      ]
     },
     {
       "id": "AT-Z14N-ESCO",
