@@ -1,0 +1,37 @@
+{
+  "emptyBuilder": [
+    {
+      "result": {
+        "zones": 0,
+        "owners": 0,
+        "skipped": "no_customer_data",
+        "customers": 0
+      }
+    }
+  ],
+  "emptyMonthlyRows": [
+    {
+      "rows": 0
+    }
+  ],
+  "matureBuilder": [
+    {
+      "metering_values_missing": 5
+    }
+  ],
+  "gridOwnerCounts": [
+    {
+      "grid_owner_id": "00000000-0000-0000-0000-0000000000e1",
+      "metering_values_missing": 5
+    },
+    {
+      "grid_owner_id": "00000000-0000-0000-0000-0000000000e2",
+      "metering_values_missing": 5
+    }
+  ],
+  "sourceValidSelectedMonth": [
+    {
+      "expected": 2
+    }
+  ]
+}

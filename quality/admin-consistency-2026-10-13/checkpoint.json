@@ -1,0 +1,35 @@
+{
+  "task": "admin-consistency-remediation",
+  "status": "LIVE_RESET_VERIFIED_SOURCE_DELIVERY_IN_PROGRESS",
+  "date": "2026-10-13",
+  "initial_source_head": "51f5fa5e80c42350d697bfed42520672749d4467",
+  "delivery_base": "efed3683115c06d1925f8b80c05c801a54db9885",
+  "branch": "codex/admin-consistency-remediation-20261013",
+  "parallel_agents": 3,
+  "live_project_ref": "piidsfebjqjmnepdpnas",
+  "source_or_database_mutations": true,
+  "authorization": "User explicitly authorized emptying customer flows and correcting future consistency; accounts, company configuration and independent technical/reference history are preserved.",
+  "live_verified": {
+    "approved_residual_rows_removed": 743,
+    "empty_customer_graph_tables": 140,
+    "zero_reviewed_scopes": 17,
+    "companies_checked": 3,
+    "customers": 0,
+    "applications": 0,
+    "data_quality_issues": 0,
+    "dashboard_alerts": 0,
+    "missing_meter_counts": 0,
+    "empty_monthly_rebuilds_skip": true,
+    "forward_migrations_applied": 6,
+    "dqi_expand_only_until_new_app_deployment": true
+  },
+  "verification": {
+    "targeted_runtime_and_native_sql": "Passed; domain receipts in subdirectories",
+    "production_build": "Passed before latest canonical page-scope variants; final validation pending",
+    "full_lint": "Passed: zero errors, 165 existing warnings",
+    "full_suite": "Incomplete first pass; 57-file rerun 53 passed / 4 failed. Three unchanged timeout suites passed isolated with diagnostic process budgets; unchanged strict 30ms native lock timing test remains environment-sensitive. See copy/full-suite-verification.md.",
+    "generated_types": "Authentic Supabase CLI 2.101/Postgres-meta 0.96.4 output. Baseline bytes equal before forward migrations; all six upgrade deltas scoped. Canonical schema/fingerprint import withheld due missing original owner metadata.",
+    "authenticated_browser": "Not exercised: no authenticated browser session available"
+  },
+  "next_action": "Finish bounded company-scope variants, final type/build/targeted checks, publish reviewable PR and retrieve genuine CI schema capture. Do not cut over legacy DQI unique constraints before updated app deployment."
+}

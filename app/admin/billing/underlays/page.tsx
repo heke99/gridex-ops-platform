@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,12 +18,12 @@ export default async function BillingUnderlaysPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <AdminHeader title="Faktureringsunderlag" subtitle="Kontrollera inkomna mätvärden, underlag, prisstatus och vilka rader som är redo för prispreview." userEmail={admin.email} workspaceName={scope?.companyName} />
+      <AdminHeader title="Faktureringsunderlag" subtitle="Kontrollera inkomna mätvärden, underlag, prisstatus och vilka rader som är redo för prisförhandsgranskning." userEmail={admin.email} workspaceName={scope?.companyName} />
       <main className="space-y-6 p-8">
         <section className="grid gap-4 md:grid-cols-4">
           <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Underlag</div><div className="mt-2 text-3xl font-semibold">{underlays.length}</div></div>
           <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Redo för pris</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => row.status === 'validated' && row.readiness_status === 'ready').length}</div></div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Prispreview</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => row.calculated_total_sek_inc_vat !== null && row.calculated_total_sek_inc_vat !== undefined).length}</div></div>
+          <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Prisförhandsgranskning</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => row.calculated_total_sek_inc_vat !== null && row.calculated_total_sek_inc_vat !== undefined).length}</div></div>
           <div className="rounded-3xl border bg-white p-5 shadow-sm"><div className="text-sm text-slate-600">Behöver kontroll</div><div className="mt-2 text-3xl font-semibold">{underlays.filter((row) => row.readiness_status === 'blocked' || row.status === 'failed').length}</div></div>
         </section>
 
@@ -44,7 +45,7 @@ export default async function BillingUnderlaysPage() {
                     <td className="px-6 py-4 font-mono text-xs">{fmt(row.metering_point_id)}</td>
                     <td className="px-6 py-4">{fmt(row.price_area)}</td>
                     <td className="px-6 py-4">{fmt(row.total_kwh)}</td>
-                    <td className="px-6 py-4"><span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{fmt(row.status)} / {fmt(row.readiness_status)}</span></td>
+                    <td className="px-6 py-4"><span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadge(row.status)}`}>{formatStatusLabel(typeof row.status === 'string' ? row.status : null, '—', 'Behöver granskning')} / {formatStatusLabel(typeof row.readiness_status === 'string' ? row.readiness_status : null, '—', 'Behöver granskning')}</span></td>
                     <td className="px-6 py-4">{fmt(row.calculated_total_sek_inc_vat)}</td>
                     <td className="px-6 py-4 text-right"><Link className="font-semibold text-emerald-700" href={`/admin/billing/underlays/${row.id}`}>Öppna</Link></td>
                   </tr>

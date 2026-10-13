@@ -60,7 +60,7 @@ export async function generateForecastRunItems(input: {
     })
     if (forecast.method === 'missing_basis') missing += 1
 
-    const { data: actualRows } = await supabaseService
+    const { data: actualRows, error: actualError } = await supabaseService
       .from('metering_values')
       .select('quantity_kwh, value_kwh')
       .eq('company_id', input.companyId)
@@ -68,7 +68,8 @@ export async function generateForecastRunItems(input: {
       .gte('period_start', `${periodStart}T00:00:00.000Z`)
       .lt('period_start', `${periodEnd}T00:00:00.000Z`)
 
-    const actualKwh = (actualRows ?? []).reduce((sum, row) => sum + Number(row.quantity_kwh ?? row.value_kwh ?? 0), 0)
+    if (actualError) throw actualError
+    const actualKwh = (actualRows ?? []).reduce((sum, row) => sum + Number(row.value_kwh ?? row.quantity_kwh ?? 0), 0)
     const diffKwh = forecast.forecastKwh === null ? null : actualKwh - forecast.forecastKwh
     const diffPercent = forecast.forecastKwh ? ((actualKwh - forecast.forecastKwh) / forecast.forecastKwh) * 100 : null
 
@@ -97,12 +98,13 @@ export async function generateForecastRunItems(input: {
     items += 1
   }
 
-  await supabaseService
+  const { error: completionError } = await supabaseService
     .from('forecast_runs')
     .update({ status: 'completed', completed_at: new Date().toISOString() })
     .eq('id', input.forecastRunId)
     .eq('company_id', input.companyId)
 
+  if (completionError) throw completionError
   await buildCompanyMonthlyMetrics(input.companyId, periodStart)
   return { items, missing }
 }

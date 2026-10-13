@@ -1,9 +1,8 @@
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
-import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { completeFacilityLookupAction, markFacilityLookupSentManuallyAction } from '@/app/admin/facility-requests/actions'
 import {
@@ -270,9 +269,8 @@ function FacilityRow({ item }: { item: FacilityWorkQueueRow }) {
 
 export default async function FacilityRequestsPage() {
   const context = await requireAdminPageKeyAccess('operations.tasks')
-  const companyScope = await getOperationalCompanyScope(context.userId)
-  const isPlatformAdmin = isPlatformAdminContext(context)
-  const companyId = tenantReadCompanyId(isPlatformAdmin, companyScope.companyId)
+  const companyScope = await resolveAdminTenantReadScope(context)
+  const { companyId, isPlatformAdmin } = companyScope
   const supabase = await createSupabaseServerClient()
   const queue = await listFacilityWorkQueue(supabase, companyId, { limit: 250 })
 

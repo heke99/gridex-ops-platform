@@ -1,6 +1,6 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { ANALYTICS_REPORTS, listAnalyticsFilterOptions } from '@/lib/analytics/db'
 import { monthStart } from '@/lib/analytics/utils'
 import { AnalyticsFilters, AnalyticsTabs, ReportsList } from '../_components'
@@ -13,7 +13,7 @@ type PageProps = {
 
 export default async function AnalyticsReportsPage({ searchParams }: PageProps) {
   const admin = await requireAdminPageKeyAccess('analytics.workspace')
-  const scope = await getOperationalCompanyScope(admin.userId)
+  const scope = await resolveAdminSelectedCompanyReadScope(admin)
   const companyId = scope.companyId
   const params = await searchParams
   const month = monthStart(params.month)

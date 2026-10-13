@@ -30116,8 +30116,11 @@ export type Database = {
           entity_type: string | null
           id: string
           message: string | null
+          open_key: string | null
+          resolution_reason: string | null
           resolved_at: string | null
           severity: string | null
+          source: string | null
           status: string | null
           title: string
           updated_at: string | null
@@ -30130,8 +30133,11 @@ export type Database = {
           entity_type?: string | null
           id?: string
           message?: string | null
+          open_key?: string | null
+          resolution_reason?: string | null
           resolved_at?: string | null
           severity?: string | null
+          source?: string | null
           status?: string | null
           title: string
           updated_at?: string | null
@@ -30144,8 +30150,11 @@ export type Database = {
           entity_type?: string | null
           id?: string
           message?: string | null
+          open_key?: string | null
+          resolution_reason?: string | null
           resolved_at?: string | null
           severity?: string | null
+          source?: string | null
           status?: string | null
           title?: string
           updated_at?: string | null
@@ -30275,8 +30284,12 @@ export type Database = {
           id: string
           issue_type: string
           message: string
+          open_key: string | null
+          period_month: string | null
+          resolution_reason: string | null
           resolved_at: string | null
           severity: string | null
+          source: string | null
           status: string | null
           updated_at: string | null
         }
@@ -30289,8 +30302,12 @@ export type Database = {
           id?: string
           issue_type: string
           message: string
+          open_key?: string | null
+          period_month?: string | null
+          resolution_reason?: string | null
           resolved_at?: string | null
           severity?: string | null
+          source?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -30303,8 +30320,12 @@ export type Database = {
           id?: string
           issue_type?: string
           message?: string
+          open_key?: string | null
+          period_month?: string | null
+          resolution_reason?: string | null
           resolved_at?: string | null
           severity?: string | null
+          source?: string | null
           status?: string | null
           updated_at?: string | null
         }
@@ -50647,6 +50668,97 @@ export type Database = {
             referencedRelation: "public_contract_offers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "external_intake_created_contract_fk"
+            columns: ["company_id", "created_contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contract_lifecycle_readiness_v"
+            referencedColumns: ["company_id", "customer_contract_id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_contract_fk"
+            columns: ["company_id", "created_contract_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contracts"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_contract_fk"
+            columns: ["company_id", "created_contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_billing_launch_readiness_v"
+            referencedColumns: ["company_id", "contract_id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_contract_fk"
+            columns: ["company_id", "created_contract_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_customer_contracts_missing_price_snapshot_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_customer_fk"
+            columns: ["company_id", "created_customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_customer_fk"
+            columns: ["company_id", "created_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_customer_fk"
+            columns: ["company_id", "created_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_customer_fk"
+            columns: ["company_id", "created_customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_meter_fk"
+            columns: ["company_id", "created_metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_metering_points_incomplete_area_context_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_meter_fk"
+            columns: ["company_id", "created_metering_point_id"]
+            isOneToOne: false
+            referencedRelation: "metering_points"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_site_fk"
+            columns: ["company_id", "created_site_id"]
+            isOneToOne: false
+            referencedRelation: "customer_sites"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_site_fk"
+            columns: ["company_id", "created_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_site_fk"
+            columns: ["company_id", "created_site_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_facility_work_queue_v"
+            referencedColumns: ["company_id", "site_id"]
+          },
         ]
       }
       facility_data_quality_issues: {
@@ -54697,6 +54809,7 @@ export type Database = {
           idempotency_key: string
           intent: string | null
           intent_confidence: number | null
+          manual_inbound_message_id: string | null
           metering_point_id: string | null
           processing_state: string
           source_id: string
@@ -54719,6 +54832,7 @@ export type Database = {
           idempotency_key: string
           intent?: string | null
           intent_confidence?: number | null
+          manual_inbound_message_id?: string | null
           metering_point_id?: string | null
           processing_state?: string
           source_id: string
@@ -54741,6 +54855,7 @@ export type Database = {
           idempotency_key?: string
           intent?: string | null
           intent_confidence?: number | null
+          manual_inbound_message_id?: string | null
           metering_point_id?: string | null
           processing_state?: string
           source_id?: string
@@ -54861,6 +54976,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_manual_source_company_fk"
+            columns: ["company_id", "manual_inbound_message_id"]
+            isOneToOne: false
+            referencedRelation: "manual_inbound_messages"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "inbound_operation_events_manual_source_fk"
+            columns: ["manual_inbound_message_id"]
+            isOneToOne: false
+            referencedRelation: "manual_inbound_messages"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -83613,6 +83742,34 @@ export type Database = {
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
           },
+          {
+            foreignKeyName: "external_intake_created_customer_fk"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_customer_fk"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_customer_fk"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "external_intake_created_customer_fk"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
         ]
       }
       company_customer_list_summary_v: {
@@ -83773,60 +83930,6 @@ export type Database = {
           upcoming_terminations: number | null
           waiting_for_grid_owner: number | null
           webhook_failures: number | null
-        }
-        Insert: {
-          api_errors?: never
-          billing_blocked_or_failed?: never
-          billing_underlays_total?: never
-          company_id?: string | null
-          company_name?: string | null
-          contracts_total?: never
-          customers_action_required?: never
-          customers_blocked_or_data_issues?: never
-          customers_total?: never
-          latest_metering_values?: never
-          metering_points_total?: never
-          metering_values_total?: never
-          missing_metering_values?: never
-          negative_acknowledgements?: never
-          ongoing_supplier_switches?: never
-          open_grid_owner_requests?: never
-          open_switches?: never
-          open_tasks?: never
-          outbound_requests_total?: never
-          pending_customer_applications?: never
-          route_missing_or_not_ready?: never
-          sites_total?: never
-          upcoming_terminations?: never
-          waiting_for_grid_owner?: never
-          webhook_failures?: never
-        }
-        Update: {
-          api_errors?: never
-          billing_blocked_or_failed?: never
-          billing_underlays_total?: never
-          company_id?: string | null
-          company_name?: string | null
-          contracts_total?: never
-          customers_action_required?: never
-          customers_blocked_or_data_issues?: never
-          customers_total?: never
-          latest_metering_values?: never
-          metering_points_total?: never
-          metering_values_total?: never
-          missing_metering_values?: never
-          negative_acknowledgements?: never
-          ongoing_supplier_switches?: never
-          open_grid_owner_requests?: never
-          open_switches?: never
-          open_tasks?: never
-          outbound_requests_total?: never
-          pending_customer_applications?: never
-          route_missing_or_not_ready?: never
-          sites_total?: never
-          upcoming_terminations?: never
-          waiting_for_grid_owner?: never
-          webhook_failures?: never
         }
         Relationships: []
       }
@@ -87996,6 +88099,140 @@ export type Database = {
           },
         ]
       }
+      gridex_actionable_data_quality_issues_v: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          detected_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string | null
+          issue_type: string | null
+          message: string | null
+          open_key: string | null
+          period_month: string | null
+          resolution_reason: string | null
+          resolved_at: string | null
+          severity: string | null
+          source: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "data_quality_issues_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       gridex_actor_import_preview_v: {
         Row: {
           changed_actors: number | null
@@ -89397,6 +89634,21 @@ export type Database = {
             referencedColumns: ["company_id"]
           },
         ]
+      }
+      gridex_data_quality_rule_catalog_v: {
+        Row: {
+          alert_message: string | null
+          alert_title: string | null
+          alert_type: string | null
+          entity_type: string | null
+          issue_type: string | null
+          message: string | null
+          period_dependent: boolean | null
+          requires_active: boolean | null
+          scanner: boolean | null
+          severity: string | null
+        }
+        Relationships: []
       }
       gridex_db1_backfill_readiness_v: {
         Row: {
@@ -92377,6 +92629,20 @@ export type Database = {
             referencedColumns: ["company_id"]
           },
         ]
+      }
+      gridex_website_application_work_items_v: {
+        Row: {
+          application_id: string | null
+          company_id: string | null
+          created_at: string | null
+          is_pending: boolean | null
+          linked_external_intake_id: string | null
+          source_table: string | null
+          status: string | null
+          updated_at: string | null
+          work_state: string | null
+        }
+        Relationships: []
       }
       gridex_work_queue_v: {
         Row: {
@@ -97858,6 +98124,10 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      gridex_company_has_customer_data: {
+        Args: { p_company_id: string }
+        Returns: boolean
+      }
       gridex_company_legal_contract_runtime_health: {
         Args: never
         Returns: Json
@@ -98379,6 +98649,14 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_current_point_forecasts_v1: {
+        Args: { p_company: string; p_month: string }
+        Returns: {
+          diff_percent: number
+          forecast_run_id: string
+          metering_point_id: string
+        }[]
+      }
       gridex_current_user_context: { Args: never; Returns: Json }
       gridex_customer_application_runtime_contract_v1: {
         Args: never
@@ -98491,6 +98769,17 @@ export type Database = {
       }
       gridex_customer_portfolio_cohorts: {
         Args: { p_company_id: string; p_months?: number }
+        Returns: {
+          cohort_month: string
+          customers: number
+          retained_12m: number
+          retained_1m: number
+          retained_3m: number
+          retained_6m: number
+        }[]
+      }
+      gridex_customer_portfolio_cohorts_at: {
+        Args: { p_as_of: string; p_company_id: string; p_months?: number }
         Returns: {
           cohort_month: string
           customers: number
@@ -98629,6 +98918,19 @@ export type Database = {
           pending_verification: number
           terminated: number
         }[]
+      }
+      gridex_data_quality_active_status_v1: {
+        Args: { p_status: string }
+        Returns: boolean
+      }
+      gridex_data_quality_source_exists_v1: {
+        Args: {
+          p_company: string
+          p_entity_id: string
+          p_entity_type: string
+          p_requires_active?: boolean
+        }
+        Returns: boolean
       }
       gridex_db1_default_company_id: { Args: never; Returns: string }
       gridex_db1_finish_backfill_run: {
@@ -99495,6 +99797,17 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_missing_metering_points_count_v1: {
+        Args: { p_company: string; p_customer?: string; p_month: string }
+        Returns: number
+      }
+      gridex_missing_metering_points_v1: {
+        Args: { p_company: string; p_month: string }
+        Returns: {
+          grid_owner_id: string
+          metering_point_id: string
+        }[]
+      }
       gridex_new_external_tenant_reference: { Args: never; Returns: string }
       gridex_new_offer_reference: { Args: { p_seed: string }; Returns: string }
       gridex_new_public_resource_reference: {
@@ -99673,6 +99986,10 @@ export type Database = {
           p_offer_id: string
         }
         Returns: Json
+      }
+      gridex_pending_website_application_count: {
+        Args: { p_company_id?: string }
+        Returns: number
       }
       gridex_persist_pricing_run: {
         Args: {
@@ -100004,6 +100321,21 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      gridex_quality_lock_company_v1: {
+        Args: { p_company: string }
+        Returns: undefined
+      }
+      gridex_quality_open_key_v1: {
+        Args: {
+          p_company: string
+          p_entity_id: string
+          p_entity_type: string
+          p_kind: string
+          p_period?: string
+          p_source: string
+        }
+        Returns: string
+      }
       gridex_queue_billing_export_run: {
         Args: {
           p_actor_user_id?: string
@@ -100119,6 +100451,18 @@ export type Database = {
       gridex_reconcile_company_onboarding_tasks_v1: {
         Args: { p_company_id: string }
         Returns: Json
+      }
+      gridex_reconcile_dashboard_alerts_internal_v1: {
+        Args: { p_company: string }
+        Returns: undefined
+      }
+      gridex_reconcile_dashboard_alerts_v1: {
+        Args: { p_company: string }
+        Returns: undefined
+      }
+      gridex_reconcile_data_quality_v1: {
+        Args: { p_company: string }
+        Returns: undefined
       }
       gridex_reconcile_grid_owner_mappings_v1: {
         Args: { p_apply?: boolean }
@@ -100583,6 +100927,14 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_resolve_dashboard_alert_v1: {
+        Args: { p_alert: string; p_company: string }
+        Returns: undefined
+      }
+      gridex_resolve_data_quality_issue_v1: {
+        Args: { p_company: string; p_issue: string }
+        Returns: undefined
+      }
       gridex_resolve_ediel_route_for_process: {
         Args: {
           p_company_id: string
@@ -100592,6 +100944,15 @@ export type Database = {
           p_receiver_source?: string
         }
         Returns: Json
+      }
+      gridex_resolve_managed_quality_rule_v1: {
+        Args: {
+          p_company: string
+          p_entity: string
+          p_issue_type: string
+          p_period?: string
+        }
+        Returns: undefined
       }
       gridex_resolve_or_create_legal_source_bundle: {
         Args: {
@@ -100704,6 +101065,10 @@ export type Database = {
           p_metering_point?: Json
           p_site?: Json
         }
+        Returns: Json
+      }
+      gridex_scan_data_quality_v1: {
+        Args: { p_company: string; p_month?: string; p_point?: string }
         Returns: Json
       }
       gridex_scan_ediel_canonical_repairs: {
@@ -101184,6 +101549,30 @@ export type Database = {
         }
         Returns: string
       }
+      gridex_upsert_dashboard_alert_v1: {
+        Args: {
+          p_alert_type: string
+          p_company: string
+          p_entity?: string
+          p_entity_type?: string
+          p_message: string
+          p_severity: string
+          p_source?: string
+          p_title: string
+        }
+        Returns: string
+      }
+      gridex_upsert_data_quality_issue_v1: {
+        Args: {
+          p_company: string
+          p_entity: string
+          p_issue_type: string
+          p_message: string
+          p_period?: string
+          p_severity: string
+        }
+        Returns: string
+      }
       gridex_upsert_internal_contract_offer: {
         Args: {
           p_actor_user_id: string
@@ -101281,6 +101670,14 @@ export type Database = {
         Returns: Json
       }
       gridex_verify_contract_schema_alignment: { Args: never; Returns: Json }
+      gridex_website_application_status: {
+        Args: { p_source_table: string; p_status: string }
+        Returns: string
+      }
+      gridex_website_application_work_state: {
+        Args: { p_status: string }
+        Returns: string
+      }
       gridex_whitelabel_portfolio_overview: {
         Args: { p_month?: string; p_white_label_platform_id: string }
         Returns: {

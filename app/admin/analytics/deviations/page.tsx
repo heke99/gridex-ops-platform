@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { getDeviationRows } from '@/lib/analytics/db'
 import { AnalyticsTabs, DeviationsTable, MetricCards } from '../_components'
 import type { MetricCard } from '@/lib/analytics/types'
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function AnalyticsDeviationsPage() {
   const admin = await requireAdminPageKeyAccess('analytics.workspace')
-  const scope = await getOperationalCompanyScope(admin.userId)
+  const scope = await resolveAdminSelectedCompanyReadScope(admin)
   const companyId = scope.companyId
   if (!companyId) return <div className="p-8">Bolag saknas.</div>
 

@@ -1,0 +1,51 @@
+{
+  "results": [
+    {
+      "source": "lib/forecasting/meteringPointForecast.ts",
+      "failedRead": "Could not find the 'value_kwh' column of 'metering_values' in the schema cache",
+      "result": {
+        "forecastKwh": 120,
+        "confidenceScore": 70,
+        "method": "annual_estimate",
+        "issues": []
+      },
+      "calls": {
+        "historicalReads": 3,
+        "resolutions": [
+          {
+            "companyId": "company",
+            "entityId": "point",
+            "issueType": "forecast_basis_missing",
+            "periodMonth": "2026-10-01"
+          }
+        ],
+        "findings": []
+      },
+      "safe": false
+    },
+    {
+      "source": "lib/forecasting/meteringPointForecast.ts",
+      "failedRead": "column metering_values.value_kwh does not exist",
+      "result": {
+        "forecastKwh": 120,
+        "confidenceScore": 70,
+        "method": "annual_estimate",
+        "issues": []
+      },
+      "calls": {
+        "historicalReads": 3,
+        "resolutions": [
+          {
+            "companyId": "company",
+            "entityId": "point",
+            "issueType": "forecast_basis_missing",
+            "periodMonth": "2026-10-01"
+          }
+        ],
+        "findings": []
+      },
+      "safe": false
+    }
+  ],
+  "safe": false
+}

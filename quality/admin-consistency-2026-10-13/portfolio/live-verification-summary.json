@@ -1,0 +1,45 @@
+{
+  "verification_source": "parent-agent live Supabase read-only execution, reported 2026-10-13",
+  "project_ref": "piidsfebjqjmnepdpnas",
+  "company_count_tested": 3,
+  "live_powers_of_attorney_column_types": {
+    "valid_from": "timestamp with time zone",
+    "valid_to": "timestamp with time zone",
+    "scope": "text"
+  },
+  "page_rpc_results_per_company": {
+    "gridex_customer_portfolio_summary": {
+      "status": "PASS",
+      "rows": 12
+    },
+    "gridex_customer_portfolio_forecast": {
+      "status": "PASS",
+      "rows": 12
+    },
+    "gridex_customer_portfolio_forecast_accuracy": {
+      "status": "PASS",
+      "rows": 12
+    },
+    "gridex_customer_portfolio_churn_reasons": {
+      "status": "PASS",
+      "rows": 0
+    },
+    "gridex_customer_portfolio_cohorts": {
+      "status": "PASS",
+      "rows": 0
+    },
+    "gridex_customer_portfolio_bidding_zones": {
+      "status": "PASS",
+      "rows": 0
+    },
+    "gridex_customer_portfolio_expiring_poa": {
+      "status": "FAIL",
+      "sqlstate": "42846",
+      "message": "cannot cast type interval to integer",
+      "context": "RETURN QUERY: (x.valid_to - current_date)::integer"
+    }
+  },
+  "live_customer_source_rows": 0,
+  "snapshot_interpretation": "zero-point zero-forecast snapshots valid; not classified as bug",
+  "raw_customer_rows_or_identifiers_retained": false
+}

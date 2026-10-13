@@ -64,7 +64,7 @@ export type WhiteLabelTenantRow = {
 }
 
 const HORIZONS: Array<Pick<PortfolioHorizon, 'key' | 'label' | 'months'>> = [
-  { key: 'month', label: 'Innevarande månad', months: 1 },
+  { key: 'month', label: 'Vald månad', months: 1 },
   { key: '3m', label: '3 månader', months: 3 },
   { key: '6m', label: '6 månader', months: 6 },
   { key: '12m', label: '12 månader', months: 12 },
@@ -111,17 +111,26 @@ export function mapForecastRow(row: Record<string, unknown>): PortfolioForecastM
   }
 }
 
+// The current portfolio includes starts up to today; historical/future month
+// selections share the same month-start anchor in overview, detail and exports.
+function portfolioAsOf(month: string): string {
+  const selectedMonth = monthStart(month)
+  const today = new Date().toISOString().slice(0, 10)
+  return selectedMonth === `${today.slice(0, 7)}-01` ? today : selectedMonth
+}
+
 export async function getCustomerPortfolio(companyId: string, from: string, to: string) {
   const supabase = await createSupabaseServerClient()
+  const forecastAsOf = portfolioAsOf(to)
   const [summary, forecast] = await Promise.all([
     supabase.rpc('gridex_customer_portfolio_summary', { p_company_id: companyId, p_from: from, p_to: to }),
-    supabase.rpc('gridex_customer_portfolio_forecast', { p_company_id: companyId }),
+    supabase.rpc('gridex_customer_portfolio_forecast', { p_company_id: companyId, p_as_of: forecastAsOf }),
   ])
   if (summary.error) throw summary.error
   if (forecast.error) throw forecast.error
   const months = ((summary.data ?? []) as Record<string, unknown>[]).map(mapPortfolioMonthRow)
   const forecastMonths = ((forecast.data ?? []) as Record<string, unknown>[]).map(mapForecastRow)
-  return { months, forecastMonths, horizons: summarizeForecastHorizons(forecastMonths) }
+  return { months, forecastMonths, horizons: summarizeForecastHorizons(forecastMonths), forecastAsOf }
 }
 
 export async function listReadableWhiteLabelPlatforms(): Promise<WhiteLabelPlatformOption[]> {
@@ -139,7 +148,7 @@ export async function listReadableWhiteLabelPlatforms(): Promise<WhiteLabelPlatf
 
 export async function getWhiteLabelPortfolioOverview(platformId: string, month: string): Promise<WhiteLabelTenantRow[]> {
   const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase.rpc('gridex_whitelabel_portfolio_overview', { p_white_label_platform_id: platformId, p_month: month })
+  const { data, error } = await supabase.rpc('gridex_whitelabel_portfolio_overview', { p_white_label_platform_id: platformId, p_month: portfolioAsOf(month) })
   if (error) throw error
   return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
     companyId: String(row.company_id),
@@ -212,11 +221,12 @@ const nullableNumber = (value: unknown) => (value === null || value === undefine
 
 export async function getCustomerPortfolioInsights(companyId: string, from: string, to: string): Promise<PortfolioInsights> {
   const supabase = await createSupabaseServerClient()
+  const asOf = portfolioAsOf(to)
   const [churn, accuracy, cohorts, zones, poa] = await Promise.all([
     supabase.rpc('gridex_customer_portfolio_churn_reasons', { p_company_id: companyId, p_from: from, p_to: to }),
     supabase.rpc('gridex_customer_portfolio_forecast_accuracy', { p_company_id: companyId, p_from: from, p_to: to }),
-    supabase.rpc('gridex_customer_portfolio_cohorts', { p_company_id: companyId, p_months: 12 }),
-    supabase.rpc('gridex_customer_portfolio_bidding_zones', { p_company_id: companyId }),
+    supabase.rpc('gridex_customer_portfolio_cohorts_at', { p_company_id: companyId, p_as_of: asOf, p_months: 12 }),
+    supabase.rpc('gridex_customer_portfolio_bidding_zones', { p_company_id: companyId, p_as_of: asOf }),
     supabase.rpc('gridex_customer_portfolio_expiring_poa', { p_company_id: companyId, p_days: 30 }),
   ])
   for (const response of [churn, accuracy, cohorts, zones, poa]) if (response.error) throw response.error

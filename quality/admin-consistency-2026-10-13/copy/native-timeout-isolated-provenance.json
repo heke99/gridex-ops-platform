@@ -1,0 +1,121 @@
+{
+  "recorded_at": "2026-10-13T12:46:49.688910+00:00",
+  "configuration_path": "/tmp/gridex-native-budget-proof.config.mjs",
+  "configuration_sha256": "0cb672a23119c4bf7e60752e70e263ce9028bb8a8bd02f69daecf0ae6a2d9484",
+  "configuration_source": "// Local proof only: preserve every assertion, vary explicit native runtime budgets.\n// No repository Ediel source or test file is modified.\nimport fs from 'node:fs'\nimport ts from '/workspace/gridex-ops-platform/node_modules/typescript/lib/typescript.js'\nimport base from '/workspace/gridex-ops-platform/vitest.config.ts'\n\nconst budget = 120000\nconst targets = new Set([\n  '/workspace/gridex-ops-platform/__tests__/ediel-confirmed-customer-final-response.test.ts',\n  '/workspace/gridex-ops-platform/__tests__/ediel-sc-010-beneficiary-export.test.ts',\n  '/workspace/gridex-ops-platform/__tests__/ediel-prodat-free-text.test.ts',\n])\n\nexport default {\n  ...base,\n  plugins: [...(base.plugins ?? []), {\n    name: 'local-native-runtime-budget-proof',\n    enforce: 'pre',\n    transform(code, id) {\n      const file = id.split('?')[0]\n      if (!targets.has(file)) return null\n      const source = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true)\n      const edits = []\n      const visit = (node) => {\n        if (ts.isCallExpression(node) && /^(?:it|test)(?:$|[.(])/.test(node.expression.getText(source))) {\n          const argument = node.arguments[2]\n          if (argument && ts.isNumericLiteral(argument) && Number(argument.text) < budget) {\n            edits.push({ start: argument.getStart(source), end: argument.end, kind: 'test-registration', before: argument.getText(source) })\n          }\n        }\n        if (ts.isPropertyAssignment(node) && node.name.getText(source) === 'timeout' && ts.isNumericLiteral(node.initializer)) {\n          const call = node.parent.parent\n          if (ts.isCallExpression(call) && call.expression.getText(source) === 'spawnSync' && Number(node.initializer.text) < budget) {\n            edits.push({ start: node.initializer.getStart(source), end: node.initializer.end, kind: 'local-child-runtime', before: node.initializer.getText(source) })\n          }\n        }\n        ts.forEachChild(node, visit)\n      }\n      visit(source)\n      if (!edits.length) throw new Error('native_budget_proof_target_not_transformed:' + file)\n      fs.appendFileSync('/tmp/gridex-native-budget-proof-transforms.jsonl', JSON.stringify({ file, budget, edits }) + '\\n')\n      let transformed = code\n      for (const edit of edits.sort((a, b) => b.start - a.start)) {\n        transformed = transformed.slice(0, edit.start) + String(budget) + transformed.slice(edit.end)\n      }\n      return { code: transformed, map: null }\n    },\n  }],\n}\n",
+  "transform_log": [
+    {
+      "file": "/workspace/gridex-ops-platform/__tests__/ediel-confirmed-customer-final-response.test.ts",
+      "budget": 120000,
+      "edits": [
+        {
+          "start": 25045,
+          "end": 25050,
+          "kind": "test-registration",
+          "before": "20000"
+        },
+        {
+          "start": 37436,
+          "end": 37441,
+          "kind": "test-registration",
+          "before": "20000"
+        },
+        {
+          "start": 39537,
+          "end": 39542,
+          "kind": "test-registration",
+          "before": "20000"
+        },
+        {
+          "start": 44253,
+          "end": 44258,
+          "kind": "test-registration",
+          "before": "20000"
+        },
+        {
+          "start": 44922,
+          "end": 44927,
+          "kind": "test-registration",
+          "before": "20000"
+        },
+        {
+          "start": 45833,
+          "end": 45838,
+          "kind": "test-registration",
+          "before": "20000"
+        },
+        {
+          "start": 46447,
+          "end": 46452,
+          "kind": "test-registration",
+          "before": "20000"
+        },
+        {
+          "start": 47184,
+          "end": 47189,
+          "kind": "test-registration",
+          "before": "20000"
+        },
+        {
+          "start": 47639,
+          "end": 47644,
+          "kind": "test-registration",
+          "before": "20000"
+        },
+        {
+          "start": 51460,
+          "end": 51465,
+          "kind": "test-registration",
+          "before": "20000"
+        }
+      ]
+    },
+    {
+      "file": "/workspace/gridex-ops-platform/__tests__/ediel-sc-010-beneficiary-export.test.ts",
+      "budget": 120000,
+      "edits": [
+        {
+          "start": 2646,
+          "end": 2651,
+          "kind": "test-registration",
+          "before": "35000"
+        },
+        {
+          "start": 2260,
+          "end": 2265,
+          "kind": "local-child-runtime",
+          "before": "30000"
+        }
+      ]
+    },
+    {
+      "file": "/workspace/gridex-ops-platform/__tests__/ediel-prodat-free-text.test.ts",
+      "budget": 120000,
+      "edits": [
+        {
+          "start": 1192,
+          "end": 1198,
+          "kind": "test-registration",
+          "before": "35_000"
+        },
+        {
+          "start": 524,
+          "end": 530,
+          "kind": "local-child-runtime",
+          "before": "30_000"
+        }
+      ]
+    }
+  ],
+  "result": "native-timeout-isolated-results.json",
+  "tests": {
+    "total": 75,
+    "passed": 75,
+    "failed": 0,
+    "pending": 0,
+    "todo": 0
+  },
+  "assertions_or_mocks_changed": false,
+  "repository_Ediel_source_or_tests_changed": false,
+  "scope": "All assertions in three files rerun; finite runtime deadlines raised locally to120s, maxWorkers1. No testNamePattern or skip."
+}

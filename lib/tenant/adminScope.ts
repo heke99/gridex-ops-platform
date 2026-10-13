@@ -8,16 +8,36 @@ export type AdminTenantReadScope = {
 }
 
 export async function resolveAdminTenantReadScope(
-  admin: Pick<GuardResult, 'userId' | 'roles' | 'permissions'>
+  admin: Pick<GuardResult, 'userId' | 'roles' | 'permissions'> & Partial<Pick<GuardResult, 'companyId' | 'isPlatformAdmin'>>
 ): Promise<AdminTenantReadScope> {
   const isPlatformAdmin = isPlatformAdminContext(admin)
   const operationalScope = await getOperationalCompanyScope(admin.userId)
+  // Permissions were resolved for the canonical guard's company. A second
+  // membership selection must not redirect those permissions to another tenant.
+  const companyId = tenantReadCompanyId(isPlatformAdmin,
+    admin.companyId !== undefined ? admin.companyId : operationalScope.companyId)
 
   return {
     isPlatformAdmin,
-    companyId: tenantReadCompanyId(isPlatformAdmin, operationalScope.companyId),
-    companyName: operationalScope.companyName,
+    companyId,
+    companyName: companyId === operationalScope.companyId ? operationalScope.companyName : null,
   }
+}
+
+/**
+ * Reads that require one chosen company, including platform analytics, retain
+ * the canonical selection. A missing selection stays empty. Older contexts
+ * without the canonical field retain their operational membership fallback.
+ */
+export async function resolveAdminSelectedCompanyReadScope(
+  admin: Pick<GuardResult, 'userId' | 'roles' | 'permissions'> & Partial<Pick<GuardResult, 'companyId' | 'isPlatformAdmin'>>
+): Promise<AdminTenantReadScope> {
+  const isPlatformAdmin = isPlatformAdminContext(admin)
+  if (admin.companyId !== undefined) {
+    return { isPlatformAdmin, companyId: admin.companyId, companyName: null }
+  }
+  const scope = await getOperationalCompanyScope(admin.userId)
+  return { isPlatformAdmin, companyId: scope.companyId, companyName: scope.companyName }
 }
 
 /**

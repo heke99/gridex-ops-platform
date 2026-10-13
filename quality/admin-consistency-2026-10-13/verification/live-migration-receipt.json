@@ -1,0 +1,35 @@
+{
+  "project_ref": "piidsfebjqjmnepdpnas",
+  "observed_at": "2026-10-13",
+  "migrations": [
+    {
+      "version": "20261013100313",
+      "name": "customer_portfolio_consistency_repair"
+    },
+    {
+      "version": "20261013113026",
+      "name": "data_quality_lifecycle_consistency_expand"
+    },
+    {
+      "version": "20261013122459",
+      "name": "canonical_admin_application_work_items"
+    },
+    {
+      "version": "20261013122550",
+      "name": "customer_flow_integrity_and_empty_statistics"
+    },
+    {
+      "version": "20261013122600",
+      "name": "analytics_customer_missing_meter_scope"
+    },
+    {
+      "version": "20261013124137",
+      "name": "manual_inbound_event_source_consistency"
+    }
+  ],
+  "compatibility": {
+    "data_quality_lifecycle_consistency_expand": "Full forward file minus two legacy UNIQUE constraint drops; retained for currently deployed onConflict writer. Apply full migration cutover only after updated application is deployed.",
+    "frontend_rollout": "Pending pull request, gates and deployment",
+    "canonical_schema_capture": "Pending authentic complete CI capture; no owner/ACL metadata guessed"
+  }
+}

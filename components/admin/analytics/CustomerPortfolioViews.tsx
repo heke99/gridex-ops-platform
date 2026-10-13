@@ -123,7 +123,7 @@ export function PortfolioMonthTable({ rows }: { rows: PortfolioMonthRow[] }) {
   )
 }
 
-export function CustomerPortfolioPanel({ months, forecastMonths, horizons }: { months: PortfolioMonthRow[]; forecastMonths: PortfolioForecastMonth[]; horizons: PortfolioHorizon[] }) {
+export function CustomerPortfolioPanel({ months, forecastMonths, horizons, forecastAsOf }: { months: PortfolioMonthRow[]; forecastMonths: PortfolioForecastMonth[]; horizons: PortfolioHorizon[]; forecastAsOf?: string }) {
   const current = months[months.length - 1]
   return (
     <div className="space-y-6">
@@ -131,6 +131,7 @@ export function CustomerPortfolioPanel({ months, forecastMonths, horizons }: { m
       <ForecastHorizonCards horizons={horizons} />
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-black text-slate-950">Förbrukningsprognos 12 månader</h2>
+        {forecastAsOf ? <p className="mt-1 text-xs font-semibold text-slate-500">Portföljen vid {forecastAsOf}. Prognosen börjar i den valda månaden.</p> : null}
         <div className="mt-4"><ForecastCurve rows={forecastMonths} /></div>
       </section>
       <section className="space-y-3">

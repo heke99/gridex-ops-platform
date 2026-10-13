@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { ANALYTICS_REPORTS, getReportRows } from '@/lib/analytics/db'
 import { buildCsv, monthStart } from '@/lib/analytics/utils'
 
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   const admin = await requireAdminPageKeyAccess('analytics.workspace')
-  const scope = await getOperationalCompanyScope(admin.userId)
+  const scope = await resolveAdminSelectedCompanyReadScope(admin)
   const companyId = scope.companyId
   if (!companyId) return new NextResponse('Bolag saknas.', { status: 403 })
 

@@ -1,0 +1,785 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+(node:39664) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39679) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ __tests__/ediel-z02-enqueue-diagnostics-component.test.ts (167 tests) 8083ms
+     ✓ links the actual helper in both existing util VM boundaries and missing-capability closures without widening them  1683ms
+     ✓ links the actual sibling helper through missing trap-free capability without widening it  1968ms
+     ✓ preserves actual SDK query queues, errors, duplicates and invocation cleanup  2625ms
+ ✓ __tests__/ediel-received-z04h-address-availability.test.ts (133 tests) 3888ms
+   ✓ private229 with empty first and known second slot retains ERC41 after wire formatting  464ms
+ ✓ __tests__/ediel-ops-03-code-release-evidence.test.ts (131 tests) 52745ms
+   ✓ uses authenticated run/job/archive bytes and reviewed actual assertions for only the known native case effects  656ms
+   ✓ refuses the latest cancelled producer despite its uploaded artifact and an older fully valid successful run on the same head  603ms
+   ✓ holds api provenance without turning ordinary GREEN into class proof  522ms
+   ✓ holds repository provenance without turning ordinary GREEN into class proof  519ms
+   ✓ holds workflow provenance without turning ordinary GREEN into class proof  322ms
+   ✓ holds attempt provenance without turning ordinary GREEN into class proof  372ms
+   ✓ holds artifact provenance without turning ordinary GREEN into class proof  322ms
+   ✓ holds artifact_head provenance without turning ordinary GREEN into class proof  393ms
+   ✓ holds artifact_run provenance without turning ordinary GREEN into class proof  575ms
+   ✓ holds expired provenance without turning ordinary GREEN into class proof  496ms
+   ✓ holds digest provenance without turning ordinary GREEN into class proof  333ms
+   ✓ holds artifact_attempt provenance without turning ordinary GREEN into class proof  406ms
+   ✓ holds duplicate_zip provenance without turning ordinary GREEN into class proof  625ms
+   ✓ never qualifies source DGI assertion/result while retaining a distinct valid DDQ case  527ms
+   ✓ never qualifies duplicate DGI assertion/result while retaining a distinct valid DDQ case  604ms
+   ✓ never qualifies skip DGI assertion/result while retaining a distinct valid DDQ case  729ms
+   ✓ never qualifies error DGI assertion/result while retaining a distinct valid DDQ case  415ms
+   ✓ never qualifies missing DGI assertion/result while retaining a distinct valid DDQ case  374ms
+   ✓ never qualifies wrong_case DGI assertion/result while retaining a distinct valid DDQ case  363ms
+   ✓ never qualifies wrong_file DGI assertion/result while retaining a distinct valid DDQ case  595ms
+   ✓ refuses entity-bearing XML before any scope is qualified  331ms
+   ✓ keeps the matrix incomplete when the actual DGI result is absent  333ms
+   ✓ holds extra_input execution input even when the unchanged assertion file and successful JUnit remain genuine  311ms
+   ✓ holds symlink_input execution input even when the unchanged assertion file and successful JUnit remain genuine  431ms
+   ✓ coverage authenticates six separate code evidence classes and aggregate native matrix without external activation  439ms
+   ✓ refuses changed native_config_source bytes while retaining distinct coverage classes and authenticated CI  458ms
+   ✓ refuses changed native_workflow_source bytes while retaining distinct coverage classes and authenticated CI  450ms
+   ✓ coverage nightly reuses the latest successful PR/push producer on the same immutable head instead of a second coverage invocation  544ms
+   ✓ coverage decodes numeric decimal attribute references before exact reviewed-case selection  518ms
+   ✓ coverage decodes numeric hex attribute references before exact reviewed-case selection  493ms
+   ✓ coverage refuses name_double_encoded without qualifying a differently named or declared-entity case  402ms
+   ✓ coverage refuses name_unknown_entity without qualifying a differently named or declared-entity case  431ms
+   ✓ coverage refuses name_html_entity without qualifying a differently named or declared-entity case  546ms
+   ✓ coverage refuses xml_entity without qualifying a differently named or declared-entity case  529ms
+   ✓ coverage refuses invalid numeric decimal_suffix attributes before a permissive decoder can rename a case  494ms
+   ✓ coverage refuses invalid numeric hex_suffix attributes before a permissive decoder can rename a case  572ms
+   ✓ coverage refuses invalid numeric uppercase_hex attributes before a permissive decoder can rename a case  458ms
+   ✓ coverage refuses invalid numeric null attributes before a permissive decoder can rename a case  545ms
+   ✓ coverage refuses invalid numeric control attributes before a permissive decoder can rename a case  443ms
+   ✓ coverage refuses invalid numeric surrogate attributes before a permissive decoder can rename a case  395ms
+   ✓ coverage refuses invalid numeric noncharacter attributes before a permissive decoder can rename a case  403ms
+   ✓ coverage refuses invalid numeric above_range attributes before a permissive decoder can rename a case  337ms
+   ✓ coverage accepts reference-like literal text in comments, processing instructions and CDATA without inventing an attribute or testcase  369ms
+   ✓ coverage keeps document_missing out of its document class while preserving other authentic result classes  778ms
+   ✓ coverage keeps document_conformance out of its document class while preserving other authentic result classes  593ms
+   ✓ coverage keeps mime_missing out of its transport class while preserving other authentic result classes  481ms
+   ✓ coverage keeps guard_missing out of its transport class while preserving other authentic result classes  441ms
+   ✓ coverage keeps tgt_missing out of its TGT class while preserving other authentic result classes  425ms
+   ✓ coverage keeps tgt_skipped out of its TGT class while preserving other authentic result classes  434ms
+   ✓ coverage keeps tgt_duplicate out of its TGT class while preserving other authentic result classes  485ms
+   ✓ coverage keeps suite_name out of its TGT class while preserving other authentic result classes  615ms
+   ✓ coverage keeps source out of its TGT class while preserving other authentic result classes  1556ms
+   ✓ coverage rejects workflow_source provenance and never uses an older uploaded success instead  707ms
+   ✓ coverage rejects head provenance and never uses an older uploaded success instead  449ms
+   ✓ coverage rejects attempt provenance and never uses an older uploaded success instead  455ms
+   ✓ coverage rejects job provenance and never uses an older uploaded success instead  387ms
+   ✓ coverage rejects job_failed provenance and never uses an older uploaded success instead  530ms
+   ✓ coverage rejects artifact provenance and never uses an older uploaded success instead  540ms
+   ✓ coverage rejects artifact_head provenance and never uses an older uploaded success instead  361ms
+   ✓ coverage rejects artifact_run provenance and never uses an older uploaded success instead  302ms
+   ✓ coverage rejects artifact_attempt provenance and never uses an older uploaded success instead  315ms
+   ✓ coverage rejects digest provenance and never uses an older uploaded success instead  386ms
+   ✓ coverage rejects expired provenance and never uses an older uploaded success instead  339ms
+   ✓ coverage rejects latest_cancelled provenance and never uses an older uploaded success instead  762ms
+   ✓ coverage refuses complete release qualification for run_failed even with six successful result classes  1001ms
+   ✓ coverage refuses complete release qualification for current_run even with six successful result classes  517ms
+   ✓ coverage refuses complete release qualification for current_job_failed even with six successful result classes  839ms
+   ✓ coverage refuses complete release qualification for runner_missing even with six successful result classes  450ms
+   ✓ coverage refuses complete release qualification for runner_corrupt even with six successful result classes  434ms
+   ✓ coverage retains bounded code cases from a failed overall producer but never passes its CI release  482ms
+   ✓ coverage does not promote whole OPS03 when DDQ native scope is missing  717ms
+   ✓ coverage does not promote whole OPS03 when DGI native scope is missing  542ms
+   ✓ coverage denies supplied CI failure despite authentic class and matrix results  495ms
+   ✓ ledger permits only the exact atomic OPS03 and AT promotion while preserving all 350 foreign rows and metadata bytes  486ms
+   ✓ ledger holds foreign_rule_status despite authentic six-class results and exact-head CI  519ms
+   ✓ ledger holds foreign_at_status despite authentic six-class results and exact-head CI  505ms
+   ✓ ledger holds foreign_evidence despite authentic six-class results and exact-head CI  583ms
+   ✓ ledger holds spec despite authentic six-class results and exact-head CI  524ms
+   ✓ ledger holds metadata despite authentic six-class results and exact-head CI  374ms
+   ✓ ledger holds row_order despite authentic six-class results and exact-head CI  751ms
+   ✓ ledger holds missing despite authentic six-class results and exact-head CI  506ms
+   ✓ ledger holds extra despite authentic six-class results and exact-head CI  390ms
+   ✓ ledger holds invalid_evidence despite authentic six-class results and exact-head CI  398ms
+   ✓ ledger holds duplicate_evidence despite authentic six-class results and exact-head CI  789ms
+   ✓ ledger holds evidence_order despite authentic six-class results and exact-head CI  411ms
+   ✓ ledger holds own_extra_field despite authentic six-class results and exact-head CI  381ms
+   ✓ ledger holds own_wrong_status despite authentic six-class results and exact-head CI  390ms
+   ✓ ledger holds one_row despite authentic six-class results and exact-head CI  501ms
+   ✓ ledger holds foreign_whitespace despite authentic six-class results and exact-head CI  697ms
+   ✓ ledger holds duplicate_key despite authentic six-class results and exact-head CI  373ms
+   ✓ ledger holds invalid_json despite authentic six-class results and exact-head CI  338ms
+   ✓ ledger holds mode despite authentic six-class results and exact-head CI  912ms
+   ✓ ledger holds symlink despite authentic six-class results and exact-head CI  317ms
+   ✓ ledger holds deleted despite authentic six-class results and exact-head CI  688ms
+   ✓ ledger holds type despite authentic six-class results and exact-head CI  510ms
+   ✓ historical workflow port restores the exact reviewed producer after bounded key-download retries  369ms
+ ✓ __tests__/ediel-sc-012-dual-role-state-isolation.test.ts (1 test) 19033ms
+     ✓ positive Z14 then positive Z04 changes only each own durable state machine in one DB  2711ms
+ ✓ __tests__/ediel-z05-rejected-identity-authority.test.ts (85 tests) 6602ms
+   ✓ genuine private component projects only own negative two identities  396ms
+   ✓ current permission actor cannot grant a rejected source witness  1950ms
+   ✓ redemption refuses foreign-structure and consumes its private READ  328ms
+ ✓ __tests__/ediel-sc-053-null-vs-zero-storage.test.ts (8 tests) 19779ms
+     ✓ returns the missing value as NULL/46 through the real authorized interval read (PGlite)  11327ms
+     ✓ stores the forwarded qualities through the real SQL owners (PGlite)  8077ms
+ ✓ __tests__/tenantservice-portal-resolver-read-only.test.ts (24 tests) 2302ms
+     ✓ returns the established resolution conflict after the guarded same-owner identity UPDATE  1496ms
+     ✓ returns a canonical 409 through the request context factory instead of escaping to a framework 500  537ms
+ ✓ __tests__/ediel-prodat-z10-own-source-runtime-integration.test.ts (38 tests) 2154ms
+   ✓ actorless/synchronous M discards reading hints false but preserves unrelated cell facts  380ms
+ ✓ __tests__/customer-flow-integrity-empty-statistics.test.ts (5 tests) 6187ms
+ ✓ __tests__/data-quality-lifecycle-consistency.test.ts (19 tests) 12386ms
+     ✓ scans beyond the former 5000-point cap without resolving omitted entities  3462ms
+ ✓ __tests__/staff-customer-retention-read-prerequisite-sql.test.ts (17 tests) 97108ms
+     ✓ creates the exact private read dependencies under a nonsuper CREATEROLE/BYPASSRLS migration role  3959ms
+     ✓ allows an unchanged-source outer transaction rehearsal to roll back every new object and grant  4758ms
+     ✓ executes the entire mandatory native rollback guard against the actual qualified SQL  4303ms
+     ✓ returns native tombstone arrays with exact company/customer binding and rejects foreign scope  3473ms
+     ✓ keeps direct app-role table access and non-service RPC execution denied  2604ms
+     ✓ retains every FK and check and rejects invalid native journal references  3586ms
+     ✓ preserves native append-only UPDATE/DELETE/TRUNCATE guards on all four tables  3723ms
+     ✓ is a true no-op on repeat application and preserves the public CREATE boundary  3191ms
+     ✓ verifies an existing captured canonical catalog without replacing its stronger custody guard or privileges  4477ms
+     ✓ fails closed on schema_only before creating or repairing any object  2966ms
+     ✓ fails closed on role_only before creating or repairing any object  16067ms
+     ✓ fails closed on wrong_role before creating or repairing any object  7729ms
+     ✓ fails closed on missing_guard before creating or repairing any object  7893ms
+     ✓ rejects incompatible existing column without repairing or weakening it  10473ms
+     ✓ rejects incompatible existing constraint without repairing or weakening it  3858ms
+     ✓ rejects incompatible existing owner without repairing or weakening it  3261ms
+     ✓ rejects incompatible existing acl without repairing or weakening it  1893ms
+ ✓ __tests__/ediel-db01-native-source-basis.test.ts (27 tests) 191704ms
+   ✓ admits only the declared historical aliases and exact historical/current kernel pair  6758ms
+   ✓ admits only the declared current aliases and exact historical/current kernel pair  6640ms
+   ✓ refuses a changed kernel mode even with self-consistent forged receipt fields  20063ms
+   ✓ refuses a changed kernel git_blob_oid even with self-consistent forged receipt fields  3266ms
+   ✓ refuses a changed kernel sha256 even with self-consistent forged receipt fields  2472ms
+   ✓ refuses a different adopted revision and a changed non-kernel dependency  5769ms
+   ✓ refuses changed historical kernel bytes without modifying the original source  5400ms
+   ✓ refuses a forged legacy kernel mode even when both receipt copies agree  3272ms
+   ✓ refuses a forged legacy kernel git_blob_oid even when both receipt copies agree  5661ms
+   ✓ refuses a forged legacy kernel sha256 even when both receipt copies agree  3842ms
+   ✓ refuses a changed legacy basis path  3488ms
+   ✓ refuses a changed legacy basis source_revision  4416ms
+   ✓ refuses a changed legacy basis historical_alias  3320ms
+   ✓ refuses a changed legacy basis current_alias  3543ms
+   ✓ refuses an absent legacy basis  2627ms
+   ✓ refuses changed historical legacy bytes and restores the original fixture  2485ms
+   ✓ keeps workflow admission strict for both changed kernels and unchanged dependencies  3798ms
+   ✓ keeps workflow qualification strict for both changed kernels and unchanged dependencies  4440ms
+   ✓ refuses current native admission without qualified delivered reader dependencies  2112ms
+   ✓ refuses a dropped predecessor and a forged reader SQL identity  2039ms
+   ✓ refuses failed or unexecuted actual current phase current_guard_preparation  26118ms
+   ✓ refuses failed or unexecuted actual current phase current_read_forwards  13325ms
+   ✓ refuses failed or unexecuted actual current phase current_guard_qualification  3684ms
+   ✓ refuses failed or unexecuted actual current phase current_api_schema  3356ms
+   ✓ does not use a guard result for another source or a different schema  2985ms
+   ✓ qualifies current function definitions, ACLs and exact delivered guard objects independently of native cases  12913ms
+   ✓ refuses mismatched guard surroundings and missing actual reader API visibility  33559ms
+ ❯ __tests__/ediel-confirmed-customer-final-response.test.ts (62 tests | 3 failed) 435847ms
+   ✓ the actual final-response wrapper recognizes a committed confirmed death version and its separate availability without modern or structural receipts  8306ms
+   ✓ actual confirmed death response refuses 'missing separately observed availabil…' without modifying owner rows  5329ms
+   ✓ actual confirmed death response refuses 'availability cannot see the version t…' without modifying owner rows  3260ms
+   ✓ actual confirmed death response refuses 'missing current source authority' without modifying owner rows  3819ms
+   ✓ actual confirmed death response refuses 'incomplete current selection' without modifying owner rows  2816ms
+   ✓ actual confirmed death response refuses 'foreign selection tenant' without modifying owner rows  3483ms
+   ✓ actual confirmed death response refuses 'current source is a foreign customer' without modifying owner rows  4323ms
+   ✓ actual confirmed death response refuses 'source bytes differ from the committe…' without modifying owner rows  2573ms
+   ✓ actual confirmed death response refuses 'source reception clock differs from t…' without modifying owner rows  5480ms
+   ✓ actual confirmed death response refuses 'death event no longer belongs to the …' without modifying owner rows  5737ms
+   ✓ actual confirmed death response refuses 'missing death event' without modifying owner rows  3897ms
+   ✓ actual confirmed death response refuses 'actual canonical APP assessment diffe…' without modifying owner rows  5171ms
+   ✓ actual confirmed death response refuses 'actual canonical APP object is held' without modifying owner rows  3002ms
+   ✓ actual confirmed death response refuses 'missing actual APP facet' without modifying owner rows  2504ms
+   ✓ actual confirmed death response refuses 'actual APP facet belongs to a foreign…' without modifying owner rows  3705ms
+   ✓ actual confirmed death response refuses 'actual APP facet belongs to a foreign…' without modifying owner rows  5552ms
+   ✓ actual confirmed death response refuses 'actual APP facet belongs to another e…' without modifying owner rows  4587ms
+   ✓ actual confirmed death response refuses 'actual APP facet source hash differs' without modifying owner rows  4738ms
+   ✓ actual confirmed death response refuses 'actual APP object is rejected' without modifying owner rows  5976ms
+   ✓ actual confirmed death response refuses 'actual APP header and object are held' without modifying owner rows  4175ms
+   ✓ actual confirmed death response refuses 'accepted actual APP object has a reas…' without modifying owner rows  3973ms
+   ✓ actual confirmed death response refuses 'actual APP has no own object' without modifying owner rows  5483ms
+   ✓ actual confirmed death response refuses 'actual APP scope differs from canonic…' without modifying owner rows  6460ms
+   ✓ actual confirmed death response refuses 'actual canonical global FUNCTION is h…' without modifying owner rows  3821ms
+   ✓ actual confirmed death response refuses 'actual original rule witness differs' without modifying owner rows  5499ms
+   ✓ actual confirmed death response refuses 'actual canonical source was supersede…' without modifying owner rows  3812ms
+   ✓ actual confirmed death response refuses 'actual first own customer status is n…' without modifying owner rows  5349ms
+   ✓ actual confirmed death response refuses 'later register death cannot replace t…' without modifying owner rows  6850ms
+   ✓ actual confirmed death response refuses 'actual first own customer identity di…' without modifying owner rows  9896ms
+   ✓ actual confirmed death response refuses 'actual first own effective minute dif…' without modifying owner rows  6300ms
+   ✓ actual confirmed death response refuses 'actual first own LI differs from its …' without modifying owner rows  3616ms
+   ✓ actual confirmed death response refuses 'canonical own response is negative' without modifying owner rows  4601ms
+   ✓ actual confirmed death response refuses 'canonical own object identity differs' without modifying owner rows  5345ms
+   ✓ actual confirmed death response refuses 'applied result belongs to another sou…' without modifying owner rows  4254ms
+   ✓ actual confirmed death response refuses 'applied result has no own objects' without modifying owner rows  4348ms
+   ✓ actual confirmed death response refuses 'original national binding hash differs' without modifying owner rows  4207ms
+   ✓ actual confirmed death response refuses 'original national projection does not…' without modifying owner rows  4953ms
+   ✓ a genuinely validated present modern function facet keeps its distinct owner and the same admitted APP scope  6293ms
+   ✓ actual confirmed death response refuses 'a present malformed modern facet' without falling back to APP  19621ms
+   ✓ actual confirmed death response refuses 'a present modern facet under a foreig…' without falling back to APP  12029ms
+   ✓ actual confirmed death response refuses 'a present modern facet under a foreig…' without falling back to APP  11288ms
+   ✓ actual confirmed death response refuses 'a present modern facet under a foreig…' without falling back to APP  4886ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP  4537ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a missing…' without falling back to APP  5650ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP  8377ms
+   × actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP 24636ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP  10368ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a mismatc…' without falling back to APP  6889ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a held co…' without falling back to APP  5471ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a differe…' without falling back to APP  4697ms
+   ✓ actual confirmed death response refuses 'a present modern facet with accepted …' without falling back to APP  4065ms
+   ✓ actual confirmed death response refuses 'a valid present modern facet whose ob…' without falling back to APP  5070ms
+   ✓ actual confirmed death response refuses 'a valid present modern facet whose ob…' without falling back to APP  3502ms
+   ✓ the actual modern facet hash CHECK refuses a corrupt storage hash without hiding or changing the present owner  3576ms
+   ✓ the actual response refuses an uncommitted version transaction  3951ms
+   ✓ the actual response refuses an uncommitted availability transaction  4087ms
+   ✓ the actual response refuses an uncommitted canonical transaction  3521ms
+   × a modern context from the consuming transaction cannot qualify a present modern facet or fall back to legacy APP 27083ms
+   ✓ the real wrapper refuses foreign tenant and sibling selections and the public read retains its service boundary  17902ms
+   ✓ a source without any confirmed or primary effect preserves the existing no-positive result  10830ms
+   ✓ the retained actual modern receipt reader keeps its distinct proof when no generic death version exists  8211ms
+   × the retained actual structural receipt reader keeps its distinct proof when no generic death version exists 42014ms
+ ✓ __tests__/ediel-source-qualified-technical-contrl-admission.test.ts (41 tests) 50479ms
+   ✓ admits source-qualified prescribed production CONTRL through prepare/enter/observe and safe retry while business stays denied  2322ms
+   ✓ accepts qualified private relation/outcome with stale public caches null without repairing them  1774ms
+   ✓ retains business operation denial for PRODAT even with caller-supplied qualification  390ms
+   ✓ retains business operation denial for UTILTS even with caller-supplied qualification  318ms
+   ✓ retains business operation denial for APERAK even with caller-supplied qualification  529ms
+   ✓ retains business operation denial for UTILTS_ERR even with caller-supplied qualification  340ms
+   ✓ refuses inactive company with zero effects  316ms
+   ✓ refuses inactive actor with zero effects  519ms
+   ✓ refuses missing original with zero effects  566ms
+   ✓ refuses withdrawn original with zero effects  467ms
+   ✓ rejects malformed protected-port version even when global operation permits sending  7310ms
+   ✓ rejects malformed protected-port executor even when global operation permits sending  5076ms
+   ✓ rejects malformed protected-port missing basis even when global operation permits sending  617ms
+   ✓ rejects a changed locked environment rather than authorizing the earlier protected row  408ms
+   ✓ rejects a changed locked immutable_payload_hash rather than authorizing the earlier protected row  969ms
+   ✓ rejects a changed locked communication_route_id rather than authorizing the earlier protected row  414ms
+   ✓ rejects an unsealed or changed original wire with zero journal effects  319ms
+   ✓ retains archive admission after protected technical qualification  774ms
+   ✓ retains exact original byte, owner and binding checks after protected qualification  2347ms
+   ✓ rejects corrupted private evidence sourceMessageId with zero effects  381ms
+   ✓ rejects corrupted private evidence syntaxDecision with zero effects  367ms
+ ✓ __tests__/ediel-test-configuration-route-source.test.ts (23 tests) 50599ms
+ ✓ __tests__/staff-api-openapi.test.ts (11 tests) 692ms
+ ✓ __tests__/ediel-sc-054-storage-failure-no-positive-aperak.test.ts (5 tests) 21985ms
+     ✓ the real SQL authority refuses received-only and queued reservations as storage (PGlite)  9459ms
+     ✓ a real DB transaction failure rolls back series and ACK intent; success plans the positive APERAK (PGlite)  11984ms
+ ✓ __tests__/support-attachment-quarantine-carrier.test.ts (24 tests) 9748ms
+     ✓ changes only the support bucket transport MIME and is idempotent  418ms
+     ✓ refuses incompatible public=null atomically  348ms
+     ✓ reproduces the pre-forward 503 at the effective SDK upload MIME boundary  370ms
+ ✓ __tests__/ediel-z13-ack-customer-waiting-sql.test.ts (46 tests) 401679ms
+   ✓ only the first complete accepted pair changes pending status: first CONTRL, z13_ready  9794ms
+   ✓ only the first complete accepted pair changes pending status: first APERAK, z13_ready  4954ms
+   ✓ only the first complete accepted pair changes pending status: first CONTRL, z13_sent  9992ms
+   ✓ only the first complete accepted pair changes pending status: first APERAK, z13_sent  37801ms
+   ✓ preserves every already advanced or unbound permission field: status='approved'  15921ms
+   ✓ preserves every already advanced or unbound permission field: status='denied'  13888ms
+   ✓ preserves every already advanced or unbound permission field: status='partially_approved'  16503ms
+   ✓ preserves every already advanced or unbound permission field: source_z14_message_id='11111111-1111-4111-8111-111111111111'  18383ms
+   ✓ preserves every already advanced or unbound permission field: inbound_z14_message_id='11111111-1111-4111-8111-111111111111'  14743ms
+   ✓ preserves every already advanced or unbound permission field: inbound_z15_message_id='11111111-1111-4111-8111-111111111111'  17297ms
+   ✓ preserves every already advanced or unbound permission field: market_state_version=1  28971ms
+   ✓ preserves every already advanced or unbound permission field: permission_reference='prior-decision'  12323ms
+   ✓ preserves every already advanced or unbound permission field: approved_start_date='2026-01-01'  11886ms
+   ✓ preserves every already advanced or unbound permission field: approved_end_date='2026-12-31'  4690ms
+   ✓ preserves every already advanced or unbound permission field: approved_start_at=now()  8644ms
+   ✓ preserves every already advanced or unbound permission field: approved_end_at=now()  7751ms
+   ✓ preserves every already advanced or unbound permission field: outbound_z13_message_id=NULL  7101ms
+   ✓ preserves every already advanced or unbound permission field: source_z13_message_id=NULL  9750ms
+   ✓ preserves every already advanced or unbound permission field: company_id='11111111-1111-4111-8111-111111111111'  6380ms
+   ✓ preserves every already advanced or unbound permission field: metadata='{"marketPermission":{}}'  7052ms
+   ✓ preserves every already advanced or unbound permission field: metadata='{"z14":{}}'  11097ms
+   ✓ preserves every already advanced or unbound permission field: metadata='{"z15":{}}'  15756ms
+   ✓ preserves every already advanced or unbound permission field: customer_id='11111111-1111-4111-8111-111111111111'  4440ms
+   ✓ preserves every already advanced or unbound permission field: customer_id=NULL  3491ms
+   ✓ preserves every already advanced or unbound permission field: rff_li_reference='OTHER-LI'  6506ms
+   ✓ preserves every already advanced or unbound permission field: rff_li_reference=NULL  8416ms
+   ✓ preserves every already advanced or unbound permission field: rff_li_reference=' '  6649ms
+   ✓ preserves every already advanced or unbound permission field: grid_owner_ediel_id='FOREIGN-DSO'  3675ms
+   ✓ preserves every already advanced or unbound permission field: grid_owner_ediel_id=NULL  2762ms
+   ✓ does not project incomplete/refused aggregate: negative  3491ms
+   ✓ does not project incomplete/refused aggregate: partial  3353ms
+   ✓ does not project incomplete/refused aggregate: missingCONTRL  3214ms
+   ✓ does not project incomplete/refused aggregate: missingAPERAK  4129ms
+   ✓ ordinary or mismatched origins remain unchanged: noOrigin  3542ms
+   ✓ ordinary or mismatched origins remain unchanged: foreignOrigin  1998ms
+   ✓ ordinary or mismatched origins remain unchanged: wrongIntent  3126ms
+   ✓ ordinary or mismatched origins remain unchanged: otherCode  3090ms
+   ✓ never repairs historical complete success via a new distinct receipt  3107ms
+   ✓ late actor revocation aborts receipt insertion and preserves the permission  4045ms
+   ✓ refuses an unsealed, unsent or hash-conflicting source: immutable_payload_hash='wrong'  5936ms
+   ✓ refuses an unsealed, unsent or hash-conflicting source: raw_payload='{}'  10340ms
+   ✓ refuses an unsealed, unsent or hash-conflicting source: message_sent_at=NULL  4531ms
+   ✓ refuses an unsealed, unsent or hash-conflicting source: immutable_rendered_at=NULL  7927ms
+   ✓ refuses a physical APERAK projection changed from its immutable scope  3384ms
+   ✓ a later failure rolls back waiting and the new receipt in the same transaction  5581ms
+   ✓ the new private trigger function grants no service/public setter  4228ms
+ ✓ __tests__/customer-portfolio-consistency-sql.test.ts (9 tests) 12716ms
+     ✓ returns an empty expiry result instead of casting an interval to integer  513ms
+ ✓ __tests__/canonical-admin-application-work-items.test.ts (7 tests) 18748ms
+ ✓ __tests__/ediel-technical-contrl-single-claim.test.ts (64 tests) 526207ms
+     ✓ claims one null-business-pack reply using the private send dependency and preserves all message bytes  11880ms
+     ✓ claims a protected negative syntax projection without rewriting its two stale public caches  4660ms
+     ✓ retains the ordinary application-profile claimant without consulting the technical port  5851ms
+     ✓ refuses version with complete message/outbox rollback  6003ms
+     ✓ refuses null version with complete message/outbox rollback  8773ms
+     ✓ refuses actor with complete message/outbox rollback  3622ms
+     ✓ refuses null actor with complete message/outbox rollback  5296ms
+     ✓ refuses phase with complete message/outbox rollback  4489ms
+     ✓ refuses null phase with complete message/outbox rollback  6553ms
+     ✓ refuses null ACK with complete message/outbox rollback  3405ms
+     ✓ refuses array ACK with complete message/outbox rollback  4010ms
+     ✓ refuses ACK tenant with complete message/outbox rollback  21138ms
+     ✓ refuses ACK environment with complete message/outbox rollback  34400ms
+     ✓ refuses ACK payload with complete message/outbox rollback  13423ms
+     ✓ refuses ACK resource with complete message/outbox rollback  15925ms
+     ✓ refuses ACK source with complete message/outbox rollback  11736ms
+     ✓ refuses null ACK source with complete message/outbox rollback  19200ms
+     ✓ refuses ACK outcome with complete message/outbox rollback  20258ms
+     ✓ refuses null ACK outcome with complete message/outbox rollback  17369ms
+     ✓ refuses null evidence with complete message/outbox rollback  25773ms
+     ✓ refuses kind with complete message/outbox rollback  12143ms
+     ✓ refuses null kind with complete message/outbox rollback  20734ms
+     ✓ refuses evidence version with complete message/outbox rollback  5595ms
+     ✓ refuses null evidence version with complete message/outbox rollback  14602ms
+     ✓ refuses evidence tenant with complete message/outbox rollback  7520ms
+     ✓ refuses null evidence tenant with complete message/outbox rollback  5799ms
+     ✓ refuses evidence environment with complete message/outbox rollback  5460ms
+     ✓ refuses null environment with complete message/outbox rollback  19349ms
+     ✓ refuses syntax decision with complete message/outbox rollback  7545ms
+     ✓ refuses null decision with complete message/outbox rollback  4227ms
+     ✓ refuses absent source with complete message/outbox rollback  4124ms
+     ✓ refuses null source with complete message/outbox rollback  8857ms
+     ✓ refuses malformed source with complete message/outbox rollback  7920ms
+     ✓ refuses original hash with complete message/outbox rollback  3215ms
+     ✓ refuses reply hash is not source hash with complete message/outbox rollback  3456ms
+     ✓ refuses null original hash with complete message/outbox rollback  2579ms
+     ✓ refuses a malformed top-level private result null  2938ms
+     ✓ refuses a malformed top-level private result undefined  4142ms
+     ✓ refuses a malformed top-level private result []  4363ms
+     ✓ refuses a malformed top-level private result "untrusted scalar"  3357ms
+     ✓ rechecks and rolls back the deny dependency transition  3702ms
+     ✓ rechecks and rolls back the deny_second dependency transition  3103ms
+     ✓ rechecks and rolls back the ack_second dependency transition  2146ms
+     ✓ rechecks and rolls back the source_first dependency transition  3021ms
+     ✓ rechecks and rolls back the proof_second dependency transition  9241ms
+     ✓ does not create an attempt when the lose_outbox dependency transition loses the routing candidate  11795ms
+     ✓ does not create an attempt when the retarget_outbox dependency transition loses the routing candidate  4134ms
+     ✓ preserves no eligible claim for update ediel_messages set message_family='APERAK' where direction='outbound'  7229ms
+     ✓ preserves no eligible claim for update ediel_messages set company_id=null where direction='outbound'  3271ms
+     ✓ preserves no eligible claim for update ediel_messages set direction='inbound' where id='00000000-0000-4000-8000-000000000004'  3928ms
+     ✓ preserves no eligible claim for update ediel_messages set environment='production' where direction='outbound'  3666ms
+     ✓ preserves no eligible claim for update ediel_outbox set company_id=null  2608ms
+     ✓ preserves no eligible claim for update ediel_outbox set status='delivery_uncertain'  2235ms
+     ✓ aborts the whole claim if a later real UPDATE trigger rejects it  4035ms
+     ✓ preserves the function OID, all metadata and the exact inert successor on reapplication  8294ms
+     ✓ refuses an unknown body without changing it or any claim state  5507ms
+     ✓ refuses changed security metadata without rewriting it  16545ms
+     ✓ refuses a current ACK with an invalid seal null even if the finite projection agrees  10330ms
+     ✓ refuses a current ACK with an invalid seal "fc4c8e1bc7be509b359cb4f983edaf79b00eba7a137090ad33de4850c150e4f2" even if the finite projection agrees  4785ms
+     ✓ retains required RPC arguments for null  4574ms
+     ✓ retains required RPC arguments for "00000000-0000-4000-8000-000000000005"  6441ms
+     ✓ retains required RPC arguments for "00000000-0000-4000-8000-000000000005"  4449ms
+     ✓ preserves the caller ACL refusal for anon  3623ms
+     ✓ preserves the caller ACL refusal for authenticated  5841ms
+ ✓ __tests__/customer-analytics-missing-source-scope.test.ts (4 tests) 7070ms
+ ✓ __tests__/admin-website-application-copy.test.ts (18 tests) 6185ms
+   ✓ uses human source descriptions for a tenant website_customer_applications without an integration-client name  784ms
+   ✓ uses the resolver domain label for postal_suggested in both application views  2226ms
+   ✓ uses the resolver domain label for needs_review in both application views  363ms
+   ✓ counts application work from the shared read-model metadata instead of a second status allowlist  1315ms
+ ✓ __tests__/staff-customer-detail-retention-prerequisite.test.ts (4 tests) 16136ms
+     ✓ serves the real detail handler with the captured RPC and excludes tombstoned address history  677ms
+ ✓ __tests__/admin-work-queue-action-visibility.test.ts (18 tests) 184ms
+ ✓ __tests__/website-application-detail-identity.test.ts (8 tests) 59ms
+ ❯ __tests__/ediel-sc-010-beneficiary-export.test.ts (12 tests | 1 failed) 30668ms
+     × executes the real queue/lease/current-grant/internal-sink SQL assertions through the existing bounded harness 30258ms
+     ✓ queues the trusted selected tenant/actor and exact captured scope without putting values in the response 99ms
+     ✓ rejects caller authority overrides and malformed idempotency input before queueing: {"idempotencyKey":"00000000-0000-4000-8000-000000000005","actorUserId":"00000000-0000-4000-8000-000000000020"} 13ms
+     ✓ rejects caller authority overrides and malformed idempotency input before queueing: {"idempotencyKey":"00000000-0000-4000-8000-000000000005","companyId":"00000000-0000-4000-8000-000000000020"} 36ms
+     ✓ rejects caller authority overrides and malformed idempotency input before queueing: {} 15ms
+     ✓ rejects caller authority overrides and malformed idempotency input before queueing: {"idempotencyKey":"old-cache"} 10ms
+     ✓ executes each real claimed token once and returns statuses without retaining a payload or silently upgrading a version 26ms
+     ✓ does not execute stale data returned together with a failed claim 79ms
+     ✓ stops on an execution error without retrying or marking the job completed 90ms
+     ✓ authenticates every result read and rejects an old result alongside a current RPC denial 14ms
+     ✓ uses the newly selected tenant/user for the next result read 4ms
+     ✓ never claims jobs without a selected authorized company 1ms
+ ✓ __tests__/gridex-aud-003-clean-replay-cleanup.test.ts (9 tests) 31323ms
+   ✓ missing psql preserves every original file and never stops an unstarted stack  975ms
+   ✓ missing provenance preserves originals without stopping a stack  3458ms
+   ✓ changed bootstrap checksum preserves originals without stopping a stack  307ms
+   ✓ partial migrations backup never replaces the original source with an incomplete copy  779ms
+   ✓ partial seed backup never replaces the original source with an incomplete copy  695ms
+   ✓ actual provenance failure after staging restores complete backups without stopping an unstarted stack  1574ms
+   ✓ a failed local start restores sources and the present PostgreSQL pin and stops its attempted stack  13964ms
+   ✓ a failed local start restores sources and the absent PostgreSQL pin and stops its attempted stack  4453ms
+   ✓ first SQL failure after successful local start restores originals and stops only that attempted stack  5049ms
+ ✓ __tests__/metering-forecast-quality-lifecycle.test.ts (12 tests) 41ms
+ ✓ __tests__/ediel-canonical-inbound-parser-v2.test.ts (6 tests) 191ms
+ ✓ __tests__/staff-user-rbac-audit.test.ts (20 tests) 650ms
+     ✓ runs the complete audit against the shared-command implementation  586ms
+ ✓ __tests__/admin-dashboard-canonical-scope.test.ts (4 tests) 86ms
+stdout | __tests__/ediel-imp-05-route-version-readiness.test.ts > real certificate route versions invalidate both affected tenants, preserve old history and hold a new mailbox without changing the independent tenant
+IMP05_ROUTE_VERSION_RESULT {"checks":["two-affected-and-one-independent-scope-ready-through-public-evidence-api","real-certificate-update-increments-both-affected-route-versions","both-affected-actors-tenants-held-and-stale-proof-renewal-denied","independent-tenant-proof-dependencies-and-dispatch-remain-exact","old-proof-and-certificate-route-history-preserved-byte-for-byte","new-mailbox-old-registry-scope-denied-with-zero-message-proof-history-effects","actual-imported-shared-route-and-distinct-registry-route-have-public-ready-proofs","one-real-import-address-change-invalidates-both-selected-tenant-actor-scopes","other-registry-actor-route-tenant-proof-and-dispatch-remain-byte-exact","old-batch-bytes-route-history-and-proofs-retained-without-replay-reactivation","current-immutable-registry-source-holds-old-edition-even-if-mutable-flags-restored"],"wholeRule":"NOT_APPROVED","returnPath":"NOT_EXERCISED","fixture":"ONE_EXISTING_EMBEDDED_DATABASE"}
+Focused PostgreSQL scoped dependency/evidence/revocation/ACL checks: 43 PASS
+
+stdout | __tests__/ediel-imp-05-route-version-readiness.test.ts > actual first reception freezes original mailbox SMTP and the existing configured ACK reader holds a different current sender
+IMP05_ORIGINAL_MAILBOX_RESULT {"checks":["legacy-receipt-without-birth-smtp-held-without-replay-backfill","actual-public-reception-birth-smtp-hash-and-original-reversal-pass","mutable-mailbox-address-cannot-move-original-smtp-custody","new-current-smtp-refuses-old-original-with-zero-history-effects","new-original-mailbox-reception-qualifies-the-new-current-smtp","both-contrl-and-aperak-share-birth-smtp-guard-and-original-app-actor","foreign-environment-mailbox-selector-and-hash-refused","explicit-shared-platform-mailbox-qualified-foreign-unshared-held","original-snapshot-immutable-and-replay-preserves-exact-receipt"],"wholeRule":"NOT_APPROVED","externalActivation":"NOT_EXERCISED","fixture":"ONE_EXISTING_EMBEDDED_DATABASE"}
+Focused configured CONTRL/common-APERAK source-only route/binding/actor checks: 62 PASS
+
+ ✓ __tests__/ediel-imp-05-route-version-readiness.test.ts (2 tests) 35850ms
+   ✓ real certificate route versions invalidate both affected tenants, preserve old history and hold a new mailbox without changing the independent tenant  11737ms
+   ✓ actual first reception freezes original mailbox SMTP and the existing configured ACK reader holds a different current sender  24043ms
+ ✓ __tests__/ediel-db02-profile-periods.test.ts (25 tests) 248158ms
+   ✓ rejects a company UUID without its actual parent  12107ms
+   ✓ preserves existing same-scope/start uniqueness, even for disabled rows  5901ms
+   ✓ rejects overlapping enabled INSERTs with different IDs and starts  3396ms
+   ✓ also rejects future overlapping enabled periods  5876ms
+   ✓ permits adjacent half-open periods at exact microsecond precision  4931ms
+   ✓ rejects one microsecond of overlap  4272ms
+   ✓ treats a NULL end as unbounded without accepting a NULL start  2881ms
+   ✓ preserves empty equal-endpoint periods alongside a nonempty interval  5041ms
+   ✓ permits disabled overlaps and disabling a current profile  5431ms
+   ✓ rejects re-enabling an overlapping disabled profile  40868ms
+   ✓ rejects reversed interval INSERT, enabled=true  10383ms
+   ✓ rejects reversed interval INSERT, enabled=false  6168ms
+   ✓ rejects reversed interval UPDATE, enabled=true  12110ms
+   ✓ rejects reversed interval UPDATE, enabled=false  3902ms
+   ✓ rejects an UPDATE that moves an adjacent start into overlap  4333ms
+   ✓ rejects an UPDATE that opens an adjacent interval end  7963ms
+   ✓ excludes the same physical row when its metadata or bounds are updated safely  7654ms
+   ✓ keeps overlapping periods independent across company  10007ms
+   ✓ keeps overlapping periods independent across environment  11562ms
+   ✓ rejects a scope UPDATE that moves a profile into same-scope overlap: company  13276ms
+   ✓ rejects a scope UPDATE that moves a profile into same-scope overlap: environment  7859ms
+   ✓ preserves the real electricity market constraint  5603ms
+   ✓ rolls back the entire attempted transaction after an overlap  5084ms
+   ✓ legacy preflight holds reversed without changing retained rows  10743ms
+   ✓ legacy preflight holds overlap without changing retained rows  40797ms
+ ❯ __tests__/native-lock-process.test.ts (6 tests | 2 failed) 3326ms
+   ✓ marker timeout rejects and closes a process which ignores rollback and SIGTERM  1532ms
+   × cleanup closes a ready process which ignores graceful exit and SIGTERM 349ms
+   ✓ recognizes a split marker and waits for a successful commit before release  498ms
+   ✓ rejects exit code 0 before readiness instead of waiting for a marker forever  366ms
+   ✓ rejects exit code 3 before readiness instead of waiting for a marker forever 283ms
+   × lifetime expiry closes an abandoned ready process and rejects a later commit 276ms
+ ✓ __tests__/ediel-smime-roundtrip.test.ts (3 tests) 786ms
+ ✓ __tests__/operations-support-controltower-phase-5-6.test.ts (6 tests) 50ms
+ ✓ __tests__/customer-portfolio-page-scope.test.ts (3 tests) 396ms
+     ✓ renders the authorized selected company instead of an unrelated owner membership  310ms
+ ✓ __tests__/forecast-run-evidence-errors.test.ts (4 tests) 429ms
+ ✓ __tests__/admin-controltower-billing-copy.test.ts (2 tests) 138ms
+ ✓ __tests__/website-application-read-model.test.ts (2 tests) 354ms
+(node:44369) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ __tests__/ediel-source-vm-xml-boundary.test.ts (1 test) 352ms
+   ✓ uses the authentic pure XML dependency while retaining fail-closed source I/O boundaries  349ms
+ ✓ __tests__/actionable-status.test.ts (17 tests) 90ms
+ ✓ __tests__/customer-portfolio-calendar.test.ts (4 tests) 168ms
+ ✓ __tests__/ediel-sc-016-partial-permission-membership.test.ts (3 tests) 28020ms
+ ✓ __tests__/ediel-z05c-current-sender-sql.test.ts (1 test) 12143ms
+   ✓ first Z05/C restoration requires the current physical sender registry and exact bindings while preserving retained replay  12136ms
+ ✓ __tests__/n-plus-one-query-budget-scope.test.ts (7 tests) 9425ms
+   ✓ detects a forbidden awaited select-in-loop in lib/staff-api  1216ms
+   ✓ detects a forbidden awaited select-in-loop in lib/tenant  719ms
+   ✓ detects a forbidden awaited select-in-loop in lib/partner-api  1160ms
+   ✓ detects a forbidden awaited select-in-loop in lib/website  913ms
+   ✓ keeps documented bounded-loop exceptions in lib/staff-api  1166ms
+   ✓ keeps documented bounded-loop exceptions in lib/partner-api  706ms
+   ✓ the real repository passes with the extended scope  3531ms
+ ✓ __tests__/ediel-sc-010-071-current-grant.test.ts (1 test) 16940ms
+   ✓ existing current SQL consumer rejects stale/revoked grants without new effects and preserves a separately authorized beneficiary  16934ms
+ ✓ __tests__/gridex-tenant-runtime-target-guard.test.ts (3 tests) 365ms
+ ✓ __tests__/admin-tenant-read-scope-canonical.test.ts (3 tests) 24ms
+ ✓ __tests__/webhook-transport-pinned-lookup.test.ts (2 tests) 77ms
+ ❯ __tests__/ediel-prodat-free-text.test.ts (1 test | 1 failed) 33051ms
+   × preserves the source-qualified FTX scopes, inbound response and outbound send contract 33044ms
+ ✓ __tests__/ediel-at-z09b-brp-ack-confirmation.test.ts (1 test) 34748ms
+   ✓ AT-Z09B: BRP change is confirmed only by its own positive APERAK, dated and tenant-scoped (PGlite)  34707ms
+ ✓ __tests__/forecast-cron-empty-source.test.ts (1 test) 123ms
+ ✓ __tests__/website-application-customer-relation-regression.test.ts (3 tests) 26ms
+ ✓ __tests__/ediel-unb-ack-request.test.ts (1 test) 12617ms
+   ✓ preserves the source-qualified UNB request and actual ACK-draft monitoring contract  12539ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-confirmed-customer-final-response.test.ts > actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP
+Error: Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ __tests__/ediel-confirmed-customer-final-response.test.ts:405:24
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  __tests__/ediel-confirmed-customer-final-response.test.ts > a modern context from the consuming transaction cannot qualify a present modern facet or fall back to legacy APP
+Error: Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ __tests__/ediel-confirmed-customer-final-response.test.ts:453:1
+    451| },20000)
+    452|
+    453| it('a modern context from the consuming transaction cannot qualify a p…
+       | ^
+    454|  const {db,f}=await setup()
+    455|  try{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  __tests__/ediel-confirmed-customer-final-response.test.ts > the retained actual structural receipt reader keeps its distinct proof when no generic death version exists
+Error: Test timed out in 20000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ __tests__/ediel-confirmed-customer-final-response.test.ts:489:42
+    487| },20000)
+    488|
+    489| it.each(['modern','structural'] as const)('the retained actual %s rece…
+       |                                          ^
+    490|  const {db,f}=await setup()
+    491|  try{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+ FAIL  __tests__/ediel-prodat-free-text.test.ts > preserves the source-qualified FTX scopes, inbound response and outbound send contract
+AssertionError: TAP version 13
+# (node:44604) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:44604) ExperimentalWarning: stripTypeScriptTypes is an experimental feature and might change at any time
+# Subtest: literal multi-message frame :+?'
+ok 1 - literal multi-message frame :+?'
+  ---
+  duration_ms: 292.64481
+  type: 'test'
+  ...
+# Subtest: reader selects first PRODAT after APERAK without later text borrowing :+?'
+ok 2 - reader selects first PRODAT after APERAK without later text borrowing :+?'
+  ---
+  duration_ms: 15.314072
+  type: 'test'
+  ...
+# Subtest: first PRODAT malformed text is held despite leading APERAK :+?'
+ok 3 - first PRODAT malformed text is held despite leading APERAK :+?'
+  ---
+  duration_ms: 4.710963
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual rulebook retains local FTX hold :+?'
+ok 4 - leading non-PRODAT actual rulebook retains local FTX hold :+?'
+  ---
+  duration_ms: 2.040419
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual lock retains local FTX hold :+?'
+ok 5 - leading non-PRODAT actual lock retains local FTX hold :+?'
+  ---
+  duration_ms: 1.227127
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual preflight retains local FTX hold :+?'
+ok 6 - leading non-PRODAT actual preflight retains local FTX hold :+?'
+  ---
+  duration_ms: 193.954397
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual registry retains local FTX hold :+?'
+ok 7 - leading non-PRODAT actual registry retains local FTX hold :+?'
+  ---
+  duration_ms: 30.418046
+  type: 'test'
+  ...
+# Subtest: no PRODAT cannot borrow stale row label :+?'
+ok 8 - no PRODAT cannot borrow stale row label :+?'
+  ---
+  duration_ms: 3.204584
+  type: 'test'
+  ...
+# Subtest: literal multi-message frame *;!~
+ok 9 - literal multi-message frame *;!~
+  ---
+  duration_ms: 0.693203
+  type: 'test'
+  ...
+# Subtest: reader selects first PRODAT after APERAK without later text borrowing *;!~
+ok 10 - reader selects first PRODAT after APERAK without later text borrowing *;!~
+  ---
+  duration_ms: 9.949909
+  type: 'test'
+  ...
+# Subtest: first PRODAT malformed text is held despite leading APERAK *;!~
+ok 11 - first PRODAT malformed text is held despite leading APERAK *;!~
+  ---
+  duration_ms: 0.977487
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual rulebook retains local FTX hold *;!~
+ok 12 - leading non-PRODAT actual rulebook retains local FTX hold *;!~
+  ---
+  duration_ms: 0.431056
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual lock retains local FTX hold *;!~
+ok 13 - leading non-PRODAT actual lock retains local FTX hold *;!~
+  ---
+  duration_ms: 0.413027
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual preflight retains local FTX hold *;!~
+ok 14 - leading non-PRODAT actual preflight retains local FTX hold *;!~
+  ---
+  duration_ms: 15.188198
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual registry retains local FTX hold *;!~
+ok 15 - leading non-PRODAT actual registry retains local FTX hold *;!~
+  ---
+  duration_ms: 1.260254
+  type: 'test'
+  ...
+# Subtest: no PRODAT cannot borrow stale row label *;!~
+ok 16 - no PRODAT cannot borrow stale row label *;!~
+  ---
+  duration_ms: 0.700671
+  type: 'test'
+  ...
+# Subtest: literal multi-message frame ^|!%
+ok 17 - literal multi-message frame ^|!%
+  ---
+  duration_ms: 0.329102
+  type: 'test'
+  ...
+# Subtest: reader selects first PRODAT after APERAK without later text borrowing ^|!%
+ok 18 - reader selects first PRODAT after APERAK without later text borrowing ^|!%
+  ---
+  duration_ms: 0.455634
+  type: 'test'
+  ...
+# Subtest: first PRODAT malformed text is held despite leading APERAK ^|!%
+ok 19 - first PRODAT malformed text is held despite leading APERAK ^|!%
+  ---
+  duration_ms: 19.535703
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual rulebook retains local FTX hold ^|!%
+ok 20 - leading non-PRODAT actual rulebook retains local FTX hold ^|!%
+  ---
+  duration_ms: 0.395921
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual lock retains local FTX hold ^|!%
+ok 21 - leading non-PRODAT actual lock retains local FTX hold ^|!%
+  ---
+  duration_ms: 0.566046
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual preflight retains local FTX hold ^|!%
+ok 22 - leading non-PRODAT actual preflight retains local FTX hold ^|!%
+  ---
+  duration_ms: 15.489012
+  type: 'test'
+  ...
+# Subtest: leading non-PRODAT actual registry retains local FTX hold ^|!%
+ok 23 - leading non-PRODAT actual registry retains local FTX hold ^|!%
+  ---
+  duration_ms: 1.129838
+  type: 'test'
+  ...
+# Subtest: no PRODAT cannot borrow stale row label ^|!%
+ok 24 - no PRODAT cannot borrow stale row label ^|!%
+  ---
+  duration_ms: 0.131425
+  type: 'test'
+  ...
+# Subtest: review cases never reach external operations
+ok 25 - review cases never reach external operations
+  ---
+  duration_ms: 0.108674
+  type: 'test'
+  ...
+
+: expected Error: spawnSync /tmp/gridex-npm-cache/_n… { …(5) } to be undefined
+
+- Expected:
+undefined
+
++ Received:
+Error {
+  "message": "spawnSync /tmp/gridex-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node ETIMEDOUT",
+  "errno": -110,
+  "code": "ETIMEDOUT",
+  "syscall": "spawnSync /tmp/gridex-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+  "path": "/tmp/gridex-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+  "spawnargs": [
+    "--experimental-vm-modules",
+    "--test",
+    "/workspace/gridex-ops-platform/scripts/test-ediel-prodat-free-text.cjs",
+    "/workspace/gridex-ops-platform/scripts/test-ediel-prodat-free-text-first-message.cjs",
+  ],
+}
+
+ ❯ __tests__/ediel-prodat-free-text.test.ts:12:32
+     10|   ], { cwd: process.cwd(), encoding: 'utf8', timeout: 30_000, maxBuffe…
+     11|   const report = `${result.stdout ?? ''}\n${result.stderr ?? ''}`
+     12|   expect(result.error, report).toBeUndefined()
+       |                                ^
+     13|   expect(result.signal, report).toBeNull()
+     14|   expect(result.status, report).toBe(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/7]⎯
+
+ FAIL  __tests__/ediel-sc-010-beneficiary-export.test.ts > SC010 reachable internal beneficiary export consumer > executes the real queue/lease/current-grant/internal-sink SQL assertions through the existing bounded harness
+AssertionError: expected Error: spawnSync /tmp/gridex-npm-cache/_n… { …(5) } to be undefined
+
+- Expected:
+undefined
+
++ Received:
+Error {
+  "message": "spawnSync /tmp/gridex-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node ETIMEDOUT",
+  "errno": -110,
+  "code": "ETIMEDOUT",
+  "syscall": "spawnSync /tmp/gridex-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+  "path": "/tmp/gridex-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+  "spawnargs": [
+    "/workspace/gridex-ops-platform/scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs",
+  ],
+}
+
+ ❯ __tests__/ediel-sc-010-beneficiary-export.test.ts:38:29
+     36|       env: { ...process.env, EDIEL_PGLITE_MODULE: require.resolve('@el…
+     37|     })
+     38|     expect(execution.error).toBeUndefined()
+       |                             ^
+     39|     expect(execution.status, execution.stderr?.slice(-3000)).toBe(0)
+     40|     expect(execution.stdout).toContain('Beneficiary export SQL: 12 PAS…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/7]⎯
+
+ FAIL  __tests__/native-lock-process.test.ts > cleanup closes a ready process which ignores graceful exit and SIGTERM
+Error: native_lock_process_cleanup_timeout
+ ❯ scripts/helpers/native-lock-process.ts:82:15
+     80|         stopObserving()
+     81|         child.stdin.destroy(); child.stdout.destroy(); child.stderr.de…
+     82|         throw Error('native_lock_process_cleanup_timeout')
+       |               ^
+     83|       }
+     84|     })()
+ ❯ Object.dispose scripts/helpers/native-lock-process.ts:87:30
+ ❯ __tests__/native-lock-process.test.ts:34:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/7]⎯
+
+ FAIL  __tests__/native-lock-process.test.ts > lifetime expiry closes an abandoned ready process and rejects a later commit
+Error: native_lock_process_lifetime_exceeded
+ ❯ Timeout.<anonymous> scripts/helpers/native-lock-process.ts:23:47
+     21|   const closed = new Promise<void>(resolve => { resolveClosed = resolv…
+     22|   const markerTimer = setTimeout(() => fail(Error(options.markerError)…
+     23|   const lifetimeTimer = setTimeout(() => fail(Error('native_lock_proce…
+       |                                               ^
+     24|
+     25|   function fail(error: Error) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/7]⎯
+
+
+ Test Files  4 failed | 53 passed (57)
+      Tests  7 failed | 1157 passed (1164)
+   Start at  12:13:54
+   Duration  1370.87s (transform 75.94s, setup 5.80s, import 140.62s, tests 2480.92s, environment 76ms)
+
+JSON report written to /workspace/gridex-ops-platform/quality/admin-consistency-2026-10-13/copy/full-suite-failures-escalated-results.json

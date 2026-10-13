@@ -1,0 +1,27 @@
+{
+  "sources": [
+    "lib/forecasting/meteringPointForecast.ts",
+    "lib/forecasting/forecastRuns.ts"
+  ],
+  "previousYearAndCurrentCanonicalKwh": 120,
+  "previousYearAndCurrentLegacyQuantityKwh": 1,
+  "item": {
+    "company_id": "company",
+    "forecast_run_id": "run",
+    "customer_id": "customer",
+    "site_id": "site",
+    "metering_point_id": "point",
+    "grid_owner_id": "owner",
+    "bidding_zone_code": "SE3",
+    "period_start": "2026-10-01",
+    "period_end": "2026-11-01",
+    "forecast_kwh": 120,
+    "actual_kwh": 120,
+    "diff_kwh": 0,
+    "diff_percent": 0,
+    "confidence_score": 95,
+    "method": "history",
+    "notes": ""
+  },
+  "safe": true
+}

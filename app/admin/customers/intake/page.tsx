@@ -12,7 +12,7 @@ import {
   listPriceAreas,
 } from "@/lib/masterdata/db";
 import { listContractOffers } from "@/lib/customer-contracts/db";
-import { getOperationalCompanyScope } from "@/lib/tenant/scope";
+import { resolveAdminTenantReadScope } from "@/lib/tenant/adminScope";
 import { getCompanyGoLiveSetupSummary } from "@/lib/ediel/platformGoLive";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,15 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
   const supabase = await createSupabaseServerClient();
   const { data: authResult } = await supabase.auth.getUser();
   const user = authResult.user;
-  const companyScope = await getOperationalCompanyScope(access.userId);
+  const companyScope = await resolveAdminTenantReadScope(access);
+  // Registration needs one selected company, even for a platform administrator.
+  const companyId = companyScope.isPlatformAdmin ? access.companyId : companyScope.companyId;
+  if (!companyId) {
+    return <div className="min-h-screen">
+      <AdminHeader title="Kundintag" subtitle="Registrera en kund eller importera flera kunder." userEmail={user?.email ?? null} />
+      <main className="p-4 sm:p-6"><p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">Välj ett bolag innan du registrerar eller importerar kunder.</p></main>
+    </div>;
+  }
 
   const [
     gridOwnersResult,
@@ -61,20 +69,20 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
       listElectricitySuppliers(supabase, {
         activeOnly: true,
         customerFlowOnly: true,
-        companyId: companyScope.companyId,
+        companyId,
       }),
     ),
     safeLoad("Prisområden", () => listPriceAreas(supabase)),
     safeLoad("Avtalserbjudanden", () =>
-      companyScope.companyId
+      companyId
         ? listContractOffers({
             activeOnly: true,
-            companyId: companyScope.companyId,
+            companyId,
           })
         : Promise.resolve([]),
     ),
-    companyScope.companyId
-      ? getCompanyGoLiveSetupSummary(companyScope.companyId)
+    companyId
+      ? getCompanyGoLiveSetupSummary(companyId)
       : Promise.resolve(null),
   ]);
   const gridOwners = gridOwnersResult.rows;
@@ -117,8 +125,7 @@ export default async function CustomerIntakePage({ searchParams }: { searchParam
           <CustomerActionsMenu ariaLabel="Fler vyer från kundintag"><Link href="/admin/contracts">Hantera avtalskatalog</Link></CustomerActionsMenu>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
-          Registrerar i <span className="font-semibold text-slate-950">{companyScope.companyName ?? "Bolagskoppling saknas"}</span>
-          {companyScope.message ? <p className="mt-1 font-medium text-amber-800">{companyScope.message}</p> : null}
+          Registrerar i <span className="font-semibold text-slate-950">{companyScope.companyName ?? "Valt bolag"}</span>
         </div>
         {loadWarnings.length > 0 ? (
           <section role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
