@@ -615,3 +615,112 @@ The report consistently limits this supplement to c1ef bytes on the stated offic
 No repeated healthy tests, SQL wrappers, CI reruns, backend/native/GEN/capture/original execution, source/ref/checkpoint/PR or producer actions were performed by this reviewer. This qualification may be reused by the existing owner only with explicit unchanged selected-source/dependency applicability and honest exclusion of physical/whole-card claims. A source, selection, runner or result change requires a bounded changed-evidence review.
 
 ````
+
+
+SC031 EXACT ONE-TEST CURRENT-TARGET ADOPTION SUPPORT: source remains remote3dff/d1a and own file refaa4 freshly authenticated; source writer PAUSED. Root used only temporary Git indexes/objects to calculate exact newtest-only overlays, no checkout/source/ref/CI/GEN change. Actual95d→99f1b98456cd0ddd702074a162b34041454d1658, public795894→5585f7875125c512ec7d9d0b5c3dfdf9468cb01a, hypothetical main95d+79589456af→11a998d1a57c38986dc0c6813bd807863de1c0c0. All9840/9838/9854 original leaf tuples preserved respectively; only100644blob0158559/SHA73265 newtest added. Source checkpoint EXCLUDED.
+
+TWO independent read-only integration helpers reproduced each overlay using in-memory Git tree reconstruction without object/index/checkout/ref writes. A e74aa79ca84197d078d45ac47c9f10727e758107f336dc750c92918fab0910a9 confirms exact single-leaf maps. B f6bf81fc8daa5ca1b26fcf788ec4cdd73236487bdea8e67d1fc94cc7e6b99745 independently compared all378 compiler-derived repo dependencies across efed→95d/894/56af:377mode/type/blob tuples identical, onlygeneratedtypes differs. Main95d exacttypes match prior finitevirtualtypes result; public894/56af exacttypes match new result594d8 (0diagnostics/1substitution). Source finalpeer3dff binding remains unchanged; new support assesses only newtargets and currenttypes. No healthytests/typecompilation/GEN/native repeated by peers. Root read bothfullreports.
+
+These derived trees are hypothetical source-adoption results, NOT actual commits/adoption/main/composedexecution/currentCI/environment/native/GEN/wholeSC031/merge qualification or custody transfer. No extra GEN required solely for adding this test: no SQL/generator/runtime/package/workflow/config/manifest/evidence tuple changed. Existing owner must qualify actual adopted source/fulltrackedinputmap/currentgates/peers and receiptmatched custody. Original16PASS/mutation-sensitive sourceproof and declaredpureports remain their own unchanged source binding; not promoted to wholecontract or real customer/ACK effects. New proof below preserves concrete exact source for bounded selective adoption, not another request/activebaseline/wholebranch import.
+
+Original ediel-helper-20261013-sc031-onefile-adoption.json SHA2560586e95b7df69ce76d03f93251812c87d1dfe287b356a0ea27883db49c0eebe3:
+
+````json
+{
+  "scope": "HYPOTHETICAL_ONE_OWNED_TEST_POSTIMAGE_ADOPTION_ONLY_NOT_COMPOSED_EXECUTION_CI_GEN_OR_MERGE",
+  "source": "3dff3dbd33888df02c25624f6d1074abb692646c",
+  "source_tree": "d1a044ec6cf6cbc8f1648dd4590828d5861ea10e",
+  "path": "__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts",
+  "mode": "100644",
+  "blob": "0158559ca824e2a89c98256afe90f5e5387aea8f",
+  "test_sha256": "7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d",
+  "checkpoint_excluded": true,
+  "targets": [
+    {
+      "target": "95d8d160491e79b172342654d8dc643346758105",
+      "target_tree": "fa5ab60527a40bd642749365fc275d1d4a69e277",
+      "target_original_leaf_count": 9840,
+      "one_test_overlay_tree": "99f1b98456cd0ddd702074a162b34041454d1658",
+      "delta": "A\t__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts",
+      "all_original_leaf_tuples_preserved": true
+    },
+    {
+      "target": "894b085ef22b48989375822beb5b483a356d10ed",
+      "target_tree": "99f4168315927d59107606d497b4a2a087f99d12",
+      "target_original_leaf_count": 9838,
+      "one_test_overlay_tree": "5585f7875125c512ec7d9d0b5c3dfdf9468cb01a",
+      "delta": "A\t__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts",
+      "all_original_leaf_tuples_preserved": true
+    },
+    {
+      "target": "56af2b2512f83182135d8fda96579a6088808367",
+      "target_tree": "56af2b2512f83182135d8fda96579a6088808367",
+      "target_original_leaf_count": 9854,
+      "one_test_overlay_tree": "11a998d1a57c38986dc0c6813bd807863de1c0c0",
+      "delta": "A\t__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts",
+      "all_original_leaf_tuples_preserved": true
+    }
+  ]
+}
+
+````
+
+Original ediel-helper-20261013-sc031-onefile-adoption-peer-a.md SHA256e74aa79ca84197d078d45ac47c9f10727e758107f336dc750c92918fab0910a9:
+
+````markdown
+# Independent one-file adoption support A
+
+**CONFIRMED hypothetical single-postimage overlays.** This is new target integration support, not repeated final-source review, actual adoption, composed execution, GEN qualification, current CI/native or merge approval.
+
+Reviewer `/root/sc031_outbound_peer_a` performed an independent algorithm without consulting peer B. Only this own `/tmp` report is written; no Git index, objects, refs, tracked files, checkout, claims or producer action.
+
+Source freeze `3dff3dbd33888df02c25624f6d1074abb692646c`, tree `d1a044ec6cf6cbc8f1648dd4590828d5861ea10e`. Exact unique test path `__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts`; mode `100644`, type `blob`, blob `0158559ca824e2a89c98256afe90f5e5387aea8f`, SHA256 `7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d`. Source entry and content hash independently read from Git.
+
+Algorithm: read recursive NUL-framed exact Git leaf maps; preserve every original mode/type/blob/path tuple; insert the one previously absent test entry; rebuild directory hierarchy and Git tree objects entirely in Python memory using Git tree ordering and SHA1 framing. Reconstructed each unmodified target first and matched its actual tree hash, then independently matched all three reported overlay hashes. No scratch index or Git object writes.
+
+| Target | Original tree | Original leaves | Derived one-test tree | Derived leaves |
+|---|---|---:|---|---:|
+| `95d8d160491e79b172342654d8dc643346758105` | `fa5ab60527a40bd642749365fc275d1d4a69e277` | 9840 | `99f1b98456cd0ddd702074a162b34041454d1658` | 9841 |
+| `894b085ef22b48989375822beb5b483a356d10ed` | `99f4168315927d59107606d497b4a2a087f99d12` | 9838 | `5585f7875125c512ec7d9d0b5c3dfdf9468cb01a` | 9839 |
+| `56af2b2512f83182135d8fda96579a6088808367` | `56af2b2512f83182135d8fda96579a6088808367` | 9854 | `11a998d1a57c38986dc0c6813bd807863de1c0c0` | 9855 |
+
+For every target, test path was absent; exactly one new leaf was added; all original tuples were byte-identical afterward. In particular target checkpoints, frozen rule/acceptance files, coverage/ledger, GEN inputs/evidence, runtime source, fixtures and workflow entries remain original target entries. Author checkpoint from source freeze is not included. No target entry or absent-directory state is replaced. Target `56af2b2512f83182135d8fda96579a6088808367` is a hypothetical combined TREE, not an authenticated commit or actual main.
+
+Root original `/tmp/ediel-helper-20261013-sc031-onefile-adoption.json` SHA256 `0586e95b7df69ce76d03f93251812c87d1dfe287b356a0ea27883db49c0eebe3` matches the independent derived values. This establishes mechanical single-file adoption compatibility on those immutable target trees. It does not establish execution applicability of all dependencies, rerun any test, authorize ID/ledger promotion or transfer custody. Existing source/producer/serial owner must perform any real coordinated adoption and current gates. No whole-SC031 or delivery count claim follows.
+
+````
+
+Original ediel-helper-20261013-sc031-onefile-adoption-peer-b.md SHA256f6bf81fc8daa5ca1b26fcf788ec4cdd73236487bdea8e67d1fc94cc7e6b99745:
+
+````markdown
+# Independent new-target applicability support B — unchanged SC031 component
+
+Verdict: SUPPORTED for bounded one-test source adoption on the three exact targets below, with explicit generated-type compatibility. No actionable source-applicability or overlay-preservation finding. This is not composed execution, current CI, target environment, native/GEN/backend/ACK, whole-SC031, or merge qualification.
+
+Reviewer `/root/sc031_outbound_peer_b` is a noncoauthor of the unchanged component source/test/fixtures and its execution proofs. I did not consult peer A. Read-only new-target/provenance review; sole write is this temporary report. No healthy-test/source re-review, compilation/type execution, original collection or producer work repeated. The earlier bounded final-source approval remains bound to source head `3dff3dbd33888df02c25624f6d1074abb692646c` / tree `d1a044ec6cf6cbc8f1648dd4590828d5861ea10e`, source base `efed3683115c06d1925f8b80c05c801a54db9885` / tree `dc439c2e017a9633471db53919b745f587abb67b`.
+
+## Exact one-file selection
+
+Only `__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts`: mode 100644, blob `0158559ca824e2a89c98256afe90f5e5387aea8f`, SHA256 `7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d`. Author checkpoint is excluded. No frozen requirement, runtime or ledger import is proposed.
+
+Inspected the actual compiler-derived graph generator and saved graph: TypeScript createProgram over the targeted test config records 379 repo paths, including the new test, hence 378 existing dependency paths. Independently compared Git mode/type/blob tuples for all 378 paths from source base to each target. All three retain 377 exact postimages; only `supabase/database.types.ts` differs. Selected engine, canonical outbound policy/matrix, profile/register renderers, serializer/envelope/tokenizer and their compiler-resolved repo dependencies are therefore unchanged within this graph. This is a compiler-resolved source/import compatibility statement; dynamic environment, external package resolution or runtime execution on the new targets is not inferred.
+
+## Targets and independently derived overlay trees
+
+- Actual-main target supplied: `95d8d160491e79b172342654d8dc643346758105`, tree `fa5ab60527a40bd642749365fc275d1d4a69e277`, 9840 original leaf tuples. Only-test overlay tree `99f1b98456cd0ddd702074a162b34041454d1658`.
+- Public GEN target: `894b085ef22b48989375822beb5b483a356d10ed`, tree `99f4168315927d59107606d497b4a2a087f99d12`, 9838 original leaf tuples. Only-test overlay tree `5585f7875125c512ec7d9d0b5c3dfdf9468cb01a`.
+- Hypothetical composed source tree: `56af2b2512f83182135d8fda96579a6088808367` (a tree object, not a published commit), 9854 original leaf tuples. Only-test overlay tree `11a998d1a57c38986dc0c6813bd807863de1c0c0`.
+
+For each target, independently inspected actual tree objects and verified every original leaf mode/type/blob tuple remains exact, with precisely one added new test path matching source selection. Additionally derived each original and overlay Git tree SHA1 recursively in memory from raw mode/name/blob entries. Computed original roots match the supplied target trees and overlay roots match all three receipts. No Git tree/index/commit/ref was written; these are hypothetical adoption descriptions, not created delivery commits.
+
+## Generated-type compatibility and provenance
+
+Source-base DB type blob is `f419a876f05843ff643db188451a9c6e3e0d3f4e`. Actual-main95d DB type blob is `e53d47718b389167a72bdd2fbe321bea9ca85f6e`, identical to the prior explicit 8e55/2e073 captured public type postimage. The prior preserved virtual TypeScript result declares one substituted source and diagnostics []. I independently verified the captured prior type file's Git blob hash e53; this supports reuse for 95d's identical selected type postimage within the unchanged graph, without claiming a new compile.
+
+894 and hypothetical56af use type blob `aaef46072c0d4ae93bf219b4e52e324bf509a011`. Independently compared captured `/tmp/ediel-helper-20261013-public-894-database.types.ts` bytes against exact public894 Git blob; they match. Read actual new virtual compiler runner: original targeted config and source host, one exact-path substitution for supabase/database.types.ts from that captured public file, getPreEmitDiagnostics, noEmit config, no generated source-file writes. Saved `/tmp/ediel-helper-20261013-sc031-894-type-results.json` declares source894, substituted=1, diagnostics=[]; SHA256 `594d8b2b5da6f0801b762668335e017622d190055a7502725292fbd7efde16ff`, independently verified. The same type postimage in hypothetical56af plus identical remaining graph permits the same bounded compatibility inference. I inspected these author outputs; I did not execute TypeScript or assert independently compiled target code.
+
+## Delivery limitations
+
+No new composed/current-main test execution or target package/environment qualification follows from tuple identity and the virtual type result. Existing finite 16/16 source proof remains exact-source evidence with explicit applicability; eventual owner must bind actual adopted candidate/source/base/tree, current mandatory checks, two independent final reviews and normal serial merge, respecting reserved producer/publication and custody boundaries. No ledger status change, whole SC031 credit or new publication authority follows from this report. Material change outside the stated selection or in the real future execution environment requires the owner to assess its impact before reusing the proof.
+
+````
