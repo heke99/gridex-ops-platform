@@ -3886,9 +3886,9 @@ BEGIN
    IF coalesce(cardinality(ids),0)<>1 THEN RETURN jsonb_build_object('applied',false,'reason','z05_accepted_relationship_baseline_required');END IF;
    SELECT * INTO sp FROM public.customer_supply_periods WHERE id=ids[1] AND company_id=m.company_id FOR UPDATE;
    SELECT * INTO origin FROM public.ediel_messages WHERE id=sp.source_message_id AND company_id=m.company_id AND environment=m.environment FOR SHARE;
-   original:=gridex_received_sources.supply_wire_v1(origin.raw_payload);
+   original:=gridex_received_sources.normal_switch_wire_v1(origin.raw_payload);
    IF original IS NULL OR original->>'code' IS DISTINCT FROM 'Z04' OR original->>'sender' IS DISTINCT FROM wire->>'sender' OR original->>'receiver' IS DISTINCT FROM wire->>'receiver'
-    OR NOT EXISTS(SELECT FROM jsonb_array_elements(original->'objects') o WHERE o->>'point'=own->>'point' AND o->>'customerIdentity'=own->>'customerIdentity' AND o->>'gridArea'=own->>'gridArea' AND gridex_received_sources.permission_time_v1(o->>'start')<event_at)
+    OR NOT EXISTS(SELECT FROM jsonb_array_elements(original->'objects') o WHERE o->>'point'=own->>'point' AND o->>'identityAgency'=own->>'identityAgency' AND o->>'customerIdentity'=own->>'customerIdentity' AND o->>'gridArea'=own->>'gridArea' AND gridex_received_sources.permission_time_v1(o->>'start')<event_at)
     OR (m.customer_id IS NOT NULL AND m.customer_id<>sp.customer_id) OR (m.metering_point_id IS NOT NULL AND m.metering_point_id<>sp.metering_point_id) THEN RETURN jsonb_build_object('applied',false,'reason','z05_original_object_mismatch');END IF;
    before_states:=before_states||jsonb_build_array(to_jsonb(sp));plans:=plans||jsonb_build_array(jsonb_build_object('kind','end','periodId',sp.id,'eventAt',event_at,'object',own));
   ELSE RETURN jsonb_build_object('applied',false,'reason','supply_profile_not_qualified');END IF;
@@ -37233,7 +37233,24 @@ begin
     and coalesce(user_role.status,'active')='active'
     and coalesce(user_role.is_active,true)
     and (user_role.company_id is null or user_role.company_id=v_selected_company_id)
-    and coalesce(role_permission.effect,'allow')='allow';
+    and coalesce(role_permission.effect,'allow')='allow'
+    -- Catalog and current DENY precedence match the canonical actor oracle.
+    -- Keep this list's original grants and historical/lifecycle semantics;
+    -- the operational actor oracle itself is not a history-read list filter.
+    and permission.is_active
+    and not exists(
+      select 1 from public.user_permissions d left join public.permissions p on p.id=d.permission_id
+      where d.user_id=v_user_id and (d.company_id is null or d.company_id=v_selected_company_id)
+        and d.is_active and d.status='active' and d.effect='deny'
+        and coalesce(nullif(d.permission_key,''),p.key)=permission.key
+    )
+    and not exists(
+      select 1 from public.user_permission_overrides d
+      where d.user_id=v_user_id and (d.company_id is null or d.company_id=v_selected_company_id)
+        and d.is_active and d.effect='deny' and d.permission_key=permission.key
+        and (d.valid_from is null or d.valid_from<=clock_timestamp())
+        and (d.valid_to is null or clock_timestamp()<d.valid_to)
+    );
 
   if v_selected_company_id is not null then
     select jsonb_build_object(
@@ -44277,12 +44294,40 @@ CREATE FUNCTION public.ediel_apply_supply_source_v1(p_company_id uuid, p_source_
     SET search_path TO 'pg_catalog'
     AS $$DECLARE m public.ediel_messages%rowtype;w jsonb;own jsonb;b jsonb;plans jsonb:='[]';r jsonb;prior boolean;BEGIN
  PERFORM gridex_supply_rescission.lock_original_v1();SELECT * INTO m FROM public.ediel_messages WHERE id=p_source_message_id AND company_id=p_company_id FOR UPDATE;IF m.id IS NOT NULL THEN PERFORM public.ediel_require_source_bytes_available_v1(m.company_id,m.id);END IF;w:=gridex_received_sources.normal_switch_wire_v1(m.raw_payload);
- IF m.direction='inbound' AND m.message_family='PRODAT' AND w->>'code'='Z05' AND EXISTS(SELECT FROM jsonb_array_elements(w->'objects') o WHERE gridex_supply_rescission.has_end_selector_v1(m,o)) THEN
+ IF m.direction='inbound' AND m.message_family='PRODAT' AND w->>'code'='Z05' AND EXISTS(SELECT FROM jsonb_array_elements(w->'objects') o WHERE (gridex_supply_rescission.has_end_selector_v1(m,o) OR (
+    o->>'reason'='Z22' AND EXISTS(
+     SELECT FROM gridex_supply_rescission.outbound_operations recorded
+     JOIN gridex_supply_rescission.mandates legal ON legal.id=recorded.mandate_id AND legal.company_id=recorded.company_id AND legal.environment=recorded.environment
+     JOIN public.ediel_messages saved_request ON saved_request.id=recorded.message_id AND saved_request.company_id=recorded.company_id AND saved_request.environment=recorded.environment
+     JOIN public.customer_supply_periods pending_period ON pending_period.id::text=legal.scope->>'periodId' AND pending_period.company_id=legal.company_id
+     WHERE recorded.company_id=m.company_id AND recorded.environment=m.environment
+      AND saved_request.direction='outbound' AND saved_request.message_family='PRODAT' AND saved_request.message_code='Z08'
+      AND saved_request.source_operation_id=legal.id::text AND saved_request.immutable_payload_hash=recorded.payload_hash
+      AND recorded.capability#>>'{objects,0,objectId}'=o->>'point' AND recorded.capability#>>'{objects,0,identityAgency}'=o->>'identityAgency'
+      AND legal.scope->>'externalPoint'=o->>'point' AND legal.scope->>'identityAgency'=o->>'identityAgency'
+      AND pending_period.customer_id::text=legal.scope->>'customerId' AND pending_period.metering_point_id::text=legal.scope->>'pointId'
+      AND pending_period.market_state_version::text=legal.scope->>'stateVersion'
+      AND pending_period.source_end_message_id IS NULL AND pending_period.market_end_at IS NULL
+    )))) THEN
   IF gridex_supply_rescission.actor_v1(p_company_id,p_actor_user_id,'archive') IS NOT TRUE THEN RAISE EXCEPTION 'supply_rescission_execution_actor_forbidden' USING ERRCODE='42501';END IF;
   IF EXISTS(SELECT FROM jsonb_array_elements(w->'objects') o WHERE(o->>'reason' IN('Z22','Z23','Z25')) IS NOT TRUE) THEN RETURN jsonb_build_object('applied',false,'reason','supply_rescission_whole_known_scope_required');END IF;
   prior:=EXISTS(SELECT FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=m.id AND company_id=m.company_id);
   IF prior THEN IF gridex_supply_rescission.recorded_end_current_v1(m.company_id,m.id) IS NOT TRUE THEN RAISE EXCEPTION 'supply_rescission_recorded_current_source_required';END IF;
-  ELSE FOR own IN SELECT o FROM jsonb_array_elements(w->'objects') o WHERE gridex_supply_rescission.has_end_selector_v1(m,o) LOOP b:=gridex_supply_rescission.matched_end_v1(m,w,own);IF b IS NULL THEN RAISE EXCEPTION 'supply_rescission_exact_sent_original_required';END IF;plans:=plans||jsonb_build_array(jsonb_build_object('object',own,'binding',b));END LOOP;END IF;
+  ELSE FOR own IN SELECT o FROM jsonb_array_elements(w->'objects') o WHERE (gridex_supply_rescission.has_end_selector_v1(m,o) OR (
+    o->>'reason'='Z22' AND EXISTS(
+     SELECT FROM gridex_supply_rescission.outbound_operations recorded
+     JOIN gridex_supply_rescission.mandates legal ON legal.id=recorded.mandate_id AND legal.company_id=recorded.company_id AND legal.environment=recorded.environment
+     JOIN public.ediel_messages saved_request ON saved_request.id=recorded.message_id AND saved_request.company_id=recorded.company_id AND saved_request.environment=recorded.environment
+     JOIN public.customer_supply_periods pending_period ON pending_period.id::text=legal.scope->>'periodId' AND pending_period.company_id=legal.company_id
+     WHERE recorded.company_id=m.company_id AND recorded.environment=m.environment
+      AND saved_request.direction='outbound' AND saved_request.message_family='PRODAT' AND saved_request.message_code='Z08'
+      AND saved_request.source_operation_id=legal.id::text AND saved_request.immutable_payload_hash=recorded.payload_hash
+      AND recorded.capability#>>'{objects,0,objectId}'=o->>'point' AND recorded.capability#>>'{objects,0,identityAgency}'=o->>'identityAgency'
+      AND legal.scope->>'externalPoint'=o->>'point' AND legal.scope->>'identityAgency'=o->>'identityAgency'
+      AND pending_period.customer_id::text=legal.scope->>'customerId' AND pending_period.metering_point_id::text=legal.scope->>'pointId'
+      AND pending_period.market_state_version::text=legal.scope->>'stateVersion'
+      AND pending_period.source_end_message_id IS NULL AND pending_period.market_end_at IS NULL
+    ))) LOOP b:=gridex_supply_rescission.matched_end_v1(m,w,own);IF b IS NULL THEN RAISE EXCEPTION 'supply_rescission_exact_sent_original_required';END IF;plans:=plans||jsonb_build_array(jsonb_build_object('object',own,'binding',b));END LOOP;END IF;
   r:=gridex_supply_rescission.confirm_end_v1(p_company_id,p_source_message_id,p_actor_user_id);IF r->>'applied'='true' AND NOT prior THEN PERFORM gridex_supply_rescission.record_end_v1(m,plans);END IF;
   IF gridex_supply_rescission.actor_v1(p_company_id,p_actor_user_id,'archive') IS NOT TRUE THEN RAISE EXCEPTION 'supply_rescission_post_write_actor_forbidden' USING ERRCODE='42501';END IF;
   IF r->>'applied'='true' AND gridex_supply_rescission.recorded_end_current_v1(m.company_id,m.id) IS NOT TRUE THEN RAISE EXCEPTION 'supply_rescission_post_write_current_source_required';END IF;
@@ -46044,6 +46089,24 @@ CREATE FUNCTION public.ediel_fresh_business_incident_access_v1(p_company_id uuid
 END $$;
 
 --
+-- Name: ediel_guard_received_h05_original_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_guard_received_h05_original_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF TG_OP<>'UPDATE' OR TG_TABLE_SCHEMA<>'public' OR TG_TABLE_NAME<>'ediel_messages' THEN
+  RAISE EXCEPTION 'ediel_h05_original_priority_owner_required' USING ERRCODE='23514';END IF;
+ IF NEW.raw_payload IS NOT NULL AND (NEW.raw_payload,NEW.direction) IS DISTINCT FROM (OLD.raw_payload,OLD.direction)
+  AND public.ediel_is_received_h05_original_v1(OLD)
+ THEN RAISE EXCEPTION 'ediel_registered_reception_original_immutable';END IF;
+ RETURN NEW;
+END
+$$;
+
+--
 -- Name: ediel_inbound_reception_request_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -46145,6 +46208,33 @@ CREATE FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.
  SELECT oldrow.raw_payload IS NOT NULL AND newrow.raw_payload IS NULL AND newrow.parsed_payload='{}'::jsonb AND newrow.validation_report='{}'::jsonb AND coalesce(newrow.metadata,'{}')='{}'::jsonb
  AND (to_jsonb(oldrow)-ARRAY['raw_payload','parsed_payload','validation_report','metadata','updated_at']) IS NOT DISTINCT FROM (to_jsonb(newrow)-ARRAY['raw_payload','parsed_payload','validation_report','metadata','updated_at'])
  AND EXISTS(SELECT FROM gridex_ediel_retention.blob_tombstones t WHERE t.retention_class='received_ediel_message_content' AND t.target_id=oldrow.id AND t.company_id=oldrow.company_id AND t.source_hash=encode(sha256(convert_to(oldrow.raw_payload,'UTF8')),'hex') AND t.public_content_hash=encode(sha256(convert_to(gridex_ediel_retention.public_content_v1(oldrow)::text,'UTF8')),'hex'))
+$$;
+
+--
+-- Name: ediel_is_received_h05_original_v1(public.ediel_messages); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_is_received_h05_original_v1(m public.ediel_messages) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+ SELECT coalesce(m.direction='inbound' AND m.message_standard='edifact' AND m.message_family='PRODAT' AND m.message_code='Z05'
+  AND m.raw_payload IS NOT NULL AND m.immutable_payload_hash=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+  AND m.execution_context_snapshot#>'{receivedProdatContext,version}'='1'::jsonb
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,contextOrigin}'='database_insert'
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,sourceMessageId}'=m.id::text
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,companyId}'=m.company_id::text
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,environment}'=m.environment
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,messageCode}'=m.message_code
+  AND m.execution_context_snapshot#>>'{receivedProdatContext,payloadHash}'=m.immutable_payload_hash
+  AND EXISTS(SELECT FROM gridex_ediel_inbound_receptions.receptions r WHERE r.source_message_id=m.id AND r.company_id=m.company_id AND r.environment=m.environment AND r.canonical_payload_hash=m.immutable_payload_hash)
+  AND EXISTS(SELECT FROM gridex_ediel_inbound_context.receipts basis JOIN public.ediel_messages original ON original.id=basis.source_message_id AND original.company_id=basis.company_id WHERE basis.source_message_id=m.id
+   AND ROW(original.company_id,original.environment,original.direction,original.message_standard,original.message_family,original.message_code,original.raw_payload,original.sender_ediel_id,original.receiver_ediel_id,original.application_reference,original.interchange_reference,original.mailbox_message_id,original.immutable_payload_hash,original.message_received_at,original.execution_context_snapshot->'receivedProdatContext')
+    IS NOT DISTINCT FROM ROW(m.company_id,m.environment,m.direction,m.message_standard,m.message_family,m.message_code,m.raw_payload,m.sender_ediel_id,m.receiver_ediel_id,m.application_reference,m.interchange_reference,m.mailbox_message_id,m.immutable_payload_hash,m.message_received_at,m.execution_context_snapshot->'receivedProdatContext')
+   AND basis.status='ready' AND basis.company_id=m.company_id AND basis.environment=m.environment AND basis.direction=m.direction
+   AND basis.source_received_at=m.message_received_at AND basis.payload_sha256=m.immutable_payload_hash
+   AND basis.context @> jsonb_build_object('basisKind','observed_source_persistence','companyId',m.company_id,
+    'environment',m.environment,'direction','inbound','family','PRODAT','code','Z05','subtype','H')),false)
 $$;
 
 --
@@ -62679,6 +62769,14 @@ begin
     v_offer_reference,
     case when v_customer_type = 'association' then null else v_customer_type end
   );
+  -- Verify the offer selected inside this transaction before any customer/site/contract insert.
+  if not coalesce(v_offer->>'energy_direction' in ('consumption', 'production'), false) then
+    raise exception using errcode='22023', message='partner_api_offer_direction_unavailable';
+  end if;
+  if v_offer->>'energy_direction' is distinct from v_site_type then
+    raise exception using errcode='22023', message='partner_api_site_offer_direction_mismatch';
+  end if;
+
   v_publication_version_id := (v_offer->>'publication_version_id')::uuid;
   v_contract_product_version_id := (v_offer->>'contract_product_version_id')::uuid;
   v_contract_product_id := (v_offer->>'contract_product_id')::uuid;
@@ -72102,15 +72200,16 @@ end $$;
 
 CREATE FUNCTION public.gridex_grid_owner_name_key(p_name text) RETURNS text
     LANGUAGE sql IMMUTABLE PARALLEL SAFE
+    SET search_path TO 'public', 'pg_temp'
     AS $_$
   select regexp_replace(
     regexp_replace(
       regexp_replace(lower(btrim(coalesce(p_name, ''))), '[^a-z0-9åäö]+', ' ', 'g'),
-      '\\s+(ab|aktiebolag)$',
+      '\s+(ab|aktiebolag)$',
       '',
       'g'
     ),
-    '\\s+',
+    '\s+',
     '',
     'g'
   );
@@ -150038,6 +150137,12 @@ CREATE TRIGGER ediel_00_lock_prodat_ack_scope BEFORE INSERT ON public.ediel_mess
 CREATE TRIGGER ediel_00_reference_profile_bounds BEFORE INSERT OR UPDATE OF raw_payload ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_ediel_ack_guide.require_reference_profile_before_birth_v1();
 
 --
+-- Name: ediel_messages ediel_00_registered_h05_original_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER ediel_00_registered_h05_original_immutable BEFORE UPDATE OF raw_payload, direction ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION public.ediel_guard_received_h05_original_v1();
+
+--
 -- Name: ediel_messages ediel_00_unused_unh_guide; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -195948,6 +196053,13 @@ REVOKE ALL ON FUNCTION public.ediel_fresh_business_incident_access_v1(p_company_
 GRANT ALL ON FUNCTION public.ediel_fresh_business_incident_access_v1(p_company_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION ediel_guard_received_h05_original_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_guard_received_h05_original_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_guard_received_h05_original_v1() TO service_role;
+
+--
 -- Name: FUNCTION ediel_inbound_reception_request_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_inbound_email_message_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -196012,6 +196124,13 @@ GRANT ALL ON FUNCTION public.ediel_is_qualified_process_retention_transition_v1(
 REVOKE ALL ON FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.ediel_messages, newrow public.ediel_messages) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.ediel_messages, newrow public.ediel_messages) TO authenticated;
 GRANT ALL ON FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.ediel_messages, newrow public.ediel_messages) TO service_role;
+
+--
+-- Name: FUNCTION ediel_is_received_h05_original_v1(m public.ediel_messages); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_is_received_h05_original_v1(m public.ediel_messages) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_is_received_h05_original_v1(m public.ediel_messages) TO service_role;
 
 --
 -- Name: FUNCTION ediel_link_vh_history_request_v1(p_company_id uuid, p_permission_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_transaction_id text, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
