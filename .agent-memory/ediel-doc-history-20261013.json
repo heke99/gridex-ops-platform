@@ -1,0 +1,163 @@
+{
+  "kind": "IMMUTABLE_DOCUMENT_HISTORY_NOT_ACTIVE_DISPATCH",
+  "sourceCommit": "51f5fa5e80c42350d697bfed42520672749d4467",
+  "sourceTree": "276b661120d5e0b69abc2090439809d5c4528e33",
+  "purpose": "Originalbytes före rensning av aktiva instruktioner. Återställ endast relevant historik; antal, roller, next-actions och runtimekommandon ger inga aktuella uppdrag.",
+  "originals": [
+    {
+      "path": ".agent-memory/README.md",
+      "sha256": "80a5349681f841f851a640872ffa32db4143f63be7468d208dc07b1adbc3e7fa",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/README.md"
+    },
+    {
+      "path": ".agent-memory/checkpoint.json",
+      "sha256": "c037c4326870427924918da3011d5fbcd63bf654b92bc0b9950256fa068e9b9c",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/checkpoint.json"
+    },
+    {
+      "path": ".agent-memory/completed-work.md",
+      "sha256": "034a911f1277ebe4175ffbdc829a62bf5f3c9ab8c58cb433225b3fec2f6122c0",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/completed-work.md"
+    },
+    {
+      "path": ".agent-memory/current-state.md",
+      "sha256": "73fd3823c3868e595b2548d07447e7843ef9a00158e1829386fcab449725d7e1",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/current-state.md"
+    },
+    {
+      "path": ".agent-memory/current-task.md",
+      "sha256": "60a0e0e41dfdb86c766a145becfdffdd22b2703b2cf52b4efa5999dfb938fbb1",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/current-task.md"
+    },
+    {
+      "path": ".agent-memory/decisions.md",
+      "sha256": "a4a767d5bbfa1e2ea5edd786578640bbc13099426c715e6a0cd80e419bc13f33",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/decisions.md"
+    },
+    {
+      "path": ".agent-memory/handover.md",
+      "sha256": "8a0aefae3969eb6932586ccaab2370a1c97ab1eb360cbfd638451d731e5655fe",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/handover.md"
+    },
+    {
+      "path": ".agent-memory/known-failures.md",
+      "sha256": "5418a69e3cba8948b19944d2236109688e89bc802c6f60b017d7f5111e04930f",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/known-failures.md"
+    },
+    {
+      "path": ".agent-memory/masterplan-agent-workflow.md",
+      "sha256": "57263a26e6bc5d0c1097622d9c29dd73b104a7f5fdf1034f7a484d0700d2c8b8",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/masterplan-agent-workflow.md"
+    },
+    {
+      "path": ".agent-memory/masterplan-coordinator-20261012-checkpoint.md",
+      "sha256": "a853b5df2cdd1c5344d8db096ce9f3d22d29a4c4bfcf6c5e769990dbff4693f9",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/masterplan-coordinator-20261012-checkpoint.md"
+    },
+    {
+      "path": ".agent-memory/masterplan-current-start.md",
+      "sha256": "4c7c4c1ef5d0636253f563294604564ef2c730caa4b1f4cc8d851d0209848c88",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/masterplan-current-start.md"
+    },
+    {
+      "path": ".agent-memory/masterplan-five-agent-baseline-20261012.md",
+      "sha256": "e3b4784704745c57a4380273bdf2f9af89afeaa3e3b680c32b121e8465e23bb1",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/masterplan-five-agent-baseline-20261012.md"
+    },
+    {
+      "path": ".agent-memory/masterplan-five-agent-prompt-20261012.md",
+      "sha256": "663d531392967cb365c557159b6b76069d078e96452411ff7fcf626de60a2823",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/masterplan-five-agent-prompt-20261012.md"
+    },
+    {
+      "path": ".agent-memory/masterplan-five-agent-transition-20261012.md",
+      "sha256": "2bcf9d8ff498cfa30f263d0609d7d6dcd2e1476c41af9e1c3851e638402a175b",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/masterplan-five-agent-transition-20261012.md"
+    },
+    {
+      "path": ".agent-memory/masterplan-reservations.md",
+      "sha256": "3322b44b43b65e0bd47200d303364a6f9d21590f983422f5d6170ca808f5bd48",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/masterplan-reservations.md"
+    },
+    {
+      "path": ".agent-memory/masterplan-work-queue.md",
+      "sha256": "399c39169cfb8dfd05ab1bc2f251a6e22ca609bb50bfb12c17a3a203d62b18b2",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/masterplan-work-queue.md"
+    },
+    {
+      "path": ".agent-memory/next-actions.md",
+      "sha256": "ac41b3cd680419861603d01f8abe8f09f28ead8de828dd21766d2f4b9630a160",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/next-actions.md"
+    },
+    {
+      "path": ".agent-memory/open-blockers.md",
+      "sha256": "3078b532d04ba7415991880bea3754a87bf927d40d0a4332bbef65bb092935b5",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/open-blockers.md"
+    },
+    {
+      "path": ".agent-memory/recent-changes.md",
+      "sha256": "69f0ee6e56fa59ecb789548c5c36c599981ee53b0c1ab13383c943d87992db7f",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/recent-changes.md"
+    },
+    {
+      "path": ".agent-memory/session-log.md",
+      "sha256": "f244549e2241e72dba4d9046ae40ff6d5ae8c4b162acb8be9a6947fc0369872d",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/session-log.md"
+    },
+    {
+      "path": ".agent-memory/verification-matrix.md",
+      "sha256": "b96f288548bf050f9fd9f882f7ec647f415c382b78f60abafa57f3f888d78fb1",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/verification-matrix.md"
+    },
+    {
+      "path": ".agent-memory/work-plan.md",
+      "sha256": "976bd9155dd9ef80523c4329e2747566c57e04dd11a012a8f378a8b9b6337639",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/work-plan.md"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "373097c13a33853cca8014a3cf05391e8c40470bcf168fd89e849d07bc0743e1",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/AGENTS.md"
+    },
+    {
+      "path": "README.md",
+      "sha256": "c9cf8c5a3f49bc3c15fa1ac4e7e835c7f6ca5d23b893eebf1d2c8d9ab671897e",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/README.md"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-10-masterplan-cleanup-handoff.md",
+      "sha256": "17e8c27ce4b55027adbdd73ed7723fb5e2674e05f4b6adcbaca0d6bee6b200fb",
+      "sourceUrl": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/docs/superpowers/plans/2026-10-10-masterplan-cleanup-handoff.md"
+    }
+  ],
+  "protectedUnchanged": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "sha256": "4a1560a0b16ae37d68aa30c5f67ef616a516c5306e29edf4269b7b1fa9fea850"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10"
+    },
+    {
+      "path": ".agent-memory/masterplan-five-agent-baseline-20261012.json",
+      "sha256": "cb2f34962666768c6790941fc59cee312c16950d7a10b51155a0690be11b068b"
+    },
+    {
+      "path": ".agent-memory/masterplan-five-agent-pr-inventory-20261012.json",
+      "sha256": "e124c69c5341eca800d3f73d930f3d37b413cf2571b37157c692b8afdace35d5"
+    },
+    {
+      "path": ".agent-memory/masterplan-five-agent-retired-memory-index-20261012.json",
+      "sha256": "fc271fb40bf1b3201d789b535bf49dcd5a1ded237a7e3a96d45b2e92477fb05e"
+    },
+    {
+      "path": ".agent-memory/masterplan-ops03-checkpoint.md",
+      "sha256": "2bb3087bf40d2746b89017e833d4caccfb0d9dca63a6022169e54ef0885ad600"
+    }
+  ]
+}

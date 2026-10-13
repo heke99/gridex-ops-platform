@@ -1,11 +1,8 @@
-# Work plan — rootledd seriell leverans
+# Work plan — en ägare, ett paket
 
-1. Läs faktisk main, PR-head, frysta egna kriterier och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). [Full rootauktoritet](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132656380) stoppar tidigare writers/mergers; [specifik ny GEN114e](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132691871) är bevarad enda capturetjänst.
-2. Fortsätt befintlig aktuell delegation: root C1 (786 levererad); R1a0; C3 225/58cb; C2-implementation60cc; R2/docsf99. Kontrollera exakta fil-/ID-/producentrefs före write; ingen andra writer eller originalinsamlare.
-3. Konsumera kvalificerad #792c3d-output för exakta787ac59 och slutliga788be2. Root/R1 komponerar egna källbärare och genomför vardera ett nytt affected originalnative. Bevara alla tidigare assertions, originalbevis och legal-/provider-/LIVE-gränser.
-4. 785 och786 är levererade; leverera redo791 genom root först när finalhead-gates, två icke-medförfattande peers och aktuellt main-träd/evidens styrks. Faktisk785leverans flyttade endastTR08 tillVERIFIED/315; OPS04/AT-TR08 är oförändrade.
-5. C2-implementation färdigställer #784:s fysiska ERR-prov och #790:s kompatibilitetsrättning. Nästa GEN-input går seriellt till114e; gamlaESCOoutput och manifestgrenar importeras inte blint.
-6. Root ensam tar role-merge för normal expected-head-leverans, autentiserar faktisk PR/main/föräldrar/träd/ledger och släpper egen mergeroll först. Endast rätt receiptbundna egna resurser frigörs därefter. #787/#788 kan markeras ersatta först efter levererad792 och källidentitet.
-7. Skriv eget checkpoint/#766 efter meningsfull övergång. Delade tio791-dokument kräver leveransdelegatens exactfilecustody och ownrole-memory; släpp memoryrollen först före CI-väntan. Den skrivande delegaten räknas inte bland sina två finalpeers.
-
-315/352 är main vid denna observation. Extern retention/motpart/LIVE begränsar helgodkännande och #310 förblir PAUSED. Originalhistorik bevaras; avslutad källgranskning, capture-only, modellerat PASS och CI är separata från hela frysta ID.
+1. Läs [current start](masterplan-current-start.md), faktisk main/ledger/frysta krav, aktuellt PR-head och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). Filtrera bort godkända och aktivt ägda uppgifter.
+2. Fortsätt befintlig explicit delegation. Read-only granskare kan hjälpa direkt; writes kräver bounded exact-file-handoff och verifierad egen custody. Daterade baslinjer ger inga nya claims.
+3. Kvalificera konkreta blockerare i [current task](current-task.md)/[open blockers](open-blockers.md) med befintlig producent/insamlare. Ingen extra GEN/native/backend/originalsamling eller blind rerun.
+4. Bind relevant genuint underlag, två oberoende slutreviews och alla obligatoriska gates till exakt sluthead/source/base/tree. Oförändrade original kan återanvändas med uttrycklig applicability.
+5. Befintlig seriell leveransägare gör normal expected-head merge. Verifiera PR-state, ordered parents/tree och faktisk ledger innan godkännandeökning rapporteras. Inga counter-only pushes eller foreign refreleases.
+6. Dokumentera faktisk leverans och nästa steg. Delat minne kräver egen role-memory och exactfilecustody; egen mergeroll släpps först. Pensionerade agenter, gamla pausade automationer och #310 förblir stoppade/pausade.

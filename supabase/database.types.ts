@@ -95493,6 +95493,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      ediel_link_vh_history_request_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+          p_permission_id: string
+          p_request_id: string
+          p_site_id: string
+          p_transaction_id: string
+        }
+        Returns: Json
+      }
       ediel_list_business_acks_for_source_v1: {
         Args: {
           p_ack_family?: string
@@ -97332,6 +97344,14 @@ export type Database = {
           p_actor_id: string
           p_actor_user_id: string
           p_route_id?: string
+        }
+        Returns: Json
+      }
+      ediel_vh_history_delivery_audit_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_permission_id: string
         }
         Returns: Json
       }

@@ -1,9 +1,8 @@
 # Gridex OPS platform
 
-## Aktuell Ediel-baslinje — fem nya agenter
+## Aktuellt Ediel-arbete
 
-[Starta här](.agent-memory/masterplan-five-agent-baseline-20261012.md) och använd [Claude-/Codex-prompterna](.agent-memory/masterplan-five-agent-prompt-20261012.md). Användaren har pensionerat gamla agenter; alla205 gamla claims är verifierat frigivna och13 gamla förslag bevarade som slutna donorkällor.314/352krav godkända,38 kvar. Nyaagenter får egna reservationer för uppdrag/ID/filer/producenter och behöver inte hitta tidigare ägare. Extra granskare med läsbehörighet och avgränsade agenter som hjälper med kod är välkomna.
-
+[Starta här](.agent-memory/masterplan-current-start.md). [Coverage på faktisk main](quality/audits/ediel-masterplan-v2/coverage.json) är enda godkännandeledgern; senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) och verifierade claims styr ägarskap och nästa steg. [Gemensam Claude-/Codex-prompt](.agent-memory/masterplan-five-agent-prompt-20261012.md) gäller både nya granskare och fortsättande agenter. Tidigare baslinjer, antal och rollprompter är historik. Befintliga ägare behåller sina scopes; extra granskare hjälper read-only och rättar först efter avgränsad filöverlämning.
 
 Gridex OPS is the multi-tenant operations platform for electricity companies:
 customer, contract, pricing, customer-portal, customer-service and staff

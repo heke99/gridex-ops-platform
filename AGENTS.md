@@ -12,16 +12,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 This is a long-lived production project.
 
-## Ediel — five NEW agents, user decision2026-10-12
+## Ediel — aktuell start och samarbete
 
-Read [.agent-memory/masterplan-five-agent-baseline-20261012.md](.agent-memory/masterplan-five-agent-baseline-20261012.md) first. The user explicitly retires ALL previous Ediel agents and assigns the remaining work to five NEW agents. [OWNER_STOP](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122223028) and [verified administrative release of205oldclaims](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122307591) are the completed handover; new agents do not contact/wait for former owners.
+Läs [.agent-memory/masterplan-current-start.md](.agent-memory/masterplan-current-start.md), faktisk main och [coverage.json](quality/audits/ediel-masterplan-v2/coverage.json), sedan senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). Daterade baslinjer och tidigare rollprompter är historik; deras antal och ägaruppgifter är inga aktuella uppdrag.
 
-- R1: DB-05. R2: TR-08+OPS-04. C1:13 L/LK/C/timingcontracts; C2:10 ESCO/meteringcontracts and sole serial GEN-service; C3:12 H/F/G/BRP/intake/externalcontracts. Exact disjoint IDs/frozencriteria are in the baselineJSON.
-- Create new branch/packet/identity/sourceepoch, claim own slot and next-packet ID/exactfiles/producerresources, GET_MATCH and CLAIM/#766 beforecode. All old open proposals are closed preserved donors. No late old code/CI or unknown private draft qualifies newwork.
-- Extraagents can join granskning med läsbehörighet immediately and fix after exactfilehandoff within the NEWepoch. One writer/file and one producer/source. Two independentnon-coauthorreviews perfinalhead; code/test/fixture/proof/GENhelpers are coauthors and replaced asfinalpeers.
-- Use isolated new backends/inputepochs. The old two enabled Ediel automations are paused, and no activelegacyActions was observed; physicalprivateClaude termination is not claimed. SharedLIVEservice needs faktiskt avslutad gammal producent and explicitmandate.
-- Currentcoverage314/352with3rules+35contractsremaining. Same-main later scheduledE2EFAILURE retained. Frozenregister/security/legal/provider/LIVE/#310PAUSED/currentCI/normalmergegates stay unchanged; gammalt självval/two-ID/fixedrole/ownerwait instructions are superseded.
-- One startpoint/sharedprompt, oneapprovalledger and one activeboard#766. Prior checkpoints/statusfiles are indexed in immutableGit history, not activeassignments. Relevant originalproof and all sourcebranches are preserved.
+- Godkända regler räknas endast från VERIFIED och kontrakt från PASSED på faktisk main. Välj inte redan godkända eller aktivt ägda ID.
+- Befintliga ägare fortsätter enligt senaste uttryckliga handoff och verifierade refs. En ny agent börjar med read-only granskning och tar inget slot-/fil-/producentägarskap från en gammal prompt.
+- En skrivare per fil och en producent/insamlare per källa. Kod- och dokumenträttningar i aktivt ägd scope kräver avgränsad exact-file-handoff och verifierad egen custody före write. Delat minne kräver role-memory och exakt filcustody.
+- Den befintliga seriella leveransägaren kontrollerar normala main-merges. Aktuellt exakt PR-head/source/base/tree, alla obligatoriska kontroller, relevant genuint underlag och två oberoende slutgranskare krävs. En medförfattare granskar inte sin egen slutversion.
+- GEN, native, backend och originalinsamling sker endast hos befintlig kvalificerad producent. Ingen dubblering, blind CI-rerun, global refstädning eller gateförsvagning. Gamla kvalificerade original återanvänds med uttrycklig source-applicability.
+- Pensionerade agenter och tidigare pausade automationer förblir pensionerade/pausade. Privat processterminering påstås inte. #310 och befintliga behörighets-/provider-/LIVE-gränser bevaras.
+- [Gemensam prompt](.agent-memory/masterplan-five-agent-prompt-20261012.md), [workflow](.agent-memory/masterplan-agent-workflow.md) och [reservationsprotokoll](.agent-memory/masterplan-reservations.md) används tillsammans med senaste #766. Historiska beslut och originalbevis återställs endast vid relevant behov.
 
 Before every non-trivial task:
 
@@ -37,9 +38,10 @@ Before every non-trivial task:
 10. Search `.agent-memory/known-failures.md`.
 11. Inspect `git status` and `git diff` when Git metadata is available.
 12. Inspect the actual implementation.
-13. For Masterplan work, read the five-agent baseline/transition/prompt, workflow/reservations,
-    your own new checkpoint, current #766 receipts and actual slot/ID/file/producer refs.
-    Restore only relevant immutable donor/history evidence before selecting the next packet.
+13. For Masterplan work, read current start/shared prompt, workflow/reservations,
+    your applicable checkpoint, latest #766 receipts and actual slot/ID/file/producer refs.
+    Read dated baseline/transition only as donor/history evidence; never derive a fresh
+    active assignment or producer mandate from them.
 14. Continue from the recorded next action.
 
 Do not restart completed work because chat context is missing. Code, current
@@ -281,19 +283,15 @@ Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-
    remaining partial cards.
 7. **Shared work:** before starting a cluster, check open PRs and
    `.agent-memory/handover.md` so two sessions never fix the same thing.
-8. **Assigned new-agent slots and reservations:** use the explicit R1/R2/C1/C2/C3
-   allocation in the five-agent baseline. Old agent identities and their producer
-   mandates are retired by the owner's verified administrative handover. New agents
-   do not wait for former owners. Claim a new slot and the next coherent packet's
-   IDs, exact files and applicable producer resources using the atomic protocol.
-   Require the new epoch, CREATE_IF_ABSENT, GET_MATCH and CLAIM before code.
-   Additional reviewers may join read-only; fixing helpers need a bounded file
-   handover between new agents. Keep one writer per file and one producer per source.
-   READY and CI_GREEN must refer to the exact current candidate; MERGED only follows
-   authenticated delivery. Use role-merge for serial expected-head delivery and
-   role-memory plus exact file custody for shared summaries. Never edit an
-   unclaimed coverage row. Finish delivery/handover, documentation and receipt-bound
-   resource release before choosing the next packet within the assigned slot.
+8. **Current assignments and reservations:** follow the latest explicit owner
+   handoff and verified exact refs on #766. R1/R2/C1/C2/C3 are historical scope
+   labels, not automatically free slots. Additional reviewers may join read-only;
+   writers require a bounded handoff and verified own custody before writes.
+   Preserve one writer per file and one producer per source. READY and CI_GREEN
+   bind the current exact candidate; MERGED requires authenticated normal delivery.
+   Use role-merge for serial expected-head delivery and role-memory plus exact file
+   custody for shared summaries. Never edit an unclaimed coverage row or release
+   foreign resources. Finish current delivery/handoff before choosing another packet.
 9. **Mandatory documentation before more work:** each agent records what it
    claimed, what it completed, exact commit/verification, blockers/dependencies
    and its next action before starting and after each meaningful transition.

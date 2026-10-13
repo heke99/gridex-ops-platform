@@ -3,13 +3,19 @@
 // positive Z02 apply at job_insert, facility-lookup completion and site
 // creation. The forward migration replaces the three writers with their
 // current definitions minus those writes only.
-import { readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { describe, expect, it } from 'vitest'
 
 const root = process.cwd()
 const MIGRATION = 'supabase/migrations/20261012190000_ediel_z02_generated_facility_id_write.sql'
+const FOLLOWUP = 'supabase/migrations/20261012231000_ediel_z02_original_grid_refusal.sql'
+const CORE = 'gridex_received_sources.gridex_apply_exact_z02_core_before_current_source_v1('
+const CORE_BEFORE = 'aefd46d0c8e38ae7a2451da307f430f9379bcccc20e7da48c1df1ad7b94ed27a'
+const CORE_AFTER = 'b0f3c17dd3fc013bdad0c1ab5d8f67a71bdd2fbbd4cfc502a1b0c051e4d9de74'
+const sha256 = (value: string) => createHash('sha256').update(value).digest('hex')
 const ASSIGNMENT = /\n[ \t]*normalized_facility_id[ \t]*=[ \t]*coalesce\(v_facility_id,[ \t]*normalized_facility_id\),[ \t]*(?=\n)/
 
 function dropSiteInsertIsActive(body: string): string {
@@ -40,6 +46,30 @@ function body(sql: string, prefix: string, signature: string): string {
   return sql.slice(start + prefix.length, end + tag.length + 3)
 }
 
+// The subsequent guarded forward adds only original-grid refusal and the
+// proven Z01 relation. Reverse exactly those two reviewed patches so this
+// earlier generated-column invariant still compares every other byte.
+function beforeReviewedCoreForward(current: string, signature: string): string {
+  if (signature !== CORE || !existsSync(path.join(root, FOLLOWUP))) return current
+  const source = current.match(/AS (\$[^$]*\$)([\s\S]*?)\1;/)?.[2]
+  expect(source, 'current core source').toBeDefined()
+  if (sha256(source!) !== CORE_AFTER) return current
+  const followup = readFileSync(path.join(root, FOLLOWUP), 'utf8')
+  const patchValue = (name: string) => {
+    const value = followup.match(new RegExp(`v_${name} constant text := \\$patch\\$([\\s\\S]*?)\\$patch\\$;`))?.[1]
+    expect(value, `reviewed ${name}`).toBeDefined()
+    return value!
+  }
+  let prior = source!
+  for (const kind of ['grid', 'link']) {
+    const patch = patchValue(`${kind}_patch`), original = patchValue(`${kind}_anchor`)
+    expect(prior.split(patch), `exactly one ${kind} patch`).toHaveLength(2)
+    prior = prior.replace(patch, original)
+  }
+  expect(sha256(prior), 'all other core source bytes preserved').toBe(CORE_BEFORE)
+  return current.replace(source!, prior)
+}
+
 describe('Z02 generated customer_sites column writes (428C9)', () => {
   it('PostgreSQL rejects explicit writes to generated columns but derives them from facility_id/status', async () => {
     const db = new PGlite()
@@ -66,10 +96,11 @@ describe('Z02 generated customer_sites column writes (428C9)', () => {
     expect(migration.match(/^(BEGIN|COMMIT);$/gm)).toEqual(['BEGIN;', 'COMMIT;'])
     expect(migration.match(/^CREATE\b.*$/gm)).toEqual(FUNCTIONS.map(({ signature }) => expect.stringContaining(`CREATE OR REPLACE FUNCTION ${signature}`)))
     for (const { signature, fix } of FUNCTIONS) {
-      const current = body(schema, 'CREATE FUNCTION', signature)
+      const current = beforeReviewedCoreForward(body(schema, 'CREATE FUNCTION', signature), signature)
       const replaced = body(migration, 'CREATE OR REPLACE FUNCTION', signature)
       expect(ASSIGNMENT.test(replaced), `migration ${signature} assigns normalized_facility_id`).toBe(false)
-      // Before GEN, schema.sql holds the old body; after C2's re-capture it holds the fixed one.
+      // Before GEN the old source may remain; authentic GEN may also contain
+      // the separately reviewed forward, whose only two patches are reversed above.
       expect(replaced === current || replaced === fix(current), `${signature} drift`).toBe(true)
       const insert = replaced.indexOf('insert into public.customer_sites')
       if (insert >= 0) expect(replaced.slice(insert, replaced.indexOf(') values (', insert))).not.toMatch(/\bis_active\b/)

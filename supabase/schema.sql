@@ -365,6 +365,12 @@ CREATE SCHEMA gridex_utilts_binding;
 CREATE SCHEMA gridex_utilts_issuer;
 
 --
+-- Name: gridex_vh_history; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_vh_history;
+
+--
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -23860,6 +23866,7 @@ BEGIN
 
   ELSE
    IF p_validate_only THEN RETURN jsonb_build_object('qualified',true);END IF;
+   IF mode='S18' THEN PERFORM gridex_received_sources.close_vh_history_delivery_v1(m.company_id,p.id,m.id,p_actor_user_id,wire,p_canonical_id,p_scopes);END IF;
    FOR a IN SELECT o FROM jsonb_array_elements(wire->'objects') o LOOP
     end_day:=gridex_received_sources.permission_date_v1(a->>'permissionEnd');end_time:=gridex_received_sources.permission_time_v1(a->>'permissionEnd');
     UPDATE public.metering_permission_sites SET end_date=CASE WHEN end_at IS NULL OR end_time<end_at THEN end_day ELSE end_date END,end_at=least(end_at,end_time),permission_end_at=end_time,status=CASE WHEN end_time>now() THEN status ELSE 'ended' END,updated_at=now()
@@ -23894,6 +23901,8 @@ BEGIN
  SELECT to_jsonb(mp) INTO after_state FROM public.metering_permissions mp WHERE id=p.id;
  INSERT INTO gridex_received_sources.permission_effect_receipts(source_message_id,company_id,permission_id,payload_hash,previous_state,previous_sites,resulting_state,actor_user_id,resulting_sites,qualified_original_message_id,qualified_expected_message_code,canonical_assessment_id,object_scopes)
  VALUES(m.id,m.company_id,p.id,encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'),before_state,before_sites,after_state,p_actor_user_id,(SELECT coalesce(jsonb_agg(to_jsonb(ps) ORDER BY ps.id),'[]'::jsonb) FROM public.metering_permission_sites ps WHERE ps.company_id=m.company_id AND ps.metering_permission_id=p.id),qualified_original,qualified_code,p_canonical_id,p_scopes);
+ IF wire->>'code'='Z14' AND mode='S18' AND count_positive>0 THEN PERFORM gridex_vh_history.open_v1(m.company_id,p.id,m.id,p_actor_user_id);END IF;
+ IF wire->>'code'='Z15' AND mode='S18' AND reason='Z24' THEN PERFORM gridex_vh_history.restore_v1(m.company_id,p.id,m.id,p_actor_user_id,wire);END IF;
  RETURN jsonb_build_object('applied',true,'permissionId',p.id,'status',next_status,'stateVersion',after_state->'market_state_version');
 END $$;
 
@@ -24465,6 +24474,65 @@ BEGIN
  END IF;
  RETURN NEW;
 END $$;
+
+--
+-- Name: close_vh_history_delivery_v1(uuid, uuid, uuid, uuid, jsonb, uuid, jsonb); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.close_vh_history_delivery_v1(c uuid, pid uuid, zid uuid, actor uuid, wire jsonb, canonical uuid, scopes jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE job gridex_vh_history.deliveries%rowtype;h gridex_vh_history.objects%rowtype;m public.ediel_messages%rowtype;o jsonb;review jsonb;opening gridex_received_sources.permission_effect_transitions_v1%rowtype;prior gridex_vh_history.closures%rowtype;
+BEGIN
+ PERFORM gridex_vh_history.require_actor_v1(c,actor);
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE company_id=c AND id=zid AND direction='inbound' AND message_family='PRODAT' AND message_code='Z15';
+ PERFORM gridex_vh_history.open_v1(c,pid,(SELECT coalesce(inbound_z14_message_id,source_z14_message_id) FROM public.metering_permissions WHERE company_id=c AND id=pid),actor);
+ SELECT * INTO job FROM gridex_vh_history.deliveries WHERE company_id=c AND permission_id=pid FOR UPDATE;
+ IF NOT FOUND THEN
+  -- The opener already checked actor/source/hash/current-original. Permit
+  -- absence only for that SAME unsupported opening snapshot. Every finite
+  -- missing job and every real source/auth/integrity/DB error still fails.
+  SELECT tr.* INTO opening FROM gridex_received_sources.permission_effect_transitions_v1 tr
+   JOIN public.metering_permissions p ON p.company_id=tr.company_id AND p.id=tr.permission_id
+   JOIN public.ediel_messages z ON z.company_id=tr.company_id AND z.id=tr.source_message_id
+   WHERE tr.company_id=c AND tr.permission_id=pid
+    AND tr.source_message_id=coalesce(p.inbound_z14_message_id,p.source_z14_message_id)
+    AND tr.qualified_expected_message_code='Z14'
+    AND tr.resulting_state#>>'{metadata,marketPermission,mode}'='S18'
+    AND tr.payload_hash=encode(sha256(convert_to(z.raw_payload,'UTF8')),'hex')
+    AND EXISTS(SELECT FROM jsonb_array_elements(tr.resulting_sites) site
+     WHERE site->>'company_id'=c::text AND site->>'metering_permission_id'=pid::text
+      AND site#>>'{metadata,mode}'='S18' AND site#>>'{metadata,edielMessageId}'=tr.source_message_id::text
+      AND site->>'status' IN('approved','active') AND site->>'end_at' IS NULL);
+  IF FOUND THEN PERFORM gridex_vh_history.record_skipped_basis_v1(c,pid,zid,actor,opening.source_message_id,opening.resulting_sites);RETURN;END IF;
+  RAISE EXCEPTION 'vh_history_close_job_required';
+ END IF;
+ IF m.environment IS DISTINCT FROM job.environment OR wire->>'sender' IS DISTINCT FROM job.legal_dso_id OR wire->>'receiver' IS DISTINCT FROM job.legal_esco_id THEN RAISE EXCEPTION 'vh_history_close_source_conflict';END IF;
+ -- Existing writer qualifies every object before this hook and holds locks.
+ FOR o IN SELECT value FROM jsonb_array_elements(wire->'objects') LOOP
+  SELECT * INTO h FROM gridex_vh_history.objects WHERE company_id=c AND permission_id=pid AND point=o->>'point' AND permission_reference=o->>'permissionId' FOR UPDATE;
+  IF h.site_id IS NULL OR o->>'reason' IS DISTINCT FROM 'S18' THEN RAISE EXCEPTION 'vh_history_close_object_conflict';END IF;
+  SELECT * INTO prior FROM gridex_vh_history.closures WHERE company_id=c AND permission_id=pid AND site_id=h.site_id AND source_message_id=zid;
+  IF FOUND THEN
+   IF prior.source_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') OR prior.canonical_assessment_id IS DISTINCT FROM canonical OR prior.object_scopes IS DISTINCT FROM scopes THEN RAISE EXCEPTION 'vh_history_close_replay_conflict';END IF;
+   CONTINUE;
+  END IF;
+  IF EXISTS(SELECT FROM gridex_vh_history.closures k WHERE k.company_id=c AND k.permission_id=pid AND k.site_id=h.site_id AND NOT EXISTS(SELECT FROM gridex_vh_history.restorations r WHERE r.company_id=k.company_id AND r.permission_id=k.permission_id AND r.site_id=k.site_id AND r.closure_source_message_id=k.source_message_id)) THEN RAISE EXCEPTION 'vh_history_already_closed_by_other_source';END IF;
+ END LOOP;
+ IF NOT EXISTS(SELECT FROM gridex_vh_history.objects obj WHERE obj.company_id=c AND obj.permission_id=pid
+  AND EXISTS(SELECT FROM jsonb_array_elements(wire->'objects') x WHERE x->>'point'=obj.point AND x->>'permissionId'=obj.permission_reference)
+  AND NOT EXISTS(SELECT FROM gridex_vh_history.closures k WHERE k.company_id=c AND k.permission_id=pid AND k.site_id=obj.site_id AND k.source_message_id=zid)) THEN RETURN;END IF;
+ FOR h IN SELECT * FROM gridex_vh_history.objects obj WHERE company_id=c AND permission_id=pid
+  AND EXISTS(SELECT FROM jsonb_array_elements(wire->'objects') x WHERE x->>'point'=obj.point AND x->>'permissionId'=obj.permission_reference)
+  AND NOT EXISTS(SELECT FROM gridex_vh_history.closures k WHERE k.company_id=c AND k.permission_id=pid AND k.site_id=obj.site_id AND k.source_message_id=zid) ORDER BY site_id LOOP
+  review:=gridex_vh_history.coverage_v1(c,pid,h.site_id);
+  INSERT INTO gridex_vh_history.closures(company_id,permission_id,site_id,source_message_id,source_payload_hash,canonical_assessment_id,object_scopes,actor_user_id,coverage_status,review,review_hash) VALUES(c,pid,h.site_id,zid,encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'),canonical,scopes,actor,review->>'status',review,encode(sha256(convert_to(review::text,'UTF8')),'hex'));
+  UPDATE gridex_vh_history.requests SET state='manual_review',closed_by_message_id=zid WHERE company_id=c AND permission_id=pid AND site_id=h.site_id AND state='awaiting';
+ END LOOP;
+ IF NOT EXISTS(SELECT FROM gridex_vh_history.objects x WHERE x.company_id=c AND x.permission_id=pid AND NOT EXISTS(SELECT FROM gridex_vh_history.closures k WHERE k.company_id=x.company_id AND k.permission_id=x.permission_id AND k.site_id=x.site_id AND NOT EXISTS(SELECT FROM gridex_vh_history.restorations r WHERE r.company_id=k.company_id AND r.permission_id=k.permission_id AND r.site_id=k.site_id AND r.closure_source_message_id=k.source_message_id))) THEN UPDATE gridex_vh_history.deliveries SET state='historical_delivery_closed' WHERE company_id=c AND permission_id=pid;END IF;
+END$$;
 
 --
 -- Name: closure_wire_matches_v1(text, jsonb, jsonb); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
@@ -25142,6 +25210,13 @@ begin
    RETURN jsonb_build_object('ok',false,'code','z02_object_already_applied_to_other_request');END IF;
   v_meter_external:=v_object->>'objectId';v_facility_id:=v_meter_external;v_grid_area:=v_object->>'gridArea';
   IF nullif(v_grid_area,'') IS NULL THEN RETURN jsonb_build_object('ok',false,'code','z02_source_grid_area_missing');END IF;
+  -- The sealed originating Z01 owns the requested grid, even when another
+  -- known area shares its price area. Missing original grid stays discovery.
+  IF nullif(btrim(v_original_object->>'gridArea'),'') IS NOT NULL
+     AND upper(btrim(v_original_object->>'gridArea')) IS DISTINCT FROM upper(btrim(v_grid_area)) THEN
+    RETURN jsonb_build_object('ok',false,'code','z02_original_grid_area_conflict',
+      'gridAreaCode',v_grid_area,'originalGridAreaCode',v_original_object->>'gridArea');
+  END IF;
 
   select count(distinct upper(pga.price_area))::integer,
          min(upper(pga.price_area))
@@ -25322,7 +25397,8 @@ begin
   end if;
 
   update public.ediel_messages
-  set customer_id = p_customer_id,
+  set related_message_id = v_original.id,
+      customer_id = p_customer_id,
       site_id = p_site_id,
       metering_point_id = v_meter.id,
       grid_owner_id = coalesce(grid_owner_id, v_request.grid_owner_id),
@@ -35657,6 +35733,261 @@ BEGIN
 END $$;
 
 --
+-- Name: authorize_v1(uuid, uuid, text); Type: FUNCTION; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE FUNCTION gridex_vh_history.authorize_v1(c uuid, a uuid, permission text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$BEGIN
+ PERFORM p.id FROM public.user_profiles p WHERE p.id=a FOR SHARE;
+ PERFORM m.user_id FROM public.company_memberships m WHERE m.company_id=c AND m.user_id=a FOR SHARE;
+ IF a IS NULL OR (permission IN('metering.read','metering.write','communication.write')) IS NOT TRUE OR public.gridex_actor_has_company_permission(a,c,permission) IS NOT TRUE OR NOT EXISTS(SELECT FROM public.user_profiles p WHERE p.id=a AND p.user_status='active') OR NOT EXISTS(SELECT FROM public.company_memberships m WHERE m.company_id=c AND m.user_id=a AND m.status='active' AND m.is_active AND m.accepted_at IS NOT NULL) THEN RAISE EXCEPTION 'vh_history_actor_unqualified' USING ERRCODE='42501';END IF;
+END$$;
+
+--
+-- Name: coverage_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE FUNCTION gridex_vh_history.coverage_v1(c uuid, pid uuid, sid uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE h gridex_vh_history.objects%rowtype;job gridex_vh_history.deliveries%rowtype;series public.meter_reading_series%rowtype;m public.ediel_messages%rowtype;stored gridex_utilts_binding.contracts%rowtype;r gridex_ediel_ack_replay.positive_service_scope_receipts%rowtype;receipt_source public.ediel_messages%rowtype;request_record gridex_vh_history.requests%rowtype;
+ contract jsonb;tx jsonb;proof jsonb;o jsonb;intervals jsonb:='[]';gaps jsonb:='[]';sources jsonb:='[]';held boolean:=false;authorized boolean;starts timestamptz;ends timestamptz;cursor_at timestamptz;
+BEGIN
+ SELECT * INTO STRICT h FROM gridex_vh_history.objects WHERE company_id=c AND permission_id=pid AND site_id=sid;
+ SELECT * INTO STRICT job FROM gridex_vh_history.deliveries WHERE company_id=c AND permission_id=pid;
+ IF h.basis_hash<>encode(sha256(convert_to(jsonb_build_array(h.approved_site,h.authorization_basis)::text,'UTF8')),'hex') THEN RAISE EXCEPTION 'vh_history_approved_basis_conflict';END IF;
+ IF h.authorization_basis#>>'{original,assignmentId}' IS NULL THEN held:=true;gaps:=gaps||jsonb_build_array(jsonb_build_object('reason','historical_authorization_unavailable'));END IF;
+ -- Private historical AUDIT only: no current beneficiary projection/ACL change.
+ FOR series IN SELECT s.* FROM public.meter_reading_series s WHERE s.company_id=c AND s.external_metering_point_id=h.point AND s.product_id=h.product AND s.message_code='E66' AND s.series_kind='actual' AND s.is_current AND s.period_start<h.period_end AND s.period_end>h.period_start ORDER BY s.period_start,s.id FOR SHARE LOOP
+  BEGIN
+   SELECT * INTO STRICT m FROM public.ediel_messages WHERE company_id=c AND id=series.source_ediel_message_id AND environment=job.environment AND direction='inbound' AND message_family='UTILTS' AND message_code='E66';
+   SELECT * INTO STRICT stored FROM gridex_utilts_binding.contracts WHERE company_id=c AND series_id=series.id AND environment=job.environment;
+   contract:=gridex_utilts_binding.stored_contract_v1(c,m.id,stored.transaction_id);
+   IF contract IS DISTINCT FROM stored.contract OR contract->>'seriesKind' IS DISTINCT FROM 'actual' OR contract->>'messageCode' IS DISTINCT FROM 'E66' THEN RAISE EXCEPTION 'vh_history_contract_scope_conflict';END IF;
+   authorized:=false;
+   FOR r IN SELECT * FROM gridex_ediel_ack_replay.positive_service_scope_receipts WHERE company_id=c AND environment=job.environment ORDER BY recorded_at,source_message_id LOOP
+    SELECT * INTO receipt_source FROM public.ediel_messages WHERE company_id=c AND id=r.source_message_id AND environment=job.environment;
+    IF receipt_source.id IS NULL OR r.projection->>'companyId' IS DISTINCT FROM c::text OR r.projection->>'environment' IS DISTINCT FROM job.environment OR r.projection->>'sourceMessageId' IS DISTINCT FROM r.source_message_id::text OR r.projection->>'sourceRawHash' IS DISTINCT FROM encode(sha256(convert_to(receipt_source.raw_payload,'UTF8')),'hex') OR r.projection->>'ackRawHash' IS DISTINCT FROM r.ack_raw_hash THEN CONTINUE;END IF;
+    FOR tx IN SELECT value FROM jsonb_array_elements(coalesce(r.projection->'transactions','[]')) LOOP
+     IF tx->>'transactionId' IS DISTINCT FROM stored.transaction_id OR tx->>'seriesId' IS DISTINCT FROM series.id::text OR tx->>'originMessageId' IS DISTINCT FROM m.id::text OR tx->>'originRawHash' IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') OR tx->>'contractHash' IS DISTINCT FROM stored.contract_hash OR tx#>>'{originContext,legalEdielId}' IS DISTINCT FROM job.legal_esco_id OR (tx#>>'{originContext,actorRole}' IN('energy_service_company','esco')) IS NOT TRUE THEN CONTINUE;END IF;
+     FOR proof IN SELECT value FROM jsonb_array_elements(CASE WHEN r.projection->>'version'='1' THEN jsonb_build_array(tx) WHEN r.projection->>'version'='2' THEN coalesce(tx->'scopes','[]') ELSE '[]' END) LOOP
+      IF proof#>>'{assignment,mode}'='VH' AND proof#>>'{assignment,id}'=h.authorization_basis#>>'{original,assignmentId}' AND proof#>>'{assignment,company_id}'=c::text AND proof#>>'{assignment,customer_id}'=job.customer_id::text AND proof#>>'{assignment,environment}'=job.environment
+       AND proof#>>'{permissionLink,permission_id}'=pid::text AND proof#>>'{permissionLink,company_id}'=c::text AND proof#>>'{permission,id}'=pid::text AND proof#>>'{permission,company_id}'=c::text
+       AND coalesce(proof#>>'{permission,inbound_z14_message_id}',proof#>>'{permission,source_z14_message_id}')=job.opening_source_message_id::text
+       AND proof#>>'{site,id}'=sid::text AND proof#>>'{site,company_id}'=c::text AND proof#>>'{site,metering_permission_id}'=pid::text AND proof#>>'{site,facility_id}'=h.point AND proof#>>'{site,metadata,mode}'='S18' AND proof#>>'{site,metadata,permissionId}'=h.permission_reference AND proof#>>'{site,metadata,product}'=h.product
+       AND (proof#>>'{site,start_at}')::timestamptz=h.period_start AND (proof#>>'{site,end_at}')::timestamptz=h.period_end THEN authorized:=true;END IF;
+     END LOOP;
+    END LOOP;
+   END LOOP;
+   IF NOT authorized THEN held:=true;gaps:=gaps||jsonb_build_array(jsonb_build_object('reason','historical_vh_scope_unavailable','seriesId',series.id));CONTINUE;END IF;
+   FOR o IN SELECT value FROM jsonb_array_elements(contract->'observations') LOOP
+    starts:=(o->>'periodStart')::timestamptz;ends:=(o->>'periodEnd')::timestamptz;
+    IF o->>'externalPoint' IS DISTINCT FROM h.point OR o->>'productCode' IS DISTINCT FROM h.product OR (o->>'resolution' IN('PT15M','PT30M','PT60M','PT1H')) IS NOT TRUE OR o->>'quantity' IS NULL OR o->>'quality'='46' OR starts<h.period_start OR ends>h.period_end OR ends<=starts OR ends-starts IS DISTINCT FROM (CASE o->>'resolution' WHEN 'PT15M' THEN interval '15 minutes' WHEN 'PT30M' THEN interval '30 minutes' WHEN 'PT60M' THEN interval '1 hour' WHEN 'PT1H' THEN interval '1 hour' END) THEN gaps:=gaps||jsonb_build_array(jsonb_build_object('reason','unsupported_or_missing_observation','seriesId',series.id,'ordinal',o->'ordinal'));CONTINUE;END IF;
+    intervals:=intervals||jsonb_build_array(jsonb_build_object('start',starts,'end',ends,'seriesId',series.id,'ordinal',o->'ordinal'));
+   END LOOP;
+   sources:=sources||jsonb_build_array(jsonb_build_object('seriesId',series.id,'sourceMessageId',m.id,'transactionId',stored.transaction_id,'contractVersion',stored.contract_version,'rawHash',encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'),'seriesHash',series.immutable_hash,'contractHash',stored.contract_hash));
+  EXCEPTION WHEN SQLSTATE 'P0U01' OR invalid_text_representation OR no_data_found THEN held:=true;gaps:=gaps||jsonb_build_array(jsonb_build_object('reason','stored_e66_provenance_unavailable','seriesId',series.id));END;
+ END LOOP;
+ cursor_at:=h.period_start;
+ FOR o IN SELECT value FROM jsonb_array_elements(intervals) ORDER BY(value->>'start')::timestamptz,(value->>'end')::timestamptz LOOP
+  starts:=(o->>'start')::timestamptz;ends:=(o->>'end')::timestamptz;
+  IF starts<cursor_at THEN held:=true;gaps:=gaps||jsonb_build_array(jsonb_build_object('reason','overlapping_observations','start',starts,'end',ends));ELSIF starts>cursor_at THEN gaps:=gaps||jsonb_build_array(jsonb_build_object('reason','missing_values','start',cursor_at,'end',starts));END IF;
+  cursor_at:=greatest(cursor_at,ends);
+ END LOOP;
+ IF cursor_at<h.period_end THEN gaps:=gaps||jsonb_build_array(jsonb_build_object('reason','missing_values','start',cursor_at,'end',h.period_end));END IF;
+ FOR request_record IN SELECT * FROM gridex_vh_history.requests WHERE company_id=c AND permission_id=pid AND site_id=sid AND state='awaiting' ORDER BY request_id FOR UPDATE LOOP
+  IF request_record.binding IS DISTINCT FROM gridex_vh_history.request_binding_v1(c,pid,sid,request_record.request_id,request_record.message_id,request_record.transaction_id) OR request_record.binding_hash IS DISTINCT FROM encode(sha256(convert_to(request_record.binding::text,'UTF8')),'hex') THEN RAISE EXCEPTION 'vh_history_request_replay_conflict';END IF;
+  gaps:=gaps||jsonb_build_array(jsonb_build_object('reason','pending_e73_manual_review','requestId',request_record.request_id,'messageId',request_record.message_id));
+ END LOOP;
+ RETURN jsonb_build_object('approvedStart',h.period_start,'approvedEnd',h.period_end,'approvedBasisHash',h.basis_hash,'intervals',intervals,'sources',sources,'gaps',gaps,'status',CASE WHEN held THEN 'held' WHEN jsonb_array_length(gaps)>0 THEN 'gaps' ELSE 'complete' END,'dataAccessGranted',false);
+END$$;
+
+--
+-- Name: guard_request_v1(); Type: FUNCTION; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE FUNCTION gridex_vh_history.guard_request_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$BEGIN
+ IF TG_OP='UPDATE' AND(to_jsonb(NEW)-ARRAY['state','closed_by_message_id'])=(to_jsonb(OLD)-ARRAY['state','closed_by_message_id']) AND OLD.state='awaiting' AND NEW.state='manual_review' AND NEW.closed_by_message_id IS NOT NULL THEN RETURN NEW;END IF;
+ RAISE EXCEPTION 'vh_history_request_binding_immutable';
+END$$;
+
+--
+-- Name: open_v1(uuid, uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE FUNCTION gridex_vh_history.open_v1(c uuid, pid uuid, zid uuid, actor uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE p public.metering_permissions%rowtype;m public.ediel_messages%rowtype;original public.ediel_messages%rowtype;tr gridex_received_sources.permission_effect_transitions_v1%rowtype;site jsonb;wire jsonb;basis jsonb;qualified jsonb;existing gridex_vh_history.deliveries%rowtype;
+BEGIN
+ PERFORM gridex_vh_history.require_actor_v1(c,actor);
+ SELECT * INTO STRICT p FROM public.metering_permissions WHERE company_id=c AND id=pid FOR UPDATE;
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE company_id=c AND id=zid AND direction='inbound' AND message_family='PRODAT' AND message_code='Z14';
+ SELECT * INTO tr FROM gridex_received_sources.permission_effect_transitions_v1 WHERE company_id=c AND permission_id=pid AND source_message_id=zid AND qualified_expected_message_code='Z14';
+ IF tr.source_message_id IS NULL OR tr.payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'vh_history_approved_effect_required';END IF;
+ SELECT * INTO STRICT original FROM public.ediel_messages WHERE company_id=c AND id=coalesce(p.source_z13_message_id,p.outbound_z13_message_id) AND environment=m.environment;
+ wire:=gridex_received_sources.permission_partition_wire_v1(m.raw_payload);
+ IF original.direction IS DISTINCT FROM 'outbound' OR original.message_code IS DISTINCT FROM 'Z13' OR original.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(original.raw_payload,'UTF8')),'hex') OR gridex_received_sources.sent_source_is_current_v1(original) IS NOT TRUE OR tr.resulting_state#>>'{metadata,marketPermission,mode}' IS DISTINCT FROM 'S18' OR tr.resulting_state->>'customer_id' IS DISTINCT FROM p.customer_id::text OR tr.qualified_original_message_id IS DISTINCT FROM original.id THEN RAISE EXCEPTION 'vh_history_original_scope_required';END IF;
+ SELECT * INTO existing FROM gridex_vh_history.deliveries WHERE company_id=c AND permission_id=pid;
+ IF FOUND THEN IF existing.opening_source_message_id<>zid OR existing.opening_payload_hash<>tr.payload_hash OR existing.original_payload_hash<>original.immutable_payload_hash THEN RAISE EXCEPTION 'vh_history_open_replay_conflict';END IF;RETURN;END IF;
+ -- Actor, transition, payload, current original and replay checks above are
+ -- mandatory. Only this explicit admitted NULL-end shape is unsupported by
+ -- the optional finite model; mixed cohorts are never partly managed.
+ IF EXISTS(SELECT FROM jsonb_array_elements(tr.resulting_sites) approved
+  WHERE approved->>'company_id'=c::text AND approved->>'metering_permission_id'=pid::text
+   AND approved#>>'{metadata,mode}'='S18' AND approved#>>'{metadata,edielMessageId}'=zid::text
+   AND approved->>'status' IN('approved','active') AND approved->>'end_at' IS NULL)
+ THEN PERFORM gridex_vh_history.record_skipped_basis_v1(c,pid,zid,actor,zid,tr.resulting_sites);RETURN;END IF;
+ -- The source writer's metering.write authority is independent of the
+ -- historical original reader's extra read permission. Missing READ/account
+ -- prerequisites retain an explicit held basis; they never grant new access.
+ -- Any real reader/source error after these exact prerequisites still fails.
+ IF (current_setting('role',true)='service_role' OR session_user='service_role')
+  AND EXISTS(SELECT FROM public.companies x WHERE x.id=c AND x.status='active')
+  AND EXISTS(SELECT FROM auth.users u WHERE u.id=actor AND u.deleted_at IS NULL AND(u.banned_until IS NULL OR u.banned_until<=clock_timestamp()))
+  AND(coalesce(public.gridex_actor_has_company_permission(actor,c,'ediel.read'),false) OR coalesce(public.gridex_actor_has_company_permission(actor,c,'communication.read'),false))
+ THEN basis:=gridex_received_sources.received_z14_reporting_source_basis_v1(zid,actor);
+ ELSE basis:=NULL;END IF;
+ INSERT INTO gridex_vh_history.deliveries(company_id,permission_id,environment,customer_id,opening_source_message_id,original_message_id,opening_payload_hash,original_payload_hash,legal_esco_id,legal_dso_id) VALUES(c,pid,m.environment,p.customer_id,zid,original.id,tr.payload_hash,original.immutable_payload_hash,wire->>'receiver',wire->>'sender');
+ FOR site IN SELECT value FROM jsonb_array_elements(tr.resulting_sites) WHERE value->>'company_id'=c::text AND value->>'metering_permission_id'=pid::text AND value#>>'{metadata,mode}'='S18' AND value#>>'{metadata,edielMessageId}'=zid::text AND value->>'status' IN('approved','active') LOOP
+  IF site->>'start_at' IS NULL OR site->>'end_at' IS NULL OR (site->>'end_at')::timestamptz<=(site->>'start_at')::timestamptz OR nullif(site#>>'{metadata,product}','') IS NULL THEN RAISE EXCEPTION 'vh_history_finite_approved_window_required';END IF;
+  SELECT x INTO qualified FROM jsonb_array_elements(coalesce(basis->'objects','[]'))x WHERE x#>>'{scope,objectId}'=site->>'facility_id' AND x#>>'{original,permissionId}'=pid::text;
+  qualified:=coalesce(qualified,jsonb_build_object('status','held','reason','vh_history_reviewed_original_unavailable'));
+  INSERT INTO gridex_vh_history.objects(company_id,permission_id,site_id,point,product,permission_reference,period_start,period_end,approved_site,authorization_basis,basis_hash) VALUES(c,pid,(site->>'id')::uuid,site->>'facility_id',site#>>'{metadata,product}',site#>>'{metadata,permissionId}',(site->>'start_at')::timestamptz,(site->>'end_at')::timestamptz,site,qualified,encode(sha256(convert_to(jsonb_build_array(site,qualified)::text,'UTF8')),'hex'));
+ END LOOP;
+ IF NOT EXISTS(SELECT FROM gridex_vh_history.objects WHERE company_id=c AND permission_id=pid) THEN RAISE EXCEPTION 'vh_history_approved_objects_required';END IF;
+END$$;
+
+--
+-- Name: record_skipped_basis_v1(uuid, uuid, uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE FUNCTION gridex_vh_history.record_skipped_basis_v1(c uuid, pid uuid, zid uuid, actor uuid, opening uuid, snapshot jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE m public.ediel_messages%rowtype;prior gridex_vh_history.skipped_bases%rowtype;proof jsonb;payload_hash text;proof_hash text;
+BEGIN
+ PERFORM gridex_vh_history.require_actor_v1(c,actor);
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE company_id=c AND id=zid AND direction='inbound' AND message_family='PRODAT' AND message_code IN('Z14','Z15');
+ proof:=jsonb_build_object('version',1,'status','skipped','reason','vh_history_open_ended_approved_window','openingSourceMessageId',opening,'openingSnapshot',snapshot,'dataAccessGranted',false,'transportAuthorityGranted',false);
+ payload_hash:=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex');proof_hash:=encode(sha256(convert_to(proof::text,'UTF8')),'hex');
+ SELECT * INTO prior FROM gridex_vh_history.skipped_bases WHERE company_id=c AND permission_id=pid AND source_message_id=zid;
+ IF FOUND THEN
+  IF (prior.source_payload_hash,prior.opening_source_message_id,prior.basis_hash,prior.basis) IS DISTINCT FROM(payload_hash,opening,proof_hash,proof) THEN RAISE EXCEPTION 'vh_history_skipped_basis_replay_conflict';END IF;
+  RETURN;
+ END IF;
+ INSERT INTO gridex_vh_history.skipped_bases(company_id,permission_id,source_message_id,source_payload_hash,opening_source_message_id,actor_user_id,reason,basis,basis_hash) VALUES(c,pid,zid,payload_hash,opening,actor,'vh_history_open_ended_approved_window',proof,proof_hash);
+END$$;
+
+--
+-- Name: request_binding_v1(uuid, uuid, uuid, uuid, uuid, text); Type: FUNCTION; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE FUNCTION gridex_vh_history.request_binding_v1(c uuid, pid uuid, sid uuid, qid uuid, msg uuid, tx text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE job gridex_vh_history.deliveries%rowtype;h gridex_vh_history.objects%rowtype;q public.grid_owner_data_requests%rowtype;m public.ediel_messages%rowtype;point public.metering_points%rowtype;tokens jsonb;context jsonb;expected_period text;
+BEGIN
+ SELECT * INTO STRICT job FROM gridex_vh_history.deliveries WHERE company_id=c AND permission_id=pid;
+ SELECT * INTO STRICT h FROM gridex_vh_history.objects WHERE company_id=c AND permission_id=pid AND site_id=sid;
+ SELECT * INTO STRICT q FROM public.grid_owner_data_requests WHERE company_id=c AND id=qid FOR SHARE;
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE company_id=c AND id=msg AND environment=job.environment FOR SHARE;
+ SELECT * INTO point FROM public.metering_points WHERE company_id=c AND customer_id=job.customer_id AND id=q.metering_point_id FOR SHARE;
+ IF point.id IS NULL OR point.normalized_metering_point_id IS DISTINCT FROM h.point OR q.site_id IS NULL OR q.site_id IS DISTINCT FROM coalesce(point.customer_site_id,point.site_id)
+  OR NOT EXISTS(SELECT FROM public.customer_sites s WHERE s.company_id=c AND s.customer_id=job.customer_id AND s.id=q.site_id)
+  OR(h.approved_site->>'metering_point_id' IS NOT NULL AND h.approved_site->>'metering_point_id' IS DISTINCT FROM point.id::text)
+  OR(h.approved_site->>'customer_site_id' IS NOT NULL AND h.approved_site->>'customer_site_id' IS DISTINCT FROM q.site_id::text) THEN RAISE EXCEPTION 'vh_history_request_point_unqualified';END IF;
+ IF jsonb_typeof(q.request_payload) IS DISTINCT FROM 'object' OR EXISTS(SELECT FROM jsonb_each(q.request_payload)e WHERE e.key IN('requestedMessageCode','requested_message_code','requestedApplication') AND (jsonb_typeof(e.value) IS DISTINCT FROM 'string' OR upper(btrim(e.value#>>'{}')) IS DISTINCT FROM 'E66')) THEN RAISE EXCEPTION 'vh_history_request_target_unqualified';END IF;
+ IF q.customer_id IS DISTINCT FROM job.customer_id OR q.request_scope IS DISTINCT FROM 'meter_values' OR m.customer_id IS DISTINCT FROM job.customer_id OR m.grid_owner_data_request_id IS DISTINCT FROM q.id OR m.original_message_id IS DISTINCT FROM job.opening_source_message_id
+  OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'UTILTS' OR m.message_code IS DISTINCT FROM 'E73' OR (m.application_reference IN('23-DGI-E66-S','23-DGI-E66-T')) IS NOT TRUE OR gridex_received_sources.sent_source_is_current_v1(m) IS NOT TRUE
+  OR q.requested_period_start IS DISTINCT FROM(h.period_start AT TIME ZONE interval '+01:00')::date OR q.requested_period_end IS DISTINCT FROM(h.period_end AT TIME ZONE interval '+01:00')::date THEN RAISE EXCEPTION 'vh_history_request_scope_unqualified';END IF;
+ PERFORM gridex_ediel_outbound_owner.require_v1(c,m.id);
+ context:=gridex_ediel_inbound_context.require_v1(c,m.id);
+ IF(context->>'actorRole' IN('energy_service_company','esco')) IS NOT TRUE OR context->>'legalEdielId' IS DISTINCT FROM job.legal_esco_id OR context->>'environment' IS DISTINCT FROM job.environment OR context->>'family' IS DISTINCT FROM 'UTILTS' OR context->>'code' IS DISTINCT FROM 'E73' THEN RAISE EXCEPTION 'vh_history_request_legal_source_unqualified';END IF;
+ tokens:=gridex_utilts_binding.wire_tokens_v1(m.raw_payload);
+ expected_period:=to_char(h.period_start AT TIME ZONE interval '+01:00','YYYYMMDDHH24MI')||to_char(h.period_end AT TIME ZONE interval '+01:00','YYYYMMDDHH24MI');
+ IF(SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='BGM' AND t#>>'{elements,1,0}'='E73')<>1
+  OR(SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='IDE')<>1
+  OR gridex_utilts_binding.supported_point_v1(tokens,tx) IS DISTINCT FROM h.point
+  OR(SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='E66')<>1
+  OR(SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='DTM' AND t#>>'{elements,1,0}'='324')<>1
+  OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='DTM' AND t#>'{elements,1}'=jsonb_build_array('324',expected_period,'719'))
+  OR(SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='NAD' AND t#>>'{elements,1,0}'='MS' AND t#>>'{elements,2,0}'=job.legal_esco_id)<>1
+  OR(SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='NAD' AND t#>>'{elements,1,0}'='MR' AND t#>>'{elements,2,0}'=job.legal_dso_id)<>1 THEN RAISE EXCEPTION 'vh_history_request_physical_scope_unqualified';END IF;
+ RETURN jsonb_build_object('approvedBasisHash',h.basis_hash,'request',jsonb_build_object('id',q.id,'companyId',q.company_id,'customerId',q.customer_id,'siteId',q.site_id,'meteringPointId',q.metering_point_id,'scope',q.request_scope,'periodStart',q.requested_period_start,'periodEnd',q.requested_period_end,'payload',q.request_payload),'point',jsonb_build_object('id',point.id,'companyId',point.company_id,'customerId',point.customer_id,'customerSiteId',point.customer_site_id,'siteId',point.site_id,'normalizedPoint',point.normalized_metering_point_id),'message',gridex_utilts_binding.source_context_v1(m),'sourceRawHash',m.immutable_payload_hash,'originalContext',context);
+END$$;
+
+--
+-- Name: require_actor_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE FUNCTION gridex_vh_history.require_actor_v1(c uuid, a uuid) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$SELECT gridex_vh_history.authorize_v1(c,a,'metering.write')$$;
+
+--
+-- Name: require_basis_v1(uuid, uuid); Type: FUNCTION; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE FUNCTION gridex_vh_history.require_basis_v1(c uuid, pid uuid) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE job gridex_vh_history.deliveries%rowtype;opening public.ediel_messages%rowtype;original public.ediel_messages%rowtype;p public.metering_permissions%rowtype;
+BEGIN
+ SELECT * INTO STRICT job FROM gridex_vh_history.deliveries WHERE company_id=c AND permission_id=pid;
+ SELECT * INTO STRICT p FROM public.metering_permissions WHERE company_id=c AND id=pid;
+ SELECT * INTO STRICT opening FROM public.ediel_messages WHERE company_id=c AND id=job.opening_source_message_id AND environment=job.environment AND direction='inbound' AND message_family='PRODAT' AND message_code='Z14';
+ SELECT * INTO STRICT original FROM public.ediel_messages WHERE company_id=c AND id=job.original_message_id AND environment=job.environment AND direction='outbound' AND message_family='PRODAT' AND message_code='Z13';
+ IF p.customer_id IS DISTINCT FROM job.customer_id OR coalesce(p.source_z13_message_id,p.outbound_z13_message_id) IS DISTINCT FROM original.id OR job.opening_payload_hash IS DISTINCT FROM encode(sha256(convert_to(opening.raw_payload,'UTF8')),'hex') OR job.original_payload_hash IS DISTINCT FROM original.immutable_payload_hash OR job.original_payload_hash IS DISTINCT FROM encode(sha256(convert_to(original.raw_payload,'UTF8')),'hex') OR gridex_received_sources.sent_source_is_current_v1(original) IS NOT TRUE
+  OR NOT EXISTS(SELECT FROM gridex_received_sources.permission_effect_transitions_v1 t WHERE t.company_id=c AND t.permission_id=pid AND t.source_message_id=opening.id AND t.payload_hash=job.opening_payload_hash AND t.qualified_original_message_id=original.id AND t.qualified_expected_message_code='Z14' AND t.resulting_state#>>'{metadata,marketPermission,mode}'='S18')
+  OR EXISTS(SELECT FROM gridex_vh_history.objects x WHERE x.company_id=c AND x.permission_id=pid AND x.basis_hash IS DISTINCT FROM encode(sha256(convert_to(jsonb_build_array(x.approved_site,x.authorization_basis)::text,'UTF8')),'hex'))
+  OR EXISTS(SELECT FROM gridex_vh_history.closures k LEFT JOIN public.ediel_messages z ON z.id=k.source_message_id AND z.company_id=k.company_id AND z.environment=job.environment AND z.direction='inbound' AND z.message_family='PRODAT' AND z.message_code='Z15' WHERE k.company_id=c AND k.permission_id=pid AND (z.id IS NULL OR k.source_payload_hash IS DISTINCT FROM encode(sha256(convert_to(z.raw_payload,'UTF8')),'hex') OR k.review_hash IS DISTINCT FROM encode(sha256(convert_to(k.review::text,'UTF8')),'hex')))
+  OR EXISTS(SELECT FROM gridex_vh_history.restorations r LEFT JOIN public.ediel_messages z ON z.id=r.source_message_id AND z.company_id=r.company_id AND z.environment=job.environment AND z.direction='inbound' AND z.message_family='PRODAT' AND z.message_code='Z15' WHERE r.company_id=c AND r.permission_id=pid AND (z.id IS NULL OR r.source_payload_hash IS DISTINCT FROM encode(sha256(convert_to(z.raw_payload,'UTF8')),'hex')))
+ THEN RAISE EXCEPTION 'vh_history_immutable_basis_conflict';END IF;
+END$$;
+
+--
+-- Name: restore_v1(uuid, uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE FUNCTION gridex_vh_history.restore_v1(c uuid, pid uuid, zid uuid, actor uuid, wire jsonb) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE job gridex_vh_history.deliveries%rowtype;m public.ediel_messages%rowtype;o jsonb;h gridex_vh_history.objects%rowtype;prior gridex_received_sources.permission_effect_transitions_v1%rowtype;
+BEGIN
+ PERFORM gridex_vh_history.require_actor_v1(c,actor);
+ SELECT * INTO job FROM gridex_vh_history.deliveries WHERE company_id=c AND permission_id=pid FOR UPDATE;
+ IF NOT FOUND THEN RETURN;END IF; -- No managed job before this forward.
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE company_id=c AND id=zid AND environment=job.environment AND direction='inbound' AND message_family='PRODAT' AND message_code='Z15';
+ IF wire->>'sender' IS DISTINCT FROM job.legal_dso_id OR wire->>'receiver' IS DISTINCT FROM job.legal_esco_id THEN RAISE EXCEPTION 'vh_history_restore_source_conflict';END IF;
+ FOR o IN SELECT value FROM jsonb_array_elements(wire->'objects') LOOP
+  SELECT * INTO STRICT h FROM gridex_vh_history.objects WHERE company_id=c AND permission_id=pid AND point=o->>'point' AND permission_reference=o->>'permissionId';
+  -- The writer already qualified the current exact S18 source/snapshot and
+  -- reversal interval. Retain that same original, never infer by timestamp.
+  SELECT t.* INTO prior FROM gridex_received_sources.permission_effect_transitions_v1 t WHERE t.company_id=c AND t.permission_id=pid AND t.source_message_id<>zid AND t.qualified_expected_message_code='Z15' AND EXISTS(SELECT FROM jsonb_array_elements(t.resulting_state#>'{metadata,z15,objects}')x WHERE x->>'point'=o->>'point') ORDER BY(t.resulting_state->>'market_state_version')::bigint DESC LIMIT 1;
+  IF o->>'reason' IS DISTINCT FROM 'Z24' OR NOT EXISTS(SELECT FROM gridex_vh_history.closures k WHERE k.company_id=c AND k.permission_id=pid AND k.site_id=h.site_id AND k.source_message_id=prior.source_message_id AND k.source_payload_hash=prior.payload_hash) THEN RAISE EXCEPTION 'vh_history_restoration_original_unavailable';END IF;
+  INSERT INTO gridex_vh_history.restorations(company_id,permission_id,site_id,closure_source_message_id,source_message_id,source_payload_hash,actor_user_id) VALUES(c,pid,h.site_id,prior.source_message_id,zid,encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex'),actor);
+ END LOOP;
+ UPDATE gridex_vh_history.deliveries SET state='approved_or_receiving' WHERE company_id=c AND permission_id=pid;
+ -- Historical manual review does not authorize a fresh E73 send or retry.
+END$$;
+
+--
 -- Name: spot_price_monthly_summaries; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -43813,6 +44144,7 @@ DECLARE m public.ediel_messages%rowtype;prior gridex_received_sources.permission
  application jsonb;wire jsonb;entry jsonb;own jsonb;scope jsonb;manifest jsonb:='[]';plans jsonb:='[]';selected jsonb;scopes jsonb;result jsonb;results jsonb:='[]';ids uuid[];originals uuid[];all_sources uuid[];pid uuid;first_line int;seen integer[]:='{}';local_legal jsonb;
 BEGIN
  IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'permission_source_service_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_service_permission.lock_request_writer_v1();
  SELECT * INTO m FROM public.ediel_messages WHERE id=p_source_message_id AND company_id=p_company_id FOR UPDATE;
  IF m.id IS NULL OR m.direction IS DISTINCT FROM 'inbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR(m.message_code IN('Z14','Z15')) IS NOT TRUE THEN RETURN jsonb_build_object('applied',false,'reason','permission_source_unavailable');END IF;
  PERFORM u.id FROM public.user_profiles u WHERE u.id=p_actor_user_id FOR SHARE;
@@ -45814,6 +46146,36 @@ CREATE FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.
  AND (to_jsonb(oldrow)-ARRAY['raw_payload','parsed_payload','validation_report','metadata','updated_at']) IS NOT DISTINCT FROM (to_jsonb(newrow)-ARRAY['raw_payload','parsed_payload','validation_report','metadata','updated_at'])
  AND EXISTS(SELECT FROM gridex_ediel_retention.blob_tombstones t WHERE t.retention_class='received_ediel_message_content' AND t.target_id=oldrow.id AND t.company_id=oldrow.company_id AND t.source_hash=encode(sha256(convert_to(oldrow.raw_payload,'UTF8')),'hex') AND t.public_content_hash=encode(sha256(convert_to(gridex_ediel_retention.public_content_v1(oldrow)::text,'UTF8')),'hex'))
 $$;
+
+--
+-- Name: ediel_link_vh_history_request_v1(uuid, uuid, uuid, uuid, uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_link_vh_history_request_v1(p_company_id uuid, p_permission_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_transaction_id text, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE job gridex_vh_history.deliveries%rowtype;prior gridex_vh_history.requests%rowtype;bound jsonb;h text;
+BEGIN
+ -- Coordinate original/job row order with the public permission writer before
+ -- actor, request or job locks. This supplies no READ/send authority.
+ PERFORM gridex_ediel_services.lock_evidence_graph_v1();
+ PERFORM gridex_vh_history.authorize_v1(p_company_id,p_actor_user_id,'metering.write');
+ PERFORM gridex_vh_history.authorize_v1(p_company_id,p_actor_user_id,'communication.write');
+ -- Same lock as closure serializes new links with the final gap snapshot.
+ SELECT * INTO STRICT job FROM gridex_vh_history.deliveries WHERE company_id=p_company_id AND permission_id=p_permission_id FOR UPDATE;
+ PERFORM gridex_vh_history.require_basis_v1(p_company_id,p_permission_id);
+ bound:=gridex_vh_history.request_binding_v1(p_company_id,p_permission_id,p_site_id,p_request_id,p_message_id,p_transaction_id);h:=encode(sha256(convert_to(bound::text,'UTF8')),'hex');
+ SELECT * INTO prior FROM gridex_vh_history.requests WHERE company_id=p_company_id AND request_id=p_request_id;
+ IF FOUND THEN
+  IF(prior.permission_id,prior.site_id,prior.message_id,prior.transaction_id,prior.binding_hash,prior.binding) IS DISTINCT FROM(p_permission_id,p_site_id,p_message_id,p_transaction_id,h,bound) THEN RAISE EXCEPTION 'vh_history_request_replay_conflict';END IF;
+  RETURN jsonb_build_object('requestId',prior.request_id,'state',prior.state,'idempotent',true,'transportAuthorityGranted',false);
+ END IF;
+ IF job.state='historical_delivery_closed' OR EXISTS(SELECT FROM gridex_vh_history.closures k WHERE k.company_id=p_company_id AND k.permission_id=p_permission_id AND k.site_id=p_site_id AND NOT EXISTS(SELECT FROM gridex_vh_history.restorations r WHERE r.company_id=k.company_id AND r.permission_id=k.permission_id AND r.site_id=k.site_id AND r.closure_source_message_id=k.source_message_id)) THEN RAISE EXCEPTION 'vh_history_request_delivery_closed';END IF;
+ IF NOT EXISTS(SELECT FROM public.grid_owner_data_requests q WHERE q.company_id=p_company_id AND q.id=p_request_id AND q.status IN('pending','sent') AND q.sent_at IS NOT NULL) THEN RAISE EXCEPTION 'vh_history_request_not_pending';END IF;
+ INSERT INTO gridex_vh_history.requests(company_id,permission_id,site_id,request_id,message_id,transaction_id,source_payload_hash,binding,binding_hash) VALUES(p_company_id,p_permission_id,p_site_id,p_request_id,p_message_id,p_transaction_id,bound->>'sourceRawHash',bound,h);
+ RETURN jsonb_build_object('requestId',p_request_id,'state','awaiting','idempotent',false,'transportAuthorityGranted',false);
+END$$;
 
 --
 -- Name: ediel_list_business_acks_for_source_v1(uuid, uuid, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
@@ -50446,6 +50808,27 @@ DECLARE r public.platform_actor_routes%rowtype;q jsonb;ids uuid[]:='{}';BEGIN
  UPDATE public.platform_market_actors SET match_status='verified',visible_to_tenants=true,verified_at=clock_timestamp(),verified_by=p_actor_user_id,status='active',updated_at=clock_timestamp() WHERE id=p_actor_id;
  UPDATE public.platform_actor_routes SET status='active',is_verified=true,auto_send_allowed=false,updated_at=clock_timestamp() WHERE id=ANY(ids);
  RETURN jsonb_build_object('actorId',p_actor_id,'routeIds',ids,'market','EL','autoSendAllowed',false);
+END$$;
+
+--
+-- Name: ediel_vh_history_delivery_audit_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_vh_history_delivery_audit_v1(p_company_id uuid, p_permission_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE job gridex_vh_history.deliveries%rowtype;result jsonb;
+BEGIN
+ -- Graph-first read order conflicts with the canonical writer before either
+ -- side can hold the other's original/job row. Existing read ACL is unchanged.
+ PERFORM gridex_ediel_services.lock_evidence_graph_v1();
+ PERFORM gridex_vh_history.authorize_v1(p_company_id,p_actor_user_id,'metering.read');
+ SELECT * INTO job FROM gridex_vh_history.deliveries WHERE company_id=p_company_id AND permission_id=p_permission_id FOR SHARE;
+ IF NOT FOUND THEN RETURN NULL;END IF;
+ PERFORM gridex_vh_history.require_basis_v1(p_company_id,p_permission_id);
+ SELECT coalesce(jsonb_agg(jsonb_build_object('siteId',o.site_id,'point',o.point,'product',o.product,'approvedStart',o.period_start,'approvedEnd',o.period_end,'basisHash',o.basis_hash,'closure',CASE WHEN k.site_id IS NULL THEN NULL ELSE jsonb_build_object('sourceMessageId',k.source_message_id,'sourcePayloadHash',k.source_payload_hash,'status',k.coverage_status,'reviewHash',k.review_hash,'reviewedAt',k.reviewed_at,'review',k.review) END,'closureHistory',(SELECT coalesce(jsonb_agg(jsonb_build_object('sourceMessageId',old.source_message_id,'status',old.coverage_status,'reviewHash',old.review_hash,'restoredByMessageId',r.source_message_id) ORDER BY old.reviewed_at,old.source_message_id),'[]') FROM gridex_vh_history.closures old LEFT JOIN gridex_vh_history.restorations r ON r.company_id=old.company_id AND r.permission_id=old.permission_id AND r.site_id=old.site_id AND r.closure_source_message_id=old.source_message_id WHERE old.company_id=o.company_id AND old.permission_id=o.permission_id AND old.site_id=o.site_id),'requests',(SELECT coalesce(jsonb_agg(jsonb_build_object('requestId',r.request_id,'messageId',r.message_id,'transactionId',r.transaction_id,'state',r.state,'closedByMessageId',r.closed_by_message_id) ORDER BY r.request_id),'[]') FROM gridex_vh_history.requests r WHERE r.company_id=o.company_id AND r.permission_id=o.permission_id AND r.site_id=o.site_id)) ORDER BY o.site_id),'[]') INTO result FROM gridex_vh_history.objects o LEFT JOIN gridex_vh_history.closures k ON k.company_id=o.company_id AND k.permission_id=o.permission_id AND k.site_id=o.site_id AND NOT EXISTS(SELECT FROM gridex_vh_history.restorations r WHERE r.company_id=k.company_id AND r.permission_id=k.permission_id AND r.site_id=k.site_id AND r.closure_source_message_id=k.source_message_id) WHERE o.company_id=p_company_id AND o.permission_id=p_permission_id;
+ RETURN jsonb_build_object('companyId',job.company_id,'permissionId',job.permission_id,'environment',job.environment,'state',job.state,'openingSourceMessageId',job.opening_source_message_id,'objects',result,'dataAccessGranted',false,'transportAuthorityGranted',false);
 END$$;
 
 --
@@ -104004,6 +104387,137 @@ CREATE TABLE gridex_utilts_issuer.transport_mandate_versions (
 ALTER TABLE ONLY gridex_utilts_issuer.transport_mandate_versions FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: closures; Type: TABLE; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TABLE gridex_vh_history.closures (
+    company_id uuid NOT NULL,
+    permission_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    source_message_id uuid NOT NULL,
+    source_payload_hash text NOT NULL,
+    canonical_assessment_id uuid NOT NULL,
+    object_scopes jsonb NOT NULL,
+    actor_user_id uuid NOT NULL,
+    coverage_status text NOT NULL,
+    review jsonb NOT NULL,
+    review_hash text NOT NULL,
+    reviewed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT closures_coverage_status_check CHECK ((coverage_status = ANY (ARRAY['complete'::text, 'gaps'::text, 'held'::text]))),
+    CONSTRAINT closures_review_hash_check CHECK ((review_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+ALTER TABLE ONLY gridex_vh_history.closures FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: deliveries; Type: TABLE; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TABLE gridex_vh_history.deliveries (
+    company_id uuid NOT NULL,
+    permission_id uuid NOT NULL,
+    environment text NOT NULL,
+    customer_id uuid NOT NULL,
+    opening_source_message_id uuid NOT NULL,
+    original_message_id uuid NOT NULL,
+    opening_payload_hash text NOT NULL,
+    original_payload_hash text NOT NULL,
+    legal_esco_id text NOT NULL,
+    legal_dso_id text NOT NULL,
+    state text DEFAULT 'approved_or_receiving'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT deliveries_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT deliveries_opening_payload_hash_check CHECK ((opening_payload_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT deliveries_original_payload_hash_check CHECK ((original_payload_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT deliveries_state_check CHECK ((state = ANY (ARRAY['approved_or_receiving'::text, 'historical_delivery_closed'::text])))
+);
+
+ALTER TABLE ONLY gridex_vh_history.deliveries FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: objects; Type: TABLE; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TABLE gridex_vh_history.objects (
+    company_id uuid NOT NULL,
+    permission_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    point text NOT NULL,
+    product text NOT NULL,
+    permission_reference text NOT NULL,
+    period_start timestamp with time zone NOT NULL,
+    period_end timestamp with time zone NOT NULL,
+    approved_site jsonb NOT NULL,
+    authorization_basis jsonb NOT NULL,
+    basis_hash text NOT NULL,
+    CONSTRAINT objects_basis_hash_check CHECK ((basis_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT objects_check CHECK ((period_end > period_start))
+);
+
+ALTER TABLE ONLY gridex_vh_history.objects FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: requests; Type: TABLE; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TABLE gridex_vh_history.requests (
+    company_id uuid NOT NULL,
+    permission_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    request_id uuid NOT NULL,
+    message_id uuid NOT NULL,
+    transaction_id text NOT NULL,
+    source_payload_hash text NOT NULL,
+    binding jsonb NOT NULL,
+    binding_hash text NOT NULL,
+    state text DEFAULT 'awaiting'::text NOT NULL,
+    closed_by_message_id uuid,
+    CONSTRAINT requests_binding_hash_check CHECK ((binding_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT requests_state_check CHECK ((state = ANY (ARRAY['awaiting'::text, 'completed'::text, 'manual_review'::text])))
+);
+
+ALTER TABLE ONLY gridex_vh_history.requests FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: restorations; Type: TABLE; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TABLE gridex_vh_history.restorations (
+    company_id uuid NOT NULL,
+    permission_id uuid NOT NULL,
+    site_id uuid NOT NULL,
+    closure_source_message_id uuid NOT NULL,
+    source_message_id uuid NOT NULL,
+    source_payload_hash text NOT NULL,
+    actor_user_id uuid NOT NULL,
+    restored_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+);
+
+ALTER TABLE ONLY gridex_vh_history.restorations FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: skipped_bases; Type: TABLE; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TABLE gridex_vh_history.skipped_bases (
+    company_id uuid NOT NULL,
+    permission_id uuid NOT NULL,
+    source_message_id uuid NOT NULL,
+    source_payload_hash text NOT NULL,
+    opening_source_message_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    reason text NOT NULL,
+    basis jsonb NOT NULL,
+    basis_hash text NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT skipped_bases_basis_hash_check CHECK ((basis_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT skipped_bases_reason_check CHECK ((reason = 'vh_history_open_ended_approved_window'::text)),
+    CONSTRAINT skipped_bases_source_payload_hash_check CHECK ((source_payload_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+ALTER TABLE ONLY gridex_vh_history.skipped_bases FORCE ROW LEVEL SECURITY;
+
+--
 -- Name: platform_actor_identifiers; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -127678,6 +128192,62 @@ ALTER TABLE ONLY gridex_utilts_issuer.transport_mandate_versions
     ADD CONSTRAINT transport_mandate_versions_pkey PRIMARY KEY (id);
 
 --
+-- Name: closures closures_pkey; Type: CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.closures
+    ADD CONSTRAINT closures_pkey PRIMARY KEY (company_id, permission_id, site_id, source_message_id);
+
+--
+-- Name: deliveries deliveries_pkey; Type: CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.deliveries
+    ADD CONSTRAINT deliveries_pkey PRIMARY KEY (company_id, permission_id);
+
+--
+-- Name: objects objects_company_id_permission_id_point_key; Type: CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.objects
+    ADD CONSTRAINT objects_company_id_permission_id_point_key UNIQUE (company_id, permission_id, point);
+
+--
+-- Name: objects objects_pkey; Type: CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.objects
+    ADD CONSTRAINT objects_pkey PRIMARY KEY (company_id, permission_id, site_id);
+
+--
+-- Name: requests requests_company_id_message_id_transaction_id_key; Type: CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.requests
+    ADD CONSTRAINT requests_company_id_message_id_transaction_id_key UNIQUE (company_id, message_id, transaction_id);
+
+--
+-- Name: requests requests_pkey; Type: CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.requests
+    ADD CONSTRAINT requests_pkey PRIMARY KEY (company_id, request_id);
+
+--
+-- Name: restorations restorations_pkey; Type: CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.restorations
+    ADD CONSTRAINT restorations_pkey PRIMARY KEY (company_id, permission_id, site_id, closure_source_message_id);
+
+--
+-- Name: skipped_bases skipped_bases_pkey; Type: CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.skipped_bases
+    ADD CONSTRAINT skipped_bases_pkey PRIMARY KEY (company_id, permission_id, source_message_id);
+
+--
 -- Name: actor_registry_conflicts actor_registry_conflicts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -148338,6 +148908,66 @@ CREATE TRIGGER namespace_fence BEFORE INSERT ON gridex_utilts_issuer.source_abse
 CREATE TRIGGER namespace_fence BEFORE INSERT ON gridex_utilts_issuer.transport_mandate_versions FOR EACH ROW EXECUTE FUNCTION gridex_utilts_issuer.fence_ground_insert_v1();
 
 --
+-- Name: closures vh_history_immutable; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_immutable BEFORE DELETE OR UPDATE ON gridex_vh_history.closures FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: objects vh_history_immutable; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_immutable BEFORE DELETE OR UPDATE ON gridex_vh_history.objects FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: restorations vh_history_immutable; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_immutable BEFORE DELETE OR UPDATE ON gridex_vh_history.restorations FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: skipped_bases vh_history_immutable; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_immutable BEFORE DELETE OR UPDATE ON gridex_vh_history.skipped_bases FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: closures vh_history_no_truncate; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_no_truncate BEFORE TRUNCATE ON gridex_vh_history.closures FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: objects vh_history_no_truncate; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_no_truncate BEFORE TRUNCATE ON gridex_vh_history.objects FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: restorations vh_history_no_truncate; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_no_truncate BEFORE TRUNCATE ON gridex_vh_history.restorations FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: skipped_bases vh_history_no_truncate; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_no_truncate BEFORE TRUNCATE ON gridex_vh_history.skipped_bases FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
+-- Name: requests vh_history_request_immutable; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_request_immutable BEFORE DELETE OR UPDATE ON gridex_vh_history.requests FOR EACH ROW EXECUTE FUNCTION gridex_vh_history.guard_request_v1();
+
+--
+-- Name: requests vh_history_request_no_truncate; Type: TRIGGER; Schema: gridex_vh_history; Owner: -
+--
+
+CREATE TRIGGER vh_history_request_no_truncate BEFORE TRUNCATE ON gridex_vh_history.requests FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation();
+
+--
 -- Name: customer_supply_periods a_customer_supply_periods_contract_alias_v1; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -158586,6 +159216,153 @@ ALTER TABLE ONLY gridex_utilts_issuer.transport_mandate_versions
     ADD CONSTRAINT transport_mandate_versions_issuer_version_id_fkey FOREIGN KEY (issuer_version_id) REFERENCES gridex_utilts_issuer.issuer_versions(id);
 
 --
+-- Name: closures closures_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.closures
+    ADD CONSTRAINT closures_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: closures closures_canonical_assessment_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.closures
+    ADD CONSTRAINT closures_canonical_assessment_id_fkey FOREIGN KEY (canonical_assessment_id) REFERENCES gridex_received_sources.validation_assessments(id);
+
+--
+-- Name: closures closures_company_id_permission_id_site_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.closures
+    ADD CONSTRAINT closures_company_id_permission_id_site_id_fkey FOREIGN KEY (company_id, permission_id, site_id) REFERENCES gridex_vh_history.objects(company_id, permission_id, site_id);
+
+--
+-- Name: closures closures_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.closures
+    ADD CONSTRAINT closures_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: deliveries deliveries_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.deliveries
+    ADD CONSTRAINT deliveries_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: deliveries deliveries_opening_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.deliveries
+    ADD CONSTRAINT deliveries_opening_source_message_id_fkey FOREIGN KEY (opening_source_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: deliveries deliveries_original_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.deliveries
+    ADD CONSTRAINT deliveries_original_message_id_fkey FOREIGN KEY (original_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: deliveries deliveries_permission_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.deliveries
+    ADD CONSTRAINT deliveries_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.metering_permissions(id);
+
+--
+-- Name: objects objects_company_id_permission_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.objects
+    ADD CONSTRAINT objects_company_id_permission_id_fkey FOREIGN KEY (company_id, permission_id) REFERENCES gridex_vh_history.deliveries(company_id, permission_id);
+
+--
+-- Name: requests requests_closed_by_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.requests
+    ADD CONSTRAINT requests_closed_by_message_id_fkey FOREIGN KEY (closed_by_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: requests requests_company_id_permission_id_site_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.requests
+    ADD CONSTRAINT requests_company_id_permission_id_site_id_fkey FOREIGN KEY (company_id, permission_id, site_id) REFERENCES gridex_vh_history.objects(company_id, permission_id, site_id);
+
+--
+-- Name: requests requests_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.requests
+    ADD CONSTRAINT requests_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: requests requests_request_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.requests
+    ADD CONSTRAINT requests_request_id_fkey FOREIGN KEY (request_id) REFERENCES public.grid_owner_data_requests(id);
+
+--
+-- Name: restorations restorations_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.restorations
+    ADD CONSTRAINT restorations_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: restorations restorations_company_id_permission_id_site_id_closure_sour_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.restorations
+    ADD CONSTRAINT restorations_company_id_permission_id_site_id_closure_sour_fkey FOREIGN KEY (company_id, permission_id, site_id, closure_source_message_id) REFERENCES gridex_vh_history.closures(company_id, permission_id, site_id, source_message_id);
+
+--
+-- Name: restorations restorations_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.restorations
+    ADD CONSTRAINT restorations_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: skipped_bases skipped_bases_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.skipped_bases
+    ADD CONSTRAINT skipped_bases_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: skipped_bases skipped_bases_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.skipped_bases
+    ADD CONSTRAINT skipped_bases_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: skipped_bases skipped_bases_opening_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.skipped_bases
+    ADD CONSTRAINT skipped_bases_opening_source_message_id_fkey FOREIGN KEY (opening_source_message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: skipped_bases skipped_bases_permission_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.skipped_bases
+    ADD CONSTRAINT skipped_bases_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.metering_permissions(id);
+
+--
+-- Name: skipped_bases skipped_bases_source_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE ONLY gridex_vh_history.skipped_bases
+    ADD CONSTRAINT skipped_bases_source_message_id_fkey FOREIGN KEY (source_message_id) REFERENCES public.ediel_messages(id);
+
+--
 -- Name: actor_registry_conflicts actor_registry_conflicts_import_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -168665,6 +169442,42 @@ ALTER TABLE gridex_utilts_issuer.source_admissions ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE gridex_utilts_issuer.transport_mandate_versions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: closures; Type: ROW SECURITY; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE gridex_vh_history.closures ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: deliveries; Type: ROW SECURITY; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE gridex_vh_history.deliveries ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: objects; Type: ROW SECURITY; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE gridex_vh_history.objects ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: requests; Type: ROW SECURITY; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE gridex_vh_history.requests ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: restorations; Type: ROW SECURITY; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE gridex_vh_history.restorations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: skipped_bases; Type: ROW SECURITY; Schema: gridex_vh_history; Owner: -
+--
+
+ALTER TABLE gridex_vh_history.skipped_bases ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: actor_registry_conflicts; Type: ROW SECURITY; Schema: public; Owner: -
@@ -192020,6 +192833,12 @@ REVOKE ALL ON FUNCTION gridex_received_sources.capture_insert() FROM PUBLIC;
 REVOKE ALL ON FUNCTION gridex_received_sources.capture_utilts_insert_v1() FROM PUBLIC;
 
 --
+-- Name: FUNCTION close_vh_history_delivery_v1(c uuid, pid uuid, zid uuid, actor uuid, wire jsonb, canonical uuid, scopes jsonb); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.close_vh_history_delivery_v1(c uuid, pid uuid, zid uuid, actor uuid, wire jsonb, canonical uuid, scopes jsonb) FROM PUBLIC;
+
+--
 -- Name: FUNCTION closure_wire_matches_v1(p_raw text, p_object jsonb, p_wire jsonb); Type: ACL; Schema: gridex_received_sources; Owner: -
 --
 
@@ -193953,6 +194772,60 @@ REVOKE ALL ON FUNCTION gridex_utilts_issuer.read_v1(p_company uuid, p_source uui
 REVOKE ALL ON FUNCTION gridex_utilts_issuer.require_first_effect_v1(p_company uuid, p_source uuid, p_transaction text, p_disposition text, p_issue_codes jsonb) FROM PUBLIC;
 
 --
+-- Name: FUNCTION authorize_v1(c uuid, a uuid, permission text); Type: ACL; Schema: gridex_vh_history; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_vh_history.authorize_v1(c uuid, a uuid, permission text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION coverage_v1(c uuid, pid uuid, sid uuid); Type: ACL; Schema: gridex_vh_history; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_vh_history.coverage_v1(c uuid, pid uuid, sid uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION guard_request_v1(); Type: ACL; Schema: gridex_vh_history; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_vh_history.guard_request_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION open_v1(c uuid, pid uuid, zid uuid, actor uuid); Type: ACL; Schema: gridex_vh_history; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_vh_history.open_v1(c uuid, pid uuid, zid uuid, actor uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION record_skipped_basis_v1(c uuid, pid uuid, zid uuid, actor uuid, opening uuid, snapshot jsonb); Type: ACL; Schema: gridex_vh_history; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_vh_history.record_skipped_basis_v1(c uuid, pid uuid, zid uuid, actor uuid, opening uuid, snapshot jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION request_binding_v1(c uuid, pid uuid, sid uuid, qid uuid, msg uuid, tx text); Type: ACL; Schema: gridex_vh_history; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_vh_history.request_binding_v1(c uuid, pid uuid, sid uuid, qid uuid, msg uuid, tx text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_actor_v1(c uuid, a uuid); Type: ACL; Schema: gridex_vh_history; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_vh_history.require_actor_v1(c uuid, a uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_basis_v1(c uuid, pid uuid); Type: ACL; Schema: gridex_vh_history; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_vh_history.require_basis_v1(c uuid, pid uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION restore_v1(c uuid, pid uuid, zid uuid, actor uuid, wire jsonb); Type: ACL; Schema: gridex_vh_history; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_vh_history.restore_v1(c uuid, pid uuid, zid uuid, actor uuid, wire jsonb) FROM PUBLIC;
+
+--
 -- Name: TABLE spot_price_monthly_summaries; Type: ACL; Schema: public; Owner: -
 --
 
@@ -195139,6 +196012,13 @@ GRANT ALL ON FUNCTION public.ediel_is_qualified_process_retention_transition_v1(
 REVOKE ALL ON FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.ediel_messages, newrow public.ediel_messages) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.ediel_messages, newrow public.ediel_messages) TO authenticated;
 GRANT ALL ON FUNCTION public.ediel_is_qualified_retention_transition_v1(oldrow public.ediel_messages, newrow public.ediel_messages) TO service_role;
+
+--
+-- Name: FUNCTION ediel_link_vh_history_request_v1(p_company_id uuid, p_permission_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_transaction_id text, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_link_vh_history_request_v1(p_company_id uuid, p_permission_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_transaction_id text, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_link_vh_history_request_v1(p_company_id uuid, p_permission_id uuid, p_site_id uuid, p_request_id uuid, p_message_id uuid, p_transaction_id text, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION ediel_list_business_acks_for_source_v1(p_company_id uuid, p_source_message_id uuid, p_actor_user_id uuid, p_environment text, p_ack_family text); Type: ACL; Schema: public; Owner: -
@@ -196684,6 +197564,13 @@ GRANT ALL ON FUNCTION public.ediel_transport_exception_alarms_v1(p_company_id uu
 
 REVOKE ALL ON FUNCTION public.ediel_verify_registry_el_actor_v1(p_actor_user_id uuid, p_actor_id uuid, p_route_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_verify_registry_el_actor_v1(p_actor_user_id uuid, p_actor_id uuid, p_route_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION ediel_vh_history_delivery_audit_v1(p_company_id uuid, p_permission_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_vh_history_delivery_audit_v1(p_company_id uuid, p_permission_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_vh_history_delivery_audit_v1(p_company_id uuid, p_permission_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION ediel_witness_confirmed_customer_source_before_scope_fence_v1(p_company_id uuid, p_source_message_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
