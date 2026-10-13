@@ -6,7 +6,7 @@
   "documentation_version": "2026-10-12.1 (prospective)",
   "runtime_contract_version": "2026-10-09.1",
   "onboarding_contract_version": "2026-10-05.2",
-  "live_writes": 0,
+  "live_writes": 1,
   "native_business_rpcs": 0,
   "deployments": 0,
   "root_corrections": [
@@ -23,11 +23,9 @@
   ],
   "native_release_blockers": [
     "Five required customer/document retention guards absent",
-    "46 internal RPCs absent on 74 traced valid-command method chains",
-    "Installed actor permission gate lacks source deny predicates",
-    "Native Partner contract transaction needs atomic offer/site direction guard"
+    "46 internal RPCs absent on 74 traced valid-command method chains"
   ],
-  "latest_native_receipt": "final-native-state.json",
+  "latest_native_receipt": "atomic-native-apply-receipt.json",
   "latest_missing_functions_receipt": "required-native-preflight-result.json",
   "historical_errata": [
     "Customer02.3 support detail closed allOf contradiction",
@@ -38,18 +36,28 @@
   "limits": [
     "No configured live customer/Staff binding to qualify end-to-end flows",
     "Boundary coverage is not complete business-callee or provider/native campaign acceptance",
-    "SQL proposals are unapplied and not registered migrations",
     "Canonical GEN and shared Ediel claims/memory remain under existing owners",
     "Semgrep, CodeQL and authenticated ggshield tooling unavailable; no exhaustive SAST/secret-scan clean claim",
-    "Production dependency audit not executed: auto_review blocked external manifest/lock metadata transmission to npm registry; no indirect retry"
+    "One actual OPS forward migration applied; remaining 51 RPC dependency closure still in reconciliation",
+    "Production dependency audit passed with preexisting node-forge advisory exception; upstream latest1.4.0 has no patched version; exception expires2026-11-01"
   ],
   "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
-  "integrated_main": "35ad0e6d9fd2e100d22bf5c27cd1958f77063e3c",
+  "integrated_main": "94d39dfb",
   "native_source_map": "release-proposals/required-native-source-map.json:51 exact missing functions and21 unregistered latest defining files; larger static closure is not a release/failure list",
   "independent_review_receipt": "independent-review.json",
   "delivery_native_preflight": "delivery-native-preflight.json: actual2026-10-12 22:56:02 UTC catalog still51missing/52examined, tombstone service-only bodyMD5 unchanged",
-  "delivery_status": "DRAFT_PR794_REVIEWABLE_SOURCE_FIXES_AND_UNAPPLIED_NATIVE_PACKET",
+  "delivery_status": "DRAFT_PR794_SOURCE_FIXES_FIRST_NATIVE_FORWARD_APPLIED_RECONCILIATION_CONTINUES",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
   "verification_receipt": "verification.json",
-  "next_action": "Existing native/migration owners reconcile51missing functions plus actor-deny/Partner-direction invariants, release through normal process and qualify authorized real Staff/customer integration. Optional npm audit remains awaiting specific approval."
+  "next_action": "Compile and independently review exact latest additive dependency installation for 51 missing RPCs; reconcile actual remaining drift/provenance using new forward migrations, then native postflight and truthful documentation. Hand new source/native epoch to sole C2 GEN owner.",
+  "actual_native_corrections": {
+    "migration": "20261012235455",
+    "sha256": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d",
+    "actual_ledger_md5_matches_file": true,
+    "actor_deny_and_active_catalog": "installed; same OID/owner/ACL",
+    "canonical_override_schema": "additive columns and global-deny-only constraints; existing table zero rows; no grants/backfill",
+    "partner_atomic_direction": "installed; same OID/owner/service-only ACL",
+    "grid_owner_normalizer": "native correct body unchanged; new forward source rectifies historic replay escaping"
+  },
+  "current_source_head": "995ee01997b729527510ecc43cc6ff144aa5a230"
 }

@@ -1,6 +1,6 @@
-# OPS native release packet — pending
+# OPS native release packet — reconciliation in progress
 
-These files are concrete review inputs. They have not been applied, registered as migrations, or used to produce canonical schema/type captures. The connected OPS project is `piidsfebjqjmnepdpnas`; Gridex Web and other tenant databases are excluded.
+These files contain review inputs and the remaining native reconciliation plan. The atomic actor/override-schema/Partner-direction corrections are now installed by new forward migration `supabase/migrations/20261012235455_ops_api_atomic_permission_and_direction_guards.sql`, with exact source/native hashes and actual postcatalog receipt in `../atomic-native-apply-receipt.json`. Other SQL proposals remain unapplied. No competing canonical schema/type capture has been produced. The connected OPS project is `piidsfebjqjmnepdpnas`; Gridex Web and other tenant databases are excluded.
 
 The direct catalog recheck at 2026-10-12 22:10 UTC still found 51 absent required functions. An earlier prose error concerning `ediel_customer_record_tombstones_v1` was refuted: it already exists and matches its source/caller. The five actual retention guards and 46 internal command functions remain absent. See `../required-native-preflight-result.json`, `../database-code-review.json` and `../internal-review.json` for exact functions, source paths, reachable commands and qualifications.
 
@@ -17,4 +17,4 @@ Required release sequence:
 4. Release through the existing approved deployment process. Re-run the read-only catalog/ACL preflight against the explicit OPS project and compare effective definitions, not only migration history entries.
 5. Qualify authenticated customer and Staff flows using an authorized configured integration and its real account/binding. The observed database has no live customer or Staff binding data, so this audit cannot establish their end-to-end readiness. Verify canonical post-commit signing recovery before calling signing ready.
 
-Native proposals and the application/documentation branch must not be described as a completed live database repair. The current documents retain the normal Website/Customer/Staff wire revision `2026-10-09.1` and independent onboarding `2026-10-05.2`; a new documentation copy alone is not an admission requirement.
+The first actual atomic native correction is complete. The remaining proposals and application/documentation branch do not establish complete live database or API readiness. The current documents retain the normal Website/Customer/Staff wire revision `2026-10-09.1` and independent onboarding `2026-10-05.2`; a new documentation copy alone is not an admission requirement.
