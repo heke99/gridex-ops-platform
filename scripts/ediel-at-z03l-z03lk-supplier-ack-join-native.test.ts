@@ -79,6 +79,20 @@ function observeOwnWire(raw: string, code: 'Z03' | 'Z04', variant: Variant) {
 
 const smtp = vi.hoisted(() => ({ send: vi.fn() }))
 vi.mock('nodemailer', () => ({ default: { createTransport: () => ({ sendMail: smtp.send }) } }))
+function configureSyntheticSmtp() {
+  smtp.send.mockReset()
+  smtp.send.mockImplementation(async (mail: unknown) => {
+    const actual = record(mail), envelope = record(actual.envelope), recipients = envelope.to
+    // Both current sendEdielEmail branches pass an envelope and compiled raw
+    // bytes. No top-level-to, selector/default recipient or from fallback.
+    if (!Buffer.isBuffer(actual.raw) || typeof envelope.from !== 'string' || !envelope.from.trim()
+      || !Array.isArray(recipients) || recipients.length !== 1 || typeof recipients[0] !== 'string' || !recipients[0].trim()) {
+      throw Error('z03_join_actual_smtp_envelope_required')
+    }
+    return { accepted: [recipients[0]], rejected: [],
+      messageId: `<synthetic-z03-join-${randomUUID()}@example.invalid>`, response: '250 explicitly synthetic SMTP acceptance' }
+  })
+}
 
 // Dynamic imports keep finite raw/selector checks entirely outside native
 // setup. These are the current real ports, never JSON executable adapters.
@@ -438,11 +452,9 @@ async function causalZ04(p: Ports, f: Cohort, original: EdielMessageRow) {
 describe('native prospective own Z03 L/LK ACK-to-Z04 join', () => {
   it.each(['L', 'LK'] as const)('%s joins its sent original and physical request ACKs to only its own future Z04', async variant => {
     const selected = currentSelectors(variant), p = await nativePorts(), f = await admittedCohort(p, selected)
-    smtp.send.mockReset()
     // Transparent external SMTP substitution only. Actual send-owner chooses
     // the recipient, enters the provider and commits its observed acceptance.
-    smtp.send.mockImplementation(async (mail: { to: string }) => ({ accepted: [mail.to], rejected: [],
-      messageId: `<synthetic-z03-join-${randomUUID()}@example.invalid>`, response: '250 explicitly synthetic SMTP acceptance' }))
+    configureSyntheticSmtp()
     const preservedControls = controls(p, f), before = market(p, f)
     const prepared = await p.prepareAndQueueEdielZ03({ actorUserId: f.actorUserId, switchRequestId: f.switchId,
       communicationRouteId: f.routeId, environment: 'test' })
@@ -536,8 +548,8 @@ describe('native prospective own Z03 L/LK ACK-to-Z04 join', () => {
   })
 })
 
-// Finite tests exercise only the selector/raw-wire assertion boundary used by
-// the prospective native cases. No backend, source admission or native callback.
+// Finite tests exercise selectors/raw wire and the actual SMTP adapter through
+// declared external ports. No backend, source admission or native callback.
 describe('finite Z03 join input and raw boundary', () => {
   const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
   const data = () => ({ sourceCommit: 'a'.repeat(40), sourceTree: 'b'.repeat(40), inputEpoch: 'disposable-own-epoch',
@@ -588,6 +600,52 @@ describe('finite Z03 join input and raw boundary', () => {
     for (const [role, party] of [['FR', '60001'], ['DO', '40001']] as const) {
       const nad = replyWire.segments.filter(t => t.tag === 'NAD' && segmentComposite(t, 1, replyWire.una)[0] === role)
       expect(nad).toHaveLength(1); expect(segmentComposite(nad[0], 2, replyWire.una)[0]).toBe(party)
+    }
+  })
+  it.each(['raw', 'attachment'] as const)('actual sendEdielEmail %s reaches the declared SMTP boundary with its real envelope recipient', async mode => {
+    // Finite adapter qualification only: actual config/readiness, MailComposer,
+    // provider-gate binding and return normalization execute. MIME storage is
+    // the declared lower port; no archive/backend/journal/native effect exists.
+    const archiveContext = { companyId: id(90), messageId: id(91) }, bindings: Row[] = []
+    vi.resetModules()
+    vi.doMock('@/lib/ediel/transport/rawMimeArchive', () => ({
+      archiveTransportRawMime: async (raw: Buffer, context: typeof archiveContext) => {
+        if (context.companyId !== archiveContext.companyId || context.messageId !== archiveContext.messageId)
+          throw Error('finite_smtp_archive_scope_mismatch')
+        const messageId = raw.toString('latin1').match(/^Message-ID:\s*(<[^\r\n]+>)$/im)?.[1]
+        if (!messageId) throw Error('finite_smtp_archive_header_required')
+        return { mimeArchiveRef: 'modeled://finite-mime-port', mimeSha256: createHash('sha256').update(raw).digest('hex'),
+          mimeLength: raw.length, rfcMessageId: messageId, mimePayloadSnapshotId: id(92) }
+      },
+    }))
+    for (const [key, value] of Object.entries({ EMAIL_PROVIDER: 'resend', EDIEL_EMAIL_PROVIDER: 'strato',
+      EDIEL_SMTP_HOST: 'synthetic-smtp.example.invalid', EDIEL_SMTP_PORT: '465', EDIEL_SMTP_SECURE: 'true',
+      EDIEL_SMTP_FROM: 'synthetic@example.invalid', EDIEL_SMTP_USER: 'synthetic@example.invalid',
+      EDIEL_SMTP_PASS: 'synthetic-only', EDIEL_APP_DKIM_ENABLED: 'false' })) vi.stubEnv(key, value)
+    try {
+      configureSyntheticSmtp()
+      const { sendEdielEmail } = await import('@/lib/email/sendEdielEmail')
+      const input = mode === 'raw'
+        ? { to: 'recipient@example.invalid', envelopeFrom: 'synthetic@example.invalid',
+          raw: Buffer.from('From: synthetic@example.invalid\r\nTo: recipient@example.invalid\r\nMessage-ID: <finite-raw@example.invalid>\r\nContent-Type: application/edifact\r\n\r\nUNB+finite\'') }
+        : { to: 'recipient@example.invalid', subject: 'Declared finite adapter input', text: 'Synthetic boundary only',
+          attachments: [{ filename: 'payload.edi', content: Buffer.from('UNB+finite\'') }] }
+      const result = await sendEdielEmail(input, { archiveContext,
+        beforeProviderCall: async binding => { bindings.push(binding) } })
+      expect(result).toMatchObject({ accepted: ['recipient@example.invalid'], rejected: [],
+        messageId: expect.stringMatching(/^<synthetic-z03-join-/), response: '250 explicitly synthetic SMTP acceptance' })
+      expect(bindings).toHaveLength(1)
+      expect(bindings[0]).toMatchObject({ mode, from: 'synthetic@example.invalid', to: 'recipient@example.invalid',
+        mimeArchiveRef: 'modeled://finite-mime-port', mimePayloadSnapshotId: id(92) })
+      const bytes = Buffer.from(String(bindings[0].rawBase64), 'base64')
+      expect(bindings[0].mimeSha256).toBe(createHash('sha256').update(bytes).digest('hex'))
+      expect(bindings[0].mimeLength).toBe(bytes.length)
+      // The actual adapter propagates refusal when its provided envelope has
+      // no recipient. The modeled session cannot manufacture an accepted one.
+      await expect(sendEdielEmail({ ...input, to: '' }, { archiveContext,
+        beforeProviderCall: async binding => { bindings.push(binding) } })).rejects.toThrow('z03_join_actual_smtp_envelope_required')
+    } finally {
+      vi.doUnmock('@/lib/ediel/transport/rawMimeArchive'); vi.resetModules(); vi.unstubAllEnvs()
     }
   })
 })
