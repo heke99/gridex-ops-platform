@@ -2132,10 +2132,16 @@
     },
     {
       "id": "SC-035",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "scripts/test-ediel-p-10-z02-correlation.cjs",
-        "scripts/ediel-p-10-z02-correlation-sql-regression.mjs"
+        "scripts/ediel-p-10-z02-correlation-sql-regression.mjs",
+        "lib/customer-operations/automation.part-2.ts",
+        "lib/customer-operations/automation.part-3.ts",
+        "lib/operations/businessActions/startSupplierSwitch.ts",
+        "scripts/ediel-at-z02-supplier-native.test.ts",
+        ".github/workflows/ediel-z02-supplier-native.yml",
+        "quality/audits/ediel-masterplan-v2/c1-z02-v6/contract-proof.json"
       ]
     },
     {
@@ -3981,8 +3987,17 @@
     },
     {
       "id": "AT-Z02L-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/customer-operations/automation.part-2.ts",
+        "supabase/migrations/20261012231000_ediel_z02_original_grid_refusal.sql",
+        "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts",
+        "__tests__/ediel-z02-worker-result-preservation.test.ts",
+        "scripts/ediel-at-z02-supplier-native.test.ts",
+        ".github/workflows/ediel-z02-supplier-native.yml",
+        "quality/audits/ediel-masterplan-v2/c1-z02-v6/contract-proof.json"
+      ]
     },
     {
       "id": "AT-Z03L-SUPPLIER",
@@ -4015,8 +4030,17 @@
     },
     {
       "id": "AT-Z02LK-SUPPLIER",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/customer-operations/automation.part-2.ts",
+        "supabase/migrations/20261012231000_ediel_z02_original_grid_refusal.sql",
+        "__tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts",
+        "__tests__/ediel-z02-worker-result-preservation.test.ts",
+        "scripts/ediel-at-z02-supplier-native.test.ts",
+        ".github/workflows/ediel-z02-supplier-native.yml",
+        "quality/audits/ediel-masterplan-v2/c1-z02-v6/contract-proof.json"
+      ]
     },
     {
       "id": "AT-Z03LK-SUPPLIER",
