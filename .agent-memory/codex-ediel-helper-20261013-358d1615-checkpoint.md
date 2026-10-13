@@ -1685,3 +1685,128 @@ Original ediel-helper-20261013-pr800-actual-delivery-attestation.json SHA256d808
   "all349_other_ids_and_all_global_metadata_preserved": true
 }
 ```
+
+
+## 2026-10-13 Z13 custody routing and current GEN/Z02 check boundary
+
+Actual main remains d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/treee3b6c11677a2b871a128504f1616def7d22dba1e; 119 VERIFIED +204 PASSED=323/352,29 remain. Public795 still894b085ef22b48989375822beb5b483a356d10ed. Private corrected carrier was not fetched. Scope clarification #7666149395529: public795 has no current Z02-native113 execution; historical C1 workflow is branch/source bound. Do not restart it or weaken pins. Existing owner determines proper changed-source applicability/qualification.
+
+Z13 scout exact two new paths are physically absent/free, but actor358d is NEW helper, not sole C1 parent/current delegate. Retained whole-request60cc, ESCO0c559 producer and native/workflowce80 prevent inferring authoring authority from absent paths, silence or SC031 custody. No code/claim/ref/backend/native/GEN/CI/producer/original action occurred. Concrete bounded source-preparation division requested once on #7666149872726 through verified C1/current explicitly delegated owner, with existing request/native owners retained. Pending explicit named sole-writer/semantic-pause acknowledgment then fresh actual-main/allclaims/currentPR/handoff and two new CREATE_IF_ABSENT/GET_MATCH before first write. Proposed paths only scripts/ediel-z13-request-ack-native-358d1615.test.ts and matching .config.ts. DATA-ONLY existing genuinely authorized sent-original selectors; actual incoming ACK intake/committed receipts; original/hash/tenant/customer/direction/LI binding; no early rights/supply; replay/refusal; unchanged native guards. SOURCE_PREPARATION_ONLY, NATIVE_NOT_RUN. No wholeIDs/slot/producer/sharedhelpers/SQL/workflow/authority seed or old original collector. Do not repeat unanswered request or resume retired actors. Continue independently useful read-only current-public-source work.
+
+Own technical SC031 source3dff/tree d1a and testblob0158559/SHA73265 remain frozen/aa4held/paused; this branch changes only own checkpoint, not active dispatch/shared baseline. Existing other agents newly own Z03 ACK join e247 and SC037 bound ACK97d700; no duplicate preparation. Source support and historical original proofs below remain at their declared scope.
+
+Original ediel-helper-20261013-gen-z02-existing-check-scope.json, SHA256 `b0e3bfd248bbc205503e8d212f0d129c3e40316c03192d58cd24a793d04ac4a8`; preserved verbatim:
+
+````json
+{
+  "scope": "PUBLIC_WORKFLOW_AND_CURRENT_COMPLETED_CHECK_METADATA_ONLY",
+  "actualmain": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "publicgen": "894b085ef22b48989375822beb5b483a356d10ed",
+  "current_gen_total_checks": 42,
+  "current_gen_z02_native_check_exists": false,
+  "workflow": ".github/workflows/ediel-z02-supplier-native.yml",
+  "workflow_sha256": "45df7047094a2ec7d2207a9ade6f21487999d3635851c8d15bfd9484ac3c10b8",
+  "pull_request_head_branch_predicate": "codex/five-C1-z02-native-b7e2fae0",
+  "path_filters": [
+    ".github/workflows/ediel-z02-supplier-native.yml",
+    "scripts/ediel-at-z02-supplier-native.*",
+    "scripts/helpers/ediel-z02-supplier-*"
+  ],
+  "fixed_source_scope_identity_gate": true,
+  "automatic_gen795_z02_113_run_implied": false,
+  "not_requested_actions": [
+    "workflow_edit",
+    "historical_branch_restart",
+    "native_dispatch",
+    "rerun",
+    "capture",
+    "original_collection",
+    "extra_blanket_gate"
+  ]
+}
+
+````
+
+Original ediel-helper-20261013-z13-native-availability.md, SHA256 `1941565509d72f1c76af7956525a15f0ab5d48b0067d9498115cd7cb0243a451`; preserved verbatim:
+
+````markdown
+# Z13 G1 two-path availability/custody scout
+
+Read-only snapshot 2026-10-13 16:03:56 UTC. Scout actor: `codex-ediel-helper-20261013-358d1615`, a NEW helper. The local `/root` collaboration label is not the sole C1 technical owner. Only this temporary report is written. No test/backend/native/GEN/CI/source/ref/claim/create/release/PR/original/private-input/producer action.
+
+**Disposition: both proposed paths are physically available, but this helper is not cleared to claim/author the active Z13 G1 supplement yet.** No current receipt or explicit handoff inspected appoints us as the source-preparation writer. Existing whole Z13 ownership is positively present and retained; this is not clearance from an absent file/ID ref, stale activity, silence or our unrelated SC031 claim. Route the concrete bounded source-only assignment through the verified C1/current delegate and retained Z13 owner before claiming.
+
+## Exact current source and read coverage
+
+- Authenticated actual main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Final API readback unchanged. Local Git object is available; checkout/origin aliases were not used as actual main.
+- Actual coverage independently counted: 119/121 rules VERIFIED + 204/231 contracts PASSED = 323/352. Both AT-Z13V-ESCO and AT-Z13VH-ESCO remain NOT_EXECUTED. No scout credit.
+- Read actual-main AGENTS, memory README/current-start/workflow/reservations. Reservation protocol: bounded explicit writer assignment and verified own custody precede writes; new file keys alone grant no whole-task/producer authority.
+- Authenticated complete `refs/tags/agent-claims/masterplan/` inventory: **195 live refs, 57 distinct target commits**. All 57 full commit messages parsed as complete reservation JSON; no fetch/parse failures. Inspected their agents, IDs, slots, files, declared native/producer scopes, authorizations, handoffs and next actions, including directories/globs/semantic whole-task scope. Across complete payloads, 190 declared file entries; no exact proposed path, containing-directory or matching glob claim. Final inventory readback byte-identical.
+- Full public #766 current-day sequence: 191 comments from 00:00 through `6149680019`, obtained with pages 100/91/0/0; final incremental refresh adds `6149723138` and `6149735333`. Earlier relevant claim/handoff history is also read from the public historical board. New latest comments preserve C2 Z13/ESCO ownership; neither delegates G1 authoring to this helper.
+- All **five** current open PRs and all full file pages inspected: **739 changed-path entries**. Heads refreshed unchanged; no proposed path or separate G1 two-path source packet found. No private prepared source, original archive/log or CI artifact was fetched.
+
+## Proposed paths
+
+| Exact UTF-8 POSIX path | Exact file resource | Current main / live inventory / all open PR paths |
+|---|---|---|
+| `scripts/ediel-z13-request-ack-native-358d1615.test.ts` | `file-8748cce293c1f0042a6e4cb5d3ef17043d9384077d9c3c71ac6005eec6c2e378` | Absent / absent / absent |
+| `scripts/ediel-z13-request-ack-native-358d1615.config.ts` | `file-dc4d9f5a0249627a06e7922935dff884ce671062c6949bc03efe2e7d883678ab` | Absent / absent / absent |
+
+Full actual-main tree has 9,843 leaf paths. Separate authenticated exact matching-ref GETs for both resource names returned `[]`. This proves current path-key absence, not semantic assignment, acquired custody or authority to start a native chain.
+
+## Positive retained ownership evidence
+
+All keys below retain the full SHA listed in the final live inventory. Receipt JSON was read, not inferred from a comment or name.
+
+| Live resource / receipt | Actual receipt.agent | Relevant exact retained scope |
+|---|---|---|
+| `slot-C1` → `b971ef0cfa9724b02f4e0e3a985a4436e11a1f60` | `codex-five-agent-C1-b7e2fae0` | Verified parent C1 actor. Our helper is a different actor. Latest explicit current delegation governs, not its old nextAction or our `/root` label. |
+| `id-AT-Z13V-ESCO`, `id-AT-Z13VH-ESCO` (also Z14VH/Z15V/Z15VH/SC023) → `60cc652f5b97d9e8e0f741593599b0013c3ff711` | `codex-takeover-C2-implementation-20261012` | Packet `77f76f55-049e-498d-8067-0fec537db4fd`, slot C2, delegatedBy C1 `codex-five-agent-C1-b7e2fae0`. Full request/history IDs retained, with 16 exact files including VH request/delivery consumers and ESCO Z13/Z14VH SQL companions. Its next action preserves source/producer/original duties; no G1 supplement transfer to actor358d. |
+| Remaining file extension → `bce2f319a378e07305159c40f11c57274719ad9d` | `codex-takeover-C2-implementation-20261012` | Same packet/IDs, bounded history migration/native/workflow extension. Actual native/workflow file custody later moved explicitly to ce80; remaining live old-receipt resource is respected. A payload's old files list is not proof all those refs still point there. |
+| `producer-esco` → `0c55919a640a822d0953f68be3aec89ada3a46da` | `codex-takeover-C2-implementation-20261012` | Same C2 packet, retained60cc/bce file/ID custody; declared nativeScope is existing `scripts/ediel-at-z14vh-z15v-esco-native.test.ts`, with same-backend PG scheduling/history preparation. Held producer is neither released nor reassigned by this scout. Status/old activity cannot authorize another producer. |
+| `slot-C2` and existing ESCO native/workflow file refs → `ce80cdd3fb4be418ea54daebb596d798889442cd` | `codex-takeover-C2-GEN-joint-C3-20261013` | Existing jointly delegated C2/GEN successor owns the exact existing ESCO native test and workflow plus five generated outputs/capture workflow. Receipt explicitly retains other60cc/bce duties. It does not hand the two proposed paths or G1 request-proof authoring to actor358d. |
+| `producer-gen` → `3193ac7d0bd3401d2cb6b276c7d973da487a19f3` | `codex-takeover-C2-GEN-joint-C3-20261013` | Sole current GEN producer with actual source/capture epoch. No new claim or output/GEN/native source union is authorized here. |
+
+No full receipt claims all `scripts/`, a matching glob or the proposed two names. More specifically, no inspected receipt's explicit scope/nextAction identifies an active distinct **same G1 existing-sent-original/data-only-selector supplement**. That distinction prevents incorrectly accusing the existing history/GEN writers of authoring this exact new packet. Nevertheless the whole Z13 request owner is positively present; no explicit semantic clearance to a NEW helper was located. We therefore stop before claim rather than declare the whole request task free.
+
+## Latest explicit authority and overlap
+
+- `6148372500` (our independently reviewed G1 support) identifies missing physically received CONTRL+APERAK for an actual saved/sent Z13, refutes the null-point/LIN1 bug, and preserves existing request owner/C1/current delegates/sole collectors. It is expressly read-only and is **not** an authoring transfer. The proposed source preparation should use this existing narrow gap, not repeat or expand the review.
+- `6147757975` and `6148634266` qualify existing ESCO history/Z14/Z15 applicability/maps; Z13 original setup remains a prerequisite rather than inherited whole request acceptance. No new Z13 writing delegation follows.
+- Latest `6149723138` explicitly retains **SC023/ESCO ID owner60cc, producer0c559 and corrected native/workflowce80** while completing a distinct coexistence/termination review. `6149735333` takes a distinct read-only Z03 calendar/queued-send review. Neither covers or assigns the proposed G1 supplement.
+- `6149680019` is an exact new SC037 component three-file claim and named-writer handoff after explicit prior-owner pause `6149512642`. It is useful protocol context, not permission for our Z13 scope.
+- Prior actor358d SC031 source3dff/aa4 is a frozen separate offer. It supplies no Z13/ESCO/slot/producer mandate and remains untouched.
+
+## Complete open-PR comparison
+
+| PR | Current head | File pages / count | Relevant overlap |
+|---|---|---|---|
+| 799 | `8daaa19ebb9ae5855f3d2f4a17bb63427097b8a7` | 100/100/97 = 297 | No proposed path or G1 supplement. |
+| 795 | `894b085ef22b48989375822beb5b483a356d10ed` | 37 | Existing ESCO native/workflow, legal-context, SQL companion and checkpoints; retained ce80/60cc scope. |
+| 794 | `5e63abe419094c0efe9d2a67fcb9459ebb0b0fc4` | 100/100/100/77 = 377 | No proposed path or G1 supplement. |
+| 790 | `bed533a27fac07662e2e59ae2bc965bc84898b2a` | 14 | Existing C2 VH history request/delivery/migration/ESCO companions. Broader active owner scope, not these new paths. |
+| 776 | `99b10d2d735daab556ed0b03df3f9ba3466b5c19` | 14 | H field209 scope; no G1 supplement. |
+
+## Relevant closed donors: metadata and complete path lists only
+
+Inspected closed-PR metadata pages1–3 (300 records), and complete changed-path lists for the concrete donors below. No proof/log/archive contents acquired, execution recounted or retired owner resumed.
+
+- **#687**, closed **unmerged**, head `254972f66843bc6f31db40f64a4f6b2024c8a9a4`; all9 paths. Historical Z13 waiting/physical request-ACK native30 source (`scripts/ediel-z13v-z13vh-request-ack-native.test.ts` blob `3cdbd93d7f311e577568a237d21eb5c3d8333b7b`) with old own config/workflow, waiting migration/test. PR body attributes 24PASS/6FAIL and source/archive/request-creation dependencies. It is not current G1 qualification, current writing custody or permission to run that retired chain.
+- **#745**, closed **unmerged**, head `3409017aca149ae311a4314f701bf60f1b7366d0`; all16 paths. Larger historical national/request/ACK source (`scripts/ediel-z13v-z13vh-request-ack-native.test.ts` blob `8c25ab9615c8724a39a4d8bb00376b9496581c26`) and existing customer/source/graph helpers. Its pending native104 is not current proof; do not revive/import whole branch. Neither old native test/config path is present in actual main d798.
+- **#583**, merged, head `d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a`; all49 paths. Finite Z13V/Z14V profile evidence and explicitly partial ACK/native boundary.
+- **#589**, merged, head `b7acb387c4132c7885e84bd1d7197f3ec5a0143f`; all34 paths. Bounded finite Z13VH/Z14VH profiles and retained-owner ACK continuation; no whole request approval.
+- **#752**, merged, head `7df967f444e23fd25d4bbd2da1a4cd94b01b1c59`; all5 paths, and **#763**, merged, head `aeaababa8c4f94c8884051b43fccc771203301ba`; all2 paths. Existing native Z14VH/Z15V receiver/historical improvements, not incoming ACKs for sent Z13.
+- **#780**, merged, head `2e073477c43c6a133a01710772e65cefc43f6162`; all43 paths. Current ESCO source/workflow bytes entered main as part of C1 composition; genuine113 concerns Z02 and does not confer Z13 whole credit.
+- **#800**, merged, head `fba453cc7cc9de8a26ec75d29248e1733316fcd1`; all4 paths. Actual d798 delivery changes only Z02 evidence/checkpoint/archive/ledger, preserving product/native source. No Z13 assignment or acceptance change.
+
+## Concrete routing needed before any authoring
+
+Send this exact two-path proposal to the verified **C1 actor `codex-five-agent-C1-b7e2fae0` / its current explicitly authorized delegate**, with retained Z13 request owner60cc and ce80 native/source routing kept explicit. The bounded acknowledgment must state who is the sole G1 SOURCE/PREPARATION writer, that competing authoring of this same supplement is paused/absent under that owner coordination, and that whole IDs, existing helpers/fixtures/SQL/workflows/generated outputs, producer-esco/GEN, backend execution and originals remain with their existing owners. No contact with retired historical actors or release/takeover is needed.
+
+Then, and only for that authorized exact helper scope, make a fresh main/claim/PR/latest-handoff read, bind a new helper receipt on the actual main tree/parent, use IDsEMPTY/no slot or producer, sorted two-file CREATE_IF_ABSENT and both authenticated GET_MATCH before first source write. A comment alone or source-file absence is not that receipt. This scout performed none of those mutations.
+
+The reviewable source-only proposal remains narrow: data-only selectors for existing genuinely authorized customer-bound identityless sent Z13V/VH originals on the owner's disposable backend; actual canonical physical incoming CONTRL+APERAK intake/processor/committed receipt; unchanged original/hash/scope, no early rights or supply, appropriate replay/refusal; config imports existing ESCO/native guards unchanged. No request creator, issuer/grant/private accepted-fact/history/permission seed, source-validation forgery, workflow activation, extra producer or whole-ID claim. Native remains NOT_RUN; later original selectors, actual execution and qualification are solely the existing owner's continuation.
+
+This is a concrete custody-routing blocker for **our helper's authoring**, not a new product, native, temporal, LIVE, whole-contract or approval gate. No active dedicated same-G1 supplement receipt was found; the retained active whole request owner is the reason path availability cannot be promoted to our authority.
+
+````
