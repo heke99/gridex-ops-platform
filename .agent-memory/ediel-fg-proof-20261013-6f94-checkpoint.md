@@ -4,9 +4,15 @@
 
 Ägare: `codex-ediel-fg-proof-20261013-6f94`. Packet: `cf251c2f-a87c-4c82-aaa5-4d711a754b5c`. Egen branch: `codex/ediel-fg-proof-20261013-6f94`; isolerad workspace: `/workspace/ediel-fg-proof-20261013-6f94`.
 
-P2 är rättad och sourceförberedelsen är verifierad på aktuell main95d. Kodsource `d5b70dc7a125a1708215fef1c5293bbe7e9483fd`, tree `5527b906e736c98c27c335834195a22a358b980e`, ordered parent `[53b43f042fe7728996495c19a53dc63a84e82899]`, base `95d8d160491e79b172342654d8dc643346758105`/tree `fa5ab60527a40bd642749365fc275d1d4a69e277`. Skrivaren är pausad. Fyra sourcepostbilder bevarades byteexakt från writerfreeze8bb66f. Eget checkpoint tillkommer som femte fil; full carrierhead/tree binds i slutgranskning och tekniskt #766-kvitto efter dess frysning. Nativefall är förberedda, **inte körda**. F/G-raderna i ledgern är oförändrade NOT_EXECUTED.
+Aktiv uppgift är den nya namngivna staged-customer-orakelrättningen från [6149259115](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149259115), med exakt två tester under befintlig custody. Föregående P2-rättning och publicerade `0dbc3101138e6ebe041bc280d9f7b68e4876e0ce`/tree `989dd2927f4acd9f783cb6644a0b971078153ec7` är avslutade och [sourceöverlämnade6147700001](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6147700001); deras kod-/proof-/revieworiginal bevaras i versionshistoriken och nedan. Ingen tidigare paus/fixprompt är aktiv dispatch. Native12 har inte körts och F/G förblir NOT_EXECUTED.
 
-Två oberoende noncoauthor slutgranskare har nu SOURCE_APPROVE på hela femfiliga carrier048aeddf/8a9340b8/base95d/parentd5b70d. Ingen återstående P1/P2 hittades. Detta checkpoint kompletteras endast med deras originalrapporter och bevarade finite kontrollkällor; fyra sourcepostbilder är oförändrade. Nästa åtgärd är uttrycklig doc-only rebind av båda peers till slutcarrier, följd av konkret sourceöverlämning till befintlig serialägare. Root har förnyat alla fyra GET_MATCH och main/preimages före integration; inga mainändringar utanför våra fyra sourcepaths har backats ut. En egen sourcebranch görs åtkomlig för den befintliga seriella ägaren utan PR, dispatch eller aktiverad producent. Genuin native-/backend-/originalkvalificering, PR, adoption och normalmerge sker därefter genom den uttryckliga owner-routingen. Ingen ledgerpromotion följer av source-only PASS.
+Nuvarande integrerade source är `467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c`, tree `ac21a93c50ddb575497ec3ce209ebc22a29d7ff2`, ordnade parents `[0dbc3101138e6ebe041bc280d9f7b68e4876e0ce, d798eb36f35cd4f437d44c8d234b4dbb81adc7a6]`. Root normalmergade bara den verkligt levererade mainens fyra proof/checkpoint/archive/ledgerdeltan efter avslutad Z09FG- och Z04C-sourceöverlämning. Alla fyra F/G-codepreimages är oförändrade från public0dbc, inga produkt-/SQL-/helper-/frozen-/configbytes eller originalassertions har ändrats i detta steg. Arkivet har inte öppnats eller omkvalificerats av oss.
+
+Faktisk main/base är `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`/tree `e3b6c11677a2b871a128504f1616def7d22dba1e`, ordnade parents `[95d8d160491e79b172342654d8dc643346758105, fba453cc7cc9de8a26ec75d29248e1733316fcd1]`. Verifierad faktisk #800 normalmerge ger **119 VERIFIED + 204 PASSED = 323/352**, ledger SHA256 `7266ee57be5ac633ec0e8ca3f169aaf7d048da45ca0abfc6004284eae75c822e`. Äldre 320/95d och originalresultat här är daterade käll-/granskningsvärden, ingen aktuell baseline. Våra sourcepaket ger +0.
+
+Alla fyra refs är färskt GET_MATCH till ursprunglig receipt3f4b; ingen mottagartransfer har skett. [Exakt två-fils writerresume6149882155](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149882155) namnger `/root/z06fg_requirements`, som måste självständigt kontrollera fullreceipt/source/tree/parents/branch/preimages före första write. Root PAUSAR två testpaths och skriver endast detta eget checkpoint. Helper- och konfigurationsfil är read-only i denna revision. Mottagaradoption/native/GEN/CI/mainmerge ligger kvar hos befintlig seriell ägare och producent.
+
+Skrivaren har fryst de två testerna vid 054abdeee5dff896b71af5b763be34a1a95b4488/tree d9f5c403888f8882702ea49f2aa21dd56bf1f47d, med 34 tillagda rader och 66 passerande finita kontroller. Native12 är fortfarande NOT_RUN. Nästa steg är root dokumentfreeze, två nya fristående slutgranskningar och ett exakt superseding sourcekvitto. C1/a93c:s decoder/saved-case-korrigering6144860660/inboundCases051ec är ett upptaget beroende, ingen filöverlämning till oss. Aktuell parser kan fortfarande ge den staged-projection som våra skärpta orakel ska fånga; ingen nativegreen/wholeSC031/ledgercredit fabriceras.
 
 ## Custody och mandat
 
@@ -25,13 +31,13 @@ De fyra filerna saknade scopeöverlapp i alla då aktuella 45 relevanta receiptb
 
 Root skriver endast detta eget unika checkpoint. Ingen ledger-/rule-/contractrow, SQL/runtime/GEN, producent, shared memory-role eller serialmerge-roll har tagits. Kodskrivaren får exakt source/fourfiles/output/pause-handoff och måste förnya custody/preimages före rättningar. Medförfattare räknas inte som oberoende slutgranskare.
 
-## Faktisk main och ledger
+## Historiska main- och ledgerläsningar före orakelrevisionen
 
 Startmain: `efed3683115c06d1925f8b80c05c801a54db9885`, tree `dc439c2e017a9633471db53919b745f587abb67b`.
 
 Aktuell normalmerge av #780 är autentiserad: main `95d8d160491e79b172342654d8dc643346758105`, tree `fa5ab60527a40bd642749365fc275d1d4a69e277`, ordered parents `[efed3683115c06d1925f8b80c05c801a54db9885, 2e073477c43c6a133a01710772e65cefc43f6162]`. PR CLOSED/merged `2026-10-13T13:22:09Z`; head2e073 och treeMATCH. Den aktuella ledgern lästes ur detta exakta Gitobjekt: SHA256 `4a1560a0b16ae37d68aa30c5f67ef616a516c5306e29edf4269b7b1fa9fea850`, **119 VERIFIED + 201 PASSED = 320/352**. Den är oförändrad. SC035 är fortfarande PARTIAL; Z02L/LK och våra F/G-rader är fortfarande NOT_EXECUTED. Ingen ökning antas från sourceleveransen eller äldre antal.
 
-## Ändring och verifiering hittills
+## Tidigare fryst sourceförberedelse och verifiering
 
 Den fyrfiliga komponenten tillför nya fysiska originalvarianter före admission, opt-in uppskjuten första applicering, första verkliga F/G-struktureffekt, förbjuden fysisk NAD+UD med ignorerade sourcefacets och oförändrad kundidentitet, F:s egen E66-observation efter faktisk persistence och G:s frånvaro av påhittad avläsning. R/D, LI, parties, främmande punkt, outbound INSERT och originalmutation har negativa kontroller. Config registrerar två F/G-filer utan att försvaga loopback-statusgrind, gamla includes, setup eller timeout. Totalt tolv nativefall förberedda; NATIVE_NOT_RUN.
 
@@ -50,7 +56,9 @@ Tidigare fryst qualification: `/tmp/ediel-fg-6f94-static-qualification.json`, bi
 
 Låsta471 beroenden installerades med explicit `/tmp`-cache och npmci ignore-scripts; lock/source bevarades. Defaultcache gav först ENOENT. Node22.23.3 används för kontroller, inte miljöns Node24. Stödd nätverksbehörighet med bibehållen proxy gav autentiserad gh/gitåtkomst. En felaktig gitfetch med obefintligt C1-branchnamn rättades till endast faktisk main. Ingen credentialsutskrift eller proxykringgång.
 
-## Granskning och konkret P2-rättning
+## Avslutad tidigare P2-rättning och granskningshistorik
+
+Följande beskriver den avslutade tidigare rättningen, inte ett aktivt nytt uppdrag.
 
 Oberoende noncoauthor A på ad740: WITH_FIXES, en P2, ingen P1. Rapport `/tmp/ediel-fg-6f94-final-review-a.md`, SHA256 `238bd28ffaf64a086a18847d9e5dcef684308df30fecfe3127222eb40d52c00a`. B:s första SOURCE_APPROVE på samma version är historisk och därefter återtagen för aktiv credit efter egen bekräftelse av samma P2. Rapport `/tmp/ediel-fg-6f94-final-review-b.md`, SHA256 `8baf48b0e6208dd498fdb34c5976ce3f80d29caff306a799af57dbb67ce7f2fd`. Ingen reviewer skrev kod/test/fixture/proof eller körde native.
 
@@ -555,6 +563,2237 @@ async function main(){const fixture=load(root+'/scripts/helpers/ediel-z06f-readi
  ]){try{await test();process.stdout.write('PASS MODELED '+name+'\n')}catch(e){failed++;process.stdout.write('FAIL MODELED '+name+': '+e.message+'\n')}}process.exitCode=failed?1:0}
 main().catch(e=>{process.stderr.write(String(e)+'\n');process.exitCode=1})
 
+```
+
+</details>
+
+
+## Ny retained-owner-orakelrevision för staged NAD+UD
+
+[6149259115](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149259115) härleder från public0dbc och faktiskd798 att ignorerad F/G-NAD+UD når createOrUpdateInboundProdatCase, medan named parsed_customer inte kontrolleras efter staging/approval/replay. Nuvarande parser c08e/sha39c7e81a läser råUD till namedcustomer fields. Vårt tidigare source bevisar oförändrade faktiska customer/site/supplyrader och bevarat original/ignoredfacets; det bevisar inte att stagedbusinessprojection saknar oanvända värden. Fyndet är inte en exekverad nativebugg eller ett påstående att kundrader muterats.
+
+Exakt korrigering i två egna tester ska jämföra namngivna savedcase.parsed_customer-businessfält till clean/null/noUD-baseline efter verklig staging samt approval/replay. Bevara raw/ignoredfacets/sourcehash/caseidentity och legitima installation/register/structurefält; helcasejämförelse över ID-/tidsvarianter krävs inte. Giltig applicableUD-kontroll ska behållas utan att uppfinna att UD är tillämpligt i F/G. Den nya actualC10 sourcekomponenten kan återanvändas selektivt för tillämplig kundprojektion på faktiskd798, med samma uttryckliga modellportgräns, tillsammans med befintliga C1/P02-kontroller.
+
+Ingen ändring till helperbb9d77/config7350c1 eller runtime/decoder/SQL/privatepostimage/ledger/frozen/GEN/backend/producer/original/CI. CurrentC1/a93c-fix6144860660 måste levereras av sin befintliga ägare och kvalificeras i den verkliga adopterade sourceunionen innan skärpta nativeorakel kan bli wholebevis. Vi frågar inte om samma gamla obesvarade handoff och tar inte C1:s source. I denna sourcefas dokumenteras exakt vad actualparser/finitekontroller visar, inklusive avvisade dirtyprojections och gränser; inga felutfall blir PASS genom generisk fallback.
+
+Föregående Z09FG76a är publicerat/sourcehandoff6148968370; dess immutable beroende0dbc är historiskt pin och behöver uppdaterad selektiv applicability vid adoption av nya två F/G-postbilder. Z04C429c sourcehandoff6149776855 är färdig med 10 finita PASS och två slutpeers. Dessa paket/heldrefs ändras inte här. Daterad futurearrival-order-availability/feasibility är inte en aktiv writer/producerclaim och prioriteras efter konkreta retained-owner-rättningar.
+
+
+## Fryst SC031-orakelrevision och exakta lokala resultat
+
+Codehead `054abdeee5dff896b71af5b763be34a1a95b4488`, tree `d9f5c403888f8882702ea49f2aa21dd56bf1f47d`, ordnad enda parent `[467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c]`. Sourcepreimage467d/ac21 har ordnade parents `[0dbc3101138e6ebe041bc280d9f7b68e4876e0ce,d798eb36f35cd4f437d44c8d234b4dbb81adc7a6]`, actualbase d798/e3b6/323. Root har verifierat identiteter och båda filhashar mot source/workspace. Skrivaren är pausad; eget rootcheckpoint rördes inte av helper.
+
+| Reviderad egen fil | SHA256 | Gitblob |
+| --- | --- | --- |
+| scripts/ediel-at-z06f-supplier-acceptance-native.test.ts | 64fd6cfe7b6dad4ab4e6f7c8bcadad54882cbcecd34c11e0f9b4a8844d5a7d81 | 68b94eb06f469b0d85b9a21cfc44d9390ad11135 |
+| scripts/ediel-at-z06g-supplier-acceptance-native.test.ts | 34d394d5a681757d0aa9e3a59d77206f04129dd385b7f83b9f91d3b0f9a58ce0 | d0fe3d47a9832302d41c5a07b9247ed7b515943e |
+
+Exakt 17 tillagda rader per fil: en namngiven kundfältsassertion med case/company/source/Z06/phase-statusbindning och anrop på faktiskt lagrat case vid staging, approval och replay i båda giltiga positiva varianter. Kundvektorn har 15 faktiska DTO-nycklar: 14 null och tom identitetslabel `Ej angivet`, oberoende bekräftad på ren noUD source. Ingen helcase-equality över ID/tider krävs. Alla gamla direkta nativecase-/helper-AST och alla gamla expect-statements är bevarade i exakt ordning; samtliga 12 nativefall och tidigare precisa P2-avvisningar/expectedFreading/Gnone/råoriginal/ignoredfacet/struktur/installations-/registerassertions ligger kvar. Helperbb9d77 och config7350c1 är oförändrade.
+
+Första exakta nya oraclekontrollen: **66 PASS**, stdout SHA `f59248db` enligt fullhash i originalrapporten, stderr tomt. Första exakt-source scriptsTSC/ESLint/stageddiff PASS. Kontrollen exekverar actual new helperAST, actual pure parserAST/dependencies samt tokenizer/envelope/canonicalfieldvalidator/fixturerecount, men använder deklarerade konstruerade rawinputs och modellerade persisterade caserows. Verklig casepersistens, native/backend/SQL/GEN/whole-ID körs inte. Inga gröna prov kördes igen för dokumentation.
+
+Varje namngivet fält förgiftas separat med ett värde som inte är FORBIDDEN-sentineln och måste avvisas. Missingcase/projection/key och wrongcase/source/company/status avvisas; alla tre faser med rena caserows accepteras och nuvarande actualparserdirtyprojection avvisas. F/G-raworiginal är fullt räknade och syntaxgiltiga och har sju faktiskt ignorerade nationella fieldfacets. Legitim named installation/registerprojection och råevidence bevaras; hela nestedraw/evidenceobjekt krävs inte lika över UD-inputvarianter.
+
+**Concrete upstream limitation kvarstår:** actual d798-parserblob `c08e51d67c98b8b7be0fc726f2509059cf4aaec0`/SHA `39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f` främjar åtta ignoredUD-namedfält: customerId/fullName/firstName/lastName/address/postalCode/city/country. Detta är observerat med faktisk pure parser på finit rawsource och source-visible fram till saved-casepayload; det är ingen ny nativeexekvering eller kundtabellsmutation. Nya oraklen kräver därför rätt C1/a93c-owned decoder/saved-case-korrigering051ec/6144860660 och kvalificerad verklig sourceunion innan native12 kan räknas. Vi kopierar/hämtar inte privat correction, skriver inte decoder eller mildrar assertionerna för grönt.
+
+ApplicableUD-positive bevaras genom selektiv source-qualified återanvändning av actualC10/e627/public429c originalet: riktig C/Z24 caseparser/writer behöll personalNumber199001011234 med uttrycklig modellportgräns. Sju parser/db/SDK/lockberoenden är byteexakt samma i actuald798 och denna revision. Original10/10 kördes inte igen; det blir inte native/wholeproof eller permission att använda UD i F/G. Source-only66 och tidigare component/nativeförberedelser ger **+0 ledger**, F/G och SC031 förblir ogodkända.
+
+Två observation-scaffoldfel (exportwrapper och för bred nestedregister-jämförelse) bevaras historiskt. De är inte produkt-RED; den rättade smala observationen och räknade physicalinputen isolerar verklig namedprojektion/evidencegräns. Nödvändiga originals, sourcepreimages och controllers bevaras ordagrant nedan.
+
+### Original qualification JSON
+
+SHA256 `adea061a2708cb7f74a3349d51988334849dbdeb51f6dbb77f038638521670a9`.
+
+<details><summary>Fryst named-customer-oracle qualification</summary>
+
+```json
+{
+  "scope": "Retained FG3f4 exact TWO-test named staged customer oracle addition; no decoder/product/helper/config/SQL changes",
+  "qualifiedAt": "2026-10-13T16:25:10.426677+00:00",
+  "receipt": "3f4b1b494ec70bd0217cd935352946416a4d51eb",
+  "packet": "cf251c2f-a87c-4c82-aaa5-4d711a754b5c",
+  "resumedHandoff": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149882155",
+  "finding": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149259115",
+  "commit": "054abdeee5dff896b71af5b763be34a1a95b4488",
+  "tree": "d9f5c403888f8882702ea49f2aa21dd56bf1f47d",
+  "orderedParents": [
+    "467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c"
+  ],
+  "sourcePreimage": "467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c",
+  "sourcePreimageTree": "ac21a93c50ddb575497ec3ce209ebc22a29d7ff2",
+  "sourcePreimageOrderedParents": [
+    "0dbc3101138e6ebe041bc280d9f7b68e4876e0ce",
+    "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+  ],
+  "actualBase": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "actualBaseTree": "e3b6c11677a2b871a128504f1616def7d22dba1e",
+  "ledgerAtBase": "119VERIFIED+204PASSED=323/352; this change+0",
+  "files": {
+    "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts": {
+      "sha256": "64fd6cfe7b6dad4ab4e6f7c8bcadad54882cbcecd34c11e0f9b4a8844d5a7d81",
+      "blob": "68b94eb06f469b0d85b9a21cfc44d9390ad11135",
+      "preimageSHA256": "f7b037b6e2d24f4fd4131c5eba11c9098ac5541ef57e71cc5558d5ccdf7eecd8"
+    },
+    "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts": {
+      "sha256": "34d394d5a681757d0aa9e3a59d77206f04129dd385b7f83b9f91d3b0f9a58ce0",
+      "blob": "d0fe3d47a9832302d41c5a07b9247ed7b515943e",
+      "preimageSHA256": "baa6bb3e2fa811c49aebbebcf2ae0ac17f5210dc310f57d897af63c51d6222a9"
+    }
+  },
+  "diff": "34 additive lines total: new exact15-field helper and3 actual persisted-case phase calls per F/G file; no old line removed",
+  "custody": "Before first source write independently matched full original publicreceipt JSON/tree/orderedparent/delegatedWriter, all4 retained live exact refs, local source/tree/orderedparents/branch, all4 preimage SHA256, and literal public resumed TWO-test handoff. Root checkpoint is sole root writer and excluded from commit.",
+  "namedBusinessFields": [
+    "customerId",
+    "customerIdQualifier",
+    "customerIdLabel",
+    "customerType",
+    "personalNumber",
+    "orgNumber",
+    "birthDate",
+    "fullName",
+    "companyName",
+    "firstName",
+    "lastName",
+    "address",
+    "postalCode",
+    "city",
+    "country"
+  ],
+  "cleanNoUdBaseline": {
+    "customerId": null,
+    "customerIdQualifier": null,
+    "customerIdLabel": "Ej angivet",
+    "customerType": null,
+    "personalNumber": null,
+    "orgNumber": null,
+    "birthDate": null,
+    "fullName": null,
+    "companyName": null,
+    "firstName": null,
+    "lastName": null,
+    "address": null,
+    "postalCode": null,
+    "city": null,
+    "country": null
+  },
+  "phaseCalls": [
+    "staging pending_review after actual intake+owner review",
+    "approval persisted applied case",
+    "replay persisted applied case"
+  ],
+  "caseBinding": [
+    "case id",
+    "company id",
+    "source message id",
+    "Z06 code",
+    "precise phase status"
+  ],
+  "preserved": "All existing direct native case ASTs, every old helper function AST, and every prior expect expression statement retained in exact order per file; P2 recorded/source-bound own refusal and precise context oracles unchanged; all12 native cases remain; physical raw/hash/ignored facets, actual customer/site/supply immutability, installation/register/structure and F-only expectation/G-none assertions retained",
+  "qualification": {
+    "node": "22.23.3",
+    "scriptsTSC": "PASS first exact-source invocation",
+    "twoFileEslint": "PASS first exact-source invocation",
+    "newFiniteOracleControls": "66PASS/0FAIL first exact-source invocation, stderrEMPTY; no green rerun",
+    "stagedDiffCheck": "PASS",
+    "nativeExecution": "NOT_RUN",
+    "databaseOrSQLExecution": "NOT_RUN",
+    "GENExecution": "NOT_RUN"
+  },
+  "actualFiniteCode": "Actual new assertion helper ASTs, actual current parseInboundProdatBusinessData AST/pure dependencies, actual tokenizer/envelope/canonical field validator and actual fixture recount helper; explicit finite constructed raw inputs and modeled persisted case rows only. No native fixture producer/backend or actual case persistence executes.",
+  "finiteControls": [
+    "clean noUD15-field actual-parser baseline",
+    "properly counted syntax-valid dirty extraUD original retains actual7 ignored national field facets/raw evidence",
+    "each staging/approval/replay exact clean row passes and current actual dirty named parser projection is rejected",
+    "each15 namedfield independently poisoned with NON_SENTINEL value is rejected, not just FORBIDDEN substring exclusion",
+    "missing case/projection/key and wrong case/source/company/status fail",
+    "legitimate named installation/register values unchanged; received nested raw/evidence may retain UD and is not compared as entire object",
+    "AST/allassertion retention and exact3 phase registration on both withUd variants"
+  ],
+  "actualParserObservation": {
+    "parserSHA256": "39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f",
+    "scope": "Actual pure parser/case projection observation; finite constructed raw input only; native NOT_RUN",
+    "expected": {
+      "customerId": null,
+      "customerIdQualifier": null,
+      "customerIdLabel": "Ej angivet",
+      "customerType": null,
+      "personalNumber": null,
+      "orgNumber": null,
+      "birthDate": null,
+      "fullName": null,
+      "companyName": null,
+      "firstName": null,
+      "lastName": null,
+      "address": null,
+      "postalCode": null,
+      "city": null,
+      "country": null
+    },
+    "variants": {
+      "F": {
+        "clean": {
+          "customerId": null,
+          "customerIdQualifier": null,
+          "customerIdLabel": "Ej angivet",
+          "customerType": null,
+          "personalNumber": null,
+          "orgNumber": null,
+          "birthDate": null,
+          "fullName": null,
+          "companyName": null,
+          "firstName": null,
+          "lastName": null,
+          "address": null,
+          "postalCode": null,
+          "city": null,
+          "country": null
+        },
+        "dirty": {
+          "customerId": "FORBIDDEN-UD-F",
+          "customerIdQualifier": null,
+          "customerIdLabel": "Ej angivet",
+          "customerType": null,
+          "personalNumber": null,
+          "orgNumber": null,
+          "birthDate": null,
+          "fullName": "Forbidden Identity",
+          "companyName": null,
+          "firstName": "Forbidden",
+          "lastName": "Identity",
+          "address": "Forbidden Street",
+          "postalCode": "12345",
+          "city": "Town",
+          "country": "SE"
+        },
+        "dirtyKeys": [
+          "customerId",
+          "fullName",
+          "firstName",
+          "lastName",
+          "address",
+          "postalCode",
+          "city",
+          "country"
+        ],
+        "retainedPhysicalRawHash": "15da4733d4403c943e4e58a096cba844bc3ace81d8fb2fb5d4fb40ebd9a06d70",
+        "legitimateInstallationRegisterProjectionUnchanged": true
+      },
+      "G": {
+        "clean": {
+          "customerId": null,
+          "customerIdQualifier": null,
+          "customerIdLabel": "Ej angivet",
+          "customerType": null,
+          "personalNumber": null,
+          "orgNumber": null,
+          "birthDate": null,
+          "fullName": null,
+          "companyName": null,
+          "firstName": null,
+          "lastName": null,
+          "address": null,
+          "postalCode": null,
+          "city": null,
+          "country": null
+        },
+        "dirty": {
+          "customerId": "FORBIDDEN-UD-G",
+          "customerIdQualifier": null,
+          "customerIdLabel": "Ej angivet",
+          "customerType": null,
+          "personalNumber": null,
+          "orgNumber": null,
+          "birthDate": null,
+          "fullName": "Forbidden Identity",
+          "companyName": null,
+          "firstName": "Forbidden",
+          "lastName": "Identity",
+          "address": "Forbidden Street",
+          "postalCode": "12345",
+          "city": "Town",
+          "country": "SE"
+        },
+        "dirtyKeys": [
+          "customerId",
+          "fullName",
+          "firstName",
+          "lastName",
+          "address",
+          "postalCode",
+          "city",
+          "country"
+        ],
+        "retainedPhysicalRawHash": "58dd0f04ede04e14196a5b70843859f1cd5449dabe47fcca1c88eebb09737012",
+        "legitimateInstallationRegisterProjectionUnchanged": true
+      }
+    }
+  },
+  "upstreamLimit": {
+    "path": "lib/ediel/inboundCases.ts",
+    "blob": "c08e51d67c98b8b7be0fc726f2509059cf4aaec0",
+    "sha256": "39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f",
+    "status": "UNFIXED_UNADOPTED_STAGED_BUSINESS_PROJECTION",
+    "owner": "Existing C1/a93c051ec decoder/saved-case correction6144860660 remains occupied; no private correction fetched/copied/written",
+    "dirtyNamedFields": [
+      "customerId",
+      "fullName",
+      "firstName",
+      "lastName",
+      "address",
+      "postalCode",
+      "city",
+      "country"
+    ],
+    "interpretation": "Current source still promotes8 ignoredUD fields into named parsed_customer business projection. The new native oracles deliberately require clean projection and depend on the rightful owner correction plus actual coherent source/producer qualification. This is not customer-row mutation proof or newly executed native failure."
+  },
+  "applicableUdPositiveReuse": {
+    "publicCarrier": "429c04eefec1652c47fe7fe84647e1da46c94c42",
+    "publicTree": "3e3d2cbfa8ff0f8c238c1ae3c2ed97e63dce582d",
+    "source": "e627eb13d09bbdaa8e7850be9113f371e18184f6",
+    "sourceTree": "855ca9157f3ba9a5e9ab80219d6b88ed2b6d4ae0",
+    "handoff": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149776855",
+    "result": "Existing source-qualified10/10 finite C/Z24 real case parser/writer preserves applicable UD personalNumber199001011234. Original reused selectively, no rerun; not native/durable/whole proof or permission to apply UD in F/G.",
+    "originalStdoutSHA256": "255f4a00b1e1e272a8b702e4c7d96eae82d981a8419518f0d32baba12c48f936",
+    "sourceTestSHA256": "1f0f529be7fbe2f8acc84a9a4b30d22dce411c1a466843f0feeb4db06d457cb2",
+    "unchangedApplicableDependencyPins": {
+      "lib/ediel/inboundCases.ts": "39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f",
+      "lib/ediel/db.ts": "572c45939c691fa8e9610b783273fbc84340175beea0bbb683a57114e9082ece",
+      "lib/ediel/core/prodatOwnSourceRegisterReadingDeclarations.ts": "bd861f45da5473fcac478bb1d604b40ede08f82bee34b96a1bbf12a80407e504",
+      "__tests__/helpers/prodatOwnSourceReadingFixture.ts": "ff0353dc388465fb901ed9b9bb475ed9d5bafc4ecbbd392ee241a4963ea1f327",
+      "__tests__/helpers/prodatOwnSourceReadingAdapter.ts": "fc4d5d8cd7f6a7398e6d498a092280dca1d9a1b4e4bdc3fd33ad8dce333c18ed",
+      "__tests__/helpers/sourceOwnerFixtures.ts": "5074fabfff69b734dd30480e957acd02e88107e8506fbf7111da0c2a4708c7c8",
+      "package-lock.json": "8bf0aca13c2f57d92db355bda81f38e526b3bd50a33db7859d272daad8d9f5c5"
+    }
+  },
+  "retainedOriginalOutputs": {
+    "first-observation": {
+      "command": [
+        "/tmp/ediel-fg-6f94-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+        "/tmp/ediel-fg-6f94-sc031-observe.cjs"
+      ],
+      "sourceHead": "467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c",
+      "codeHashes": {
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts": "f7b037b6e2d24f4fd4131c5eba11c9098ac5541ef57e71cc5558d5ccdf7eecd8",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts": "baa6bb3e2fa811c49aebbebcf2ae0ac17f5210dc310f57d897af63c51d6222a9"
+      },
+      "startedAt": "2026-10-13T16:16:03.612232+00:00",
+      "exitCode": 1,
+      "stdout": {
+        "path": "/tmp/ediel-fg-6f94-sc031-first-observation.stdout.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "stderr": {
+        "path": "/tmp/ediel-fg-6f94-sc031-first-observation.stderr.log",
+        "sha256": "b871fc40c4cae548456c6b2a1f945b977a5a9992e9f79398f36de1b80cdf827f",
+        "bytes": 713
+      }
+    },
+    "observation": {
+      "command": [
+        "/tmp/ediel-fg-6f94-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+        "/tmp/ediel-fg-6f94-sc031-observe.cjs"
+      ],
+      "sourceHead": "467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c",
+      "codeHashes": {
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts": "f7b037b6e2d24f4fd4131c5eba11c9098ac5541ef57e71cc5558d5ccdf7eecd8",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts": "baa6bb3e2fa811c49aebbebcf2ae0ac17f5210dc310f57d897af63c51d6222a9"
+      },
+      "startedAt": "2026-10-13T16:16:16.706818+00:00",
+      "exitCode": 1,
+      "stdout": {
+        "path": "/tmp/ediel-fg-6f94-sc031-observation.stdout.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "stderr": {
+        "path": "/tmp/ediel-fg-6f94-sc031-observation.stderr.log",
+        "sha256": "e6ba8fdf45b386999754f9d316153bb0b62a3c1dad9413595cb9bdb7c65ec042",
+        "bytes": 9651
+      }
+    },
+    "narrow-observation": {
+      "command": [
+        "/tmp/ediel-fg-6f94-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+        "/tmp/ediel-fg-6f94-sc031-observe.cjs"
+      ],
+      "sourceHead": "467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c",
+      "codeHashes": {
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts": "f7b037b6e2d24f4fd4131c5eba11c9098ac5541ef57e71cc5558d5ccdf7eecd8",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts": "baa6bb3e2fa811c49aebbebcf2ae0ac17f5210dc310f57d897af63c51d6222a9"
+      },
+      "startedAt": "2026-10-13T16:16:49.413329+00:00",
+      "exitCode": 0,
+      "stdout": {
+        "path": "/tmp/ediel-fg-6f94-sc031-narrow-observation.stdout.log",
+        "sha256": "ff721e7747d989ad0eaeed908b60e40bbfec253367d0ddb3b009d2a0272432a2",
+        "bytes": 2570
+      },
+      "stderr": {
+        "path": "/tmp/ediel-fg-6f94-sc031-narrow-observation.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "first-oracle": {
+      "command": [
+        "/tmp/ediel-fg-6f94-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+        "/tmp/ediel-fg-6f94-sc031-oracle-control.cjs"
+      ],
+      "sourceHead": "467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c",
+      "codeHashes": {
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts": "64fd6cfe7b6dad4ab4e6f7c8bcadad54882cbcecd34c11e0f9b4a8844d5a7d81",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts": "34d394d5a681757d0aa9e3a59d77206f04129dd385b7f83b9f91d3b0f9a58ce0"
+      },
+      "startedAt": "2026-10-13T16:20:16.629390+00:00",
+      "exitCode": 0,
+      "stdout": {
+        "path": "/tmp/ediel-fg-6f94-sc031-first-oracle.stdout.log",
+        "sha256": "f59248db272f50fcc826e572be94cf451bcf7b2089ed228ccdb0b7e6ba24a55e",
+        "bytes": 4748
+      },
+      "stderr": {
+        "path": "/tmp/ediel-fg-6f94-sc031-first-oracle.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "first-type": {
+      "command": [
+        "/tmp/ediel-fg-6f94-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.scripts.json"
+      ],
+      "sourceHead": "467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c",
+      "codeHashes": {
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts": "64fd6cfe7b6dad4ab4e6f7c8bcadad54882cbcecd34c11e0f9b4a8844d5a7d81",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts": "34d394d5a681757d0aa9e3a59d77206f04129dd385b7f83b9f91d3b0f9a58ce0"
+      },
+      "startedAt": "2026-10-13T16:20:52.829565+00:00",
+      "exitCode": 0,
+      "stdout": {
+        "path": "/tmp/ediel-fg-6f94-sc031-first-type.stdout.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "stderr": {
+        "path": "/tmp/ediel-fg-6f94-sc031-first-type.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    },
+    "first-lint": {
+      "command": [
+        "/tmp/ediel-fg-6f94-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+        "node_modules/eslint/bin/eslint.js",
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts"
+      ],
+      "sourceHead": "467d12a99eb5ffa2e7e7ddccf46f8e78a28fbd8c",
+      "codeHashes": {
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts": "64fd6cfe7b6dad4ab4e6f7c8bcadad54882cbcecd34c11e0f9b4a8844d5a7d81",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts": "34d394d5a681757d0aa9e3a59d77206f04129dd385b7f83b9f91d3b0f9a58ce0"
+      },
+      "startedAt": "2026-10-13T16:20:52.711950+00:00",
+      "exitCode": 0,
+      "stdout": {
+        "path": "/tmp/ediel-fg-6f94-sc031-first-lint.stdout.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "stderr": {
+        "path": "/tmp/ediel-fg-6f94-sc031-first-lint.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    }
+  },
+  "controllerAndPreimageArtifacts": {
+    "/tmp/ediel-fg-6f94-sc031-first-diffcheck.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/tmp/ediel-fg-6f94-sc031-first-diffcheck.stdout.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/tmp/ediel-fg-6f94-sc031-oracle-control.cjs": {
+      "sha256": "ef3bd2c1347b6f0ea0fb5e361027b5cd3f7d298325eb32214788cd5c73fa7c56",
+      "bytes": 7897
+    },
+    "/tmp/ediel-fg-6f94-sc031-parser-ports.cjs": {
+      "sha256": "2d6d575762ef657cb450f43b5b3e54ad0a9f5b3875233fecdf5a08bf50b61929",
+      "bytes": 2853
+    },
+    "/tmp/ediel-fg-6f94-sc031-g-preimage.ts": {
+      "sha256": "baa6bb3e2fa811c49aebbebcf2ae0ac17f5210dc310f57d897af63c51d6222a9",
+      "bytes": 46049
+    },
+    "/tmp/ediel-fg-6f94-sc031-f-preimage.ts": {
+      "sha256": "f7b037b6e2d24f4fd4131c5eba11c9098ac5541ef57e71cc5558d5ccdf7eecd8",
+      "bytes": 48353
+    },
+    "/tmp/ediel-fg-6f94-sc031-broad-observation-controller.cjs": {
+      "sha256": "1b4af6aa0fb7cb967c48c51ffe5876850208c67aaa2fc8c1233923a179168760",
+      "bytes": 4324
+    },
+    "/tmp/ediel-fg-6f94-sc031-first-observation-controller.cjs": {
+      "sha256": "63a94e197dcc56814b09a19ac37fc7390b00ede1166467c5c8c116335d1e4bf8",
+      "bytes": 4299
+    },
+    "/tmp/ediel-fg-6f94-sc031-run.py": {
+      "sha256": "0a118b723c99db6b257173fe23a914e9ef60b0f1190b54cdc96ca61f92972d4d",
+      "bytes": 1165
+    },
+    "/tmp/ediel-fg-6f94-sc031-observe.cjs": {
+      "sha256": "1b16015f404588f76cd198d18d36bd9c3c50438f131ca508d5507fdf2dca7c44",
+      "bytes": 4972
+    }
+  },
+  "historicalObservationScaffoldFailures": {
+    "first-observation": "Temporary AST export-wrapper syntax error, before parser observation; saved original/controller",
+    "observation": "A broad temporary meteringPoint equality incorrectly included received raw/nested UD evidence. Narrowed only temporary observation to legitimate named installation/register values; no source or product change/RED claim. Saved original/controller.",
+    "narrow-observation": "Confirms15-field clean baseline/current8 dirty business fields and evidence/legitimate installation projections. Raw parser observation itself did not qualify syntax; the final66 control adds actual fixture recount and asserts syntax on counted originals."
+  },
+  "unchangedRetainedOwnedPaths": {
+    "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts": "bb9d77bb25a0d98cecba59ba0b2faa60d306e6b1a4ac3ea35022cf3170119961",
+    "scripts/ediel-source-owner-native.config.ts": "7350c100a0587a8dc3ea964bac2aef1df3bfcc38c8825c768f4cb84739327087"
+  },
+  "checkpoint": "Root-owned .agent-memory/ediel-fg-proof-20261013-6f94-checkpoint.md remains unstaged/modified by root, untouched by sole test writer.",
+  "publicationNativeProducerClaimOrLedgerAction": false,
+  "historicalPriorApprovals": "0dbc and previous F/G/P2/source reviews preserved under their old exact attribution; they do not approve this changed source.",
+  "state": "SOURCE_FROZEN_PAUSED_FOR_ROOT_CARRIER_AND_TWO_OTHER_FINAL_PEERS",
+  "nextOwnerStep": "Root freezes its unique checkpoint/carrier, obtains two fresh OTHER noncoauthor source/evidence reviews on exact final head/tree/base/orderedparents/hashes/limits, and issues superseding paused source handoff. Existing decoder owner correction/current union + sole native/GEN/serial qualification remain downstream; no forced native green or approval increase."
+}
+```
+
+</details>
+
+### Sparade original och controllers
+
+Alla block är bytebevarade UTF8 från vårt synthetic finite scope. Root har kontrollerat SHA256; inga verkliga kunddata, credentialvärden, backendoriginal eller privata correction-chattar ingår. Sourcepreimages är de redan publicerade0dbc-postbilderna, inte ny aktiv dispatch.
+
+<details><summary>ediel-fg-6f94-sc031-first-observation.stdout.log (first-observation stdout), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-observation.stderr.log (first-observation stderr), 713 bytes — SHA256 b871fc40c4cae548456c6b2a1f945b977a5a9992e9f79398f36de1b80cdf827f</summary>
+
+```text
+<anonymous_script>:37
+export function parseInboundProdatBusinessData(message, object) {
+^^^^^^
+
+SyntaxError: Unexpected token 'export'
+    at new Function (<anonymous>)
+    at Object.<anonymous> (/tmp/ediel-fg-6f94-sc031-observe.cjs:9:13)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object..js (node:internal/modules/cjs/loader:1913:10)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49
+
+Node.js v22.23.3
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-observation.stdout.log (observation stdout), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-observation.stderr.log (observation stderr), 9651 bytes — SHA256 e6ba8fdf45b386999754f9d316153bb0b62a3c1dad9413595cb9bdb7c65ec042</summary>
+
+```text
+node:assert:150
+  throw new AssertionError(obj);
+  ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+... Skipped lines
+
+  {
+    firstMeterReadingDate: null,
+    identityAgency: '9',
+    measurementType: 'consumption',
+    meterConstant: 1,
+...
+        contractStartDate: '202611010000',
++       customerId: 'FORBIDDEN-UD-F',
++       endUserAddress: 'Forbidden Street',
+-       customerId: null,
+-       endUserAddress: null,
+        endUserAddressLines: [
++         'Forbidden Street'
+-         ''
+        ],
++       endUserCity: 'Town',
++       endUserCountry: 'SE',
++       endUserId: 'FORBIDDEN-UD-F',
+-       endUserCity: null,
+-       endUserCountry: null,
+-       endUserId: null,
+        endUserIdQualifier: null,
++       endUserName: 'Forbidden Identity',
+-       endUserName: null,
+        endUserNameLines: [
++         'Forbidden Identity'
+-         ''
+        ],
++       endUserPostcode: '12345',
+-       endUserPostcode: null,
+        energyProductId: '8716867000030',
+        firstMeterReadingDate: null,
+        firstRegisterSourceOrder: 0,
+        gridAreaId: 'NET-1',
+        hasAnnualConsumption: true,
+...
+          'RFF+LI:CASE-1',
++         'NAD+UD+FORBIDDEN-UD-F::89++Forbidden Identity+Forbidden Street+Town++12345+SE',
+          'NAD+IT+735123456789012345::9+++Street+Town++12345+SE',
+          'NAD+Z02+11111:160:SVK'
+        ],
+        reasonForTransaction: 'E64',
+        registerCount: 1,
+
+    at Object.<anonymous> (/tmp/ediel-fg-6f94-sc031-observe.cjs:20:49)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object..js (node:internal/modules/cjs/loader:1913:10)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: {
+    meterPointId: '735123456789012345',
+    identityAgency: '9',
+    registers: [
+      {
+        sourceOrder: 0,
+        lineSequenceNumber: '1',
+        registerIndex: null,
+        registerCount: 1,
+        firstRegisterSourceOrder: 0,
+        validRegisterChain: true,
+        identityAgency: '9',
+        annualConsumption: '1000',
+        meterConstant: '1',
+        meterDigitCount: '6',
+        meterTimeFrame: '101',
+        meteringPointId: '735123456789012345',
+        lineItemReference: 'CASE-1',
+        gridAreaId: 'NET-1',
+        agreementReference: null,
+        customerId: 'FORBIDDEN-UD-F',
+        endUserId: 'FORBIDDEN-UD-F',
+        endUserIdQualifier: null,
+        endUserName: 'Forbidden Identity',
+        endUserNameLines: [ 'Forbidden Identity' ],
+        endUserAddressLines: [ 'Forbidden Street' ],
+        invoiceeId: null,
+        invoiceeName: null,
+        invoiceeAddress: null,
+        invoiceePostcode: null,
+        invoiceeCity: null,
+        invoiceeCountry: null,
+        endUserAddress: 'Forbidden Street',
+        endUserPostcode: '12345',
+        endUserCity: 'Town',
+        endUserCountry: 'SE',
+        installationId: '735123456789012345',
+        installationAddress: 'Street',
+        installationPostcode: '12345',
+        installationCity: 'Town',
+        installationCountry: 'SE',
+        balanceResponsibleId: '11111',
+        reportingFrequency: 'D',
+        energyProductId: '8716867000030',
+        installationDirection: null,
+        permissionStatus: null,
+        permissionPurpose: null,
+        permissionEndReason: null,
+        permissionId: null,
+        permissionTimestamp: null,
+        permissionEndTimestamp: null,
+        validityStartDate: '202611130000',
+        firstMeterReadingDate: null,
+        birthDate: null,
+        observationLength: '15',
+        observationLengthFormat: '806',
+        contractStartDate: '202611010000',
+        contractEndDate: null,
+        reportStartDate: null,
+        reportEndDate: null,
+        historicalReportStartDate: null,
+        historicalReportEndDate: null,
+        isHistoricalMeteringRequest: false,
+        reasonForTransaction: 'E64',
+        measuringMethod: 'Z04',
+        timeSeriesProduct: 'L639Q',
+        meterNumber: 'METER-1',
+        oldMeterNumber: null,
+        supplierContractNumber: null,
+        relatedMeteringPointId: null,
+        calorificValueArea: null,
+        serialId: null,
+        hasAnnualConsumption: true,
+        hasConstant: true,
+        hasDigitCount: true,
+        hasMeterNumber: true,
+        rawSegments: [
+          'LIN+1++735123456789012345:::9',
+          'DTM+92:202611010000:203',
+          'DTM+157:202611130000:203',
+          'DTM+354:15:806',
+          'QTY+31:1000:KWH',
+          'CCI++Z13',
+          'CAV+E64',
+          'CCI++Z04',
+          'CAV+Z04',
+          'CCI++Z07',
+          'CAV+Z12',
+          'CCI++Z12',
+          'CAV+:::D',
+          'CCI++Z15',
+          'CAV+Z32',
+          'CCI++Z14',
+          'CAV+:::L639Q:8716867000030',
+          'CCI++Z16',
+          'CAV+:::101',
+          'CCI++Z02',
+          'CAV+:::1',
+          'CCI++Z05',
+          'CAV+:::6',
+          'RFF+MG:METER-1',
+          'RFF+Z05:NET-1',
+          'RFF+LI:CASE-1',
+          'NAD+UD+FORBIDDEN-UD-F::89++Forbidden Identity+Forbidden Street+Town++12345+SE',
+          'NAD+IT+735123456789012345::9+++Street+Town++12345+SE',
+          'NAD+Z02+11111:160:SVK'
+        ]
+      }
+    ],
+    observationLength: '15',
+    observationLengthFormat: '806',
+    firstMeterReadingDate: null,
+    referenceToMeteringPoint: null,
+    meteringMethod: 'Z04',
+    meteringMethodLabel: 'Z04 – 15 minuter',
+    meterNumber: 'METER-1',
+    meterConstant: 1,
+    meterDigits: 6,
+    meterInterval: '101',
+    resolution: null,
+    readingFrequency: 'D',
+    measurementType: 'consumption'
+  },
+  expected: {
+    meterPointId: '735123456789012345',
+    identityAgency: '9',
+    registers: [
+      {
+        sourceOrder: 0,
+        lineSequenceNumber: '1',
+        registerIndex: null,
+        registerCount: 1,
+        firstRegisterSourceOrder: 0,
+        validRegisterChain: true,
+        identityAgency: '9',
+        annualConsumption: '1000',
+        meterConstant: '1',
+        meterDigitCount: '6',
+        meterTimeFrame: '101',
+        meteringPointId: '735123456789012345',
+        lineItemReference: 'CASE-1',
+        gridAreaId: 'NET-1',
+        agreementReference: null,
+        customerId: null,
+        endUserId: null,
+        endUserIdQualifier: null,
+        endUserName: null,
+        endUserNameLines: [ '' ],
+        endUserAddressLines: [ '' ],
+        invoiceeId: null,
+        invoiceeName: null,
+        invoiceeAddress: null,
+        invoiceePostcode: null,
+        invoiceeCity: null,
+        invoiceeCountry: null,
+        endUserAddress: null,
+        endUserPostcode: null,
+        endUserCity: null,
+        endUserCountry: null,
+        installationId: '735123456789012345',
+        installationAddress: 'Street',
+        installationPostcode: '12345',
+        installationCity: 'Town',
+        installationCountry: 'SE',
+        balanceResponsibleId: '11111',
+        reportingFrequency: 'D',
+        energyProductId: '8716867000030',
+        installationDirection: null,
+        permissionStatus: null,
+        permissionPurpose: null,
+        permissionEndReason: null,
+        permissionId: null,
+        permissionTimestamp: null,
+        permissionEndTimestamp: null,
+        validityStartDate: '202611130000',
+        firstMeterReadingDate: null,
+        birthDate: null,
+        observationLength: '15',
+        observationLengthFormat: '806',
+        contractStartDate: '202611010000',
+        contractEndDate: null,
+        reportStartDate: null,
+        reportEndDate: null,
+        historicalReportStartDate: null,
+        historicalReportEndDate: null,
+        isHistoricalMeteringRequest: false,
+        reasonForTransaction: 'E64',
+        measuringMethod: 'Z04',
+        timeSeriesProduct: 'L639Q',
+        meterNumber: 'METER-1',
+        oldMeterNumber: null,
+        supplierContractNumber: null,
+        relatedMeteringPointId: null,
+        calorificValueArea: null,
+        serialId: null,
+        hasAnnualConsumption: true,
+        hasConstant: true,
+        hasDigitCount: true,
+        hasMeterNumber: true,
+        rawSegments: [
+          'LIN+1++735123456789012345:::9',
+          'DTM+92:202611010000:203',
+          'DTM+157:202611130000:203',
+          'DTM+354:15:806',
+          'QTY+31:1000:KWH',
+          'CCI++Z13',
+          'CAV+E64',
+          'CCI++Z04',
+          'CAV+Z04',
+          'CCI++Z07',
+          'CAV+Z12',
+          'CCI++Z12',
+          'CAV+:::D',
+          'CCI++Z15',
+          'CAV+Z32',
+          'CCI++Z14',
+          'CAV+:::L639Q:8716867000030',
+          'CCI++Z16',
+          'CAV+:::101',
+          'CCI++Z02',
+          'CAV+:::1',
+          'CCI++Z05',
+          'CAV+:::6',
+          'RFF+MG:METER-1',
+          'RFF+Z05:NET-1',
+          'RFF+LI:CASE-1',
+          'NAD+IT+735123456789012345::9+++Street+Town++12345+SE',
+          'NAD+Z02+11111:160:SVK'
+        ]
+      }
+    ],
+    observationLength: '15',
+    observationLengthFormat: '806',
+    firstMeterReadingDate: null,
+    referenceToMeteringPoint: null,
+    meteringMethod: 'Z04',
+    meteringMethodLabel: 'Z04 – 15 minuter',
+    meterNumber: 'METER-1',
+    meterConstant: 1,
+    meterDigits: 6,
+    meterInterval: '101',
+    resolution: null,
+    readingFrequency: 'D',
+    measurementType: 'consumption'
+  },
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.23.3
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-narrow-observation.stdout.log (narrow-observation stdout), 2570 bytes — SHA256 ff721e7747d989ad0eaeed908b60e40bbfec253367d0ddb3b009d2a0272432a2</summary>
+
+```text
+PASS actual F noUD baseline all15 namedfields; current c08e parser retains dirtyUD namedbusiness; installation/register/contract unchanged
+PASS actual G noUD baseline all15 namedfields; current c08e parser retains dirtyUD namedbusiness; installation/register/contract unchanged
+{"parserSHA256":"39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f","scope":"Actual pure parser/case projection observation; finite constructed raw input only; native NOT_RUN","expected":{"customerId":null,"customerIdQualifier":null,"customerIdLabel":"Ej angivet","customerType":null,"personalNumber":null,"orgNumber":null,"birthDate":null,"fullName":null,"companyName":null,"firstName":null,"lastName":null,"address":null,"postalCode":null,"city":null,"country":null},"variants":{"F":{"clean":{"customerId":null,"customerIdQualifier":null,"customerIdLabel":"Ej angivet","customerType":null,"personalNumber":null,"orgNumber":null,"birthDate":null,"fullName":null,"companyName":null,"firstName":null,"lastName":null,"address":null,"postalCode":null,"city":null,"country":null},"dirty":{"customerId":"FORBIDDEN-UD-F","customerIdQualifier":null,"customerIdLabel":"Ej angivet","customerType":null,"personalNumber":null,"orgNumber":null,"birthDate":null,"fullName":"Forbidden Identity","companyName":null,"firstName":"Forbidden","lastName":"Identity","address":"Forbidden Street","postalCode":"12345","city":"Town","country":"SE"},"dirtyKeys":["customerId","fullName","firstName","lastName","address","postalCode","city","country"],"retainedPhysicalRawHash":"15da4733d4403c943e4e58a096cba844bc3ace81d8fb2fb5d4fb40ebd9a06d70","legitimateInstallationRegisterProjectionUnchanged":true},"G":{"clean":{"customerId":null,"customerIdQualifier":null,"customerIdLabel":"Ej angivet","customerType":null,"personalNumber":null,"orgNumber":null,"birthDate":null,"fullName":null,"companyName":null,"firstName":null,"lastName":null,"address":null,"postalCode":null,"city":null,"country":null},"dirty":{"customerId":"FORBIDDEN-UD-G","customerIdQualifier":null,"customerIdLabel":"Ej angivet","customerType":null,"personalNumber":null,"orgNumber":null,"birthDate":null,"fullName":"Forbidden Identity","companyName":null,"firstName":"Forbidden","lastName":"Identity","address":"Forbidden Street","postalCode":"12345","city":"Town","country":"SE"},"dirtyKeys":["customerId","fullName","firstName","lastName","address","postalCode","city","country"],"retainedPhysicalRawHash":"58dd0f04ede04e14196a5b70843859f1cd5449dabe47fcca1c88eebb09737012","legitimateInstallationRegisterProjectionUnchanged":true}}}
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-narrow-observation.stderr.log (narrow-observation stderr), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-oracle.stdout.log (first-oracle stdout), 4748 bytes — SHA256 f59248db272f50fcc826e572be94cf451bcf7b2089ed228ccdb0b7e6ba24a55e</summary>
+
+```text
+PASS FINITE F clean noUD baseline + counted valid extraUD original
+PASS FINITE F staging actual oracle accepts exact clean named customer vector
+PASS FINITE F staging actual oracle rejects current c08e dirty named customer projection
+PASS FINITE F approval actual oracle accepts exact clean named customer vector
+PASS FINITE F approval actual oracle rejects current c08e dirty named customer projection
+PASS FINITE F replay actual oracle accepts exact clean named customer vector
+PASS FINITE F replay actual oracle rejects current c08e dirty named customer projection
+PASS FINITE F rejects independently dirty named business field customerId
+PASS FINITE F rejects independently dirty named business field customerIdQualifier
+PASS FINITE F rejects independently dirty named business field customerIdLabel
+PASS FINITE F rejects independently dirty named business field customerType
+PASS FINITE F rejects independently dirty named business field personalNumber
+PASS FINITE F rejects independently dirty named business field orgNumber
+PASS FINITE F rejects independently dirty named business field birthDate
+PASS FINITE F rejects independently dirty named business field fullName
+PASS FINITE F rejects independently dirty named business field companyName
+PASS FINITE F rejects independently dirty named business field firstName
+PASS FINITE F rejects independently dirty named business field lastName
+PASS FINITE F rejects independently dirty named business field address
+PASS FINITE F rejects independently dirty named business field postalCode
+PASS FINITE F rejects independently dirty named business field city
+PASS FINITE F rejects independently dirty named business field country
+PASS FINITE F rejects foreign tenant
+PASS FINITE F rejects other source
+PASS FINITE F rejects other case
+PASS FINITE F rejects wrong status
+PASS FINITE F rejects missing customer projection
+PASS FINITE F rejects missing named field
+PASS FINITE F rejects missing actual case rather than generic noUD fallback
+PASS FINITE F preserves own physical ignored facets/raw and legitimate installation/register fields
+PASS FINITE F all existing direct native cases and helper ASTs retained
+PASS FINITE F every existing assertion retained in exact AST order
+PASS FINITE F exact staging/approval/replay helper calls registered on both positive variants
+PASS FINITE G clean noUD baseline + counted valid extraUD original
+PASS FINITE G staging actual oracle accepts exact clean named customer vector
+PASS FINITE G staging actual oracle rejects current c08e dirty named customer projection
+PASS FINITE G approval actual oracle accepts exact clean named customer vector
+PASS FINITE G approval actual oracle rejects current c08e dirty named customer projection
+PASS FINITE G replay actual oracle accepts exact clean named customer vector
+PASS FINITE G replay actual oracle rejects current c08e dirty named customer projection
+PASS FINITE G rejects independently dirty named business field customerId
+PASS FINITE G rejects independently dirty named business field customerIdQualifier
+PASS FINITE G rejects independently dirty named business field customerIdLabel
+PASS FINITE G rejects independently dirty named business field customerType
+PASS FINITE G rejects independently dirty named business field personalNumber
+PASS FINITE G rejects independently dirty named business field orgNumber
+PASS FINITE G rejects independently dirty named business field birthDate
+PASS FINITE G rejects independently dirty named business field fullName
+PASS FINITE G rejects independently dirty named business field companyName
+PASS FINITE G rejects independently dirty named business field firstName
+PASS FINITE G rejects independently dirty named business field lastName
+PASS FINITE G rejects independently dirty named business field address
+PASS FINITE G rejects independently dirty named business field postalCode
+PASS FINITE G rejects independently dirty named business field city
+PASS FINITE G rejects independently dirty named business field country
+PASS FINITE G rejects foreign tenant
+PASS FINITE G rejects other source
+PASS FINITE G rejects other case
+PASS FINITE G rejects wrong status
+PASS FINITE G rejects missing customer projection
+PASS FINITE G rejects missing named field
+PASS FINITE G rejects missing actual case rather than generic noUD fallback
+PASS FINITE G preserves own physical ignored facets/raw and legitimate installation/register fields
+PASS FINITE G all existing direct native cases and helper ASTs retained
+PASS FINITE G every existing assertion retained in exact AST order
+PASS FINITE G exact staging/approval/replay helper calls registered on both positive variants
+TOTAL FINITE 66 PASS, 0 FAIL; current parser dirty projections rejected, upstream UNFIXED; native NOT_RUN
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-oracle.stderr.log (first-oracle stderr), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-type.stdout.log (first-type stdout), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-type.stderr.log (first-type stderr), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-lint.stdout.log (first-lint stdout), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-lint.stderr.log (first-lint stderr), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-diffcheck.stderr.log (controller/preimage/diff original), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-diffcheck.stdout.log (controller/preimage/diff original), 0 bytes — SHA256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</summary>
+
+```text
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-oracle-control.cjs (controller/preimage/diff original), 7897 bytes — SHA256 ef3bd2c1347b6f0ea0fb5e361027b5cd3f7d298325eb32214788cd5c73fa7c56</summary>
+
+```javascript
+// Actual new assertion AST + actual pure parser/tokenizer/policy dependencies.
+// Explicit modeled case rows only; no case/native/database writes or credits.
+const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto'),root='/workspace/ediel-fg-proof-20261013-6f94',ts=require(root+'/node_modules/typescript'),{load}=require('/tmp/ediel-fg-6f94-model-ports.cjs')
+const {parse,keys,expected,scope,wireApi,token,changed,project,pick}=require('/tmp/ediel-fg-6f94-sc031-parser-ports.cjs')
+const partial=(a,e)=>{if(e&&typeof e==='object')for(const[k,v]of Object.entries(e))partial(a?.[k],v);else assert.deepEqual(a,e)}
+const expect=a=>({toBe:e=>assert.equal(a,e),toEqual:e=>assert.deepEqual(a,e),toMatchObject:e=>partial(a,e),not:{toBeNull:()=>assert.notEqual(a,null)}})
+function oracle(kind){const code=pick(root+`/scripts/ediel-at-z06${kind.toLowerCase()}-supplier-acceptance-native.test.ts`,['expectCleanStagedCustomer']);assert.ok(code);return new Function('expect',ts.transpileModule(code+'\nreturn expectCleanStagedCustomer',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(expect)}
+const recountCode=pick(root+'/scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts',['recountChangedMessage'])
+const recount=new Function('tokenizeEdifact','segmentSourceSpan','segmentComposite',ts.transpileModule(recountCode+'\nreturn recountChangedMessage',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(token.tokenizeEdifact,token.segmentSourceSpan,token.segmentComposite)
+const syntax=load(root+'/lib/ediel/core/edifactValidation.ts'),policyApi=load(root+'/lib/ediel/rulebook/canonicalEdielPolicy.ts'),validator=load(root+'/lib/ediel/rulebook/canonicalPolicyFieldValidator.ts')
+let count=0,failed=0;function control(name,fn){try{fn();count++;console.log('PASS FINITE '+name)}catch(e){failed++;console.log('FAIL FINITE '+name+': '+e.message)}}
+for(const kind of ['F','G']){
+ const cleanRaw=wireApi.z06fNativeStructureWire(scope,kind,'DECLARED-'+kind),raw=recount(changed(kind,cleanRaw)),id='00000000-0000-4000-8000-000000000006',company='00000000-0000-4000-8000-000000000001',caseId='00000000-0000-4000-8000-000000000080'
+ const message={id,company_id:company,direction:'inbound',message_family:'PRODAT',message_code:'Z06',raw_payload:raw,parsed_payload:{customerId:'POISON-CACHED',customerName:'POISON CACHED'}},clean=parse({...message,raw_payload:cleanRaw}),dirty=parse(message),f={f:{companyId:company}},change={message},check=oracle(kind)
+ const row=(status,customer=clean.customer)=>({id:caseId,company_id:company,ediel_message_id:id,message_code:'Z06',status,parsed_customer:customer})
+ control(kind+' clean noUD baseline + counted valid extraUD original',()=>{assert.deepEqual(project(clean.customer),expected);assert.equal(syntax.validateEdifactEnvelope(cleanRaw).syntaxOk,true);assert.equal(syntax.validateEdifactEnvelope(raw).syntaxOk,true);assert.ok(raw.includes('FORBIDDEN-UD-'+kind))})
+ for(const[phase,status]of [['staging','pending_review'],['approval','applied'],['replay','applied']]){
+  control(kind+' '+phase+' actual oracle accepts exact clean named customer vector',()=>check(f,change,row(status),caseId,status))
+  control(kind+' '+phase+' actual oracle rejects current c08e dirty named customer projection',()=>assert.throws(()=>check(f,change,row(status,dirty.customer),caseId,status)))
+ }
+ for(const key of keys)control(kind+' rejects independently dirty named business field '+key,()=>assert.throws(()=>check(f,change,row('pending_review',{...clean.customer,[key]:'NON_SENTINEL_CUSTOMER_VALUE'}),caseId,'pending_review')))
+ for(const[name,mutate]of [['foreign tenant',r=>r.company_id='FOREIGN'],['other source',r=>r.ediel_message_id='OTHER'],['other case',r=>r.id='OTHER'],['wrong status',r=>r.status='failed'],['missing customer projection',r=>delete r.parsed_customer],['missing named field',r=>delete r.parsed_customer.birthDate]])control(kind+' rejects '+name,()=>{const r=structuredClone(row('pending_review'));mutate(r);assert.throws(()=>check(f,change,r,caseId,'pending_review'))})
+ control(kind+' rejects missing actual case rather than generic noUD fallback',()=>assert.throws(()=>check(f,change,null,caseId,'pending_review')))
+ control(kind+' preserves own physical ignored facets/raw and legitimate installation/register fields',()=>{
+  const wire=token.tokenizeEdifact(raw),ignored=[],policy=policyApi.resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z06',subtypeOrReasonCode:kind,direction:'inbound',applicationReference:'23-DDQ-PRODAT',referenceDate:'2026-10-13',mode:'catalog_evidence',prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:true}})
+  validator.validateCanonicalPolicyFields({policy,rawPayload:raw,rawSegments:wire.segments.map(s=>s.raw),una:wire.una,onIgnoredField:v=>ignored.push(v)})
+  const wanted=['END_USER_GROUP','227','228','229','231','232','316'];assert.deepEqual(ignored.filter(v=>wanted.includes(v.fieldNumber)).map(v=>v.fieldNumber).sort(),wanted.sort())
+  for(const v of ignored.filter(v=>wanted.includes(v.fieldNumber)))assert.equal(v.occurrence.ownReferences.customerId.value,'FORBIDDEN-UD-'+kind)
+  assert.deepEqual(clean.site,dirty.site);assert.deepEqual(clean.contract,dirty.contract)
+  const meterKeys=['meterPointId','identityAgency','meterNumber','meterConstant','meterDigits','meterInterval','readingFrequency','measurementType'];for(const k of meterKeys)assert.deepEqual(clean.meteringPoint[k],dirty.meteringPoint[k])
+  assert.ok(dirty.meteringPoint.registers[0].rawSegments.some(v=>v.startsWith('NAD+UD+FORBIDDEN-UD-'+kind)))
+ })
+ const file=`scripts/ediel-at-z06${kind.toLowerCase()}-supplier-acceptance-native.test.ts`,pre=fs.readFileSync(`/tmp/ediel-fg-6f94-sc031-${kind.toLowerCase()}-preimage.ts`,'utf8'),current=fs.readFileSync(root+'/'+file,'utf8'),printer=ts.createPrinter({removeComments:true})
+ const statements=text=>{const src=ts.createSourceFile(file,text,ts.ScriptTarget.Latest,true);return{src,body:src.statements.filter(n=>ts.isExpressionStatement(n)&&ts.isCallExpression(n.expression)&&n.expression.expression.getText(src)==='it').map(n=>printer.printNode(ts.EmitHint.Unspecified,n,src))}}
+ control(kind+' all existing direct native cases and helper ASTs retained',()=>{const old=statements(pre),now=statements(current);assert.deepEqual(old.body,now.body);for(const fn of old.src.statements.filter(ts.isFunctionDeclaration)){const n=now.src.statements.find(x=>ts.isFunctionDeclaration(x)&&x.name.text===fn.name.text);assert.equal(printer.printNode(ts.EmitHint.Unspecified,n,now.src),printer.printNode(ts.EmitHint.Unspecified,fn,old.src))}})
+ control(kind+' every existing assertion retained in exact AST order',()=>{
+  const calls=text=>{const src=ts.createSourceFile(file,text,ts.ScriptTarget.Latest,true),out=[];function visit(n){if(ts.isExpressionStatement(n)&&n.getText(src).trim().startsWith('expect('))out.push(printer.printNode(ts.EmitHint.Unspecified,n,src));ts.forEachChild(n,visit)}visit(src);return out}
+  const before=calls(pre),after=calls(current);let i=0;for(const item of after)if(item===before[i])i++;assert.equal(i,before.length)
+ })
+ const src=ts.createSourceFile(file,current,ts.ScriptTarget.Latest,true),sites=[];function visit(n){if(ts.isCallExpression(n)&&n.expression.getText(src)==='expectCleanStagedCustomer')sites.push(n.getText(src));ts.forEachChild(n,visit)}visit(src)
+ control(kind+' exact staging/approval/replay helper calls registered on both positive variants',()=>{assert.equal(sites.length,3);assert.match(sites[0],/before.case,current.inboundCase.id,'pending_review'/);assert.match(sites[1],/after.case,approved.id,'applied'/);assert.match(sites[2],/evidence\(f,change.message.id\).case,replay.id,'applied'/)})
+}
+console.log('TOTAL FINITE '+count+' PASS, '+failed+' FAIL; current parser dirty projections rejected, upstream UNFIXED; native NOT_RUN');process.exitCode=failed?1:0
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-parser-ports.cjs (controller/preimage/diff original), 2853 bytes — SHA256 2d6d575762ef657cb450f43b5b3e54ad0a9f5b3875233fecdf5a08bf50b61929</summary>
+
+```javascript
+// Actual unchanged parser AST through real pure parser dependencies only.
+// Constructed physical inputs; no DB/case write/native authority is executed.
+const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto')
+const root='/workspace/ediel-fg-proof-20261013-6f94',ts=require(root+'/node_modules/typescript'),{load}=require('/tmp/ediel-fg-6f94-model-ports.cjs')
+function pick(file,names){const source=ts.createSourceFile(file,fs.readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true),printer=ts.createPrinter();return source.statements.filter(n=>ts.isFunctionDeclaration(n)&&names.includes(n.name.text)).map(n=>printer.printNode(ts.EmitHint.Unspecified,n,source)).join('\n')}
+const modules=['lib/ediel/prodat/parser.ts','lib/ediel/prodat/prodatRegisterFields.ts','lib/ediel/prodat/prodatDateFields.ts','lib/ediel/prodat/render/dates.ts','lib/ediel/prodat/prodatPartyFields.ts','lib/ediel/prodat/prodatReferenceFields.ts','lib/ediel/prodat/prodatCharacteristicFields.ts','lib/ediel/core/edifactSegments.ts','lib/ediel/core/una.ts','lib/ediel/codeLabels.ts']
+const ports=Object.assign({},...modules.map(m=>load(root+'/'+m))),names=Object.keys(ports),helpers=['trimOrNull','normalizeUpper','normalizeDigits','edifactDateToIsoDate','numberOrNull','valueFromParsed','parseInboundProdatBusinessData']
+const code=pick(root+'/lib/ediel/inboundCases.ts',helpers).replace(/^export /gm,'')+'\nreturn parseInboundProdatBusinessData'
+const parse=new Function(...names,ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(...names.map(n=>ports[n]))
+const token=load(root+'/lib/ediel/core/edifactTokenizer.ts'),wireApi=load(root+'/scripts/helpers/ediel-z06f-reading-followup-native-wire.ts')
+const scope={external:'735123456789012345',sender:'54321',receiver:'12345',brpEdielId:'11111',caseReference:'CASE-1',gridAreaCode:'NET-1',requestedStartDate:'2026-11-01'}
+const keys=['customerId','customerIdQualifier','customerIdLabel','customerType','personalNumber','orgNumber','birthDate','fullName','companyName','firstName','lastName','address','postalCode','city','country'],expected=Object.fromEntries(keys.map(k=>[k,k==='customerIdLabel'?'Ej angivet':null]))
+function changed(kind,raw){const snippet=pick(root+`/scripts/ediel-at-z06${kind.toLowerCase()}-supplier-acceptance-native.test.ts`,['extraUd']);const fn=new Function('tokenizeEdifact','segmentComposite','segmentSourceSpan','expect',ts.transpileModule(snippet+'\nreturn extraUd',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(token.tokenizeEdifact,token.segmentComposite,token.segmentSourceSpan,a=>({toHaveLength:n=>assert.equal(a.length,n)}));return fn(raw)}
+function project(customer){return Object.fromEntries(keys.map(k=>[k,customer[k]]))}
+module.exports={parse,keys,expected,scope,wireApi,token,changed,project,pick};
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-g-preimage.ts (controller/preimage/diff original), 46049 bytes — SHA256 baa6bb3e2fa811c49aebbebcf2ae0ac17f5210dc310f57d897af63c51d6222a9</summary>
+
+```typescript
+// Acceptance evidence for AT-Z06G-SUPPLIER (human reference only).
+// Native execution remains NOT_RUN for these additive first-effect controls.
+// Retained already-applied cases and their assertions remain unchanged below.
+// Optional existing-fixture input/deferred-apply seams add real first-case,
+// physical ignored UD and source-refusal proofs without seeding acceptance.
+// Existing qualified producer alone executes the native suite. No coverage approval.
+import {createHash,randomUUID} from 'node:crypto'
+import {afterEach,beforeEach,expect,it,vi} from 'vitest'
+import {createZ06fReadingNativeFixture} from './helpers/ediel-z06f-reading-followup-native-fixture'
+import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
+import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
+import {approveEdielInboundCase,createOrUpdateInboundProdatCase,getEdielInboundCaseForMessage} from '@/lib/ediel/inboundCases'
+import {getEdielMessageById} from '@/lib/ediel/db'
+import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
+import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {segmentComposite,segmentSourceSpan,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
+import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
+import {supabaseService} from '@/lib/supabase/service'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
+import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
+import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
+import {captureFreshEdielSourceRulePackEvidence,requireEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
+import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import type {SourceOwnerReceipt} from '@/lib/ediel/sources/receivedSourceOwnerSession'
+import type {EdielMessageRow} from '@/lib/ediel/types'
+
+// Declared external port required by the existing signed-original producer.
+// This SMTP result proves neither delivery to a real counterparty nor transport
+// approval. Source, SQL, actor, case, ACK and outbox implementations are real.
+const external=vi.hoisted(()=>({send:vi.fn()}))
+vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:external.send})}}))
+beforeEach(()=>{
+ vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid')
+ vi.stubEnv('EDIEL_APP_DKIM_ENABLED','false')
+ vi.stubEnv('EMAIL_PROVIDER','resend');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
+ vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid')
+ vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid')
+ vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only')
+ external.send.mockReset()
+})
+afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
+const fixture=()=>createZ06fReadingNativeFixture(email=>external.send.mockResolvedValue({
+ accepted:[email],rejected:[],messageId:'synthetic-FG-acceptance-original',
+ response:'250 explicitly synthetic accepted',
+}))
+type Fixture=Awaited<ReturnType<typeof fixture>>
+type Change=Awaited<ReturnType<Fixture['change']>>
+type Evidence={
+ source:Record<string,unknown>
+ market:Record<string,unknown>
+ original:Record<string,unknown>
+ receipts:Record<string,unknown>
+ expectations:Record<string,unknown>[]
+ observations:Record<string,unknown>[]
+ acks:EdielMessageRow[]
+ outbox:Record<string,unknown>[]
+ events:Record<string,unknown>[]
+ case:Record<string,unknown>|null
+}
+
+// Public disposable routing INPUT only, following the established raw-scope
+// native suite. No protected readiness, authority, grant, permission registry,
+// issuer mandate or original-capture fact is inserted by these acceptance files.
+function configureAckRoute(f:Fixture){
+ const routeId=randomUUID(),profileId=randomUUID(),smtp=edielSmtpConfig()
+ sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
+ VALUES(${literal(routeId)},${literal(f.f.companyId)},'Synthetic G acceptance ACK route','ediel_ack',${literal(f.f.gridId)},'bilateral_test',true,'recipient@example.invalid');
+ INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,payload_format,transport_security_mode,smtp_to,receiver_email,mailbox,smtp_host,smtp_port)
+ VALUES(${literal(profileId)},${literal(f.f.companyId)},${literal(routeId)},'Synthetic G acceptance ACK profile','test','edifact',${literal(f.f.sender)},${literal(f.f.receiver)},'23-DDQ-PRODAT',true,true,'edifact','unencrypted','recipient@example.invalid','recipient@example.invalid',${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)});`)
+ return {routeId,profileId}
+}
+function evidence(f:Fixture,sourceId:string):Evidence{
+ const company=literal(f.f.companyId),source=literal(sourceId)
+ return sql<Evidence>(`SELECT jsonb_build_object(
+ 'source',(SELECT jsonb_build_object('id',id,'company',company_id,'environment',environment,'direction',direction,'family',message_family,'code',message_code,'raw',raw_payload,'receivedAt',message_received_at,'sha256',encode(sha256(convert_to(raw_payload,'UTF8')),'hex')) FROM public.ediel_messages WHERE id=${source} AND company_id=${company}),
+ 'original',(SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE source_message_id=${source} AND company_id=${company}),
+ 'market',jsonb_build_object(
+  'customers',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customers r WHERE company_id=${company}),
+  'sites',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_sites r WHERE company_id=${company}),
+  'points',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.metering_points r WHERE company_id=${company}),
+  'supply',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_supply_periods r WHERE company_id=${company}),
+  'customerContracts',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_contracts r WHERE company_id=${company}),
+  'series',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.meter_reading_series r WHERE company_id=${company}),
+  'graphs',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_onboarding_operations r WHERE company_id=${company}),
+  'marketOutbound',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_messages r WHERE company_id=${company} AND direction='outbound' AND message_family NOT IN('CONTRL','APERAK','UTILTS_ERR'))),
+ 'receipts',jsonb_build_object(
+  'objects',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.source_message_id,r.first_line_index),'[]') FROM gridex_received_sources.structural_object_apply_receipts r WHERE company_id=${company}),
+  'batches',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.source_message_id,r.requested_scope_key),'[]') FROM gridex_received_sources.structural_apply_batches r WHERE company_id=${company})),
+ 'expectations',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_received_reading_expectations.expectations r WHERE company_id=${company}),
+ 'observations',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.expectation_id,r.transaction_id),'[]') FROM gridex_received_reading_expectations.observations r WHERE company_id=${company}),
+ 'acks',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_messages r WHERE company_id=${company} AND related_message_id=${source} AND direction='outbound'),
+ 'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_outbox r WHERE company_id=${company} AND source_message_id=${source}),
+ 'events',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_message_events r WHERE company_id=${company} AND ediel_message_id=${source}),
+ 'case',(SELECT to_jsonb(r) FROM public.ediel_inbound_cases r WHERE company_id=${company} AND ediel_message_id=${source}))`)
+}
+function physical(change:Change){
+ const wire=tokenizeEdifact(change.message.raw_payload!),lin=wire.segments.filter(segment=>segment.tag==='LIN')
+ expect(lin).toHaveLength(1)
+ const li=wire.segments.filter(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,wire.una)[0]==='LI')
+ const bgm=wire.segments.find(segment=>segment.tag==='BGM')!
+ expect(li).toHaveLength(1)
+ return {lineIndex:lin[0].index,li:segmentComposite(li[0],1,wire.una)[1],document:segmentComposite(bgm,2,wire.una)[0]}
+}
+async function pending(f:Fixture,change:Change){
+ await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:change.message.id})
+ const actual=await getEdielMessageById(change.message.id)
+ expect(actual).not.toBeNull()
+ expect(actual!.raw_payload).toBe(change.message.raw_payload)
+ const created=await createOrUpdateInboundProdatCase({actorUserId:f.operator.id,message:actual!})
+ const saved=await getEdielInboundCaseForMessage(f.f.companyId,change.message.id)
+ expect(saved).not.toBeNull();expect(created?.id).toBe(saved!.id)
+ expect(saved).toMatchObject({company_id:f.f.companyId,ediel_message_id:change.message.id,status:'pending_review',message_code:'Z06'})
+ return {actual:actual!,inboundCase:saved!,scope:physical(change)}
+}
+function expectOwnAcks(f:Fixture,change:Change,route:{routeId:string;profileId:string},stored:Evidence){
+ const own=physical(change),sourceEnvelope=EdifactEnvelopeCodec.decode(change.message.raw_payload!)
+ expect(stored.acks.map(ack=>ack.message_family).sort()).toEqual(['APERAK','CONTRL'])
+ for(const ack of stored.acks){
+  expect(ack).toMatchObject({company_id:f.f.companyId,environment:'test',direction:'outbound',related_message_id:change.message.id,ack_outcome:'positive'})
+  expect(validateEdifactEnvelope(ack.raw_payload!).syntaxOk).toBe(true)
+  const envelope=EdifactEnvelopeCodec.decode(ack.raw_payload!)
+  expect(envelope.sender).toBe(sourceEnvelope.receiver);expect(envelope.receiver).toBe(sourceEnvelope.sender)
+  const correlation=readPhysicalAckSourceCorrelation(ack,change.message)
+  expect(correlation.classification.outcome).toBe('positive')
+  if(ack.message_family==='CONTRL'){
+   expect(correlation.scope).toBe('interchange')
+   expect(correlation.acknowledgedReferences).toEqual([sourceEnvelope.interchangeReference!.slice(0,14)])
+  }else{
+   expect(ack.communication_route_id).toBe(route.routeId)
+   expect(ack.route_profile_id).toBe(route.profileId)
+   expect(correlation.lookupReferences).toContainEqual({type:'BGM_REF',value:own.document})
+   expect(correlation.prodatObjectOutcomes).toEqual([{objectId:f.f.external,identityAgency:'9',firstLineIndex:own.lineIndex,lineItemReference:own.li,outcome:'positive'}])
+   const wire=tokenizeEdifact(ack.raw_payload!)
+   expect(wire.segments.filter(segment=>segment.tag==='ERC').map(segment=>segmentComposite(segment,1,wire.una)[0])).toEqual(['100'])
+  }
+ }
+ expect(stored.outbox).toHaveLength(2)
+ for(const ack of stored.acks){
+  const entries=stored.outbox.filter(row=>row.ediel_message_id===ack.id)
+  expect(entries).toHaveLength(1)
+  expect(entries[0]).toMatchObject({company_id:f.f.companyId,source_message_id:change.message.id,environment:'test',message_family:ack.message_family,ack_outcome:'positive'})
+ }
+}
+
+// Proposed native controls deliberately fail if actual canonical auth, technical
+// endpoint, source-bound route or ACK prerequisites are absent. They do not skip,
+// catch-and-pass, seed missing permission keys or substitute mocked effects.
+// Current field306 fixture uses national Z12; canonical list is Z11/Z12.
+// These unexecuted controls require actual guide-valid source admission.
+it('already-applied G source reaches real inbound case, own physical ACK/outbox and immutable retained replay',async()=>{
+ const f=await fixture(),change=await f.change('G'),route=configureAckRoute(f)
+ const initial=evidence(f,change.message.id),current=await pending(f,change)
+ const before=evidence(f,change.message.id)
+ expect(before.acks.map(ack=>ack.message_family)).toEqual(['CONTRL'])
+ expect(before.market).toEqual(initial.market);expect(before.source).toEqual(initial.source);expect(before.original).toEqual(initial.original)
+ const approved=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(approved).toMatchObject({company_id:f.f.companyId,status:'applied',ediel_message_id:change.message.id})
+ const after=evidence(f,change.message.id)
+ expectOwnAcks(f,change,route,after)
+ expect(after.source).toEqual(initial.source)
+ expect(after.source.sha256).toBe(createHash('sha256').update(change.message.raw_payload!).digest('hex'))
+ expect(after.original).toEqual(initial.original);expect(after.market).toEqual(initial.market)
+ expect(after.receipts).toEqual(initial.receipts)
+ expect(after.expectations).toEqual(initial.expectations);expect(after.observations).toEqual([])
+ expect(after.expectations).toEqual([])
+ const readingView=await f.read(change.message.id)
+ expect(readingView.error).toBeNull()
+ expect(readingView.data).toMatchObject({expectations:[]})
+ const final=await readReceivedProdatFinalResponsePlan({companyId:f.f.companyId,sourceMessageId:change.message.id,rawPayload:change.message.raw_payload!})
+ expect(final).not.toBeNull();expect(final!.totalObjectCount).toBe(1)
+ expect(final!.plans).toMatchObject([{outcome:'positive',objectLineIndices:[current.scope.lineIndex],acknowledgedReferences:[current.scope.li],effectKind:'structural'}])
+ const ackIds=after.acks.filter(ack=>ack.message_family==='APERAK').map(ack=>ack.id)
+ expect(approved.review_decision).toMatchObject({structuralApplication:{version:1,sourceMessageId:change.message.id,objectLineIndices:[current.scope.lineIndex],appliedCount:1,appliedObjectCount:1,totalObjectCount:1,ackIds}})
+ const replay=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:approved.id,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(replay.status).toBe('applied')
+ const stable=evidence(f,change.message.id)
+ // Re-review timestamps may advance; immutable market/response originals do not.
+ expect({...stable,case:null}).toEqual({...after,case:null})
+ expect(replay.review_decision).toEqual(approved.review_decision)
+ expect(stable.acks.map(ack=>ack.id)).toEqual(after.acks.map(ack=>ack.id))
+ expect(external.send).toHaveBeenCalledTimes(1)
+})
+
+it('G case refuses foreign tenant/actor/graph selections and invalid own LIN scopes without new effects',async()=>{
+ const f=await fixture(),foreign=await fixture(),change=await f.change('G')
+ configureAckRoute(f)
+ const current=await pending(f,change),before=evidence(f,change.message.id),foreignBefore=evidence(foreign,foreign.f.source)
+ const base={companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id}
+ const invalid=[
+  {override:{companyId:foreign.f.companyId},reason:'TENANT_CONTEXT_MISMATCH'},
+  {override:{actorUserId:foreign.operator.id},reason:'ediel_tenant_actor_forbidden'},
+  {override:{mode:'create_new_customer' as const},reason:'structural_apply_original_scope_required'},
+  {override:{selectedCustomerId:foreign.f.customerId},reason:'structural_apply_original_scope_required'},
+  {override:{selectedSiteId:foreign.f.siteId},reason:'structural_apply_original_scope_required'},
+  {override:{selectedMeteringPointId:foreign.f.pointId},reason:'structural_apply_original_scope_required'},
+  {override:{structuralObjectLineIndices:[]},reason:'structural_apply_requested_scope_invalid'},
+  {override:{structuralObjectLineIndices:[current.scope.lineIndex,current.scope.lineIndex]},reason:'structural_apply_requested_scope_invalid'},
+  {override:{structuralObjectLineIndices:[-1]},reason:'structural_apply_requested_scope_invalid'},
+  {override:{structuralObjectLineIndices:[1.5]},reason:'structural_apply_requested_scope_invalid'},
+  {override:{structuralObjectLineIndices:[current.scope.lineIndex+10000]},reason:'structural_apply_requested_scope_invalid'},
+ ]
+ for(const attempt of invalid){
+  await expect(approveEdielInboundCase({...base,...attempt.override})).rejects.toThrow(attempt.reason)
+  expect(evidence(f,change.message.id)).toEqual(before)
+  expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+ }
+ // Positive contrast consumes the same unaltered original after all refusals.
+ const approved=await approveEdielInboundCase({...base,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(approved.status).toBe('applied')
+ expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+ sql(`INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from)
+ VALUES(${literal(f.operator.id)},${literal(f.f.companyId)},'communication.write','deny',true,clock_timestamp()-interval '1 second');`)
+ const deniedBefore=evidence(f,change.message.id)
+ await expect(approveEdielInboundCase({...base,structuralObjectLineIndices:[current.scope.lineIndex]})).rejects.toThrow('ediel_tenant_permission_forbidden')
+ expect(evidence(f,change.message.id)).toEqual(deniedBefore)
+ expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+})
+
+// First-effect evidence is additive to the retained already-applied controls.
+// Intake finishes its own canonical session. The manual first-effect review
+// follows that actual intake, rather than borrowing an earlier review revision.
+async function pendingFirstApplication(f:Fixture,change:Change){
+ const current=await pending(f,change)
+ expect(await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:change.message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ return current
+}
+// Every protected source/assessment/apply/ACK implementation remains real.
+function sourceEffects(f:Fixture,sourceId:string){
+ const company=literal(f.f.companyId),source=literal(sourceId)
+ return sql<{
+  objects:{source_message_id:string;first_line_index:number;company_id:string;environment:string;payload_hash:string;canonical_assessment_id:string;object_assessment_id:string;actor_user_id:string;source_received_at:string;object_scope:{objectId:string;identityAgency:string;registers:{segmentIndex:number;registerPosition:number}[]};effect:{effectiveAt:string;sourceReceivedAt:string;sourceRegisters:{register:{segmentIndex:number};tokens:{tag:string;elements:string[][]}[]}[]}}[]
+  batches:Record<string,unknown>[]
+  expectations:Record<string,unknown>[]
+  observations:Record<string,unknown>[]
+  ignored:{source_payload_hash:string;fields_hash:string;fields_text:string}|null
+ }>(`SELECT jsonb_build_object(
+ 'objects',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.first_line_index),'[]') FROM gridex_received_sources.structural_object_apply_receipts r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'batches',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.requested_scope_key),'[]') FROM gridex_received_sources.structural_apply_batches r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'expectations',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_received_reading_expectations.expectations r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'observations',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.expectation_id,o.transaction_id),'[]') FROM gridex_received_reading_expectations.observations o JOIN gridex_received_reading_expectations.expectations e ON e.id=o.expectation_id WHERE e.company_id=${company} AND e.source_message_id=${source}),
+ 'ignored',(SELECT to_jsonb(i) FROM gridex_received_sources.prodat_ignored_field_facets i JOIN gridex_received_sources.validation_assessments v ON v.id=i.canonical_assessment_id WHERE i.company_id=${company} AND i.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)))`)
+}
+
+type RefusalEvidence={
+ context:{source_message_id:string;company_id:string;environment:string;direction:string;payload_sha256:string;source_received_at:string;observed_at:string;status:string;reason:string|null;context:Record<string,unknown>}|null
+ rules:{source_message_id:string;company_id:string;environment:string;direction:string;payload_sha256:string;captured_at:string;canonical_assessment_id:string}|null
+ ruleCanonical:{id:string;source_message_id:string;company_id:string;environment:string;source_payload_hash:string}|null
+ canonical:{id:string;source_message_id:string;company_id:string;environment:string;source_payload_hash:string;facts_text:string;facts_hash:string}|null
+ assessment:{id:string;source_message_id:string;company_id:string;environment:string;source_payload_hash:string;canonical_assessment_id:string;facts_text:string;facts_hash:string}|null
+ witness:{id:string;assessment_id:string;company_id:string;environment:string;source_message_id:string;facts_hash:string;observed_at:string}|null
+ ownReceiverCount:number;ownPointCount:number
+}
+function refusalEvidence(f:Fixture,message:EdielMessageRow):RefusalEvidence{
+ const wire=tokenizeEdifact(message.raw_payload!),receiver=wire.segments.find(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='DO')!,point=wire.segments.find(segment=>segment.tag==='LIN')!
+ const company=literal(f.f.companyId),source=literal(message.id),legal=literal(segmentComposite(receiver,2,wire.una)[0]),external=literal(segmentComposite(point,3,wire.una)[0])
+ return sql<RefusalEvidence>(`SELECT jsonb_build_object(
+ 'context',(SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'rules',(SELECT to_jsonb(r) FROM gridex_ediel_source_rules.receipts r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'ruleCanonical',(SELECT to_jsonb(v) FROM gridex_received_sources.validation_assessments v JOIN gridex_ediel_source_rules.receipts r ON r.canonical_assessment_id=v.id WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'canonical',(SELECT to_jsonb(v) FROM gridex_received_sources.validation_assessments v WHERE v.company_id=${company} AND v.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)),
+ 'assessment',(SELECT to_jsonb(a) FROM gridex_received_sources.object_assessments a WHERE a.company_id=${company} AND a.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id)),
+ 'witness',(SELECT to_jsonb(w) FROM gridex_received_sources.object_availability_witnesses w JOIN gridex_received_sources.object_assessments a ON a.id=w.assessment_id WHERE a.company_id=${company} AND a.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id)),
+ 'ownReceiverCount',(SELECT count(DISTINCT i.company_id) FROM public.tenant_actor_identifiers i JOIN gridex_ediel_inbound_context.receipts r ON r.source_message_id=${source} WHERE i.company_id=${company} AND i.environment='test' AND i.identifier_type='EdielId' AND i.identifier_value=${legal} AND i.valid_from<=r.observed_at AND(i.valid_to IS NULL OR r.observed_at<i.valid_to)),
+ 'ownPointCount',(SELECT count(*) FROM public.metering_points p WHERE p.company_id=${company} AND p.meter_point_id=${external}))`)
+}
+function expectSourceContext(f:Fixture,message:EdielMessageRow,stored:RefusalEvidence,status:'ready'|'held'){
+ expect(stored.context).not.toBeNull()
+ expect(stored.context).toMatchObject({source_message_id:message.id,company_id:f.f.companyId,environment:'test',direction:'inbound',payload_sha256:createHash('sha256').update(message.raw_payload!).digest('hex'),status})
+ expect(Date.parse(stored.context!.source_received_at)).toBe(Date.parse(message.message_received_at!))
+ expect(Date.parse(stored.context!.observed_at)).toBeGreaterThanOrEqual(Date.parse(message.message_received_at!))
+ if(status==='ready'){
+  expect(stored.context!.reason).toBeNull();expect(stored.ownReceiverCount).toBe(1)
+  expect(stored.context!.context).toMatchObject({legalEdielId:f.f.sender,transportEdielId:f.f.sender,actorRole:'electricity_supplier',family:'PRODAT',code:'Z06',applicationReference:'23-DDQ-PRODAT'})
+ }
+}
+function expectReadyRefusalBasis(f:Fixture,message:EdielMessageRow,stored:RefusalEvidence){
+ expectSourceContext(f,message,stored,'ready')
+ expect(stored.rules).not.toBeNull();expect(stored.ruleCanonical).not.toBeNull()
+ const source={source_message_id:message.id,company_id:f.f.companyId,environment:'test'},hash=createHash('sha256').update(message.raw_payload!).digest('hex')
+ expect(stored.rules).toMatchObject({...source,direction:'inbound',payload_sha256:hash})
+ expect(Date.parse(stored.rules!.captured_at)).toBeGreaterThanOrEqual(Date.parse(message.message_received_at!))
+ expect(stored.ruleCanonical).toMatchObject({...source,id:stored.rules!.canonical_assessment_id,source_payload_hash:hash})
+}
+function expectRecordedOwnRefusal(f:Fixture,message:EdielMessageRow,review:SourceOwnerReceipt,stored:RefusalEvidence,
+ application:NonNullable<Awaited<ReturnType<typeof readReceivedProdatApplicationObjects>>>,disposition:'rejected'|'unavailable',cause:string,missingField?:string){
+ // A recorder/snapshot/witness incident cannot be counted as an own refusal.
+ expect(review).toMatchObject({status:'recorded',sourceDisposition:'not_established',objectCounts:{accepted:0,rejected:disposition==='rejected'?1:0,held:disposition==='unavailable'?1:0}})
+ if(review.status!=='recorded')throw Error('recorded_source_refusal_required')
+ expectReadyRefusalBasis(f,message,stored)
+ expect(stored.assessment).not.toBeNull();expect(stored.canonical).not.toBeNull();expect(stored.witness).not.toBeNull()
+ const hash=createHash('sha256').update(message.raw_payload!).digest('hex'),source={source_message_id:message.id,company_id:f.f.companyId,environment:'test'}
+ expect(stored.assessment).toMatchObject({...source,id:review.assessmentId,source_payload_hash:hash,canonical_assessment_id:application.assessmentId,facts_hash:review.factsHash})
+ expect(stored.canonical).toMatchObject({...source,id:application.assessmentId,source_payload_hash:hash})
+ expect(stored.assessment!.canonical_assessment_id).toBe(stored.canonical!.id)
+ expect(stored.assessment!.facts_hash).toBe(createHash('sha256').update(stored.assessment!.facts_text).digest('hex'))
+ expect(stored.canonical!.facts_hash).toBe(createHash('sha256').update(stored.canonical!.facts_text).digest('hex'))
+ expect(JSON.parse(stored.canonical!.facts_text)).toMatchObject({syntaxDecision:'accepted'})
+ expect(stored.witness).toMatchObject({...source,id:review.witnessId,assessment_id:review.assessmentId,facts_hash:review.factsHash})
+ expect(Date.parse(stored.witness!.observed_at)).toBe(Date.parse(review.availableAt))
+ const wire=tokenizeEdifact(message.raw_payload!),lin=wire.segments.find(segment=>segment.tag==='LIN')!,point=segmentComposite(lin,3,wire.una)[0],refs=wire.segments.filter(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,wire.una)[0]==='LI'),messageReference=segmentComposite(wire.segments.find(segment=>segment.tag==='UNH')!,1,wire.una)[0]
+ expect(refs).toHaveLength(missingField==='226'?0:1)
+ if(refs.length)expect(segmentComposite(refs[0],1,wire.una)[1]).toBe(f.f.caseReference)
+ expect(application.sourcePayloadHash).toBe(hash);expect(application.objects).toHaveLength(1)
+ expect(application.objects[0]).toMatchObject({messageReference,objectId:point,identityAgency:'9',registers:[{segmentIndex:lin.index}]})
+ const facts=JSON.parse(stored.assessment!.facts_text) as {owner:string;canonicalFactsHash:string;objects:{object:Record<string,unknown>;disposition:string;reasons:string[];business:unknown;party:unknown}[]}
+ expect(facts).toMatchObject({owner:'received-source-object-decisions-v1',canonicalFactsHash:stored.canonical!.facts_hash})
+ expect(facts.objects).toHaveLength(1)
+ expect(facts.objects[0]).toMatchObject({disposition,business:null,party:null,object:{messageReference,objectId:point,identityAgency:'9',registers:[{segmentIndex:lin.index}]}})
+ expect(facts.objects[0].reasons).toContain(cause)
+ if(disposition==='rejected'){
+  expect(application.headerDecision).toBe('accepted');expect(application.objects[0].applicationDecision).toBe('rejected')
+  expect(application.objects[0].reasonCodes).toContain(cause)
+  expect(point).toBe(f.f.external)
+ }else{
+  // The recorded hold is causally bound to an actual absent own tenant point,
+  // never just a failed source recorder, missing basis or unrelated context.
+  expect(stored.ownPointCount).toBe(0);expect(application.headerDecision).toBe('accepted')
+  expect(application.objects[0]).toMatchObject({applicationDecision:'accepted',reasonCodes:[]})
+  expect(JSON.parse(stored.canonical!.facts_text)).toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted'})
+ }
+}
+function expectPhysicalContextRefusal(f:Fixture,message:EdielMessageRow,stored:RefusalEvidence){
+ expectSourceContext(f,message,stored,'held')
+ expect(stored.context!.reason).toBe('ediel_inbound_legal_context_required')
+ expect(stored.context!.context).toEqual({});expect(stored.ownReceiverCount).toBe(0)
+ // The source INSERT captured this precise refusal. No unconfirmed review
+ // result or missing-rule error substitutes for the actual held context.
+}
+async function prepareCapturedControl(f:Fixture,message:EdielMessageRow){
+ expectSourceContext(f,message,refusalEvidence(f,message),'ready')
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.operator.id})
+ expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
+ expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.f.companyId,decision})).toMatchObject({status:'recorded'})
+ expect(await captureFreshEdielSourceRulePackEvidence(f.f.companyId,message.id)).toMatchObject({status:'captured'})
+ await requireEdielSourceRulePackEvidence(f.f.companyId,message.id)
+ expect(await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ return {message,apply:()=>approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})}
+}
+
+function expectNoFirstEffects(f:Fixture,message:EdielMessageRow){
+ const effects=sourceEffects(f,message.id)
+ expect(effects.objects).toEqual([]);expect(effects.batches).toEqual([])
+ expect(effects.expectations).toEqual([]);expect(effects.observations).toEqual([])
+ expect(evidence(f,message.id).acks.filter(ack=>ack.message_family==='APERAK'&&ack.ack_outcome==='positive')).toEqual([])
+}
+function removeSourceSegments(raw:string,select:(segment:ReturnType<typeof tokenizeEdifact>['segments'][number])=>boolean){
+ const {segments}=tokenizeEdifact(raw),selected=segments.filter(select)
+ expect(selected.length).toBeGreaterThan(0)
+ let changed=raw
+ for(const segment of [...selected].reverse()){
+  const span=segmentSourceSpan(segment)!
+  // Span omits the terminator: remove the complete selected physical segment.
+  changed=changed.slice(0,span.startOffset)+changed.slice(span.endOffset+1)
+ }
+ return changed
+}
+function removeCharacteristic(raw:string,descriptor:string){
+ const wire=tokenizeEdifact(raw),heads=wire.segments.filter(segment=>segment.tag==='CCI'&&segmentComposite(segment,2,wire.una)[0]===descriptor)
+ expect(heads).toHaveLength(1)
+ const head=heads[0],tail=wire.segments.find(segment=>segment.index===head.index+1)
+ expect(tail?.tag).toBe('CAV')
+ return removeSourceSegments(raw,segment=>segment.index===head.index||segment.index===tail!.index)
+}
+function extraUd(raw:string){
+ const wire=tokenizeEdifact(raw),installation=wire.segments.filter(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='IT')
+ expect(installation).toHaveLength(1)
+ const span=segmentSourceSpan(installation[0])!
+ return raw.slice(0,span.startOffset)+"NAD+UD+FORBIDDEN-UD-G::89++Forbidden Identity+Forbidden Street+Town++12345+SE'\n"+raw.slice(span.startOffset)
+}
+function expectIgnoredUd(f:Fixture,change:Change){
+ const wire=tokenizeEdifact(change.message.raw_payload!),groups=prodatRegisterGroups(wire.segments,wire.una,'Z06').groups
+ expect(groups).toHaveLength(1)
+ const own=groups[0],ud=own.segments.filter(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='UD')
+ expect(ud).toHaveLength(1);expect(segmentComposite(ud[0],2,wire.una)).toEqual(['FORBIDDEN-UD-G','','89'])
+ const stored=sourceEffects(f,change.message.id).ignored
+ expect(stored).not.toBeNull()
+ expect(stored!.source_payload_hash).toBe(createHash('sha256').update(change.message.raw_payload!).digest('hex'))
+ expect(stored!.fields_hash).toBe(createHash('sha256').update(stored!.fields_text).digest('hex'))
+ const fields=JSON.parse(stored!.fields_text) as {fieldNumber:string;sourceRule:string;occurrence:Record<string,unknown>}[]
+ for(const fieldNumber of ['END_USER_GROUP','227','228','229','231','232','316']){
+  const field=fields.filter(item=>item.fieldNumber===fieldNumber)
+  expect(field).toHaveLength(1)
+  expect(field[0]).toMatchObject({sourceRule:'PRODAT26A:P119',occurrence:{objectId:f.f.external,identityAgency:'9',lineIndex:own.lineIndex,registerPosition:1,lineItemReference:f.f.caseReference,
+   messageReference:segmentComposite(wire.segments.find(segment=>segment.tag==='UNH')!,1,wire.una)[0],ownReferences:{customerId:{kind:'present',value:'FORBIDDEN-UD-G'}}}})
+ }
+}
+it.each([false,true])('G first case approval versions only its original structure; physical extra UD=%s never changes customer identity',async withUd=>{
+ const f=await fixture(),change=await f.change('G',undefined,{deferFirstApply:true,...(withUd?{rawTransform:extraUd}:{})}),route=configureAckRoute(f)
+ const initial=evidence(f,change.message.id)
+ expectNoFirstEffects(f,change.message)
+ if(withUd){expect(change.message.raw_payload).toContain('FORBIDDEN-UD-G');expect(initial.original.raw_payload).toBe(change.message.raw_payload!);expectIgnoredUd(f,change)}
+ const current=await pendingFirstApplication(f,change),before=evidence(f,change.message.id)
+ expectNoFirstEffects(f,change.message)
+ expect(before.market).toEqual(initial.market);expect(before.source).toEqual(initial.source);expect(before.original).toEqual(initial.original)
+ expect(before.acks.map(ack=>ack.message_family)).toEqual(['CONTRL'])
+ const approved=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(approved.status).toBe('applied')
+ const after=evidence(f,change.message.id),effects=sourceEffects(f,change.message.id),hash=createHash('sha256').update(change.message.raw_payload!).digest('hex')
+ expectOwnAcks(f,change,route,after)
+ expect(after.market).toEqual(initial.market);expect(after.source).toEqual(initial.source);expect(after.original).toEqual(initial.original)
+ expect(effects.objects).toHaveLength(1);expect(effects.batches).toHaveLength(1)
+ const own=effects.objects[0]
+ expect(own).toMatchObject({source_message_id:change.message.id,first_line_index:current.scope.lineIndex,company_id:f.f.companyId,environment:'test',payload_hash:hash,actor_user_id:f.operator.id,
+  object_scope:{objectId:f.f.external,identityAgency:'9',registers:[{segmentIndex:current.scope.lineIndex,registerPosition:1}]},
+  effect:{meteringPointId:f.f.pointId,siteId:f.f.siteId,wire:{messageCode:'Z06',businessCase:'change_without_reading',caseReference:f.f.caseReference,registers:[{position:1,registerId:'101'}]}}})
+ expect(own.canonical_assessment_id).toMatch(/^[0-9a-f-]{36}$/);expect(own.object_assessment_id).toMatch(/^[0-9a-f-]{36}$/)
+ const effective=new Date(`${f.f.requestedStartDate}T00:00:00Z`);effective.setUTCDate(effective.getUTCDate()+12);effective.setUTCMinutes(effective.getUTCMinutes()-60)
+ expect(Date.parse(own.effect.effectiveAt)).toBe(effective.getTime())
+ expect(Date.parse(own.source_received_at)).toBe(Date.parse(change.message.message_received_at!))
+ expect(Date.parse(own.effect.sourceReceivedAt)).toBe(Date.parse(change.message.message_received_at!))
+ expect(own.effect.sourceRegisters).toHaveLength(1)
+ expect(own.effect.sourceRegisters[0].register.segmentIndex).toBe(current.scope.lineIndex)
+ expect(own.effect.sourceRegisters[0].tokens).toContainEqual(expect.objectContaining({tag:'LIN',elements:expect.arrayContaining([['1'],[f.f.external,'','','9']])}))
+ expect(effects.batches[0]).toMatchObject({source_message_id:change.message.id,payload_hash:hash,canonical_assessment_id:own.canonical_assessment_id,object_assessment_id:own.object_assessment_id,result:{sourceMessageId:change.message.id,applied:true,appliedCount:1}})
+ expect(effects.expectations).toEqual([]);expect(effects.observations).toEqual([])
+ expect(own).toMatchObject({effect:{readingFollowUp:{status:'not_required_by_this_change',criterion:'AT-Z06G-SUPPLIER',deadline:null,fulfilled:false}}})
+ expect((await f.read(change.message.id)).data).toMatchObject({expectations:[]})
+ if(withUd)expectIgnoredUd(f,change)
+ const final=await readReceivedProdatFinalResponsePlan({companyId:f.f.companyId,sourceMessageId:change.message.id,rawPayload:change.message.raw_payload!})
+ expect(final).not.toBeNull();expect(final!.plans).toMatchObject([{outcome:'positive',effectKind:'structural',objectLineIndices:[current.scope.lineIndex],acknowledgedReferences:[current.scope.li]}])
+ const replay=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:approved.id,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(replay.status).toBe('applied');expect(sourceEffects(f,change.message.id)).toEqual(effects)
+ expect({...evidence(f,change.message.id),case:null}).toEqual({...after,case:null})
+ expect(external.send).toHaveBeenCalledTimes(1)
+})
+
+it('G physical missing fields/correlation and wrong legal parties cannot establish a first structural effect',async()=>{
+ const f=await fixture();configureAckRoute(f)
+ const probes:{name:string;field?:string;process?:false;transform:(raw:string)=>string}[]=[
+  {name:'missing required own306',field:'306',transform:raw=>removeCharacteristic(raw,'Z07')},
+  {name:'missing own LI',field:'226',transform:raw=>removeSourceSegments(raw,segment=>segment.tag==='RFF'&&segmentComposite(segment,1,tokenizeEdifact(raw).una)[0]==='LI')},
+  {name:'reversed source roles',process:false,transform:raw=>raw.replaceAll(`${f.f.receiver}:14`,`${f.f.sender}:14`).replaceAll(`+${f.f.sender}:14+${f.f.sender}:14+`,`+${f.f.sender}:14+${f.f.receiver}:14+`)
+   .replace(`NAD+FR+${f.f.receiver}:160:SVK`,`NAD+FR+${f.f.sender}:160:SVK`).replace(`NAD+DO+${f.f.sender}:160:SVK`,`NAD+DO+${f.f.receiver}:160:SVK`)},
+  {name:'legal receiver mismatches transport',process:false,transform:raw=>raw.replace(`NAD+DO+${f.f.sender}:160:SVK`,`NAD+DO+${f.f.receiver}:160:SVK`)},
+ ]
+ for(const probe of probes){
+  const message=await f.captureChange('G',undefined,{rawTransform:probe.transform}),initial=evidence(f,message.id)
+  expect(validateEdifactEnvelope(message.raw_payload!).syntaxOk).toBe(true)
+  expectNoFirstEffects(f,message)
+  if(probe.process!==false){
+   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.operator.id})
+   const defects=decision.issues.filter(issue=>issue.prodatDiagnostic?.kind==='field'&&issue.prodatDiagnostic.fieldNumber===probe.field&&issue.prodatDiagnostic.errorKind==='missing')
+   expect(defects.length).toBeGreaterThan(0)
+   expect(decision.prodatApplicationValidation?.objects).toMatchObject([{applicationDecision:'rejected'}])
+   await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:message.id})
+   await requireEdielSourceRulePackEvidence(f.f.companyId,message.id)
+   const review=await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})
+   const application=await readReceivedProdatApplicationObjects({companyId:f.f.companyId,sourceMessageId:message.id,rawPayload:message.raw_payload!})
+   expect(application).not.toBeNull()
+   expectRecordedOwnRefusal(f,message,review,refusalEvidence(f,message),application!,'rejected',defects[0].code,probe.field)
+   await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^structural_apply_no_qualified_object$/)
+  }else{
+   // These wrong legal receivers are held at genuine source-context capture,
+   // before a canonical composition can legitimately be recorded.
+   const wire=tokenizeEdifact(message.raw_payload!),envelope=EdifactEnvelopeCodec.decode(message.raw_payload!)
+   const legalReceiver=wire.segments.find(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='DO')!
+   expect(segmentComposite(legalReceiver,2,wire.una)[0]).toBe(f.f.receiver)
+   expect(envelope.receiver).toBe(probe.name==='reversed source roles'?f.f.receiver:f.f.sender)
+   expect(envelope.sender).toBe(probe.name==='reversed source roles'?f.f.sender:f.f.receiver)
+   expectPhysicalContextRefusal(f,message,refusalEvidence(f,message))
+   await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^ediel_inbound_legal_context_required$/)
+  }
+  expectNoFirstEffects(f,message)
+  const after=evidence(f,message.id)
+  expect(after.market).toEqual(initial.market);expect(after.source).toEqual(initial.source);expect(after.original).toEqual(initial.original)
+ }
+ // Same real owner and prerequisites accept an intact control after refusals.
+ const control=await prepareCapturedControl(f,await f.captureChange('G')),current=await pendingFirstApplication(f,control)
+ expectNoFirstEffects(f,control.message)
+ expect(await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})).toMatchObject({status:'applied'})
+})
+
+it('G cannot borrow a foreign physical point, admit outbound source input or mutate a sealed deferred original',async()=>{
+ const f=await fixture(),foreign=await fixture();configureAckRoute(f)
+ const message=await f.captureChange('G',undefined,{rawTransform:raw=>raw.replaceAll(f.f.external,foreign.f.external)}),initial=evidence(f,message.id),foreignBefore=evidence(foreign,foreign.f.source)
+ await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:message.id})
+ await requireEdielSourceRulePackEvidence(f.f.companyId,message.id)
+ const review=await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})
+ const application=await readReceivedProdatApplicationObjects({companyId:f.f.companyId,sourceMessageId:message.id,rawPayload:message.raw_payload!})
+ expect(application).not.toBeNull()
+ const stored=refusalEvidence(f,message)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.metering_points WHERE company_id=${literal(foreign.f.companyId)} AND id=${literal(foreign.f.pointId)} AND meter_point_id=${literal(foreign.f.external)}`)).toBe(1)
+ expectRecordedOwnRefusal(f,message,review,stored,application!,'unavailable','structural_review_owner_unavailable')
+ // The intact canonical own member reaches SQL11232's empty qualified partition.
+ await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^structural_apply_no_qualified_object$/)
+ expectNoFirstEffects(f,message)
+ expect(evidence(f,message.id).market).toEqual(initial.market);expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+ // Real INSERT constraints reject this unqualified outbound input. No route,
+ // source-operation or acceptance authority is invented to bypass the guard.
+ const sourceCount=sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.f.companyId)}`),directionBefore=evidence(f,message.id)
+ await expect(f.captureChange('G',undefined,{direction:'outbound'})).rejects.toThrow('canonical_ediel_route_required')
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.f.companyId)}`)).toBe(sourceCount)
+ expect(evidence(f,message.id)).toEqual(directionBefore);expectNoFirstEffects(f,message)
+ const change=await f.change('G',undefined,{deferFirstApply:true}),sealed=evidence(f,change.message.id),effects=sourceEffects(f,change.message.id)
+ const mutation=await supabaseService.from('ediel_messages').update({raw_payload:change.message.raw_payload!.replace('METER-1','ALTERED-METER')}).eq('id',change.message.id).eq('company_id',f.f.companyId)
+ expect(mutation.error?.message).toContain('immutable_ediel_payload_cannot_change')
+ expect(evidence(f,change.message.id)).toEqual(sealed);expect(sourceEffects(f,change.message.id)).toEqual(effects)
+ const current=await pendingFirstApplication(f,change)
+ expect(await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})).toMatchObject({status:'applied'})
+ expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+})
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-f-preimage.ts (controller/preimage/diff original), 48353 bytes — SHA256 f7b037b6e2d24f4fd4131c5eba11c9098ac5541ef57e71cc5558d5ccdf7eecd8</summary>
+
+```typescript
+// Acceptance evidence for AT-Z06F-SUPPLIER (human reference only).
+// Native execution remains NOT_RUN for these additive first-effect controls.
+// Retained already-applied cases and their assertions remain unchanged below.
+// Optional existing-fixture input/deferred-apply seams add real first-case,
+// physical ignored UD and source-refusal proofs without seeding acceptance.
+// Existing qualified producer alone executes the native suite. No coverage approval.
+import {createHash,randomUUID} from 'node:crypto'
+import {afterEach,beforeEach,expect,it,vi} from 'vitest'
+import {createZ06fReadingNativeFixture} from './helpers/ediel-z06f-reading-followup-native-fixture'
+import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
+import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
+import {approveEdielInboundCase,createOrUpdateInboundProdatCase,getEdielInboundCaseForMessage} from '@/lib/ediel/inboundCases'
+import {getEdielMessageById} from '@/lib/ediel/db'
+import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
+import {readPhysicalAckSourceCorrelation} from '@/lib/ediel/ack/sourceCorrelation'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
+import {segmentComposite,segmentSourceSpan,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
+import {edielSmtpConfig} from '@/lib/ediel/mailReadiness'
+import {supabaseService} from '@/lib/supabase/service'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
+import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
+import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
+import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
+import {captureFreshEdielSourceRulePackEvidence,requireEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
+import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import type {SourceOwnerReceipt} from '@/lib/ediel/sources/receivedSourceOwnerSession'
+import type {EdielMessageRow} from '@/lib/ediel/types'
+
+// Declared external port required by the existing signed-original producer.
+// This SMTP result proves neither delivery to a real counterparty nor transport
+// approval. Source, SQL, actor, case, ACK and outbox implementations are real.
+const external=vi.hoisted(()=>({send:vi.fn()}))
+vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:external.send})}}))
+beforeEach(()=>{
+ vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid')
+ vi.stubEnv('EDIEL_APP_DKIM_ENABLED','false')
+ vi.stubEnv('EMAIL_PROVIDER','resend');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
+ vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid')
+ vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid')
+ vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only')
+ external.send.mockReset()
+})
+afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
+const fixture=()=>createZ06fReadingNativeFixture(email=>external.send.mockResolvedValue({
+ accepted:[email],rejected:[],messageId:'synthetic-FG-acceptance-original',
+ response:'250 explicitly synthetic accepted',
+}))
+type Fixture=Awaited<ReturnType<typeof fixture>>
+type Change=Awaited<ReturnType<Fixture['change']>>
+type Evidence={
+ source:Record<string,unknown>
+ market:Record<string,unknown>
+ original:Record<string,unknown>
+ receipts:Record<string,unknown>
+ expectations:Record<string,unknown>[]
+ observations:Record<string,unknown>[]
+ acks:EdielMessageRow[]
+ outbox:Record<string,unknown>[]
+ events:Record<string,unknown>[]
+ case:Record<string,unknown>|null
+}
+
+// Public disposable routing INPUT only, following the established raw-scope
+// native suite. No protected readiness, authority, grant, permission registry,
+// issuer mandate or original-capture fact is inserted by these acceptance files.
+function configureAckRoute(f:Fixture){
+ const routeId=randomUUID(),profileId=randomUUID(),smtp=edielSmtpConfig()
+ sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
+ VALUES(${literal(routeId)},${literal(f.f.companyId)},'Synthetic F acceptance ACK route','ediel_ack',${literal(f.f.gridId)},'bilateral_test',true,'recipient@example.invalid');
+ INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,payload_format,transport_security_mode,smtp_to,receiver_email,mailbox,smtp_host,smtp_port)
+ VALUES(${literal(profileId)},${literal(f.f.companyId)},${literal(routeId)},'Synthetic F acceptance ACK profile','test','edifact',${literal(f.f.sender)},${literal(f.f.receiver)},'23-DDQ-PRODAT',true,true,'edifact','unencrypted','recipient@example.invalid','recipient@example.invalid',${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)});`)
+ return {routeId,profileId}
+}
+function evidence(f:Fixture,sourceId:string):Evidence{
+ const company=literal(f.f.companyId),source=literal(sourceId)
+ return sql<Evidence>(`SELECT jsonb_build_object(
+ 'source',(SELECT jsonb_build_object('id',id,'company',company_id,'environment',environment,'direction',direction,'family',message_family,'code',message_code,'raw',raw_payload,'receivedAt',message_received_at,'sha256',encode(sha256(convert_to(raw_payload,'UTF8')),'hex')) FROM public.ediel_messages WHERE id=${source} AND company_id=${company}),
+ 'original',(SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE source_message_id=${source} AND company_id=${company}),
+ 'market',jsonb_build_object(
+  'customers',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customers r WHERE company_id=${company}),
+  'sites',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_sites r WHERE company_id=${company}),
+  'points',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.metering_points r WHERE company_id=${company}),
+  'supply',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_supply_periods r WHERE company_id=${company}),
+  'customerContracts',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_contracts r WHERE company_id=${company}),
+  'series',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.meter_reading_series r WHERE company_id=${company}),
+  'graphs',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.customer_onboarding_operations r WHERE company_id=${company}),
+  'marketOutbound',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_messages r WHERE company_id=${company} AND direction='outbound' AND message_family NOT IN('CONTRL','APERAK','UTILTS_ERR'))),
+ 'receipts',jsonb_build_object(
+  'objects',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.source_message_id,r.first_line_index),'[]') FROM gridex_received_sources.structural_object_apply_receipts r WHERE company_id=${company}),
+  'batches',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.source_message_id,r.requested_scope_key),'[]') FROM gridex_received_sources.structural_apply_batches r WHERE company_id=${company})),
+ 'expectations',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_received_reading_expectations.expectations r WHERE company_id=${company}),
+ 'observations',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.expectation_id,r.transaction_id),'[]') FROM gridex_received_reading_expectations.observations r WHERE company_id=${company}),
+ 'acks',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_messages r WHERE company_id=${company} AND related_message_id=${source} AND direction='outbound'),
+ 'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_outbox r WHERE company_id=${company} AND source_message_id=${source}),
+ 'events',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM public.ediel_message_events r WHERE company_id=${company} AND ediel_message_id=${source}),
+ 'case',(SELECT to_jsonb(r) FROM public.ediel_inbound_cases r WHERE company_id=${company} AND ediel_message_id=${source}))`)
+}
+function physical(change:Change){
+ const wire=tokenizeEdifact(change.message.raw_payload!),lin=wire.segments.filter(segment=>segment.tag==='LIN')
+ expect(lin).toHaveLength(1)
+ const li=wire.segments.filter(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,wire.una)[0]==='LI')
+ const bgm=wire.segments.find(segment=>segment.tag==='BGM')!
+ expect(li).toHaveLength(1)
+ return {lineIndex:lin[0].index,li:segmentComposite(li[0],1,wire.una)[1],document:segmentComposite(bgm,2,wire.una)[0]}
+}
+async function pending(f:Fixture,change:Change){
+ await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:change.message.id})
+ const actual=await getEdielMessageById(change.message.id)
+ expect(actual).not.toBeNull()
+ expect(actual!.raw_payload).toBe(change.message.raw_payload)
+ const created=await createOrUpdateInboundProdatCase({actorUserId:f.operator.id,message:actual!})
+ const saved=await getEdielInboundCaseForMessage(f.f.companyId,change.message.id)
+ expect(saved).not.toBeNull();expect(created?.id).toBe(saved!.id)
+ expect(saved).toMatchObject({company_id:f.f.companyId,ediel_message_id:change.message.id,status:'pending_review',message_code:'Z06'})
+ return {actual:actual!,inboundCase:saved!,scope:physical(change)}
+}
+function expectOwnAcks(f:Fixture,change:Change,route:{routeId:string;profileId:string},stored:Evidence){
+ const own=physical(change),sourceEnvelope=EdifactEnvelopeCodec.decode(change.message.raw_payload!)
+ expect(stored.acks.map(ack=>ack.message_family).sort()).toEqual(['APERAK','CONTRL'])
+ for(const ack of stored.acks){
+  expect(ack).toMatchObject({company_id:f.f.companyId,environment:'test',direction:'outbound',related_message_id:change.message.id,ack_outcome:'positive'})
+  expect(validateEdifactEnvelope(ack.raw_payload!).syntaxOk).toBe(true)
+  const envelope=EdifactEnvelopeCodec.decode(ack.raw_payload!)
+  expect(envelope.sender).toBe(sourceEnvelope.receiver);expect(envelope.receiver).toBe(sourceEnvelope.sender)
+  const correlation=readPhysicalAckSourceCorrelation(ack,change.message)
+  expect(correlation.classification.outcome).toBe('positive')
+  if(ack.message_family==='CONTRL'){
+   expect(correlation.scope).toBe('interchange')
+   expect(correlation.acknowledgedReferences).toEqual([sourceEnvelope.interchangeReference!.slice(0,14)])
+  }else{
+   expect(ack.communication_route_id).toBe(route.routeId)
+   expect(ack.route_profile_id).toBe(route.profileId)
+   expect(correlation.lookupReferences).toContainEqual({type:'BGM_REF',value:own.document})
+   expect(correlation.prodatObjectOutcomes).toEqual([{objectId:f.f.external,identityAgency:'9',firstLineIndex:own.lineIndex,lineItemReference:own.li,outcome:'positive'}])
+   const wire=tokenizeEdifact(ack.raw_payload!)
+   expect(wire.segments.filter(segment=>segment.tag==='ERC').map(segment=>segmentComposite(segment,1,wire.una)[0])).toEqual(['100'])
+  }
+ }
+ expect(stored.outbox).toHaveLength(2)
+ for(const ack of stored.acks){
+  const entries=stored.outbox.filter(row=>row.ediel_message_id===ack.id)
+  expect(entries).toHaveLength(1)
+  expect(entries[0]).toMatchObject({company_id:f.f.companyId,source_message_id:change.message.id,environment:'test',message_family:ack.message_family,ack_outcome:'positive'})
+ }
+}
+
+// Proposed native controls deliberately fail if actual canonical auth, technical
+// endpoint, source-bound route or ACK prerequisites are absent. They do not skip,
+// catch-and-pass, seed missing permission keys or substitute mocked effects.
+// Current field306 fixture uses national Z12; canonical list is Z11/Z12.
+// These unexecuted controls require actual guide-valid source admission.
+it('already-applied F source reaches real inbound case, own physical ACK/outbox and immutable retained replay',async()=>{
+ const f=await fixture(),change=await f.change('F'),route=configureAckRoute(f)
+ const initial=evidence(f,change.message.id),current=await pending(f,change)
+ const before=evidence(f,change.message.id)
+ expect(before.acks.map(ack=>ack.message_family)).toEqual(['CONTRL'])
+ expect(before.market).toEqual(initial.market);expect(before.source).toEqual(initial.source);expect(before.original).toEqual(initial.original)
+ const approved=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(approved).toMatchObject({company_id:f.f.companyId,status:'applied',ediel_message_id:change.message.id})
+ const after=evidence(f,change.message.id)
+ expectOwnAcks(f,change,route,after)
+ expect(after.source).toEqual(initial.source)
+ expect(after.source.sha256).toBe(createHash('sha256').update(change.message.raw_payload!).digest('hex'))
+ expect(after.original).toEqual(initial.original);expect(after.market).toEqual(initial.market)
+ expect(after.receipts).toEqual(initial.receipts)
+ expect(after.expectations).toEqual(initial.expectations);expect(after.observations).toEqual([])
+ expect(after.expectations).toHaveLength(1)
+ expect(after.expectations[0]).toMatchObject({source_message_id:change.message.id,contract:{mode:'meter_reading',expectedRegisterIds:['101'],measurementMethod:'Z04',deadline:null,automaticRequestAllowed:false}})
+ const readingView=await f.read(change.message.id)
+ expect(readingView.error).toBeNull()
+ expect(readingView.data).toMatchObject({criterion:'AT-Z06F-SUPPLIER',expectations:[{status:'pending',automaticRequestAllowed:false,deadline:null}]})
+ const final=await readReceivedProdatFinalResponsePlan({companyId:f.f.companyId,sourceMessageId:change.message.id,rawPayload:change.message.raw_payload!})
+ expect(final).not.toBeNull();expect(final!.totalObjectCount).toBe(1)
+ expect(final!.plans).toMatchObject([{outcome:'positive',objectLineIndices:[current.scope.lineIndex],acknowledgedReferences:[current.scope.li],effectKind:'structural'}])
+ const ackIds=after.acks.filter(ack=>ack.message_family==='APERAK').map(ack=>ack.id)
+ expect(approved.review_decision).toMatchObject({structuralApplication:{version:1,sourceMessageId:change.message.id,objectLineIndices:[current.scope.lineIndex],appliedCount:1,appliedObjectCount:1,totalObjectCount:1,ackIds}})
+ const replay=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:approved.id,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(replay.status).toBe('applied')
+ const stable=evidence(f,change.message.id)
+ // Re-review timestamps may advance; immutable market/response originals do not.
+ expect({...stable,case:null}).toEqual({...after,case:null})
+ expect(replay.review_decision).toEqual(approved.review_decision)
+ expect(stable.acks.map(ack=>ack.id)).toEqual(after.acks.map(ack=>ack.id))
+ expect(external.send).toHaveBeenCalledTimes(1)
+})
+
+it('F case refuses foreign tenant/actor/graph selections and invalid own LIN scopes without new effects',async()=>{
+ const f=await fixture(),foreign=await fixture(),change=await f.change('F')
+ configureAckRoute(f)
+ const current=await pending(f,change),before=evidence(f,change.message.id),foreignBefore=evidence(foreign,foreign.f.source)
+ const base={companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id}
+ const invalid=[
+  {override:{companyId:foreign.f.companyId},reason:'TENANT_CONTEXT_MISMATCH'},
+  {override:{actorUserId:foreign.operator.id},reason:'ediel_tenant_actor_forbidden'},
+  {override:{mode:'create_new_customer' as const},reason:'structural_apply_original_scope_required'},
+  {override:{selectedCustomerId:foreign.f.customerId},reason:'structural_apply_original_scope_required'},
+  {override:{selectedSiteId:foreign.f.siteId},reason:'structural_apply_original_scope_required'},
+  {override:{selectedMeteringPointId:foreign.f.pointId},reason:'structural_apply_original_scope_required'},
+  {override:{structuralObjectLineIndices:[]},reason:'structural_apply_requested_scope_invalid'},
+  {override:{structuralObjectLineIndices:[current.scope.lineIndex,current.scope.lineIndex]},reason:'structural_apply_requested_scope_invalid'},
+  {override:{structuralObjectLineIndices:[-1]},reason:'structural_apply_requested_scope_invalid'},
+  {override:{structuralObjectLineIndices:[1.5]},reason:'structural_apply_requested_scope_invalid'},
+  {override:{structuralObjectLineIndices:[current.scope.lineIndex+10000]},reason:'structural_apply_requested_scope_invalid'},
+ ]
+ for(const attempt of invalid){
+  await expect(approveEdielInboundCase({...base,...attempt.override})).rejects.toThrow(attempt.reason)
+  expect(evidence(f,change.message.id)).toEqual(before)
+  expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+ }
+ // Positive contrast consumes the same unaltered original after all refusals.
+ const approved=await approveEdielInboundCase({...base,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(approved.status).toBe('applied')
+ expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+ sql(`INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from)
+ VALUES(${literal(f.operator.id)},${literal(f.f.companyId)},'communication.write','deny',true,clock_timestamp()-interval '1 second');`)
+ const deniedBefore=evidence(f,change.message.id)
+ await expect(approveEdielInboundCase({...base,structuralObjectLineIndices:[current.scope.lineIndex]})).rejects.toThrow('ediel_tenant_permission_forbidden')
+ expect(evidence(f,change.message.id)).toEqual(deniedBefore)
+ expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+})
+
+// First-effect evidence is additive to the retained already-applied controls.
+// Intake finishes its own canonical session. The manual first-effect review
+// follows that actual intake, rather than borrowing an earlier review revision.
+async function pendingFirstApplication(f:Fixture,change:Change){
+ const current=await pending(f,change)
+ expect(await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:change.message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ return current
+}
+// Every protected source/assessment/apply/ACK implementation remains real.
+function sourceEffects(f:Fixture,sourceId:string){
+ const company=literal(f.f.companyId),source=literal(sourceId)
+ return sql<{
+  objects:{source_message_id:string;first_line_index:number;company_id:string;environment:string;payload_hash:string;canonical_assessment_id:string;object_assessment_id:string;actor_user_id:string;source_received_at:string;object_scope:{objectId:string;identityAgency:string;registers:{segmentIndex:number;registerPosition:number}[]};effect:{effectiveAt:string;sourceReceivedAt:string;sourceRegisters:{register:{segmentIndex:number};tokens:{tag:string;elements:string[][]}[]}[]}}[]
+  batches:Record<string,unknown>[]
+  expectations:Record<string,unknown>[]
+  observations:Record<string,unknown>[]
+  ignored:{source_payload_hash:string;fields_hash:string;fields_text:string}|null
+ }>(`SELECT jsonb_build_object(
+ 'objects',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.first_line_index),'[]') FROM gridex_received_sources.structural_object_apply_receipts r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'batches',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.requested_scope_key),'[]') FROM gridex_received_sources.structural_apply_batches r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'expectations',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_received_reading_expectations.expectations r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'observations',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.expectation_id,o.transaction_id),'[]') FROM gridex_received_reading_expectations.observations o JOIN gridex_received_reading_expectations.expectations e ON e.id=o.expectation_id WHERE e.company_id=${company} AND e.source_message_id=${source}),
+ 'ignored',(SELECT to_jsonb(i) FROM gridex_received_sources.prodat_ignored_field_facets i JOIN gridex_received_sources.validation_assessments v ON v.id=i.canonical_assessment_id WHERE i.company_id=${company} AND i.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)))`)
+}
+
+type RefusalEvidence={
+ context:{source_message_id:string;company_id:string;environment:string;direction:string;payload_sha256:string;source_received_at:string;observed_at:string;status:string;reason:string|null;context:Record<string,unknown>}|null
+ rules:{source_message_id:string;company_id:string;environment:string;direction:string;payload_sha256:string;captured_at:string;canonical_assessment_id:string}|null
+ ruleCanonical:{id:string;source_message_id:string;company_id:string;environment:string;source_payload_hash:string}|null
+ canonical:{id:string;source_message_id:string;company_id:string;environment:string;source_payload_hash:string;facts_text:string;facts_hash:string}|null
+ assessment:{id:string;source_message_id:string;company_id:string;environment:string;source_payload_hash:string;canonical_assessment_id:string;facts_text:string;facts_hash:string}|null
+ witness:{id:string;assessment_id:string;company_id:string;environment:string;source_message_id:string;facts_hash:string;observed_at:string}|null
+ ownReceiverCount:number;ownPointCount:number
+}
+function refusalEvidence(f:Fixture,message:EdielMessageRow):RefusalEvidence{
+ const wire=tokenizeEdifact(message.raw_payload!),receiver=wire.segments.find(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='DO')!,point=wire.segments.find(segment=>segment.tag==='LIN')!
+ const company=literal(f.f.companyId),source=literal(message.id),legal=literal(segmentComposite(receiver,2,wire.una)[0]),external=literal(segmentComposite(point,3,wire.una)[0])
+ return sql<RefusalEvidence>(`SELECT jsonb_build_object(
+ 'context',(SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'rules',(SELECT to_jsonb(r) FROM gridex_ediel_source_rules.receipts r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'ruleCanonical',(SELECT to_jsonb(v) FROM gridex_received_sources.validation_assessments v JOIN gridex_ediel_source_rules.receipts r ON r.canonical_assessment_id=v.id WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'canonical',(SELECT to_jsonb(v) FROM gridex_received_sources.validation_assessments v WHERE v.company_id=${company} AND v.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)),
+ 'assessment',(SELECT to_jsonb(a) FROM gridex_received_sources.object_assessments a WHERE a.company_id=${company} AND a.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id)),
+ 'witness',(SELECT to_jsonb(w) FROM gridex_received_sources.object_availability_witnesses w JOIN gridex_received_sources.object_assessments a ON a.id=w.assessment_id WHERE a.company_id=${company} AND a.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id)),
+ 'ownReceiverCount',(SELECT count(DISTINCT i.company_id) FROM public.tenant_actor_identifiers i JOIN gridex_ediel_inbound_context.receipts r ON r.source_message_id=${source} WHERE i.company_id=${company} AND i.environment='test' AND i.identifier_type='EdielId' AND i.identifier_value=${legal} AND i.valid_from<=r.observed_at AND(i.valid_to IS NULL OR r.observed_at<i.valid_to)),
+ 'ownPointCount',(SELECT count(*) FROM public.metering_points p WHERE p.company_id=${company} AND p.meter_point_id=${external}))`)
+}
+function expectSourceContext(f:Fixture,message:EdielMessageRow,stored:RefusalEvidence,status:'ready'|'held'){
+ expect(stored.context).not.toBeNull()
+ expect(stored.context).toMatchObject({source_message_id:message.id,company_id:f.f.companyId,environment:'test',direction:'inbound',payload_sha256:createHash('sha256').update(message.raw_payload!).digest('hex'),status})
+ expect(Date.parse(stored.context!.source_received_at)).toBe(Date.parse(message.message_received_at!))
+ expect(Date.parse(stored.context!.observed_at)).toBeGreaterThanOrEqual(Date.parse(message.message_received_at!))
+ if(status==='ready'){
+  expect(stored.context!.reason).toBeNull();expect(stored.ownReceiverCount).toBe(1)
+  expect(stored.context!.context).toMatchObject({legalEdielId:f.f.sender,transportEdielId:f.f.sender,actorRole:'electricity_supplier',family:'PRODAT',code:'Z06',applicationReference:'23-DDQ-PRODAT'})
+ }
+}
+function expectReadyRefusalBasis(f:Fixture,message:EdielMessageRow,stored:RefusalEvidence){
+ expectSourceContext(f,message,stored,'ready')
+ expect(stored.rules).not.toBeNull();expect(stored.ruleCanonical).not.toBeNull()
+ const source={source_message_id:message.id,company_id:f.f.companyId,environment:'test'},hash=createHash('sha256').update(message.raw_payload!).digest('hex')
+ expect(stored.rules).toMatchObject({...source,direction:'inbound',payload_sha256:hash})
+ expect(Date.parse(stored.rules!.captured_at)).toBeGreaterThanOrEqual(Date.parse(message.message_received_at!))
+ expect(stored.ruleCanonical).toMatchObject({...source,id:stored.rules!.canonical_assessment_id,source_payload_hash:hash})
+}
+function expectRecordedOwnRefusal(f:Fixture,message:EdielMessageRow,review:SourceOwnerReceipt,stored:RefusalEvidence,
+ application:NonNullable<Awaited<ReturnType<typeof readReceivedProdatApplicationObjects>>>,disposition:'rejected'|'unavailable',cause:string,missingField?:string){
+ // A recorder/snapshot/witness incident cannot be counted as an own refusal.
+ expect(review).toMatchObject({status:'recorded',sourceDisposition:'not_established',objectCounts:{accepted:0,rejected:disposition==='rejected'?1:0,held:disposition==='unavailable'?1:0}})
+ if(review.status!=='recorded')throw Error('recorded_source_refusal_required')
+ expectReadyRefusalBasis(f,message,stored)
+ expect(stored.assessment).not.toBeNull();expect(stored.canonical).not.toBeNull();expect(stored.witness).not.toBeNull()
+ const hash=createHash('sha256').update(message.raw_payload!).digest('hex'),source={source_message_id:message.id,company_id:f.f.companyId,environment:'test'}
+ expect(stored.assessment).toMatchObject({...source,id:review.assessmentId,source_payload_hash:hash,canonical_assessment_id:application.assessmentId,facts_hash:review.factsHash})
+ expect(stored.canonical).toMatchObject({...source,id:application.assessmentId,source_payload_hash:hash})
+ expect(stored.assessment!.canonical_assessment_id).toBe(stored.canonical!.id)
+ expect(stored.assessment!.facts_hash).toBe(createHash('sha256').update(stored.assessment!.facts_text).digest('hex'))
+ expect(stored.canonical!.facts_hash).toBe(createHash('sha256').update(stored.canonical!.facts_text).digest('hex'))
+ expect(JSON.parse(stored.canonical!.facts_text)).toMatchObject({syntaxDecision:'accepted'})
+ expect(stored.witness).toMatchObject({...source,id:review.witnessId,assessment_id:review.assessmentId,facts_hash:review.factsHash})
+ expect(Date.parse(stored.witness!.observed_at)).toBe(Date.parse(review.availableAt))
+ const wire=tokenizeEdifact(message.raw_payload!),lin=wire.segments.find(segment=>segment.tag==='LIN')!,point=segmentComposite(lin,3,wire.una)[0],refs=wire.segments.filter(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,wire.una)[0]==='LI'),messageReference=segmentComposite(wire.segments.find(segment=>segment.tag==='UNH')!,1,wire.una)[0]
+ expect(refs).toHaveLength(missingField==='226'?0:1)
+ if(refs.length)expect(segmentComposite(refs[0],1,wire.una)[1]).toBe(f.f.caseReference)
+ expect(application.sourcePayloadHash).toBe(hash);expect(application.objects).toHaveLength(1)
+ expect(application.objects[0]).toMatchObject({messageReference,objectId:point,identityAgency:'9',registers:[{segmentIndex:lin.index}]})
+ const facts=JSON.parse(stored.assessment!.facts_text) as {owner:string;canonicalFactsHash:string;objects:{object:Record<string,unknown>;disposition:string;reasons:string[];business:unknown;party:unknown}[]}
+ expect(facts).toMatchObject({owner:'received-source-object-decisions-v1',canonicalFactsHash:stored.canonical!.facts_hash})
+ expect(facts.objects).toHaveLength(1)
+ expect(facts.objects[0]).toMatchObject({disposition,business:null,party:null,object:{messageReference,objectId:point,identityAgency:'9',registers:[{segmentIndex:lin.index}]}})
+ expect(facts.objects[0].reasons).toContain(cause)
+ if(disposition==='rejected'){
+  expect(application.headerDecision).toBe('accepted');expect(application.objects[0].applicationDecision).toBe('rejected')
+  expect(application.objects[0].reasonCodes).toContain(cause)
+  expect(point).toBe(f.f.external)
+ }else{
+  // The recorded hold is causally bound to an actual absent own tenant point,
+  // never just a failed source recorder, missing basis or unrelated context.
+  expect(stored.ownPointCount).toBe(0);expect(application.headerDecision).toBe('accepted')
+  expect(application.objects[0]).toMatchObject({applicationDecision:'accepted',reasonCodes:[]})
+  expect(JSON.parse(stored.canonical!.facts_text)).toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted'})
+ }
+}
+function expectPhysicalContextRefusal(f:Fixture,message:EdielMessageRow,stored:RefusalEvidence){
+ expectSourceContext(f,message,stored,'held')
+ expect(stored.context!.reason).toBe('ediel_inbound_legal_context_required')
+ expect(stored.context!.context).toEqual({});expect(stored.ownReceiverCount).toBe(0)
+ // The source INSERT captured this precise refusal. No unconfirmed review
+ // result or missing-rule error substitutes for the actual held context.
+}
+async function prepareCapturedControl(f:Fixture,message:EdielMessageRow){
+ expectSourceContext(f,message,refusalEvidence(f,message),'ready')
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.operator.id})
+ expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
+ expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.f.companyId,decision})).toMatchObject({status:'recorded'})
+ expect(await captureFreshEdielSourceRulePackEvidence(f.f.companyId,message.id)).toMatchObject({status:'captured'})
+ await requireEdielSourceRulePackEvidence(f.f.companyId,message.id)
+ expect(await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ return {message,apply:()=>approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})}
+}
+
+function expectNoFirstEffects(f:Fixture,message:EdielMessageRow){
+ const effects=sourceEffects(f,message.id)
+ expect(effects.objects).toEqual([]);expect(effects.batches).toEqual([])
+ expect(effects.expectations).toEqual([]);expect(effects.observations).toEqual([])
+ expect(evidence(f,message.id).acks.filter(ack=>ack.message_family==='APERAK'&&ack.ack_outcome==='positive')).toEqual([])
+}
+function removeSourceSegments(raw:string,select:(segment:ReturnType<typeof tokenizeEdifact>['segments'][number])=>boolean){
+ const {segments}=tokenizeEdifact(raw),selected=segments.filter(select)
+ expect(selected.length).toBeGreaterThan(0)
+ let changed=raw
+ for(const segment of [...selected].reverse()){
+  const span=segmentSourceSpan(segment)!
+  // Span omits the terminator: remove the complete selected physical segment.
+  changed=changed.slice(0,span.startOffset)+changed.slice(span.endOffset+1)
+ }
+ return changed
+}
+function removeCharacteristic(raw:string,descriptor:string){
+ const wire=tokenizeEdifact(raw),heads=wire.segments.filter(segment=>segment.tag==='CCI'&&segmentComposite(segment,2,wire.una)[0]===descriptor)
+ expect(heads).toHaveLength(1)
+ const head=heads[0],tail=wire.segments.find(segment=>segment.index===head.index+1)
+ expect(tail?.tag).toBe('CAV')
+ return removeSourceSegments(raw,segment=>segment.index===head.index||segment.index===tail!.index)
+}
+function extraUd(raw:string){
+ const wire=tokenizeEdifact(raw),installation=wire.segments.filter(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='IT')
+ expect(installation).toHaveLength(1)
+ const span=segmentSourceSpan(installation[0])!
+ return raw.slice(0,span.startOffset)+"NAD+UD+FORBIDDEN-UD-F::89++Forbidden Identity+Forbidden Street+Town++12345+SE'\n"+raw.slice(span.startOffset)
+}
+function expectIgnoredUd(f:Fixture,change:Change){
+ const wire=tokenizeEdifact(change.message.raw_payload!),groups=prodatRegisterGroups(wire.segments,wire.una,'Z06').groups
+ expect(groups).toHaveLength(1)
+ const own=groups[0],ud=own.segments.filter(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='UD')
+ expect(ud).toHaveLength(1);expect(segmentComposite(ud[0],2,wire.una)).toEqual(['FORBIDDEN-UD-F','','89'])
+ const stored=sourceEffects(f,change.message.id).ignored
+ expect(stored).not.toBeNull()
+ expect(stored!.source_payload_hash).toBe(createHash('sha256').update(change.message.raw_payload!).digest('hex'))
+ expect(stored!.fields_hash).toBe(createHash('sha256').update(stored!.fields_text).digest('hex'))
+ const fields=JSON.parse(stored!.fields_text) as {fieldNumber:string;sourceRule:string;occurrence:Record<string,unknown>}[]
+ for(const fieldNumber of ['END_USER_GROUP','227','228','229','231','232','316']){
+  const field=fields.filter(item=>item.fieldNumber===fieldNumber)
+  expect(field).toHaveLength(1)
+  expect(field[0]).toMatchObject({sourceRule:'PRODAT26A:P119',occurrence:{objectId:f.f.external,identityAgency:'9',lineIndex:own.lineIndex,registerPosition:1,lineItemReference:f.f.caseReference,
+   messageReference:segmentComposite(wire.segments.find(segment=>segment.tag==='UNH')!,1,wire.una)[0],ownReferences:{customerId:{kind:'present',value:'FORBIDDEN-UD-F'}}}})
+ }
+}
+it.each([false,true])('F first case approval versions only its original structure; physical extra UD=%s never changes customer identity',async withUd=>{
+ const f=await fixture(),change=await f.change('F',undefined,{deferFirstApply:true,...(withUd?{rawTransform:extraUd}:{})}),route=configureAckRoute(f)
+ const initial=evidence(f,change.message.id)
+ expectNoFirstEffects(f,change.message)
+ if(withUd){expect(change.message.raw_payload).toContain('FORBIDDEN-UD-F');expect(initial.original.raw_payload).toBe(change.message.raw_payload!);expectIgnoredUd(f,change)}
+ const current=await pendingFirstApplication(f,change),before=evidence(f,change.message.id)
+ expectNoFirstEffects(f,change.message)
+ expect(before.market).toEqual(initial.market);expect(before.source).toEqual(initial.source);expect(before.original).toEqual(initial.original)
+ expect(before.acks.map(ack=>ack.message_family)).toEqual(['CONTRL'])
+ const approved=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(approved.status).toBe('applied')
+ const after=evidence(f,change.message.id),effects=sourceEffects(f,change.message.id),hash=createHash('sha256').update(change.message.raw_payload!).digest('hex')
+ expectOwnAcks(f,change,route,after)
+ expect(after.market).toEqual(initial.market);expect(after.source).toEqual(initial.source);expect(after.original).toEqual(initial.original)
+ expect(effects.objects).toHaveLength(1);expect(effects.batches).toHaveLength(1)
+ const own=effects.objects[0]
+ expect(own).toMatchObject({source_message_id:change.message.id,first_line_index:current.scope.lineIndex,company_id:f.f.companyId,environment:'test',payload_hash:hash,actor_user_id:f.operator.id,
+  object_scope:{objectId:f.f.external,identityAgency:'9',registers:[{segmentIndex:current.scope.lineIndex,registerPosition:1}]},
+  effect:{meteringPointId:f.f.pointId,siteId:f.f.siteId,wire:{messageCode:'Z06',businessCase:'change_with_reading',caseReference:f.f.caseReference,registers:[{position:1,registerId:'101'}]}}})
+ expect(own.canonical_assessment_id).toMatch(/^[0-9a-f-]{36}$/);expect(own.object_assessment_id).toMatch(/^[0-9a-f-]{36}$/)
+ const effective=new Date(`${f.f.requestedStartDate}T00:00:00Z`);effective.setUTCDate(effective.getUTCDate()+12);effective.setUTCMinutes(effective.getUTCMinutes()-60)
+ expect(Date.parse(own.effect.effectiveAt)).toBe(effective.getTime())
+ expect(Date.parse(own.source_received_at)).toBe(Date.parse(change.message.message_received_at!))
+ expect(Date.parse(own.effect.sourceReceivedAt)).toBe(Date.parse(change.message.message_received_at!))
+ expect(own.effect.sourceRegisters).toHaveLength(1)
+ expect(own.effect.sourceRegisters[0].register.segmentIndex).toBe(current.scope.lineIndex)
+ expect(own.effect.sourceRegisters[0].tokens).toContainEqual(expect.objectContaining({tag:'LIN',elements:expect.arrayContaining([['1'],[f.f.external,'','','9']])}))
+ expect(effects.batches[0]).toMatchObject({source_message_id:change.message.id,payload_hash:hash,canonical_assessment_id:own.canonical_assessment_id,object_assessment_id:own.object_assessment_id,result:{sourceMessageId:change.message.id,applied:true,appliedCount:1}})
+ expect(effects.expectations).toHaveLength(1);expect(effects.observations).toEqual([])
+ expect(effects.expectations[0]).toMatchObject({source_message_id:change.message.id,first_line_index:current.scope.lineIndex,contract:{sourceMessageId:change.message.id,sourcePayloadHash:hash,mode:'meter_reading',expectedRegisterIds:['101'],measurementMethod:'Z04',wire:{meterNumber:'METER-1'},deadline:null,automaticRequestAllowed:false}})
+ expect((await f.read(change.message.id)).data).toMatchObject({expectations:[{status:'pending'}]})
+ if(withUd)expectIgnoredUd(f,change)
+ const final=await readReceivedProdatFinalResponsePlan({companyId:f.f.companyId,sourceMessageId:change.message.id,rawPayload:change.message.raw_payload!})
+ expect(final).not.toBeNull();expect(final!.plans).toMatchObject([{outcome:'positive',effectKind:'structural',objectLineIndices:[current.scope.lineIndex],acknowledgedReferences:[current.scope.li]}])
+ const replay=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:approved.id,structuralObjectLineIndices:[current.scope.lineIndex]})
+ expect(replay.status).toBe('applied');expect(sourceEffects(f,change.message.id)).toEqual(effects)
+ expect({...evidence(f,change.message.id),case:null}).toEqual({...after,case:null})
+ expect(external.send).toHaveBeenCalledTimes(1)
+ if(!withUd){
+  // Compose this first case effect with the retained real E66 consumer. The
+  // observation must exist after persistence, before any read reconciliation.
+  const reading=await f.reading(),outboundBefore=f.snapshots().outbound
+  expect(reading.qualified.runtime.transactionDispositions).toMatchObject([{disposition:'accepted',responseType:'positive_aperak'}])
+  expect(await reading.persist()).toMatchObject([{disposition:'accepted',persistenceStatus:'persisted'}])
+  const observed=sourceEffects(f,change.message.id)
+  expect(observed.objects).toEqual(effects.objects);expect(observed.batches).toEqual(effects.batches)
+  expect(observed.expectations).toEqual(effects.expectations);expect(observed.observations).toHaveLength(1)
+  expect(observed.observations[0]).toMatchObject({utilts_source_message_id:reading.message.id,transaction_id:reading.qualified.runtime.facts.transactions[0].transactionId,
+   source_payload_hash:createHash('sha256').update(reading.message.raw_payload!).digest('hex'),receipt:{utiltsSourceId:reading.message.id,observation:'actual_accepted_persisted_member',
+    reading:[{registerId:'101',meterNumber:'METER-1',sourceQuantity:['220','10000']},{registerId:'101',meterNumber:'METER-1',sourceQuantity:['220','11000']}]}})
+  const view=await f.read(change.message.id)
+  expect(view.error).toBeNull();expect(view.data).toMatchObject({expectations:[{status:'reading_observed',deadline:null,automaticRequestAllowed:false}]})
+  expect(f.snapshots().outbound).toBe(outboundBefore)
+  await reading.persist();expect(sourceEffects(f,change.message.id)).toEqual(observed)
+ }
+})
+
+it('F physical missing fields/correlation and wrong legal parties cannot establish a first structural effect',async()=>{
+ const f=await fixture();configureAckRoute(f)
+ const probes:{name:string;field?:string;process?:false;transform:(raw:string)=>string}[]=[
+  {name:'missing required own508',field:'508',transform:raw=>removeSourceSegments(raw,segment=>segment.tag==='DTM'&&segmentComposite(segment,1,tokenizeEdifact(raw).una)[0]==='354')},
+  {name:'missing applicable own214',field:'214',transform:raw=>removeCharacteristic(raw,'Z02')},
+  {name:'missing own LI',field:'226',transform:raw=>removeSourceSegments(raw,segment=>segment.tag==='RFF'&&segmentComposite(segment,1,tokenizeEdifact(raw).una)[0]==='LI')},
+  {name:'reversed source roles',process:false,transform:raw=>raw.replaceAll(`${f.f.receiver}:14`,`${f.f.sender}:14`).replaceAll(`+${f.f.sender}:14+${f.f.sender}:14+`,`+${f.f.sender}:14+${f.f.receiver}:14+`)
+   .replace(`NAD+FR+${f.f.receiver}:160:SVK`,`NAD+FR+${f.f.sender}:160:SVK`).replace(`NAD+DO+${f.f.sender}:160:SVK`,`NAD+DO+${f.f.receiver}:160:SVK`)},
+  {name:'legal receiver mismatches transport',process:false,transform:raw=>raw.replace(`NAD+DO+${f.f.sender}:160:SVK`,`NAD+DO+${f.f.receiver}:160:SVK`)},
+ ]
+ for(const probe of probes){
+  const message=await f.captureChange('F',undefined,{rawTransform:probe.transform}),initial=evidence(f,message.id)
+  expect(validateEdifactEnvelope(message.raw_payload!).syntaxOk).toBe(true)
+  expectNoFirstEffects(f,message)
+  if(probe.process!==false){
+   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.operator.id})
+   const defects=decision.issues.filter(issue=>issue.prodatDiagnostic?.kind==='field'&&issue.prodatDiagnostic.fieldNumber===probe.field&&issue.prodatDiagnostic.errorKind==='missing')
+   expect(defects.length).toBeGreaterThan(0)
+   expect(decision.prodatApplicationValidation?.objects).toMatchObject([{applicationDecision:'rejected'}])
+   await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:message.id})
+   await requireEdielSourceRulePackEvidence(f.f.companyId,message.id)
+   const review=await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})
+   const application=await readReceivedProdatApplicationObjects({companyId:f.f.companyId,sourceMessageId:message.id,rawPayload:message.raw_payload!})
+   expect(application).not.toBeNull()
+   expectRecordedOwnRefusal(f,message,review,refusalEvidence(f,message),application!,'rejected',defects[0].code,probe.field)
+   await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^structural_apply_no_qualified_object$/)
+  }else{
+   // These wrong legal receivers are held at genuine source-context capture,
+   // before a canonical composition can legitimately be recorded.
+   const wire=tokenizeEdifact(message.raw_payload!),envelope=EdifactEnvelopeCodec.decode(message.raw_payload!)
+   const legalReceiver=wire.segments.find(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='DO')!
+   expect(segmentComposite(legalReceiver,2,wire.una)[0]).toBe(f.f.receiver)
+   expect(envelope.receiver).toBe(probe.name==='reversed source roles'?f.f.receiver:f.f.sender)
+   expect(envelope.sender).toBe(probe.name==='reversed source roles'?f.f.sender:f.f.receiver)
+   expectPhysicalContextRefusal(f,message,refusalEvidence(f,message))
+   await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^ediel_inbound_legal_context_required$/)
+  }
+  expectNoFirstEffects(f,message)
+  const after=evidence(f,message.id)
+  expect(after.market).toEqual(initial.market);expect(after.source).toEqual(initial.source);expect(after.original).toEqual(initial.original)
+ }
+ // Same real owner and prerequisites accept an intact control after refusals.
+ const control=await prepareCapturedControl(f,await f.captureChange('F')),current=await pendingFirstApplication(f,control)
+ expectNoFirstEffects(f,control.message)
+ expect(await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})).toMatchObject({status:'applied'})
+})
+
+it('F cannot borrow a foreign physical point, admit outbound source input or mutate a sealed deferred original',async()=>{
+ const f=await fixture(),foreign=await fixture();configureAckRoute(f)
+ const message=await f.captureChange('F',undefined,{rawTransform:raw=>raw.replaceAll(f.f.external,foreign.f.external)}),initial=evidence(f,message.id),foreignBefore=evidence(foreign,foreign.f.source)
+ await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:message.id})
+ await requireEdielSourceRulePackEvidence(f.f.companyId,message.id)
+ const review=await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})
+ const application=await readReceivedProdatApplicationObjects({companyId:f.f.companyId,sourceMessageId:message.id,rawPayload:message.raw_payload!})
+ expect(application).not.toBeNull()
+ const stored=refusalEvidence(f,message)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.metering_points WHERE company_id=${literal(foreign.f.companyId)} AND id=${literal(foreign.f.pointId)} AND meter_point_id=${literal(foreign.f.external)}`)).toBe(1)
+ expectRecordedOwnRefusal(f,message,review,stored,application!,'unavailable','structural_review_owner_unavailable')
+ // The intact canonical own member reaches SQL11232's empty qualified partition.
+ await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^structural_apply_no_qualified_object$/)
+ expectNoFirstEffects(f,message)
+ expect(evidence(f,message.id).market).toEqual(initial.market);expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+ // Real INSERT constraints reject this unqualified outbound input. No route,
+ // source-operation or acceptance authority is invented to bypass the guard.
+ const sourceCount=sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.f.companyId)}`),directionBefore=evidence(f,message.id)
+ await expect(f.captureChange('F',undefined,{direction:'outbound'})).rejects.toThrow('canonical_ediel_route_required')
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.f.companyId)}`)).toBe(sourceCount)
+ expect(evidence(f,message.id)).toEqual(directionBefore);expectNoFirstEffects(f,message)
+ const change=await f.change('F',undefined,{deferFirstApply:true}),sealed=evidence(f,change.message.id),effects=sourceEffects(f,change.message.id)
+ const mutation=await supabaseService.from('ediel_messages').update({raw_payload:change.message.raw_payload!.replace('METER-1','ALTERED-METER')}).eq('id',change.message.id).eq('company_id',f.f.companyId)
+ expect(mutation.error?.message).toContain('immutable_ediel_payload_cannot_change')
+ expect(evidence(f,change.message.id)).toEqual(sealed);expect(sourceEffects(f,change.message.id)).toEqual(effects)
+ const current=await pendingFirstApplication(f,change)
+ expect(await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})).toMatchObject({status:'applied'})
+ expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
+})
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-broad-observation-controller.cjs (controller/preimage/diff original), 4324 bytes — SHA256 1b4af6aa0fb7cb967c48c51ffe5876850208c67aaa2fc8c1233923a179168760</summary>
+
+```javascript
+// Actual unchanged parser AST through real pure parser dependencies only.
+// Constructed physical inputs; no DB/case write/native authority is executed.
+const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto')
+const root='/workspace/ediel-fg-proof-20261013-6f94',ts=require(root+'/node_modules/typescript'),{load}=require('/tmp/ediel-fg-6f94-model-ports.cjs')
+function pick(file,names){const source=ts.createSourceFile(file,fs.readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true),printer=ts.createPrinter();return source.statements.filter(n=>ts.isFunctionDeclaration(n)&&names.includes(n.name.text)).map(n=>printer.printNode(ts.EmitHint.Unspecified,n,source)).join('\n')}
+const modules=['lib/ediel/prodat/parser.ts','lib/ediel/prodat/prodatRegisterFields.ts','lib/ediel/prodat/prodatDateFields.ts','lib/ediel/prodat/render/dates.ts','lib/ediel/prodat/prodatPartyFields.ts','lib/ediel/prodat/prodatReferenceFields.ts','lib/ediel/prodat/prodatCharacteristicFields.ts','lib/ediel/core/edifactSegments.ts','lib/ediel/core/una.ts','lib/ediel/codeLabels.ts']
+const ports=Object.assign({},...modules.map(m=>load(root+'/'+m))),names=Object.keys(ports),helpers=['trimOrNull','normalizeUpper','normalizeDigits','edifactDateToIsoDate','numberOrNull','valueFromParsed','parseInboundProdatBusinessData']
+const code=pick(root+'/lib/ediel/inboundCases.ts',helpers).replace(/^export /gm,'')+'\nreturn parseInboundProdatBusinessData'
+const parse=new Function(...names,ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(...names.map(n=>ports[n]))
+const token=load(root+'/lib/ediel/core/edifactTokenizer.ts'),wireApi=load(root+'/scripts/helpers/ediel-z06f-reading-followup-native-wire.ts')
+const scope={external:'735123456789012345',sender:'54321',receiver:'12345',brpEdielId:'11111',caseReference:'CASE-1',gridAreaCode:'NET-1',requestedStartDate:'2026-11-01'}
+const keys=['customerId','customerIdQualifier','customerIdLabel','customerType','personalNumber','orgNumber','birthDate','fullName','companyName','firstName','lastName','address','postalCode','city','country'],expected=Object.fromEntries(keys.map(k=>[k,k==='customerIdLabel'?'Ej angivet':null]))
+function changed(kind,raw){const snippet=pick(root+`/scripts/ediel-at-z06${kind.toLowerCase()}-supplier-acceptance-native.test.ts`,['extraUd']);const fn=new Function('tokenizeEdifact','segmentComposite','segmentSourceSpan','expect',ts.transpileModule(snippet+'\nreturn extraUd',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(token.tokenizeEdifact,token.segmentComposite,token.segmentSourceSpan,a=>({toHaveLength:n=>assert.equal(a.length,n)}));return fn(raw)}
+function project(customer){return Object.fromEntries(keys.map(k=>[k,customer[k]]))}
+const observations={parserSHA256:crypto.createHash('sha256').update(fs.readFileSync(root+'/lib/ediel/inboundCases.ts')).digest('hex'),scope:'Actual pure parser/case projection observation; finite constructed raw input only; native NOT_RUN',expected,variants:{}}
+for(const kind of ['F','G']){
+ const raw=wireApi.z06fNativeStructureWire(scope,kind,'DECLARED-'+kind),message={id:'00000000-0000-4000-8000-000000000006',company_id:'00000000-0000-4000-8000-000000000001',direction:'inbound',message_family:'PRODAT',message_code:'Z06',raw_payload:raw,parsed_payload:{customerName:'POISON CACHED',customerId:'CACHED'}}
+ const clean=parse(message),dirtyRaw=changed(kind,raw),dirty=parse({...message,raw_payload:dirtyRaw})
+ assert.deepEqual(project(clean.customer),expected);assert.notDeepEqual(project(dirty.customer),expected)
+ assert.deepEqual(dirty.site,clean.site);assert.deepEqual(dirty.meteringPoint,clean.meteringPoint);assert.deepEqual(dirty.contract,clean.contract)
+ observations.variants[kind]={clean:project(clean.customer),dirty:project(dirty.customer),dirtyKeys:keys.filter(k=>dirty.customer[k]!==expected[k]),retainedPhysicalRawHash:crypto.createHash('sha256').update(dirtyRaw).digest('hex'),legitimateInstallationRegisterProjectionUnchanged:true}
+ console.log('PASS actual '+kind+' noUD baseline all15 namedfields; current c08e parser retains dirtyUD namedbusiness; installation/register/contract unchanged')
+}
+console.log(JSON.stringify(observations))
+module.exports={parse,keys,expected,scope,wireApi,token,changed,project,pick,observations}
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-first-observation-controller.cjs (controller/preimage/diff original), 4299 bytes — SHA256 63a94e197dcc56814b09a19ac37fc7390b00ede1166467c5c8c116335d1e4bf8</summary>
+
+```javascript
+// Actual unchanged parser AST through real pure parser dependencies only.
+// Constructed physical inputs; no DB/case write/native authority is executed.
+const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto')
+const root='/workspace/ediel-fg-proof-20261013-6f94',ts=require(root+'/node_modules/typescript'),{load}=require('/tmp/ediel-fg-6f94-model-ports.cjs')
+function pick(file,names){const source=ts.createSourceFile(file,fs.readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true),printer=ts.createPrinter();return source.statements.filter(n=>ts.isFunctionDeclaration(n)&&names.includes(n.name.text)).map(n=>printer.printNode(ts.EmitHint.Unspecified,n,source)).join('\n')}
+const modules=['lib/ediel/prodat/parser.ts','lib/ediel/prodat/prodatRegisterFields.ts','lib/ediel/prodat/prodatDateFields.ts','lib/ediel/prodat/render/dates.ts','lib/ediel/prodat/prodatPartyFields.ts','lib/ediel/prodat/prodatReferenceFields.ts','lib/ediel/prodat/prodatCharacteristicFields.ts','lib/ediel/core/edifactSegments.ts','lib/ediel/core/una.ts','lib/ediel/codeLabels.ts']
+const ports=Object.assign({},...modules.map(m=>load(root+'/'+m))),names=Object.keys(ports),helpers=['trimOrNull','normalizeUpper','normalizeDigits','edifactDateToIsoDate','numberOrNull','valueFromParsed','parseInboundProdatBusinessData']
+const code=pick(root+'/lib/ediel/inboundCases.ts',helpers)+'\nreturn parseInboundProdatBusinessData'
+const parse=new Function(...names,ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(...names.map(n=>ports[n]))
+const token=load(root+'/lib/ediel/core/edifactTokenizer.ts'),wireApi=load(root+'/scripts/helpers/ediel-z06f-reading-followup-native-wire.ts')
+const scope={external:'735123456789012345',sender:'54321',receiver:'12345',brpEdielId:'11111',caseReference:'CASE-1',gridAreaCode:'NET-1',requestedStartDate:'2026-11-01'}
+const keys=['customerId','customerIdQualifier','customerIdLabel','customerType','personalNumber','orgNumber','birthDate','fullName','companyName','firstName','lastName','address','postalCode','city','country'],expected=Object.fromEntries(keys.map(k=>[k,k==='customerIdLabel'?'Ej angivet':null]))
+function changed(kind,raw){const snippet=pick(root+`/scripts/ediel-at-z06${kind.toLowerCase()}-supplier-acceptance-native.test.ts`,['extraUd']);const fn=new Function('tokenizeEdifact','segmentComposite','segmentSourceSpan','expect',ts.transpileModule(snippet+'\nreturn extraUd',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(token.tokenizeEdifact,token.segmentComposite,token.segmentSourceSpan,a=>({toHaveLength:n=>assert.equal(a.length,n)}));return fn(raw)}
+function project(customer){return Object.fromEntries(keys.map(k=>[k,customer[k]]))}
+const observations={parserSHA256:crypto.createHash('sha256').update(fs.readFileSync(root+'/lib/ediel/inboundCases.ts')).digest('hex'),scope:'Actual pure parser/case projection observation; finite constructed raw input only; native NOT_RUN',expected,variants:{}}
+for(const kind of ['F','G']){
+ const raw=wireApi.z06fNativeStructureWire(scope,kind,'DECLARED-'+kind),message={id:'00000000-0000-4000-8000-000000000006',company_id:'00000000-0000-4000-8000-000000000001',direction:'inbound',message_family:'PRODAT',message_code:'Z06',raw_payload:raw,parsed_payload:{customerName:'POISON CACHED',customerId:'CACHED'}}
+ const clean=parse(message),dirtyRaw=changed(kind,raw),dirty=parse({...message,raw_payload:dirtyRaw})
+ assert.deepEqual(project(clean.customer),expected);assert.notDeepEqual(project(dirty.customer),expected)
+ assert.deepEqual(dirty.site,clean.site);assert.deepEqual(dirty.meteringPoint,clean.meteringPoint);assert.deepEqual(dirty.contract,clean.contract)
+ observations.variants[kind]={clean:project(clean.customer),dirty:project(dirty.customer),dirtyKeys:keys.filter(k=>dirty.customer[k]!==expected[k]),retainedPhysicalRawHash:crypto.createHash('sha256').update(dirtyRaw).digest('hex'),legitimateInstallationRegisterProjectionUnchanged:true}
+ console.log('PASS actual '+kind+' noUD baseline all15 namedfields; current c08e parser retains dirtyUD namedbusiness; installation/register/contract unchanged')
+}
+console.log(JSON.stringify(observations))
+module.exports={parse,keys,expected,scope,wireApi,token,changed,project,pick,observations}
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-run.py (controller/preimage/diff original), 1165 bytes — SHA256 0a118b723c99db6b257173fe23a914e9ef60b0f1190b54cdc96ca61f92972d4d</summary>
+
+```python
+import subprocess,json,hashlib,sys,datetime
+from pathlib import Path
+root=Path('/workspace/ediel-fg-proof-20261013-6f94');node='/tmp/ediel-fg-6f94-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node';label=sys.argv[1];cmd=[node,*sys.argv[2:]]
+files=['scripts/ediel-at-z06f-supplier-acceptance-native.test.ts','scripts/ediel-at-z06g-supplier-acceptance-native.test.ts']
+meta={'command':cmd,'sourceHead':subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),'codeHashes':{f:hashlib.sha256((root/f).read_bytes()).hexdigest()for f in files},'startedAt':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+r=subprocess.run(cmd,cwd=root,capture_output=True);meta['exitCode']=r.returncode
+for kind,data in [('stdout',r.stdout),('stderr',r.stderr)]:
+ p=Path('/tmp/ediel-fg-6f94-sc031-'+label+'.'+kind+'.log');assert not p.exists();p.write_bytes(data);meta[kind]={'path':str(p),'sha256':hashlib.sha256(data).hexdigest(),'bytes':len(data)}
+Path('/tmp/ediel-fg-6f94-sc031-'+label+'.json').write_text(json.dumps(meta,indent=2)+'\n');print(json.dumps(meta,indent=2));print(r.stdout.decode());print(r.stderr.decode());sys.exit(r.returncode)
+```
+
+</details>
+
+<details><summary>ediel-fg-6f94-sc031-observe.cjs (controller/preimage/diff original), 4972 bytes — SHA256 1b16015f404588f76cd198d18d36bd9c3c50438f131ca508d5507fdf2dca7c44</summary>
+
+```javascript
+// Actual unchanged parser AST through real pure parser dependencies only.
+// Constructed physical inputs; no DB/case write/native authority is executed.
+const fs=require('node:fs'),assert=require('node:assert/strict'),crypto=require('node:crypto')
+const root='/workspace/ediel-fg-proof-20261013-6f94',ts=require(root+'/node_modules/typescript'),{load}=require('/tmp/ediel-fg-6f94-model-ports.cjs')
+function pick(file,names){const source=ts.createSourceFile(file,fs.readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true),printer=ts.createPrinter();return source.statements.filter(n=>ts.isFunctionDeclaration(n)&&names.includes(n.name.text)).map(n=>printer.printNode(ts.EmitHint.Unspecified,n,source)).join('\n')}
+const modules=['lib/ediel/prodat/parser.ts','lib/ediel/prodat/prodatRegisterFields.ts','lib/ediel/prodat/prodatDateFields.ts','lib/ediel/prodat/render/dates.ts','lib/ediel/prodat/prodatPartyFields.ts','lib/ediel/prodat/prodatReferenceFields.ts','lib/ediel/prodat/prodatCharacteristicFields.ts','lib/ediel/core/edifactSegments.ts','lib/ediel/core/una.ts','lib/ediel/codeLabels.ts']
+const ports=Object.assign({},...modules.map(m=>load(root+'/'+m))),names=Object.keys(ports),helpers=['trimOrNull','normalizeUpper','normalizeDigits','edifactDateToIsoDate','numberOrNull','valueFromParsed','parseInboundProdatBusinessData']
+const code=pick(root+'/lib/ediel/inboundCases.ts',helpers).replace(/^export /gm,'')+'\nreturn parseInboundProdatBusinessData'
+const parse=new Function(...names,ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(...names.map(n=>ports[n]))
+const token=load(root+'/lib/ediel/core/edifactTokenizer.ts'),wireApi=load(root+'/scripts/helpers/ediel-z06f-reading-followup-native-wire.ts')
+const scope={external:'735123456789012345',sender:'54321',receiver:'12345',brpEdielId:'11111',caseReference:'CASE-1',gridAreaCode:'NET-1',requestedStartDate:'2026-11-01'}
+const keys=['customerId','customerIdQualifier','customerIdLabel','customerType','personalNumber','orgNumber','birthDate','fullName','companyName','firstName','lastName','address','postalCode','city','country'],expected=Object.fromEntries(keys.map(k=>[k,k==='customerIdLabel'?'Ej angivet':null]))
+function changed(kind,raw){const snippet=pick(root+`/scripts/ediel-at-z06${kind.toLowerCase()}-supplier-acceptance-native.test.ts`,['extraUd']);const fn=new Function('tokenizeEdifact','segmentComposite','segmentSourceSpan','expect',ts.transpileModule(snippet+'\nreturn extraUd',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText)(token.tokenizeEdifact,token.segmentComposite,token.segmentSourceSpan,a=>({toHaveLength:n=>assert.equal(a.length,n)}));return fn(raw)}
+function project(customer){return Object.fromEntries(keys.map(k=>[k,customer[k]]))}
+const observations={parserSHA256:crypto.createHash('sha256').update(fs.readFileSync(root+'/lib/ediel/inboundCases.ts')).digest('hex'),scope:'Actual pure parser/case projection observation; finite constructed raw input only; native NOT_RUN',expected,variants:{}}
+for(const kind of ['F','G']){
+ const raw=wireApi.z06fNativeStructureWire(scope,kind,'DECLARED-'+kind),message={id:'00000000-0000-4000-8000-000000000006',company_id:'00000000-0000-4000-8000-000000000001',direction:'inbound',message_family:'PRODAT',message_code:'Z06',raw_payload:raw,parsed_payload:{customerName:'POISON CACHED',customerId:'CACHED'}}
+ const clean=parse(message),dirtyRaw=changed(kind,raw),dirty=parse({...message,raw_payload:dirtyRaw})
+ assert.deepEqual(project(clean.customer),expected);assert.notDeepEqual(project(dirty.customer),expected)
+ assert.deepEqual(dirty.site,clean.site);const {registers:cleanRegisters,...cleanMeter}=clean.meteringPoint,{registers:dirtyRegisters,...dirtyMeter}=dirty.meteringPoint;assert.deepEqual(dirtyMeter,cleanMeter);const registerFields=['meteringPointId','identityAgency','lineItemReference','meterNumber','meterConstant','meterDigitCount','meterTimeFrame','installationId','installationAddress','installationPostcode','installationCity','installationCountry','validRegisterChain'];const registerProjection=rows=>rows.map(row=>Object.fromEntries(registerFields.map(k=>[k,row[k]])));assert.deepEqual(registerProjection(dirtyRegisters),registerProjection(cleanRegisters));assert.ok(dirtyRegisters[0].rawSegments.some(s=>s.startsWith('NAD+UD+FORBIDDEN')));assert.deepEqual(dirty.contract,clean.contract)
+ observations.variants[kind]={clean:project(clean.customer),dirty:project(dirty.customer),dirtyKeys:keys.filter(k=>dirty.customer[k]!==expected[k]),retainedPhysicalRawHash:crypto.createHash('sha256').update(dirtyRaw).digest('hex'),legitimateInstallationRegisterProjectionUnchanged:true}
+ console.log('PASS actual '+kind+' noUD baseline all15 namedfields; current c08e parser retains dirtyUD namedbusiness; installation/register/contract unchanged')
+}
+console.log(JSON.stringify(observations))
+module.exports={parse,keys,expected,scope,wireApi,token,changed,project,pick,observations}
 ```
 
 </details>
