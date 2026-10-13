@@ -1,0 +1,43 @@
+{
+  "project_id": "piidsfebjqjmnepdpnas",
+  "link_id": "link_6aa08570afb48191a4eb728ab8e93c81",
+  "migration_name": "ops_api_native_reconciliation_atomic_install",
+  "source_sha256": "eaa99f86196c13e5c5a448883a334f71de0641d7b341870f68a6d31b4d5fff98",
+  "attempts": 3,
+  "last_attempt": {
+    "started_at": "2026-10-13 15:33:53 UTC",
+    "ended_at": "2026-10-13 15:34:55 UTC",
+    "elapsed_seconds": 62,
+    "tool_error": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Authentication for Supabase was requested and accepted. Retry this tool call now."
+        }
+      ],
+      "isError": true
+    }
+  },
+  "before": {
+    "captured_at": "2026-10-13 15:33:09.348322+00",
+    "part_count": 51,
+    "source_bytes": 6628349,
+    "source_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+    "atomic_registrations": 0,
+    "module_present": false
+  },
+  "after": {
+    "captured_at": "2026-10-13 15:35:58.380383+00",
+    "ledger_count": 506,
+    "atomic_registrations": 0,
+    "module_present": false,
+    "transport_present": true,
+    "active_installers": 0
+  },
+  "outcome": "NOT_APPLIED",
+  "dependent_semantic_forwards_applied": false,
+  "observed_connector_message": "Authentication for Supabase was requested and accepted. Retry this tool call now.",
+  "cause": "UNDETERMINED; neither database failure nor an approval rejection is established",
+  "same_link_other_migration_succeeded": "ops_api_market_actor_normalizers at2026-10-13T15:14:12Z",
+  "retry_policy": "No further identical retry pending connector diagnosis; uncertain outcomes checked in native ledger and catalog"
+}

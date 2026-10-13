@@ -6,14 +6,15 @@
   "status": "AUTHORIZED_ACTUAL_DATABASE_RECONCILIATION_IN_PROGRESS",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
-  "native_writes": 17,
+  "native_writes": 70,
   "business_rpc_invocations": 0,
   "deployments": 0,
   "native_blockers": [
-    "B3 must compose four private tenant-scoped helper fixes into newmodule functions/structuralmanifest; original B2 neverapplied. Preserve later17public semantic bodies plus3fresh externalstats metadata; final updated52stage exactsource/strongreplay/2peers pending.",
-    "Seven-target protectedtrigger packet expanded with4private scope fixes; prior2216/06ff impossible inboundcoverage gate superseded. Correct predicate before lowerforeign SHARE locks while preserving valid own-parent reads.",
-    "Retention3+originclosure revised5fb1 fullattrs-before-replay; genuinefirst/replay/unknownattrs andtwo peers pending. Separate parser postmetadata assertion willstrictly reject correctbody withunknownattrs, olderappliedSQLimmutable.",
-    "No configured realStaff provider/client/binding identified in fresh13:32 aggregate, all0. Pending user integration facts; no greenconfiguredE2E."
+    "Final atomic module eaa99f was not applied after3officialSupabase attempts. Third15:33:53\u219215:34:55UTC62seconds,15:35:58actualreadback506ledger/0registrations/modulefalse/0activeinstallers. Connector authrequestedaccepted error has undetermined cause; actor same-linkDDL succeeds. No new identical retry or dependent write pending diagnosis.",
+    "52 owner-only exact-source transport migrations are applied and source versions/checksums match native ledger. They contain approved code bytes only. No dependent semantic API effect is certified.",
+    "Approved Part1d821, Part2edcd, Z021e6, protected-trigger5fee, retention196 and semantic-metadata assertion5aa remain unapplied pending module installation.",
+    "Actual Staff provider/client/binding counts all0 at13:32; pending configured integration facts, no authenticated readiness certification.",
+    "Sole C2 canonical schema/type capture handoff remains pending; this branch does not write canonical GEN files."
   ],
   "documentation_version": "2026-10-12.1 prospective",
   "wire_version": "2026-10-09.1",
@@ -28,7 +29,7 @@
     "No all-native or provider end-to-end readiness claim",
     "No canonical schema/type GEN or active Ediel claims/shared memory writes"
   ],
-  "next_action": "Finish bounded private scoped-helper composition, retention+parser assertions, and descriptive publicdocs corrections. Freeze B3/rawtransport exacthashes, real current/strong-post/canonical/replay/unknown qualification and2NONcoauthor approvals. Root CLI/create actual52stages plus bounded forwards, ledger/source/OID/ACL receipts, final docs/build and sole-C2 GEN handoff.",
+  "next_action": "Diagnose official Supabase atomic installation response; qualify any source adjustment with both independent peers before applying. Source-align every new actual ledger version without rewriting history. Then apply reviewed dependent semantic chain, verify actual metadata, append only committed exact input provenance and finalize documentation/PR/C2 handoff.",
   "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
   "review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
   "integrated_main": "51f5fa5e80c42350d697bfed42520672749d4467",
@@ -38,11 +39,11 @@
   "fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
   "local_verification": "Build/app/scripts/tests typechecks/lint/docs/compatibility/migration/RBAC/static source gates passed as recorded. Initial fullunit3fixturefailures corrected and5files31checks passed; entire suite not rerun. Local checks are not live/native proof.",
   "latest_native_preflight": "2026-10-12 22:56:02 UTC:51missing/52examined names; tombstone alreadypresent",
-  "handover": "Draft PR794 has twelve actually applied scoped native forwards and two input-only metadata actions; staged dependency and qualified semantic/trigger forwards pending. Explicit user approval for all scoped fixes/migrations and uploading to PR794 persists.",
+  "handover": "Draft PR794 currently contains fifteen actual scoped forwards and two metadata actions. Sixteenth actor correction and52 actual transport stages have now been native-verified and are prepared for upload under explicit user approval. Final module and semantic chain remain unapplied.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "bd5f526eb06a0a9710d7de33a6fc50234b51f97e",
+  "current_source_head": "9f008c314b6a283138cbc91ec376f4f9306587ce",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
-  "migration_scope": "1166sourcefiles/1069versiongroups checksums verified after actual regex2forwards. Actual436ledger13:24:34UTC; includes4newexternal versions122459/122550/122600/124137. Pending part1CLI source parked /tmp/gridex-api-review/cli-created-pending/20261013121020_ops_api_preserved_runtime_semantic_guards.sql until dependencyapply/timestamp alignment.",
+  "migration_scope": "1220sourcefiles/1123versiongroups checksums verified after source alignment of52actual transport migrations and actor20261013151412. The unapplied final CLI loader is parked outside the active migration queue until actual timestamp alignment; no false successful registration.",
   "gen_owner": "C2 sole GEN/current producer ref03d8419671865554c0b8684de125320a2ef98f72 observed; first OPS atomic source imported in joint epoch; later actual forwards require next coherent handoff, no API-owned GEN",
   "native_applied_migrations": [
     {
@@ -149,6 +150,13 @@
       "sha256": "eaf04a7ee065f4e8e1089847c02871b78bd6cddfea5152f51884a804ae17d178",
       "actual_ledger_sql_md5": "73259707a02989aa9ab9bac09ec2c036",
       "receipt": "quality/audits/2026-10-12-ops-api-contracts/parser-metadata-integrity-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013151412",
+      "file": "supabase/migrations/20261013151412_ops_api_market_actor_normalizers.sql",
+      "sha256": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd",
+      "actual_ledger_sql_md5": "395b6d34c40d5da833b08e173da4f96a",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/generated-actor-normalizers-native-apply-receipt.json"
     }
   ],
   "native_corrected": "Actor current-active permission and deny precedence, additive canonical override columns/deny-only constraints, Partner atomic site/offer direction guard; OIDs/ownership/grants preserved and actual postcatalog verified. Pure gridowner native body unchanged; new forward source corrects future replay escaping.",
@@ -176,5 +184,329 @@
   "regex_native_status": "Two actual forwards applied13:23UTC: EDIFACT2helper literals and postalhelper; native436ledger, three exactbodyMD5/fullpg_procminusprosrc/OIDs/ACL unchanged; no helper/business invocation.",
   "user_upload_authorization": "User expressly approved uploading scoped OPS fixes to existing PR794 after remote authorization rejection; bd5f526e successfully pushed13:28UTC. Approval persists.",
   "documentation_pending": "Independent bounded source/docs audit found stale native pending statuses, 672\u2013745monthly interval fact, generic checkout microsecond Stockholm deadline, VATunit descriptions and Staff surface-auth wording. Sole docs author final_documentation_consistency implementing official descriptions-only generator and unmerged12.1 candidate regeneration, preserving olderfrozen bytes.",
-  "parser_metadata_native_status": "Actual assertion-only forward140802 applied and registered exactsourceSHA/MD5, all3fullpg_proc identities unchanged. Actualledger439 indicates2additionalother-owner writes since436; fresh input qualification pending."
+  "parser_metadata_native_status": "Actual assertion-only forward140802 applied and registered exactsourceSHA/MD5, all3fullpg_proc identities unchanged. Actualledger439 indicates2additionalother-owner writes since436; fresh input qualification pending.",
+  "official_cli_stage_pending_files": {
+    "count": 53,
+    "record": "/tmp/gridex-api-review/native-stage-cli-created.json",
+    "directory": "/tmp/gridex-api-review/cli-created-pending/native-stages",
+    "native_applied": false
+  },
+  "documentation_status": "Twelve descriptions/guides/generator files independently approved2peers;317.58s realproductionbuild PASS, unchanged buildinputs; code/docs+fifteenth actual parser assertion pushed9f008c31 to PR794.46olderfrozen docs/default/min/onboarding markers unchanged.",
+  "logical_forward_migrations_applied": 16,
+  "transport_migrations_applied": 52,
+  "provenance_metadata_actions_applied": 2,
+  "native_applied_transport_migrations": [
+    {
+      "version": "20261013145211",
+      "name": "ops_api_native_reconciliation_bootstrap",
+      "sha256": "8703caf740835b832e8243dd00b1b602b7a514248329cbc361686a1a08c2e29d",
+      "actual_ledger_sql_md5": "232b313b888258b58640316adfda68fc"
+    },
+    {
+      "version": "20261013145308",
+      "name": "ops_api_native_reconciliation_part_001",
+      "sha256": "63fb38277399ef2125e9b0a9ea37f75d7609b8c03fefc2fc00db23e2a69c132c",
+      "actual_ledger_sql_md5": "db3cdfc526215d5f58b0ea8d00ccd956"
+    },
+    {
+      "version": "20261013145312",
+      "name": "ops_api_native_reconciliation_part_002",
+      "sha256": "b1d0c34e75efec2f00cd7b2459a169cbc88873d38066b6122826a0004b07b11c",
+      "actual_ledger_sql_md5": "a7a63c2f312e933faac4df514c7bde14"
+    },
+    {
+      "version": "20261013145314",
+      "name": "ops_api_native_reconciliation_part_003",
+      "sha256": "060ba4e47d7126bffc51b5e002b3e2b5dd577ccf58e06742cba2259ddc507b61",
+      "actual_ledger_sql_md5": "672f421369ea9362e0d48cfd36e0ac58"
+    },
+    {
+      "version": "20261013145440",
+      "name": "ops_api_native_reconciliation_part_004",
+      "sha256": "564792d1dbec400563fff55537de13c562370140564c0c93299f25d5a0b8e2e1",
+      "actual_ledger_sql_md5": "45b27788d78a26cd2c7c11020b8253aa"
+    },
+    {
+      "version": "20261013145442",
+      "name": "ops_api_native_reconciliation_part_005",
+      "sha256": "4e490ecc81498ed0a524ee271b1f8e2d316dd95c92bbf96a20ff01c306da8f4a",
+      "actual_ledger_sql_md5": "90ff772a4adaa9e99e9a13817d9ba3d6"
+    },
+    {
+      "version": "20261013145444",
+      "name": "ops_api_native_reconciliation_part_006",
+      "sha256": "121a5e59e44f8afb4eb0fcf7c1433e1fda0c31f78b22629264f638cfdf2cdddb",
+      "actual_ledger_sql_md5": "08a832d44110941e2ca2386d0a872168"
+    },
+    {
+      "version": "20261013145446",
+      "name": "ops_api_native_reconciliation_part_007",
+      "sha256": "fab135719248b726ae6451ccab963d22bc3b565e5111c85744f6747066c7f1f1",
+      "actual_ledger_sql_md5": "424870f5c172f2ebc37fb95bca23ed1f"
+    },
+    {
+      "version": "20261013145448",
+      "name": "ops_api_native_reconciliation_part_008",
+      "sha256": "e8b503f764ff401d227ffd7ccfddbc98bd5b86be26c2a19e9cae88d8bfdfdf63",
+      "actual_ledger_sql_md5": "2bacfc5f0f399ba7169a31d6d3f0399c"
+    },
+    {
+      "version": "20261013145450",
+      "name": "ops_api_native_reconciliation_part_009",
+      "sha256": "5cefdd20e0671c1153357fba9e0b16b03f673aa4f08f0da1e6c614f7c3e206e9",
+      "actual_ledger_sql_md5": "a85ecabdad48c539294590b1cc680756"
+    },
+    {
+      "version": "20261013145523",
+      "name": "ops_api_native_reconciliation_part_010",
+      "sha256": "d6bf0a9f1a0c70660e11ee7fe7fe981156d3ed6f8f83a775823ea7a7328cd314",
+      "actual_ledger_sql_md5": "8d495a4175817b1aca87ed6dc0f99767"
+    },
+    {
+      "version": "20261013145526",
+      "name": "ops_api_native_reconciliation_part_011",
+      "sha256": "d9a1a68dee581237ab8a32bfcf20ae1cbbeb2f4e43fca8cbc45e4fe2c7f4da31",
+      "actual_ledger_sql_md5": "5d5b40f375d98fd161da8b42ffcd0160"
+    },
+    {
+      "version": "20261013145528",
+      "name": "ops_api_native_reconciliation_part_012",
+      "sha256": "3691cb64855fb4fcbf5c30b7c4982e91a15474bb32c7072374a0517d59b13111",
+      "actual_ledger_sql_md5": "f53bf626867f8681d855b7f6f6b95301"
+    },
+    {
+      "version": "20261013145532",
+      "name": "ops_api_native_reconciliation_part_013",
+      "sha256": "2250f94a31770f8fabc3986476b4e28b817975fca3f8629c0102ca79229f9f53",
+      "actual_ledger_sql_md5": "15a0a11beb0435856a3be55e16aa91df"
+    },
+    {
+      "version": "20261013145535",
+      "name": "ops_api_native_reconciliation_part_014",
+      "sha256": "028f8f46b444bb02ffd2fbb04ec193e4f1834d3790b063e2ff72c4fc70a244d4",
+      "actual_ledger_sql_md5": "e47ae0cc7a072249476f793fafa05cec"
+    },
+    {
+      "version": "20261013145538",
+      "name": "ops_api_native_reconciliation_part_015",
+      "sha256": "234adb26cec097c7c9ee11e179baa28a466324297177946390db41d546ebb3b5",
+      "actual_ledger_sql_md5": "54bd709dbf70f69a2b4115bac7b11c85"
+    },
+    {
+      "version": "20261013145541",
+      "name": "ops_api_native_reconciliation_part_016",
+      "sha256": "e988d8d14e88c2e047a0e31e8da7529fb064d6364e42cd9c12e88a8b2ff1c04e",
+      "actual_ledger_sql_md5": "1cd548d21d600d40428ff8c1e903c602"
+    },
+    {
+      "version": "20261013145545",
+      "name": "ops_api_native_reconciliation_part_017",
+      "sha256": "ca4872227818351824ce47349fd7acb5086c2b52cb924c2490c308098658ca1a",
+      "actual_ledger_sql_md5": "27be6aec4202aaec81913ca69416f2d8"
+    },
+    {
+      "version": "20261013145549",
+      "name": "ops_api_native_reconciliation_part_018",
+      "sha256": "2f7cbf4ae30a062324056dc6a50099f0c818f1bd1f06837937adaa5da917f7c8",
+      "actual_ledger_sql_md5": "1240c2aa1362f835eaac0f1505778411"
+    },
+    {
+      "version": "20261013145552",
+      "name": "ops_api_native_reconciliation_part_019",
+      "sha256": "fac0bb54dcac92112aef534d557d143b53940e00c3cea53e5451c4139cb9880b",
+      "actual_ledger_sql_md5": "80c542c3b39c9612ca4b08dda61014a3"
+    },
+    {
+      "version": "20261013145554",
+      "name": "ops_api_native_reconciliation_part_020",
+      "sha256": "071e4539e71d0debf217e19ba8e66589011ecf7aac42cf95845ce0b41d95bcfe",
+      "actual_ledger_sql_md5": "0448721fd9cd5ddb78840e58b804f3b0"
+    },
+    {
+      "version": "20261013145557",
+      "name": "ops_api_native_reconciliation_part_021",
+      "sha256": "a91496eb5fdb914eef355ecda97ccdeda84635c8a1bfd9f80aa324a8ba8c0870",
+      "actual_ledger_sql_md5": "22af74336cc254aa4a01e5988fb7c00c"
+    },
+    {
+      "version": "20261013145622",
+      "name": "ops_api_native_reconciliation_part_022",
+      "sha256": "d39b6ef4d786f3859d2ce37e74f08930201b4131e81d8349c9c49ffede783457",
+      "actual_ledger_sql_md5": "623ba448f2210f442c5c5449323fb052"
+    },
+    {
+      "version": "20261013145625",
+      "name": "ops_api_native_reconciliation_part_023",
+      "sha256": "7339aef297f33282aacf38b6f0a134a33dd9ef99cf29610a425e52fd385621a1",
+      "actual_ledger_sql_md5": "55cdc2d6c6719336bdf7184797086734"
+    },
+    {
+      "version": "20261013145628",
+      "name": "ops_api_native_reconciliation_part_024",
+      "sha256": "a2be1d618d60ffbdd2a3fe0ab63286609db483c7110405fb80341e50e5f68316",
+      "actual_ledger_sql_md5": "e51b98b110a74da804d319a81bac4411"
+    },
+    {
+      "version": "20261013145635",
+      "name": "ops_api_native_reconciliation_part_025",
+      "sha256": "72344e6b0d37019abbacd01c3ef9768f3b2e0bab5df8df40a02d86e5e1f0342b",
+      "actual_ledger_sql_md5": "f59d8fd1e00d310475c646870b784a03"
+    },
+    {
+      "version": "20261013145638",
+      "name": "ops_api_native_reconciliation_part_026",
+      "sha256": "45af2af3daece76c1d72b08285c6d5521063d8ad50c2fb09544ea60c1e0c18a2",
+      "actual_ledger_sql_md5": "d566420b436c26375d9d37122eb3c803"
+    },
+    {
+      "version": "20261013145641",
+      "name": "ops_api_native_reconciliation_part_027",
+      "sha256": "921b6e67598d960e30fe8e72a696a546c9e620b1cf1b446e5bb61372ad6fa086",
+      "actual_ledger_sql_md5": "43e6cb8fd2cea29063c7b0417fd42a13"
+    },
+    {
+      "version": "20261013145644",
+      "name": "ops_api_native_reconciliation_part_028",
+      "sha256": "d2057eaf1480a8ce7f3e0e38086c126ac0f9db26031bda6fb40ed8a9506846b4",
+      "actual_ledger_sql_md5": "8bb2d085e45bb0d443d756496c464d18"
+    },
+    {
+      "version": "20261013145647",
+      "name": "ops_api_native_reconciliation_part_029",
+      "sha256": "c9d857e3ea5a76308526ba9511f6993eb1e5401d301e85c3aad648358c6d1d7a",
+      "actual_ledger_sql_md5": "665fe60b8dd81e58370a6c1439c4571b"
+    },
+    {
+      "version": "20261013145650",
+      "name": "ops_api_native_reconciliation_part_030",
+      "sha256": "48d9d80a97c3c18ed7c8bf15c19c7a71ed28139ccb90939fefe9c3870fb14132",
+      "actual_ledger_sql_md5": "3d84cb3212b70a1d5fac1c9aedc18c6f"
+    },
+    {
+      "version": "20261013145654",
+      "name": "ops_api_native_reconciliation_part_031",
+      "sha256": "9d2c47db7a98c4deb55a31bf50d3ea813a513073983dce0abe1179840c5cc71e",
+      "actual_ledger_sql_md5": "19e8192ed5bfe405fe72610efe9bf421"
+    },
+    {
+      "version": "20261013145656",
+      "name": "ops_api_native_reconciliation_part_032",
+      "sha256": "ccff55b162683c5bbe5502766296a0a31896ccefb1e2e0c72ef15bfa31170c71",
+      "actual_ledger_sql_md5": "309808f2ede9ab3a2b8c47e33aaf23a9"
+    },
+    {
+      "version": "20261013145658",
+      "name": "ops_api_native_reconciliation_part_033",
+      "sha256": "4946337dd423a57453aec28f4ccf7f89ab1ce9a13d552fd9b2351dc381f3982a",
+      "actual_ledger_sql_md5": "734606c2fcaa907be32807b7beb93591"
+    },
+    {
+      "version": "20261013145724",
+      "name": "ops_api_native_reconciliation_part_034",
+      "sha256": "9490b8ebe1bfd720a63bf8abbdb022ea10fe4df8ec4d620d7bea1ea4b8369972",
+      "actual_ledger_sql_md5": "c79064919de6627502ee220293be171b"
+    },
+    {
+      "version": "20261013145727",
+      "name": "ops_api_native_reconciliation_part_035",
+      "sha256": "59d06b5a18450647b14f95c85f3bcf5a223ae9ccfbbd6f4c496373df7188ede7",
+      "actual_ledger_sql_md5": "ed6289deb74af1dce6e393b8c38727bb"
+    },
+    {
+      "version": "20261013145730",
+      "name": "ops_api_native_reconciliation_part_036",
+      "sha256": "97f3345bb704e76a312caa6dc99e38f518575c072a7a463c65c1c6d1e8dffb41",
+      "actual_ledger_sql_md5": "93236f07192d9fd6641ebf36e2c7f1ec"
+    },
+    {
+      "version": "20261013145733",
+      "name": "ops_api_native_reconciliation_part_037",
+      "sha256": "69fa8d6a9acfb3f678d81ac4d194ff984a7ec31661073c5c1d5482627d678707",
+      "actual_ledger_sql_md5": "84741aa2c99024a2e73e8dcc4d405247"
+    },
+    {
+      "version": "20261013145736",
+      "name": "ops_api_native_reconciliation_part_038",
+      "sha256": "d296141b1d42ee12f9a1486fda402fc85a8747e3f48d33c1b9add0a7b36b3460",
+      "actual_ledger_sql_md5": "527163bd2d945b109e7caa9fb488b24b"
+    },
+    {
+      "version": "20261013145739",
+      "name": "ops_api_native_reconciliation_part_039",
+      "sha256": "4816719708f25478802bf46fc3c37fd25b63238284d477c313dd75951f396d7e",
+      "actual_ledger_sql_md5": "6c17b4c7051cab5f581b454df15e21c1"
+    },
+    {
+      "version": "20261013145742",
+      "name": "ops_api_native_reconciliation_part_040",
+      "sha256": "2368e8ba12a7f072c0064b811e02fde709aeb20577fbc541a0b0b1c727ae2c9b",
+      "actual_ledger_sql_md5": "2b4bf35b8944662550b742a41cd906af"
+    },
+    {
+      "version": "20261013145745",
+      "name": "ops_api_native_reconciliation_part_041",
+      "sha256": "adeaa18864e423bf2682d3c20f7f65456c07f2aa2ab1cddd4bbbb621bff4afc3",
+      "actual_ledger_sql_md5": "b5541daf4cab3ee95ce83a9bcc52cdfa"
+    },
+    {
+      "version": "20261013145749",
+      "name": "ops_api_native_reconciliation_part_042",
+      "sha256": "b5a02adf27139b8fb43b5dd798b2fae4c13b09743a1253dc003b2e0699da2659",
+      "actual_ledger_sql_md5": "12954a05756cfb74da40721d63f8dd39"
+    },
+    {
+      "version": "20261013145751",
+      "name": "ops_api_native_reconciliation_part_043",
+      "sha256": "8663b52d94cb7d9ce737eb889512ec292aa7b80edfe35bfbb5f08dcd05715cf5",
+      "actual_ledger_sql_md5": "43407484316eedc9b0feab782fb18fc9"
+    },
+    {
+      "version": "20261013145755",
+      "name": "ops_api_native_reconciliation_part_044",
+      "sha256": "a132a15cfd09ddc3f37910ae7c09534caf0a612356d4c2e5facfd488c286224b",
+      "actual_ledger_sql_md5": "ffbb986109a6e2fd9294598cf897c997"
+    },
+    {
+      "version": "20261013145759",
+      "name": "ops_api_native_reconciliation_part_045",
+      "sha256": "8f48d11241e15d56e42f8e5a6fc2b672e005213253533c67e3669ab3e6807464",
+      "actual_ledger_sql_md5": "bb6483c4901f736dbcbc1883f89d3c0c"
+    },
+    {
+      "version": "20261013145818",
+      "name": "ops_api_native_reconciliation_part_046",
+      "sha256": "e385532ddfe2e9b37bf9412d8bdbf57bada59ba8e0d64afaa01edcc0add0cda8",
+      "actual_ledger_sql_md5": "495e720be2757b4c5e0de3d9b620a3f8"
+    },
+    {
+      "version": "20261013145821",
+      "name": "ops_api_native_reconciliation_part_047",
+      "sha256": "eb217d1f51c0e7c51d57ce2055c6893000c54d7695d0ce13d5410a9677809869",
+      "actual_ledger_sql_md5": "69095058006543a737ee153039507bd0"
+    },
+    {
+      "version": "20261013145824",
+      "name": "ops_api_native_reconciliation_part_048",
+      "sha256": "aabbbec1d7e4b64f406a177f2f945b3be16ce08523074b360a07d5351e6932fc",
+      "actual_ledger_sql_md5": "dd8a06321ddea89d578b815ada16fb45"
+    },
+    {
+      "version": "20261013145827",
+      "name": "ops_api_native_reconciliation_part_049",
+      "sha256": "2f27c8310026a2a331c62793fe676be47971920c3f34132a2f5c110da9100a30",
+      "actual_ledger_sql_md5": "a5d5b9894439dcbbbe006ceaaabe523f"
+    },
+    {
+      "version": "20261013145831",
+      "name": "ops_api_native_reconciliation_part_050",
+      "sha256": "31b956ad477e84d6010f2af6053d22d10a89a1f6336c208d1d81d96b7d5c35b6",
+      "actual_ledger_sql_md5": "d913e2b7b9bb69d6242013958d9b0e8b"
+    },
+    {
+      "version": "20261013145835",
+      "name": "ops_api_native_reconciliation_part_051",
+      "sha256": "ae937b54cfbbd42683b468ac72d3dedb26dc5241be07999c4a59bf7dda0346cd",
+      "actual_ledger_sql_md5": "1d20570d33025a28590fede0e9af5c41"
+    }
+  ]
 }
