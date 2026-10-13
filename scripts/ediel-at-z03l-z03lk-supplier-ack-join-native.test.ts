@@ -97,10 +97,10 @@ async function nativePorts() {
     import('@supabase/supabase-js'), import('@/lib/ediel/mailReadiness'),
     import('@/lib/supabase/service'), import('@/lib/ediel/specRegistry'),
   ])
-  const outbox = await import('@/lib/ediel/outbox/sendOutboxItem')
+  const [outbox, schedule] = await Promise.all([import('@/lib/ediel/outbox/sendOutboxItem'), import('@/lib/operations/supplierSwitchScheduler')])
   return { ...fixture, ...mailbox, ...db, ...source, ...method, ...processContext, ...switchFlow, ...transport,
     ...ack, ...committed, ...match, ...tenant, ...birth, ...reception, ...inbound, ...decision, ...responses,
-    ...technical, ...auth, ...smtpConfig, ...registry, ...spec, ...outbox, sql: fixture.nativeSql }
+    ...technical, ...auth, ...smtpConfig, ...registry, ...spec, ...outbox, ...schedule, sql: fixture.nativeSql }
 }
 type Ports = Awaited<ReturnType<typeof nativePorts>>
 type Cohort = Selector & { customerId: string; siteId: string; pointId: string; contractId: string;
@@ -459,6 +459,14 @@ describe('native prospective own Z03 L/LK ACK-to-Z04 join', () => {
     expect(record(origin.previous_switch)).toMatchObject({ prodat_variant: variant, prodat_reason: variant === 'L' ? 'Z22' : 'Z23',
       outbound_z03_message_id: null })
     const immutable = sealed(p, f.companyId, original.id), accepted = await sendOwn(p, f, original)
+    // Observe the accepted provider instant against the current normative
+    // policy and this immutable original's physical start. This changes no
+    // clock and proves no delayed-queue refusal: that separate guard is held.
+    const originalStartDate = `${own.start.slice(0, 4)}-${own.start.slice(4, 6)}-${own.start.slice(6, 8)}`
+    const observedWindow = p.evaluateSupplierSwitchSendWindow({ requestedStartDate: originalStartDate,
+      policy: p.loadSupplierSwitchPolicy({ subtype: variant }), now: new Date(accepted.observedAt) })
+    expect(observedWindow, 'selected positive original must actually have been sent inside its own lawful window')
+      .toMatchObject({ requestedStartDate: f.requestedStartDate, transactionSubtype: variant, windowOpen: true, reason: 'open' })
     const sent = (await p.getEdielMessageById(original.id, { companyId: f.companyId }))!
     expect(['sent', 'acknowledged']).toContain(sent.status)
     expect(Date.parse(sent.message_sent_at!)).toBe(Date.parse(accepted.observedAt))
