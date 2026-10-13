@@ -1,6 +1,6 @@
 {
   "task": "admin-consistency-remediation",
-  "status": "TENTH_COMPANY_KEYS19_NATIVE_GREEN_AUTHENTIC_CAPTURE_PENDING",
+  "status": "AUTHENTIC_TEN_FORWARD_CAPTURE_IMPORTED_CURRENT_CI_AND_LIVE_FINALIZE_PENDING",
   "date": "2026-10-13",
   "initial_source_head": "51f5fa5e80c42350d697bfed42520672749d4467",
   "delivery_base": "95d8d160491e79b172342654d8dc643346758105",
@@ -25,7 +25,8 @@
     "latest_full_empty_assertion": "PASS approximately17:09UTC:140 empty customer graph tables and17zero reviewed scopes; no additional source recreation observed since16:10 verification.",
     "retired_source_hashes": 2,
     "manual_inbound_messages": 0,
-    "tenth_forward_pending": true
+    "tenth_forward_pending": true,
+    "tenth_compatible_expansion": "Both compound and singleton indexes coexist; all4latest writer functions switched to canonical company targets with exact body/metadata checks. DROP/rename attempts expired requestState; finalization and2legacycutover remain pending."
   },
   "verification": {
     "targeted_runtime_and_native_sql": "Passed; domain receipts in subdirectories",
@@ -48,7 +49,7 @@
     "canonical_application_regression": "PASS:10/10 across3existing/shared-model suites",
     "late_static_copy": "PASS:24/24 across3existing suites;4-file lint0 and diff0; fee values/parser unchanged",
     "integrated_golden_path": "PASS:all existing integrated regressions; two obsolete loader-shape assertions updated to preserve identity/scoped hydration/canonical mirror checks",
-    "canonical_schema_capture": "PASS:actual CI capture38420677087/artifact11826462938 bound to4ed465f8head/tree,8input hashes,latestforward and3outputs. Imported byte-for-byte; current result-head parity/gates separate.",
+    "canonical_schema_capture": "PASS:actual20abea4a/run38447476565/artifact11838429642 head/tree,eight bound inputs,migration10 and all three outputs validated; authentic outputs imported byte-for-byte. Types unchanged; schema+fingerprint genuinely recaptured.",
     "first_composed_ci": "Upgrade migration replayPASS and browser/qualityE2EPASS. Verify stops at two obsolete loader-shape assertions now corrected. Current result-head required gates pending.",
     "complete_quality_config": "PASS:64/64 across4suites using exact CI quality config and loopback boundary. Real unchanged open-key function from94514 now defined before current generated-column tableDDL; no assertions weakened.",
     "preview": "READY:dpl_D4sHKqrxrgXjWVa9LQjV9YmdKwHu built exact6abcd34f789a251f61b478b64653c05b53e82739 application source. Subsequent change affects only proof dependency order/docs; production remains pending.",
@@ -61,9 +62,10 @@
     "current_release_quality": "PASS:lint,app/scripts/tests typechecks,mechanical,quality64,complete unit suite,API documentation/compatibility/release,RBAC24zero warnings,performance budgets,production build and bundle budget.",
     "current_upgrade_replay": "PASS:run38430105399/job115410086281.",
     "current_clean_native_browser": "D37FAIL only two company-id unique-index invariants after all native/browser suites; new10source/five targets fix explicit keys without changing gate. Fresh exact-head gates required.",
-    "tenth_forward": "19/19 latest-source lifecyclePASS; native two-company fixturePASS and uncapped5001 PostgreSQLPASS; two independent exact-source reviews; manifests/migration legal/contract/type integrityPASS."
+    "tenth_forward": "19/19 latest-source lifecyclePASS; native two-company fixturePASS and uncapped5001 PostgreSQLPASS; two independent exact-source reviews; manifests/migration legal/contract/type integrityPASS.",
+    "ten_forward_first_ci": "20abea4a:quality release/full unit,verify,upgrade replayPASS; native59files737assertions+browserPASS; unchanged tenant invariantPASS; parity selftest reached. Final clean gate fails only old committed9-forward schema baseline, now replaced by actual10-forward capture. Fresh resulting-head gates required."
   },
-  "next_action": "Publish capture-pending ten-forward candidate. Import only authenticated current-prefix types/schema/fingerprint; wait final required native/upgrade/browser/parity gates. Install10 through compatible granular stages if compoundtool remains unavailable, preserving old5keys. Deploy currentapp after green gates, drain oldwriters, execute only guarded2legacyconstraintdrops and final140/17zero assertion.",
+  "next_action": "Publish authentic ten-forward snapshot/current metadata. Await required exact resulting-head CI. Complete safe redundant-index removal/rename through reliable authorized database channel; deploy verified application only with consistent company-key indexes; then drain oldwriters/drop2legacyconstraints and final140/17zero assertion.",
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/799",
   "first_delivery_head": "77b9ab751bb24893d306f8acb2d049811e36bbb0"
 }

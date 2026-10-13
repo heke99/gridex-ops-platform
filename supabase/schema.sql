@@ -84921,12 +84921,12 @@ begin
  from public.gridex_actionable_data_quality_issues_v q join public.gridex_data_quality_rule_catalog_v c on c.issue_type=q.issue_type and c.entity_type=q.entity_type
  where q.company_id=p_company and q.source='gridex_data_quality' and c.alert_type is not null
  group by c.alert_type,c.alert_title,c.alert_message
- on conflict(open_key) do update set severity=excluded.severity,title=excluded.title,message=excluded.message,updated_at=excluded.updated_at;
+ on conflict(company_id,open_key) do update set severity=excluded.severity,title=excluded.title,message=excluded.message,updated_at=excluded.updated_at;
  insert into public.dashboard_alerts(company_id,alert_type,severity,title,message,status,source,updated_at)
  select p_company,'data_quality','warning',count(*)||' datakvalitetsfrågor kräver uppföljning','Öppna avvikelser för detaljer och åtgärder.','open','gridex_data_quality',now()
  from public.gridex_actionable_data_quality_issues_v q join public.gridex_data_quality_rule_catalog_v c on c.issue_type=q.issue_type and c.entity_type=q.entity_type
  where q.company_id=p_company and q.source='gridex_data_quality' having count(*)>0
- on conflict(open_key) do update set title=excluded.title,message=excluded.message,updated_at=excluded.updated_at;
+ on conflict(company_id,open_key) do update set title=excluded.title,message=excluded.message,updated_at=excluded.updated_at;
 end$$;
 
 --
@@ -89468,7 +89468,7 @@ begin
  insert into public.data_quality_issues(company_id,entity_type,entity_id,issue_type,severity,message,status,source,period_month,detected_at,updated_at)
  select p_company,f.entity_type,f.entity_id,f.issue_type,f.severity,f.message,'open','gridex_data_quality',f.period_month,now(),now()
  from pg_temp.gridex_quality_findings f where f.scan_id=v_scan
- on conflict(open_key) do update set severity=excluded.severity,message=excluded.message,detected_at=excluded.detected_at,updated_at=excluded.updated_at;
+ on conflict(company_id,open_key) do update set severity=excluded.severity,message=excluded.message,detected_at=excluded.detected_at,updated_at=excluded.updated_at;
  select count(*)::integer into v_issues from pg_temp.gridex_quality_findings where scan_id=v_scan;
  delete from pg_temp.gridex_quality_findings where scan_id=v_scan;
  perform public.gridex_reconcile_data_quality_v1(p_company);
@@ -94169,7 +94169,7 @@ begin
  if p_source is null or p_source='' or p_alert_type is null or p_title is null or p_severity is null or p_severity not in('info','warning','critical') then raise exception 'dashboard_alert_payload_invalid' using errcode='22023';end if;
  insert into public.dashboard_alerts(company_id,alert_type,severity,title,message,entity_type,entity_id,status,source,updated_at)
  values(p_company,p_alert_type,p_severity,p_title,p_message,p_entity_type,p_entity,'open',p_source,now())
- on conflict(open_key) do update set severity=excluded.severity,title=excluded.title,message=excluded.message,updated_at=excluded.updated_at
+ on conflict(company_id,open_key) do update set severity=excluded.severity,title=excluded.title,message=excluded.message,updated_at=excluded.updated_at
  returning id into v_id;
  return v_id;
 end$$;
@@ -94195,7 +94195,7 @@ begin
  v_period:=case when r.period_dependent then date_trunc('month',coalesce(p_period,current_date))::date end;
  insert into public.data_quality_issues(company_id,entity_type,entity_id,issue_type,severity,message,status,source,period_month,detected_at,updated_at)
  values(p_company,r.entity_type,p_entity,p_issue_type,p_severity,p_message,'open','gridex_data_quality',v_period,now(),now())
- on conflict(open_key) do update set severity=excluded.severity,message=excluded.message,detected_at=excluded.detected_at,updated_at=excluded.updated_at
+ on conflict(company_id,open_key) do update set severity=excluded.severity,message=excluded.message,detected_at=excluded.detected_at,updated_at=excluded.updated_at
  returning id into v_id;
  perform public.gridex_reconcile_dashboard_alerts_internal_v1(p_company);
  return v_id;
@@ -136109,13 +136109,13 @@ CREATE INDEX customers_test_data_idx ON public.customers USING btree (company_id
 -- Name: dashboard_alerts_open_key_uidx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX dashboard_alerts_open_key_uidx ON public.dashboard_alerts USING btree (open_key);
+CREATE UNIQUE INDEX dashboard_alerts_open_key_uidx ON public.dashboard_alerts USING btree (company_id, open_key);
 
 --
 -- Name: data_quality_issues_open_key_uidx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX data_quality_issues_open_key_uidx ON public.data_quality_issues USING btree (open_key);
+CREATE UNIQUE INDEX data_quality_issues_open_key_uidx ON public.data_quality_issues USING btree (company_id, open_key);
 
 --
 -- Name: document_ai_extractions_company_customer_idx; Type: INDEX; Schema: public; Owner: -
