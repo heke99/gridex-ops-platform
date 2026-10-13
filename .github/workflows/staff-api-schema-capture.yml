@@ -95,11 +95,13 @@ jobs:
 
           manifest = json.loads(pathlib.Path('scripts/supabase-types-manifest.json').read_text())
           pending = manifest.get('pending_joint_c3_capture', {})
-          epoch = 'gridex-C2-joint-C3-GEN-20261013-v2'
+          epoch = 'gridex-C2-joint-C3-GEN-20261013-v3'
           own_branch = os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-joint-c3-20261013', 'codex/c2-gen-esco-01a131d2')
           primary = own_branch and manifest.get('composition_capture_pending') is True and pending.get('input_epoch') == epoch
           corroboration = (own_branch and manifest.get('composition_capture_pending') is False
                            and manifest.get('capture', {}).get('source_epoch_attestation', {}).get('custody', {}).get('input_epoch') == epoch)
+          if own_branch and not (primary or corroboration):
+              raise SystemExit('capture_owned_epoch_unqualified')
           if not (primary or corroboration):
               pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).write_text(json.dumps({'epoch_attestation_enabled': False}) + '\n')
               print('Existing ordinary capture: no joint-C3 producer or epoch attestation is required.')
