@@ -177,7 +177,15 @@ jobs:
           python3 scripts/gridex-redact-native-evidence.py --local-secrets "$GRIDEX_NATIVE_STATUS" --root z02-supplier-native-working
           # Move only after successful redaction; a failed native suite stays failed.
           mv z02-supplier-native-working z02-supplier-native-evidence
-          cat z02-supplier-native-evidence/native.log
+          # The hosted runner can expose nonblocking stdout. Stream the complete
+          # redacted log with blocking writes; output errors still fail the step.
+          python3 - <<'PY'
+          import os, pathlib, shutil, sys
+          os.set_blocking(sys.stdout.fileno(), True)
+          with pathlib.Path('z02-supplier-native-evidence/native.log').open('rb') as source:
+            shutil.copyfileobj(source, sys.stdout.buffer, length=16384)
+          sys.stdout.buffer.flush()
+          PY
           rm -f "$GRIDEX_NATIVE_STATUS"
           exit "$native_exit"
       - name: Preserve redacted feedback when qualification aborts
