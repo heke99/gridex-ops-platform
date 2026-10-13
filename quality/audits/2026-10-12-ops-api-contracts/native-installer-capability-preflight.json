@@ -1,0 +1,475 @@
+{
+  "project_id": "piidsfebjqjmnepdpnas",
+  "read_only": true,
+  "business_rows_read": false,
+  "metadata": {
+    "captured_at": "2026-10-13 16:13:35.187382+00",
+    "current_user": "postgres",
+    "installer_role": {
+      "oid": "16388",
+      "rolname": "postgres",
+      "rolsuper": false,
+      "rolconfig": [
+        "search_path=\"\\$user\", public, extensions"
+      ],
+      "rolinherit": true,
+      "rolcanlogin": true,
+      "rolcreatedb": true,
+      "rolbypassrls": true,
+      "rolconnlimit": -1,
+      "rolcreaterole": true,
+      "rolvaliduntil": null,
+      "rolreplication": true
+    },
+    "retention_role": {
+      "oid": "2670192",
+      "rolname": "gridex_ediel_retention_owner",
+      "rolsuper": false,
+      "rolconfig": null,
+      "rolinherit": false,
+      "rolcanlogin": false,
+      "rolcreatedb": false,
+      "rolbypassrls": true,
+      "rolconnlimit": -1,
+      "rolcreaterole": false,
+      "rolvaliduntil": null,
+      "rolreplication": false
+    },
+    "retention_memberships": [
+      {
+        "member": "postgres",
+        "grantor": "postgres",
+        "set_option": true,
+        "admin_option": false,
+        "inherit_option": false
+      },
+      {
+        "member": "postgres",
+        "grantor": "supabase_admin",
+        "set_option": false,
+        "admin_option": true,
+        "inherit_option": false
+      }
+    ],
+    "schemas": [
+      {
+        "acl": "{supabase_admin=UC/supabase_admin,anon=U/supabase_admin,authenticated=U/supabase_admin,service_role=U/supabase_admin,supabase_auth_admin=UC/supabase_admin,dashboard_user=UC/supabase_admin,postgres=U/supabase_admin}",
+        "name": "auth",
+        "owner": "supabase_admin",
+        "installer_usage": true,
+        "retention_usage": false,
+        "installer_create": false,
+        "installer_usage_grantable": false
+      },
+      {
+        "acl": "{gridex_ediel_retention_owner=UC/gridex_ediel_retention_owner}",
+        "name": "gridex_ediel_retention",
+        "owner": "gridex_ediel_retention_owner",
+        "installer_usage": true,
+        "retention_usage": true,
+        "installer_create": false,
+        "installer_usage_grantable": false
+      }
+    ],
+    "tables": [
+      {
+        "acl": "{supabase_auth_admin=arwdDxtm/supabase_auth_admin,dashboard_user=arwdDxtm/supabase_auth_admin,postgres=ar*wdDxtm/supabase_auth_admin}",
+        "name": "auth.users",
+        "owner": "supabase_auth_admin",
+        "column_acl": [
+          {
+            "acl": null,
+            "name": "instance_id"
+          },
+          {
+            "acl": null,
+            "name": "id"
+          },
+          {
+            "acl": null,
+            "name": "aud"
+          },
+          {
+            "acl": null,
+            "name": "role"
+          },
+          {
+            "acl": null,
+            "name": "email"
+          },
+          {
+            "acl": null,
+            "name": "encrypted_password"
+          },
+          {
+            "acl": null,
+            "name": "email_confirmed_at"
+          },
+          {
+            "acl": null,
+            "name": "invited_at"
+          },
+          {
+            "acl": null,
+            "name": "confirmation_token"
+          },
+          {
+            "acl": null,
+            "name": "confirmation_sent_at"
+          },
+          {
+            "acl": null,
+            "name": "recovery_token"
+          },
+          {
+            "acl": null,
+            "name": "recovery_sent_at"
+          },
+          {
+            "acl": null,
+            "name": "email_change_token_new"
+          },
+          {
+            "acl": null,
+            "name": "email_change"
+          },
+          {
+            "acl": null,
+            "name": "email_change_sent_at"
+          },
+          {
+            "acl": null,
+            "name": "last_sign_in_at"
+          },
+          {
+            "acl": null,
+            "name": "raw_app_meta_data"
+          },
+          {
+            "acl": null,
+            "name": "raw_user_meta_data"
+          },
+          {
+            "acl": null,
+            "name": "is_super_admin"
+          },
+          {
+            "acl": null,
+            "name": "created_at"
+          },
+          {
+            "acl": null,
+            "name": "updated_at"
+          },
+          {
+            "acl": null,
+            "name": "phone"
+          },
+          {
+            "acl": null,
+            "name": "phone_confirmed_at"
+          },
+          {
+            "acl": null,
+            "name": "phone_change"
+          },
+          {
+            "acl": null,
+            "name": "phone_change_token"
+          },
+          {
+            "acl": null,
+            "name": "phone_change_sent_at"
+          },
+          {
+            "acl": null,
+            "name": "confirmed_at"
+          },
+          {
+            "acl": null,
+            "name": "email_change_token_current"
+          },
+          {
+            "acl": null,
+            "name": "email_change_confirm_status"
+          },
+          {
+            "acl": null,
+            "name": "banned_until"
+          },
+          {
+            "acl": null,
+            "name": "reauthentication_token"
+          },
+          {
+            "acl": null,
+            "name": "reauthentication_sent_at"
+          },
+          {
+            "acl": null,
+            "name": "is_sso_user"
+          },
+          {
+            "acl": null,
+            "name": "deleted_at"
+          },
+          {
+            "acl": null,
+            "name": "is_anonymous"
+          }
+        ],
+        "installer_insert": true,
+        "installer_select": true,
+        "installer_update": true,
+        "retention_select": false,
+        "retention_update": false,
+        "installer_references": true,
+        "installer_select_grantable": true,
+        "installer_update_grantable": false
+      },
+      {
+        "acl": "{gridex_ediel_retention_owner=arwdDxtm/gridex_ediel_retention_owner}",
+        "name": "gridex_ediel_retention.record_class_catalog",
+        "owner": "gridex_ediel_retention_owner",
+        "column_acl": [
+          {
+            "acl": null,
+            "name": "retention_class"
+          },
+          {
+            "acl": null,
+            "name": "source_table"
+          },
+          {
+            "acl": null,
+            "name": "permission_key"
+          },
+          {
+            "acl": null,
+            "name": "operation"
+          },
+          {
+            "acl": null,
+            "name": "redaction"
+          }
+        ],
+        "installer_insert": false,
+        "installer_select": true,
+        "installer_update": false,
+        "retention_select": true,
+        "retention_update": true,
+        "installer_references": false,
+        "installer_select_grantable": false,
+        "installer_update_grantable": false
+      },
+      {
+        "acl": "{gridex_ediel_retention_owner=arwdDxtm/gridex_ediel_retention_owner}",
+        "name": "gridex_ediel_retention.record_decisions",
+        "owner": "gridex_ediel_retention_owner",
+        "column_acl": [
+          {
+            "acl": null,
+            "name": "id"
+          },
+          {
+            "acl": null,
+            "name": "company_id"
+          },
+          {
+            "acl": null,
+            "name": "retention_class"
+          },
+          {
+            "acl": null,
+            "name": "target_id"
+          },
+          {
+            "acl": null,
+            "name": "customer_id"
+          },
+          {
+            "acl": null,
+            "name": "contract_id"
+          },
+          {
+            "acl": null,
+            "name": "source_hash"
+          },
+          {
+            "acl": null,
+            "name": "target_hash"
+          },
+          {
+            "acl": null,
+            "name": "document_bytes"
+          },
+          {
+            "acl": null,
+            "name": "document_hash"
+          },
+          {
+            "acl": null,
+            "name": "issuer_receipt"
+          },
+          {
+            "acl": null,
+            "name": "submitted_by"
+          },
+          {
+            "acl": null,
+            "name": "created_at"
+          },
+          {
+            "acl": null,
+            "name": "document_byte_length"
+          },
+          {
+            "acl": null,
+            "name": "document_purged_at"
+          }
+        ],
+        "installer_insert": false,
+        "installer_select": true,
+        "installer_update": false,
+        "retention_select": true,
+        "retention_update": true,
+        "installer_references": false,
+        "installer_select_grantable": false,
+        "installer_update_grantable": false
+      },
+      {
+        "acl": "{gridex_ediel_retention_owner=arwdDxtm/gridex_ediel_retention_owner}",
+        "name": "gridex_ediel_retention.record_reviews",
+        "owner": "gridex_ediel_retention_owner",
+        "column_acl": [
+          {
+            "acl": null,
+            "name": "id"
+          },
+          {
+            "acl": null,
+            "name": "decision_id"
+          },
+          {
+            "acl": null,
+            "name": "actor_user_id"
+          },
+          {
+            "acl": null,
+            "name": "outcome"
+          },
+          {
+            "acl": null,
+            "name": "reason"
+          },
+          {
+            "acl": null,
+            "name": "created_at"
+          }
+        ],
+        "installer_insert": false,
+        "installer_select": true,
+        "installer_update": false,
+        "retention_select": true,
+        "retention_update": true,
+        "installer_references": false,
+        "installer_select_grantable": false,
+        "installer_update_grantable": false
+      },
+      {
+        "acl": "{gridex_ediel_retention_owner=arwdDxtm/gridex_ediel_retention_owner}",
+        "name": "gridex_ediel_retention.record_tombstones",
+        "owner": "gridex_ediel_retention_owner",
+        "column_acl": [
+          {
+            "acl": null,
+            "name": "retention_class"
+          },
+          {
+            "acl": null,
+            "name": "target_id"
+          },
+          {
+            "acl": null,
+            "name": "company_id"
+          },
+          {
+            "acl": null,
+            "name": "customer_id"
+          },
+          {
+            "acl": null,
+            "name": "contract_id"
+          },
+          {
+            "acl": null,
+            "name": "decision_id"
+          },
+          {
+            "acl": null,
+            "name": "review_id"
+          },
+          {
+            "acl": null,
+            "name": "source_hash"
+          },
+          {
+            "acl": null,
+            "name": "target_hash"
+          },
+          {
+            "acl": null,
+            "name": "byte_length"
+          },
+          {
+            "acl": null,
+            "name": "storage_path"
+          },
+          {
+            "acl": null,
+            "name": "actor_user_id"
+          },
+          {
+            "acl": null,
+            "name": "journal_retain_until"
+          },
+          {
+            "acl": null,
+            "name": "journal_purpose_reference"
+          },
+          {
+            "acl": null,
+            "name": "created_at"
+          }
+        ],
+        "installer_insert": false,
+        "installer_select": true,
+        "installer_update": false,
+        "retention_select": true,
+        "retention_update": true,
+        "installer_references": false,
+        "installer_select_grantable": false,
+        "installer_update_grantable": false
+      }
+    ],
+    "protected_owner_capabilities": [
+      {
+        "name": "supabase_admin",
+        "installer_set": false,
+        "installer_member": false
+      },
+      {
+        "name": "supabase_auth_admin",
+        "installer_set": false,
+        "installer_member": false
+      },
+      {
+        "name": "supabase_storage_admin",
+        "installer_set": false,
+        "installer_member": false
+      }
+    ]
+  },
+  "installation_qualified": false,
+  "connector_error_cause": "UNDETERMINED"
+}

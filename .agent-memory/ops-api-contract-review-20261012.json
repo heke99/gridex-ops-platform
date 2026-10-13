@@ -6,7 +6,7 @@
   "status": "AUTHORIZED_ACTUAL_DATABASE_RECONCILIATION_IN_PROGRESS",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
-  "native_writes": 70,
+  "native_writes": 71,
   "business_rpc_invocations": 0,
   "deployments": 0,
   "native_blockers": [
@@ -14,7 +14,8 @@
     "52 owner-only exact-source transport migrations are applied and source versions/checksums match native ledger. They contain approved code bytes only. No dependent semantic API effect is certified.",
     "Approved Part1d821, Part2edcd, Z021e6, protected-trigger5fee, retention196 and semantic-metadata assertion5aa remain unapplied pending module installation.",
     "Actual Staff provider/client/binding counts all0 at13:32; pending configured integration facts, no authenticated readiness certification.",
-    "Sole C2 canonical schema/type capture handoff remains pending; this branch does not write canonical GEN files."
+    "Sole C2 canonical schema/type capture handoff remains pending; this branch does not write canonical GEN files.",
+    "Actual installer capability gap independently confirmed: retention namespaceCREATE, existingRETtableREFERENCES/control-catalogINSERT, protectedAuthUSAGE/usersUPDATE grant authority absent. Controlled existing membership can be used only via exact reviewed/restored atomicowner context; Authowner prerequisite external. Prior broaderfixture doesnotqualifyactualrole; freshnonSUPERfixture inprogress."
   ],
   "documentation_version": "2026-10-12.1 prospective",
   "wire_version": "2026-10-09.1",
@@ -41,7 +42,7 @@
   "latest_native_preflight": "2026-10-12 22:56:02 UTC:51missing/52examined names; tombstone alreadypresent",
   "handover": "Draft PR794 currently contains fifteen actual scoped forwards and two metadata actions. Sixteenth actor correction and52 actual transport stages have now been native-verified and are prepared for upload under explicit user approval. Final module and semantic chain remain unapplied.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "9f008c314b6a283138cbc91ec376f4f9306587ce",
+  "current_source_head": "5e63abe419094c0efe9d2a67fcb9459ebb0b0fc4",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "1220sourcefiles/1123versiongroups checksums verified after source alignment of52actual transport migrations and actor20261013151412. The unapplied final CLI loader is parked outside the active migration queue until actual timestamp alignment; no false successful registration.",
   "gen_owner": "C2 sole GEN/current producer ref03d8419671865554c0b8684de125320a2ef98f72 observed; first OPS atomic source imported in joint epoch; later actual forwards require next coherent handoff, no API-owned GEN",
@@ -194,7 +195,7 @@
   "documentation_status": "Twelve descriptions/guides/generator files independently approved2peers;317.58s realproductionbuild PASS, unchanged buildinputs; code/docs+fifteenth actual parser assertion pushed9f008c31 to PR794.46olderfrozen docs/default/min/onboarding markers unchanged.",
   "logical_forward_migrations_applied": 16,
   "transport_migrations_applied": 52,
-  "provenance_metadata_actions_applied": 2,
+  "provenance_metadata_actions_applied": 3,
   "native_applied_transport_migrations": [
     {
       "version": "20261013145211",
@@ -508,5 +509,7 @@
       "sha256": "ae937b54cfbbd42683b468ac72d3dedb26dc5241be07999c4a59bf7dda0346cd",
       "actual_ledger_sql_md5": "1d20570d33025a28590fede0e9af5c41"
     }
-  ]
+  ],
+  "input_provenance_receipts": 81,
+  "latest_input_metadata_action": "56 exact committed5e63 source inputs appended16:06:45UTC; actual16:08:24 registry81, old25fullrows and506fullledger byte-hashes unchanged, new56 validinput_only/effectfalse,0mismatches. No fullmodule/semantic registration."
 }
