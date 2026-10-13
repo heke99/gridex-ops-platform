@@ -6,7 +6,7 @@
   "status": "AUTHORIZED_ACTUAL_DATABASE_RECONCILIATION_IN_PROGRESS",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
-  "native_writes": 1,
+  "native_writes": 4,
   "business_rpc_invocations": 0,
   "deployments": 0,
   "native_blockers": [
@@ -18,17 +18,17 @@
   "old_frozen_docs": "preserved byte-identical; no version-header admission gate",
   "independent_reviewers": [
     "final_api_source_review",
-    "final_api_database_docs_review"
+    "native_forward_independent_review"
   ],
   "scope_limits": [
     "No configured real Staff/customer integration qualification",
     "No all-native or provider end-to-end readiness claim",
     "No canonical schema/type GEN or active Ediel claims/shared memory writes"
   ],
-  "next_action": "Build exact additive SQL for remaining 51 RPCs and their actual schema/ACL/dependency closure; isolated native compilation and two noncoauthor reviews before further OPS application. Register new source checksum via unowned runtime additions manifest; deliver new source/native receipts to C2 for next genuine serial GEN epoch.",
+  "next_action": "Compile and peer-review corrected additive native dependencies; compile and apply approved financial/quote/signing forwards; qualify current authorization helper gaps; finalize source documentation and genuine C2 GEN handoff.",
   "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
   "review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
-  "integrated_main": "94d39dfb",
+  "integrated_main": "51f5fa5e80c42350d697bfed42520672749d4467",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
   "independent_review": "Two noncoauthor peers confirm no remaining introduced P1/P2 in reviewed final source",
   "verification_record": "quality/audits/2026-10-12-ops-api-contracts/verification.json",
@@ -37,10 +37,10 @@
   "latest_native_preflight": "2026-10-12 22:56:02 UTC:51missing/52examined names; tombstone alreadypresent",
   "handover": "Draft PR794 source plus first actually applied native migration; remaining dependency reconciliation in progress. No merge/deploy/business mutation or competing GEN. Existing Ediel owners keep producer resources/shared campaign memory.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "995ee01997b729527510ecc43cc6ff144aa5a230",
+  "current_source_head": "1a506d1104252437178a6b39468b42209ed1bb93",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "All1152sources/1055groups checksummed; native416registrations and actualcatalog inspected; no blind replay or fakehistoricalregistration.",
-  "gen_owner": "C2soleGEN/currentproducerref5b9cdd0d observed; no canonicalGEN/snapshot/type writes byAPI task",
+  "gen_owner": "C2 sole GEN/current producer ref03d8419671865554c0b8684de125320a2ef98f72 observed; first OPS atomic source imported in joint epoch; later actual forwards require next coherent handoff, no API-owned GEN",
   "native_applied_migrations": [
     {
       "version": "20261012235455",
@@ -48,7 +48,35 @@
       "sha256": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d",
       "actual_ledger_sql_md5": "426317f377c64b38369a47a4f9549247",
       "receipt": "quality/audits/2026-10-12-ops-api-contracts/atomic-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013074827",
+      "file": "supabase/migrations/20261013074827_ops_api_global_deny_and_grid_owner_guards.sql",
+      "sha256": "d9e9b2b2c2a292b7ed571c82a32d19c0830b21439be34009f5ed99d245d8ce57",
+      "actual_ledger_sql_md5": "a65557b21a4a55c71537ca2367410578",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/global-deny-grid-owner-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013084535",
+      "file": "supabase/migrations/20261013084535_ops_api_staff_deny_and_migration_provenance.sql",
+      "sha256": "b61bc1aaeec78fdc06579e9ed02878d3f5dde54c3de93c96e37ea272dcc48fce",
+      "actual_ledger_sql_md5": "74088b458d625435ec3ea652d0bf72de",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/staff-governance-native-apply-receipt.json"
     }
   ],
-  "native_corrected": "Actor current-active permission and deny precedence, additive canonical override columns/deny-only constraints, Partner atomic site/offer direction guard; OIDs/ownership/grants preserved and actual postcatalog verified. Pure gridowner native body unchanged; new forward source corrects future replay escaping."
+  "native_corrected": "Actor current-active permission and deny precedence, additive canonical override columns/deny-only constraints, Partner atomic site/offer direction guard; OIDs/ownership/grants preserved and actual postcatalog verified. Pure gridowner native body unchanged; new forward source corrects future replay escaping.",
+  "confirmed_additional_findings_in_progress": [
+    "Current Staff denies installed; no configured authenticated Staff integration",
+    "Atomic interval-price snapshot and Stockholm civil/instant separation: approved source/native proposal, isolated compilation pending",
+    "Nonexpiring website quote policy: approved native TTL removal, isolated compilation pending",
+    "Signing expiry after locks and immutable identity: approved native proposal, isolated compilation pending",
+    "Future inclusive Stockholm withdrawal deadline: approved native proposal, isolated compilation pending",
+    "Frozen confirmation prices and verified archived artifacts: source corrected, final review in progress",
+    "Canonical context and older native permission helper deny/catalog differences: exact policy qualification in progress"
+  ],
+  "native_forward_migration_writes": 3,
+  "native_metadata_population_writes": 1,
+  "metadata_receipt_count": 14,
+  "staff_deny_status": "Actual native two permission functions patched and service-only/VOLATILE/body/OID/grants verified. Configured Staff provider/client/binding still absent; no authenticated E2E readiness claim.",
+  "governance_status": "Service-role aggregate reads now succeed without raw ledger USAGE/SELECT; 13 actual exact-input receipts + distinct historical lineage inserted. Strict old governance false remains truthful (385unmapped), no fake repair/history replay."
 }

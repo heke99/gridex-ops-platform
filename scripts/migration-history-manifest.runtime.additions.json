@@ -143,6 +143,8 @@
     "20261006225500_customer_info_requests_z01_status_compatibility.sql": "f7848962bfbee52b0da34eb0f293827f8d3a6d8f88751ccaf41b3dd6b33b4cca",
     "20261006231000_ediel_confirmed_death_final_response.sql": "8075ab1d97959b9a74df61a1d6bb83a9c157090494c0bcc0f5958588b3fbd47e",
     "20261006235000_ediel_confirmed_death_application_scope.sql": "59dc29a939be1351f45581361076599e09619b09b1fc8510fcda17e03dbc91bd",
-    "20261012235455_ops_api_atomic_permission_and_direction_guards.sql": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d"
+    "20261012235455_ops_api_atomic_permission_and_direction_guards.sql": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d",
+    "20261013074827_ops_api_global_deny_and_grid_owner_guards.sql": "d9e9b2b2c2a292b7ed571c82a32d19c0830b21439be34009f5ed99d245d8ce57",
+    "20261013084535_ops_api_staff_deny_and_migration_provenance.sql": "b61bc1aaeec78fdc06579e9ed02878d3f5dde54c3de93c96e37ea272dcc48fce"
   }
 }
