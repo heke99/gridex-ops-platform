@@ -16087,10 +16087,10 @@
     "purpose": "Complete immutable preimport manifest and original main remain in Git; every replaced active value is archived verbatim. Previous captures/native/gates are historical and never relabeled."
   },
   "pending_joint_c3_capture": {
-    "input_epoch": "gridex-C2-joint-C3-GEN-20261013-v2",
+    "input_epoch": "gridex-C2-joint-C3-GEN-20261013-v3",
     "owner": "codex-takeover-C2-GEN-joint-C3-20261013",
     "custody_receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-    "base": "51f5fa5e80c42350d697bfed42520672749d4467",
+    "base": "efed3683115c06d1925f8b80c05c801a54db9885",
     "authoritative_gen_source": "725e065abeb3cd6fb1dc10d9bf5b6a086f531568",
     "portable_six_source": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
     "sql_sha256": {
@@ -16218,8 +16218,8 @@
       }
     },
     "producer_sources": {
-      "actualMain": "51f5fa5e80c42350d697bfed42520672749d4467",
-      "actualMainTree": "276b661120d5e0b69abc2090439809d5c4528e33",
+      "actualMain": "efed3683115c06d1925f8b80c05c801a54db9885",
+      "actualMainTree": "dc439c2e017a9633471db53919b745f587abb67b",
       "authoritative795": "725e065abeb3cd6fb1dc10d9bf5b6a086f531568",
       "C3": {
         "head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
@@ -16357,7 +16357,6 @@
       }
     },
     "atomic_input_scope": "CANONICAL_795_CURRENT51_COMPLETE_EMPTY_ISOLATED_INPUT_ONLY; P2_POPULATED_PARTIAL_LEGACY_UPGRADE_OPEN",
-    "producer_stage": "PREPARED_SOURCE_ONLY_REQUIRES_FRESH_ROOT_V2_PRODUCER",
-    "producer_receipt": "03d8419671865554c0b8684de125320a2ef98f72"
+    "producer_stage": "PREPARED_SOURCE_ONLY_REQUIRES_FRESH_ROOT_V2_PRODUCER"
   }
 }
