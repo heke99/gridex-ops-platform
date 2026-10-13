@@ -5097,3 +5097,1658 @@ Historical accepted projection is returned before fresh transport admission (ind
 Source-only fresh analysis; no test/SQL/backend/native/GEN/CI execution, private DB05/source or original/log/archive/artifact acquisition, reservations/refs/docs/PR/merge/source write. Only this own report is written. If an adopted fix later uses this diagnosis, treat reviewer as a diagnosis/evidence contributor rather than counting it as an independent final reviewer of that same fix.
 
 ````
+
+
+## 2026-10-13 NEW bounded local finite C03 calendar qualification
+
+Reuse scoutfoundrealexistingL4/L3/LK0/-1 SQLsource/context assertions51–61, notmockeddeadline DTO. Existingexecutionattribution remainsunknown; theseoldwindowcontrols happenbeforeoriginal-methodforward andcurrentcustomerprelock. Customer-masterdata currentprelockSQL onlyday+10;transportfixtureProceedfalse neverreachesfreshcurrentguard. Needexactexecutionattribution/sourceclause applicability, notnewnative timeadvance. Existingfrozencalendar predicates can bequalified inembeddedPGunderdeclaredports withoutwhole/authenticclaims.
+
+ROOT explicitlyauthorizes NEWLOCALFINITEqualification tosoletempwriter current_delivery_review: onlynew/tmp/ediel-c03-current-finite-20261013-358d1615 ownatomicdirectoryandexactcontroller/program/boundary/bindings/stdout/stderr/results/report+exactpublicscriptliteraldependencycopies; report/tmp/ediel-helper-20261013-z03c-node22-qualified.md. No repo/sourcefile/reservation/producer/backend/native/GEN/CI/originalscopewrites. Exactpublice49/88c/base d798, unchangedexistingSQLscript plusSMALLadditivecurrentcontextfourcalendarcontrols. Preservealloldassertions/bodies, runONEaugmentedprogram nothealthybaseline twice. Currentcontext exactschema-body SQL; customerprelock isEXPLICITmechanicalport, calendar/method/currentcontextunmocked. Selectoldprogramqualified-method finitecohort108/106 onlyafteractualvalidation, rebuilddeclaredimmutableoriginal/hash/start/source/preimage fixtures coherently. RealDBclockfixed+1 dates, no clockoverride. Historicaloldwindowresults remainOLDcontext;newfourcurrentwindowcontrols stillNOTfullactualcustomer/original/native/RLS/proceedtrue/currenttransportguard proof.
+
+OfficialNode22.23.3/read-onlyPGlite0.3.14, runtimeharddeny network/fetch/http/DNS/net/testchildprocess; noSupabaseCLI orconnectionstatus/project. Sourcepublicdependencyfilepre/posthashes andfirstexecution outputs preserved, allsetup/failures distinguished before anycorrection. Helper/rootareproofauthors excludedtwoFRESHindependentfinalevidencepeers. TempfilecustodyisuniqueatomicdirectorywithrootPAUSED; ownAA4/SC031 remainsunchangedanddoesnotgrantC03 repoauthority. Any unsupportedsource/portdependency remainsconcretefailure, no guardrelaxation/authoritymanufacture. Owncheckpointonlyrepo writerROOT.
+
+Thisisrelevantverificationwithinuser-authorized masterplan scope, nottechnicalsource takeover/newsharedtest/sourcepublication. Onlyapproveddeltaactualmainstill323/+0. Pipeline795e49 actualnativeFAIL remainssolecollectorduty; newqualifiedfiniteproofwillbeofferedwithexplicitapplicability/limits toexistingC03/serialowner. Current17:21 FGownowner6151193577 independentlycomputed samejoint6map; nofurtherunchangedjointreview needed. PendingZ13scopeappointmentnotrepeated. Continuequalifiedcurrentpublicsource/casecausewhenownerprovidesactualterminalsummary, donotfetchnativeoriginalsourselves.
+
+
+## 2026-10-13 qualified Z03C current calendar component and two fresh independent finals
+
+ACTUALLYEXECUTED officialNode22.23.3/binarySHAfde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48 +readonlyPGlite0.3.14:90unchangedexistingSQLprobes PASS, plusFOUR NEW exactcurrent-schema-context/calendar controls PASS, exit0/EMPTYstderr/zeroALLnetwork-worker-childattempts. Actualpublice49/tree88c/base d798, source/migrations/currentSQL/runtime/preservedfixtures hashbound. Realclockfixed+1day20261013: Lstart20261017 D4 AUTHORIZED, Lstart20261016 D3 HELD exactsource_z03_cancellation_calendar_window, LKstart20261013 day0 AUTHORIZED, LKstart20261012 expired HELD exactsamecause. EachactualmethodZ03, actualoriginalSubtype/originalId/currentprojection/completeexpectedprelocktupletrace checked;rollback restoredallprior declaredmodel snapshots. No Date/SQLclockoverride.
+
+Firstattempt original90PASS/new0NOTCOMPLETED exit1 wasONLY temporary-author sampler unquotedreservedaliasday (42601), beforecurrent fixturemutation/evaluation. Correctedv2 fixesONLY sampler business_day +3getters, controlleronlyversionedentry/outputbindings. Allfirstfiles/raw/results/partialreport byteexactpreserved; static4getterexpectedcount correction happenedbeforev2filecreation/noadditionalprogramrun. Run2necessarilyinitializedold90againafterconcreteharnessfix;NOT180newcredit/notCIretry/healthywhole rerun. No actualsourcefunc/guard/assertion weakened. Bothfullprograms/controller/firstfailure/rawsecondoutputs preservedverbatimbelow. Tenliteralpublicmigrationinputs+originalscript unchangedpublicGit e49 bytes remainin temp and pinnedsourcebindings; authoractualprograms includealloldassertions, inverseexactoriginalae817c40.
+
+TWO FRESH OTHER independentnoncoauthor finalevidence reviewers APPROVE0 onfrozenreportv2 SHA9755a17ba26240ed6f1aaa9a52aea8de11ee3d5d74056673d749f06929ae995b/rawdf7dc3ce/bindings686ef692/currentSQLcabc19a/source/runtime/chronology:
+A /root/z03c_finite_review_a SHA87e4bbcae05e37ebb1acddf9efbb86b7ba82f5eb84b196037d22a54861ef8d00;
+B /root/z03c_finite_review_b SHA85c6462b3415e031106f875ff220f6d54ee862ef7ea8afbb5860e37bb369de34.
+Each independentlyverified all10literalpublicmigration/currentcontext/method/sourcebytes, 12preservedfirstmanifest entries/9finalrows/programinverse/alias-onlydelta/nopeerconsult/reruns/coauthoring. ROOT+current_delivery_review areproofauthors/runner excludedfinals; allauthorproof tempfiles nowFROZEN/PAUSED. Theseareexactfiniteevidence finals, NOTcurrent795whole source/proof/CI/merge finals.
+
+Explicitlowerports: originallegal/RBAC/contract/sent-source/physicalaccepted/original/preimage relations mechanicallyseeded; newprelock_customer_source_v1(c,sw) tuple-validatinglogger NOactualcustomerread/locking/authority. Actualcurrentcontext entireprosrc+security attrs/search_pathempty/TimeZoneUTC/VOLATILE andrealmethoddecoder/publicprojection execute. Contextitself doesNOTenforce217; methodseparateunmockedprojectionwrapper does. No actualcurrentcustomerprelock/RLS/originalissuer/legal/native/genuinebackend/two-worker/providerprepare-enterproceedtrue/fullC03/DSTnormativezone/currentCI/GEN/ledger approval. Normativecalendarinconsistency earlier sourceaudit notresolvedbythesecontrols. Existingcurrent-method/customer/native/source qualification maybecombinedbyretainedownerwithliteralproof; no newall-native/timeadvance/clockoverride gate imposed.
+
+NEW upstreamsourceversionwarning frompublic6151362111: unchangedoldZ09FG76a sourceSMTPcallback hasa newlyowned RAW vsATTACHMENT discriminator correctionpendingdb3d afterC0409d3; mechanicalsix-tree/import compatibility reported6151003307/6151193577 remainscorrectHISTORICALSOURCE-INTEGRATION metadata, NOTexecutableSMTP readiness. DoNOTadoptoldcallbackasgenuineexecutable-ready. FG80d unchanged/currentheldC1decoderstillUNFIXED/UNADOPTED. No privatee247correction copied, no competingSMTPwriter/refuter/nativejob. Existingroot09d3/db3 sourcewritersowncorrection.
+
+Next exactdeliverable: publishowncheckpoint+complete21originals+twoindependentfinals index toexistingC03/serialowner asqualifiedfinitewindow reuse, complement genuine31/currentsourceproof withoutpretendingwhole/genuineL4/LK-boundary sender. No wholeID/file/producer/resource custodyacquiredortransferred. Actualmainstilld798/323;actuale49nativeFAIL remainssolecollectorduty. PendingZ13appointment6149872726 notaskedagain;ownSC0313dff/aa4frozenheldpaused. CurrentnewpublicHHTTPsource/normalZ03guard/SC037component/latestSMTPcorrection availableforread-only changed-source support afterrefresh; no oldunchangedreview/foreignsourcewrites orretired/310 restart.
+
+Original /tmp/ediel-helper-20261013-z03c-finite-proof-index.json, 4432 bytes, SHA256 `4e1c488598fef9b8e962272f1ba0907cda2c26bfc753ba9c154489a364435fa0`; preserved verbatim:
+
+`````json
+{
+  "scope": "OWN_LOCAL_FINITE_ORIGINALS_PRESERVED_VERBATIM_IN_UNIQUE_CHECKPOINT_NOT_NATIVE_OR_GEN_COLLECTION",
+  "source": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+  "tree": "88c04102169c9bd803e2bf4dfb7363ebbc562097",
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "files": [
+    {
+      "path": "/tmp/ediel-helper-20261013-z03c-window-reuse-support.md",
+      "bytes": 8899,
+      "sha256": "f2a041ae54879933dc2486ad41d859001f18b284f674fc0fddfde1d000d33276"
+    },
+    {
+      "path": "/tmp/ediel-helper-20261013-z03c-node22-qualified.md",
+      "bytes": 2245,
+      "sha256": "bef7b789c91a0fe4bab05088d9301df34d3f23c604a49d9f43bee2bc1ac3dcd8"
+    },
+    {
+      "path": "/tmp/ediel-helper-20261013-z03c-node22-qualified-v2.md",
+      "bytes": 2758,
+      "sha256": "9755a17ba26240ed6f1aaa9a52aea8de11ee3d5d74056673d749f06929ae995b"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/controller.mjs",
+      "bytes": 3039,
+      "sha256": "a59c5a76a293539c3cb4a1273a73bb3f8618cce26d23220f7ab0b1648622d963"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/controller-v2.mjs",
+      "bytes": 3057,
+      "sha256": "6479205b97ee2d13872734c92fa28f18114e6259c33cac08d0337d6041a54b2d"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/runtime-boundary.mjs",
+      "bytes": 1370,
+      "sha256": "331157dc968ad6069e0d69fb2a9095d917a4b85343d0d7c7a5eb660e47d7b828"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/scripts/program.mjs",
+      "bytes": 38978,
+      "sha256": "cf0edf33fbaacf5cbb5baafa460acd0eed4affa4e52ee631d154f54d5bb8a513"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/scripts/program-v2.mjs",
+      "bytes": 39014,
+      "sha256": "0d396347f2d2231dcca1f61ceb952322199242501bb418ae472df2c2897f4a9a"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/current-context.sql",
+      "bytes": 7654,
+      "sha256": "cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/source-bindings.json",
+      "bytes": 6116,
+      "sha256": "28532161f21f685859c33789c60996e536bc5181bdf2441bbd62ae7130666c36"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/source-bindings-v2.json",
+      "bytes": 7681,
+      "sha256": "686ef69207ede6caf97c3d3250b49fa16f21809a811782bfc88a0be0daa75016"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/first-run.stdout",
+      "bytes": 418,
+      "sha256": "d0c6bb437f43c388bf9ed290f0a6b80362cf3516972d95f0a23a6a6217b4fa98"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/first-run.stderr",
+      "bytes": 1428,
+      "sha256": "d7e746ce75d5607825dde661e4853533dd337c48a984dc516c6cf2e4fe372803"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/results.json",
+      "bytes": 2460,
+      "sha256": "73f1f7374fe26d48bd2fe29515118f5088ab05eb7e368021a21e941aefc3d2e3"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/report.md",
+      "bytes": 6276,
+      "sha256": "c0d4b8df731972c9be3a5aa70f80e1d011b33ca448571e2a6896c12a7bb55414"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/second-run.stdout",
+      "bytes": 2118,
+      "sha256": "9adb59db77f0a5b7d6d9cf275cff3a9b8568a77d420e89c74ccd0f1c17e335d3"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/second-run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/results-v2.json",
+      "bytes": 3643,
+      "sha256": "df7dc3ce6ac42a2bdc77786c9b227c60c54d4b8a4badc772204f44d448b06ed5"
+    },
+    {
+      "path": "/tmp/ediel-c03-current-finite-20261013-358d1615/report-v2.md",
+      "bytes": 13271,
+      "sha256": "ec88edf1e205fd440cff20ea16ee275d403e2b764177e1fad6b45a6447cef7ee"
+    },
+    {
+      "path": "/tmp/ediel-helper-20261013-z03c-finite-final-peer-a.md",
+      "bytes": 8341,
+      "sha256": "87e4bbcae05e37ebb1acddf9efbb86b7ba82f5eb84b196037d22a54861ef8d00"
+    },
+    {
+      "path": "/tmp/ediel-helper-20261013-z03c-finite-final-peer-b.md",
+      "bytes": 7154,
+      "sha256": "85c6462b3415e031106f875ff220f6d54ee862ef7ea8afbb5860e37bb369de34"
+    }
+  ]
+}
+
+`````
+
+Original /tmp/ediel-helper-20261013-z03c-window-reuse-support.md, 8899 bytes, SHA256 `f2a041ae54879933dc2486ad41d859001f18b284f674fc0fddfde1d000d33276`; preserved verbatim:
+
+`````markdown
+# Z03C calendar-window support — reuse existing executable controls first
+
+Conclusion: existing SQL source already contains meaningful L D-4/D-3 and LK day0/expired controls. They call the real cancellation owner context through a real SQL public source function, not a mocked deadline DTO. Therefore absence of those dates from the genuine native31 cases must not become a requirement for four new native runs, time advancement or clock override. Remaining work is exact current-source/execution applicability and, if truly absent, a narrow integrated current guard assertion.
+
+Reviewer `/root/sc031_outbound_peer_b` read only existing public repo source/metadata; sole write is this report. No new tests/SQL/backend/native/GEN/CI execution, original/log/artifact/archive collection, source/ref/docs/claims/publication actions. No whole31 re-audit or previously adjudicated window race re-opened.
+
+## Exact sources
+
+Supplied actual main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / tree `e3b6c11677a2b871a128504f1616def7d22dba1e`; public795 `e49a23d4897f1cb4063a57bf3b1c810321723c3a` / tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`. Independently verified six selected source/test files listed below and actual effective cancellation context/public source/current-source function bodies are identical between these exact targets. No fresh remote/current-CI claim inferred.
+
+Frozen AT-Z03C's timely source cancellation is separate from protocol/profile and reply/restoration effects. This report qualifies only the window-related existing controls and their limits; it does not approve the card.
+
+## Existing meaningful executable calendar assertions
+
+`scripts/ediel-switch-cancellation-sql-regression.mjs` SHA256 `ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e`:
+
+- Lines24–31 load actual tokenizer/original-wire/cancellation source-owner migrations into a finite PGlite component, with explicit reduced tables and named actor/legal/original/provider/receipt ports.
+- Line40 `read()` executes actual `SELECT ediel_switch_cancellation_source_v1(...)`; the loaded public wrapper calls actual `gridex_switch_cancellations.context_v1(...)`.
+- Lines51–57 `originalScope(reason,offset)` change only declared fixture original bytes/hash, own switch start date and original receipt object/hash; genuine production originals are not touched.
+- Line58 selects actual Z22 original/start offset+4 and asserts source status authorized.
+- Line59 selects Z22/+3 and asserts exact missing `source_z03_cancellation_calendar_window`.
+- Line60 selects Z23/0 and asserts authorized.
+- Line61 selects Z23/-1 and asserts the same exact calendar refusal.
+
+These are behavior checks of the actual date/source guard using independently selected fixture reason/date values. They do not merely assign `deadline` or a precomputed false result. The test dates use existing DB `(now()+interval '1 hour')::date`; context uses `(clock_timestamp()+interval '1 hour')::date`. No caller clock/date override or native backend waiting occurs. I do not infer timezone conformance from that expression: session/environment timezone and authentic clock applicability remain explicit qualifications, not an assumption that every cast is a fixed-zone legal day.
+
+## Limits of reuse on current effective source
+
+Actual d798/e49 context body SHA256 `600e83702ed4695229aeaa133b258867d9736ac1939b8196e7d2e56ca145aa4e`. It differs from the script's initial20260930214933 context predecessor by the added call `gridex_switch_cancellations.prelock_customer_source_v1(c,sw)` before source discovery. Removing that one added statement yields the unchanged predecessor body; calendar clause/start-day/original-Z22/Z23 predicate are exact. The four boundary probes execute before later20261007132500 original-method augmentation is loaded. Thus they are reusable evidence for the actual unchanged calendar/source-context mechanics with their declared ports, not an execution of the complete current customer/method/transport authority chain.
+
+Current public source wrapper adds original-method qualification; current source/send guard adds fresh customer/method binding. The selected component also tests separate private origin/current refusal, but does not combine every calendar offset with all current wrappers. Do not silently promote historical source-window execution into current integrated owner/send execution.
+
+Current transport production-contract wrapper first obtains the underlying mutation result and calls `ediel_require_switch_cancellation_source_current_v1` only for prepare/enter with proceed=true. The script's `fixtureProceed:false` accepted replay controls at83/167 return before that branch. They prove replay preservation, not expired current-send rejection. Direct current guard tests cover revoked/cancelled/source/method scenarios elsewhere, but not those four calendar offsets in the inspected script.
+
+## Other existing suites: exact layer distinctions
+
+- `__tests__/ediel-at-z03c-supplier-queue.test.ts` SHA256 `de08d89b9798c9eebb879da9fc16e166960112c09a3dd142bbf8cf0c54c34cb0`: real gateway/intent/source calls with mocked RPC/finalizer/queue and an explicit deadline DTO. It tests held/revoked/binding/replay/zero-queue behavior; no actual SQL date calculation at D4/D3/day0/expired.
+- `__tests__/ediel-at-z03c-z05c-supplier-profile.test.ts` SHA256 `011cca4fd827b8ae2b4a414d93f363ce66b7ee484dc18ad5438df5ca22dce7cc`: real syntax/profile/R/D/lifecycle projection with declared supply/permission RPC results. Valuable profile/refusal/restoration-routing proof; not the calendar/source SQL guard.
+- `__tests__/ediel-switch-cancellation-source.test.ts` SHA256 `fe5d084103829cdfaccf1d5954d38d8f80848debed21fb1fad33398ee12f2a51`: actual source/builder/physical original/masterdata/217 projection against declared source ports. Its L/LK cases and exact fixed-offset rendered dates do not execute owner calendar calculation.
+- `__tests__/ediel-switch-cancellation-customer-source.test.ts` SHA256 `b3461c0e398223eb6672b88adb9c5ad6427092a259384b5e266bc26c594ab4d0`: meaningful current customer preparation/binding/revocation/zero-finalization/queue behavior via declared native RPC ports, not four actual SQL window offsets.
+- `scripts/ediel-switch-cancellation-customer-masterdata-sql-regression.mjs` SHA256 `9cf63f4b02e765fa64b283092632439121a546e969e511d8175c02611a626160`: actual checked customer-preparation forward/current context/method/customer guards with declared external actor/history/legal/provider/retention/method ports and historical snapshot. It uses a day+10 normal original, not four boundary probes. It supplies newer context/prelock mechanics separately, without itself filling current integrated date offsets.
+
+All six source hashes above are exact publice49 bytes and equal to actuald798. Source existence is distinguished from qualified execution attribution.
+
+## Execution attribution and smallest next action
+
+Known public ROOT metadata6150586895 retains qualified genuine native31 (28 C05 +3 C03) at its own actual owner cases and notes boundary/whole-effect limits. It does not identify a qualified original execution hash/result/source for the existing four-offset finite SQL script. No original/archive was opened. Therefore this report marks execution qualification of those exact finite controls **UNKNOWN**, despite meaningful executable source assertions being present. UNKNOWN is not proof that they were never executed or that a new run is necessary.
+
+First reuse step: existing owner maps any already qualified finite SQL result/source receipt for the script's exact bytes and unchanged calendar/context body; preserve declared ports and the current prelock/method/customer/source applicability boundary. That can satisfy the literal date predicate without new native all-boundary evidence. Separately map existing current prepare/enter guard controls; the proceed=false replay must not stand in for proceed=true current refusal.
+
+Only if that explicit integrated current guard assertion remains absent, one bounded proposal is warranted: extend/reuse the existing finite cancellation SQL framework to call exact current source/context and proceed=true transport/current-source boundary for a parametrized L+4/+3 and LK0/-1 original, retaining all already declared customer/method/source ports and checking refusal plus zero queue/effect and unchanged originals. Do not author it or run it without the current owner/custody/producer authorization. No native/time-advance/clock-override/LIVE/all-negative gate is implied. If qualified existing controls already establish the same join, reuse them instead.
+
+No product defect or mandatory source correction was established. The practical gap is qualified original execution/current-boundary linkage; source-date controls already exist. No whole-card/CI/native/merge/ledger credit follows from this read-only support.
+
+`````
+
+Original /tmp/ediel-helper-20261013-z03c-node22-qualified.md, 2245 bytes, SHA256 `bef7b789c91a0fe4bab05088d9301df34d3f23c604a49d9f43bee2bc1ac3dcd8`; preserved verbatim:
+
+`````markdown
+# Z03C Node22 finite qualification — original90 PASS, current4 NOT_COMPLETED
+
+Exact public head `e49a23d4897f1cb4063a57bf3b1c810321723c3a` / tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`, actual base `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / tree `e3b6c11677a2b871a128504f1616def7d22dba1e`.
+
+One program execution, official Node22.23.3/SHAfde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48, readonly PGlite0.3.14. Unchanged existing SQL script completed90 PASS probes under its original declared mechanical ports. Its old four calendar controls preceded method migration and are not relabelled as current method/customer/send proof. The exact current context was loaded and its prosrc/attributes read back, but the additive calendar sampler failed before any of the four controls completed. Process exit1; network/child attempt count0; no rerun.
+
+Concrete temporary-author setup error: PostgreSQL42601 near unquoted reserved alias `day` in the added actual-clock SELECT. No public source/native defect is inferred. Correcting a sampler alias and any new execution needs a separate bounded continuation of this temporary proof; the first original inputs/outputs remain frozen. Current4 and whole C03/native/backend/GEN/CI are NOT_QUALIFIED. No genuine original/admission, clock override, actual provider entry, RLS or complete customer graph proof. ROOT and execution-proof author cannot serve as its independent final evidence reviewers.
+
+Complete pre-execution design, exact10 dependency bindings, layout, first output/exit/error and limits: `/tmp/ediel-c03-current-finite-20261013-358d1615/report.md`. Raw results: same directory `results.json`; first outputs `first-run.stdout` and `first-run.stderr`. Physical augmented program is `scripts/program.mjs`, root `program.mjs` is its internal symlink; original copy `scripts/original-public.mjs` remains byte-exact. No source or raw result edit after this first execution.
+
+Frozen bindings/report hashes:
+
+- Detailed report SHA256 `c0d4b8df731972c9be3a5aa70f80e1d011b33ca448571e2a6896c12a7bb55414`
+- Results SHA256 `73f1f7374fe26d48bd2fe29515118f5088ab05eb7e368021a21e941aefc3d2e3`
+- Source bindings SHA256 `28532161f21f685859c33789c60996e536bc5181bdf2441bbd62ae7130666c36`
+
+`````
+
+Original /tmp/ediel-helper-20261013-z03c-node22-qualified-v2.md, 2758 bytes, SHA256 `9755a17ba26240ed6f1aaa9a52aea8de11ee3d5d74056673d749f06929ae995b`; preserved verbatim:
+
+`````markdown
+# Z03C Node22 finite qualification v2 — old90 PASS / new current4 PASS
+
+Exact public head `e49a23d4897f1cb4063a57bf3b1c810321723c3a`, tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`, actual base `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`.
+
+Authorized fixed-cause attempt2 completed once at17:42:55.447Z–17:42:58.011Z on2026-10-13, official Node22.23.3/binarySHAfde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48 and exact readonly PGlite0.3.14. Exit0, stderr0bytes, network/worker/child attempts0. First failure remains immutable: old90 PASS, new0 completed, exit1 due temporary sampler's unquoted reserved alias day. Version2 fixes only that new-block alias and three getters; original body/guards/assertions/model/dependencies/current context unchanged.
+
+The90 original SQL probes passed again to initialize the same augmented program; this is not new180 credit or a Vitest count. Original four calendar assertions remain pre-method/literal-source observations. Four NEW current-context controls passed: L4 authorized, L3 held with exactly source_z03_cancellation_calendar_window, LK0 authorized, LK-1 held with that exact missing cause. Actual DB fixed+1 date was20261013; mechanical original starts were20261017/16/13/12. Actual method decoder returnedZ03. Exact public current context prosrc/attrs were read back; each prelock trace matched company1/switch106 once.
+
+Limits: explicit mechanical sent-source/legal/contract/permission/original/preimage ports, plus a tuple-validating prelock port with no real lock/authority. No clock override. Current context does not itself enforce217; the real method decoder/public wrapper is separate. No genuine source/admission/legal/customer approval, whole customer/RLS, provider prepare/enter proceed=true, lock-wait/DST normative qualification, native/backend/GEN/currentCI or wholeC03 proof. All previous timelysentlateACK/historicalreplay limits remain. ROOT and proof author cannot serve as its two fresh independent final evidence reviewers.
+
+Detailed frozen proof/report and first-attempt preservation manifest: `/tmp/ediel-c03-current-finite-20261013-358d1615/report-v2.md`; raw result `results-v2.json`; stdout `second-run.stdout`; empty stderr `second-run.stderr`; bindings `source-bindings-v2.json`. Physical program is `scripts/program-v2.mjs` with root symlink `program-v2.mjs`. No repository/ref/source/shared-doc/claim/native/backend/GEN/CI/publication changes.
+
+Detailed report SHA256 `ec88edf1e205fd440cff20ea16ee275d403e2b764177e1fad6b45a6447cef7ee`
+
+Raw result SHA256 `df7dc3ce6ac42a2bdc77786c9b227c60c54d4b8a4badc772204f44d448b06ed5`
+
+Source bindings SHA256 `686ef69207ede6caf97c3d3250b49fa16f21809a811782bfc88a0be0daa75016`
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/controller.mjs, 3039 bytes, SHA256 `a59c5a76a293539c3cb4a1273a73bb3f8618cce26d23220f7ab0b1648622d963`; preserved verbatim:
+
+`````javascript
+import{readFileSync,writeFileSync,openSync,closeSync}from'node:fs';
+import{createHash}from'node:crypto';import assert from'node:assert/strict';import{fileURLToPath}from'node:url';import{dirname,resolve}from'node:path';
+const root=dirname(fileURLToPath(import.meta.url)),resultPath=resolve(root,'results.json');
+closeSync(openSync(resultPath,'wx'));
+const hash=b=>createHash('sha256').update(b).digest('hex'),bindings=JSON.parse(readFileSync(resolve(root,'source-bindings.json'),'utf8'));
+const result={version:1,startedAt:new Date().toISOString(),source:bindings.head,tree:bindings.tree,base:bindings.base,runtime:{node:process.version,nodeBinarySha256:hash(readFileSync(process.execPath)),pgliteVersion:JSON.parse(readFileSync('/workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/package.json','utf8')).version},status:'RUNNING',oldChecks:null,oldStatus:'NOT_COMPLETED',newStatus:'NOT_COMPLETED',newControls:[]};
+writeFileSync(resultPath,JSON.stringify(result,null,2)+'\n');globalThis[Symbol.for('ediel.c03.finite')]=result;
+let boundary;
+try{
+ assert.equal(process.version,bindings.runtime.expectedNodeVersion);assert.equal(result.runtime.nodeBinarySha256,bindings.runtime.expectedNodeSha256);assert.equal(result.runtime.pgliteVersion,'0.3.14');
+ for(const item of bindings.literalDependencies)assert.equal(hash(readFileSync(resolve(root,item.repositoryPath))),item.sha256);
+ assert.equal(hash(readFileSync(resolve(root,'scripts/original-public.mjs'))),bindings.original.sha256);
+ assert.equal(hash(readFileSync(resolve(root,'current-context.sql'))),bindings.currentContext.sha256);
+ for(const[path,expected]of Object.entries(bindings.temporaryFiles))assert.equal(hash(readFileSync(resolve(root,path))),expected);
+ process.env.EDIEL_PGLITE_MODULE=bindings.runtime.pgliteModule;process.env.EDIEL_SQL_REPOSITORY=root;
+ boundary=await import('./runtime-boundary.mjs');
+ console.log('FINITE_RUNTIME',JSON.stringify(result.runtime));
+ await import('./program.mjs');
+ assert.equal(result.oldStatus,'PASS');assert.equal(result.newStatus,'PASS');assert.equal(result.newControls.length,4);assert.deepEqual(boundary.attempts,[]);
+ result.status='PASS';result.exitCode=0;
+}catch(error){result.status='FAIL';result.exitCode=1;result.error={name:error.name,message:error.message,stack:error.stack};console.error(error);process.exitCode=1;}
+finally{result.boundaryAttempts=boundary?.attempts??[];result.completedAt=new Date().toISOString();result.bindingsSha256=hash(readFileSync(resolve(root,'source-bindings.json')));result.files={};for(const path of ['controller.mjs','runtime-boundary.mjs','program.mjs','scripts/original-public.mjs','current-context.sql'])result.files[path]=hash(readFileSync(resolve(root,path)));writeFileSync(resultPath,JSON.stringify(result,null,2)+'\n');console.log('FINITE_RESULT',JSON.stringify({status:result.status,oldChecks:result.oldChecks,oldStatus:result.oldStatus,newCount:result.newControls.length,newStatus:result.newStatus,boundaryAttempts:result.boundaryAttempts.length,exitCode:result.exitCode}));}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/controller-v2.mjs, 3057 bytes, SHA256 `6479205b97ee2d13872734c92fa28f18114e6259c33cac08d0337d6041a54b2d`; preserved verbatim:
+
+`````javascript
+import{readFileSync,writeFileSync,openSync,closeSync}from'node:fs';
+import{createHash}from'node:crypto';import assert from'node:assert/strict';import{fileURLToPath}from'node:url';import{dirname,resolve}from'node:path';
+const root=dirname(fileURLToPath(import.meta.url)),resultPath=resolve(root,'results-v2.json');
+closeSync(openSync(resultPath,'wx'));
+const hash=b=>createHash('sha256').update(b).digest('hex'),bindings=JSON.parse(readFileSync(resolve(root,'source-bindings-v2.json'),'utf8'));
+const result={version:1,startedAt:new Date().toISOString(),source:bindings.head,tree:bindings.tree,base:bindings.base,runtime:{node:process.version,nodeBinarySha256:hash(readFileSync(process.execPath)),pgliteVersion:JSON.parse(readFileSync('/workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/package.json','utf8')).version},status:'RUNNING',oldChecks:null,oldStatus:'NOT_COMPLETED',newStatus:'NOT_COMPLETED',newControls:[]};
+writeFileSync(resultPath,JSON.stringify(result,null,2)+'\n');globalThis[Symbol.for('ediel.c03.finite')]=result;
+let boundary;
+try{
+ assert.equal(process.version,bindings.runtime.expectedNodeVersion);assert.equal(result.runtime.nodeBinarySha256,bindings.runtime.expectedNodeSha256);assert.equal(result.runtime.pgliteVersion,'0.3.14');
+ for(const item of bindings.literalDependencies)assert.equal(hash(readFileSync(resolve(root,item.repositoryPath))),item.sha256);
+ assert.equal(hash(readFileSync(resolve(root,'scripts/original-public.mjs'))),bindings.original.sha256);
+ assert.equal(hash(readFileSync(resolve(root,'current-context.sql'))),bindings.currentContext.sha256);
+ for(const[path,expected]of Object.entries(bindings.temporaryFiles))assert.equal(hash(readFileSync(resolve(root,path))),expected);
+ process.env.EDIEL_PGLITE_MODULE=bindings.runtime.pgliteModule;process.env.EDIEL_SQL_REPOSITORY=root;
+ boundary=await import('./runtime-boundary.mjs');
+ console.log('FINITE_RUNTIME',JSON.stringify(result.runtime));
+ await import('./program-v2.mjs');
+ assert.equal(result.oldStatus,'PASS');assert.equal(result.newStatus,'PASS');assert.equal(result.newControls.length,4);assert.deepEqual(boundary.attempts,[]);
+ result.status='PASS';result.exitCode=0;
+}catch(error){result.status='FAIL';result.exitCode=1;result.error={name:error.name,message:error.message,stack:error.stack};console.error(error);process.exitCode=1;}
+finally{result.boundaryAttempts=boundary?.attempts??[];result.completedAt=new Date().toISOString();result.bindingsSha256=hash(readFileSync(resolve(root,'source-bindings-v2.json')));result.files={};for(const path of ['controller-v2.mjs','runtime-boundary.mjs','program-v2.mjs','scripts/original-public.mjs','current-context.sql'])result.files[path]=hash(readFileSync(resolve(root,path)));writeFileSync(resultPath,JSON.stringify(result,null,2)+'\n');console.log('FINITE_RESULT',JSON.stringify({status:result.status,oldChecks:result.oldChecks,oldStatus:result.oldStatus,newCount:result.newControls.length,newStatus:result.newStatus,boundaryAttempts:result.boundaryAttempts.length,exitCode:result.exitCode}));}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/runtime-boundary.mjs, 1370 bytes, SHA256 `331157dc968ad6069e0d69fb2a9095d917a4b85343d0d7c7a5eb660e47d7b828`; preserved verbatim:
+
+`````javascript
+import{syncBuiltinESMExports,createRequire}from'node:module';
+const require=createRequire(import.meta.url);
+export const attempts=[];
+const deny=label=>function(...args){attempts.push({kind:label});throw Error('FINITE_BOUNDARY_DENIED:'+label)};
+for(const[name,keys]of[
+ ['node:child_process',['spawn','spawnSync','exec','execSync','execFile','execFileSync','fork']],
+ ['node:net',['connect','createConnection','createServer']],['node:tls',['connect','createServer']],
+ ['node:http',['request','get','createServer']],['node:https',['request','get','createServer']],
+ ['node:http2',['connect','createServer','createSecureServer']],['node:dgram',['createSocket']],
+ ['node:dns',['lookup','resolve','resolve4','resolve6','reverse','lookupService']],
+ ['node:worker_threads',['Worker']]]){
+ const obj=require(name);for(const k of keys)if(k in obj)obj[k]=deny(name+'.'+k);
+}
+for(const name of ['node:dns/promises']){const obj=require(name);for(const k of Object.keys(obj))if(typeof obj[k]==='function')obj[k]=deny(name+'.'+k)}
+const net=require('node:net');for(const k of ['connect','listen']){if(k in net.Socket.prototype)net.Socket.prototype[k]=deny('net.Socket.'+k);if(k in net.Server.prototype)net.Server.prototype[k]=deny('net.Server.'+k)}
+for(const k of ['fetch','WebSocket','XMLHttpRequest'])if(k in globalThis)globalThis[k]=deny('global.'+k);
+syncBuiltinESMExports();
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/scripts/program.mjs, 38978 bytes, SHA256 `cf0edf33fbaacf5cbb5baafa460acd0eed4affa4e52ee631d154f54d5bb8a513`; preserved verbatim:
+
+`````javascript
+// Actual cancellation owner SQL, with named normal-original/legal/receipt ports
+// represented by mechanical fixtures. No authentic or native approval evidence.
+import{readFileSync}from'node:fs';import{pathToFileURL}from'node:url';import{resolve}from'node:path';import assert from'node:assert/strict'
+if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required')
+const{PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href),db=new PGlite(),id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
+const quote=s=>"'"+s.replaceAll("'","''")+"'"
+const migration=n=>readFileSync(resolve(process.env.EDIEL_SQL_REPOSITORY||new URL('..',import.meta.url).pathname,'supabase/migrations',n),'utf8');let checks=0
+try{
+ await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE TABLE companies(id uuid PRIMARY KEY);CREATE TABLE user_profiles(id uuid PRIMARY KEY,user_status text);CREATE TABLE company_memberships(company_id uuid,user_id uuid,status text,is_active bool,accepted_at timestamptz);CREATE FUNCTION gridex_actor_has_company_permission(uuid,uuid,text) RETURNS bool LANGUAGE sql AS 'SELECT $3=''communication.write''';
+ CREATE TABLE supplier_switch_requests(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,metering_point_id uuid,customer_contract_id uuid,contract_id uuid,outbound_z03_message_id uuid,rff_li_reference text,requested_start_date date,lifecycle_blocked bool,status text,updated_by uuid,updated_at timestamptz);
+ CREATE TABLE customer_contracts(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,metering_point_id uuid,status text);CREATE TABLE customer_sites(id uuid PRIMARY KEY,company_id uuid);CREATE TABLE metering_points(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,site_id uuid,ediel_metering_point_id text,meter_point_id text,grid_area_code text,grid_owner_ediel_id text);
+ CREATE TABLE ediel_message_intents(id uuid PRIMARY KEY,company_id uuid,environment text,direction text,message_family text,message_code text,business_process text,operation_id uuid,customer_id uuid,metering_point_id text,grid_area_code text,validation_status text,transaction_reference text,interchange_reference text,sender_ediel_id text,receiver_ediel_id text,sender_subaddress text,receiver_subaddress text,communication_route_id uuid,route_profile_id uuid,application_reference text);
+ CREATE TABLE outbound_requests(id uuid PRIMARY KEY,company_id uuid,payload jsonb,source_type text,source_id uuid,request_type text,operation_id uuid,customer_id uuid,metering_point_id uuid,site_id uuid);
+ CREATE TABLE ediel_messages(id uuid PRIMARY KEY,company_id uuid,environment text,direction text,message_standard text,message_family text,message_code text,status text,raw_payload text,immutable_rendered_at timestamptz,immutable_payload_hash text,intent_id uuid,outbound_request_id uuid,source_operation_id text,original_message_id uuid,switch_request_id uuid,customer_id uuid,site_id uuid,metering_point_id uuid,interchange_reference text,transaction_reference text,application_reference text,sender_ediel_id text,receiver_ediel_id text,sender_sub_address text,receiver_sub_address text,communication_route_id uuid,route_profile_id uuid);
+ CREATE SCHEMA gridex_received_sources;CREATE TABLE gridex_received_sources.switch_originals(message_id uuid PRIMARY KEY,company_id uuid,switch_id uuid,intent_id uuid,outbound_request_id uuid,payload_hash text,contract_id uuid,contract_hash text,original_object jsonb,previous_switch jsonb,resulting_switch jsonb,actor_user_id uuid);
+ CREATE FUNCTION gridex_received_sources.sent_source_is_current_v1(m public.ediel_messages) RETURNS bool LANGUAGE sql AS 'SELECT m.status=''sent''';CREATE FUNCTION gridex_received_sources.production_contract_hash_v1(public.customer_contracts) RETURNS text LANGUAGE sql AS 'SELECT ''contract-fixture''';
+ CREATE FUNCTION gridex_received_sources.permission_date_v1(t text) RETURNS date LANGUAGE sql AS $$SELECT to_date(left(t,8),'YYYYMMDD')$$;CREATE FUNCTION gridex_received_sources.permission_time_v1(t text) RETURNS timestamptz LANGUAGE sql AS $$SELECT to_timestamp(t,'YYYYMMDDHH24MI')-interval '1 hour'$$;
+ CREATE SCHEMA gridex_ediel_inbound_context;CREATE FUNCTION gridex_ediel_inbound_context.require_v1(uuid,uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT '{"legalActorId":"source-supplier","legalEdielId":"12345","actorRole":"electricity_supplier"}'::jsonb$$;
+ CREATE FUNCTION gridex_ediel_inbound_context.derive(public.ediel_messages,timestamptz) RETURNS jsonb LANGUAGE sql AS $$SELECT '{"legalActorId":"source-supplier","legalEdielId":"12345","actorRole":"electricity_supplier"}'::jsonb$$;
+ CREATE SCHEMA gridex_negative_fixtures;CREATE TABLE gridex_negative_fixtures.positive_consumptions(message_id uuid,company_id uuid);CREATE TABLE gridex_negative_fixtures.negative_prepared_consumptions(message_id uuid,company_id uuid);CREATE TABLE gridex_negative_fixtures.fixture_basis(message_id uuid,company_id uuid,payload_hash text,q jsonb);
+ CREATE FUNCTION gridex_negative_fixtures.require_positive_message_v1(c uuid,m uuid,expected text) RETURNS jsonb LANGUAGE plpgsql AS $$DECLARE q jsonb;BEGIN SELECT b.q INTO q FROM gridex_negative_fixtures.fixture_basis b JOIN public.ediel_messages source ON source.id=b.message_id AND source.company_id=b.company_id WHERE b.message_id=m AND b.company_id=c AND b.payload_hash=encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex') AND source.message_code=expected;IF q IS NULL THEN RAISE EXCEPTION 'fixture_original_source_required';END IF;RETURN q;END$$;
+ CREATE FUNCTION gridex_negative_fixtures.require_negative_message_v1(uuid,uuid,text) RETURNS jsonb LANGUAGE sql AS 'SELECT gridex_negative_fixtures.require_positive_message_v1($1,$2,$3)';
+ CREATE SCHEMA gridex_utilts_binding;CREATE SCHEMA gridex_ediel_transport;CREATE FUNCTION gridex_ediel_transport.mutate_v1(i jsonb) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('proceed',coalesce((i->>'fixtureProceed')::bool,true),'acceptedReceipt',i->'fixtureAcceptedReceipt')$$;`)
+ const tok=migration('20260923135706_ediel_utilts_consumption_binding_v1.sql');await db.exec(tok.slice(tok.indexOf('CREATE FUNCTION gridex_utilts_binding.wire_tokens_v1'),tok.indexOf('REVOKE ALL ON FUNCTION gridex_utilts_binding.wire_tokens_v1')))
+ await db.exec(`CREATE FUNCTION gridex_received_sources.closure_wire_tokens_v2(raw text) RETURNS jsonb LANGUAGE sql AS 'SELECT gridex_utilts_binding.wire_tokens_v1($1)'`)
+ for(const[name,start,end]of[
+ ['20260930161624_ediel_supply_market_source_lifecycle.sql','CREATE FUNCTION gridex_received_sources.supply_wire_v1','REVOKE ALL ON FUNCTION gridex_received_sources.supply_wire_v1'],
+ ['20260930201111_ediel_normal_switch_source_atomic_confirmation.sql','CREATE FUNCTION gridex_received_sources.normal_switch_wire_v1','REVOKE ALL ON FUNCTION gridex_received_sources.normal_switch_wire_v1'],
+ ['20260930213949_ediel_switch_intent_original_source_binding.sql','CREATE FUNCTION gridex_received_sources.switch_origin_wire_v1','REVOKE ALL ON FUNCTION gridex_received_sources.switch_origin_wire_v1']]){const s=migration(name);await db.exec(s.slice(s.indexOf(start),s.indexOf(end)))}
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930214933_ediel_switch_cancellation_source_origination.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930223846_ediel_cancellation_request_environment_scope.sql',import.meta.url),'utf8'));checks++
+ assert.equal((await db.query("SELECT count(*) n FROM information_schema.columns WHERE table_schema='public' AND table_name='outbound_requests' AND column_name='environment'")).rows[0].n,0);checks++
+ const date=(await db.query(`SELECT to_char((now()+interval '1 hour')::date+10,'YYYYMMDD') d`)).rows[0].d
+ const wire=reason=>`UNB+UNOC:3+99111:ZZ+54321:ZZ+260930:1200+SYNTHETIC-C-UNB++23-DDQ-PRODAT'UNH+1+PRODAT:D:96B:UN:E2SE6A'BGM+Z03+SOURCE+9'NAD+FR+12345:160:SVK'NAD+DO+54321:160:SVK'LIN+1++735123456789012345:::9'DTM+92:${date}0000:203'CCI++Z13'CAV+${reason}'RFF+LI:SYNTHETIC-OLD-LI'RFF+Z05:TES'NAD+UD+5566778899:SE1:260++SYNTHETIC CUSTOMER'NAD+IT+735123456789012345::9'UNT+13+1'UNZ+1+SYNTHETIC-C-UNB'`
+ const old=wire('Z22'),cancel=wire('Z24')
+ await db.exec(`INSERT INTO companies VALUES('${id(1)}'),('${id(2)}');INSERT INTO user_profiles VALUES('${id(20)}','active');INSERT INTO company_memberships VALUES('${id(1)}','${id(20)}','active',true,now());INSERT INTO customer_contracts VALUES('${id(4)}','${id(1)}','${id(3)}','${id(5)}','signed');INSERT INTO customer_sites VALUES('${id(7)}','${id(1)}');INSERT INTO metering_points VALUES('${id(5)}','${id(1)}','${id(3)}','${id(7)}','735123456789012345',NULL,'TES','54321');
+ INSERT INTO supplier_switch_requests VALUES('${id(6)}','${id(1)}','${id(3)}','${id(7)}',NULL,'${id(5)}','${id(4)}','${id(4)}','${id(8)}','SYNTHETIC-OLD-LI',to_date('${date}','YYYYMMDD'),false,'submitted',NULL,now());
+ INSERT INTO ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,immutable_rendered_at,immutable_payload_hash) VALUES('${id(8)}','${id(1)}','test','outbound','edifact','PRODAT','Z03','sent',${quote(old)},now(),encode(sha256(convert_to(${quote(old)},'UTF8')),'hex'));
+ INSERT INTO gridex_received_sources.switch_originals VALUES('${id(8)}','${id(1)}','${id(6)}','${id(91)}','${id(92)}',encode(sha256(convert_to(${quote(old)},'UTF8')),'hex'),'${id(4)}','contract-fixture',gridex_received_sources.switch_origin_wire_v1(${quote(old)})#>'{objects,0}','{}',(SELECT to_jsonb(s) FROM supplier_switch_requests s),'${id(20)}');`)
+ const read=async()=>(await db.query('SELECT ediel_switch_cancellation_source_v1($1,$2,$3) r',[id(1),id(6),id(20)])).rows[0].r
+ const b=await read();assert.equal(b.status,'authorized');assert.equal(b.li,'SYNTHETIC-OLD-LI');assert.equal(b.originalSubtype,'L');checks++
+ await db.exec(`UPDATE ediel_messages SET status='unknown' WHERE id='${id(8)}'`);assert.equal((await read()).status,'held');checks++;await db.exec(`UPDATE ediel_messages SET status='sent' WHERE id='${id(8)}'`)
+ await db.exec(`UPDATE metering_points SET ediel_metering_point_id='OTHER'`);assert.equal((await read()).status,'held');checks++;await db.exec(`UPDATE metering_points SET ediel_metering_point_id='735123456789012345'`)
+ await db.exec(`UPDATE supplier_switch_requests SET rff_li_reference='OTHER'`);assert.equal((await read()).status,'held');checks++;await db.exec(`UPDATE supplier_switch_requests SET rff_li_reference='SYNTHETIC-OLD-LI'`)
+ await db.exec(`UPDATE company_memberships SET accepted_at=NULL`);await assert.rejects(read(),/actor_forbidden/);checks++;await db.exec(`UPDATE company_memberships SET accepted_at=now()`)
+ await assert.rejects(db.query('SELECT ediel_switch_cancellation_source_v1($1,$2,$3)',[id(2),id(6),id(20)]),/actor_forbidden/);checks++
+ // Frozen historical source/contract remains the authority for withdrawal;
+ // revoking the current customer contract cannot turn withdrawal into a new
+ // contract-approval requirement.
+ await db.exec(`UPDATE customer_contracts SET status='cancelled'`);assert.equal((await read()).status,'authorized');checks++
+ const originalScope=async(reason,offset)=>{
+  const day=(await db.query("SELECT to_char((now()+interval '1 hour')::date+$1::int,'YYYYMMDD') d",[offset])).rows[0].d
+  const source=old.replace(`DTM+92:${date}0000`,`DTM+92:${day}0000`).replace('CAV+Z22',`CAV+${reason}`)
+  await db.query("UPDATE ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2",[source,id(8)])
+  await db.query("UPDATE supplier_switch_requests SET requested_start_date=to_date($1,'YYYYMMDD')",[day])
+  await db.query("UPDATE gridex_received_sources.switch_originals SET payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex'),original_object=gridex_received_sources.switch_origin_wire_v1($1)#>'{objects,0}',resulting_switch=(SELECT to_jsonb(s) FROM supplier_switch_requests s)",[source])
+ }
+ await originalScope('Z22',4);assert.equal((await read()).status,'authorized');checks++
+ await originalScope('Z22',3);assert.deepEqual((await read()).missing,['source_z03_cancellation_calendar_window']);checks++
+ await originalScope('Z23',0);assert.equal((await read()).status,'authorized');checks++
+ await originalScope('Z23',-1);assert.deepEqual((await read()).missing,['source_z03_cancellation_calendar_window']);checks++
+ await originalScope('Z22',10)
+ await db.exec(`INSERT INTO ediel_message_intents VALUES('${id(12)}','${id(1)}','test','outbound','PRODAT','Z03','supplier_switch','${id(10)}','${id(3)}','735123456789012345','TES','validated','SYNTHETIC-OLD-LI','SYNTHETIC-C-UNB','99111','54321',NULL,NULL,'${id(14)}','${id(15)}','23-DDQ-PRODAT');INSERT INTO outbound_requests VALUES('${id(13)}','${id(1)}','{"environment":"test"}','manual','${id(12)}','supplier_switch','${id(10)}','${id(3)}','${id(5)}','${id(7)}')`)
+ const reserve=async()=>(await db.query('SELECT ediel_reserve_switch_cancellation_v1($1,$2,$3,$4,$5) r',[id(1),id(6),id(20),id(12),id(13)])).rows[0].r
+ assert.equal((await reserve()).status,'reserved');assert.equal((await reserve()).messageId,null);checks++
+ const insert=raw=>db.query(`INSERT INTO ediel_messages VALUES($1,$2,'test','outbound','edifact','PRODAT','Z03','draft',$3,now(),encode(sha256(convert_to($3,'UTF8')),'hex'),$4,$5,$6,$7,$8,$9,$10,$11,'SYNTHETIC-C-UNB','SYNTHETIC-OLD-LI','23-DDQ-PRODAT','99111','54321',NULL,NULL,$12,$13)`,[id(16),id(1),raw,id(12),id(13),id(10),id(8),id(6),id(3),id(7),id(5),id(14),id(15)])
+ await assert.rejects(insert(cancel.replace('SYNTHETIC-OLD-LI','OTHER')),/exact_original_wire_required/);checks++
+ await assert.rejects(insert(cancel.replace('CAV+Z24','CAV+Z23')),/exact_original_wire_required/);checks++
+ await assert.rejects(insert(cancel.replace(':SE1:260',':SE2:260')),/exact_original_wire_required/);checks++
+ await insert(cancel);assert.equal((await reserve()).messageId,id(16));checks++
+ const sw=(await db.query('SELECT * FROM supplier_switch_requests')).rows[0];assert.equal(sw.status,'cancellation_requested');assert.equal(sw.outbound_z03_message_id,id(8));assert.equal(sw.rff_li_reference,'SYNTHETIC-OLD-LI');checks++
+ assert.equal((await db.query('SELECT raw_payload,status FROM ediel_messages WHERE id=$1',[id(8)])).rows[0].status,'sent');assert.equal((await db.query('SELECT raw_payload FROM ediel_messages WHERE id=$1',[id(8)])).rows[0].raw_payload,old);checks++
+ await db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]);checks++
+ // A later authorized sender owns provider permissions; the historical
+ // preparer is not reauthorized by this read-only source qualifier.
+ await db.exec("UPDATE user_profiles SET user_status='inactive'");await assert.rejects(read(),/actor_forbidden/);await db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]);checks++;await db.exec("UPDATE user_profiles SET user_status='active'")
+ for(const [column,value,restore] of [['source_id',id(99),id(12)],['operation_id',id(99),id(10)],['source_type','supplier_switch_request','manual'],['request_type','metering_request','supplier_switch'],['payload',{environment:'production'},{environment:'test'}]]){
+  await db.query(`UPDATE outbound_requests SET ${column}=$1 WHERE id=$2`,[value,id(13)]);await assert.rejects(db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]),/current_intent_request_required/);checks++;await db.query(`UPDATE outbound_requests SET ${column}=$1 WHERE id=$2`,[restore,id(13)])
+ }
+ await assert.rejects(db.exec(`UPDATE ediel_messages SET original_message_id='${id(99)}' WHERE id='${id(16)}'`),/bound_message_immutable/);checks++
+ await assert.rejects(db.exec('DELETE FROM gridex_switch_cancellations.origins'),/origin_immutable/);checks++
+ await db.exec(`UPDATE supplier_switch_requests SET status='cancelled_before_start'`);await assert.rejects(db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]),/current_source_held/);checks++
+ const replay=(await db.query('SELECT gridex_ediel_transport.mutate_v1($1) r',[{action:'enter',companyId:id(1),messageId:id(16),fixtureProceed:false,fixtureAcceptedReceipt:{fixture:'already-established-outcome'}}])).rows[0].r;assert.equal(replay.proceed,false);checks++
+ assert.equal((await db.query("SELECT has_function_privilege('authenticated','public.ediel_switch_cancellation_source_v1(uuid,uuid,uuid)','execute') a")).rows[0].a,false);checks++
+ await db.query("INSERT INTO ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload) VALUES($1,$2,'test','outbound','edifact','PRODAT','Z03','draft',$3)",[id(50),id(1),cancel])
+ const guard=()=>db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(50)])
+ await assert.rejects(guard(),/private_origin_required/);checks++
+ await db.query('INSERT INTO gridex_negative_fixtures.positive_consumptions VALUES($1,$2)',[id(50),id(1)])
+ const q={kind:'source_qualified_positive_fixture',version:1,companyId:id(1),roleCode:'supplier',expectedOutcome:'positive',expectedDiagnosticCodes:[],authorizesBusinessEffect:false}
+ await db.query("INSERT INTO gridex_negative_fixtures.fixture_basis VALUES($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[id(50),id(1),cancel,q]);await guard();checks++
+ assert.equal((await db.query('SELECT count(*) n FROM gridex_switch_cancellations.origins')).rows[0].n,1);assert.equal((await db.query('SELECT status FROM supplier_switch_requests')).rows[0].status,'cancelled_before_start');checks++
+ await db.exec(`UPDATE gridex_negative_fixtures.fixture_basis SET q=jsonb_set(q,'{roleCode}','"grid_owner"')`);await assert.rejects(guard(),/fixture_source_required/);checks++
+ await db.query('UPDATE gridex_negative_fixtures.fixture_basis SET q=$1',[q]);await db.exec('TRUNCATE gridex_negative_fixtures.positive_consumptions');await db.query('INSERT INTO gridex_negative_fixtures.negative_prepared_consumptions VALUES($1,$2)',[id(50),id(1)])
+ await db.query('UPDATE gridex_negative_fixtures.fixture_basis SET q=$1',[{...q,kind:'source_qualified_negative_fixture',expectedOutcome:'negative',expectedDiagnosticCodes:['SOURCE DECLARED NEGATIVE DIAGNOSTIC']}]);await guard();checks++
+ await db.exec(`UPDATE gridex_negative_fixtures.fixture_basis SET q=jsonb_set(q,'{expectedDiagnosticCodes}','[]')`);await assert.rejects(guard(),/fixture_source_required/);checks++
+ await db.query("UPDATE gridex_negative_fixtures.fixture_basis SET q=$1",[{...q,kind:'source_qualified_negative_fixture',expectedOutcome:'negative',expectedDiagnosticCodes:['SOURCE DECLARED NEGATIVE DIAGNOSTIC']}]);await db.exec(`UPDATE ediel_messages SET environment='production' WHERE id='${id(50)}'`);await assert.rejects(guard(),/private_origin_required/);checks++
+ // A real cancellation origin whose current source fails cannot substitute a
+ // registered test pointer for its independent production cancellation basis.
+ await db.query('INSERT INTO gridex_negative_fixtures.positive_consumptions VALUES($1,$2)',[id(16),id(1)]);await assert.rejects(db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]),/current_source_held/);checks++
+ // Continue the existing component fixture; no duplicate cancellation owner.
+ // These independent signed-declaration/original/legal/provider ports are
+ // mechanical. Actual private method decoding and public bind/send consumers
+ // below execute unchanged SQL; this does not certify genuine market inputs.
+ await db.exec("ALTER TABLE public.ediel_messages ALTER COLUMN original_message_id TYPE text USING original_message_id::text");
+ const bindDefinition=(await db.query("SELECT pg_get_functiondef('gridex_switch_cancellations.bind_message_v1()'::regprocedure) d")).rows[0].d;
+ const align=migration('20261004202548_ediel_recovery_text_original_reference_alignment.sql');
+ const oldReference='NEW.original_message_id IS DISTINCT FROM o.original_message_id';
+ assert.ok(align.includes("'"+oldReference+"','"+oldReference+"::text'"));
+ assert.equal(bindDefinition.split(oldReference).length,2);
+ await db.exec(bindDefinition.replace(oldReference,oldReference+'::text'));
+ await db.exec("CREATE OR REPLACE FUNCTION gridex_ediel_inbound_context.require_v1(uuid,uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('legalActorId','"+id(7)+"','legalEdielId','12345','actorRole','electricity_supplier')$$;CREATE OR REPLACE FUNCTION gridex_ediel_inbound_context.derive(public.ediel_messages,timestamptz) RETURNS jsonb LANGUAGE sql AS $$SELECT gridex_ediel_inbound_context.require_v1(NULL,NULL)$$;");
+ const methodSource=migration('20260930234708_ediel_normal_switch_signed_method_binding.sql');
+ await db.exec(methodSource.slice(methodSource.indexOf('CREATE FUNCTION gridex_received_sources.switch_requested_method_v1'),methodSource.indexOf('CREATE FUNCTION gridex_received_sources.switch_contract_request_basis_v1')));
+ await db.exec(migration('20261001142650_ediel_switch_requested_method_line_dtm.sql'));
+ await db.exec("CREATE SCHEMA gridex_metering_method_changes;CREATE TABLE gridex_metering_method_changes.contract_request_declarations(id uuid PRIMARY KEY,company_id uuid,environment text,contract_id uuid,contract_revision text,protected_contract_hash text,agreement_sha256 text,customer_id uuid,site_id uuid,metering_point_id uuid,point_id text,identity_agency text,legal_actor_id uuid,legal_sender_id text,legal_receiver_id text,grid_area_code text,requested_method text,source_reference text,source_version text,source_sha256 text);CREATE TABLE gridex_received_sources.switch_contract_request_bindings(message_id uuid PRIMARY KEY,company_id uuid,declaration_id uuid,requested_method text,source_basis jsonb,payload_hash text);");
+ const qualifiedOriginal=old.replace("'CCI++Z13'","'CCI++Z04'CAV+Z03'CCI++Z13'");
+ const qualifiedCancel=qualifiedOriginal.replace('CAV+Z22','CAV+Z24');
+ await db.query("INSERT INTO public.supplier_switch_requests SELECT (jsonb_populate_record(NULL::public.supplier_switch_requests,to_jsonb(s)||jsonb_build_object('id',$1::uuid,'outbound_z03_message_id',$2::uuid,'status','submitted'))).* FROM public.supplier_switch_requests s WHERE id=$3",[id(106),id(108),id(6)]);
+ await db.query("INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',$1::uuid,'raw_payload',$2::text,'immutable_payload_hash',encode(sha256(convert_to($2,'UTF8')),'hex'),'customer_id',$3::uuid,'site_id',$4::uuid,'metering_point_id',$5::uuid))).* FROM public.ediel_messages m WHERE id=$6",[id(108),qualifiedOriginal,id(3),id(7),id(5),id(8)]);
+ await db.query("INSERT INTO gridex_received_sources.switch_originals SELECT (jsonb_populate_record(NULL::gridex_received_sources.switch_originals,to_jsonb(o)||jsonb_build_object('message_id',$1::uuid,'switch_id',$2::uuid,'payload_hash',encode(sha256(convert_to($3,'UTF8')),'hex'),'original_object',gridex_received_sources.switch_origin_wire_v1($3)#>'{objects,0}','resulting_switch',(SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=$2)))).* FROM gridex_received_sources.switch_originals o WHERE message_id=$4",[id(108),id(106),qualifiedOriginal,id(8)]);
+ const declared={status:'authorized',declarationId:id(140),companyId:id(1),environment:'test',contractId:id(4),contractRevision:'signed-fixture-v1',protectedContractHash:'contract-fixture',agreementSha256:'a'.repeat(64),customerId:id(3),siteId:id(7),meteringPointId:id(5),pointId:'735123456789012345',identityAgency:'9',legalActorId:id(7),legalSenderId:'12345',legalReceiverId:'54321',gridArea:'TES',requestedMethod:'Z03',sourceReference:'mechanical-signed-source-port',sourceVersion:'v1',sourceDigest:'b'.repeat(64)};
+ await db.query("INSERT INTO gridex_metering_method_changes.contract_request_declarations VALUES($1,$2,'test',$3,'signed-fixture-v1','contract-fixture',$4,$5,$6,$7,'735123456789012345','9',$6,'12345','54321','TES','Z03','mechanical-signed-source-port','v1',$8)",[id(140),id(1),id(4),declared.agreementSha256,id(3),id(7),id(5),declared.sourceDigest]);
+ await db.query("INSERT INTO gridex_received_sources.switch_contract_request_bindings VALUES($1,$2,$3,'Z03',$4,encode(sha256(convert_to($5,'UTF8')),'hex'))",[id(108),id(1),id(140),declared,qualifiedOriginal]);
+ const signatures=['public.ediel_switch_cancellation_source_v1(uuid,uuid,uuid)','gridex_switch_cancellations.bind_message_v1()','public.ediel_require_switch_cancellation_source_current_v1(uuid,uuid)'];
+ const metadata=async()=> (await db.query("SELECT p.oid,to_jsonb(p)-'prosrc' metadata FROM pg_proc p WHERE oid=ANY($1::regprocedure[]) ORDER BY p.oid",[signatures])).rows;
+ const metadataBefore=await metadata(),contextBefore=(await db.query("SELECT pg_get_functiondef('gridex_switch_cancellations.context_v1(uuid,uuid,uuid,boolean)'::regprocedure) d")).rows[0].d;
+ const historicalBasis=(await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE message_id=$1',[id(16)])).rows[0].basis;
+ const oldOriginalRow=(await db.query('SELECT to_jsonb(m) r FROM public.ediel_messages m WHERE id=$1',[id(8)])).rows[0].r;
+ await db.exec(migration('20261007132500_ediel_switch_cancellation_original_method.sql'));checks++;
+ assert.deepEqual(await metadata(),metadataBefore);assert.equal((await db.query("SELECT pg_get_functiondef('gridex_switch_cancellations.context_v1(uuid,uuid,uuid,boolean)'::regprocedure) d")).rows[0].d,contextBefore);checks++;
+ const projected=()=>db.query('SELECT public.ediel_switch_cancellation_source_v1($1,$2,$3) r',[id(1),id(106),id(20)]).then(r=>r.rows[0].r);
+ assert.equal((await projected()).requestedMethod,'Z03');checks++;
+ const method=()=>db.query("SELECT gridex_switch_cancellations.original_method_v1($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),'test') method",[id(1),id(108),qualifiedOriginal]).then(r=>r.rows[0].method);
+ assert.equal(await method(),'Z03');checks++;
+ // Mutate only explicitly declared evidence ports inside rollback-isolated
+ // component transactions. Production originals/declarations are immutable.
+ const refusedPort=async(query,values)=>{await db.exec('BEGIN');try{await db.query(query,values);assert.equal(await method(),null);assert.deepEqual((await projected()).missing,['qualified_immutable_original_requested_method']);checks++}finally{await db.exec('ROLLBACK')}};
+ await refusedPort('DELETE FROM gridex_received_sources.switch_contract_request_bindings WHERE message_id=$1',[id(108)]);
+ await refusedPort("UPDATE gridex_received_sources.switch_contract_request_bindings SET requested_method='Z04' WHERE message_id=$1",[id(108)]);
+ await refusedPort("UPDATE gridex_received_sources.switch_contract_request_bindings SET source_basis=jsonb_set(source_basis,'{requestedMethod}','\"Z04\"') WHERE message_id=$1",[id(108)]);
+ await refusedPort("UPDATE gridex_received_sources.switch_contract_request_bindings SET payload_hash=repeat('c',64) WHERE message_id=$1",[id(108)]);
+ await refusedPort('UPDATE gridex_received_sources.switch_contract_request_bindings SET company_id=$1 WHERE message_id=$2',[id(2),id(108)]);
+ for(const column of ['company_id','contract_id','customer_id','site_id','metering_point_id','legal_actor_id'])await refusedPort('UPDATE gridex_metering_method_changes.contract_request_declarations SET '+column+'=$1 WHERE id=$2',[id(99),id(140)]);
+ for(const [column,value] of [['environment','production'],['protected_contract_hash','other'],['point_id','other'],['identity_agency','89'],['legal_sender_id','other'],['legal_receiver_id','other'],['grid_area_code','other'],['contract_revision','other'],['agreement_sha256','c'.repeat(64)],['source_reference','other'],['source_version','other'],['source_sha256','c'.repeat(64)]])await refusedPort('UPDATE gridex_metering_method_changes.contract_request_declarations SET '+column+'=$1 WHERE id=$2',[value,id(140)]);
+ const decoder=raw=>db.query('SELECT gridex_received_sources.switch_requested_method_v1($1) method',[raw]).then(r=>r.rows[0].method);
+ for(const raw of [qualifiedOriginal.replace("CCI++Z04'CAV+Z03'",""),qualifiedOriginal.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+'"),qualifiedOriginal.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+Z03'CCI++Z04'CAV+Z03'"),qualifiedOriginal.replace("UNT+13+1'","LIN+2++OTHER:::9'UNT+13+1'")]){assert.equal(await decoder(raw),null);checks++}
+ await db.query("INSERT INTO public.ediel_message_intents SELECT (jsonb_populate_record(NULL::public.ediel_message_intents,to_jsonb(i)||jsonb_build_object('id',$1::uuid,'operation_id',$2::uuid))).* FROM public.ediel_message_intents i WHERE id=$3",[id(112),id(110),id(12)]);
+ await db.query("INSERT INTO public.outbound_requests SELECT (jsonb_populate_record(NULL::public.outbound_requests,to_jsonb(r)||jsonb_build_object('id',$1::uuid,'source_id',$2::uuid,'operation_id',$3::uuid))).* FROM public.outbound_requests r WHERE id=$4",[id(113),id(112),id(110),id(13)]);
+ await db.query('SELECT public.ediel_reserve_switch_cancellation_v1($1,$2,$3,$4,$5)',[id(1),id(106),id(20),id(112),id(113)]);
+ const reservedBasis=(await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE intent_id=$1',[id(112)])).rows[0].basis;
+ assert.equal(Object.hasOwn(reservedBasis,'requestedMethod'),false);checks++;
+ const snapshot=()=>db.query("SELECT jsonb_build_object('origins',(SELECT jsonb_agg(to_jsonb(o) ORDER BY id) FROM gridex_switch_cancellations.origins o),'switches',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM public.supplier_switch_requests s),'messages',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM public.ediel_messages m),'bindings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY message_id) FROM gridex_received_sources.switch_contract_request_bindings b)) r").then(r=>r.rows[0].r);
+ const insertMethod=raw=>db.query("INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',$1::uuid,'raw_payload',$2::text,'immutable_payload_hash',encode(sha256(convert_to($2,'UTF8')),'hex'),'intent_id',$3::uuid,'outbound_request_id',$4::uuid,'source_operation_id',$5::text,'original_message_id',$6::text,'switch_request_id',$7::uuid))).* FROM public.ediel_messages m WHERE id=$8",[id(116),raw,id(112),id(113),id(110),id(108),id(106),id(16)]);
+ const invalidCancels=[qualifiedCancel.replace("CCI++Z04'CAV+Z03'",""),qualifiedCancel.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+Z03'CCI++Z04'CAV+Z03'"),qualifiedCancel.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+Z04'")];
+ for(const raw of invalidCancels){const before=await snapshot();await assert.rejects(insertMethod(raw),/switch_cancellation_exact_original_method_required/);assert.deepEqual(await snapshot(),before);checks++}
+ await insertMethod(qualifiedCancel);checks++;
+ assert.equal((await db.query('SELECT status FROM public.supplier_switch_requests WHERE id=$1',[id(106)])).rows[0].status,'cancellation_requested');checks++;
+ const fresh=()=>db.query('SELECT public.ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(116)]);
+ await fresh();checks++;
+ // The production trigger forbids modifying a bound message. For this send
+ // consumer fault-injection only, disable that guard transactionally in the
+ // component DB and roll back each injection. Never alter an authentic input.
+ for(const raw of invalidCancels){const before=await snapshot();await db.exec('BEGIN');try{await db.exec('ALTER TABLE public.ediel_messages DISABLE TRIGGER ediel_switch_cancellation_message_immutable');await db.query("UPDATE public.ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2",[raw,id(116)]);await db.exec('ALTER TABLE gridex_switch_cancellations.origins DISABLE TRIGGER cancellation_origin_immutable');await db.query("UPDATE gridex_switch_cancellations.origins SET payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE message_id=$2",[raw,id(116)]);await assert.rejects(fresh(),/switch_cancellation_exact_original_method_required/);checks++}finally{await db.exec('ROLLBACK')}assert.deepEqual(await snapshot(),before)}
+ // Direct private physical guard isolates missing/duplicate/different217,
+ // while fresh public source above retains its earlier immutable-hash guard.
+ for(const raw of invalidCancels){await assert.rejects(db.query("SELECT gridex_switch_cancellations.require_original_method_v1($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),'test',$4)",[id(1),id(108),qualifiedOriginal,raw]),/exact_original_method_required/);checks++}
+ const actualReplay=(await db.query('SELECT gridex_ediel_transport.mutate_v1($1) r',[{action:'enter',companyId:id(1),messageId:id(16),fixtureProceed:false,fixtureAcceptedReceipt:{fixture:'already-established-outcome'}}])).rows[0].r;
+ assert.deepEqual(actualReplay,replay);checks++;
+ assert.deepEqual((await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE message_id=$1',[id(16)])).rows[0].basis,historicalBasis);
+ assert.deepEqual((await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE message_id=$1',[id(116)])).rows[0].basis,reservedBasis);
+ assert.deepEqual((await db.query('SELECT to_jsonb(m) r FROM public.ediel_messages m WHERE id=$1',[id(8)])).rows[0].r,oldOriginalRow);checks++;
+ for(const role of ['anon','authenticated','service_role']){assert.equal((await db.query("SELECT has_function_privilege($1,'gridex_switch_cancellations.original_method_v1(uuid,uuid,text,text)','execute') a",[role])).rows[0].a,false);checks++}
+ console.log(`PASS ${checks} cancellation SQL probes; actual owner with declared existing receipt/legal/original ports, not native/authentic acceptance`)
+
+ // Additive CURRENT-schema component. All preceding controls and assertions
+ // retain their historical literal-migration and mechanical-port attribution.
+ const finite=globalThis[Symbol.for('ediel.c03.finite')];
+ finite.oldChecks=checks;finite.oldStatus='PASS';
+ const contextBytes=readFileSync(new URL('../current-context.sql',import.meta.url),'utf8');
+ const contextProsrc=contextBytes.split('$$')[1];
+ assert.ok(contextProsrc.includes('PERFORM gridex_switch_cancellations.prelock_customer_source_v1(c,sw);'));
+ await db.exec(`CREATE TABLE public.finite_c03_prelock_calls(c uuid,sw uuid,observed_at timestamptz);
+ CREATE FUNCTION gridex_switch_cancellations.prelock_customer_source_v1(c uuid,sw uuid) RETURNS void LANGUAGE plpgsql AS $port$
+ BEGIN IF c IS DISTINCT FROM '${id(1)}'::uuid OR sw IS DISTINCT FROM '${id(106)}'::uuid THEN RAISE EXCEPTION 'finite_declared_prelock_tuple_required';END IF;
+ INSERT INTO public.finite_c03_prelock_calls VALUES(c,sw,clock_timestamp());END $port$;`);
+ // CREATE OR REPLACE is the sole DDL-token adaptation. Source prosrc and all
+ // current schema function attributes remain exact and are read back below.
+ await db.exec(contextBytes.replace(/^CREATE FUNCTION /,'CREATE OR REPLACE FUNCTION '));
+ const currentMetadata=(await db.query("SELECT p.prosrc,p.proconfig,p.prosecdef,p.provolatile FROM pg_proc p WHERE p.oid='gridex_switch_cancellations.context_v1(uuid,uuid,uuid,boolean)'::regprocedure")).rows[0];
+ assert.equal(currentMetadata.prosrc,contextProsrc);
+ assert.deepEqual(currentMetadata.proconfig,['search_path=""','TimeZone=UTC']);
+ assert.equal(currentMetadata.prosecdef,true);assert.equal(currentMetadata.provolatile,'v');
+ finite.currentContext={prosrcExact:true,attributes:currentMetadata.proconfig,prelockPort:'EXACT_TWO_ARGUMENT_MECHANICAL_NO_LOCK_NO_AUTHORITY',methodPath:'actual public projection wrapper; context itself does not enforce217'};
+ const currentCalendar=async(label,reason,offset,expected)=>{
+  const before=await snapshot();await db.exec('BEGIN');
+  try{
+   const clock=(await db.query("SELECT clock_timestamp() observed,to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') day")).rows[0];
+   const day=(await db.query("SELECT to_char(to_date($1,'YYYYMMDD')+$2::int,'YYYYMMDD') d",[clock.day,offset])).rows[0].d;
+   const raw=qualifiedOriginal.replace(`DTM+92:${date}0000`,`DTM+92:${day}0000`).replace('CAV+Z22',`CAV+${reason}`);
+   assert.notEqual(raw,qualifiedOriginal);assert.ok(raw.includes("CCI++Z04'CAV+Z03'"));
+   await db.query("UPDATE public.ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2",[raw,id(108)]);
+   await db.query("UPDATE public.supplier_switch_requests SET requested_start_date=to_date($1,'YYYYMMDD') WHERE id=$2",[day,id(106)]);
+   await db.query("UPDATE gridex_received_sources.switch_originals SET payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex'),original_object=gridex_received_sources.switch_origin_wire_v1($1)#>'{objects,0}',resulting_switch=(SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=$2) WHERE message_id=$3",[raw,id(106),id(108)]);
+   await db.query("UPDATE gridex_received_sources.switch_contract_request_bindings SET payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE message_id=$2",[raw,id(108)]);
+   const realMethod=(await db.query("SELECT gridex_switch_cancellations.original_method_v1($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),'test') method",[id(1),id(108),raw])).rows[0].method;
+   assert.equal(realMethod,'Z03');
+   const actual=await projected();assert.equal(actual.status,expected);
+   if(expected==='held')assert.deepEqual(actual.missing,['source_z03_cancellation_calendar_window']);
+   else{assert.equal(actual.requestedMethod,'Z03');assert.equal(actual.originalSubtype,reason==='Z22'?'L':'LK');assert.equal(actual.originalMessageId,id(108));}
+   const prelockTrace=(await db.query('SELECT c,sw FROM public.finite_c03_prelock_calls ORDER BY observed_at')).rows;assert.deepEqual(prelockTrace,[{c:id(1),sw:id(106)}]);const prelockCount=prelockTrace.length;
+   const currentDay=(await db.query("SELECT to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') d")).rows[0].d;assert.equal(currentDay,clock.day,'Actual DB day changed during finite control; no clock override/rerun');
+   finite.newControls.push({name:label,status:'PASS',reason,offset,actualStatus:actual.status,missing:actual.missing??null,actualDbObservedAt:clock.observed,actualDbFixedPlus1Day:clock.day,sourceStartDay:day,method:realMethod,prelockCount,prelockTrace});
+   console.log('CURRENT_C03_CONTROL',JSON.stringify(finite.newControls.at(-1)));
+  }finally{await db.exec('ROLLBACK')}
+  assert.deepEqual(await snapshot(),before);
+ };
+ await currentCalendar('CURRENT L at D-4','Z22',4,'authorized');
+ await currentCalendar('CURRENT L at D-3','Z22',3,'held');
+ await currentCalendar('CURRENT LK at D0','Z23',0,'authorized');
+ await currentCalendar('CURRENT LK at D-1','Z23',-1,'held');
+ finite.newStatus='PASS';finite.newCount=finite.newControls.length;
+ console.log(`PASS ${finite.newCount} additive current-context/mechanical-boundary controls; old ${checks} probes retain historical source attribution`);
+}finally{await db.close()}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/scripts/program-v2.mjs, 39014 bytes, SHA256 `0d396347f2d2231dcca1f61ceb952322199242501bb418ae472df2c2897f4a9a`; preserved verbatim:
+
+`````javascript
+// Actual cancellation owner SQL, with named normal-original/legal/receipt ports
+// represented by mechanical fixtures. No authentic or native approval evidence.
+import{readFileSync}from'node:fs';import{pathToFileURL}from'node:url';import{resolve}from'node:path';import assert from'node:assert/strict'
+if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required')
+const{PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href),db=new PGlite(),id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
+const quote=s=>"'"+s.replaceAll("'","''")+"'"
+const migration=n=>readFileSync(resolve(process.env.EDIEL_SQL_REPOSITORY||new URL('..',import.meta.url).pathname,'supabase/migrations',n),'utf8');let checks=0
+try{
+ await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role;CREATE TABLE companies(id uuid PRIMARY KEY);CREATE TABLE user_profiles(id uuid PRIMARY KEY,user_status text);CREATE TABLE company_memberships(company_id uuid,user_id uuid,status text,is_active bool,accepted_at timestamptz);CREATE FUNCTION gridex_actor_has_company_permission(uuid,uuid,text) RETURNS bool LANGUAGE sql AS 'SELECT $3=''communication.write''';
+ CREATE TABLE supplier_switch_requests(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,metering_point_id uuid,customer_contract_id uuid,contract_id uuid,outbound_z03_message_id uuid,rff_li_reference text,requested_start_date date,lifecycle_blocked bool,status text,updated_by uuid,updated_at timestamptz);
+ CREATE TABLE customer_contracts(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,metering_point_id uuid,status text);CREATE TABLE customer_sites(id uuid PRIMARY KEY,company_id uuid);CREATE TABLE metering_points(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,site_id uuid,ediel_metering_point_id text,meter_point_id text,grid_area_code text,grid_owner_ediel_id text);
+ CREATE TABLE ediel_message_intents(id uuid PRIMARY KEY,company_id uuid,environment text,direction text,message_family text,message_code text,business_process text,operation_id uuid,customer_id uuid,metering_point_id text,grid_area_code text,validation_status text,transaction_reference text,interchange_reference text,sender_ediel_id text,receiver_ediel_id text,sender_subaddress text,receiver_subaddress text,communication_route_id uuid,route_profile_id uuid,application_reference text);
+ CREATE TABLE outbound_requests(id uuid PRIMARY KEY,company_id uuid,payload jsonb,source_type text,source_id uuid,request_type text,operation_id uuid,customer_id uuid,metering_point_id uuid,site_id uuid);
+ CREATE TABLE ediel_messages(id uuid PRIMARY KEY,company_id uuid,environment text,direction text,message_standard text,message_family text,message_code text,status text,raw_payload text,immutable_rendered_at timestamptz,immutable_payload_hash text,intent_id uuid,outbound_request_id uuid,source_operation_id text,original_message_id uuid,switch_request_id uuid,customer_id uuid,site_id uuid,metering_point_id uuid,interchange_reference text,transaction_reference text,application_reference text,sender_ediel_id text,receiver_ediel_id text,sender_sub_address text,receiver_sub_address text,communication_route_id uuid,route_profile_id uuid);
+ CREATE SCHEMA gridex_received_sources;CREATE TABLE gridex_received_sources.switch_originals(message_id uuid PRIMARY KEY,company_id uuid,switch_id uuid,intent_id uuid,outbound_request_id uuid,payload_hash text,contract_id uuid,contract_hash text,original_object jsonb,previous_switch jsonb,resulting_switch jsonb,actor_user_id uuid);
+ CREATE FUNCTION gridex_received_sources.sent_source_is_current_v1(m public.ediel_messages) RETURNS bool LANGUAGE sql AS 'SELECT m.status=''sent''';CREATE FUNCTION gridex_received_sources.production_contract_hash_v1(public.customer_contracts) RETURNS text LANGUAGE sql AS 'SELECT ''contract-fixture''';
+ CREATE FUNCTION gridex_received_sources.permission_date_v1(t text) RETURNS date LANGUAGE sql AS $$SELECT to_date(left(t,8),'YYYYMMDD')$$;CREATE FUNCTION gridex_received_sources.permission_time_v1(t text) RETURNS timestamptz LANGUAGE sql AS $$SELECT to_timestamp(t,'YYYYMMDDHH24MI')-interval '1 hour'$$;
+ CREATE SCHEMA gridex_ediel_inbound_context;CREATE FUNCTION gridex_ediel_inbound_context.require_v1(uuid,uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT '{"legalActorId":"source-supplier","legalEdielId":"12345","actorRole":"electricity_supplier"}'::jsonb$$;
+ CREATE FUNCTION gridex_ediel_inbound_context.derive(public.ediel_messages,timestamptz) RETURNS jsonb LANGUAGE sql AS $$SELECT '{"legalActorId":"source-supplier","legalEdielId":"12345","actorRole":"electricity_supplier"}'::jsonb$$;
+ CREATE SCHEMA gridex_negative_fixtures;CREATE TABLE gridex_negative_fixtures.positive_consumptions(message_id uuid,company_id uuid);CREATE TABLE gridex_negative_fixtures.negative_prepared_consumptions(message_id uuid,company_id uuid);CREATE TABLE gridex_negative_fixtures.fixture_basis(message_id uuid,company_id uuid,payload_hash text,q jsonb);
+ CREATE FUNCTION gridex_negative_fixtures.require_positive_message_v1(c uuid,m uuid,expected text) RETURNS jsonb LANGUAGE plpgsql AS $$DECLARE q jsonb;BEGIN SELECT b.q INTO q FROM gridex_negative_fixtures.fixture_basis b JOIN public.ediel_messages source ON source.id=b.message_id AND source.company_id=b.company_id WHERE b.message_id=m AND b.company_id=c AND b.payload_hash=encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex') AND source.message_code=expected;IF q IS NULL THEN RAISE EXCEPTION 'fixture_original_source_required';END IF;RETURN q;END$$;
+ CREATE FUNCTION gridex_negative_fixtures.require_negative_message_v1(uuid,uuid,text) RETURNS jsonb LANGUAGE sql AS 'SELECT gridex_negative_fixtures.require_positive_message_v1($1,$2,$3)';
+ CREATE SCHEMA gridex_utilts_binding;CREATE SCHEMA gridex_ediel_transport;CREATE FUNCTION gridex_ediel_transport.mutate_v1(i jsonb) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('proceed',coalesce((i->>'fixtureProceed')::bool,true),'acceptedReceipt',i->'fixtureAcceptedReceipt')$$;`)
+ const tok=migration('20260923135706_ediel_utilts_consumption_binding_v1.sql');await db.exec(tok.slice(tok.indexOf('CREATE FUNCTION gridex_utilts_binding.wire_tokens_v1'),tok.indexOf('REVOKE ALL ON FUNCTION gridex_utilts_binding.wire_tokens_v1')))
+ await db.exec(`CREATE FUNCTION gridex_received_sources.closure_wire_tokens_v2(raw text) RETURNS jsonb LANGUAGE sql AS 'SELECT gridex_utilts_binding.wire_tokens_v1($1)'`)
+ for(const[name,start,end]of[
+ ['20260930161624_ediel_supply_market_source_lifecycle.sql','CREATE FUNCTION gridex_received_sources.supply_wire_v1','REVOKE ALL ON FUNCTION gridex_received_sources.supply_wire_v1'],
+ ['20260930201111_ediel_normal_switch_source_atomic_confirmation.sql','CREATE FUNCTION gridex_received_sources.normal_switch_wire_v1','REVOKE ALL ON FUNCTION gridex_received_sources.normal_switch_wire_v1'],
+ ['20260930213949_ediel_switch_intent_original_source_binding.sql','CREATE FUNCTION gridex_received_sources.switch_origin_wire_v1','REVOKE ALL ON FUNCTION gridex_received_sources.switch_origin_wire_v1']]){const s=migration(name);await db.exec(s.slice(s.indexOf(start),s.indexOf(end)))}
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930214933_ediel_switch_cancellation_source_origination.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930223846_ediel_cancellation_request_environment_scope.sql',import.meta.url),'utf8'));checks++
+ assert.equal((await db.query("SELECT count(*) n FROM information_schema.columns WHERE table_schema='public' AND table_name='outbound_requests' AND column_name='environment'")).rows[0].n,0);checks++
+ const date=(await db.query(`SELECT to_char((now()+interval '1 hour')::date+10,'YYYYMMDD') d`)).rows[0].d
+ const wire=reason=>`UNB+UNOC:3+99111:ZZ+54321:ZZ+260930:1200+SYNTHETIC-C-UNB++23-DDQ-PRODAT'UNH+1+PRODAT:D:96B:UN:E2SE6A'BGM+Z03+SOURCE+9'NAD+FR+12345:160:SVK'NAD+DO+54321:160:SVK'LIN+1++735123456789012345:::9'DTM+92:${date}0000:203'CCI++Z13'CAV+${reason}'RFF+LI:SYNTHETIC-OLD-LI'RFF+Z05:TES'NAD+UD+5566778899:SE1:260++SYNTHETIC CUSTOMER'NAD+IT+735123456789012345::9'UNT+13+1'UNZ+1+SYNTHETIC-C-UNB'`
+ const old=wire('Z22'),cancel=wire('Z24')
+ await db.exec(`INSERT INTO companies VALUES('${id(1)}'),('${id(2)}');INSERT INTO user_profiles VALUES('${id(20)}','active');INSERT INTO company_memberships VALUES('${id(1)}','${id(20)}','active',true,now());INSERT INTO customer_contracts VALUES('${id(4)}','${id(1)}','${id(3)}','${id(5)}','signed');INSERT INTO customer_sites VALUES('${id(7)}','${id(1)}');INSERT INTO metering_points VALUES('${id(5)}','${id(1)}','${id(3)}','${id(7)}','735123456789012345',NULL,'TES','54321');
+ INSERT INTO supplier_switch_requests VALUES('${id(6)}','${id(1)}','${id(3)}','${id(7)}',NULL,'${id(5)}','${id(4)}','${id(4)}','${id(8)}','SYNTHETIC-OLD-LI',to_date('${date}','YYYYMMDD'),false,'submitted',NULL,now());
+ INSERT INTO ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,immutable_rendered_at,immutable_payload_hash) VALUES('${id(8)}','${id(1)}','test','outbound','edifact','PRODAT','Z03','sent',${quote(old)},now(),encode(sha256(convert_to(${quote(old)},'UTF8')),'hex'));
+ INSERT INTO gridex_received_sources.switch_originals VALUES('${id(8)}','${id(1)}','${id(6)}','${id(91)}','${id(92)}',encode(sha256(convert_to(${quote(old)},'UTF8')),'hex'),'${id(4)}','contract-fixture',gridex_received_sources.switch_origin_wire_v1(${quote(old)})#>'{objects,0}','{}',(SELECT to_jsonb(s) FROM supplier_switch_requests s),'${id(20)}');`)
+ const read=async()=>(await db.query('SELECT ediel_switch_cancellation_source_v1($1,$2,$3) r',[id(1),id(6),id(20)])).rows[0].r
+ const b=await read();assert.equal(b.status,'authorized');assert.equal(b.li,'SYNTHETIC-OLD-LI');assert.equal(b.originalSubtype,'L');checks++
+ await db.exec(`UPDATE ediel_messages SET status='unknown' WHERE id='${id(8)}'`);assert.equal((await read()).status,'held');checks++;await db.exec(`UPDATE ediel_messages SET status='sent' WHERE id='${id(8)}'`)
+ await db.exec(`UPDATE metering_points SET ediel_metering_point_id='OTHER'`);assert.equal((await read()).status,'held');checks++;await db.exec(`UPDATE metering_points SET ediel_metering_point_id='735123456789012345'`)
+ await db.exec(`UPDATE supplier_switch_requests SET rff_li_reference='OTHER'`);assert.equal((await read()).status,'held');checks++;await db.exec(`UPDATE supplier_switch_requests SET rff_li_reference='SYNTHETIC-OLD-LI'`)
+ await db.exec(`UPDATE company_memberships SET accepted_at=NULL`);await assert.rejects(read(),/actor_forbidden/);checks++;await db.exec(`UPDATE company_memberships SET accepted_at=now()`)
+ await assert.rejects(db.query('SELECT ediel_switch_cancellation_source_v1($1,$2,$3)',[id(2),id(6),id(20)]),/actor_forbidden/);checks++
+ // Frozen historical source/contract remains the authority for withdrawal;
+ // revoking the current customer contract cannot turn withdrawal into a new
+ // contract-approval requirement.
+ await db.exec(`UPDATE customer_contracts SET status='cancelled'`);assert.equal((await read()).status,'authorized');checks++
+ const originalScope=async(reason,offset)=>{
+  const day=(await db.query("SELECT to_char((now()+interval '1 hour')::date+$1::int,'YYYYMMDD') d",[offset])).rows[0].d
+  const source=old.replace(`DTM+92:${date}0000`,`DTM+92:${day}0000`).replace('CAV+Z22',`CAV+${reason}`)
+  await db.query("UPDATE ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2",[source,id(8)])
+  await db.query("UPDATE supplier_switch_requests SET requested_start_date=to_date($1,'YYYYMMDD')",[day])
+  await db.query("UPDATE gridex_received_sources.switch_originals SET payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex'),original_object=gridex_received_sources.switch_origin_wire_v1($1)#>'{objects,0}',resulting_switch=(SELECT to_jsonb(s) FROM supplier_switch_requests s)",[source])
+ }
+ await originalScope('Z22',4);assert.equal((await read()).status,'authorized');checks++
+ await originalScope('Z22',3);assert.deepEqual((await read()).missing,['source_z03_cancellation_calendar_window']);checks++
+ await originalScope('Z23',0);assert.equal((await read()).status,'authorized');checks++
+ await originalScope('Z23',-1);assert.deepEqual((await read()).missing,['source_z03_cancellation_calendar_window']);checks++
+ await originalScope('Z22',10)
+ await db.exec(`INSERT INTO ediel_message_intents VALUES('${id(12)}','${id(1)}','test','outbound','PRODAT','Z03','supplier_switch','${id(10)}','${id(3)}','735123456789012345','TES','validated','SYNTHETIC-OLD-LI','SYNTHETIC-C-UNB','99111','54321',NULL,NULL,'${id(14)}','${id(15)}','23-DDQ-PRODAT');INSERT INTO outbound_requests VALUES('${id(13)}','${id(1)}','{"environment":"test"}','manual','${id(12)}','supplier_switch','${id(10)}','${id(3)}','${id(5)}','${id(7)}')`)
+ const reserve=async()=>(await db.query('SELECT ediel_reserve_switch_cancellation_v1($1,$2,$3,$4,$5) r',[id(1),id(6),id(20),id(12),id(13)])).rows[0].r
+ assert.equal((await reserve()).status,'reserved');assert.equal((await reserve()).messageId,null);checks++
+ const insert=raw=>db.query(`INSERT INTO ediel_messages VALUES($1,$2,'test','outbound','edifact','PRODAT','Z03','draft',$3,now(),encode(sha256(convert_to($3,'UTF8')),'hex'),$4,$5,$6,$7,$8,$9,$10,$11,'SYNTHETIC-C-UNB','SYNTHETIC-OLD-LI','23-DDQ-PRODAT','99111','54321',NULL,NULL,$12,$13)`,[id(16),id(1),raw,id(12),id(13),id(10),id(8),id(6),id(3),id(7),id(5),id(14),id(15)])
+ await assert.rejects(insert(cancel.replace('SYNTHETIC-OLD-LI','OTHER')),/exact_original_wire_required/);checks++
+ await assert.rejects(insert(cancel.replace('CAV+Z24','CAV+Z23')),/exact_original_wire_required/);checks++
+ await assert.rejects(insert(cancel.replace(':SE1:260',':SE2:260')),/exact_original_wire_required/);checks++
+ await insert(cancel);assert.equal((await reserve()).messageId,id(16));checks++
+ const sw=(await db.query('SELECT * FROM supplier_switch_requests')).rows[0];assert.equal(sw.status,'cancellation_requested');assert.equal(sw.outbound_z03_message_id,id(8));assert.equal(sw.rff_li_reference,'SYNTHETIC-OLD-LI');checks++
+ assert.equal((await db.query('SELECT raw_payload,status FROM ediel_messages WHERE id=$1',[id(8)])).rows[0].status,'sent');assert.equal((await db.query('SELECT raw_payload FROM ediel_messages WHERE id=$1',[id(8)])).rows[0].raw_payload,old);checks++
+ await db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]);checks++
+ // A later authorized sender owns provider permissions; the historical
+ // preparer is not reauthorized by this read-only source qualifier.
+ await db.exec("UPDATE user_profiles SET user_status='inactive'");await assert.rejects(read(),/actor_forbidden/);await db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]);checks++;await db.exec("UPDATE user_profiles SET user_status='active'")
+ for(const [column,value,restore] of [['source_id',id(99),id(12)],['operation_id',id(99),id(10)],['source_type','supplier_switch_request','manual'],['request_type','metering_request','supplier_switch'],['payload',{environment:'production'},{environment:'test'}]]){
+  await db.query(`UPDATE outbound_requests SET ${column}=$1 WHERE id=$2`,[value,id(13)]);await assert.rejects(db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]),/current_intent_request_required/);checks++;await db.query(`UPDATE outbound_requests SET ${column}=$1 WHERE id=$2`,[restore,id(13)])
+ }
+ await assert.rejects(db.exec(`UPDATE ediel_messages SET original_message_id='${id(99)}' WHERE id='${id(16)}'`),/bound_message_immutable/);checks++
+ await assert.rejects(db.exec('DELETE FROM gridex_switch_cancellations.origins'),/origin_immutable/);checks++
+ await db.exec(`UPDATE supplier_switch_requests SET status='cancelled_before_start'`);await assert.rejects(db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]),/current_source_held/);checks++
+ const replay=(await db.query('SELECT gridex_ediel_transport.mutate_v1($1) r',[{action:'enter',companyId:id(1),messageId:id(16),fixtureProceed:false,fixtureAcceptedReceipt:{fixture:'already-established-outcome'}}])).rows[0].r;assert.equal(replay.proceed,false);checks++
+ assert.equal((await db.query("SELECT has_function_privilege('authenticated','public.ediel_switch_cancellation_source_v1(uuid,uuid,uuid)','execute') a")).rows[0].a,false);checks++
+ await db.query("INSERT INTO ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload) VALUES($1,$2,'test','outbound','edifact','PRODAT','Z03','draft',$3)",[id(50),id(1),cancel])
+ const guard=()=>db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(50)])
+ await assert.rejects(guard(),/private_origin_required/);checks++
+ await db.query('INSERT INTO gridex_negative_fixtures.positive_consumptions VALUES($1,$2)',[id(50),id(1)])
+ const q={kind:'source_qualified_positive_fixture',version:1,companyId:id(1),roleCode:'supplier',expectedOutcome:'positive',expectedDiagnosticCodes:[],authorizesBusinessEffect:false}
+ await db.query("INSERT INTO gridex_negative_fixtures.fixture_basis VALUES($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[id(50),id(1),cancel,q]);await guard();checks++
+ assert.equal((await db.query('SELECT count(*) n FROM gridex_switch_cancellations.origins')).rows[0].n,1);assert.equal((await db.query('SELECT status FROM supplier_switch_requests')).rows[0].status,'cancelled_before_start');checks++
+ await db.exec(`UPDATE gridex_negative_fixtures.fixture_basis SET q=jsonb_set(q,'{roleCode}','"grid_owner"')`);await assert.rejects(guard(),/fixture_source_required/);checks++
+ await db.query('UPDATE gridex_negative_fixtures.fixture_basis SET q=$1',[q]);await db.exec('TRUNCATE gridex_negative_fixtures.positive_consumptions');await db.query('INSERT INTO gridex_negative_fixtures.negative_prepared_consumptions VALUES($1,$2)',[id(50),id(1)])
+ await db.query('UPDATE gridex_negative_fixtures.fixture_basis SET q=$1',[{...q,kind:'source_qualified_negative_fixture',expectedOutcome:'negative',expectedDiagnosticCodes:['SOURCE DECLARED NEGATIVE DIAGNOSTIC']}]);await guard();checks++
+ await db.exec(`UPDATE gridex_negative_fixtures.fixture_basis SET q=jsonb_set(q,'{expectedDiagnosticCodes}','[]')`);await assert.rejects(guard(),/fixture_source_required/);checks++
+ await db.query("UPDATE gridex_negative_fixtures.fixture_basis SET q=$1",[{...q,kind:'source_qualified_negative_fixture',expectedOutcome:'negative',expectedDiagnosticCodes:['SOURCE DECLARED NEGATIVE DIAGNOSTIC']}]);await db.exec(`UPDATE ediel_messages SET environment='production' WHERE id='${id(50)}'`);await assert.rejects(guard(),/private_origin_required/);checks++
+ // A real cancellation origin whose current source fails cannot substitute a
+ // registered test pointer for its independent production cancellation basis.
+ await db.query('INSERT INTO gridex_negative_fixtures.positive_consumptions VALUES($1,$2)',[id(16),id(1)]);await assert.rejects(db.query('SELECT ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(16)]),/current_source_held/);checks++
+ // Continue the existing component fixture; no duplicate cancellation owner.
+ // These independent signed-declaration/original/legal/provider ports are
+ // mechanical. Actual private method decoding and public bind/send consumers
+ // below execute unchanged SQL; this does not certify genuine market inputs.
+ await db.exec("ALTER TABLE public.ediel_messages ALTER COLUMN original_message_id TYPE text USING original_message_id::text");
+ const bindDefinition=(await db.query("SELECT pg_get_functiondef('gridex_switch_cancellations.bind_message_v1()'::regprocedure) d")).rows[0].d;
+ const align=migration('20261004202548_ediel_recovery_text_original_reference_alignment.sql');
+ const oldReference='NEW.original_message_id IS DISTINCT FROM o.original_message_id';
+ assert.ok(align.includes("'"+oldReference+"','"+oldReference+"::text'"));
+ assert.equal(bindDefinition.split(oldReference).length,2);
+ await db.exec(bindDefinition.replace(oldReference,oldReference+'::text'));
+ await db.exec("CREATE OR REPLACE FUNCTION gridex_ediel_inbound_context.require_v1(uuid,uuid) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('legalActorId','"+id(7)+"','legalEdielId','12345','actorRole','electricity_supplier')$$;CREATE OR REPLACE FUNCTION gridex_ediel_inbound_context.derive(public.ediel_messages,timestamptz) RETURNS jsonb LANGUAGE sql AS $$SELECT gridex_ediel_inbound_context.require_v1(NULL,NULL)$$;");
+ const methodSource=migration('20260930234708_ediel_normal_switch_signed_method_binding.sql');
+ await db.exec(methodSource.slice(methodSource.indexOf('CREATE FUNCTION gridex_received_sources.switch_requested_method_v1'),methodSource.indexOf('CREATE FUNCTION gridex_received_sources.switch_contract_request_basis_v1')));
+ await db.exec(migration('20261001142650_ediel_switch_requested_method_line_dtm.sql'));
+ await db.exec("CREATE SCHEMA gridex_metering_method_changes;CREATE TABLE gridex_metering_method_changes.contract_request_declarations(id uuid PRIMARY KEY,company_id uuid,environment text,contract_id uuid,contract_revision text,protected_contract_hash text,agreement_sha256 text,customer_id uuid,site_id uuid,metering_point_id uuid,point_id text,identity_agency text,legal_actor_id uuid,legal_sender_id text,legal_receiver_id text,grid_area_code text,requested_method text,source_reference text,source_version text,source_sha256 text);CREATE TABLE gridex_received_sources.switch_contract_request_bindings(message_id uuid PRIMARY KEY,company_id uuid,declaration_id uuid,requested_method text,source_basis jsonb,payload_hash text);");
+ const qualifiedOriginal=old.replace("'CCI++Z13'","'CCI++Z04'CAV+Z03'CCI++Z13'");
+ const qualifiedCancel=qualifiedOriginal.replace('CAV+Z22','CAV+Z24');
+ await db.query("INSERT INTO public.supplier_switch_requests SELECT (jsonb_populate_record(NULL::public.supplier_switch_requests,to_jsonb(s)||jsonb_build_object('id',$1::uuid,'outbound_z03_message_id',$2::uuid,'status','submitted'))).* FROM public.supplier_switch_requests s WHERE id=$3",[id(106),id(108),id(6)]);
+ await db.query("INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',$1::uuid,'raw_payload',$2::text,'immutable_payload_hash',encode(sha256(convert_to($2,'UTF8')),'hex'),'customer_id',$3::uuid,'site_id',$4::uuid,'metering_point_id',$5::uuid))).* FROM public.ediel_messages m WHERE id=$6",[id(108),qualifiedOriginal,id(3),id(7),id(5),id(8)]);
+ await db.query("INSERT INTO gridex_received_sources.switch_originals SELECT (jsonb_populate_record(NULL::gridex_received_sources.switch_originals,to_jsonb(o)||jsonb_build_object('message_id',$1::uuid,'switch_id',$2::uuid,'payload_hash',encode(sha256(convert_to($3,'UTF8')),'hex'),'original_object',gridex_received_sources.switch_origin_wire_v1($3)#>'{objects,0}','resulting_switch',(SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=$2)))).* FROM gridex_received_sources.switch_originals o WHERE message_id=$4",[id(108),id(106),qualifiedOriginal,id(8)]);
+ const declared={status:'authorized',declarationId:id(140),companyId:id(1),environment:'test',contractId:id(4),contractRevision:'signed-fixture-v1',protectedContractHash:'contract-fixture',agreementSha256:'a'.repeat(64),customerId:id(3),siteId:id(7),meteringPointId:id(5),pointId:'735123456789012345',identityAgency:'9',legalActorId:id(7),legalSenderId:'12345',legalReceiverId:'54321',gridArea:'TES',requestedMethod:'Z03',sourceReference:'mechanical-signed-source-port',sourceVersion:'v1',sourceDigest:'b'.repeat(64)};
+ await db.query("INSERT INTO gridex_metering_method_changes.contract_request_declarations VALUES($1,$2,'test',$3,'signed-fixture-v1','contract-fixture',$4,$5,$6,$7,'735123456789012345','9',$6,'12345','54321','TES','Z03','mechanical-signed-source-port','v1',$8)",[id(140),id(1),id(4),declared.agreementSha256,id(3),id(7),id(5),declared.sourceDigest]);
+ await db.query("INSERT INTO gridex_received_sources.switch_contract_request_bindings VALUES($1,$2,$3,'Z03',$4,encode(sha256(convert_to($5,'UTF8')),'hex'))",[id(108),id(1),id(140),declared,qualifiedOriginal]);
+ const signatures=['public.ediel_switch_cancellation_source_v1(uuid,uuid,uuid)','gridex_switch_cancellations.bind_message_v1()','public.ediel_require_switch_cancellation_source_current_v1(uuid,uuid)'];
+ const metadata=async()=> (await db.query("SELECT p.oid,to_jsonb(p)-'prosrc' metadata FROM pg_proc p WHERE oid=ANY($1::regprocedure[]) ORDER BY p.oid",[signatures])).rows;
+ const metadataBefore=await metadata(),contextBefore=(await db.query("SELECT pg_get_functiondef('gridex_switch_cancellations.context_v1(uuid,uuid,uuid,boolean)'::regprocedure) d")).rows[0].d;
+ const historicalBasis=(await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE message_id=$1',[id(16)])).rows[0].basis;
+ const oldOriginalRow=(await db.query('SELECT to_jsonb(m) r FROM public.ediel_messages m WHERE id=$1',[id(8)])).rows[0].r;
+ await db.exec(migration('20261007132500_ediel_switch_cancellation_original_method.sql'));checks++;
+ assert.deepEqual(await metadata(),metadataBefore);assert.equal((await db.query("SELECT pg_get_functiondef('gridex_switch_cancellations.context_v1(uuid,uuid,uuid,boolean)'::regprocedure) d")).rows[0].d,contextBefore);checks++;
+ const projected=()=>db.query('SELECT public.ediel_switch_cancellation_source_v1($1,$2,$3) r',[id(1),id(106),id(20)]).then(r=>r.rows[0].r);
+ assert.equal((await projected()).requestedMethod,'Z03');checks++;
+ const method=()=>db.query("SELECT gridex_switch_cancellations.original_method_v1($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),'test') method",[id(1),id(108),qualifiedOriginal]).then(r=>r.rows[0].method);
+ assert.equal(await method(),'Z03');checks++;
+ // Mutate only explicitly declared evidence ports inside rollback-isolated
+ // component transactions. Production originals/declarations are immutable.
+ const refusedPort=async(query,values)=>{await db.exec('BEGIN');try{await db.query(query,values);assert.equal(await method(),null);assert.deepEqual((await projected()).missing,['qualified_immutable_original_requested_method']);checks++}finally{await db.exec('ROLLBACK')}};
+ await refusedPort('DELETE FROM gridex_received_sources.switch_contract_request_bindings WHERE message_id=$1',[id(108)]);
+ await refusedPort("UPDATE gridex_received_sources.switch_contract_request_bindings SET requested_method='Z04' WHERE message_id=$1",[id(108)]);
+ await refusedPort("UPDATE gridex_received_sources.switch_contract_request_bindings SET source_basis=jsonb_set(source_basis,'{requestedMethod}','\"Z04\"') WHERE message_id=$1",[id(108)]);
+ await refusedPort("UPDATE gridex_received_sources.switch_contract_request_bindings SET payload_hash=repeat('c',64) WHERE message_id=$1",[id(108)]);
+ await refusedPort('UPDATE gridex_received_sources.switch_contract_request_bindings SET company_id=$1 WHERE message_id=$2',[id(2),id(108)]);
+ for(const column of ['company_id','contract_id','customer_id','site_id','metering_point_id','legal_actor_id'])await refusedPort('UPDATE gridex_metering_method_changes.contract_request_declarations SET '+column+'=$1 WHERE id=$2',[id(99),id(140)]);
+ for(const [column,value] of [['environment','production'],['protected_contract_hash','other'],['point_id','other'],['identity_agency','89'],['legal_sender_id','other'],['legal_receiver_id','other'],['grid_area_code','other'],['contract_revision','other'],['agreement_sha256','c'.repeat(64)],['source_reference','other'],['source_version','other'],['source_sha256','c'.repeat(64)]])await refusedPort('UPDATE gridex_metering_method_changes.contract_request_declarations SET '+column+'=$1 WHERE id=$2',[value,id(140)]);
+ const decoder=raw=>db.query('SELECT gridex_received_sources.switch_requested_method_v1($1) method',[raw]).then(r=>r.rows[0].method);
+ for(const raw of [qualifiedOriginal.replace("CCI++Z04'CAV+Z03'",""),qualifiedOriginal.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+'"),qualifiedOriginal.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+Z03'CCI++Z04'CAV+Z03'"),qualifiedOriginal.replace("UNT+13+1'","LIN+2++OTHER:::9'UNT+13+1'")]){assert.equal(await decoder(raw),null);checks++}
+ await db.query("INSERT INTO public.ediel_message_intents SELECT (jsonb_populate_record(NULL::public.ediel_message_intents,to_jsonb(i)||jsonb_build_object('id',$1::uuid,'operation_id',$2::uuid))).* FROM public.ediel_message_intents i WHERE id=$3",[id(112),id(110),id(12)]);
+ await db.query("INSERT INTO public.outbound_requests SELECT (jsonb_populate_record(NULL::public.outbound_requests,to_jsonb(r)||jsonb_build_object('id',$1::uuid,'source_id',$2::uuid,'operation_id',$3::uuid))).* FROM public.outbound_requests r WHERE id=$4",[id(113),id(112),id(110),id(13)]);
+ await db.query('SELECT public.ediel_reserve_switch_cancellation_v1($1,$2,$3,$4,$5)',[id(1),id(106),id(20),id(112),id(113)]);
+ const reservedBasis=(await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE intent_id=$1',[id(112)])).rows[0].basis;
+ assert.equal(Object.hasOwn(reservedBasis,'requestedMethod'),false);checks++;
+ const snapshot=()=>db.query("SELECT jsonb_build_object('origins',(SELECT jsonb_agg(to_jsonb(o) ORDER BY id) FROM gridex_switch_cancellations.origins o),'switches',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM public.supplier_switch_requests s),'messages',(SELECT jsonb_agg(to_jsonb(m) ORDER BY id) FROM public.ediel_messages m),'bindings',(SELECT jsonb_agg(to_jsonb(b) ORDER BY message_id) FROM gridex_received_sources.switch_contract_request_bindings b)) r").then(r=>r.rows[0].r);
+ const insertMethod=raw=>db.query("INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',$1::uuid,'raw_payload',$2::text,'immutable_payload_hash',encode(sha256(convert_to($2,'UTF8')),'hex'),'intent_id',$3::uuid,'outbound_request_id',$4::uuid,'source_operation_id',$5::text,'original_message_id',$6::text,'switch_request_id',$7::uuid))).* FROM public.ediel_messages m WHERE id=$8",[id(116),raw,id(112),id(113),id(110),id(108),id(106),id(16)]);
+ const invalidCancels=[qualifiedCancel.replace("CCI++Z04'CAV+Z03'",""),qualifiedCancel.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+Z03'CCI++Z04'CAV+Z03'"),qualifiedCancel.replace("CCI++Z04'CAV+Z03'","CCI++Z04'CAV+Z04'")];
+ for(const raw of invalidCancels){const before=await snapshot();await assert.rejects(insertMethod(raw),/switch_cancellation_exact_original_method_required/);assert.deepEqual(await snapshot(),before);checks++}
+ await insertMethod(qualifiedCancel);checks++;
+ assert.equal((await db.query('SELECT status FROM public.supplier_switch_requests WHERE id=$1',[id(106)])).rows[0].status,'cancellation_requested');checks++;
+ const fresh=()=>db.query('SELECT public.ediel_require_switch_cancellation_source_current_v1($1,$2)',[id(1),id(116)]);
+ await fresh();checks++;
+ // The production trigger forbids modifying a bound message. For this send
+ // consumer fault-injection only, disable that guard transactionally in the
+ // component DB and roll back each injection. Never alter an authentic input.
+ for(const raw of invalidCancels){const before=await snapshot();await db.exec('BEGIN');try{await db.exec('ALTER TABLE public.ediel_messages DISABLE TRIGGER ediel_switch_cancellation_message_immutable');await db.query("UPDATE public.ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2",[raw,id(116)]);await db.exec('ALTER TABLE gridex_switch_cancellations.origins DISABLE TRIGGER cancellation_origin_immutable');await db.query("UPDATE gridex_switch_cancellations.origins SET payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE message_id=$2",[raw,id(116)]);await assert.rejects(fresh(),/switch_cancellation_exact_original_method_required/);checks++}finally{await db.exec('ROLLBACK')}assert.deepEqual(await snapshot(),before)}
+ // Direct private physical guard isolates missing/duplicate/different217,
+ // while fresh public source above retains its earlier immutable-hash guard.
+ for(const raw of invalidCancels){await assert.rejects(db.query("SELECT gridex_switch_cancellations.require_original_method_v1($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),'test',$4)",[id(1),id(108),qualifiedOriginal,raw]),/exact_original_method_required/);checks++}
+ const actualReplay=(await db.query('SELECT gridex_ediel_transport.mutate_v1($1) r',[{action:'enter',companyId:id(1),messageId:id(16),fixtureProceed:false,fixtureAcceptedReceipt:{fixture:'already-established-outcome'}}])).rows[0].r;
+ assert.deepEqual(actualReplay,replay);checks++;
+ assert.deepEqual((await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE message_id=$1',[id(16)])).rows[0].basis,historicalBasis);
+ assert.deepEqual((await db.query('SELECT basis FROM gridex_switch_cancellations.origins WHERE message_id=$1',[id(116)])).rows[0].basis,reservedBasis);
+ assert.deepEqual((await db.query('SELECT to_jsonb(m) r FROM public.ediel_messages m WHERE id=$1',[id(8)])).rows[0].r,oldOriginalRow);checks++;
+ for(const role of ['anon','authenticated','service_role']){assert.equal((await db.query("SELECT has_function_privilege($1,'gridex_switch_cancellations.original_method_v1(uuid,uuid,text,text)','execute') a",[role])).rows[0].a,false);checks++}
+ console.log(`PASS ${checks} cancellation SQL probes; actual owner with declared existing receipt/legal/original ports, not native/authentic acceptance`)
+
+ // Additive CURRENT-schema component. All preceding controls and assertions
+ // retain their historical literal-migration and mechanical-port attribution.
+ const finite=globalThis[Symbol.for('ediel.c03.finite')];
+ finite.oldChecks=checks;finite.oldStatus='PASS';
+ const contextBytes=readFileSync(new URL('../current-context.sql',import.meta.url),'utf8');
+ const contextProsrc=contextBytes.split('$$')[1];
+ assert.ok(contextProsrc.includes('PERFORM gridex_switch_cancellations.prelock_customer_source_v1(c,sw);'));
+ await db.exec(`CREATE TABLE public.finite_c03_prelock_calls(c uuid,sw uuid,observed_at timestamptz);
+ CREATE FUNCTION gridex_switch_cancellations.prelock_customer_source_v1(c uuid,sw uuid) RETURNS void LANGUAGE plpgsql AS $port$
+ BEGIN IF c IS DISTINCT FROM '${id(1)}'::uuid OR sw IS DISTINCT FROM '${id(106)}'::uuid THEN RAISE EXCEPTION 'finite_declared_prelock_tuple_required';END IF;
+ INSERT INTO public.finite_c03_prelock_calls VALUES(c,sw,clock_timestamp());END $port$;`);
+ // CREATE OR REPLACE is the sole DDL-token adaptation. Source prosrc and all
+ // current schema function attributes remain exact and are read back below.
+ await db.exec(contextBytes.replace(/^CREATE FUNCTION /,'CREATE OR REPLACE FUNCTION '));
+ const currentMetadata=(await db.query("SELECT p.prosrc,p.proconfig,p.prosecdef,p.provolatile FROM pg_proc p WHERE p.oid='gridex_switch_cancellations.context_v1(uuid,uuid,uuid,boolean)'::regprocedure")).rows[0];
+ assert.equal(currentMetadata.prosrc,contextProsrc);
+ assert.deepEqual(currentMetadata.proconfig,['search_path=""','TimeZone=UTC']);
+ assert.equal(currentMetadata.prosecdef,true);assert.equal(currentMetadata.provolatile,'v');
+ finite.currentContext={prosrcExact:true,attributes:currentMetadata.proconfig,prelockPort:'EXACT_TWO_ARGUMENT_MECHANICAL_NO_LOCK_NO_AUTHORITY',methodPath:'actual public projection wrapper; context itself does not enforce217'};
+ const currentCalendar=async(label,reason,offset,expected)=>{
+  const before=await snapshot();await db.exec('BEGIN');
+  try{
+   const clock=(await db.query("SELECT clock_timestamp() observed,to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') business_day")).rows[0];
+   const day=(await db.query("SELECT to_char(to_date($1,'YYYYMMDD')+$2::int,'YYYYMMDD') d",[clock.business_day,offset])).rows[0].d;
+   const raw=qualifiedOriginal.replace(`DTM+92:${date}0000`,`DTM+92:${day}0000`).replace('CAV+Z22',`CAV+${reason}`);
+   assert.notEqual(raw,qualifiedOriginal);assert.ok(raw.includes("CCI++Z04'CAV+Z03'"));
+   await db.query("UPDATE public.ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2",[raw,id(108)]);
+   await db.query("UPDATE public.supplier_switch_requests SET requested_start_date=to_date($1,'YYYYMMDD') WHERE id=$2",[day,id(106)]);
+   await db.query("UPDATE gridex_received_sources.switch_originals SET payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex'),original_object=gridex_received_sources.switch_origin_wire_v1($1)#>'{objects,0}',resulting_switch=(SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE id=$2) WHERE message_id=$3",[raw,id(106),id(108)]);
+   await db.query("UPDATE gridex_received_sources.switch_contract_request_bindings SET payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE message_id=$2",[raw,id(108)]);
+   const realMethod=(await db.query("SELECT gridex_switch_cancellations.original_method_v1($1,$2,encode(sha256(convert_to($3,'UTF8')),'hex'),'test') method",[id(1),id(108),raw])).rows[0].method;
+   assert.equal(realMethod,'Z03');
+   const actual=await projected();assert.equal(actual.status,expected);
+   if(expected==='held')assert.deepEqual(actual.missing,['source_z03_cancellation_calendar_window']);
+   else{assert.equal(actual.requestedMethod,'Z03');assert.equal(actual.originalSubtype,reason==='Z22'?'L':'LK');assert.equal(actual.originalMessageId,id(108));}
+   const prelockTrace=(await db.query('SELECT c,sw FROM public.finite_c03_prelock_calls ORDER BY observed_at')).rows;assert.deepEqual(prelockTrace,[{c:id(1),sw:id(106)}]);const prelockCount=prelockTrace.length;
+   const currentDay=(await db.query("SELECT to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') d")).rows[0].d;assert.equal(currentDay,clock.business_day,'Actual DB day changed during finite control; no clock override/rerun');
+   finite.newControls.push({name:label,status:'PASS',reason,offset,actualStatus:actual.status,missing:actual.missing??null,actualDbObservedAt:clock.observed,actualDbFixedPlus1Day:clock.business_day,sourceStartDay:day,method:realMethod,prelockCount,prelockTrace});
+   console.log('CURRENT_C03_CONTROL',JSON.stringify(finite.newControls.at(-1)));
+  }finally{await db.exec('ROLLBACK')}
+  assert.deepEqual(await snapshot(),before);
+ };
+ await currentCalendar('CURRENT L at D-4','Z22',4,'authorized');
+ await currentCalendar('CURRENT L at D-3','Z22',3,'held');
+ await currentCalendar('CURRENT LK at D0','Z23',0,'authorized');
+ await currentCalendar('CURRENT LK at D-1','Z23',-1,'held');
+ finite.newStatus='PASS';finite.newCount=finite.newControls.length;
+ console.log(`PASS ${finite.newCount} additive current-context/mechanical-boundary controls; old ${checks} probes retain historical source attribution`);
+}finally{await db.close()}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/current-context.sql, 7654 bytes, SHA256 `cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f`; preserved verbatim:
+
+`````sql
+CREATE FUNCTION gridex_switch_cancellations.context_v1(c uuid, sw uuid, actor uuid, prepare_execution boolean DEFAULT true) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE s public.supplier_switch_requests%rowtype;m public.ediel_messages%rowtype;o gridex_received_sources.switch_originals%rowtype;
+ ct public.customer_contracts%rowtype;mp public.metering_points%rowtype;w jsonb;own jsonb;current_legal jsonb;prior_legal jsonb;t jsonb;ud jsonb;
+ original_id uuid;start_day date;deadline date;today date:=(clock_timestamp()+interval '1 hour')::date;reserved gridex_switch_cancellations.origins%rowtype;
+BEGIN
+ -- Discover only a selector. Recheck the parent after ordered genuine original,
+ -- executor and parent locks; no public metadata constitutes source authority.
+ PERFORM gridex_switch_cancellations.prelock_customer_source_v1(c,sw); SELECT outbound_z03_message_id INTO original_id FROM public.supplier_switch_requests WHERE id=sw AND company_id=c;
+ SELECT * INTO m FROM public.ediel_messages WHERE id=original_id AND company_id=c FOR UPDATE;
+ IF prepare_execution IS NULL THEN RAISE EXCEPTION 'switch_cancellation_execution_phase_required';END IF;
+ IF prepare_execution THEN
+ PERFORM u.id FROM public.user_profiles u WHERE u.id=actor FOR SHARE;
+ PERFORM cm.user_id FROM public.company_memberships cm WHERE cm.company_id=c AND cm.user_id=actor FOR SHARE;
+ IF c IS NULL OR sw IS NULL OR actor IS NULL OR NOT EXISTS(SELECT FROM public.user_profiles u WHERE u.id=actor AND u.user_status='active')
+  OR NOT EXISTS(SELECT FROM public.company_memberships cm WHERE cm.company_id=c AND cm.user_id=actor AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL)
+  OR public.gridex_actor_has_company_permission(actor,c,'communication.write') IS NOT TRUE THEN RAISE EXCEPTION 'switch_cancellation_actor_forbidden' USING ERRCODE='42501';END IF;
+ END IF;
+ SELECT * INTO s FROM public.supplier_switch_requests WHERE id=sw AND company_id=c FOR UPDATE;
+ SELECT * INTO o FROM gridex_received_sources.switch_originals WHERE message_id=m.id AND company_id=c AND switch_id=s.id;
+ IF s.id IS NULL OR m.id IS NULL OR o.message_id IS NULL OR s.outbound_z03_message_id IS DISTINCT FROM m.id OR m.direction IS DISTINCT FROM 'outbound'
+  OR m.message_standard IS DISTINCT FROM 'edifact' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z03'
+  OR m.immutable_rendered_at IS NULL OR m.immutable_payload_hash IS DISTINCT FROM o.payload_hash OR o.payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+  OR gridex_received_sources.sent_source_is_current_v1(m) IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['genuine_own_source_bound_accepted_z03_original']);END IF;
+ w:=gridex_received_sources.switch_origin_wire_v1(m.raw_payload);own:=w#>'{objects,0}';
+ IF w IS NULL OR own IS DISTINCT FROM o.original_object OR (own->>'reason' IN('Z22','Z23')) IS NOT TRUE OR nullif(own->>'li','') IS NULL
+  OR own->>'li' IS DISTINCT FROM s.rff_li_reference OR nullif(own->>'customerIdentity','') IS NULL OR nullif(own->>'installationPoint','') IS NULL
+  OR nullif(own->>'gridArea','') IS NULL THEN RETURN jsonb_build_object('status','held','missing',ARRAY['immutable_original_customer_point_li_subtype']);END IF;
+ prior_legal:=gridex_ediel_inbound_context.require_v1(c,m.id);
+ current_legal:=gridex_ediel_inbound_context.derive(m,clock_timestamp());
+ IF prior_legal->>'legalActorId' IS DISTINCT FROM current_legal->>'legalActorId' OR current_legal->>'actorRole' IS DISTINCT FROM 'electricity_supplier'
+  OR current_legal->>'legalEdielId' IS DISTINCT FROM w->>'sender' THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_same_legal_supplier_source_context']);END IF;
+ SELECT * INTO ct FROM public.customer_contracts WHERE id=o.contract_id AND company_id=c FOR SHARE;
+ SELECT * INTO mp FROM public.metering_points WHERE id=s.metering_point_id AND company_id=c FOR SHARE;
+ PERFORM site.id FROM public.customer_sites site WHERE site.id=coalesce(s.site_id,s.customer_site_id) AND site.company_id=c FOR SHARE;
+ IF ct.id IS NULL OR mp.id IS NULL OR ct.customer_id IS DISTINCT FROM s.customer_id OR ct.metering_point_id IS DISTINCT FROM mp.id
+  OR coalesce(s.customer_contract_id,s.contract_id) IS DISTINCT FROM o.contract_id
+  OR NOT EXISTS(SELECT FROM public.customer_sites site WHERE site.id=mp.site_id AND site.company_id=c)
+  OR s.customer_id::text IS DISTINCT FROM o.resulting_switch->>'customer_id' OR s.metering_point_id::text IS DISTINCT FROM o.resulting_switch->>'metering_point_id'
+  OR coalesce(s.site_id,s.customer_site_id)::text IS DISTINCT FROM coalesce(o.resulting_switch->>'site_id',o.resulting_switch->>'customer_site_id')
+  OR (s.contract_id IS NOT NULL AND s.contract_id IS DISTINCT FROM ct.id) OR (s.customer_contract_id IS NOT NULL AND s.customer_contract_id IS DISTINCT FROM ct.id)
+  OR mp.customer_id IS DISTINCT FROM s.customer_id OR mp.site_id IS DISTINCT FROM coalesce(s.site_id,s.customer_site_id)
+  OR own->>'installationPoint' IS DISTINCT FROM coalesce(nullif(mp.ediel_metering_point_id,''),nullif(mp.meter_point_id,''))
+  OR own->>'gridArea' IS DISTINCT FROM mp.grid_area_code OR w->>'receiver' IS DISTINCT FROM mp.grid_owner_ediel_id
+  OR s.lifecycle_blocked IS TRUE OR (s.status IN('prepared','queued','sent','submitted','waiting','waiting_for_z04','accepted','cancellation_requested','cancellation_sent')) IS NOT TRUE
+ THEN RETURN jsonb_build_object('status','held','missing',ARRAY['same_current_owned_switch_customer_contract_physical_scope']);END IF;
+ start_day:=gridex_received_sources.permission_date_v1(own->>'start');
+ deadline:=CASE own->>'reason' WHEN 'Z22' THEN start_day-4 WHEN 'Z23' THEN start_day END;
+ IF start_day IS NULL OR start_day IS DISTINCT FROM s.requested_start_date OR deadline IS NULL OR today>deadline THEN RETURN jsonb_build_object('status','held','missing',ARRAY['source_z03_cancellation_calendar_window']);END IF;
+ FOR t IN SELECT x FROM jsonb_array_elements(gridex_received_sources.closure_wire_tokens_v2(m.raw_payload))x WHERE x->>'tag'='NAD' AND x#>>'{elements,1,0}'='UD' LOOP
+  IF ud IS NOT NULL THEN RETURN jsonb_build_object('status','held','missing',ARRAY['unique_original_customer_identity']);END IF;ud:=t;
+ END LOOP;
+ IF ud IS NULL OR (ud#>>'{elements,2,1}' IN('SE1','SE2')) IS NOT TRUE OR ud#>>'{elements,2,2}' IS DISTINCT FROM '260' THEN RETURN jsonb_build_object('status','held','missing',ARRAY['qualified_original_customer_identity']);END IF;
+ SELECT * INTO reserved FROM gridex_switch_cancellations.origins WHERE company_id=c AND switch_id=s.id AND original_message_id=m.id;
+ RETURN jsonb_build_object('status','authorized','companyId',c,'environment',m.environment,'switchRequestId',s.id,'originalMessageId',m.id,'originalHash',o.payload_hash,
+  'operationId',reserved.id,'intentId',reserved.intent_id,'outboundRequestId',reserved.outbound_request_id,'messageId',reserved.message_id,
+  'customerId',s.customer_id,'siteId',mp.site_id,'meteringPointId',mp.id,'legalActorId',current_legal->>'legalActorId','legalSenderId',w->>'sender','legalReceiverId',w->>'receiver',
+  'pointId',own->>'installationPoint','identityAgency',own->>'installationAgency','gridArea',own->>'gridArea','li',own->>'li','startAt',gridex_received_sources.permission_time_v1(own->>'start'),
+  'originalSubtype',CASE own->>'reason' WHEN 'Z22' THEN 'L' ELSE 'LK' END,'deadline',deadline,'customerIdentity',own->>'customerIdentity','customerQualifier',ud#>>'{elements,2,1}',
+  'customerName',coalesce(ud#>>'{elements,4,0}',''),'sourceObject',own);
+END $$;
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/source-bindings.json, 6116 bytes, SHA256 `28532161f21f685859c33789c60996e536bc5181bdf2441bbd62ae7130666c36`; preserved verbatim:
+
+`````json
+{
+  "version": 1,
+  "phase": "DESIGNED_BEFORE_FIRST_EXECUTION",
+  "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+  "tree": "88c04102169c9bd803e2bf4dfb7363ebbc562097",
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "baseTree": "e3b6c11677a2b871a128504f1616def7d22dba1e",
+  "original": {
+    "repositoryPath": "scripts/ediel-switch-cancellation-sql-regression.mjs",
+    "gitBlob": "60533b705af6e508564dbaeed8fa759e9a0e555c",
+    "bytes": 33710,
+    "sha256": "ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e"
+  },
+  "literalDependencies": [
+    {
+      "repositoryPath": "supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql",
+      "gitBlob": "fbca71e453a9fb11ff935a21bf8de36142b86316",
+      "bytes": 36314,
+      "sha256": "c6376a62644efe24a733a872410d48d6f74372e68d4c0c56db03fd2a6380df7e"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "gitBlob": "c116c2cf463c86673d0dfb72bf78c7cca7c6f5b9",
+      "bytes": 36672,
+      "sha256": "38a50e4f52293755553eeab543e9831ed53f03277b24d7bd5bfc2a41e2efd7e7"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "gitBlob": "935025301a726cbb4eccfd67769bff484aaa6890",
+      "bytes": 49494,
+      "sha256": "c9b05a063c742d96fcb1521756859d92ffc3b3766cd949ad9103b83fa429df4d"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930213949_ediel_switch_intent_original_source_binding.sql",
+      "gitBlob": "db759cd1a49d514ac4132163c24fed135f9373ea",
+      "bytes": 18782,
+      "sha256": "f19b6a295147dd47d7a7ababa704d1f7aab19309831dcceb7e03769e3f9c3629"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930214933_ediel_switch_cancellation_source_origination.sql",
+      "gitBlob": "944f5cb601591fe6d3cb1db5d5910570b5a86e0f",
+      "bytes": 25774,
+      "sha256": "633c87d3109963fd1535b7b1e371303e5d65f764c2ad59ed81febc461ab91163"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930223846_ediel_cancellation_request_environment_scope.sql",
+      "gitBlob": "bd6bcd4d311dee0e2f44d60967d7e515343db59e",
+      "bytes": 12742,
+      "sha256": "84dc62edefd084d1746d99006158caec20ba9c0a9939731821dd81129bbec2c2"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+      "gitBlob": "45b27af733d94eb3b0bea3f129302014bbb745e6",
+      "bytes": 3906,
+      "sha256": "35480da2d1476a7ae676a7df23deb2eb102b285b5eadaa22c775e11e932980f1"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930234708_ediel_normal_switch_signed_method_binding.sql",
+      "gitBlob": "e4041fc230e5aea2b783c156a98d9e47eda07e8c",
+      "bytes": 10107,
+      "sha256": "a7612d2d02a753bdf55c2ea4e6213276e73c3082e94cf88934c28373c3abf2f2"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20261001142650_ediel_switch_requested_method_line_dtm.sql",
+      "gitBlob": "0973b68db85e1562a84baa13141b24fe2445bf01",
+      "bytes": 2071,
+      "sha256": "934e831d91d125b0c36114f1f49936c486f41ff59f753b9f574142437986450c"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20261007132500_ediel_switch_cancellation_original_method.sql",
+      "gitBlob": "e6a631ccbd666851a8c0a876095ea8815a39484a",
+      "bytes": 7709,
+      "sha256": "9f64ac10d037d5084520d22706fa3d351621d091f5ece54ad8896105223e4086"
+    }
+  ],
+  "currentContext": {
+    "source": "supabase/schema.sql",
+    "line": 32815,
+    "bytes": 7654,
+    "sha256": "cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f",
+    "schemaSha256": "183223acac82cfc5699a4acd6509868ab0646b3fc8a02d88a9027ba780b6bb60",
+    "prosrcOnlyDelta": "PERFORM gridex_switch_cancellations.prelock_customer_source_v1(c,sw);"
+  },
+  "runtime": {
+    "nodePath": "/tmp/ediel-helper-20261013-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+    "expectedNodeVersion": "v22.23.3",
+    "expectedNodeSha256": "fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48",
+    "pgliteModule": "/workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/index.js",
+    "pgliteVersion": "0.3.14"
+  },
+  "ports": [
+    "unchanged original script mechanical normal-source/sent/legal/permission/contract/fixture/transport ports",
+    "mechanical prelock exact two-argument company1/switch106 tuple only; no lock or authority claim",
+    "rollback-isolated mechanical source raw/start/hash/original-object/resulting-switch/method-binding preimage ports"
+  ],
+  "exclusions": [
+    "genuine original/admission/legal approval",
+    "native/backend/RLS/fullcustomer graph",
+    "actual transport prepare/enter proceed=true",
+    "lock-wait or overridden clock qualification",
+    "whole C03/currentCI/GEN"
+  ],
+  "layout": {
+    "originalCopy": "scripts/original-public.mjs",
+    "programPhysical": "scripts/program.mjs",
+    "programEntry": "program.mjs",
+    "programEntrySymlink": "scripts/program.mjs",
+    "dependenciesRoot": "supabase/migrations",
+    "currentContextCopy": "current-context.sql",
+    "programModification": "one additive block after original console PASS line, before original finally db.close; inverse byte-exact"
+  },
+  "temporaryFiles": {
+    "scripts/original-public.mjs": "ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e",
+    "scripts/program.mjs": "cf0edf33fbaacf5cbb5baafa460acd0eed4affa4e52ee631d154f54d5bb8a513",
+    "program.mjs": "cf0edf33fbaacf5cbb5baafa460acd0eed4affa4e52ee631d154f54d5bb8a513",
+    "runtime-boundary.mjs": "331157dc968ad6069e0d69fb2a9095d917a4b85343d0d7c7a5eb660e47d7b828",
+    "controller.mjs": "a59c5a76a293539c3cb4a1273a73bb3f8618cce26d23220f7ab0b1648622d963",
+    "current-context.sql": "cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f"
+  },
+  "newControls": [
+    "CURRENT L4",
+    "CURRENT L3",
+    "CURRENT LK0",
+    "CURRENT LK-1"
+  ],
+  "preExecutionRefinement": "Only four additive current calendar controls; existing unchanged method refusals remain old attribution; mechanical tuple trace not counted as product test"
+}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/source-bindings-v2.json, 7681 bytes, SHA256 `686ef69207ede6caf97c3d3250b49fa16f21809a811782bfc88a0be0daa75016`; preserved verbatim:
+
+`````json
+{
+  "version": 1,
+  "phase": "DESIGNED_BEFORE_FIRST_EXECUTION",
+  "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+  "tree": "88c04102169c9bd803e2bf4dfb7363ebbc562097",
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "baseTree": "e3b6c11677a2b871a128504f1616def7d22dba1e",
+  "original": {
+    "repositoryPath": "scripts/ediel-switch-cancellation-sql-regression.mjs",
+    "gitBlob": "60533b705af6e508564dbaeed8fa759e9a0e555c",
+    "bytes": 33710,
+    "sha256": "ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e"
+  },
+  "literalDependencies": [
+    {
+      "repositoryPath": "supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql",
+      "gitBlob": "fbca71e453a9fb11ff935a21bf8de36142b86316",
+      "bytes": 36314,
+      "sha256": "c6376a62644efe24a733a872410d48d6f74372e68d4c0c56db03fd2a6380df7e"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql",
+      "gitBlob": "c116c2cf463c86673d0dfb72bf78c7cca7c6f5b9",
+      "bytes": 36672,
+      "sha256": "38a50e4f52293755553eeab543e9831ed53f03277b24d7bd5bfc2a41e2efd7e7"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+      "gitBlob": "935025301a726cbb4eccfd67769bff484aaa6890",
+      "bytes": 49494,
+      "sha256": "c9b05a063c742d96fcb1521756859d92ffc3b3766cd949ad9103b83fa429df4d"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930213949_ediel_switch_intent_original_source_binding.sql",
+      "gitBlob": "db759cd1a49d514ac4132163c24fed135f9373ea",
+      "bytes": 18782,
+      "sha256": "f19b6a295147dd47d7a7ababa704d1f7aab19309831dcceb7e03769e3f9c3629"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930214933_ediel_switch_cancellation_source_origination.sql",
+      "gitBlob": "944f5cb601591fe6d3cb1db5d5910570b5a86e0f",
+      "bytes": 25774,
+      "sha256": "633c87d3109963fd1535b7b1e371303e5d65f764c2ad59ed81febc461ab91163"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930223846_ediel_cancellation_request_environment_scope.sql",
+      "gitBlob": "bd6bcd4d311dee0e2f44d60967d7e515343db59e",
+      "bytes": 12742,
+      "sha256": "84dc62edefd084d1746d99006158caec20ba9c0a9939731821dd81129bbec2c2"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+      "gitBlob": "45b27af733d94eb3b0bea3f129302014bbb745e6",
+      "bytes": 3906,
+      "sha256": "35480da2d1476a7ae676a7df23deb2eb102b285b5eadaa22c775e11e932980f1"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20260930234708_ediel_normal_switch_signed_method_binding.sql",
+      "gitBlob": "e4041fc230e5aea2b783c156a98d9e47eda07e8c",
+      "bytes": 10107,
+      "sha256": "a7612d2d02a753bdf55c2ea4e6213276e73c3082e94cf88934c28373c3abf2f2"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20261001142650_ediel_switch_requested_method_line_dtm.sql",
+      "gitBlob": "0973b68db85e1562a84baa13141b24fe2445bf01",
+      "bytes": 2071,
+      "sha256": "934e831d91d125b0c36114f1f49936c486f41ff59f753b9f574142437986450c"
+    },
+    {
+      "repositoryPath": "supabase/migrations/20261007132500_ediel_switch_cancellation_original_method.sql",
+      "gitBlob": "e6a631ccbd666851a8c0a876095ea8815a39484a",
+      "bytes": 7709,
+      "sha256": "9f64ac10d037d5084520d22706fa3d351621d091f5ece54ad8896105223e4086"
+    }
+  ],
+  "currentContext": {
+    "source": "supabase/schema.sql",
+    "line": 32815,
+    "bytes": 7654,
+    "sha256": "cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f",
+    "schemaSha256": "183223acac82cfc5699a4acd6509868ab0646b3fc8a02d88a9027ba780b6bb60",
+    "prosrcOnlyDelta": "PERFORM gridex_switch_cancellations.prelock_customer_source_v1(c,sw);"
+  },
+  "runtime": {
+    "nodePath": "/tmp/ediel-helper-20261013-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+    "expectedNodeVersion": "v22.23.3",
+    "expectedNodeSha256": "fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48",
+    "pgliteModule": "/workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/index.js",
+    "pgliteVersion": "0.3.14"
+  },
+  "ports": [
+    "unchanged original script mechanical normal-source/sent/legal/permission/contract/fixture/transport ports",
+    "mechanical prelock exact two-argument company1/switch106 tuple only; no lock or authority claim",
+    "rollback-isolated mechanical source raw/start/hash/original-object/resulting-switch/method-binding preimage ports"
+  ],
+  "exclusions": [
+    "genuine original/admission/legal approval",
+    "native/backend/RLS/fullcustomer graph",
+    "actual transport prepare/enter proceed=true",
+    "lock-wait or overridden clock qualification",
+    "whole C03/currentCI/GEN"
+  ],
+  "layout": {
+    "originalCopy": "scripts/original-public.mjs",
+    "programPhysical": "scripts/program-v2.mjs",
+    "programEntry": "program-v2.mjs",
+    "programEntrySymlink": "scripts/program-v2.mjs",
+    "dependenciesRoot": "supabase/migrations",
+    "currentContextCopy": "current-context.sql",
+    "programModification": "v1 plus only reserved sampler alias day -> business_day and three corresponding new-block getters; original statements/assertions untouched"
+  },
+  "temporaryFiles": {
+    "scripts/original-public.mjs": "ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e",
+    "scripts/program-v2.mjs": "0d396347f2d2231dcca1f61ceb952322199242501bb418ae472df2c2897f4a9a",
+    "program-v2.mjs": "0d396347f2d2231dcca1f61ceb952322199242501bb418ae472df2c2897f4a9a",
+    "runtime-boundary.mjs": "331157dc968ad6069e0d69fb2a9095d917a4b85343d0d7c7a5eb660e47d7b828",
+    "controller-v2.mjs": "6479205b97ee2d13872734c92fa28f18114e6259c33cac08d0337d6041a54b2d",
+    "current-context.sql": "cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f"
+  },
+  "newControls": [
+    "CURRENT L4",
+    "CURRENT L3",
+    "CURRENT LK0",
+    "CURRENT LK-1"
+  ],
+  "preExecutionRefinement": "Only four additive current calendar controls; existing unchanged method refusals remain old attribution; mechanical tuple trace not counted as product test",
+  "attempt": 2,
+  "priorAttempt": {
+    "status": "FAIL_SETUP_RESERVED_ALIAS",
+    "oldChecks": 90,
+    "newControlsCompleted": 0,
+    "frozenFiles": {
+      "source-bindings.json": "28532161f21f685859c33789c60996e536bc5181bdf2441bbd62ae7130666c36",
+      "controller.mjs": "a59c5a76a293539c3cb4a1273a73bb3f8618cce26d23220f7ab0b1648622d963",
+      "runtime-boundary.mjs": "331157dc968ad6069e0d69fb2a9095d917a4b85343d0d7c7a5eb660e47d7b828",
+      "program.mjs": "cf0edf33fbaacf5cbb5baafa460acd0eed4affa4e52ee631d154f54d5bb8a513",
+      "scripts/program.mjs": "cf0edf33fbaacf5cbb5baafa460acd0eed4affa4e52ee631d154f54d5bb8a513",
+      "scripts/original-public.mjs": "ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e",
+      "current-context.sql": "cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f",
+      "first-run.stdout": "d0c6bb437f43c388bf9ed290f0a6b80362cf3516972d95f0a23a6a6217b4fa98",
+      "first-run.stderr": "d7e746ce75d5607825dde661e4853533dd337c48a984dc516c6cf2e4fe372803",
+      "results.json": "73f1f7374fe26d48bd2fe29515118f5088ab05eb7e368021a21e941aefc3d2e3",
+      "report.md": "c0d4b8df731972c9be3a5aa70f80e1d011b33ca448571e2a6896c12a7bb55414",
+      "externalResumeReport": "bef7b789c91a0fe4bab05088d9301df34d3f23c604a49d9f43bee2bc1ac3dcd8"
+    }
+  },
+  "justification": "Known temporary-author42601 sampler alias error before current evaluation; explicit bounded correction authorized; repeated original90 initialize same augmented component, not new180 credit"
+}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/first-run.stdout, 418 bytes, SHA256 `d0c6bb437f43c388bf9ed290f0a6b80362cf3516972d95f0a23a6a6217b4fa98`; preserved verbatim:
+
+`````text
+FINITE_RUNTIME {"node":"v22.23.3","nodeBinarySha256":"fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48","pgliteVersion":"0.3.14"}
+PASS 90 cancellation SQL probes; actual owner with declared existing receipt/legal/original ports, not native/authentic acceptance
+FINITE_RESULT {"status":"FAIL","oldChecks":90,"oldStatus":"PASS","newCount":0,"newStatus":"NOT_COMPLETED","boundaryAttempts":0,"exitCode":1}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/first-run.stderr, 1428 bytes, SHA256 `d7e746ce75d5607825dde661e4853533dd337c48a984dc516c6cf2e4fe372803`; preserved verbatim:
+
+`````text
+error: syntax error at or near "day"
+    at ye.Ve (file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/chunk-3WWIVTCY.js:1:17616)
+    at ye.nt (file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/chunk-3WWIVTCY.js:1:15003)
+    at ye.parse (file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/chunk-3WWIVTCY.js:1:13755)
+    at file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/index.js:3:191801
+    at wasm://wasm/021cbcb2:wasm-function[3707]:0x27cef1
+    at wasm://wasm/021cbcb2:wasm-function[3717]:0x27d268
+    at wasm://wasm/021cbcb2:wasm-function[9494]:0x509d72
+    at wasm://wasm/021cbcb2:wasm-function[175]:0x598a3
+    at invoke_v (file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/index.js:3:176458)
+    at wasm://wasm/021cbcb2:wasm-function[178]:0x5a0e8 {
+  length: 93,
+  severity: 'ERROR',
+  code: '42601',
+  detail: undefined,
+  hint: undefined,
+  position: '120',
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: 'scan.l',
+  line: '1248',
+  routine: 'scanner_yyerror',
+  query: "SELECT clock_timestamp() observed,to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') day",
+  params: [],
+  queryOptions: undefined
+}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/results.json, 2460 bytes, SHA256 `73f1f7374fe26d48bd2fe29515118f5088ab05eb7e368021a21e941aefc3d2e3`; preserved verbatim:
+
+`````json
+{
+  "version": 1,
+  "startedAt": "2026-10-13T17:38:31.645Z",
+  "source": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+  "tree": "88c04102169c9bd803e2bf4dfb7363ebbc562097",
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "runtime": {
+    "node": "v22.23.3",
+    "nodeBinarySha256": "fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48",
+    "pgliteVersion": "0.3.14"
+  },
+  "status": "FAIL",
+  "oldChecks": 90,
+  "oldStatus": "PASS",
+  "newStatus": "NOT_COMPLETED",
+  "newControls": [],
+  "currentContext": {
+    "prosrcExact": true,
+    "attributes": [
+      "search_path=\"\"",
+      "TimeZone=UTC"
+    ],
+    "prelockPort": "EXACT_TWO_ARGUMENT_MECHANICAL_NO_LOCK_NO_AUTHORITY",
+    "methodPath": "actual public projection wrapper; context itself does not enforce217"
+  },
+  "exitCode": 1,
+  "error": {
+    "name": "error",
+    "message": "syntax error at or near \"day\"",
+    "stack": "error: syntax error at or near \"day\"\n    at ye.Ve (file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/chunk-3WWIVTCY.js:1:17616)\n    at ye.nt (file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/chunk-3WWIVTCY.js:1:15003)\n    at ye.parse (file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/chunk-3WWIVTCY.js:1:13755)\n    at file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/index.js:3:191801\n    at wasm://wasm/021cbcb2:wasm-function[3707]:0x27cef1\n    at wasm://wasm/021cbcb2:wasm-function[3717]:0x27d268\n    at wasm://wasm/021cbcb2:wasm-function[9494]:0x509d72\n    at wasm://wasm/021cbcb2:wasm-function[175]:0x598a3\n    at invoke_v (file:///workspace/gridex-c3-20261012/node_modules/@electric-sql/pglite/dist/index.js:3:176458)\n    at wasm://wasm/021cbcb2:wasm-function[178]:0x5a0e8"
+  },
+  "boundaryAttempts": [],
+  "completedAt": "2026-10-13T17:38:34.964Z",
+  "bindingsSha256": "28532161f21f685859c33789c60996e536bc5181bdf2441bbd62ae7130666c36",
+  "files": {
+    "controller.mjs": "a59c5a76a293539c3cb4a1273a73bb3f8618cce26d23220f7ab0b1648622d963",
+    "runtime-boundary.mjs": "331157dc968ad6069e0d69fb2a9095d917a4b85343d0d7c7a5eb660e47d7b828",
+    "program.mjs": "cf0edf33fbaacf5cbb5baafa460acd0eed4affa4e52ee631d154f54d5bb8a513",
+    "scripts/original-public.mjs": "ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e",
+    "current-context.sql": "cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f"
+  }
+}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/report.md, 6276 bytes, SHA256 `c0d4b8df731972c9be3a5aa70f80e1d011b33ca448571e2a6896c12a7bb55414`; preserved verbatim:
+
+`````markdown
+# C03 current finite qualification — pre-execution design
+
+Design saved before any program execution. Sole own temporary directory was absent and atomically created. Exact public e49/tree88 and actual base d798/e3 are bound in source-bindings.json. Ten literal public migration dependencies and the existing script are copied byte-for-byte. The original script is not run separately.
+
+One augmented program will preserve every original statement/assertion and retain its own historical result attribution, then append current-context controls before the existing db.close finally. Physical program lives under scripts so unchanged import.meta migration paths remain valid; root program.mjs is an internal symlink. Original method migration leaves context unchanged. Exact current schema context differs only by the customer-source prelock call.
+
+Declared prelock port validates two-argument company1/switch106 only and supplies no real lock or authority. Actual current context body, actual method decoder/public source wrapper and DB wall clock are unchanged. Four current L4/L3/LK0/LK-1 controls use the existing method-qualified108/106 cohort with transactionally rebuilt mechanical fixture preimages. Pre-execution refinement: only four new current calendar controls; existing method refusals stay under old attribution. The exact prelock tuple trace is recorded without counting shim correctness as a product control. No clock override, real backend, network or child process is permitted. PGlite0.3.14 local WASM loading is allowed. Runtime boundary records attempts and refuses them.
+
+Not qualified: actual native source/customer/legal admission, RLS, provider entry, row-lock wait, full C03/current CI/GEN. Proof author and ROOT cannot count as independent final evidence reviewers. First outputs and failures are retained; no rerun.
+
+Program inverse removal reproduces exact original SHA256 ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e. Controller checks Node22.23.3 binary SHA and exact installed PGlite0.3.14 before one import.
+
+## Sole first execution — partial qualification, additive setup failed
+
+Executed once at2026-10-13T17:38:31.645Z–17:38:34.964Z. Actual Node v22.23.3, binarySHA256 fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48; PGlite exactly0.3.14 from the readonly workspace dependency. The process returned exit1; no rerun or program correction was performed.
+
+The unchanged original statements completed: **PASS90 cancellation SQL probes**, under their declared mechanical original/legal/receipt/actor/transport and signed-method declaration ports. The four old L4/L3/LK0/LK-1 assertions remain attributed to the original literal context before method migration. The later method/declaration decoding, refusal, trigger/public source and replay observations remain attributed to the exact existing original program and loaded literal migrations. These90 counters are SQL probe counters, not a Vitest case count, genuine native acceptance or current whole-source proof.
+
+The additive phase installed the exact current schema context (only CREATE -> CREATE OR REPLACE DDL adaptation), compared actual pg_proc prosrc byte-for-byte and validated search_path empty/TimeZoneUTC/security-definer/volatile metadata. Its explicit two-argument mechanical prelock port was installed. This establishes loading/binding metadata only; **zero of the four new calendar controls completed** and no actual current-calendar result is claimed.
+
+The first added DB clock sampler failed before fixture mutation/current-context calendar evaluation: PostgreSQL42601 `syntax error at or near "day"`. The temporary author used unquoted reserved alias `day` in the SELECT clock sampler. This is a temporary-controller setup defect, not a defect in public context, method validation, calendar or native product behavior. An appropriate future temporary correction would change that sampler alias consistently to a nonreserved name or explicit quoted alias. No such edit or dependent second execution is performed under the present one-run scope.
+
+Actual failing query:
+`SELECT clock_timestamp() observed,to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') day`
+
+`finally` closes the in-process DB. Runtime-denial instrumentation recorded **0 network/DNS/fetch/socket/worker/child-process attempts**. No real backend, Supabase CLI/service connection, clock override, source/ref/repository/doc/reservation/ID/claim, GEN, native, CI or original/log/archive acquisition occurred. No whole C03, actual send prepare/enter proceed=true, RLS, current customer/source admission or current4 proof is established. ROOT and this proof author are excluded from fresh independent final evidence review.
+
+The untouched first outputs, final raw results and program/bindings are frozen. The exact unchanged original script, ten public literal migration copies, current-context extraction and root-to-scripts program symlink remain preserved. Source/script inverse reconstruction was exact before execution. Only this report and the requested separate temporary resume report are written after execution; no executable input or raw proof output is rewritten.
+
+| Frozen proof file | Bytes | SHA256 |
+|---|---|---|
+| `source-bindings.json` | 6116 | `28532161f21f685859c33789c60996e536bc5181bdf2441bbd62ae7130666c36` |
+| `controller.mjs` | 3039 | `a59c5a76a293539c3cb4a1273a73bb3f8618cce26d23220f7ab0b1648622d963` |
+| `program.mjs` | 38978 | `cf0edf33fbaacf5cbb5baafa460acd0eed4affa4e52ee631d154f54d5bb8a513` |
+| `scripts/program.mjs` | 38978 | `cf0edf33fbaacf5cbb5baafa460acd0eed4affa4e52ee631d154f54d5bb8a513` |
+| `runtime-boundary.mjs` | 1370 | `331157dc968ad6069e0d69fb2a9095d917a4b85343d0d7c7a5eb660e47d7b828` |
+| `scripts/original-public.mjs` | 33710 | `ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e` |
+| `current-context.sql` | 7654 | `cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f` |
+| `first-run.stdout` | 418 | `d0c6bb437f43c388bf9ed290f0a6b80362cf3516972d95f0a23a6a6217b4fa98` |
+| `first-run.stderr` | 1428 | `d7e746ce75d5607825dde661e4853533dd337c48a984dc516c6cf2e4fe372803` |
+| `results.json` | 2460 | `73f1f7374fe26d48bd2fe29515118f5088ab05eb7e368021a21e941aefc3d2e3` |
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/second-run.stdout, 2118 bytes, SHA256 `9adb59db77f0a5b7d6d9cf275cff3a9b8568a77d420e89c74ccd0f1c17e335d3`; preserved verbatim:
+
+`````text
+FINITE_RUNTIME {"node":"v22.23.3","nodeBinarySha256":"fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48","pgliteVersion":"0.3.14"}
+PASS 90 cancellation SQL probes; actual owner with declared existing receipt/legal/original ports, not native/authentic acceptance
+CURRENT_C03_CONTROL {"name":"CURRENT L at D-4","status":"PASS","reason":"Z22","offset":4,"actualStatus":"authorized","missing":null,"actualDbObservedAt":"2026-10-13T17:42:57.912Z","actualDbFixedPlus1Day":"20261013","sourceStartDay":"20261017","method":"Z03","prelockCount":1,"prelockTrace":[{"c":"00000000-0000-4000-8000-000000000001","sw":"00000000-0000-4000-8000-000000000106"}]}
+CURRENT_C03_CONTROL {"name":"CURRENT L at D-3","status":"PASS","reason":"Z22","offset":3,"actualStatus":"held","missing":["source_z03_cancellation_calendar_window"],"actualDbObservedAt":"2026-10-13T17:42:57.941Z","actualDbFixedPlus1Day":"20261013","sourceStartDay":"20261016","method":"Z03","prelockCount":1,"prelockTrace":[{"c":"00000000-0000-4000-8000-000000000001","sw":"00000000-0000-4000-8000-000000000106"}]}
+CURRENT_C03_CONTROL {"name":"CURRENT LK at D0","status":"PASS","reason":"Z23","offset":0,"actualStatus":"authorized","missing":null,"actualDbObservedAt":"2026-10-13T17:42:57.962Z","actualDbFixedPlus1Day":"20261013","sourceStartDay":"20261013","method":"Z03","prelockCount":1,"prelockTrace":[{"c":"00000000-0000-4000-8000-000000000001","sw":"00000000-0000-4000-8000-000000000106"}]}
+CURRENT_C03_CONTROL {"name":"CURRENT LK at D-1","status":"PASS","reason":"Z23","offset":-1,"actualStatus":"held","missing":["source_z03_cancellation_calendar_window"],"actualDbObservedAt":"2026-10-13T17:42:57.987Z","actualDbFixedPlus1Day":"20261013","sourceStartDay":"20261012","method":"Z03","prelockCount":1,"prelockTrace":[{"c":"00000000-0000-4000-8000-000000000001","sw":"00000000-0000-4000-8000-000000000106"}]}
+PASS 4 additive current-context/mechanical-boundary controls; old 90 probes retain historical source attribution
+FINITE_RESULT {"status":"PASS","oldChecks":90,"oldStatus":"PASS","newCount":4,"newStatus":"PASS","boundaryAttempts":0,"exitCode":0}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/second-run.stderr, 0 bytes, SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`; preserved verbatim:
+
+`````text
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/results-v2.json, 3643 bytes, SHA256 `df7dc3ce6ac42a2bdc77786c9b227c60c54d4b8a4badc772204f44d448b06ed5`; preserved verbatim:
+
+`````json
+{
+  "version": 1,
+  "startedAt": "2026-10-13T17:42:55.447Z",
+  "source": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+  "tree": "88c04102169c9bd803e2bf4dfb7363ebbc562097",
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "runtime": {
+    "node": "v22.23.3",
+    "nodeBinarySha256": "fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48",
+    "pgliteVersion": "0.3.14"
+  },
+  "status": "PASS",
+  "oldChecks": 90,
+  "oldStatus": "PASS",
+  "newStatus": "PASS",
+  "newControls": [
+    {
+      "name": "CURRENT L at D-4",
+      "status": "PASS",
+      "reason": "Z22",
+      "offset": 4,
+      "actualStatus": "authorized",
+      "missing": null,
+      "actualDbObservedAt": "2026-10-13T17:42:57.912Z",
+      "actualDbFixedPlus1Day": "20261013",
+      "sourceStartDay": "20261017",
+      "method": "Z03",
+      "prelockCount": 1,
+      "prelockTrace": [
+        {
+          "c": "00000000-0000-4000-8000-000000000001",
+          "sw": "00000000-0000-4000-8000-000000000106"
+        }
+      ]
+    },
+    {
+      "name": "CURRENT L at D-3",
+      "status": "PASS",
+      "reason": "Z22",
+      "offset": 3,
+      "actualStatus": "held",
+      "missing": [
+        "source_z03_cancellation_calendar_window"
+      ],
+      "actualDbObservedAt": "2026-10-13T17:42:57.941Z",
+      "actualDbFixedPlus1Day": "20261013",
+      "sourceStartDay": "20261016",
+      "method": "Z03",
+      "prelockCount": 1,
+      "prelockTrace": [
+        {
+          "c": "00000000-0000-4000-8000-000000000001",
+          "sw": "00000000-0000-4000-8000-000000000106"
+        }
+      ]
+    },
+    {
+      "name": "CURRENT LK at D0",
+      "status": "PASS",
+      "reason": "Z23",
+      "offset": 0,
+      "actualStatus": "authorized",
+      "missing": null,
+      "actualDbObservedAt": "2026-10-13T17:42:57.962Z",
+      "actualDbFixedPlus1Day": "20261013",
+      "sourceStartDay": "20261013",
+      "method": "Z03",
+      "prelockCount": 1,
+      "prelockTrace": [
+        {
+          "c": "00000000-0000-4000-8000-000000000001",
+          "sw": "00000000-0000-4000-8000-000000000106"
+        }
+      ]
+    },
+    {
+      "name": "CURRENT LK at D-1",
+      "status": "PASS",
+      "reason": "Z23",
+      "offset": -1,
+      "actualStatus": "held",
+      "missing": [
+        "source_z03_cancellation_calendar_window"
+      ],
+      "actualDbObservedAt": "2026-10-13T17:42:57.987Z",
+      "actualDbFixedPlus1Day": "20261013",
+      "sourceStartDay": "20261012",
+      "method": "Z03",
+      "prelockCount": 1,
+      "prelockTrace": [
+        {
+          "c": "00000000-0000-4000-8000-000000000001",
+          "sw": "00000000-0000-4000-8000-000000000106"
+        }
+      ]
+    }
+  ],
+  "currentContext": {
+    "prosrcExact": true,
+    "attributes": [
+      "search_path=\"\"",
+      "TimeZone=UTC"
+    ],
+    "prelockPort": "EXACT_TWO_ARGUMENT_MECHANICAL_NO_LOCK_NO_AUTHORITY",
+    "methodPath": "actual public projection wrapper; context itself does not enforce217"
+  },
+  "newCount": 4,
+  "exitCode": 0,
+  "boundaryAttempts": [],
+  "completedAt": "2026-10-13T17:42:58.011Z",
+  "bindingsSha256": "686ef69207ede6caf97c3d3250b49fa16f21809a811782bfc88a0be0daa75016",
+  "files": {
+    "controller-v2.mjs": "6479205b97ee2d13872734c92fa28f18114e6259c33cac08d0337d6041a54b2d",
+    "runtime-boundary.mjs": "331157dc968ad6069e0d69fb2a9095d917a4b85343d0d7c7a5eb660e47d7b828",
+    "program-v2.mjs": "0d396347f2d2231dcca1f61ceb952322199242501bb418ae472df2c2897f4a9a",
+    "scripts/original-public.mjs": "ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e",
+    "current-context.sql": "cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f"
+  }
+}
+
+`````
+
+Original /tmp/ediel-c03-current-finite-20261013-358d1615/report-v2.md, 13271 bytes, SHA256 `ec88edf1e205fd440cff20ea16ee275d403e2b764177e1fad6b45a6447cef7ee`; preserved verbatim:
+
+`````markdown
+# C03 finite attempt2 — pre-execution fixed-cause design
+
+Attempt1 remains byte-exact. Actual first runtime Node22.23.3/PGlite0.3.14 completed90 unchanged original probes, then failed42601 at unquoted SQL alias day before any current calendar evaluation. This separately authorized attempt2 addresses that temporary-author setup cause only. Repeated old90 initialize the same augmented component and will not be counted as new180 proof.
+
+Exact source e49a23d4897f1cb4063a57bf3b1c810321723c3a/tree88c04102169c9bd803e2bf4dfb7363ebbc562097; base d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/treee3b6c11677a2b871a128504f1616def7d22dba1e. Same ten literal public migrations, unchanged original script, current schema context bytes, actual method/source guards, assertions/model, Node binary, readonly PGlite0.3.14 and runtime-boundary. No source changes or clock override.
+
+Only new-block sampler alias day becomes business_day with its three matching getters. Version2 controller changes only result/binding/program/controller entry paths. Original-script inverse equality is verified. Root program-v2.mjs points to scripts/program-v2.mjs so unchanged relative migrations load inside the owned directory.
+
+The four new controls remain current L4/L3/LK0/LK-1, with explicit rollback-isolated original/hash/preimage mechanical fixtures and exact two-argument prelock trace; shim correctness is not counted. No actual native/backend/customer/legal admission, RLS, genuine locks/wait, transport prepare/enter proceed=true, wholeC03/currentCI/GEN proof. ROOT and proof author are excluded from independent final evidence reviews.
+
+A pre-execution Python preservation check initially expected four getter occurrences; actual source contains three. That static assertion stopped before creating v2 files or any program execution. It was corrected to match exact source occurrence count. It is not another test-program attempt.
+
+Exact program delta before execution:
+
+```diff
+--- first preserved program
++++ version2 sampler fix
+@@ -194,8 +194,8 @@
+  const currentCalendar=async(label,reason,offset,expected)=>{
+   const before=await snapshot();await db.exec('BEGIN');
+   try{
+-   const clock=(await db.query("SELECT clock_timestamp() observed,to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') day")).rows[0];
+-   const day=(await db.query("SELECT to_char(to_date($1,'YYYYMMDD')+$2::int,'YYYYMMDD') d",[clock.day,offset])).rows[0].d;
++   const clock=(await db.query("SELECT clock_timestamp() observed,to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') business_day")).rows[0];
++   const day=(await db.query("SELECT to_char(to_date($1,'YYYYMMDD')+$2::int,'YYYYMMDD') d",[clock.business_day,offset])).rows[0].d;
+    const raw=qualifiedOriginal.replace(`DTM+92:${date}0000`,`DTM+92:${day}0000`).replace('CAV+Z22',`CAV+${reason}`);
+    assert.notEqual(raw,qualifiedOriginal);assert.ok(raw.includes("CCI++Z04'CAV+Z03'"));
+    await db.query("UPDATE public.ediel_messages SET raw_payload=$1,immutable_payload_hash=encode(sha256(convert_to($1,'UTF8')),'hex') WHERE id=$2",[raw,id(108)]);
+@@ -208,8 +208,8 @@
+    if(expected==='held')assert.deepEqual(actual.missing,['source_z03_cancellation_calendar_window']);
+    else{assert.equal(actual.requestedMethod,'Z03');assert.equal(actual.originalSubtype,reason==='Z22'?'L':'LK');assert.equal(actual.originalMessageId,id(108));}
+    const prelockTrace=(await db.query('SELECT c,sw FROM public.finite_c03_prelock_calls ORDER BY observed_at')).rows;assert.deepEqual(prelockTrace,[{c:id(1),sw:id(106)}]);const prelockCount=prelockTrace.length;
+-   const currentDay=(await db.query("SELECT to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') d")).rows[0].d;assert.equal(currentDay,clock.day,'Actual DB day changed during finite control; no clock override/rerun');
+-   finite.newControls.push({name:label,status:'PASS',reason,offset,actualStatus:actual.status,missing:actual.missing??null,actualDbObservedAt:clock.observed,actualDbFixedPlus1Day:clock.day,sourceStartDay:day,method:realMethod,prelockCount,prelockTrace});
++   const currentDay=(await db.query("SELECT to_char(((clock_timestamp() AT TIME ZONE 'UTC')+interval '1 hour')::date,'YYYYMMDD') d")).rows[0].d;assert.equal(currentDay,clock.business_day,'Actual DB day changed during finite control; no clock override/rerun');
++   finite.newControls.push({name:label,status:'PASS',reason,offset,actualStatus:actual.status,missing:actual.missing??null,actualDbObservedAt:clock.observed,actualDbFixedPlus1Day:clock.business_day,sourceStartDay:day,method:realMethod,prelockCount,prelockTrace});
+    console.log('CURRENT_C03_CONTROL',JSON.stringify(finite.newControls.at(-1)));
+   }finally{await db.exec('ROLLBACK')}
+   assert.deepEqual(await snapshot(),before);
+```
+
+## Completed attempt2 — bounded actual result
+
+**PASS: repeated90 original SQL probes plus4 new current-context calendar controls.** These are two distinct counter domains, not94 Vitest tests, not newly180 original probes, not current native/full-source/whole C03 acceptance. The repeated old component is required to initialize this one corrected augmented program after an evidenced temporary-author setup failure. The first failure is preserved and has no passing current-control attribution.
+
+Static official Node `--check scripts/program-v2.mjs` returned0 before execution. One actual attempt2 program ran2026-10-13T17:42:55.447Z–17:42:58.011Z, process exit0, stderr0bytes. Actual runtime was Node v22.23.3, binarySHA256 fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48, exact readonly PGlite0.3.14. Runtime instrumentation recorded0 external network/DNS/fetch/socket/worker/child attempts. Local PGlite module/WASM loads occurred in-process. No SupabaseCLI, server/realDB, service connection, native, backend, GEN, CI or original/private archive/log acquisition was performed.
+
+The90 original probes completed under the unchanged original source and ten literal migrations, with declared mechanical normal-original/legal/receipt/contract/actor/transport and signed-method declaration ports. Its original four L4/L3/LK0/LK-1 controls execute before loading the original-method migration. They remain original-source calendar observations, not current customer/send/method admission. Later original method/refusal/bind/source/replay controls retain their exact loaded-source and mechanical input attribution. The original body is reproduced exactly when the additive block is removed (SHAae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e).
+
+## Four new actual current-context observations
+
+Exact `supabase/schema.sql:32815` current context fragment SHA256 cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f was installed with only CREATE -> CREATE OR REPLACE DDL adaptation. Actual pg_proc prosrc equals the extracted public bytes; retained attributes were search_path empty, TimeZoneUTC, SECURITY DEFINER and volatile. The current function's added prelock call goes through an explicitly declared two-argument mechanical port, validating company1/switch106 and recording its trace. This port supplies no real locks or source/tenant/actor authority.
+
+| New control | Actual own reason | Actual DB fixed+1 day | Fixture original start day | Real method decoder | Actual current output |
+|---|---|---|---|---|---|
+| CURRENT L at D-4 | `Z22` | `20261013` | `20261017` | `Z03` | `authorized` |
+| CURRENT L at D-3 | `Z22` | `20261013` | `20261016` | `Z03` | `held / source_z03_cancellation_calendar_window` |
+| CURRENT LK at D0 | `Z23` | `20261013` | `20261013` | `Z03` | `authorized` |
+| CURRENT LK at D-1 | `Z23` | `20261013` | `20261012` | `Z03` | `held / source_z03_cancellation_calendar_window` |
+
+Each control used the existing method-qualified mechanical original108/switch106 cohort, rebuilt only raw/start/hash/original-object/resulting-switch/method-binding preimages within its rollback-isolated finite fixture transaction. It invoked the actual public source projection and current `context_v1`; favorable results also assert actual original subtype/message and requested method. Both unfavorable results assert exactly `source_z03_cancellation_calendar_window`. Actual DB clock was sampled without override and the date was checked unchanged through each control. Each actual prelock trace contains exactly company000...001/switch000...106 once. Complete prior component snapshots return unchanged after each rollback.
+
+The separate real method decoder/public projection wrapper is retained from the original method migration. `context_v1` itself does not enforce field217; this proof makes no method-before-calendar or integrated current customer/send-actor admission claim. Mechanical originals are mutable finite fixtures, not genuine protected production original mutations. `sent_source_is_current_v1` and legal/permission/contract readers remain the original declared lower ports. An authorized finite result is therefore not proof of actual accepted transport, authentic issuer/customer/source/legal authorization or a production cancellation basis.
+
+This exercises the present fixedUTC+1 calendar predicates at the actual runtime date. It neither adjudicates the process's normative DST/Stockholm calendar zone nor executes a lock-wait/midnight witness; the earlier source-only refutation/inconsistency limits are unchanged. There is no actual whole graph/RLS/transport prepare or enter proceed=true/native/genuine-source result. Timely sent laterACK/historical accepted replay are not re-gated or relabelled.
+
+## First-attempt integrity and versioned correction
+
+Every file in source-bindings-v2.json's priorAttempt frozen manifest was rehashed after execution and matched, including v1 program/controller/bindings/runtime boundary/original/context/stdout/stderr/results/report and the first external resume report. No first result was rewritten. The v2 executable diff above changes only the added reserved SQL alias day -> business_day and its three getter occurrences; original controls, guards, current context bytes, dependencies, model and assertions remain unchanged. Controller path substitutions select only the versioned program/bindings/results paths. No assertion or guard was relaxed to produce green.
+
+ROOT and execution-proof author are both excluded from the two fresh independent final evidence reviewers. This authored finite evidence is ready for their exact proof review under the parent’s existing delivery ownership, not a new producer, source reservation, whole-contract approval or merge gate.
+
+## Frozen attempt2 proof bindings
+
+| File | Bytes | SHA256 |
+|---|---|---|
+| `source-bindings-v2.json` | 7681 | `686ef69207ede6caf97c3d3250b49fa16f21809a811782bfc88a0be0daa75016` |
+| `controller-v2.mjs` | 3057 | `6479205b97ee2d13872734c92fa28f18114e6259c33cac08d0337d6041a54b2d` |
+| `scripts/program-v2.mjs` | 39014 | `0d396347f2d2231dcca1f61ceb952322199242501bb418ae472df2c2897f4a9a` |
+| `program-v2.mjs` | 39014 | `0d396347f2d2231dcca1f61ceb952322199242501bb418ae472df2c2897f4a9a` |
+| `runtime-boundary.mjs` | 1370 | `331157dc968ad6069e0d69fb2a9095d917a4b85343d0d7c7a5eb660e47d7b828` |
+| `current-context.sql` | 7654 | `cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f` |
+| `second-run.stdout` | 2118 | `9adb59db77f0a5b7d6d9cf275cff3a9b8568a77d420e89c74ccd0f1c17e335d3` |
+| `second-run.stderr` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `results-v2.json` | 3643 | `df7dc3ce6ac42a2bdc77786c9b227c60c54d4b8a4badc772204f44d448b06ed5` |
+
+## Preserved exact public literal dependencies
+
+| Public dependency | SHA256 |
+|---|---|
+| `supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql` | `c6376a62644efe24a733a872410d48d6f74372e68d4c0c56db03fd2a6380df7e` |
+| `supabase/migrations/20260930161624_ediel_supply_market_source_lifecycle.sql` | `38a50e4f52293755553eeab543e9831ed53f03277b24d7bd5bfc2a41e2efd7e7` |
+| `supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql` | `c9b05a063c742d96fcb1521756859d92ffc3b3766cd949ad9103b83fa429df4d` |
+| `supabase/migrations/20260930213949_ediel_switch_intent_original_source_binding.sql` | `f19b6a295147dd47d7a7ababa704d1f7aab19309831dcceb7e03769e3f9c3629` |
+| `supabase/migrations/20260930214933_ediel_switch_cancellation_source_origination.sql` | `633c87d3109963fd1535b7b1e371303e5d65f764c2ad59ed81febc461ab91163` |
+| `supabase/migrations/20260930223846_ediel_cancellation_request_environment_scope.sql` | `84dc62edefd084d1746d99006158caec20ba9c0a9939731821dd81129bbec2c2` |
+| `supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql` | `35480da2d1476a7ae676a7df23deb2eb102b285b5eadaa22c775e11e932980f1` |
+| `supabase/migrations/20260930234708_ediel_normal_switch_signed_method_binding.sql` | `a7612d2d02a753bdf55c2ea4e6213276e73c3082e94cf88934c28373c3abf2f2` |
+| `supabase/migrations/20261001142650_ediel_switch_requested_method_line_dtm.sql` | `934e831d91d125b0c36114f1f49936c486f41ff59f753b9f574142437986450c` |
+| `supabase/migrations/20261007132500_ediel_switch_cancellation_original_method.sql` | `9f64ac10d037d5084520d22706fa3d351621d091f5ece54ad8896105223e4086` |
+
+`````
+
+Original /tmp/ediel-helper-20261013-z03c-finite-final-peer-a.md, 8341 bytes, SHA256 `87e4bbcae05e37ebb1acddf9efbb86b7ba82f5eb84b196037d22a54861ef8d00`; preserved verbatim:
+
+`````markdown
+# Independent final evidence review A — Z03C finite v2
+
+Decision: APPROVE the stated bounded local embedded-Postgres evidence. Zero material findings. This approval does not approve whole AT-Z03C-SUPPLIER, a source adoption, ledger change, current CI, native execution or main merge.
+
+Reviewer: /root/z03c_finite_review_a. Read-only, noncoauthor. I authored none of the program, fixture, controller, assertions, execution or original proof. I did not consult reviewer B and did not run the SQL program, tests, CI, native, backend, GEN or collect external originals. My only write is this report. ROOT and the execution author remain excluded from independent final reviewers.
+
+Skill routing: focused code-review and verification-before-completion; Supabase and Postgres guidance applied to the declared SQL/security-configuration boundary. No implementation, schema change, Supabase feature/API use, performance change or broad security audit; UI, deployment, global scanners and optimization workflows do not apply. Fresh verification here means independent read-only byte/hash/source/result integrity checks, not duplicate program execution.
+
+## Exact reviewed binding
+
+- Public source: e49a23d4897f1cb4063a57bf3b1c810321723c3a; tree 88c04102169c9bd803e2bf4dfb7363ebbc562097.
+- Base: d798eb36f35cd4f437d44c8d234b4dbb81adc7a6; tree e3b6c11677a2b871a128504f1616def7d22dba1e. Git objects independently confirm both trees.
+- Final external report: /tmp/ediel-helper-20261013-z03c-node22-qualified-v2.md, SHA256 9755a17ba26240ed6f1aaa9a52aea8de11ee3d5d74056673d749f06929ae995b.
+- Detailed final report: report-v2.md, SHA256 ec88edf1e205fd440cff20ea16ee275d403e2b764177e1fad6b45a6447cef7ee.
+- Final raw result: results-v2.json, SHA256 df7dc3ce6ac42a2bdc77786c9b227c60c54d4b8a4badc772204f44d448b06ed5.
+- Final bindings: source-bindings-v2.json, SHA256 686ef69207ede6caf97c3d3250b49fa16f21809a811782bfc88a0be0daa75016.
+- Final program: scripts/program-v2.mjs, SHA256 0d396347f2d2231dcca1f61ceb952322199242501bb418ae472df2c2897f4a9a.
+- Final controller: controller-v2.mjs, SHA256 6479205b97ee2d13872734c92fa28f18114e6259c33cac08d0337d6041a54b2d.
+
+All paths below are in /tmp/ediel-c03-current-finite-20261013-358d1615 unless explicitly absolute.
+
+## Independently checked integrity and source applicability
+
+The 33,710-byte original script is byte-exact to public source (SHA256 ae817c40ec9d915c85fb65326c5dae0443b705b5c23632e442d023f48dac240e). All ten literal migration copies independently match public Git bytes, recorded byte counts and hashes. Removing only the additive current-schema block from either program version reproduces the exact original bytes, including all original statements and assertions; no old guard/assertion was dropped.
+
+The 7,654-byte current-context.sql is an exact substring of public source supabase/schema.sql, SHA256 cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f. The program installs that exact context with only CREATE -> CREATE OR REPLACE DDL adaptation and asserts actual pg_proc prosrc equality, search_path empty, TimeZone UTC, SECURITY DEFINER true and volatility v. The raw result records the successful current-context binding. No field217 assertion is attributed to context_v1 itself.
+
+I additionally reconstructed the loaded original_method_v1 and require_original_method_v1 migration bodies and public projection rewrite: all are byte-exact current public schema prosrc. Their SHA256 values are b5f1c21cfe33d1c2629e3984455bf1f1a087cefda6fee79193b87ff2bc42d10d, b3ac3132d1150b55ca2da91e5b6e5c680f773685822dcacdffd336a9bdead360 and 374958c9f81a4d06164df0ae57199324bbe588883dff8e3f28df41d20871f605. Reconstructing the two exact requested-method decoder rewrites reproduces current schema decoder body aec51ebedeaf3b1ace6215e96c7e249f818ae25ec081e9c64c01037662af1043. Field217 decoding and the separate public method projection are actual SQL, not a mocked field217 success.
+
+The runtime binary bytes independently hash to fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48. Controller/raw stdout/result agree Node v22.23.3 and installed PGlite package exactly 0.3.14. All result-bound executable/input hashes, final bindings hash, and root program-v2.mjs -> scripts/program-v2.mjs symlink match. I did not execute Node or the SQL program to create a duplicate runtime witness.
+
+## Execution chronology and counter discipline
+
+All twelve entries of the first-attempt frozen manifest independently rehash exactly, including original first external report. Attempt1 ran 2026-10-13T17:38:31.645Z–17:38:34.964Z: old90 PASS, new0 completed, overall exit1; stdout/result/stderr agree the temporary author's reserved unquoted SQL alias day caused 42601 before current-calendar evaluation. This is a setup failure, not product RED.
+
+Attempt2 ran once 2026-10-13T17:42:55.447Z–17:42:58.011Z: old90 PASS, new4 PASS, exit0, empty stderr. Program diff is exactly one added sampler alias day -> business_day plus its three getters; controller changes only versioned result/bindings/program/controller paths. The original body, assertions, ports, current context and dependencies are unchanged. This is an evidenced cause correction; no guard/assertion relaxation. The reports correctly preserve the separately documented pre-execution static occurrence-count mistake as a non-execution.
+
+The second stdout's four parsed control JSON objects exactly equal results-v2.json. Result timestamps are ordered after attempt1 and each control's actual DB sample lies inside attempt2. The repeated90 initialize the same augmented component: there are 90 original SQL probe counters and four newly observed current-context controls, not 180 new probes or 94 Vitest cases.
+
+## Four bounded actual observations
+
+The frozen program executes actual current context/public projection and actual original-method decoder with explicitly declared synthetic source, original, sent-status, receipt, legal, RBAC, contract/table and preimage ports. The additional prelock port validates only company1/switch106 and records one tuple; it supplies no actual locking or source/actor/customer authority.
+
+The new controls observe L/Z22 start +4 -> authorized; L/Z22 start +3 -> held with exactly source_z03_cancellation_calendar_window; LK/Z23 start +0 -> authorized; LK/Z23 start -1 -> held with exactly that cause. Each separately observes actual requested method Z03. Favorable projection assertions also check original subtype and original message108. Raw/hash/original object/resulting switch/requested start/method-binding payload hash are rebuilt coherently in a local transaction; finally ROLLBACK executes, followed by equality of the existing relevant component snapshots. The prelock trace contains company000...001/switch000...106 exactly once per transaction.
+
+Actual fixed UTC+1 DB date is 20261013 with fixture start dates 20261017/16/13/12. I independently checked all date arithmetic and result/log objects. The program samples clock_timestamp without overriding it, checks the date stable through each control and preserves current TimeZone configuration. This is a fixed UTC+1 predicate observation at that actual date, not Stockholm/DST normative-calendar conformance or a wait/midnight witness.
+
+Runtime boundary denies and records network/DNS/fetch/socket/worker/child APIs before loading the program. Controller asserts the recorded attempts array empty; stdout/result agree zero attempts. Readonly local PGlite JS/WASM loading is allowed. The proof gives no actual provider transport proceed=true or genuine accepted SMTP/ACK evidence.
+
+## Remaining limits
+
+This evidence supports the finite four current calendar predicates under the declared lower ports. Actual customer prelock, tenant/RLS admission, signed/legal/source/original authenticity, true row-lock or two-worker behavior, transport prepare/enter proceed=true, native backend, timely-sent/later-ACK or historical accepted replay, normative DST/Stockholm interpretation, whole C03, GEN, current CI and ledger approval remain outside this proof. Existing historical evidence keeps its own source/port attribution. No broader credit is justified by this approval.
+
+Final outcome: APPROVE bounded evidence; zero findings. No new source, claim, ref, publication, shared memory or runtime execution was made by this reviewer.
+
+`````
+
+Original /tmp/ediel-helper-20261013-z03c-finite-final-peer-b.md, 7154 bytes, SHA256 `85c6462b3415e031106f875ff220f6d54ee862ef7ea8afbb5860e37bb369de34`; preserved verbatim:
+
+`````markdown
+# Independent final evidence review B — Z03C finite v2
+
+Verdict: APPROVE for the stated local embedded-PostgreSQL component evidence only; zero actionable findings. No whole-contract, native, current-CI, GEN, genuine customer/original/transport or ledger approval follows from this review.
+
+Reviewer `/root/z03c_finite_review_b` is a noncoauthor of the script, fixture, controller, assertions, execution and proof originals. I inspected these frozen bytes independently after the parent's final readiness notice. I did not consult reviewer A, run or rerun any test/program, acquire CI/private/native originals, alter repository/refs/reservations or change author-owned proof files. My only write is this review report.
+
+Skill routing: focused `code-review` and `verification-before-completion`, applied through direct source/diff/hash/result reconstruction. The user and parent prohibit duplicate execution, so fresh review verification consists of static checks of existing exact execution evidence. Broad security/database-performance audits, UI, property-based generation, implementation, producer and deployment skills are outside this bounded review.
+
+## Exact source and frozen proof
+
+Public source: `e49a23d4897f1cb4063a57bf3b1c810321723c3a`; tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`. Actual base: `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`; tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Both tree bindings were independently checked against local public Git objects.
+
+- Final qualification `/tmp/ediel-helper-20261013-z03c-node22-qualified-v2.md`: SHA256 `9755a17ba26240ed6f1aaa9a52aea8de11ee3d5d74056673d749f06929ae995b`.
+- Detailed `report-v2.md`: `ec88edf1e205fd440cff20ea16ee275d403e2b764177e1fad6b45a6447cef7ee`.
+- `results-v2.json`: `df7dc3ce6ac42a2bdc77786c9b227c60c54d4b8a4badc772204f44d448b06ed5`.
+- `source-bindings-v2.json`: `686ef69207ede6caf97c3d3250b49fa16f21809a811782bfc88a0be0daa75016`.
+- Actual program `scripts/program-v2.mjs` and matching root entry symlink: `0d396347f2d2231dcca1f61ceb952322199242501bb418ae472df2c2897f4a9a`.
+- Actual current context: `cabc19a55394153fc1c92fb558dd7f32ed722c47a22036abacd497bed9d0331f`.
+
+All nine final artifact table rows match independently computed bytes and hashes. The unchanged public regression script and all ten literal SQL dependencies match public head bytes, lengths, SHA256 and Git blobs. Current context bytes are an exact fragment of that head's schema; schema SHA256 matches `183223acac82cfc5699a4acd6509868ab0646b3fc8a02d88a9027ba780b6bb60`. The loaded literal original-method function body also equals the current public schema body.
+
+All twelve first-attempt manifest entries remain exact, including eleven local files and the external original resume report SHA256 `bef7b789c91a0fe4bab05088d9301df34d3f23c604a49d9f43bee2bc1ac3dcd8`. Removing the additive component block reconstructs the public original script exactly, preserving every prior control/assertion. V2 differs from V1 solely in reserved sampler alias `day` to `business_day` and three corresponding getters; controller changes are versioned entry/binding/result paths only. No guards, expected outputs, source bodies, fixture admission or original assertions were weakened.
+
+## Execution evidence and chronological attribution
+
+First attempt remains FAIL_SETUP: at 17:38:31.645Z–17:38:34.964Z, historical 90 probes PASS; current controls zero completed; exit 1. Preserved stderr identifies PostgreSQL 42601 and the temporary-author unquoted `day` sampler before any current calendar evaluation. This is neither a product RED nor current passing evidence.
+
+The authorized single corrected program ran at 17:42:55.447Z–17:42:58.011Z: repeated historical 90 probes PASS and four additional current controls PASS, exit 0, empty stderr. The four parsed stdout control objects equal the raw result objects exactly. The final result and its bindings/file hashes agree with the controller and unchanged boundary instrumentation. Historical 90 are initialization/control evidence, not newly 180, 94 Vitest tests or automatic whole-contract coverage.
+
+Official Node v22.23.3's actual binary hash was independently recomputed as `fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48`; the readonly PGlite package is 0.3.14, matching raw runtime and bindings. The boundary blocks declared network, DNS, socket, fetch, worker and child-process entry paths; its recorded attempt list is empty. No extra execution occurred during this review.
+
+## What the four current controls establish
+
+The installed current context prosrc is compared byte-for-byte at runtime, with actual empty search_path, TimeZone UTC, SECURITY DEFINER and volatile metadata asserted. CREATE OR REPLACE is only a DDL installation adaptation. Context itself does not enforce field 217: the separate actual original-method decoder and public source projection retain that responsibility; neither is mocked.
+
+The four controls use the method-qualified mechanical original 108/switch 106 and call the real public projection:
+
+| Own reason and fixture start relative to actual DB day | Actual output |
+|---|---|
+| L/Z22, start +4 days | authorized; original subtype L, original message 108 and requested method Z03 asserted |
+| L/Z22, start +3 days | held with exactly `source_z03_cancellation_calendar_window` |
+| LK/Z23, start same day | authorized; original subtype LK, original message 108 and requested method Z03 asserted |
+| LK/Z23, start -1 day | held with exactly `source_z03_cancellation_calendar_window` |
+
+Observed DB fixed UTC+1 date was 20261013; fixture start days were 20261017, 20261016, 20261013 and 20261012. No clock override exists; each control checks that actual DB date stays unchanged. Source raw wire, immutable hash, requested start, original parsed object/resulting switch and method-binding hash are coherently adjusted inside a transaction. Each transaction rolls back, and the defined prior snapshot (origins, switches, messages and method bindings) is compared unchanged. The prelock call validates and records the exact company 1/switch 106 tuple once per control; this mechanical trace is not locking or authority evidence.
+
+## Limits retained
+
+This is local embedded PostgreSQL with declared mechanical sent-source, legal, permission, contract, original, signed-declaration/preimage, fixture/receipt and transport ports. Original/customer authorization, real customer prelock/lock ordering and waits, authentic issuer/receipt transport, RLS/full customer graph, two-worker behavior, send actor admission, provider prepare/enter proceed=true, normative Stockholm/DST conformance, native/backend/GEN/current CI and whole C03 remain unproved here. Historical timely-send/late-ACK and accepted replay limits stay unchanged. The four observations qualify the actual current fixed UTC+1 predicate at the recorded date only.
+
+No finding requires modifying the frozen proof. Root and execution author remain excluded from independent final reviewer roles. This approval can accompany the bounded evidence handoff to the existing owner; adoption and broader source/CI/contract decisions remain theirs.
+
+`````
