@@ -95227,6 +95227,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      ediel_is_received_h05_original_v1: {
+        Args: { m: Database["public"]["Tables"]["ediel_messages"]["Row"] }
+        Returns: boolean
+      }
       ediel_link_vh_history_request_v1: {
         Args: {
           p_actor_user_id: string
