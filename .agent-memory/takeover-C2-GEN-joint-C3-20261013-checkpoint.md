@@ -132,3 +132,70 @@ syntax pass. Unchanged51 source controls and full app/scripts/tests TypeScript
 remain applicable by whole other-file/mode equality; no extra backend/native.
 Next: exact corrected source freeze, both independent source reviews and ROOT
 GO. No new push or capture is authorized by source-control success alone.
+
+
+## Coherent v2 source preparation — supersedes the global01000 pending proposal
+
+ROOT authorized source preparation only after the exact public C3 corrected
+9e12/treec253 (6138542914), Admin309 and retention8e49/treeea2d (6138541681)
+received two independent component peers. Consume only these immutable donor
+postimages: retained00500 three850, corrected01000 threefe6, Admin threeb89,
+retention three22aa. All donor ownership remains retained; no borrowed edits.
+ROOT atomic claim064f/6138683218 retains two-file custody and expressly permits
+COPYONLY exact applied SQL442 and runtimecb206 from publicd8. Both atomic peers
+143883e0/5b7aa729 approve ONLY complete canonical795/current51 EMPTY isolated
+GEN input. Confirmed P2 populated partiallegacy missingupdated_at fabrication
+remains OPEN; no native/upgrade/release/wholeAPI193 approval is asserted.
+
+Old839 was explicitly FIRST retired GET_MATCH/DELETE204/two authenticated404,
+public6137951613, after terminal prebackend-only failed38339604453/a1. Keep all
+old53b/8c/2a/099/725 provenance historical; no old source epoch is relabeled.
+Persistent ce80 nine-file writer+slot stays retained; new input epoch is
+gridex-C2-joint-C3-GEN-20261013-v2. Fresh source includes normal current51 main,
+all320 ledger/evidence/AT-TR08, authentic795 runtime/RAW3 and all51 canonical
+names plus14 newer bodies. C1 TS-only113 requires no invented duplicate GEN.
+Native68 and ordinary ESCO workflow7f remain byte-exact reviewed postimages.
+
+History893→895 changes only the pending01000 hash and adds23000/40000;
+atomic235455 uses its already frozen exact runtime checksum row. All other892
+pins and runtime rows are preserved. Active795/099 capture/RAW3/archive fields
+stay byte-inverse unchanged pending actual output. No capture/native/browser/
+backend run or new generated artifact exists in this preparation.
+
+Expected measured catalog bounds relative795:16464→16469 only two new H05
+restricted functions, one early UPDATE OF raw_payload,direction trigger and
+two new function ACL blocks; existing changes only two H bodies, Admin scoped
+permission query, Partner8 direction lines and gridowner2 regex escapes plus
+declared search_path. Both old public/private guards/triggers, every old CHECK,
+table/column/RLS/policy/ACL/default ownership/security remain unchanged. Existing
+retention target and owner SELECT/UPDATE closure must be strict present-NOOP.
+
+Capture workflow keeps the reviewed shallow-safe full API URL/base/merge-base
+ancestor proof and existing ordinary events/gates/clean replay/capture-only
+limits. PRIMARY checks all25 live refs and every14 immutable donor hashes,
+fresh full v2 producer sources and actual prepared head/tree. Exact API compare
+from prepared to final allows only producer binding manifest and this ownCP;
+ordinary captures/corroboration remain usable without a held producer.
+
+Next: meaningful affected source/inverse/type/guard/syntax checks, freeze NEW
+prepared head/tree and producer_sources. ROOT alone creates fresh v2 producer
+on actualmain tree/singleparent; bind ONLY producerSHA+thisCP, then both final
+source peers and explicit ONE normal publication/primary capture GO. Retain
+producer through actual RAW3 qualification, reviewed imported successor and
+ordinary corroboration; FIRST own matched release/two404 precedes next queue.
+
+Prepared-v2 verification:8 actual source files/171 cases PASS; full app/scripts/
+tests nonincremental TypeScript0; migration integrity1159files/1062groups with
+895 history pins and the exact atomic runtime row PASS; official actionlint
+1.7.12, scoped ESLint zero warnings, source-size budget and staged whitespace
+PASS. Three actual workflow Python blocks/four shell run blocks compile;
+57 actual-workflow Python port cases PASS, preserving all prior37 controls
+and adding all25-ref inventory, modes/full-source receipt/prepared-tree and
+exact two-path final-binding refusals. Static expected-source full795 inverse
+preserves all16464 old objects outside exactly5 function blocks, with the only
+declared5 new objects for actual later qualification. All14 immutable donor
+postimages and all24 retained writer refs authenticated GET_MATCH.
+The private C3 creator birth-refusal test was not imported or executed in this
+GEN source; no private13-case or whole90-case runtime credit is borrowed.
+No actual canonical backend, generated output, producer claim or publication
+has occurred in this preparation.

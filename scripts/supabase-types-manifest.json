@@ -16087,45 +16087,276 @@
     "purpose": "Complete immutable preimport manifest and original main remain in Git; every replaced active value is archived verbatim. Previous captures/native/gates are historical and never relabeled."
   },
   "pending_joint_c3_capture": {
-    "input_epoch": "gridex-C2-joint-C3-GEN-20261013-v1",
+    "input_epoch": "gridex-C2-joint-C3-GEN-20261013-v2",
     "owner": "codex-takeover-C2-GEN-joint-C3-20261013",
     "custody_receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-    "base": "c007337f117dde5c6719e9d96bc76f00b118bbe6",
+    "base": "51f5fa5e80c42350d697bfed42520672749d4467",
     "authoritative_gen_source": "725e065abeb3cd6fb1dc10d9bf5b6a086f531568",
-    "portable_six_source": "27dcf6f6da88bd465928ba10ff8216f8efac2fef",
+    "portable_six_source": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
     "sql_sha256": {
+      "supabase/migrations/20261012235455_ops_api_atomic_permission_and_direction_guards.sql": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d",
       "supabase/migrations/20261013000500_ediel_h_original_identity_guard.sql": "f5adfe1d10d12f03ad71d534138b764a88ee3fb22fa8e4b1c228b91d8d90b8bc",
-      "supabase/migrations/20261013001000_ediel_registered_guard_priority.sql": "3b8875c3e586ddb4b0643bd15630b35e0767868419e81279984b8622cc5ffa7f"
+      "supabase/migrations/20261013001000_ediel_registered_guard_priority.sql": "d6b3ba507febb1845c7be79437585b52c3654e2534aa5c1fb194c4932f2af193",
+      "supabase/migrations/20261013023000_admin_context_current_permission_deny.sql": "7df4dc9d9f3023ba9a05f9066837a4bfd8bfe058d4dc58fc74a0d839c14b40a5",
+      "supabase/migrations/20261013040000_ops_api_contract_retention_guard_forward.sql": "da2b84e931d6e81eae24786d379758fe66bd2b0bb16d5ed1f79105caadb5c67e"
     },
     "prior_active_capture_preserved": "099756ba4406e0d1fa226f70700d26aae2a716ba/run38322724837 unchanged; output not relabeled while pending",
-    "expected_schema_delta": "Exactly two reviewed existing H function bodies and one registered-original trigger rename; all previous catalog/security metadata unchanged",
+    "expected_schema_delta": "Preserve full795 old catalog except two00500 H bodies, Admin scoped permission-query body, atomic Partner8 guard lines, atomic gridowner2 regex escapes+search_path; add only2 restricted H05 functions+1 narrow early trigger+2 ACL blocks. Registered/general triggers and retention present target whole unchanged.",
     "capture_native_browser_parity": "NOT_RUN",
     "portable_source_inputs": {
+      ".agent-memory/admin-context-permission-deny-20261013-checkpoint.md": {
+        "sha256": "3d1983bfc481807c9cd80ddd2e4d6f1f42da4bee99f0abbfe18a588c5df4bced",
+        "receipt": "b89fb10a256c149938daaa36cb00c19cd9fe121a",
+        "source_head": "30985a79fa99a75a17bae6d3b6352b42a4d0a4e9",
+        "source_tree": "8772bfd7faad43efe5334ae622bb4094b3fe8401",
+        "mode": "100644",
+        "blob": "978094797b98e644141e9809f9d805c4bc5a735e"
+      },
+      ".agent-memory/api51-contract-retention-guard-20261013-checkpoint.md": {
+        "sha256": "423c85dbd863d8d18c12005a9e8371eac105ffb7f7f642813d26a1cba1d6c8c9",
+        "receipt": "22aa9981bd3a7f7c7b56195a5623ad5cd12eb788",
+        "source_head": "8e49a32abc30b4acf4f76bd377fe3d5f5a2b526e",
+        "source_tree": "ea2d8254926c11acbd7b684f8f46c0e4d353d2c6",
+        "mode": "100644",
+        "blob": "7f3f4f105e595cfe8e6df4fea22d1169c47b677c"
+      },
       ".agent-memory/c3-h-original-identity-fix-20261013-checkpoint.md": {
         "sha256": "b7628f84453905f4daad11af7e28aa1b3561f26056d916124d592b3cb1ddd333",
-        "receipt": "850b880bd4754d9bb61d85e9a5ef477e0b6b1f2c"
+        "receipt": "850b880bd4754d9bb61d85e9a5ef477e0b6b1f2c",
+        "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+        "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+        "mode": "100644",
+        "blob": "61f544e4cd55a2021e47ee858788741a30c4cf9b"
       },
       ".agent-memory/c3-registered-guard-priority-20261013-checkpoint.md": {
-        "sha256": "311bd8037644e48408a1d70fb5cbe22055d1d0ec0406996c950389eaa6c5ac26",
-        "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d"
+        "sha256": "681b85f17b1b9274d8e8e5c3342c50f1d73cef280d887764200c672ed7b13a35",
+        "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d",
+        "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+        "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+        "mode": "100644",
+        "blob": "1621f4b55c35f017720878ddc77bb841be2a4886"
+      },
+      "__tests__/admin-context-current-permission-deny-forward.test.ts": {
+        "sha256": "6d308c349614477f0f345cca016834e22948ca758c797a53ee081f7e785309ec",
+        "receipt": "b89fb10a256c149938daaa36cb00c19cd9fe121a",
+        "source_head": "30985a79fa99a75a17bae6d3b6352b42a4d0a4e9",
+        "source_tree": "8772bfd7faad43efe5334ae622bb4094b3fe8401",
+        "mode": "100644",
+        "blob": "f8c0e31e09b01087d7d34e498a8841754e577ddd"
       },
       "__tests__/ediel-h-original-identity-forward.test.ts": {
         "sha256": "c98bd0352df3cf08f6fc793dbe581ab26755b2355fea9ee4d2b7a03c4b85b577",
-        "receipt": "850b880bd4754d9bb61d85e9a5ef477e0b6b1f2c"
+        "receipt": "850b880bd4754d9bb61d85e9a5ef477e0b6b1f2c",
+        "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+        "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+        "mode": "100644",
+        "blob": "7942040cadb29207bdd9fc7cb529957e46512a4a"
       },
       "__tests__/ediel-registered-original-trigger-priority-forward.test.ts": {
-        "sha256": "3b83d04dfb353d6b5a767a2ae7591fd696b6517f4fa29cd9742a0f92e6d2cd93",
-        "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d"
+        "sha256": "5c859397821e3af6c5f13f3ed2ce603dc09f00982efdd51d7c138884d4b279c0",
+        "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d",
+        "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+        "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+        "mode": "100644",
+        "blob": "386fb93122aefaa257d0cef115cd7bc99e693fb3"
+      },
+      "__tests__/ops-api-contract-retention-guard-forward.test.ts": {
+        "sha256": "329c232b394c5ce662443ea458cc104bc890a68bb7103cfa374e18a22ab6d14d",
+        "receipt": "22aa9981bd3a7f7c7b56195a5623ad5cd12eb788",
+        "source_head": "8e49a32abc30b4acf4f76bd377fe3d5f5a2b526e",
+        "source_tree": "ea2d8254926c11acbd7b684f8f46c0e4d353d2c6",
+        "mode": "100644",
+        "blob": "d0552cd143ed8652289b1ee7124427c21cfd351d"
+      },
+      "scripts/migration-history-manifest.runtime.additions.json": {
+        "sha256": "cb206ed9c2763a62a2287bdbae0297cb03f237ce77cd3ebb5192a07c160741b7",
+        "receipt": "064f655cdb1f0202c4cbc8b92d0d2037de903447",
+        "source_head": "d8f40852f3424d2c25fc19c9627ac67dca2b28c9",
+        "source_tree": "77f232dd8af3f95c32b6214d45c5606fbf16dd3f",
+        "mode": "100644",
+        "blob": "b58ea31c3629cf5e3db5eef92f24a775bd793e06"
+      },
+      "supabase/migrations/20261012235455_ops_api_atomic_permission_and_direction_guards.sql": {
+        "sha256": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d",
+        "receipt": "064f655cdb1f0202c4cbc8b92d0d2037de903447",
+        "source_head": "d8f40852f3424d2c25fc19c9627ac67dca2b28c9",
+        "source_tree": "77f232dd8af3f95c32b6214d45c5606fbf16dd3f",
+        "mode": "100644",
+        "blob": "f7e8fe4c3b0f9fc86e31b3bec5aa2d646ef6128e"
       },
       "supabase/migrations/20261013000500_ediel_h_original_identity_guard.sql": {
         "sha256": "f5adfe1d10d12f03ad71d534138b764a88ee3fb22fa8e4b1c228b91d8d90b8bc",
-        "receipt": "850b880bd4754d9bb61d85e9a5ef477e0b6b1f2c"
+        "receipt": "850b880bd4754d9bb61d85e9a5ef477e0b6b1f2c",
+        "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+        "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+        "mode": "100644",
+        "blob": "427e3a6f66c8d40e8c6fa4a677f385a0dd81162a"
       },
       "supabase/migrations/20261013001000_ediel_registered_guard_priority.sql": {
-        "sha256": "3b8875c3e586ddb4b0643bd15630b35e0767868419e81279984b8622cc5ffa7f",
-        "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d"
+        "sha256": "d6b3ba507febb1845c7be79437585b52c3654e2534aa5c1fb194c4932f2af193",
+        "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d",
+        "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+        "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+        "mode": "100644",
+        "blob": "63161664ec268d17b4504d4f6e5dacdf8a2874a2"
+      },
+      "supabase/migrations/20261013023000_admin_context_current_permission_deny.sql": {
+        "sha256": "7df4dc9d9f3023ba9a05f9066837a4bfd8bfe058d4dc58fc74a0d839c14b40a5",
+        "receipt": "b89fb10a256c149938daaa36cb00c19cd9fe121a",
+        "source_head": "30985a79fa99a75a17bae6d3b6352b42a4d0a4e9",
+        "source_tree": "8772bfd7faad43efe5334ae622bb4094b3fe8401",
+        "mode": "100644",
+        "blob": "53ca00ead9debe1ae4b05e443dc000b660534025"
+      },
+      "supabase/migrations/20261013040000_ops_api_contract_retention_guard_forward.sql": {
+        "sha256": "da2b84e931d6e81eae24786d379758fe66bd2b0bb16d5ed1f79105caadb5c67e",
+        "receipt": "22aa9981bd3a7f7c7b56195a5623ad5cd12eb788",
+        "source_head": "8e49a32abc30b4acf4f76bd377fe3d5f5a2b526e",
+        "source_tree": "ea2d8254926c11acbd7b684f8f46c0e4d353d2c6",
+        "mode": "100644",
+        "blob": "41f78744285483fc4b6076d35cb3501a6b1d2127"
       }
     },
-    "producer_receipt": "8391306cda11e7db8fe23e5acc640a4805305f52"
+    "producer_sources": {
+      "actualMain": "51f5fa5e80c42350d697bfed42520672749d4467",
+      "actualMainTree": "276b661120d5e0b69abc2090439809d5c4528e33",
+      "authoritative795": "725e065abeb3cd6fb1dc10d9bf5b6a086f531568",
+      "C3": {
+        "head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+        "tree": "c253a0ee501bdc03f99ff37724d725bde98af569"
+      },
+      "Admin": {
+        "head": "30985a79fa99a75a17bae6d3b6352b42a4d0a4e9",
+        "tree": "8772bfd7faad43efe5334ae622bb4094b3fe8401"
+      },
+      "retention": {
+        "head": "8e49a32abc30b4acf4f76bd377fe3d5f5a2b526e",
+        "tree": "ea2d8254926c11acbd7b684f8f46c0e4d353d2c6"
+      },
+      "atomicPair": {
+        "head": "d8f40852f3424d2c25fc19c9627ac67dca2b28c9",
+        "tree": "77f232dd8af3f95c32b6214d45c5606fbf16dd3f",
+        "claim": "064f655cdb1f0202c4cbc8b92d0d2037de903447",
+        "scope": "CANONICAL_795_CURRENT51_COMPLETE_EMPTY_ISOLATED_INPUT_ONLY; P2_POPULATED_PARTIAL_LEGACY_UPGRADE_OPEN"
+      },
+      "nativePostSHA256": "68e418b6f4e50834d4e9cf30a0378033a7a118776d22b88c1a1f3252a3da49b1",
+      "ordinaryESCOworkflowPostSHA256": "7f38047f3bfe4ee59b82e39c52fe2fd4ddaaad0db7d6bb49f4c206dbbb6d4f9b",
+      "immutableSourceInputs": {
+        ".agent-memory/admin-context-permission-deny-20261013-checkpoint.md": {
+          "sha256": "3d1983bfc481807c9cd80ddd2e4d6f1f42da4bee99f0abbfe18a588c5df4bced",
+          "receipt": "b89fb10a256c149938daaa36cb00c19cd9fe121a",
+          "source_head": "30985a79fa99a75a17bae6d3b6352b42a4d0a4e9",
+          "source_tree": "8772bfd7faad43efe5334ae622bb4094b3fe8401",
+          "mode": "100644",
+          "blob": "978094797b98e644141e9809f9d805c4bc5a735e"
+        },
+        ".agent-memory/api51-contract-retention-guard-20261013-checkpoint.md": {
+          "sha256": "423c85dbd863d8d18c12005a9e8371eac105ffb7f7f642813d26a1cba1d6c8c9",
+          "receipt": "22aa9981bd3a7f7c7b56195a5623ad5cd12eb788",
+          "source_head": "8e49a32abc30b4acf4f76bd377fe3d5f5a2b526e",
+          "source_tree": "ea2d8254926c11acbd7b684f8f46c0e4d353d2c6",
+          "mode": "100644",
+          "blob": "7f3f4f105e595cfe8e6df4fea22d1169c47b677c"
+        },
+        ".agent-memory/c3-h-original-identity-fix-20261013-checkpoint.md": {
+          "sha256": "b7628f84453905f4daad11af7e28aa1b3561f26056d916124d592b3cb1ddd333",
+          "receipt": "850b880bd4754d9bb61d85e9a5ef477e0b6b1f2c",
+          "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+          "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+          "mode": "100644",
+          "blob": "61f544e4cd55a2021e47ee858788741a30c4cf9b"
+        },
+        ".agent-memory/c3-registered-guard-priority-20261013-checkpoint.md": {
+          "sha256": "681b85f17b1b9274d8e8e5c3342c50f1d73cef280d887764200c672ed7b13a35",
+          "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d",
+          "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+          "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+          "mode": "100644",
+          "blob": "1621f4b55c35f017720878ddc77bb841be2a4886"
+        },
+        "__tests__/admin-context-current-permission-deny-forward.test.ts": {
+          "sha256": "6d308c349614477f0f345cca016834e22948ca758c797a53ee081f7e785309ec",
+          "receipt": "b89fb10a256c149938daaa36cb00c19cd9fe121a",
+          "source_head": "30985a79fa99a75a17bae6d3b6352b42a4d0a4e9",
+          "source_tree": "8772bfd7faad43efe5334ae622bb4094b3fe8401",
+          "mode": "100644",
+          "blob": "f8c0e31e09b01087d7d34e498a8841754e577ddd"
+        },
+        "__tests__/ediel-h-original-identity-forward.test.ts": {
+          "sha256": "c98bd0352df3cf08f6fc793dbe581ab26755b2355fea9ee4d2b7a03c4b85b577",
+          "receipt": "850b880bd4754d9bb61d85e9a5ef477e0b6b1f2c",
+          "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+          "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+          "mode": "100644",
+          "blob": "7942040cadb29207bdd9fc7cb529957e46512a4a"
+        },
+        "__tests__/ediel-registered-original-trigger-priority-forward.test.ts": {
+          "sha256": "5c859397821e3af6c5f13f3ed2ce603dc09f00982efdd51d7c138884d4b279c0",
+          "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d",
+          "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+          "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+          "mode": "100644",
+          "blob": "386fb93122aefaa257d0cef115cd7bc99e693fb3"
+        },
+        "__tests__/ops-api-contract-retention-guard-forward.test.ts": {
+          "sha256": "329c232b394c5ce662443ea458cc104bc890a68bb7103cfa374e18a22ab6d14d",
+          "receipt": "22aa9981bd3a7f7c7b56195a5623ad5cd12eb788",
+          "source_head": "8e49a32abc30b4acf4f76bd377fe3d5f5a2b526e",
+          "source_tree": "ea2d8254926c11acbd7b684f8f46c0e4d353d2c6",
+          "mode": "100644",
+          "blob": "d0552cd143ed8652289b1ee7124427c21cfd351d"
+        },
+        "scripts/migration-history-manifest.runtime.additions.json": {
+          "sha256": "cb206ed9c2763a62a2287bdbae0297cb03f237ce77cd3ebb5192a07c160741b7",
+          "receipt": "064f655cdb1f0202c4cbc8b92d0d2037de903447",
+          "source_head": "d8f40852f3424d2c25fc19c9627ac67dca2b28c9",
+          "source_tree": "77f232dd8af3f95c32b6214d45c5606fbf16dd3f",
+          "mode": "100644",
+          "blob": "b58ea31c3629cf5e3db5eef92f24a775bd793e06"
+        },
+        "supabase/migrations/20261012235455_ops_api_atomic_permission_and_direction_guards.sql": {
+          "sha256": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d",
+          "receipt": "064f655cdb1f0202c4cbc8b92d0d2037de903447",
+          "source_head": "d8f40852f3424d2c25fc19c9627ac67dca2b28c9",
+          "source_tree": "77f232dd8af3f95c32b6214d45c5606fbf16dd3f",
+          "mode": "100644",
+          "blob": "f7e8fe4c3b0f9fc86e31b3bec5aa2d646ef6128e"
+        },
+        "supabase/migrations/20261013000500_ediel_h_original_identity_guard.sql": {
+          "sha256": "f5adfe1d10d12f03ad71d534138b764a88ee3fb22fa8e4b1c228b91d8d90b8bc",
+          "receipt": "850b880bd4754d9bb61d85e9a5ef477e0b6b1f2c",
+          "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+          "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+          "mode": "100644",
+          "blob": "427e3a6f66c8d40e8c6fa4a677f385a0dd81162a"
+        },
+        "supabase/migrations/20261013001000_ediel_registered_guard_priority.sql": {
+          "sha256": "d6b3ba507febb1845c7be79437585b52c3654e2534aa5c1fb194c4932f2af193",
+          "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d",
+          "source_head": "9e12b1163075278b2b0170c9c40f76ee840abb5e",
+          "source_tree": "c253a0ee501bdc03f99ff37724d725bde98af569",
+          "mode": "100644",
+          "blob": "63161664ec268d17b4504d4f6e5dacdf8a2874a2"
+        },
+        "supabase/migrations/20261013023000_admin_context_current_permission_deny.sql": {
+          "sha256": "7df4dc9d9f3023ba9a05f9066837a4bfd8bfe058d4dc58fc74a0d839c14b40a5",
+          "receipt": "b89fb10a256c149938daaa36cb00c19cd9fe121a",
+          "source_head": "30985a79fa99a75a17bae6d3b6352b42a4d0a4e9",
+          "source_tree": "8772bfd7faad43efe5334ae622bb4094b3fe8401",
+          "mode": "100644",
+          "blob": "53ca00ead9debe1ae4b05e443dc000b660534025"
+        },
+        "supabase/migrations/20261013040000_ops_api_contract_retention_guard_forward.sql": {
+          "sha256": "da2b84e931d6e81eae24786d379758fe66bd2b0bb16d5ed1f79105caadb5c67e",
+          "receipt": "22aa9981bd3a7f7c7b56195a5623ad5cd12eb788",
+          "source_head": "8e49a32abc30b4acf4f76bd377fe3d5f5a2b526e",
+          "source_tree": "ea2d8254926c11acbd7b684f8f46c0e4d353d2c6",
+          "mode": "100644",
+          "blob": "41f78744285483fc4b6076d35cb3501a6b1d2127"
+        }
+      }
+    },
+    "atomic_input_scope": "CANONICAL_795_CURRENT51_COMPLETE_EMPTY_ISOLATED_INPUT_ONLY; P2_POPULATED_PARTIAL_LEGACY_UPGRADE_OPEN",
+    "producer_stage": "PREPARED_SOURCE_ONLY_REQUIRES_FRESH_ROOT_V2_PRODUCER"
   }
 }

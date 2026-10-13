@@ -95,7 +95,7 @@ jobs:
 
           manifest = json.loads(pathlib.Path('scripts/supabase-types-manifest.json').read_text())
           pending = manifest.get('pending_joint_c3_capture', {})
-          epoch = 'gridex-C2-joint-C3-GEN-20261013-v1'
+          epoch = 'gridex-C2-joint-C3-GEN-20261013-v2'
           own_branch = os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-joint-c3-20261013', 'codex/c2-gen-esco-01a131d2')
           primary = own_branch and manifest.get('composition_capture_pending') is True and pending.get('input_epoch') == epoch
           corroboration = (own_branch and manifest.get('composition_capture_pending') is False
@@ -158,7 +158,7 @@ jobs:
                            '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md']
               refs.update({'file-' + hashlib.sha256(path.encode()).hexdigest(): writer for path in own_files})
               for path, expected in pending['portable_source_inputs'].items():
-                  if inputs[path]['sha256'] != expected['sha256']:
+                  if inputs[path]['sha256'] != expected['sha256'] or inputs[path]['mode'] != expected['mode']:
                       raise SystemExit('capture_portable_source_mismatch: ' + path)
                   refs['file-' + hashlib.sha256(path.encode()).hexdigest()] = expected['receipt']
               for resource, expected in sorted(refs.items()):
@@ -168,7 +168,8 @@ jobs:
               receipt = json.loads(commit['message'])
               base = pending['base']
               required = ('protocol', 'packet', 'agent', 'branch', 'checkpoint', 'ids', 'files',
-                          'base', 'createdAt', 'nextAction', 'inputEpoch')
+                          'base', 'createdAt', 'nextAction', 'inputEpoch',
+                          'sources', 'preparedSourceHead', 'preparedSourceTree')
               if any(key not in receipt for key in required):
                   raise SystemExit('capture_primary_producer_receipt_incomplete')
               from datetime import datetime
@@ -185,6 +186,15 @@ jobs:
                   or [parent['sha'] for parent in commit['parents']] != [base]
                   or commit['tree']['sha'] != api('git/commits/' + base)['tree']['sha']):
                   raise SystemExit('capture_primary_producer_protocol_mismatch')
+              if (receipt['sources'] != pending['producer_sources']
+                  or pending['portable_source_inputs'] != receipt['sources']['immutableSourceInputs']):
+                  raise SystemExit('capture_primary_producer_sources_mismatch')
+              prepared_head, prepared_tree = receipt['preparedSourceHead'], receipt['preparedSourceTree']
+              if not all(isinstance(value, str) and re.fullmatch(r'[0-9a-f]{40}', value) for value in (prepared_head, prepared_tree)):
+                  raise SystemExit('capture_primary_prepared_source_not_bound')
+              prepared_commit = api('git/commits/' + prepared_head)
+              if prepared_commit.get('sha') != prepared_head or prepared_commit.get('tree', {}).get('sha') != prepared_tree:
+                  raise SystemExit('capture_primary_prepared_source_not_bound')
               source_head = os.environ['CAPTURE_CHECKOUT_SHA']
               comparison = api('compare/' + base + '...' + source_head)
               expected_compare_url = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/compare/' + base + '...' + source_head
@@ -194,9 +204,20 @@ jobs:
                   or comparison.get('url') != expected_compare_url
                   or (comparison['status'] == 'identical' and source_head != base)):
                   raise SystemExit('capture_primary_source_ancestry_unqualified')
+              binding = api('compare/' + prepared_head + '...' + source_head)
+              expected_binding_url = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/compare/' + prepared_head + '...' + source_head
+              allowed_binding_paths = {'scripts/supabase-types-manifest.json', '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md'}
+              if (binding.get('status') != 'ahead' or binding.get('base_commit', {}).get('sha') != prepared_head
+                  or binding.get('merge_base_commit', {}).get('sha') != prepared_head
+                  or binding.get('url') != expected_binding_url
+                  or {file['filename'] for file in binding.get('files', [])} != allowed_binding_paths
+                  or any(file.get('status') != 'modified' for file in binding.get('files', []))):
+                  raise SystemExit('capture_primary_final_binding_scope_unqualified')
               custody = {'mode': 'owned_primary', 'agent': owner, 'writer_receipt': writer,
                          'producer_receipt': producer, 'input_epoch': pending['input_epoch'],
-                         'producer_checked': True, 'refs_get_match': refs}
+                         'producer_checked': True, 'refs_get_match': refs,
+                         'prepared_source_head': prepared_head, 'prepared_source_tree': prepared_tree,
+                         'producer_sources': receipt['sources']}
           state = {'epoch_attestation_enabled': True, 'checkout_sha': os.environ['CAPTURE_CHECKOUT_SHA'],
                    'checkout_tree': os.environ['CAPTURE_CHECKOUT_TREE'], 'tracked_inputs': inputs,
                    'migration_directory': directory(pathlib.Path('supabase/migrations')),
