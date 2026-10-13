@@ -238,3 +238,88 @@ Declared finite original ediel-helper-20261013-sc031-mutation-summary.json SHA25
   }
 ]
 ```
+
+Two independent fresh noncoauthor final reviewers APPROVE bounded component exactsourcefreeze4e4d538cec66d0f101fb3422d5890588d8832dd2/treebaa91550b30651f9f6059c1e692bee72b3e1467f/baseefed/dc439,0actionablefindings. Neither authored code/tests/fixtures/proof inputs nor consulted the other; no repeated healthy testexecution or duplicatecollector. PeerA reportSHA9851a7388dac09f178ab985152576db48e74976e594fd618439cdba304900559, peerB reportSHAf9760848bb43edd6eb382a25327243db8dfb25f70313de0bbb1e28ca2fcfd3cf. ROOT read both fullreports. Both traced realproductionpolicy/renderer/serializertokenizer, literalSC031 outboundprohibition, positive/nonemptyL-LK tuples, qualified structuredabsencechecks/scalarandregistercanonicalrefusals/ITcontrast/immutability/throwingIO and exactauthor16PASS/mutationhashes. Approval is partialoutboundtest/documentation SOURCE only; no wholeSC031/sourceauthority/physicalDB/ACK/native/CI/merge credit.
+
+This final append changes only owncheckpoint from their reviewedsourcefreeze; testsource7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d and allruntime/fixtures/frozen/ledger/evidence remain exact. Both peers will bind the checkpoint-only delta to finalhead/tree before public READY. Newtest path remains ownaa4 and paused for edits afterfinalbinding. All workflowpushpredicates parsed: main-only or distinctagent/release-certification branch; no automaticpushproducer matches ownbranch. Therefore one ordinary non-PR branch publication is allowed within ownscope and does not create runtimefeedback. Any laterPR/currentmandatorynativepublication still requires existingowner producercoordination. Next: publish exactpublicsource/READY on766 and offer bounded newfilepostimage+source/applicability for existingSC031 correction owner adoption; no ledger/wholeID/producer handoff inferred. Pending oldparser/F-G/SC039/publication questions are not repeated or bypassed.
+
+Preserved independent final reviewer A original SHA2569851a7388dac09f178ab985152576db48e74976e594fd618439cdba304900559:
+
+````markdown
+# Independent final review A — SC-031 outbound serializer component
+
+Verdict: **APPROVE bounded component**. No actionable introduced defect found. This does not approve whole SC-031, source authorization, production/native delivery, CI or merge.
+
+Reviewer `/root/sc031_outbound_peer_a` is an independent noncoauthor. I authored no code, tests, fixtures, proof design, original execution evidence or checkpoint for this candidate. My only write is this report under `/tmp`.
+
+Exact reviewed candidate: `4e4d538cec66d0f101fb3422d5890588d8832dd2`; tree `baa91550b30651f9f6059c1e692bee72b3e1467f`. Source base `efed3683115c06d1925f8b80c05c801a54db9885`; tree `dc439c2e017a9633471db53919b745f587abb67b`. Actual immediate candidate parent is `809fd17b8b6330b61c00d653f83215ff57cdbd9a`; do not conflate it with source base. Diff from actual base contains only the unique new test and author checkpoint; no production, frozen requirements or ledger changes. New test SHA256 `7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d`.
+
+## Requirements and actual implementation inspected
+
+Frozen SC-031 expected effect: “Ingen negativ APERAK enbart för dessa extrauppgifter; uppgifterna påverkar inte affärsdata.” Its prohibited effect: “Mottagningstoleransen innebär inte att den egna byggaren ska börja skicka dessa uppgifter.” P-02 requires inbound ignored business projection and retained raw payload. This candidate asserts a bounded part of the prohibited effect, without pretending to assert the inbound effects.
+
+I independently read the full 140-line test, real `renderProdat` production policy and failure path, Z01 builder/profileRenderer, immutable PRODAT26A matrix, register policy, actual serializer/envelope adapter and tokenizer structured access. Matrix Z01 cells exclude 213/QTY31, 214/CCI Z02, 218/CCI Z05 and 224/RFF MG. Production policy direction is outbound; inbound register ignore remains distinct. Engine aggregates field issues and throws `ProdatRenderValidationError` before returning on production errors.
+
+Both L/Z22 and LK/Z23 use real production renderer → serializer → tokenizer. Positive assertions retain message/version, own document reference, physical LIN/object agency, date, LI reference, reason, UD, optional IT and own identity. Structured NAD data retains literal `Synthetic RFF+MG User`; qualifier absence assertions therefore cannot mistake a name string for a forbidden reference. Positive IT and absent-IT contrast prevent satisfying the proof by dropping every optional party or dropping UD. Absent IT is the deliberately absent installation address branch, consistent with the real optional parent logic.
+
+For each L/LK profile, explicit scalar and register-array annualConsumption, meterConstant and meterDigitCount are exercised. Tests require the actual production exception class plus canonical forbidden-field issue, so unrelated failures or mocked output cannot satisfy them. Caller input equality is asserted after positive rendering and each refusal. Real renderer/serializer/tokenizer are not mocked. DB `from`/`rpc` and fetch throw; no actual backend, source authority or transport is claimed. The proof's synthetic dependency selections are declared; their source strings are not treated as authorization.
+
+## Evidence qualification
+
+Read and SHA256-verified author original final result `/tmp/ediel-helper-20261013-sc031-proof-final-run.json`: `d564ad41fa5ac47dcf7128ff1f56dbbb072f88e29e0b925cfa5df95a6dc3d5e0`, 16 total / 16 passed / zero failed, success=true. Read ordinary Vitest config: @ alias resolves actual worktree and real source; single test include, Node environment, throwing network setup. Read targeted TypeScript config and empty type output; author records typecheck exit 0. I did not independently execute test/typecheck, per instruction to avoid repeating healthy execution without an unresolved concern.
+
+Read mutation summary `/tmp/ediel-helper-20261013-sc031-mutation-summary.json`, SHA256 `cfbbc5b051753bec3c14cbe24526793b68e4fe83652c761cd6e9423dd5a313f2`; independently verified all six original result hashes against summary. RFFMG/QTY31/CCI Z02/CCI Z05 appended after engine validation each produce the two expected positive-test failures; removed IT produces two positive-test failures; disabled production refusal produces twelve refusal-test failures. Inspected isolated mutation alias and source; mutations are temporary engine copies, not changed production files. These controls show absence/refusal assertions are sensitive to the relevant violations. This is read evidence of author execution, not my fresh execution.
+
+Fresh independently executed checks: exact Git head/tree/base/parent, clean `git status --porcelain`, complete two-file diff classification, test hash and `git diff --check` (exit 0). No native/backend/GEN/capture/original/private inputs, refs or shared files touched.
+
+## Limitations and handoff
+
+This is component-only regression proof over declared synthetic input. It does not call source-authoritative prepare/finalize/storage/approval, assert real saved wire or ACKs, add RFFMG assertions to the separate actual supplier consumer callpath, prove inbound business invariance or whole SC-031. No ledger promotion or approval-count credit is supported by this review. No new publication gate is invented. Existing producer/serial owner coordination remains necessary before a PR or adoption that triggers reserved workflows. Approval binds only the exact candidate/base/tree above; material source changes require qualified changed-source review.
+
+````
+
+Preserved independent final reviewer B original SHA256f9760848bb43edd6eb382a25327243db8dfb25f70313de0bbb1e28ca2fcfd3cf:
+
+````markdown
+# Independent final review B — SC-031 outbound serializer component
+
+Verdict: APPROVE the bounded test/documentation component; no actionable findings. This is not whole SC-031 approval, fresh native/backend/CI evidence, a publication authorization, or a merge authorization.
+
+Reviewed identity: `/root/sc031_outbound_peer_b`. I did not author code, tests, fixtures, or proof inputs for this version and did not consult peer A. Read-only review; sole output is this unique temporary report. Skill routing: code-review, differential-review (focused low-risk test/doc delta), verification-before-completion. Database/security broad-audit, UI/performance, deployment, writer/producer, and native/GEN skills are outside the bounded review scope.
+
+## Exact binding
+
+- Head: `4e4d538cec66d0f101fb3422d5890588d8832dd2`.
+- Tree: `baa91550b30651f9f6059c1e692bee72b3e1467f`.
+- Actual base: `efed3683115c06d1925f8b80c05c801a54db9885`.
+- Base tree: `dc439c2e017a9633471db53919b745f587abb67b`.
+- Worktree: `/workspace/codex-ediel-helper-20261013-358d1615`; clean status observed.
+- New test source SHA256: `7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d`.
+- Relative delta from base: unique checkpoint and unique 140-line test only. No product/runtime/policy, frozen requirements, fixture, workflow, or ledger change.
+
+## Literal requirement and scope
+
+Frozen SC-031: given valid syntax containing extra information to ignore, expected no negative APERAK solely for the extra information and no business-data effects; prohibited: “Mottagningstoleransen innebär inte att den egna byggaren ska börja skicka dessa uppgifter.” Frozen P-02 requires ignoring business projection while retaining raw payload and distinguishing genuine syntax excess.
+
+This packet proves a bounded part of the prohibition using Z01 L/Z22 and LK/Z23. The current matrix forbids Z01 field 213 (`QTY+31`), 214 (`CCI++Z02/CAV`), 218 (`CCI++Z05/CAV`) and 224 (`RFF+MG`). The packet neither claims intake/APERAK/business projection nor updates SC-031 status. Its explicit finite synthetic source disclaimer and lack of whole-contract coverage promotion are consistent with those limits.
+
+## Independent review findings
+
+1. Real call path is exercised: `renderProdat` in production mode resolves outbound canonical policy, then the actual Z01 wrapper/profileRenderer and register renderer, and passes actual business segments through `serializeEdifact` / EnvelopeCodec and `tokenizeEdifact` / `segmentComposite`. There is no renderer/serializer/tokenizer mock and no implementation source-string assertion.
+2. Positive controls make an empty or invalid wire insufficient: actual UNH version, Z01 BGM/document, LIN point/agency, LI reference, start date, reason, end-user, and optional installation are asserted for both variants. Separate absent-installation control preserves end user. Dependent address and invoicee facts have explicit finite own selections, not a claim of persisted source authority. The valid baseline uses no erroneous broad businessContext/type cast.
+3. Qualifier-level absence checks operate on decoded structured wire. The deliberately literal `RFF+MG` customer name survives as party data; release-aware segmentComposite does not invent an RFF segment from it. Thus no escaped-literal false positive or plain substring oracle.
+4. Each scalar/register forbidden-field example must throw the actual `ProdatRenderValidationError` with an error-level `FIELD_MATRIX_FORBIDDEN_FIELD_PRESENT`. Generic AssertionError, database/network failures, or other catch-all refusal cannot satisfy that oracle. The positive baseline has zero error issues, so an invalid common context cannot silently explain all refusal cases.
+5. Caller input equality is checked after positive rendering and refusal. Test setup only declares placeholder environment values and throwing I/O; it does not mock production policy. Product policy and frozen source remain byte-identical to base.
+6. Test/header/checkpoint distinguish finite serializer proofs from source authority, DB/outbox, physical ACKs, native and whole-contract acceptance. No mandatory gate is removed or invented; no ledger credit is claimed. Existing producer and serial owner retain exact-candidate duties.
+
+## Verification evidence inspected
+
+I inspected the actual saved author execution outputs instead of repeating identical tests. Author final result `/tmp/ediel-helper-20261013-sc031-proof-final-run.json` has success true, 16 total / 16 passed / 0 failed, exactly the new test file; SHA256 `d564ad41fa5ac47dcf7128ff1f56dbbb072f88e29e0b925cfa5df95a6dc3d5e0`. The targeted TypeScript config includes the actual new file/import closure with noEmit/incremental false; preserved type output is empty and author checkpoint records exit 0. I did not run a fresh TypeScript invocation and do not assert independent compilation.
+
+I independently checked all six saved mutant result hashes against the mutation summary: injected RFF+MG, QTY+31, CCI++Z02, CCI++Z05, and removal of legitimate installation each fail exactly the two positive variant cases (14 pass / 2 fail); disabled production refusal fails all 12 negative cases (4 pass / 12 fail). These support oracle sensitivity without changing source tree. No current CI/native/backend/capture/original execution was performed by this reviewer.
+
+## Delivery boundary
+
+No actionable finding blocks this bounded final source. Owner still must preserve publication restrictions, bind any mandatory public CI/current source gates and both independent reviews to the eventual exact delivery candidate, and coordinate normal serial merge. A head/tree or test-source change invalidates this final-source approval pending delta review. The full SC-031 inbound business-effects correction and genuine integration/ACK qualification are outside this packet.
+
+````
