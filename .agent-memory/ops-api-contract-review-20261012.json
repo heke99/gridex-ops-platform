@@ -3,21 +3,21 @@
   "baseline": "f36dbba1",
   "branch": "codex/ops-api-contract-review-20261012",
   "audit": "quality/audits/2026-10-12-ops-api-contracts/README.md",
-  "status": "APPLICATION_DEPLOYED_DATABASE_PROTECTED_OWNER_AND_REPLAY_BLOCKS_REMAIN",
+  "status": "AUTH_FREE_A6EA_TWO_SOURCE_PEERS_CLEAR_RUNTIME_STORAGE_HOLD_APP_D899_READY",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
   "native_writes": 71,
   "business_rpc_invocations": 0,
-  "deployments": 1,
+  "deployments": 2,
   "native_blockers": [
-    "Actual postgres cannot grant Auth schemaUSAGE/usersUPDATE or assume protected owners.001 requires auth owner supabase_admin;002 requires auth.users owner supabase_auth_admin.",
-    "Main qualified installer and all six semantic inputs remain NOT_APPLIED; transport contains code only.",
+    "Historical owner packet failed closed as postgres NOSUPER. Direct RET Auth grants are source-refuted prerequisites; replacement Auth-free atomic packet is on HOLD while complete private cross-role capability closure is qualified.",
+    "Auth-free eight-input atomic installer NOT_APPLIED. Historical1c787 first COMMIT passed but replay refused at three expected catalog hashes using inconsistent schema qualification. Currenta6ea corrects those hashes and comments, has two source approvals and same-DB replay COMMIT2.997s; full catalog comparison, fresh-cluster first installation and final negative rollback proof remain pending, with fresh-cluster storage blocked.",
     "Staff provider/client/binding aggregates all0 at16:47:42UTC; authenticated Staff E2E NOT_QUALIFIED.",
     "Sole C2 canonical schema/type capture pending actual module and semantic installation.",
     "Genuine clean/upgrade replay stops at published quote guard: canonical complete007d versus allowed native-onlyprebody4daec. Historical applied SQL/checksum not rewritten.",
     "Canonical type-tail metadata is stale relative to actual own new forwards; sole GEN producer follow-up remains pending."
   ],
-  "documentation_version": "2026-10-12.1 published and exact-source HTTP verified",
+  "documentation_version": "2026-10-12.1 frozen published specifications; exact-source HTTP verification was historical0256 deployment. Currentd899 frozen specs byte-identical in source, deploymentREADY verified by metadata; freshHTTP blocked and publicfrontendDBbindingNOTVERIFIED.",
   "wire_version": "2026-10-09.1",
   "onboarding_wire_version": "2026-10-05.2",
   "old_frozen_docs": "preserved byte-identical; no version-header admission gate",
@@ -30,22 +30,20 @@
     "No all-native or provider end-to-end readiness claim",
     "No canonical schema/type GEN or active Ediel claims/shared memory writes"
   ],
-  "next_action": "User/platform protected Auth owners execute exact001/002; verify capabilities then apply qualified main+six actualsemantic inputs. Resolve published quote clean-replay compatibility and sole-C2 GEN tail without source-history rewrite. Integrate branch-held API fixes before a subsequent main deployment.",
-  "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
-  "review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
-  "integrated_main": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "next_action": "Final a6ea comment-corrected atomic8 has two independent source approvals. Runtime qualification waits for isolated fixture disk capacity; automatic review rejected disposal of owned older fixture container/volume, not attempted. Preserve all evidence and source, seek safer local checkpoint capacity first. Then genuine final cold first/replay/restaged-main/negative full rollback and two proof reviews; freshOPS516ledger/stages/roles/Authpreflight/rootapply. No actualmodule or newAuthgrant installed. APPD899READY.",
+  "source_head": "d899ac6b36d754aa784333ed4da07702e47619e0",
+  "integrated_main": "4e52854ecc19f0bd1266825cb114c19a3e983f27",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
   "independent_review": "Two noncoauthor peers confirm no remaining introduced P1/P2 in reviewed final source",
   "verification_record": "quality/audits/2026-10-12-ops-api-contracts/verification.json",
-  "fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
   "local_verification": "Build/app/scripts/tests typechecks/lint/docs/compatibility/migration/RBAC/static source gates passed as recorded. Initial fullunit3fixturefailures corrected and5files31checks passed; entire suite not rerun. Local checks are not live/native proof.",
-  "latest_native_preflight": "2026-10-13 16:56:28 UTC:506 ledger entries;51 source parts exactbacf; no module/origin/atomic registration; required retention Auth rights missing",
-  "handover": "Application source0256 deployed toapp.gridex.se byexplicituserinstruction. Realbuild281.14s/twoindependentsourceapprovals/VercelREADY/exactthreeHTTPspecs/wire09.1 preserved. No SQLinstallation/GENcapture/mainmerge performed. PR794 stilldraft; latermainrelease mustintegrate APIchanges to retain them.",
+  "latest_native_preflight": "2026-10-13 20:48:32UTC READ ONLY:516 ledger rows (four additional admin/quality_company_keys foreign migrations204424/204613/204620/204627 since512);51rawparts6628349bytes/bacf intact; postgresNOSUPER, RETAuthU/SELECT/UPDATEfalse, PGRETroleinheritfalse, newactorhelperabsent. Ownwrites71unchanged.",
+  "handover": "Application d899ac6b deployed to OPS production READY20:11:57.854UTC, integrated latest main4e52854e, realbuild175.12s and two independent integration-source reviews. No new module SQL/GEN/mainmerge performed. Fresh portal HTTP fetch auto-review rejected; current public frontend DB binding NOT_VERIFIED. PR794 draft; future main release must integrate branch API corrections.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "0256dddc21691726f4e63bd0dc34df628077b8c9",
+  "current_source_head": "d899ac6b36d754aa784333ed4da07702e47619e0",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
-  "migration_scope": "1220sourcefiles/1123versiongroups checksums verified after source alignment of52actual transport migrations and actor20261013151412. The unapplied final CLI loader is parked outside the active migration queue until actual timestamp alignment; no false successful registration.",
-  "gen_owner": "No competing capture. Historical producer03d observation retained; current existing main d798 canonicalGEN outputs imported byte-identically. Fresh module/semantic capture requires actual owningproducer follow-up.",
+  "migration_scope": "Current integrated main source1222files/1125versiongroups; historical1220/1123 refers preintegration source. Unapplied CLI candidate remains outside active queue; no false successful registration.",
+  "gen_owner": "No competing capture. Latest existing main4e52854e canonical GEN files imported byte-identically. Fresh module/semantic capture requires actual owning producer follow-up.",
   "native_applied_migrations": [
     {
       "version": "20261012235455",
@@ -521,10 +519,12 @@
     "negative_cases": 14,
     "independent_final_proof_reviews": 2,
     "actual_applied": false,
-    "protected_owner_connection_available": false
+    "protected_owner_connection_available": false,
+    "status": "HISTORICAL_CONDITIONAL_AUTH_GRANTED_FIXTURE_NOT_CURRENT_AUTH_FREE_PROOF",
+    "source_applicability": "Preserved541e exact old source only; no current a6ea runtime qualification or mandatory Auth grants implied."
   },
   "official_cli_qualified_pending_receipt": "quality/audits/2026-10-12-ops-api-contracts/qualified-installer-cli-pending-receipt.json",
-  "connector_diagnosis_status": "Historicaleaa3connector authentication-renewal responses remain causeundetermined. Qualifiedsourcefa0 separately fixes proven actual-role gaps, with authorized protected-owner prerequisites still unavailable. No identicallive retry.",
+  "connector_diagnosis_status": "Historical eaa three authentication-renewal responses remain cause undetermined. Older fa0 ordinary-role corrections and protected-owner prerequisites are superseded; direct RET Auth grants source-refuted as mandatory. Current a6ea Auth-free candidate awaits final isolated runtime proof; no identical live retry.",
   "application_release": {
     "source_commit": "0256dddc21691726f4e63bd0dc34df628077b8c9",
     "deployment_id": "dpl_2no3yiQFfC4DXdmztxeK8de4tLQo",
@@ -533,7 +533,185 @@
     "public_specs_match_source": true,
     "authenticated_business_E2E_qualified": false,
     "sql_migrations_run_by_deploy": false,
-    "proof": "quality/audits/2026-10-12-ops-api-contracts/deployment-source-qualification.json"
+    "proof": "quality/audits/2026-10-12-ops-api-contracts/deployment-source-qualification.json",
+    "status": "HISTORICAL_0256_REPLACED_BY_MAIN4E_THEN_CURRENT_D899"
   },
-  "latest_integrated_migration_integrity": "1222 sourcefiles/1125 groups; two existing main-owned migrations and canonical outputs imported byte-identically from d798, no competing capture"
+  "latest_integrated_migration_integrity": "Current integration4e52854e canonical GEN/type/source artifacts imported byte-identically, no competing capture;1222files/1125groups observed at integration; no new active Authfree CLI migration registered.",
+  "auth_owner_prerequisite_reassessment": {
+    "user_error": "42501 ops_protected_auth_owner_execution_required executing001aspostgres",
+    "actual_postgres_rolsuper": false,
+    "original_owner_files_lines_each": 26,
+    "original_001_002_executed_successfully": false,
+    "source_RET_owned_functions": 185,
+    "RET_direct_Auth_references": 0,
+    "source_Auth_access": "Canonical postgres-owned SECDEF helper boundaries; already in reviewed1205source, currentlyabsentnative and created bymodule.",
+    "dynamic_Auth_targets": 0,
+    "source_reviewers": [
+      "/root/final_api_source_review",
+      "/root/native_forward_independent_review"
+    ],
+    "former_mandatory_Auth_grants_requirement": "Source-refuted overconstraint, not a required business privilege; proposed narrower epoch under qualification.",
+    "additional_confirmed_fix": "Historical RET EXEC-only private delegate idea superseded; canonical private delegate RET ownership restoration is source-cleared.",
+    "new_actual_database_writes": 0,
+    "auth_free_CLI_candidate": "20261013185044_ops_api_auth_free_atomic_reconciliation.sql",
+    "native_apply_status": "NOT_APPLIED",
+    "replacement_private_owner_correction": "Blob revoke private alias canonical owner restored to RET, unchanged body/security; initial RET EXEC-only proposal invalid after nested owner context review and withdrawn.",
+    "private_source_consumer_closure": "Five private RET predicates require narrow postgres EXEC; effective private schemaUSAGE verified true. No APP/Auth/table privilege widening.",
+    "relation_source_owner_correction": {
+      "confirmed": true,
+      "table_count": 7,
+      "view_count": 18,
+      "total": 25,
+      "cause": "Original source-retention ownership omitted in additive extraction; privateRET call/table/dynamic paths would42501",
+      "fix": "Restore only canonical source RET owners; preserve definitions/history/application ACLs",
+      "actual_applied": false
+    },
+    "superseded_intermediate_candidates": [
+      "8c85/d0 privatealiaswrongsecondhopowner",
+      "e54a/893 fiveprivatepredicatesmissingPGEXEC",
+      "574315/20098525RETrelationownersmissing"
+    ],
+    "four_canonical_finance_grants": {
+      "tables": [
+        "public.customer_invoice_lines",
+        "public.invoice_dead_letters",
+        "public.portfolio_settlement_audit_log",
+        "public.portfolio_settlement_invoice_bindings"
+      ],
+      "grantee": "gridex_ediel_retention_owner",
+      "privileges": [
+        "SELECT",
+        "UPDATE"
+      ],
+      "canonical_source_version": "20261001070000",
+      "reason": "81fixedcatalog target dynamicFORSHARE and source-copy purge paths; omitted canonical loop-generated grants",
+      "actual_applied": false,
+      "app_auth_grants_added": false
+    },
+    "finance_trigger_adapter_closure": {
+      "status": "TWO_SOURCE_PEERS_CLEAR_COMPOSED_NOT_APPLIED",
+      "canonical_version": "20261001070000",
+      "bindings": 5,
+      "guards": [
+        "portfolio audit append-only",
+        "portfolio invoice snapshot immutability",
+        "billing_underlays updated_at setter",
+        "partner_exports updated_at setter",
+        "billing export run items revision immutability"
+      ],
+      "fix": "Private source-equivalent exact qualified-transition clones; preserve original public function bodies, old trigger names/kinds/attributes and all ordinary immutable behavior",
+      "source_author": "events_serialization_fix",
+      "atomic_composer": "native_release_dependency_map",
+      "actual_applied": false
+    },
+    "ordinary_invoker_trigger_permission_regression": {
+      "confirmed": true,
+      "existing_finance_wrappers": 6,
+      "invoker_count": 5,
+      "trigger_role": "Actual service_role direct invoice export item UPDATE paths",
+      "cause": "Unconditional call to RET/postgres-only finance predicate before original guard body",
+      "fix": "Nested effective EXEC capability check before private predicate; preserve original guard remainder, owner, security, configuration and application ACLs",
+      "source_bodies_change": 6,
+      "other_source_CREATE_bodies_preserved": 1186,
+      "scope_census": "Complete source/role consumer census reviewed; all19 source invoker contexts classified and 19total bodychanges exact. Runtime cold/negative qualification pending.",
+      "actual_applied": false
+    },
+    "current_authority_clock_correction": {
+      "status": "TWO_SOURCE_PEERS_CLEAR_COMPOSED_NOT_APPLIED",
+      "functions": 13,
+      "receipt_helpers": 5,
+      "permission_helpers": 1,
+      "current_deadline_helpers": 2,
+      "mutation_gateways": 5,
+      "root_accepted_scope": true,
+      "source_author": "retention_deadline_source_review",
+      "planned_fold": "Composed effective source165a/currenta6ea atomic8; pending final runtime/native qualification",
+      "original_future_and_history_preserved": "Nativeperiods/current_date/legalhistory/createdAt/locked_at frozen timestamps",
+      "actual_applied": false
+    }
+  },
+  "latest_foreign_native_additions": {
+    "count_since_dated506": 10,
+    "count_since_dated512": 4,
+    "latest_four_names": [
+      "admin_company_unique_keys_finalize_issue",
+      "quality_company_keys_finalize_alert",
+      "quality_company_keys_name_issues_index",
+      "quality_company_keys_name_alerts_index"
+    ],
+    "latest_version": "20261013204627",
+    "own_native_writes_unchanged": 71,
+    "global_ledger_count": 516,
+    "captured_at": "2026-10-13 20:48:32UTC",
+    "receipt": "/tmp/gridex-api-review/auth-free-root-final-native-preflight.json"
+  },
+  "latest_application_deployment": {
+    "status": "READY",
+    "source_commit": "d899ac6b36d754aa784333ed4da07702e47619e0",
+    "source_tree": "523400f3d264e20ee16c732992b5b96b47f60944",
+    "deployment_id": "dpl_4a6TRcdn9RbV5adxEpWHUBWDg7Ym",
+    "replaces_foreign_main": "4e52854ecc19f0bd1266825cb114c19a3e983f27",
+    "prior_0256_replaced": true,
+    "two_independent_delta_reviews": true,
+    "genuine_build_seconds": 175.12,
+    "build_exit_code": 0,
+    "build_inputs": 4255,
+    "build_inputs_changed": 0,
+    "actual_external_build_connections": false,
+    "ready_at_utc": "2026-10-13T20:11:57.854Z",
+    "routing_alias": "app.gridex.se"
+  },
+  "latest_auth_free_candidate": {
+    "effective_source_sha256": "165abfb6913dfbf07b83843b2b8cb7e905b23b891930a6f1136b0c107c4f3f65",
+    "atomic_sql_sha256": "a6ea15ff597f64fd96641a985b686359c7b2066ae64c8078453c2a3a544cd171",
+    "atomic_bytes": 914539,
+    "manifest_sha256": "aa18776473283f1e54f35ee3be05fbc62a8db712a9723a0939e3392726a4844c",
+    "status": "TWO_SOURCE_PEERS_CLEAR_CURRENT_SAME_DB_REPLAY_PASS_COLD_FIRST_NEGATIVE_STORAGE_HOLD_NOT_APPLIED",
+    "components": 8,
+    "changed_function_bodies": 19,
+    "other_source_CREATE_ASTs_preserved": 1186,
+    "missing_finance_lifecycle_triggers_restored": 4,
+    "actual_applied": false,
+    "derived_z02_sha256": "860cd9df0f952252d3260813b579742aec3667edbde4fc92fd250c11ce76cb8c",
+    "historical_failed6389_first": {
+      "exit_code": 3,
+      "elapsed_seconds": 8.528,
+      "error": "extra_z02_exact_dependency_required: gridex_ediel_retention.record_permission_v1(uuid,uuid,text)",
+      "actual_ops_writes": 0,
+      "rollback_verification": "COMPLETE_CATALOG_ROLES_EDGES_AUTH_ACL_AND_51_SOURCE_PARTS_EXACT",
+      "candidate_sha256": "6389d97c483085241fcc95ef1916f77c7597d3cdb45f483edf4b6790943339ec"
+    },
+    "historical_first_1c787": {
+      "result": "COMMIT",
+      "elapsed_seconds": 5.592,
+      "RET_direct_auth_privileges": false
+    },
+    "current_same_db_replay_a6ea": {
+      "result": "COMMIT",
+      "exit_code": 0,
+      "elapsed_seconds": 2.997,
+      "full_catalog_after_comparison": "PENDING"
+    }
+  },
+  "latest_freshness_compact_sha256": "27037ea36f2c58d64ec53767262ad3e184985f5304ddec6c7ad2c0279fe8e8a0",
+  "auth_free_qualification_latest": {
+    "status": "CURRENT_REPLAY_COMMIT_COLD_FIRST_NEGATIVE_STORAGE_HOLD",
+    "first_candidate_sha256": "1c7879fd7e99c5b508a26cd53a73cf07fd720cb075a5fde86647034ab664e314",
+    "first_engine_result": "COMMIT 5.592s; no new RET Auth privileges",
+    "actual_new_module_installed": false,
+    "current_source_sha256": "a6ea15ff597f64fd96641a985b686359c7b2066ae64c8078453c2a3a544cd171",
+    "historical_same_db_replay_1c787": "REFUSED 0.592s; three FK/history-trigger shape hashes differ solely by search_path deparsing",
+    "current_same_db_replay_a6ea": "COMMIT2.997s; installed full-catalog comparison pending"
+  },
+  "historical_foreign_native_additions_1911": {
+    "count": 6,
+    "names": "quality_company_keys_expand_issues_index, quality_company_keys_expand_alerts_index, quality_company_keys_writer_1 through writer_4",
+    "latest_version": "20261013183532",
+    "own_native_writes_unchanged": 71,
+    "global_ledger_count": 512,
+    "receipt": "/tmp/gridex-api-review/auth-free-native-root-latest-read.json"
+  },
+  "historical_source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
+  "historical_review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
+  "historical_fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509"
 }
