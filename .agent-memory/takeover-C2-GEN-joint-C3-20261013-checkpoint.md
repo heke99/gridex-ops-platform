@@ -74,3 +74,21 @@ Blocker/next: prepared source ready for ROOT's fresh full producer. Bind only
 its SHA inside pending manifest (and checkpoint state), preserve every other
 source byte, then obtain two independent final capture-head reviews before one
 publish. Prepared-source and final-source commits are distinct receipts.
+
+
+## Final source binding — no publication or execution
+
+Prepared source53b8f88003855cfba18e101a6d128be13ad58641/tree4d7f35ca5da7f16b9d3bb9e765c306a621187c1d
+has parents currentmainc007 and authoritative795725. ROOT fresh producer
+8391306cda11e7db8fe23e5acc640a4805305f52/CLAIM6136907028 has the complete
+required protocol fields, actualmain2cd8 tree and singlec007 parent. Actual
+producer GET_MATCH verified before binding. Only pending producer SHA and this
+owned checkpoint phase change after prepared53b; every other source byte/mode
+remains exact. Old099 origin/RAW3 and pending full795 manifest inverse persist.
+
+Next: freeze the distinct final capture head/tree and verify all17 required
+refs, then obtain both independent noncoauthor exact final-source reviews.
+No push/capture/backend/native/GEN occurs before ROOT's explicit reviewed GO.
+Producer839 remains held through primary original output qualification,
+postimport successor and ordinary corroboration qualification; FIRST matched
+release/two404 precedes the next queue. No producer-esco0c or other scope changes.

@@ -16125,6 +16125,7 @@
         "sha256": "3b8875c3e586ddb4b0643bd15630b35e0767868419e81279984b8622cc5ffa7f",
         "receipt": "fe6ac730b3782c01ea30345238c3156ffd5b1c7d"
       }
-    }
+    },
+    "producer_receipt": "8391306cda11e7db8fe23e5acc640a4805305f52"
   }
 }
