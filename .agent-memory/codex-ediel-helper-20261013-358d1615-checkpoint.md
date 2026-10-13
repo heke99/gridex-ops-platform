@@ -6752,3 +6752,218 @@ This is local embedded PostgreSQL with declared mechanical sent-source, legal, p
 No finding requires modifying the frozen proof. Root and execution author remain excluded from independent final reviewer roles. This approval can accompany the bounded evidence handoff to the existing owner; adoption and broader source/CI/contract decisions remain theirs.
 
 `````
+
+
+## 2026-10-13 current EAB follow-through — helper scope only
+
+Actual public PR795 EAB eab659f5d0ebe3b7a084e4701f60ee636b2db771/tree50de06f93e89fc698f06906bebfb49e1ac4b8516/baseactuald798 remains OPEN/unmerged. Main ledger119VERIFIED+204PASSED=323/352 remains actual; no new credit. Owner6151713495 qualified preceding e49 native39PASS+1newPG17catalog-readFAIL, corrected ONLY catalog scalar, two other sourcefinals. Public PG17 correction is current_setting('lc_collate')→qualifiedpg_database.datcollate lookup; all137expectsites/other9858publictuples preserved. Soleowner/collector/GEN3193 still qualifies current native40/corroboration/strict31/gates. Helper never collected current logs/artifacts/native/GEN originals or controlled CI.
+
+Own prior C03 finite proof delivered READY6151786393 on exact publice49. Subsequent a93c independent source/clause map6152111262 links same unchanged current C03 inputs to EAB, preserves four window observations and31=28C05+3C03 limits. This is attributed support, not copied authoring/final/whole credit. Other owner's73TScalendar controls supply their pending plan premise, not our SQL/native proof. No repeated finite run/current clock override/new gate.
+
+Read-only CI support initial18:03:14:42exactheadchecks27SUCCESS11conditionalSKIP4running. Later root metadata transition snapshot /tmp/ediel-helper-20261013-eab-check-transition-1814.json:29SUCCESS11SKIP2running (pr-certificate115454167712,clean-migration-replay115447921695); quality/H now terminalSUCCESS metadata. Current counts UNKNOWN to helper until solecollectorqualification; no invented40/31PASS/current113. Full original readinessJSON remains preserved /tmp/ediel-helper-20261013-pr795-eab-ci-readiness.json SHA6baf896d50c119fdc5b4136b1c7d60855f6884f84465529312f4806ef9dbe4ec. Ordinary mandatory checks/two exactapplicablefinals/normalserialmerge remain required. PR795 attached to this chat.
+
+NEW independent source-applicability sc031_outbound_peer_b: immutable3dff test0158559/SHA7326501 still absent from EAB (offer only), all378dependency tuples plus package/lock/compiler/config/setup equal qualifiede49; consumedchangesEMPTY. Memory-only one-file hypotheticaloverlaya4f82b30ce6eb10e84586e9b8965242216ad573d retainsall9861EABleaves/adds1. No adoption/typecheck/execution/current16PASS or recipientcustody. Ownaa4 file receipt freshly authenticated unchanged; HELD/PAUSED.
+
+Parallel NEW sc031_outbound_peer_a maps literal SC031 expected/prohibited from current publicreceive source and our immutable outgoingoffer, respecting occupied051ec/C1 correction. No decoder writes/extra native chain. This is a bounded remaining-clause map, not repeated unchanged sourcefinal. Current other writers remain retained: correctedSC0377f operation/callers pendingappointment, a93cZ03plan pendingexplicit ruling, 6f94currentC04arrival source frozen privatependingfinals beforeownedZ09SMTPcorrection. No private/retired source, occupiedfiles or unanswered publication transferred.
+
+Next: complete/publicly hand off the SC031 clause map, preserve exact current reports; existing serialowner alone qualifies originals + two remaining gates and actualnormalmerge, then authenticate actual PRstate/orderedparents/tree/ledger. No sharedmemory/baseline/slot/ID/ref/producer write or release.
+
+Original ediel-helper-20261013-pr795-eab-ci-readiness.md — bytes4283 SHA256caa2ba60f96fc41e1b8fd141f82d4fbde4deae98b01934f05595eec331b2696e
+
+`````text
+# PR795 EAB current CI/source readiness
+
+Read-only snapshot **2026-10-13 18:03:14 UTC**. Exact public head `eab659f5d0ebe3b7a084e4701f60ee636b2db771`, tree `50de06f93e89fc698f06906bebfb49e1ac4b8516`, parent `c3dd36d406cd1e1b919c43ba6e145689bb6558c7`; publication6151713495 matches. PR OPEN/non-draft/unmerged/mergeabletrue, mergeable_state=unstable. Base and main remain d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/treee3b6c11677a2b871a128504f1616def7d22dba1e, qualified ledger323.
+
+**42 exact-head checks:27SUCCESS +11conditionalSKIP +4IN_PROGRESS, zeroFAIL.** The remaining current jobs are pr-certificate115454167712, OPS clean-migration-replay115447921695, OPS quality-release-gates115447921643, and z03h-z04h-supplier-native115447921376. pr-certificate is now actually running; it is not waived. Initial17:59 snapshot had26SUCCESS/11SKIP/5running. One refresh followed the observed Z14N terminal transition; no unchanged polling loop.
+
+Current native40 **38441199461/job115447919315**, corroboration **38441199574/job115447920714**, and cancellation31 **38441199573/job115447919805** have COMPLETED/SUCCESS metadata with no failed steps. Case totals/output hashes/full source/restoration/zeroALL remain **UNKNOWN to this scout** until the existing sole collector qualifies originals. No40PASS/31PASS from job success. Existing E49 owner-qualified39oldPASS+1newPG17metadataFAIL stays E49 evidence; current113 is NOT_RUN, and old source2e113 is not relabelled to EAB.
+
+Complete nontruncated public tree comparison gives9860→9861 leaves and exactly **three changed tuples**: existing GEN checkpoint, one new own PG17 checkpoint, and `scripts/ediel-at-z05-supplier-native.test.ts`. All9858 unselected tuples are identical; checkpoint/original contents were not opened. Test line261 is an exact single replacement:
+
+`current_setting('lc_collate')` → `(SELECT datcollate FROM pg_catalog.pg_database WHERE datname=current_database())`.
+
+All137 `expect(` sites and every other test byte are inverse-identical. New test blobcdee7cdf87329b29f0d54bd7cf105cf4c7976996 / SHA2566b18f457c3371f00f11741816b5e66b9c476850ceaf85f205b548e2bab70643a; old blob86633d19e9681023a4cece4c86c83a50436d0fe7 / SHA916e9189ade4ed7a1a77c570bc32a0b5a1eedf8dde14099531378a9924e72377.
+
+Source-side scalar check found no namespace/type/cardinality blocker: public PostgreSQL `REL_17_STABLE/src/include/catalog/pg_database.h:35/72/100` declares datname, datcollate TEXT NOT NULL and UNIQUE(datname). Qualified pg_catalog lookup selects the current database's one catalog row; it observes metadata and does not change locale/function/factory behavior. This source refutation is not a scout execution or independent observation of the actual database value/C1 runtime domain.
+
+Schema/types/fingerprint/replay/manifests/capture/native workflows are exact old/new blobs. The retained owner's1592 generation closure and14 portable input bindings remain source-bound; full tuple retention and unchanged manifest support their preservation, not a newly qualified capture inventory. No additional primary GEN was started by this scout.
+
+Eleven skips retain unchanged exact workflow branch/event/label conditions: schedule/manual/push-only full/runtime/real/nightly, labeled staging/browser/load/soak/ZAP/certificate, approved-label production crawler, and R1-only DB05. EAB PR labels=[] and observed28 workflows are attempt1 pull_request. Skips are not executed PASS. CodeRabbit SUCCESS explicitly reports skipped/manual review; formal PR reviews API returned0. Separate actual-source finals A fdd64a1f…/B cf0bb988… are published in6151713495; retained owner still qualifies actual-proof/current-CI final bindings. Prior branch-protection API403 leaves the protected-required-context list independently UNKNOWN; all ordinary current gates remain mandatory.
+
+Companion JSON preserves the complete check/run/job map, source tuples and scalar inverse. Existing solecollector/76f/GEN3193/serial owner continues terminal proof qualification and four remaining gates before two applicable independent finals and ordinary merge. No new failure cause, acceptance credit, custody action, source edit, CI rerun/cancel/start, log/artifact/original/private input acquisition, backend/native/test execution or self-merge occurred.
+
+`````
+
+Original ediel-helper-20261013-sc031-eab-applicability.json — bytes4118 SHA256a103e34cb13a41937603f0501ab808def9fc1fbabd96a6c19fe9c6e951ed9708
+
+`````text
+{
+  "scope": "INDEPENDENT_READ_ONLY_NEW_PUBLIC_EAB_SC031_SOURCE_APPLICABILITY_NOT_NEW_EXECUTION_CI_NATIVE_GEN_OR_WHOLE",
+  "reviewer": "/root/sc031_outbound_peer_b",
+  "head": "eab659f5d0ebe3b7a084e4701f60ee636b2db771",
+  "tree": "50de06f93e89fc698f06906bebfb49e1ac4b8516",
+  "ordered_parents": [
+    "c3dd36d406cd1e1b919c43ba6e145689bb6558c7"
+  ],
+  "base_main": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "source": "3dff3dbd33888df02c25624f6d1074abb692646c",
+  "source_tree": "d1a044ec6cf6cbc8f1648dd4590828d5861ea10e",
+  "path": "__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts",
+  "tuple": [
+    "100644",
+    "blob",
+    "0158559ca824e2a89c98256afe90f5e5387aea8f"
+  ],
+  "sha256": "7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d",
+  "selected_test_present_in_current": false,
+  "prior_public_head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+  "prior_applicability_receipt_sha256": "9d43734b34af6903a441f5d7881a46ef4f59ffbdd622770fdc848dc8466aff26",
+  "compiler_derived_repo_graph_sha256": "c4b8c8f67a195d63622f32563a7be0af4d5fa1768531495539cdd938dfac7668",
+  "existing_dependency_count": 378,
+  "changed_consumed_dependency_tuples": [],
+  "all378_dependencies_exact": true,
+  "package_compiler_test_config_bindings": {
+    "package.json": {
+      "current": [
+        "100644",
+        "blob",
+        "bf3a30b706a96bacf8dbcf158ed99ae405881689"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "bf3a30b706a96bacf8dbcf158ed99ae405881689"
+      ],
+      "identical": true
+    },
+    "package-lock.json": {
+      "current": [
+        "100644",
+        "blob",
+        "0e19ad13ea476c169f63f0cb8f6c4d2164c13847"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "0e19ad13ea476c169f63f0cb8f6c4d2164c13847"
+      ],
+      "identical": true
+    },
+    "tsconfig.json": {
+      "current": [
+        "100644",
+        "blob",
+        "60bca066cc72efd2a8303216c1e3a425c8aea097"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "60bca066cc72efd2a8303216c1e3a425c8aea097"
+      ],
+      "identical": true
+    },
+    "tsconfig.tests.json": {
+      "current": [
+        "100644",
+        "blob",
+        "224ade1b6b174428d3ea27323a839e75cfcfef22"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "224ade1b6b174428d3ea27323a839e75cfcfef22"
+      ],
+      "identical": true
+    },
+    "vitest.config.ts": {
+      "current": [
+        "100644",
+        "blob",
+        "704630e71883fdc027fedfba1ff96a5215470160"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "704630e71883fdc027fedfba1ff96a5215470160"
+      ],
+      "identical": true
+    },
+    "__tests__/setup.ts": {
+      "current": [
+        "100644",
+        "blob",
+        "ac7701a3c198c9ef73805c09227978ae8a816f49"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "ac7701a3c198c9ef73805c09227978ae8a816f49"
+      ],
+      "identical": true
+    }
+  },
+  "only_public_e49_to_EAB_changes": [
+    ".agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md",
+    ".agent-memory/z05-c1-name-collation-pg17-20261013-checkpoint.md",
+    "scripts/ediel-at-z05-supplier-native.test.ts"
+  ],
+  "CP_contents_read": false,
+  "current_original_leaves": 9861,
+  "hypothetical_one_test_overlay_tree": "a4f82b30ce6eb10e84586e9b8965242216ad573d",
+  "all_current_leaf_tuples_preserved": true,
+  "only_overlay_delta": [
+    "__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts"
+  ],
+  "checkpoint_excluded": true,
+  "qualification_limit": "Existing exact-source16PASS/mutations and public894 virtual type output retain original source/runtime. Unchanged graph/package/config supports applicability only; no fresh typecheck, current16PASS, composed execution or actual adoption.",
+  "actual_adoption": false,
+  "custody_transfer": false,
+  "source_authoring": false,
+  "new_execution": false,
+  "new_approvals": 0,
+  "reservation_limit": "Actor358d owns aa4 held/paused per supplied owner receipt; no new remote custody query, claim, release or recipient ownership inferred."
+}
+
+`````
+
+Original ediel-helper-20261013-sc031-eab-applicability.md — bytes4483 SHA256e188b7ee53455f62a971631f91e5c5d61991149fc81c5abde03f05f9682b0b7d
+
+`````text
+# Independent SC031 applicability support — new public EAB
+
+Verdict: SUPPORTED for unchanged source applicability. **Zero changed consumed dependency/config tuples** were found. No module re-review, healthy tests/typecheck, native/CI/GEN/backend execution or publication occurred.
+
+Reviewer `/root/sc031_outbound_peer_b` is a noncoauthor of the unchanged component source/test/fixture/execution proofs. This is new public-target support only. Private checkpoint contents were not read; exact public Git metadata and preserved graph/receipts suffice. Only the requested temporary JSON and this report were written.
+
+## Exact bindings
+
+- New public795 source: `eab659f5d0ebe3b7a084e4701f60ee636b2db771`, tree `50de06f93e89fc698f06906bebfb49e1ac4b8516`, sole immediate parent `c3dd36d406cd1e1b919c43ba6e145689bb6558c7`.
+- Prior applicability target: `e49a23d4897f1cb4063a57bf3b1c810321723c3a`, tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`.
+- Actual-main implementation base supplied: `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`.
+- Immutable offered source: `3dff3dbd33888df02c25624f6d1074abb692646c`, tree `d1a044ec6cf6cbc8f1648dd4590828d5861ea10e`.
+- Only selected test: `__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts`,100644/blob `0158559ca824e2a89c98256afe90f5e5387aea8f`, SHA256 `7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d` (independently checked actual Git bytes).
+
+The selected test is not present in EAB. This support does not describe performed adoption.
+
+## New target comparison
+
+Used the existing compiler-derived repo import graph (SHA256 `c4b8c8f67a195d63622f32563a7be0af4d5fa1768531495539cdd938dfac7668`), excluding only the selected test. Independently compared mode/type/blob tuples for all378 existing dependency paths between e49 and EAB: all378 are identical. The actual renderer/policy/serializer/tokenizer and transitive statically resolved source graph therefore have no new consumed-source delta requiring repeated module review.
+
+Also independently compared exact package.json, package-lock.json, tsconfig.json, tsconfig.tests.json, vitest.config.ts and original __tests__/setup.ts tuples: every binding is identical. No package/compiler/config source change or dependency version drift is introduced by this public target delta. External installed environment behavior remains a separate execution qualification.
+
+Only public e49→EAB changes are two checkpoint metadata paths and `scripts/ediel-at-z05-supplier-native.test.ts`. That native Z05 path is outside the preserved selected test import graph/configuration source. Its own current mandatory workflow outcomes remain with the existing owner; it does not become SC031 outgoing execution evidence. No checkpoint contents were inspected.
+
+Previous public894 virtual generated-type compatibility can be reused through prior e49's established unchanged graph and the now independently unchanged EAB graph/package/config tuples. Its diagnostic-free output retains its original execution/source binding; I did not execute a new compiler or claim current-target compilation.
+
+## Hypothetical one-file overlay
+
+EAB contains9861 original leaf tuples. Independently copied tuples in memory and added only exact source test blob0158559; every original mode/type/blob tuple remains unchanged. Reconstructed raw Git trees/SHA1 in memory (no object/index/ref writes): original root50de06 matches actual EAB; hypothetical only-test overlay is `a4f82b30ce6eb10e84586e9b8965242216ad573d` with9862 leaves. No checkpoint, frozen rule, ledger or runtime postimage is imported.
+
+Machine-readable result `/tmp/ediel-helper-20261013-sc031-eab-applicability.json`, SHA256 `a103e34cb13a41937603f0501ab808def9fc1fbabd96a6c19fe9c6e951ed9708`.
+
+## Authority/evidence limits
+
+Existing16PASS and six mutation results remain original-source finite evidence, with this unchanged-source applicability support. No new16PASS, composed/current environment execution, wholeSC031/currentCI/native/GEN/backend/merge qualification or approval-count increase follows. Existing public offer's actor358d/aa4 remains held/paused as supplied; no remote custody was acquired/released/transferred and recipient custody is not inferred. The real owner must bind any eventual adopted candidate and mandatory current gates under existing serial delivery/producer reservations. This report introduces no new gate or publication authority.
+
+`````
