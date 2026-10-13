@@ -904,3 +904,398 @@ Positive Z14 remains independent of receiving the complete ACK pair first. Exist
 No actionable product-code defect was found. Treat G1 as an actual-original request ACK proof join and G2 as conditional evidence qualification, under existing source/native/collector/serial owners. Actual whole closure still requires their exact-candidate binding and ordinary mandatory gates; this review introduces none.
 
 ````
+
+
+NEW SC037 PROJECTNODE22 SUPPLEMENT / sole temporary executionproof writer current_delivery_review: exactPUBLIC6d80d3bd079e0f7eca65768202f3b60394176fc9/treef68c79a26c9ad9bb294fcfd4cc04be0a29f412e3/parent3bbc49a3df42703925bc4004162af8fff5204baa/sourcebase actual95d8d160491e79b172342654d8dc643346758105/treefa5. Onlyexisting283-line publictest executed ONCE in own tmpdetachedsnapshot on officialNode22.23.3/Vitest4.1.9/PGlite0.3.14 (exactpubliclockversions), 70PASS/0FAIL/0SKIP/exit0. Publictest/forward/schema unchangedpre-post, trackedtreeclean. Purein-memoryPGlite extractsfullinstalledtables/12actualfunctions andactualcheckedforward; nochildwrappers/externalbackend/network/native/GEN/originalcollection. JSON/parser/provider/permission/lower-effect ports remain explicitlysynthetic, notphysicalEDIFACT orrealactivationauthority. Test-workerdenial recordszero forbiddennetwork/server/childattempts. EarlierNode24/private52originalarchive notfetched/relabelled.
+
+Two OTHER independent noncoauthor evidencepeers each qualifyexact6d80/f68c/95d/fa5+report5bef/result05d8: A8cc3fafb67af4eed41412a895c13471d217993a3fc559bb5dbcf2f0a777ede88 and Bf20a9a8c5d12cf3bbf45c3a8741bb57c05bab1e64cb240b96fbc18b46dafd53e, zero reportingfindings, no rerun. ROOTread fullreport/results/config/bindings/bothreviews. Executionwriter isproofauthor andexcludedfinalpeers. SourceownerexistingtwoSOURCEpeers retain their separate exact6d80/sourcebindings; this newrun addressesdifferent projectruntime uncertainty only. NoactualcurrentCI/native/multipleoriginal/threeTSconsumer/fullSC037/P11/merge/ledger qualification. ExistingC1/currentdelegates/soleGEN/sourceowner retain actualunion/adoption/gates/handoff, held7b422 twofiles staypaused.
+
+All actual newtemporary executionoriginals andindependentreports preservedverbatimbelow. Current owncheckpointbranch only, notSC037carrier/newbaseline. Next: route newqualifyingNode22result+Z13minimalgap support to existingsource/serialowner, thenactual800normalmergeattestation ornewpublishedZ05fixture-source review. No duplicateproducer/occupiedwriter/rejectedrelease/privatepublication bypass.
+
+Original /tmp/ediel-helper-20261013-sc037-node22-qualified.md SHA2565befbf1b194a7a76e31ba4ab2c142f21b8a36311e2ee2b6ea4daf534b7a11155:
+
+````markdown
+# SC-037 public component: one new Node22 finite qualification
+
+**PASS:70/70 tests,0 failures,0 skips, exit0 under Node22.23.3 / Vitest4.1.9.**
+Execution occurred once,14:43:23.846488–14:43:28.123092UTC on2026-10-13.
+This resolves the newly requested project-Node22 compatibility uncertainty for
+the existing public component; it is not native/current-CI or wholeSC037 proof.
+
+## Exact public source and preserved inputs
+
+- Source: `6d80d3bd079e0f7eca65768202f3b60394176fc9`.
+- Tree: `f68c79a26c9ad9bb294fcfd4cc04be0a29f412e3`.
+- Parent: `3bbc49a3df42703925bc4004162af8fff5204baa`.
+- Implementation base: `95d8d160491e79b172342654d8dc643346758105`.
+- Isolated detached worktree:
+  `/tmp/ediel-sc037-node22-20261013-7hfwh0v7/source`.
+
+All three actual execution inputs were matched to exact public Git bytes before
+execution and SHA256 rechecked afterward; no test/assertion/fixture/source
+modification. Captured schema also equals exactbase95d byte-for-byte.
+
+| Input | Blob | Unchanged pre/post SHA256 |
+| --- | --- | --- |
+| __tests__/ediel-sc-037-confirmed-dispatch-late-ack.test.ts |30ad8e4afadeb76bbd2c1fb6aefe1a8981cbad7f |9ebc7335af4a5e65d9d722e6d0283bb99a39f3b1e5fa1ebc17160e5cd5b3b7e8 |
+| supabase/migrations/20261013133852_sc037_late_ack_confirmed_dispatch.sql |b275f5e852a2b09564dbc8f8ba4e5295176b9d83 |05307f9bd208ad31be393bd506b21e9c58445b4f3e85d6d0422086abf0df724b |
+| supabase/schema.sql |306dc80578fd60590ee5b6f3a13fa5bb66898418 |0a9a8e147f94a03c62870a39e363a60567e22fa6e91196ccef6b41795372c559 |
+
+Tracked worktree/index diffs remain empty after execution. The temporary
+configuration/cache/boundary sit outside the detached source; dependencies were
+read through the existing `/workspace/gridex-c3-20261012/node_modules` symlink.
+No install or dependency replacement occurred.
+
+## Runtime and exact scope
+
+Existing official Node binary:
+`/tmp/ediel-helper-20261013-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node`.
+The command used its identical node-linux-x64 target, confirmed samefile.
+Version22.23.3; binary SHA256
+`fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48`.
+Existing Vitest4.1.9 and PGlite0.3.14 exactly match public source package-lock
+versions; no silently substituted PGlite version.
+
+Command, run once:
+
+```text
+/tmp/ediel-helper-20261013-npm-cache/_npx/d18f28baf1132559/node_modules/node/node_modules/node-linux-x64/bin/node /workspace/gridex-c3-20261012/node_modules/vitest/vitest.mjs run --config /tmp/ediel-sc037-node22-20261013-7hfwh0v7/vitest.config.mjs
+```
+
+Unique config selects only the unchanged named test, Node environment, one
+isolated threads worker, no parallel files, private temporary cache and JSON
+output. No repository/global/native/Vitest configuration or assertion was edited.
+The temporary runner uses30000ms ceilings; the source's explicit30000ms beforeAll
+limit is unchanged. This is a finite component configuration, not a native timeout
+or CI-gate change; total execution finished in3.83seconds.
+
+Before execution the entire283-line public test and real forward were inspected.
+Imports are only fs/path/crypto, PGlite and Vitest; no child/server/fetch wrapper.
+The test constructs `new PGlite()` in memory and loads local WASM/modules.
+It extracts full installed tables and12 installed function bodies from the
+unchanged schema, then executes the exact actual forward inside PGlite.
+
+The public fixture explicitly replaces canonical/parser/provider/permissions,
+guide/retention/bilateral ports and the inner supply-effect delegate. They remain
+declared synthetic. JSON parser wires are not real physical EDIFACT/provider
+execution. Actual installed ACK wrappers/leaf, activation readers and checked
+forward/inverse/catalog behaviors are exercised at this finite SQL layer.
+
+Temporary setup throws on fetch/net/tls/http/https/DNS/server access and test-worker
+child_process spawn/exec/fork, and fails teardown if any forbidden attempt was
+even caught. Final runtime boundary output:
+
+```json
+{"forbiddenAttempts":[],"network":"DENIED","testWorkerChildProcesses":"DENIED"}
+```
+
+Vitest's ordinary tool orchestration/transform is outside that test-worker guard;
+the component did not start SQL children, an external service or a backend/native
+chain. PGlite remained direct in-process. No external network access occurred
+in the guarded suite.
+
+## Actual result and immutable new execution originals
+
+Console reports one file/70 tests passed; test duration3290ms, total3.83s.
+The maximum individual case duration in the raw JSON is143.834ms, below even
+Vitest's normal5000ms test ceiling; the temporary ceiling hid no slow test.
+JSON says one passed suite,70 passed,0 failed/pending/todo, success=true.
+
+- [Raw Vitest JSON](/tmp/ediel-helper-20261013-sc037-node22-results.json), SHA256
+  `05d8a0a3299ba2f19c1d894fe3ca3c030ee151e9492bb873f4a604846c8b6161`.
+- [Original execution output](/tmp/ediel-sc037-node22-20261013-7hfwh0v7/execution-original.log),
+  SHA256 `f9a4887bda6431be981107dc6a2b53b766bffe7a1faf930719f33cb3649c965a`.
+- [Runtime/source bindings](/tmp/ediel-sc037-node22-20261013-7hfwh0v7/bindings.json).
+- [Temporary exact config](/tmp/ediel-sc037-node22-20261013-7hfwh0v7/vitest.config.mjs),
+  SHA256 `1a882699d6933338863704eca0586be4b4631a2b13d02c86d7f3328768b94e3d`.
+- [Temporary execution boundary](/tmp/ediel-sc037-node22-20261013-7hfwh0v7/network-deny.mjs),
+  SHA256 `30684091da7a02c3cb98d5b6f7b8f445cf9905c8a8804605df401bb467832a3e`.
+
+Preserve these new execution originals verbatim. They are this helper's new
+finite proof, not a recollection/import of the author's private Node24 archive.
+
+## Exclusions and authorship
+
+No private original52 archive, CI artifacts/logs, external databases, backend,
+native/capture/GEN/SMTP/provider/LIVE, collector duplication, new claims/releases,
+PR publication, normal merge, shared docs or ledger changes. No rerun. The only
+Git administrative operation was the expressly requested temporary detached
+worktree creation; no branch/ref/head/source commit was changed.
+
+Actual current CI/native, the three TS consumers, multiple-original/full-object
+scope and wholeSC037 remain **NOT_PROVED** by this run. Existing source owner
+and sole delivery/GEN/native lanes retain those duties.
+
+This helper authors the new execution proof and **must not count as an independent
+final reviewer** for a final packet that consumes it. Existing other applicable
+final peers/current gates remain required; no additional review gate is created.
+
+````
+
+Original /tmp/ediel-helper-20261013-sc037-node22-results.json SHA25605d8a0a3299ba2f19c1d894fe3ca3c030ee151e9492bb873f4a604846c8b6161:
+
+````json
+{"numTotalTestSuites":1,"numPassedTestSuites":1,"numFailedTestSuites":0,"numPendingTestSuites":0,"numTotalTests":70,"numPassedTests":70,"numFailedTests":0,"numPendingTests":0,"numTodoTests":0,"snapshot":{"added":0,"failure":false,"filesAdded":0,"filesRemoved":0,"filesRemovedList":[],"filesUnmatched":0,"filesUpdated":0,"matched":0,"total":0,"unchecked":0,"uncheckedKeysByFile":[],"unmatched":0,"updated":0,"didUpdate":false},"startTime":1791902604227,"success":true,"testResults":[{"assertionResults":[{"ancestorTitles":[],"fullName":"a qualified single-object confirmed dispatch keeps sent after whole negative ACK, then first activation succeeds","status":"passed","title":"a qualified single-object confirmed dispatch keeps sent after whole negative ACK, then first activation succeeds","duration":143.83379100000002,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a qualified single-object confirmed dispatch keeps acknowledged after whole negative ACK, then first activation succeeds","status":"passed","title":"a qualified single-object confirmed dispatch keeps acknowledged after whole negative ACK, then first activation succeeds","duration":86.6527430000001,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"negative ACK before the planned instant cannot activate or move it earlier","status":"passed","title":"negative ACK before the planned instant cannot activate or move it earlier","duration":77.38475199999993,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"established activation replays once after late negative and does not physically deactivate supply","status":"passed","title":"established activation replays once after late negative and does not physically deactivate supply","duration":48.62645199999997,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"negative ACK receipt replays exactly and opposite positive ACK stays an immutable conflict","status":"passed","title":"negative ACK receipt replays exactly and opposite positive ACK stays an immutable conflict","duration":52.082320999999865,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"positive application ACK behavior stays unchanged","status":"passed","title":"positive application ACK behavior stays unchanged","duration":29.64258800000016,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with missing confirmation","status":"passed","title":"does not preserve dispatch with missing confirmation","duration":20.66870800000015,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with missing captured Z04","status":"passed","title":"does not preserve dispatch with missing captured Z04","duration":25.871976999999788,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with missing transition","status":"passed","title":"does not preserve dispatch with missing transition","duration":31.087274000000434,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong confirmation company","status":"passed","title":"does not preserve dispatch with wrong confirmation company","duration":24.115290999999615,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong original UUID","status":"passed","title":"does not preserve dispatch with wrong original UUID","duration":23.344273999999587,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong original hash","status":"passed","title":"does not preserve dispatch with wrong original hash","duration":30.061899999999696,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong Z04 company","status":"passed","title":"does not preserve dispatch with wrong Z04 company","duration":26.877430999999888,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong Z04 environment","status":"passed","title":"does not preserve dispatch with wrong Z04 environment","duration":29.03140600000006,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong Z04 direction","status":"passed","title":"does not preserve dispatch with wrong Z04 direction","duration":21.64930699999968,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong Z04 family","status":"passed","title":"does not preserve dispatch with wrong Z04 family","duration":18.96030000000019,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong Z04 code","status":"passed","title":"does not preserve dispatch with wrong Z04 code","duration":18.108639999999923,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong Z04 original hash","status":"passed","title":"does not preserve dispatch with wrong Z04 original hash","duration":20.882618999999977,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong captured company","status":"passed","title":"does not preserve dispatch with wrong captured company","duration":18.129711999999927,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong captured environment","status":"passed","title":"does not preserve dispatch with wrong captured environment","duration":17.631624999999985,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with missing captured context","status":"passed","title":"does not preserve dispatch with missing captured context","duration":17.245976999999584,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong transition code","status":"passed","title":"does not preserve dispatch with wrong transition code","duration":19.617800999999872,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong transition hash","status":"passed","title":"does not preserve dispatch with wrong transition hash","duration":23.137509000000136,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong qualified switch","status":"passed","title":"does not preserve dispatch with wrong qualified switch","duration":20.001838000000134,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong transitioned object","status":"passed","title":"does not preserve dispatch with wrong transitioned object","duration":17.6174689999998,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong transitioned period","status":"passed","title":"does not preserve dispatch with wrong transitioned period","duration":17.45148599999993,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong confirmed period id","status":"passed","title":"does not preserve dispatch with wrong confirmed period id","duration":22.201772999999775,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong confirmed period company","status":"passed","title":"does not preserve dispatch with wrong confirmed period company","duration":24.86306700000023,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong confirmed switch","status":"passed","title":"does not preserve dispatch with wrong confirmed switch","duration":17.093616999999995,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong confirmed inbound reference","status":"passed","title":"does not preserve dispatch with wrong confirmed inbound reference","duration":16.72945400000026,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong confirmed outbound reference","status":"passed","title":"does not preserve dispatch with wrong confirmed outbound reference","duration":16.984881000000314,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong confirmed customer","status":"passed","title":"does not preserve dispatch with wrong confirmed customer","duration":16.943348000000242,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong confirmed point","status":"passed","title":"does not preserve dispatch with wrong confirmed point","duration":20.05605199999991,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with wrong confirmed contract","status":"passed","title":"does not preserve dispatch with wrong confirmed contract","duration":17.01207999999997,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with unconfirmed immutable switch","status":"passed","title":"does not preserve dispatch with unconfirmed immutable switch","duration":17.37959099999989,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with unsupported original code","status":"passed","title":"does not preserve dispatch with unsupported original code","duration":13.005685999999969,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"does not preserve dispatch with already failed original","status":"passed","title":"does not preserve dispatch with already failed original","duration":13.477871999999934,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a real no-business-confirmation fixture stays failed with zero switch, period, and activation rows","status":"passed","title":"a real no-business-confirmation fixture stays failed with zero switch, period, and activation rows","duration":12.08708999999999,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a partial multi-object original never lends preserved dispatch to another object","status":"passed","title":"a partial multi-object original never lends preserved dispatch to another object","duration":16.026994999999715,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a duplicate LI original never lends preserved dispatch to another object","status":"passed","title":"a duplicate LI original never lends preserved dispatch to another object","duration":15.703449999999975,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"nullable original point keeps the existing matching semantics without an invented agency restriction","status":"passed","title":"nullable original point keeps the existing matching semantics without an invented agency restriction","duration":17.89853200000016,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a mismatched original li cannot borrow a confirmation","status":"passed","title":"a mismatched original li cannot borrow a confirmation","duration":17.344514999999774,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a mismatched original customerIdentity cannot borrow a confirmation","status":"passed","title":"a mismatched original customerIdentity cannot borrow a confirmation","duration":19.22143300000016,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a mismatched original start cannot borrow a confirmation","status":"passed","title":"a mismatched original start cannot borrow a confirmation","duration":21.197061000000303,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a mismatched original reason cannot borrow a confirmation","status":"passed","title":"a mismatched original reason cannot borrow a confirmation","duration":17.102386999999908,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a mismatched original point cannot borrow a confirmation","status":"passed","title":"a mismatched original point cannot borrow a confirmation","duration":19.435159000000112,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a mismatched original identityAgency cannot borrow a confirmation","status":"passed","title":"a mismatched original identityAgency cannot borrow a confirmation","duration":31.64285699999982,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"invalid original bytes/hash are still refused before the ACK effect","status":"passed","title":"invalid original bytes/hash are still refused before the ACK effect","duration":15.28088200000002,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"migration reapplication preserves function identity, ACL/security/config and all downstream reader bytes","status":"passed","title":"migration reapplication preserves function identity, ACL/security/config and all downstream reader bytes","duration":13.853946000000178,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"an unexpected installed body refuses the forward with no partial replacement","status":"passed","title":"an unexpected installed body refuses the forward with no partial replacement","duration":8.714994999999817,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"actual original cardinality, not caller registerCount two, controls dispatch qualification","status":"passed","title":"actual original cardinality, not caller registerCount two, controls dispatch qualification","duration":18.93374900000026,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"actual original cardinality, not caller registerCount missing, controls dispatch qualification","status":"passed","title":"actual original cardinality, not caller registerCount missing, controls dispatch qualification","duration":17.93647600000031,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"actual original cardinality, not caller registerCount string, controls dispatch qualification","status":"passed","title":"actual original cardinality, not caller registerCount string, controls dispatch qualification","duration":21.023147999999765,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"an extra physical LIN cannot borrow a one-object projection","status":"passed","title":"an extra physical LIN cannot borrow a one-object projection","duration":16.214284000000134,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"confirmed incoming Z04 may retain multiple registers while the original Z03 has exactly one LIN","status":"passed","title":"confirmed incoming Z04 may retain multiple registers while the original Z03 has exactly one LIN","duration":18.758953999999903,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"the installed forward has an exact one-fragment inverse to the frozen full predecessor","status":"passed","title":"the installed forward has an exact one-fragment inverse to the frozen full predecessor","duration":4.63077499999963,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a tampered proposed replacement is refused before changing the installed predecessor","status":"passed","title":"a tampered proposed replacement is refused before changing the installed predecessor","duration":7.841664000000037,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a NULL-point original with repeated LIN never borrows single-LIN qualification","status":"passed","title":"a NULL-point original with repeated LIN never borrows single-LIN qualification","duration":20.968451000000186,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a NULL-point original with different sibling LI never borrows single-LIN qualification","status":"passed","title":"a NULL-point original with different sibling LI never borrows single-LIN qualification","duration":19.473369000000275,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"a NULL-point original with extra physical LIN never borrows single-LIN qualification","status":"passed","title":"a NULL-point original with extra physical LIN never borrows single-LIN qualification","duration":17.423101999999744,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"preserved dispatch does not authorize first activation after blocked lifecycle","status":"passed","title":"preserved dispatch does not authorize first activation after blocked lifecycle","duration":20.10287799999969,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"preserved dispatch does not authorize first activation after cancelled current switch","status":"passed","title":"preserved dispatch does not authorize first activation after cancelled current switch","duration":24.491747999999916,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"preserved dispatch does not authorize first activation after cancelled current period","status":"passed","title":"preserved dispatch does not authorize first activation after cancelled current period","duration":20.66748000000007,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"preserved dispatch does not authorize first activation after changed current period version","status":"passed","title":"preserved dispatch does not authorize first activation after changed current period version","duration":19.40931400000045,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"preserved dispatch does not authorize first activation after changed current contract hash","status":"passed","title":"preserved dispatch does not authorize first activation after changed current contract hash","duration":19.649333000000297,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"preserved dispatch does not authorize first activation after unsigned current contract","status":"passed","title":"preserved dispatch does not authorize first activation after unsigned current contract","duration":19.52328899999975,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"preserved dispatch does not authorize first activation after revoked user","status":"passed","title":"preserved dispatch does not authorize first activation after revoked user","duration":21.30033700000058,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"preserved dispatch does not authorize first activation after revoked membership","status":"passed","title":"preserved dispatch does not authorize first activation after revoked membership","duration":18.481613999999354,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"preserved dispatch does not authorize first activation after expired current legal role","status":"passed","title":"preserved dispatch does not authorize first activation after expired current legal role","duration":18.267087999999603,"failureMessages":[],"meta":{},"tags":[]},{"ancestorTitles":[],"fullName":"late whole-negative CONTRL retains qualified dispatch and still records unchanged protocol negatives","status":"passed","title":"late whole-negative CONTRL retains qualified dispatch and still records unchanged protocol negatives","duration":19.989652999999635,"failureMessages":[],"meta":{},"tags":[]}],"startTime":1791902606381,"endTime":1791902608047.9897,"status":"passed","message":"","name":"/tmp/ediel-sc037-node22-20261013-7hfwh0v7/source/__tests__/ediel-sc-037-confirmed-dispatch-late-ack.test.ts"}]}
+````
+
+Original /tmp/ediel-sc037-node22-20261013-7hfwh0v7/execution-original.log SHA256f9a4887bda6431be981107dc6a2b53b766bffe7a1faf930719f33cb3649c965a:
+
+````text
+
+ RUN  v4.1.9 /tmp/ediel-sc037-node22-20261013-7hfwh0v7/source
+
+stdout | __tests__/ediel-sc-037-confirmed-dispatch-late-ack.test.ts
+SC037_FINITE_BOUNDARY {"forbiddenAttempts":[],"network":"DENIED","testWorkerChildProcesses":"DENIED"}
+
+ ✓ __tests__/ediel-sc-037-confirmed-dispatch-late-ack.test.ts (70 tests) 3290ms
+
+ Test Files  1 passed (1)
+      Tests  70 passed (70)
+   Start at  14:43:24
+   Duration  3.83s (transform 124ms, setup 109ms, import 186ms, tests 3.29s, environment 0ms)
+
+JSON report written to /tmp/ediel-helper-20261013-sc037-node22-results.json
+
+````
+
+Original /tmp/ediel-sc037-node22-20261013-7hfwh0v7/bindings.json SHA25620f0b1fa9033becefa57e4761f5244fcd883cb0ac16ba769f49ab2d3b8f7623a:
+
+````json
+{
+  "directory": "/tmp/ediel-sc037-node22-20261013-7hfwh0v7",
+  "worktree": "/tmp/ediel-sc037-node22-20261013-7hfwh0v7/source",
+  "source": "6d80d3bd079e0f7eca65768202f3b60394176fc9",
+  "tree": "f68c79a26c9ad9bb294fcfd4cc04be0a29f412e3",
+  "base": "95d8d160491e79b172342654d8dc643346758105",
+  "inputs": {
+    "__tests__/ediel-sc-037-confirmed-dispatch-late-ack.test.ts": {
+      "sha256": "9ebc7335af4a5e65d9d722e6d0283bb99a39f3b1e5fa1ebc17160e5cd5b3b7e8",
+      "blob": "30ad8e4afadeb76bbd2c1fb6aefe1a8981cbad7f",
+      "post_sha256": "9ebc7335af4a5e65d9d722e6d0283bb99a39f3b1e5fa1ebc17160e5cd5b3b7e8",
+      "unchanged": true
+    },
+    "supabase/migrations/20261013133852_sc037_late_ack_confirmed_dispatch.sql": {
+      "sha256": "05307f9bd208ad31be393bd506b21e9c58445b4f3e85d6d0422086abf0df724b",
+      "blob": "b275f5e852a2b09564dbc8f8ba4e5295176b9d83",
+      "post_sha256": "05307f9bd208ad31be393bd506b21e9c58445b4f3e85d6d0422086abf0df724b",
+      "unchanged": true
+    },
+    "supabase/schema.sql": {
+      "sha256": "0a9a8e147f94a03c62870a39e363a60567e22fa6e91196ccef6b41795372c559",
+      "blob": "306dc80578fd60590ee5b6f3a13fa5bb66898418",
+      "post_sha256": "0a9a8e147f94a03c62870a39e363a60567e22fa6e91196ccef6b41795372c559",
+      "unchanged": true
+    }
+  },
+  "imports": [
+    "node:fs",
+    "node:path",
+    "node:crypto",
+    "@electric-sql/pglite",
+    "vitest"
+  ],
+  "schema_base_byte_equal": true,
+  "suite_executions": 1,
+  "command": [
+    "/tmp/ediel-helper-20261013-npm-cache/_npx/d18f28baf1132559/node_modules/node/node_modules/node-linux-x64/bin/node",
+    "/workspace/gridex-c3-20261012/node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "/tmp/ediel-sc037-node22-20261013-7hfwh0v7/vitest.config.mjs"
+  ],
+  "started_utc": "2026-10-13T14:43:23.846488+00:00",
+  "runtime_node": "v22.23.3",
+  "runtime_vitest": "4.1.9",
+  "exit_code": 0,
+  "completed_utc": "2026-10-13T14:43:28.123092+00:00",
+  "output_sha256": "f9a4887bda6431be981107dc6a2b53b766bffe7a1faf930719f33cb3649c965a",
+  "config_sha256": "1a882699d6933338863704eca0586be4b4631a2b13d02c86d7f3328768b94e3d",
+  "boundary_sha256": "30684091da7a02c3cb98d5b6f7b8f445cf9905c8a8804605df401bb467832a3e",
+  "tracked_worktree_unchanged": true,
+  "node_binary_sha256": "fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48",
+  "pglite_version": "0.3.14",
+  "result_json_sha256": "05d8a0a3299ba2f19c1d894fe3ca3c030ee151e9492bb873f4a604846c8b6161",
+  "summary": {
+    "numTotalTestSuites": 1,
+    "numPassedTestSuites": 1,
+    "numFailedTestSuites": 0,
+    "numTotalTests": 70,
+    "numPassedTests": 70,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0,
+    "success": true,
+    "startTime": 1791902604227
+  },
+  "network_attempts": [],
+  "child_process_attempts": [],
+  "execution_boundary_confirmed": true,
+  "public_lockfile_versions": {
+    "pglite": "0.3.14",
+    "vitest": "4.1.9"
+  },
+  "lockfile_dependency_match": true,
+  "official_node_outer_path": "/tmp/ediel-helper-20261013-npm-cache/_npx/d18f28baf1132559/node_modules/node/bin/node",
+  "official_node_samefile_target": true
+}
+
+````
+
+Original /tmp/ediel-sc037-node22-20261013-7hfwh0v7/vitest.config.mjs SHA2561a882699d6933338863704eca0586be4b4631a2b13d02c86d7f3328768b94e3d:
+
+````javascript
+export default {
+  "root": "/tmp/ediel-sc037-node22-20261013-7hfwh0v7/source",
+  "cacheDir": "/tmp/ediel-sc037-node22-20261013-7hfwh0v7/vite-cache",
+  "test": {
+    "include": [
+      "__tests__/ediel-sc-037-confirmed-dispatch-late-ack.test.ts"
+    ],
+    "environment": "node",
+    "pool": "threads",
+    "maxWorkers": 1,
+    "fileParallelism": false,
+    "isolate": true,
+    "watch": false,
+    "setupFiles": [
+      "/tmp/ediel-sc037-node22-20261013-7hfwh0v7/network-deny.mjs"
+    ],
+    "reporters": [
+      "default",
+      "json"
+    ],
+    "outputFile": {
+      "json": "/tmp/ediel-helper-20261013-sc037-node22-results.json"
+    },
+    "testTimeout": 30000,
+    "hookTimeout": 30000
+  },
+  "optimizeDeps": {
+    "noDiscovery": true,
+    "include": []
+  }
+};
+
+````
+
+Original /tmp/ediel-sc037-node22-20261013-7hfwh0v7/network-deny.mjs SHA25630684091da7a02c3cb98d5b6f7b8f445cf9905c8a8804605df401bb467832a3e:
+
+````javascript
+import net from 'node:net';
+import tls from 'node:tls';
+import http from 'node:http';
+import https from 'node:https';
+import dns from 'node:dns';
+import childProcess from 'node:child_process';
+import { syncBuiltinESMExports } from 'node:module';
+import { afterAll } from '/workspace/gridex-c3-20261012/node_modules/vitest/dist/index.js';
+const attempts = [];
+function deny(kind) { return (...args) => { attempts.push(kind); throw new Error('SC037_FINITE_BOUNDARY_FORBIDDEN:' + kind); }; }
+globalThis.fetch = deny('fetch');
+for (const name of ['connect', 'createConnection', 'createServer']) net[name] = deny('net.' + name);
+net.Socket.prototype.connect = deny('net.Socket.connect');
+net.Server.prototype.listen = deny('net.Server.listen');
+for (const name of ['connect', 'createServer']) tls[name] = deny('tls.' + name);
+for (const [kind, mod] of [['http',http],['https',https]]) for (const name of ['request','get','createServer']) mod[name] = deny(kind + '.' + name);
+for (const name of ['lookup','resolve','resolve4','resolve6','reverse']) { dns[name] = deny('dns.' + name); dns.promises[name] = deny('dns.promises.' + name); }
+for (const name of ['spawn','spawnSync','exec','execSync','execFile','execFileSync','fork']) childProcess[name] = deny('child_process.' + name);
+syncBuiltinESMExports();
+afterAll(() => { console.log('SC037_FINITE_BOUNDARY ' + JSON.stringify({forbiddenAttempts:attempts, network:'DENIED', testWorkerChildProcesses:'DENIED'})); if (attempts.length) throw new Error('SC037_FINITE_BOUNDARY_ATTEMPTS:' + attempts.join(',')); });
+
+````
+
+Original /tmp/ediel-helper-20261013-sc037-node22-peer-a.md SHA2568cc3fafb67af4eed41412a895c13471d217993a3fc559bb5dbcf2f0a777ede88:
+
+````markdown
+# Independent evidence review A — SC037 Node22 SQL component
+
+Verdict: **ACCEPT bounded new Node22 finite execution qualification.** No actionable evidence/reporting defect found. This is not full source, physical/native, current CI, three TS consumers, multi-original/full-object or whole-SC037 approval.
+
+Reviewer `/root/sc031_outbound_peer_a` did not coauthor this public source/test/fixture or runner execution proof and did not consult peer B. The runner helper is the execution-evidence author and must not count as independent final reviewer of an augmented delivery containing that proof. I did not rerun the suite, SQL, native or backend.
+
+## Exact source and originals
+
+Public head `6d80d3bd079e0f7eca65768202f3b60394176fc9`; tree `f68c79a26c9ad9bb294fcfd4cc04be0a29f412e3`; immediate parent `3bbc49a3df42703925bc4004162af8fff5204baa`; implementation base `95d8d160491e79b172342654d8dc643346758105` / tree `fa5ab60527a40bd642749365fc275d1d4a69e277`.
+
+Runner report `/tmp/ediel-helper-20261013-sc037-node22-qualified.md` SHA256 `5befbf1b194a7a76e31ba4ab2c142f21b8a36311e2ee2b6ea4daf534b7a11155`. Actual result `/tmp/ediel-helper-20261013-sc037-node22-results.json` SHA256 `05d8a0a3299ba2f19c1d894fe3ca3c030ee151e9492bb873f4a604846c8b6161`. Both independently read and hash matched.
+
+Independently verified detached actual HEAD/tree/raw commit parent, clean worktree/index, complete base diff of three paths (owner checkpoint/new test/new forward), and diff-check exit 0. New test/forward/schema bytes independently match Git public blobs and their before/post manifest hashes. Captured schema independently equals actual-base95d schema byte-for-byte. Inputs: test blob `30ad8e4afadeb76bbd2c1fb6aefe1a8981cbad7f`, SHA256 `9ebc7335af4a5e65d9d722e6d0283bb99a39f3b1e5fa1ebc17160e5cd5b3b7e8`; forward blob `b275f5e852a2b09564dbc8f8ba4e5295176b9d83`, SHA256 `05307f9bd208ad31be393bd506b21e9c58445b4f3e85d6d0422086abf0df724b`; schema blob `306dc80578fd60590ee5b6f3a13fa5bb66898418`, SHA256 `0a9a8e147f94a03c62870a39e363a60567e22fa6e91196ccef6b41795372c559`.
+
+## Actual assertions and preserved component boundary
+
+Read the entire 283-line actual public test, real forward and actual source inputs. Test imports only local filesystem/path/crypto, Vitest and direct PGlite. It extracts installed full table definitions and twelve installed function definitions, then executes actual forward. Canonical/parser/provider/permissions/retention/guide/bilateral ports and lower supply-effect delegate are explicitly synthetic stubs. In particular source/ACK wires are JSON, physical scope/actor and source matching fixtures are declared; they are not physical EDIFACT or protected current native authority.
+
+Oracles meaningfully exercise the installed ACK wrapper/leaf and real activation readers: late negative protocol receipt remains negative; qualified single-LIN original keeps sent/acknowledged dispatch; first activation remains blocked before future start; due activation succeeds; established activation replays once; original negative receipt replay is exact and opposite outcome is immutable conflict. Unsupported/missing/mismatched confirmation/capture/transition/wire scopes lose preservation; no-confirmation fixture asserts zero switch/period/activation rows. Nullable point semantics are preserved, while repeated/multi-object/extra physical LIN cases are refused. Current lifecycle/cancellation/period version/contract signature/actor/membership/legal-role refusals remain activation gates. Forward reapplication/catalog/ACL/security/config and unchanged downstream readers, exact checked fragment inverse, unexpected preimage and tampered replacement refusal have asserting controls.
+
+Frozen SC037 requires no premature activation and only the right still-valid period at its start; SMTP or technical ACK must not advance it. These finite controls support a bounded dependency component of that requirement. Full real inbound Z04/current source-authoritative activation flow, three TS consumers and multiple-original scope remain outside this run. No blanket new ACK prerequisite or production activation permission is created.
+
+## Runner and result qualification
+
+Original JSON independently contains **one suite, 70 actual passed assertion records, zero failed/skipped/pending/todo, success=true**. Maximum individual case duration is143.833791ms; the runner's30000ms ceilings do not conceal a test exceeding normal5000ms. Console states70 tests passed and direct PGlite suite duration3.29s/total3.83s.
+
+Read exact temporary config: only unchanged named test, Node environment, threads pool, one isolated worker, no file parallelism, private scratch cache and direct JSON output. Existing source's explicit30000ms setup limit is unchanged. No repository configuration or CI/native timeout is edited.
+
+Read throwing execution boundary and original local execution log. fetch/network/server/DNS and test-worker child_process calls are denied, builtin ESM exports synchronized, attempts recorded and teardown fails even if any forbidden exception was caught. Original boundary record has `forbiddenAttempts:[]`, network DENIED, testWorkerChildProcesses DENIED. Vitest orchestration outside that worker boundary is explicitly distinguished. No SQL child/backend/provider/native chain is implied by direct in-memory PGlite.
+
+Independently read actual Vitest4.1.9 and PGlite0.3.14 package versions; binary SHA256 `fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48` independently matches and outer official Node path is samefile with invoked inner binary. Report/bindings state Node22.23.3, single execution and exit0; this is inspection of preserved author execution, not my independent execution. No dependency replacement required.
+
+Other independently matched originals: execution log `f9a4887bda6431be981107dc6a2b53b766bffe7a1faf930719f33cb3649c965a`; temporary config `1a882699d6933338863704eca0586be4b4631a2b13d02c86d7f3328768b94e3d`; temporary boundary `30684091da7a02c3cb98d5b6f7b8f445cf9905c8a8804605df401bb467832a3e`; full bindings manifest `20f0b1fa9033becefa57e4761f5244fcd883cb0ac16ba769f49ab2d3b8f7623a`.
+
+## Limits and handoff
+
+This report qualifies the newly generated official-Node22 component execution evidence for the exact published source. It does not collect or requalify private original52/Node24 archives, prove fresh CI/native, execute composed GEN/current environment, approve completeSC037, publish PRs, change source custody or assert normal merge/ledger credit. Existing source/producer/serial owners retain adoption and exact-current mandatory checks; no extra gate is added. Only reviewer write is this own `/tmp` report. No tests/SQL/backend/native/GEN/CI rerun, source/refs/docs/claims/PR or artifacts/log collection occurred; local declared finite originals were inspected read-only.
+
+````
+
+Original /tmp/ediel-helper-20261013-sc037-node22-peer-b.md SHA256f20a9a8c5d12cf3bbf45c3a8741bb57c05bab1e64cb240b96fbc18b46dafd53e:
+
+````markdown
+# Independent evidence review B — SC037 new Node22 finite qualification
+
+Verdict: QUALIFIED for the exact public-source finite SQL component supplement. No actionable result/source/provenance or scope-overstatement finding. It is not whole-SC037, current CI/native/backend/physical-wire, multiple-original or three-TypeScript-consumer qualification.
+
+Reviewer `/root/sc031_outbound_peer_b` did not author candidate source, test, fixture, runner or execution proof and did not consult peer A. Read-only evidence review; sole write is this unique temporary report. No test/TypeScript/SQL/PGlite/child/backend/native/GEN execution or private archive/original/artifact acquisition. Reused focused code-review and verification guidance and read Supabase/Postgres guidance for SQL/auth-boundary qualification; no platform feature implementation or broad database/security audit performed.
+
+## Exact identity and immutable inputs
+
+Source `6d80d3bd079e0f7eca65768202f3b60394176fc9`, tree `f68c79a26c9ad9bb294fcfd4cc04be0a29f412e3`, immediate parent `3bbc49a3df42703925bc4004162af8fff5204baa`, implementation base `95d8d160491e79b172342654d8dc643346758105` / base tree `fa5ab60527a40bd642749365fc275d1d4a69e277`. Fresh local exact head/tree/parent inspection and clean tracked status match the binding. Base delta contains only forward, test and author's checkpoint. No schema snapshot alteration.
+
+Independently compared all three execution inputs to exact public source Git bytes and before/post manifest hashes:
+
+- Test `__tests__/ediel-sc-037-confirmed-dispatch-late-ack.test.ts`: blob `30ad8e4afadeb76bbd2c1fb6aefe1a8981cbad7f`, SHA256 `9ebc7335af4a5e65d9d722e6d0283bb99a39f3b1e5fa1ebc17160e5cd5b3b7e8`.
+- Actual forward `supabase/migrations/20261013133852_sc037_late_ack_confirmed_dispatch.sql`: blob `b275f5e852a2b09564dbc8f8ba4e5295176b9d83`, SHA256 `05307f9bd208ad31be393bd506b21e9c58445b4f3e85d6d0422086abf0df724b`.
+- Schema `supabase/schema.sql`: blob `306dc80578fd60590ee5b6f3a13fa5bb66898418`, SHA256 `0a9a8e147f94a03c62870a39e363a60567e22fa6e91196ccef6b41795372c559`. Independently byte-equal to exact implementation base95d.
+
+No healthy test/code review repeated; actual source bodies were read only to qualify what the new runtime output means.
+
+## Runner and preserved output
+
+Read unique scratch config, execution boundary, bindings, complete original execution output and raw JSON. Config selects exactly the unchanged 283-line public test with Node environment, isolated single threads worker, no parallel files, temporary cache/results, external setup boundary. It does not substitute test/fixture/source assertions. The temporary 30000ms ceiling is explicitly documented; real max individual test143.833791ms and overall3.83s show it did not conceal an ordinarily slow test.
+
+Boundary patches fetch/network/DNS/server and worker child-process entry points, synchronizes builtin exports, records attempted use and fails teardown for even a caught forbidden attempt. Original output shows empty forbiddenAttempts and denied network/test-worker children. Ordinary tool transform orchestration is honestly excluded from the worker boundary. The test imports only local standard-library/PGlite/Vitest modules, constructs direct in-process PGlite and starts no script child. This does not assert arbitrary future environment isolation.
+
+Existing Node outer/target binary paths are independently samefile. Vitest4.1.9 and PGlite0.3.14 installed package versions independently match exact public package-lock. Node22.23.3 and binary binding remain explicit; no dependency installation/substitution is involved.
+
+Independent SHA256 verification:
+
+- Qualified author report `/tmp/ediel-helper-20261013-sc037-node22-qualified.md`: `5befbf1b194a7a76e31ba4ab2c142f21b8a36311e2ee2b6ea4daf534b7a11155`.
+- Raw result `/tmp/ediel-helper-20261013-sc037-node22-results.json`: `05d8a0a3299ba2f19c1d894fe3ca3c030ee151e9492bb873f4a604846c8b6161`.
+- Original execution output: `f9a4887bda6431be981107dc6a2b53b766bffe7a1faf930719f33cb3649c965a`.
+- Scratch config: `1a882699d6933338863704eca0586be4b4631a2b13d02c86d7f3328768b94e3d`.
+- Boundary: `30684091da7a02c3cb98d5b6f7b8f445cf9905c8a8804605df401bb467832a3e`.
+
+Raw JSON has exactly one passed suite, 70 total / 70 passed / zero failed/pending/todo, success=true, exact expected test path. Original console also records 70 passed and empty boundary attempts. This is independently inspected author execution, not a fresh run by this reviewer.
+
+## Meaningful actual oracles and declared ports
+
+The test extracts full schema table definitions and 12 actual installed ACK-wrapper/leaf/activation/reader function bodies, then executes exact forward. Positive controls establish qualified single-object confirmed dispatch remains sent/acknowledged while protocol-negative fields/outcomes/receipts remain negative; first due activation and established activation replay stay separately guarded. Negative ACK before start cannot advance activation. Immutable ACK replay/conflict and unchanged positive behavior are explicit.
+
+Controls invalidate confirmation/capture/transition/tenant/env/original UUID/hash/object/period/switch/contract witnesses and require dispatch failure; missing business rows prove zero activation effects. Source cardinality/repeated-LIN/null-point/mismatched own-data controls qualify exactly supported single original/line behavior. Current lifecycle/cancellation/version/contract/user/membership/legal-role changes still block first activation after dispatch preservation. Actual forward reapplication/catalog/security/ACL/reader identity, unexpected predecessor refusal, exact inverse hash and tampered replacement refusal exercise implementation, not source-string presence alone.
+
+Limits remain substantial and correctly explicit: canonical/parser/provider/permissions/guide/retention/bilateral and inner supply-effect ports are synthetic. Wires are JSON-parser models, not actual EDIFACT/provider traffic. Source objects, roles and checks in the finite model cannot establish native authority, real ACL/RLS or all runtime consumers. Table/function extraction does not import original production fixtures or the private original52 archive.
+
+## Adoption boundary
+
+The new supplement resolves project-Node22 compatibility for this unchanged finite component only. It must not replace existing exact-source review/current mandatory CI, native/physical owner qualification, multiple-original/full-object proof or the three TS consumer checks. Runner is an execution-proof coauthor and cannot serve as an independent final reviewer of a packet incorporating it. Existing applicable independent peers and owner source applicability may be reused; this report creates no additional gate, publication authority, ledger promotion or merge role.
+
+````
