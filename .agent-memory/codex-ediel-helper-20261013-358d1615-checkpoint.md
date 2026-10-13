@@ -6967,3 +6967,212 @@ Machine-readable result `/tmp/ediel-helper-20261013-sc031-eab-applicability.json
 Existing16PASS and six mutation results remain original-source finite evidence, with this unchanged-source applicability support. No new16PASS, composed/current environment execution, wholeSC031/currentCI/native/GEN/backend/merge qualification or approval-count increase follows. Existing public offer's actor358d/aa4 remains held/paused as supplied; no remote custody was acquired/released/transferred and recipient custody is not inferred. The real owner must bind any eventual adopted candidate and mandatory current gates under existing serial delivery/producer reservations. This report introduces no new gate or publication authority.
 
 `````
+
+
+## Completed SC031 residual/source-wait support; next NEW public C04 input
+
+OwnEABsourceapplicability/CIreceipt published6152179577. SC031 literal-map v1c9de preserved; v2cd18 changes ONLY custody attribution:051ec belongsretainedC1, a93c proposedcorrection requires explicitappointment. No actualnewdecoder source/authoring privatelyfetched or claimed. Currentpublicmain/EABc08e staging/approval stilldoesnotjoin actualignoredfacet; existingtaggedtests asserttolerance/reachability/modeledprocessors, not ignored-business invariance. Public outgoing3dff16proof remains reusable/unadopted. RetainedC1 exactnew/preexisting-case correction +meaningfulbusiness invariance assertion is concrete nextinput; no new gate/physicaleffect/privatefix assumed.
+
+Certificate-source diagnosis resolves actualwait: exactsamehead/path/repository/event/unique latestOPS38441200381/run_number5136 satisfies currentinlinepredicate. Notawaitingnative40/31; wholeOPS terminalSUCCESS afterclean/upload/cleanup unlockscertificate deterministicstep7. No waitcycle/headmismatch/timeout/rerun/newproducer required or inferred. Waitreportv1originalpreserved; rootv2 changes ONLY phrase to authenticatedroot-helperjobmetadata (doesnotmisattribute helperinspection to serialowner).
+
+Fresh PR795 stillOPEN/unmerged/headEAB/baseactualD798/mainD798. Merge_commit_sha540615... is syntheticGitHubtestmerge, NOT actualnormalmerge or newcredit. Main323 unchanged; exactnormaldelivery/genuinecounts/finals remainexistingROOT.
+
+NEW actionable publicsource appeared: 6f94 C04arrivalREADY6152162887, exact7914ea0ce6f0af44097b437b752894309ff5bb6d/tree6eec90317e00481945aebdf9ea79afaf0ccd7f8b/onlyparentbcbfba76c895873daeb3e30a88454f3665a43443. Two NEW exactfilepostimages testf5f97/config1f808 +twoOTHERsourcefinals, nativeA/B2NOT_RUN. Old76aZ09callback remainsdeferred; sameexistingdb3writer resumes narrowSMTPcorrection6152187213, no competingwriter/helper takeover.
+
+Next NEW bounded read-only work: independent currentEAB↔7914 selectedtwo-file source/import/config compatibility and exact frozenZ04C arrival-order clause/layer map, excluding wholebranch/checkpoint/native-original acquisition. No repeated7914whole-source final, no current795extraunion/execution/GEN/native/backend. Existingsoleproducer chooses eventualunion/inputcohort/currentgates, no helperwrite/adoption/custodyrelease. Additional currentSC031 outputs complete beforethisnewscope.
+
+Original ediel-helper-20261013-sc031-eab-residual-clause-map.md: 12433bytes SHA256c9debcaca016a825a2f02d22a28a6156c5bc30edad56b5ee1486d6718f2740ba
+
+`````text
+# SC-031 residual literal-clause map — actual d798 / public EAB
+
+**Concrete residual: receiver tolerance/ignored-facet components exist, but current public business projection does not consume the ignored applicability decision. The outgoing16PASS offer addresses the prohibited own-builder clause only. WholeSC031 remains unproved/PARTIAL; no new execution or approval.**
+
+Read-only helper `/root/sc031_outbound_peer_a`; sole write this temporary report. No private unpublished decoder correction or other agent report was read. No F/G source packet re-review, outgoing import-graph repeat, C03 work, tests/backend/SQL/native/GEN/current CI, originals/log/artifacts, refs/claims/source/checkpoint/PR writes.
+
+## Exact current versions
+
+Actual main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Public #795 `eab659f5d0ebe3b7a084e4701f60ee636b2db771`, tree `50de06f93e89fc698f06906bebfb49e1ac4b8516`, parent `c3dd36d406cd1e1b919c43ba6e145689bb6558c7`. Inspected exact Git objects rather than stale checkout baseline. Current public receive source/tests listed below are identical blobs between actual main and EAB.
+
+Frozen P-02 condition: “Nationell extra information som ska ignoreras får inte utlösa negativ APERAK.” On pass: “Ignorera för affärsprojektion; bevara råpayload.” On failure: distinguish genuine excess syntax elements from allowed unused national fields.
+
+Frozen SC-031 expected: “Ingen negativ APERAK enbart för dessa extrauppgifter; uppgifterna påverkar inte affärsdata.” Prohibited: “Mottagningstoleransen innebär inte att den egna byggaren ska börja skicka dessa uppgifter.” LayerIntegration/E2E. Actual d798 ledger P-02VERIFIED, AT-P-02PASSED, SC-031PARTIAL. These approved rows remain approved; this map does not change or inherit whole contract approval from them.
+
+## Clause → exact existing assertion → semantic boundary
+
+| Literal clause | Actual existing asserted component | Qualification limit / residual |
+|---|---|---|
+| Ignore unused national extras; no negative APERAK solely for them | `ediel-prodat-incoming-unused-fields.test.ts:29–49` exercises inbound X224/213/218, false subtypeD319 Z04L, inactive UD parent, while outbound remains prohibited and legitimate Z04D requirement remains. Runtime test around84–100 calls real `resolveCanonicalRuntimeDecision`, accepts syntax/application, asserts no negative APERAK response plan, own ignored224 occurrence and raw extra retention. | Actual field/runtime components, not physical stored ACK receipt. selected helper filters fieldRules for targeted field-owner controls. Registry-aware supported incoming source/role/admission remains its own prerequisite; low-level Z01 runtime acceptance cannot be called actual incoming full intake qualification. |
+| Preserve correct earlier syntax/format gates | Same test asserts lexical dangling release rejects before actor/business decisions, count mismatch retains negative CONTRL, missing national BGM is application41/203, and prescribed invalid unused-date format remains invalid. UTILTS does not inherit P119 tolerance. | Do not globally disable syntax/national date gates or accept every family/field. These assertions distinguish ignored national contents from actual grammar/format errors. |
+| Correct own occurrence/agency/raw evidence, without source acceptance invented | Incoming-unused test tracks ignored319 at own full-message line/object scope; `ediel-received-register-validation-binding.test.ts` binds actual register owner/coverage/message/object/agency/occurrence, refuses foreign/malformed/injected evidence, preserves sourceDisposition not_established. Its final ignored-facet test keeps actual runtime prodatIgnoredFields separate from frozen facts and rejects editable report replacement. | Physical/source evidence is not business projection. Valid recorded facet/source hash and raw preservation do not imply ignored values cannot enter parsed business fields. |
+| Actual receiver does not reject extras only because outbound default leaked | `ediel-prodat-register-consumers.test.ts:80–97` calls actual createOrUpdateInboundProdatCase with clean/extra213: both reach own lookup; same own outbound extra rejects before lookup. Actual create-case line403 explicitly supplies direction. | Test deliberately stops at throwing declared DB lookup. It neither asserts stored business projection nor approval/onboarding effects. Batch path around1107–1110 still calls validateProdatRegisterPayload without direction after requiring actual inbound source; this distinct public source gap is not repaired by single-case direction assertion. No new runtime failure is claimed here. |
+| Receiver flow/schema product controls | Tagged `ediel-prodat-energy-product-inbound.test.ts` exercises real inbound processor/canonical controls with declared registry/source/ACK ports. | It explicitly mocks inboundCases and business-state writer modules. Therefore its pass cannot establish actual customer/site/case ignored-field invariance. ACK creator is also a declared modeled port, not current native receipt authority. |
+| All proper own registers retained; no sibling/stale borrowing | Tagged register-consumers test checks real parser/staging own first-register annual quantity, repeated-register authority, physical identifiers and exact TGT quantity/constant matching. | Fixtures supply legitimate fields. This is not a clean-vs-ignored-extra business-invariance pair; preserving legitimate annual quantity does not prove ignored annual/UD/reference values omitted in other applicable subtypes. |
+| Own builder does not start sending ignored extras | OUR immutable public offer `3dff3dbd33888df02c25624f6d1074abb692646c` / tree `d1a044ec6cf6cbc8f1648dd4590828d5861ea10e`, test blob `0158559ca824e2a89c98256afe90f5e5387aea8f`, SHA7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d. Previously qualified16PASS: real renderer→serializer→tokenizer L/LK tuples, no RFFMG/QTY31/CCI Z02/Z05, explicit scalar/register refusal, optional installation contrast, unchanged caller input; six mutation controls demonstrate oracle sensitivity. | Original qualification remains bound to original source/runtime; no new run or graph repeated here. Parent separately qualified current source applicability. Exact test path is absent from actual d798 and publicEAB, so this is a reusable public offer, not adopted current-main assertion or ledger credit. It does not prove incoming business invariance/actual physical receipt. |
+
+## Public receive path and missing business join
+
+Current `fieldMatrix.ts:649–657` resolves forbidden/not-used applicability before national contents for inboundPRODAT, records ignored field and continues (while retained prescribed date-format checks remain). `prodatRegisterPolicy.ts:129–132` likewise records own register ignored field and continues only inbound. `runtimeDecision.ts` carries actual prodatIgnoredFields in its decision/report; `receivedSourceValidationEvidence.ts` binds actual facet and keeps it outside frozen facts. `receivedSourceValidationLedger.ts:38–51` sends actual ignored-fields text separately to protected source recording and verifies returned ignoredFieldsHash. This is explicit source evidence, not a canonical business projection.
+
+Current `inboundCases.ts` blob **c08e51d67c98b8b7be0fc726f2509059cf4aaec0** is unchanged in both versions. createOrUpdateInboundProdatCase checks own structural application/header for structural sources or inbound register validation for others, then calls parseInboundProdatBusinessData at405. Parser reads physical/source register and party/reference data directly: ignored-capable annual213 around187, raw customer UD around191–216, site annualEnergyKwh228, reference319 around189 and meter224 around243. It does not use the actual ignored facet to suppress named business values based on source applicability.
+
+Case payload persists `parsed_customer`, `parsed_site`, `parsed_metering_point`, `parsed_contract` and proposed action at422–430. This is a business staging projection, not just raw evidence. Supported incoming Z04L's unused319 can therefore be present in parsed referenceToMeteringPoint independently of validator's ignored319 decision. The known structural ignoredUD staging limit remains unchanged, but is not newly re-reviewed as an F/G packet here. Pure Z01 ignored-quantity/meter parser observations are low-level component evidence only; do not mislabel them supported actual registry intake.
+
+Approval around635–679 reads already-saved parsed customer/site/meter fields into matching/customer/site/onboarding command; it does not establish the ignored-business decision by displaying a protected source hash. The presence of these command fields is source-path evidence, not proof that any production masterdata row was mutated. Structural protected apply may constrain its own real effect; that does not make dirty named staging fields an acceptable ignored-only projection.
+
+The residual clause requires invariance of named business values, including affected preexisting staged cases when approved. Correct raw/ignored occurrence evidence must remain; masking provenance or dropping all raw fields would violate the other half of P-02. Own legitimate subtype/field cases, object/agency/register/sibling scopes must remain exact. No blanket field blacklist is inferred from this map.
+
+## No current public decoder adoption established
+
+Fresh read-only #766 query since2026-10-13T17:35UTC/per_page100 returned no SC031/decoder/inboundCases adoption receipt; only unrelated C03 finite-qualification prose matched the search. This is a bounded receipt check, not a claim about private unpublished work. Public actual-main and EAB decoder bytes independently remain c08e, which directly establishes that these inspected public targets do not contain the retained writer's proposed decoder correction. Our outgoing test is likewise absent from both targets. No zero-response/ID-absence inference creates ownership rights.
+
+## Concrete retained-owner next step
+
+Existing C1/a93c051ec inboundCases/saved-case owner should publish its bounded exact correction/source and assertions when ready, identifying source applicability and affected new/preexisting cases. Minimum meaningful join: at actual supported receiver→stage→approval boundary compare clean versus own ignored extra with identical valid source, preserve exact raw/ignored facet/object/agency/register scope, assert unchanged named business values and zero extra domain effects; retain legitimate required/allowed subtype controls and wrong source/actor/sibling refusals. Bind the guarded batch validator's actual incoming direction too where its authorized correction scope applies. This does not require us to author its file or fetch private work.
+
+Complement with selective adoption of already public outgoing proof3dff if the retained owner accepts its precise source/file handoff; no duplicate original/GEN/native chain. Existing qualified source/receipts/components should be reused with explicit applicability, then mandatory exact-final current checks and two independent noncoauthor reviewers remain with existing delivery/source/producer owners. Diagnosis/evidence authors should not count as independent final reviewers of a correction adopting their work. No additional gate, wholeSC031 status, approval count or production activation is asserted.
+
+## Exact unchanged receive pins (main d798 = public EAB)
+
+* Frozen rules2108c9c297457c288364b9ed669809aedd21e21e; acceptance3717ce88daaf98c916bb996edc6fe7887bf65b6c.
+* inboundCasesc08e51d67c98b8b7be0fc726f2509059cf4aaec0.
+* fieldMatrixb582f8bd7e31a7fbb4cbf233c6a6130d5e694eb8; registerPolicy4bcaea5ab6c28496194cfb6e4b358ea8cfa88822.
+* runtimeDecision3d87b3d7316a7d36f5931f50a4b9e69627cec2dd; receivedEvidence9e10ac7e2c3dcba021ddbe191a50ff5b26455abe; receivedLedger45aa5d107c776df557f6f5b397c2ae75fc613ecf.
+* incoming-unused-fields1d106dcb278d4ba0bd1ce17480af747a30c1f753; register-consumers005cd50846b2e7b3e770c4303244faba160ee181; received-binding8451f87f1b6544ea2257cd18566005277352aa6f.
+* energy-product-inboundc80ae290aae7178c4d5c1c33522ebd5574ac22bc; energy-product242526b6b7f3f8c355643aaf54ccf92bb79e7784.
+
+All equality/source-path checks are read evidence only. No new executed test totals or whole/current native approval arise from this report.
+
+`````
+
+Original ediel-helper-20261013-sc031-eab-residual-clause-map-v2.md: 12497bytes SHA256cd18f3bb74012ffc8308543d6539abce659e21ee103fd721daf4c8f3354f831a
+
+`````text
+# SC-031 residual literal-clause map — actual d798 / public EAB
+
+**Concrete residual: receiver tolerance/ignored-facet components exist, but current public business projection does not consume the ignored applicability decision. The outgoing16PASS offer addresses the prohibited own-builder clause only. WholeSC031 remains unproved/PARTIAL; no new execution or approval.**
+
+Read-only helper `/root/sc031_outbound_peer_a`; sole write this temporary report. No private unpublished decoder correction or other agent report was read. No F/G source packet re-review, outgoing import-graph repeat, C03 work, tests/backend/SQL/native/GEN/current CI, originals/log/artifacts, refs/claims/source/checkpoint/PR writes.
+
+## Exact current versions
+
+Actual main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Public #795 `eab659f5d0ebe3b7a084e4701f60ee636b2db771`, tree `50de06f93e89fc698f06906bebfb49e1ac4b8516`, parent `c3dd36d406cd1e1b919c43ba6e145689bb6558c7`. Inspected exact Git objects rather than stale checkout baseline. Current public receive source/tests listed below are identical blobs between actual main and EAB.
+
+Frozen P-02 condition: “Nationell extra information som ska ignoreras får inte utlösa negativ APERAK.” On pass: “Ignorera för affärsprojektion; bevara råpayload.” On failure: distinguish genuine excess syntax elements from allowed unused national fields.
+
+Frozen SC-031 expected: “Ingen negativ APERAK enbart för dessa extrauppgifter; uppgifterna påverkar inte affärsdata.” Prohibited: “Mottagningstoleransen innebär inte att den egna byggaren ska börja skicka dessa uppgifter.” LayerIntegration/E2E. Actual d798 ledger P-02VERIFIED, AT-P-02PASSED, SC-031PARTIAL. These approved rows remain approved; this map does not change or inherit whole contract approval from them.
+
+## Clause → exact existing assertion → semantic boundary
+
+| Literal clause | Actual existing asserted component | Qualification limit / residual |
+|---|---|---|
+| Ignore unused national extras; no negative APERAK solely for them | `ediel-prodat-incoming-unused-fields.test.ts:29–49` exercises inbound X224/213/218, false subtypeD319 Z04L, inactive UD parent, while outbound remains prohibited and legitimate Z04D requirement remains. Runtime test around84–100 calls real `resolveCanonicalRuntimeDecision`, accepts syntax/application, asserts no negative APERAK response plan, own ignored224 occurrence and raw extra retention. | Actual field/runtime components, not physical stored ACK receipt. selected helper filters fieldRules for targeted field-owner controls. Registry-aware supported incoming source/role/admission remains its own prerequisite; low-level Z01 runtime acceptance cannot be called actual incoming full intake qualification. |
+| Preserve correct earlier syntax/format gates | Same test asserts lexical dangling release rejects before actor/business decisions, count mismatch retains negative CONTRL, missing national BGM is application41/203, and prescribed invalid unused-date format remains invalid. UTILTS does not inherit P119 tolerance. | Do not globally disable syntax/national date gates or accept every family/field. These assertions distinguish ignored national contents from actual grammar/format errors. |
+| Correct own occurrence/agency/raw evidence, without source acceptance invented | Incoming-unused test tracks ignored319 at own full-message line/object scope; `ediel-received-register-validation-binding.test.ts` binds actual register owner/coverage/message/object/agency/occurrence, refuses foreign/malformed/injected evidence, preserves sourceDisposition not_established. Its final ignored-facet test keeps actual runtime prodatIgnoredFields separate from frozen facts and rejects editable report replacement. | Physical/source evidence is not business projection. Valid recorded facet/source hash and raw preservation do not imply ignored values cannot enter parsed business fields. |
+| Actual receiver does not reject extras only because outbound default leaked | `ediel-prodat-register-consumers.test.ts:80–97` calls actual createOrUpdateInboundProdatCase with clean/extra213: both reach own lookup; same own outbound extra rejects before lookup. Actual create-case line403 explicitly supplies direction. | Test deliberately stops at throwing declared DB lookup. It neither asserts stored business projection nor approval/onboarding effects. Batch path around1107–1110 still calls validateProdatRegisterPayload without direction after requiring actual inbound source; this distinct public source gap is not repaired by single-case direction assertion. No new runtime failure is claimed here. |
+| Receiver flow/schema product controls | Tagged `ediel-prodat-energy-product-inbound.test.ts` exercises real inbound processor/canonical controls with declared registry/source/ACK ports. | It explicitly mocks inboundCases and business-state writer modules. Therefore its pass cannot establish actual customer/site/case ignored-field invariance. ACK creator is also a declared modeled port, not current native receipt authority. |
+| All proper own registers retained; no sibling/stale borrowing | Tagged register-consumers test checks real parser/staging own first-register annual quantity, repeated-register authority, physical identifiers and exact TGT quantity/constant matching. | Fixtures supply legitimate fields. This is not a clean-vs-ignored-extra business-invariance pair; preserving legitimate annual quantity does not prove ignored annual/UD/reference values omitted in other applicable subtypes. |
+| Own builder does not start sending ignored extras | OUR immutable public offer `3dff3dbd33888df02c25624f6d1074abb692646c` / tree `d1a044ec6cf6cbc8f1648dd4590828d5861ea10e`, test blob `0158559ca824e2a89c98256afe90f5e5387aea8f`, SHA7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d. Previously qualified16PASS: real renderer→serializer→tokenizer L/LK tuples, no RFFMG/QTY31/CCI Z02/Z05, explicit scalar/register refusal, optional installation contrast, unchanged caller input; six mutation controls demonstrate oracle sensitivity. | Original qualification remains bound to original source/runtime; no new run or graph repeated here. Parent separately qualified current source applicability. Exact test path is absent from actual d798 and publicEAB, so this is a reusable public offer, not adopted current-main assertion or ledger credit. It does not prove incoming business invariance/actual physical receipt. |
+
+## Public receive path and missing business join
+
+Current `fieldMatrix.ts:649–657` resolves forbidden/not-used applicability before national contents for inboundPRODAT, records ignored field and continues (while retained prescribed date-format checks remain). `prodatRegisterPolicy.ts:129–132` likewise records own register ignored field and continues only inbound. `runtimeDecision.ts` carries actual prodatIgnoredFields in its decision/report; `receivedSourceValidationEvidence.ts` binds actual facet and keeps it outside frozen facts. `receivedSourceValidationLedger.ts:38–51` sends actual ignored-fields text separately to protected source recording and verifies returned ignoredFieldsHash. This is explicit source evidence, not a canonical business projection.
+
+Current `inboundCases.ts` blob **c08e51d67c98b8b7be0fc726f2509059cf4aaec0** is unchanged in both versions. createOrUpdateInboundProdatCase checks own structural application/header for structural sources or inbound register validation for others, then calls parseInboundProdatBusinessData at405. Parser reads physical/source register and party/reference data directly: ignored-capable annual213 around187, raw customer UD around191–216, site annualEnergyKwh228, reference319 around189 and meter224 around243. It does not use the actual ignored facet to suppress named business values based on source applicability.
+
+Case payload persists `parsed_customer`, `parsed_site`, `parsed_metering_point`, `parsed_contract` and proposed action at422–430. This is a business staging projection, not just raw evidence. Supported incoming Z04L's unused319 can therefore be present in parsed referenceToMeteringPoint independently of validator's ignored319 decision. The known structural ignoredUD staging limit remains unchanged, but is not newly re-reviewed as an F/G packet here. Pure Z01 ignored-quantity/meter parser observations are low-level component evidence only; do not mislabel them supported actual registry intake.
+
+Approval around635–679 reads already-saved parsed customer/site/meter fields into matching/customer/site/onboarding command; it does not establish the ignored-business decision by displaying a protected source hash. The presence of these command fields is source-path evidence, not proof that any production masterdata row was mutated. Structural protected apply may constrain its own real effect; that does not make dirty named staging fields an acceptable ignored-only projection.
+
+The residual clause requires invariance of named business values, including affected preexisting staged cases when approved. Correct raw/ignored occurrence evidence must remain; masking provenance or dropping all raw fields would violate the other half of P-02. Own legitimate subtype/field cases, object/agency/register/sibling scopes must remain exact. No blanket field blacklist is inferred from this map.
+
+## No current public decoder adoption established
+
+Fresh read-only #766 query since2026-10-13T17:35UTC/per_page100 returned no SC031/decoder/inboundCases adoption receipt; only unrelated C03 finite-qualification prose matched the search. This is a bounded receipt check, not a claim about private unpublished work. Public actual-main and EAB decoder bytes independently remain c08e, which directly establishes that these inspected public targets do not contain the retained writer's proposed decoder correction. Our outgoing test is likewise absent from both targets. No zero-response/ID-absence inference creates ownership rights.
+
+## Concrete retained-owner next step
+
+Existing retained C1 writer under051ec custody (a93c's proposed correction remains subject to explicit appointment) should publish its bounded exact correction/source and assertions when ready, identifying source applicability and affected new/preexisting cases. Minimum meaningful join: at actual supported receiver→stage→approval boundary compare clean versus own ignored extra with identical valid source, preserve exact raw/ignored facet/object/agency/register scope, assert unchanged named business values and zero extra domain effects; retain legitimate required/allowed subtype controls and wrong source/actor/sibling refusals. Bind the guarded batch validator's actual incoming direction too where its authorized correction scope applies. This does not require us to author its file or fetch private work.
+
+Complement with selective adoption of already public outgoing proof3dff if the retained owner accepts its precise source/file handoff; no duplicate original/GEN/native chain. Existing qualified source/receipts/components should be reused with explicit applicability, then mandatory exact-final current checks and two independent noncoauthor reviewers remain with existing delivery/source/producer owners. Diagnosis/evidence authors should not count as independent final reviewers of a correction adopting their work. No additional gate, wholeSC031 status, approval count or production activation is asserted.
+
+## Exact unchanged receive pins (main d798 = public EAB)
+
+* Frozen rules2108c9c297457c288364b9ed669809aedd21e21e; acceptance3717ce88daaf98c916bb996edc6fe7887bf65b6c.
+* inboundCasesc08e51d67c98b8b7be0fc726f2509059cf4aaec0.
+* fieldMatrixb582f8bd7e31a7fbb4cbf233c6a6130d5e694eb8; registerPolicy4bcaea5ab6c28496194cfb6e4b358ea8cfa88822.
+* runtimeDecision3d87b3d7316a7d36f5931f50a4b9e69627cec2dd; receivedEvidence9e10ac7e2c3dcba021ddbe191a50ff5b26455abe; receivedLedger45aa5d107c776df557f6f5b397c2ae75fc613ecf.
+* incoming-unused-fields1d106dcb278d4ba0bd1ce17480af747a30c1f753; register-consumers005cd50846b2e7b3e770c4303244faba160ee181; received-binding8451f87f1b6544ea2257cd18566005277352aa6f.
+* energy-product-inboundc80ae290aae7178c4d5c1c33522ebd5574ac22bc; energy-product242526b6b7f3f8c355643aaf54ccf92bb79e7784.
+
+All equality/source-path checks are read evidence only. No new executed test totals or whole/current native approval arise from this report.
+
+`````
+
+Original ediel-helper-20261013-eab-certificate-wait-source.md: 4080bytes SHA2568eb475c5d9fb04323270a128a953515f4ec4815dd615837be67ce76d1dae6540
+
+`````text
+# EAB certificate: exact waiting dependency
+
+READ_ONLY source diagnosis, 2026-10-13 18:16:53 UTC. Public #795 head `eab659f5d0ebe3b7a084e4701f60ee636b2db771`, tree `50de06f93e89fc698f06906bebfb49e1ac4b8516`, base/main d798/e3b6, ledger323. Source read from `/workspace/codex-ediel-followup-20261013-358d1615`; no source/ref/claim write, tests/backend/native/GEN, CI start/rerun/cancel/watch, logs/artifacts/originals/private checkpoints.
+
+**The current clean-replay run explains the certificate wait. No unmatched producer predicate or newly confirmed wait-liveness defect was found.** The label “Await the existing native producer” refers here to the **entire OPS hardening workflow**, rather than the native40, corroboration or cancellation31 workflow.
+
+Exact EAB source `.github/workflows/full-e2e.yml:107–157`:
+
+- PR certificate runs only for pull_request and needs smoke/coverage; both are already SUCCESS in the saved1814 check map. Job timeout is180minutes (114), not a new elapsed-duration finding.
+- Checkout uses exact PR head (118). Inline bash obtains actual checkout HEAD (136), then reads the head-filtered workflow inventory once (138).
+- Inline Node requires complete inventory, exact head, path `.github/workflows/ops-hardening.yml`, same repository **and head_repository**, and event pull_request or push (145–150).
+- It selects the unique highest **run_number** among those eligible workflows and a valid run ID (151–154).
+- Line157 executes `gh run watch <selected OPS run> --exit-status --interval 30`. This is an inline workflow step; no separate repository await script is invoked. The scout did not execute it.
+
+The saved `/tmp/ediel-helper-20261013-eab-check-transition-1814.json` contains42 exact-EAB checks:29SUCCESS/11SKIP and only clean-migration-replay115447921695 plus pr-certificate115454167712 IN_PROGRESS. The existing EAB readiness run map links clean to **OPS38441200381**, and certificate to fullE2E38441199977. Retained owner step metadata identifies clean step7 (“Clean empty-database replay”) started17:46:02 and certificate step6 (the await above) started17:59:10. Duration alone supplies no failure/hang diagnosis.
+
+One new bounded inventory read, solely to resolve the exact selector, returned **total28/returned28** and **one** eligible OPS workflow:
+
+- run38441200381, run_number5136;
+- exact headEAB, `.github/workflows/ops-hardening.yml`, eventpull_request;
+- repository/head_repository both `heke99/gridex-ops-platform`;
+- statusIN_PROGRESS/conclusionNULL at18:16:53.
+
+Thus inventory completeness, source/event/repository matching and uniqueness are satisfied. There is no missing alternative native producer to start, no old-head run selected and no evidence of waiting on the certificate's own workflow. Full E2E is not the selected path; OPS has no certificate dependency shown by this selector/check map, so no wait-cycle is established.
+
+**Concrete resumption:** clean finishes its remaining actual work, upload/cleanup/post steps finish, and the **whole OPS38441200381 workflow reaches COMPLETED/SUCCESS**. `gh run watch --exit-status` then exits successfully and certificate step7 proceeds to `node scripts/gridex-full-production-e2e.cjs --certificate=pr` (158–165), followed by its output upload. Clean step7 ending alone is not that whole-run event. If OPS ultimately fails, watch fails and the certificate fails at the existing gate; that future result needs owner metadata/original qualification, not a predicted timeout or a waived wait. No further unchanged polling was performed.
+
+Source pins: EAB workflow blob `83fba5e4e2e64f89696cf9fc698a0de45cb92cbd`, SHA256 `4b596a8e9b72835a89a6fff9bb77fdcad7eabb52bd1de5b03fa208344fa4bd31`; complete workflow bytes equal E49. Existing native40/corroboration/cancellation SUCCESS metadata neither releases this OPS dependency nor qualifies case counts. All original/output/runtime counts, current-head final proof reviews and normal serial merge remain with the existing sole owner. No gate PASS, whole acceptance or ledger increase is claimed by this diagnosis.
+
+`````
+
+Original ediel-helper-20261013-eab-certificate-wait-source-v2.md: 4090bytes SHA256a531146e884ce93c0d46c931666c1316090fe291803eca708f51a25ea74aff92
+
+`````text
+# EAB certificate: exact waiting dependency
+
+READ_ONLY source diagnosis, 2026-10-13 18:16:53 UTC. Public #795 head `eab659f5d0ebe3b7a084e4701f60ee636b2db771`, tree `50de06f93e89fc698f06906bebfb49e1ac4b8516`, base/main d798/e3b6, ledger323. Source read from `/workspace/codex-ediel-followup-20261013-358d1615`; no source/ref/claim write, tests/backend/native/GEN, CI start/rerun/cancel/watch, logs/artifacts/originals/private checkpoints.
+
+**The current clean-replay run explains the certificate wait. No unmatched producer predicate or newly confirmed wait-liveness defect was found.** The label “Await the existing native producer” refers here to the **entire OPS hardening workflow**, rather than the native40, corroboration or cancellation31 workflow.
+
+Exact EAB source `.github/workflows/full-e2e.yml:107–157`:
+
+- PR certificate runs only for pull_request and needs smoke/coverage; both are already SUCCESS in the saved1814 check map. Job timeout is180minutes (114), not a new elapsed-duration finding.
+- Checkout uses exact PR head (118). Inline bash obtains actual checkout HEAD (136), then reads the head-filtered workflow inventory once (138).
+- Inline Node requires complete inventory, exact head, path `.github/workflows/ops-hardening.yml`, same repository **and head_repository**, and event pull_request or push (145–150).
+- It selects the unique highest **run_number** among those eligible workflows and a valid run ID (151–154).
+- Line157 executes `gh run watch <selected OPS run> --exit-status --interval 30`. This is an inline workflow step; no separate repository await script is invoked. The scout did not execute it.
+
+The saved `/tmp/ediel-helper-20261013-eab-check-transition-1814.json` contains42 exact-EAB checks:29SUCCESS/11SKIP and only clean-migration-replay115447921695 plus pr-certificate115454167712 IN_PROGRESS. The existing EAB readiness run map links clean to **OPS38441200381**, and certificate to fullE2E38441199977. Authenticated root-helper job metadata identifies clean step7 (“Clean empty-database replay”) started17:46:02 and certificate step6 (the await above) started17:59:10. Duration alone supplies no failure/hang diagnosis.
+
+One new bounded inventory read, solely to resolve the exact selector, returned **total28/returned28** and **one** eligible OPS workflow:
+
+- run38441200381, run_number5136;
+- exact headEAB, `.github/workflows/ops-hardening.yml`, eventpull_request;
+- repository/head_repository both `heke99/gridex-ops-platform`;
+- statusIN_PROGRESS/conclusionNULL at18:16:53.
+
+Thus inventory completeness, source/event/repository matching and uniqueness are satisfied. There is no missing alternative native producer to start, no old-head run selected and no evidence of waiting on the certificate's own workflow. Full E2E is not the selected path; OPS has no certificate dependency shown by this selector/check map, so no wait-cycle is established.
+
+**Concrete resumption:** clean finishes its remaining actual work, upload/cleanup/post steps finish, and the **whole OPS38441200381 workflow reaches COMPLETED/SUCCESS**. `gh run watch --exit-status` then exits successfully and certificate step7 proceeds to `node scripts/gridex-full-production-e2e.cjs --certificate=pr` (158–165), followed by its output upload. Clean step7 ending alone is not that whole-run event. If OPS ultimately fails, watch fails and the certificate fails at the existing gate; that future result needs owner metadata/original qualification, not a predicted timeout or a waived wait. No further unchanged polling was performed.
+
+Source pins: EAB workflow blob `83fba5e4e2e64f89696cf9fc698a0de45cb92cbd`, SHA256 `4b596a8e9b72835a89a6fff9bb77fdcad7eabb52bd1de5b03fa208344fa4bd31`; complete workflow bytes equal E49. Existing native40/corroboration/cancellation SUCCESS metadata neither releases this OPS dependency nor qualifies case counts. All original/output/runtime counts, current-head final proof reviews and normal serial merge remain with the existing sole owner. No gate PASS, whole acceptance or ledger increase is claimed by this diagnosis.
+
+`````
