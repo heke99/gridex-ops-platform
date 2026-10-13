@@ -12,6 +12,8 @@ import {receivedOriginalRulePackWitness} from '@/lib/ediel/rulebook/canonicalRul
 import {validateEdifactSyntax} from '@/lib/ediel/core/syntaxValidator';
 import {captureEdielTechnicalSyntaxAckEvidence,readEdielTechnicalSourceEndpoint,recordEdielTechnicalSyntaxDecision,technicalSyntaxAckQualification} from '@/lib/ediel/ack/technicalSyntaxAuthority';
 import {createHash} from 'node:crypto';
+import {readOutboundAckOriginals} from '@/lib/ediel/core/outboundAckOriginals';
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups';
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
 import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition';
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
@@ -30,7 +32,7 @@ import {createReceivedProdatCommittedEffectAcks} from '@/lib/ediel/flows/receive
 import {hasReceivedProdatHeaderRejection} from '@/lib/ediel/prodat/receivedProdatHeaderRejection';
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 import {prodatHeaderFieldRejection} from "@/lib/ediel/prodat/prodatHeaderDateRejection";
-import {tokenizeEdifact} from "@/lib/ediel/core/edifactTokenizer";
+import {tokenizeEdifact,segmentComposite} from "@/lib/ediel/core/edifactTokenizer";
 import {prodatCharacteristicValues} from "@/lib/ediel/prodat/prodatCharacteristicFields";
 
 import {
@@ -867,6 +869,65 @@ async function processInboundProdatMessage(params: {
   });
 }
 
+/** A fixed whole positive protocol response permits a read-only replay. It
+ * does not assert private core completion or cancel any existing worker. */
+async function hasRetainedPositiveZ02Protocol(actorUserId:string,source:EdielMessageRow):Promise<boolean>{
+  if(source.direction!=='inbound'||source.message_standard!=='edifact'||source.message_family!=='PRODAT'
+    ||source.message_code!=='Z02'||!source.company_id||!source.raw_payload||!['test','production'].includes(source.environment))return false;
+  const companyId=source.company_id,raw=source.raw_payload;
+  // A bounded company-wide presence hint avoids requiring a source-rule basis
+  // before first processing. Neither these public rows nor their relations,
+  // status/outcome fields or parsed payload can authorize a replay return.
+  const hint=await supabaseService.from('ediel_messages').select('id').eq('company_id',companyId)
+    .eq('environment',source.environment).eq('direction','outbound').eq('message_family','APERAK').limit(1);
+  if(hint.error!==null||!Array.isArray(hint.data))throw new Error('ediel_z02_terminal_availability_unavailable',{cause:hint.error});
+  if(!hint.data.length)return false;
+  await assertEdielTenantActor({companyId,actorUserId,permission:'communication.write'});
+  // This legacy service read supplies availability only. The v2 actor/source
+  // owner below is required even if every returned legacy flag says qualified.
+  const {data,error}=await supabaseService.rpc('gridex_read_outbound_acks_for_source_v1',{
+    p_source_message_id:source.id,p_ack_family:'APERAK'});
+  const legacy=data as {version?:unknown;sourceMessageId?:unknown;sourcePayloadHash?:unknown;companyId?:unknown;environment?:unknown;originals?:unknown}|null;
+  const sourceHash=createHash('sha256').update(raw,'utf8').digest('hex');
+  if(error!==null||!legacy||legacy.version!==1||legacy.sourceMessageId!==source.id||legacy.sourcePayloadHash!==sourceHash
+    ||legacy.companyId!==companyId||legacy.environment!==source.environment||!Array.isArray(legacy.originals))
+    throw new Error('ediel_z02_terminal_availability_invalid',{cause:error});
+  const positiveAvailable=legacy.originals.some(candidate=>{
+    const item=candidate as {message?:EdielMessageRow};
+    if(!item.message?.raw_payload)throw new Error('ediel_z02_terminal_availability_invalid');
+    const wire=tokenizeEdifact(item.message.raw_payload);
+    return wire.segments.some(row=>row.tag==='ERC'&&segmentComposite(row,1,wire.una)[0]==='100');
+  });
+  if(!positiveAvailable)return false;
+  if((source as EdielMessageRow&{immutable_payload_hash?:unknown}).immutable_payload_hash!==sourceHash)
+    throw new Error('ediel_z02_terminal_original_hash_mismatch');
+  const wire=tokenizeEdifact(raw);
+  const unh=wire.segments.filter(row=>row.tag==='UNH'),bgm=wire.segments.filter(row=>row.tag==='BGM');
+  if(unh.length!==1||bgm.length!==1||segmentComposite(unh[0],2,wire.una)[0]!=='PRODAT'
+    ||segmentComposite(bgm[0],1,wire.una)[0]!=='Z02')throw new Error('ediel_z02_terminal_original_scope_mismatch');
+  const groups=prodatRegisterGroups(wire.segments,wire.una).groups.filter(group=>group.registerPosition===1);
+  if(!groups.length)return false;
+  const expected=groups.map(group=>{
+    const references=group.segments.filter(row=>row.tag==='RFF'&&segmentComposite(row,1,wire.una)[0]==='LI')
+      .map(row=>segmentComposite(row,1,wire.una)[1]);
+    return {objectId:group.itemId,identityAgency:group.identityAgency,firstLineIndex:group.segments[0].index,
+      lineItemReference:references.length===1?references[0]:null};
+  });
+  // Protected v2 pins actual raw/hash/environment, private source rules, born
+  // ACK owner/physical scope and current actor/legal namespace after its waits.
+  const originals=await readOutboundAckOriginals(source.id,'APERAK',source,undefined,{actorUserId,phase:'prepare'});
+  if(originals.some(original=>original.status!=='qualified'))throw new Error('ediel_z02_terminal_original_unavailable');
+  const outcomes=originals.flatMap(original=>original.correlation.prodatObjectOutcomes??[]);
+  if(outcomes.some(own=>own.outcome==='negative')||!expected.every(own=>own.objectId&&own.lineItemReference
+    &&outcomes.some(result=>result.outcome==='positive'&&result.objectId===own.objectId&&result.identityAgency===own.identityAgency
+      &&result.firstLineIndex===own.firstLineIndex&&result.lineItemReference===own.lineItemReference)))return false;
+  // Preserve current command authority even though this branch writes nothing.
+  // These checks are invocation-local and occur after the protected read wait.
+  await assertEdielTenantActor({companyId,actorUserId,permission:'communication.write'});
+  await assertEdielTenantActor({companyId,actorUserId,permission:'metering.write'});
+  return true;
+}
+
 export async function processInboundEdielMessage(params: {
   actorUserId: string;
   edielMessageId: string;
@@ -923,6 +984,11 @@ export async function processInboundEdielMessage(params: {
       message:'Selected UNSM-directory saknar kvalificerad full källgrammatik; inbound hålls före kvittens och affärseffekter.',
       payload:{reason:'ediel_unsm_directory_source_unavailable',issues:selectedSyntax.issues}});
     return message;
+  }
+
+  if(selectedSyntax.ok){
+    try{if(await hasRetainedPositiveZ02Protocol(actorUserId,message))return message;}
+    catch(error){throw technicalActorRefusal(error)??error;}
   }
 
   // Syntax belongs to the actual wire and transport endpoint. It precedes
