@@ -6,7 +6,7 @@
   "status": "AUTHORIZED_ACTUAL_DATABASE_RECONCILIATION_IN_PROGRESS",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
-  "native_writes": 11,
+  "native_writes": 13,
   "business_rpc_invocations": 0,
   "deployments": 0,
   "native_blockers": [
@@ -38,7 +38,7 @@
   "latest_native_preflight": "2026-10-12 22:56:02 UTC:51missing/52examined names; tombstone alreadypresent",
   "handover": "Draft PR794 contains reviewed source and ten actually applied native forwards; full dependency/semantic reconciliation and prospective VAT native guards continue. No merge/deploy/business mutation or competing GEN.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "e97ec65fd0442196263afc9316d0c07cd36b8a3c",
+  "current_source_head": "7a972af66903a6dccbe1ca656bce2ac8d3055d14",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "1162 migration source files/1065 version groups integrity passed; actual427 registrations as of10:56:48UTC; no blind replay or fake historical registration.",
   "gen_owner": "C2 sole GEN/current producer ref03d8419671865554c0b8684de125320a2ef98f72 observed; first OPS atomic source imported in joint epoch; later actual forwards require next coherent handoff, no API-owned GEN",
@@ -112,6 +112,20 @@
       "sha256": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
       "actual_ledger_sql_md5": "17428f943864c6a5426861ec58019355",
       "receipt": "quality/audits/2026-10-12-ops-api-contracts/auth-expiry-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013112412",
+      "file": "supabase/migrations/20261013112412_ops_api_consumption_vat25_authoring.sql",
+      "sha256": "0d1eff69cd2cd0a2f347c08417e9ff1b4094a623b1eedc22d02e079cff3ab656",
+      "actual_ledger_sql_md5": "6c855149b533abcfba3a87479b1b0840",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/vat25-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013112427",
+      "file": "supabase/migrations/20261013112427_ops_api_consumption_vat25_publication.sql",
+      "sha256": "ab6c5f1211903acaa646160cf76094f6aa18ffae299f9721ae25808a8d365210",
+      "actual_ledger_sql_md5": "bb44991d05ac2f5f973e98a41beb12c6",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/vat25-native-apply-receipt.json"
     }
   ],
   "native_corrected": "Actor current-active permission and deny precedence, additive canonical override columns/deny-only constraints, Partner atomic site/offer direction guard; OIDs/ownership/grants preserved and actual postcatalog verified. Pure gridowner native body unchanged; new forward source corrects future replay escaping.",
@@ -121,7 +135,7 @@
     "Consumption VAT unit source corrected and approved; prospective native25% guards pending final replay qualification",
     "Three historical wrong-VAT price versions remain preserved: two frozen published versions and draft predecessor referenced by frozen successor; inactive history is not rewritten"
   ],
-  "native_forward_migration_writes": 10,
+  "native_forward_migration_writes": 12,
   "native_metadata_population_writes": 1,
   "metadata_receipt_count": 14,
   "staff_deny_status": "Actual native two permission functions patched and service-only/VOLATILE/body/OID/grants verified. Configured Staff provider/client/binding still absent; no authenticated E2E readiness claim.",
@@ -131,5 +145,6 @@
   "quote_native_status": "Actual retired technical TTL removed; exactbody/OID/grants verified; status/version/hash/publication/idempotency preserved",
   "auth_native_status": "Five actual native context/permission helpers corrected and verified; source platform authority preserves current catalog/deny precedence and actual entity company;11route permission-key corrections approved",
   "permission_catalog_status": "Actual69existing rows preserved,7source-owned keys registered; native76/76active, no user/role assignments or new grants. Portable complete/empty/extra-key/replay/inactive preservation qualified",
-  "auth_expiry_native_status": "Actualfive currentAuth/identity/invitation cores installed, expiry afterlocks/provider/ratewait andStaffrevalidation beforeidentitymutation; exactnativebody/attrs/OID/ACLproof, nohistory/credentialwrite"
+  "auth_expiry_native_status": "Actualfive currentAuth/identity/invitation cores installed, expiry afterlocks/provider/ratewait andStaffrevalidation beforeidentitymutation; exactnativebody/attrs/OID/ACLproof, nohistory/credentialwrite",
+  "vat25_native_status": "Two actual forwards applied and five exact approved future VAT bodies/OIDs/ACL/config verified; consumption25/.25 required, explicit producer exemptions and frozen history/lineage preserved; no business RPC invoked"
 }

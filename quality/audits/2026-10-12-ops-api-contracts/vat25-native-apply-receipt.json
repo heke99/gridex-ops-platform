@@ -1,0 +1,126 @@
+{
+  "scope": "OPS prospective consumption VAT25 authoring and publication forwards",
+  "project_id": "piidsfebjqjmnepdpnas",
+  "independent_noncoauthor_reviews": [
+    "final_api_source_review",
+    "native_forward_independent_review"
+  ],
+  "source_created_by": "Official Supabase CLI2.101.0; unpublished filenames aligned to native assigned versions without byte changes",
+  "isolated_compile_replay_receipts": [
+    "vat25-authoring-isolated-compile-receipt.json",
+    "vat25-publication-isolated-compile-receipt.json"
+  ],
+  "native_postflight": {
+    "checked_at": "2026-10-13 11:24:50.383355+00",
+    "ledger_count": 429,
+    "migrations": [
+      {
+        "name": "ops_api_consumption_vat25_authoring",
+        "sql_md5": "6c855149b533abcfba3a87479b1b0840",
+        "version": "20261013112412",
+        "sql_sha256": "0d1eff69cd2cd0a2f347c08417e9ff1b4094a623b1eedc22d02e079cff3ab656"
+      },
+      {
+        "name": "ops_api_consumption_vat25_publication",
+        "sql_md5": "bb44991d05ac2f5f973e98a41beb12c6",
+        "version": "20261013112427",
+        "sql_sha256": "ab6c5f1211903acaa646160cf76094f6aa18ffae299f9721ae25808a8d365210"
+      }
+    ],
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "137045",
+        "args": "p_company_id uuid, p_plan_name text, p_contract_type text, p_pricing_model text, p_customer_type text, p_snapshot jsonb, p_valid_from date, p_valid_to date, p_publish boolean, p_actor_user_id uuid",
+        "name": "gridex_create_or_version_contract_pricing",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "ad3959344ade2b6fba6c3ff80a734e35",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "c5df24007ca15a9b0f3b9a99dae66fa4",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "139584",
+        "args": "p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid",
+        "name": "gridex_publish_contract_channel",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "e1ce2908fde6bcba9f797115196a4786",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "83d9b352962a14615c5ef40d07a1e70d",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "137007",
+        "args": "p_publication_version_id uuid, p_actor_user_id uuid",
+        "name": "gridex_publish_contract_publication_version",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, extensions, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "ba799bdc42f5da7296d10832a7eca507",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "4eb3005692629b93e4d75be1ae91b621",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres}",
+        "oid": "137209",
+        "args": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+        "name": "gridex_upsert_internal_contract_offer",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "c6365e364572499b641cd3d9bac3a1fa",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "6124d7d9314c6611a66ef9732d3b7437",
+        "service_execute": false,
+        "security_definer": true,
+        "authenticated_execute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "oid": "179630",
+        "args": "p_company_id uuid, p_offer_id uuid, p_payload jsonb, p_pricing_snapshot jsonb, p_actor_user_id uuid",
+        "name": "gridex_upsert_internal_contract_offer_v2",
+        "owner": "postgres",
+        "config": [
+          "search_path=public, pg_temp"
+        ],
+        "schema": "public",
+        "body_md5": "d68d5db35eb6bc25b607f7872c2ad3d7",
+        "volatility": "v",
+        "anon_execute": false,
+        "definition_md5": "f3b5b4960b9799937aeb4975aa481107",
+        "service_execute": true,
+        "security_definer": true,
+        "authenticated_execute": false
+      }
+    ]
+  },
+  "business_rpc_invocations": 0,
+  "historical_row_updates": 0,
+  "qualification": "Five exact approved future bodies installed, preserving OIDs/owners/ACL/config/args and successful existing replay. Consumption VAT fraction0.25 and optional percent25 required for new authoring/publication; explicit producer settings and per-line exemptions retained. Frozen historical versions and successor lineage unchanged. Not configured integration or live business lifecycle acceptance."
+}

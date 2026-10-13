@@ -152,6 +152,8 @@
     "20261013093922_ops_api_atomic_interval_pricing_snapshot.sql": "c96cfbf2d734da41900782b265c7137c4a4fda82ccce3958588aec365b9db2a5",
     "20261013095628_ops_api_current_context_permission_denies.sql": "c0b42937d124b8a50e77e2d773a4a9ce03062a24eff3abb6d93eb49b0affc418",
     "20261013104143_ops_api_seven_permission_catalog_keys.sql": "2ce4e07ee2dee8ffb352e0e387092e7eb8a9bc6802723d408b40b9e0671e4519",
-    "20261013105521_ops_api_current_auth_token_expiry.sql": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf"
+    "20261013105521_ops_api_current_auth_token_expiry.sql": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
+    "20261013112412_ops_api_consumption_vat25_authoring.sql": "0d1eff69cd2cd0a2f347c08417e9ff1b4094a623b1eedc22d02e079cff3ab656",
+    "20261013112427_ops_api_consumption_vat25_publication.sql": "ab6c5f1211903acaa646160cf76094f6aa18ffae299f9721ae25808a8d365210"
   }
 }

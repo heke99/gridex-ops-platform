@@ -6,7 +6,7 @@
   "documentation_version": "2026-10-12.1 (prospective)",
   "runtime_contract_version": "2026-10-09.1",
   "onboarding_contract_version": "2026-10-05.2",
-  "live_writes": 11,
+  "live_writes": 13,
   "native_business_rpcs": 0,
   "deployments": 0,
   "root_corrections": [
@@ -25,7 +25,7 @@
     "Complete API/RPC/trigger additive dependency reconciliation remains pending; current397RPC-name inventory supersedes initial51-only scope",
     "Confirmed preserved-body semantic gaps in legal supply activation, locked billing source bindings/gates, object onboarding, Ediel receipts and facility completion are under bounded remediation"
   ],
-  "latest_native_receipt": "auth-expiry-native-apply-receipt.json",
+  "latest_native_receipt": "vat25-native-apply-receipt.json",
   "latest_missing_functions_receipt": "required-native-preflight-result.json",
   "historical_errata": [
     "Customer02.3 support detail closed allOf contradiction",
@@ -38,7 +38,7 @@
     "Boundary coverage is not complete business-callee or provider/native campaign acceptance",
     "Canonical GEN and shared Ediel claims/memory remain under existing owners",
     "Semgrep, CodeQL and authenticated ggshield tooling unavailable; no exhaustive SAST/secret-scan clean claim",
-    "Ten actual OPS forward migrations applied; complete portable dependency closure and preserved-body semantic corrections remain in reconciliation",
+    "Twelve actual OPS forward migrations applied; complete portable dependency closure and preserved-body semantic corrections remain in reconciliation",
     "Production dependency audit passed with preexisting node-forge advisory exception; upstream latest1.4.0 has no patched version; exception expires2026-11-01"
   ],
   "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
@@ -71,8 +71,8 @@
       "effects": "Current Staff deny rules and aggregate-only migration visibility; strict provenance registry, unchanged business records"
     }
   },
-  "current_source_head": "e97ec65fd0442196263afc9316d0c07cd36b8a3c",
-  "native_forward_migration_writes": 10,
+  "current_source_head": "7a972af66903a6dccbe1ca656bce2ac8d3055d14",
+  "native_forward_migration_writes": 12,
   "native_metadata_population_writes": 1,
   "metadata_provenance": {
     "receipt_count": 14,
@@ -80,7 +80,8 @@
     "lineage_receipts": 1,
     "canonical_unmapped_versions": 385,
     "full_history_or_effect_qualification": false,
-    "canonical_unmapped_snapshot": "385 at2026-10-13 09:09UTC; not current after subsequent native forwards"
+    "canonical_unmapped_snapshot": "385 at2026-10-13 09:09UTC; not current after subsequent native forwards",
+    "latest_read_only_snapshot": "governance-post-ten-forwards.json:11:22UTC before VAT forwards; ledger427/unmapped393/readinessfalse"
   },
   "applied_native_migration_files": [
     "supabase/migrations/20261012235455_ops_api_atomic_permission_and_direction_guards.sql",
@@ -92,10 +93,12 @@
     "supabase/migrations/20261013093922_ops_api_atomic_interval_pricing_snapshot.sql",
     "supabase/migrations/20261013095628_ops_api_current_context_permission_denies.sql",
     "supabase/migrations/20261013104143_ops_api_seven_permission_catalog_keys.sql",
-    "supabase/migrations/20261013105521_ops_api_current_auth_token_expiry.sql"
+    "supabase/migrations/20261013105521_ops_api_current_auth_token_expiry.sql",
+    "supabase/migrations/20261013112412_ops_api_consumption_vat25_authoring.sql",
+    "supabase/migrations/20261013112427_ops_api_consumption_vat25_publication.sql"
   ],
   "source_permission_catalog_review": "admin-api-permission-catalog-review.json:82calls/imports resolved;12typo calls corrected,7real source keys installed by104143 without role assignments",
   "latest_full_inventory": "389RPC sourcecalls/397names;204directnames absent at fresh catalog snapshot, with syntactic/import reachability tiers. Broader all-RPC/trigger closure replaces initial51-only inventory; no204failed-live-request claim.",
-  "vat25_status": "Consumption25percent/0.25fraction source approved; prospective authoring/publication forwards pending final exact-hash review and genuine compile/replay. Frozen successor lineage blocks historical draft rewrite.",
+  "vat25_status": "Two actual forwards applied and five exact approved future VAT bodies/OIDs/ACL/config verified; consumption25/.25 required, explicit producer exemptions and frozen history/lineage preserved; no business RPC invoked",
   "preserved_body_effect_review": "66 overloads reviewed in two source/actual/trigger effect partitions; confirmed gaps require bounded forward composition, not blanket canonical body replacement"
 }

@@ -1,0 +1,46 @@
+{
+  "snapshot": {
+    "checked_at": "2026-10-13 11:22:09.465912+00",
+    "ledger_count": 427,
+    "strict_governance": [
+      {
+        "blockers": [
+          "MIGRATION_LEDGER_UNMAPPED_VERSION"
+        ],
+        "is_ready": false,
+        "last_verified_at": "2026-08-03T21:55:33.714999+00:00",
+        "missing_in_ledger": 0,
+        "manifest_file_count": 38,
+        "verified_file_count": 38,
+        "ledger_version_count": 427,
+        "latest_ledger_version": "20261013105521",
+        "invalid_checksum_count": 0,
+        "manifest_version_count": 38,
+        "schema_effect_file_count": 4,
+        "unmapped_ledger_versions": 393,
+        "duplicate_ledger_mappings": 0,
+        "effect_verified_file_count": 38
+      }
+    ],
+    "provenance": [
+      {
+        "receipt_count": 14,
+        "ledger_version_count": 427,
+        "latest_ledger_version": "20261013105521",
+        "lineage_receipt_count": 1,
+        "exact_input_receipt_count": 13,
+        "canonical_governance_blockers": [
+          "MIGRATION_LEDGER_UNMAPPED_VERSION"
+        ],
+        "canonical_governance_is_ready": false,
+        "effect_not_assessed_receipt_count": 13,
+        "canonical_unmapped_ledger_versions": 393,
+        "changed_bounded_schema_receipt_count": 0,
+        "current_bounded_schema_receipt_count": 1,
+        "ledger_versions_without_exact_input_receipt": 414,
+        "full_history_and_effect_qualification_claimed": false
+      }
+    ]
+  },
+  "qualification": "Historical governance remains false; exact-input receipts do not imply complete history/effects. Read-only actual aggregate snapshot before VAT forwards; not current after later migrations."
+}
