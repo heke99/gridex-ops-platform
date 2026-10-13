@@ -24,12 +24,13 @@ jobs:
     env:
       NODE_OPTIONS: --max-old-space-size=6144
       COMPONENT_SOURCE: c0d228788882565a7a86bf0cf5ba52089502a2e8
-      QUALIFIED_BASE: c1ce82a7475a0c6e5ae4bdc0ae41989ea482f466
-      QUALIFIED_GEN_SOURCE: c3d0f79b57aacdc37d42e8d9490b729cfee09f8b
-      QUALIFIED_GEN_CAPTURE_RUN: '38309588529'
+      ACTUAL_MAIN_SOURCE: 31637861e819affbeb9cdebbba0d7a66e139481c
+      QUALIFIED_BASE: 64212c21b0c34384585ffc79db7353fd9c096712
+      QUALIFIED_GEN_SOURCE: 725e065abeb3cd6fb1dc10d9bf5b6a086f531568
+      QUALIFIED_GEN_CAPTURE_RUN: '38322724837'
       FILE_RECEIPT: 52841148fabcbf8a1ceb9e24959a421d2edd8b1f
       DONOR_SOURCE: 6bb5e7c9718ec6c8fcdb9334b4da289afbaa23c5
-      PRODUCER_RECEIPT: 29217ea28652cb9a6b18ca46f92c6d63153d766f
+      PRODUCER_RECEIPT: c06da2d9802c9efd52f44b5081272baf61852525
       SOURCE_SHA: ${{ github.event.pull_request.head.sha }}
       SUPABASE_TELEMETRY_DISABLED: '1'
       SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
@@ -47,6 +48,7 @@ jobs:
           [[ "$SOURCE_REPOSITORY" == heke99/gridex-ops-platform ]]
           [[ "$(git rev-parse HEAD)" == "$SOURCE_SHA" ]]
           git merge-base --is-ancestor "$COMPONENT_SOURCE" HEAD
+          git merge-base --is-ancestor "$ACTUAL_MAIN_SOURCE" HEAD
           git merge-base --is-ancestor "$QUALIFIED_BASE" HEAD
           git merge-base --is-ancestor "$QUALIFIED_GEN_SOURCE" HEAD
           git diff --quiet "$QUALIFIED_BASE" HEAD -- lib/ __tests__/ quality/audits/ediel-masterplan-v2/coverage.json supabase/
@@ -62,6 +64,13 @@ jobs:
           expected = {'slot-C1': slot, 'id-AT-Z02L-SUPPLIER': ids, 'id-AT-Z02LK-SUPPLIER': ids,
             'producer-z02': os.environ['PRODUCER_RECEIPT']}
           expected.update({'file-' + hashlib.sha256(p.encode()).hexdigest(): os.environ['FILE_RECEIPT'] for p in paths})
+          # Exact delegated source writers were handed back to this root owner.
+          for receipt, owned in {
+            'a6bc7453e77f2519d286f9dba31e8c6c664cfe5b': ['lib/customer-operations/automation.part-2.ts', '__tests__/ediel-z02-worker-result-preservation.test.ts'],
+            '29624e623d1685d464401d5ba64720456b32a3bb': ['supabase/migrations/20261012231000_ediel_z02_original_grid_refusal.sql', '__tests__/ediel-z02-original-grid-refusal.test.ts'],
+            '55567984a00d2185bc088abf5f0063b4411e2aa1': ['__tests__/ediel-z02-generated-facility-id-write.test.ts'],
+          }.items():
+            expected.update({'file-' + hashlib.sha256(p.encode()).hexdigest(): receipt for p in owned})
           for name, sha in sorted(expected.items()):
             req = urllib.request.Request('https://api.github.com/repos/heke99/gridex-ops-platform/git/ref/tags/agent-claims/masterplan/' + name,
               headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json'})
@@ -107,8 +116,8 @@ jobs:
           metadata = {'checkout_sha': source, 'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
             'workflow_run_id': os.environ['GITHUB_RUN_ID'], 'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
             'epoch': 'gridex-five-agent-20261012', 'slot': 'C1', 'packet': 'b7e2fae0-6c59-4140-a5b5-0e1cd15996c4',
-            'input_epoch': 'gridex-C1-b7e2fae0-native-v3', 'producer_receipt': os.environ['PRODUCER_RECEIPT'],
-            'qualified_main_base': os.environ['QUALIFIED_BASE'], 'file_receipt': os.environ['FILE_RECEIPT'],
+            'input_epoch': 'gridex-C1-b7e2fae0-native-v4', 'producer_receipt': os.environ['PRODUCER_RECEIPT'],
+            'actual_main_source': os.environ['ACTUAL_MAIN_SOURCE'], 'qualified_main_base': os.environ['QUALIFIED_BASE'], 'file_receipt': os.environ['FILE_RECEIPT'],
             'qualified_gen_source': os.environ['QUALIFIED_GEN_SOURCE'], 'qualified_gen_capture_run': os.environ['QUALIFIED_GEN_CAPTURE_RUN'],
             'component_source': os.environ['COMPONENT_SOURCE'], 'donor_source': os.environ['DONOR_SOURCE'],
             'runner': {'docker_driver': info['Driver'], 'available_bytes': available, 'postgres_image_pin': '17.6.1.155'},
@@ -185,13 +194,13 @@ jobs:
           original = temp / 'c1-z02-canonical-replay.log'
           raw = original.read_bytes() if original.is_file() else None
           m = {'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
-            'expected_source_sha': os.environ['SOURCE_SHA'], 'qualified_main_base': os.environ['QUALIFIED_BASE'], 'file_receipt': os.environ['FILE_RECEIPT'],
+            'expected_source_sha': os.environ['SOURCE_SHA'], 'actual_main_source': os.environ['ACTUAL_MAIN_SOURCE'], 'qualified_main_base': os.environ['QUALIFIED_BASE'], 'file_receipt': os.environ['FILE_RECEIPT'],
             'qualified_gen_source': os.environ['QUALIFIED_GEN_SOURCE'], 'qualified_gen_capture_run': os.environ['QUALIFIED_GEN_CAPTURE_RUN'],
             'component_source': os.environ['COMPONENT_SOURCE'],
             'donor_source': os.environ['DONOR_SOURCE'], 'producer_receipt': os.environ['PRODUCER_RECEIPT'],
             'workflow_run_id': os.environ['GITHUB_RUN_ID'], 'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
             'epoch': 'gridex-five-agent-20261012', 'slot': 'C1', 'packet': 'b7e2fae0-6c59-4140-a5b5-0e1cd15996c4',
-            'input_epoch': 'gridex-C1-b7e2fae0-native-v3', 'qualification_outcome': os.environ['QUALIFICATION_OUTCOME'],
+            'input_epoch': 'gridex-C1-b7e2fae0-native-v4', 'qualification_outcome': os.environ['QUALIFICATION_OUTCOME'],
             'canonical_replay': 'UNQUALIFIED', 'native': 'UNQUALIFIED', 'input_restoration': 'UNQUALIFIED',
             'backend_cleanup': 'UNQUALIFIED', 'whole_z02_credit': 'NONE',
             'original_replay_log_sha256': hashlib.sha256(raw).hexdigest() if raw is not None else None}
