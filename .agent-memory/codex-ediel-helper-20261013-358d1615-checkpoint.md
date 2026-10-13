@@ -323,3 +323,64 @@ I independently checked all six saved mutant result hashes against the mutation 
 No actionable finding blocks this bounded final source. Owner still must preserve publication restrictions, bind any mandatory public CI/current source gates and both independent reviews to the eventual exact delivery candidate, and coordinate normal serial merge. A head/tree or test-source change invalidates this final-source approval pending delta review. The full SC-031 inbound business-effects correction and genuine integration/ACK qualification are outside this packet.
 
 ````
+
+Follow-up branch codex/ediel-followup-20261013-358d1615 records READ_ONLY coordination after the immutable technical component. Authoritative reviewed component stays publichead3dff3dbd33888df02c25624f6d1074abb692646c/treed1a044ec6cf6cbc8f1648dd4590828d5861ea10e on codex/ediel-helper-20261013-358d1615, sourceefed/dc439, newtestSHA73265. This follow-up is owncheckpoint-only; do not adopt its branch as a replacement technical carrier or activebaseline. Current-start/actualmain/ledger/latest766 remain sole activeentry. No frozen source/test/evidence/ledger altered.
+
+Published component READY6146050295: finalpeerA cebf4fe7c4ed5239ac5e36157ca629c86492fd4c63457d45bfbd02889646715b and B a40d750f29677aadd8fd16f42ead8bdeb8b2005e838e3b9d8c6dc79842386375 each bind exactfinal3dff/d1a/efed/dc439. ROOTreadboth finalappend reports; no findings. Writer ispaused, filerefaa4 remainsowned until explicit exactreceipt coordination/handoff; current soleowner under6132656380 is codex-five-agent-C1-b7e2fae0 and its explicitly delegated current team (slot-C1receiptb971 authenticated), not an inherited oldlabel. SC031 inboundCase hold051 and C3 inboundStatusUpdater ce073/C3takeover remainoccupied; no silenttakeover. No wholeID/producer/merge/memory claim. Current successor-adoption/nativepublication/normalmerge remains that owner's executable nextstep, no repeat request or userpermissionquestion.
+
+Meaningful current C1 gate transition6146434644: authenticated33SUCCESS+11eventconditionSKIP, including clean115280100578/OPS38392686607 SUCCESS and dependentprcert115285558954SUCCESS, exact7802e073. CLIwatch was metadataonly and returned existingcompletedSUCCESS; no rerun/originals. PR nowOPEN/nondraft/unmerged; readybody/actual normalmerge/parents/tree/ledger remain owner's actions. Existing sourcequalifiedV6113/all9840/cleanup and twoexactwhole-sourcepeers6145001433 unchanged. Main not delivered until actualPRmerged readback; source-onlycarrier has no approvedrow.
+
+Distinct GENchanged-feedbacksupport6146143066 / reportSHA9a37270722d1aa833bb05a612dae9847f0ea1177aa5c14b5b90327544f57a900: exact7958e55/e437 capture38395912626SUCCESS metadata but fourfailurephases verify db:migrations:check, upgradeaggregateparity, Z05compoundnative/output, smokecertificate. ROOT independently reads public8e objects: actual migrationtail20261013040000_ops_api_contract_retention_guard_forward.sql vs honest pendingV3 manifest20261012231000_ediel_z02_original_grid_refusal.sql; unconditionalfreshnesscheck rejectsmismatch. QualifiedGEN outputimport addresses this deterministicblockedchecker, not proof of actual firststderr/fourrootcauses. No sourcefix/cosmeticcounter/checkdisable/blindrerun/privateinput/originalacquisition. Existingsolecollector qualifies output/catalog/EMPTY/restoration/raw3 and upgrade/Z05 exactcause.
+
+Additional COMPONENT CODE applicability6146434644: compiler-derivedrepo importgraph378 excludingnewtest;377 source/runtime/dependency mode/type/blob tuples SAME from actualmainefed to BOTH7802e073/7958e55. Onlygenerated supabase/database.types.ts differs; bothcurrentcarriers shareit. Read-only virtualTypeScript host substitutes exactpubliccarrier typeblob in actualsourcegraph, emits0diagnostics/substitution1. No tracked file modified, no healthyunitrerun/native/GEN. InitialNodechild Gitread failedEPERMbeforecompiler; retained noPASS; ordinary authorizedpublicGitread materializedthe sameblob to/tmp then virtualreadonlycompiler ran successfully. No alternate privatecredentials/source disclosure. This supports code/typeadoption compatibility, not current/futureGENoutput/evidence/environmentapplicability; genuine newoutput/source needsits actualqualification. Integrityread exits0 (33source originals,121rules,231contracts) explicitlydoesnotclaimconformance.
+
+Latest substantive otheractor work: a93c SC039finalc1ef7e96/threeownedpaths,55modeledPASS andtwoSOURCEpeers awaits its publicationroute;6f94 F/Gfour-ownedfiles/native12NOT_RUN prepares first-effect/physicalunusedUD assertions andtwopeers, no duplicatechains. SC037known lateACKcoupledoriginalstatus/activationauthority defect cannotbe completed through heldce073file withoutownerhandoff; do not write a partial bypass elsewhere or globallyadmitfailedoriginals. DB05privatepublication boundaries/knownpostlockexpiryhold and OPS04genuine agreedflowinput unchanged. No retiredactor/310 restart.
+
+Resume: consume meaningful ownerhandoff/newpublicoutput or actualnormalmerge; verify PRstate and source/head/base/tree/orderparents plusfresh ledger, then anynewqualified approvaldelta. Do not repeat unchanged reviews/questions or infer release/wholeclearance from404oldactivity. Helpers/solecollectors/currentwriters/serial owner retain scope. ROOT continues available independent changed-source review; sourcecomponent ispaused untilscope decision.
+
+Preserved declared sourcecompare/finitecompiler original ediel-helper-20261013-sc031-carrier-applicability.json SHA256ca493f7bc216f13e4573cb563f013b27041c9ed9934ccf04fdd03e87a6d431f5:
+
+```json
+[
+  {
+    "source": "2e073477c43c6a133a01710772e65cefc43f6162",
+    "repo_import_dependency_count": 378,
+    "changed": [
+      "supabase/database.types.ts"
+    ],
+    "unchanged": 377
+  },
+  {
+    "source": "8e55b5c2d07be78bf666f1eb51b7a551052b6409",
+    "repo_import_dependency_count": 378,
+    "changed": [
+      "supabase/database.types.ts"
+    ],
+    "unchanged": 377
+  }
+]
+```
+
+Preserved declared sourcecompare/finitecompiler original ediel-helper-20261013-sc031-carrier-type-results.json SHA256b5136363af6066bd4050b80bb9e66d235093b070bba39a7a835cf6b1c4df1298:
+
+```json
+{
+  "scope": "TARGETED_TEST_AND_REPO_IMPORT_GRAPH_WITH_EXACT_PUBLIC_CARRIER_TYPES_VIRTUAL_READ_ONLY",
+  "source": "8e55b5c2d07be78bf666f1eb51b7a551052b6409",
+  "substituted": 1,
+  "diagnostics": []
+}
+```
+
+Preserved declared sourcecompare/finitecompiler original ediel-helper-20261013-gen-v3-static-tail.json SHA256336cd7175efbcf372a5188b4a6638f9330c5b680717306a45dc88a00b0343481:
+
+```json
+{
+  "source": "8e55b5c2d07be78bf666f1eb51b7a551052b6409",
+  "manifest_tail": "20261012231000_ediel_z02_original_grid_refusal.sql",
+  "actual_tail": "20261013040000_ops_api_contract_retention_guard_forward.sql",
+  "composition_capture_pending": true,
+  "static_tail_matches": false,
+  "scope": "PUBLIC_SOURCE_COMPARE_ONLY_NOT_FAILED_LOG_CAUSE"
+}
+```
