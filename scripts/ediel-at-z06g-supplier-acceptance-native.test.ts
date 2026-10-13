@@ -22,6 +22,10 @@ import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
+import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
+import {captureFreshEdielSourceRulePackEvidence,requireEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
+import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import type {SourceOwnerReceipt} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 // Declared external port required by the existing signed-original producer.
@@ -240,6 +244,103 @@ function sourceEffects(f:Fixture,sourceId:string){
  'observations',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.expectation_id,o.transaction_id),'[]') FROM gridex_received_reading_expectations.observations o JOIN gridex_received_reading_expectations.expectations e ON e.id=o.expectation_id WHERE e.company_id=${company} AND e.source_message_id=${source}),
  'ignored',(SELECT to_jsonb(i) FROM gridex_received_sources.prodat_ignored_field_facets i JOIN gridex_received_sources.validation_assessments v ON v.id=i.canonical_assessment_id WHERE i.company_id=${company} AND i.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)))`)
 }
+
+type RefusalEvidence={
+ context:{source_message_id:string;company_id:string;environment:string;direction:string;payload_sha256:string;source_received_at:string;observed_at:string;status:string;reason:string|null;context:Record<string,unknown>}|null
+ rules:{source_message_id:string;company_id:string;environment:string;direction:string;payload_sha256:string;captured_at:string;canonical_assessment_id:string}|null
+ ruleCanonical:{id:string;source_message_id:string;company_id:string;environment:string;source_payload_hash:string}|null
+ canonical:{id:string;source_message_id:string;company_id:string;environment:string;source_payload_hash:string;facts_text:string;facts_hash:string}|null
+ assessment:{id:string;source_message_id:string;company_id:string;environment:string;source_payload_hash:string;canonical_assessment_id:string;facts_text:string;facts_hash:string}|null
+ witness:{id:string;assessment_id:string;company_id:string;environment:string;source_message_id:string;facts_hash:string;observed_at:string}|null
+ ownReceiverCount:number;ownPointCount:number
+}
+function refusalEvidence(f:Fixture,message:EdielMessageRow):RefusalEvidence{
+ const wire=tokenizeEdifact(message.raw_payload!),receiver=wire.segments.find(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='DO')!,point=wire.segments.find(segment=>segment.tag==='LIN')!
+ const company=literal(f.f.companyId),source=literal(message.id),legal=literal(segmentComposite(receiver,2,wire.una)[0]),external=literal(segmentComposite(point,3,wire.una)[0])
+ return sql<RefusalEvidence>(`SELECT jsonb_build_object(
+ 'context',(SELECT to_jsonb(r) FROM gridex_ediel_inbound_context.receipts r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'rules',(SELECT to_jsonb(r) FROM gridex_ediel_source_rules.receipts r WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'ruleCanonical',(SELECT to_jsonb(v) FROM gridex_received_sources.validation_assessments v JOIN gridex_ediel_source_rules.receipts r ON r.canonical_assessment_id=v.id WHERE r.company_id=${company} AND r.source_message_id=${source}),
+ 'canonical',(SELECT to_jsonb(v) FROM gridex_received_sources.validation_assessments v WHERE v.company_id=${company} AND v.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)),
+ 'assessment',(SELECT to_jsonb(a) FROM gridex_received_sources.object_assessments a WHERE a.company_id=${company} AND a.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id)),
+ 'witness',(SELECT to_jsonb(w) FROM gridex_received_sources.object_availability_witnesses w JOIN gridex_received_sources.object_assessments a ON a.id=w.assessment_id WHERE a.company_id=${company} AND a.source_message_id=${source} AND NOT EXISTS(SELECT FROM gridex_received_sources.object_assessments child WHERE child.previous_assessment_id=a.id)),
+ 'ownReceiverCount',(SELECT count(DISTINCT i.company_id) FROM public.tenant_actor_identifiers i JOIN gridex_ediel_inbound_context.receipts r ON r.source_message_id=${source} WHERE i.company_id=${company} AND i.environment='test' AND i.identifier_type='EdielId' AND i.identifier_value=${legal} AND i.valid_from<=r.observed_at AND(i.valid_to IS NULL OR r.observed_at<i.valid_to)),
+ 'ownPointCount',(SELECT count(*) FROM public.metering_points p WHERE p.company_id=${company} AND p.meter_point_id=${external}))`)
+}
+function expectSourceContext(f:Fixture,message:EdielMessageRow,stored:RefusalEvidence,status:'ready'|'held'){
+ expect(stored.context).not.toBeNull()
+ expect(stored.context).toMatchObject({source_message_id:message.id,company_id:f.f.companyId,environment:'test',direction:'inbound',payload_sha256:createHash('sha256').update(message.raw_payload!).digest('hex'),status})
+ expect(Date.parse(stored.context!.source_received_at)).toBe(Date.parse(message.message_received_at!))
+ expect(Date.parse(stored.context!.observed_at)).toBeGreaterThanOrEqual(Date.parse(message.message_received_at!))
+ if(status==='ready'){
+  expect(stored.context!.reason).toBeNull();expect(stored.ownReceiverCount).toBe(1)
+  expect(stored.context!.context).toMatchObject({legalEdielId:f.f.sender,transportEdielId:f.f.sender,actorRole:'electricity_supplier',family:'PRODAT',code:'Z06',applicationReference:'23-DDQ-PRODAT'})
+ }
+}
+function expectReadyRefusalBasis(f:Fixture,message:EdielMessageRow,stored:RefusalEvidence){
+ expectSourceContext(f,message,stored,'ready')
+ expect(stored.rules).not.toBeNull();expect(stored.ruleCanonical).not.toBeNull()
+ const source={source_message_id:message.id,company_id:f.f.companyId,environment:'test'},hash=createHash('sha256').update(message.raw_payload!).digest('hex')
+ expect(stored.rules).toMatchObject({...source,direction:'inbound',payload_sha256:hash})
+ expect(Date.parse(stored.rules!.captured_at)).toBeGreaterThanOrEqual(Date.parse(message.message_received_at!))
+ expect(stored.ruleCanonical).toMatchObject({...source,id:stored.rules!.canonical_assessment_id,source_payload_hash:hash})
+}
+function expectRecordedOwnRefusal(f:Fixture,message:EdielMessageRow,review:SourceOwnerReceipt,stored:RefusalEvidence,
+ application:NonNullable<Awaited<ReturnType<typeof readReceivedProdatApplicationObjects>>>,disposition:'rejected'|'unavailable',cause:string,missingField?:string){
+ // A recorder/snapshot/witness incident cannot be counted as an own refusal.
+ expect(review).toMatchObject({status:'recorded',sourceDisposition:'not_established',objectCounts:{accepted:0,rejected:disposition==='rejected'?1:0,held:disposition==='unavailable'?1:0}})
+ if(review.status!=='recorded')throw Error('recorded_source_refusal_required')
+ expectReadyRefusalBasis(f,message,stored)
+ expect(stored.assessment).not.toBeNull();expect(stored.canonical).not.toBeNull();expect(stored.witness).not.toBeNull()
+ const hash=createHash('sha256').update(message.raw_payload!).digest('hex'),source={source_message_id:message.id,company_id:f.f.companyId,environment:'test'}
+ expect(stored.assessment).toMatchObject({...source,id:review.assessmentId,source_payload_hash:hash,canonical_assessment_id:application.assessmentId,facts_hash:review.factsHash})
+ expect(stored.canonical).toMatchObject({...source,id:application.assessmentId,source_payload_hash:hash})
+ expect(stored.assessment!.canonical_assessment_id).toBe(stored.canonical!.id)
+ expect(stored.assessment!.facts_hash).toBe(createHash('sha256').update(stored.assessment!.facts_text).digest('hex'))
+ expect(stored.canonical!.facts_hash).toBe(createHash('sha256').update(stored.canonical!.facts_text).digest('hex'))
+ expect(JSON.parse(stored.canonical!.facts_text)).toMatchObject({syntaxDecision:'accepted'})
+ expect(stored.witness).toMatchObject({...source,id:review.witnessId,assessment_id:review.assessmentId,facts_hash:review.factsHash})
+ expect(Date.parse(stored.witness!.observed_at)).toBe(Date.parse(review.availableAt))
+ const wire=tokenizeEdifact(message.raw_payload!),lin=wire.segments.find(segment=>segment.tag==='LIN')!,point=segmentComposite(lin,3,wire.una)[0],refs=wire.segments.filter(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,wire.una)[0]==='LI'),messageReference=segmentComposite(wire.segments.find(segment=>segment.tag==='UNH')!,1,wire.una)[0]
+ expect(refs).toHaveLength(missingField==='226'?0:1)
+ if(refs.length)expect(segmentComposite(refs[0],1,wire.una)[1]).toBe(f.f.caseReference)
+ expect(application.sourcePayloadHash).toBe(hash);expect(application.objects).toHaveLength(1)
+ expect(application.objects[0]).toMatchObject({messageReference,objectId:point,identityAgency:'9',registers:[{segmentIndex:lin.index}]})
+ const facts=JSON.parse(stored.assessment!.facts_text) as {owner:string;canonicalFactsHash:string;objects:{object:Record<string,unknown>;disposition:string;reasons:string[];business:unknown;party:unknown}[]}
+ expect(facts).toMatchObject({owner:'received-source-object-decisions-v1',canonicalFactsHash:stored.canonical!.facts_hash})
+ expect(facts.objects).toHaveLength(1)
+ expect(facts.objects[0]).toMatchObject({disposition,business:null,party:null,object:{messageReference,objectId:point,identityAgency:'9',registers:[{segmentIndex:lin.index}]}})
+ expect(facts.objects[0].reasons).toContain(cause)
+ if(disposition==='rejected'){
+  expect(application.headerDecision).toBe('accepted');expect(application.objects[0].applicationDecision).toBe('rejected')
+  expect(application.objects[0].reasonCodes).toContain(cause)
+  expect(point).toBe(f.f.external)
+ }else{
+  // The recorded hold is causally bound to an actual absent own tenant point,
+  // never just a failed source recorder, missing basis or unrelated context.
+  expect(stored.ownPointCount).toBe(0);expect(application.headerDecision).toBe('accepted')
+  expect(application.objects[0]).toMatchObject({applicationDecision:'accepted',reasonCodes:[]})
+  expect(JSON.parse(stored.canonical!.facts_text)).toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted'})
+ }
+}
+function expectPhysicalContextRefusal(f:Fixture,message:EdielMessageRow,stored:RefusalEvidence){
+ expectSourceContext(f,message,stored,'held')
+ expect(stored.context!.reason).toBe('ediel_inbound_legal_context_required')
+ expect(stored.context!.context).toEqual({});expect(stored.ownReceiverCount).toBe(0)
+ // The source INSERT captured this precise refusal. No unconfirmed review
+ // result or missing-rule error substitutes for the actual held context.
+}
+async function prepareCapturedControl(f:Fixture,message:EdielMessageRow){
+ expectSourceContext(f,message,refusalEvidence(f,message),'ready')
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.operator.id})
+ expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
+ expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.f.companyId,decision})).toMatchObject({status:'recorded'})
+ expect(await captureFreshEdielSourceRulePackEvidence(f.f.companyId,message.id)).toMatchObject({status:'captured'})
+ await requireEdielSourceRulePackEvidence(f.f.companyId,message.id)
+ expect(await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+ return {message,apply:()=>approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})}
+}
+
 function expectNoFirstEffects(f:Fixture,message:EdielMessageRow){
  const effects=sourceEffects(f,message.id)
  expect(effects.objects).toEqual([]);expect(effects.batches).toEqual([])
@@ -331,7 +432,7 @@ it('G physical missing fields/correlation and wrong legal parties cannot establi
  const f=await fixture();configureAckRoute(f)
  const probes:{name:string;field?:string;process?:false;transform:(raw:string)=>string}[]=[
   {name:'missing required own306',field:'306',transform:raw=>removeCharacteristic(raw,'Z07')},
-  {name:'missing own LI',transform:raw=>removeSourceSegments(raw,segment=>segment.tag==='RFF'&&segmentComposite(segment,1,tokenizeEdifact(raw).una)[0]==='LI')},
+  {name:'missing own LI',field:'226',transform:raw=>removeSourceSegments(raw,segment=>segment.tag==='RFF'&&segmentComposite(segment,1,tokenizeEdifact(raw).una)[0]==='LI')},
   {name:'reversed source roles',process:false,transform:raw=>raw.replaceAll(`${f.f.receiver}:14`,`${f.f.sender}:14`).replaceAll(`+${f.f.sender}:14+${f.f.sender}:14+`,`+${f.f.sender}:14+${f.f.receiver}:14+`)
    .replace(`NAD+FR+${f.f.receiver}:160:SVK`,`NAD+FR+${f.f.sender}:160:SVK`).replace(`NAD+DO+${f.f.sender}:160:SVK`,`NAD+DO+${f.f.receiver}:160:SVK`)},
   {name:'legal receiver mismatches transport',process:false,transform:raw=>raw.replace(`NAD+DO+${f.f.sender}:160:SVK`,`NAD+DO+${f.f.receiver}:160:SVK`)},
@@ -340,30 +441,35 @@ it('G physical missing fields/correlation and wrong legal parties cannot establi
   const message=await f.captureChange('G',undefined,{rawTransform:probe.transform}),initial=evidence(f,message.id)
   expect(validateEdifactEnvelope(message.raw_payload!).syntaxOk).toBe(true)
   expectNoFirstEffects(f,message)
-  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.operator.id})
-  if(probe.field){
-   expect(decision.issues).toContainEqual(expect.objectContaining({prodatDiagnostic:expect.objectContaining({kind:'field',fieldNumber:probe.field,errorKind:'missing'})}))
+  if(probe.process!==false){
+   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:f.operator.id})
+   const defects=decision.issues.filter(issue=>issue.prodatDiagnostic?.kind==='field'&&issue.prodatDiagnostic.fieldNumber===probe.field&&issue.prodatDiagnostic.errorKind==='missing')
+   expect(defects.length).toBeGreaterThan(0)
    expect(decision.prodatApplicationValidation?.objects).toMatchObject([{applicationDecision:'rejected'}])
-  }
-  // Source-party refusals enter the explicit real reviewer directly: routing
-  // cannot attribute a reversed receiver to this tenant's processor.
-  if(probe.process!==false)await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:message.id})
-  else{
+   await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:message.id})
+   await requireEdielSourceRulePackEvidence(f.f.companyId,message.id)
+   const review=await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})
+   const application=await readReceivedProdatApplicationObjects({companyId:f.f.companyId,sourceMessageId:message.id,rawPayload:message.raw_payload!})
+   expect(application).not.toBeNull()
+   expectRecordedOwnRefusal(f,message,review,refusalEvidence(f,message),application!,'rejected',defects[0].code,probe.field)
+   await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^structural_apply_no_qualified_object$/)
+  }else{
+   // These wrong legal receivers are held at genuine source-context capture,
+   // before a canonical composition can legitimately be recorded.
    const wire=tokenizeEdifact(message.raw_payload!),envelope=EdifactEnvelopeCodec.decode(message.raw_payload!)
    const legalReceiver=wire.segments.find(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='DO')!
    expect(segmentComposite(legalReceiver,2,wire.una)[0]).toBe(f.f.receiver)
    expect(envelope.receiver).toBe(probe.name==='reversed source roles'?f.f.receiver:f.f.sender)
    expect(envelope.sender).toBe(probe.name==='reversed source roles'?f.f.sender:f.f.receiver)
+   expectPhysicalContextRefusal(f,message,refusalEvidence(f,message))
+   await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^ediel_inbound_legal_context_required$/)
   }
-  const review=await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})
-  expect(review.sourceDisposition,probe.name).toBe('not_established')
-  await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^(structural_apply_(?:no_qualified_object|original_review_required|canonical_source_not_accepted|canonical_source_ambiguous)|ediel_source_rule_pack_basis_required|ediel_inbound_legal_context_required)$/)
   expectNoFirstEffects(f,message)
   const after=evidence(f,message.id)
   expect(after.market).toEqual(initial.market);expect(after.source).toEqual(initial.source);expect(after.original).toEqual(initial.original)
  }
  // Same real owner and prerequisites accept an intact control after refusals.
- const control=await f.change('G',undefined,{deferFirstApply:true}),current=await pendingFirstApplication(f,control)
+ const control=await prepareCapturedControl(f,await f.captureChange('G')),current=await pendingFirstApplication(f,control)
  expectNoFirstEffects(f,control.message)
  expect(await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})).toMatchObject({status:'applied'})
 })
@@ -372,8 +478,15 @@ it('G cannot borrow a foreign physical point, admit outbound source input or mut
  const f=await fixture(),foreign=await fixture();configureAckRoute(f)
  const message=await f.captureChange('G',undefined,{rawTransform:raw=>raw.replaceAll(f.f.external,foreign.f.external)}),initial=evidence(f,message.id),foreignBefore=evidence(foreign,foreign.f.source)
  await processInboundEdielMessage({actorUserId:f.operator.id,edielMessageId:message.id})
- expect(await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({sourceDisposition:'not_established'})
- await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^(structural_apply_(?:no_qualified_object|original_review_required|canonical_source_not_accepted|canonical_source_ambiguous)|ediel_source_rule_pack_basis_required|ediel_inbound_legal_context_required)$/)
+ await requireEdielSourceRulePackEvidence(f.f.companyId,message.id)
+ const review=await reviewReceivedStructuralSource({companyId:f.f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:f.operator.id,confirmedOriginal:true,replacesSourceMessageId:null})
+ const application=await readReceivedProdatApplicationObjects({companyId:f.f.companyId,sourceMessageId:message.id,rawPayload:message.raw_payload!})
+ expect(application).not.toBeNull()
+ const stored=refusalEvidence(f,message)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.metering_points WHERE company_id=${literal(foreign.f.companyId)} AND id=${literal(foreign.f.pointId)} AND meter_point_id=${literal(foreign.f.external)}`)).toBe(1)
+ expectRecordedOwnRefusal(f,message,review,stored,application!,'unavailable','structural_review_owner_unavailable')
+ // The intact canonical own member reaches SQL11232's empty qualified partition.
+ await expect(approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:f.operator.id})).rejects.toThrow(/^structural_apply_no_qualified_object$/)
  expectNoFirstEffects(f,message)
  expect(evidence(f,message.id).market).toEqual(initial.market);expect(evidence(foreign,foreign.f.source)).toEqual(foreignBefore)
  // Real INSERT constraints reject this unqualified outbound input. No route,
