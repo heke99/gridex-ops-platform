@@ -16,6 +16,9 @@ DECLARE
  wire jsonb; own jsonb; witness_count bigint; witness jsonb; changed boolean:=false;
  disposition text:='not_applicable'; effect jsonb;
  transit_columns CONSTANT text[]:=ARRAY['status','submitted_at','updated_at','updated_by'];
+ dispatch_columns CONSTANT text[]:=ARRAY['status','submitted_at','updated_at','updated_by',
+  'contract_id','customer_contract_id','readiness_snapshot','readiness_checked_at'];
+ readiness_columns CONSTANT text[]:=ARRAY['ready','contract_id','lifecycle_stage','checked_at'];
  confirmed_columns CONSTANT text[]:=ARRAY['status','completed_at','external_reference','updated_at','updated_by'];
 BEGIN
  IF p_company IS NULL OR p_actor IS NULL OR p_ack IS NULL OR p_source IS NULL OR p_switch IS NULL
@@ -119,7 +122,29 @@ BEGIN
       AND current_request.status IN('prepared','queued','submitted','sent','waiting','waiting_response','waiting_for_z04','awaiting_confirmation')
       AND current_request.inbound_z04_message_id IS NULL AND current_request.confirmed_start_date IS NULL
       AND current_request.completed_at IS NULL AND current_request.failed_at IS NULL AND current_request.failure_reason IS NULL
-      AND (to_jsonb(current_request)-transit_columns)=(binding.resulting_switch-transit_columns) THEN
+      AND (
+       (current_request.status NOT IN('queued','submitted','sent')
+        AND (to_jsonb(current_request)-transit_columns)=(binding.resulting_switch-transit_columns))
+       OR (
+        -- The existing dispatch trigger normalizes BOTH aliases and overlays
+        -- these four readiness keys. Accept only that exact structural delta;
+        -- aliases still derive from the private immutable original contract.
+        -- Mutable readiness diagnostics can inhibit, never supply authority.
+        current_request.contract_id=binding.contract_id AND current_request.customer_contract_id=binding.contract_id
+        AND current_request.readiness_checked_at IS NOT NULL
+        AND jsonb_typeof(current_request.readiness_snapshot)='object'
+        AND current_request.readiness_snapshot->'ready'='true'::jsonb
+        AND current_request.readiness_snapshot->>'contract_id'=binding.contract_id::text
+        AND jsonb_typeof(current_request.readiness_snapshot->'lifecycle_stage')='string'
+        AND nullif(current_request.readiness_snapshot->>'lifecycle_stage','') IS NOT NULL
+        AND jsonb_typeof(current_request.readiness_snapshot->'checked_at')='string'
+        AND current_request.readiness_snapshot->>'checked_at'~'^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$'
+        AND (current_request.readiness_snapshot-readiness_columns)=
+         ((CASE WHEN jsonb_typeof(binding.resulting_switch->'readiness_snapshot')='object'
+           THEN binding.resulting_switch->'readiness_snapshot' ELSE '{}'::jsonb END)-readiness_columns)
+        AND (to_jsonb(current_request)-dispatch_columns)=(binding.resulting_switch-dispatch_columns)
+       )
+      ) THEN
       IF to_jsonb(current_request) IS DISTINCT FROM expected THEN disposition:='stale_preimage';
       ELSE
        effect:=public.gridex_transition_supplier_switch_v1(p_company,p_switch,

@@ -8,7 +8,10 @@ import { beforeAll, afterAll, beforeEach, describe, expect, it, vi } from 'vites
  * original/confirmation/activation issuers are seeded protected-history rows.
  * We execute the ACTUAL committed reader, actor guard, raw-wire parser closure,
  * graph table-lock function, atomic request/event predecessor and its event
- * tenant-owner trigger, unchanged. Other status/dispatch, correction-history,
+ * tenant-owner trigger, dispatch guard/trigger and readiness assertion unchanged.
+ * Its lifecycle-readiness view is a declared finite relation port carrying the
+ * actual consumed company/contract/switch_ready/blockers/lifecycle_stage fields.
+ * Other status, correction-history,
  * immutable-producer triggers, ALTER FK/unique constraints and RLS are not
  * installed; their provenance is a declared lower port, not a runtime proof.
  * The RBAC permission resolver and auth.role use a finite permission relation
@@ -63,6 +66,7 @@ const actualFunctions = [
   'gridex_ack_authority.read_committed_by_source_v2', 'public.gridex_assert_switch_writer_v1',
   'public.gridex_transition_supplier_switch_v1',
   'gridex_correction_process.bind_switch_event_owner_v1',
+  'public.gridex_assert_supplier_switch_ready', 'public.gridex_guard_supplier_switch_dispatch',
 ]
 const actualTables = ['public.ediel_messages', 'public.supplier_switch_requests', 'public.supplier_switch_events',
   'gridex_received_sources.sources', 'gridex_received_sources.validation_assessments',
@@ -82,6 +86,8 @@ async function initialize() {
     CREATE TABLE public.company_memberships(id uuid DEFAULT gen_random_uuid(), company_id uuid,
       user_id uuid, status text, is_active boolean, accepted_at timestamptz);
     CREATE TABLE public.finite_permissions(actor uuid, company uuid, permission text);
+    CREATE TABLE public.customer_contract_lifecycle_readiness_v(company_id uuid,customer_contract_id uuid,
+      switch_ready boolean,blockers text[],lifecycle_stage text);
     CREATE FUNCTION public.gridex_actor_has_company_permission(uuid,uuid,text) RETURNS boolean
       LANGUAGE sql AS $$SELECT EXISTS(SELECT FROM public.finite_permissions WHERE actor=$1 AND company=$2 AND permission=$3)$$;
     CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql AS $$SELECT 'service_role'::text$$;
@@ -99,6 +105,8 @@ async function initialize() {
   for (const name of actualFunctions) await db.exec(definition(name))
   await db.exec(`CREATE TRIGGER e035_bind_switch_event_owner BEFORE INSERT OR UPDATE ON public.supplier_switch_events
     FOR EACH ROW EXECUTE FUNCTION gridex_correction_process.bind_switch_event_owner_v1()`)
+  await db.exec(`CREATE TRIGGER zz_supplier_switch_dispatch_readiness BEFORE INSERT OR UPDATE OF status,contract_id,customer_contract_id,metadata
+    ON public.supplier_switch_requests FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_supplier_switch_dispatch()`)
   // A missing scaffold/function is reported as SETUP ERROR, not behavioral RED.
   if (!existsSync(migrationPath)) throw new Error('setup_missing_new_migration')
   await db.exec(readFileSync(migrationPath, 'utf8'))
@@ -118,12 +126,14 @@ async function state() {
     'receipts',(SELECT jsonb_agg(to_jsonb(r)) FROM gridex_ack_authority.applied_receipts r)) state`)).rows[0].state
 }
 async function seed() {
-  await db.exec(`TRUNCATE public.companies,public.user_profiles,public.company_memberships,public.finite_permissions,
+  await db.exec(`TRUNCATE public.companies,public.user_profiles,public.company_memberships,public.finite_permissions,public.customer_contract_lifecycle_readiness_v,
     ${actualTables.join(',')};`)
   await insert('public.companies', { id: ids.company, is_active: true, status: 'active' })
   await insert('public.user_profiles', { id: ids.actor, user_status: 'active' })
   await insert('public.company_memberships', { id: ids.wrong, company_id: ids.company, user_id: ids.actor, status: 'active', is_active: true, accepted_at: '2026-10-13T10:00:00Z' })
   for (const permission of ['communication.read', 'communication.write']) await insert('public.finite_permissions', { actor: ids.actor, company: ids.company, permission })
+  await insert('public.customer_contract_lifecycle_readiness_v', { company_id: ids.company, customer_contract_id: ids.contract,
+    switch_ready: true, blockers: [], lifecycle_stage: 'switch_ready' })
   await insert('public.supplier_switch_requests', { id: ids.switch, company_id: ids.company, customer_id: ids.customer,
     metering_point_id: ids.point, site_id: ids.site, contract_id: ids.contract, requested_start_date: '2030-01-01',
     status: 'prepared', outbound_z03_message_id: ids.source, rff_li_reference: 'OWN-LI', updated_at: '2026-10-13T10:00:00Z' })
@@ -252,6 +262,55 @@ describe('receipt-bound negative switch transition', () => {
     expect(await state()).toEqual(before)
     expect((await call()).changed).toBe(true)
   })
+  it.each(['queued', 'submitted', 'sent'])('projects a genuine %s dispatch postimage and replays without another event', async status => {
+    await db.query('UPDATE public.supplier_switch_requests SET status=$1', [status])
+    const dispatched = await request()
+    expect(dispatched.contract_id).toBe(ids.contract)
+    expect(dispatched.customer_contract_id).toBe(ids.contract)
+    expect(dispatched.readiness_snapshot).toMatchObject({ ready: true, contract_id: ids.contract, lifecycle_stage: 'switch_ready' })
+    expect(dispatched.readiness_checked_at).toEqual(expect.any(String))
+    const result = await call()
+    expect(result.disposition).toBe('mutated_failure')
+    expect(result.request).toMatchObject({ contract_id: ids.contract, customer_contract_id: ids.contract,
+      readiness_snapshot: dispatched.readiness_snapshot, readiness_checked_at: dispatched.readiness_checked_at })
+    expect((await db.query('SELECT * FROM public.supplier_switch_events')).rows).toHaveLength(1)
+    const after = await state()
+    expect((await call()).disposition).toBe('already_terminal')
+    expect(await state()).toEqual(after)
+  })
+  it('refuses foreign contract aliases normalized by the actual dispatch guard', async () => {
+    await insert('public.customer_contract_lifecycle_readiness_v', { company_id: ids.company, customer_contract_id: ids.wrong,
+      switch_ready: true, blockers: [], lifecycle_stage: 'switch_ready' })
+    await db.query("UPDATE public.supplier_switch_requests SET status='sent',customer_contract_id=$1", [ids.wrong])
+    expect((await request()).contract_id).toBe(ids.wrong)
+    const before = await state()
+    expect((await call()).disposition).toBe('not_applicable')
+    expect(await state()).toEqual(before)
+  })
+  it.each([
+    "readiness_snapshot=jsonb_set(readiness_snapshot,'{ready}','false')",
+    "readiness_snapshot=jsonb_set(readiness_snapshot,'{contract_id}','\"90000000-0000-4000-8000-000000000001\"')",
+    "readiness_snapshot=jsonb_set(readiness_snapshot,'{checked_at}','null')",
+    "readiness_snapshot=jsonb_set(readiness_snapshot,'{checked_at}','\"invalid\"')",
+    "readiness_snapshot=jsonb_set(readiness_snapshot,'{lifecycle_stage}','null')",
+    "readiness_snapshot=readiness_snapshot||'{\"unbound_extra\":true}'::jsonb",
+    'readiness_checked_at=null',
+  ])('holds a dispatched row with invalid readiness diagnostics: %s', async set => {
+    await db.exec("UPDATE public.supplier_switch_requests SET status='sent'")
+    await db.exec(`UPDATE public.supplier_switch_requests SET ${set}`)
+    const before = await state()
+    expect((await call()).disposition).toBe('not_applicable')
+    expect(await state()).toEqual(before)
+  })
+  it('keeps a dispatched complete preimage CAS when guard readiness is refreshed after discovery', async () => {
+    await db.exec("UPDATE public.supplier_switch_requests SET status='queued'")
+    const discovered = await input()
+    await db.exec("UPDATE public.supplier_switch_requests SET status='sent'")
+    const before = await state()
+    expect((await call({ expectedRequest: discovered.expectedRequest })).disposition).toBe('stale_preimage')
+    expect(await state()).toEqual(before)
+    expect((await call()).changed).toBe(true)
+  })
   it.each(["DELETE FROM public.finite_permissions WHERE permission='communication.write'", "UPDATE public.user_profiles SET user_status='inactive'", "UPDATE public.company_memberships SET is_active=false", "UPDATE public.company_memberships SET accepted_at=null", "UPDATE public.companies SET status='paused'"])('requires current mutation-grade actor: %s', async change => {
     await db.exec(change)
     const before = await state()
@@ -373,6 +432,16 @@ describe('receipt-bound negative switch transition', () => {
     }
     await expect(call()).rejects.toThrow('ack_switch_transition_invalid')
     expect((await db.query('SELECT * FROM public.supplier_switch_events')).rows).toHaveLength(1)
+  })
+  it.each([['not_applicable'], null, false, 42, {}, ['not_applicable', 'mutated_failure']])('adapter refuses a non-string no-op disposition %j', async disposition => {
+    await db.exec('UPDATE public.supplier_switch_requests SET lifecycle_blocked=true')
+    const originalTransport = transport, before = await state()
+    transport = async args => {
+      const result = await originalTransport(args)
+      return { ...result, data: { ...(result.data as Record<string, unknown>), disposition } }
+    }
+    await expect(call()).rejects.toThrow('ack_switch_transition_invalid')
+    expect(await state()).toEqual(before)
   })
   it('pins nested request/input before await; caller mutation cannot redirect the operation', async () => {
     const value = await input(), originalTransport = transport

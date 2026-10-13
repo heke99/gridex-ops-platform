@@ -50,7 +50,8 @@ export async function applyInboundAckSwitchTransition(input: InboundAckSwitchTra
   if (error) throw error
   const invalid = () => { throw new Error('ack_switch_transition_invalid') }
   if (!record(data) || data.version !== 1 || Object.entries(pins).some(([key, value]) => data[key] !== value)
-    || typeof data.changed !== 'boolean' || !['mutated_failure', 'preserved_confirmation', 'already_terminal', 'stale_preimage', 'not_applicable'].includes(String(data.disposition))) return invalid()
+    || typeof data.changed !== 'boolean' || typeof data.disposition !== 'string'
+    || !['mutated_failure', 'preserved_confirmation', 'already_terminal', 'stale_preimage', 'not_applicable'].includes(data.disposition)) return invalid()
   const changed = data.disposition === 'mutated_failure', current = data.request
   if (data.changed !== changed || !(current === null || record(current))) return invalid()
   if (current === null) {
