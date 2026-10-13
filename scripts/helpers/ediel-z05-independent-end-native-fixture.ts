@@ -57,6 +57,19 @@ function retainNationalSibling(f:NationalEndSibling){
   ['public.domain_events',`aggregate_id=${literal(f.contractId)}`],
   ['public.customer_operation_tasks',`customer_id=${literal(f.customerId)}`],
   ['public.customer_cases',`customer_id=${literal(f.customerId)}`],
+  ['public.user_profiles',`id=${literal(f.actorUserId)}`],
+  ['public.company_memberships',`user_id=${literal(f.actorUserId)} AND ${company}`],
+  ['public.user_roles',`user_id=${literal(f.actorUserId)}`],
+  ['public.roles',`id IN(SELECT role_id FROM public.user_roles WHERE user_id=${literal(f.actorUserId)})`],
+  ['public.role_permissions',`role_id IN(SELECT role_id FROM public.user_roles WHERE user_id=${literal(f.actorUserId)})`],
+  ['public.user_permissions',`user_id=${literal(f.actorUserId)}`],
+  ['public.admin_users',`user_id=${literal(f.actorUserId)}`],
+  ['public.tenant_actor_roles',company],
+  ['public.tenant_actor_identifiers',company],
+  ['public.tenant_ediel_profiles',company],
+  ['public.tenant_legal_profiles',company],
+  ['public.ediel_actor_settings',company],
+  ['public.ediel_brp_settings',company],
   ['public.supplier_switch_requests',`id=${literal(f.switchId)}`],
   ['public.customer_supply_periods',`id=${literal(f.periodId)}`],
   ['public.ediel_messages',`id IN(${ids})`],
@@ -99,7 +112,9 @@ function retainNationalSibling(f:NationalEndSibling){
   ['public.communication_routes',`id=${literal(f.routeId)}`],
   ['public.ediel_route_profiles',`id=${literal(f.routeProfileId)}`],
  ]
- const read=()=>sql<Record<string,Record<string,unknown>[]>>(`SELECT jsonb_build_object(${tables.map(([table,where])=>`${literal(table)},(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text),'[]') FROM ${table} x WHERE ${where})`).join(',')})`)
+ // PostgreSQL limits function arguments to100; each disjoint chunk has at most80.
+ const chunks=[tables.slice(0,40),tables.slice(40)]
+ const read=()=>sql<Record<string,Record<string,unknown>[]>>(`SELECT ${chunks.map(chunk=>`jsonb_build_object(${chunk.map(([table,where])=>`${literal(table)},(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY to_jsonb(x)::text),'[]') FROM ${table} x WHERE ${where})`).join(',')})`).join(' || ')}`)
  const before=read()
  expect(before['public.ediel_messages'].find(m=>m.id===f.original.id)).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',message_code:'Z08',status:'sent',raw_payload:f.original.raw_payload,source_operation_id:f.mandateId,immutable_payload_hash:expect.stringMatching(/^[a-f0-9]{64}$/),message_sent_at:expect.any(String)})
  expect(before['gridex_supply_rescission.outbound_operations']).toEqual([expect.objectContaining({message_id:f.original.id,company_id:f.companyId,environment:'test',mandate_id:f.mandateId,capability:expect.objectContaining({objects:[expect.objectContaining({objectId:f.external,identityAgency:'9'})]})})])
@@ -176,11 +191,18 @@ async function acceptOrdinaryStart(f: NormalSwitchStageNativeFixture & {caseRefe
 
 /** New canonical customer/contract/point; shared tenant/network state stays read-only. */
 export async function prepareIndependentNationalEndTarget(base: NationalEndSibling, provider: Mock): Promise<PreparedNationalEndTarget> {
- const {companyId,actorUserId,sender,receiver,gridId,routeId,routeProfileId,brpEdielId,requestedStartDate}=base
+ const {companyId,sender,receiver,gridId,routeId,routeProfileId,brpEdielId,requestedStartDate}=base
  const assertSiblingPreserved=retainNationalSibling(base)
+ // A's fixture role intentionally has no contracts.create grant. A new
+ // scoped B operator owns B's canonical admission/signature and later source
+ // execution; A's membership, grants and legal Ediel identity stay exact.
+ const permissions=['customers.write','contracts.read','contracts.write','contracts.create','communication.read','communication.write','communication.send','metering.read','metering.write']
+ const {createBilateralSourceOperator}=await import('./ediel-bilateral-customer-native-fixture')
+ const operator=await createBilateralSourceOperator(companyId,permissions),actorUserId=operator.id
+ expect(actorUserId).not.toBe(base.actorUserId)
+ assertSiblingPreserved()
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.admin_users WHERE user_id=${literal(actorUserId)}`)).toBe(0)
  await assertEdielTenantActor({companyId,actorUserId,permission:'customers.write'})
- const permissions=['customers.write','contracts.read','contracts.write','contracts.create','communication.read','communication.write','communication.send','metering.read','metering.write']
  for(const permission of permissions){
   const checked=await supabaseService.rpc('gridex_actor_has_company_permission',{p_actor_user_id:actorUserId,p_company_id:companyId,p_permission:permission})
   expect(checked.error).toBeNull();expect(checked.data).toBe(true)
@@ -230,7 +252,6 @@ export async function prepareIndependentNationalEndTarget(base: NationalEndSibli
   WHERE company_id=${literal(companyId)} AND environment='test' AND dso_ediel_id=${literal(receiver)}
   AND brp_ediel_id=${literal(brpEdielId)} AND grid_area_code=${literal(base.gridAreaCode)}`)
  expect(grounds).toHaveLength(1);const registryGroundId=grounds[0]
- const {createBilateralSourceOperator}=await import('./ediel-bilateral-customer-native-fixture')
  const brpUploader=await createBilateralSourceOperator(companyId,['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write'])
  const brpReviewer=await createBilateralSourceOperator(companyId,['communication.read','communication.write','customers.read','customers.write','contracts.read','contracts.write','ediel.source.review'])
  const brpSelector={environment:'test' as const,contractId,registryGroundId,identityAgency:'9' as const}
