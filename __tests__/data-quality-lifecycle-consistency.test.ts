@@ -54,7 +54,7 @@ describe('central data-quality and aggregate-alert lifecycle', () => {
         $$ select coalesce(current_setting('request.jwt.claim.role',true),'service_role') $$;
       create table public.companies(id uuid primary key,status text);
       create table public.customers(id uuid primary key,company_id uuid not null references public.companies(id),
-        status text,email text,onboarding_status text,unique(company_id,id));
+        status text,email text,onboarding_status text,source text,unique(company_id,id));
       create table public.metering_points(id uuid primary key default gen_random_uuid(),
         company_id uuid not null references public.companies(id),customer_id uuid,site_id uuid,
         status text,bidding_zone_code text,grid_owner_id uuid,estimated_annual_consumption_kwh numeric,start_date date,
@@ -81,13 +81,20 @@ describe('central data-quality and aggregate-alert lifecycle', () => {
       await db.exec(tableSql)
     }
     const migration = readFileSync(resolve('supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql'), 'utf8')
-    // Production cutover first expands RPCs/columns while the old app's keys
-    // remain. Full migration is then applied after app deployment, and replayed.
+    // Verify the genuine predecessor expansion, then reconstruct its historical
+    // completed-cutover state before applying later authoritative forwards.
+    // Live cutover only drops legacy constraints and preserves later bodies.
     const expansion = migration.replace(/^alter table public\.(data_quality_issues|dashboard_alerts) drop constraint[^\n]+;$/gm, '-- Legacy key retained until application cutover.')
     await db.exec(expansion)
     expect((await db.query<{ n: number }>("select count(*)::int n from pg_constraint where conname in('data_quality_issues_company_id_entity_type_entity_id_issue__key','dashboard_alerts_company_id_alert_type_entity_type_entity_i_key')")).rows[0].n).toBe(2)
     await db.exec(migration)
     await db.exec(migration)
+    const customerSource = readFileSync(resolve('supabase/migrations/20261013130700_operational_quality_customer_source_consistency.sql'), 'utf8')
+    const companyKeys = readFileSync(resolve('supabase/migrations/20261013174700_operational_quality_company_unique_keys.sql'), 'utf8')
+    await db.exec(customerSource)
+    await db.exec(customerSource)
+    await db.exec(companyKeys)
+    await db.exec(companyKeys)
   }, 30_000)
 
   beforeEach(async () => {
@@ -259,12 +266,14 @@ describe('central data-quality and aggregate-alert lifecycle', () => {
   })
 
   it('scans beyond the former 5000-point cap without resolving omitted entities', async () => {
+    // Current source7 eligibility is exercised too. Its repeated SQL predicates
+    // are slower in WASM; native PostgreSQL verifies the same uncapped case.
     await db.query(`insert into public.metering_points(company_id,customer_id,status,bidding_zone_code,grid_owner_id,estimated_annual_consumption_kwh,start_date)
       select $1::uuid,$2::uuid,'active','SE1',$3::uuid,100,'2026-01-01'::date from generate_series(1,5000)`, [company, customer, gridOwner])
     expect((await scan()).issues).toBe(5001)
     expect(await count('data_quality_issues')).toBe(5001)
     expect(await count('dashboard_alerts')).toBe(2)
-  }, 30_000)
+  }, 120_000)
 
   it('rolls back reconciliation when writing a detected issue fails', async () => {
     await scan()
