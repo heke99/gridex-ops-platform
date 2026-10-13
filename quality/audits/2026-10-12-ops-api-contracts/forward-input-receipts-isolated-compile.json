@@ -1,0 +1,17 @@
+{
+  "proposal_sha256": "b58db7d8e3b8999bf38002f5fb4c0580fcbcd819b128abb8db291a0e5b2a9449",
+  "postgres": "17.6",
+  "container": "gridex-ops-api-native-20261013",
+  "database": "ops_api_forward_input_receipts_compile_20261013",
+  "network": "none",
+  "business_rows_imported": false,
+  "business_rpcs_invoked": 0,
+  "baseline": "Actual source provenance-table definition with ledger FK plus12 synthetic ledger records copied from committed own migration source. This is isolated syntax/metadata replay qualification, not evidence of historical production registration.",
+  "first_commit_exit_code": 0,
+  "replay_commit_exit_code": 0,
+  "receipt_count_after_replay": 11,
+  "all_receipts_input_only_and_effect_false": true,
+  "all_source_git_commits_exact": true,
+  "production_source_input_authority": "twelve-forward-exact-input-readback.json compared with committed3413729586091aeb01906aae1d463c266a01887e bytes",
+  "native_apply_status": "NOT_APPLIED"
+}

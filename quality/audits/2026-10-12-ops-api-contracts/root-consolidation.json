@@ -6,7 +6,7 @@
   "documentation_version": "2026-10-12.1 (prospective)",
   "runtime_contract_version": "2026-10-09.1",
   "onboarding_contract_version": "2026-10-05.2",
-  "live_writes": 13,
+  "live_writes": 14,
   "native_business_rpcs": 0,
   "deployments": 0,
   "root_corrections": [
@@ -71,17 +71,17 @@
       "effects": "Current Staff deny rules and aggregate-only migration visibility; strict provenance registry, unchanged business records"
     }
   },
-  "current_source_head": "7a972af66903a6dccbe1ca656bce2ac8d3055d14",
+  "current_source_head": "3413729586091aeb01906aae1d463c266a01887e",
   "native_forward_migration_writes": 12,
-  "native_metadata_population_writes": 1,
+  "native_metadata_population_writes": 2,
   "metadata_provenance": {
-    "receipt_count": 14,
-    "exact_input_receipts": 13,
+    "receipt_count": 25,
+    "exact_input_receipts": 24,
     "lineage_receipts": 1,
-    "canonical_unmapped_versions": 385,
+    "canonical_unmapped_versions": 396,
     "full_history_or_effect_qualification": false,
     "canonical_unmapped_snapshot": "385 at2026-10-13 09:09UTC; not current after subsequent native forwards",
-    "latest_read_only_snapshot": "governance-post-ten-forwards.json:11:22UTC before VAT forwards; ledger427/unmapped393/readinessfalse"
+    "latest_read_only_snapshot": "forward-input-receipts-native-apply.json:11:37:49UTC ledger430/unmapped396/readinessfalse; other-owner113026 migration separatelyobserved"
   },
   "applied_native_migration_files": [
     "supabase/migrations/20261012235455_ops_api_atomic_permission_and_direction_guards.sql",
