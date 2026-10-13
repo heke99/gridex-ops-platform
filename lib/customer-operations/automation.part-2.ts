@@ -899,7 +899,7 @@ export function classifySupplierSwitchDispatch(started: {
 
   const scheduleWindowOnly =
     blockers.length > 0 &&
-    blockers.every((entry) => entry.code === 'supplier_switch_send_window_not_open')
+    blockers.every((entry) => entry.code === 'supplier_switch_send_window_not_open' || entry.code === 'supplier_switch_send_window_too_early')
 
   return {
     blockers,

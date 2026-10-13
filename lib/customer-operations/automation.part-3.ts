@@ -26,6 +26,10 @@ import type { JobOutcome, JobRow } from './automation.part-1'
 import { blockerResult, clean, mapWithConcurrency, missingSchema, nowIso, operationEventStatus, operationOutcomeMessage, operationTitle, projectCustomerApplicationContinuationState, record, retryAt, safeRunAfter, staleSnapshotReason, updateJob } from './automation.part-1'
 import { classifySupplierSwitchDispatch, linkOperationResources, normalizeVerifiedMeteringPointIdentity, persistSupplierSwitchBlockerMetadata, processCustomerDataRequest, processInboundResponse } from './automation.part-2'
 
+// Only an actual window-wait outcome after event handling may refund this claim.
+// Outcome identity stays private: queued status or public result fields grant nothing.
+const supplierSwitchWindowWaitOutcomes = new WeakSet<JobOutcome>()
+
 export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
   const siteId = job.customer_site_id
   if (!siteId) return { status: 'failed', result: { reason: 'missing_site_id' } }
@@ -134,7 +138,7 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
         },
         idempotencyKey: `supplier-switch-scheduled:${request.id}:${classification.sendNotBefore ?? 'window'}`,
       })
-      return {
+      const outcome: JobOutcome = {
         status: 'queued',
         runAfter: resumeAt,
         result: {
@@ -145,6 +149,8 @@ export async function processSupplierSwitch(job: JobRow): Promise<JobOutcome> {
           blockers: classification.blockers,
         },
       }
+      supplierSwitchWindowWaitOutcomes.add(outcome)
+      return outcome
     }
 
     // Route/configuration family (route_profile_missing, environment_not_resolved,
@@ -378,6 +384,9 @@ export async function processCustomerOperationJobs(input: { workerId: string; li
       try {
         const outcome = await processJob(job)
         await updateJob(job, {
+          // Consume once and refund only this claim in the same owned-token CAS.
+          // Existing technical debits and every other queued outcome remain intact.
+          ...(supplierSwitchWindowWaitOutcomes.delete(outcome) ? { attempts: Math.max(0, job.attempts - 1) } : {}),
           status: operationEventStatus(outcome.status),
           result: outcome.result ?? {},
           stale_reason: outcome.status === 'needs_review' ? clean((outcome.result ?? {}).stale_reason) : null,
