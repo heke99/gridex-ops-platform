@@ -1810,3 +1810,171 @@ The reviewable source-only proposal remains narrow: data-only selectors for exis
 This is a concrete custody-routing blocker for **our helper's authoring**, not a new product, native, temporal, LIVE, whole-contract or approval gate. No active dedicated same-G1 supplement receipt was found; the retained active whole request owner is the reason path availability cannot be promoted to our authority.
 
 ````
+
+
+## 2026-10-13 exact d798 one-file adoption and Z13 data-only input design
+
+New actual-main applicability only: all9843 actuald798/e3b6 leaves preserved, one unchanged frozen SC031testblob0158559 yields bac621bf25caa7e747890256f70550d9aaed86a0. Independently reproduced by two noncoauthor peers below. All378 listed repository dependencies mode/type/blob identical95d; exact4 main changes are metadata/evidence/ledger. No new test/native/GEN/backend/CI or originalZIP content read; old16PASS/mutation executions remain honest original3dff/efed source. This is hypothetical selective test-only adoption, not actual current runtime/sourceunion/receipttransfer or newwholeSC031. Recipient custody/actualcurrenthead checks and final integration remain with existingowner.
+
+Z13 input design ready, authoring request6149872726 remains pending. Existing60cc/request/0cESCO/ce80 owners must supply qualified source/backend epoch, actual scoped actor, exactoriginal/hash/mode/expectedcustomer and existingbindinglocator/suitable real baseline. LI/parties/LIN/nullablepoint/reportingtime/watch derive from unchanged sealedsource and protectedownerreads. Committedreception/ACK/correlation/receiptIDs are actual intake outputs, not selector-supplied acceptedfacts. No legal/issuer/permission/history/birth authority seed. ACKalone grants no rights/supply; independently earlierpositiveZ14 remainslegal. Designauthor is sourcecoauthor ifadopted and excludedfinals. NativeNOT_RUN/noauthoringcustody bythisreport. SeparateactualAPItrace is inprogress; onlytmp designwrites authorized.
+
+Next: preserve and route completed current API/inputdesign support once, then implement ONLY after explicitboundedZ13 sourcepreparation appointment/current semanticpause and ownfreshtwofile receiptGET_MATCH. Do not repeat unanswered request or takeoverIDs/producers. Inparallel supportgenuinelyNEW PUBLIC795version underexistingowner; privatecorrectedcarrier/latestZ05-C1namecompatwriter untouched. Actualmain323 unchanged,29remaining; no automaticledgerpromotion.
+
+Original ediel-helper-20261013-sc031-d798-adoption.json, SHA256 `ffdcb0550ffc960ecb97bf3ab9203245854f6938c39f159bce6f491c392d546f`; preserved verbatim:
+
+````json
+{
+  "scope": "READ_ONLY_EXACT_CURRENT_MAIN_ONE_TEST_ADOPTION_APPLICABILITY_NOT_EXECUTION_CI_GEN_OR_MERGE",
+  "actual_main": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "tree": "e3b6c11677a2b871a128504f1616def7d22dba1e",
+  "ordered_parents": [
+    "95d8d160491e79b172342654d8dc643346758105",
+    "fba453cc7cc9de8a26ec75d29248e1733316fcd1"
+  ],
+  "source": "3dff3dbd33888df02c25624f6d1074abb692646c",
+  "source_tree": "d1a044ec6cf6cbc8f1648dd4590828d5861ea10e",
+  "path": "__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts",
+  "mode": "100644",
+  "blob": "0158559ca824e2a89c98256afe90f5e5387aea8f",
+  "sha256": "7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d",
+  "main_leaves": 9843,
+  "all_main_leaf_tuples_preserved": true,
+  "one_test_overlay_tree": "bac621bf25caa7e747890256f70550d9aaed86a0",
+  "only_delta": "ADD __tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts",
+  "checkpoint_excluded": true,
+  "repo_import_dependencies": 378,
+  "all378_prior_95d_mode_type_blob_preserved": true,
+  "four_metadata_only_main_changes": [
+    ".agent-memory/c1-z02-qualified-ledger-20261013-checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/c1-z02-v6/contract-proof.json",
+    "quality/audits/ediel-masterplan-v2/c1-z02-v6/native-2e073477-38392686441-a1.zip",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "old_execution_scope": "16/16 officialNode22 source3dff/efed; six meaningful mutation controls; no new execution",
+  "main_approved_count": 323,
+  "new_approved_count": 0,
+  "frozen_source_and_own_aa4_custody_unchanged": true
+}
+
+````
+
+Original ediel-helper-20261013-sc031-d798-adoption-peer-a.md, SHA256 `6ef4573233d1cfd817bb57e67a2daa77197a08acc167b149f01cd39cb2f754ed`; preserved verbatim:
+
+````markdown
+# Independent actual-main adoption applicability delta A — d798
+
+Verdict: **CONFIRMED exact one-test hypothetical adoption and unchanged listed dependency tuples.** New actual-main delta support only; no repeated full source review, execution/native/CI/GEN/whole-ID or merge approval.
+
+Reviewer `/root/sc031_outbound_peer_a` independently reconstructed Git trees entirely in Python memory, without consulting B, scratch index, object writes, refs, checkout or source changes. Only write is this own `/tmp` report.
+
+Reviewed original `/tmp/ediel-helper-20261013-sc031-d798-adoption.json`, independently verified SHA256 `ffdcb0550ffc960ecb97bf3ab9203245854f6938c39f159bce6f491c392d546f`.
+
+Exact supplied actual-main commit `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Raw Git commit independently contains ordered parents `95d8d160491e79b172342654d8dc643346758105`, then `fba453cc7cc9de8a26ec75d29248e1733316fcd1`. This checks the actual merge object structure; I did not separately query PR800 state, branch API or current CI. Existing delivery owner's authenticated main/PR receipt supplies that publication context.
+
+Frozen proof source `3dff3dbd33888df02c25624f6d1074abb692646c` / tree `d1a044ec6cf6cbc8f1648dd4590828d5861ea10e`. Own test path `__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts`, exact entry mode `100644`, type `blob`, blob `0158559ca824e2a89c98256afe90f5e5387aea8f`; actual Git blob content SHA256 independently matches `7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d`.
+
+## Independent derived tree
+
+Read recursive NUL-framed mode/type/object/path leaf tuples and rebuilt directory hierarchy using Git name ordering and SHA1 object framing. Reconstructed original main tree first and matched `e3b6c11677a2b871a128504f1616def7d22dba1e`. Main contains9843 leaves and the unique test path is absent. Inserted exactly the source test entry into the in-memory map; derived9844 leaves and tree **`bac621bf25caa7e747890256f70550d9aaed86a0`**, matching original report independently.
+
+Every9843 original leaf tuple is preserved; exactly one new test leaf is added. Frozen requirements, ledger, GEN/runtime/workflows and target checkpoint entries remain unchanged. The author checkpoint from source3dff is excluded. No real target adoption or commit is created.
+
+## Current-main dependency applicability
+
+Read `/tmp/ediel-helper-20261013-sc031-import-graph.json` SHA256 `c4b8c8f67a195d63622f32563a7be0af4d5fa1768531495539cdd938dfac7668`. Graph inventory379 paths includes the frozen new test; excluding it yields378 unique repository dependencies. Independently compared each listed dependency mode/type/blob/path tuple from prior95d to d798: all378 exact matches. This verifies that recorded graph's current-source applicability; it does not reconstruct/exhaustively assert every potential dynamic runtime import or execute a composed target.
+
+Independently computed complete prior95d→d798 leaf delta: exactly the four reported metadata/evidence/ledger paths: owner c1-z02 checkpoint, c1-z02-v6 contract-proof.json, native evidence ZIP entry, coverage.json. ZIP's tree entry was compared only; its contents were not read, extracted or recollected. No runtime, frozen specification or listed dependency changed.
+
+Read actual d798 coverage JSON and independently counted119VERIFIED plus204PASSED = **323**. That is the supplied actual-main ledger count, not approval or delivery credit for our still-unadopted SC031 component. This hypothetical insertion changes no ledger entry, so new approval count remains0.
+
+## Limits
+
+Original source16PASS/six mutation controls retain their original source/runtime bindings. No fresh test, SQL/backend/native/GEN/CI run, original ZIP collection or current whole-contract verification was performed. Recorded378-dependency identity supports reuse qualification but is not itself composed execution. Existing source/producer/serial owner and own frozen test custody remain unchanged; no transfer, release, PR action, source authoring or shared documentation write. Exact future coordinated delivery must bind its actual final source and mandatory gates through the existing owner.
+
+````
+
+Original ediel-helper-20261013-sc031-d798-adoption-peer-b.md, SHA256 `6625a1bd69d4846dd166ff7b71586fc8b4229df5a65dbe15f0749123eb309a8d`; preserved verbatim:
+
+````markdown
+# Independent actual-main delta support B — frozen SC031 one-test adoption
+
+Verdict: SUPPORTED for the exact new supplied actual-main source and the unchanged one-test adoption map. No material source-applicability or leaf-preservation issue. This is not a fresh composed execution/current CI/GEN/native/backend/whole-SC031/merge approval.
+
+Reviewer `/root/sc031_outbound_peer_b` is an independent noncoauthor of source/test/fixtures/execution proofs and did not consult peer A. Read-only changed-target review; sole write is this temporary report. No checkout/real-index/Git-object/ref/source writes, repeated healthy tests/type execution, native ZIP reads, original collection or producer actions.
+
+## Exact bindings independently verified
+
+- New supplied actual-main commit: `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`.
+- Main tree: `e3b6c11677a2b871a128504f1616def7d22dba1e`.
+- Ordered parents: `95d8d160491e79b172342654d8dc643346758105`, then `fba453cc7cc9de8a26ec75d29248e1733316fcd1`. The second parent's tree equals the actual merge tree e3b6. These Git object checks verify the specified merge structure, not authenticated current PR/remote status or mandatory CI.
+- Frozen technical source: `3dff3dbd33888df02c25624f6d1074abb692646c`, tree `d1a044ec6cf6cbc8f1648dd4590828d5861ea10e`; original implementation base remains efed/dc439.
+- New test path: `__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts`.
+- Exact tuple: 100644 / blob `0158559ca824e2a89c98256afe90f5e5387aea8f`.
+- Source test SHA256: `7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d`, freshly checked from Git bytes.
+- Input adoption receipt `/tmp/ediel-helper-20261013-sc031-d798-adoption.json` SHA256 `ffdcb0550ffc960ecb97bf3ab9203245854f6938c39f159bce6f491c392d546f`, independently verified.
+
+## New main delta and graph applicability
+
+Main has 9843 original leaf mode/type/blob tuples. Independently enumerated prior95d→d798 changes: exactly the author's C1 ledger checkpoint, contract-proof JSON, native original ZIP path and coverage JSON named in the adoption receipt. Only ZIP tuple metadata was inspected; its bytes were not read. No renderer/policy/serializer/tokenizer/runtime/frozen/test source change lies in this main delta.
+
+Independently compared all 378 existing repo dependencies from the preserved compiler-derived graph, excluding the selected new test, using exact Git mode/type/blob tuples. Every dependency matches prior95d; zero differences. Thus previous bounded95d source and generated-type compatibility remains applicable to this selected graph. No new target execution or package/environment behavior is inferred.
+
+Independently read actual coverage JSON for this supplied merge: 119 VERIFIED rules + 204 PASSED contracts = 323. This is the delivered ledger state supplied by the merge; the one-test adoption contributes zero new approved IDs and does not alter coverage.
+
+## Independently reconstructed hypothetical overlay
+
+Added only the exact frozen test tuple to an in-memory copy of all 9843 main tuples. Verified every original tuple remains unchanged and the sole difference is that added test path. Reconstructed recursive raw Git tree entries and SHA1 in memory; result is exactly `bac621bf25caa7e747890256f70550d9aaed86a0`, matching the receipt.
+
+This hypothetical tree hash is not stored as an existing Git tree object in the inspected object store; no object/index/ref was created to manufacture it. The verification is an independently derived overlay description, not a published commit or performed adoption. The helper checkpoint is excluded; original main ledger/native evidence/source tuples remain intact.
+
+## Reuse and delivery boundary
+
+Existing source16/16 and six mutation controls stay bound to their original qualified source/runtime, with the newly checked unchanged graph supplying explicit source applicability only. Their results were not rerun or promoted to current-main/composed execution. The frozen technical source approval and owning file custody are not modified by this review; current reservation refs/publication authority were not acquired or transferred.
+
+Existing delivery/producer owners must still bind any actual adopted head/tree/base, applicable current mandatory checks and required independent final reviews to their real packet and normal delivery. No whole contract approval, ledger increase, new gate, publication permission or merge role follows from this map.
+
+````
+
+Original ediel-helper-20261013-z13-g1-input-contract.md, SHA256 `f56d779a794e13579d8b621dffa7adcda4fcf9256f5d0b4e32011899824d2d9d`; preserved verbatim:
+
+````markdown
+# Z13 G1: data-only input boundary
+
+READ_ONLY design support, 2026-10-13. Source: actual main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Authoring request `6149872726` is pending: this report grants no writing/custody/execution authority. Only this temporary report is written; no tests, backend/native/GEN/CI, claims/refs, private original/archive/log acquisition or source implementation.
+
+**An input selector locates existing evidence; it never supplies an accepted decision or legal authority.** Existing60cc/request/producer-esco0c/ce80 actors must select suitable already-authorized saved/sent originals on their disposable backend and retain original/execution custody. The prospective source should read those originals through the existing qualified paths, rather than recreate their agreement, issuer, permission, assignment, history or send.
+
+Frozen cards: `docs/ediel/masterplan-v2/registers/acceptance_tests.json` 3208–3213 and 3256–3261. ESCO; real customer identity rather than birthdate; legal identityless Z13 with LIN+1; separate scope/role/customer and DSO agreements/beneficiary. DGI/Z13/S17 requests ongoing V, S18 bounded VH; own CONTRL and APERAK acknowledge the request. Only independently positive Z14 can establish object-related rights; no electricity supply effect. Positive request ACK is not a prerequisite imposed on lawful earlier Z14.
+
+## Minimal producer-supplied selector packet
+
+For each V and VH case, the owner supplies opaque locators and expected identities, not row-shaped fixture facts:
+
+| Required owner input | What it binds; what the prospective source may read/derive |
+|---|---|
+| Exact execution source head/tree and disposable-backend/input-epoch binding | Owner selects the applicable coherent source/install and guards. d798 is this design's source, not automatic qualification of the owner's later carrier/backend. No backend URLs, tokens, signing keys or credentials belong in the selector contract/report. |
+| `companyId`, `environment`, current scoped `actorUserId` | Fixed expected tenant/environment/principal for original reads and received-ACK processing. Existing membership/permissions/legal-role owners must actually admit that actor; an ID or `authorized: true` field cannot do so. A separately scoped adverse actor/tenant is supplied only for a specifically planned refusal control. |
+| `originalMessageId`, expected original SHA256, expected mode `V` or `VH` | Pin one existing outbound PRODAT/Z13 saved/sent original. Read and compare exact original ID/company/environment/customer, immutable raw/hash and accepted-source binding; do not search “latest Z13”, retarget another successful request, mark a draft sent, or send it again. Derive expected wire reason S17/S18 from the explicit mode and compare to the own physical field223. |
+| Expected `customerId`, plus existing assignment/permission binding locator or its owner-qualified selection receipt | Fixed expected customer prevents deriving both the target and oracle from an accidentally selected sibling. AssignmentId/permissionId may be read from the protected original binding and checked against the supplied locator; provider actor, DSO actor, beneficiary, versions and scope must come from their existing owners. They are distinct identities, never aliases of companyId/customerId. No duplicated raw personal identifier need be supplied when the qualified bound customer source is readable. |
+| Case disposition/baseline eligibility | Owner identifies a request suitable for the intended observation. For “ACK alone grants no early rights”, read the actual baseline and establish that this particular request has no positive Z14-established rights yet. An already positively confirmed sibling or existing coexisting V must remain unchanged. Previously established rights are not removed merely to make a pending-case test. No universal ACK-before-Z14 ordering follows. |
+| Reception scenario selector, if existing physical ACKs are reused | Owner supplies existing incoming ACK IDs/expected hashes and their mailbox/parse/reception locator; source reads actual immutable receipt. If the authorized later scenario will ingest a newly rendered physical reply, its ACK ID/hash/mail/parse/reception/canonical assessment are outputs of that actual intake, not selector-supplied accepted facts. The execution owner determines those inputs after source custody and reviews. |
+
+Permission/assignment/intent/outbound-request IDs are not interchangeable: actual `prodatServicePermission.ts` 45–66 links intent operationId/customerId to the permission and stores outbound-request payload `{serviceAssignmentId, permissionId, servicePermissionCommandKey, messageCode, sourceEvidenceId}`. `metering_permissions` schema 31231–31273 distinguishes internal `id`, national `permission_id`, own LI, original Z13 link and independently received Z14/Z15 links.
+
+## Derived observations, with no authority manufacture
+
+- **Physical wire selectors:** tokenize the unchanged bound original. Read UNB complete sender/receiver composites, interchange reference, application reference/test environment; UNH reference/profile; BGM document reference; own first LIN position, nullable point/agency, RFF/LI and adjacent CCI/Z13+CAV/S17-or-S18. CONTRL uses own UCI interchange reference and exact original party composites (including documented first14 projection); APERAK uses own ACW document reference and own object LI with reversed legal parties. Do not replace LI with `1`, a UUID, customer ID or a fabricated installation ID. `sourceCorrelation.ts` 16–29, 98–112, 126–174 defines these scopes; null object identity with real LI is supported.
+- **Customer/legal scope:** existing `ServicePermissionOriginBasis` in `permissionOrigin.ts` 9–19 separates company, assignment/scope versions, permission/state version, provider/DSO actors, legal sender/receiver, customer, mode, purpose/product/period and reviewed evidence. Read the protected binding/current applicable owner evidence and compare its original snapshot; `parsed_payload.sourcePermissionBasis` alone cannot self-authorize. The recovery-specific guard at79–84 illustrates exact binding, not a reason to create a recovery operation here. Resolve identity from qualified org_number/personal_number semantics (`customerIdentity.ts` 25–55), not identifier length, birthdate or fixture constants. Internal customer ID remains separate from physical NAD/UD identity.
+- **Time:** preserve original reporting period and captured request day/network agreement bounds. `requestTiming.ts` 5–19 records immutable evidence/review/scope version and server requestDay; no fresh Date.now substitution, artificial historic permission window or request re-origination. VH original already needs its genuine bounded history terms. Original send/receipt timestamps are read from the owner-bound source; actual incoming reception clock comes from its intake. Existing policy checks remain, without a newly invented LIVE/provider-clock/blanket-wait gate.
+- **Watch/transport:** read the original's recorded ACK expectations/status/deadlines and existing accepted attempt/watch identity where the current consumer exposes it. Do not invent a required watch plan, force deadlines, infer remote delivery from `status: sent` or calculate an oracle from a new helper clock. `acceptedProjection.ts` 3–16 returns exact company/environment/message/attempt/originalHash/observedAt/frozenRecipient and explicitly `authorizesProviderEntry:false`, `deliveryProven:false`; it is not permission to call a provider. Technical and business expectations remain separate. Existing plan absence/holds retain their actual qualification; G1 is the own incoming ACK witness.
+- **Committed result:** actual input to `readCommittedInboundAck` is scoped actor plus the actual persisted incoming ACK (`committedInboundAck.ts` 12–23). Its output must be `exact_receipt`, own original/sourceMessageId and original bytes/hash/company/environment, actual outcome/scope/own references and unchanged replay (6–8,28–32). Legacy diagnostic, matched email, parser object, guessed canonical ID, mutable status or supplied `sourceAccepted:true` is not that receipt. Native schema correlation 97718–97738 binds ACK/source hashes, canonical assessment, actor, exact scope and outcomes; those are actual owner-written outputs, never seed inputs.
+
+## Resume boundary and limits
+
+Resume input is therefore: **owner-qualified source/backend epoch + scoped principal + two exact original/hash/mode/customer bindings + existing binding locators + suitable real baseline**, with optional existing ACK/reception locators for evidence reuse. LI/parties/point/profile/time/watch and downstream receipt IDs are read or derived from those bound existing sources and real owner outputs. Expected metadata is checked against authority; it does not create authority. A missing/ambiguous/stale binding stays a concrete hold, with no automatic fallback, issuer/grant insertion, permission repair or extra producer.
+
+The G1 source should observe request ACK effects and conserve original, supply and independent assignment/permission/grant baselines. It does not need to originate a new Z13, execute an entire later Z14/history/E66 chain, require a positive ACK before Z14, claim external DSO delivery or invent a same-point supply setup. Identityless LIN+1/nullpoint is lawful and must remain representable.
+
+The old Z13 native donors are design history only; their source creators, synthetic signed receipts and failed runs do not grant current selector authority. The actual API call order remains the separate current_delivery_review trace, not this input-design report. This design author must be treated as a source coauthor if adopted into the later source and cannot supply an independent final review of that version. Native remains NOT_RUN; no whole-card, runtime or ledger qualification is claimed.
+
+````
