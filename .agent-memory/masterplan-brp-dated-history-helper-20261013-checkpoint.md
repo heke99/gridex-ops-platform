@@ -123,6 +123,26 @@ Enbart read-only Git show/diff och offentlig metadata samt dessa egna outside-ra
 
 </details>
 
+## 2026-10-13 17:45 Europe/Stockholm — actual delivery and next bounded work
+
+This dated continuation supersedes only earlier observations that called 95d8 main/current320. It does not rewrite the old execution source or appoint a new baseline, slot, writer, producer or merge owner.
+
+- Actual normal PR800 delivery: main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`, ordered parents [`95d8d160491e79b172342654d8dc643346758105`, `fba453cc7cc9de8a26ec75d29248e1733316fcd1`]. PR CLOSED/merged=true at `2026-10-13T15:19:56Z`; current ref authenticated again at 17:42 Stockholm. The existing serial owner delivered it; this helper performed no merge.
+- Fresh canonical ledger SHA256 `7266ee57be5ac633ec0e8ca3f169aaf7d048da45ca0abfc6004284eae75c822e`: 119 VERIFIED rules +204 PASSED contracts =323/352, 29 remain. Only SC-035, AT-Z02L-SUPPLIER and AT-Z02LK-SUPPLIER changed to PASSED. These are not next tasks. Four actual delta paths are the C1 qualified-ledger checkpoint, C1 contract-proof JSON, its retained native ZIP and coverage; no product/helper/SQL/type/config/workflow source changed. No native ZIP/log/original was recollected.
+- Own public support source remains `ed83dcda78c471465f3d3b99baf64c20cf227d40` /tree `f3574211ad839e3727d2d201ce05694cc4d06614`, parent `1bd3e0a89193010128b782fc8917e57709ae6439`; the existing exact BRP native postimage and earlier qualified reports remain frozen. [Public full-map support handoff6148634266](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6148634266) binds both independent final documentation approvals. The BRP one-file receipt0bcc stays HELD/PAUSED; a bounded offer is not completed recipient custody. Native remains NOT_EXECUTED here.
+
+New public-source findings already delivered to the retained owners:
+
+- SC037 new-component intake `f30906660746302283520268692ea9893a2d7be5a9b3c515861c85db3e8bc4c3` identifies the receipt-bound atomic negative request projection, current write-actor requirement, compatible source/original-before-switch locks, replay after interrupted projection and immutable own confirmation. [New bounded authoring division request6149197250](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149197250) asks active a93c for only a new SQL operation, thin adapter and finite test; a93c retains delivery/caller coordination. No source writes/claims occurred. Scout160000 migration name is planning only, not official CLI scaffold. Semantic planned scope remains occupied despite absent new filenames. An explicit scope/pause acknowledgment, exact real migration path and all own authenticated receipts must precede any new writer or source write.
+- Complete custody scout `5843f0f5907f60703a9a035e25cedd22421324f056291d7f3def74192784148c` authenticates all56 complete receipts and then-current641 open-PR path entries; four absent names alone give no whole-task clearance. Existing planned SC031 and shared SC037 division, C1 parser, C3 third updater, F/G, Z09, Z01 and native/GEN ownership remain respected. No foreign release or competing writer was created.
+- SC031 F/G intake `257a8c073b9c45757a08b7481a9577438d008ecbad2c568daac1201556d1621d`: actual raw ignored NAD+UD can still reach staged named parsed_customer fields; F/G native source preserves real customer/supply rows but does not constrain that staged projection, and replay masks the case. [Retained-owner oracle6149259115](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149259115) supplies the exact named-field/noUD-baseline comparison after real staging, approval and replay, with applicable-UD control. This is a source-visible projection/assertion gap, not an executed native failure or a claim of actual customer mutation. Current parser/C1 and F/G owners perform their respective changes; no renamed competing harness was acquired.
+
+The user's continuation is split into three independent read-only subtasks: Z03L/LK literal-to-current-source qualification, AT-Z15VH literal/history/value boundary mapping, and one current SC037 handoff/tool-availability check. These are new remaining-card questions; the already delivered Z02 rows and unchanged SC03770 leaf are not rerun. Source-only findings will be routed to the actual owners before any authoring expansion. Own root writes only this unique checkpoint.
+
+Skill routing: current using-superpowers, dispatching-parallel-agents and spec-to-code-compliance govern narrowly delegated requirement/source comparisons. Existing worktree isolation and exact-version verification remain in force. Supabase/Postgres/debugging/TDD activate for a genuinely handed-over SQL/TS correction; no implementation is authorized by a scout. UI/performance, standalone API/Admin, global scans, production communication/retention and new native/GEN/capture collectors are outside this continuation.
+
+Concrete next action: finish the two new literal maps, record their exact source limits, consume a93c's explicit response if it arrives and verify fresh own custody before the three-file correction. If no bounded handoff is available, help with a different verified independent gap rather than repeating the request. The serial/main and sole GEN/native/original owners retain delivery. Private publication questions, earlier refused releases, retired agents and paused automation310 are unchanged.
+
 <details>
 <summary>AT-Z14VH frozen whole-card intake — original assessment SHA256 cd52a90f9e27a01580bdc6c932483a90c82f28a17b823c97484cb08ea5f65346</summary>
 
@@ -278,5 +298,220 @@ This independently checks the targeted sink/preservation applicability without r
 Authenticated public receipts are retained as user-designated existing qualified derived evidence/provenance. No original run-case/log/artifact is reacquired; this reviewer does not claim an independently inspected original per-case execution map or a new SQL-companion run/count. Existing owner can complete formal binding from its already owned materials; this intake imposes no new producer/wait gate. LIVE/current-market/legal authority, full billing and complete E66 coverage are not invented. Missing-values gaps/held review is compatible with closing the historical job under this literal.
 
 Only exact public Git/source reads and these outside inert snapshots/report were performed. No source/test/fixture/proof code, repository memory/ref/claims/ledger/publication was written, and no test/SQL/native/backend/GEN/CI/log/artifact/original/private-package operation occurred. Shared HEAD1bd3 remained clean. Reviewer is not source/evidence author, collector, publisher or formal qualification owner. `SHA256SUMS` binds the frozen complete source/readbacks; case and line references above define the audited scope.
+
+</details>
+
+## 2026-10-13 18:07 Europe/Stockholm — actionable bounded continuation
+
+- SC037 authoring division is now explicitly ACKNOWLEDGED by a93c in [6149512642](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6149512642), pausing all competing authoring of the same new operation. New own packet2553803b-931a-4207-9258-f86ae1fc2568/neutralreceipt97d7007594fad27d78a9c7232a3ac7fce64b88e8 binds actuald798/e3b6 and exactly the new TS adapter, finite test and CLI-generated `20261013155649_ediel_ack_bound_switch_transition.sql`. ROOT and fresh solewriter sc037_cas_writer independently authenticated the complete receipt, all3 GET_MATCH refs, exact source and separate public6d80 dependency before ROOT GO/first write. New isolated `codex/ediel-sc037-bound-ack-helper-20261013` uses its own unique checkpoint; old BRP branch/native stays frozen. This is neither existing-caller custody nor native/GEN/PR/merge authority. Finite implementation is IN_PROGRESS.
+- The distinct Z03L/LK join has a concrete two-new-file source plan a4bbdb9c9b307fa3b1870ab0f71fc97213112c9aeea0e441dc0b881907eafcd2 and independent full same-criterion custody scout a0c608455bab6a7485a332499027c57600978553cd21ee1d3e92e5a5353bfed2. Existing four-card map6148935435@35ced is reused. No current same-criterion supplemental writer/prepared source was found; only the new test/config source preparation is proposed, subject to fresh own custody. Fresh z03_join_owner coordinates that separate packet with the existing C1 macro/sole execution owner; root verifies its future receipt before source writing. Old helpers/config/producers are not transferred, and two sessions never execute native.
+- Two independent code/spec refutations precisely confirm the SC031 operational review projection: ignored UD reaches stored parsed_customer and the actual Ediel panel displays its customer name/id. Matching/onboarding/customer-row mutation is refuted by structural guards. Raw diagnostics remain allowed. Public6149259115 is narrowed to that reachable projection by the independently checked reports below; no native failure or whole approval is invented.
+- AT-Z15VH now has a distinct whole-card SOURCE composition candidate from existing case29/shared Z15 guards/declared companion. No missing literal requiring a new harness was found. Case29 does not supply E66 or execute post-close projection/ACK/dispatcher probes; incomplete-value sendability is not inferred. The retained owner can bind its existing qualified original identities/companion/source and current delivery gates rather than rebuilding unchanged work. Source evidence and whole approval remain separate.
+
+The three original assessment records below are preserved verbatim with raw-byte SHA256. They are public-source-derived support, not private execution originals. Their authors and ROOT cannot count as independent reviewers of this documentation version. Both implementation writers will obtain their own two fresh independent exact-version final source reviewers. Current actual d798 count323 remains a dated authenticated observation, not credit from these helpers. Old unanswered disclosures/refused release scopes remain intact.
+
+<details>
+<summary>AT-Z15VH literal intake — original assessment SHA256 077e5f4877d4d27751042d9ea139e35c0fcfe811ca06fd4603a8ea2fbf305a81</summary>
+
+# AT-Z15VH-ESCO: distinct literal intake on d798
+
+**Verdict: COMPOSITIONAL_QUALIFICATION_CANDIDATE from existing evidence.** No missing explicit literal clause requiring a new harness or producer was established. Case29 alone is insufficient for stronger consumer claims, but it can join the unchanged shared Z15 guards and the specifically declared SQL companion under the existing owner's original qualification. This is not whole approval, current native execution or ledger credit.
+
+## Current source and no duplicate map
+
+Current #766 was inspected first (787 public comments). Its latest6149253017 identifies only the case29/S18 next pointer. Published ed83 checkpoint6148634266 contains full Z14VH/Z15V maps and a bounded AT-Z15VH pointer, not this whole-card map.
+
+Public Git Data authenticates actual main **d798eb36f35cd4f437d44c8d234b4dbb81adc7a6**, tree **e3b6c11677a2b871a128504f1616def7d22dba1e**, ordered parents95d8d160491e79b172342654d8dc643346758105 + fba453cc7cc9de8a26ec75d29248e1733316fcd1. Public PR795 remains open/unmerged at894b085ef22b48989375822beb5b483a356d10ed. Independent topic-only hashes confirm10 source paths and8 actual function definitions unchanged across qualified old5f8, prior95d, actuald798 and public894. No full schema/input-map identity is claimed.
+
+## Frozen literal
+
+Exact `registers/acceptance_tests.json:3288`, `annex/D_Acceptanskontrakt.md:2956`:
+
+> Givet: ESCO; Datum164, idZ09, status/orsak; får inte avsluta annan tenant eller DDQ-leverans.
+>
+> När: Historikleveransen har avslutats.
+>
+> Förväntat: 23-DGI-PRODAT; BGM=Z15; fält223=S18; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.
+>
+> Förbjuden effekt: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.
+
+The card does not literally require every history value to be complete, a post-closure probe, LIVE delivery, or a single case containing every clause. Missing/unready-value exclusion and post-closure query/ACK behavior must not be claimed from a case that did not exercise them; they do not become new card prerequisites through this intake.
+
+## Clause-to-case/source map
+
+Native references bind `scripts/ediel-at-z14vh-z15v-esco-native.test.ts`, blob **c3e32da74f15e64e93f9beb3be44e332f45ad17a**, SHA256 **68e418b6f4e50834d4e9cf30a0378033a7a118776d22b88c1a1f3252a3da49b1**. SQL companion references bind `scripts/ediel-sc-023-vh-history-sql-regression.mjs`, blob **5ffc5c3bf106cf9e2d5d7697dd80b12ae04e1026**, SHA256 **b40abb936cd73c44417d2315f660c08e93c797a147cfb227215b7416d33e5bdd**.
+
+| Exact obligation | Meaningful existing witness and boundary |
+| --- | --- |
+| ESCO; Datum164/idZ09/status/reason | Native VH factory446–452 renders DSO→ESCO, own LI/point, actual permission ID, S18/A74/B79 and the approved historical end. Case29 receives that actual source. Shared native Z15 case14:294–318 explicitly checks end date/version/source and ACK; S18 uses the same inspected leaf: schema23835–23841 checks parsed own end, LI, point+permission ID, mode/status/reason before effects;23868–23881 calls the VH hook, writes exact end and increments market version. This is composition with a common actual writer, not a claimed separate VH version assertion in case29. |
+| DGI/Z15/S18; CONTRL+APERAK | Case29:468 calls actual receive/process and `ownAcks`72–98. The factory uses codeZ15/variantVH and DGI envelope; protected canonical processing establishes the VH profile. Own replies assert valid physical envelopes, opposite legal parties, company/environment/source ID, own interchange/document/point/agency/LIN/LI references, outbox and effect-source/hash receipt. They are produced durable responses; external provider delivery is not asserted. |
+| End the own history/reporting flow | Case29:465–478 opens exactly one job/object from the own Z14 source, then records historical_delivery_closed and one own Z15 closure with raw hash; own permission becomes ended/inbound_z15 bound. The closure preserves the exact approved object bounds, returns truthful gaps/held+missing_values and no data access. Schema close hook24482–24535 enforces own company/environment/legal parties/point+permission/S18 and immutable canonical/raw/object replay. |
+| No automatic new Z13 | Case29:480 compares pre/post Z13 count,481–482 replays without another closure or positive APERAK. Companion319 and344–350 preserve Z13 and the frozen closure, including late supplied mechanical E66 and replay. |
+| V continues; no other tenant or DDQ end | Case29:479 preserves same-company/same-object V permission+sites byte-exact. Companion318–325 preserves its independent V, foreign tenant and retained populated supply/switch/assignment/original graphs. DDQ sentinel970011 differs from VH point975003; it is declared mechanical populated-DDQ preservation, not native same-point DDQ. Native supply snapshot is empty. The literal does not add a same-point populated-DDQ requirement. |
+| Wrong role/direction/correlation; missing R/D; mutation refused | Native shared Z15 cases16–26:334–371 cover wrong mode/LI/Z09/object, role/direction, immutable direction rewrite and six required fields327/325/226/223/322/324 without effects/positive APERAK. These are S17 cases, not relabelled S18 negative executions. Composition uses the same raw-hash/canonical-own-object/actor/LI/date/permission writer; S18 additionally has close-hook exact object/source guards. Companion241–252 and337–342 directly exercise VH tenant/actor and changed raw/object replay refusals with retained-row equality; its admission ports are declared. No exhaustive native-per-cell claim is made. |
+
+## Requested consumer questions: what is actually qualified
+
+Case29 supplies **no E66** and invokes no post-closure projection, new request or E66 ACK. Native27:379–420 separately proves actual in-window E66 persistence/positive ACK/provenance and entitled projection. Its early held-grant refusal is authorization, not a proof that unfinished measurement values were rejected.
+
+The SQL companion's coverage controls186–228 reject unsupported/missing/quality46/provenance/correction/overlap inputs from complete coverage; storedE66166–180 seeds its declared contract/positive-scope ports. This establishes a mechanical coverage distinction, not new genuine value sendability or a native post-close query. Case29's review with no E66 and gaps/held must never be described as completed-value delivery.
+
+Actual query path `projectEdielSeriesToBeneficiary`→`ediel_beneficiary_series_page_v1`→`beneficiary_series_page_filtered_v2` rejects an **own linked ended VH** permission at schema10172 with ediel_market_permission_not_approved. Actual positive E66 ACK scope-set excludes ended permissions at10579; explicitly obsolete VH scope can yield current_grant_required/captured_grant_not_current. These are inspected source guards, **NOT_EXECUTED as post-Z15VH probes here or in case29**. A same-point continuing V may legitimately remain eligible; an arbitrary same-point error is not a valid VH-specific oracle.
+
+The existing-link API rejects a **new** link after closure at46174, but already linked replay returns its prior manual_review first. `vhHistoryRequest.ts:3–8` explicitly says it is not the queued/claimed dispatcher guard. No dispatcher-stop proof follows from the SQL link guard or unchanged transport rows.
+
+These limits do not establish a product bug or a new explicit card gap. They delimit stronger future operational claims.
+
+## Existing proof and next owner step
+
+Existing public receipts6146109357/6147757975/6148634266 attribute sole collector ESCO38348164491/a1 at **5f8c99ecb584651c9df1230ae4adc76f22e64ae1**,30PASS/0FAIL/0SKIP, original9839/restoration/zeroALL, plus separately declared companion preservation/source applicability. Source ordinals are not newly read executed identities. No original/log/artifact/ZIP or private packet was accessed; companion execution is attributed existing-owner material, not independently rerun here.
+
+The smallest concrete next step is **existing-evidence whole-card binding**: the rightful owner maps its already qualified case29/shared-Z15 identities and companion source/execution/declarations to this literal and resulting current source, preserves original provenance, and performs ordinary current gates/two applicable final peers/serial delivery under actual row custody. No extra harness, unchanged producer rerun or permission gate is imposed. A stronger claim about unfinished-value sendability/post-close VH query+ACK/V projection would require its own meaningful evidence, and remains explicitly outside this candidate.
+
+Current AT-Z15VH row is NOT_EXECUTED/evidence[]. No source/test/proof/fixture/ledger/ref/claim/publication write, producer takeover, mock/native/SQL/backend/GEN/capture/CI run or original acquisition occurred. Only these outside assessment records were written.
+
+Evidence SHA256: frozen-card.json **84d0746b2f791e670c0fef1917c91bc7745878a124c5bdde025071f1b3f4b06c**; source-body-bindings.json **7cbb490e89ebbf9790a47c3158cfa262e49e2402b3c9f3225c67e4d933f09999**; public-attribution.json **2d3ffaa18964fe29a8f853472ac8f365f6f230282a94f242abcf9affd1f9b4b9**. Function hashing binds CREATE FUNCTION through the next catalog Name marker, trailing whitespace stripped plus one newline; files bind raw bytes.
+
+</details>
+
+<details>
+<summary>SC031 independent code refutation — original assessment SHA256 7d81a611b99f3751bbffe3bd4d1441d056299d9b0a5efb91eeddaef643d4dd4d</summary>
+
+# SC031 — oberoende prövning av staged-customer-fyndet
+
+**CONFIRM, avgränsat till en faktisk operational review/UI-projektion på källnivå. REFUTE varje utvidgning till F/G-kundmatchning, kundpolicy eller verklig kundmutation från `parsed_customer`.** Den frysta texten tillåter rådiagnostik, och fältnamn eller JSON-persistens ensamma bevisar ingen affärseffekt. Här finns dock en konkret Ediel-konsument som visar ignored UD som case-kundnamn och ”Kund-id”, utan att märka värdena som ignorerad rådiagnostik. Den snäva projektionluckan kvarstår därför, med den mer precisa motiveringen nedan.
+
+Granskare `/root/esco_support_final_integrity`, 2026-10-13 UTC. Jag har inte författat det prövade SC031-fyndet, någon berörd implementation, test, fixture eller proof. Detta är en ny, oberoende refutationsprövning, inte en oförändrad dokumentreview eller currentwhole-finalapproval. Endast denna externa rapport och dess SHA-fil skrivs.
+
+## Exakt scope och criterion
+
+Aktuell källa: `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`, ordered parents `95d8d160491e79b172342654d8dc643346758105` + `fba453cc7cc9de8a26ec75d29248e1733316fcd1`. Public F/G: `0dbc3101138e6ebe041bc280d9f7b68e4876e0ce`, tree `989dd2927f4acd9f783cb6644a0b971078153ec7`, sole parent `048aeddf15e805f43dc9bf6b7297466d20a23497`.
+
+Prövad publicfinding6149259115 lästes via det uttryckligen anvisade `/workspace/scratch/ediel-helper-current-intake-20261013/sc031-business-next-intake/REPORT.md`, SHA256 `257a8c073b9c45757a08b7481a9577438d008ecbad2c568daac1201556d1621d`. Jag följde endast dess konkreta Edieldata och explicita Edielberoenden, inklusive Ediel-meddelandesidans faktiska reviewkomponent och dess actions. Ingen fristående API-/Admin-/auth-/DB-audit utfördes.
+
+Exactd798 acceptance_tests.json442–453: SC-031 säger att giltiga extra uppgifter som ska ignoreras inte ensamma ska skapa negativ APERAK och att ”uppgifterna påverkar inte affärsdata”. P-02/rules.json557–571 anger ”Ignorera för affärsprojektion; bevara råpayload.” Det förbjuder inte raw/evidence retention. Det ger heller ingen anledning att likställa alla stagefält med affärsdata utan att finna en konsument.
+
+## Faktisk source → stage → review-sink
+
+| Steg | Direkt källbevis på d798/FG0dbc |
+| --- | --- |
+| Egen physical extraUD | Public F373/G372 tillför `NAD+UD+FORBIDDEN-UD-F/G::89++Forbidden Identity+Forbidden Street+Town++12345+SE` före den egna NAD+IT. F375–389/G374–388 kräver en riktig ignored-facet för END_USER_GROUP/227/228/229/231/232/316, eget sourcehash/object/agency/register/LI. Dessa är unexecuted source-defined assertions. |
+| Råpartyläsning, inte policyfiltrering | `prodatRegisterGroups.ts` samlar de egna LIN-segmenten; ett single-registers `effectiveSegments` är `current.segments.slice()`. `edifactSegments.ts:103–109` överför dessa, och `parser.ts:127–152` läser UD direkt. `readProdatParty:143–157` deklarerar raw decoded evidence, inte godkänd kundauktoritet. Det filtrerar inte profilens ignored UD. |
+| Affärsnamnad projection | `inboundCases.ts:154–167` väljer första egna register och läser UD ur dessa wire-segment. `192–216` tilldelar bland annat `customerId` och `fullName`, utan usage/ignored-occurrence-filtrering. För testinputens tomma qualifier och distributör-ID är nationalID/customerType tomma; detta är inte en påhittad SE1/SE2-auktoritet. |
+| Verklig stagingowner | `createOrUpdateInboundProdatCase:398–407` kräver accepted structural applicationheader och anropar parsern; `422` persisterar `parsed_customer`. Production `inboundProcessing.ts:1290–1304` skickar Z06/Z10 till denna owner och source-bound manual review. Public F/G `pending:101–110` kallar samma owner och läser dess sparade case. |
+| Verklig readback | `getEdielInboundCaseForMessage:572–590` läser eget tenant/source-case och återger `{...row}`. För Z06/Z10 kompletterar den structuralSourceReview/structuralProjection; den varken tar bort eller märker `parsed_customer` som ignored diagnostic. |
+| Reachable Edielpagina | `app/admin/ediel/messages/[id]/page.tsx:393–395` hämtar review för inbound PRODAT med company_id; `449` renderar `EdielInboundCasesPanel`. Samma väg gäller Z06F/G. Det finns inget profilfilter som tar bort panelen för dessa. |
+| Kundnamn och kund-id i review | Panelen tar `item.parsed_customer` vid40. För ett single-object-case renderas `fullName ?? companyName` som case-heading vid67 och `customerId/customerIdLabel` som **”Kund-id”** vid82. Villkoret är `!objectReview.multi`, inte `!structural`. Strukturflaggan vid46 ändrar godkännandeformuläret, inte dessa kundpresentationer. |
+
+`EdielInboundObjectReview.tsx:8–13` definierar multi som `objects.length > 1 || objectApplication lock`. Public F/G-planen kräver en enda LIN och ett enda source-object. Dess structuralapproval sparar `structuralApplication`, inte den generiska `objectApplication`-locken. Därför är namn/id-presentationen reachable både i pendingcaset och bland senare hanterade single-objectcases. Paneltexten är ”Inbound PRODAT – admin-godkännande”; de två kundvärdena presenteras som granskningens kundidentitet, inte i raw/ignored diagnosticssektionen.
+
+Den konkreta source-derived effekten är alltså att `Forbidden Identity` och `FORBIDDEN-UD-F/G` kan bli operatörens case-heading/”Kund-id” för ett accepterat extraUD-input. Detta är en operational kundprojektion i ett affärsgranskningssammanhang. Jag påstår ingen utförd browserrendering eller att operatören faktiskt har fattat ett felaktigt beslut.
+
+## Skydd som refuterar starkare konsekvenser
+
+**F/G-customer matching är avstängd.** `inboundCases.ts:405` använder tom match/confidence0 för structural Z06/Z10 i stället för `maybeFindExistingCustomer`. De staged UD-värdena når därmed inte de generiska org/person-matchningsfrågorna för denna väg.
+
+**F/G-approval konsumerar inte staged kundfält till onboarding.** `approveEdielInboundCase:765–809` väljer originalets Z06/Z10-gren före generisk object/onboarding. `767` kräver aktuell tenant/source; `768` avvisar `create_new_customer` och selectedCustomer/Site/MeteringPoint. Den går via `approveSafeMasterdataChanges` med sourceMessageId/own lineindices, skriver structural reviewstatus/receiptmetadata och returnerar. `inboundCustomerCommand:630–676` och `onboardCustomerGraph:841–845` är generiska andra grenar; deras parsed_customer-läsning är inte ett giltigt bevis för F/G-kundmutation.
+
+Den explicita Edielactionen (`actions.part-5.ts:36–58`) vidarebefordrar valda egna structural lineindices. Kunddata från `parsed_customer` skickas inte från formuläret till structuralapply. `safeApplyReview.ts:155–182` laddar source igen, kräver metering.write och anropar `ediel_apply_reviewed_structure_objects_v2` med company/source/actor/indices. Kundsource-undantaget väljs i `confirmedCustomerSource.ts:10–14` endast på fysisk Z06/E34; public fixturewire skapar F/E64 respektive G/E32.
+
+En begränsad read-only kontroll av de fyra explicita generatedfunktionerna `ediel_apply_reviewed_structure_objects_v2`, `apply_before_live_followup_v1`, `ediel_apply_customer_life_event_source_v1` och `inbound_basis_v1` finner inga `parsed_customer`- eller case-table-läsningar. Life-eventbasen kräver own E34, och public sourcewrapperns andra kundväg är separat source-bound native. Detta stödjer datavägens gräns; det är ingen fullnative-/RLS-/schema-/runtimeaudit. En första lokal dollar-delimiterextraktion matchade fel delimiter och gav tomma block; den förkastades och ersattes med korrekt `AS $$`-extraktion. Inget nollbytesresultat används som evidens.
+
+Public F/G:s meningsfulla positiva sourceassertions vid F399/405 och G398/404 jämför full market/customer/site/point/supply/contracts/graph mot originalet, medan replay F428/G427 uttryckligen sätter case:null. Därför stöder planen verklig kund-/supplybevaring och own structural/ACK-effekter, samtidigt som reviewnamn/id saknar non-effect-assertion. Denna review körde inte planen och relabelar den inte till runtimePASS.
+
+## Precis korrigering till publicfinding
+
+Behåll den smala SC031-återstoden men ersätt den generella premissen **”structured operational case fields are an affärsprojektion”** med den direkt bevisade kedjan: **ignored raw UD blir sparat parsed_customer.fullName/customerId och visas sedan som case-kundnamn/”Kund-id” i den faktiska Ediel-reviewpanelen för single-object F/G**.
+
+Avgränsa påverkan till presentation/reviewprojection. Ingen faktisk kundmutation, kundmatchning, kundpolicyauktoritet eller senare protected structural effect har bevisats från dessa stagevärden; de starkare tolkningarna är refuterade av branchguardsen. Fälten address/city/postal/firstName/lastName har råpersistens, men denna F/G-spårning bevisar inte en separat verksamhetseffekt från varje sådant fält. Rawpayload och tydligt ignored-facetevidence ska fortsätta kunna bevaras.
+
+Den minsta retained-owner-verifieringen gäller att irrelevant UD inte får ändra den **kundprojektion som faktiskt används i review/UI**, före/efter approval/replay, samtidigt som sourcehash/ignored diagnostics bevaras och tillämplig legitim UD fortsatt kan användas i rätt profil. Att radera all diagnostik eller kräva fullcase-equality följer inte av criterion. Inga nya fileclaims, konkurrerande fixtures, produceruppdrag eller implementationer auktoriseras av denna slutsats.
+
+## Exact sourcebindings och begränsning
+
+Elva direkt lästa parser/stage/review/action/guard-paths är byte-identiska över old95, currentd798 och publicFG0dbc. Viktigaste bindningarna:
+
+| Path | Gitblob | SHA256 |
+| --- | --- | --- |
+| `lib/ediel/inboundCases.ts` | `c08e51d67c98b8b7be0fc726f2509059cf4aaec0` | `39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f` |
+| `components/admin/ediel/EdielInboundCasesPanel.tsx` | `6b7884d04937dfa16b251671cb990b142f3b2297` | `e5f1368673603321c138f291ec3be5d475023c9efd3a561f3944d5926cde52ac` |
+| `app/admin/ediel/messages/[id]/page.tsx` | `729c6665959376fd94dbae699d3510fa170a93cf` | `f9e2cc61b707bb498603a643248991f6775aae4b4eb5031162c4d6c31d3180c9` |
+| FG F-test | `11dd2286143406ff536d37f41c8a7b27bceee030` | `f7b037b6e2d24f4fd4131c5eba11c9098ac5541ef57e71cc5558d5ccdf7eecd8` |
+| FG G-test | `d28e22d623dc90f65bf817461f7fab91f63929f5` | `baa6bb3e2fa811c49aebbebcf2ae0ac17f5210dc310f57d897af63c51d6222a9` |
+
+Källors bytes/branchguards och native-planens assertioner lästes, inga testcase/rawfixture/proof scripts författades eller kördes. `code-review` och verification-before-completion fortsätter för sourcegränser; fp-check lästes som refutationsdisciplin men dess security-vulnerabilitygates är inte en tillämplig klassifikation av denna verksamhetsprojektionlucka. Direkt conditional/reachability/sink-verifiering utgör equivalent fp-kontroll här, utan securityimpact-/exploiterbarhetsetikett.
+
+Ingen producent/original/log/artifact/CI-acquisition, SQL/test/native/backend/GEN-exekvering, privat packagefetch, code/repo-memory/ref/claim/ledger/publicationwrite eller custodyöverföring utfördes. Den gemensamma helperarbetsytan hade en redan pågående checkpointändring; jag har bevarat den och läst källorna enbart via de namngivna immutabla Gitobjekten. WholeSC031/currentCI/adoption/merge och faktisk körning kvarstår hos befintliga rätta ägare.
+
+**Slutbeslut: source-level staged business-review/UI gap CONFIRMED; diagnostisk råretention i sig är tillåten; F/G-kundmutation/matchning från stagefält REFUTED. Publicfinding bör preciseras till den namngivna actual Ediel review-sinken, utan bredare kundeffektpåstående.**
+
+</details>
+
+<details>
+<summary>SC031 independent literal refutation — original assessment SHA256 455fe3fb0b17ef3e15c2ee369f80a0282b68e1ac572cee30bef508fbc57922c4</summary>
+
+# Independent SC031 staged-projection refutation
+
+**CONFIRM the narrow source-visible staging/business-projection assertion gap on public d798/FG0dbc.** The proposed named customer-projection baseline oracle is justified for the current operational case contract. This does **not** confirm an executed native failure, an actual customer/masterdata write, whole SC031 failure/approval, or a mandatory prohibition on retaining decoded diagnostics in a particular database column.
+
+Reviewer: `esco_support_final_literal`, independent of root and the challenged report's author, 2026-10-13 UTC. This is a new bounded refutation of the claim supplied in public6149259115 and `/workspace/scratch/ediel-helper-current-intake-20261013/sc031-business-next-intake/REPORT.md`. No earlier SC031 builder/native/current-good-data review is repeated or adopted as proof.
+
+## Frozen clauses and exact public sources
+
+The independently read SC-031 card says: given valid syntax and extra information which PRODAT says to ignore, reception control must produce “Ingen negativ APERAK enbart för dessa extrauppgifter; **uppgifterna påverkar inte affärsdata**.” Its prohibited effect concerns the own builder beginning to emit the extra data. The latter is a separate clause and does not prove incoming consumption.
+
+P-02 applies to “Extra X/icke-tillämplig D”; its `on_pass` is **“Ignorera för affärsprojektion; bevara råpayload.”** Its failure clause distinguishes real syntax overflow from allowed but unused national fields. The rule does not forbid evidence retention or prescribe an `ediel_inbound_cases` column layout. Merely persisting a named field is insufficient to establish a customer write or a business effect.
+
+The frozen AT-Z06F/AT-Z06G GIVEN text separately says “Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.” The base field cards227/228/229/231/232/316 are conditional for Z06, not blanket X. Exact subtype rules at `prodatSubtypeRequirement.ts:31–35` resolve227/228/231/232/316 to required for E and forbidden for F/G. `prodatParentApplicability.ts:11–32` extends the non-E exclusion through the UD parent, including field229; it does not turn an applicable E/customer profile or every false-D into X. These source/profile facts are also explicitly checked as ignored occurrences in the new F/G source.
+
+| Public comparator | Exact identity |
+| --- | --- |
+| d798 main snapshot | `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`, ordered parents `95d8d160491e79b172342654d8dc643346758105` + `fba453cc7cc9de8a26ec75d29248e1733316fcd1` |
+| New public F/G source | `0dbc3101138e6ebe041bc280d9f7b68e4876e0ce`, tree `989dd2927f4acd9f783cb6644a0b971078153ec7`, sole parent `048aeddf15e805f43dc9bf6b7297466d20a23497` |
+| Shared inboundCases source | blob `c08e51d67c98b8b7be0fc726f2509059cf4aaec0`, SHA256 `39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f` |
+| Shared party reader source | blob `28a3fb2ab21f0c9abca2788d919cc1f1097e155d`, SHA256 `1640d7bfd4d61636bbc7d40cefeaeca47f79fe6f6065f6454a957e9adf3a2edc` |
+| Shared direct case-view consumer | blob `6b7884d04937dfa16b251671cb990b142f3b2297`, SHA256 `e5f1368673603321c138f291ec3be5d475023c9efd3a561f3944d5926cde52ac` |
+
+Frozen acceptance register blob `3717ce88daaf98c916bb996edc6fe7887bf65b6c` and rules blob `2108c9c297457c288364b9ed669809aedd21e21e` match both comparators. SC031's frozen execution row remains “Inte körd mot systemet” with empty evidence. All coordinates below use the named immutable source objects.
+
+## Counterargument tested: decoded evidence can be legitimate
+
+The counterargument has a sound premise. `readProdatParty` explicitly describes its return as **“Raw decoded evidence, not a claim that a party passed registry/identity checks”** (`prodatPartyFields.ts:139–157`). It returns raw UD ID/name/address/city/postcode/country and validity information. The canonical ignored-field path legitimately retains source-bound evidence: `fieldMatrix.ts:61–69` records an already decided ignored occurrence; `receivedProdatIgnoredFieldBinding.ts:9–42` binds it back to physical original occurrences and makes no new usage/approval decision. Raw bytes and marked ignored facets must remain available.
+
+Accordingly, a diagnostic field containing forbidden UD does not automatically violate SC031. If it is explicitly treated only as received/ignored evidence and does not feed customer/business presentation, matching, proposals or mutation, forced deletion/nulling would exceed the literal. No whole-case equality oracle is justified by these clauses.
+
+The current inspected case path does more than hold such isolated diagnostics:
+
+| Caller or sink | Independently inspected behavior |
+| --- | --- |
+| Actual incoming structural caller | `inboundProcessing.ts:1290–1302` sends the committed Z06/Z10 physical partition into `createOrUpdateInboundProdatCase` and returns it as source-bound manual review. New F/G `pending` also calls this actual creation API at113 and reads the saved case. |
+| Raw-to-customer projection | `inboundCases.ts:146–167` re-parses the raw selected object's segments and reads UD without consulting profile/ignored occurrences. `:192–216` maps this into customerId/qualifier/type/name and address/postcode/city/country fields in `ParsedInboundProdat.customer`. |
+| Durable stage sink | `:398–407` requires structural header application acceptance then invokes that business parser; `:410–428` puts the returned customer in `parsed_customer`; `:453–496` updates or inserts this payload into `ediel_inbound_cases`. Header acceptance is not a permission to consume an ignored child value. |
+| Direct operational presentation | `components/admin/ediel/EdielInboundCasesPanel.tsx:40` reads `item.parsed_customer`. `:66–68` uses its fullName/companyName as the single-object case heading and `:81–89` labels its ID as **“Kund-id”** alongside installation, contract and transaction fields. This also applies to structural F/G cases: the structural flag at46 changes the approval controls at115–127, not the displayed customer heading/ID. There is no ignored/raw diagnostic qualifier on those displayed customer values. |
+| Structural approval protection | `inboundCases.ts:767–809` rejects selecting a new customer/alternate graph, delegates to protected `approveSafeMasterdataChanges`, creates own structural ACKs and updates case review/status. It does **not** feed `parsed_customer` into onboarding and does not clear its staged presentation. |
+
+The operational heading/customer-ID consumer is the decisive extra evidence. The finding is not inferred solely from the field/function names or persistence. An ignored UD is promoted into the current case's unqualified customer presentation, which is the operational business projection P-02 says must ignore it. The property under review is this staged/presented projection, even while protected first-effect consumers correctly preserve the actual customer.
+
+## What the new F/G assertions prove and omit
+
+New FG0dbc F392–429 and G391–428 contain paired source-defined `withUd=false/true` cases with distinct physical `FORBIDDEN-UD-F/G` fixtures. The sources check immutable original bytes and source-hash-bound ignored UD occurrences (F375–390/G374–389), actual first structural effect/own physical ACK/outbox, actual market/customer/site/point/supply/contract/graph preservation, and meaningful F reading expectations versus G's lack of invented readings. These are substantive assertions and counter any claim that the structural plan blindly writes the customer's identity.
+
+Their creation step reaches the real staged case but only checks source/tenant/code/status (F108–117). Positive comparisons at F399/405 and G398/404 compare market/source/original, not the named customer projection. Evidence includes the case at98, but the replay assertion explicitly substitutes `case:null` at F428/G427. A bounded search of both complete F/G files for parsed_customer/fullName/customerId/case/inboundCase references found no named customer-projection non-effect assertion. A non-null forbidden UD customer heading/ID can therefore coexist with the inspected positive checks. This is an assertion omission visible in source, not an observed native failure.
+
+## Required property and bounded oracle
+
+For this current case contract, compare a whitelist of **business customer projection fields derived from UD** against the clean/authoritative baseline after actual case creation and after approval/replay. At minimum customerId, fullName/name components and UD-derived address/city/postcode/country must not change because the canonical owner ignored the added UD. A clean no-UD F/G source and its ignored-UD counterpart provide the appropriate contrast; independently generated source IDs/timestamps/hashes do not belong in that equality oracle.
+
+Keep immutable raw payload, marked ignored-facet occurrence/source hashes, valid installation/register/structural fields and own ACK assertions. Preserve a legitimately applicable UD profile control. The frozen literal requires the non-effect property, not this unique testing syntax or storage design: explicitly separated/labeled diagnostic retention may remain. If a correction chooses that approach, the oracle should bind the customer **business projection/presentation**, not demand disappearance of all decoded diagnostic bytes.
+
+This confirms the challenged report's narrow staged-business gap and insertion point, with that distinction made explicit. It refutes these broader readings: every parsed_customer persistence is forbidden; the protected F/G path is shown to write actual customer identity; whole case rows must equal; the new F/G assertions are meaningless; a new native/GEN producer or standalone API/Admin task is needed. Existing implementation/custody/delivery ownership is unchanged.
+
+## Limits and performed checks
+
+Only exact public Git source/object reads, in-memory JSON extraction/hash comparison and the direct inbound-case operational consumer were used. The challenged outside report was read only to identify the narrow proposition to refute. A single exact public-comment `gh api` GET could not run because the sandbox denied its network socket; no comment body was independently reacquired. The supplied proposition was judged against immutable public sources, and this network limitation does not create a new waiting gate.
+
+No source, test, fixture, schema, claims/refs, ledger, shared-memory or publication mutation; no tests/native/SQL/backend/GEN/CI execution; no original/log/artifact/private package collection; no unrelated standalone API/Admin review. The existing shared worktree has a foreign checkpoint modification, which was neither read as source evidence nor changed. The only authored artifact is this outside refutation report. Repository code-review/verification and narrowly applicable static Supabase guidance remain the skill routing already read for this review session; broad audit/fan-out/remediation workflows are outside the bounded handoff.
+
+**Final disposition: CONFIRM_NARROW_STAGED_BUSINESS_ASSERTION_GAP; runtime and actual customer-write failure NOT_VERIFIED.** The existing owner can add the named non-effect oracle or explicitly separate diagnostic evidence from the business projection within its existing correction packet; no new scope or producer is granted here.
 
 </details>
