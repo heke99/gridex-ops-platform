@@ -724,3 +724,183 @@ Source-base DB type blob is `f419a876f05843ff643db188451a9c6e3e0d3f4e`. Actual-m
 No new composed/current-main test execution or target package/environment qualification follows from tuple identity and the virtual type result. Existing finite 16/16 source proof remains exact-source evidence with explicit applicability; eventual owner must bind actual adopted candidate/source/base/tree, current mandatory checks, two independent final reviews and normal serial merge, respecting reserved producer/publication and custody boundaries. No ledger status change, whole SC031 credit or new publication authority follows from this report. Material change outside the stated selection or in the real future execution environment requires the owner to assess its impact before reusing the proof.
 
 ````
+
+
+DISTINCT Z13 REQUEST-CONTRACT GAP SUPPORT / actualmain95d/fa5/public795894/99f. Two frozen requestcardsAT-Z13V/VH remain NOT_EXECUTED; no approvalcredit. Helper/current_requirement_gaps produced exact16-file sourceapplicability and minimalrequestproof report e0913e1f838005da6fa78ac93ea51a3d0e6d19b747806f96f8a18a84e868744e. ROOTread fullreport and actualnativeownAcks72–99/requestprofile/frozen cards. TWO OTHER independent read-only peers A8e6e357c777c87376c67227b8969039109a2d9ebc5cac5aa75bdc5ceff4fe238 and B7317532a501b0ea2785e4f9666a8a5f2d3025e3a512803c381fc8240f48973e3 agree G1 is a specific requestACK qualificationgap: outboundACKs for receivedZ14/Z15 do not prove incomingCONTRL+APERAK for actuallypersisted/sentcustomerboundZ13. Nativeprefix/setup and existing realwireAPERAKconsumer/syntheticSQLwaiting pair remain usefulcomponents, not wholeapproval. TS+actualSQL physicalcorrelation permits identitylessLIN1/ownLI withnullpoint/agency, so noinstallationID workaround/productbug introduced.
+
+PeerB narrowing supersedes any unconditional implementation reading of initialG2: existing actualpreparer/origin/gateway/manualscope/sourceguard/mutation/SMTP/P01 R-D tests must be reused and boundfirst. G2 is conditionalmapping/qualification, NOT an automaticnewgateway/test/native/GENgate. Add onlygenuinelymissingassertions. MinimalG1route belongs existingnativeowner: V/VHactualoriginaltuple→genuinecanonicalreceivedsourceboundACKpair/immutablereceipt/replay withzeroearlypermissions/supply, preservepositiveZ14 independence fromACKorder and use applicablealreadyqualifiedZ14/N outcomes. No sourcebug/needfornewSQL/blanketLIVEmandate/history/nativeproducer inferred. This newrequestscope support doesnotrepeat completedESCOhistoryclosure applicability6147757975.
+
+Noexecution/originals/logartifact/privateinput/claims/source/producer/ref/release/PR/ledgerwrites by scout or reviewers. Existing currentC1/delegatedrequest/source/GEN/solecollectors retain theirscopes; this is concrete technicalsource support, notwholeclosure orhandoffrequest repeated. Actualnormalmerge/gates/sourceboundfullproof stillrequired. Allthree originalreports preservedbelow without editingauthororpeertext.
+
+Original ediel-helper-20261013-z13-request-gap-support.md SHA256e0913e1f838005da6fa78ac93ea51a3d0e6d19b747806f96f8a18a84e868744e:
+
+````markdown
+# Z13V / Z13VH request contracts — distinkt read-only gapstöd
+
+**Båda korten har betydande redan levererade requestkomponenter. Den minsta konkreta återstående proofluckan är mottagna, source-bound CONTRL+APERAK för det faktiskt sparade/sända identityless Z13-originalet. Ingen bekräftad identityless source-matching-bugg hittades.** Begärans fulla source/admission R/D/refusals behöver bindas separat; Z14/Z15-native30 får inte ge automatiskt whole-Z13approval.
+
+Exact actualmain **95d8d160491e79b172342654d8dc643346758105**, tree **fa5ab60527a40bd642749365fc275d1d4a69e277**. Public #795 **894b085ef22b48989375822beb5b483a356d10ed**, tree **99f4168315927d59107606d497b4a2a087f99d12**, soleparent8e55b5c2d07be78bf666f1eb51b7a551052b6409. Lokal origin/main är historiskt efed; dess ref har INTE antagits vara aktuellmain. De exakt publicerade objekten ovan lästa i shared Git. Aktuella AGENTS/start/reservations och frysta register är byteexakta mellan main95d8/894.
+
+Authenticated latest requested receipt [#7666147757975](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6147757975) läst i fullbody: ESCO38348164491/a1 är source5f8:s kvalificerade30 + separat populated-DDQ-companion. Reuse som receiptbunden historik, inte current894execution. Här återgranskas inte redan avslutad historyclosure/generated-bodyapplicability. Endast Z13-requestkraven, original/ACKskillnaden och minsta nästa assertions analyseras.
+
+## Frysta krav
+
+Gemensamt given: “ESCO; Kundidentitet ej födelsedatum; Z13 behöver inte anläggnings-id men LIN+1 finns; scope/roll/avtal/beneficiary separat.”
+
+AT-Z13V when: “Avtal med slutkund och DSO finns; begär fortlöpande rapportering.” Expected: “23-DGI-PRODAT; BGM=Z13; fält223=S17; CONTRL, APERAK för begäran; därefter Z14 eller Z14N.; Skapa begäran och objektrelaterade rättigheter först efter positivt Z14; inte elleverans.”
+
+AT-Z13VH when: “Avtal med slutkund och DSO finns; begär avgränsad historik.” Samma expected med fält223=S18.
+
+Gemensamt prohibited: “Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.” Båda är NOT_EXECUTED i faktiskmain; underliggande TEN05/P01/ENV06 ger ingen ärvd kontraktsapproval. Frozen acceptanceSHA256 e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10.
+
+## Krav → redan befintliga assertions → rätt prooflimit
+
+| Literal clause | Faktisk befintlig assertion/source | Tillämplig återanvändning och limit |
+|---|---|---|
+| DGI/BGMZ13/S17, utan point men LIN1 | `__tests__/ediel-at-z13v-esco-profile.test.ts:73–85`: faktisk buildServicePermissionDraft→tokenizedraw, UNB7 DGI, BGM1 Z13, exakt LIN1, CCI Z13/CAVS17, requiresContrl/Aperak true | Verklig renderer/authorityjoin; explicit synthetic basis/route/version, inga persisterade request/ACKs |
+| DGI/BGMZ13/S18, avgränsad historik | `ediel-at-z13vh-esco-profile.test.ts:84–101`: samma verkliga draft, LIN1, S18, DTM90/91 exakta egna bounds, independent timing/authority; :103–125 missing/changed end/S17mutation och unknownclock vägras | Historical-request komponent, inte nativeoriginal/requestACK; behåll just befintligt timingunderlag, ingen ny blankettemporal gate |
+| Kundidentitet, aldrig födelsedatum | V: :79–80 faktisk NADUD+SYNTHETIC-CUSTOMER/SE1/260 och ingenDTM329; :113–119 birthdate-only/internalid vägras. VH: :89–96 exakt egen NADUD och ingenDTM329. `ediel-service-permission-native-customer-fields.test.ts` två cases provar verkligt native customer-rowprojection country och förbjuden postadress. Shared renderer `servicePermission.ts:25–32` kräver riktig org-/personalidentity, namn och SE-country | V:s birthdate-onlyrefusal är relevant ävenVH genom exakt sharedZ13identitycode; duplicera inte samma identityimplementering. På faktisk nativeZ13-original behöver dessa wireassertions knytas explicit, inte ärvas från downstreamZ14 |
+| Scope/roll/avtal/beneficiary separat | `servicePermission.ts:24` binder company/env/providerlegalActor/DSO; :38–40 kräver egen217method/261ANJ/LI/objects. `prodatServicePermission.ts:18,20–39` gör actorpermission→coordination→privatebasis→canonicalESCO-role före intent. V-profile:91–105 wrongtenant/env/direction/receiver/sender/appref; :107–119 LI/ANJ/customer/end/purpose och missingmethod/agreementrefusal. `ediel-service-permission-origin.test.ts:44–70` vägrar forgedintentANJ/method, missingbasis/tenant/internalidentity | Realwire/sourceauthoritykomponenter är återanvändbara. Privatebasisauthorization och actual preparer admission kan inte ersättas av fixture status:'authorized' eller testnamnet “native customer fields” |
+| Original request skapas och sänds | Native `scripts/ediel-at-z14vh-z15v-esco-native.test.ts:105–139` arkiverar/reviewar separata enduser-/DSO-/service-/downstream-/privacyunderlag, approve_assignment→request_access, sparad Z13 och verklig senderconsumer med syntheticSMTP. Shared nativefixture `scripts/fixtures/ediel-service-evidence-native.ts:123–138` gör samma sent-sourceguard | Genuint producerat/sparat source-original i befintlig kvalificerad kedja, externa legal/issuer/providerinputs uttryckligen syntetiska. Det är konkret reuse, men prefix/setup är inte hela requestkortet |
+| Z13 ensam/ACK ensam ger inga objekträttigheter/elleverans | Native pendingVH:142–156 kräver Z13sent/S18, permission inteactive, sourceZ14null, ingaapproved/activeobjects ellergrants. Case2:203–212 får endast DSO-declaredobject efterpositiveZ14, samma grants och supply. `ediel-permission-market-consumers.test.ts:55–105` kör faktisk ACKconsumer och kräver inga activation RPC/domainwrites/grants/supply; `ediel-z13-ack-customer-waiting-sql.test.ts:95–110` visar completepair→waiting och immutable resten | Pending/positiveZ14market-effects och “ACK≠permission” är befintliga komponenter. SQLwaiting har reducedschema och JSONwire/physical-ownerstubs, alltså inte genuin native requestACK |
+| Därefter Z14 eller Z14N, ACK/businessordning separat | V-profile:87–89 och VH:99–100 businessResponses Z14V/VH+N. `ediel-permission-process-order.test.ts:7–26` låter faktisk positiveZ14 komma från z13_sent/ACK/intermediate state och bevarar sentACKs/marketresults; ESCO03/05component vägrar negativeZ14reason/unknownactivation | Behåll oberoende ACK/businessordning. Gör inte completeCONTRL+APERAK till ny obligatorisk prerequisite för positiveZ14. Ingen extra LIVE-/reallegal-/blanketwaitgate för codekortet |
+
+## Konkret G1: requestACK-handshake saknar kvalificerad whole-binding
+
+Native795`s ownAcks:72–99 kvalificerar **utgående ACKs för mottagna Z14/Z15-original**, med exakt receivedpoint f.point och ownLI. Det är motsatt riktning jämfört med **mottagna CONTRL/APERAK för sparad, sänd Z13**. Prefix105–157 requestar/sänder Z13 men tar inte emot requestens bådaACKs. Native activeV-fixture `fixtures/ediel-service-evidence-native.ts:140–167` producerar ett Z13/Z14/grantsetup; den går inte genom Z13incomingACKparet. Receipt6147757975 avgränsar redan case2/prefix och activeV som prerequisites.
+
+`ediel-z13-ack-customer-waiting-sql.test.ts:12–18,37–56` använder JSON raw, fake wire_v1/expected_scope_keys/physical_outcomes/actorowner. :95–110 completepair/refusal/immutable-replay, :112–180 binding/revocation/hashguards och :192–208 rollback/privateACL är värdefulla redan levererade SQLkomponenter. De får inte beskrivas som fysisk wire/canonical-original/receiptkedja. `ediel-permission-market-consumers:55–105` använder riktig EDIFACTsource/APERAK och faktiskconsumer men deklarerad storageRPC; endast en APERAK, ingen physicalCONTRLpareffekt.
+
+**Minsta next proof hos befintlig nativeägare:** parametrera V/VH på den redan faktiskt producerade originalZ13:n. Läs och assert dess egen DGI/BGM/reason/customer/LIN1/noDTM329tuple; mata verklig source-bound mottagen CONTRL och PRODAT16B APERAK genom befintlig mailbox/reception/canonicalACKowner, bind immutable original/hash/currentreceipt och låt endast rätt requeststatus/ACKfält ändras. Prova replay samt felUNB/doc/LI/actor-/tenant-/envbinding utan rättighets-/supplyeffects. Fortsätt använda separatpositiveZ14/Z14Nunderlag som redan kvalificerats; inget krav på ny helhistory/GENkedja eller ny parallell producent. existing ownAcks(point-based) kopieras inte blint för customer-bound Z13.
+
+## Identityless requestACK — source-level refutation, inte ny produktbugg
+
+TS `lib/ediel/ack/sourceCorrelation.ts:84–112` accepterar positiveERC med egenLI utan Z07point; originals matchas med LI vid104 och `(own.objectId===null || …)` vid105. Resultat112 behåller originalets nullable objectId/agency. :162–174 CONTRL matchar interchange/UCIparty/UCM; :190–193 PRODATAPERAK matchar BGMdocument/LI/legalmirror och physicalownscope. **Inget installationIDkrav här.**
+
+Public894 schemaactualfunctions har samma stöd:
+- `prodat_physical_source_objects_v1` :828–857 bevarar LINordinal/ownLI och nullableid/agency. Singleidentityless LIN sammanförs endast med sin egen lineIndex(:846); identityValid krävs för multiregister/registershape, inte varje singleLIN(:848–852).
+- `prodat_expected_physical_scope_keys_v1`:686–693 bygger scopekeys från faktisk sourceLIN+LI; `prodat_physical_scope_key_v1`:782–786 returnerar LI och kräver ingetpoint.
+- `prodat_physical_scoped_outcomes_v1`:793–821 bindsparties/app/env/doc först, matchar ownLI och tillåter absentACKobject(:812); `prodat_physical_outcomes_v1`:700–714 bevarar fysisk firstline och nullablepoint/agency. Positive måste haLI(:712), vilket Z13ska ha.
+- `source_match_v1`:1047–1062 binder interchange/app/env/legalparties/doc/LI, inget anläggningsID.
+
+Befintligt **realwire TScontrol** `__tests__/ediel-ack-source-correlation.test.ts:52–57` visar identityless `LIN+1`+TX-SOURCE → unique physical object scope och vägrar LINlinenum “1” somLI. Dess sourcecode är Z03/D96A, så det är generell mekanisk matcherproof, inte ett helt korrekt Z13/S17/S18nativeoriginal. `ediel-permission-identityless-register-scope.test.ts:33–37` visar Z13S17/S18accepted register/nullid+agency och fysiskfacetbinding men kräver uttryckligen header/application **inte accepted** (andra R/header/UD/sourcevillkor saknas). Detta bevis får inte växa till requestACKapproval.
+
+Ingen source-rejection/rootcause konstaterad. Det öppna är den snäva **genuina requestACKreceipt-/canonicalintakeassertionen**, inte en beställning av anläggningsID eller workaround. G1 ovan måste uttryckligen använda identityless LIN+egenLI och inte fabricera f.point påACK/source.
+
+## Konkret G2: verklig requestadmission och R/D-zeroeffectjoin
+
+Vkomponenten binder många negativa mutationer, VHkomponenten främst end/reason. Sharedactualcode37–40/flow18–39 ger concretecontrols, men dessa tvåcardtaggade tester startar efter privatebasisauthorization och gör ingen verklig prepare/finalize/storagemutation. Nativepositive requestprefix visar legalbasispositiven, men dess negativaZ14fieldset (native246–255) bevisar Z14refusals, inte Z13R/Drefusals.
+
+Minsta komponentkomplettering är att låta **actual Z13preparer/gateway** med deklarerade finiteports vägra felESCOrole/direction/sourcebasis/beneficiary-scope samt ett representativt missing217/261/sourcecustomerfall före queue/domainwrite, med faktisk tuple/before-afterassertions. Återanvänd samtliga utförda/genuina ownercontrols som redan binder samma guards; duplicera inte underliggande P01/P06/SC027fältbiblioteket. Bind sedan Z13fullR/Dcoverage till eget exactrequestsource där det saknas: bl.a.222frequency/506product/513direction/302start och conditional321end/323purpose enligt actualmatrix+independentfacts. Missingfieldprobe görs på den verkliga canonicalowner/finalizationboundary; en “requiresAperak:true” flagga eller handwrittenexpectedstatus räcker inte. Detta är en identifierad **assertion/qualificationlucka**, inte ett bekräftat produktsourcefel eller krav på ny migration/GEN.
+
+## Custody, bevislimit och bindings
+
+Existing request/source/native/GENowners och solecollector/seriella leveransägaren behåller scope. Ingen nyclaim/refclearance hävdas. Any helperwrite kräver exact bounded handoff+ownGET_MATCH. Inga tester/SQL/native/backend/GEN/CI/reruns/original/log/artifact/privateinput/source/ref/checkpoint/claim/PR/mergewrites. Enda write är denna tmp-rapport. Ingen approval/countökning. Skillrouting: redanlästa code-review/spec-to-code/verification används för boundedassertiontrace; Supabase och Postgresguidance lästa för SQLcomponent/nativeauthoritygränser, ingen implementering/execution eller bred DBaudit.
+
+Alla följande relevanta fileblobs är självverifierat identiska mellan currentmain95d8 och public894; det bevisar tillämplig **source**, inte att respektive test har körts av denna helper eller att current schema/environment/nativecredit följer:
+
+- `__tests__/ediel-at-z13v-esco-profile.test.ts` blob `e5b46db4715624d19c9fc2a7c51cf1d74de22382` (main95d8 = public894).
+- `__tests__/ediel-at-z13vh-esco-profile.test.ts` blob `1f85184f0a3bc0f1ee612051f7da0abcdb18db81` (main95d8 = public894).
+- `__tests__/ediel-service-permission-origin.test.ts` blob `02199e81ab66e041827c89d4961e1f868bd66acd` (main95d8 = public894).
+- `__tests__/ediel-service-permission-native-customer-fields.test.ts` blob `4ede454f5472cb485281caffc2e7d9fb6df7b699` (main95d8 = public894).
+- `__tests__/ediel-service-permission-gateway.test.ts` blob `e2a9907a4447721c4f5aa90037aa1c431828b1cf` (main95d8 = public894).
+- `__tests__/ediel-service-evidence-permission-terms.test.ts` blob `7447d135d40e2d3eedae3c69bf3c61a5db80d7c6` (main95d8 = public894).
+- `__tests__/ediel-z13-ack-customer-waiting-sql.test.ts` blob `ef850abd1d76159feb6ef1ae0a9e31a9d2ec77cc` (main95d8 = public894).
+- `__tests__/ediel-permission-market-consumers.test.ts` blob `006b2757e350c341bf105c5249f3ddb91ca7451d` (main95d8 = public894).
+- `__tests__/ediel-permission-process-order.test.ts` blob `a30965da28ff9e4275dec56332acd32bff72a3aa` (main95d8 = public894).
+- `__tests__/ediel-permission-identityless-register-scope.test.ts` blob `21f87f28daee35f09a6b6caba04ef68f468853f5` (main95d8 = public894).
+- `__tests__/ediel-ack-source-correlation.test.ts` blob `9c778a83167cddefc98403e7ef4bfd6c4ef4c4f8` (main95d8 = public894).
+- `scripts/ediel-at-z14vh-z15v-esco-native.test.ts` blob `c3e32da74f15e64e93f9beb3be44e332f45ad17a` (main95d8 = public894).
+- `scripts/fixtures/ediel-service-evidence-native.ts` blob `2978ebe23114c74ed0af74b7b04ea8507ce703d7` (main95d8 = public894).
+- `lib/ediel/flows/prodatServicePermission.ts` blob `b0dc283649d76edfecb0864acc66e3c7a4c51757` (main95d8 = public894).
+- `lib/ediel/intent/renderers/servicePermission.ts` blob `8da96654415e05af50c6a6ed045bd49c224c71fc` (main95d8 = public894).
+- `lib/ediel/ack/sourceCorrelation.ts` blob `2df0a9ec7647ed3953892a3c3d54238aaf0282b2` (main95d8 = public894).
+
+````
+
+Original ediel-helper-20261013-z13-request-gap-peer-a.md SHA2568e6e357c777c87376c67227b8969039109a2d9ebc5cac5aa75bdc5ceff4fe238:
+
+````markdown
+# Independent source-gap review A — Z13 request ACKs
+
+Verdict: **SUPPORT bounded G1 qualification gap; no identityless matcher product defect confirmed.** Existing components materially cover the request contracts. I found no inspected existing native request ACK pair that refutes the report's distinction. This is read-only source-gap support, not an execution failure report or whole-card approval.
+
+Reviewer `/root/sc031_outbound_peer_a` did not coauthor the support report, source, tests, fixtures or original proof and did not consult peer B. Reviewed report `/tmp/ediel-helper-20261013-z13-request-gap-support.md` SHA256 `e0913e1f838005da6fa78ac93ea51a3d0e6d19b747806f96f8a18a84e868744e` independently matched.
+
+Bindings: actual main `95d8d160491e79b172342654d8dc643346758105` / tree `fa5ab60527a40bd642749365fc275d1d4a69e277`; public #795 source `894b085ef22b48989375822beb5b483a356d10ed` / tree `99f4168315927d59107606d497b4a2a087f99d12`. Independently verified all sixteen report-listed main/public file blob equalities. Frozen AT-Z13V-ESCO and AT-Z13VH-ESCO require request CONTRL/APERAK, correct customer identity, identityless LIN+1 permitted, S17/S18 respectively, and distinct business response/access semantics.
+
+## G1 checked against existing actual assertions
+
+* Native `scripts/ediel-at-z14vh-z15v-esco-native.test.ts` ownAcks reads ACK rows with **direction outbound**, related to the received source. It asserts own transport reversal and point/agency/LI outcomes for received Z14/Z15. These are useful actual own-response assertions; they do not exercise incoming counterparty ACKs for a sent Z13.
+* Its `approveAndRequest` archives/reviews distinct evidence, prepares request, uses actual send consumer, reads saved Z13 and checks sent status. `pendingVH` proves sent S18 original grants no object access and stores no positive Z14. The subsequent actual received Z14 path is separate from the request ACK pair. Shared service-evidence fixture likewise sends Z13 then receives Z14 directly.
+* Existing `ediel-permission-market-consumers.test.ts:55–105` DOES provide important real EDIFACT identityless Z13/positive APERAK consumer coverage. It reverses legal/transport identities and uses own LI; actual physical qualifier and ACK consumer run. Domain/access RPCs are refused, original ACK linkage/request state are asserted, and permission/grants/supply remain unchanged. However source read/apply are declared storage RPC ports, and only APERAK is exercised. It does not qualify an actual incoming CONTRL+APERAK pair against the produced native original.
+* Existing `ediel-z13-ack-customer-waiting-sql.test.ts` DOES assert complete accepted pair, replay/refusal/binding/rollback/private ACL effects. Its own header declares LOCAL_SYNTHETIC component. Source/ACK raw are JSON, wire parser and expected/physical-scope functions are explicit stubs, and receipt rows are fixture inserts. Those effects remain reusable; they are not a physical EDIFACT/canonical-intake/native request-pair proof.
+* Checked additionally `scripts/ediel-esco-z13-z14vh-sql-regression.mjs`: it seeds source as acknowledged and source-accepted fixture, without ingesting Z13 ACK pair. Its “incl. CONTRL/APERAK receipt” comment cannot add unexecuted ACK processing assertions. It supplies genuine SQL writer components under the declared harness, not the missing pair witness.
+
+These statements concern inspected published source. I did not acquire originals, receipts, logs or artifacts, so I do not independently certify the historical ESCO30 receipt or exhaustively rule out all external producer evidence. Existing producer may close G1 by identifying a qualified exact-source witness already held; no new collection is warranted merely from an absent test title.
+
+## Identityless support refutation
+
+Real TS `sourceCorrelation.ts` permits positive object outcomes with LI and no Z07. Matching resolves actual original group by own LI and only checks point identity when ACK has one; result retains nullable point/agency. CONTRL matches original interchange/UCI party/UCM reference, with no installation dependency. Existing realwire generic test qualifies identityless LIN+1/own transaction LI and refuses using LIN ordinal as LI; its Z03 fixture is matcher evidence, not whole Z13 protocol qualification.
+
+Read actual physical-source SQL migration `20261001140000_ediel_inbound_prodat_physical_outcome_owner.sql`: single nullable-id LIN is partitioned by its own lineIndex; identityValid is mandatory for multi/register shapes, not every single LIN. Physical scope key uses actual LI, fallback line-scope otherwise; projection preserves nullable object/agency and own LI. This supports the report's source-level refutation. It does not independently establish currently deployed SQL or a genuine current receipt. Identityless-register test correctly keeps full application/header nonaccepted when other request requirements are absent.
+
+No code root cause or reason for adding a point to Z13 is demonstrated. Fabricating f.point on request/ACK would destroy the prescribed identityless proof rather than close it.
+
+## Limits and minimum useful next action
+
+G1's smallest useful owner action is an exact-original witness of incoming source-bound CONTRL and PRODAT APERAK through the existing intake/canonical ACK owner for the already produced/sent customer-bound Z13 (V/VH), preserving customer/LIN/own LI and no point. Bind immutable original, accepted scopes, request ACK/status effects, replay/refusal and unchanged rights/supply. Reuse qualified existing prefix/components where source applicability is explicit. Existing pair evidence, if identified, should be reused rather than duplicated.
+
+Keep ACK and business order independent: actual `ediel-permission-process-order.test.ts` permits positive Z14 from z13_sent and intermediate ACK states, and preserves established business results for late ACKs. **No complete-ACK-before-Z14 prerequisite** follows. No new physical point, LIVE approval, legal-document publication, blanket temporal wait or extra external gate is introduced. Existing VH source timing assertions remain their own bounded applicability.
+
+G2 is a separate admission/assertion join to qualify, not a confirmed source bug. Profile tests already refuse many source mutations; gateway test uses mocked reserve/render/finalize and mostly command identity/replay, so it is not wholesale Z13 R/D admission coverage. Do not rewrite delivered field libraries or demand new migrations/GEN without an actual missing assertion. This review primarily supports G1; it does not certify exhaustive G2 absence across every historical owner control.
+
+Only write is this `/tmp` report. No tests/SQL/native/backend/GEN/CI execution, originals/log/artifact/private input collection, source/ref/checkpoint/claim/PR/merge action, ledger approval or count credit.
+
+````
+
+Original ediel-helper-20261013-z13-request-gap-peer-b.md SHA2567317532a501b0ea2785e4f9666a8a5f2d3025e3a512803c381fc8240f48973e3:
+
+````markdown
+# Independent request-gap support review B — Z13V/Z13VH
+
+Conclusion: the support report identifies a real remaining whole-proof binding distinction, not a confirmed product bug. G1 is the smallest concrete new join to qualify: source-bound **received** CONTRL + APERAK for the actual persisted/sent identityless Z13 request. G2 is conditional assertion/source-applicability reconciliation; it must not become an unconditional new test, migration, or producer gate where qualified existing controls already prove the effects.
+
+Reviewed report `/tmp/ediel-helper-20261013-z13-request-gap-support.md` SHA256 `e0913e1f838005da6fa78ac93ea51a3d0e6d19b747806f96f8a18a84e868744e`. Exact supplied actual-main source `95d8d160491e79b172342654d8dc643346758105` / tree `fa5ab60527a40bd642749365fc275d1d4a69e277`; public GEN source `894b085ef22b48989375822beb5b483a356d10ed` / tree `99f4168315927d59107606d497b4a2a087f99d12`. This is source/evidence support, not execution or a fresh assertion of current remote main/CI status.
+
+Reviewer `/root/sc031_outbound_peer_b` did not author the reviewed source/tests/fixtures/report or consult peer A. Read-only review; sole write is this temporary report. No tests, TypeScript, SQL, backend, native, GEN, CI, original/log/artifact collection, source/ref/claim/checkpoint/PR/merge action.
+
+## Frozen requirements and source inspected
+
+Exact IDs are AT-Z13V-ESCO and AT-Z13VH-ESCO. Shared given permits absent installation identity while requiring LIN+1 and separate ESCO/scope/role/contract/beneficiary. Expected S17/S18 Z13 DGI request, CONTRL/APERAK for the request, Z14/Z14N, object rights only after positive Z14, no supply. Prohibited wrong role/direction, missing R/D fields, correlation mismatch and mutation. Acceptance SHA256 independently matches `e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10`.
+
+Read actual preparer, render gateway, renderer, canonical finalization validator path, field matrix, profile/origin/gateway/command/manual/reporting source controls and identityless ACK matcher tests. Independently confirmed their relevant bytes equal on exact main95d/public894 and locally read source. Native Z14VH/Z15V file differs from the old local efed snapshot only by 100 appended downstream history controls; independently checked that main95d/public894 have the same current native blob and original request/ACK prefix remains unchanged. The downstream append adds no received Z13 request ACK-pair assertion.
+
+## G1: confirmed distinct missing binding, no identityless bug
+
+Existing request builder/profile assertions qualify genuine real-code DGI/Z13/S17 or S18, identityless LIN, source customer and no birthdate, LI/ANJ, reporting conditions, no mutation, ACK defaults. Qualified native prefix creates and sends a persisted request and proves pending rights do not activate. Its ownAcks routine creates/sends outbound ACKs for received Z14/Z15 originals. These are different originals and direction from received ACKs to the outgoing Z13.
+
+Actual sourceCorrelation matcher groups originals by their own first object/register line, matches exact LI, and allows nullable objectId when ACK identifies the LI. Existing real-wire control uses LIN+1 + own LI and refuses LIN ordinal as LI; no installation-ID requirement or demonstrated identityless failure exists. Current identity-omission register test explicitly withholds full application acceptance where unrelated header/UD/source requirements are absent. Neither that reduced fixture nor JSON-wire SQL waiting fixture can supply the missing actual-original request ACK join.
+
+Smallest remaining join is to qualify existing persisted request bytes/identity and received source-bound CONTRL/APERAK through the existing owner intake/ACK authority, preserving source/tenant/env/legal/LI binding and no rights/supply effects. Existing qualified component rejection/replay controls may be reused with explicit applicability; this finding does not mandate every negative variant in a new native chain. No new installation identity, new entire history chain, new GEN run, counterparty/LIVE/real-legal requirement or parallel producer is justified here.
+
+## G2: reuse existing qualified controls before adding assertions
+
+Important additional existing controls beyond the support table:
+
+- `ediel-service-command-consumer.test.ts` calls the actual preparer with declared source ports. Held/error resolution stops before gateway; reuse stops before origin/route/intent/outbox; resumed own-intent/request mismatches refuse gateway and exact continuation preserves old binding. These already prove pieces of actual admission/control flow.
+- `ediel-service-manual.test.ts` proves exact current tenant/customer/assignment/permission selectors, mismatch refusal and separation of reused permission from beneficiary access, with a declared private-context port. It does not independently prove native private authority.
+- `ediel-service-permission-origin.test.ts` and AT-Z13V profile already refuse missing source217, source261 and actual customer identity before returning a draft. Shared actual renderer/source code applies to V and VH; duplicating these negatives solely for VH is not required when qualified source applicability is explicit.
+- Gateway suite covers existing exact command message/replay/queue ownership; its renderer/finalizer are mocked, so it is useful ownership proof, not full R/D finalization proof.
+- Reporting-chain/SMTP tests already exercise actual shared send guards, altered LI/source/route/pure-evidence refusal and no provider/archive reach through declared source/transport ports. Reporting policies cover independently assessed 321/323 and historical timing. AT-P01 preserves frozen matrix/condition mappings and reused underlying conditional behavior. Reuse qualified original outputs rather than rebuild those field suites.
+- Real preparer source performs actor authorization, coordination/private origin, canonical ESCO route/role before intent; real finalizer performs registry-aware full outbound validation before persistence. Their source existence alone is not an executed whole-proof assertion, but no bypass/rootcause was demonstrated in this review.
+
+The R/D matrix does require Z13 217/222/261/506/513/302 plus applicable321/323; profile success is not by itself a full durable admission test. Minimum G2 next step is to map already qualified assertions and original source bindings to these literal effects. Only genuinely uncovered admission/zero-effect assertions require a bounded completion at the real owner boundary. The report's suggested preparer/gateway completion is therefore conditional, not a blanket requirement for fresh tests of already asserted217/261/customer or a new native all-negative producer gate. Wrong ESCO role and private beneficiary/source authority must be assessed against existing qualified owner controls, not declared missing merely because the two card-tagged renderer tests start from an authorized synthetic basis.
+
+## ACK and business-order boundary
+
+Positive Z14 remains independent of receiving the complete ACK pair first. Existing process-order tests accept actual Z14 from z13_sent and intermediate ACK states and preserve established results on later ACKs. Completing G1 must not change that model or make complete CONTRL+APERAK a prerequisite for positive business activation. Separate qualified Z14/Z14N effects remain reusable within their own sources. No whole request approval or ledger increase follows from this review.
+
+No actionable product-code defect was found. Treat G1 as an actual-original request ACK proof join and G2 as conditional evidence qualification, under existing source/native/collector/serial owners. Actual whole closure still requires their exact-candidate binding and ordinary mandatory gates; this review introduces none.
+
+````
