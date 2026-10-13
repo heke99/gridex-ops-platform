@@ -2065,3 +2065,2792 @@ Evidence limits: public source and the supplied public support/scout reports onl
 
 
 Final completed-support coordination published once as #7666150180644, authenticated tool result. It pins docs carrier dcb47abf/5af244, current d798/e3b6/323, both exact current-main SC031 mapping peers and completed Z13 input/API originals. Request6149872726 remains the sole unanswered bounded Z13 authoring question; final support is not a repeat request or custodytransfer. This last checkpoint-only receipt line does not change technical source3dff, adopted-source applicability, nativeNOT_RUN or actual main ledger. Resume only on explicit owner/sourcebinding handoff or genuinely NEW PUBLIC795 source; all independent authorized helper work is completed and all technical ownwriters are PAUSED. Overall352 goal remains incomplete/29remaining, other existingwriters retain their scopes.
+
+
+## 2026-10-13 resumed NEW public795e49 and superseding FG integration support
+
+User explicitly requests continued autonomous forward work with multiagents. Freshactualmain d798/e3b6 retains323. PR795 NOW actuallyPUBLIC e49a23d4897f1cb4063a57bf3b1c810321723c3a/tree88c04102169c9bd803e2bf4dfb7363ebbc562097/base d798 afterordinaryFF894→e49/6150586895. ExactpublicGitfetched no-write-fetch-head, no privatepreparedsource. Existingowner currentnative40/corroboration/strict31/allmandatoryOPS checks underway, solecollector retainsoriginals; sourceonly40prospective not40PASS. Existingtwo wholeSOURCEfinals d755/eb392 alreadyowner-qualified, no redundantwholefinal claim. Name-state omissions and old113 source2e boundary retaintruth.
+
+Independent NEW read-only subtasks assigned, no technicalsource/custodywrites: current_delivery_review compares currentPUBLIC3Z05fixture/testpaths andold39 assertions/new40th supplement; current_requirement_gaps mapsactualcurrenthead CI/status/requiredgates metadata only, never originals/artifacts/logs or40PASSfromjobSUCCESS; peerA andB independently bind newlysupersedingFG80d52959bd26ed2a73a458b090b37bfb97dfa104 + oldZ09FG76a6114f14620c04ea5c3cc72733eaec4f13609d six selectivetechnicalpostimages tocurrente49, excludingCP/wholebranch/oldledger. CurrentheldC1decoder051ec stillUNFIXED/UNADOPTED underoriginalowner; no forcedgreen. NewFG66 declaredoraclecontrols/native12NOTRUN andZ09FG2NOTRUN limits retained. ROOT verifies exactnewpublicSC031 sourceapplicability/postimageadoption only. No test/native/backend/GEN/capture/originalcollection/CIretry/PR/merge/refrelease/producer orrealcommunication chain.
+
+Existing soleC1/currentdelegatedserialowner andsourcewriter/producers retainownership. OurSC0313dff/aa4 staysimmutableheldpaused; Z13sourceappointment6149872726 stillpendingwithoutrepeatquestion, completedAPI/inputdesign support6150180644 remainsready. Newusercontinuation doesnotoverrideactivewriter/privatepublication/refusal/310boundaries. OwnCPonlydocsbranch continues; no sharedmemory role ordispatchbaseline. Next completeactualnewsource support→independentfindings/refutation→qualifiedexactheadstatus→routecurrentowner underoriginalcustody; assessgenuinetransition notrepeatunchangedreviews.
+
+
+## 2026-10-13 completed NEW e49 source/CI and selective six-file support
+
+Four independent read-only subtasks COMPLETE. NewPUBLIC e49 source review ad4137e8 finds no introducedmustfix in bounded Z05 fixture/test delta: all110prior assertions inverse-byteexact;39oldregistrations remain+1namecase=40PROSPECTIVE, no40PASS. NewB followscanonicalcustomer/sign/archive/Z03/send/Z04 using explicitlySYNTHETIC issuer/masterdata/method/publicreadyrequest declarations inheritedfixturepatterns; no directprotectedacceptedsource/period/Hcapability/effectreceipt seed. Do not falselyclaimzero authorityfixture seeding orreal legalapproval. Hdefault/siblingA/wrongLI/history/physicalACK/replay meaningfulpreservation stays. Thecurrentnamecase isthisL/LKsetup/importerENTRY-EXIT only, notold113 reconstruction. Existingowneractualproof/genuineoriginal qualification remainsnecessary.
+
+CurrentCI snapshot16:58:19 exacte49/base&maind798:41checks24SUCCESS11eventSKIP6IN_PROGRESS, prcertificate pendingdependency gate, CodeRabbit manualreviewSKIPPEDstatusnotpeer. ProtectedrequiredcontextAPI403 independentlyunreadable. ActualZ05 step6 FAIL whilejob/upload stillrunning;cause/casecountsUNKNOWN. Cancellation31/corroboration metadataSUCCESS notnativecounts. Stageblocker routed6150784183 once;solecollector qualifiesoriginals, nohelperfetch/rerun/producer. This is time-boundsnapshot, notlatestCI forever.
+
+NEW supersedingFG80d+Z09FG76a EXACTSIX technicalsource posts jointlysupportedby twoindependentnoncoauthors A e9233746/B725061c2. Currente49 hypotheticaltree7dd3549804fc39d25d0eb7e7f8bcbc3b758ad77f/9862leaves;d798→654252da1d4b331f9f3142b0fd5249520b710dbc/9845. FourFGreplacements +twoZ09additions, alloutside6 tuples preserveactualtarget/currentledger/opaqueZIP/runtime/SQL/GEN/workflows/frozen. OldZ09branchFGblobs11dd/d28e mustnotreplace superseding68b9/d0fe; selectONLYnew80d fourpostimages +76a two. Sharedstatus/localCLI/keys/catalog/alias/serial/includes preserved; directimportsresolve46, allcriticalruntime/source/ACK/datedreader unchanged. Revised15namedUDstagingoracle correctlyretains actualheldC1decoder c08e upstreamUNFIXED/UNADOPTED; noforcedgreen orlegacywholeprooftransfer. GrequestedZ03 doesnotmandateindependentlyconfirmedZ03. Native12+2 NOT_RUN;recipientcustody/genuineinput/backend/SQL/affectedqualification/currentgates/finalpeers/serialnormalmerge stayowner.
+
+SC031 exactnewpublichead e49 importedclosure378+package/lock/TS/Vitestconfigs alltupleidenticalpreviousqualifiedpublic894. Oneunchangednewtestblob0158559→hypotheticaltreec7d0fcbdd6f779e33769c45e1915b46bc220acd9 preservesall9860targetleaves. Previousvirtualgeneratedtypes0diagnostics qualifiesunchanged importedtypeclosure only;no newtypecheck/16PASS/currentGEN/CI/whole/adoption/aa4transfer. Technicalsource3dff/d1a stillfrozenheldpaused.
+
+NextNEW independentremainingcontract task TAKEN6150887553: actualZ03C queued-calendar/cancellation finaltransport afterlocks vs L-D4/LK-day0. Source-onlyscout current_requirement_gaps owns tmpreportonly;requirescompleteactualdailyguide-date guard refutation beforedeclaringcause. NormalZ03/B/time-of-day/privateDB05 scope NOTtaken. TwoOTHERnoncoauthorrefutations onlyformaterialfinding. No source/claim/producer/backend/native/GEN/CI/originalscope acquired. PendingZ13 appointment6149872726 NOTreasked. Existingmain323 and29remaining;actuale49notmerged. Allsource/no-current-runtime limits below retained.
+
+Original ediel-helper-20261013-pr795-e49-source-support.md, 13927 bytes, SHA256 `ad4137e80388b0db9479198cde2dcf6d5d7bfca1844c9b63d0a7a16eb6458633`; preserved verbatim:
+
+````markdown
+# PR795 e49 bounded public-source support review
+
+**No introduced must-fix defect confirmed in the inspected correction.** This is a first review of the new public fixture/C1-observer delta, not a whole final-source review, native proof or merge-readiness approval. Source authors and existing source/native/GEN/collector/serial owners retain custody.
+
+| Binding | Exact value |
+|---|---|
+| Published head | `e49a23d4897f1cb4063a57bf3b1c810321723c3a` |
+| Head tree | `88c04102169c9bd803e2bf4dfb7363ebbc562097` |
+| Immediate parent | `d0f21436831d9ddc92fd1b72aebf8c978f3d089f` |
+| Prior public comparison head | `894b085ef22b48989375822beb5b483a356d10ed` |
+| Prior tree | `99f4168315927d59107606d497b4a2a087f99d12` |
+| Actual-main base / merge base | `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` |
+| Base tree | `e3b6c11677a2b871a128504f1616def7d22dba1e` |
+
+Read authenticated derived public receipts [6150340040](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6150340040) and [6150586895](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6150586895). The latter records normal branch FF publication, existing independent whole-source finals d755/eb392 and automatic follow-through; neither is converted into an execution result by this review. All inspection below uses exact public Git objects, not mutable checkout bytes. This helper did not consult peer review originals, private prepared input, logs, archives or artifacts. Its unrelated unadopted G1 source design is not authorship of this correction.
+
+Skill routing: apply the previously read code-review/differential-review, finding-refutation and verification-before-completion guidance to this bounded delta; use the existing Supabase/source understanding for RPC and fixture boundaries. No UI/performance/deployment, broad scan, new worktree, test or remediation workflow is activated: those triggers are absent or execution is explicitly outside this assignment.
+
+## Ordinary target B and retained H sibling A
+
+`scripts/ediel-at-z05-supplier-native.test.ts:63–68` adds an explicit `independent=false` selector. Only the positive unlinked L case at 335–337 passes `!linked`; linked L, LK and every other unchanged caller keep the original factory path. `scripts/helpers/ediel-national-end-native-fixture.ts:32–41` still builds/sends the actual national H original first. Its optional preparation callback is absent by default; the merge of a prepared target changes the incoming end’s customer/point/period/start source, while the H original/mandate/history remain present in the result. It does not globally relabel H as ordinary L or change the native SQL end guard.
+
+The new helper’s `prepareIndependentNationalEndTarget(base,provider)`, line 193, retains A before preparing B. `retainNationalSibling`, lines 45–126, fixes A’s pre-B message-ID set and snapshots complete selected graph, role/membership/permission, tenant/legal/profile, source/mail, mandate/capability, transport/outbox and watch rows. A must be a real sent H original with its actual mandate and pending Z05 watch. A’s snapshot is compared after multiple B setup steps and before/after processing and replay (test 338–346, 351, 417). New B messages cannot enter the closed A set to hide a prebaseline mutation.
+
+B gets a separate scoped operator, not added grants on A. Lines 199–211 invoke the existing `createBilateralSourceOperator`, check the new actor differs, assert it is not in `admin_users`, and verify actual company/contract permissions. The existing operator helper (24–38) creates a disposable authenticated company member and role, then checks its real tenant context. `onboardCustomerGraph` at 229–238 creates separate customer/site/point/contract IDs with create-only semantics. Lines 239–250 sign/archive the actual B contract and reread the existing network artifact. Shared network/legal actor state is read and retained; it is not replaced with a caller-authored authorized JSON result.
+
+The helper queues and sends B’s actual Z03 through `prepareAndQueueEdielZ03` and `sendEdielMessageViaSmtp` (315–322), checks retained original/current accepted transport, then constructs B’s physical Z04 input before immutable birth. `acceptOrdinaryStart`, 128–189, checks the own point, LI, UD identity and declared RKv1.7 register chain (101, counter constant1/digits6) in the actual prospective raw. The shared synthetic111 default is not modified. Mail/source birth is followed by actual runtime resolution, validation receipt, fresh rule evidence and received-source owner session; `applyInboundBusinessStateMachine` and `session.finish()` must produce the accepted ordinary supply period. There is no directly seeded accepted validation, protected H capability, effect receipt or admitted supply period in this new helper. Lines 325–334 assert B differs from A and has zero H operations/mandates for B’s point/period.
+
+**Fixture-authority limit:** a blanket statement that this helper seeds no authority inputs would be false. It explicitly seeds synthetic issuer registry/representation rows (261–262), contract-bound signed masterdata declarations (277–282), requested-method declarations (287–292), and a public ready switch request with declared caller invoicee selection (313). These are the same categories used by the retained normal-switch fixture (253/268/278). The BRP archive/review is performed through actual authenticated APIs, and the source/period admission is performed by canonical owners. This supports mechanism testing with declared disposable legal/issuer/masterdata boundaries; it establishes neither genuine customer authentication nor authentic external legal approval. No protected final owner result is manually stamped to bypass the consumer, and this review does not broaden that limited proof.
+
+## Assertions, ACKs, guard and replay preservation
+
+Static reconstruction reversed only the three added imports, explicit independent-selector parameter/callback, C1 supplement, changed positive unlinked fixture argument and three sibling checks. The remaining test bytes equal prior894 exactly. Both original and reconstructed SHA256 are `97260d1446dd33d1a37d24540dd3bd6748ef825fc61a68e7133fc7a1f89ff3ec`; all **110 original `expect(` calls** remain byte-identical. This is a source integrity check, not test execution.
+
+The unchanged config `scripts/ediel-z05-supplier-native.config.ts` still includes the retained20 H/bilateral originals,4 LK controls and this file’s15 existing registrations: **39 retained prospective cases plus1 new C1 case =40**, not40PASS. Both included companion test files and `nationalRescissionNative.ts`, normal-switch fixture and source-owner config are byte-identical to prior894. The schema/migrations are also unchanged between894 ande49; base-main composition is a separate previously reviewed whole-source concern.
+
+The positive body still asserts actual period/source/version/end/history, scoped ordinary protected effect receipt, unchanged H watch, only the relevant final-metering task, zero additional outbound PRODAT, unchanged unrelated graph and exact original/start/end bytes. Physical outbound CONTRL UCI mirror and APERAK100/Z07/LI/ACW checks remain at 372–394. Replay at411–416 preserves actual receipt/task/ACK and graph snapshots. Defaults still require the H-own LI; the corrected ordinary cohort uses an independent own notice LI on distinct B. Existing negative consumer/SQL checks at469–483 and the unchanged native `has_end_selector_v1`/`matched_end_v1`/exact-sent-original guard (schema32393/32444/32650,44330) are not weakened. This review does not claim a newly executed H-wrong-LI case or add one.
+
+## New C1 observer: real calls and truthful bounded output
+
+The supplement at200–333 reads catalog/function definition/prosrc hash, runtime string setting/encoding/collation and indexes. It retains the old two-backslash SQL function body as a hash-checked scalar SELECT expression, never replacing the installed function. The declared VALUES-only aliases show old and current normalized outputs/candidate sets diverge, and assert the equivalence oracle rejects that divergence (267–273). No accepted owner rows are inserted by this counterexample.
+
+`readDomain`, 223–241, scans the complete current `platform_grid_owners` universe and emits universe count/hash plus all old/current/lowercase match candidates. `sameRelation` at254–258 compares complete unrestricted helper sets, complete active/Ediel/OPS importer canonical sets, and the helper holds/importer count/min-ID/lowercase-fallback choice. `choice` at242–253 deliberately keeps JS trim for helpers separate from SQL btrim for importer eligibility. The underlying helper queries at `ediel-z02-supplier-native-fixture.ts:342–346,423–426` explicitly aggregate `ORDER BY id`; array order is therefore defined. The importer at schema73325–73348 reuses only a unique canonical match, otherwise falls back to lower(name) upsert. Candidate counts and fallback choices are covered, rather than an empty-domain or scalar-key equality claim.
+
+The SQL observer captures the original `nativeSql` function before installing a spy, delegates each original query unchanged and returns its exact result. Additional before/after SELECTs call the captured function directly, so they do not recursively alter the observed query. It records operand provenance from actual source-grid snapshots and checks the returned actual ordered IDs (273–292). It adds observational assertions; it is not a universally transparent pass for arbitrary mismatched state.
+
+The RPC observer captures the bound original function once (203), delegates unrelated RPCs directly and passes the selected importer’s original argument references unchanged (296–301). `Promise.resolve(actualRpc(...args))` consumes the selected original PostgREST thenable once; the continuation returns the same response object, with actual error intact (301–307). The real caller `lib/energy/resolver.ts:1377–1385` awaits that RPC directly, so it relies on neither fluent chaining nor original builder identity. Importer-entry/exit assertions inspect actual results and preserve errors; no mock success replaces the output. `finally` restores both spies (332).
+
+Each actual L/LK setup is required to reach helper343 once. The actual known-area path either reuses a valid reference with no query/import calls, or reaches the importer; at least one genuine importer invocation is required across the supplement (311–329). This ensures a prospective run can refuse missing reachability. It cannot be credited before actual terminal output.
+
+The emitted boundary at330–331 is accurate: `THIS_L_LK_SETUP_AND_KNOWN_AREA_SUPPLEMENT_ONLY`, historical113 domain not retained/reconstructed, current113 not run, no universal alias equivalence. Matching current helper relation despite different scalar keys does not prove unchanged historical113 results or all omitted phases. Public6150340040 correctly withdraws unconditional old113 applicability and retains genuine old113 only at its original source. Existing owner must separately qualify actual current40 and omitted-phase name-state/source applicability, or obtain affected113 under its existing custody; this support report creates no new review gate and infers no PASS.
+
+## Findings and completion boundary
+
+Confirmed introduced defects: none in this bounded inspection. Refuted concerns: lost assertions, broad default-H replacement, manually inserted protected accepted source/period/H results, unordered helper arrays, duplicate selected RPC execution, and C1 universal/historical113 equivalence claims. The explicit synthetic input seeding and ordinary-source admission scope remain disclosed limits, not genuine external authority proof.
+
+This is source support only. Existing whole-source finals d755/eb392 remain attributed to their actual reviewers. Current native40/corroboration, restoration, zeroALL, source/SQL/input applicability and all mandatory current checks belong to the existing owner and are not established here. No source/ref/docs/claim mutation, test/native/backend/GEN/CI run or original/log/archive/artifact acquisition occurred. Sole output is this frozen temporary report; no merge or publication was performed.
+
+## Exact byte bindings
+
+| Inspected path | Git blob | SHA256 |
+|---|---|---|
+| `scripts/ediel-at-z05-supplier-native.test.ts` | `86633d19e9681023a4cece4c86c83a50436d0fe7` | `916e9189ade4ed7a1a77c570bc32a0b5a1eedf8dde14099531378a9924e72377` |
+| `scripts/helpers/ediel-national-end-native-fixture.ts` | `16188cf2954153f2a89c6c37151c1048783db742` | `7c4b8b2c576b2e5936dc4b9b471c20e097ce8cb9a69f573599851eb0296bb8fc` |
+| `scripts/helpers/ediel-z05-independent-end-native-fixture.ts` | `3780b3f5421fc80ec4d3bcde08f4776def27abf3` | `71024d4a979ed3befcb295a84dda7f668a54114cd868f532d6f1fa662eba964b` |
+| `scripts/helpers/ediel-z02-supplier-native-fixture.ts` | `e7902d47328fdc535c5743af809802ee0e8f4a60` | `1a097c8e0688be649b5b978d6e14a65452cb8735d8b2e67549f99e27bfc4e37c` |
+| `scripts/helpers/ediel-normal-switch-native-fixture.ts` | `e138f50cc1f30b16eced98b1668df2667af72788` | `b03ed608fe49648281b11bbd8a83e09673a7aa6a08f51a4e661d38a58e826cdc` |
+| `scripts/ediel-z05-supplier-native.config.ts` | `7ba9066a79090bab4676a99be9dfddb656fbfcb2` | `c9d3eb50408ca0d0a34fdcb0228fcb38a91f07fe570b9ba82e72c97037777bd2` |
+| `scripts/ediel-bilateral-prodat-h-original-native.test.ts` | `c82e75a64d707990760c980429d5948314c50d7e` | `1c54c0c600d64b9f4f28850abd68401ab0468745c03c9cff4287f163c0b62b16` |
+| `scripts/ediel-at-z08lk-supplier-native.test.ts` | `ed5c8adaf4684aaac7c197b62d9a468ced644abc` | `6d79bdb7533d0feb0d2e57cbc54676dce1884c98efbe0acb57f8a576779bd5e1` |
+| `supabase/schema.sql` | `835f66210c4b1cc0fe20a20a3707bd0d017b5e4c` | `183223acac82cfc5699a4acd6509868ab0646b3fc8a02d88a9027ba780b6bb60` |
+
+````
+
+Original ediel-helper-20261013-pr795-e49-ci-readiness.json, 88746 bytes, SHA256 `d29a0c5a1693e5336cfe15643d69e6d6c63662b48dd8c432fea0f559e707ceb1`; preserved verbatim:
+
+````json
+{
+  "snapshot_utc": "2026-10-13 16:58:19 UTC",
+  "scope": "READ_ONLY current-head CI metadata; no logs/artifacts/originals/testcases/backend/CI mutations; existing sole owner retains original qualification and merge",
+  "pr": {
+    "number": 795,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/795",
+    "state": "open",
+    "draft": false,
+    "merged": false,
+    "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+    "head_tree": "88c04102169c9bd803e2bf4dfb7363ebbc562097",
+    "head_parents": [
+      "d0f21436831d9ddc92fd1b72aebf8c978f3d089f"
+    ],
+    "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+    "mergeable": true,
+    "mergeable_state": "unstable",
+    "labels": []
+  },
+  "actual_main": {
+    "head": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+    "tree": "e3b6c11677a2b871a128504f1616def7d22dba1e",
+    "ledger_qualified_existing_delivery": 323
+  },
+  "publication_receipt": 6150586895,
+  "source_final_review_metadata": {
+    "formal_github_reviews": 0,
+    "separate_board_finals_declared": [
+      "d75554ea2345b01502612001eda6575c936fe78bcf12ff5b68c5535051bcbfe7",
+      "eb392b6b80d8f7c3bd1507b32418e46d27ba5372774ec71e5191692722014e77"
+    ],
+    "proof_current_head_final_reviews": "owner qualification pending; not adjudicated by metadata scout"
+  },
+  "initial_check_counts": {
+    "total": 41,
+    "success": 22,
+    "skipped": 11,
+    "in_progress": 8
+  },
+  "final_check_counts": {
+    "total": 41,
+    "success": 24,
+    "skipped": 11,
+    "in_progress": 6,
+    "completed_failure": 0
+  },
+  "all_final_checks_exact_head": true,
+  "initial_checks": [
+    {
+      "id": 115420384168,
+      "name": "db01-historical-upgrade-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433189041/job/115420384168",
+      "started_at": "2026-10-13T16:50:07Z",
+      "completed_at": "2026-10-13T16:54:54Z"
+    },
+    {
+      "id": 115420148734,
+      "name": "esco-z14vh-z15v-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112508/job/115420148734",
+      "started_at": "2026-10-13T16:47:01Z",
+      "completed_at": "2026-10-13T16:52:55Z"
+    },
+    {
+      "id": 115420122714,
+      "name": "nightly-release-certificate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420122714",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420122377,
+      "name": "real-customer-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420122377",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420122248,
+      "name": "full",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420122248",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420122103,
+      "name": "runtime-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420122103",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420121688,
+      "name": "crawl-production-readonly",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112289/job/115420121688",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420121685,
+      "name": "db05-native",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112189/job/115420121685",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420121398,
+      "name": "z05-supplier-native",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112427/job/115420121398",
+      "started_at": "2026-10-13T16:46:45Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420121032,
+      "name": "staging-quality-certificate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420121032",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420121010,
+      "name": "k6-staging-soak",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420121010",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:30Z"
+    },
+    {
+      "id": 115420120750,
+      "name": "smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420120750",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:47:16Z"
+    },
+    {
+      "id": 115420120258,
+      "name": "coverage",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420120258",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420120232,
+      "name": "k6-staging-load",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420120232",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:30Z"
+    },
+    {
+      "id": 115420120111,
+      "name": "browser-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420120111",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:30Z"
+    },
+    {
+      "id": 115420120075,
+      "name": "zap-staging-baseline",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420120075",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:30Z"
+    },
+    {
+      "id": 115420119977,
+      "name": "quality-release-gates",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112003/job/115420119977",
+      "started_at": "2026-10-13T16:50:22Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119857,
+      "name": "z03h-z04h-supplier-native",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111873/job/115420119857",
+      "started_at": "2026-10-13T16:50:40Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119811,
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112003/job/115420119811",
+      "started_at": "2026-10-13T16:49:24Z",
+      "completed_at": "2026-10-13T16:51:30Z"
+    },
+    {
+      "id": 115420119717,
+      "name": "one-off-offer-binding-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112438/job/115420119717",
+      "started_at": "2026-10-13T16:51:22Z",
+      "completed_at": "2026-10-13T16:54:46Z"
+    },
+    {
+      "id": 115420119648,
+      "name": "upgrade-migration-replay",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112003/job/115420119648",
+      "started_at": "2026-10-13T16:49:23Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119644,
+      "name": "Capture disposable clean-replay types and schema",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112511/job/115420119644",
+      "started_at": "2026-10-13T16:47:19Z",
+      "completed_at": "2026-10-13T16:51:46Z"
+    },
+    {
+      "id": 115420119639,
+      "name": "clean-migration-replay",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112003/job/115420119639",
+      "started_at": "2026-10-13T16:50:14Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119572,
+      "name": "cancellation-public-acceptance-native",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112507/job/115420119572",
+      "started_at": "2026-10-13T16:46:50Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119518,
+      "name": "cancellation-birth-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112299/job/115420119518",
+      "started_at": "2026-10-13T16:50:12Z",
+      "completed_at": "2026-10-13T16:54:10Z"
+    },
+    {
+      "id": 115420119336,
+      "name": "tr09-current-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112436/job/115420119336",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:51:20Z"
+    },
+    {
+      "id": 115420119286,
+      "name": "prodat-response-hold-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112254/job/115420119286",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:49:22Z"
+    },
+    {
+      "id": 115420119242,
+      "name": "sc014-z14v-native",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112280/job/115420119242",
+      "started_at": "2026-10-13T16:49:42Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119143,
+      "name": "z14n-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112309/job/115420119143",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:55:27Z"
+    },
+    {
+      "id": 115420118931,
+      "name": "sc003-sc005-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112259/job/115420118931",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:49:29Z"
+    },
+    {
+      "id": 115420118768,
+      "name": "z15c-z18v-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112057/job/115420118768",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:50:20Z"
+    },
+    {
+      "id": 115420118505,
+      "name": "tenant-integrity-regression",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112264/job/115420118505",
+      "started_at": "2026-10-13T16:49:31Z",
+      "completed_at": "2026-10-13T16:49:39Z"
+    },
+    {
+      "id": 115420118447,
+      "name": "z10m-supplier-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111818/job/115420118447",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:50:11Z"
+    },
+    {
+      "id": 115420118414,
+      "name": "z06e-z09e-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112120/job/115420118414",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:52:35Z"
+    },
+    {
+      "id": 115420118315,
+      "name": "browser-public",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420118315",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:46:58Z"
+    },
+    {
+      "id": 115420118167,
+      "name": "db04-current-consumers-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111773/job/115420118167",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:50:04Z"
+    },
+    {
+      "id": 115420118134,
+      "name": "z05-birth-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111776/job/115420118134",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:49:20Z"
+    },
+    {
+      "id": 115420118097,
+      "name": "sc071-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111798/job/115420118097",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:50:09Z"
+    },
+    {
+      "id": 115420118047,
+      "name": "p08-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111787/job/115420118047",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:50:37Z"
+    },
+    {
+      "id": 115420117983,
+      "name": "z04a-assigned-supply-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111865/job/115420117983",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:53:15Z"
+    },
+    {
+      "id": 115420117934,
+      "name": "targeted-regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112089/job/115420117934",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:54:17Z"
+    }
+  ],
+  "checks": [
+    {
+      "id": 115420384168,
+      "name": "db01-historical-upgrade-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433189041/job/115420384168",
+      "started_at": "2026-10-13T16:50:07Z",
+      "completed_at": "2026-10-13T16:54:54Z"
+    },
+    {
+      "id": 115420148734,
+      "name": "esco-z14vh-z15v-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112508/job/115420148734",
+      "started_at": "2026-10-13T16:47:01Z",
+      "completed_at": "2026-10-13T16:52:55Z"
+    },
+    {
+      "id": 115420122714,
+      "name": "nightly-release-certificate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420122714",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420122377,
+      "name": "real-customer-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420122377",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420122248,
+      "name": "full",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420122248",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420122103,
+      "name": "runtime-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420122103",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420121688,
+      "name": "crawl-production-readonly",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112289/job/115420121688",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420121685,
+      "name": "db05-native",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112189/job/115420121685",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420121398,
+      "name": "z05-supplier-native",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112427/job/115420121398",
+      "started_at": "2026-10-13T16:46:45Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420121032,
+      "name": "staging-quality-certificate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420121032",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:31Z"
+    },
+    {
+      "id": 115420121010,
+      "name": "k6-staging-soak",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420121010",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:30Z"
+    },
+    {
+      "id": 115420120750,
+      "name": "smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420120750",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:47:16Z"
+    },
+    {
+      "id": 115420120258,
+      "name": "coverage",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153/job/115420120258",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420120232,
+      "name": "k6-staging-load",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420120232",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:30Z"
+    },
+    {
+      "id": 115420120111,
+      "name": "browser-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420120111",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:30Z"
+    },
+    {
+      "id": 115420120075,
+      "name": "zap-staging-baseline",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420120075",
+      "started_at": "2026-10-13T16:45:31Z",
+      "completed_at": "2026-10-13T16:45:30Z"
+    },
+    {
+      "id": 115420119977,
+      "name": "quality-release-gates",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112003/job/115420119977",
+      "started_at": "2026-10-13T16:50:22Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119857,
+      "name": "z03h-z04h-supplier-native",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111873/job/115420119857",
+      "started_at": "2026-10-13T16:50:40Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119811,
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112003/job/115420119811",
+      "started_at": "2026-10-13T16:49:24Z",
+      "completed_at": "2026-10-13T16:51:30Z"
+    },
+    {
+      "id": 115420119717,
+      "name": "one-off-offer-binding-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112438/job/115420119717",
+      "started_at": "2026-10-13T16:51:22Z",
+      "completed_at": "2026-10-13T16:54:46Z"
+    },
+    {
+      "id": 115420119648,
+      "name": "upgrade-migration-replay",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112003/job/115420119648",
+      "started_at": "2026-10-13T16:49:23Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119644,
+      "name": "Capture disposable clean-replay types and schema",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112511/job/115420119644",
+      "started_at": "2026-10-13T16:47:19Z",
+      "completed_at": "2026-10-13T16:51:46Z"
+    },
+    {
+      "id": 115420119639,
+      "name": "clean-migration-replay",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112003/job/115420119639",
+      "started_at": "2026-10-13T16:50:14Z",
+      "completed_at": null
+    },
+    {
+      "id": 115420119572,
+      "name": "cancellation-public-acceptance-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112507/job/115420119572",
+      "started_at": "2026-10-13T16:46:50Z",
+      "completed_at": "2026-10-13T16:56:26Z"
+    },
+    {
+      "id": 115420119518,
+      "name": "cancellation-birth-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112299/job/115420119518",
+      "started_at": "2026-10-13T16:50:12Z",
+      "completed_at": "2026-10-13T16:54:10Z"
+    },
+    {
+      "id": 115420119336,
+      "name": "tr09-current-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112436/job/115420119336",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:51:20Z"
+    },
+    {
+      "id": 115420119286,
+      "name": "prodat-response-hold-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112254/job/115420119286",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:49:22Z"
+    },
+    {
+      "id": 115420119242,
+      "name": "sc014-z14v-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112280/job/115420119242",
+      "started_at": "2026-10-13T16:49:42Z",
+      "completed_at": "2026-10-13T16:57:33Z"
+    },
+    {
+      "id": 115420119143,
+      "name": "z14n-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112309/job/115420119143",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:55:27Z"
+    },
+    {
+      "id": 115420118931,
+      "name": "sc003-sc005-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112259/job/115420118931",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:49:29Z"
+    },
+    {
+      "id": 115420118768,
+      "name": "z15c-z18v-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112057/job/115420118768",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:50:20Z"
+    },
+    {
+      "id": 115420118505,
+      "name": "tenant-integrity-regression",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112264/job/115420118505",
+      "started_at": "2026-10-13T16:49:31Z",
+      "completed_at": "2026-10-13T16:49:39Z"
+    },
+    {
+      "id": 115420118447,
+      "name": "z10m-supplier-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111818/job/115420118447",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:50:11Z"
+    },
+    {
+      "id": 115420118414,
+      "name": "z06e-z09e-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112120/job/115420118414",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:52:35Z"
+    },
+    {
+      "id": 115420118315,
+      "name": "browser-public",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845/job/115420118315",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:46:58Z"
+    },
+    {
+      "id": 115420118167,
+      "name": "db04-current-consumers-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111773/job/115420118167",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:50:04Z"
+    },
+    {
+      "id": 115420118134,
+      "name": "z05-birth-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111776/job/115420118134",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:49:20Z"
+    },
+    {
+      "id": 115420118097,
+      "name": "sc071-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111798/job/115420118097",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:50:09Z"
+    },
+    {
+      "id": 115420118047,
+      "name": "p08-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111787/job/115420118047",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:50:37Z"
+    },
+    {
+      "id": 115420117983,
+      "name": "z04a-assigned-supply-native",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111865/job/115420117983",
+      "started_at": "2026-10-13T16:45:34Z",
+      "completed_at": "2026-10-13T16:53:15Z"
+    },
+    {
+      "id": 115420117934,
+      "name": "targeted-regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112089/job/115420117934",
+      "started_at": "2026-10-13T16:45:33Z",
+      "completed_at": "2026-10-13T16:54:17Z"
+    }
+  ],
+  "statuses": [
+    {
+      "context": "CodeRabbit",
+      "state": "success",
+      "description": "Review skipped: manual review required for this OSS repository",
+      "target_url": null
+    }
+  ],
+  "workflow_runs": [
+    {
+      "id": 38433189041,
+      "name": "Ediel DB01 supplemental historical containment native",
+      "path": ".github/workflows/ediel-db01-current-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:46:04Z",
+      "updated_at": "2026-10-13T16:54:54Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433189041",
+      "workflow_id": 376872023,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112508,
+      "name": "Ediel ESCO Z14VH and Z15V native effects",
+      "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:52:56Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112508",
+      "workflow_id": 381125789,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112153,
+      "name": "Gridex full E2E",
+      "path": ".github/workflows/full-e2e.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:45:35Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112153",
+      "workflow_id": 336204822,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112289,
+      "name": "Gridex zero-admin production crawler",
+      "path": ".github/workflows/zero-admin-production-crawler.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:45:31Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112289",
+      "workflow_id": 345456844,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112189,
+      "name": "Ediel DB05 customer close and due purge native",
+      "path": ".github/workflows/ediel-db05-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:45:39Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112189",
+      "workflow_id": 378720972,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112427,
+      "name": "Ediel Z05 supplier native feedback",
+      "path": ".github/workflows/ediel-z05-supplier-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:46:47Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112427",
+      "workflow_id": 376735741,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433111845,
+      "name": "Gridex browser and quality E2E",
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:46:59Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111845",
+      "workflow_id": 336345774,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112003,
+      "name": "OPS hardening",
+      "path": ".github/workflows/ops-hardening.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:50:23Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112003",
+      "workflow_id": 298519857,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433111873,
+      "name": "Ediel Z03H Z04H bilateral contract feedback",
+      "path": ".github/workflows/ediel-z03h-z04h-supplier-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:50:41Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111873",
+      "workflow_id": 376962334,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112438,
+      "name": "One-off offer binding native",
+      "path": ".github/workflows/one-off-offer-binding-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:54:47Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112438",
+      "workflow_id": 380884940,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112511,
+      "name": "Staff API schema capture (capture only)",
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:51:46Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112511",
+      "workflow_id": 374495306,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112507,
+      "name": "Ediel public supplier cancellation strict30 native feedback",
+      "path": ".github/workflows/ediel-cancellation-public-acceptance-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:56:27Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112507",
+      "workflow_id": 377355645,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112299,
+      "name": "Ediel public Z04/Z05 Z24 source birth native feedback",
+      "path": ".github/workflows/ediel-cancellation-public-birth-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:54:10Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112299",
+      "workflow_id": 377279159,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112436,
+      "name": "Ediel TR09 current reserve native feedback",
+      "path": ".github/workflows/ediel-tr09-current-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:51:20Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112436",
+      "workflow_id": 376841268,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112254,
+      "name": "Ediel PRODAT held-response native proof",
+      "path": ".github/workflows/ediel-prodat-response-hold-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:49:22Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112254",
+      "workflow_id": 376662775,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112280,
+      "name": "Ediel SC014 and Z14V current effects",
+      "path": ".github/workflows/ediel-sc014-z14v-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:57:33Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112280",
+      "workflow_id": 376888877,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112309,
+      "name": "Ediel Z14N native feedback",
+      "path": ".github/workflows/ediel-z14n-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:55:28Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112309",
+      "workflow_id": 376859633,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112259,
+      "name": "Ediel SC003 SC005 native feedback",
+      "path": ".github/workflows/ediel-sc003-sc005-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:49:29Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112259",
+      "workflow_id": 374987418,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112057,
+      "name": "Ediel Z15C Z18V native feedback",
+      "path": ".github/workflows/ediel-z15c-z18v-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:50:20Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112057",
+      "workflow_id": 376503982,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112264,
+      "name": "Tenant integrity regression",
+      "path": ".github/workflows/tenant-integrity-regression.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:49:40Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112264",
+      "workflow_id": 343826806,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433111818,
+      "name": "Ediel Z10M SUPPLIER native feedback",
+      "path": ".github/workflows/ediel-z10m-supplier-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:50:12Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111818",
+      "workflow_id": 376546369,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112120,
+      "name": "Ediel Z06E Z09E native source feedback",
+      "path": ".github/workflows/ediel-z06e-z09e-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:52:36Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112120",
+      "workflow_id": 376568040,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433111773,
+      "name": "Ediel DB04 current consumer query plans",
+      "path": ".github/workflows/ediel-db04-current-consumers-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:50:05Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111773",
+      "workflow_id": 376741175,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433111776,
+      "name": "Ediel public Z05 source birth native feedback",
+      "path": ".github/workflows/ediel-z05-public-birth-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:49:20Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111776",
+      "workflow_id": 377173483,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433111798,
+      "name": "Ediel SC071 native feedback",
+      "path": ".github/workflows/ediel-sc071-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:50:09Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111798",
+      "workflow_id": 375282113,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433111787,
+      "name": "Ediel P-08 native production contract",
+      "path": ".github/workflows/ediel-p08-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:50:37Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111787",
+      "workflow_id": 378327057,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433111865,
+      "name": "Ediel Z04 A and D native feedback",
+      "path": ".github/workflows/ediel-z04a-assigned-supply-native.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:53:16Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433111865",
+      "workflow_id": 376571458,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    },
+    {
+      "id": 38433112089,
+      "name": "Ediel masterplan v2 regressions",
+      "path": ".github/workflows/ediel-masterplan-v2.yml",
+      "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-13T16:45:30Z",
+      "updated_at": "2026-10-13T16:54:18Z",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38433112089",
+      "workflow_id": 358913488,
+      "head_branch": "codex/c2-gen-esco-01a131d2",
+      "pull_requests": [
+        {
+          "number": 795,
+          "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6"
+        }
+      ]
+    }
+  ],
+  "selected_job_metadata_utc": "2026-10-13 16:57:43 UTC",
+  "selected_jobs": [
+    {
+      "run_id": 38433112427,
+      "total_count": 1,
+      "jobs": [
+        {
+          "id": 115420121398,
+          "name": "z05-supplier-native",
+          "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-10-13T16:46:45Z",
+          "completed_at": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run supabase/setup-cli@v1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Execute the actual Z05 supplier chain after disposable clean replay",
+              "status": "completed",
+              "conclusion": "failure",
+              "number": 6
+            },
+            {
+              "name": "Upload redacted native feedback",
+              "status": "in_progress",
+              "conclusion": null,
+              "number": 7
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "pending",
+              "conclusion": null,
+              "number": 13
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null,
+              "number": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run_id": 38433112511,
+      "total_count": 1,
+      "jobs": [
+        {
+          "id": 115420119644,
+          "name": "Capture disposable clean-replay types and schema",
+          "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-13T16:47:19Z",
+          "completed_at": "2026-10-13T16:51:46Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Select the existing combined-prefix capture turn",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Run supabase/setup-cli@v1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Install the matching PostgreSQL 17 client",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Capture authentic artifacts from the sourced clean replay",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Upload capture-only artifacts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run_id": 38433112003,
+      "total_count": 4,
+      "jobs": [
+        {
+          "id": 115420119639,
+          "name": "clean-migration-replay",
+          "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-10-13T16:50:14Z",
+          "completed_at": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run supabase/setup-cli@v1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Install a PostgreSQL client matching the replay server",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Clean empty-database replay and verify generated types",
+              "status": "in_progress",
+              "conclusion": null,
+              "number": 7
+            },
+            {
+              "name": "Redact disposable credentials from native and browser evidence",
+              "status": "pending",
+              "conclusion": null,
+              "number": 8
+            },
+            {
+              "name": "Upload clean-replay evidence",
+              "status": "pending",
+              "conclusion": null,
+              "number": 9
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "pending",
+              "conclusion": null,
+              "number": 17
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null,
+              "number": 18
+            }
+          ]
+        },
+        {
+          "id": 115420119648,
+          "name": "upgrade-migration-replay",
+          "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-10-13T16:49:23Z",
+          "completed_at": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run supabase/setup-cli@v1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Install a PostgreSQL client matching the replay server",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Genuine ancestor upgrade and independent clean parity",
+              "status": "in_progress",
+              "conclusion": null,
+              "number": 7
+            },
+            {
+              "name": "Upload authentic upgrade evidence",
+              "status": "pending",
+              "conclusion": null,
+              "number": 8
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "pending",
+              "conclusion": null,
+              "number": 15
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null,
+              "number": 16
+            }
+          ]
+        },
+        {
+          "id": 115420119811,
+          "name": "verify",
+          "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-13T16:49:24Z",
+          "completed_at": "2026-10-13T16:51:30Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run npm run db:migrations:check",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Run python3 scripts/gridex-ediel-upgrade-inputs-selftest.py",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run python3 scripts/gridex-redact-native-evidence-selftest.py",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Run node --test scripts/bounded-child-process.test.mjs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Run npm run tenant:service-role-ratchet",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Run npm run gridex:contract-channel-publication-regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Run node scripts/check-agent-memory-git-state.cjs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Run node scripts/gridex-aud-003-migration-provenance-regression.cjs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Run node scripts/gridex-ops-health-regression.cjs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Run npm run gridex:api-billing-tenant-hardening-regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Run npm run typecheck",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Canonical quote runtime regression matrix",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Run node scripts/gridex-quote-idempotency-multitenant-regression.cjs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            },
+            {
+              "name": "Run node scripts/gridex-partner-api-business-contract-regression.cjs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18
+            },
+            {
+              "name": "Run node scripts/gridex-papilite-centroid-regression.cjs",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19
+            },
+            {
+              "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run __tests__/papilite-postal-centroid-hardening.test.ts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 20
+            },
+            {
+              "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 21
+            },
+            {
+              "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run __tests__/runtime-contract-resilience.test.ts __tests__/platform-schema-readiness.test.ts __tests__/dependency-circuit.test.ts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 22
+            },
+            {
+              "name": "Run npm run ops:hardening-regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 23
+            },
+            {
+              "name": "Run npm run ops:hardening-behavior-regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 24
+            },
+            {
+              "name": "Integrated remaining-masterpoints golden path",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 25
+            },
+            {
+              "name": "Run npm run gridex:canonical-architecture-57-regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 26
+            },
+            {
+              "name": "Run npm run gridex:post-108-health-residuals-regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 27
+            },
+            {
+              "name": "Run npm run gridex:post-332-field-511-health-residuals-regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 28
+            },
+            {
+              "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run __tests__/ediel-utilts-transaction-disposition.test.ts __tests__/ediel-utilts-transaction-persistence.test.ts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29
+            },
+            {
+              "name": "Run npm run ops:final-contract-regression",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 30
+            },
+            {
+              "name": "Run npm run api:error-boundaries",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 31
+            },
+            {
+              "name": "Run npm run security:audit-production",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 32
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 63
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 64
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 65
+            }
+          ]
+        },
+        {
+          "id": 115420119977,
+          "name": "quality-release-gates",
+          "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "status": "in_progress",
+          "conclusion": null,
+          "started_at": "2026-10-13T16:50:22Z",
+          "completed_at": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run npm run lint",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Run npm run typecheck:scripts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run npm run typecheck:tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Run bash quality/mechanical/verify.sh",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npx vitest run --config quality/vitest.config.ts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Run NODE_OPTIONS=\"$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs\" npm test",
+              "status": "in_progress",
+              "conclusion": null,
+              "number": 10
+            },
+            {
+              "name": "Run npm run api:docs",
+              "status": "pending",
+              "conclusion": null,
+              "number": 11
+            },
+            {
+              "name": "Run npm run api:compatibility",
+              "status": "pending",
+              "conclusion": null,
+              "number": 12
+            },
+            {
+              "name": "Run npm run api:release:verify",
+              "status": "pending",
+              "conclusion": null,
+              "number": 13
+            },
+            {
+              "name": "Run npm run security:rbac",
+              "status": "pending",
+              "conclusion": null,
+              "number": 14
+            },
+            {
+              "name": "Run npm run quality:large-file-budget",
+              "status": "pending",
+              "conclusion": null,
+              "number": 15
+            },
+            {
+              "name": "Run npm run quality:performance",
+              "status": "pending",
+              "conclusion": null,
+              "number": 16
+            },
+            {
+              "name": "Run npm run build",
+              "status": "pending",
+              "conclusion": null,
+              "number": 17
+            },
+            {
+              "name": "Run npm run quality:bundle-budget",
+              "status": "pending",
+              "conclusion": null,
+              "number": 18
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "pending",
+              "conclusion": null,
+              "number": 35
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "pending",
+              "conclusion": null,
+              "number": 36
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run_id": 38433112507,
+      "total_count": 1,
+      "jobs": [
+        {
+          "id": 115420119572,
+          "name": "cancellation-public-acceptance-native",
+          "head_sha": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-13T16:46:50Z",
+          "completed_at": "2026-10-13T16:56:26Z",
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run npm ci",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Run supabase/setup-cli@v1",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Run genuine public intake and original strict30 supplier cancellation chains",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Preserve original failed stage without false execution credit",
+              "status": "completed",
+              "conclusion": "skipped",
+              "number": 7
+            },
+            {
+              "name": "Upload redacted native proof",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "workflow_job_conditions": [
+    {
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "line": 76,
+      "job": "browser-staging",
+      "if": "(github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all')) || (github.event_name == 'pull_request' && github.event.action == 'labeled' &&\n github.event.label.name == 'staging-e2e-approved' &&\n github.event.pull_request.head.repo.full_name == github.repository)",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "line": 132,
+      "job": "k6-staging-load",
+      "if": "(github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all')) || (github.event_name == 'pull_request' && github.event.action == 'labeled' &&\n github.event.label.name == 'staging-e2e-approved' &&\n github.event.pull_request.head.repo.full_name == github.repository)",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "line": 184,
+      "job": "k6-staging-soak",
+      "if": "(github.event_name == 'schedule' && github.event.schedule == '17 4 * * 0') || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'soak' || inputs.mode == 'all')) || (github.event_name == 'pull_request' && github.event.action == 'labeled' &&\n github.event.label.name == 'staging-e2e-approved' &&\n github.event.pull_request.head.repo.full_name == github.repository)",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "line": 228,
+      "job": "zap-staging-baseline",
+      "if": "(github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all')) || (github.event_name == 'pull_request' && github.event.action == 'labeled' &&\n github.event.label.name == 'staging-e2e-approved' &&\n github.event.pull_request.head.repo.full_name == github.repository)",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "line": 257,
+      "job": "staging-quality-certificate",
+      "if": "always() && (\n  (github.event_name == 'schedule' && github.event.schedule == '47 3 * * *') ||\n  (github.event_name == 'workflow_dispatch' && (inputs.mode == 'staging' || inputs.mode == 'all')) ||\n  (github.event_name == 'pull_request' && github.event.action == 'labeled' &&\n   github.event.label.name == 'staging-e2e-approved' &&\n   github.event.pull_request.head.repo.full_name == github.repository)\n)",
+      "needs": [
+        "browser-staging",
+        "k6-staging-load",
+        "zap-staging-baseline"
+      ]
+    },
+    {
+      "path": ".github/workflows/ediel-db05-native.yml",
+      "line": 40,
+      "job": "db05-native",
+      "if": "github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'codex/r1-db05-20261012-f2c6146b'",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "line": 34,
+      "job": "smoke",
+      "if": "github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'smoke')",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "line": 66,
+      "job": "coverage",
+      "if": "github.event_name == 'pull_request' || github.event_name == 'push'",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "line": 107,
+      "job": "pr-certificate",
+      "if": "always() && github.event_name == 'pull_request'",
+      "needs": [
+        "smoke",
+        "coverage"
+      ]
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "line": 174,
+      "job": "full",
+      "if": "github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'full' || inputs.mode == 'all'))",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "line": 209,
+      "job": "runtime-staging",
+      "if": "github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'runtime' || inputs.mode == 'all'))",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "line": 256,
+      "job": "real-customer-staging",
+      "if": "github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (inputs.mode == 'real' || inputs.mode == 'all'))",
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "line": 306,
+      "job": "nightly-release-certificate",
+      "if": "always() && github.event_name == 'schedule'",
+      "needs": [
+        "full",
+        "runtime-staging",
+        "real-customer-staging"
+      ]
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "line": 10,
+      "job": "verify",
+      "if": null,
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "line": 58,
+      "job": "quality-release-gates",
+      "if": null,
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "line": 89,
+      "job": "clean-migration-replay",
+      "if": null,
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "line": 542,
+      "job": "upgrade-migration-replay",
+      "if": null,
+      "needs": null
+    },
+    {
+      "path": ".github/workflows/zero-admin-production-crawler.yml",
+      "line": 15,
+      "job": "crawl-production-readonly",
+      "if": "github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'production-crawler-approved')",
+      "needs": null
+    }
+  ],
+  "metadata_access_limits": {
+    "branch_protection": "403 Resource not accessible by integration; protected-required-check list UNKNOWN",
+    "rules_endpoint": "connector URL not supported",
+    "workflow_list_endpoint": "connector URL not supported; all28 observed workflow run metadata read and exact-head source conditions inspected"
+  },
+  "missing_dependency_check": {
+    "name": "pr-certificate",
+    "status": "not yet created in check-runs snapshot",
+    "source": ".github/workflows/full-e2e.yml",
+    "needs": [
+      "smoke",
+      "coverage"
+    ],
+    "condition": "always() && github.event_name == 'pull_request'",
+    "not_waived": true
+  },
+  "concrete_blocker": {
+    "job": 115420121398,
+    "run": 38433112427,
+    "job_status": "in_progress",
+    "step_number": 6,
+    "step_name": "Execute the actual Z05 supplier chain after disposable clean replay",
+    "step_status": "completed",
+    "step_conclusion": "failure",
+    "following_step": "Upload redacted native feedback in_progress",
+    "cause": "UNKNOWN; no logs/originals acquired",
+    "testcases": {
+      "declared_prospective": 40,
+      "executed_pass": "UNKNOWN",
+      "executed_fail": "UNKNOWN",
+      "executed_skip": "UNKNOWN"
+    }
+  },
+  "cancellation": {
+    "run": 38433112507,
+    "job": 115420119572,
+    "conclusion": "success metadata",
+    "declared_cases": 31,
+    "qualified_case_totals": "UNKNOWN"
+  },
+  "corroboration": {
+    "run": 38433112511,
+    "job": 115420119644,
+    "conclusion": "success metadata",
+    "qualified_output_hashes_restoration_zeroALL": "UNKNOWN to this scout; owner originals required"
+  },
+  "old_c1_113": {
+    "source": "2e073477c43c6a133a01710772e65cefc43f6162",
+    "current_113_execution": "NOT_RUN / not inferred",
+    "changed_name_domain_applicability": "retained owner's separately pending invariant adjudication"
+  },
+  "next_action": "Existing owner preserves/qualifies terminal native failure originals once, identifies reached cause, handles only justified source correction/current gates; continue pending checks without rerun/cancel/extra producer. No merge-ready or ledger credit."
+}
+
+````
+
+Original ediel-helper-20261013-pr795-e49-ci-readiness.md, 4197 bytes, SHA256 `576a9e9b528482747193725e5c1f79a1ca09ea39a03d838c57823f333fd3b658`; preserved verbatim:
+
+````markdown
+# PR795 current-head CI readiness
+
+Read-only snapshot **2026-10-13 16:58:19 UTC**. PR795 is OPEN/non-draft/unmerged, exact public head `e49a23d4897f1cb4063a57bf3b1c810321723c3a`, tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`, parent `d0f21436831d9ddc92fd1b72aebf8c978f3d089f`. Base and actual main remain `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / tree `e3b6c11677a2b871a128504f1616def7d22dba1e`, ledger323. Publication receipt6150586895 matches. Mergeable=true, mergeable_state=unstable; no merge readiness or ledger promotion.
+
+**Concrete current blocker:** native40 run38433112427/job115420121398 is still IN_PROGRESS, but job-step metadata at16:57:43 shows step6 **“Execute the actual Z05 supplier chain after disposable clean replay” COMPLETED/FAILURE**. The subsequent feedback upload is IN_PROGRESS. This identifies the failing stage, not its cause or case count. Actual pass/fail/skip totals remain UNKNOWN; “40” is prospective source registration, never40PASS from metadata. Existing sole owner must preserve and qualify the terminal originals once and determine the reached cause before any justified correction. No blind rerun or extra collector.
+
+One authorized refresh after meaningful run/job/source reads changed the head-matched check totals from **22SUCCESS +11SKIP +8IN_PROGRESS** to **24SUCCESS +11SKIP +6IN_PROGRESS** (41 checks, no completed check FAILURE yet). Six still running:
+
+- z05-supplier-native115420121398, with the failed native execution step above.
+- coverage115420120258.
+- OPS quality-release-gates115420119977, upgrade-migration-replay115420119648, clean-migration-replay115420119639.
+- z03h-z04h-supplier-native115420119857.
+
+`pr-certificate` is not yet in the41-check snapshot: actual-head `.github/workflows/full-e2e.yml:107` declares `always() && pull_request` with needs smoke/coverage. It is pending dependency completion, not waived. Every observed check names the exact e49 head; all28 observed workflow runs are attempt1 pull_request on the existing795 branch. Automatic cancellation31 run38433112507/job115420119572 and ordinary corroboration38433112511/job115420119644 now have SUCCESS metadata. Their case/output/restoration/zeroALL qualification remains UNKNOWN to this scout; owner retains originals.
+
+Eleven skips are conditionally inapplicable on this ordinary unlabeled PR update: full/runtime/real/nightly are push/schedule/manual-mode jobs (`full-e2e.yml:174/209/256/306`); browser-staging/k6-load/soak/ZAP/staging-certificate require the existing staging-approved labeled/schedule/manual event (`browser-quality-e2e.yml:76/132/184/228/257`); production crawler requires its approval label (`zero-admin-production-crawler.yml:15`); DB05 is restricted to its own R1 branch (`ediel-db05-native.yml:40`). Current PR labels=[] and run event=pull_request. Skipped is not executed PASS; these conditions were read unchanged, not disabled by the scout.
+
+The external CodeRabbit status is SUCCESS but explicitly says **“Review skipped: manual review required for this OSS repository”**; it is not an independent source review. Formal GitHub reviews API returned0. Separate two final source-peer hashes are declared in6150586895 and retained; this metadata scout does not invalidate them or adjudicate current actual-proof/CI final reviews. Protected-required-check API is403, so its exact protected-context configuration remains independently unreadable; ordinary observed/workflow-required gates remain mandatory.
+
+Current113 execution is not inferred: genuine113 remains attributed to source2e073, with changed-name-domain applicability subject to the owner's separately pending invariant adjudication. No failed-case cause,40/31 outcome totals, complete original qualification, whole-card acceptance, source/producer custody or merge approval is claimed.
+
+Companion JSON records full compact check/run/job metadata and exact job conditions. No logs, artifacts, originals, private input, native/backend/GEN/test execution, CI rerun/cancel/start, source/ref/claim/PR/merge mutation occurred. Sole owner continues terminal original qualification, pending mandatory gates and two applicable independent finals before serial delivery.
+
+````
+
+Original ediel-helper-20261013-fg-z09-e49-integration-support-a.md, 9035 bytes, SHA256 `e92337464377eaa5ed607e3c42e4559abdb4d3244d6b2c557d52a0c857ea6d9a`; preserved verbatim:
+
+````markdown
+# Independent joint current-carrier applicability support A — F/G + Z09F/G
+
+Verdict: **SELECTIVE_SIX_SOURCE_COMPATIBLE_WITH_UPSTREAM_LIMIT**. No introduced mechanical/config/import defect found in this bounded joint applicability check. Revised F/G staging oracles retain a real unresolved decoder dependency; no native/current CI/whole-contract approval follows.
+
+Reviewer `/root/sc031_outbound_peer_a` remains read-only noncoauthor. No code/test/fixture/proof authoring or healthy execution repetition. Only this own `/tmp` report is written. Exact published FG/Z09 heads were fetched with `git fetch --no-write-fetch-head`; no private head/source or foreign branch/ref/claim/producer mutation. Public PR795 API independently returned exact current e49 head. No original ZIP content or artifact/log collection.
+
+## Exact source/base/target versions
+
+* Superseding F/G public head `80d52959bd26ed2a73a458b090b37bfb97dfa104`; tree `443038c6c6eb97d77f3a7c1b9f44188249c10c48`; sole parent `2cb27b3c939a1f0046e73f1b5d36cd7a314d7349`.
+* Z09F/G public head `76a6114f14620c04ea5c3cc72733eaec4f13609d`; tree `03723e46fe82859390a0626417ac317e451e77e6`; sole parent `3e50c755b8d00bc417c3708da0bcdeefb3838355`.
+* Actual main/base `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`; tree `e3b6c11677a2b871a128504f1616def7d22dba1e`.
+* Public current #795 `e49a23d4897f1cb4063a57bf3b1c810321723c3a`; tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`; sole parent `d0f21436831d9ddc92fd1b72aebf8c978f3d089f`.
+* Old F/G `0dbc3101138e6ebe041bc280d9f7b68e4876e0ce` is historical applicability only. Z09 branch still carries its old F/G test blobs `11dd2286143406ff536d37f41c8a7b27bceee030` and `d28e22d623dc90f65bf817461f7fab91f63929f5`; they must not replace superseding68b9/d0fe below. Helper/shared config are byte-identical across old0dbc/Z09/new80d.
+
+Read only metadata prose of public receipt6150626781 for exact source/postimages and retained upstream limit; current existing owner remains sole source/writer/producer. This support is not another review of that owner's original final packets or execution evidence.
+
+## Select exact six postimages
+
+All entries are mode100644/typeblob. First four come only from FG80d; last two only from Z09 head76a.
+
+| Path | Exact blob | SHA256 |
+|---|---|---|
+| scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts | d738cb863d753bf1f95d13269fa17bdb3b2c22b8 | bb9d77bb25a0d98cecba59ba0b2faa60d306e6b1a4ac3ea35022cf3170119961 |
+| scripts/ediel-at-z06f-supplier-acceptance-native.test.ts | 68b94eb06f469b0d85b9a21cfc44d9390ad11135 | 64fd6cfe7b6dad4ab4e6f7c8bcadad54882cbcecd34c11e0f9b4a8844d5a7d81 |
+| scripts/ediel-at-z06g-supplier-acceptance-native.test.ts | d0fe3d47a9832302d41c5a07b9247ed7b515943e | 34d394d5a681757d0aa9e3a59d77206f04129dd385b7f83b9f91d3b0f9a58ce0 |
+| scripts/ediel-source-owner-native.config.ts | 24df87ffb55ec37e22764beca99e2b4126af39fc | 7350c100a0587a8dc3ea964bac2aef1df3bfcc38c8825c768f4cb84739327087 |
+| scripts/ediel-at-z09fg-supplier-composition-native.test.ts | dd2efd1b487845695a6f66872d7be99bdb571044 | 95a605abe1aeb1fb3aaa6b32f8f6af3bea449c6449dd3e4c8365f797f575616a |
+| scripts/ediel-at-z09fg-supplier-composition-native.config.ts | ba91a277371f0453cb4220ba48ac87fd5f4ba15c | 47f4dd004508e93743f402ff0ff6298f328847a75e7dc550a44709ef2770ba54 |
+
+No whole branch/checkpoint, obsolete ledger or original artifact is selected. Actual tree/entry/content hashes independently checked.
+
+## Independently derived hypothetical targets
+
+Read exact recursive NUL-framed Git leaf maps, inserted/replaced only the six pins, and reconstructed Git tree SHA1 objects entirely in Python memory. First reconstructed each untouched target and matched its actual hash. No scratch index/object/checkout/write.
+
+| Exact target | Original leaves | Derived leaves | Six-postimage hypothetical tree |
+|---|---:|---:|---|
+| actual main d798 / e3b6 | 9843 | 9845 | `654252da1d4b331f9f3142b0fd5249520b710dbc` |
+| public GEN e49 / 88c0 | 9860 | 9862 | `7dd3549804fc39d25d0eb7e7f8bcbc3b758ad77f` |
+
+For both targets exactly four selected existing entries are replaced and two absent Z09 entries are added. Every other original mode/type/blob/path tuple remains identical. This preserves each target's runtime/SQL/GEN/ledger/frozen requirements/workflows/evidence/checkpoints, including opaque ZIP entries. The derived trees are hypothetical selective overlays, not commits, adoption, source-union authorization or merge readiness.
+
+## New delta and shared configuration
+
+New80d versus old0dbc changes the two F/G technical tests only:17 additive lines each (a14-line shared-style local oracle plus three invocation sites). No old assertion or helper/config postimage is removed. The oracle requires actual persisted case ID/company/source/Z06/status, non-null object parsed_customer and exact15 named customer fields:14 null plus customerIdLabel“Ej angivet”. It runs for both clean/extraUD variants at pending staging, approved case and replay. It deliberately excludes general evidence/provenance keys from the named business-field assertion, so legitimate retained raw/ignored-field facets are not required to disappear. Existing canonical/structural/effect/replay/foreign-scope assertions remain.
+
+Helper's additive optional rawTransform/direction/deferFirstApply capture interfaces retain default existing behavior. Raw transform creates a new physical input before admission; recount verifies one UNH/UNT and own message reference then updates only UNT count. It does not rewrite admitted original/capture or seed accepted disposition. Z09 uses unchanged wire helper, not a competing staged fixture signature. Older Z09 source carries the same helper/config pins, so replacing its old F/G test dependency with80d does not change its imported API.
+
+Current e49 shared-owner config preimage matches main d798. FG config adds only F/G test includes. GRIDEX_NATIVE_STATUS required, exact127.0.0.1:54321 API and both keys required, original setup/catalog/aliases/all mandatory includes/test/hook limits/fileParallelism false remain. Z09 supplemental config imports this same guarded config and appends only its own test; spreads preserve existing aliases, setup and serial execution. It neither bypasses guard nor launches a second producer. Z09 source requires explicit current qualified local producer inputs, actual GoTrue/tenant context, authenticated artifact reads and installed backend pin; missing input throws, not skip. No executable adapter/private receipt is loaded.
+
+Direct local import resolution check over the six selected source files found46 local module references, none unresolved on either target after overlay. All nonselected direct module tuples match between main d798 and GENe49. This is static one-hop applicability, not exhaustive dynamic/transitive runtime execution or installed SQL qualification.
+
+Additional independently pinned critical runtime imports are identical across d798/e49/FG80d/Z0976a: runtimeDecision `3d87b3d7316a7d36f5931f50a4b9e69627cec2dd`; receivedSourceValidationLedger `45aa5d107c776df557f6f5b397c2ae75fc613ecf`; metering-method-change producer `e11cabe6a2faa97b5616eb1c49f31b2bada678c4`; meteringMethodChangeSource `2da1e2b2ff13e4325f1224daf2d367d30223b714`; committedInboundAck `51ec84a1bd2516a4d596ab77be0912715db7c4c0`; qualifiedCustomerStructure `a216cc1e24eb108904dfc4dedc342439a6dbac50`.
+
+## Upstream decoder limit remains real and explicit
+
+`lib/ediel/inboundCases.ts` is identical blob `c08e51d67c98b8b7be0fc726f2509059cf4aaec0` in all four source/target versions. Actual parser reads physical UD party at146–190 and projects its ID/qualifier/name/address fields into named customer object at191 onward; staged case stores parsed_customer. No ignored-field masking/source correction is included in the six paths. Thus revised extraUD staging oracle exposes the unchanged projection until the rightful C1/a93c decoder/saved-case correction is qualified and adopted. It is a source-level reason why forced-green native acceptance is not justified, not a claim I ran native or observed actual persisted failure/customer-row mutation.
+
+No private correction or completed custody transfer is inferred. Existing owner should integrate a coherent selective source with the genuinely applicable public decoder correction when available, then qualify affected native/input/backend/source epoch/GEN/current CI under sole existing producer custody. Prior finite oracles/source reviews remain their original limited evidence, not current-source native execution. No new whole mandatory producer chain, extra gate or ledger credit is invented.
+
+This is current-carrier source integration support only. Existing source/file/native/GEN/collector/serial ownership is unchanged. No tests/SQL/backend/native/GEN/current CI, originals/log/archive/private-input read, reservation/ref-release/source/docs/PR/merge action. No introduced defect found in the selected mechanical/import/config delta; unresolved upstream decoder and NOT_RUN native remain explicit.
+
+````
+
+Original ediel-helper-20261013-fg-z09-e49-integration-support-b.md, 8745 bytes, SHA256 `725061c252b861fa5f1087dc9aa02cbd9a7da09e46f9ae9275366a4813fd228f`; preserved verbatim:
+
+````markdown
+# Independent integration support B — new FG80d + Z09FG76a on public GENe49
+
+Verdict: SUPPORTED source applicability WITH UNFIXED UPSTREAM DECODER LIMIT. No newly introduced source/configuration incompatibility was established by the six selected postimages. This is a novel joint-source map, not repetition of the existing FG final-source review or native/current-CI/whole-contract approval.
+
+Reviewer `/root/sc031_outbound_peer_b` did not coauthor source, tests, fixtures or their execution proofs and did not consult peer A for this conclusion. Read-only review; sole write is this temporary report. No tests, TypeScript, native/backend/SQL/GEN/CI, original/log/artifact/private-input acquisition, source/ref/checkout/index/custody/PR/merge action. Existing owners retain source adoption and whole closure.
+
+## Exact public sources and selected union
+
+- Actual-main source base: `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`.
+- Current supplied public795 carrier: `e49a23d4897f1cb4063a57bf3b1c810321723c3a`, tree `88c04102169c9bd803e2bf4dfb7363ebbc562097`, immediate parent `d0f21436831d9ddc92fd1b72aebf8c978f3d089f`.
+- New FG public source: `80d52959bd26ed2a73a458b090b37bfb97dfa104`, tree `443038c6c6eb97d77f3a7c1b9f44188249c10c48`.
+- Superseded FG dependency source: `0dbc3101138e6ebe041bc280d9f7b68e4876e0ce`, tree `989dd2927f4acd9f783cb6644a0b971078153ec7`.
+- Unchanged Z09FG public source: `76a6114f14620c04ea5c3cc72733eaec4f13609d`, tree `03723e46fe82859390a0626417ac317e451e77e6`.
+
+Read authenticated public READY6150626781 from supplied cached board. It explicitly supersedes only the two FG test oracles, keeps helper/config exact, retains occupied decoder/native/GEN/collector owners, and requires selective fourFG plus twoZ09 applicability. Its old execution results are not treated as execution of this union.
+
+Select only these six exact technical postimages:
+
+| Source/path | Exact blob |
+| --- | --- |
+| FG helper `scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts` | `d738cb863d753bf1f95d13269fa17bdb3b2c22b8` |
+| FG F test `scripts/ediel-at-z06f-supplier-acceptance-native.test.ts` | `68b94eb06f469b0d85b9a21cfc44d9390ad11135` |
+| FG G test `scripts/ediel-at-z06g-supplier-acceptance-native.test.ts` | `d0fe3d47a9832302d41c5a07b9247ed7b515943e` |
+| FG shared config `scripts/ediel-source-owner-native.config.ts` | `24df87ffb55ec37e22764beca99e2b4126af39fc` |
+| Z09 test `scripts/ediel-at-z09fg-supplier-composition-native.test.ts` | `dd2efd1b487845695a6f66872d7be99bdb571044` |
+| Z09 config `scripts/ediel-at-z09fg-supplier-composition-native.config.ts` | `ba91a277371f0453cb4220ba48ac87fd5f4ba15c` |
+
+No checkpoint/whole-branch/ledger/native archive is selected. Independently built an in-memory tuple overlay on carriere49: 9860→9862 leaves (four replacements, two additions), all outside-six original mode/type/blob tuples preserved. Independently reconstructed raw Git tree SHA1: `7dd3549804fc39d25d0eb7e7f8bcbc3b758ad77f`. Carrier root reconstructed as88c041 matches actual object. No Git object/commit/ref/index was written; this is a hypothetical exact union.
+
+## New staged-customer oracles remain literal and truthful
+
+Frozen AT-Z06F/G expressly prohibit writing customer identity from forbidden NAD+UD. F requires reading-triggered structural version/expectations; G versions structure without invented reading. New FG delta from old0dbc is exactly17 inserted lines per test, no removed or replaced old line. Helper and shared config are byte-identical to oldFG.
+
+New `expectCleanStagedCustomer` checks the actual own case ID/company/source/Z06/status and every one of the 15 named customer-projection keys at pending staging, approval and replay, in both noUD/extraUD variants. Missing object/key does not satisfy a null expected value. Fourteen explicit nulls plus the legitimate “Ej angivet” qualifier label are a declared noUD baseline, not invented acceptance flags. It compares owned customer fields rather than forbidding every additional metadata key or legitimate installation/meter/structure field.
+
+Existing raw/ignored-facet/source-hash/own-object-locator assertions and legitimate structural/readings/ACK/replay assertions remain intact. Extra UD is inserted before admission with recalculated UNT and is required to remain in immutable raw/ignored source evidence; it is not removed from original bytes. The helper's deferred-first-apply seam defers the actual apply call only, preserving real record/source-owner/review order and default prior behavior. No accepted status or grant is seeded to bypass a failure.
+
+Current carrier decoder `lib/ediel/inboundCases.ts` remains blob `c08e51d67c98b8b7be0fc726f2509059cf4aaec0`, exact oldFG/newFG/Z09/carrier. Actual parser lines195–216 map raw UD into named customer business fields, and create-case lines406/422 persist that projection. Therefore the new extraUD staging oracle intentionally exposes that existing defect until the rightful decoder/saved-case owner supplies its qualified correction. This is source-level causality, not a new native failure/customer-row mutation executed by this reviewer. The union is NOT a green native acceptance candidate while that affected projection is unchanged. No decoder source fix was selected, fetched privately or invented here.
+
+## Joint dependency/configuration checks
+
+Independently compared the old0dbc/newFG/publice49 mode/type/blob trees: all `lib/` paths are identical old0dbc→e49. Key shared wire/normal requested-change helper/catalog setup, meter-method source/preparer, current decoder, ACK and dated structure-reader implementations are unchanged across these exact sources. Z09 imports the unchanged wire helper directly and its supplemental shared configuration; it does not rely on an obsolete FG helper signature or replace the decoder.
+
+Compared imported shared config to carriere49: exactly two added F/G includes; all prior native includes, mandatory GRIDEX_NATIVE_STATUS and exact127.0.0.1 status/key guard, server aliases, catalog setup,120000ms limits and fileParallelism:false remain. Z09 config spreads the entire shared test config/include list and adds its own file, preserving the current gates. Declared SMTP mock in FG and Z09 and Z09 server-only marker remain test-layer inputs, not SQL/source/permission/ACK/apply mocks or a configuration authorization bypass. No new compile/import execution was done; this is static source dependency compatibility.
+
+Schema/generated backend and actual installed/input-epoch/catalog/original qualification are not established by unchanged TypeScript. No new GEN run is demanded solely by this oracle-only delta when actual SQL/generator closure remains qualified; the existing producer decides applicability to the real union and affected mandatory checks.
+
+## Z09 request→ACK→independent structure semantics
+
+Frozen Z09F/G use requested217 Z04/Z03 and157 effective date, register desired change, require technical/application request ACKs and later Z06, and do not invent a direct business response or customer change.
+
+Published Z09 native body separately verifies authenticated current requested-method/event originals and exact supplier/contract/supply basis, records own desired receipt/dispatch without structure effects, qualifies physical incoming ACKs with real owner/receipt and unknown-reference zero-effect controls, then admits a different own dated Z06 with distinct LI/source. Later selected structure changes only after actual first-apply receipt; older period/baseline and desired request are preserved. The selected G control requests Z03 but deliberately confirms independent Z02, proving request intent is not authority to force the network's confirmed method. This does not mean every valid G response must be Z02. F independently confirms Z04.
+
+Receipt clock checks and pure wire/date controls do not substitute for genuine source clocks/admission. The native body and full-source artifact/GoTrue/backend manifest remain NOT_RUN and owner-supplied. Existing finite two-control output and prior FG finite66/type/lint evidence stay with their own exact sources; none is silently converted to execution of six-postimagee49. Missing qualified input explicitly fails/holds rather than skipping or self-minting authority.
+
+No introduced product source incompatibility or new must-fix was found in this selected union. Keep the genuine upstream c08e decoder limit, then let existing owners adopt with explicit custody and bind affected final source/base/tree, actual producer input/installed qualification, mandatory checks and independent final reviews. No whole card/CI/native/GEN/ledger/merge credit or producer takeover follows from this support.
+
+````
+
+Original ediel-helper-20261013-sc031-e49-applicability.json, 2569 bytes, SHA256 `9d43734b34af6903a441f5d7881a46ef4f59ffbdd622770fdc848dc8466aff26`; preserved verbatim:
+
+````json
+{
+  "scope": "READ_ONLY_NEW_PUBLIC_HEAD_SC031_SOURCE_APPLICABILITY_AND_HYPOTHETICAL_ONE_FILE_ADOPTION_NOT_NEW_EXECUTION_CI_GEN_OR_WHOLE",
+  "head": "e49a23d4897f1cb4063a57bf3b1c810321723c3a",
+  "tree": "88c04102169c9bd803e2bf4dfb7363ebbc562097",
+  "base_main": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "source": "3dff3dbd33888df02c25624f6d1074abb692646c",
+  "source_tree": "d1a044ec6cf6cbc8f1648dd4590828d5861ea10e",
+  "path": "__tests__/ediel-sc-031-outbound-serializer-extra-invariants-20261013-358d1615.test.ts",
+  "tuple": [
+    "100644",
+    "blob",
+    "0158559ca824e2a89c98256afe90f5e5387aea8f"
+  ],
+  "sha256": "7326501a4bdf8339f990212b53b291574720795949bfd70ba8ca429b012ff43d",
+  "current_original_leaves": 9860,
+  "one_file_overlay_tree": "c7d0fcbdd6f779e33769c45e1915b46bc220acd9",
+  "all_current_leaf_tuples_preserved": true,
+  "prior_public_head": "894b085ef22b48989375822beb5b483a356d10ed",
+  "all378_existing_imported_repository_dependency_tuples_identical_to_qualified_894": true,
+  "package_compiler_test_config_bindings": {
+    "package.json": {
+      "current": [
+        "100644",
+        "blob",
+        "bf3a30b706a96bacf8dbcf158ed99ae405881689"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "bf3a30b706a96bacf8dbcf158ed99ae405881689"
+      ],
+      "identical": true
+    },
+    "package-lock.json": {
+      "current": [
+        "100644",
+        "blob",
+        "0e19ad13ea476c169f63f0cb8f6c4d2164c13847"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "0e19ad13ea476c169f63f0cb8f6c4d2164c13847"
+      ],
+      "identical": true
+    },
+    "tsconfig.json": {
+      "current": [
+        "100644",
+        "blob",
+        "60bca066cc72efd2a8303216c1e3a425c8aea097"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "60bca066cc72efd2a8303216c1e3a425c8aea097"
+      ],
+      "identical": true
+    },
+    "vitest.config.ts": {
+      "current": [
+        "100644",
+        "blob",
+        "704630e71883fdc027fedfba1ff96a5215470160"
+      ],
+      "prior": [
+        "100644",
+        "blob",
+        "704630e71883fdc027fedfba1ff96a5215470160"
+      ],
+      "identical": true
+    }
+  },
+  "type_qualification_reuse": "Previous public894 virtual generated-type compiler substitution returned0diagnostics; exact repo dependency tuples + package/lock/compiler/test config preserved. No new typecheck or current16PASS claimed.",
+  "adoption_actual": false,
+  "receipt_transfer": false,
+  "source_aa4_still_held_paused": true,
+  "approved_count_from_actual_main": 323,
+  "new_approvals": 0
+}
+
+````
