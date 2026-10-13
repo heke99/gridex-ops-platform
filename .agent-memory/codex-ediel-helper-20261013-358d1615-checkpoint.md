@@ -536,3 +536,82 @@ Original ediel-helper-20261013-sc039-node22-stderr.txt SHA256e3b0c44298fc1c149af
 ```text
 
 ```
+
+
+SC039 supplemental evidence final review: TWO fresh OTHER independent noncoauthors /root/sc031_outbound_peer_a and _b each independently qualify exactc1ef/45c37/efed/dc439 and report5bb/result2dc: 53finitePASS,2SQLNOT_RUN,0findings. Neither authored this source/test/fixture/proof or reran tests; runner/current_requirement_gaps and root do not count as peers. Root read both full reports. Approvals are for bounded exact-source execution evidence, not future delivery carrier/currentCI/native/fullSC039. This own checkpoint branch only preserves originals, it is NOT the c1ef source carrier. Existing owner must assess actual adoption/source/gates and ordinary normalmerge.
+
+Original ediel-helper-20261013-sc039-node22-peer-a.md SHA2562ec02d8480f765e2822528715c235bca9aae19248a99178dc83af6328346190f:
+
+````markdown
+# Independent evidence review A — SC039 Node22 finite supplement
+
+Verdict: **ACCEPT bounded execution-evidence qualification**, no actionable evidence/reporting defect found. This is not full source, whole-SC039, native, current CI or merge approval. Reviewer `/root/sc031_outbound_peer_a` did not coauthor source, tests, fixtures, inputs, runner or this execution proof; I did not consult peer B.
+
+## Exact binding
+
+Public source head `c1ef7e96928b612e8a1d9caffe66825f774c7233`; tree `45c37b28d4fdd42a605637396db1c83db75e3e08`. Public immediate parent `6c667edf61585bf8c1c2b7ef330ab3c072eb0d60`, tree `6223153f468c4eb05b2ffea4ac73aeb8178fb4fc`; its sole source parent/base `efed3683115c06d1925f8b80c05c801a54db9885`, tree `dc439c2e017a9633471db53919b745f587abb67b`.
+
+Independently checked raw candidate commit, detached HEAD/tree, clean status, all seven selected source/test hashes against before manifest, and actual-base four-path diff. Immediate-parent delta is only a ten-line owner checkpoint addition; production and test bytes are unchanged. The temporary Git's shallow view omits parent objects, so I checked parent tree and parent delta in shared public-object repo read-only; shallow traversal is not evidence of a parentless commit.
+
+Final runner report `/tmp/ediel-helper-20261013-sc039-node22-qualified.md` SHA256 `5bb0084aaa2d0fb34afd3769acc2d057b3c88b9d499ce031e28a4c9dbf39a961`. Original results `/tmp/ediel-helper-20261013-sc039-node22-results.json` SHA256 `2dc148356da39aed1284f8eb9a60175c363d43623b945cc311e1c0c32f7518fa`. Both independently read and hashed.
+
+## Evidence inspected
+
+Result inventory is 55 test cases: **53 selected PASS, 2 SQL-wrapper NOT_RUN**, zero failures, success=true. Per-file selected counts independently enumerated from original JSON: deadline race 3, physical source correlation 17, durable timer completion 5, new partial PRODAT timer tests 25, SC054 finite storage failure 3. No 55/55 execution claim is supported.
+
+Runner config selects exactly the five public test files, aliases @ to detached actual candidate snapshot, preserves existing setup and assertion bodies, and excludes exactly the two named SC054 PGlite wrapper titles. Both wrappers remain in source and skipped in original JSON. No test asserts its own implementation text. Real timer completion, real deadline sweep and physical wire correlation code execute behind declared modeled Supabase/event ports. New tests assert unanswered sibling expiry, complete sent replies resolution, duplicate/partial response refusal, multi-register scope, tenant/environment/source/direction/wire qualifiers, and actual physical reference distinctions. Unchanged UTILTS durable response/correlation/race and SC054 storage-failure no-ACK assertions remain relevant regressions. SC054 ports explicitly model failed persist RPC, legal identity, matching, journaling and exchange log; ACK creator is a forwarding spy rather than a fabricated success stub.
+
+I read the frozen SC039 contract. It covers reversed-order original/cancellation preservation and cause chain, prescribed ACK deadlines/external outcome/contact, no duplicate activation or guessed compensation. This finite supplement addresses a relevant timer component; it does not prove the whole reversal scenario or external contact. Report makes this distinction explicitly.
+
+Network setup denies fetch plus http/https request/get and net/tls connects, with synchronized builtin ESM exports. No SQL wrapper, native/backend/GEN/original collection or production authority is inferred. Test runner itself produced local stdout/JSON artifacts; those are declared finite originals, not remotely collected native evidence. Existing owner/file/producer custody is unaffected by this read-only supplement.
+
+Independently checked Node binary hash `fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48` and executed only its `--version`: v22.23.3. Read Vitest package version: 4.1.9. Config hash `b3de4156304b50e6104370677122f8fbf836f6a7fc72185cbaee1ce0995ec8fa`; network setup hash `53224ed642a5edf6324ee128e0a17a10be04c36fddf2971607481671fae3ce7d`; before manifest hash `def23e85b8170c396a2a77de26e0c15cb4761f04cef92d68672d98ea258c7821`. Preserved stdout hash `3f19aa64d7acb1df5e90742b923ef0c3a843a5ff03a88da26d6db299945e07f2`; stderr empty (SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`). Source diff-check returned exit 0. I did not rerun tests, SQL or native chains.
+
+## Applicability and limitations
+
+Runner's original success and exit-0 statement concern exact detached c1ef source on Node22. They are not current CI or proof of executed composed actual main95d/#795. Root separately reports unchanged relevant dependencies from actual base to main95d; that is source adoption applicability, not execution here. Any adopted final delivery remains with existing writer, producer and serial owner, mandatory exact-current checks and two independent qualified final reviewers. Runner is an evidence author and cannot count as independent reviewer of augmented evidence. No added gate, ledger promotion, merge credit or authorization to publish arises from this evidence review.
+
+Only reviewer write: this own `/tmp` report. No repository/ref/checkpoint/PR/source changes, artifact collection, test/SQL execution or producer operations.
+
+````
+
+Original ediel-helper-20261013-sc039-node22-peer-b.md SHA25636869822623f3bb7ba50001e941ddea0144c31e9155ce45b72f713416d728799:
+
+````markdown
+# Independent evidence review B — SC039 Node22 finite qualification
+
+Verdict: QUALIFIED for the declared public-source finite supplement. No actionable evidence-binding or scope-overstatement finding. This is neither whole-SC039/source final approval nor current-main/CI/native/SQL/ACK/merge qualification.
+
+Reviewer `/root/sc031_outbound_peer_b` did not coauthor candidate source, tests, fixtures, runner or execution proof and did not consult a peer A report. Read-only review; sole output is this temporary report. Applied focused code-review/differential-review and verification-before-completion to evidence and actual selected callpaths; no broad audit, deployment, source changes, backend/native/SQL/GEN execution, or original collection.
+
+## Exact binding independently inspected
+
+Public candidate `c1ef7e96928b612e8a1d9caffe66825f774c7233`, tree `45c37b28d4fdd42a605637396db1c83db75e3e08`. Immediate parent `6c667edf61585bf8c1c2b7ef330ab3c072eb0d60`, parent tree `6223153f468c4eb05b2ffea4ac73aeb8178fb4fc`, whose sole parent/source base is `efed3683115c06d1925f8b80c05c801a54db9885`, base tree `dc439c2e017a9633471db53919b745f587abb67b`. The detached snapshot `/tmp/ediel-helper-20261013-sc039-node22-tree` has that exact head/tree. Base-to-candidate diff contains two SLA source postimages, new SC039 test and own checkpoint only; diff --check exits 0.
+
+All seven selected source/test files independently match both the runner's before-manifest hashes and exact candidate Git blobs. Thus no runner-local test mutation or implementation replacement qualifies this output. Inspected actual selected source/test execution bodies, not only a report of success.
+
+The qualified author report `/tmp/ediel-helper-20261013-sc039-node22-qualified.md` matches SHA256 `5bb0084aaa2d0fb34afd3769acc2d057b3c88b9d499ce031e28a4c9dbf39a961`. Result `/tmp/ediel-helper-20261013-sc039-node22-results.json` matches SHA256 `2dc148356da39aed1284f8eb9a60175c363d43623b945cc311e1c0c32f7518fa`.
+
+## Runtime and selection qualification
+
+Read actual ordinary scratch Vitest config: @ resolves the immutable candidate snapshot; five original test files; node environment; original setup plus throwing network setup; maxWorkers 1. No alias to substituted runtime implementation. Read actual network setup: fetch, http/https request/get, net connect/createConnection, tls connect throw and builtin ESM exports are synchronized.
+
+Independently executed the binary's version-only command: v22.23.3. Read installed Vitest package version: 4.1.9. Binary SHA256 `fde6a4bf8d0562f7751d1a2d6cb9b417c4cfe107bbcb0aa3e9a24e125e348f48` matches author binding. Scratch config SHA256 `b3de4156304b50e6104370677122f8fbf836f6a7fc72185cbaee1ce0995ec8fa`, network setup `53224ed642a5edf6324ee128e0a17a10be04c36fddf2971607481671fae3ce7d`, and before manifest `def23e85b8170c396a2a77de26e0c15cb4761f04cef92d68672d98ea258c7821` also match. This verifies the available runner artifacts, not a fresh test execution by this reviewer.
+
+The negative testNamePattern excludes precisely the two existing SC054 PGlite wrapper titles. Their actual bodies spawn SQL regression scripts; both remain unchanged and are reported skipped, not passed. All selected finite cases execute original assertions.
+
+## Actual results and oracles inspected
+
+Actual result inventory: 55 total, 53 passed, zero failed, 2 pending/skipped, success=true. Per-file results exactly match the author report: race3, source-correlation17, completion5, new SC03925, SC054finite3 + SQL2 NOT_RUN. Full skipped names are the real SQL authority received/queued storage wrapper and real DB failure rollback/ACK-intent wrapper. No 55/55 executed claim is supported.
+
+New SC039 tests call actual completion projection and deadline sweep. Physical here means serialized fixture bytes, never real transport or external counterparty: partial and duplicate A do not cover B; complete separate/mixed replies cover own objects; missing-LI and multi-register first-scope cases distinguish source membership; queued/foreign tenant/environment/source/direction/no raw and malformed/wrong physical own-reference/object/legal/envelope controls fail to grant completion. The in-memory query port applies selected fields and actual tenant/status filters, and the real sweep expired/resolved controls assert status and events. These are behavior oracles over declared ports, not implementation-string matching.
+
+Unchanged UTILTS completion tests use declared durable outcome rows and modeled sent status. Race tests exercise compare-and-swap model. Source-correlation tests exercise physical byte matching. SC054 finite bodies model failed persistence and inspect real inbound chain/journaling/ACK spy/deadline behavior while retaining their explicit Supabase/legalidentity/matching/journal models. Such outputs do not independently establish real SQL transaction durability, RLS/auth, or transport provenance.
+
+## Honest adoption limits
+
+The report consistently limits this supplement to c1ef bytes on the stated official Node runtime, preserves two NOT_RUN SQL cases, labels runner as execution-proof coauthor, and leaves augmented-version final reviews/current mandatory gates and normal serial merge with existing owners. Neither prior Node24 results nor root's separately reported main95d dependency applicability are silently converted into execution of composed current main. My review binds the exact c1ef candidate, not any unseen composed head or current public CI status; the report appropriately treats those as separate adoption checks.
+
+No repeated healthy tests, SQL wrappers, CI reruns, backend/native/GEN/capture/original execution, source/ref/checkpoint/PR or producer actions were performed by this reviewer. This qualification may be reused by the existing owner only with explicit unchanged selected-source/dependency applicability and honest exclusion of physical/whole-card claims. A source, selection, runner or result change requires a bounded changed-evidence review.
+
+````
