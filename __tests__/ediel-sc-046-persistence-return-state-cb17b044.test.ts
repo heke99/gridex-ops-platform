@@ -49,7 +49,7 @@ const contract = {
 // The port owns validation, raw/source context and quantity/NULL semantics.
 // This opaque representative contract is not asserted as native-valid wire.
 let db: PGlite
-async function forward() { await db.exec(readFileSync(resolve(migrationPath), 'utf8')) }
+async function forward() { await db.exec(readFileSync(resolve(process.env.SC046_REFINEMENT_MIGRATION ?? migrationPath), 'utf8')) }
 async function metadata() {
   return (await db.query<{ meta: Item; body: string }>(
     `SELECT to_jsonb(p)-'prosrc' AS meta, prosrc AS body FROM pg_proc p WHERE oid=$1::regprocedure`, [signature])).rows[0]
@@ -90,10 +90,13 @@ beforeAll(async () => {
     ${table('public.ediel_ack_transaction_results')}
     ${table('public.meter_reading_series')}
     ${table('gridex_utilts_binding.contracts')}
-    ${['public.ediel_messages','public.ediel_ack_transaction_results','public.meter_reading_series','gridex_utilts_binding.contracts'].map(constraints).join('\n')}
+    ${table('gridex_utilts_binding.receipts')}
+    ${definition('gridex_utilts_binding.source_context_v1')}
+    ${['public.ediel_messages','public.ediel_ack_transaction_results','public.meter_reading_series','gridex_utilts_binding.contracts','gridex_utilts_binding.receipts'].map(constraints).join('\n')}
     CREATE TABLE bridge_fixture.ports(result jsonb, validated_contract jsonb, actor_allowed boolean, expire_after_owner boolean, lower_error text, stored_error boolean, expire_after_contract boolean);
     INSERT INTO bridge_fixture.ports VALUES ('[]',null,true,false,null,false,false);
     CREATE TABLE bridge_fixture.effects(id integer, kind text);
+    CREATE TABLE bridge_fixture.head_ports(company_id uuid,source_id uuid,transaction_id text,validated_contract jsonb,refuse boolean DEFAULT false,expire_after_contract boolean DEFAULT false);
     CREATE FUNCTION gridex_utilts_binding.lock_storage_graph_v1() RETURNS void LANGUAGE plpgsql AS $$ BEGIN
       LOCK TABLE public.ediel_messages IN ROW EXCLUSIVE MODE;
       PERFORM pg_advisory_xact_lock(46046);
@@ -109,7 +112,13 @@ beforeAll(async () => {
       IF p.expire_after_owner THEN UPDATE bridge_fixture.ports SET actor_allowed=false; END IF;
       RETURN p.result;
     END $$;
-    CREATE FUNCTION gridex_utilts_binding.stored_contract_v1(c uuid,s uuid,t text) RETURNS jsonb LANGUAGE plpgsql AS $$ BEGIN
+    CREATE FUNCTION gridex_utilts_binding.stored_contract_v1(c uuid,s uuid,t text) RETURNS jsonb LANGUAGE plpgsql AS $$ DECLARE h bridge_fixture.head_ports%rowtype; BEGIN
+      SELECT * INTO h FROM bridge_fixture.head_ports WHERE company_id=c AND source_id=s AND transaction_id=t;
+      IF FOUND THEN
+        IF h.refuse THEN RAISE EXCEPTION 'declared_head_contract_refusal' USING ERRCODE='P0U01'; END IF;
+        IF h.expire_after_contract THEN UPDATE bridge_fixture.ports SET actor_allowed=false; END IF;
+        RETURN h.validated_contract;
+      END IF;
       IF c IS DISTINCT FROM '${company}'::uuid OR s IS DISTINCT FROM '${source}'::uuid OR t IS DISTINCT FROM 'tx-1'
         OR (SELECT stored_error FROM bridge_fixture.ports) THEN RAISE EXCEPTION 'declared_stored_contract_refusal' USING ERRCODE='P0U01'; END IF;
       IF (SELECT expire_after_contract FROM bridge_fixture.ports) THEN UPDATE bridge_fixture.ports SET actor_allowed=false; END IF;
@@ -122,7 +131,7 @@ beforeAll(async () => {
 }, 30000)
 afterAll(async () => { await db.close() })
 beforeEach(async () => {
-  await db.exec(`RESET ROLE; TRUNCATE public.ediel_messages, public.ediel_ack_transaction_results,public.meter_reading_series,gridex_utilts_binding.contracts,bridge_fixture.effects;
+  await db.exec(`RESET ROLE; TRUNCATE public.ediel_messages, public.ediel_ack_transaction_results,public.meter_reading_series,gridex_utilts_binding.contracts,gridex_utilts_binding.receipts,bridge_fixture.effects,bridge_fixture.head_ports;
     UPDATE bridge_fixture.ports SET actor_allowed=true,expire_after_owner=false,lower_error=null,stored_error=false,expire_after_contract=false;
     ${original.replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')}
     REVOKE ALL ON FUNCTION ${signature} FROM PUBLIC;
@@ -337,5 +346,184 @@ describe('source-bound existing persistence wrapper JSON prerequisite', () => {
     const before = await metadata()
     await expect(forward()).rejects.toMatchObject({ code: 'P0U01' })
     expect(await metadata()).toEqual(before)
+  })
+})
+
+
+// Conditional consumer-interpretation component: independent namespace/issuer
+// admission and the lower A-alias are assumptions of declared ports. SAME-issuer
+// new-source repeated505 is refused upstream; these rows do not simulate that
+// gate away or establish actual cross-namespace admission/native overwrite.
+const head = uid(40), headSource = uid(41)
+const olderTime = '2026-09-01T00:00:00Z', newerTime = '2026-10-01T00:00:00Z'
+async function editSeriesFixture(id: string, assignments: string, values: unknown[] = []) {
+  await db.exec('ALTER TABLE public.meter_reading_series DISABLE TRIGGER meter_reading_series_immutable_guard')
+  try { await db.query(`UPDATE public.meter_reading_series SET ${assignments} WHERE id='${id}'`, values) }
+  finally { await db.exec('ALTER TABLE public.meter_reading_series ENABLE TRIGGER meter_reading_series_immutable_guard') }
+}
+async function qualifiedNewerHead(headTime: string | null = newerTime, returnedTime: string | null = olderTime) {
+  const headContract = { ...contract, transactionId: 'tx-head', observations: [{ value: '21.00', qualifier: '135', externalPoint: '735999999999999999' }] }
+  await editSeriesFixture(series, `is_current=false,registration_date=$1::timestamptz,latest_update_date=$1::timestamptz,
+    raw_transaction=jsonb_build_object('consumptionContract',$2::jsonb,'registrationDate',$1::text,'latestUpdateDate',$1::text),
+    immutable_hash=encode(sha256(convert_to(jsonb_build_object('consumptionContract',$2::jsonb,'registrationDate',$1::text,'latestUpdateDate',$1::text)::text,'UTF8')),'hex')`, [returnedTime, JSON.stringify(contract)])
+  await db.query(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,sender_ediel_id)
+    VALUES($1,$2,'test','inbound','UTILTS','E66','DECLARED INDEPENDENTLY ADMITTED HEAD SOURCE','different-declared-issuer')`, [headSource, company])
+  await db.query(`INSERT INTO public.meter_reading_series(id,company_id,source_ediel_message_id,message_code,source_transaction_reference,dedupe_key,version_no,supersedes_series_id,is_current,registration_date,latest_update_date,raw_transaction,immutable_hash)
+    VALUES($1,$2,$3,'E66','tx-head','head',2,$4,true,$5::timestamptz,$5::timestamptz,
+    jsonb_build_object('transactionId','tx-head','registrationDate',$5::text,'latestUpdateDate',$5::text,'consumptionContract',$6::jsonb),
+    encode(sha256(convert_to(jsonb_build_object('transactionId','tx-head','registrationDate',$5::text,'latestUpdateDate',$5::text,'consumptionContract',$6::jsonb)::text,'UTF8')),'hex'))`,
+    [head, company, headSource, series, headTime, JSON.stringify(headContract)])
+  await db.query(`INSERT INTO public.ediel_ack_transaction_results(company_id,environment,source_message_id,source_transaction_id,syntax_result,guide_validation_result,processability_result,disposition,planned_response_type,persistence_status,persisted_series_id)
+    VALUES($1,'test',$2,'tx-head','positive','positive','positive','accepted','positive_aperak','persisted',$3)`, [company, headSource, head])
+  await db.query(`INSERT INTO gridex_utilts_binding.contracts(series_id,company_id,environment,source_message_id,transaction_id,contract_version,contract,contract_hash)
+    VALUES($1,$2,'test',$3,'tx-head',2,$4::jsonb,encode(sha256(convert_to($4::jsonb::text,'UTF8')),'hex'))`, [head, company, headSource, JSON.stringify(headContract)])
+  await db.query(`INSERT INTO gridex_utilts_binding.receipts(source_message_id,company_id,environment,message_code,raw_hash,source_context,membership,contract_version)
+    SELECT id,company_id,environment,message_code,encode(sha256(convert_to(raw_payload,'UTF8')),'hex'),gridex_utilts_binding.source_context_v1(s),'["tx-head"]',2 FROM public.ediel_messages s WHERE id=$1`, [headSource])
+  await db.query('INSERT INTO bridge_fixture.head_ports(company_id,source_id,transaction_id,validated_contract) VALUES($1,$2,$3,$4::jsonb)', [company, headSource, 'tx-head', JSON.stringify(headContract)])
+}
+describe('qualified newer active cohort witness, declared admission boundary', () => {
+  it('qualified strictly newer head classifies returned born-current earlier-origin A as history', async () => {
+    await qualifiedNewerHead()
+    const lower = await resultItem()
+    expect(await call()).toEqual([{ ...lower, versionState: 'late_older_history' }])
+    expect((await db.query('SELECT id,is_current,version_no FROM public.meter_reading_series WHERE id IN ($1,$2) ORDER BY id', [series, head])).rows)
+      .toEqual([{ id: series, is_current: false, version_no: 1 }, { id: head, is_current: true, version_no: 2 }])
+  })
+  it('no newer head preserves formerly-current birth and legacy missing dates', async () => {
+    await seedBirth(1, null, false)
+    expect((await call())[0].versionState).toBe('current')
+  })
+  it.each([olderTime, '2026-08-01T00:00:00Z'])('older/equal fully validated head %s supplies no historical interpretation', async time => {
+    await qualifiedNewerHead(time)
+    expect((await call())[0].versionState).toBe('current')
+  })
+  it.each([[null,newerTime],[olderTime,null]] as const)('NULL returned/head date %s/%s refuses guessed comparison', async (returnedDate,headDate) => {
+    await qualifiedNewerHead(headDate,returnedDate)
+    await expect(call()).rejects.toMatchObject({ code: 'P0U01' })
+    expect(await effects()).toEqual([])
+  })
+  it.each([
+    ['foreign ACK company', `UPDATE public.ediel_ack_transaction_results SET company_id='${foreign}' WHERE persisted_series_id='${head}'`],
+    ['foreign ACK environment', `UPDATE public.ediel_ack_transaction_results SET environment='production' WHERE persisted_series_id='${head}'`],
+    ['foreign ACK source', `UPDATE public.ediel_ack_transaction_results SET source_message_id='${source}' WHERE persisted_series_id='${head}'`],
+    ['wrong ACK transaction', `UPDATE public.ediel_ack_transaction_results SET source_transaction_id='other' WHERE persisted_series_id='${head}'`],
+    ['unaccepted ACK', `UPDATE public.ediel_ack_transaction_results SET disposition='guide_rejected',planned_response_type='negative_aperak' WHERE persisted_series_id='${head}'`],
+    ['unpersisted ACK', `UPDATE public.ediel_ack_transaction_results SET persistence_status='pending' WHERE persisted_series_id='${head}'`],
+    ['missing ACK', `DELETE FROM public.ediel_ack_transaction_results WHERE persisted_series_id='${head}'`],
+    ['foreign source company', `UPDATE public.ediel_messages SET company_id='${foreign}' WHERE id='${headSource}'`],
+    ['wrong source code', `UPDATE public.ediel_messages SET message_code='E30' WHERE id='${headSource}'`],
+    ['wrong source direction', `UPDATE public.ediel_messages SET direction='outbound' WHERE id='${headSource}'`],
+    ['changed source raw', `UPDATE public.ediel_messages SET raw_payload=raw_payload||' changed' WHERE id='${headSource}'`],
+    ['changed source context', `UPDATE public.ediel_messages SET sender_ediel_id='unbound-context' WHERE id='${headSource}'`],
+    ['foreign receipt environment', `UPDATE gridex_utilts_binding.receipts SET environment='production' WHERE source_message_id='${headSource}'`],
+    ['missing receipt membership', `UPDATE gridex_utilts_binding.receipts SET membership='[]' WHERE source_message_id='${headSource}'`],
+    ['foreign contract source', `UPDATE gridex_utilts_binding.contracts SET source_message_id='${origin}' WHERE series_id='${head}'`],
+    ['foreign contract company', `UPDATE gridex_utilts_binding.contracts SET company_id='${foreign}' WHERE series_id='${head}'`],
+    ['foreign contract environment', `UPDATE gridex_utilts_binding.contracts SET environment='production' WHERE series_id='${head}'`],
+    ['wrong contract transaction', `UPDATE gridex_utilts_binding.contracts SET transaction_id='other' WHERE series_id='${head}'`],
+    ['wrong contract hash', `UPDATE gridex_utilts_binding.contracts SET contract_hash=repeat('0',64) WHERE series_id='${head}'`],
+    ['missing contract', `DELETE FROM gridex_utilts_binding.contracts WHERE series_id='${head}'`],
+    ['stored contract refusal', 'UPDATE bridge_fixture.head_ports SET refuse=true'],
+    ['stored contract NULL', 'UPDATE bridge_fixture.head_ports SET validated_contract=null'],
+    ['stored contract disagreement', "UPDATE bridge_fixture.head_ports SET validated_contract='{}'"],
+  ])('refuses a discovered head with %s without guessing current/history', async (_name, corruption) => {
+    await qualifiedNewerHead()
+    await db.exec(corruption)
+    await expect(call()).rejects.toMatchObject({ code: 'P0U01' })
+    expect(await effects()).toEqual([])
+  })
+  it('a qualified different environment is a separate cohort and supplies no TEST history authority', async () => {
+    await qualifiedNewerHead()
+    const productionContract = { ...contract, environment: 'production', transactionId: 'tx-head', observations: [{ value: '21.00', qualifier: '135', externalPoint: '735999999999999999' }] }
+    await db.query(`UPDATE public.ediel_messages SET environment='production' WHERE id=$1`, [headSource])
+    await db.query(`UPDATE public.ediel_ack_transaction_results SET environment='production' WHERE persisted_series_id=$1`, [head])
+    await db.query(`UPDATE gridex_utilts_binding.contracts SET environment='production',contract=$1::jsonb,contract_hash=encode(sha256(convert_to($1::jsonb::text,'UTF8')),'hex') WHERE series_id=$2`, [JSON.stringify(productionContract), head])
+    await editSeriesFixture(head, `version_no=1,supersedes_series_id=null,
+      raw_transaction=raw_transaction||jsonb_build_object('consumptionContract',$1::jsonb),
+      immutable_hash=encode(sha256(convert_to((raw_transaction||jsonb_build_object('consumptionContract',$1::jsonb))::text,'UTF8')),'hex')`, [JSON.stringify(productionContract)])
+    await db.query(`UPDATE gridex_utilts_binding.receipts r SET environment='production',source_context=gridex_utilts_binding.source_context_v1(s) FROM public.ediel_messages s WHERE r.source_message_id=s.id AND s.id=$1`, [headSource])
+    await db.query('UPDATE bridge_fixture.head_ports SET validated_contract=$1::jsonb', [JSON.stringify(productionContract)])
+    expect((await call())[0].versionState).toBe('current')
+  })
+  it('original-source A replay uses the same qualified newer-head consumer interpretation', async () => {
+    await qualifiedNewerHead()
+    await db.query(`INSERT INTO public.ediel_ack_transaction_results(company_id,environment,source_message_id,source_transaction_id,syntax_result,guide_validation_result,processability_result,disposition,planned_response_type,persistence_status,persisted_series_id)
+      VALUES($1,'test',$2,'tx-1','positive','positive','positive','accepted','positive_aperak','persisted',$3)`, [company, origin, series])
+    // Declared finalized-positive metadata, not a physical ACK document.
+    await db.query(`UPDATE public.ediel_ack_transaction_results SET final_response_type='positive_aperak',finalized_at='2026-09-01T01:00:00Z',response_message_id=$1 WHERE source_message_id=$2`, [uid(99), origin])
+    const ackBefore = (await db.query('SELECT * FROM public.ediel_ack_transaction_results ORDER BY id')).rows
+    await db.query('INSERT INTO bridge_fixture.head_ports(company_id,source_id,transaction_id,validated_contract) VALUES($1,$2,$3,$4::jsonb)', [company, origin, 'tx-1', JSON.stringify(contract)])
+    const lower = await resultItem()
+    lower.sourceBinding = { ...lower.sourceBinding, sourceMessageId: origin }
+    await setResult([lower])
+    expect(await call([], { source: origin })).toEqual([{ ...lower, versionState: 'late_older_history' }])
+    expect((await db.query('SELECT * FROM public.ediel_ack_transaction_results ORDER BY id')).rows).toEqual(ackBefore)
+  })
+  it.each(["immutable_hash=repeat('0',64)", `raw_transaction=raw_transaction-'consumptionContract'`, 'version_no=1,supersedes_series_id=null'])('refuses head immutable/raw/birth port corruption %s', async corruption => {
+    await qualifiedNewerHead()
+    await editSeriesFixture(head,corruption)
+    await expect(call()).rejects.toMatchObject({ code: 'P0U01' })
+    expect(await effects()).toEqual([])
+  })
+  it('raw/column date disagreement refuses even when the raw hash is updated consistently', async () => {
+    await qualifiedNewerHead()
+    await editSeriesFixture(head,"latest_update_date='2026-11-01T00:00:00Z'")
+    await expect(call()).rejects.toMatchObject({ code: 'P0U01' })
+    expect(await effects()).toEqual([])
+  })
+  it('multiple active same-cohort candidates refuse ambiguous head authority', async () => {
+    await qualifiedNewerHead()
+    await db.query('UPDATE public.meter_reading_series SET is_current=true WHERE id=$1',[previous])
+    await expect(call()).rejects.toMatchObject({ code: 'P0U01' })
+    expect(await effects()).toEqual([])
+  })
+  it('returned A marked current alongside active B is ambiguous and refuses', async () => {
+    await qualifiedNewerHead()
+    await db.query('UPDATE public.meter_reading_series SET is_current=true WHERE id=$1',[series])
+    await expect(call()).rejects.toMatchObject({ code: 'P0U01' })
+    expect(await effects()).toEqual([])
+  })
+  it('532/512 fallback classifies with registration dates when latest-update dates are absent', async () => {
+    await qualifiedNewerHead()
+    for (const id of [series,head]) await editSeriesFixture(id,`latest_update_date=null,raw_transaction=raw_transaction-'latestUpdateDate',
+      immutable_hash=encode(sha256(convert_to((raw_transaction-'latestUpdateDate')::text,'UTF8')),'hex')`)
+    expect((await call())[0].versionState).toBe('late_older_history')
+  })
+  it('B3/P2/A1 permits a genuine immediate predecessor distinct from returned A', async () => {
+    await qualifiedNewerHead()
+    await editSeriesFixture(previous, 'version_no=2,supersedes_series_id=$1', [series])
+    await editSeriesFixture(head, 'version_no=3,supersedes_series_id=$1', [previous])
+    expect((await call())[0].versionState).toBe('late_older_history')
+  })
+  it.each([
+    ['2027-01-01T00:00:00Z', '2026-09-01T00:00:00Z', '2020-01-01T00:00:00Z', '2026-10-01T00:00:00Z', 'late_older_history'],
+    ['2020-01-01T00:00:00Z', '2026-10-01T00:00:00Z', '2027-01-01T00:00:00Z', '2026-09-01T00:00:00Z', 'current'],
+    ['2027-01-01T00:00:00Z', '2026-09-01T00:00:00Z', '2020-01-01T00:00:00Z', '2026-09-01T00:00:00Z', 'current'],
+  ])('532 takes precedence over contradictory512: A%s/%s B%s/%s =>%s', async (a512,a532,b512,b532,want) => {
+    await qualifiedNewerHead()
+    for (const [id,reg,latest] of [[series,a512,a532],[head,b512,b532]]) await editSeriesFixture(id,
+      `registration_date=$1::timestamptz,latest_update_date=$2::timestamptz,
+       raw_transaction=raw_transaction||jsonb_build_object('registrationDate',$1::text,'latestUpdateDate',$2::text),
+       immutable_hash=encode(sha256(convert_to((raw_transaction||jsonb_build_object('registrationDate',$1::text,'latestUpdateDate',$2::text))::text,'UTF8')),'hex')`, [reg,latest])
+    expect((await call())[0].versionState).toBe(want)
+  })
+  it('head raw transaction identity must match its own stored series/ACK/contract transaction', async () => {
+    await qualifiedNewerHead()
+    await editSeriesFixture(head, `raw_transaction=raw_transaction||'{"transactionId":"other"}',
+      immutable_hash=encode(sha256(convert_to((raw_transaction||'{"transactionId":"other"}')::text,'UTF8')),'hex')`)
+    await expect(call()).rejects.toMatchObject({ code: 'P0U01' })
+    expect(await effects()).toEqual([])
+  })
+  it('flag tampering cannot manufacture a genuine stored newer-head witness', async () => {
+    await qualifiedNewerHead()
+    await db.query('UPDATE public.meter_reading_series SET is_current=false WHERE id=$1',[head])
+    expect((await call())[0].versionState).toBe('current')
+  })
+  it('head validation expiry reaches retained final actor refusal and rolls back effects', async () => {
+    await qualifiedNewerHead()
+    await db.exec('UPDATE bridge_fixture.head_ports SET expire_after_contract=true')
+    await expect(call()).rejects.toMatchObject({ code: '42501' })
+    expect(await effects()).toEqual([])
+    expect((await db.query('SELECT actor_allowed FROM bridge_fixture.ports')).rows).toEqual([{ actor_allowed: true }])
   })
 })

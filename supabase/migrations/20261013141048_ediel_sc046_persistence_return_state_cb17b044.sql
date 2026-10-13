@@ -1,5 +1,6 @@
 -- SC046 JSON-return prerequisite only; no insertion, sink, ACK or whole-ID proof.
--- Source95d8d160491e79b172342654d8dc643346758105/treefa5ab60527a40bd642749365fc275d1d4a69e277.
+-- Source d798eb36f35cd4f437d44c8d234b4dbb81adc7a6/treee3b6c11677a2b871a128504f1616def7d22dba1e.
+-- Product predecessor/guard byte-identical95d; published871 birth-only version is history.
 -- Preserve the existing owner chain and both execution-actor checks. Rewrite
 -- only this source-bound wrapper, retaining its OID and every pg_proc member
 -- except prosrc. No new function/API, schema, grants, defaults or settings.
@@ -14,7 +15,9 @@ DECLARE
  -- SC046 return-state declarations
  sc046_item jsonb; sc046_answer jsonb := '[]'::jsonb; sc046_contract jsonb;
  sc046_series public.meter_reading_series%rowtype; sc046_count bigint;
- sc046_state text;$declarations$;
+ sc046_state text; sc046_heads uuid[];
+ sc046_head public.meter_reading_series%rowtype; sc046_head_source public.ediel_messages%rowtype;
+ sc046_head_contract jsonb; sc046_returned_time timestamptz; sc046_head_time timestamptz;$declarations$;
  classification text := $classification$ -- SC046 stored return-state begin
  IF jsonb_typeof(result) IS DISTINCT FROM 'array' THEN
   RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
@@ -109,6 +112,113 @@ DECLARE
     sc046_state:='late_older_history';
    ELSE
     RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
+   END IF;
+   -- Birth remains the compatibility default. A distinct active same-cohort
+   -- series supplies historical consumer interpretation only with complete
+   -- own-source/ACK/raw/contract authority and strictly newer stored532/512.
+   -- Admission of the requested source still belongs to the retained owner;
+   -- no caller namespace, lineage or mutable is_current flag qualifies it.
+   IF sc046_state='current' THEN
+    SELECT array_agg(h.id ORDER BY h.id) INTO sc046_heads
+    FROM public.meter_reading_series h
+    LEFT JOIN public.ediel_messages o ON o.id=h.source_ediel_message_id
+    WHERE h.id<>sc046_series.id AND h.company_id=p_company_id AND h.is_current
+     AND (o.environment=p_environment OR o.id IS NULL)
+     AND h.series_kind=sc046_series.series_kind AND h.message_code IS NOT DISTINCT FROM sc046_series.message_code
+     AND coalesce(h.external_metering_point_id,'')=coalesce(sc046_series.external_metering_point_id,'')
+     AND coalesce(h.grid_area_id,'')=coalesce(sc046_series.grid_area_id,'')
+     AND h.period_start IS NOT DISTINCT FROM sc046_series.period_start
+     AND h.period_end IS NOT DISTINCT FROM sc046_series.period_end
+     AND h.resolution=sc046_series.resolution AND coalesce(h.product_id,'')=coalesce(sc046_series.product_id,'');
+    IF coalesce(cardinality(sc046_heads),0)>0 THEN
+     -- The returned A counts too when current: two mutable current markers
+     -- cannot silently choose a head. Invalid witness bindings never become
+     -- the no-head compatibility branch by filtering the bad metadata away.
+     IF cardinality(sc046_heads)<>1 OR sc046_series.is_current IS TRUE THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     SELECT * INTO sc046_head FROM public.meter_reading_series WHERE id=sc046_heads[1] FOR SHARE;
+     SELECT * INTO sc046_head_source FROM public.ediel_messages WHERE id=sc046_head.source_ediel_message_id FOR SHARE;
+     IF NOT FOUND OR sc046_head_source.company_id IS DISTINCT FROM p_company_id
+      OR sc046_head_source.environment IS DISTINCT FROM p_environment OR sc046_head_source.direction IS DISTINCT FROM 'inbound'
+      OR sc046_head_source.message_family IS DISTINCT FROM 'UTILTS' OR sc046_head_source.message_code IS DISTINCT FROM p_message_code
+      OR sc046_head_source.raw_payload IS NULL OR sc046_head.is_current IS DISTINCT FROM true
+      OR sc046_head.version_no<=sc046_series.version_no OR sc046_head.supersedes_series_id IS NULL
+      OR jsonb_typeof(sc046_head.raw_transaction) IS DISTINCT FROM 'object'
+      OR sc046_head.raw_transaction->>'transactionId' IS DISTINCT FROM sc046_head.source_transaction_reference
+      OR sc046_head.immutable_hash IS DISTINCT FROM encode(sha256(convert_to(sc046_head.raw_transaction::text,'UTF8')),'hex') THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     -- The existing storage graph serializes series/ACK/receipt/contract
+     -- writers. These row locks precede all mutable context qualification.
+     PERFORM 1 FROM public.ediel_ack_transaction_results a WHERE a.source_message_id=sc046_head_source.id
+      AND a.source_transaction_id=sc046_head.source_transaction_reference FOR SHARE;
+     PERFORM 1 FROM gridex_utilts_binding.receipts r WHERE r.source_message_id=sc046_head_source.id FOR SHARE;
+     SELECT c.contract INTO sc046_head_contract FROM gridex_utilts_binding.contracts c WHERE c.series_id=sc046_head.id FOR SHARE;
+     SELECT count(*) INTO sc046_count FROM public.ediel_ack_transaction_results a
+     JOIN gridex_utilts_binding.receipts r ON r.source_message_id=a.source_message_id
+     JOIN gridex_utilts_binding.contracts c ON c.series_id=a.persisted_series_id
+     WHERE a.source_message_id=sc046_head_source.id AND a.source_transaction_id=sc046_head.source_transaction_reference
+      AND a.company_id=p_company_id AND a.environment=p_environment AND a.persisted_series_id=sc046_head.id
+      AND a.disposition='accepted' AND a.persistence_status='persisted' AND a.planned_response_type='positive_aperak'
+      AND (a.final_response_type IS NULL OR a.final_response_type='positive_aperak')
+      AND r.company_id=p_company_id AND r.environment=p_environment AND r.message_code=p_message_code
+      AND r.raw_hash=encode(sha256(convert_to(sc046_head_source.raw_payload,'UTF8')),'hex')
+      AND r.source_context=gridex_utilts_binding.source_context_v1(sc046_head_source)
+      AND r.membership ? sc046_head.source_transaction_reference
+      AND c.company_id=p_company_id AND c.environment=p_environment AND c.source_message_id=sc046_head_source.id
+      AND c.transaction_id=sc046_head.source_transaction_reference AND c.contract_version IN (1,2)
+      AND c.contract_version=r.contract_version AND c.contract->'version'=to_jsonb(c.contract_version)
+      AND c.contract->>'companyId'=p_company_id::text AND c.contract->>'environment'=p_environment
+      AND c.contract->>'messageCode'=p_message_code AND c.contract->>'transactionId'=sc046_head.source_transaction_reference
+      AND c.contract_hash=encode(sha256(convert_to(c.contract::text,'UTF8')),'hex')
+      AND c.contract=sc046_head.raw_transaction->'consumptionContract';
+     IF sc046_count<>1 OR (SELECT count(*) FROM public.ediel_ack_transaction_results a
+      WHERE a.source_message_id=sc046_head_source.id AND a.source_transaction_id=sc046_head.source_transaction_reference)<>1 THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     -- A higher current head must have the canonical correction birth, with
+     -- a genuine same-cohort predecessor. A late-history bit flip cannot mint
+     -- a current head, nor can a foreign/mismatched predecessor qualify it.
+     SELECT count(*) INTO sc046_count FROM public.meter_reading_series p
+     JOIN public.ediel_messages o ON o.id=p.source_ediel_message_id
+     WHERE p.id=sc046_head.supersedes_series_id AND p.id<>sc046_head.id
+      AND p.company_id=p_company_id AND o.company_id=p_company_id AND o.environment=p_environment
+      AND o.direction='inbound' AND o.message_family='UTILTS' AND o.message_code=p_message_code
+      AND p.version_no=sc046_head.version_no-1
+      AND p.series_kind=sc046_head.series_kind AND p.message_code IS NOT DISTINCT FROM sc046_head.message_code
+      AND coalesce(p.external_metering_point_id,'')=coalesce(sc046_head.external_metering_point_id,'')
+      AND coalesce(p.grid_area_id,'')=coalesce(sc046_head.grid_area_id,'')
+      AND p.period_start IS NOT DISTINCT FROM sc046_head.period_start
+      AND p.period_end IS NOT DISTINCT FROM sc046_head.period_end
+      AND p.resolution=sc046_head.resolution AND coalesce(p.product_id,'')=coalesce(sc046_head.product_id,'');
+     IF sc046_count<>1 THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     sc046_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,sc046_head_source.id,sc046_head.source_transaction_reference);
+     IF jsonb_typeof(sc046_contract) IS DISTINCT FROM 'object' OR sc046_contract IS DISTINCT FROM sc046_head_contract THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     -- Use the same532-before512 fallback as canonical v2. No-head legacy
+     -- rows keep their old behavior; a witness with missing/unbound time fails
+     -- closed, including malformed immutable raw dates rather than guessing.
+     BEGIN
+      IF sc046_series.registration_date IS DISTINCT FROM nullif(sc046_series.raw_transaction->>'registrationDate','')::timestamptz
+       OR sc046_series.latest_update_date IS DISTINCT FROM nullif(sc046_series.raw_transaction->>'latestUpdateDate','')::timestamptz
+       OR sc046_head.registration_date IS DISTINCT FROM nullif(sc046_head.raw_transaction->>'registrationDate','')::timestamptz
+       OR sc046_head.latest_update_date IS DISTINCT FROM nullif(sc046_head.raw_transaction->>'latestUpdateDate','')::timestamptz THEN
+       RAISE EXCEPTION 'utilts_return_state_head_time_unavailable' USING ERRCODE='P0U01';
+      END IF;
+     EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow THEN
+      RAISE EXCEPTION 'utilts_return_state_head_time_unavailable' USING ERRCODE='P0U01';
+     END;
+     sc046_returned_time:=coalesce(sc046_series.latest_update_date,sc046_series.registration_date);
+     sc046_head_time:=coalesce(sc046_head.latest_update_date,sc046_head.registration_date);
+     IF sc046_returned_time IS NULL OR sc046_head_time IS NULL THEN
+      RAISE EXCEPTION 'utilts_return_state_head_time_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     IF sc046_head_time>sc046_returned_time THEN sc046_state:='late_older_history'; END IF;
+    END IF;
    END IF;
    sc046_item:=sc046_item||jsonb_build_object('versionState',sc046_state);
   END IF;
