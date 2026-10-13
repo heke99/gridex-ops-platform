@@ -185,7 +185,15 @@ jobs:
                   or [parent['sha'] for parent in commit['parents']] != [base]
                   or commit['tree']['sha'] != api('git/commits/' + base)['tree']['sha']):
                   raise SystemExit('capture_primary_producer_protocol_mismatch')
-              subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, 'HEAD'])
+              source_head = os.environ['CAPTURE_CHECKOUT_SHA']
+              comparison = api('compare/' + base + '...' + source_head)
+              expected_compare_url = 'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/compare/' + base + '...' + source_head
+              if (comparison.get('status') not in ('ahead', 'identical')
+                  or comparison.get('base_commit', {}).get('sha') != base
+                  or comparison.get('merge_base_commit', {}).get('sha') != base
+                  or comparison.get('url') != expected_compare_url
+                  or (comparison['status'] == 'identical' and source_head != base)):
+                  raise SystemExit('capture_primary_source_ancestry_unqualified')
               custody = {'mode': 'owned_primary', 'agent': owner, 'writer_receipt': writer,
                          'producer_receipt': producer, 'input_epoch': pending['input_epoch'],
                          'producer_checked': True, 'refs_get_match': refs}

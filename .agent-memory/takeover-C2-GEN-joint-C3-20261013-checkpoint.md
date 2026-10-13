@@ -92,3 +92,43 @@ No push/capture/backend/native/GEN occurs before ROOT's explicit reviewed GO.
 Producer839 remains held through primary original output qualification,
 postimport successor and ordinary corroboration qualification; FIRST matched
 release/two404 precedes the next queue. No producer-esco0c or other scope changes.
+
+
+## Corrective source preflight — same valid producer, no backend epoch reused
+
+Normal795 publication725→8c/READY6137228303 triggered unique run38339604453/a1
+job115107393917, terminal FAILURE03:05:58. Sole collector's one successful
+supported GitHub log read confirms actual missingc007 git merge-base exit128
+before the canonical replay echo; zero capture artifacts. The shallow default
+of unchanged checkout@v4 omits this ancestor. A real synthetic depth1 Git
+control reproduces128. This is source-preflight failure only: no canonical
+backend/generation/output/whole credit, no cancellation or unchanged rerun.
+
+ROOT's explicit corrective authorization supersedes ONLY the owned workflow's
+local ancestry command after the historic two-path53b binding; all other files,
+RAW3/pins/C3-six/native/workflow oracles and scope remain frozen. Replace that
+command with the existing authenticated read-only compare API: ahead/identical,
+exact full requested API URL/base/merge-base identity; identical needs
+HEAD==base. This works with stock shallow checkout and pagination without
+fetching all history or changing events, gates, checkout or producer0c.
+
+Producer839 remains valid held under the same SQL/capture inputEpochv1 because
+no canonical backend entered. Corrected source head/tree is a distinct future
+source epoch and requires both noncoauthor exact reviews and a new explicit
+ROOT publication GO before ONE actual canonical backend. Existing8c failure,
+prepared53b and original099 provenance remain dated truthful evidence.
+
+Actual GitHub compare metadata confirms response.url preserves both full40SHAs;
+permalink_url abbreviates them with owner prefixes. The guard therefore binds
+response.url rather than an assumed full permalink or nonexistent head_commit,
+and never depends on the truncated/paginated commits list.
+
+Corrective verification:37/37 actual-workflow Python port controls PASS,
+including all29 prior controls plus real response URL/base/merge-base/status
+and pagination-independent head identity, identical/no-commits, behind,
+diverged,404 and foreign URL/head/base/merge-base refusals. Real shallow Git
+RED128 is independently recorded; official1.7.12 actionlint and all Bash/Python
+syntax pass. Unchanged51 source controls and full app/scripts/tests TypeScript
+remain applicable by whole other-file/mode equality; no extra backend/native.
+Next: exact corrected source freeze, both independent source reviews and ROOT
+GO. No new push or capture is authorized by source-control success alone.
