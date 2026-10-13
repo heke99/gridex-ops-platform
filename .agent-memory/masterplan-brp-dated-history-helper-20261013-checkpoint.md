@@ -1,3 +1,160 @@
+# CURRENT CORRECTED DOC SUPPORT — genuine reception first, then receipt-based projection
+
+2026-10-13 19:45 Europe/Stockholm. Own unique-checkpoint-only continuation, source applicability public actualmain d798eb36f35cd4f437d44c8d234b4dbb81adc7a6 / tree e3b6c11677a2b871a128504f1616def7d22dba1e. Historical branchbaseefed remains archive. This prefix supersedes ONLY the ordering ambiguity in item3 of unpublished3df54372. The entire153681-byte3df checkpoint and both independent old doc reports remain immutable history below. B approved that old version; A found a concrete P2, so neither old verdict approves this corrected version. Two fresh independent exact corrected-DOC finals are required before public delivery.
+
+## Concrete correction and required implementation order
+
+The genuine reception gate and the protected committed reader prove different things. An older exact ACK receipt binds ACK/source/company/environment/rawhash, not a NEW current mail/parse observation. Do not use it to bypass a protocol-duplicate reception or its held/native-response obligations.
+
+At the actual canonical MAIL entry:
+1. Create or reuse the genuine ACK original from the ACTUAL current authorized actor/company/environment/mail/parse/raw inputs, preserving birth and immutable source gates. Execute the existing requireFirstReception for THIS current mail observation BEFORE protected receipt read or switch projection, even when that ACK already has a committed receipt.
+2. A replay of the same genuinely first-received mail may pass idempotently. A new-mail protocol duplicate/held reception must stop. Catch InboundReceptionHeldError LOCALLY inside retained applyCanonicalInboundAckStatusUpdate; return held/manual_review with exact hold reason/retained selector, preserve native reception/response obligations, and perform NO resolver/issuer/projection/bulk diagnostics/new negative task/event afterwards. Other errors preserve their real security/error semantics. Do not borrow the non-ACK duplicate103 responder.
+3. ONLY AFTER the current observation's reception gate succeeds, call the protected committed reader. Eligible exact negative receipt means projection-only, with zero source reapply/link/outbound/grid-owner/customer-case/actor-testing/protocol events/mail tasks. WHEN that read returns none, and only then, run real canonical resolver + SAME-invocation validation ledger + protected original/source issuer, read the real committed result, then project. A prior successful generic pass may already have supplied an exact receipt; a later generic invocation supplies no synchronous authority to the earlier canonical call. No fabricated context/accepted assessment or full business-processor recursion.
+4. An explicit repair of a previously genuinely admitted ACK with NO NEW mail observation is a separate projection-only operation, not a fake reception. It uses protected existing original/committed pins and the actual current authorized actor; it repeats no fresh reception or source-business effects. A matcher UUID or older receipt alone does not prove a new-mail first reception.
+
+Other current integration instructions remain as in the corrected-support history: complete raw select('*') CAS preimage without narrowing/reconstruction; exact committed ACK/source hashes/company/environment/currentactor; preserve failed/rejected conventions; SQL owns its single atomic switch event; surface every stale/refused/not_applicable/unknown-response condition, no direct/compensating patch. Generic outer-dispatch replay reachability remains an existing separately owned dependency. Retained a93c coordinates only two existing callers AFTER verified own custody; thirdC3ce073 remains pending its existing handoff. No file/ref/producer transfer or repeated custody request follows this document.
+
+The original plan and first refutation remain complete original versions below; this prefix explicitly resolves both plan omissions (LOCAL hold conversion and CURRENT mail reception-before-read). It preserves conditional fresh issuer work. Both initial document peers were noncoauthors and performed no runtime; final corrected-DOC reviewers will be separate from ROOT/plan/report authors.
+
+Own completed public component sources7f6ce08c/READY6150835060 (87 modeled finite PASS/two source finals) and91c739ef/READY6151319102 (10finite PASS/two source+DOC finals) remain byte-identical, HELD/PAUSED selected offers. No native/currentcaller/issuer/fullRLS/concurrency/currentclock/activation/LK/CI/GEN/whole credit follows this support. Frozen P11/SC037 and separate6d80 original-dispatch dependency remain unchanged. Existing serial/soleGEN/native/originalcollector owns current795 correction/finalgates. Last authenticated actualmain d798119VERIFIED+204PASSED=323/352; +0. No technical source/test/fixture/SQL/type/config/workflow/ledger/shared-memory change, rerun, private acquisition or producer action.
+
+## Initial independent DOC A REQUEST_CHANGES
+
+Source /workspace/scratch/ediel-sc037-cas-20261013/integration-support/final-doc-a/REPORT.md; bytes 9528; SHA256 884c7199b7153f092468ac1179048d5ebf03ca743d65443e55cad2551ad43f1b. Verbatim:
+
+```text
+# Independent DOC_SUPPORT_FINAL A — exact 3df54372
+
+**REQUEST_CHANGES. One confirmed material P2 in the new documentation/source mapping.** This reviews only the new caller-support prefix and metadata/preservation, not the unchanged SC037 kernel or any runtime descendant.
+
+Reviewer `/root/sc037_final_a`; independent noncoauthor of this support plan/refutation/checkpoint/controller. No peer B consultation. Read-only public Git/source/hash inspection only; wrote only this own report outside the repository. No code, test, checkpoint, controller, ref, claim or publication changes; no tests/controller reruns, backend/native/GEN/CI/original collection or ZIP/log capture.
+
+## Exact binding and preservation
+
+| Pin | Independently verified value |
+| --- | --- |
+| Docs head | `3df54372cc88a7dc4acf3225ea75b87da40c852f` |
+| Tree | `4870e02f7d8a245ebcc66dfbdbd207c0d0b52002` |
+| Sole parent | `49ab9da5a88d7b1f3a151c243166083b6a20357d` |
+| Only changed file | `.agent-memory/masterplan-brp-dated-history-helper-20261013-checkpoint.md` |
+| Final checkpoint | 153681 bytes; SHA256 `f5b1caba14cbe2962996fb1987d7146e87163ae462ac498191102931807f9d70` |
+| Added prefix | 60006 bytes / 584 inserted lines; no removed prior lines |
+| Exact prior suffix | 93675 bytes; SHA256 `ce1c6d9a25b50524c82cbe272a8845cdd14678b20fe0b0fade2c13c5b26aa146` |
+| Actual public source base | `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6` / `e3b6c11677a2b871a128504f1616def7d22dba1e` |
+| Archival branch base | `efed3683115c06d1925f8b80c05c801a54db9885`; correctly distinguished from current source applicability |
+
+HEAD/tree/sole parent, clean working status and the one-file additive diff match the freeze. Final Git bytes equal working bytes. Every original old checkpoint byte remains the exact suffix, equal to the saved 49ab preimage. No BRP technical file or any other source changed in this commit; no BRP native approval is inferred.
+
+The four embedded raw bodies each appear once, verbatim, in the new prefix:
+
+| Original | Bytes / SHA256 |
+| --- | --- |
+| Read-only integration plan | 23081 / `c170236ef11f5a7750282216a64096360843ebd5509c4001e3be9fa57211241c` |
+| Independent plan refutation | 12351 / `f1a0fb9011c0c37a169c67817751bb550978786c1d5c80a33f3297e22e590685` |
+| Exact source pins | 17735 / `defe0c6281ea6f3273c7668faa7390447b3787bb904c89b75cece83515546c2a` |
+| Setup observation note | 507 / `e4bfdbab40b24ccb54faa8b71ef6f081fac69d060176de1bae6fc744aa2603c8` |
+
+All 28 supplied main/component source entries match the named public local Git objects by blob, byte count and SHA256. Frozen P11/SC037 rows match the pinned main register rows. Authentication of current GitHub main and the public e49 C3 comparison remains attributed to the supplied observation records; I did not refresh a live connector or read a private successor/local competing main. Source-pin equality is not runtime qualification.
+
+Successful assembly controller SHA256 is `0b5e54813545aa024e8a6d5954605c2779a6b0866fc199ef464ba7920c085645`; freeze SHA256 is `bc37f47657bc63ae640aae1318ba6a085da366f7c6450c9073e43a8ceac793b5`. Commit output/exit0 corresponds to the exact additive doc commit. The initial parsing SyntaxError is explicitly an author's setup observation before statements/writes; no original initial-controller hash or runtime execution credit is fabricated. I did not rerun either controller.
+
+## P2 — an old committed ACK does not qualify a new mail reception
+
+Affected current instructions: new checkpoint line **16**, actionable item 3, read with lines 15/17/19. It says to read genuine committed authority FIRST and use only projection when an older generic pass already supplied an exact receipt; the genuine first-reception creator is then placed under WHEN the protected read returns none. This incorrectly makes reception admission appear conditional on absence of a committed ACK. The original preserved plan explicitly retains creator/first-reception gates before the reader; the new active prefix therefore supplies a conflicting order despite item4's general preservation requirement.
+
+The pinned source distinguishes those authorities:
+
+- `canonicalInboundAckStatusUpdater.ts:49–78` first looks by email, then falls back to sender/receiver/interchange without current mail ID. A canonical selector can therefore name an older genuine ACK for a different, newly arrived mail.
+- `committedInboundAck.ts:12–32` accepts the actual old ACK ID/company/environment/raw hash and retained correlation/result. Its RPC inputs contain no current inbound mail ID or parse selector. An exact receipt authenticates that ACK and its source effects; it does not authenticate a new mail reception.
+- `inboundStatusUpdater.ts:444–451` runs `recordInboundReception` then `requireFirstReception` even when reusing an existing ACK. Its new-success branch does the same at 557–558 before a protocol event.
+- `receptions.ts:149–158` throws `InboundReceptionHeldError` for held/non-first observations. `schema.sql:48414–48430` distinguishes same-mail first-reception replay from a new mail/protocol duplicate and records the required native reception/response-request/manual-review hold.
+
+Concrete source-level trigger: mail A has a genuine admitted negative ACK and immutable exact applied receipt. Mail B arrives with the same ACK raw/interchange. The permitted existing-ACK selector names A's ACK and the committed read succeeds. A literal read-FIRST/exact-receipt→projection implementation of active item3 skips `createInboundEdielMessage`/`recordInboundReception`/`requireFirstReception` for B. It consequently does not record B's native protocol-duplicate reception/request/hold, and the local HOLD catch in item4 is never reached. The projection may run, or merely return terminal/no-op, while the new mail's reception obligation was bypassed. No runtime reproduction is claimed; the missing mail input to the reader and the creator's separate gate are direct source facts.
+
+Impact: the support can guide the retained caller writer into dropping required duplicate/held reception behavior while implementing the new switch route. This is a new active-document ordering defect, not the already corrected switch-kernel P2, an existing native failure, or renewed criticism of the immutable reader.
+
+Required bounded documentation correction: distinguish a canonical **MAIL observation** from an explicit projection-only retry of an already genuinely admitted ACK with no new mail. A real canonical-mail invocation must preserve genuine create/reuse, current mail/parse/raw/environment and first-reception admission before protected read/projection, including when an older ACK has an exact receipt. Local HOLD stops all subsequent resolver/issuer/projection/diagnostic/new-task/event work and preserves other errors. Only fresh canonical resolver/ledger/source-apply work is conditional on the subsequent reader returning none. The explicit already-admitted projection retry stays limited to projection; matcher UUIDs never confer reception authority. ROOT accepted this as a material precision error and will correct only its new checkpoint prefix, leaving raw originals/source untouched.
+
+## Other new support checks
+
+No additional material documentation/source-mapping blocker confirmed in the reviewed prefix:
+
+- The local canonical HOLD/manual-review correction fits the retained two-file boundary. The ACK call at `edielInboundProcessor.ts:302–331` is outside the non-ACK catch beginning at 337; the queue at `edielMailboxPoller.part-2.ts:667–688` correctly differentiates a returned manual review from an uncaught processor_failed retry. Item4 correctly forbids borrowing non-ACK duplicate103 authority, swallowing unrelated errors or continuing diagnostics/tasks after a held creator.
+- The later generic mail-engine path at `edielMailboxPoller.part-3.ts:87–127` can already have supplied a committed receipt. The fresh issuer requirement must remain conditional on actual protected-read absence after reception admission; the old statement that persistence alone does not issue is correctly preserved as source history, not a claim that no mail route can ever issue.
+- Complete raw `select('*')` CAS, actual current invocation actor, committed ACK/source hashes/tenant/environment, failed/rejected conventions, projection-only interrupted retry and sole SQL event ownership are correctly specified. The typed switch row is not promoted to complete snapshot authority. Generic outer early return remains an explicitly retained reachability dependency; this support changes no caller.
+- The active prefix explicitly dates D798/e3b6 applicability, marks the old efed branch/suffix historical, attributes public7f/87 and public91/10 source offers to their owner/receipts, preserves a93's two callers and C3's pending third caller, and gives no new handoff request/ref transfer, producer mandate, competing baseline, coverage/native/runtime/whole approval. SC037 kernel/BRP/source offers were not re-reviewed here.
+
+## Verdict and next step
+
+**REQUEST_CHANGES on exact 3df54372, solely for the new item3 reception-order P2.** ROOT/plan/refutation/checkpoint authors are not independent final DOC-support peers. Ordinary documentation publication still needs two independent exact-current DOC_SUPPORT_FINAL reviews after the sole checkpoint author corrects and freezes the changed prefix. Re-review only that affected documentation/source mapping and preservation; no test/controller/runtime or unchanged kernel rerun is justified.
+
+```
+
+## Initial independent DOC B approval on superseded version
+
+Source /workspace/scratch/ediel-sc037-cas-20261013/integration-support/final-doc-b/doc-support-final.md; bytes 9684; SHA256 dd28670094af0c1a44bc3cc7cc7b8b5b25c4b4b27cc08d4870943655920431dc. Verbatim:
+
+```text
+# Independent DOC_SUPPORT_FINAL B — APPROVED
+
+Reviewer `/root/sc037_final_b` is a noncoauthor of this checkpoint prepend, implementation plan, refutation and assembly proof. ROOT/plan/refutation authors are excluded from final peer credit. B did not consult peer A. This verdict covers only the new documentation support/current metadata, preservation and source mapping; it does not review or requalify the unchanged SC037 kernel or approve any caller implementation/runtime/whole card.
+
+## Exact review binding
+
+- Documentation HEAD `3df54372cc88a7dc4acf3225ea75b87da40c852f`, tree `4870e02f7d8a245ebcc66dfbdbd207c0d0b52002`, sole parent `49ab9da5a88d7b1f3a151c243166083b6a20357d`.
+- Worktree `/workspace/scratch/gridex-ediel-helper-20261013-efed` was clean. The complete diff changes only `.agent-memory/masterplan-brp-dated-history-helper-20261013-checkpoint.md`, adding the 584-line/60006-byte prepend. No technical/caller/test/SQL/schema/ledger/producer/shared-memory path changed.
+- Final checkpoint153681 bytes, SHA256 `f5b1caba14cbe2962996fb1987d7146e87163ae462ac498191102931807f9d70`.
+- Prior checkpoint93675 bytes, SHA256 `ce1c6d9a25b50524c82cbe272a8845cdd14678b20fe0b0fade2c13c5b26aa146`; it remains an exact byte suffix of the final file and matches the saved49ab preimage. All prior dated evidence/findings are preserved, rather than rewritten.
+- New prepend SHA256 `ba9c32db90693dbe20647e07daf758eb3da1f805dd99fc4dc30b7e340acbdb92`.
+- Public source applicability is explicitly pinned to main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Documentation branch's archival efed base is identified as historical. I did not inspect the differing local origin/main, private successor or unapproved source.
+
+## Preservation and metadata checks
+
+All four original files were read and independently hashed. Each body appears exactly once in the prepend, and each complete fenced body is byte-identical to its named original, including its final newline:
+
+| Original | Bytes | SHA256 |
+| --- | ---: | --- |
+| integration-support/integration-plan.md | 23081 | `c170236ef11f5a7750282216a64096360843ebd5509c4001e3be9fa57211241c` |
+| integration-plan-review/independent-plan-refutation.md | 12351 | `f1a0fb9011c0c37a169c67817751bb550978786c1d5c80a33f3297e22e590685` |
+| integration-support/source-pins.json | 17735 | `defe0c6281ea6f3273c7668faa7390447b3787bb904c89b75cece83515546c2a` |
+| integration-support/support-doc-assembly-setup-note.md | 507 | `e4bfdbab40b24ccb54faa8b71ef6f081fac69d060176de1bae6fc744aa2603c8` |
+
+The corrected saved assembly controller SHA256 `0b5e54813545aa024e8a6d5954605c2779a6b0866fc199ef464ba7920c085645` matches the freeze metadata. I read its actual assembly/clean-preimage/one-file-change/preservation logic without running it. The initial SyntaxError is honestly described as an observation note: parsing failed before any statement/write, with no invented initial controller hash or test/runtime/native result. This review does not manufacture a missing initial error original or independently reproduce that setup event.
+
+All28 entries in source-pins.json (25 source files plus three selected component postimages) independently match the named public Git object's blob, byte count and SHA256. D798/e3b6 and public7f/9299 tree pins independently match. The named public91 source's tree independently matches0d3d337c81e6ef31ed54591075b66025bb5eece8. Public-e49 C3 equality/authentication is an explicitly attributed saved comparison; no private-successor applicability is inferred or refreshed here. The frozen P11/SC037 literal text stays preserved and gets no new row credit.
+
+The prepend correctly treats public7f SC037's87 modeled controls/two final peers/#7666150835060 and public91 Z03's10 finite controls/two source+DOC peers/#7666151319102 as completed qualified component offers with attribution. It does not present their counts as caller/issuer/native/LK/activation/current coherent GEN/CI or whole acceptance. BRP5994/23ab and its prior evidence remain untouched; BRP0bcc/native stays held/unexecuted. Own97d/e247 custody remains held/paused, not transferred. No new handoff request, writer claim or competing baseline/dispatch is created.
+
+## Current actionable source mapping
+
+I independently checked the newly relevant pinned source path, rather than merely accepting the refutation's conclusion:
+
+- D798 createInboundEdielMessage requires actual actor/parse at inboundStatusUpdater313–338, exact environment at370–372, retained mail receipt time at454–457, and birth mailbox/UUID selectors at376–380. Its existing and fresh paths record reception then call requireFirstReception at444–451 and557–558.
+- D798 receptions149–158 throws InboundReceptionHeldError when held or non-first. The canonical ACK invocation at edielInboundProcessor302–331 is before/outside the non-ACK try/catch337–399. That catch's family-specific duplicate103 response logic is not ACK authority.
+- The queue at edielMailboxPoller.part-2:667–688 finalizes a returned manual-review result as manual_review, while an uncaught error becomes processor_failed/retry/eventual failure. The new top explicitly requires the LOCAL canonical boundary catch/manual-review result with exact hold reason and retained selector, preserving genuine reception/native obligations and stopping resolver/issuer/projection/bulk diagnostics/new negative task/event after the hold. Other error/security semantics remain intact. This resolves the documented plan omission without giving custody over C3/parent/poller or authorizing non-ACK103 reuse.
+- Later mail-engine ordering is real: part-3:87–91 processes canonical jobs first, then108–127 obtains message IDs and calls generic processing. Generic inboundProcessing364–379/1100–1105 invokes the real resolver and same-invocation validation ledger before1256–1261 reaches processInboundAckMessage. The retained processor uses protected source selection/application at185–206 and629–634. Therefore a prior successful generic pass may already have a genuine receipt, but the later call cannot supply synchronous authority to a newly inserted earlier canonical call.
+- The new top consequently requires protected committed read FIRST, projection-only use of an eligible existing exact negative, and genuine creator/canonical/same-invocation validation/issuer/readback only WHEN that protected read returns none. It explicitly rejects fabrication, cached validation_report reuse and recursion through whole business processors. Original plan is preserved as evidence and superseded on the local-hold and conditional missing-receipt points; it is not treated as an uncorrected competing current checklist.
+- Full unchanged raw select('*') request data is mandatory, including nulls, aliases, readiness, timestamps and nested/all DB fields. The narrower TypeScript row type cannot reconstruct complete CAS. Existing raw discovery at inboundAckProcessing209–223 confirms this mapping. Exact actor/company/environment/ACK/source hashes come from genuine protected authority, and READ reader success cannot replace mutation-grade actor qualification.
+- Projection-only replay repeats no source apply/link/outbound/grid-owner/customer-case/actor-testing/protocol event/mail task. Stale/refused/not_applicable are surfaced; no direct/compensating patch or second switch event follows. Generic inboundProcessing948–956 still returns early on a committed receipt: the document names it as separately owned reachability work and does not falsely claim the two-file proposal alone repairs generic dispatch retry.
+
+The prior plan's broad “email persistence supplies no receipt” observation is now correctly conditional: persistence alone is insufficient when protected authority is absent, while an earlier actual owner may already have issued it. The new support gives no instruction to regenerate genuine existing receipt or to perform a fresh pipeline during projection retry.
+
+The retained a93c coordinator owns the two stated callers after its actual current custody; C3's third caller remains pending with its existing owner. The document describes technical implementation steps, while expressly withholding any new permission/ref transfer and preserving the actual later implementation qualification boundary.
+
+## Verdict and remaining limits
+
+No concrete new documentation/source-mapping blocker remains in this exact changed top. APPROVED DOC_SUPPORT_FINAL for docshead3df543/tree4870/parent49ab and the stated pinned support/preservation. This is suitable as one independent final documentation-support peer; it is not approval of the ordinary publication action itself or an authored caller descendant.
+
+Read-only review used the existing code/differential review and evidence-before-claims guidance with direct caller tracing. No unchanged kernel audit, test/controller rerun, backend/native/GEN/CI/capture/original collection/ZIP, private-source inspection, ref/claim/handoff/comment/publication action or repository write occurred. The only write is this outside-repository reviewer record. ROOT, plan and refutation authors are not final peers. Earlier B component reviews are not silently reused as this support approval.
+
+Actual caller implementation, genuine issuer/runtime/import-cycle/fullRLS/concurrency/currentclock/start-time/LK/activation/current coherent GEN/mandatory CI/native/whole SC037 and ordinary delivery remain unqualified by this documentation. Ledger stays datedD798119VERIFIED+204PASSED=323/352, +0. Any material documentation/source applicability change or new final carrier requires an explicit applicable rebind.
+
+```
+
+---
+
+## Superseded3df checkpoint — complete exact historical bytes, not active instructions
+
 # CURRENT DATED SUPPORT — qualified components and corrected caller integration handoff
 
 2026-10-13 19:36 Europe/Stockholm. Owner codex-ediel-brp-history-helper-20261013. Unique-checkpoint-only technical support on the continuing own documentation branch; no new shared baseline, source dispatch, receipt transfer or runtime approval. Source-plan applicability is pinned to public actual-main d798eb36f35cd4f437d44c8d234b4dbb81adc7a6 / tree e3b6c11677a2b871a128504f1616def7d22dba1e. The branch's archival source base remains efed. Complete prior checkpoint bytes below remain historical, not active dispatch.
