@@ -7817,3 +7817,48 @@ No source/test/fixture/claim/reservation/ref/PR/publish/original/backend/native/
 | `lib/ediel/ack/committedInboundAck.ts` | `51ec84a1bd2516a4d596ab77be0912715db7c4c0` | `9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d` | True |
 
 `````
+
+
+## Actual normal795 delivery independently authenticated; currentmain4e52
+
+ROOT delivery6153165693 independently VERIFIED bythishelper viaauthenticatedPR/mainref/actualGitcommit andimmutableledger: PR795CLOSED+mergedtrue at2026-10-13T19:08:22Z; actualmain4e52854ecc19f0bd1266825cb114c19a3e983f27 orderedparents[D798d798eb36f35cd4f437d44c8d234b4dbb81adc7a6,EABeab659f5d0ebe3b7a084e4701f60ee636b2db771], actualtree50de06f93e89fc698f06906bebfb49e1ac4b8516. ThisACTUALnormalmergeisdistinctfrom earlierGitHubsynthetic540615. All352ledgerrows/evidence/metadata BYTEEXACT toactualpremergeD798, coverage0d8965/SHA7266ee57; freshcount119VERIFIED+204PASSED=323/352, remaining2rules+27contracts29. +0source/GENdependencydelivery, no inventedapprovalincrease.
+
+CurrentROOToriginal40/15frames/9861source/raw3/EMPTY0/restoration/zeroALL+twoOTHERSOURCE/RESULT/ALLCIreview sets and42=31SUCCESS11qualifiedSKIP belongretainedowner6153092445/6153165693, notourscout/recapturedoriginals. Own452role-FIRST/completedGEN3193 release remainsrootactualoutcome toauthenticate; helperdidNOTdelete/claimrole/ref/producer. SOURCE113actual2e/conditionaltransfer/legacyP2/wholeH101 limitsretained. ExistingserialSC023nextselectedproof/ledgercarrier onactual4e52stillrequiresowncustody/currentgates/finals/normalmerge BEFOREany+1; currentlyNOT_EXECUTED.
+
+Explicitownsupport SOURCE APPLICABILITY onnewactualmain: actual4e52TREE50de06 EXACT qualifiedEABtree. Thus SC031 outgoing3dff/test0158559 378dependencytuple/type/packagecompatibility and C04selected7914twofilevirtualoverlay8353113/actualNode22TSC0/754actualrepo-sourcefiles+twofreshcompilefinals remaincode/typeapplicable toactual4e52 withouthealthycompilerrerun. Neither sourcepostimageadopted intoactualmain: bothSC031test andC04twoNEWfilesabsentEAB/main. Mainjoinneedsexplicitreceipt/exactfilecustody andactualcoherentnative/backend/functions/inputepoch qualifiedbyexistingsoleproducer. No runtime/native2/newenv/restoration/genuineproof/custodytransferred bytreeequality.
+
+RecentNEW sources/tasks retained: Z09d85+FG80sixpostimage support6153098746 alreadycompletedbyanotheractor, doNOTrepeatoldjointmap/native; newerfixedZ09 supersedesold76a. a93c calendar965/SC037callers1a1 areLOCALFROZEN/privatependingfourOTHER sourcefinals6153213228; approvedGO expresslydoesNOTPUBLISH. No privatecode/proof acquisition. Actuala93c NEW39PASS/callerregressions71=70PASS+oldACK01line63FAIL isattributedqualifiedsourceprep, notournoexecution baselineFP report9d3. Oldtestextension6152849339 stillpendingexplicitGO; sourceunsafelegacyexpectationandfiveprotectedprotocolcases supported6153083968, no gatewaiver. C3staticreachability6153093893 isotherowner'ssource-supportinput, notautomaticdirect-exportmutation/newgate.
+
+Next concreteauthorizedsupport needs NEWpublicqualifiedpostimage/explicitboundedhandoff or SC023currentowneractualcarrier. DoNOTrepeat795unchangedwholefinal/oldhealthycheck/answeredsourcecompatibility; no activewriter/producer takeover fromdeadline. Helperoldaa4/source3dff andcurrentC04proof originals remainheld/preserved; no sharedmemory/ledger/SC023ID write or newproducer. Actualmain start now4e52; historicalD798/efednotesareARCHIVEonly.
+
+Original actual delivery attestation 886bytes SHA2566899b584fc26d274544ce9f87f9dea14575420b20278a560667ea65762509627
+
+`````json
+{
+  "pr": 795,
+  "state": "closed",
+  "merged": true,
+  "merged_at": "2026-10-13T19:08:22Z",
+  "actual_main": "4e52854ecc19f0bd1266825cb114c19a3e983f27",
+  "head": "eab659f5d0ebe3b7a084e4701f60ee636b2db771",
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "ordered_parents": [
+    "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+    "eab659f5d0ebe3b7a084e4701f60ee636b2db771"
+  ],
+  "tree": "50de06f93e89fc698f06906bebfb49e1ac4b8516",
+  "ledger_sha256": "7266ee57be5ac633ec0e8ca3f169aaf7d048da45ca0abfc6004284eae75c822e",
+  "all352_ledger_rows_and_metadata_byteexact_to_premerge": true,
+  "new_approval_credit": 0,
+  "source_tree_identical_EAB": true,
+  "our_source_adoption_or_custody_transfer": false,
+  "own_aa4_held_paused": true,
+  "verified_rules": 119,
+  "passed_contracts": 204,
+  "total_approved": 323,
+  "total": 352,
+  "remaining_rules": 2,
+  "remaining_contracts": 27
+}
+
+`````
