@@ -136,6 +136,7 @@ export function externalZ01Aperak(input: ExternalZ01ReplyEnvelope & Readonly<{
 export type Z02OmittableField = '311' | '312' | '202' | '203' | '205' | '206' | '207' | '208' | '209' | '217' | '223' | '226' | '227' | '228' | '229' | '231' | '232' | '233' | '234' | '314' | '313' | '316' | '260' | 'END_USER_GROUP' | 'INSTALLATION_GROUP'
 export type ExternalZ02Overrides = ReplyRouteOverrides & Readonly<{
   code?: string
+  aperakRequest?: 'AB' | 'NA'
   point?: string
   identityAgency?: string
   lineReference?: string
@@ -168,7 +169,7 @@ export function externalZ02Reply(input: ExternalZ02ReplyInput): string {
   const point = overrides.point ?? original.point, agency = overrides.identityAgency ?? original.identityAgency
   const identity = overrides.customerIdentity ?? original.customerIdentity
   const customer = input.customerAddress, installation = input.installationAddress
-  parts.push(['BGM', value('202', overrides.code ?? 'Z02'), value('203', input.documentReference), '9', value('313', 'AB')])
+  parts.push(['BGM', value('202', overrides.code ?? 'Z02'), value('203', input.documentReference), '9', value('313', overrides.aperakRequest ?? 'AB')])
   add('205', ['DTM', ['137', input.documentMinute, '203']])
   add('206', ['DTM', ['ZZZ', '1', '805']])
   const legal = (role: 'FR' | 'DO', id?: string) => {
