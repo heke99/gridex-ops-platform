@@ -389,6 +389,20 @@ function expectIgnoredUd(f:Fixture,change:Change){
    messageReference:segmentComposite(wire.segments.find(segment=>segment.tag==='UNH')!,1,wire.una)[0],ownReferences:{customerId:{kind:'present',value:'FORBIDDEN-UD-F'}}}})
  }
 }
+// Ignored F/G UD stays in physical/source evidence, never named customer
+// business fields. The clean no-UD physical control has these exact 15 keys.
+// This oracle deliberately exposes current c08e staging promotion until the
+// existing decoder owner supplies its independently qualified correction.
+function expectCleanStagedCustomer(f:Fixture,change:Change,stored:Evidence['case'],caseId:string,status:'pending_review'|'applied'){
+ expect(stored).not.toBeNull()
+ expect(stored).toMatchObject({id:caseId,company_id:f.f.companyId,ediel_message_id:change.message.id,message_code:'Z06',status})
+ const customer=stored!.parsed_customer as Record<string,unknown>
+ expect(customer).not.toBeNull();expect(typeof customer).toBe('object');expect(Array.isArray(customer)).toBe(false)
+ const clean={customerId:null,customerIdQualifier:null,customerIdLabel:'Ej angivet',customerType:null,
+  personalNumber:null,orgNumber:null,birthDate:null,fullName:null,companyName:null,firstName:null,lastName:null,
+  address:null,postalCode:null,city:null,country:null}
+ expect(Object.fromEntries(Object.keys(clean).map(key=>[key,customer[key]]))).toEqual(clean)
+}
 it.each([false,true])('F first case approval versions only its original structure; physical extra UD=%s never changes customer identity',async withUd=>{
  const f=await fixture(),change=await f.change('F',undefined,{deferFirstApply:true,...(withUd?{rawTransform:extraUd}:{})}),route=configureAckRoute(f)
  const initial=evidence(f,change.message.id)
@@ -398,10 +412,12 @@ it.each([false,true])('F first case approval versions only its original structur
  expectNoFirstEffects(f,change.message)
  expect(before.market).toEqual(initial.market);expect(before.source).toEqual(initial.source);expect(before.original).toEqual(initial.original)
  expect(before.acks.map(ack=>ack.message_family)).toEqual(['CONTRL'])
+ expectCleanStagedCustomer(f,change,before.case,current.inboundCase.id,'pending_review')
  const approved=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:current.inboundCase.id,structuralObjectLineIndices:[current.scope.lineIndex]})
  expect(approved.status).toBe('applied')
  const after=evidence(f,change.message.id),effects=sourceEffects(f,change.message.id),hash=createHash('sha256').update(change.message.raw_payload!).digest('hex')
  expectOwnAcks(f,change,route,after)
+ expectCleanStagedCustomer(f,change,after.case,approved.id,'applied')
  expect(after.market).toEqual(initial.market);expect(after.source).toEqual(initial.source);expect(after.original).toEqual(initial.original)
  expect(effects.objects).toHaveLength(1);expect(effects.batches).toHaveLength(1)
  const own=effects.objects[0]
@@ -425,6 +441,7 @@ it.each([false,true])('F first case approval versions only its original structur
  expect(final).not.toBeNull();expect(final!.plans).toMatchObject([{outcome:'positive',effectKind:'structural',objectLineIndices:[current.scope.lineIndex],acknowledgedReferences:[current.scope.li]}])
  const replay=await approveEdielInboundCase({companyId:f.f.companyId,actorUserId:f.operator.id,caseId:approved.id,structuralObjectLineIndices:[current.scope.lineIndex]})
  expect(replay.status).toBe('applied');expect(sourceEffects(f,change.message.id)).toEqual(effects)
+ expectCleanStagedCustomer(f,change,evidence(f,change.message.id).case,replay.id,'applied')
  expect({...evidence(f,change.message.id),case:null}).toEqual({...after,case:null})
  expect(external.send).toHaveBeenCalledTimes(1)
  if(!withUd){
