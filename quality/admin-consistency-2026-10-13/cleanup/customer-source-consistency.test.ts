@@ -33,13 +33,19 @@ beforeAll(async () => {
     insert into public.customer_sites values('${site}','${company}','${customer}','draft');
     insert into public.metering_points(id,company_id,customer_id,site_id,status,bidding_zone_code,estimated_annual_consumption_kwh,grid_owner_id,start_date)
       values('${point}','${company}','${customer}','${site}','draft','SE1',100,'${owner}','2026-01-01');`)
+  const lifecycle = readFileSync('supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql', 'utf8')
+  // Current production DDL contains generated open_key columns, so install
+  // their real immutable dependency before constructing those tables.
+  const openKey = lifecycle.match(/create or replace function public\.gridex_quality_open_key_v1\([\s\S]*?\$\$;/)?.[0]
+  if (!openKey) throw new Error('Missing production open-key function')
+  await db.exec(openKey)
   const schema = readFileSync('supabase/schema.sql', 'utf8')
   for (const table of ['data_quality_issues', 'dashboard_alerts', 'forecast_runs', 'forecast_run_items']) {
     const ddl = schema.match(new RegExp(`CREATE TABLE public\\.${table} \\([\\s\\S]*?\\n\\);`))?.[0]
     if (!ddl) throw new Error('Missing production DDL: ' + table)
     await db.exec(ddl)
   }
-  await db.exec(readFileSync('supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql', 'utf8'))
+  await db.exec(lifecycle)
   const integrity = readFileSync('supabase/migrations/20261013100622_customer_flow_integrity_and_empty_statistics.sql', 'utf8')
   const start = integrity.indexOf('create or replace function public.gridex_company_has_customer_data(')
   await db.exec(integrity.slice(start, integrity.indexOf('$$;', start) + 3))
