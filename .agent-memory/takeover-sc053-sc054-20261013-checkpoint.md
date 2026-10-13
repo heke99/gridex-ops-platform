@@ -1,0 +1,11 @@
+# SC-053/SC-054 ledger proposal
+
+Owner `codex-takeover-delivery-20261012`, R2, epoch `gridex-five-agent-20261012`; branch `codex/sc053-sc054-proof-20261013`, actual source base `94d39dfb53d3adc537f2d63bfd8b0f3425a87bb6` after normal #791 delivery. [Claim](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6134468364): two IDs/evidence/checkpoint exact `9ff9d69f`; retained coverage writer `f99cda54`. Unique checkpoint, no shared-memory role.
+
+Three files only: this checkpoint, [finite proof](../quality/audits/ediel-masterplan-v2/evidence/sc-053-054-qualified-native-20261012.json), and two SC coverage rows PARTIAL→PASSED. Other 350 rows and all runtime/GEN/frozen criteria/applied history stay exact. Actual main remains 315 until authenticated delivery; proposal is 119/121 rules +198/231 contracts =317/352, 35 remaining.
+
+Reused sole-R1 originals: SC053 10/10 at 77020ad7/run 38280585475/a1, all 9,771 inputs; SC054 1/1 at 5d479b87/run 38282156510/a1, all 9,780 inputs. Qualification SHA 77933be0; existing independent literal A e6c6/8a54 and B f8de source/14-function applicability are dated reviews, not final proposal approvals. Current #791 delta is documentation only. Controlled clock, old cleanup, billing/positive220 and remote SMTP limits remain explicit in the proof. No new native/GEN/backend/original collection or additional frozen criteria.
+
+Validation: targeted existing behavior tests 19/19 PASS, no fail/skip; full tagged coverage check PASS (352 IDs, 317 proposal approved, 339 tagged green, 0 tagged failing, 13 untagged); frozen integrity 33 originals/121 rules/231 contracts PASS; migration integrity 1,152 files/1,055 version groups/checksums PASS; other 350 row JSON and serialized bytes exact. Node 22.23.3, lockfile-identical dependencies, 2 workers. Initial sandbox spawn EPERM resolved by supported subprocess invocation without source/assertion edits.
+
+Skills: verification-before-completion, differential comparison, requesting-code-review. Bounded ledger adoption; no UI/performance or fresh compliance audit. Next: publish this three-file PR, final exact-head noncoauthor A/B reviews and mandatory CI, then root-only normal expected-head merge. Final commit/delivery is recorded on #766; 317 is not yet delivered.
