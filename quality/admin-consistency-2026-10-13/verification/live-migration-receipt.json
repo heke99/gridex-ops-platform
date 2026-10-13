@@ -1,0 +1,48 @@
+{
+  "project_ref": "piidsfebjqjmnepdpnas",
+  "observed_at": "2026-10-13",
+  "migrations": [
+    {
+      "version": "20261013100313",
+      "name": "customer_portfolio_consistency_repair"
+    },
+    {
+      "version": "20261013113026",
+      "name": "data_quality_lifecycle_consistency_expand"
+    },
+    {
+      "version": "20261013122459",
+      "name": "canonical_admin_application_work_items"
+    },
+    {
+      "version": "20261013122550",
+      "name": "customer_flow_integrity_and_empty_statistics"
+    },
+    {
+      "version": "20261013122600",
+      "name": "analytics_customer_missing_meter_scope"
+    },
+    {
+      "version": "20261013124137",
+      "name": "manual_inbound_event_source_consistency"
+    },
+    {
+      "version": "20261013132527",
+      "name": "operational_quality_customer_source_consistency"
+    },
+    {
+      "version": "20261013133331",
+      "name": "consumption_forecast_customer_source_guard"
+    }
+  ],
+  "compatibility": {
+    "data_quality_lifecycle_consistency_expand": "Full forward file minus two legacy UNIQUE constraint drops; retained for currently deployed onConflict writer. Apply full migration cutover only after updated application is deployed.",
+    "frontend_rollout": "Pending pull request, gates and deployment",
+    "canonical_schema_capture": "Pending authentic complete CI capture; no owner/ACL metadata guessed",
+    "empty_consumption_forecasts": "Database INSERT safeguard installed; old direct writer fails closed, new app producer skips before insertion and continues other companies.",
+    "manual_source_retries": "Exact-source hash retirement prevents deleted raw source recreation. Service-only lookup/ingestion ignore adapter source is pending frontend/backend application deployment."
+  },
+  "verified_final_forward_count": 9,
+  "ninth_migration_installed_granularly": "ninth-granular-live-ledger.json",
+  "ninth_equivalence_receipt": "ninth-live-retirement-and-final-zero-receipts.json"
+}

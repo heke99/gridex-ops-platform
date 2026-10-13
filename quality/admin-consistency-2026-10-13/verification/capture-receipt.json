@@ -1,0 +1,382 @@
+{
+  "purpose": "authentic_committed_baseline_native_upgrade_capture_only",
+  "captured_at": "2026-10-13T11:39:28.361073+00:00",
+  "source_checkout_sha": "51f5fa5e80c42350d697bfed42520672749d4467",
+  "candidate_identity": "Uncommitted five forward migration bytes are explicitly hashed; checkout SHA alone is not claimed to include them",
+  "baseline_schema": {
+    "source": "supabase/schema.sql",
+    "sha256": "ced195d0f8af67b8a400ba71c2eca110cbcd639a0dba880d19e7dccff7a14492",
+    "restored_unmodified": true
+  },
+  "baseline_types": {
+    "source": "supabase/database.types.ts",
+    "sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
+    "authentic_generated_sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
+    "bytes_equal_before_any_forward_migration": true,
+    "proof_file": "/tmp/gridex-admin-baseline-capture/baseline-byte-proof.json",
+    "proof_sha256": "0d91a635df79678c5de9ce270f50303ede54c46b6b404fc4f86eeacba14e5c8e"
+  },
+  "supabase_cli_version": "2.101.0",
+  "supabase_cli_binary_sha256": "b67f22c508bb7434e4e36151b722e289130ed9e07a7ad4f9faadf4c83237286f",
+  "supabase_go_binary_sha256": "9dd9e81a21074081328b77a27a8aef7be45a2828f81d99c4e1fb65efbec73947",
+  "postgres_meta_image": "public.ecr.aws/supabase/postgres-meta:v0.96.4",
+  "postgres_meta_digest": "sha256:4dd3e0ff3e9a0f9f62dd1a1a827f124645549b439ddb2a53598575744585e32d",
+  "postgres_server_version": "17.5 (Debian 17.5-1.pgdg110+1)",
+  "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Debian 17.11-0+deb13u1)",
+  "typegen_arguments": [
+    "gen",
+    "types",
+    "typescript",
+    "--db-url",
+    "second_isolated_local_database",
+    "--schema",
+    "public,graphql_public"
+  ],
+  "nullability_override": {
+    "path": "scripts/apply-supabase-types-nullability-overrides.cjs",
+    "sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+    "applied_unchanged_to_both_phases": true
+  },
+  "native_vendor_dependencies": {
+    "/tmp/gridex-admin-storage-operation-metadata.json": "532b99b3f78b72de10d03efafcc64c06cae2ea9d56557282b9fe97fe603b77b8",
+    "/tmp/gridex-admin-storage-operation-vendor.sql": "6540c1a9c4c34e2635531266d03ff4b7af81e651990dcc9a54e2381629805c87",
+    "/tmp/gridex-admin-graphql-vendor-metadata.json": "d9d18f4cdf493463c8311022607db1adb2296a3b1af801a35136cd4c51157464",
+    "/tmp/gridex-admin-graphql-vendor.sql": "65999c0a7607cc990d8df9b494cce717e12c7ada9a1dfc964f37de40c19077d4"
+  },
+  "standard_extensions_prepared": [
+    "postgis WITH SCHEMA extensions",
+    "btree_gist WITH SCHEMA extensions"
+  ],
+  "private_trigger_predecessors": {
+    "source": "Exact pg_get_functiondef metadata from the checksum-verified unchanged original native replay; only 14 trigger signatures referenced by the committed baseline dump",
+    "metadata_path": "/tmp/gridex-admin-baseline-private-functions.json",
+    "metadata_sha256": "9837fcf33a0b0ce0737d4edda6d2a7ae7fd8204e1096d22c3c2613de1dc25cf5",
+    "sql_path": "/tmp/gridex-admin-baseline-private-functions.sql",
+    "sql_sha256": "ae3266ba9b9e46cc0591a34f2c1c2c04b2cb0ecc06831a799648599c4de60c99",
+    "bindings": [
+      {
+        "signature": "private.ediel_requeue_outbox_after_send_lock_release_trigger()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "441e6c38f2474c76e81d89bd9d74c0940e3cc0a9632748d9d4668dee0e995193"
+      },
+      {
+        "signature": "private.ediel_send_lock_state_convergence_trigger()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "c2a45f8f6addede24baa09180a6b3e12bd7c6be90da398baaabe8a0612e1ec84"
+      },
+      {
+        "signature": "private.gridex_complete_tenant_website_receipt_on_launch_ready_v1()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "e2a02adc91f253a08f4f426207cf77d61aa788a7d5727a1a91f255a0e68cec52"
+      },
+      {
+        "signature": "private.gridex_guard_site_resolution_materialization_v1()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          },
+          {
+            "role": "service_role",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "75f4d76b1c3ef6f5deef5834ed957ea620e60d33fec5d483ab4ab715ac371ddd"
+      },
+      {
+        "signature": "private.gridex_learn_verified_postal_mapping_from_site_v1()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          },
+          {
+            "role": "service_role",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "b2804e0fc2aaffdce1b84d0ff35039b7b0326f6e3e8a4ba321496a6449fb17b1"
+      },
+      {
+        "signature": "private.gridex_partner_customer_event_v2()",
+        "owner": "postgres",
+        "acl": null,
+        "grants": [
+          {
+            "role": "PUBLIC",
+            "grant_option": false
+          },
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "a386d5a03dce04918f1e1dfb168d06e36192469477fa82acf9878cdc8bab6b25"
+      },
+      {
+        "signature": "private.gridex_partner_invoice_event_v2()",
+        "owner": "postgres",
+        "acl": null,
+        "grants": [
+          {
+            "role": "PUBLIC",
+            "grant_option": false
+          },
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "69d832520fbb5432e40205bc42808c01ead45ea459b0c18cb9f8777567247a4c"
+      },
+      {
+        "signature": "private.gridex_partner_poa_event_v2()",
+        "owner": "postgres",
+        "acl": null,
+        "grants": [
+          {
+            "role": "PUBLIC",
+            "grant_option": false
+          },
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "4f7c1fb80c1504444c3b6b7da704bf79e25ddddd2098e641d3ad61aa968e74bd"
+      },
+      {
+        "signature": "private.gridex_partner_site_event_v2()",
+        "owner": "postgres",
+        "acl": null,
+        "grants": [
+          {
+            "role": "PUBLIC",
+            "grant_option": false
+          },
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "7ac0e4cf489011601db13b5aa7669bb1b3533857051bb4d8d019e97be24f9407"
+      },
+      {
+        "signature": "private.gridex_require_locked_pricing_run_for_invoice_export()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "115255d9aafbdb878673675997217859d81e232e231572816086581d0b4afb5f"
+      },
+      {
+        "signature": "private.gridex_select_provisional_grid_owner_from_unique_postal_city_v1()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          },
+          {
+            "role": "service_role",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "c60502fd36982f07b86e523213275bc0ee864b66b24dd03dae5788e990c57707"
+      },
+      {
+        "signature": "private.gridex_validate_manual_inbound_tenant_graph()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "8d1aac8cad2c263528419567494d571acff10f833ca4eef580cd653c2d56d425"
+      },
+      {
+        "signature": "private.normalize_website_application_legal_blockers()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "14bc70e1a5ee7d72aaeb59ab0f85b9c5f762a7b1221eb198e83a949a36eddcb8"
+      },
+      {
+        "signature": "private.reconcile_website_application_terms_acceptance()",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "grants": [
+          {
+            "role": "postgres",
+            "grant_option": false
+          }
+        ],
+        "definition_sha256": "05ab22198a2e70533ae173d8b4e533740c1f4fa57e405c13cb2cf333e086c524"
+      }
+    ],
+    "operational_or_transitive_dependency_qualification": "NOT_RUN; capture installs exact binding prerequisites and claims no trigger workflow behavior"
+  },
+  "new_roles_created": [],
+  "forward_migrations": {
+    "20261013094448_customer_portfolio_consistency_repair.sql": "a51b29452212140d191064bd970572c1503ca0ef5a1e67ab7f40e831dc72b0e4",
+    "20261013094514_data_quality_lifecycle_consistency.sql": "ff0b71b3d3c754f1adcdf156b1281c913ef71f81d98614c6690b70d786d2efef",
+    "20261013094648_canonical_admin_application_work_items.sql": "6a8a0b9ecb0736f722beebb05ab203b2c966135adf56ba8031909d9096b25a06",
+    "20261013100622_customer_flow_integrity_and_empty_statistics.sql": "555543fbffbde43dba3b774ced3163d5aa49fabe4f87e812b654df4cc3d6257a",
+    "20261013110544_analytics_customer_missing_meter_scope.sql": "81722d768001d44c12099e179049f6b2c7e232034077cb1cf46553150901b771"
+  },
+  "generated_type_delta": {
+    "public.Tables": {
+      "changed": [
+        "dashboard_alerts",
+        "data_quality_issues",
+        "external_contract_intakes"
+      ],
+      "removed": []
+    },
+    "public.Views": {
+      "changed": [
+        "company_customer_intake_queue_v",
+        "company_dashboard_summary_v",
+        "gridex_actionable_data_quality_issues_v",
+        "gridex_data_quality_rule_catalog_v",
+        "gridex_website_application_work_items_v"
+      ],
+      "removed": []
+    },
+    "public.Functions": {
+      "changed": [
+        "gridex_company_has_customer_data",
+        "gridex_current_point_forecasts_v1",
+        "gridex_customer_portfolio_cohorts_at",
+        "gridex_data_quality_active_status_v1",
+        "gridex_data_quality_source_exists_v1",
+        "gridex_missing_metering_points_count_v1",
+        "gridex_missing_metering_points_v1",
+        "gridex_pending_website_application_count",
+        "gridex_quality_lock_company_v1",
+        "gridex_quality_open_key_v1",
+        "gridex_reconcile_dashboard_alerts_internal_v1",
+        "gridex_reconcile_dashboard_alerts_v1",
+        "gridex_reconcile_data_quality_v1",
+        "gridex_resolve_dashboard_alert_v1",
+        "gridex_resolve_data_quality_issue_v1",
+        "gridex_resolve_managed_quality_rule_v1",
+        "gridex_scan_data_quality_v1",
+        "gridex_upsert_dashboard_alert_v1",
+        "gridex_upsert_data_quality_issue_v1",
+        "gridex_website_application_status",
+        "gridex_website_application_work_state"
+      ],
+      "removed": []
+    }
+  },
+  "type_diff_line_count": {
+    "insertions": 434,
+    "deletions": 54
+  },
+  "type_deletions": "Only generated Insert/Update entries of company_dashboard_summary_v; its canonical wrapper is non-updatable",
+  "type_capture_assessment": "PASS: baseline generated bytes identical; output delta confined to five admin migrations; root owns review and import",
+  "before_schema_capture": {
+    "sha256": "526394fd2fcad5ea82f709fde21362e2a23355fb3bbc8079ba74501da863a830",
+    "fingerprint_sha256": "80b38d52f2585ca9825a01f860298d8201492a8635167ed0ce38ca04484037dd",
+    "raw_diff_vs_committed": "/tmp/gridex-admin-baseline-capture/schema.diff",
+    "raw_diff_sha256": "fe1100282f1550cbe5c80784b85c4b617a8ff0b87c5b93590a6158cfd36091ec",
+    "fingerprint": "d2740b81b84e414d0dfb9564de3df1741c08915493b78774caa88f38d4a90176"
+  },
+  "schema_capture_assessment": "DO NOT IMPORT as canonical schema/fingerprint: despite exact TS baseline equality, restored before fingerprint differs from committed columns/functions/function_grants/relation_grants/schema_grants/extensions. Identical committed hashes: constraints/enums/indexes/policies/relations/schemas/triggers. Metadata before-to-after is fully restricted to the five admin migrations and preserves existing owners; it does not recover original CI owner bindings.",
+  "ledger_provenance": "NONE; no ledger rows invented",
+  "clean_replay_upgrade_parity": "NOT_RUN; snapshot baseline restore is not canonical clean replay",
+  "native_ediel_or_browser_evidence": "NOT_RUN; no legal, transport or whole-ID credit",
+  "artifact_sha256": {
+    "database.types.raw.ts": "f7c47dcc2da81fb8b374b567144fe173f76aa4807e31289267e193c74821fe3b",
+    "database.types.ts": "8c16927a69246ce52b2ebdcce7740ec65d4d5599e5291c5aebc82f80b74635ff",
+    "schema.sql": "c1577a9f2df478aa0864b0ae388d5d0f639eab667e6a6736f6398f684b0a927f",
+    "schema.fingerprint.json": "204b50c16e9ac8c64b931904d4c2b6e253aeadbc2ff6dbd24fe9c24ea21a8ed0",
+    "database.types.diff": "28940c04be33987fb56ebac7d3b1cae028f0073270d99b4e658c3a2220ac9379",
+    "schema.upgrade.diff": "09a1d99113ccd32abf01212ed7772236c6335ab603aff2ce52e3f2691d094085",
+    "types-member-delta.json": "930805866bed2a6ed08362cb069744bef85be482015718f287d0d3ebf262157c",
+    "migration-apply.log": "f49033b32b14d6dc2af617c9566fbf3c65911c2ab1ca36882995d44d14f42731",
+    "typegen.log": "7cd6d8040fb592c14886c8ba766c82b9c7cd6fde1f088df649cfada9aff06011",
+    "catalog.json": "df7ce1e7d9219f5e665d29e3b0b556ed59f2d892120a0a55257816b662c753d5",
+    "owners.json": "5ea55e5f5470b5ce091cca571639742d3622b4308bc08ae69371d3f76964de19",
+    "catalog-upgrade-delta.json": "dc70ca630654d4eee4cd606165d44097db400c0e1895ff965e5bcab46f0c97e3",
+    "owner-acl-upgrade-delta.json": "e2df2e7bcd5264b62f179e9b9fc796163eb48a9d0ae2c34c60f96af86f253df7"
+  },
+  "bootstrap_and_capture_inputs": {
+    "scripts/sql/gridex-supabase-compatible-bootstrap.sql": "50980b20aab477f9fe7300072729274094df3e5a8591f07d6fad5f9d7b228839",
+    "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+    "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919",
+    "scripts/migration-history-manifest.json": "7aaee5b6e3666f172d92ff0166d3f0335ac2e6a9b82c8f23db0fac0e63a7598c"
+  },
+  "restore_script_sha256": "13505e4734bd21ee5bcd3eea5affca2cca82623cfa2dc4caafad98579f247b7f",
+  "restore_log_sha256": "78cea98f28c11fe76563dee5c6778250112b3826af5c1a486e3f768b086394aa",
+  "repo_artifacts_written": false,
+  "baseline_catalog": {
+    "path": "/tmp/gridex-admin-baseline-capture/catalog.json",
+    "sha256": "18a9dd0773cbfd7360614a23b1a874da8a6d62e62008e47db3993d5f6cb404e8",
+    "all_sections_match_original_before_capture": true,
+    "owners_path": "/tmp/gridex-admin-baseline-capture/owners.json",
+    "owners_sha256": "5362e4012c0ce629963478ce83fc893bd30f5f860b27202278091c3729f16c8e",
+    "committed_section_comparison_path": "/tmp/gridex-admin-baseline-capture/committed-fingerprint-section-comparison.json",
+    "committed_section_comparison_sha256": "d0a050e69ede17da1bec21dac75792763acd79fea42597553ea7847bbf08441c"
+  },
+  "owner_and_acl_upgrade_review": {
+    "existing_owner_changes": 0,
+    "existing_function_acl_changes": 0,
+    "existing_relation_acl_changes": [
+      "dashboard_alerts",
+      "data_quality_issues"
+    ],
+    "removed_authenticated_table_privileges": [
+      "INSERT",
+      "UPDATE",
+      "DELETE",
+      "TRUNCATE",
+      "REFERENCES",
+      "TRIGGER"
+    ],
+    "retained_authenticated_table_privileges": [
+      "SELECT",
+      "MAINTAIN"
+    ],
+    "outside_five_migration_delta": "No other existing catalog object change detected. Existing policies/schemas/extensions/enums unchanged; only declared portfolio/dashboard/builder bodies and summary view modified."
+  },
+  "committed_baseline_owner_metadata_limitation": "The committed fingerprint holds section hashes/counts only; its functions/relations introspection omits ownership. --no-owner schema cannot authenticate original security-definer ownership or implicit owner-grantee bindings. Do not infer them from rejected fallback output or guess corrections."
+}

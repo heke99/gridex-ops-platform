@@ -2,7 +2,7 @@ import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 // app/admin/metering/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import {
  listAllGridOwnerDataRequests,
  listAllMeteringValues,
@@ -30,7 +30,7 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  ])
  const query = (params.q ?? '').trim()
 
- const companyScope = await getOperationalCompanyScope(context.userId)
+ const companyScope = await resolveAdminSelectedCompanyReadScope(context)
  const companyId = companyScope.companyId
 
  const [requests, values] = await Promise.all([

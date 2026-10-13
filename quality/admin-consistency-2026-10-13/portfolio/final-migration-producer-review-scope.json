@@ -1,0 +1,90 @@
+{
+  "scope": "Bounded six-admin-migration review plus seventh source-forward review; root-authorized eighth guard implementation",
+  "reviewer": "portfolio_audit",
+  "coauthored_exclusions": [
+    "20261013094448 portfolio",
+    "20261013094648 canonical resolver",
+    "20261013100622 missing counts",
+    "forecastRuns and new platform forecast source guard",
+    "native type capture receipts",
+    "eighth private consumption forecast source guard and native/PGlite tests"
+  ],
+  "file_sha256": {
+    "supabase/migrations/20261013094448_customer_portfolio_consistency_repair.sql": "a51b29452212140d191064bd970572c1503ca0ef5a1e67ab7f40e831dc72b0e4",
+    "supabase/migrations/20261013094514_data_quality_lifecycle_consistency.sql": "ff0b71b3d3c754f1adcdf156b1281c913ef71f81d98614c6690b70d786d2efef",
+    "supabase/migrations/20261013094648_canonical_admin_application_work_items.sql": "6a8a0b9ecb0736f722beebb05ab203b2c966135adf56ba8031909d9096b25a06",
+    "supabase/migrations/20261013100622_customer_flow_integrity_and_empty_statistics.sql": "555543fbffbde43dba3b774ced3163d5aa49fabe4f87e812b654df4cc3d6257a",
+    "supabase/migrations/20261013110544_analytics_customer_missing_meter_scope.sql": "81722d768001d44c12099e179049f6b2c7e232034077cb1cf46553150901b771",
+    "supabase/migrations/20261013123314_manual_inbound_event_source_consistency.sql": "c85e3273a86eddf2dc2911d6c1ead843d3336770939f440cd5c6a89d4cf2f8fa",
+    "lib/analytics/dataQuality.ts": "022dd3f141ff905b1505b668d32fd722f7ed551f500d059bf86294b8f4e65ca3",
+    "lib/analytics/dataQualityRules.ts": "9ba6b0e2a510dab64c985965d7c567ae144de585d8caafea080b3d491248457f",
+    "lib/analytics/alerts.ts": "b445208e04b8093f5be721347acaa6bbbcc5b3fbbe6238543ea45dea2d253030",
+    "lib/analytics/db.ts": "65e1dbf304b2ed125ee385b1a4e0f459f6452e2c2f9d08b4bc008e0095fadee8",
+    "lib/analytics/monthlyMetricsBuilder.ts": "fefcfe8efcdfeade89be7da733ac365bb682fcdda7111be206e42cdbb7ac9e43",
+    "lib/analytics/biddingZoneResolver.ts": "a3e112616c600c39a0adf5a73ef18bb848729bb18a24b0b633eb73a83ea67d93",
+    "lib/forecasting/meteringPointForecast.ts": "2b708f50653bebb2e70d8f3d0491d495ed07eee27a0f5bff3d7d80241dad30b3",
+    "lib/forecasting/forecastRuns.ts": "735d0964e0378a58b99e801159ccf7444f736c2733078f78ced6eee47fb4345f",
+    "app/api/cron/forecast/run/route.ts": "59d7a3e503e5f42404633e8f4033cedbe530e5344ea2a471ec7c79716c03c05d",
+    "app/admin/platform/analytics/actions.ts": "b78a1d6a8736f1c07c29ec37d4b5c307235fdc19e507c92de61532c80d027e84",
+    "lib/inbound-mail/manualInboundIngestion.ts": "70f6120a1628c3e0e735033febd330f4a9670406e12d09c27c49eb3860b63772",
+    "__tests__/forecast-run-production-source.test.ts": "1ad7e3a36c8ac1317a50f8f08606649546c941a765ec048a17b8bc082f9dc619",
+    "supabase/migrations/20261013130700_operational_quality_customer_source_consistency.sql": "0b1638fbd4ab1eef82dc95d2064519e66f1bbb787a8213c9a705d1ddb1ea5732",
+    "supabase/migrations/20261013131746_consumption_forecast_customer_source_guard.sql": "6e06c41e8b7c4ccea41a0a960fb9c2a66149781fe638c3f3dd38c2180d39e3c1",
+    "__tests__/consumption-forecast-customer-source-guard.test.ts": "c1dc11b5a06bc9aebcabbec6f188a6edbdef77c971b95bb1eecb5f870f9e949b"
+  },
+  "checks": {
+    "migration_producer_tests": {
+      "artifact": "/tmp/gridex-final-migration-producer-review-tests.json",
+      "sha256": "b2c829b219010a7240dd229362f1ca3e19e09174afceabaa268094967060b976",
+      "passed": 69,
+      "failed": 0
+    },
+    "forecast_source_red": {
+      "artifact": "/tmp/gridex-forecast-production-source-red.json",
+      "sha256": "7df80bb39cb4184110f535db5a1b9da2b42901861443fcd0e7f9ece758ff2f74",
+      "passed": 0,
+      "failed": 7
+    },
+    "forecast_source_green": {
+      "artifact": "/tmp/gridex-forecast-production-source-green.json",
+      "sha256": "fe17aceb4a0a8592ad8c786ab7b2c4a9e2d158a8eb84f834fd5dc99711cd1bc9",
+      "passed": 24,
+      "failed": 0
+    },
+    "eighth_red": {
+      "artifact": "/tmp/gridex-consumption-source-guard-red.json",
+      "sha256": "8182ef411496ad0ed7dc031f507653113df5727d4a951eec6795994de395117b",
+      "passed": 4,
+      "failed": 4,
+      "success": false
+    },
+    "eighth_green": {
+      "artifact": "/tmp/gridex-consumption-source-guard-green.json",
+      "sha256": "96ad55fa9140739ab47bd2e136e24a109fb93d40c16a40bcc9ad165f9fdcba01",
+      "passed": 20,
+      "failed": 0,
+      "success": true
+    },
+    "seventh_independent_tests": {
+      "artifact": "/tmp/gridex-seventh-independent-source-review.json",
+      "sha256": "799a98a18f80e230a9c32cef6bd6f9b7c049407ef92c5df702c16a9cc3ca5959",
+      "passed": 3,
+      "failed": 0,
+      "success": true
+    }
+  },
+  "remaining_rollout_dependency": "DQI deployed expansion still retains both legacy status unique constraints; full RPC-writer cutover has not been verified by this reviewer",
+  "canonical_artifact_proof": "Repository database.types.ts byte-equals authentic six upgrade capture SHA256 53a93af0d55a8ea3e6dbaf9a55ae97f27a66312680b7daed82d1120995895710; no canonical schema/owner proof claimed",
+  "seventh_review": "Stable body read: source ancestry same-company only, invoker RLS preserved, physical validation retained, known actionable/scanner values exclude test ancestry; no additional blocker found",
+  "native_eighth_proof": {
+    "database": "local gridex_forecast_source_guard_review",
+    "proof_file": "/tmp/gridex-consumption-source-guard-native-proof.json",
+    "proof_sha256": "0536fde96bcf8b566b35b501e778f25c83d7204c16f1d2201aeef9281927a772",
+    "harness_file": "/tmp/gridex-consumption-source-guard-native.sql",
+    "harness_sha256": "43874656267e38c98fa87c2e7052cfa57d84d0605946ac6286ce90b984132085",
+    "log_sha256": "852783f1381227c48e7f46d80eb4b4ac139cdb61cf146d4c06bd761602b6b73f",
+    "result": "PASS",
+    "production_mutations": false
+  },
+  "app_typecheck": "Optional reviewer check stopped after >7min without diagnostics; exit143, no pass claim; root owns final application build"
+}

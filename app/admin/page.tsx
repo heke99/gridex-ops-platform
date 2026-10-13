@@ -7,6 +7,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getEdielSummary, type EdielSummary } from '@/lib/ediel/summary'
 import { getActiveEdielActorSettings } from '@/lib/ediel/config'
 import { getCompanyDashboardSummary } from '@/lib/performance/companySummaries'
@@ -112,6 +113,16 @@ async function safeCount(
  }
 }
 
+async function safePendingWebsiteApplicationCount(supabase: SupabaseClient, companyId?: string | null) {
+ try {
+ const { data, error } = await supabase.rpc('gridex_pending_website_application_count', { p_company_id: companyId ?? null })
+ if (error) return countFailure(error)
+ return Number(data ?? 0)
+ } catch (error) {
+ return countFailure(error)
+ }
+}
+
 function Pill({ tone, children }: { tone: 'emerald' | 'amber' | 'red' | 'slate'; children: ReactNode }) {
  const classes: Record<typeof tone, string> = {
  emerald: 'border-emerald-300 bg-emerald-100 text-emerald-900',
@@ -207,7 +218,11 @@ export default async function AdminDashboardPage() {
  const context = await requireAdminPageKeyAccess('dashboard')
  const isPlatformAdmin = isPlatformAdminContext(context)
  const supabase = await createSupabaseServerClient()
- const companyScope = await getOperationalCompanyScope(context.userId)
+ // Tenant metrics and actor reads must use the company whose permissions the
+ // canonical guard resolved. A legacy membership choice can select another one.
+ const companyScope = isPlatformAdmin
+  ? await getOperationalCompanyScope(context.userId)
+  : { ...(await resolveAdminTenantReadScope(context)), message: null }
  const companyId = companyScope.companyId
  // Platform admins must use the verified platform aggregate, not a selected tenant membership.
  // Keep companyId for actor/tenant-profile display; metrics use summaryCompanyId.
@@ -264,11 +279,11 @@ export default async function AdminDashboardPage() {
  dashboardSummary ? Promise.resolve(dashboardSummary.ongoingSupplierSwitches) : safeCount(supabase, 'supplier_switch_requests', summaryCompanyId, [{ column: 'status', op: 'in', value: ['draft', 'queued', 'submitted', 'accepted', 'cancellation_requested', 'cancellation_sent', 'manual_followup_required'] }]),
  dashboardSummary ? Promise.resolve(dashboardSummary.waitingForGridOwner) : safeCount(supabase, 'grid_owner_data_requests', summaryCompanyId, [{ column: 'status', op: 'in', value: ['sent', 'waiting_response', 'queued'] }]),
  dashboardSummary ? Promise.resolve(dashboardSummary.negativeAcknowledgements) : safeCount(supabase, 'ediel_messages', summaryCompanyId, [{ column: 'ack_outcome', value: 'negative' }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.missingMeteringValues) : safeCount(supabase, 'data_quality_issues', summaryCompanyId, [{ column: 'status', value: 'open' }, { column: 'issue_type', value: 'missing_metering_values' }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.missingMeteringValues) : safeCount(supabase, 'gridex_actionable_data_quality_issues_v', summaryCompanyId, [{ column: 'issue_type', value: 'missing_metering_values' }]),
  dashboardSummary ? Promise.resolve(dashboardSummary.customersActionRequired) : safeCount(supabase, 'customer_operation_tasks', summaryCompanyId, [{ column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] }]),
  dashboardSummary ? Promise.resolve(dashboardSummary.latestMeteringValues) : safeCount(supabase, 'metering_values', summaryCompanyId, [{ column: 'created_at', op: 'gte', value: latestMeteringSince }]),
  dashboardSummary ? Promise.resolve(dashboardSummary.upcomingTerminations) : safeCount(supabase, 'customer_contracts', summaryCompanyId, [{ column: 'ends_at', op: 'gte', value: today }, { column: 'ends_at', op: 'lte', value: inThirtyDays }]),
- dashboardSummary ? Promise.resolve(dashboardSummary.pendingCustomerApplications) : safeCount(supabase, 'external_contract_intakes', summaryCompanyId, [{ column: 'status', op: 'in', value: ['needs_review', 'partially_created', 'failed'] }]),
+ dashboardSummary ? Promise.resolve(dashboardSummary.pendingCustomerApplications) : safePendingWebsiteApplicationCount(supabase, summaryCompanyId),
  isPlatformAdmin
   ? typeof dashboardSummary?.companiesTotal === 'number'
    ? Promise.resolve(dashboardSummary.companiesTotal)

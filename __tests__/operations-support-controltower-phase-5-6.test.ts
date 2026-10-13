@@ -54,7 +54,7 @@ describe('Operations Autopilot phase 6 — exception-only Control Tower', () => 
     expect(source).toContain('exceptionCaseStatuses')
     expect(source).toContain("safeCount('customer_cases'")
     expect(source).toContain('Öppna avvikelsesignaler')
-    expect(source).toContain('Normal drift, godkända flöden och aktiva switchar utan problem räknas inte här.')
+    expect(source).toContain('Normal drift, godkända flöden och aktiva leverantörsbyten utan problem räknas inte här.')
     expect(source).not.toContain('Aktiva switchar')
     expect(source).not.toContain('switchOpen')
   })

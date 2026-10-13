@@ -22,10 +22,13 @@ import {
 import {
   intakeStatusLabel,
   sourceLabel,
-  gridOwnerVerificationLabel,
+  energyResolutionStatusLabel,
 } from '@/lib/customers/statusLabels'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listGridOwners } from '@/lib/masterdata/db'
+import { formatStatusLabel } from '@/lib/ui/format'
+import { portalContractTypeLabel } from '@/lib/customer-portal/labels'
+import { operationChannelLabel, operationTypeLabel } from '@/lib/operations/actionableStatus'
 
 const REVIEW_WRITE_PERMISSIONS = ['customers.write', 'switching.write', 'metering.write', 'poa.write']
 
@@ -103,7 +106,7 @@ function statusTone(status: string | null | undefined) {
 
 function sourceBadgeLabel(item: WebsiteApplicationAdminRow) {
   if (item.source_table === 'website_customer_applications') return 'Webbansökan'
-  if (item.source_table === 'external_contract_intakes') return 'Extern intake'
+  if (item.source_table === 'external_contract_intakes') return 'Extern ansökan'
   return sourceLabel(item.source ?? 'external_contract_intake')
 }
 
@@ -186,12 +189,15 @@ async function loadOperationalChain(item: WebsiteApplicationAdminRow) {
   const workflow = (workflowResult.data as unknown as JsonRecord | null) ?? null
   const workflowId = typeof workflow?.id === 'string' ? workflow.id : null
 
-  const [customer, site, meter, contract, gridOwnerRequest, customerInfoRequests, powerOfAttorneys, operationTasks, workflowEventsResult, workflowJobsResult] = await Promise.all([
+  const [customer, site, meter, contract, gridOwnerRequest, customerInfoRequest, matchReviewCase, operationTask, customerInfoRequests, powerOfAttorneys, operationTasks, workflowEventsResult, workflowJobsResult] = await Promise.all([
     maybeById('customers', item.company_id, item.customer_id, 'id,customer_number,status,full_name,company_name,email,phone,customer_type,source,intake_status,intake_missing_fields,intake_warnings,created_at,updated_at'),
     maybeById('customer_sites', item.company_id, item.customer_site_id, 'id,status,site_name,facility_id,street,postal_code,city,grid_owner_id,grid_area_code,price_area_code,move_in_date,created_at,updated_at'),
     maybeById('metering_points', item.company_id, item.metering_point_id, 'id,status,metering_point_id,meter_point_id,site_id,customer_site_id,site_facility_id,grid_area_code,price_area_code,verification_status,onboarding_status,created_at,updated_at'),
     maybeById('customer_contracts', item.company_id, item.contract_id, 'id,status,contract_name,contract_type,source_type,agreement_channel,starts_at,requested_start_date,confirmed_start_date,actual_start_date,created_at,updated_at'),
     maybeById('grid_owner_information_requests', item.company_id, item.grid_owner_information_request_id, 'id,status,dispatch_status,request_type,channel,grid_owner_id,grid_area_code,price_area,facility_id,metering_point_id,blocking_reasons,warnings,next_step,created_at,updated_at'),
+    maybeById('customer_info_requests', item.company_id, item.customer_info_request_id, 'id,customer_id,status,request_type,target_party_type,blocker_reason,created_at,updated_at'),
+    maybeById('customer_match_review_cases', item.company_id, item.customer_match_review_case_id, 'id,status,resolution_note,created_at,updated_at'),
+    maybeById('customer_operation_tasks', item.company_id, item.customer_operation_task_id, 'id,customer_id,status,priority,task_type,title,description,created_at,updated_at'),
     listByCustomer('customer_info_requests', item.company_id, item.customer_id, 'id,status,request_type,target_party_type,automation_origin,automation_key,created_at,updated_at', 8),
     listByCustomer('powers_of_attorney', item.company_id, item.customer_id, 'id,status,scope,source,created_at,signed_at,expires_at', 8),
     listByCustomer('customer_operation_tasks', item.company_id, item.customer_id, 'id,status,priority,task_type,title,description,created_at,updated_at', 8),
@@ -220,7 +226,20 @@ async function loadOperationalChain(item: WebsiteApplicationAdminRow) {
   const workflowEvents = workflowEventsResult.error ? [] : (((workflowEventsResult.data ?? []) as unknown) as JsonRecord[])
   const workflowJobs = workflowJobsResult.error ? [] : (((workflowJobsResult.data ?? []) as unknown) as JsonRecord[])
 
-  return { customer, site, meter, contract, gridOwnerRequest, customerInfoRequests, powerOfAttorneys, operationTasks, workflow, workflowEvents, workflowJobs }
+  return { customer, site, meter, contract, gridOwnerRequest, customerInfoRequest, matchReviewCase, operationTask, customerInfoRequests, powerOfAttorneys, operationTasks, workflow, workflowEvents, workflowJobs }
+}
+
+function chainFieldLabel(key: string, value: unknown): string {
+  const text = value === null || value === undefined ? null : String(value)
+  if (['status', 'state', 'dispatch_status', 'verification_status', 'onboarding_status'].includes(key)) {
+    return formatStatusLabel(text, '—', 'Behöver granskning')
+  }
+  if (key === 'intake_status') return intakeStatusLabel(text)
+  if (key === 'source' || key === 'source_type') return sourceLabel(text)
+  if (key === 'contract_type') return portalContractTypeLabel(text)
+  if (key === 'request_type') return operationTypeLabel(text, 'Uppgiftsbegäran')
+  if (key === 'channel') return operationChannelLabel(text)
+  return text ?? '—'
 }
 
 function ChainCard({ title, row, fields, href }: { title: string; row: JsonRecord | null; fields: Array<[string, string]>; href?: string }) {
@@ -241,7 +260,7 @@ function ChainCard({ title, row, fields, href }: { title: string; row: JsonRecor
           {fields.map(([label, key]) => (
             <div key={key} className="rounded-2xl bg-slate-50 px-4 py-3">
               <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</dt>
-              <dd className="mt-1 break-words font-semibold text-slate-900">{String(row[key] ?? '—')}</dd>
+              <dd className="mt-1 break-words font-semibold text-slate-900">{chainFieldLabel(key, row[key])}</dd>
             </div>
           ))}
         </dl>
@@ -270,8 +289,8 @@ function Timeline({ item, chain, showTechnicalDetails }: { item: WebsiteApplicat
     item.contract_id ? { title: 'Avtal kopplat', status: String(chain.contract?.status ?? 'created'), date: String(chain.contract?.created_at ?? item.updated_at ?? item.created_at), detail: item.contract_id } : null,
     item.grid_owner_information_request_id ? { title: 'Uppgiftsbegäran/nätägare', status: String(chain.gridOwnerRequest?.status ?? 'created'), date: String(chain.gridOwnerRequest?.created_at ?? item.updated_at ?? item.created_at), detail: item.grid_owner_information_request_id } : null,
     ...(Array.isArray(item.timeline) ? item.timeline.map((entry) => isRecord(entry) ? {
-      title: String(entry.label ?? entry.type ?? 'Händelse'),
-      status: String(entry.type ?? item.status),
+      title: String(entry.label ?? 'Händelse'),
+      status: String(entry.status ?? item.status),
       date: String(entry.occurred_at ?? item.updated_at ?? item.created_at),
       detail: showTechnicalDetails && isRecord(entry.metadata) ? JSON.stringify(entry.metadata) : '',
     } : null) : []),
@@ -285,7 +304,7 @@ function Timeline({ item, chain, showTechnicalDetails }: { item: WebsiteApplicat
           <div key={`${event.title}-${index}`} className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-semibold text-slate-950">{event.title}</p>
-              <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(event.status)}`}>{intakeStatusLabel(event.status)}</span>
+              <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(event.status)}`}>{formatStatusLabel(event.status, '—', intakeStatusLabel(event.status))}</span>
             </div>
             <p className="mt-1 text-xs text-slate-500">{formatDate(event.date)}</p>
             <p className="mt-1 break-words text-sm text-slate-700">{event.detail}</p>
@@ -306,7 +325,7 @@ function ReviewForm({ item, isPlatformAdmin, canWrite, gridOwners }: { item: Web
   if (item.source_table === 'external_contract_intakes') {
     return (
       <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
-        Den här posten kommer direkt från <code>external_contract_intakes</code>. Actions är låsta här för att undvika att ett external-ID skickas till actions som kräver <code>website_customer_applications.id</code>.
+        Den här ansökan kan inte ändras här. Fortsätt granskningen på kundkortet om en kund är kopplad, eller kontakta supporten.
       </div>
     )
   }
@@ -387,7 +406,7 @@ function ReviewForm({ item, isPlatformAdmin, canWrite, gridOwners }: { item: Web
   )
 }
 
-function RelatedRows({ title, rows }: { title: string; rows: JsonRecord[] }) {
+function RelatedRows({ title, rows, showTechnicalDetails = false }: { title: string; rows: JsonRecord[]; showTechnicalDetails?: boolean }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <h2 className="text-base font-semibold text-slate-950">{title}</h2>
@@ -396,10 +415,11 @@ function RelatedRows({ title, rows }: { title: string; rows: JsonRecord[] }) {
         {rows.map((row) => (
           <div key={String(row.id)} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-mono text-xs text-slate-500">{String(row.id)}</p>
-              <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(String(row.status ?? ''))}`}>{intakeStatusLabel(String(row.status ?? ''))}</span>
+              {showTechnicalDetails ? <p className="font-mono text-xs text-slate-500">{String(row.id)}</p> : null}
+              <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(String(row.status ?? ''))}`}>{formatStatusLabel(typeof row.status === 'string' ? row.status : null, '—', 'Behöver granskning')}</span>
             </div>
-            <p className="mt-2 font-semibold text-slate-950">{String(row.title ?? row.event_code ?? row.job_type ?? row.request_type ?? row.task_type ?? row.source ?? 'Rad')}</p>
+            <p className="mt-2 font-semibold text-slate-950">{String(row.title ?? operationTypeLabel(row.job_type ?? row.request_type ?? row.task_type, title))}</p>
+            {showTechnicalDetails ? <p className="mt-1 break-words font-mono text-xs text-slate-500">{String(row.event_code ?? row.job_type ?? row.request_type ?? row.task_type ?? row.source ?? '')}</p> : null}
             <p className="mt-1 text-xs text-slate-500">{formatDate(String(row.created_at ?? ''))}</p>
           </div>
         ))}
@@ -504,8 +524,8 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
           </div>
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm text-slate-600">Uppgiftsbegäran</p>
-            <p className="mt-2 font-semibold text-slate-950">{item.grid_owner_information_request_id ?? 'Ej skapad'}</p>
-            <p className="mt-1 text-xs text-slate-500">{gridOwnerVerificationLabel(item.resolution_status ?? null)}</p>
+            <p className="mt-2 font-semibold text-slate-950">{item.grid_owner_information_request_id ?? item.customer_info_request_id ?? 'Ej skapad'}</p>
+            <p className="mt-1 text-xs text-slate-500">{energyResolutionStatusLabel(item.resolution_status ?? null)}</p>
           </div>
         </div>
       </section>
@@ -519,13 +539,13 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
 
       <section className="grid gap-5 lg:grid-cols-2">
         <ChainCard title="Kund" row={chain.customer} href={item.customer_id ? `/admin/customers/${item.customer_id}` : undefined} fields={[
-          ['Status', 'status'], ['Kundnummer', 'customer_number'], ['Källa', 'source'], ['Intake-status', 'intake_status'], ['Skapad', 'created_at'], ['Uppdaterad', 'updated_at'],
+          ['Status', 'status'], ['Kundnummer', 'customer_number'], ['Källa', 'source'], ['Registreringsstatus', 'intake_status'], ['Skapad', 'created_at'], ['Uppdaterad', 'updated_at'],
         ]} />
         <ChainCard title="Anläggning" row={chain.site} fields={[
           ['Status', 'status'], ['Anläggnings-ID', 'facility_id'], ['Adress', 'street'], ['Nätområde', 'grid_area_code'], ['Elområde', 'price_area_code'], ['Nätägare', 'grid_owner_id'],
         ]} />
         <ChainCard title="Mätpunkt" row={chain.meter} fields={[
-          ['Status', 'status'], ['Mätpunkt', 'metering_point_id'], ['Mätpunkts-ID (alternativt)', 'meter_point_id'], ['Anläggnings-ID', 'site_facility_id'], ['Verifiering', 'verification_status'], ['Onboarding', 'onboarding_status'],
+          ['Status', 'status'], ['Mätpunkt', 'metering_point_id'], ['Mätpunkts-ID (alternativt)', 'meter_point_id'], ['Anläggnings-ID', 'site_facility_id'], ['Verifiering', 'verification_status'], ['Uppstart', 'onboarding_status'],
         ]} />
         <ChainCard title="Avtal" row={chain.contract} href={item.customer_id && item.contract_id ? `/admin/customers/${item.customer_id}?tab=contracts` : undefined} fields={[
           ['Status', 'status'], ['Avtalsnamn', 'contract_name'], ['Typ', 'contract_type'], ['Källa', 'source_type'], ['Start', 'starts_at'], ['Önskad start', 'requested_start_date'],
@@ -534,13 +554,22 @@ export default async function WebsiteApplicationDetailPage({ params, searchParam
           ['Status', 'state'], ['Nästa åtgärd', 'next_action'], ['Version', 'workflow_version'], ['Senaste övergång', 'last_transition_at'], ['Continuation-jobb', 'last_job_id'], ['Operation', 'operation_id'],
         ]} /> : null}
         <ChainCard title="Nätägarbegäran" row={chain.gridOwnerRequest} fields={[
-          ['Status', 'status'], ['Dispatch', 'dispatch_status'], ['Typ', 'request_type'], ['Kanal', 'channel'], ['Nätområde', 'grid_area_code'], ['Elområde', 'price_area'],
+          ['Status', 'status'], ['Utskick', 'dispatch_status'], ['Typ', 'request_type'], ['Kanal', 'channel'], ['Nätområde', 'grid_area_code'], ['Elområde', 'price_area'],
         ]} />
+        {item.customer_info_request_id ? <ChainCard title="Kopplad uppgiftsbegäran" row={chain.customerInfoRequest} fields={[
+          ['Status', 'status'], ['Typ', 'request_type'], ['Behöver kompletteras', 'blocker_reason'],
+        ]} /> : null}
+        {item.customer_match_review_case_id ? <ChainCard title="Dubblettgranskning" row={chain.matchReviewCase} fields={[
+          ['Status', 'status'], ['Granskningsnotering', 'resolution_note'],
+        ]} /> : null}
+        {item.customer_operation_task_id ? <ChainCard title="Kopplat driftärende" row={chain.operationTask} fields={[
+          ['Status', 'status'], ['Ärende', 'title'], ['Nästa steg', 'description'],
+        ]} /> : null}
         <RelatedRows title="Uppgiftsbegäranden" rows={chain.customerInfoRequests} />
         <RelatedRows title="Fullmakter" rows={chain.powerOfAttorneys} />
-        <RelatedRows title="Operationsuppgifter" rows={chain.operationTasks} />
-        {isPlatformAdmin ? <RelatedRows title="Workflowhändelser" rows={chain.workflowEvents} /> : null}
-        {isPlatformAdmin ? <RelatedRows title="Workflowjobb" rows={chain.workflowJobs} /> : null}
+        <RelatedRows title="Driftuppgifter" rows={chain.operationTasks} />
+        {isPlatformAdmin ? <RelatedRows title="Workflowhändelser" rows={chain.workflowEvents} showTechnicalDetails /> : null}
+        {isPlatformAdmin ? <RelatedRows title="Workflowjobb" rows={chain.workflowJobs} showTechnicalDetails /> : null}
       </section>
 
       {isPlatformAdmin ? (

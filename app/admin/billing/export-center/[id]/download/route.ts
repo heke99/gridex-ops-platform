@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import {
   BillingExportNotFoundError,
   buildBillingExportFile,
@@ -16,12 +15,8 @@ type RouteProps = {
 
 export async function GET(request: NextRequest, { params }: RouteProps) {
   const admin = await requireAdminPageKeyAccess('billing.export_center')
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
   const isPlatformAdmin = isPlatformAdminContext(admin)
-  const scope = !isPlatformAdmin && user ? await getOperationalCompanyScope(user.id) : null
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const companyId = isPlatformAdmin ? null : scope?.companyId ?? null
   if (!isPlatformAdmin && !companyId) return new NextResponse('Bolag saknas.', { status: 403 })
   if (!admin.permissions.includes('billing_underlay.export') && !admin.permissions.includes('billing_underlay.read')) {

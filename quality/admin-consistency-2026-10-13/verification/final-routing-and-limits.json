@@ -1,0 +1,11 @@
+{
+  "skills": {
+    "react_review": "Applied component/server data boundary, request-specific auth scope, safe status maps and scoped reads checklist; no layout redesign or client-fetch waterfall introduced",
+    "supabase_and_postgres": "Applied invoker RLS, service-only atomic writers, tenant composite FKs, null-safe open identity, preserved history and evidence-scoped resolution",
+    "security_tools": "ggshield, Semgrep and CodeQL CLIs not configured in execution environment. No credentials were added to source. Full credential scan NOT_RUN; no substitute scanner or hook installed",
+    "finishing_branch": "Draft PR is the concrete reversible delivery. Full-suite incompleteness and CI checks remain explicit; no merge/deploy or all-green claim"
+  },
+  "authenticated_browser": "NOT_RUN; no real session supplied",
+  "canonical_schema_capture": "Pending authentic CI capture; incomplete-owner local fallback intentionally rejected",
+  "scope": "Customer-flow/admin remediation; no Ediel whole-ID certification or global campaign ownership changed"
+}

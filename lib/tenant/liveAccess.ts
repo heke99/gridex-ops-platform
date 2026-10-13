@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import { isPlatformAdminContext, type GuardResult } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { isCompanyProductionApproved } from '@/lib/tenant/companyProductionStatus'
-import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
+import { isMissingRelationError } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 
 export type TenantLiveAccess = {
   companyId: string | null
@@ -29,7 +30,7 @@ function isLiveCompany(row: CanonicalLiveCompanyRow | null): boolean {
   return isCompanyProductionApproved(row ?? {})
 }
 
-export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'userId' | 'roles' | 'permissions'>): Promise<TenantLiveAccess> {
+export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'userId' | 'roles' | 'permissions'> & Partial<Pick<GuardResult, 'companyId' | 'isPlatformAdmin'>>): Promise<TenantLiveAccess> {
   if (isPlatformAdminContext(admin)) {
     return {
       companyId: null,
@@ -43,7 +44,7 @@ export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'user
     }
   }
 
-  const scope = await getOperationalCompanyScope(admin.userId)
+  const scope = await resolveAdminSelectedCompanyReadScope(admin)
   if (!scope.companyId) {
     return {
       companyId: null,
@@ -53,7 +54,7 @@ export async function getTenantLiveAccessForAdmin(admin: Pick<GuardResult, 'user
       productionStatus: null,
       liveApprovedAt: null,
       liveBlockedReason: null,
-      message: scope.message ?? 'Kontot saknar aktiv bolagskoppling.',
+      message: 'Kontot saknar aktiv bolagskoppling.',
     }
   }
 

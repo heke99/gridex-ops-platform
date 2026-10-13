@@ -1,8 +1,7 @@
 import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
 import {
   reprocessInvoiceProviderEventsAction,
@@ -42,11 +41,7 @@ export default async function BillingIntegrationsPage({
 }) {
   const notice = PROVIDER_NOTICES[(await searchParams).provider ?? ''] ?? null
   const admin = await requireAdminPageKeyAccess('billing.workspace')
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const scope = user ? await getOperationalCompanyScope(user.id) : null
+  const scope = await resolveAdminSelectedCompanyReadScope(admin)
   const connections = await safeListRows(
     'billing_provider_connections',
     scope?.companyId ?? null,

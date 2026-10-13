@@ -2,7 +2,7 @@ import Link from "next/link";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { requireAdminPageAccess } from "@/lib/admin/guards";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getOperationalCompanyScope } from "@/lib/tenant/scope";
+import { resolveAdminSelectedCompanyReadScope } from "@/lib/tenant/adminScope";
 import {
   createCustomerFromImportRowAction,
   linkCustomerImportRowToExistingCustomerAction,
@@ -135,9 +135,9 @@ export default async function CustomerImportQueuePage() {
   const access = await requireAdminPageAccess({
     anyOf: ["customers.write", "customers.read", "masterdata.read"],
   });
+  const companyScope = await resolveAdminSelectedCompanyReadScope(access);
   const supabase = await createSupabaseServerClient();
   const { data: authResult } = await supabase.auth.getUser();
-  const companyScope = await getOperationalCompanyScope(access.userId);
 
   let batchQuery = supabase
     .from("customer_import_batches")

@@ -1,0 +1,35 @@
+{
+  "migration": "20261013140502_manual_inbound_retired_source_consistency.sql",
+  "sha256": "d68f09fa4ab18d62fbffa8c412d8fa53fa1db3d58e53ed519f45af1fc145fee0",
+  "creation": "Supabase CLI migration new manual_inbound_retired_source_consistency",
+  "scope": "Only known manual source replay after authorized deletion; no blanket empty-customer or new source-mode gating",
+  "public_api": {
+    "name": "gridex_manual_inbound_source_retired_v1",
+    "parameters": {
+      "p_mailbox": "text",
+      "p_provider_id": "text"
+    },
+    "returns": "boolean",
+    "access": "service_role EXEC plus explicit auth.role guard"
+  },
+  "key": "builtin sha256(convert_to(jsonb_build_array(lower(btrim(mailbox)),btrim(provider_id))::text,UTF8)), bytea32",
+  "private_state": "gridex_manual_inbound.retired_source_keys(source_key,retired_at); hash only, immutable UPDATE/DELETE/TRUNCATE, RLS/service readonly",
+  "retirement": "BEFORE DELETE stores only OLD stable key under same advisory transaction lock as INSERT/lookup; original source DELETE privileges/RLS untouched",
+  "direct_writer_guard": "BEFORE INSERT retired exact key raises23514 MESSAGE manual_inbound_source_retired; VOLATILE SPI fresh snapshot after lock wait",
+  "migration_existing_row_changes": "none: no retire/delete/backfill",
+  "tests": {
+    "pglite": {
+      "passed": 8,
+      "total": 8,
+      "replays": 2,
+      "duration_seconds": 13.21,
+      "red_actual_bug": "After physical-source DELETE an otherwise identical raw INSERT succeeded before migration"
+    },
+    "native_static": "PostgreSQL17.5 exact source DDL/unique provider index, unchanged source grants/RLS, no existing-row retirement, own-delete vs foreign RLS denial, exact/fresh keys, double replay, private ACL, immutable owner-delete passed",
+    "native_multi_connection": "Separate local fixture, INSERT waited1.022seconds then23514; service lookup waited1.042seconds then true; raw rows0 both; VOLATILE post-wait visibility proved",
+    "lint": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": "Native policy is an owned-row fixture; authentic full-schema replay/type capture/live execution are root-owned. No live data/schema mutations by preparer.",
+  "source_frozen": true
+}

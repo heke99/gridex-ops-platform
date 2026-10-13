@@ -5,6 +5,8 @@ import { getAdminPageRequirement, hasPermissionRequirement } from '@/lib/admin/a
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
+import { customerCaseTypeLabel } from '@/lib/customer-cases/db'
+import { formatStatusLabel } from '@/lib/ui/format'
 import {
   createControlTowerCasesAction,
   resolveControlTowerQueueItemAction,
@@ -123,7 +125,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
         <section className={`rounded-3xl border p-6 shadow-sm ${exceptionSignals > 0 ? toneClass('warning') : toneClass('success')}`}>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-75">Öppna avvikelsesignaler</p>
           <p className="mt-2 text-4xl font-semibold">{exceptionSignals}</p>
-          <p className="mt-2 text-sm">Normal drift, godkända flöden och aktiva switchar utan problem räknas inte här.</p>
+          <p className="mt-2 text-sm">Normal drift, godkända flöden och aktiva leverantörsbyten utan problem räknas inte här.</p>
         </section>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -131,35 +133,35 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
           <StatCard label="Hög prioritet" value={highTasks} href="/admin/operations/tasks" tone={highTasks > 0 ? 'danger' : 'success'} />
           <StatCard label="Kundärenden (alla källor)" value={customerCases} tone={customerCases > 0 ? 'warning' : 'success'} />
           <StatCard label="Öppna Ediel-ärenden" value={edielCases} href={canReadCases ? '/admin/ediel/operational-cases?view=exceptions' : undefined} tone={edielCases > 0 ? 'warning' : 'success'} />
-          <StatCard label="Blockerade switchar" value={switchBlocked} href="/admin/operations/switches" tone={switchBlocked > 0 ? 'danger' : 'success'} />
-          <StatCard label="Outbound fel" value={outboundFailed} href="/admin/outbound" tone={outboundFailed > 0 ? 'danger' : 'success'} />
-          <StatCard label="Saknar route" value={outboundUnresolved} href="/admin/outbound/unresolved" tone={outboundUnresolved > 0 ? 'warning' : 'success'} />
+          <StatCard label="Blockerade leverantörsbyten" value={switchBlocked} href="/admin/operations/switches" tone={switchBlocked > 0 ? 'danger' : 'success'} />
+          <StatCard label="Utskick med fel" value={outboundFailed} href="/admin/outbound" tone={outboundFailed > 0 ? 'danger' : 'success'} />
+          <StatCard label="Utskicksväg saknas" value={outboundUnresolved} href="/admin/outbound/unresolved" tone={outboundUnresolved > 0 ? 'warning' : 'success'} />
           <StatCard label="Mätvärdesluckor" value={meteringGaps} href="/admin/outbound/missing-meter-values" tone={meteringGaps > 0 ? 'warning' : 'success'} />
           <StatCard label="Faktura blockerad" value={blockedBilling} href="/admin/billing/export-center" tone={blockedBilling > 0 ? 'danger' : 'success'} />
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-slate-950">Kräver åtgärd</h2><p className="mt-1 text-sm text-slate-600">Endast exception-statusar från drift, support och driftköer.</p></div><Link href="/admin/operations/tasks" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Öppna driftkö</Link></div>
+            <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold text-slate-950">Kräver åtgärd</h2><p className="mt-1 text-sm text-slate-600">Ärenden och driftuppgifter som behöver åtgärdas.</p></div><Link href="/admin/operations/tasks" className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Öppna driftkö</Link></div>
             <div className="mt-5 space-y-3">
-              {recentTasks.length === 0 && recentCustomerCases.length === 0 && queueRows.length === 0 ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga öppna avvikelser hittades för valt scope.</p> : null}
+              {recentTasks.length === 0 && recentCustomerCases.length === 0 && queueRows.length === 0 ? <p className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga öppna avvikelser hittades för valt bolag.</p> : null}
               {recentCustomerCases.map((row) => {
                 const href = row.source === 'ediel_inbound_state_machine'
                   ? (canReadCases ? `/admin/ediel/operational-cases?caseId=${encodeURIComponent(row.id)}` : null)
                   : ((row.metadata?.support_case === true || String(row.source ?? '').startsWith('tenant_support_')) && canReadSupport ? '/admin/customer-cases' : null)
-                const content = <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? 'Kundärende'}</p><p className="mt-1 text-xs text-slate-500">{row.reason_category ?? 'ärende'} · {formatDate(row.created_at)}</p>{row.source === 'ediel_inbound_state_machine' && !canReadCases ? <p className="mt-1 text-xs text-slate-600">Ärendedetaljer kräver ärendeläsbehörighet.</p> : null}</div><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority ?? 'normal'} · {row.status ?? 'open'}</span></div>
+                const content = <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? 'Kundärende'}</p><p className="mt-1 text-xs text-slate-500">{customerCaseTypeLabel(row.reason_category)} · {formatDate(row.created_at)}</p>{row.source === 'ediel_inbound_state_machine' && !canReadCases ? <p className="mt-1 text-xs text-slate-600">Ärendedetaljer kräver ärendeläsbehörighet.</p> : null}</div><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority ?? 'normal', 'Normal', 'Behöver granskning')} · {formatStatusLabel(row.status ?? 'open', 'Öppen', 'Behöver granskning')}</span></div>
                 return href ? <Link key={`case-${row.id}`} href={href} className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">{content}</Link> : <article key={`case-${row.id}`} className="rounded-2xl border border-slate-200 p-4">{content}</article>
               })}
-              {recentTasks.map((row) => <Link key={`task-${row.id}`} href="/admin/operations/tasks" className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50"><div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold text-slate-950">{row.title ?? 'Driftuppgift'}</p><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority ?? 'normal'} · {row.status ?? 'open'}</span></div><p className="mt-2 text-xs text-slate-500">{formatDate(row.created_at)}</p></Link>)}
+              {recentTasks.map((row) => <Link key={`task-${row.id}`} href="/admin/operations/tasks" className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50"><div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold text-slate-950">{row.title ?? 'Driftuppgift'}</p><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority ?? 'normal', 'Normal', 'Behöver granskning')} · {formatStatusLabel(row.status ?? 'open', 'Öppen', 'Behöver granskning')}</span></div><p className="mt-2 text-xs text-slate-500">{formatDate(row.created_at)}</p></Link>)}
               {queueRows.map((row) => <form key={`${row.queue_type}-${row.source_id}`} action={resolveControlTowerQueueItemAction} className="rounded-2xl border border-slate-200 p-4"><input type="hidden" name="company_id" value={row.company_id ?? ''} /><input type="hidden" name="queue_type" value={row.queue_type ?? ''} /><input type="hidden" name="source_id" value={row.source_id ?? ''} /><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? row.queue_type ?? 'Driftkö'}</p><p className="mt-1 text-xs text-slate-500">{SEVERITY_LABEL[row.severity ?? 'info'] ?? 'Info'} · {formatDate(row.created_at)}</p></div><button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Markera hanterad</button></div></form>)}
             </div>
           </div>
 
           <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Snabbåtgärder</h2>
-            <form action={runControlTowerPeriodMotorAction} className="rounded-2xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-900">Kör periodmotor</p><p className="mt-1 text-xs text-slate-600">Skapar saknade mätvärdesluckor, outbound och driftuppgifter där underlag saknas.</p><div className="mt-3 grid gap-2"><input name="start_month" placeholder="Startmånad, t.ex. 2026-01" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /><input name="end_month" placeholder="Slutmånad, t.ex. 2026-05" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div><button className="mt-3 w-full rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Kör</button></form>
+            <form action={runControlTowerPeriodMotorAction} className="rounded-2xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-900">Kör periodmotor</p><p className="mt-1 text-xs text-slate-600">Identifierar mätvärdesluckor och skapar utskick och driftuppgifter där underlag saknas.</p><div className="mt-3 grid gap-2"><input name="start_month" placeholder="Startmånad, t.ex. 2026-01" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /><input name="end_month" placeholder="Slutmånad, t.ex. 2026-05" className="rounded-xl border border-slate-300 px-3 py-2 text-sm" /></div><button className="mt-3 w-full rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Kör</button></form>
             <form action={createControlTowerCasesAction} className="rounded-2xl border border-slate-200 p-4"><p className="text-sm font-semibold text-slate-900">Skapa driftuppgifter från köer</p><p className="mt-1 text-xs text-slate-600">Återanvänder befintliga driftuppgifter och skapar bara där det saknas.</p><button className="mt-3 w-full rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">Skapa/uppdatera driftuppgifter</button></form>
-            {canReadSupport ? <Link href="/admin/customer-cases" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Öppna tenant-support →</Link> : null}
+            {canReadSupport ? <Link href="/admin/customer-cases" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Öppna supportärenden →</Link> : null}
           </aside>
         </section>
       </main>
