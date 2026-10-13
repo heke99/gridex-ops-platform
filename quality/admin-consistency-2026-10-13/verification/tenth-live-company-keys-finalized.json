@@ -1,0 +1,98 @@
+{
+  "kind": "actual_live_company_key_finalization",
+  "canonical_tenth_source_sha256": "9aa65266e97f3f3482275e8998d922eadfbc9f21ba58c692ae4b5ed496c5d772",
+  "state": [
+    {
+      "state": {
+        "indexes": [
+          {
+            "name": "data_quality_issues_open_key_uidx",
+            "definition": "CREATE UNIQUE INDEX data_quality_issues_open_key_uidx ON public.data_quality_issues USING btree (company_id, open_key)"
+          },
+          {
+            "name": "dashboard_alerts_open_key_uidx",
+            "definition": "CREATE UNIQUE INDEX dashboard_alerts_open_key_uidx ON public.dashboard_alerts USING btree (company_id, open_key)"
+          }
+        ],
+        "writers": [
+          {
+            "body_md5": "35e77f99993c61767e2ae99583cbd8e8",
+            "signature": "gridex_upsert_data_quality_issue_v1(uuid,uuid,text,text,text,date)",
+            "new_targets": 1,
+            "old_targets": 0
+          },
+          {
+            "body_md5": "29df95a4d8240c493f10de36b762f1af",
+            "signature": "gridex_upsert_dashboard_alert_v1(uuid,text,text,text,text,text,uuid,text)",
+            "new_targets": 1,
+            "old_targets": 0
+          },
+          {
+            "body_md5": "b846cdceecf7811c754a48c41496b2a4",
+            "signature": "gridex_reconcile_dashboard_alerts_internal_v1(uuid)",
+            "new_targets": 2,
+            "old_targets": 0
+          },
+          {
+            "body_md5": "87df98b11787c478271e9d66f5ed63c3",
+            "signature": "gridex_scan_data_quality_v1(uuid,date,uuid)",
+            "new_targets": 1,
+            "old_targets": 0
+          }
+        ],
+        "legacy_constraints": 2
+      }
+    }
+  ],
+  "empty_assertion": [
+    {
+      "result": "all_reviewed_customer_flows_empty",
+      "empty_graph_tables": 140,
+      "zero_reviewed_scopes": 17
+    }
+  ],
+  "function_metadata": [
+    {
+      "signature": "gridex_reconcile_dashboard_alerts_internal_v1(uuid)",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=public, pg_temp"
+      ],
+      "provolatile": "v"
+    },
+    {
+      "signature": "gridex_scan_data_quality_v1(uuid,date,uuid)",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=public, pg_temp"
+      ],
+      "provolatile": "v"
+    },
+    {
+      "signature": "gridex_upsert_dashboard_alert_v1(uuid,text,text,text,text,text,uuid,text)",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=public, pg_temp"
+      ],
+      "provolatile": "v"
+    },
+    {
+      "signature": "gridex_upsert_data_quality_issue_v1(uuid,uuid,text,text,text,date)",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=public, pg_temp"
+      ],
+      "provolatile": "v"
+    }
+  ],
+  "execution": "Compatible staged DDL; predecessor indexes removed via authorized idempotent DROP INDEX IF EXISTS; replacement indexes renamed to canonical names. No row deletion in index finalization.",
+  "legacy_two_constraints": "RETAINED_PENDING_COMPATIBLE_APPLICATION_DEPLOYMENT_AND_DRAIN"
+}

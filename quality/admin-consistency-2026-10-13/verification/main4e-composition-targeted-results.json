@@ -1,0 +1,22 @@
+{
+  "source_head": "52a348c8d113f79a9884324c470949f8423c821a",
+  "incoming_main": "4e52854ecc19f0bd1266825cb114c19a3e983f27",
+  "kind": "local_targeted_composition_verification_not_full_release_qualification",
+  "targeted_cases": {
+    "eight_initial_files": "157 passed",
+    "historical_H_fixture_after_fetch": "25 passed",
+    "total_passed": 182,
+    "initial_H_failure": "Required immutable git source99b10 unavailable in local checkout; fetched authentic source without source edits, rerun25passed."
+  },
+  "application_typecheck": "PASS",
+  "migration_integrity_contract_types_check": "PASS",
+  "required_current_head_ci": "PENDING",
+  "authentic_composed_schema_capture": "PASS:subsequent capture38467254556 exact52a source/tree/eight inputs/raw3 verified; final required CI remains separate",
+  "production_cutover": "PENDING; current production contains unmerged API runtime fixes fromPR794; preserve before replacement",
+  "logs": [
+    "/tmp/gridex-main4e-admin-composition-tests.log",
+    "/tmp/gridex-main4e-admin-h-history-fetched.log",
+    "/tmp/gridex-main4e-admin-typecheck.log",
+    "/tmp/gridex-main4e-admin-migrations.log"
+  ]
+}

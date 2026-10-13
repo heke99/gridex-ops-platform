@@ -1,6 +1,6 @@
 {
   "task": "admin-consistency-remediation",
-  "status": "AUTHENTIC_TEN_FORWARD_CAPTURE_IMPORTED_CURRENT_CI_AND_LIVE_FINALIZE_PENDING",
+  "status": "AUTHENTIC_MAIN4E_TEN_CAPTURE_IMPORTED_FINAL_CI_PENDING_PRODUCTION_API_INTEGRATION_REQUIRED",
   "date": "2026-10-13",
   "initial_source_head": "51f5fa5e80c42350d697bfed42520672749d4467",
   "delivery_base": "95d8d160491e79b172342654d8dc643346758105",
@@ -20,13 +20,14 @@
     "dashboard_alerts": 0,
     "missing_meter_counts": 0,
     "empty_monthly_rebuilds_skip": true,
-    "forward_migrations_applied": 9,
+    "forward_migrations_applied": 10,
     "dqi_expand_only_until_new_app_deployment": true,
-    "latest_full_empty_assertion": "PASS approximately17:09UTC:140 empty customer graph tables and17zero reviewed scopes; no additional source recreation observed since16:10 verification.",
+    "latest_full_empty_assertion": "PASS approximately20:50UTC after completed live10 company-key finalization:140emptycustomergraphtables/17zero reviewedscopes",
     "retired_source_hashes": 2,
     "manual_inbound_messages": 0,
-    "tenth_forward_pending": true,
-    "tenth_compatible_expansion": "Both compound and singleton indexes coexist; all4latest writer functions switched to canonical company targets with exact body/metadata checks. DROP/rename attempts expired requestState; finalization and2legacycutover remain pending."
+    "tenth_forward_pending": false,
+    "tenth_compatible_expansion": "COMPLETE:both canonical indexes explicitly UNIQUE(company_id,open_key), redundant singleton indexes removed, all4currentwriters/5targets verified and metadata preserved. Only2legacy five-column compatibility constraints remain until compatible app deploy/drain.",
+    "migration_count_scope": "Ten source-forward effects; ninth and tenth installed through verified granular DDL ledger stages, not ten canonical-name ledger entries."
   },
   "verification": {
     "targeted_runtime_and_native_sql": "Passed; domain receipts in subdirectories",
@@ -65,7 +66,20 @@
     "tenth_forward": "19/19 latest-source lifecyclePASS; native two-company fixturePASS and uncapped5001 PostgreSQLPASS; two independent exact-source reviews; manifests/migration legal/contract/type integrityPASS.",
     "ten_forward_first_ci": "20abea4a:quality release/full unit,verify,upgrade replayPASS; native59files737assertions+browserPASS; unchanged tenant invariantPASS; parity selftest reached. Final clean gate fails only old committed9-forward schema baseline, now replaced by actual10-forward capture. Fresh resulting-head gates required."
   },
-  "next_action": "Publish authentic ten-forward snapshot/current metadata. Await required exact resulting-head CI. Complete safe redundant-index removal/rename through reliable authorized database channel; deploy verified application only with consistent company-key indexes; then drain oldwriters/drop2legacyconstraints and final140/17zero assertion.",
+  "next_action": "Publish authentic composed snapshot and current proof once. Await required exact resulting-head CI and two independent snapshot/source final reviews. Preserve existing deployedPR794 API runtime through qualified bounded integration before production/main-only replacement. After verified compatible deployment and oldwriter drain, drop only2legacyqualityconstraints and repeat140/17zero assertions.",
   "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/799",
-  "first_delivery_head": "77b9ab751bb24893d306f8acb2d049811e36bbb0"
+  "first_delivery_head": "77b9ab751bb24893d306f8acb2d049811e36bbb0",
+  "current_source_head": "52a348c8d113f79a9884324c470949f8423c821a",
+  "incoming_main": "4e52854ecc19f0bd1266825cb114c19a3e983f27",
+  "current_composition_verification": {
+    "compatibility": "PASS:three independent read-only slices, incoming5 unchanged",
+    "targeted_tests": "PASS:182 assertions across9 files; historical source fetched for H fixture",
+    "application_typecheck": "PASS",
+    "migration_checks": "PASS",
+    "authentic_composed_capture": "PASS:source52a/tree7f2d/run38467254556/artifact11850616228; eight inputs and raw3 verified and byte-copied",
+    "mandatory_composed_head_ops_ci": "PENDING_RESULTING_HEAD",
+    "live10_company_index_finalization": "PASS:canonical issue and alert indexes are UNIQUE(company_id,open_key); five targets/four metadata preserved",
+    "production": "BLOCKED:production d899 contains unmergedPR794 API runtime fixes; preserve existing fixes before main-only replacement",
+    "legacy_two_constraints": "RETAINED until compatible deployment and drained writers"
+  }
 }
