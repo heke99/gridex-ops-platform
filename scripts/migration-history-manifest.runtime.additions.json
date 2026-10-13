@@ -154,6 +154,8 @@
     "20261013104143_ops_api_seven_permission_catalog_keys.sql": "2ce4e07ee2dee8ffb352e0e387092e7eb8a9bc6802723d408b40b9e0671e4519",
     "20261013105521_ops_api_current_auth_token_expiry.sql": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
     "20261013112412_ops_api_consumption_vat25_authoring.sql": "0d1eff69cd2cd0a2f347c08417e9ff1b4094a623b1eedc22d02e079cff3ab656",
-    "20261013112427_ops_api_consumption_vat25_publication.sql": "ab6c5f1211903acaa646160cf76094f6aa18ffae299f9721ae25808a8d365210"
+    "20261013112427_ops_api_consumption_vat25_publication.sql": "ab6c5f1211903acaa646160cf76094f6aa18ffae299f9721ae25808a8d365210",
+    "20261013132330_ops_api_z02_parser_regex_literals.sql": "ca5259f2fe217d3326250b9ad9df98addd450ab1d5a022f2af35f368afa3727b",
+    "20261013132358_ops_api_postal_regex_literals.sql": "d02af8b21c3658a84c4782a0227eae67a6c8c8bff3dc28aa23dfbc888f562eba"
   }
 }

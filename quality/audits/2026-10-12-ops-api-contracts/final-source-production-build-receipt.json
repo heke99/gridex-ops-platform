@@ -1,0 +1,71 @@
+{
+  "source_head": "3c4b617e68d777f8a1f27962de25e12cf03a0eef",
+  "head_after": "3c4b617e68d777f8a1f27962de25e12cf03a0eef",
+  "tracked_source_paths_changed_since_frozen_head": [],
+  "tracked_and_untracked_build_input_changes": [],
+  "other_root_owned_untracked_native_reconciliation_artifacts": [
+    "?? scripts/__pycache__/",
+    "?? scripts/ops-api-native-reconciliation-assemble.py",
+    "?? scripts/ops-api-native-reconciliation-plan.py",
+    "?? supabase/migrations/20261013115135_ops_api_complete_native_dependency_reconciliation.sql",
+    "?? supabase/migrations/20261013121020_ops_api_preserved_runtime_semantic_guards.sql"
+  ],
+  "build_exit_code": 0,
+  "duration_seconds": 238.19,
+  "maxrss_kb": 6463584,
+  "node": "22.23.3",
+  "next": "16.3.8",
+  "typescript": "5.9.3",
+  "command": [
+    "/tmp/gridex-audit-runtime/node_modules/node/bin/node",
+    "--max-old-space-size=4096",
+    "node_modules/next/dist/bin/next",
+    "build",
+    "--webpack"
+  ],
+  "runtime": {
+    "additional_network_capability": "Enabled to permit child-process IPC; existing loopback-only Node socket preload retained in parent/children",
+    "loopback_preload": "--require=./scripts/lib/unit-loopback-network-boundary.cjs",
+    "synthetic_supabase_config": "Provided by existing preload; real database/provider addresses/credentials excluded",
+    "next_telemetry_disabled": true,
+    "heap_limit_mb": 4096
+  },
+  "original_build_failure": {
+    "message": "Could not parse output from TypeScript --showConfig",
+    "next_cli_exit_code": 0,
+    "next_cli_stdout_bytes": 0,
+    "native_spawn_errors": [
+      "EPERM",
+      "EPERM"
+    ],
+    "direct_tsc_stdout_valid_json_bytes": 114050,
+    "root_cause": "Default sandbox denies child process spawn/IPC with EPERM. Next receives apparent status0/empty stdout and JSON.parse fails. Not source TypeScript, malformed config, maxBuffer or OOM."
+  },
+  "supported_runtime_probe": {
+    "exit_code": 0,
+    "stdout_bytes": 114050,
+    "stderr_bytes": 0,
+    "showconfig_valid_json": true
+  },
+  "stages": [
+    "\u2713 Compiled successfully in 2.2min",
+    "Running TypeScript ...",
+    "Finished TypeScript in 52s ...",
+    "Collecting page data using 1 worker ...",
+    "Generating static pages using 1 worker (0/23) ...",
+    "Generating static pages using 1 worker (5/23)",
+    "Generating static pages using 1 worker (11/23)",
+    "Generating static pages using 1 worker (17/23)",
+    "\u2713 Generating static pages using 1 worker (23/23) in 1489ms",
+    "Finalizing page optimization ...",
+    "Collecting build traces ..."
+  ],
+  "log": "/tmp/gridex-api-review/final-source-build-3c4b617e-supported-runtime.log",
+  "log_sha256": "3a9abf476a288773f40c39b72123d8ebf8d1daa2176f9df65f94f293b02470b1",
+  "source_or_dependency_edits_by_verifier": false,
+  "checks_disabled": false,
+  "tests_executed": false,
+  "business_or_provider_invocation": false,
+  "canonical_GEN_invoked_by_verifier": false,
+  "qualification": "Complete actual production build/internal TypeScript/static generation. This does not invoke configured customer/provider/Staff business flows or prove E2E integration readiness."
+}

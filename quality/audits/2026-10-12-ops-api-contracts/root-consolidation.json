@@ -6,7 +6,7 @@
   "documentation_version": "2026-10-12.1 (prospective)",
   "runtime_contract_version": "2026-10-09.1",
   "onboarding_contract_version": "2026-10-05.2",
-  "live_writes": 14,
+  "live_writes": 16,
   "native_business_rpcs": 0,
   "deployments": 0,
   "root_corrections": [
@@ -22,10 +22,12 @@
     "Inbound sender identifiers quoted using shared PostgREST helper, preserving the authorized company and prior comparison columns"
   ],
   "native_release_blockers": [
-    "Complete API/RPC/trigger additive dependency reconciliation remains pending; current397RPC-name inventory supersedes initial51-only scope",
-    "Confirmed preserved-body semantic gaps in legal supply activation, locked billing source bindings/gates, object onboarding, Ediel receipts and facility completion are under bounded remediation"
+    "Direct6.4MB API body cap: original request proven unapplied. Owner-only52-source-file byte transport B3 metadata-only replay revision held for final qualification/peer review.",
+    "Protected dispatcher/trigger and three retention audit/harddelete fixes under exact final peer/compile qualification; no actual destructive business calls.",
+    "Four other-owner native migrations freshly observed and being checked for dependency/body overlap.",
+    "Real configured Staff-client/tenant absent from audit; pending userfacts, no fabricated configuration or green E2E readiness."
   ],
-  "latest_native_receipt": "vat25-native-apply-receipt.json",
+  "latest_native_receipt": "regex-literals-native-apply-receipt.json",
   "latest_missing_functions_receipt": "required-native-preflight-result.json",
   "historical_errata": [
     "Customer02.3 support detail closed allOf contradiction",
@@ -49,7 +51,7 @@
   "delivery_status": "DRAFT_PR794_SOURCE_FIXES_FIRST_NATIVE_FORWARD_APPLIED_RECONCILIATION_CONTINUES",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
   "verification_receipt": "verification.json",
-  "next_action": "Finish portable complete-state additive native dependencies and bounded preserved-body semantic forwards; apply prospective VAT25 authoring/publication guards after exact peer and compile/replay approval; final source/docs and genuine C2 GEN handoff.",
+  "next_action": "Freeze B3 transport after final known strong metadata/other-owner overlap proof, two peers and genuine current/strong-post/source/replay compilation. CLI-create/apply exact52transport migrations, then all qualified bounded semantic forwards; actual ledger/source/OID/ACL proof, final docs and sole-C2 genuine GEN handoff.",
   "actual_native_corrections": {
     "migration": "20261012235455",
     "sha256": "442dea4f8688e01164873831d58ab2df4650fbb6aaf8ab47835a409000e1d37d",
@@ -71,8 +73,8 @@
       "effects": "Current Staff deny rules and aggregate-only migration visibility; strict provenance registry, unchanged business records"
     }
   },
-  "current_source_head": "3413729586091aeb01906aae1d463c266a01887e",
-  "native_forward_migration_writes": 12,
+  "current_source_head": "3c4b617e68d777f8a1f27962de25e12cf03a0eef",
+  "native_forward_migration_writes": 14,
   "native_metadata_population_writes": 2,
   "metadata_provenance": {
     "receipt_count": 25,
@@ -95,10 +97,15 @@
     "supabase/migrations/20261013104143_ops_api_seven_permission_catalog_keys.sql",
     "supabase/migrations/20261013105521_ops_api_current_auth_token_expiry.sql",
     "supabase/migrations/20261013112412_ops_api_consumption_vat25_authoring.sql",
-    "supabase/migrations/20261013112427_ops_api_consumption_vat25_publication.sql"
+    "supabase/migrations/20261013112427_ops_api_consumption_vat25_publication.sql",
+    "supabase/migrations/20261013132330_ops_api_z02_parser_regex_literals.sql",
+    "supabase/migrations/20261013132358_ops_api_postal_regex_literals.sql"
   ],
   "source_permission_catalog_review": "admin-api-permission-catalog-review.json:82calls/imports resolved;12typo calls corrected,7real source keys installed by104143 without role assignments",
   "latest_full_inventory": "389RPC sourcecalls/397names;204directnames absent at fresh catalog snapshot, with syntactic/import reachability tiers. Broader all-RPC/trigger closure replaces initial51-only inventory; no204failed-live-request claim.",
   "vat25_status": "Two actual forwards applied and five exact approved future VAT bodies/OIDs/ACL/config verified; consumption25/.25 required, explicit producer exemptions and frozen history/lineage preserved; no business RPC invoked",
-  "preserved_body_effect_review": "66 overloads reviewed in two source/actual/trigger effect partitions; confirmed gaps require bounded forward composition, not blanket canonical body replacement"
+  "preserved_body_effect_review": "66 overloads reviewed in two source/actual/trigger effect partitions; confirmed gaps require bounded forward composition, not blanket canonical body replacement",
+  "current_build_receipt": "final-source-production-build-receipt.json",
+  "direct_large_delivery_status": "Technical request body limit;native-direct-size-rejection-receipt.json proves attemptedmigration absent. SameB2approvedpayload staged delivery in progress.",
+  "regex_literals_status": "Two actual forwards installed13:23UTC; source/ledger SHA256 exact; three nativebodyMD5/currentfullpg_procminusprosrc/OIDs/ACL preserved; independent2peers/genuinefirst+replay+unknownrollback, no business invocation."
 }

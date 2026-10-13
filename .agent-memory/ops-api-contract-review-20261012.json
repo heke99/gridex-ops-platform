@@ -6,12 +6,14 @@
   "status": "AUTHORIZED_ACTUAL_DATABASE_RECONCILIATION_IN_PROGRESS",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
-  "native_writes": 14,
+  "native_writes": 16,
   "business_rpc_invocations": 0,
   "deployments": 0,
   "native_blockers": [
-    "Complete API/RPC/trigger additive dependency reconciliation remains pending; current397RPC-name inventory supersedes initial51-only scope",
-    "Confirmed preserved-body semantic gaps in legal supply activation, locked billing source bindings/gates, object onboarding, Ediel receipts and facility completion are under bounded remediation"
+    "Direct6.4MB API body cap: original request proven unapplied. Owner-only52-source-file byte transport B3 metadata-only replay revision held for final qualification/peer review.",
+    "Protected dispatcher/trigger and three retention audit/harddelete fixes under exact final peer/compile qualification; no actual destructive business calls.",
+    "Four other-owner native migrations freshly observed and being checked for dependency/body overlap.",
+    "Real configured Staff-client/tenant absent from audit; pending userfacts, no fabricated configuration or green E2E readiness."
   ],
   "documentation_version": "2026-10-12.1 prospective",
   "wire_version": "2026-10-09.1",
@@ -26,7 +28,7 @@
     "No all-native or provider end-to-end readiness claim",
     "No canonical schema/type GEN or active Ediel claims/shared memory writes"
   ],
-  "next_action": "Finish portable complete-state additive native dependencies and bounded preserved-body semantic forwards; apply prospective VAT25 authoring/publication guards after exact peer and compile/replay approval; final source/docs and genuine C2 GEN handoff.",
+  "next_action": "Freeze B3 transport after final known strong metadata/other-owner overlap proof, two peers and genuine current/strong-post/source/replay compilation. CLI-create/apply exact52transport migrations, then all qualified bounded semantic forwards; actual ledger/source/OID/ACL proof, final docs and sole-C2 genuine GEN handoff.",
   "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
   "review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
   "integrated_main": "51f5fa5e80c42350d697bfed42520672749d4467",
@@ -36,11 +38,11 @@
   "fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
   "local_verification": "Build/app/scripts/tests typechecks/lint/docs/compatibility/migration/RBAC/static source gates passed as recorded. Initial fullunit3fixturefailures corrected and5files31checks passed; entire suite not rerun. Local checks are not live/native proof.",
   "latest_native_preflight": "2026-10-12 22:56:02 UTC:51missing/52examined names; tombstone alreadypresent",
-  "handover": "Draft PR794 contains reviewed source and ten actually applied native forwards; full dependency/semantic reconciliation and prospective VAT native guards continue. No merge/deploy/business mutation or competing GEN.",
+  "handover": "Draft PR794 has twelve actually applied scoped native forwards and two input-only metadata actions; staged dependency and qualified semantic/trigger forwards pending. Explicit user approval for all scoped fixes/migrations and uploading to PR794 persists.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "3413729586091aeb01906aae1d463c266a01887e",
+  "current_source_head": "3c4b617e68d777f8a1f27962de25e12cf03a0eef",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
-  "migration_scope": "1162 migration source files/1065 version groups integrity passed; actual427 registrations as of10:56:48UTC; no blind replay or fake historical registration.",
+  "migration_scope": "Last completed source integrity1164files/1067versiongroups; fresh native13:17:42UTC ledger434, including four additional other-owner migrations. Unpublished CLI template not yet registered. No historical source/ledger rewrites.",
   "gen_owner": "C2 sole GEN/current producer ref03d8419671865554c0b8684de125320a2ef98f72 observed; first OPS atomic source imported in joint epoch; later actual forwards require next coherent handoff, no API-owned GEN",
   "native_applied_migrations": [
     {
@@ -126,16 +128,31 @@
       "sha256": "ab6c5f1211903acaa646160cf76094f6aa18ffae299f9721ae25808a8d365210",
       "actual_ledger_sql_md5": "bb44991d05ac2f5f973e98a41beb12c6",
       "receipt": "quality/audits/2026-10-12-ops-api-contracts/vat25-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013132330",
+      "file": "supabase/migrations/20261013132330_ops_api_z02_parser_regex_literals.sql",
+      "sha256": "ca5259f2fe217d3326250b9ad9df98addd450ab1d5a022f2af35f368afa3727b",
+      "actual_ledger_sql_md5": "2f18b21f48cf328c0c9bc9621a45f423",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/regex-literals-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013132358",
+      "file": "supabase/migrations/20261013132358_ops_api_postal_regex_literals.sql",
+      "sha256": "d02af8b21c3658a84c4782a0227eae67a6c8c8bff3dc28aa23dfbc888f562eba",
+      "actual_ledger_sql_md5": "f8d4b56a0af8b7f7588747b660359f9c",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/regex-literals-native-apply-receipt.json"
     }
   ],
   "native_corrected": "Actor current-active permission and deny precedence, additive canonical override columns/deny-only constraints, Partner atomic site/offer direction guard; OIDs/ownership/grants preserved and actual postcatalog verified. Pure gridowner native body unchanged; new forward source corrects future replay escaping.",
   "confirmed_additional_findings_in_progress": [
-    "Ten actual scoped forwards verified, including signing/pricing/quote/current permission/Staff/auth expiry corrections",
-    "Complete-state portable additive native upgrade and preserved-body semantic composition in progress",
-    "Consumption VAT unit source corrected and approved; prospective native25% guards pending final replay qualification",
-    "Three historical wrong-VAT price versions remain preserved: two frozen published versions and draft predecessor referenced by frozen successor; inactive history is not rewritten"
+    "Twelve actual scoped forwards verified including signing/pricing/quote/current permission/Staff/auth expiry/future VAT25",
+    "Complete additive dependency transport needs final post-semantic metadata replay allowlist qualification, with four fresh external inputs preserved",
+    "Approved13part1+4part2+Z02 generated setter corrections; two regex helpers and postal helper genuine qualification completed, protected trigger packet final review",
+    "Confirmed finance audit erasure-recreation, correction retention provenance and harddelete11cascade guard defenses being composed",
+    "Three historical wrong-VAT price versions preserved because inactive/frozen lineage; no historical tax mutation"
   ],
-  "native_forward_migration_writes": 12,
+  "native_forward_migration_writes": 14,
   "native_metadata_population_writes": 2,
   "metadata_receipt_count": 25,
   "staff_deny_status": "Actual native two permission functions patched and service-only/VOLATILE/body/OID/grants verified. Configured Staff provider/client/binding still absent; no authenticated E2E readiness claim.",
@@ -147,5 +164,7 @@
   "permission_catalog_status": "Actual69existing rows preserved,7source-owned keys registered; native76/76active, no user/role assignments or new grants. Portable complete/empty/extra-key/replay/inactive preservation qualified",
   "auth_expiry_native_status": "Actualfive currentAuth/identity/invitation cores installed, expiry afterlocks/provider/ratewait andStaffrevalidation beforeidentitymutation; exactnativebody/attrs/OID/ACLproof, nohistory/credentialwrite",
   "vat25_native_status": "Two actual forwards applied and five exact approved future VAT bodies/OIDs/ACL/config verified; consumption25/.25 required, explicit producer exemptions and frozen history/lineage preserved; no business RPC invoked",
-  "forward_input_receipts_status": "Separately applied OPS-only SQL b58db7d8, two independent peers, isolated first/replayCOMMIT; actual25receipts24exact+1lineage. Native ledger remained untouched by metadata action."
+  "forward_input_receipts_status": "Separately applied OPS-only SQL b58db7d8, two independent peers, isolated first/replayCOMMIT; actual25receipts24exact+1lineage. Native ledger remained untouched by metadata action.",
+  "final_source_verification": "Productionbuild3c4b617e PASS, realinternalTS and23staticpages; appTS/API docs/compatibility/errorregistry244routeboundary source gates pass. InitialbuildsandboxspawnEPERM resolved withsupportedIPC, samepreload/no weakenedchecks. No new unit tests/business/providercalls.",
+  "regex_native_status": "Two actual forwards applied13:23UTC: EDIFACT2helper literals and postalhelper; native436ledger, three exactbodyMD5/fullpg_procminusprosrc/OIDs/ACL unchanged; no helper/business invocation."
 }

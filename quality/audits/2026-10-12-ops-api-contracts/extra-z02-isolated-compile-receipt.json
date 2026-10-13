@@ -1,0 +1,485 @@
+{
+  "proposal": "variant-extra-z02-forward.sql",
+  "proposal_sha256": "1e6af520f4946864bd3626fc5e4fc9b711380df1dce2875a649da788aadce448",
+  "database": "ops_api_extra_z02_compile_20261013",
+  "canonical_noop_database": "ops_api_extra_z02_canonical_compile_20261013",
+  "container": "gridex-ops-api-postgis-native-20261013",
+  "container_network": "none",
+  "postgres": "17.6",
+  "postgis": "3.3.7 real compiled extension",
+  "foundation": "Frozen own clone of website owner ops_api_variant_part2_compile_20261013; fullf9 + five expiry9e3 + part1d821 + part2edcd; originalsharedbase not edited",
+  "actual_predecessor_mirror": "Exactlyone missing existingpublic function added from actual fullpg_get_functiondef/owner/ACL/attrs metadata. No stub/fake body or business rows.",
+  "required_functions_exact_hashes": 144,
+  "required_relations_present": 172,
+  "check_function_bodies": "on",
+  "first_commit_exit_code": 0,
+  "replay_commit_exit_code": 0,
+  "complete_public_pg_proc_minus_prosrc_preserved": true,
+  "replay_entire_both_function_definitions_and_pg_proc_exact": true,
+  "before_public": {
+    "owner": "postgres",
+    "body_md5": "1f6d3d3b756b7c0e821237142f7f4c99",
+    "signature": "gridex_apply_exact_z02_core(uuid,uuid,uuid,uuid,uuid,uuid,uuid)",
+    "proc": {
+      "oid": "44735",
+      "proacl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "probin": null,
+      "procost": 100,
+      "prokind": "f",
+      "prolang": "13634",
+      "proname": "gridex_apply_exact_z02_core",
+      "prorows": 0,
+      "pronargs": 7,
+      "proowner": "10",
+      "proconfig": [
+        "search_path=public"
+      ],
+      "proretset": false,
+      "prosecdef": true,
+      "prorettype": "3802",
+      "prosupport": "-",
+      "proargmodes": null,
+      "proargnames": [
+        "p_company_id",
+        "p_customer_id",
+        "p_site_id",
+        "p_request_id",
+        "p_message_id",
+        "p_operation_id",
+        "p_actor_user_id"
+      ],
+      "proargtypes": [
+        "2950",
+        "2950",
+        "2950",
+        "2950",
+        "2950",
+        "2950",
+        "2950"
+      ],
+      "proisstrict": false,
+      "proparallel": "u",
+      "protrftypes": null,
+      "provariadic": "0",
+      "provolatile": "v",
+      "proleakproof": false,
+      "pronamespace": "2200",
+      "proallargtypes": null,
+      "proargdefaults": "({CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>} {CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>})",
+      "pronargdefaults": 2
+    }
+  },
+  "after_public": {
+    "owner": "postgres",
+    "body_md5": "42161c7ee80cc679a5b1a88e18eadb14",
+    "signature": "gridex_apply_exact_z02_core(uuid,uuid,uuid,uuid,uuid,uuid,uuid)",
+    "proc": {
+      "oid": "44735",
+      "proacl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "probin": null,
+      "procost": 100,
+      "prokind": "f",
+      "prolang": "13634",
+      "proname": "gridex_apply_exact_z02_core",
+      "prorows": 0,
+      "pronargs": 7,
+      "proowner": "10",
+      "proconfig": [
+        "search_path=public"
+      ],
+      "proretset": false,
+      "prosecdef": true,
+      "prorettype": "3802",
+      "prosupport": "-",
+      "proargmodes": null,
+      "proargnames": [
+        "p_company_id",
+        "p_customer_id",
+        "p_site_id",
+        "p_request_id",
+        "p_message_id",
+        "p_operation_id",
+        "p_actor_user_id"
+      ],
+      "proargtypes": [
+        "2950",
+        "2950",
+        "2950",
+        "2950",
+        "2950",
+        "2950",
+        "2950"
+      ],
+      "proisstrict": false,
+      "proparallel": "u",
+      "protrftypes": null,
+      "provariadic": "0",
+      "provolatile": "v",
+      "proleakproof": false,
+      "pronamespace": "2200",
+      "proallargtypes": null,
+      "proargdefaults": "({CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>} {CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>})",
+      "pronargdefaults": 2
+    }
+  },
+  "new_kernel": {
+    "owner": "postgres",
+    "body_md5": "330c06439413e48d27d11c9da07a9ec6",
+    "signature": "gridex_received_sources.gridex_apply_exact_z02_core_before_current_source_v1(uuid,uuid,uuid,uuid,uuid,uuid,uuid)",
+    "proc": {
+      "oid": "44742",
+      "proacl": [
+        "postgres=X/postgres"
+      ],
+      "probin": null,
+      "procost": 100,
+      "prokind": "f",
+      "prolang": "13634",
+      "proname": "gridex_apply_exact_z02_core_before_current_source_v1",
+      "prorows": 0,
+      "pronargs": 7,
+      "proowner": "10",
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "proretset": false,
+      "prosecdef": true,
+      "prorettype": "3802",
+      "prosupport": "-",
+      "proargmodes": null,
+      "proargnames": [
+        "p_company_id",
+        "p_customer_id",
+        "p_site_id",
+        "p_request_id",
+        "p_message_id",
+        "p_operation_id",
+        "p_actor_user_id"
+      ],
+      "proargtypes": [
+        "2950",
+        "2950",
+        "2950",
+        "2950",
+        "2950",
+        "2950",
+        "2950"
+      ],
+      "proisstrict": false,
+      "proparallel": "u",
+      "protrftypes": null,
+      "provariadic": "0",
+      "provolatile": "v",
+      "proleakproof": false,
+      "pronamespace": "16399",
+      "proallargtypes": null,
+      "proargdefaults": "({CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>} {CONST :consttype 2950 :consttypmod -1 :constcollid 0 :constlen 16 :constbyval false :constisnull true :location -1 :constvalue <>})",
+      "pronargdefaults": 2
+    }
+  },
+  "public_after_body_md5": "42161c7ee80cc679a5b1a88e18eadb14",
+  "kernel_after_body_md5": "330c06439413e48d27d11c9da07a9ec6",
+  "owner_only_kernel_acl": [
+    "postgres=X/postgres"
+  ],
+  "canonical_source_complete_noop": {
+    "canonical_body_md5": "3a30081f9583f648099cc6e4e494513a",
+    "commit_exit_code": 0,
+    "both_entire_functions_metadata_unchanged": true,
+    "source_definition": "/tmp/gridex-api-review/extra-z02-source-wrapper.sql",
+    "source_mirror_method": "CREATE OR REPLACE header for isolatedexistingfunction; exactcanonicalbody unchanged3a30081f. Sourcepacket itself unmodified."
+  },
+  "unknown_state_negatives": [
+    {
+      "case": "alias_strict",
+      "exit_code": 3,
+      "error": "extra_z02_source_delegate_body_or_all_attributes_or_owner_only_policy_changed",
+      "entire_both_functions_postrollback_exact": true
+    },
+    {
+      "case": "alias_owner",
+      "exit_code": 3,
+      "error": "extra_z02_source_delegate_body_or_all_attributes_or_owner_only_policy_changed",
+      "entire_both_functions_postrollback_exact": true
+    },
+    {
+      "case": "public_unknown_body",
+      "exit_code": 3,
+      "error": "extra_z02_public_predecessor_changed_requires_review",
+      "entire_both_functions_postrollback_exact": true
+    },
+    {
+      "case": "receipt_constraint",
+      "exit_code": 3,
+      "error": "extra_z02_receipt_constraints_changed",
+      "entire_both_functions_postrollback_exact": true
+    },
+    {
+      "case": "receipt_trigger",
+      "exit_code": 3,
+      "error": "extra_z02_receipt_trigger_effects_changed",
+      "entire_both_functions_postrollback_exact": true
+    }
+  ],
+  "receipt_table_qualification": {
+    "receipt": {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "service_role=r/postgres"
+      ],
+      "oid": "35349",
+      "rls": true,
+      "owner": "postgres",
+      "columns": [
+        {
+          "name": "source_message_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "company_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "environment",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "source_payload_hash",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "canonical_assessment_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "originating_z01_message_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "request_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "customer_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "site_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "object_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "identity_agency",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "metering_point_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "result",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "applied_at",
+          "type": "timestamp with time zone",
+          "default": "clock_timestamp()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "name": "originating_transport_attempt_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "z02_core_applications_pkey",
+          "ready": true,
+          "valid": true,
+          "definition": "CREATE UNIQUE INDEX z02_core_applications_pkey ON gridex_received_sources.z02_core_applications USING btree (source_message_id, request_id)"
+        },
+        {
+          "name": "z02_core_applications_source_message_id_object_id_identity__key",
+          "ready": true,
+          "valid": true,
+          "definition": "CREATE UNIQUE INDEX z02_core_applications_source_message_id_object_id_identity__key ON gridex_received_sources.z02_core_applications USING btree (source_message_id, object_id, identity_agency)"
+        }
+      ],
+      "policies": [
+        {
+          "oid": "43986",
+          "polcmd": "r",
+          "polname": "z02_core_application_service_read",
+          "polqual": "{CONST :consttype 16 :consttypmod -1 :constcollid 0 :constlen 1 :constbyval true :constisnull false :location -1 :constvalue 1 [ 1 0 0 0 0 0 0 0 ]}",
+          "polrelid": "35349",
+          "polroles": [
+            "16391"
+          ],
+          "polwithcheck": null,
+          "polpermissive": true
+        }
+      ],
+      "triggers": [
+        {
+          "name": "expectation_z02_applied",
+          "enabled": "O",
+          "definition": "CREATE TRIGGER expectation_z02_applied AFTER INSERT ON gridex_received_sources.z02_core_applications FOR EACH ROW EXECUTE FUNCTION gridex_business_expectations.applied_source_v1()"
+        },
+        {
+          "name": "z02_core_applications_no_mutation",
+          "enabled": "O",
+          "definition": "CREATE TRIGGER z02_core_applications_no_mutation BEFORE DELETE OR UPDATE ON gridex_received_sources.z02_core_applications FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.reject_mutation()"
+        },
+        {
+          "name": "z02_core_applications_no_truncate",
+          "enabled": "O",
+          "definition": "CREATE TRIGGER z02_core_applications_no_truncate BEFORE TRUNCATE ON gridex_received_sources.z02_core_applications FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.reject_mutation()"
+        }
+      ],
+      "force_rls": true,
+      "constraints": [
+        {
+          "name": "z02_core_applications_canonical_assessment_id_fkey",
+          "type": "f",
+          "validated": true,
+          "definition": "FOREIGN KEY (canonical_assessment_id) REFERENCES gridex_received_sources.validation_assessments(id) ON DELETE RESTRICT"
+        },
+        {
+          "name": "z02_core_applications_environment_check",
+          "type": "c",
+          "validated": true,
+          "definition": "CHECK (environment = ANY (ARRAY['test'::text, 'production'::text]))"
+        },
+        {
+          "name": "z02_core_applications_originating_transport_attempt_id_fkey",
+          "type": "f",
+          "validated": true,
+          "definition": "FOREIGN KEY (originating_transport_attempt_id) REFERENCES gridex_ediel_transport.attempts(id) ON DELETE RESTRICT"
+        },
+        {
+          "name": "z02_core_applications_pkey",
+          "type": "p",
+          "validated": true,
+          "definition": "PRIMARY KEY (source_message_id, request_id)"
+        },
+        {
+          "name": "z02_core_applications_source_message_id_fkey",
+          "type": "f",
+          "validated": true,
+          "definition": "FOREIGN KEY (source_message_id) REFERENCES gridex_received_sources.sources(source_message_id) ON DELETE RESTRICT"
+        },
+        {
+          "name": "z02_core_applications_source_message_id_object_id_identity__key",
+          "type": "u",
+          "validated": true,
+          "definition": "UNIQUE (source_message_id, object_id, identity_agency)"
+        },
+        {
+          "name": "z02_core_applications_source_payload_hash_check",
+          "type": "c",
+          "validated": true,
+          "definition": "CHECK (source_payload_hash ~ '^[a-f0-9]{64}$'::text)"
+        }
+      ]
+    },
+    "database": "ops_api_extra_z02_compile_20261013",
+    "business_counts": {
+      "sites": 0,
+      "meters": 0,
+      "receipt": 0,
+      "sources": 0,
+      "messages": 0,
+      "requests": 0
+    }
+  },
+  "prior_failures_corrected": [
+    {
+      "seal": "ad739 superseded",
+      "action": "Firstautomaticapproval attempt rejected staleartifactassumption; NOproposal SQL executed; currentartifact reverified/explicitlyauthorized."
+    },
+    {
+      "seal": "0e9709",
+      "exit_code": 3,
+      "action": "Rollbackbeforecreation: exactconstraintprettyformat mismatch; correctedguard usespg_get_constraintdef(oid,true) matching actual capture; all7constraints stillcompared."
+    },
+    {
+      "seal": "5b8c63",
+      "exit_code": 3,
+      "action": "RollbackaftertransactionalaliasCREATE: JSONBarrow/subtraction precedence unknown-minus-unknown; exactparentheses added; fullABIguard preserved."
+    }
+  ],
+  "source_changes_by_verifier": false,
+  "actual_native_database_writes": false,
+  "business_functions_invoked": false,
+  "person_or_commercial_data_imported": false,
+  "canonical_GEN_invoked": false,
+  "tests_as_oracle": false,
+  "qualification_limit": "Genuine strictactual-shaped CREATE/DO/COMMIT/replay/negative rollback with fullmetadata. EmbeddedSQL inside PL/pgSQL businessfunctions is deferred until invocation; no customer/provider/businessflow invoked. This does not claim liveZ02 E2E."
+}
