@@ -240,3 +240,28 @@ forwards. No post-atomic seed/reset/override clearing dependency remains.
 The171 source controls/fullTypeScript/fullcatalog895pin/donor proofs are reused
 only because every source outside this owned workflow+CP remains byte/mode
 exact preparedee; no broad repeat or new backend/native/capture credit.
+
+## V2 final-source binding — producer retained, no publication or backend GO
+
+Prepared sourceb7bc30872fd444b2f28b93c07df9f423e3028e2d/treed83bff7335dacb5ef86da6d1dd5b9b4e4235181a
+is distinct from the next final capture HEAD. ROOT full fresh producer
+03d8419671865554c0b8684de125320a2ef98f72/CLAIM6139324812 binds exact preparedB7,
+actualmain51f5/tree276b/singleparent, retainedce80 and inputEpochv2. This sole
+writer independently authenticated producer ref/commit GET_MATCH and complete
+protocol/UUID/timezone/agent/branch/checkpoint/ids/files/resources/base plus
+sources JSON equality and prepared source identity before binding.
+Only pending producer_receipt and this ownCP phase differ from preparedB7;
+every other9835 path/mode/blob remains byte-exact. All14 donor files retain
+their850/fe6/b89/22aa/ROOT064f custody and immutable hashes. Old795/099 RAW3 and
+active provenance remain untouched and actual EMPTY/GEN/native results remain
+NOT_RUN. Confirmed populated partiallegacy P2 remains OPEN; immutable442 is
+approved here only for complete canonical empty isolated input.
+
+Next: freeze FINALcaptureHEAD/tree, authenticate all25 refs and record exact
+two-path inverse. Independent reviewerA and api794_contract_review must both
+approve that WHOLE final source before ROOT explicit ONE normal publication
+and hosted primary capture GO. No original collection by peers. Keep03d held
+through actual qualified primary RAW3, two-peer imported successor/currentbase
+and one qualified ordinary corroboration; FIRST own matched release/two404
+then precedes any next GEN queue. No source edit or push is authorized by this
+binding alone.
