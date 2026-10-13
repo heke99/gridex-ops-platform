@@ -3038,3 +3038,238 @@ it('real case writer propagates a warning storage failure without claiming an op
 ```
 
 </details>
+
+
+## Två oberoende slutgranskningar
+
+Både `/root/fg_final_review_a` och `/root/fg_final_review_b` har separat granskat hela tvåfilskomponenten vid `0e77d95531f9a01a37212ef8f2731b482e4a766f`/tree `301ae77579de8aee8d015909dde841227107dbdc`, ordnad parent `[e627eb13d09bbdaa8e7850be9113f371e18184f6]`, sourcee627/tree855ca och faktisk bas d798/e3b6. Båda är icke-medförfattare till kod/test/fixture/körningsbevis och har inte kört prov eller konsulterat varandra. Båda ger **SOURCE_APPROVE**, ingen bekräftad P1/P2. Tio finita observationer och exakta sparade original är kvalificerade i sitt begränsade källscope; nativeauktoritet/DBdurabilitet/operatorcompletion/arrivalorder/whole-ID/CI/GEN/merge förblir uttryckligen ej bevisade.
+
+Det här senare dokumenttillägget bevarar originalrapporterna och ändrar endast eget checkpoint. Koden och övriga leaves förblir exakt samma. Båda granskare ska binda slutligt head/tree/parent till detta dokument före källöverlämningen; slutkvittot på #766 publicerar dessa värden och rebindresultat utan fabricerad självreferens.
+
+<details><summary>ediel-z04c-6f94-final-review-a-0e77d955.md — SHA256 c2ed8c8a6ce4ff53157e5e2c2f5e77779f9a71c13197e7830eacb012baea3dc3</summary>
+
+```markdown
+# Independent final source/evidence review A — Z04C finite consumer
+
+**SOURCE_APPROVE** for the complete two-file component at the exact immutable H1 below. No confirmed P1/P2 finding. This approves the bounded source consumer assertion and its evidence description; it does not approve the whole AT-Z04C contract, native execution, current CI, or merge readiness.
+
+## Exact binding and independence
+
+- Final H1: `0e77d95531f9a01a37212ef8f2731b482e4a766f`; tree `301ae77579de8aee8d015909dde841227107dbdc`; ordered parents [`e627eb13d09bbdaa8e7850be9113f371e18184f6`].
+- Frozen code: `e627eb13d09bbdaa8e7850be9113f371e18184f6`; tree `855ca9157f3ba9a5e9ab80219d6b88ed2b6d4ae0`; ordered parents [`d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`].
+- Actual source/base: `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`; tree `e3b6c11677a2b871a128504f1616def7d22dba1e`; ordered parents [`95d8d160491e79b172342654d8dc643346758105`, `fba453cc7cc9de8a26ec75d29248e1733316fcd1`].
+- Workspace: `/workspace/ediel-z04c-compensation-case-20261013-6f94`, clean and at H1 when inspected.
+- One source-path custody receipt: `359d27a100e3f5de4992e5abd921060c85988ae4`; CLAIM `6149092334`; packet `a024ccc4-0148-4a8a-9d8d-7284f84a0446`; helper IDs empty; no producer scope. The source writer is `/root/z06fg_requirements`; root owns only its unique checkpoint.
+
+| Added path | Exact SHA256 |
+| --- | --- |
+| `__tests__/ediel-z04c-compensation-case-consumer-6f94.test.ts` | `1f0f529be7fbe2f8acc84a9a4b30d22dce411c1a466843f0feeb4db06d457cb2` |
+| `.agent-memory/ediel-z04c-compensation-case-20261013-6f94-checkpoint.md` | `88faf28a37a9dd0586ab1ba1fdd7e61820e359b0389d0e9c35b6fbd235dbc4a1` |
+
+The test is 202 lines, 21,500 bytes, blob `3870580e726a56d01367fa6dd19730621e0d63da`; the checkpoint is 183,083 bytes. Base→H1 contains exactly these two additions. I did not author code, tests, fixtures, controllers, checkpoint, or proof and did not run qualification. This independent review used exact Git source/diffs and read-only local evidence/hash comparisons, with no peer consultation. The sole new file I created is this report.
+
+Skill routing: code-review/differential-review for the complete component and changed-path scope; spec-to-code for the frozen literal boundary; direct false-positive checks for potential oracle issues; verification-before-completion for immutable evidence applicability. Existing Supabase/source-port and PostgreSQL source guidance applies to the caller trace. No broad database/security audit, remediation, native testing, browser/UI, performance, supply-chain scan, or producer workflow was activated by this two-file scope. AGENTS, active memory/start/workflow/reservations, relevant decisions/failures, and the local code-reviewer template were read. Dated memory is not treated as current ownership or ledger authority.
+
+## Requirements and actual consumer trace
+
+The unchanged frozen AT-Z04C card requires supplier `23-DDQ-PRODAT`, BGM Z04/field223 Z24, prescribed CONTRL/APERAK, exact original/object/order handling, no wrong-role/direction/R-D/correlation/mutation execution, and controlled compensation when an effect was already executed. The supporting TEN-05, P-01, and ENV-06 literal rules remain unchanged. This component covers only the real consumer's compensation-held review handoff. It does not establish the card's physical cancellation-first/later-original sequence, actual cancellation/compensation execution, or wire acknowledgements.
+
+I traced `processInboundEdielMessage`, `applyCanonicalRuntimeDecision`, the actual canonical registry/runtime and own-source reading loader, `applySupplyMarketSource`, `createOrUpdateInboundProdatCase`, its physical parser/customer matching/CAS/reread, and `createEdielMessageEvent`. I also checked the existing SQL cause and own-object partition source: `20261001004331_ediel_regulated_supply_ground_archive_review.sql` has the precise already-executed C/Z24 refusal, and `20261001043234_ediel_prodat_supply_own_effect_partition.sql` transports the own scope's refusal into a held partition. The later national rescission wrapper delegates this Z04 path. SQL was read, not executed; the finite RPC result is explicitly modeled, including its top-level result fields, rather than a captured PostgreSQL result.
+
+## Strengths
+
+- The test calls the real coordinator and real case/event writers. The lower RPC port checks exact company/source/actor, immutable raw hash, and accepted syntax/application/function and own-object application facts before returning its declared compensation-held partition (test lines 70–77). A generic early admission hold cannot satisfy these checks or the required supply-call/warning/case assertions.
+- The source fixture changes C/Z24 wire, physical customer input, and synthetic reception before immutable SDK installation. The actual C own-source reading loader enforces the Handbok26B effective-date guard; Oct13 reception is legitimate modeled input. The guard, old helper defaults, private token issuance/decoding, canonical grammar/policy, and source readers remain production code. Parsed foreign customer/point/original/date hints do not replace the physical source in the saved case (lines 139–161).
+- The real supply decoder feeds the coordinator's `domainObjectCount` path. The test requires the real source-bound pending case and validated warning with own caseId/company/message/actor, complete physical held scope, exact compensation reason, `applied:false`, no committed receipts, and review required. It checks source identity/raw/hash and nonempty own/foreign business graph preservation, ordering of supply evaluation before case insertion, and fail-if-called ACK/workflow/activation controls (lines 124–135).
+- The finite query store applies actual filters and re-evaluates them after an injected race. Replay checks one case and actual company/id/status/updated_at CAS filters; applied/approved/rejected/objectApplication reviews are preserved. Lost CAS reaches the real scoped reread and retains a terminal decision, while an undecided competing payload and a foreign returned case fail with precise production errors (lines 154–195).
+- The warning-storage error check reaches the actual case and event writers. It expects the original error and acknowledges the already-inserted modeled case; it does not invent transaction-wide rollback or durable warning (lines 196–202).
+
+## Issues and calibrated limits
+
+No confirmed critical/important issue or style-only approval gate was found. The model's single-row terminals and fixed synthetic IDs are sufficient for the reached zero/one-row fixtures and sequential replay/CAS checks. They do not emulate PostgREST duplicate-cardinality errors, a PostgreSQL uniqueness race, timestamp triggers, RLS, durability, or transaction semantics. Those limitations are consistent with the checkpoint's explicit unique-index/native exclusions; no such evidence is credited here.
+
+The technical endpoint is a declared null port, while final ACK/outbox, workflow, and activation sinks fail if invoked. Absence of those calls proves the finite consumer's lack of those downstream calls under these inputs; it is not CONTRL/APERAK execution or authentic transport proof. The modeled supply refusal is an input premise. The new test proves its actual consumer consequences, not native eligibility for that refusal or completed operator compensation. Source/company/status guards and terminal retention are actual code observations against declared modeled rows, not authenticated operator actions.
+
+## Evidence preservation and applicability
+
+The qualification JSON at `/tmp/ediel-z04c-6f94-source-qualification.json` has SHA256 `18a7064508c666f11f6d1abb0f9b75d8d227f5f15798ae7564f447c2e8d4393d` and is embedded verbatim. Its nine original execution-metadata records match the saved originals. All 25 indexed artifact records have matching recorded byte counts and SHA256 values and exact fenced embedded bytes, including empty outputs: 20 stdout/stderr files including the diff-check pair, and five controller/config/first-source artifacts. The two earlier applicability/availability originals are also preserved verbatim, at SHA256 `34b346edbd515fc8e9108df8862d93783f3c0deda9185402692b8889dcdbcb2f` and `a83374509b92ada6ecf7d65d665b3a3a4cba56147082bb66ab74a1af087df249`.
+
+The recorded final run is the first green 10/10, exit0, Node22.23.3/Vitest4.1.9, bound to the exact final test SHA. Original final stdout is 240 bytes, SHA256 `255f4a00b1e1e272a8b702e4c7d96eae82d981a8419518f0d32baba12c48f936`; stderr is empty, SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`. Final one-file lint and focused strict TypeScript metadata also bind this same SHA and show exit0/empty outputs. The focused controller extends the real test configuration, changes only incremental/include, and retains strict/noEmit; no source/compiler gate was weakened. I did not rerun any of them.
+
+The first unsupported CLI attempt, same-value tenant-patch port mistake, inherited pre-Oct1 reception, and guessed absent agreement-reference assertion are retained as scaffold/fixture errors. Their original outputs agree with those descriptions. The final source expects the actual missing agreement reference to be null and constructs Oct13 reception before SDK birth. These are not product RED/fix evidence, and no artificial failing product test or source feature fix is claimed.
+
+I verified all ten recorded unchanged dependency pins against final H1 and actual base: coordinator `e617ce5f322e220b8fec7448fc2e9faec33710be6cdb65b86d8a5f763d283e4f`; case writer `39c7e81aeabb3c88b55258248d41672f7390009b72a792421ae021c037203e5f`; db writer `572c45939c691fa8e9610b783273fbc84340175beea0bbb683a57114e9082ece`; supply decoder `584e51953ca5da03ad9d216ce8e0e88cc09720b5dd1e7e8f6bcc7e4ec5995829`; canonical runtime `d0f6be4c7fc8b84d5c1fccc43896bc5fd376e0b8c92e30d3b96452e1a14e11b3`; own-source reading loader `bd861f45da5473fcac478bb1d604b40ede08f82bee34b96a1bbf12a80407e504`; reading fixture `ff0353dc388465fb901ed9b9bb475ed9d5bafc4ecbbd392ee241a4963ea1f327`; adapter `fc4d5d8cd7f6a7398e6d498a092280dca1d9a1b4e4bdc3fd33ad8dce333c18ed`; owner fixture `5074fabfff69b734dd30480e957acd02e88107e8506fbf7111da0c2a4708c7c8`; package lock `8bf0aca13c2f57d92db355bda81f38e526b3bd50a33db7859d272daad8d9f5c5`.
+
+Frozen rule/acceptance registers and ledger are byte-identical to base, SHA256 respectively `48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8`, `e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10`, and `7266ee57be5ac633ec0e8ca3f169aaf7d048da45ca0abfc6004284eae75c822e`. Actual base counts 119 VERIFIED +204 PASSED=323/352. AT-Z04C remains NOT_EXECUTED/evidence empty; the new file has no whole-ID masterplan approval tag and adds zero ledger credit. The earlier 320-value originals are explicitly historical; base95d→d798 changes only the four existing proof/checkpoint/archive/ledger paths. I did not open the native archive or collect its originals.
+
+## Recommendation and remaining ownership
+
+Accept this exact two-file component for bounded source handoff. The implementation matches the authorized one-file consumer assertion plan for already-existing behavior; no product fix, policy gate, SQL write, existing assertion weakening, or new producer is introduced. Source/custody handoff and publication remain root actions, subject to the exact receipt and independent final-version reviews; this reviewer performed neither.
+
+The existing qualified owners retain native/backend/GEN/original collection, genuine authority, complete cancellation ordering/original correlation, actual compensating/operator execution, prescribed physical acknowledgements, current CI, whole-ID/ledger qualification, and normal main merge. Existing genuine source proofs may be reused only with explicit applicable source/environment binding. No private ROOTf8/795 material, native logs/archive, external provider input, or current CI was fetched or executed in this review. **Ready for source handoff: yes, SOURCE_APPROVE. Whole-contract/native/merge readiness: not established by this component review.**
+```
+
+</details>
+
+<details><summary>ediel-z04c-6f94-final-review-b-0e77d955.md — SHA256 2bb9f12a91e4d504aea735c7ccea535d868db47af539d664e4fabc16a4b1122a</summary>
+
+```markdown
+# Independent final source/evidence review B: Z04C finite compensation consumer
+
+**SOURCE_APPROVE** for the complete two-file component at exact H1 `0e77d95531f9a01a37212ef8f2731b482e4a766f` / tree `301ae77579de8aee8d015909dde841227107dbdc`. No confirmed source or evidence must-fix was found. Approval covers the prepared finite consumer and its truthful evidence boundaries, not whole AT-Z04C acceptance or native delivery.
+
+Reviewer `/root/fg_final_review_b` is a noncoauthor of this new component's source, fixtures and executable proof. I did not consult another final reviewer or coordinate findings. Only this original `/tmp` report was written. No tests, native/backend/SQL/GEN/current CI/log collector, private ROOTf8/unpublished795/original/artifact fetch, repository/ref write, PR or publication occurred.
+
+## Exact whole-version binding
+
+| Identity | Verified value |
+| --- | --- |
+| Workspace | `/workspace/ediel-z04c-compensation-case-20261013-6f94` |
+| Full H1 head | `0e77d95531f9a01a37212ef8f2731b482e4a766f` |
+| Full H1 tree | `301ae77579de8aee8d015909dde841227107dbdc` |
+| H1 ordered parent | `[e627eb13d09bbdaa8e7850be9113f371e18184f6]` |
+| One-file code source/tree | `e627eb13d09bbdaa8e7850be9113f371e18184f6` / `855ca9157f3ba9a5e9ab80219d6b88ed2b6d4ae0` |
+| Code ordered parent / source and actual-main base | `[d798eb36f35cd4f437d44c8d234b4dbb81adc7a6]` |
+| Actual-main base tree | `e3b6c11677a2b871a128504f1616def7d22dba1e` |
+| Actual-main ordered parents | `[95d8d160491e79b172342654d8dc643346758105, fba453cc7cc9de8a26ec75d29248e1733316fcd1]` |
+
+| Entire reviewed new file | SHA256 |
+| --- | --- |
+| `__tests__/ediel-z04c-compensation-case-consumer-6f94.test.ts` | `1f0f529be7fbe2f8acc84a9a4b30d22dce411c1a466843f0feeb4db06d457cb2` |
+| `.agent-memory/ediel-z04c-compensation-case-20261013-6f94-checkpoint.md` | `88faf28a37a9dd0586ab1ba1fdd7e61820e359b0389d0e9c35b6fbd235dbc4a1` |
+
+The test is exactly202 lines, mode100644, blob `3870580e726a56d01367fa6dd19730621e0d63da`. The checkpoint is183083 bytes/3040 lines. The tracked worktree is clean, HEAD is H1, and inspected file hashes match the committed version. Diff from actualbase contains exactly the two ADD paths, 3242 insertions, no deletion. No runtime, SQL, helper, config, types, frozen requirement, existing assertion or ledger change is included.
+
+Custody is the supplied separately authenticated helper receipt `359d27a100e3f5de4992e5abd921060c85988ae4`, CLAIM6149092334, IDs EMPTY, one exact test resource `file-d3f2acb77bb1d7a3c265a2a1bb5fd8b4e24e89effed813b956b22aa1bae4ae34`, sole writer `/root/z06fg_requirements`; root wrote only its unique checkpoint. Remote receipt/ref authentication remains attributed to the existing owner/writer. No native/GEN/backend/original producer or whole-ID custody is inferred.
+
+## Frozen requirements, skills and actual scope
+
+Read the literal frozen AT-Z04C-SUPPLIER and its TEN-05/P-01/ENV-06 requirements. It requires supplier23-DDQ-PRODAT, Z04/Z24, own CONTRL/applicable APERAK, correct confirmed/future-period cancellation and controlled compensation for an executed effect, preserved original/cancellation order and bounded cancellation-before-original correlation without arbitrary activation, with wrong role/direction/R-D/correlation/mutation prohibited. Both copied checkpoint contract objects match the frozen register exactly.
+
+Acceptance SHA256 `e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10`; rules SHA256 `48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8`. Actual d798 coverage SHA256 `7266ee57be5ac633ec0e8ca3f169aaf7d048da45ca0abfc6004284eae75c822e`; AT-Z04C remains NOT_EXECUTED with empty evidence, and this component gives +0. Existing323/352 ledger credit belongs to prior delivery, not this source packet.
+
+Repository AGENTS/current start, workflow/reservations and current memory govern the read-only reviewer scope. The relevant installed code-review/differential-review/find-bugs, spec-to-code, false-positive verification and verification-before-completion approach applies, with Supabase guidance for the declared SDK/storage boundary. Their unchanged bytes from95d permit retained instruction applicability. Broad repository audit/scanners, UI/performance, implementation, producer/delivery and unrelated skill groups have no trigger in this bounded new finite assertion review.
+
+This is a new independent component review. Earlier FG/Z09 approvals do not approve these bytes or supply acceptance credit. The existing product feature is already present; this packet composes the actual C/Z24 caller with actual case/event writers instead of introducing product behavior or claiming an artificial product RED.
+
+## Actual call chain and test semantics
+
+**Valid C/Z24 reaches the intended caller.** Test lines139–152 construct counted synthetic own PRODAT from the unchanged fixture, set physical223 toZ24 and UD to valid own national identity, and set synthetic receipt/context clocks to Oct13 before installing the immutable SDK fixture. The physical DDQ/receiver/LI/point and ownsource hash remain real parser inputs. Cached subtypeL,1900 date, foreign customer/point/original hints are deliberately misleading. Real canonical grammar/policy, registry decoder, own-source READ token issuance and source-recording composition execute against declared lower SDK/catalogue ports. At the modeled supply RPC, lines71–75 require exact company/source/actor, recorded hash, accepted syntax/application/function and accepted own member. An unrelated pre-canonical refusal cannot satisfy the positive-path assertions.
+
+Read `prodatOwnSourceRegisterReadingDeclarations`: actual C source qualification requires a post2026-10-01 receipt, current own stored hash/context, physical23-DDQ-PRODAT/Z04/Z24, legal supplier/reception/mail/parse scope and current actor reads before issuing its opaque token. The synthetic timestamp correction follows that existing guard before fixture birth; it changes no old helper default or product gate and is not native authority.
+
+**The compensation cause is a modeled lower input.** Lines70–77 provide exact `z04c_effect_already_executed_compensation_required`, applied:false, no commits/effect receipts and a held partition with the actual physical object/register scope. The actual `applySupplyMarketSource` decoder validates the scope/register shape and held/applied consistency, computes fullyApplied:false and reviewRequired:true, and propagates the cause. Existing SQL defines this precise refusal only after own original/relationship qualification when the switch/period is already executed; its result is modeled here. The finite fixture does not establish the actual locked original or PostgreSQL refusal. This limitation is correctly stated in source and checkpoint.
+
+**Real coordinator creates the review and warning.** Read `inboundProcessing` canonical admission and domain branch through owner finish, case creation and validated event. An accepted own domain object invokes the actual supply decoder once. No commits means no source-switch callback/followup; applied:false means no committed final domain ACK; fullyApplied:false means no Legacy supply projection. The owner finishes before actual `createOrUpdateInboundProdatCase`, followed by actual `createEdielMessageEvent` with own caseId, held partition, no committed effects, applied:false/idempotent:false and warning status. Test lines124–135 assert that exact payload, parent/source/company/actor attribution, lower-apply-before-case ordering, unchanged business graph/raw/hash and uncalled ACK/workflow/activation ports.
+
+**The case derives its own physical source.** Read the actual case parser and matcher. With wire present, they select physical223,210,UD,point/agency/register/LI and ignore absent/cached scalar fallbacks. Existing own point/site/customer queries carry real company filters. The new tests require pending_review, Z04/Z24, own customer/site/internalpoint, national identity, physical start, ownLI CASE-1, one proposed object and pending_admin_review. Absent physical agreement reference is correctly asserted null, not supplied by cache or invented source. `createEdielMessageEvent` rereads the parent and supplies both message IDs/company/actor and identical payload/event_payload to the actual insert; those fields are asserted.
+
+**Missing and terminal workflows stay separate from this handoff.** Both variants154–168 run the real caller, create one source case and precise warning while preserving own business rows and the populated foreign supply row. Workflow/activation/final ACK stubs throw if invoked and remain uncalled. This demonstrates the bounded review handoff even without an active application workflow, not an operator's actual start or completed restoration.
+
+**Finite storage applies actual filters and CAS.** The closed table set and RPC allowlist throw for undeclared ports; allowed inserts are only cases/events and updates only message/case projections. Source identity changes are refused while identical tenant projection patches remain permissible. Actual case/event payloads are stored, not replaced with desired case return values. The port applies eq/is/in/or predicates, projections and limit; its race callback runs before CAS filtering is reevaluated. Successful fixture queries have zero/one selected row. This is not full PostgREST cardinality/error/unique-index/RLS/transaction fidelity: `.single`/`.maybeSingle` return the first selected row, order is inert, and native insert-conflict concurrency is not proved. No documentation claims such fidelity.
+
+**Replay and operator decision preservation use the actual writer.** Replay163–167 asserts one unchanged case, unchanged graph/source and two per-invocation review warnings, with id/company/status/updated_at CAS filters. Terminal applied/approved/rejected and objectApplication decisions169–175 are retained without case writes. Lost CAS177–183 changes status/time before filtering, returns no updated row, and the actual writer rereads the same id/source/company and preserves the modeled new final decision. Changed undecided payload185–189 produces exact PRODAT_INBOUND_CASE_CHANGED without a second review warning; broken foreign read191–194 produces TENANT_CONTEXT_MISMATCH before a case update. These controls cannot pass by a stubbed case result because the writer is unmocked.
+
+**Warning storage failure is truthful.**196–202 call the real case writer with the declared event-store42501 error. The actual error propagates after the modeled case insert; no durable warning, operator action or transaction-wide rollback is manufactured. The test explicitly preserves this partial finite-store effect rather than claiming native atomicity.
+
+## Evidence integrity and exact applicability
+
+Independently extracted the embedded original qualification JSON, preserving its original newline, and reproduced SHA256 `18a7064508c666f11f6d1abb0f9b75d8d227f5f15798ae7564f447c2e8d4393d`. Its code/tree/ordered parent/base/test hash match the frozen source. All25 embedded raw/controller/source/static entries independently match their declared byte lengths and SHA256 values; no rerun or raw-log reacquisition was used. Both historical support reports also reproduce their declared hashes (`34b346ed…` and `a8337450…`) and explicitly retain dated source/count context rather than substituting it for current d798.
+
+Final first-green stdout is240 bytes, SHA256 `255f4a00b1e1e272a8b702e4c7d96eae82d981a8419518f0d32baba12c48f936`: one file,10 passed, no failure/skip, Vitest4.1.9. Captured metadata binds that fifth invocation to exact final test SHA, exit0 and Node22.23.3. Final stderr is empty, SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`. Final lint and focused TypeScript metadata also bind the final test hash and exit0 with empty outputs. These are author-produced finite/static results whose preserved bytes and binding I checked, not reviewer-executed or native results.
+
+Read the preserved controllers: finite execution chooses only the new test and existing Vitest setup; no native config/backend initialization. The first controller retains unsupported minWorkers. Static controller invokes the recorded lint/type commands. Focused TypeScript extends unchanged tsconfig.tests, changes only incremental:false and include to this file, and retains strict project options and imported dependencies; no product/compiler gate is weakened. Controllers were not executed in this review.
+
+Historical outputs preserve the unsupported CLI failure before tests, the finite port's mistaken rejection of identical tenant patch, correctly unqualified pre-Handbok Sep22 source, and a guessed absent agreement reference. Static comparison of preserved first scaffold with final source shows only accepted canonical assertions, same-value projection allowance, declared receipt-clock correction and null agreement expectation. These are scaffold/input/expectation corrections; none evidences a product defect repaired by this packet. The checkpoint states this accurately and preserves all failed original outputs.
+
+All ten pinned dependencies independently match their declared SHA and actual d798 bytes: inboundProcessing, inboundCases, db, supplyMarketTransition, runtimeDecision, own-source reading declarations, source-reading fixture/adapter, source-owner fixture and package-lock. No existing shared assertion or source authority is weakened. The global test include already selects the new test; no config/workflow/gate change occurs.
+
+## Remaining boundaries and verdict
+
+No confirmed must-fix survived checking the actual guards and alternative paths. An unrelated canonical hold cannot reach the asserted accepted lower apply; a generic/malformed lower result cannot yield the required own held partition through the real decoder; cached foreign business hints cannot satisfy the case parser assertions; terminal/CAS decisions cannot pass by inventing case results; and failed event storage cannot count as a warning/operator completion.
+
+Native source authority, real PostgreSQL durability/RLS/unique-index/CAS locks, locked exact original/period qualification, real physical ACKs, authenticated operator execution/completed compensation, cancellation-first→later-original correlation/order, and the remaining wrong-role/direction/R-D/correlation/mutation whole-card prohibitions require separately qualified existing evidence. This finite component does not claim them or start a duplicate producer. Current mandatory CI/GEN/genuine outputs and serial adoption/delivery remain with their existing owners. No new approval API or generic market/LIVE gate is introduced.
+
+**SOURCE_APPROVE** applies to whole H1 `0e77d95531f9a01a37212ef8f2731b482e4a766f` / tree `301ae77579de8aee8d015909dde841227107dbdc` with exact code/base/ordered parents above. Native/SQL/backend/GEN/current CI NOT_RUN here; whole AT-Z04C/operator completion/cancellation-first not proved; +0 ledger/main/merge credit. Changed source/checkpoint/base/relevant dependencies require affected qualification and exact review binding. Reviewer B pauses after this report.
+```
+
+</details>
+
+
+## Källpublicering och exakt fortsatt ägargräns
+
+41 oförändrade workflows har sju pushtriggers: sex main och en tidigare separat temporär branch. Ingen matchar vår branch; inga workflow_run/repository_dispatch-kedjor finns. Källbranchen kan publiceras utan konkurrerande native-/GEN-/backend-/collectorstart. Ingen PR, dispatch, CI-rerun eller mainmerge skapas här. Originalaudit SHA256 `562a136dbd88090f2db5866f5ede33bfc4e8d0454e58d7f31b57546fafa24c90`.
+
+```json
+{
+  "schema": "ediel_source_only_push_trigger_audit_v1",
+  "sourceH1": "0e77d95531f9a01a37212ef8f2731b482e4a766f",
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "branch": "codex/ediel-z04c-compensation-case-20261013-6f94",
+  "workflowCount": 41,
+  "push": [
+    {
+      "file": ".github/workflows/browser-deps-lock-sync-temporary.yml",
+      "branches": [
+        "agent/release-certification-hardening-20260817"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/browser-quality-e2e.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/ediel-masterplan-v2.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/full-e2e.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/ops-hardening.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/tenant-integrity-regression.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    },
+    {
+      "file": ".github/workflows/vercel-production-deploy.yml",
+      "branches": [
+        "main"
+      ],
+      "branchesIgnore": [],
+      "matchesOwnBranch": false
+    }
+  ],
+  "indirectChainTriggers": [],
+  "noDispatchOrNativeInvoked": true
+}
+```
+
+Efter båda slutrebinds överlämnas bara en testpostbild till befintlig seriell ROOT. Mottagaren ska verifiera egen receiptbunden custody före writes; receipt359d/filed3f2 hålls tills explicit avgränsad mottagaröverlämning och matchad transfer är utförd. Root/solewriter är pausade. Detta är inget globalt unlock eller redan utförd kodadoption/merge. Alla upptagna runtime-, SQL-, helper-, GEN-, native- och collectorroller behålls hos befintliga ägare.
+
+Efter källöverlämningen prioriteras konkreta nya retained-owner-fynd och verifierat ledig komplettering. Nytt offentligt SC031-orakelfynd6149259115 gäller vårt redan ägda F/G-testscope och fortsatt C1-owned decoder; det ger ingen rätt att skriva i decoder. Separat läsande Z04C arrival-ordertrace gäller ett annat framtida bounded assertionpaket; ingen påbörjad ny writer/producer eller whole-claim följer av detta checkpoint. Aktuell C-komponents tvåfiliga source fortsätter oförändrad.
