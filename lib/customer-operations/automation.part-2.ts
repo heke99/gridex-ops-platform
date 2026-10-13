@@ -829,6 +829,7 @@ export async function processInboundResponse(job: JobRow): Promise<JobOutcome> {
   return {
     status: 'completed',
     result: {
+      ...record(job.result),
       reason: 'z02_atomic_core_finalized',
       customer_info_request_id: requestId,
       ediel_message_id: messageId,

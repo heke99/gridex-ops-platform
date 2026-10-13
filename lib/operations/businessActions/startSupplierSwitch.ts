@@ -1,4 +1,5 @@
-import { actionPreflight } from '@/lib/operations/businessActions/actionPreflight'
+import { actionPreflight, actionPreflightForSupplierSwitchWorker, type BusinessActionPreflightResult } from '@/lib/operations/businessActions/actionPreflight'
+import type { SupplierSwitchWorkerAuthority } from './supplierSwitchWorkerAuthority'
 import { decideBusinessAction } from '@/lib/operations/businessActions/actionDecisionEngine'
 import { prepareAndQueueEdielZ03 } from '@/lib/ediel/orchestrator'
 import {
@@ -12,15 +13,26 @@ import {
 } from '@/lib/customer-operations/switchReadiness'
 import { supabaseService } from '@/lib/supabase/service'
 
-export async function startSupplierSwitch(input: {
+type StartInput = {
   actorUserId: string
   customerId: string
   switchRequestId: string
   siteId?: string | null
   meteringPointId?: string | null
   idempotencyKey?: string | null
-}) {
+}
+
+export async function startSupplierSwitch(input: StartInput) {
   const preflight = await actionPreflight({ ...input, actionType: 'start_supplier_switch' })
+  return startWithPreflight(input, preflight)
+}
+
+export async function startSupplierSwitchForWorker(input: StartInput, authority: SupplierSwitchWorkerAuthority) {
+  const preflight = await actionPreflightForSupplierSwitchWorker({ ...input, actionType: 'start_supplier_switch' }, authority)
+  return startWithPreflight(input, preflight)
+}
+
+async function startWithPreflight(input: StartInput, preflight: BusinessActionPreflightResult) {
   const decision = decideBusinessAction('start_supplier_switch')
   if (!preflight.ok) return { ok: false, preflight, decision, message: 'Kan inte starta leverantörsbyte' }
 
