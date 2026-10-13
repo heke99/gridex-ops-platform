@@ -14,6 +14,7 @@ vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {nationalRescissionNativeChain} from './helpers/nationalRescissionNative'
 import {nationalEndNativeChain,type ReceivedEndCandidate} from './helpers/ediel-national-end-native-fixture'
+import {prepareIndependentNationalEndTarget} from './helpers/ediel-z05-independent-end-native-fixture'
 import {bilateralClosureNativeChain} from './helpers/ediel-bilateral-lk-native-fixture'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {getEdielMessageById} from '@/lib/ediel/db'
@@ -57,10 +58,11 @@ async function configureAckProfile(companyId:string,raw:string){
   routeActive:true,routeScope:'ediel_ack',routeEnvironment:'bilateral_test',target:'recipient@example.invalid',
  }])
 }
-async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEndCandidate={}){
+async function receivedEnd(variant:typeof variants[number],candidate:ReceivedEndCandidate={},independent=false){
  candidate={...candidate,retainOriginalMailbox:true}
  if(variant==='L'){
-  const f=await receivedNationalRescissionEnd(true,false,candidate)
+  const f=await receivedNationalRescissionEnd(true,false,candidate,
+   independent?sibling=>prepareIndependentNationalEndTarget(sibling,provider):undefined)
   await configureAckProfile(f.companyId,f.endWire)
   return{...f,sourceId:f.endSourceId,wire:f.endWire,startSourceId:f.sourceId,effects:()=>nationalEndEffects(f)}
  }
@@ -192,14 +194,21 @@ afterEach(()=>{sourceSession.client=null;vi.unstubAllEnvs();vi.restoreAllMocks()
 
 it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linked:false}] as const)(
  'actual Z05$variant (request linkage $linked) commits its own end, physical acknowledgements and scoped final-value task while preserving history and every unrelated graph',async({variant,linked})=>{
- const f=await receivedEnd(variant,linked?{}:{lineItemReference:'L-INDEPENDENT-OWN-NOTICE'}),before=f.effects() as {period:Record<string,unknown>;watches?:unknown}
+ const f=await receivedEnd(variant,linked?{}:{lineItemReference:'L-INDEPENDENT-OWN-NOTICE'},!linked),before=f.effects() as {period:Record<string,unknown>;watches?:unknown}
+ const preserveSibling=()=>{
+  if(linked)return
+  if(!('assertSiblingPreserved' in f)||!f.assertSiblingPreserved)throw Error('independent_end_sibling_preservation_required')
+  f.assertSiblingPreserved()
+ }
  const sourceBefore=immutable(f.sourceId),originalBefore=immutable(f.original.id),startBefore=immutable(f.startSourceId),unrelatedBefore=unrelated(f.periodId,f.sourceId)
  const businessBefore=sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_family='PRODAT'`)
  expect(before.period).toMatchObject({id:f.periodId,source_end_message_id:null})
+ preserveSibling()
  const startedAt=processingClock()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
  const finishedAt=processingClock()
  const after=f.effects()
+ preserveSibling()
  expect(after).toMatchObject({period:{id:f.periodId,company_id:f.companyId,customer_id:f.customerId,
   metering_point_id:f.pointId,source_message_id:f.startSourceId,start_date:before.period.start_date,
   market_start_at:before.period.market_start_at,market_state_version:Number(before.period.market_state_version)+1,
@@ -265,6 +274,7 @@ it.each([{variant:'L',linked:true},{variant:'LK',linked:true},{variant:'L',linke
  expect(unrelated(f.periodId,f.sourceId)).toEqual(expectedGraph)
  expect(immutable(f.original.id)).toEqual(originalBefore);expect(immutable(f.startSourceId)).toEqual(startBefore);expect(immutable(f.sourceId)).toEqual(sourceBefore)
  if(!linked)expect(ordinaryReceiptState()).toEqual(ordinaryAfter)
+ preserveSibling()
 },120000)
 
 // IV is physically present in both candidates. Absence of the ordinary optional
