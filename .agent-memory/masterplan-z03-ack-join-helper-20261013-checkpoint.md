@@ -1,3 +1,227 @@
+# CURRENT FINAL SOURCE CANDIDATE — observed lawful positive send
+
+Technical source `cee450283bbc5cd66dbb30ace71cf1572e3d0e9b`, tree `f462cabba33d2354c40884e6a94d47a6d3071870`, ordered parent `8e48a6ed9452d976cfac8fb6a681141e52d0de66`, source base actuald798/e3b6. This supersedes preliminary technical4386/document8e48 freezes preserved below verbatim as historical receipts. Two NEW technical files only, own unique checkpoint; author PAUSED. No push/native/whole approval.
+
+ROOT's precise follow-up on public6149872172 authorizes ONLY one necessary own positive assertion: actual accepted provider `observedAt` is evaluated against the current unchanged canonical supplier-switch window derived from the same immutable original's physical start/subtype. `evaluateSupplierSwitchSendWindow` and `loadSupplierSwitchPolicy` are imported unchanged and the actual provider instant is observed, never used to alter JS/SQL clocks. Both selected positive cohorts must have windowOpen=true/reason=open. This supplies no rejection mechanism or qualification for the separately found P1 late queued send and P2 too_early classifier. Those remain with retained calendar/transport owners; no whole calendar credit is inherited from the old four-card map. No product/scheduler/SQL file is written.
+
+- `scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.test.ts`: 593lines; blob `552800ec56bd4a13a778fbeab0360c4ac5ba6f71`; SHA256 `f9ce7baa96d4660bf88356643ec10e97087cdd3a6ca8de3288b77ad527c3cc97`.
+- `scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.config.ts`: 8lines; blob `324261dc8d442ed72e32dce19cb55962f9c1101d`; SHA256 `411756e455969e5b04dad4f24007d17d2937c4db74bd840dc615eaa168bd1117`.
+
+Affected final proof is fresh: Node22.23.3/Vitest4.1.9 8finitePASS/0FAIL/2nativeNOTSELECTED; strictsemanticTS full actual import closure and two-file projectESLint exit0,0diagnostics; diffexit0/all9,843 preexisting modes/blobs+12pins preserved. No backend/setup/native/SQL child or sourceprefix was invoked. Qualification commands registry SHA256 `6dcbf5e26dba692823ca2f04fe75c471c5516189bef6c90d770c10af18f90ec1`; actual freeze-controller SHA256 `4479e1d20e380bdd6f702bf5f47a24ccddae569d0e17c6489922f089de4aa247`; new full artifact index SHA256 `5fc972f19d60fbe508dac390aa1635b01b229709c2bffdb102ad4ebf56272628` references all154 current/previous immutable outside artifacts, including prior index. Previous originals were never overwritten. Source INPUT HOLD/qualification pending and SOURCE/PREPARATION-only limits below remain. Two FRESH OTHER NONCOAUTHOR final peers will review this exact final source and checkpoint; all author/runner/coauthor exclusions remain.
+
+## Final window-affected raw inputs/outputs
+
+
+### source-freeze-window.json
+
+Bytes 853; SHA256 `69ca4804cabfa26fb3cd759796f7bcb53fdeeb35c40f05fdf516b1a63de8874e`.
+
+```text
+{
+  "sourceHead": "cee450283bbc5cd66dbb30ace71cf1572e3d0e9b",
+  "sourceTree": "f462cabba33d2354c40884e6a94d47a6d3071870",
+  "orderedParents": [
+    "8e48a6ed9452d976cfac8fb6a681141e52d0de66"
+  ],
+  "base": "d798eb36f35cd4f437d44c8d234b4dbb81adc7a6",
+  "supersedesTechnicalHead": "4386f9c7c27d366794af845b1e55beb095647ee1",
+  "technicalFiles": [
+    {
+      "path": "scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.test.ts",
+      "blob": "552800ec56bd4a13a778fbeab0360c4ac5ba6f71",
+      "sha256": "f9ce7baa96d4660bf88356643ec10e97087cdd3a6ca8de3288b77ad527c3cc97",
+      "lines": 593
+    },
+    {
+      "path": "scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.config.ts",
+      "blob": "324261dc8d442ed72e32dce19cb55962f9c1101d",
+      "sha256": "411756e455969e5b04dad4f24007d17d2937c4db74bd840dc615eaa168bd1117",
+      "lines": 8
+    }
+  ]
+}
+```
+
+### qualification-window-commands.json
+
+Bytes 1519; SHA256 `6dcbf5e26dba692823ca2f04fe75c471c5516189bef6c90d770c10af18f90ec1`.
+
+```text
+{
+  "cwd": "/workspace/scratch/gridex-z03-ack-join-helper-20261013",
+  "source": {
+    "scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.test.ts": "f9ce7baa96d4660bf88356643ec10e97087cdd3a6ca8de3288b77ad527c3cc97",
+    "scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.config.ts": "411756e455969e5b04dad4f24007d17d2937c4db74bd840dc615eaa168bd1117"
+  },
+  "commands": {
+    "finite-window-final": [
+      "/workspace/scratch/gridex-c2-takeover-01a131d2/node-v22.23.3-linux-x64/bin/node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "/workspace/scratch/ediel-z03-ack-join-20261013/finite.config.ts",
+      "-t",
+      "finite Z03 join input and raw boundary"
+    ],
+    "tsc-window-final": [
+      "/workspace/scratch/gridex-c2-takeover-01a131d2/node-v22.23.3-linux-x64/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "--project",
+      "/workspace/scratch/ediel-z03-ack-join-20261013/tsconfig.focused.json",
+      "--pretty",
+      "false"
+    ],
+    "eslint-window-final": [
+      "/workspace/scratch/gridex-c2-takeover-01a131d2/node-v22.23.3-linux-x64/bin/node",
+      "node_modules/eslint/bin/eslint.js",
+      "scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.test.ts",
+      "scripts/ediel-at-z03l-z03lk-supplier-ack-join-native.config.ts"
+    ]
+  },
+  "change": "root-authorized own positive actual provider observation must fall inside current canonical original subtype/start window; no late-queue refusal or clock mutation",
+  "nativeCallbacksInvoked": 0
+}
+```
+
+### finite-window-final.stdout
+
+Bytes 250; SHA256 `e5bd965a5a3e24b1ed86844ae7c50b2a67b1eadb9e56d054346d13f15069283e`.
+
+```text
+
+ RUN  v4.1.9 /workspace/scratch/gridex-z03-ack-join-helper-20261013
+
+
+ Test Files  1 passed (1)
+      Tests  8 passed | 2 skipped (10)
+   Start at  16:36:26
+   Duration  565ms (transform 339ms, setup 0ms, import 397ms, tests 33ms, environment 0ms)
+
+```
+
+### finite-window-final.stderr
+
+Bytes 0; SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+
+```text
+
+```
+
+### finite-window-final.exit
+
+Bytes 1; SHA256 `5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9`.
+
+```text
+0
+```
+
+### tsc-window-final.stdout
+
+Bytes 0; SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+
+```text
+
+```
+
+### tsc-window-final.stderr
+
+Bytes 0; SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+
+```text
+
+```
+
+### tsc-window-final.exit
+
+Bytes 1; SHA256 `5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9`.
+
+```text
+0
+```
+
+### eslint-window-final.stdout
+
+Bytes 0; SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+
+```text
+
+```
+
+### eslint-window-final.stderr
+
+Bytes 0; SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+
+```text
+
+```
+
+### eslint-window-final.exit
+
+Bytes 1; SHA256 `5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9`.
+
+```text
+0
+```
+
+### freeze-window-controller.py
+
+Bytes 2164; SHA256 `4479e1d20e380bdd6f702bf5f47a24ccddae569d0e17c6489922f089de4aa247`.
+
+```text
+from pathlib import Path
+import hashlib,json,subprocess
+r=Path('/workspace/scratch/gridex-z03-ack-join-helper-20261013');p=Path('/workspace/scratch/ediel-z03-ack-join-20261013')
+sha=lambda b:hashlib.sha256(b).hexdigest()
+def git(*args):return subprocess.check_output(['git',*args],cwd=r).decode().strip()
+f=json.loads((p/'source-freeze-window.json').read_text())
+for row in f['technicalFiles']:assert sha((r/row['path']).read_bytes())==row['sha256'] and git('rev-parse',f['sourceHead']+':'+row['path'])==row['blob']
+for label in ['finite-window-final','tsc-window-final','eslint-window-final']:assert (p/(label+'.exit')).read_text()=='0'
+old={line.split('\t',1)[1]:line.split('\t',1)[0] for line in git('ls-tree','-r',f['base']).splitlines()}
+now={line.split('\t',1)[1]:line.split('\t',1)[0] for line in git('ls-tree','-r',f['sourceHead']).splitlines()}
+assert all(now.get(k)==v for k,v in old.items())
+assert set(now)-set(old)=={x['path'] for x in f['technicalFiles']}|{'.agent-memory/masterplan-z03-ack-join-helper-20261013-checkpoint.md'}
+for row in json.loads((p/'readonly-source-pins.json').read_text()):assert sha((r/row['path']).read_bytes())==row['actualSha256']
+subprocess.run(['git','diff','--check',f['base'],f['sourceHead']],cwd=r,check=True)
+index=[]
+for path in sorted(p.iterdir()):
+ if path.is_file() and path.name not in ['artifact-index-window.json','freeze-window-controller.stdout','freeze-window-controller.stderr','freeze-window-controller.exit']:
+  b=path.read_bytes();index.append({'name':path.name,'bytes':len(b),'sha256':sha(b)})
+a={'controllerSha256':sha(Path(__file__).read_bytes()),'source':f,'artifacts':index,'priorOriginalIndexSha256':sha((p/'artifact-index.json').read_bytes()),'preexistingPreserved':len(old),'physicalNativeResult':'NATIVE_NOT_RUN','nativeCallbacksInvoked':0,'backendCommandsInvoked':0};(p/'artifact-index-window.json').write_text(json.dumps(a,indent=2));print(json.dumps({'sourceHead':f['sourceHead'],'artifactCount':len(index),'controllerSha256':a['controllerSha256'],'artifactIndexSha256':sha((p/'artifact-index-window.json').read_bytes()),'preexistingPreserved':len(old),'nativeCallbacksInvoked':0},indent=2))
+```
+
+### freeze-window-controller.stdout
+
+Bytes 333; SHA256 `3b2dbbfe44982b59c8164e6154f393a816aeeb85494155f398a3a4fe2b43dc37`.
+
+```text
+{
+  "sourceHead": "cee450283bbc5cd66dbb30ace71cf1572e3d0e9b",
+  "artifactCount": 154,
+  "controllerSha256": "4479e1d20e380bdd6f702bf5f47a24ccddae569d0e17c6489922f089de4aa247",
+  "artifactIndexSha256": "5fc972f19d60fbe508dac390aa1635b01b229709c2bffdb102ad4ebf56272628",
+  "preexistingPreserved": 9843,
+  "nativeCallbacksInvoked": 0
+}
+```
+
+### freeze-window-controller.stderr
+
+Bytes 0; SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+
+```text
+
+```
+
+### freeze-window-controller.exit
+
+Bytes 1; SHA256 `5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9`.
+
+```text
+0
+```
+
+## Preserved preliminary source/qualification history
+
 # Z03 L/LK own ACK → causal Z04 source-preparation checkpoint
 
 Agent `codex-ediel-z03-ack-join-helper-20261013`, packet `d3617284-ab1b-4eab-923a-2b279f14afa7`, epoch `gridex-five-agent-20261012`, helper, IDs empty. Source base actual main `d798eb36f35cd4f437d44c8d234b4dbb81adc7a6`, tree `e3b6c11677a2b871a128504f1616def7d22dba1e`. Branch `codex/ediel-z03-ack-join-helper-20261013` at `/workspace/scratch/gridex-z03-ack-join-helper-20261013`.
