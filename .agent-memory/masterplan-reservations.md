@@ -1,10 +1,10 @@
-# Reservationer — ny femagentsepok
+# Reservationer — aktuell receiptbunden custody
 
 Epoch: `gridex-five-agent-20261012`. [Owner STOP](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122223028) och [205verifierade adminreleases](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122307591) ersätter oldowner-onlyhandoff-waits endast för den utförda reseten. Alla framtida nya reservations-/releaseoperationer följer samma kvittobundna protokoll. Nya kvitton endast[#766](https://github.com/heke99/gridex-ops-platform/issues/766).
 
 ## Ny start
 
-Läs [masterplan-five-agent-baseline-20261012.md](masterplan-five-agent-baseline-20261012.md), [masterplan-five-agent-transition-20261012.md](masterplan-five-agent-transition-20261012.md), faktisk main/frysta krav/ledger/donorhead och aktuella refs. Nya agenter behöver inte kontakta gamla ägare. Slotlistan ger ingen technicalclaim. En existerande ny ref är upptagen; konflikter inom nyepok avstäms innanwrite. Ett sent gammaltkvitto dokumenteras som resetkonflikt och får inte forceoverwrites.
+Läs [masterplan-current-start.md](masterplan-current-start.md), faktisk main/frysta krav/ledger/donorhead, senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) och aktuella refs. Baslinje/transition är historik. Befintliga slots, filrefs och producenter återclaimas inte från en äldre prompt; ny skrivscope kräver uttrycklig avgränsad överlämning. Nya agenter behöver inte kontakta gamla ägare. Slotlistan ger ingen technicalclaim. En existerande ny ref är upptagen; konflikter inom nyepok avstäms innanwrite. Ett sent gammaltkvitto dokumenteras som resetkonflikt och får inte forceoverwrites.
 
 ## Atomic masterplan-reservation-v1
 
@@ -18,7 +18,7 @@ Läs [masterplan-five-agent-baseline-20261012.md](masterplan-five-agent-baseline
 
 BaslinjeJSON producerSlots listar producer-z01/z02/z03/cancellation,esco/z10m/utilts/gen,h/fg/brp,db05,tr08/ops04. En producent/källa/inputepoch i taget; automatisknative/capture påpush måste redan vara scoped. Producerref hålls tills faktisk körning/insamling är terminal och qualified eller avslutad med checkpoint, sedan receiptmatchingrelease före ny producent.
 
-C2 är enda delade GEN-service: fem exactpaths från baselineJSON, producer-gen, en källunion/capture/import åtgången. Nya canonical inputepoch/checksum/replay/appliedhistory gäller; source-bound gamla outputs återanvänds bara efterfullapplicability. GENmedförfattare är inte slutgranskare för egna output.
+Befintlig enligt senaste verifierade handoff GEN-ägare är enda delade GEN-service; historiskt C2-slot utser ingen ny producent: fem exactpaths från baselineJSON, producer-gen, en källunion/capture/import åtgången. Nya canonical inputepoch/checksum/replay/appliedhistory gäller; source-bound gamla outputs återanvänds bara efterfullapplicability. GENmedförfattare är inte slutgranskare för egna output.
 
 Extrahelpers får granskning med läsbehörighet utan implementationclaim. Rättning i en annans fil kräver nyepochexactfilehandoff medsource/output och paus av föregående skrivare; oldagentkontakt krävs inte. Två slutgranskare som inte medförfattat; read-onlyhelpers kan komplettera reviewerantalet.
 

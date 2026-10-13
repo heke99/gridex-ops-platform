@@ -1,29 +1,32 @@
 {
   "project": "gridex-ops-platform",
-  "schema": "five-new-agent-routing-v2",
+  "schema": "ediel-current-routing-v3",
   "epoch": "gridex-five-agent-20261012",
-  "observed_main": "35ad0e6d9fd2e100d22bf5c27cd1958f77063e3c",
+  "observed_at": "2026-10-13T10:20:47+02:00",
+  "observed_timezone": "Europe/Stockholm",
+  "observed_main": "51f5fa5e80c42350d697bfed42520672749d4467",
+  "observed_tree": "276b661120d5e0b69abc2090439809d5c4528e33",
   "campaign_complete": false,
   "status": "IN_PROGRESS",
   "coverage": {
     "path": "quality/audits/ediel-masterplan-v2/coverage.json",
-    "sha256": "5e9702341c215df468d4b86b2dd79ec82c08857c6b11ace677a72680bbde54b8",
+    "sha256": "4a1560a0b16ae37d68aa30c5f67ef616a516c5306e29edf4269b7b1fa9fea850",
     "verifiedRules": 119,
     "totalRules": 121,
-    "passedContracts": 196,
+    "passedContracts": 201,
     "totalContracts": 231,
-    "approvedIds": 315,
+    "approvedIds": 320,
     "totalIds": 352,
-    "remainingIds": 37
+    "remainingIds": 32,
+    "authority": "ACTUAL_MAIN_VERIFIED_PASSED_ONLY; this snapshot is dated"
   },
-  "active_start": ".agent-memory/masterplan-five-agent-baseline-20261012.md",
+  "active_start": ".agent-memory/masterplan-current-start.md",
   "active_board": "https://github.com/heke99/gridex-ops-platform/issues/766",
-  "assignments": {
+  "remaining_scope_labels_at_observation": {
     "R1": [
       "DB-05"
     ],
     "R2": [
-      "TR-08",
       "OPS-04"
     ],
     "C1": [
@@ -48,10 +51,7 @@
       "AT-Z15V-ESCO",
       "AT-Z15VH-ESCO",
       "SC-023",
-      "SC-046",
-      "SC-053",
-      "SC-054",
-      "AT-Z10M-SUPPLIER"
+      "SC-046"
     ],
     "C3": [
       "AT-Z05H-SUPPLIER",
@@ -62,122 +62,20 @@
       "AT-Z09G-SUPPLIER",
       "AT-Z09B-SUPPLIER",
       "SC-031",
-      "SC-070",
       "AT-DB-05",
-      "AT-TR-08",
       "AT-OPS-04"
     ]
   },
-  "owner_stop_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122223028",
-  "admin_release_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6122307591",
-  "old_claims_released": 205,
-  "old_automations_paused": true,
-  "old_private_process_termination": "NOT_AVAILABLE; use isolated new epoch",
-  "new_dispatch": "FRESH_SLOT_ID_FILE_PRODUCER_CLAIMS_REQUIRED; no former-owner waits",
-  "main_scheduled_e2e": "NOT_QUALIFIED_AT_OBSERVED_MAIN",
-  "next_action": "Consume authentic792c3d GEN in existingC1/R1 chains; delegateC2implementation60cc completes784physicalERR and790compatibility; rootserialdelivers qualified791/792;785and786delivered currentheads. NewGEN114e remains solecapture; allotherClaude/coordinator mandates stopped by6132656380.",
-  "observed_at": "2026-10-12T23:55:01.875707+02:00",
-  "observed_timezone": "Europe/Stockholm",
-  "baseline_pull_request": 773,
-  "baseline_delivery": "MERGED",
-  "new_owner_reservations": "Current delegated receiptbound claims: C1root; R1a0; C3 225/58cb; C2implementation60cc; R2docsf99; GEN114e. Refreshactualrefs beforewrites.",
-  "reservation_access_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125010625",
-  "c2_scope_extension_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6125274908",
-  "active_proposals": {
-    "R1": 779,
-    "R2": null,
-    "C1": 780,
-    "C2": [
-      784,
-      790
-    ],
-    "C3": 776
-  },
-  "main_scheduled_e2e_cause_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6123693726",
-  "main_scheduled_e2e_coordination_owner": "C3",
-  "observed_tree": "ebfcc44a0daeffe6eca2c3ef48826e6f43d3167d",
-  "helper_proposals": {
-    "786": "DELIVERED35ad/e26+bda/treeebfcc44a; 23SUCCESS10conditionalSKIP+externalSUCCESS; rootownroleFIRSTreleased;315unchanged",
-    "787": "ac59/SQL8c40 unchangedreviewed correction included792c3d; actualdelivery+native pending before supersededclosure",
-    "788": "be2/SQL5d6f/testb21 final reviewer-refresh source included792c3d; actualdelivery+native pending before supersededclosure"
-  },
-  "source_heads_at_observation": {
-    "776": "a9c327b4999d8c482b6ea213e8216aab5ea49c1f",
-    "779": "309e90e594101dfbbcffa77f6364b492a6c86af1",
-    "780": "7cfc209d473e450c08c328f95cea897798dbf466",
-    "784": "e6f165cd0ab8c4cf7ca97958f0e9e871e9f08fca",
-    "785": "dbab49350575a47c2d592058cfb59e92afe60908",
-    "786": "bda69a7d91723a93d4f1e22de6ece87ffe914a38",
-    "787": "ac59ebadb30f2ccec53759c33446a3c990d64e95",
-    "788": "be2fca8587552d3f790277f38ea826fd7c1e2ce2",
-    "790": "bed533a27fac07662e2e59ae2bc965bc84898b2a",
-    "792": "c3d0f79b57aacdc37d42e8d9490b729cfee09f8b"
-  },
-  "delivered_proposals": [
-    773,
-    774,
-    777,
-    778,
-    781,
-    782,
-    783,
-    775,
-    789,
-    785,
-    786
-  ],
-  "historical_main_scheduled_e2e": "Earlier FAILURE predates current delivery; cause receipt remains historical.",
-  "tr08_owner_risk_decision": "https://github.com/heke99/gridex-ops-platform/pull/785#issuecomment-6129576518",
-  "tr08_candidate_315_is_delivered": true,
-  "whole_credit_in_current_delivery_wave": 1,
-  "shared_gen_manifest_writer": "codex-takeover-C2-01a131d2 / receipt114e4841 / soleGEN5",
-  "original_execution_collection": "Delegated current R1/C1/C3/C2implementation collectors only; newGEN114e alone collects capture. Source/metadata/docs reviews give no borrowed native credit.",
-  "source_review_reconciled_at": "2026-10-12T23:55:01.875707+02:00",
-  "tr08_source_scope": "Declared genuine operator-read Gmail plus unchanged owner internal-provider risk decision; generic unknown raw-header trust not approved and no new owner reapproval required.",
-  "esco_custody_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132190256",
-  "esco_source_review": "https://github.com/heke99/gridex-ops-platform/pull/790#pullrequestreview-5495687846",
-  "current_owner_stop_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132656380",
-  "specific_new_gen_delegation_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132691871",
-  "current_delivery_custody_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132849565",
-  "current_shared_memory_writer": "codex-takeover-delivery-20261012",
-  "current_authority": "Rootcodex-five-agent-C1-b7e2fae0 plus its currentdelegates exclusively; rootserialmerges only.",
-  "current_delegates": {
-    "root": "codex-five-agent-C1-b7e2fae0 / C1 / serialmerge;786alreadydelivered",
-    "R1": "codex-takeover-R1-20261012 / a0c05d50",
-    "C3": "codex-takeover-C3-20261012 /2255742c+58cb",
-    "C2_implementation": "codex-takeover-C2-implementation-20261012 /60cc652f",
-    "R2_docs": "codex-takeover-delivery-20261012 /f99cda54",
-    "GEN_service": "codex-takeover-C2-01a131d2 /114e4841"
-  },
-  "gen_output": {
-    "pr": 792,
-    "head": "c3d0f79b57aacdc37d42e8d9490b729cfee09f8b",
-    "tree": "b1ee702935c6bb81d8752dc20014309eccea15db",
-    "capture_run": 38309588529,
-    "input_head": "cb092a7377d2d42bc8c0653a758e043bb88c3b19",
-    "receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6133104071",
-    "status": "AUTHENTIC_CAPTURE_OUTPUT_PUBLISHED; CURRENT_CI_NATIVE_DELIVERY_SEPARATE"
-  },
-  "tr08_current_head_checks": {
-    "head": "dbab49350575a47c2d592058cfb59e92afe60908",
-    "success": 23,
-    "conditional_skipped": 10,
-    "external_status": "success",
-    "actual_delivery": true
-  },
-  "tr08_delivery": {
-    "merge": "e26e07ebcbf97f7bb06bfa79e889f27a1adb857b",
-    "tree": "5d1250c821da1928666eb032728b77a6f6ad3ada",
-    "parents": [
-      "f36dbba1b8c09e0c6e54e027db05d94b171f2058",
-      "dbab49350575a47c2d592058cfb59e92afe60908"
-    ],
-    "onlyChangedRule": "TR-08",
-    "roleReleasedFirst": true,
-    "qualification": "declared genuineoperator-readGmail+existingSTRATOinternalriskdecision; ATTR08/OPS04/allotherrows unchanged"
-  },
-  "source_heads_observed_at": "2026-10-12T23:44:03.815679+02:00",
-  "memory_role_for_this_edit": "cc66c077f5817827171b6a25a13df43e424687e6",
-  "memory_role_for_last_callback": "ccf743ccccd31b52021cf864992fc62c019de3c1",
-  "R2_remaining_work": "OPS-04; no active785 proposal after actualdelivery"
+  "assignment_authority": "LATEST_EXPLICIT_HANDOFF_AND_VERIFIED_REFS; labels do not grant slots/files/producers",
+  "serial_merge_authority_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6132656380",
+  "sole_gen_authority_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6136464358",
+  "current_gen_v2_claim_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6139324812",
+  "current_source_support_receipt": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6139628621",
+  "retired_agents_remain_retired": true,
+  "old_automations_remain_paused": true,
+  "private_process_termination": "NOT_TECHNICALLY_ATTESTED",
+  "next_action": "Existing C1 collector qualifies actual V5a2 diagnostic; existing GEN owner finalizes and peers actual v2 source before one publication/capture; helpers review only genuinely new public source/qualified derived evidence. No new writer/producer from this snapshot.",
+  "historical_checkpoint": "https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/checkpoint.json",
+  "pending_inputs": "Separate publication questions remain unanswered; OPS04 actual counterparty/environment/LIVE inputs required; DB05 concrete post-lock source HOLD; SC046 whole older-last chain pending",
+  "paused_310": true
 }

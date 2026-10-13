@@ -1,16 +1,16 @@
-# Verification matrix — aktuell omfattning och gräns
+# Verification matrix — källa och bevisgräns
 
-Observation `2026-10-12T23:55:01.875707+02:00`. Faktisk ledger315/352, SHA256 `5e9702341c215df468d4b86b2dd79ec82c08857c6b11ace677a72680bbde54b8`; actualmain35ad. Rootfullauktoritet och specifikGEN114e styr dagens ägare; äldre daterade kvitton är bevarade evidensinputs.
+Observation `2026-10-13T10:20:47+02:00` (Europe/Stockholm), main `51f5fa5e80c42350d697bfed42520672749d4467`, tree `276b661120d5e0b69abc2090439809d5c4528e33`. Detta är en daterad observation; läs alltid faktisk main, aktuell ledger och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766) före arbete.
 
-| Kontroll | Kvalificerat | Gräns |
+| Underlag | Styrkt omfattning | Gräns |
 | --- | --- | --- |
-| Leverans782/c1a,783/efba,775/69e,789/f36 | Exakta parents/tree/ledger, slutkällans23/16/32/25SUCCESS och10conditionalSKIP | SC053/SC054PARTIAL; ingen ny helcredit |
-| Leverans785/e26 från dbab | Tillämpliga noncoauthors, 23SUCCESS/10conditionalSKIP/externalSUCCESS; exakta parents/tree/onlyTR08-ledgerdelta, egenrootmergeroll frigiven först | EndastTR08 VERIFIED/315; deklarerat Gmail+tidigare STRATOintern-riskbeslut, ingen ATTR08/OPS04 eller okändråheadercredit |
-| Leverans786/35ad från bda | Exakta sju sourcepostimages, 23SUCCESS/10conditionalSKIP+externalSUCCESS, e26+bda/treeebfcc44a; egenrole4c9a frigiven först | Inga schema/GEN/ledger/frozenändringar; faktisk315 kvarstår |
-| [792c3d autentiskcapture](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6133104071) | 38309588529/a1/cb092, exakta787/788be2postimages, RAW3/manifest kvalificerade av114eoriginalinsamlare+två oberoendepeers | Captureonly; aktuellt CI, affected C1/R1native och normalleverans är separata |
-| R1native10 förberedd5689 | Originalåtta byteidentiska+två issuer-lock/reviewerDENY; independent preGENsourcegranskning | FinalGENhead/rebind/genuine native10 återstår |
-| C3H101a9c / C2implementation784förberedd79a | Originalsource/assertions bevarade, egna source/componentkontroller separat | Bara utsedda originalinsamlare kvalificerar faktiska runinputs/counts/restoration/cleanup |
-| Rootfulltakeover+filhandoffs | R1a0/C3 225-58cb/C2implementation60cc/R2docsf99 och nyGEN114e | Ingen retrospective preclaim-credit eller privateprocesskillattest |
-| Denna791docsreconciliation | Tio exactclaimedpaths/ownmemoryrole; source/ledger/frozen assignments bevaras | Två freshicke-medförfattande finalreviews+currentheadgates före rootmerge |
+| Faktisk main51f/ledger | 119VERIFIED +201PASSED; SHA256 `4a1560a0b16ae37d68aa30c5f67ef616a516c5306e29edf4269b7b1fa9fea850` | Daterad observation; läs om faktisk main före leverans. |
+| #793/#796/#797 | Verifierade normala merges och respektive approvedrows enligt [handover](handover.md). | Tidigare misslyckade körningar retroattesteras inte. |
+| Public C1 V5source5f8 | Bounded source/GEN-applicabilitygranskning [5499247094](https://github.com/heke99/gridex-ops-platform/pull/780#pullrequestreview-5499247094). | Currentnativea2 är FAILURE; inga nya C1ID godkända. |
+| Korrigerade C3/Admin/API51inputs | Bounded publicsourcegranskningar [6139066589](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6139066589) och [6138013492](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6138013492). | Ingen actualGEN/H101/APIwholeapproval. |
+| GENv2 claim/public14donorbindings | Befintlig producerref/receipt och publicdonor mode/blob/tree/SHA256 match [6139628621](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6139628621). | Privat preparedb7/finalcarrier och actualruntime/output inte kvalificerade här. |
+| Atomic canonical input | EMPTY-only sourcepair;12 conforming controls +OPEN populated-legacy P2 enligt [offentligt kvitto6138683218](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6138683218). | Tillskrivet tidigare kvalificerat kvitto, inte nya prov; inte13PASS eller legacy-upgradeapproval. |
 
-Tidigare [full verifieringshistorik](https://github.com/heke99/gridex-ops-platform/blob/69e50f4f0f8267dcdf4fe8414dac75ac1ab3e07a/.agent-memory/verification-matrix.md) och [5c-matris](https://github.com/heke99/gridex-ops-platform/blob/5c2c15f937e47d8a5be89d7b1295c1bd3be41a0a/.agent-memory/verification-matrix.md) bevaras. Daterad CI/capture/sourceapproval ersätter inte faktisk currentmain/fullruntime/deploy/legal/provider/motpart/LIVE-helacceptans. #310 ärPAUSED.
+Currenthead-CI/relevantoriginal/två independent finalpeers och root normalmerge är separata gates. Source-/komponentresultat godkänner inte legal/provider/motpart/LIVE. #310PAUSED och alla originalbevis bevaras.
+
+[Daterat original på main 51f5fa5e](https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/verification-matrix.md). Originalet är historik och ger inga nya uppdrag, claims eller körmandat.
