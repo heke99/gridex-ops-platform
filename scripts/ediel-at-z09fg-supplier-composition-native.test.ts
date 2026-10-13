@@ -17,10 +17,11 @@
 // authenticated intake/source/supply/datetime reads establish their authority.
 import {createHash,randomUUID} from 'node:crypto'
 import {readFileSync} from 'node:fs'
+import {z} from 'zod'
 import {createClient} from '@supabase/supabase-js'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
-const delivery=vi.hoisted(()=>({smtp:vi.fn()}))
+const delivery=vi.hoisted(()=>({smtp:vi.fn(),recipient:null as string|null}))
 // Declared synthetic external SMTP only. No SQL, source, permission, tenant,
 // canonical engine, ACK, case, apply or dated-selection implementation is mocked.
 vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:delivery.smtp})}}))
@@ -123,12 +124,23 @@ async function admitted(p:ProfileInput,client:Awaited<ReturnType<typeof login>>,
  requireInput(Number.isFinite(Date.parse(a.capturedAt))&&Date.parse(a.capturedAt)<=Date.parse(clock),'actual_artifact_admission_clock_required')
  return a
 }
+// PURE DECLARED SMTP CALLBACK. Finite qualification extracts this exact helper
+// and imports no native body. Declared SMTP fields confer no source authority.
+export function declaredCompositionSmtp(options:unknown,declared:{from:string;to:string}){
+ requireInput(record(options),'declared_SMTP_options_required')
+ const disposable=z.string().email().endsWith('@example.invalid')
+ requireInput(disposable.safeParse(declared.from).success&&disposable.safeParse(declared.to).success,'declared_disposable_SMTP_scope_required')
+ const envelope=options.envelope
+ requireInput(record(envelope)&&envelope.from===declared.from&&Array.isArray(envelope.to)&&envelope.to.length===1&&envelope.to[0]===declared.to,'actual_declared_SMTP_envelope_required')
+ requireInput(Buffer.isBuffer(options.raw)&&options.raw.length>0,'actual_SMTP_raw_Buffer_required')
+ return{accepted:[envelope.to[0]],rejected:[],messageId:'synthetic-Z09FG-'+randomUUID(),response:'250 explicitly synthetic accepted'}
+}
+// END PURE DECLARED SMTP CALLBACK.
 beforeEach(()=>{
- for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_EMAIL_PROVIDER:'strato',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only'}))vi.stubEnv(k,v)
- delivery.smtp.mockReset();delivery.smtp.mockImplementation(async(options:{to:string|string[]})=>{
-  const recipients=Array.isArray(options.to)?options.to:[options.to]
-  requireInput(recipients.length&&recipients.every(email=>typeof email==='string'&&email.endsWith('@example.invalid')),'declared_disposable_SMTP_recipient_required')
-  return{accepted:recipients,rejected:[],messageId:'synthetic-Z09FG-'+randomUUID(),response:'250 explicitly synthetic accepted'}
+ for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_EMAIL_PROVIDER:'strato',EDIEL_SMTP_HOST:'smtp.example.invalid',EDIEL_SMTP_PORT:'465',EDIEL_SMTP_SECURE:'true',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_REPLY_TO:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only'}))vi.stubEnv(k,v)
+ delivery.recipient=null;delivery.smtp.mockReset();delivery.smtp.mockImplementation(async(options:unknown)=>{
+  requireInput(typeof delivery.recipient==='string','fresh_own_declared_SMTP_recipient_required')
+  return declaredCompositionSmtp(options,{from:'synthetic@example.invalid',to:delivery.recipient})
  })
 })
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
@@ -238,6 +250,8 @@ it.each(['F','G'] as const)('native Z09%s own desired receipt/dispatch/physical 
  expect(queuedOrigin.origins[0]).toMatchObject({event_id:p.eventId,message_id:prepared.id,intent_id:prepared.intent_id,outbound_request_id:prepared.outbound_request_id,payload_hash:hash(prepared.raw_payload!)})
  expect(business(p)).toEqual(beforeBusiness)
  expect(structureFacts(await selected(p,p.expected.effectiveMarketMinute))).toEqual(earlySelection)
+ requireInput(typeof prepared.receiver_email==='string'&&z.string().email().endsWith('@example.invalid').safeParse(prepared.receiver_email).success,'fresh_own_disposable_SMTP_recipient_required')
+ delivery.recipient=prepared.receiver_email
  const sent=await sendEdielMessageViaSmtp(prepared,{actorUserId:p.requestActor.id})
  expect(sent.accepted.length).toBeGreaterThan(0);expect(delivery.smtp).toHaveBeenCalledTimes(1)
  const original=await getEdielMessageById(prepared.id);requireInput(original?.message_sent_at,'durable_actual_dispatch_required')
