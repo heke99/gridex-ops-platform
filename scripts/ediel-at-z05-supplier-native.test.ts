@@ -258,7 +258,7 @@ it('C1 grid-owner name relationship preserves complete actual L/LK candidate and
  }
  const emit=(phase:string,value:unknown)=>console.info('C1_NAME_RELATION',JSON.stringify({phase,...value as Record<string,unknown>}))
  const catalog=actualSql<Record<string,unknown>>(`SELECT jsonb_build_object('standardConformingStrings',current_setting('standard_conforming_strings'),
-  'serverEncoding',current_setting('server_encoding'),'collation',current_setting('lc_collate'),
+  'serverEncoding',current_setting('server_encoding'),'collation',(SELECT datcollate FROM pg_catalog.pg_database WHERE datname=current_database()),
   'function',(SELECT jsonb_build_object('oid',p.oid,'definition',pg_get_functiondef(p.oid),'prosrcHash',encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'),'config',p.proconfig,'volatility',p.provolatile,'parallel',p.proparallel,'securityDefiner',p.prosecdef)
    FROM pg_proc p WHERE p.oid='public.gridex_grid_owner_name_key(text)'::regprocedure),
   'indexes',(SELECT jsonb_agg(jsonb_build_object('name',indexname,'definition',indexdef) ORDER BY indexname) FROM pg_indexes WHERE schemaname='public' AND tablename='platform_grid_owners'))`)
