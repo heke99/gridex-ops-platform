@@ -379,6 +379,19 @@ export async function createInboundEdielMessage(input: {
     inbound_email_message_id: inboundEmailMessageId,
     mailbox_message_id: inboundEmailMessageId,
   }
+  // Canonical CONTRL outcomes govern only fresh birth. Shared legacy helpers
+  // retain their existing nonbirth diagnostic/business projection semantics.
+  const contrlBirth = input.parsed.messageFamily === 'CONTRL' ? classifyCanonicalInboundAck(input.parsed) : null
+  const contrlPositive = contrlBirth?.outcome === 'positive'
+  const birthStatus = contrlBirth ? contrlPositive ? 'received' : 'failed' : statusForInboundEdielMessage(input.parsed)
+  const birthAckColumns = contrlBirth ? {
+    contrl_status: contrlPositive ? 'accepted' : 'rejected',
+    syntax_check_status: contrlPositive ? 'accepted' : 'rejected',
+    ack_outcome: contrlBirth.outcome === 'invalid' ? null : contrlBirth.outcome,
+    failed_at: contrlPositive ? null : nowIso(),
+    acknowledged_at: contrlPositive ? nowIso() : null,
+    failure_reason: contrlBirth.outcome === 'invalid' ? contrlBirth.reason : contrlPositive ? null : 'Negativ CONTRL mottagen via inbound mail engine.',
+  } : ackColumnsForParsed(input.parsed)
   const insertPayload = {
     company_id: companyId,
     environment: normalizedEnvironment,
@@ -387,7 +400,7 @@ export async function createInboundEdielMessage(input: {
     message_standard: 'edifact',
     message_family: input.parsed.messageFamily,
     message_code: parsedMessageCode(input.parsed),
-    status: statusForInboundEdielMessage(input.parsed),
+    status: birthStatus,
     sender_ediel_id: input.parsed.senderEdielId,
     sender_sub_address: input.parsed.senderSubAddress,
     receiver_ediel_id: input.parsed.receiverEdielId,
@@ -409,7 +422,7 @@ export async function createInboundEdielMessage(input: {
         : input.meteringPointMatch?.status === 'matched'
           ? 'partially_matched'
           : 'business_unresolved',
-    processing_status: input.outboundMatch?.status === 'matched' ? statusForInboundEdielMessage(input.parsed) : 'manual_review',
+    processing_status: contrlBirth?.outcome === 'invalid' ? 'manual_review' : input.outboundMatch?.status === 'matched' ? birthStatus : 'manual_review',
     ...receptionBirth,
     related_message_id: matchedOutboundEdielMessageId,
     outbound_request_id: matchedOutboundRequestId,
@@ -431,7 +444,7 @@ export async function createInboundEdielMessage(input: {
         : null,
     message_received_at: nowIso(),
     parsed_at: nowIso(),
-    ...ackColumnsForParsed(input.parsed),
+    ...birthAckColumns,
   }
 
   // Capture only scalar reference candidates before any subsequent source
@@ -560,8 +573,8 @@ export async function createInboundEdielMessage(input: {
       company_id: companyId,
       ediel_message_id: edielMessageId,
       event_type: 'inbound_mail_processed',
-      event_status: isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || isInvalidAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
-      message: eventMessageForParsed(input.parsed),
+      event_status: contrlBirth ? contrlPositive ? 'info' : 'warning' : isNegativeContrL(input.parsed) || isNegativeAperak(input.parsed) || isInvalidAperak(input.parsed) || input.parsed.messageFamily === 'UTILTS_ERR' ? 'warning' : 'info',
+      message: contrlBirth ? contrlBirth.outcome === 'invalid' ? 'Ogiltig CONTRL mottagen.' : contrlPositive ? 'Positiv CONTRL mottagen.' : 'Negativ CONTRL mottagen.' : eventMessageForParsed(input.parsed),
       payload,
     })
   }
