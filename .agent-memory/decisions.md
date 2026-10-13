@@ -1,4 +1,12 @@
-## Current — 2026-09-30 #421 SC-044 accepted; full ID/gate reconciliation and syntax/header native probe
+# Beslutsregister — historiskt underlag
+
+Aktiva ägare, uppdrag, aktuella antal och nästa steg läses i [current start](masterplan-current-start.md), [current task](current-task.md), faktisk ledger och senaste [#766](https://github.com/heke99/gridex-ops-platform/issues/766). Tidigare ord som current/next/root, runtimekommandon, produktionsreferenser och uppdragslistor nedan är daterade observationer; de ger inga nya claims eller mandat.
+
+Tekniska/normativa beslut och kända fel bevaras för relevant källjämförelse och regression. Anta inte att gamla fel fortfarande finns eller att gamla PASS gäller ändrad source. [Daterat original på main 51f5fa5e](https://github.com/heke99/gridex-ops-platform/blob/51f5fa5e80c42350d697bfed42520672749d4467/.agent-memory/decisions.md). Originalet är historik och ger inga nya uppdrag, claims eller körmandat.
+
+---
+
+## Daterad observation — 2026-09-30 #421 SC-044 accepted; full ID/gate reconciliation and syntax/header native probe
 
 Last fully verified exact head `d30fa0203f0499a8e15faeddda7676af81296c86`; main/base `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Five mandatory workflows SUCCESS: Ediel36695341379, browser36695341358, FullE2E36695341472, tenant36695341489, OPS36695341457. OPS verify109821852569/quality109821852531/replay109821852700 SUCCESS. Native439/439 includes all27 S02 and exactSC0443IDE; case/browser/tenant/parity/types/schema PASS. Authentic artifact11087503506 ZIPsha4dc9bd72b854a57e2d2c2d80d206a01d0c1184767f4b7bd80fe3fe5bb93a75d6; types36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d; schema8f922c97a546bec643e201d4c295705285b10f6d34c89f78e6d08a4cd68d9d93. All earlier d30/S02/SC044 pending text is superseded by these actual results.
 
