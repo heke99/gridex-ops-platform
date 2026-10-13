@@ -23,7 +23,7 @@ Current documentation revision is `2026-10-12.1`; the default Website, Customer 
 1. Existing endpoints, required request fields, field types, units, idempotency and business semantics are kept for supported profiles. New required fields, removed fields and breaking enum values require opt-in or a new major.
 2. New response fields are compatible only where older clients tolerate them. Credential-pinned profiles project fields from closed historical response objects. This field projection does not validate every constraint or repair contradictory historical schemas; the errata below remain relevant to strict generated validators.
 3. New request fields need client opt-in. Unknown or forbidden security fields are still rejected; request validation is not loosened.
-4. An API key and a V1 endpoint are enough. No new mandatory version header is introduced.
+4. The existing API credential and surface-specific authentication requirements remain unchanged. No documentation-version header is required.
 5. Existing `contract_schema_version` values and headers are kept. They describe the representation actually returned.
 6. A profile selection never changes company, customer, actor or privileges.
 7. Each surface has its own support matrix; a Staff addition never makes a working Website integration incompatible.

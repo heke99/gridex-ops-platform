@@ -300,6 +300,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -329,6 +332,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -422,12 +428,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Link or verify an external customer portal identity.",
@@ -660,6 +660,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -689,6 +692,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -752,12 +758,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -1000,6 +1000,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -1029,6 +1032,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -1092,12 +1098,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -1340,6 +1340,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -1369,6 +1372,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -1432,12 +1438,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -1680,6 +1680,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -1709,6 +1712,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -1772,12 +1778,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -2029,6 +2029,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -2058,6 +2061,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -2121,12 +2127,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -2369,6 +2369,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -2398,6 +2401,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -2461,12 +2467,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -2709,6 +2709,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -2738,6 +2741,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -2801,12 +2807,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -3049,6 +3049,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -3078,6 +3081,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -3141,12 +3147,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -3480,6 +3480,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -3509,6 +3512,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -3602,12 +3608,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Submit a customer move-out request.",
@@ -3829,6 +3829,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -3858,6 +3861,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -3921,12 +3927,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -4206,6 +4206,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -4235,6 +4238,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -4328,12 +4334,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Mark customer notifications as read.",
@@ -4573,6 +4573,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -4602,6 +4605,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -4665,12 +4671,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -4939,6 +4939,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -4968,6 +4971,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -5031,12 +5037,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -5279,6 +5279,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -5308,6 +5311,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -5371,12 +5377,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -5662,6 +5662,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -5691,6 +5694,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -5784,12 +5790,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "x-scope-mode": "any-per-request; both required when both operations are present",
@@ -6021,6 +6021,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -6050,6 +6053,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -6113,12 +6119,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -6398,6 +6398,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -6427,6 +6430,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -6520,12 +6526,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Submit customer data required to complete an existing customer record or process.",
@@ -6777,6 +6777,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -6806,6 +6809,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -6869,12 +6875,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -7114,6 +7114,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -7143,6 +7146,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -7236,12 +7242,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Submit a customer-facing integration event.",
@@ -9372,6 +9372,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -9401,6 +9404,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -9464,12 +9470,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -9747,6 +9747,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -9776,6 +9779,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -9869,12 +9875,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Opens a support case with the customer’s first message. The same Idempotency-Key and payload replay the same case; a different payload is rejected with 409. Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned.",
@@ -10166,6 +10166,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -10195,6 +10198,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -10258,12 +10264,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -10588,6 +10588,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -10617,6 +10620,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -10680,12 +10686,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -11003,6 +11003,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -11032,6 +11035,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -11125,12 +11131,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Closed cases reject new messages with 409. Requires an actively linked portal user. Internal notes, phone logs and technical case events are never returned. Closure versus replay: authentication, scope and case ownership are always checked first. A retry with the same Idempotency-Key and the same payload of a write that already succeeded replays the original result (Idempotency-Replayed: true, nothing new is stored) even if the case was closed in between; a new write on a closed case returns 409 support_case_closed.",
@@ -11434,6 +11434,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -11463,6 +11466,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -11526,12 +11532,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -11875,6 +11875,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "413": {
             "description": "Filen är större än 4 MB.",
             "headers": {
@@ -11964,6 +11967,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -12057,12 +12063,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           }
         },
         "description": "Send the raw file as the request body with Content-Type application/pdf, image/png or image/jpeg (at most 4 MB) and an optional URL-encoded X-File-Name header. The file is stored in quarantine and released only after a content check (real type from the bytes, no active PDF content such as JavaScript, launch actions or embedded files). Rejected files return 422 and are never served. Closed cases return 409. At most 20 attachments per customer per 24 hours (429). The same Idempotency-Key with the same bytes replays the result. Requires an actively linked portal user. Only released (content-checked), customer-visible attachments are ever listed or served; internal staff files are never returned. Closure versus replay: authentication, scope and case ownership are always checked first. A retry with the same Idempotency-Key and the same payload of a write that already succeeded replays the original result (Idempotency-Replayed: true, nothing new is stored) even if the case was closed in between; a new write on a closed case returns 409 support_case_closed.",
@@ -12349,6 +12349,9 @@
               }
             }
           },
+          "410": {
+            "$ref": "#/components/responses/OrganizationGone"
+          },
           "422": {
             "description": "Affärsvalidering misslyckades.",
             "headers": {
@@ -12378,6 +12381,9 @@
                 }
               }
             }
+          },
+          "423": {
+            "$ref": "#/components/responses/OrganizationPaused"
           },
           "429": {
             "description": "API-klientens trafikgräns har överskridits.",
@@ -12441,12 +12447,6 @@
                 }
               }
             }
-          },
-          "410": {
-            "$ref": "#/components/responses/OrganizationGone"
-          },
-          "423": {
-            "$ref": "#/components/responses/OrganizationPaused"
           },
           "503": {
             "description": "The required service or configured credential response profile is unavailable. Profile configuration errors require an operator correction.",
@@ -13774,7 +13774,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Stored withdrawal deadline. For newly signed qualifying private distance agreements, this is the end of the fourteenth calendar day after the acceptance date in Europe/Stockholm. Use the returned stored timestamp; previously frozen agreements retain their recorded deadline. Null means no deadline is applicable or recorded."
           },
           "signature_snapshot_sha256": {
             "type": [
@@ -14127,7 +14128,8 @@
             "type": [
               "number",
               "null"
-            ]
+            ],
+            "description": "Decimal VAT fraction; 0.25 means 25%. Newly authored standard consumption prices use 0.25. Explicit production or exempt treatment and frozen historical values retain their recorded rate."
           },
           "calculation_inclusion": {
             "$ref": "#/components/schemas/CalculationInclusion"

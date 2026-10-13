@@ -18,7 +18,7 @@ Every documentation revision of V1 (Website, Customer Portal, Staff, Staff onboa
 
 - existing endpoints, required request fields, field types, units, idempotency and business semantics are unchanged;
 - no new header, query parameter or body field is required;
-- an API credential and a V1 endpoint remain enough; there is no mandatory version header;
+- the existing API credential and surface-specific authentication requirements remain unchanged; no documentation-version header is required;
 - the Website and Customer Portal minimum supported revision is `2026-10-02.3`; Staff and independent onboarding have their own support matrices. A documentation-only release never raises a surface's minimum.
 
 Supported revisions per surface:

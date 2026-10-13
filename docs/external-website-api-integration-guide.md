@@ -92,6 +92,8 @@ For every non-fixed model, checkout market data is **indicative preview/audit ev
 
 Use `display_components` and the component visibility metadata for presentation. Use the authoritative quote totals and complete calculation data for acceptance, reconciliation and later audit.
 
+`vat_rate` is a decimal fraction: `0.25` means 25%. `vat_rate_percent`, when present, is the corresponding percentage (`25`). Newly authored standard consumption prices use 25% VAT. Explicit production or exempt treatment and frozen historical prices retain their recorded rate; do not replace an accepted rate with a current default.
+
 `valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does not expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, integrity mismatch or a commercially unavailable or withdrawn offer can still block submission.
 
 `valid_to` on a published price option or area price is a commercial validity boundary. `null` means no commercial end date is configured.
@@ -109,6 +111,8 @@ During migration from older website integrations, accepted customer-identity ali
 Transitional public aliases may remain documented for migration compatibility, but new integrations should use the canonical fields from the current OpenAPI specification.
 
 Swedish identity numbers are validated before anything is stored. `customer.personal_number` must be a real personnummer or samordningsnummer (valid date and check digit) as 10 or 12 digits, with or without `-` or `+`; otherwise the request is rejected with `422` and error code `personal_number_invalid`. `customer.org_number` must be a valid organisationsnummer (a sole trader may send the owner's personnummer); otherwise the request is rejected with `422` and error code `org_number_invalid`. Both errors name the field in `field` and are not retryable: correct the value and submit again. Accepted values are normalized, so `811218-9876` and `198112189876` identify the same customer; a 10-digit personnummer gets its century from the birth date, and the `+` separator marks a person aged 100 or more.
+
+For newly signed qualifying private distance agreements, Gridex stores `withdrawal_deadline_at` at the end of the fourteenth calendar day after the acceptance date in Europe/Stockholm. Use the returned stored timestamp; previously frozen agreements retain their recorded deadline. Confirmation delivery does not change that deadline.
 
 ## Asynchronous processing
 

@@ -165,7 +165,7 @@ const checkoutResponse = `{
         "status": "signed",
         "contract_number": "AVT-100123",
         "signed_at": "2026-08-19T10:00:01.000Z",
-        "withdrawal_deadline_at": "2026-09-02T10:00:01.000Z",
+        "withdrawal_deadline_at": "2026-09-02T21:59:59.999999Z",
         "signature_snapshot_sha256": "<sha256>"
       },
       "confirmation_email": {
@@ -411,6 +411,9 @@ export default function CustomerPortalApiDocumentationPage() {
               The immediate customer-facing checkout result is returned in <code>data.checkout</code>. Use that object for the post-submit UI instead of deriving success from internal processing states.
             </p>
             <CopyCodeBlock code={checkoutResponse} language="json" />
+            <p className="text-sm leading-6 text-slate-600">
+              These illustrative timestamps show the deadline rule for newly signed qualifying private distance agreements: the end of the fourteenth calendar day after acceptance in Europe/Stockholm. Use the stored deadline returned by Gridex. Previously frozen agreements retain their recorded deadline; confirmation delivery does not change it.
+            </p>
             <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-700">
               <strong>UI rule:</strong> show the final signed-agreement success state only when <code>checkout.thank_you_ready === true</code>.
               <br /><strong>success:</strong> the agreement is signed and no additional customer action is required.

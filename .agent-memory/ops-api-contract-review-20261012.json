@@ -6,14 +6,14 @@
   "status": "AUTHORIZED_ACTUAL_DATABASE_RECONCILIATION_IN_PROGRESS",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
-  "native_writes": 16,
+  "native_writes": 17,
   "business_rpc_invocations": 0,
   "deployments": 0,
   "native_blockers": [
-    "Direct6.4MB API body cap: original request proven unapplied. Owner-only52-source-file byte transport B3 metadata-only replay revision held for final qualification/peer review.",
-    "Protected dispatcher/trigger and three retention audit/harddelete fixes under exact final peer/compile qualification; no actual destructive business calls.",
-    "Four other-owner native migrations freshly observed and being checked for dependency/body overlap.",
-    "Real configured Staff-client/tenant absent from audit; pending userfacts, no fabricated configuration or green E2E readiness."
+    "B3 must compose four private tenant-scoped helper fixes into newmodule functions/structuralmanifest; original B2 neverapplied. Preserve later17public semantic bodies plus3fresh externalstats metadata; final updated52stage exactsource/strongreplay/2peers pending.",
+    "Seven-target protectedtrigger packet expanded with4private scope fixes; prior2216/06ff impossible inboundcoverage gate superseded. Correct predicate before lowerforeign SHARE locks while preserving valid own-parent reads.",
+    "Retention3+originclosure revised5fb1 fullattrs-before-replay; genuinefirst/replay/unknownattrs andtwo peers pending. Separate parser postmetadata assertion willstrictly reject correctbody withunknownattrs, olderappliedSQLimmutable.",
+    "No configured realStaff provider/client/binding identified in fresh13:32 aggregate, all0. Pending user integration facts; no greenconfiguredE2E."
   ],
   "documentation_version": "2026-10-12.1 prospective",
   "wire_version": "2026-10-09.1",
@@ -28,7 +28,7 @@
     "No all-native or provider end-to-end readiness claim",
     "No canonical schema/type GEN or active Ediel claims/shared memory writes"
   ],
-  "next_action": "Freeze B3 transport after final known strong metadata/other-owner overlap proof, two peers and genuine current/strong-post/source/replay compilation. CLI-create/apply exact52transport migrations, then all qualified bounded semantic forwards; actual ledger/source/OID/ACL proof, final docs and sole-C2 genuine GEN handoff.",
+  "next_action": "Finish bounded private scoped-helper composition, retention+parser assertions, and descriptive publicdocs corrections. Freeze B3/rawtransport exacthashes, real current/strong-post/canonical/replay/unknown qualification and2NONcoauthor approvals. Root CLI/create actual52stages plus bounded forwards, ledger/source/OID/ACL receipts, final docs/build and sole-C2 GEN handoff.",
   "source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
   "review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
   "integrated_main": "51f5fa5e80c42350d697bfed42520672749d4467",
@@ -40,9 +40,9 @@
   "latest_native_preflight": "2026-10-12 22:56:02 UTC:51missing/52examined names; tombstone alreadypresent",
   "handover": "Draft PR794 has twelve actually applied scoped native forwards and two input-only metadata actions; staged dependency and qualified semantic/trigger forwards pending. Explicit user approval for all scoped fixes/migrations and uploading to PR794 persists.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "3c4b617e68d777f8a1f27962de25e12cf03a0eef",
+  "current_source_head": "bd5f526eb06a0a9710d7de33a6fc50234b51f97e",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
-  "migration_scope": "Last completed source integrity1164files/1067versiongroups; fresh native13:17:42UTC ledger434, including four additional other-owner migrations. Unpublished CLI template not yet registered. No historical source/ledger rewrites.",
+  "migration_scope": "1166sourcefiles/1069versiongroups checksums verified after actual regex2forwards. Actual436ledger13:24:34UTC; includes4newexternal versions122459/122550/122600/124137. Pending part1CLI source parked /tmp/gridex-api-review/cli-created-pending/20261013121020_ops_api_preserved_runtime_semantic_guards.sql until dependencyapply/timestamp alignment.",
   "gen_owner": "C2 sole GEN/current producer ref03d8419671865554c0b8684de125320a2ef98f72 observed; first OPS atomic source imported in joint epoch; later actual forwards require next coherent handoff, no API-owned GEN",
   "native_applied_migrations": [
     {
@@ -142,6 +142,13 @@
       "sha256": "d02af8b21c3658a84c4782a0227eae67a6c8c8bff3dc28aa23dfbc888f562eba",
       "actual_ledger_sql_md5": "f8d4b56a0af8b7f7588747b660359f9c",
       "receipt": "quality/audits/2026-10-12-ops-api-contracts/regex-literals-native-apply-receipt.json"
+    },
+    {
+      "version": "20261013140802",
+      "file": "supabase/migrations/20261013140802_ops_api_parser_metadata_integrity.sql",
+      "sha256": "eaf04a7ee065f4e8e1089847c02871b78bd6cddfea5152f51884a804ae17d178",
+      "actual_ledger_sql_md5": "73259707a02989aa9ab9bac09ec2c036",
+      "receipt": "quality/audits/2026-10-12-ops-api-contracts/parser-metadata-integrity-native-apply-receipt.json"
     }
   ],
   "native_corrected": "Actor current-active permission and deny precedence, additive canonical override columns/deny-only constraints, Partner atomic site/offer direction guard; OIDs/ownership/grants preserved and actual postcatalog verified. Pure gridowner native body unchanged; new forward source corrects future replay escaping.",
@@ -152,7 +159,7 @@
     "Confirmed finance audit erasure-recreation, correction retention provenance and harddelete11cascade guard defenses being composed",
     "Three historical wrong-VAT price versions preserved because inactive/frozen lineage; no historical tax mutation"
   ],
-  "native_forward_migration_writes": 14,
+  "native_forward_migration_writes": 15,
   "native_metadata_population_writes": 2,
   "metadata_receipt_count": 25,
   "staff_deny_status": "Actual native two permission functions patched and service-only/VOLATILE/body/OID/grants verified. Configured Staff provider/client/binding still absent; no authenticated E2E readiness claim.",
@@ -165,6 +172,9 @@
   "auth_expiry_native_status": "Actualfive currentAuth/identity/invitation cores installed, expiry afterlocks/provider/ratewait andStaffrevalidation beforeidentitymutation; exactnativebody/attrs/OID/ACLproof, nohistory/credentialwrite",
   "vat25_native_status": "Two actual forwards applied and five exact approved future VAT bodies/OIDs/ACL/config verified; consumption25/.25 required, explicit producer exemptions and frozen history/lineage preserved; no business RPC invoked",
   "forward_input_receipts_status": "Separately applied OPS-only SQL b58db7d8, two independent peers, isolated first/replayCOMMIT; actual25receipts24exact+1lineage. Native ledger remained untouched by metadata action.",
-  "final_source_verification": "Productionbuild3c4b617e PASS, realinternalTS and23staticpages; appTS/API docs/compatibility/errorregistry244routeboundary source gates pass. InitialbuildsandboxspawnEPERM resolved withsupportedIPC, samepreload/no weakenedchecks. No new unit tests/business/providercalls.",
-  "regex_native_status": "Two actual forwards applied13:23UTC: EDIFACT2helper literals and postalhelper; native436ledger, three exactbodyMD5/fullpg_procminusprosrc/OIDs/ACL unchanged; no helper/business invocation."
+  "final_source_verification": "Real productionbuild after descriptive doc patch PASS317.58s, buildinputs unchanged duringrun; api docs7/appTS/scriptsTS/lint all passed. Previous3c4 build retained separate. No tests/business/provider calls.",
+  "regex_native_status": "Two actual forwards applied13:23UTC: EDIFACT2helper literals and postalhelper; native436ledger, three exactbodyMD5/fullpg_procminusprosrc/OIDs/ACL unchanged; no helper/business invocation.",
+  "user_upload_authorization": "User expressly approved uploading scoped OPS fixes to existing PR794 after remote authorization rejection; bd5f526e successfully pushed13:28UTC. Approval persists.",
+  "documentation_pending": "Independent bounded source/docs audit found stale native pending statuses, 672\u2013745monthly interval fact, generic checkout microsecond Stockholm deadline, VATunit descriptions and Staff surface-auth wording. Sole docs author final_documentation_consistency implementing official descriptions-only generator and unmerged12.1 candidate regeneration, preserving olderfrozen bytes.",
+  "parser_metadata_native_status": "Actual assertion-only forward140802 applied and registered exactsourceSHA/MD5, all3fullpg_proc identities unchanged. Actualledger439 indicates2additionalother-owner writes since436; fresh input qualification pending."
 }

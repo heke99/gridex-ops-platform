@@ -112,4 +112,24 @@ function documentCredentialResponseProfileErrors(document) {
   }
 }
 
-module.exports = { customerSupportCaseDetail, releaseManifestSchemas, documentVersionedOpenApiHeaders, documentCredentialResponseProfileErrors }
+function documentPricingAndWithdrawalEvidence(document) {
+  const descriptions = {
+    vat_rate: 'Decimal VAT fraction; 0.25 means 25%. Newly authored standard consumption prices use 0.25. Explicit production or exempt treatment and frozen historical values retain their recorded rate.',
+    vat_rate_percent: 'VAT percentage; 25 means 25%, corresponding to vat_rate 0.25. Explicit production or exempt treatment and frozen historical values retain their recorded rate.',
+    withdrawal_deadline_at: 'Stored withdrawal deadline. For newly signed qualifying private distance agreements, this is the end of the fourteenth calendar day after the acceptance date in Europe/Stockholm. Use the returned stored timestamp; previously frozen agreements retain their recorded deadline. Null means no deadline is applicable or recorded.',
+  }
+  function describe(value) {
+    if (!value || typeof value !== 'object') return
+    for (const [key, child] of Object.entries(value)) {
+      if (key === 'properties' && child && typeof child === 'object') {
+        for (const [field, description] of Object.entries(descriptions)) {
+          if (child[field] && typeof child[field] === 'object') child[field].description = description
+        }
+      }
+      describe(child)
+    }
+  }
+  describe(document.components?.schemas)
+}
+
+module.exports = { customerSupportCaseDetail, releaseManifestSchemas, documentVersionedOpenApiHeaders, documentCredentialResponseProfileErrors, documentPricingAndWithdrawalEvidence }

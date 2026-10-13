@@ -1,0 +1,24 @@
+{
+  "source_input_head": "bd5f526eb06a0a9710d7de33a6fc50234b51f97e",
+  "documentation_patch_receipt_sha256": "0f644d5577418710b5f57cfa3f7b0cc9b508046872d5518cdb9f4c0d20159d25",
+  "build_exit_code": 0,
+  "duration_seconds": 317.58,
+  "maxrss_kb": 6104536,
+  "command": [
+    "/tmp/gridex-audit-runtime/node_modules/node/bin/node",
+    "--max-old-space-size=4096",
+    "node_modules/next/dist/bin/next",
+    "build",
+    "--webpack"
+  ],
+  "build_inputs_changed_during_run": [],
+  "input_snapshot": "/tmp/gridex-api-review/final-build-docs-input-snapshot.json",
+  "input_snapshot_sha256": "82554325336d903eb2f6d0f59311ca6f1059b6a74ece2a5888614cb5bdfd5b4e",
+  "log": "/tmp/gridex-api-review/final-source-build-doc-corrected.log",
+  "log_sha256": "43ee7c0e69f1a49fa5262cb19ca7a9a8ceb54fc15151a83676307264fb96f7e8",
+  "loopback_only_network_boundary": "Existing Node preload inherited by children; only local sockets/IPC, synthetic Supabase values, telemetry disabled",
+  "tests_executed": false,
+  "business_provider_or_native_calls": false,
+  "checks_disabled": false,
+  "qualification": "Real production build/internal TypeScript/static pages for current source+descriptive doc patch; not configured business E2E."
+}

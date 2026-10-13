@@ -6,7 +6,7 @@
   "documentation_version": "2026-10-12.1 (prospective)",
   "runtime_contract_version": "2026-10-09.1",
   "onboarding_contract_version": "2026-10-05.2",
-  "live_writes": 16,
+  "live_writes": 17,
   "native_business_rpcs": 0,
   "deployments": 0,
   "root_corrections": [
@@ -27,7 +27,7 @@
     "Four other-owner native migrations freshly observed and being checked for dependency/body overlap.",
     "Real configured Staff-client/tenant absent from audit; pending userfacts, no fabricated configuration or green E2E readiness."
   ],
-  "latest_native_receipt": "regex-literals-native-apply-receipt.json",
+  "latest_native_receipt": "parser-metadata-integrity-native-apply-receipt.json",
   "latest_missing_functions_receipt": "required-native-preflight-result.json",
   "historical_errata": [
     "Customer02.3 support detail closed allOf contradiction",
@@ -74,7 +74,7 @@
     }
   },
   "current_source_head": "3c4b617e68d777f8a1f27962de25e12cf03a0eef",
-  "native_forward_migration_writes": 14,
+  "native_forward_migration_writes": 15,
   "native_metadata_population_writes": 2,
   "metadata_provenance": {
     "receipt_count": 25,
@@ -99,13 +99,15 @@
     "supabase/migrations/20261013112412_ops_api_consumption_vat25_authoring.sql",
     "supabase/migrations/20261013112427_ops_api_consumption_vat25_publication.sql",
     "supabase/migrations/20261013132330_ops_api_z02_parser_regex_literals.sql",
-    "supabase/migrations/20261013132358_ops_api_postal_regex_literals.sql"
+    "supabase/migrations/20261013132358_ops_api_postal_regex_literals.sql",
+    "supabase/migrations/20261013140802_ops_api_parser_metadata_integrity.sql"
   ],
   "source_permission_catalog_review": "admin-api-permission-catalog-review.json:82calls/imports resolved;12typo calls corrected,7real source keys installed by104143 without role assignments",
   "latest_full_inventory": "389RPC sourcecalls/397names;204directnames absent at fresh catalog snapshot, with syntactic/import reachability tiers. Broader all-RPC/trigger closure replaces initial51-only inventory; no204failed-live-request claim.",
   "vat25_status": "Two actual forwards applied and five exact approved future VAT bodies/OIDs/ACL/config verified; consumption25/.25 required, explicit producer exemptions and frozen history/lineage preserved; no business RPC invoked",
   "preserved_body_effect_review": "66 overloads reviewed in two source/actual/trigger effect partitions; confirmed gaps require bounded forward composition, not blanket canonical body replacement",
-  "current_build_receipt": "final-source-production-build-receipt.json",
+  "current_build_receipt": "final-source-build-doc-corrected-receipt.json",
   "direct_large_delivery_status": "Technical request body limit;native-direct-size-rejection-receipt.json proves attemptedmigration absent. SameB2approvedpayload staged delivery in progress.",
-  "regex_literals_status": "Two actual forwards installed13:23UTC; source/ledger SHA256 exact; three nativebodyMD5/currentfullpg_procminusprosrc/OIDs/ACL preserved; independent2peers/genuinefirst+replay+unknownrollback, no business invocation."
+  "regex_literals_status": "Two actual forwards installed13:23UTC; source/ledger SHA256 exact; three nativebodyMD5/currentfullpg_procminusprosrc/OIDs/ACL preserved; independent2peers/genuinefirst+replay+unknownrollback, no business invocation.",
+  "documentation_final_review": "final-documentation-consistency-review.json; two independent peers approved descriptions-only12file packet, all46olderfrozen unchanged; exact source317.58s productionbuild PASS"
 }
