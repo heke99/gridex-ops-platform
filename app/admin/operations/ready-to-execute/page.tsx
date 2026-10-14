@@ -9,7 +9,6 @@ import {
  finalizeSupplierSwitchExecutionAction,
 } from '@/app/admin/operations/actions'
 import { listReadySupplierSwitchCandidatePage } from '@/lib/operations/db'
-import { supabaseService } from '@/lib/supabase/service'
 import type { OutboundRequestRow } from '@/lib/cis/types'
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
@@ -79,7 +78,7 @@ export default async function ReadyToExecuteSwitchesPage({ searchParams }: {
  const siteIds = [...new Set(requests.map(request => request.site_id))]
  const requestIds = requests.map(request => request.id)
  let sitesQuery = supabase.from('customer_sites').select('*', { count: 'exact' }).in('id', siteIds).limit(siteIds.length)
- let outboundQuery = supabaseService.from('outbound_requests').select('*', { count: 'exact' })
+ let outboundQuery = supabase.from('outbound_requests').select('*', { count: 'exact' })
  .eq('request_type', 'supplier_switch').eq('source_type', 'supplier_switch_request').in('source_id', requestIds)
  .order('created_at', { ascending: false }).order('id', { ascending: false }).limit(1000)
  if (companyId) {
