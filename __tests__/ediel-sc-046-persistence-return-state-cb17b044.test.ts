@@ -34,7 +34,57 @@ function constraints(name: string) {
   return [...schema.matchAll(new RegExp(`ALTER TABLE ONLY ${escaped}\\n    ADD CONSTRAINT [^;]+;`, 'g'))]
     .map(match => match[0]).filter(sql => /PRIMARY KEY|UNIQUE/.test(sql)).join('\n')
 }
-const original = definition('public.gridex_persist_utilts_consumption_v1')
+function readSc046WrapperPreimage(current: string, pinnedMigration?: string) {
+  const digest = (value: string) => createHash('sha256').update(value).digest('hex')
+  const predecessorHash = '095f2a506e72358c60c701049f97c9a00c9146578f2e68d6ae0dc89ce0c1853e'
+  function requirePredecessor(value: string) {
+    const body = /\bAS (\$\$|\$_\$)([\s\S]*)\1;$/.exec(value)?.[2]
+    if (digest(value) !== predecessorHash || body === undefined || digest(body) !== sourceHash) {
+      throw Error('SC046 source predecessor conflict')
+    }
+  }
+  if (digest(current) === predecessorHash) {
+    requirePredecessor(current)
+    return current
+  }
+  // Invert only the immutable tracked patch, independently of the execution
+  // override. An unknown schema refinement or serialization safely refuses.
+  const migration = pinnedMigration ?? readFileSync(resolve(migrationPath), 'utf8')
+  if (digest(migration) !== '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34') {
+    throw Error('SC046 source migration conflict')
+  }
+  function block(name: string) {
+    const parts = migration.split('$' + name + '$')
+    if (parts.length !== 3 || !parts[1]) throw Error('SC046 source nonunique patch block:' + name)
+    return parts[1]
+  }
+  function anchor(name: string) {
+    const matches = [...migration.matchAll(new RegExp(name + " text := '([^']*)';", 'g'))]
+    if (matches.length !== 1 || !matches[0][1]) throw Error('SC046 source nonunique patch anchor:' + name)
+    return matches[0][1]
+  }
+  function once(value: string, part: string, label: string) {
+    if (value.split(part).length !== 2) throw Error('SC046 source nonunique ' + label)
+  }
+  const declarations = block('declarations'), classification = block('classification')
+  const declarationAnchor = anchor('declaration_anchor'), returnAnchor = anchor('return_anchor')
+  once(current, declarationAnchor, 'declaration anchor')
+  once(current, returnAnchor, 'return anchor')
+  once(current, declarations, 'declarations')
+  once(current, classification, 'classification')
+  once(current, declarationAnchor + declarations, 'declaration insertion')
+  once(current, classification + returnAnchor, 'classification insertion')
+  const predecessor = current
+    .replace(declarationAnchor + declarations, () => declarationAnchor)
+    .replace(classification + returnAnchor, () => returnAnchor)
+  requirePredecessor(predecessor)
+  const reconstructed = predecessor
+    .replace(declarationAnchor, () => declarationAnchor + declarations)
+    .replace(returnAnchor, () => classification + returnAnchor)
+  if (reconstructed !== current) throw Error('SC046 source forward reconstruction conflict')
+  return predecessor
+}
+const original = readSc046WrapperPreimage(definition('public.gridex_persist_utilts_consumption_v1'))
 const baseline = process.env.SC046_BRIDGE_BASELINE === '1'
 const uid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const company = uid(1), foreign = uid(2), source = uid(10), origin = uid(11), actor = uid(20)
@@ -525,5 +575,59 @@ describe('qualified newer active cohort witness, declared admission boundary', (
     await expect(call()).rejects.toMatchObject({ code: '42501' })
     expect(await effects()).toEqual([])
     expect((await db.query('SELECT actor_allowed FROM bridge_fixture.ports')).rows).toEqual([{ actor_allowed: true }])
+  })
+})
+
+
+describe('SC046 source-preimage loader: declared local source only', () => {
+  const pinnedMigration = readFileSync(resolve(migrationPath), 'utf8')
+  const declarations = pinnedMigration.split('$declarations$')[1]
+  const classification = pinnedMigration.split('$classification$')[1]
+  const declarationAnchor = 'DECLARE source public.ediel_messages%rowtype;result jsonb;'
+  const returnAnchor = ' -- The preserved owner may wait on its source/advisory locks.'
+  // Pure function text with the retained outer DDL; no imported GEN/native claim.
+  const candidate = original
+    .replace(declarationAnchor, () => declarationAnchor + declarations)
+    .replace(returnAnchor, () => classification + returnAnchor)
+
+  it('keeps the pinned unpatched complete definition unchanged', () => {
+    expect(readSc046WrapperPreimage(original)).toBe(original)
+  })
+  it('recovers the exact predecessor from the pinned candidate-function source', () => {
+    expect(createHash('sha256').update(candidate).digest('hex')).toBe('4bc75fd84c537507ee46f38d799499e62fcdac966516b3cee705d2f157f66835')
+    expect(readSc046WrapperPreimage(candidate)).toBe(original)
+  })
+  it('recovers the predecessor from actual declared PGlite installed prosrc with retained source DDL', async () => {
+    const body = /\bAS (\$\$|\$_\$)([\s\S]*)\1;$/.exec(original)![2]
+    const installed = await metadata()
+    expect(createHash('sha256').update(installed.body).digest('hex')).not.toBe(sourceHash)
+    expect(readSc046WrapperPreimage(original.replace(body, () => installed.body))).toBe(original)
+  })
+  it.each([
+    ['unknown unpatched source', original + '\n'],
+    ['changed outer DDL', candidate.replace('CREATE FUNCTION ', 'CREATE OR REPLACE FUNCTION ')],
+    ['changed retained body', candidate.replace('RETURN result;', "RETURN result||'[]'::jsonb;")],
+    ['missing declarations', candidate.replace(declarations, '')],
+    ['missing classification', candidate.replace(classification, '')],
+    ['modified insertion', candidate.replace('sc046_state text;', 'sc046_state integer;')],
+    ['duplicated declarations', candidate.replace(declarations, () => declarations + declarations)],
+    ['duplicated classification', candidate.replace(classification, () => classification + classification)],
+    ['duplicated declaration anchor', candidate.replace(declarationAnchor, () => declarationAnchor + declarationAnchor)],
+    ['duplicated return anchor', candidate.replace(returnAnchor, () => returnAnchor + returnAnchor)],
+  ])('refuses %s without guessing a predecessor', (_name, badSource) => {
+    expect(readSc046WrapperPreimage.bind(null, badSource)).toThrow(/SC046 source/)
+  })
+  it('refuses modified migration bytes even when the candidate source is otherwise exact', () => {
+    expect(() => readSc046WrapperPreimage(candidate, pinnedMigration + '\n')).toThrow('SC046 source migration conflict')
+  })
+  it('pins source inversion independently of the refinement execution override', () => {
+    const prior = process.env.SC046_REFINEMENT_MIGRATION
+    process.env.SC046_REFINEMENT_MIGRATION = 'NOT_USED_BY_SOURCE_PREIMAGE_LOADER'
+    try {
+      expect(readSc046WrapperPreimage(candidate)).toBe(original)
+    } finally {
+      if (prior === undefined) delete process.env.SC046_REFINEMENT_MIGRATION
+      else process.env.SC046_REFINEMENT_MIGRATION = prior
+    }
   })
 })
