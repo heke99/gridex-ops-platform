@@ -210,6 +210,7 @@
     "20261013145827_ops_api_native_reconciliation_part_049.sql": "2f27c8310026a2a331c62793fe676be47971920c3f34132a2f5c110da9100a30",
     "20261013145831_ops_api_native_reconciliation_part_050.sql": "31b956ad477e84d6010f2af6053d22d10a89a1f6336c208d1d81d96b7d5c35b6",
     "20261013145835_ops_api_native_reconciliation_part_051.sql": "ae937b54cfbbd42683b468ac72d3dedb26dc5241be07999c4a59bf7dda0346cd",
-    "20261013151412_ops_api_market_actor_normalizers.sql": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd"
+    "20261013151412_ops_api_market_actor_normalizers.sql": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd",
+    "20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql": "105f32d496c611edb82764eabe43ad035ebadf5648d76db8779ee2a9c5b2598b"
   }
 }
