@@ -6,7 +6,7 @@ import {pathToFileURL} from 'node:url'
 import {createHash} from 'node:crypto'
 import assert from 'node:assert/strict'
 if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required')
-const {PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href),db=new PGlite({onNotice:notice=>{if(notice.message?.startsWith('SC031 catalog preservation'))console.log(notice.message)}})
+const {PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href),db=new PGlite()
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,hash=x=>createHash('sha256').update(x).digest('hex')
 const stable=v=>JSON.stringify(sort(v)),sort=v=>Array.isArray(v)?v.map(sort):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([k,x])=>[k,sort(x)])):v
 const migration=name=>readFileSync(new URL('../supabase/migrations/'+name,import.meta.url),'utf8')
@@ -79,7 +79,31 @@ try{
  assert.equal((await db.query('SELECT prosrc FROM pg_proc WHERE oid=$1::regprocedure',[target])).rows[0].prosrc,baselineBody,'actual complete baseline prosrc, same source95cf body')
  console.log(`Actual baseline source binding bodySHA256=${hash(baselineBody)}; canonical source envelope95cfbaef735f513b54a6620d861cd24a98e207ed1ed3ab40f03d81d1795dc5df`)
  const targetBefore = await targetMetadata()
- if(!baselineOnly){await db.exec(migration('20261014011520_ediel_sc031_source_owned_business_projection.sql'));assert.deepEqual(await targetMetadata(),targetBefore);checks++}
+ if(!baselineOnly){
+  const fullCatalog=async()=>(await db.query("SELECT to_jsonb(p)-'prosrc' metadata,encode(sha256(convert_to((to_jsonb(p)-'prosrc')::text,'UTF8')),'hex') metadata_hash FROM pg_catalog.pg_proc p WHERE oid=$1::regprocedure",[target])).rows[0]
+  const before=await fullCatalog(),notices=[]
+  // Installed PGlite0.3.14 accepts onNotice per exec/query, not constructor.
+  // Capture the actual migration's protocol message, never synthesize it.
+  await db.exec(migration('20261014011520_ediel_sc031_source_owned_business_projection.sql'),{onNotice:notice=>{
+   if(notice.message?.startsWith('SC031 catalog preservation'))notices.push(notice.message)
+  }})
+  const after=await fullCatalog()
+  assert.equal(notices.length,1,'exactly one genuine forward catalog NOTICE')
+  const receipt=/^SC031 catalog preservation target=(\d+) metadataSHA256=([0-9a-f]{64}) before=(\{.*\}) after=(\{.*\})$/.exec(notices[0])
+  assert.ok(receipt,'full target/OID/before/after/digest protocol receipt')
+  const [,targetOid,digest,beforeText,afterText]=receipt
+  assert.equal(Number(targetOid),targetBefore.oid)
+  assert.equal(digest,hash(beforeText),'hash the exact PostgreSQL jsonb text')
+  assert.equal(digest,hash(afterText),'exact PostgreSQL after text has same hash')
+  assert.equal(digest,before.metadata_hash)
+  assert.equal(digest,after.metadata_hash)
+  assert.deepEqual(JSON.parse(beforeText),before.metadata)
+  assert.deepEqual(JSON.parse(afterText),after.metadata)
+  assert.deepEqual(after.metadata,before.metadata)
+  console.log('DECLARED local PGlite catalog witness; NOT genuine canonical GEN/backend capture')
+  console.log(notices[0])
+  assert.deepEqual(await targetMetadata(),targetBefore);checks++
+ }
  const portDeclaration = 'Actual canonical TS/binder fixture input; declared SQL canonical-assessment/app/source/legal/endpoint/graph storage ports; NOT native authority or concurrency.'
  const fixtures = ['L','LK'].flatMap(subtype => {
   const j=JSON.parse(readFileSync(`/tmp/sc031-v4-qualified-supplier-${subtype}-cohorts.json`,'utf8'))
