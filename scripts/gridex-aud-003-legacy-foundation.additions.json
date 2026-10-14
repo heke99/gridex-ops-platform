@@ -440,6 +440,15 @@
       "preserveSourceReplay": false,
       "execution": "sourcePosition",
       "reason": "Exact SC031 original function row restored after unchanged sealed installer execution within one transaction; old-state branch remains old."
+    },
+    "bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql": {
+      "source": "migrations/20261013151412_ops_api_market_actor_normalizers.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd",
+      "artifactSha256": "f1ad2cfd7a1a455baf606a0c565d9b0341e736c2570e6be7ad8e83966a96d219",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Canonical history explicitly replaces actor display-name uniqueness with exact nonunique search index; preserve unique per-actor aliases and all original catalog/row guards."
     }
   }
 }

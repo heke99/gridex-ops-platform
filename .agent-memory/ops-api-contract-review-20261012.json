@@ -926,5 +926,36 @@
       "native_writes": 0,
       "stage": "CURRENT_SEVEN_FILE_UNION_TWO_INDEPENDENT_CLEARS_INPUT_PREFLIGHT_PASS"
     }
+  },
+  "core_completion_20261014_normalizer_sc031": {
+    "status": "FOUR_FILE_SOURCE_UNION_TWO_INDEPENDENT_FINALS_COMPONENTS_PASS_FULL_SQL_TYPES_PENDING",
+    "neutral": "d9f8c59ee2399420d16d2fa23cd94928b4135faa",
+    "files": [
+      "supabase/bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql",
+      "supabase/migrations/20261014202520_ops_api_sc031_current_main_source_alignment.sql"
+    ],
+    "normalizerSourceSHA256": "f1ad2cfd7a1a455baf606a0c565d9b0341e736c2570e6be7ad8e83966a96d219",
+    "alignmentSourceSHA256": "57b19f916358acaec576a41fca11a0df4d7e338327bf30e69acef5c5d34fb6bb",
+    "runtimeManifest": "Retained original ROOT064f prospective ONE_ENTRY_SOURCE phase completed; all225 oldentries and frozen442/cb206 loan preserved",
+    "fullSQL": "ACTUAL_PREVIOUS_HEAD_CLEAN_AND_UPGRADE_FAIL_AT151412_NEW_ARTIFACT_NOT_YET_CURRENT_FULL_RUN",
+    "next": "Publish reviewed source delta to existing draft PR794; qualify separate bounded actor legalname native forward; existing genuine fullreplay and schema/type service gates remain",
+    "migrationIntegrity": "PASS_1253_FILES_1156_VERSION_GROUPS",
+    "schemaTypes": "ExistingqualifiedGENwriter retained; exact currentcapture stillrequired"
+  },
+  "runtime_manifest_source_phase": {
+    "status": "ONE_EXACT_APPLIED_SOURCE_CHECKSUM_APPENDED_ALL_OLD_ENTRIES_UNCHANGED",
+    "retainedRef": "064f655cdb1f0202c4cbc8b92d0d2037de903447",
+    "originalRootContinuation": "This is the same OPS API root/chat continuation that authored d8/b414 applied-source reconciliation; current user appoints this root to finish OPS API.",
+    "path": "scripts/migration-history-manifest.runtime.additions.json",
+    "preimageSHA256": "70bef583da08d0d64e18a7f8dde46433c7f5a5adda2b8d989677701af088eb77",
+    "oldEntryCount": 225,
+    "receiver": "codex-ops-api-completion-20261014 /root",
+    "boundedChange": {
+      "20261014202520_ops_api_sc031_current_main_source_alignment.sql": "57b19f916358acaec576a41fca11a0df4d7e338327bf30e69acef5c5d34fb6bb"
+    },
+    "preservation": "Original retained ROOT064f ref and immutable442/cb206 loan remain. Existing ce80/GEN/backend/native/serial roles unchanged. No historical SQL/checksum edits.",
+    "ack": "ROOT receiver accepts only the exact one-entry prospective source append; no producer or type-manifest role.",
+    "sourceWriteGO": "DISTINCT_ROOT_SOURCE_GO_ONE_ENTRY_ONLY",
+    "afterSHA256": "4e0f0f8e4b2d0b59652b6bc2c89fbdd5f2237e85d70a225a2a24d8994c182842"
   }
 }

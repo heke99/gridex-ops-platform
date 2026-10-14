@@ -224,6 +224,7 @@
     "20261014103653_ops_api_atomic_bb0b_source_part_10.sql": "6f2801920a825ffc4d214e8cb507761e477cbe5b17227c98ab085035a45b585a",
     "20261014103707_ops_api_atomic_bb0b_source_part_11.sql": "37cc15e5dfb1490c022d31585f9f07dea2fbe0dd6bfeee6339e91f83b0d8947f",
     "20261014103745_ops_api_atomic_bb0b_source_part_12.sql": "76d5bcfa6a2ef3957b5cf7d2b0fef7c75992f03f7ee97f304fe2227b1fdd444f",
-    "20261014113214_ops_api_atomic_bb0b_authfree_effect.sql": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d"
+    "20261014113214_ops_api_atomic_bb0b_authfree_effect.sql": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
+    "20261014202520_ops_api_sc031_current_main_source_alignment.sql": "57b19f916358acaec576a41fca11a0df4d7e338327bf30e69acef5c5d34fb6bb"
   }
 }
