@@ -21,6 +21,19 @@ def _safe(path):
         raise ValueError('unsafe_derived_replay_path:'+path)
     return path
 
+def _merge_derived(derived,incoming):
+    # Existing additions deliberately enrich four declarations with
+    # preserveSourceReplay. Keep that enrichment without replacing identities.
+    for path,meta in incoming.items():
+        path=_safe(path)
+        if not isinstance(meta,dict):
+            raise ValueError('invalid_derived_replay_descriptor:'+path)
+        previous=derived.get(path,{})
+        for key in ('source','sourceKind','artifactSha256','sourceSha256'):
+            if key in previous and key in meta and previous[key]!=meta[key]:
+                raise ValueError('conflicting_derived_replay_identity:'+path+':'+key)
+        derived[path]={**previous,**meta}
+
 def substitutions(root,revision,checksums,selected_names):
     derived={};declared=set();boundaries={}
     for plan_path in PLANS:
@@ -28,7 +41,7 @@ def substitutions(root,revision,checksums,selected_names):
                               stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         if exists.returncode:continue
         plan=json.loads(_git(root,'show',revision+':'+plan_path))
-        derived.update(plan.get('derivedBootstrap') or {})
+        _merge_derived(derived,plan.get('derivedBootstrap') or {})
         declared.update(plan.get('foundation') or [])
         for row in plan.get('interleaved') or []:
             path=_safe(row.get('path'))
@@ -68,6 +81,9 @@ def substitutions(root,revision,checksums,selected_names):
             available={n[:14] for n in checksums if VERSION.fullmatch(n[:14])}
             if after not in available or before not in available:
                 raise ValueError('derived_replay_boundary_source_missing:'+path)
+            between={n for n in checksums if VERSION.fullmatch(n[:14]) and after<n[:14]<before}
+            if between!={name}:
+                raise ValueError('ambiguous_derived_replay_execution_order:'+path)
         result[name]={'sourcePath':'supabase/'+source,'sourceSha256':expected,
                       'executedSourcePath':'supabase/'+path,'executedSha256':artifact_digest,
                       'derivedBootstrapPath':path,'data':artifact,'original':original,

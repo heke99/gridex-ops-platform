@@ -1,5 +1,5 @@
 {
-  "status": "PRIVATE_SOURCE_ROUTING_HANDOFF_PROPOSAL_NOT_APPLIED_NOT_GENUINE_REPLAY_QUALIFIED",
+  "status": "PUBLISHED_SOURCE_PROPOSAL_SQL_COMPONENT_QUALIFIED_SHARED_ROUTING_NOT_ADOPTED",
   "files": [
     {
       "path": "20261013_ops_quote_nonexpiring_replay_adapter.sql",
@@ -8,8 +8,8 @@
     },
     {
       "path": "HANDOFF.md",
-      "bytes": 3952,
-      "sha256": "e6ce2da3ceac7ce5ef331f18f658e1c3abddb4a22cfeca68e6a8b5fe951dd6d0"
+      "bytes": 5116,
+      "sha256": "606944a793ab09fc35d4f50b9ce612e6201d78c1907bc1373433d313f3f9877b"
     },
     {
       "path": "builder-proposals/gridex-ediel-history-union-inputs.py",
@@ -22,14 +22,24 @@
       "sha256": "2286b227e967c9686c7e0541397c2fcb5814de5e1a02c5d5286bd17314e3c5de"
     },
     {
+      "path": "current-native-quote-readback-20261014.json",
+      "bytes": 501,
+      "sha256": "e930cff77bf5601d20ce94f3e87916dd22e3808b48ea7403214f5fac29c8853c"
+    },
+    {
+      "path": "genuine-component-qualification-20261014.json",
+      "bytes": 2553,
+      "sha256": "bf3b96fb47223a020091e59a2d5243122f1b4c47ec98eb85b6ace025898a9b0a"
+    },
+    {
       "path": "gridex-aud-003-clean-replay.sh.patch",
-      "bytes": 558,
-      "sha256": "9f29c154e3593106e6d9eaa378d950ff72542f987200a95f06e29353b2ce6c44"
+      "bytes": 1692,
+      "sha256": "c1c654766d711757d4c04837b5768bdc618f47279724f751090005840de46569"
     },
     {
       "path": "gridex-derived-replay-inputs.py",
-      "bytes": 5401,
-      "sha256": "b15d340650793d620c5bbb5c73b2404b147d747bb87713dcd60401828aa97a64"
+      "bytes": 6299,
+      "sha256": "f198a4e7cd800f4faa9629a9a34ae99d003f637613eb3831d77449d9595acb6c"
     },
     {
       "path": "gridex-ediel-history-union-inputs.py.patch",
@@ -42,16 +52,68 @@
       "sha256": "4316db883d146d9454de7154114b9d12159f28ebf888172b9111c76a4290bd53"
     },
     {
+      "path": "independent-component-review.json",
+      "bytes": 501,
+      "sha256": "067243ba8eb1e0317801a6e1eb575f04d395a946f728f0a6ef9721f2c2950dfd"
+    },
+    {
       "path": "legacy-foundation-additions-entry.json",
       "bytes": 929,
       "sha256": "315c1bc4ba1dcdaccce41b4a5129624f4af24896514a720a20fe4d2d3ded3faa"
+    },
+    {
+      "path": "qualification-late-failure.sql",
+      "bytes": 13608,
+      "sha256": "c4c8a3ee185fa664e13a3d61402a5a582d7f2b154d4ad52e991ae244c92fd7ee"
+    },
+    {
+      "path": "qualification-source-proven-legacy-repair.sql",
+      "bytes": 13517,
+      "sha256": "637ef5ee0e4e29382f54cd9a2929b40c67829b756f0062fbbad48520b94bb9de"
+    },
+    {
+      "path": "qualification-unknown-body.sql",
+      "bytes": 13446,
+      "sha256": "e68c12942d7f4432e7ecb4326ce62898a44c4ff89c367ba2e12a8b2f9201dc0d"
+    },
+    {
+      "path": "qualification-unknown-cost.sql",
+      "bytes": 4157,
+      "sha256": "81007fd428b1f97a7364e0ac6ba11349d669d137bdf3decbc2aece299c2b7d06"
+    },
+    {
+      "path": "qualification-unknown-support.sql",
+      "bytes": 4208,
+      "sha256": "d1cb746b05a0a6d6652e41dada6d37af16dd1c88b97241624cdc38d6cdc693f5"
+    },
+    {
+      "path": "routing-source-review-one-20261014.md",
+      "bytes": 13270,
+      "sha256": "2d8a61ac54c1a53ea6d9e7c3902c65a739e7c007d008acca381c4dff89a0c4e2"
+    },
+    {
+      "path": "routing-source-review-two-20261014.md",
+      "bytes": 7567,
+      "sha256": "0b12b619c42787cd25cdb3a6f7f2d0ca6c79aee2cba5614df875076c25fc4c2a"
+    },
+    {
+      "path": "routing-source-verification-20261014.json",
+      "bytes": 1172,
+      "sha256": "8e0a934152856bd9755d8b8a2a7a37df4cdc6b368b3c7869c87ed8e158274ec2"
     }
   ],
   "original_published_source_sha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
   "canonical_body_md5": "007d078d9d0065395edf2190d4f1d3b6",
   "legacy_body_md5": "4daec568bdaf10d1354ddd39145d0d94",
   "native_writes": 0,
-  "repository_changes": 0,
+  "repository_changes": "OWN_PROPOSAL_AND_MEMORY_ONLY_CANONICAL_SHARED_FILES_UNCHANGED",
   "shared_custody_changes": 0,
-  "canonical_gen_changes": 0
+  "canonical_gen_changes": 0,
+  "prior_proposal_manifest_sha256": "98c3dbce6ee948be4477455eaa19162f1027df4e0f6cb647e57a586f52718765",
+  "superseded_proposal_file_sha256": {
+    "HANDOFF.md": "e6ce2da3ceac7ce5ef331f18f658e1c3abddb4a22cfeca68e6a8b5fe951dd6d0",
+    "gridex-aud-003-clean-replay.sh.patch": "9f29c154e3593106e6d9eaa378d950ff72542f987200a95f06e29353b2ce6c44",
+    "gridex-derived-replay-inputs.py": "b15d340650793d620c5bbb5c73b2404b147d747bb87713dcd60401828aa97a64"
+  },
+  "qualification_scope": "Unchanged SQL adapter has isolated genuine PostgreSQL qualification; updated routing has two independent source reviews, actual descriptor preservation and syntax checks. No full-history replay or canonical GEN credit."
 }

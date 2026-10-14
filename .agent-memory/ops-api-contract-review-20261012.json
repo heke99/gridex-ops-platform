@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Publish verified13native migrations and support123 integration docs; tenant login still to be implemented, canonical C2 schema/types and quote full-history routing remain with existing owners.",
+  "next_action": "Existing ROOT-selected helper receives two immutable main-full script fixes and pg_catalog forward under6171906269/6172073671. Existing C2 routing owner receives updated quote identity/order guards; coherent source/GEN and exact-head required gates precede serial merge. Real support123 tenant login/binding remains unverified.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "7952177b13c911427fe529a56fd787d7f3abfc99",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -824,6 +824,19 @@
     "source_packet": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/main-full-three-fix-support-20261014",
     "two_donor_files_paused": true,
     "issue766_comment_blocked": "Auto-reviewreject: previousPR794authorization notseparateissue766; explicituserapprovalpending",
-    "next_action": "Publish ownreviewpacket toauthorizedexistingPR794; sendexacthandoffafterapproval; existingROOTreceiving/custody/GEN/native/serialowners execute their admittedscope."
+    "next_action": "ROOT-selected existing BRP receiver6171906269/6172073671 obtains exact custody and separate source GO; two immutable donor scripts remain paused. Separate rejected#766comment remains pending and is not needed to duplicate the published receiving instruction."
+  },
+  "quote_replay_source_followthrough_20261014": {
+    "proposal_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/quote-nonexpiring-derived-replay-20261014",
+    "helper_sha256": "f198a4e7cd800f4faa9629a9a34ae99d003f637613eb3831d77449d9595acb6c",
+    "actual_existing_descriptor_rows_preserved": 68,
+    "intentional_enrichments_preserved": 4,
+    "quote_chronological_bracket_unambiguous": true,
+    "current_native_quote_catalog": "2026-10-14T15:54:09Z canonical007d/fe9f; expected owner/config/ACL/execution attributes; read-only",
+    "shared_routing_adopted": false,
+    "native_writes": 0,
+    "full_history_replay": "NOT_RUN",
+    "two_independent_reviews": "SOURCE_ONLY",
+    "next_action": "Existing source-routing owner adopts reviewed proposal; do not duplicate GEN/native producers or rewrite applied SQL."
   }
 }

@@ -1,0 +1,25 @@
+{
+  "qualification": "ACTUAL_COMMITTED_DESCRIPTOR_MERGE_AND_SOURCE_SYNTAX_ONLY",
+  "proposal_helper_sha256": "f198a4e7cd800f4faa9629a9a34ae99d003f637613eb3831d77449d9595acb6c",
+  "base_descriptor_count": 26,
+  "additions_descriptor_count": 46,
+  "intentional_shared_paths": [
+    "bootstrap/20260611_grid_owner_information_request_foundation.sql",
+    "bootstrap/20260613_powers_of_attorney_customer_site_foundation.sql",
+    "bootstrap/20260618_customer_application_workflows_foundation.sql",
+    "bootstrap/20260724_customer_application_continuation_schema_foundation.sql"
+  ],
+  "complete_actual_descriptor_result_preserved": true,
+  "merged_descriptor_count": 68,
+  "sql_adapter_sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b",
+  "canonical_shared_source_changed": false,
+  "native_writes": 0,
+  "business_rpc_calls": 0,
+  "full_history_replay": "NOT_RUN",
+  "unit_tests": "NOT_RUN",
+  "actual_quote_boundary_inner_sources": [
+    "20261013093906_ops_api_website_quote_nonexpiring_policy.sql"
+  ],
+  "identity_conflict_and_ambiguous_order_guards": "TWO_INDEPENDENT_SOURCE_REVIEWS",
+  "verification_at": "2026-10-14T15:55:03.185290+00:00"
+}
