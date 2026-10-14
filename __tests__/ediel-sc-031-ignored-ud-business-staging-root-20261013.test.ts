@@ -10,6 +10,7 @@ import { msg } from './fixtures/prodat-prior-flow'
 import { permissionObject } from './fixtures/prodat-energy-product'
 import { alphabets, characteristic, line, raw, type Parts } from './fixtures/prodat-register'
 import { head, source } from './fixtures/prodat-identity'
+import { structuralOwnerSource } from './helpers/structuralOwnerFixtures'
 
 // These tests call the full production parser, staging and approval consumers.
 // Only SDK persistence, protected source/actor RPC, event and canonical graph IO
@@ -144,12 +145,48 @@ describe('SC-031 ignored national UD cannot become a customer business input', (
     expect(input).toEqual(before)
   })
 
-  for (const [code, reason] of [['Z06', 'E64'], ['Z09', 'E32']] as const) it(`ignores own non-E UD business fields in ${code} while preserving independent DTM249`, () => {
+  for (const [code, reason, birthDate] of [['Z06', 'E64', '19900101'], ['Z09', 'E32', null]] as const) it(`ignores own non-E UD business fields in ${code} and honors its independent DTM249 usage`, () => {
     const baseline = parseInboundProdatBusinessData(ownWire(code, reason, false, true))
     const extra = parseInboundProdatBusinessData(ownWire(code, reason, true, true))
     expect(extra.customer).toEqual(baseline.customer)
-    expect(extra.customer).toMatchObject({ ...nullCustomer, birthDate: '19900101' })
+    expect(extra.customer).toMatchObject({ ...nullCustomer, birthDate })
     expect(extra.proposedAction.objects).not.toEqual(baseline.proposedAction.objects)
+  })
+
+  for (const code of ['Z09', 'Z10', 'Z13', 'Z14', 'Z15', 'Z18']) it(`ignores forbidden DOB249 for incoming ${code} without losing its raw evidence`, () => {
+    const baseline = ownWire(code, code === 'Z10' ? 'E58' : 'E32', false, false)
+    const extra = ownWire(code, code === 'Z10' ? 'E58' : 'E32', false, true)
+    // The raw BGM owns usage; cached message code/date cannot authorize249.
+    extra.message_code = 'Z06'
+    extra.parsed_payload = { ...extra.parsed_payload, birthDate: '19800101', prodatIgnoredFields: [] }
+    const before = structuredClone(extra)
+    const result = parseInboundProdatBusinessData(extra)
+    expect(result.customer).toEqual(parseInboundProdatBusinessData(baseline).customer)
+    expect(result.customer.birthDate).toBeNull()
+    expect(extra).toEqual(before)
+    expect(result.proposedAction.objects).not.toEqual(parseInboundProdatBusinessData(baseline).proposedAction.objects)
+    expect(extra.raw_payload).toContain('DTM+329:19900101:102')
+  })
+
+  it('preserves optional incoming Z06 DOB249 independently of ignored UD', () => {
+    const baseline = parseInboundProdatBusinessData(ownWire('Z06', 'E64', false, false))
+    const extra = parseInboundProdatBusinessData(ownWire('Z06', 'E64', false, true))
+    expect(baseline.customer.birthDate).toBeNull()
+    expect(extra.customer).toEqual({ ...baseline.customer, birthDate: '19900101' })
+  })
+
+  it('supported Z10M source shape keeps forbidden DOB249 out of the business customer projection', () => {
+    const base = { ...structuralOwnerSource('Z10', 'E58'), company_id: COMPANY }
+    const extra = { ...base, raw_payload: base.raw_payload!.replace(/(LIN[^']*')/, "$1DTM+329:19900101:102'") }
+    const before = structuredClone(extra)
+    // Reuse the existing supported Z10M/E58 source shape. This regression
+    // covers actual projection; it does not claim new intake or protected IO.
+    const baseline = parseInboundProdatBusinessData(base)
+    const result = parseInboundProdatBusinessData(extra)
+    expect(result.customer).toEqual(baseline.customer)
+    expect(result.customer.birthDate).toBeNull()
+    expect(extra).toEqual(before)
+    expect((result.proposedAction.objects as { registers: { rawSegments: string[] }[] }[])[0].registers[0].rawSegments.some(segment => segment.includes('329:19900101:102'))).toBe(true)
   })
 
   for (const [code, reason] of [['Z06', 'E34'], ['Z09', 'E34']] as const) it(`keeps own applicable E UD business identity/name in ${code}`, () => {
@@ -158,9 +195,10 @@ describe('SC-031 ignored national UD cannot become a customer business input', (
   })
 
   it('keeps legacy no-wire projection and supplied outbound UD unchanged', () => {
-    const noWire = { ...negative(false), raw_payload: null, parsed_payload: { customerName: 'Legacy Name', customerId: '0000000000', customerIdCodeListQualifier: 'SE1' } }
-    expect(parseInboundProdatBusinessData(noWire).customer).toMatchObject({ fullName: 'Legacy Name', orgNumber: '0000000000' })
+    const noWire = { ...negative(false), raw_payload: null, parsed_payload: { customerName: 'Legacy Name', customerId: '0000000000', customerIdCodeListQualifier: 'SE1', birthDate: '19800101' } }
+    expect(parseInboundProdatBusinessData(noWire).customer).toMatchObject({ fullName: 'Legacy Name', orgNumber: '0000000000', birthDate: '19800101' })
     expect(parseInboundProdatBusinessData({ ...negative(true), direction: 'outbound' }).customer).toMatchObject({ fullName: 'Ignored Name', orgNumber: '0000000000' })
+    expect(parseInboundProdatBusinessData({ ...ownWire('Z10', 'E58', false, true), direction: 'outbound' }).customer.birthDate).toBe('19900101')
   })
 
   it('does not let root cached subtype or a later register turn own non-E into E', () => {
