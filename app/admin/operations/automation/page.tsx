@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { listBatch2BControlTower } from '@/lib/operations/batch2bAutomation'
 import { listBatch2CControlTowerSummary } from '@/lib/operations/batch2cAutomation'
 import {
@@ -32,7 +32,7 @@ function monthsBack(count: number) {
 
 export default async function OperationsAutomationPage({ searchParams }: { searchParams?: Promise<{ status?: string; message?: string }> }) {
   const admin = await requireAdminPageKeyAccess('operations.automation')
-  const scope = await getOperationalCompanyScope(admin.userId)
+  const scope = { ...(await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })), message: null }
   const [batch2BRows, batch2CRows] = scope.companyId
     ? await Promise.all([listBatch2BControlTower(scope.companyId), listBatch2CControlTowerSummary(scope.companyId)])
     : [[], []]

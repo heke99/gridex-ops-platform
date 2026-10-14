@@ -1,0 +1,36 @@
+-- Read-only final assertion after all focused batches. Any new row fails.
+begin isolation level repeatable read read only;
+do $verify$
+declare r record;n bigint;
+begin
+ for r in select unnest(array['ai_list_discrepancies','ai_list_import_rows','ai_list_imports','authorization_scopes','billing_adjustment_cases','billing_export_run_items','billing_underlay_events','billing_underlay_items','billing_underlays','communication_logs','contract_charge_ledger','contract_price_snapshots','customer_addresses','customer_application_intakes','customer_application_provisioning_steps','customer_application_workflow_events','customer_application_workflows','customer_authorization_documents','customer_billing_profile_revisions','customer_blockers','customer_case_attachments','customer_case_events','customer_cases','customer_communication_events','customer_communications','customer_contacts','customer_contract_acceptances','customer_contract_confirmation_deliveries','customer_contract_documents','customer_contract_events','customer_contract_evidence','customer_contract_signature_requests','customer_contracts','customer_correction_requests','customer_data_tasks','customer_documents','customer_duplicate_resolution_events','customer_events','customer_identity_change_events','customer_identity_change_requests','customer_info_request_events','customer_info_requests','customer_internal_notes','customer_invoice_documents','customer_invoice_lines','customer_invoices','customer_legal_acceptances','customer_lifecycle_decisions','customer_lifecycle_events','customer_match_review_cases','customer_monthly_metrics','customer_notifications','customer_onboarding_applications','customer_onboarding_legal_snapshots','customer_operation_events','customer_operation_jobs','customer_operation_request_snapshots','customer_operation_tasks','customer_portal_accounts','customer_portal_api_access_logs','customer_portal_claims','customer_portal_completions','customer_portal_events','customer_portal_identities','customer_portal_requests','customer_portal_write_idempotency','customer_readiness_snapshots','customer_site_address_conflicts','customer_site_address_history','customer_sites','customer_supply_periods','customers','document_ai_extractions','ediel_ack_chains','ediel_ack_lifecycle','ediel_business_correlations','ediel_business_errors','ediel_business_expectations','ediel_business_references','ediel_decision_traces','ediel_engine_runs','ediel_inbound_cases','ediel_masterdata_reconciliation_items','ediel_match_candidates','ediel_message_intents','ediel_message_validation_issues','ediel_outbound_queue','ediel_outbox','ediel_permission_cases','ediel_permission_events','ediel_portal_validation_feedback','ediel_process_links','ediel_rule_pack_backfill_issues','ediel_rule_pack_snapshots','ediel_sla_timers','ediel_unresolved_items','energy_service_permissions','external_contract_intakes','facility_data_quality_issues','forecast_adjustments','forecast_run_items','grid_owner_data_requests','grid_owner_information_requests','grid_owner_monthly_metrics','invoice_documents','invoice_export_attempts','invoice_export_items','invoice_provider_events','invoice_purchase_events','meter_reading_series','meter_reading_values','metering_period_gaps','metering_permission_sites','metering_permissions','metering_point_monthly_consumption','metering_points','metering_requirements','metering_value_batches','metering_value_errors','metering_value_sources','metering_values','normalized_metering_values','outbound_dispatch_events','outbound_requests','partner_exports','platform_customer_relationship_observations','platform_data_quality_issues','portfolio_settlement_invoice_bindings','power_of_attorney_scopes','powers_of_attorney','pricing_interval_evidence','pricing_preview_lines','pricing_run_items','pricing_runs','route_decision_logs','supplier_switch_events','supplier_switch_requests','tenant_portal_customer_links','webhook_deliveries','website_application_review_items']) as t loop
+  if to_regclass('public.'||r.t) is null then raise exception 'reset_final_missing_table:%',r.t;end if;
+  execute format('select count(*) from public.%I',r.t) into n;
+  if n<>0 then raise exception 'reset_final_customer_graph_not_empty:%:%',r.t,n;end if;
+ end loop;
+ for r in select * from(values
+  ('dashboard_alerts','dashboard_alerts','true'),
+  ('data_quality_issues','data_quality_issues','true'),
+  ('customer_onboarding_operations','customer_onboarding_operations','true'),
+  ('forecast_runs','forecast_runs','true'),
+  ('customer_portfolio_forecast_snapshots','customer_portfolio_forecast_snapshots','true'),
+  ('company_monthly_metrics','company_monthly_metrics','true'),
+  ('bidding_zone_monthly_metrics','bidding_zone_monthly_metrics','true'),
+  ('website_contract_quotes','website_contract_quotes','true'),
+  ('customer_site_resolution','customer_site_resolution','true'),
+  ('website_customer_applications','website_customer_applications','true'),
+  ('manual_inbound_messages','manual_inbound_messages','t.request_id is null and t.resolution_status=''unmatched'' and exists(select 1 from public.inbound_operation_events e where e.source_id=t.id::text and e.source_transport=''email'' and e.business_process=''power_of_attorney'' and e.intent=''power_of_attorney_question'' and e.customer_id is null and e.customer_site_id is null and e.metering_point_id is null and e.business_object_id is null)'),
+  ('inbound_operation_events','inbound_operation_events','t.source_transport=''email'' and t.business_process=''power_of_attorney'' and t.intent=''power_of_attorney_question'' and t.customer_id is null and t.customer_site_id is null and t.metering_point_id is null and t.business_object_id is null and exists(select 1 from public.manual_inbound_messages m where m.id::text=t.source_id and m.request_id is null and m.resolution_status=''unmatched'') and not exists(select 1 from public.ediel_messages m where m.id::text=t.source_id)'),
+  ('customer_domain_outbox','event_outbox','exists(select 1 from public.domain_events d where d.id=t.domain_event_id and d.aggregate_type in(''customer_contract'',''website_customer_application'',''invoice_export_run''))'),
+  ('customer_canonical_outbox','canonical_event_outbox','exists(select 1 from public.canonical_domain_events d where d.id=t.domain_event_id and d.aggregate_type=''website_customer_application'')'),
+  ('customer_domain_events','domain_events','t.aggregate_type in(''customer_contract'',''website_customer_application'',''invoice_export_run'')'),
+  ('customer_canonical_events','canonical_domain_events','t.aggregate_type=''website_customer_application'''),
+  ('customer_energy_events','canonical_energy_flow_events','t.event_scope=''tenant'' and t.event_type in(''energy_area.resolved'',''quote.created'',''quote.validated'')')
+ ) s(name,t,p) loop
+  execute format('select count(*) from public.%I t where %s',r.t,r.p) into n;
+  if n<>0 then raise exception 'reset_final_scoped_residual:%:%',r.name,n;end if;
+ end loop;
+ if exists(select 1 from pg_constraint where contype='f' and connamespace='public'::regnamespace and not convalidated) then raise exception 'reset_final_unvalidated_fk';end if;
+end $verify$;
+select 'all_reviewed_customer_flows_empty' as result,140 as empty_graph_tables,17 as zero_reviewed_scopes;
+commit;

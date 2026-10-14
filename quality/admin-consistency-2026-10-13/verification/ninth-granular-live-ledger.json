@@ -1,0 +1,64 @@
+{
+  "canonical_source": "20261013140502_manual_inbound_retired_source_consistency.sql",
+  "canonical_sha256": "d68f09fa4ab18d62fbffa8c412d8fa53fa1db3d58e53ed519f45af1fc145fee0",
+  "installed_stages": [
+    {
+      "version": "20261013144303",
+      "name": "manual_inbound_retired_source_schema_prepare"
+    },
+    {
+      "version": "20261013145000",
+      "name": "manual_inbound_retired_source_table_create"
+    },
+    {
+      "version": "20261013145020",
+      "name": "manual_inbound_retired_source_table_restrict"
+    },
+    {
+      "version": "20261013145106",
+      "name": "manual_inbound_retired_source_service_read"
+    },
+    {
+      "version": "20261013145134",
+      "name": "manual_inbound_retired_source_read_policy"
+    },
+    {
+      "version": "20261013145214",
+      "name": "manual_inbound_retired_source_key_helper"
+    },
+    {
+      "version": "20261013145231",
+      "name": "manual_inbound_retired_source_lock_helper"
+    },
+    {
+      "version": "20261013145256",
+      "name": "manual_inbound_retired_source_delete_function"
+    },
+    {
+      "version": "20261013145315",
+      "name": "manual_inbound_retired_source_insert_function"
+    },
+    {
+      "version": "20261013145633",
+      "name": "manual_inbound_retired_source_immutable_function"
+    },
+    {
+      "version": "20261013145721",
+      "name": "manual_inbound_retired_source_immutable_hooks"
+    },
+    {
+      "version": "20261013145738",
+      "name": "manual_inbound_retired_source_raw_hooks"
+    },
+    {
+      "version": "20261013145752",
+      "name": "manual_inbound_retired_source_service_lookup"
+    },
+    {
+      "version": "20261013145903",
+      "name": "manual_inbound_retired_source_documentation"
+    }
+  ],
+  "equivalence": "Six live function bodies/owners/ACL/security/volatility/search paths exactly match canonical native replay. Table constraints/RLS/policy and triggers installed; final transactional purge verifies retirement lookup and blocked-source marker.",
+  "note": "Actual ledger versions retained without rewriting history; unrelated concurrent ops_api entries excluded."
+}

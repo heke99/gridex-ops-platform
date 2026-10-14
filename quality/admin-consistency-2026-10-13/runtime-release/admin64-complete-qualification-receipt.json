@@ -1,0 +1,21 @@
+{
+  "source_head": "64e09149da5194d2b3208e20b16a1c69b6577119",
+  "ops_run_id": 38469299697,
+  "complete_unit_suite": {
+    "files": 1117,
+    "assertions": 18116,
+    "failures": 0,
+    "skips": 0,
+    "duration_seconds": 532.78
+  },
+  "all_four_ops_jobs": "SUCCESS",
+  "overall_workflows": {
+    "success": 26,
+    "conditional_skipped": 2,
+    "failures": 0,
+    "pending": 0
+  },
+  "schema_fingerprint": "7be78399d1ef663a56c6900ceeb080d01721f19305d46b4d86f3efb27b063100",
+  "qualification": "Exact64e application/type/lint/quality/API/RBAC/performance/build/bundle, native clean/current schema/browser/tenant invariants and upgrade replay gates PASS. Clean native/browser suites retain their conditional skips as recorded; unit suite has zero skips. This qualifies own64admin source, not a later runtime union or wholeAPI readiness.",
+  "production": "NOT_DEPLOYED; frozen deployedAPIruntime mustbe preserved"
+}

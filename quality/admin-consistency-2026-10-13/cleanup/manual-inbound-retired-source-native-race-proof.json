@@ -1,0 +1,22 @@
+{
+  "engine": "PostgreSQL 17.5 (Debian 17.5-1.pgdg110+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit",
+  "target": "separate local synthetic fixture",
+  "public_migration": "20261013140502_manual_inbound_retired_source_consistency.sql",
+  "multi_connection_cases": [
+    {
+      "mode": "insert",
+      "before_retired": false,
+      "wait_seconds": 1.022,
+      "outcome": "late_insert_rejected_23514",
+      "raw_rows_after": 0
+    },
+    {
+      "mode": "lookup",
+      "before_retired": false,
+      "wait_seconds": 1.042,
+      "outcome": "waiting_service_lookup_observed_committed_retirement",
+      "raw_rows_after": 0
+    }
+  ],
+  "no_live_mutations": true
+}

@@ -1,0 +1,104 @@
+[
+  {
+    "conname": "canonical_event_outbox_domain_event_id_fkey",
+    "child_table": "canonical_event_outbox",
+    "parent_table": "canonical_domain_events",
+    "definition": "FOREIGN KEY (domain_event_id) REFERENCES canonical_domain_events(id) ON DELETE CASCADE"
+  },
+  {
+    "conname": "customer_match_review_cases_onboarding_operation_id_fkey",
+    "child_table": "customer_match_review_cases",
+    "parent_table": "customer_onboarding_operations",
+    "definition": "FOREIGN KEY (onboarding_operation_id) REFERENCES customer_onboarding_operations(id) ON DELETE CASCADE"
+  },
+  {
+    "conname": "mt_customer_match_review_cases_onboarding_operation_id_tenant_f",
+    "child_table": "customer_match_review_cases",
+    "parent_table": "customer_onboarding_operations",
+    "definition": "FOREIGN KEY (company_id, onboarding_operation_id) REFERENCES customer_onboarding_operations(company_id, id)"
+  },
+  {
+    "conname": "customer_onboarding_applications_onboarding_operation_id_fkey",
+    "child_table": "customer_onboarding_applications",
+    "parent_table": "customer_onboarding_operations",
+    "definition": "FOREIGN KEY (onboarding_operation_id) REFERENCES customer_onboarding_operations(id) ON DELETE CASCADE"
+  },
+  {
+    "conname": "mt_customer_onboarding_applications_onboarding_operation_id_ten",
+    "child_table": "customer_onboarding_applications",
+    "parent_table": "customer_onboarding_operations",
+    "definition": "FOREIGN KEY (company_id, onboarding_operation_id) REFERENCES customer_onboarding_operations(company_id, id)"
+  },
+  {
+    "conname": "customer_onboarding_legal_snapshot_onboarding_operation_id_fkey",
+    "child_table": "customer_onboarding_legal_snapshots",
+    "parent_table": "customer_onboarding_operations",
+    "definition": "FOREIGN KEY (onboarding_operation_id) REFERENCES customer_onboarding_operations(id) ON DELETE RESTRICT"
+  },
+  {
+    "conname": "mt_customer_onboarding_legal_snapshots_onboarding_operation_id_",
+    "child_table": "customer_onboarding_legal_snapshots",
+    "parent_table": "customer_onboarding_operations",
+    "definition": "FOREIGN KEY (company_id, onboarding_operation_id) REFERENCES customer_onboarding_operations(company_id, id)"
+  },
+  {
+    "conname": "canonical_energy_flow_events_resolution_id_fkey",
+    "child_table": "canonical_energy_flow_events",
+    "parent_table": "customer_site_resolution",
+    "definition": "FOREIGN KEY (resolution_id) REFERENCES customer_site_resolution(id) ON DELETE SET NULL"
+  },
+  {
+    "conname": "grid_owner_information_requests_resolution_id_fkey",
+    "child_table": "grid_owner_information_requests",
+    "parent_table": "customer_site_resolution",
+    "definition": "FOREIGN KEY (resolution_id) REFERENCES customer_site_resolution(id) ON DELETE SET NULL"
+  },
+  {
+    "conname": "metering_points_energy_resolution_id_fkey",
+    "child_table": "metering_points",
+    "parent_table": "customer_site_resolution",
+    "definition": "FOREIGN KEY (energy_resolution_id) REFERENCES customer_site_resolution(id) ON DELETE SET NULL"
+  },
+  {
+    "conname": "website_contract_quotes_energy_resolution_id_fkey",
+    "child_table": "website_contract_quotes",
+    "parent_table": "customer_site_resolution",
+    "definition": "FOREIGN KEY (energy_resolution_id) REFERENCES customer_site_resolution(id) ON DELETE RESTRICT"
+  },
+  {
+    "conname": "event_outbox_domain_event_id_fkey",
+    "child_table": "event_outbox",
+    "parent_table": "domain_events",
+    "definition": "FOREIGN KEY (domain_event_id) REFERENCES domain_events(id) ON DELETE CASCADE"
+  },
+  {
+    "conname": "mt_event_outbox_domain_event_id_tenant_fk",
+    "child_table": "event_outbox",
+    "parent_table": "domain_events",
+    "definition": "FOREIGN KEY (company_id, domain_event_id) REFERENCES domain_events(company_id, id)"
+  },
+  {
+    "conname": "webhook_deliveries_domain_event_id_fkey",
+    "child_table": "webhook_deliveries",
+    "parent_table": "domain_events",
+    "definition": "FOREIGN KEY (domain_event_id) REFERENCES domain_events(id) ON DELETE CASCADE"
+  },
+  {
+    "conname": "forecast_adjustments_forecast_run_id_fkey",
+    "child_table": "forecast_adjustments",
+    "parent_table": "forecast_runs",
+    "definition": "FOREIGN KEY (forecast_run_id) REFERENCES forecast_runs(id) ON DELETE CASCADE"
+  },
+  {
+    "conname": "forecast_run_items_forecast_run_id_fkey",
+    "child_table": "forecast_run_items",
+    "parent_table": "forecast_runs",
+    "definition": "FOREIGN KEY (forecast_run_id) REFERENCES forecast_runs(id) ON DELETE CASCADE"
+  },
+  {
+    "conname": "canonical_energy_flow_events_quote_id_fkey",
+    "child_table": "canonical_energy_flow_events",
+    "parent_table": "website_contract_quotes",
+    "definition": "FOREIGN KEY (quote_id) REFERENCES website_contract_quotes(id) ON DELETE SET NULL"
+  }
+]

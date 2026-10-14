@@ -395,9 +395,17 @@ async function processSingleEvent(event: JsonRecord, token: string): Promise<Pro
       .eq('id', itemId)
       .eq('provider_invoice_guid', invoiceGuid)
     const readProviderStatus = text(current.provider_status)
-    const guardedQuery = readProviderStatus === null
+    let guardedQuery = readProviderStatus === null
       ? baseQuery.is('provider_status', null)
       : baseQuery.eq('provider_status', readProviderStatus)
+    guardedQuery = current.updated_at == null
+      ? guardedQuery.is('updated_at', null)
+      : guardedQuery.eq('updated_at', current.updated_at)
+    // A concurrent command or same-state event can update only the receipt.
+    // Compare JSONB as well so neither its clock nor operator evidence is lost.
+    guardedQuery = current.status_payload == null
+      ? guardedQuery.is('status_payload', null)
+      : guardedQuery.eq('status_payload', JSON.stringify(current.status_payload))
     const itemUpdate = await guardedQuery.select('id').maybeSingle()
     if (itemUpdate.error) throw itemUpdate.error
     if (itemUpdate.data) {

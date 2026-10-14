@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { executeIdempotentPortalWrite, readJsonObject } from '@/lib/api/strictRequest'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import {
@@ -15,7 +16,9 @@ import { publicReference } from '@/lib/integrations/publicReferences'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
+export const POST = withApiContractRepresentation(['customer', 'website'], syncCustomer)
+
+async function syncCustomer(request: NextRequest) {
   const startedAt = Date.now()
   let client: IntegrationApiClient | null = null
 

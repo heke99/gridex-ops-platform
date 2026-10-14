@@ -117,9 +117,9 @@ export default function CustomerBulkImportPanel({ example, contractOffers }: Cus
 
  <div className="grid gap-3 md:grid-cols-2">
  <label className="grid gap-2 text-sm text-slate-700 ">
- <span className="font-medium">Fallback-avtal/kampanj</span>
+ <span className="font-medium">Standardavtal eller kampanj</span>
  <select name="fallbackContractOfferId" className="rounded-2xl border border-slate-300 px-4 py-3 text-sm">
- <option value="">Ingen fallback</option>
+ <option value="">Inget standardval</option>
  {contractOffers.map((offer) => (
  <option key={offer.id} value={offer.id}>{offer.name}{offer.campaign_name ? ` · ${offer.campaign_name}` : ''}</option>
  ))}

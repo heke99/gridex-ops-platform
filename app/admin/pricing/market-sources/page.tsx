@@ -1,7 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { saveMarketSourcePolicyAction, testMarketSourceConnectionAction } from './actions'
 import { formatStatusLabel } from '@/lib/ui/format'
 
@@ -26,10 +26,9 @@ type Policy = {
 
 export default async function MarketSourcesPage() {
   const admin = await requireAdminPageKeyAccess('pricing.engine')
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const scope = user ? await getOperationalCompanyScope(user.id) : null
-  const companyId = scope?.companyId ?? null
+  const companyId = scope.companyId
 
   const [sourcesResult, policiesResult] = companyId
     ? await Promise.all([

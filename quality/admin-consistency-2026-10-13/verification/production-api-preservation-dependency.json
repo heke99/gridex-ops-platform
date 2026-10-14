@@ -1,0 +1,27 @@
+{
+  "observed_at_utc": "2026-10-13T21:01:00Z",
+  "production_alias": "app.gridex.se",
+  "deployment_id": "dpl_4a6TRcdn9RbV5adxEpWHUBWDg7Ym",
+  "production_state": "READY",
+  "production_source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+  "api_pr": 794,
+  "api_current_head": "de885bc3f00f91e9e924e1fcb71b68717ac10084",
+  "api_state": "OPEN_DRAFT",
+  "api_current_runtime_equals_deployed_runtime": true,
+  "difference_to_deployed_source": "One docs-only commit changes four scoped documentation/checkpoint files.",
+  "admin_composed_source": "52a348c8d113f79a9884324c470949f8423c821a",
+  "main": "4e52854ecc19f0bd1266825cb114c19a3e983f27",
+  "blocker": "A main/admin-only production deployment omits already deployed API runtime corrections. Preserve them through bounded qualified runtime composition or completed API-first delivery before replacing the alias.",
+  "held_api_installers": "NOT_IMPORTED_NOT_APPLIED_BY_ADMIN_TASK",
+  "required_after_compatible_deployment": [
+    "verify exact deployment source/build/alias",
+    "observe old quality writer drain",
+    "execute only2guardedlegacyuniqueconstraintdrops",
+    "repeat140emptygraph/17zeroscopeassertions"
+  ],
+  "sources": [
+    "https://github.com/heke99/gridex-ops-platform/pull/794",
+    "https://github.com/heke99/gridex-ops-platform/blob/de885bc3f00f91e9e924e1fcb71b68717ac10084/quality/audits/2026-10-12-ops-api-contracts/README.md#L61"
+  ],
+  "read_only_review": "cleanup_consistency_audit; no source, DB, deployment, claim or producer mutation"
+}

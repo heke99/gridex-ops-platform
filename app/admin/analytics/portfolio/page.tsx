@@ -3,7 +3,6 @@ import { CustomerPortfolioPanel, PortfolioInsightsPanel } from '@/components/adm
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getCustomerPortfolio, getCustomerPortfolioInsights } from '@/lib/analytics/customerPortfolio'
 import { addMonths, monthStart } from '@/lib/analytics/utils'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,8 +10,7 @@ type PageProps = { searchParams: Promise<{ month?: string }> }
 
 export default async function CustomerPortfolioPage({ searchParams }: PageProps) {
   const admin = await requireAdminPageKeyAccess('analytics.workspace')
-  const scope = await getOperationalCompanyScope(admin.userId)
-  const companyId = scope.companyId
+  const companyId = admin.companyId
   const params = await searchParams
   const month = monthStart(params.month)
 

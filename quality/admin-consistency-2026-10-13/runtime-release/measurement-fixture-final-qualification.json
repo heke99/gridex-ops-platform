@@ -1,0 +1,72 @@
+{
+  "kind": "FINITE_MEASUREMENT_TEST_PORT_PERFORMANCE_REPAIR",
+  "source_before": "9850639908441d8115bb70533cb9fa50a9a8e653",
+  "fixture": "__tests__/partner-measurement-completeness.test.ts",
+  "fixture_sha256": "4c57542f462f5622c829689aa93c527d46929c8161f98dc5c437d41cd7a6d74c",
+  "production_changes": false,
+  "original_assertions_retained": true,
+  "timeout_milliseconds": 5000,
+  "implementation": "Date boundaries parsed once per predicate. Row timestamp cache keyed by row identity and field, invalidated by current raw field string. Every filter/sort/page/error path still executes; no query/result shortcut.",
+  "behavior_checks": {
+    "original_cases": 9,
+    "added_cases": 3,
+    "new_cases": [
+      "Inclusive/exclusive Europe/Stockholm date bounds on current and legacy API",
+      "Same row/array timestamp mutation changes query scope without stale cache"
+    ],
+    "isolated": {
+      "passed": 12,
+      "failed": 0,
+      "case_41000_ms": 2485.472077
+    },
+    "concurrent": {
+      "passed": 54,
+      "failed": 0,
+      "max_workers": 2,
+      "suites": [
+        "partner-measurement-completeness",
+        "admin-context-current-permission-deny-forward",
+        "ediel-sc-053-null-vs-zero-storage"
+      ],
+      "case_41000_ms": 2487.048777
+    }
+  },
+  "minimal_numeric_predicates_before_cache_ms": 4352.348334,
+  "lint_exit_code": 0,
+  "test_typecheck_exit_code": 0,
+  "qualification": "Bounded fixture correctness and timing under original budget; no full-suite CI, live/production performance, DB/schema/native capture or rollout claim.",
+  "artifacts": [
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-numeric-predicates.log",
+      "sha256": "f411560c56919f4c1d00c173d621c1b4e4e04215c7580d2ff1d1307eacd249db"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-numeric-predicates-results.json",
+      "sha256": "261994f5422e718d8d6af8513247e3fcfa534252bc1afebaf1ba2d15cb8d1d8d"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-cached-timestamps.log",
+      "sha256": "5702af433e378a7671324ba70e8929c91f361e4f3ebc87f0c87fe1bc5446fd6e"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-cached-timestamps-results.json",
+      "sha256": "45d28ff9f57b3f0e6beadb51ed95febe50db20184d55ac4705f7c9130f174982"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-native-concurrent.log",
+      "sha256": "27f6f0c88e78751f64835730ee5ee370476d498ae009ac6733a2e5e9444ab600"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-native-concurrent-results.json",
+      "sha256": "8b88dcb171a8bda52bdccfde53c9952c17a3220eba4a8c604d2cb8d894d2368f"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-final-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-final-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

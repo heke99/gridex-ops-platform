@@ -1,0 +1,15 @@
+
+ RUN  v4.1.9 /workspace/gridex-admin-api-runtime-release
+
+ ✓ __tests__/admin-context-current-permission-deny-forward.test.ts (34 tests) 12130ms
+   ✓ replays the whole guarded forward without changing function identity or granting privileges  1792ms
+   ✓ unknown existing source is refused by whole forward before rewriting the function  1604ms
+   ✓ missing DENY storage refuses the whole forward instead of installing a partial permission filter  2850ms
+   ✓ a changed security attribute refuses the forward instead of broadening a different current function  1490ms
+
+ Test Files  1 passed (1)
+      Tests  34 passed (34)
+   Start at  22:54:23
+   Duration  13.19s (transform 296ms, setup 59ms, import 692ms, tests 12.13s, environment 0ms)
+
+JSON report written to /tmp/gridex-api-release-current-context-green.json

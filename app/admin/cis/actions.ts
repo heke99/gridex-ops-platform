@@ -33,6 +33,7 @@ import { prepareAndQueueEdielZ03 } from '@/lib/ediel/orchestrator'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 import { bulkQueueReadyBillingExportsAction } from '@/app/admin/operations/control-actions'
 import { assertUserCanOperateCompany, getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 
 function formValue(formData: FormData, key: string): string | null {
@@ -161,11 +162,8 @@ async function assertEntityCompanyAccess(params: {
 async function resolveBulkCompanyScope(
   access: Awaited<ReturnType<typeof requireAdminActionAccess>>
 ): Promise<string | null> {
-  const scope = await getOperationalCompanyScope(access.userId)
-  if (!scope.companyId) {
-    if (isPlatformAdminContext(access)) return null
-    throw new Error('Aktiv bolagskoppling saknas.')
-  }
+  const scope = await resolveAdminSelectedCompanyReadScope(access)
+  if (!scope.companyId) return null
   return assertUserCanOperateCompany(access.userId, scope.companyId)
 }
 

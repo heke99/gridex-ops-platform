@@ -1,0 +1,46 @@
+{
+  "public.Tables": {
+    "changed": [
+      "dashboard_alerts",
+      "data_quality_issues",
+      "external_contract_intakes"
+    ],
+    "removed": []
+  },
+  "public.Views": {
+    "changed": [
+      "company_customer_intake_queue_v",
+      "company_dashboard_summary_v",
+      "gridex_actionable_data_quality_issues_v",
+      "gridex_data_quality_rule_catalog_v",
+      "gridex_website_application_work_items_v"
+    ],
+    "removed": []
+  },
+  "public.Functions": {
+    "changed": [
+      "gridex_company_has_customer_data",
+      "gridex_current_point_forecasts_v1",
+      "gridex_customer_portfolio_cohorts_at",
+      "gridex_data_quality_active_status_v1",
+      "gridex_data_quality_source_exists_v1",
+      "gridex_missing_metering_points_count_v1",
+      "gridex_missing_metering_points_v1",
+      "gridex_pending_website_application_count",
+      "gridex_quality_lock_company_v1",
+      "gridex_quality_open_key_v1",
+      "gridex_reconcile_dashboard_alerts_internal_v1",
+      "gridex_reconcile_dashboard_alerts_v1",
+      "gridex_reconcile_data_quality_v1",
+      "gridex_resolve_dashboard_alert_v1",
+      "gridex_resolve_data_quality_issue_v1",
+      "gridex_resolve_managed_quality_rule_v1",
+      "gridex_scan_data_quality_v1",
+      "gridex_upsert_dashboard_alert_v1",
+      "gridex_upsert_data_quality_issue_v1",
+      "gridex_website_application_status",
+      "gridex_website_application_work_state"
+    ],
+    "removed": []
+  }
+}

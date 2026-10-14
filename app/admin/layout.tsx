@@ -5,6 +5,7 @@ import { logoutAction } from '@/lib/auth/logoutAction'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 import { getOperationalCompanyScope, TENANT_COMPANY_REQUIRED_MESSAGE, TenantCompanyRequiredError } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import {
  ADMIN_NAVIGATION_MODE_COOKIE,
  normalizeAdminNavigationMode,
@@ -21,15 +22,23 @@ export default async function AdminLayout({
  const isPlatformAdmin = isPlatformAdminContext(admin)
  let shell: {
  cookieStore: Awaited<ReturnType<typeof cookies>>
- scope: Awaited<ReturnType<typeof getOperationalCompanyScope>>
+ scope: Awaited<ReturnType<typeof resolveAdminSelectedCompanyReadScope>> & Pick<Awaited<ReturnType<typeof getOperationalCompanyScope>>, 'memberships'>
  liveAccess: Awaited<ReturnType<typeof getTenantLiveAccessForAdmin>>
  }
  try {
- const [cookieStore, scope, liveAccess] = await Promise.all([
+ const [cookieStore, canonicalScope, liveAccess, operationalScope] = await Promise.all([
  cookies(),
- getOperationalCompanyScope(admin.userId),
+ resolveAdminSelectedCompanyReadScope(admin),
  getTenantLiveAccessForAdmin(admin),
+ isPlatformAdmin ? getOperationalCompanyScope(admin.userId) : Promise.resolve(null),
  ])
+ const scope = {
+ ...canonicalScope,
+ companyName: isPlatformAdmin
+ ? operationalScope && canonicalScope.companyId === operationalScope.companyId ? operationalScope.companyName : canonicalScope.companyName
+ : liveAccess.companyName,
+ memberships: operationalScope?.memberships ?? [],
+ }
  shell = { cookieStore, scope, liveAccess }
  } catch (error) {
  if (!(error instanceof TenantCompanyRequiredError)) throw error

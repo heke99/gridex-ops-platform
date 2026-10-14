@@ -1,0 +1,11 @@
+# Retired manual inbound source adapter
+
+The manual ingest adapter now calls the service-only retired-source RPC before raw persistence. Its arguments match the stored raw key: mailbox lower/trim, provider trim with case preserved. A retired exact key returns ignored, a null inbound ID and reason `retired_source`, without creating raw/event rows or running correlation. Different provider IDs, provider case or mailbox keys retain normal processing. Missing provider IDs retain existing handling.
+
+The lookup must return an actual boolean. Returned errors, thrown transport failures and malformed/null results fail before persistence. If deletion retires the key after the lookup, only the raw insert guard's exact SQLSTATE23514/message `manual_inbound_source_retired` becomes the same ignored result. Other constraint/FK/transport failures remain errors. The RPC is called directly through the typed client; no generated database metadata is handwritten or cast to force a typecheck.
+
+The new test runs actual ingestion and the actual manual mailbox poller with external ports replaced. It proves deleted-source retry cannot recreate raw/event rows, a prior Seen-write failure can retry safely, retired mail is acknowledged while new mail continues, and unknown retirement state remains unseen with no writes. The new18cases failed13 with5 existing criteria passing before the implementation. Combined with the two unchanged business suites (only explicit false-success retirement lookup fixture cases added), all48tests pass. Their prior completionRPC/actor/business assertions remain unchanged.
+
+Actual UTF-8 Seen literals at manualMailboxPoller lines299/317 contain2source backslashes, yielding1runtime backslash. The RFC system flag is correct; the poller source was not changed. Exact source/result hashes and literal proof are recorded in `manual-retired-source-adapter-receipt.json`.
+
+The adapter/test sources are frozen for independent review. Root and Agent3 own ninth SQL retirement/insert-lock enforcement, live application, authentic type generation and final build. This adapter proof is not native SQL or production/browser evidence. No SQL/schema/types/shared memory/live data were modified in this slice.

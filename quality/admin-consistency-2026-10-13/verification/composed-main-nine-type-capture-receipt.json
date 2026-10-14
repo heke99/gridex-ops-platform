@@ -1,0 +1,26 @@
+{
+  "purpose": "authentic_composed_main_and_nine_forward_type_capture",
+  "upstream_main": "95d8d160491e79b172342654d8dc643346758105",
+  "incoming_migrations": [
+    "20261012212000_ediel_vh_history_delivery_sc023.sql",
+    "20261012231000_ediel_z02_original_grid_refusal.sql"
+  ],
+  "admin_migration_count": 9,
+  "prior_receipt": "nine-migration-type-capture-receipt.json",
+  "cli_version": "2.101.0",
+  "postgres_meta": "0.96.4",
+  "schemas": [
+    "public",
+    "graphql_public"
+  ],
+  "artifact_sha256": {
+    "database.types.raw.ts": "68f16e30a5e6412a42943114dc8354032a340578124fcafdc72e9884ec56c1d2",
+    "database.types.ts": "e094bdc27b926472e20d0407267b5a4cd0b21e7535202a3cc29927992a2aac9b",
+    "typegen.log": "7cd6d8040fb592c14886c8ba766c82b9c7cd6fde1f088df649cfada9aff06011"
+  },
+  "generated_types_bytes": 3727977,
+  "git_auto_merged_types_equal_authentic_capture": true,
+  "incoming_migration_apply_sha256": "34c853c4fc8f12d98dafa0b2621277d47b6fca69eda5aac2ab358f901966f2a2",
+  "canonical_schema_fingerprint": "NOT_IMPORTED:existing incoming main capture retained; complete current capture pending CI",
+  "ediel_browser_whole_id_credit": "NONE"
+}

@@ -1,3 +1,5 @@
+import type { EnergyResolutionStatus } from '@/lib/energy/types'
+
 export function customerStatusLabel(value: string | null | undefined): string {
   switch (String(value ?? '').toLowerCase()) {
     case 'active': return 'Aktiv kund'
@@ -20,7 +22,7 @@ export function customerStatusLabel(value: string | null | undefined): string {
     case 'signed': return 'Signerad'
     case 'failed': return 'Fel kräver åtgärd'
     case 'manual_review': return 'Kräver manuell kontroll'
-    default: return humanizeTechnicalValue(value)
+    default: return value ? 'Status behöver kontrolleras' : '—'
   }
 }
 
@@ -47,6 +49,7 @@ export function intakeStatusLabel(value: string | null | undefined): string {
     case 'active_supply': return 'Aktiv leverans'
     case 'needs_admin_review': return 'Kräver handläggning'
     case 'customer_created': return 'Kund skapad'
+    case 'created': return 'Skapad'
     case 'customer_matched': return 'Kund matchad'
     case 'linked_existing_customer': return 'Kopplad till befintlig kund'
     case 'needs_information': return 'Saknar uppgifter'
@@ -75,37 +78,79 @@ export function intakeStatusLabel(value: string | null | undefined): string {
     case 'negative_aperak_received': return 'Nätägaren avvisade uppgiften'
     case 'z02_rejected': return 'Nätägaren kunde inte bekräfta uppgiften'
     case 'grid_owner_rejected_request': return 'Nätägaren avvisade begäran'
+    case 'facility_data_invalid': return 'Anläggningsuppgifter behöver rättas'
+    case 'customer_information_mismatch': return 'Kunduppgifter stämmer inte'
+    case 'needs_customer_correction': return 'Kunden behöver rätta uppgifter'
+    case 'needs_grid_owner_followup': return 'Nätägaren behöver följas upp'
     case 'duplicate_facility_id': return 'Anläggnings-ID finns redan'
     case 'cross_tenant_facility_conflict': return 'Anläggnings-ID behöver verifieras innan automation'
     case 'protected_identity': return 'Skyddad identitet kräver manuell process'
-    default: return humanizeTechnicalValue(value)
+    default: return value ? 'Behöver granskning' : '—'
   }
+}
+
+const ENERGY_RESOLUTION_STATUS_LABELS: Record<EnergyResolutionStatus, string> = {
+  postal_suggested: 'Förslag från postnummer',
+  address_resolved: 'Adress matchad',
+  grid_area_resolved: 'Nätområde matchat',
+  grid_area_master_validated: 'Nätområde verifierat',
+  facility_data_requested: 'Anläggningsuppgifter begärda',
+  facility_data_received: 'Anläggningsuppgifter mottagna',
+  facility_verified: 'Anläggningsuppgifter verifierade',
+  needs_review: 'Behöver granskning',
+  facility_data_invalid: 'Anläggningsuppgifter behöver rättas',
+  customer_information_mismatch: 'Kunduppgifter stämmer inte',
+  grid_owner_rejected_request: 'Nätägaren avvisade begäran',
+  negative_aperak_received: 'Nätägaren avvisade uppgiften',
+  z02_rejected: 'Nätägaren kunde inte bekräfta uppgiften',
+  needs_customer_correction: 'Kunden behöver rätta uppgifter',
+  needs_grid_owner_followup: 'Nätägaren behöver följas upp',
+  protected_identity: 'Skyddad identitet kräver manuell hantering',
+  failed: 'Matchning misslyckades',
+}
+
+export function energyResolutionStatusLabel(value: string | null | undefined): string {
+  const status = String(value ?? '').trim().toLowerCase()
+  if (!status) return '—'
+  const label = ENERGY_RESOLUTION_STATUS_LABELS[status as EnergyResolutionStatus]
+  return typeof label === 'string' ? label : 'Behöver granskning'
 }
 
 export function missingFieldLabel(value: string | null | undefined): string {
   switch (String(value ?? '').toLowerCase()) {
     case 'metering_point_id': return 'Mätpunkt saknas'
+    case 'customer.email': return 'E-post saknas'
+    case 'customer.name': return 'Kundnamn saknas'
+    case 'customer.identity': return 'Person-/organisationsnummer saknas'
+    case 'site': return 'Anläggning saknas'
+    case 'site.address': return 'Adress behöver kompletteras'
     case 'facility_id': return 'Anläggnings-ID saknas'
     case 'facility_verified': return 'Anläggningen är inte verifierad'
     case 'power_of_attorney': return 'Fullmakt saknas'
     case 'grid_owner_id': return 'Nätägare saknas'
+    case 'grid_owner': return 'Nätägare behöver verifieras'
     case 'grid_area_code': return 'Nätområdeskod saknas'
     case 'price_area_code': return 'Prisområde saknas'
+    case 'price_area': return 'Elområde saknas'
+    case 'price_plan': return 'Prisplan/avtal saknas'
+    case 'terms_accepted': return 'Avtalsvillkor/samtycke saknas'
     case 'customer_identity': return 'Kundidentitet behöver kontrolleras'
     case 'requested_start_date': return 'Startdatum saknas'
     case 'contract': return 'Avtal saknas'
-    default: return humanizeTechnicalValue(value)
+    default: return value ? 'Uppgift behöver kompletteras' : '—'
   }
 }
 
 export function sourceLabel(value: string | null | undefined): string {
   switch (String(value ?? '').toLowerCase()) {
     case 'website': return 'Hemsida'
+    case 'website_application':
+    case 'website_customer_application': return 'Ansökan från hemsida'
     case 'api': return 'API'
     case 'manual': return 'Manuell registrering'
     case 'external_contract_intake': return 'Ansökan från hemsida'
     case 'customer_portal': return 'Mina sidor'
-    default: return humanizeTechnicalValue(value)
+    default: return value ? 'Annan källa' : '—'
   }
 }
 
@@ -117,10 +162,11 @@ export function gridOwnerVerificationLabel(value: string | null | undefined): st
     case 'unidentified': return 'Ej identifierad nätägare'
     case 'conflict': return 'Konflikt'
     case 'manual_review': return 'Kräver manuell kontroll'
-    case 'route_missing': return 'Saknar route'
+    case 'needs_review': return 'Behöver granskning'
+    case 'route_missing': return 'Utskicksväg saknas'
     case 'certificate_missing': return 'Saknar certifikat'
     case 'contact_missing': return 'Saknar kontaktväg'
-    default: return humanizeTechnicalValue(value)
+    default: return value ? 'Behöver granskning' : '—'
   }
 }
 

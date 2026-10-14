@@ -2,7 +2,8 @@ import CompanySelect from '@/components/admin/CompanySelect'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
-import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant/scope'
+import { isMissingRelationError } from '@/lib/tenant/scope'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,7 +49,7 @@ export default async function AuditPage({
 }) {
  const context = await requireAdminPageKeyAccess('audit.log')
  const isPlatformAdmin = isPlatformAdminContext(context)
- const scope = await getOperationalCompanyScope(context.userId)
+ const scope = await resolveAdminTenantReadScope(context)
  const params = searchParams ? await searchParams : {}
  const actionFilter = cleanParam(params.action)
  const entityFilter = cleanParam(params.entity)
@@ -100,12 +101,6 @@ export default async function AuditPage({
  />
 
  <div className="space-y-6 p-8">
- {scope.message && !isPlatformAdmin ? (
- <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-900 shadow-sm">
- {scope.message}
- </section>
- ) : null}
-
  {loadError ? (
  <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-900 shadow-sm">
  {loadError}

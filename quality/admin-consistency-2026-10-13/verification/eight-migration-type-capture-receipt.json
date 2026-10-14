@@ -1,0 +1,35 @@
+{
+  "purpose": "authentic_committed_baseline_eight_forward_type_capture",
+  "captured_at": "2026-10-13T13:46:20.097648+00:00",
+  "baseline_byte_exact_proof": "verification/capture-receipt.json",
+  "six_forward_type_capture": "verification/six-migration-type-capture-receipt.json",
+  "baseline_type_sha256": "16465bc1948132452b84f8554f6684c428bf3e287ba4e7dc9a7442000cec452b",
+  "supabase_cli_version": "2.101.0",
+  "postgres_meta_image": "public.ecr.aws/supabase/postgres-meta:v0.96.4",
+  "generation_schemas": [
+    "public",
+    "graphql_public"
+  ],
+  "unchanged_nullability_override_sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+  "all_eight_forward_sha256": {
+    "20261013094448_customer_portfolio_consistency_repair.sql": "a51b29452212140d191064bd970572c1503ca0ef5a1e67ab7f40e831dc72b0e4",
+    "20261013094514_data_quality_lifecycle_consistency.sql": "ff0b71b3d3c754f1adcdf156b1281c913ef71f81d98614c6690b70d786d2efef",
+    "20261013094648_canonical_admin_application_work_items.sql": "6a8a0b9ecb0736f722beebb05ab203b2c966135adf56ba8031909d9096b25a06",
+    "20261013100622_customer_flow_integrity_and_empty_statistics.sql": "555543fbffbde43dba3b774ced3163d5aa49fabe4f87e812b654df4cc3d6257a",
+    "20261013110544_analytics_customer_missing_meter_scope.sql": "81722d768001d44c12099e179049f6b2c7e232034077cb1cf46553150901b771",
+    "20261013123314_manual_inbound_event_source_consistency.sql": "c85e3273a86eddf2dc2911d6c1ead843d3336770939f440cd5c6a89d4cf2f8fa",
+    "20261013130700_operational_quality_customer_source_consistency.sql": "0b1638fbd4ab1eef82dc95d2064519e66f1bbb787a8213c9a705d1ddb1ea5732",
+    "20261013131746_consumption_forecast_customer_source_guard.sql": "6e06c41e8b7c4ccea41a0a960fb9c2a66149781fe638c3f3dd38c2180d39e3c1"
+  },
+  "artifact_sha256": {
+    "database.types.raw.ts": "5f4e82c4d1bc215335e3cdfdec8734eed5d117daffb4e619de72ee064dbbc947",
+    "database.types.ts": "53a93af0d55a8ea3e6dbaf9a55ae97f27a66312680b7daed82d1120995895710",
+    "migration-apply.log": "10ed07e04542435a1aff9f9d07cffdfb71a3ef93aa4e3172e056e687a1ec08c5",
+    "typegen-retry.log": "7cd6d8040fb592c14886c8ba766c82b9c7cd6fde1f088df649cfada9aff06011"
+  },
+  "seven_and_eight_public_types_byte_equal_six": true,
+  "scope": "Final seventh adds a private gridex_quality source predicate and same-column view/body changes. Eighth adds a private consumption trigger. Neither alters public generated type signatures. Both were applied before this actual CLI generation.",
+  "connection_retry": "First meta pool connection timed out; unchanged CLI command repeated successfully. No timeouts, schema owners or generator output edited.",
+  "canonical_schema_and_fingerprint_import": "NOT_IMPORTED: genuine complete CI owner metadata still required; no fallback owner metadata guessed.",
+  "native_browser_ediel_credit": "NONE; domain native regression evidence is separately scoped."
+}

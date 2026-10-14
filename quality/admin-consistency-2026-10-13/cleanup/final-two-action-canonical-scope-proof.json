@@ -1,0 +1,57 @@
+{
+  "scope": "Final explicitly approved two-action private-context fix; no broader audit or dependencies changed",
+  "files": [
+    {
+      "path": "app/admin/customer-cases/actions.ts",
+      "sha256": "b886b1daf532447fff558dc964744e473c44ba384e86a8934be587a36fadacb6"
+    },
+    {
+      "path": "app/admin/outbound/unresolved/actions.ts",
+      "sha256": "c1954c7b62bbf6a4fa1def347b91a9650791f7c71a274bcee5ffd9f1014fdd2c"
+    },
+    {
+      "path": "__tests__/customer-cases-outbound-action-canonical-scope.test.ts",
+      "sha256": "6bd3a34b9820ca7dcbe6e312c02250ab44daf4e0ac4c87313abe459f22534b9b"
+    }
+  ],
+  "root_cause": "Existing action permission guard selected company A, but a second legacy membership selection redirected customer-case and unresolved-outbound command company to B",
+  "fix": {
+    "customer_cases": "Pass guarded context into strict canonical selected-company scope; selected platform company retained",
+    "outbound": "Canonical tenant-read company scope; authorized platform global null retained"
+  },
+  "red": {
+    "failed": 9,
+    "passed": 5,
+    "total": 14,
+    "mock_import_type_timeout_errors": 0
+  },
+  "green": {
+    "passed": 14,
+    "total": 14,
+    "duration_seconds": 29.54,
+    "command": "Node22 vitest run __tests__/customer-cases-outbound-action-canonical-scope.test.ts --reporter=dot"
+  },
+  "assertions": [
+    "canonical case create/status/note",
+    "foreign support-customer graph refusal",
+    "stale expected_company_id fence",
+    "canonical/foreign outbound row mutation gates",
+    "canonical bulk selection",
+    "explicit-null no mutation",
+    "permission refusal no reads or mutation",
+    "platform global outbound and selected support semantics"
+  ],
+  "boundary_limit": "Actual action functions and shared scope helper execute; downstream service/provider database boundaries are local mocks matching existing ownership policies. This is not a live mutation proof.",
+  "preserved": [
+    "permission guards",
+    "case/customer ownership",
+    "expected_company_id tab fence",
+    "outbound row/company comparisons",
+    "downstream lifecycle/provider/domain gates",
+    "audit provenance"
+  ],
+  "source_frozen": true,
+  "no_live_writes": true,
+  "targeted_lint": "passed, exit0",
+  "diff_check": "passed, exit0"
+}

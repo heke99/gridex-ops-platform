@@ -11,7 +11,7 @@ import {
   refreshOutboundRequestRouteResolution,
 } from '@/lib/cis/db'
 import { createSupplierSwitchEvent } from '@/lib/operations/db'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 
 function formValue(formData: FormData, key: string): string | null {
   const value = formData.get(key)
@@ -20,11 +20,7 @@ function formValue(formData: FormData, key: string): string | null {
 
 
 async function resolveActionCompanyScope(access: GuardResult): Promise<string | null> {
-  if (isPlatformAdminContext(access)) return null
-  const scope = await getOperationalCompanyScope(access.userId)
-  if (!scope.companyId) {
-    throw new Error('Aktiv bolagskoppling saknas. Åtgärden kan inte köras utan tenant-scope.')
-  }
+  const scope = await resolveAdminTenantReadScope(access)
   return scope.companyId
 }
 

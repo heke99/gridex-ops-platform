@@ -1,6 +1,17 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { monthStart } from '@/lib/analytics/utils'
 
+// Forecast schedulers and SQL snapshot builders share the same source gate.
+// Empty tenant configuration must not be mistaken for a customer portfolio.
+export async function hasCustomerAnalyticsData(companyId: string): Promise<boolean> {
+  const { data, error } = await supabaseService.rpc('gridex_company_has_customer_data', {
+    p_company_id: companyId,
+  })
+  if (error) throw error
+  if (typeof data !== 'boolean') throw new Error('Invalid customer analytics source result')
+  return data
+}
+
 // Company, customer, bidding-zone and grid-owner monthly metrics plus the customer
 // portfolio snapshot, computed set-based in one transaction in the database
 // (gridex_rebuild_company_analytics_month). Consumption comes from the monthly rollup

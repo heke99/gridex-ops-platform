@@ -1,0 +1,85 @@
+{
+  "head": "a1f00da4ba9449228baaca2192e81788b41796b4",
+  "tree": "903a7aa62686bce8d345c5c8269caa1f4d16f4c5",
+  "deployment_id": "dpl_BL9zEoUJxcwdqkzfeC5b24F2gLzT",
+  "url": "https://gridex-ops-platform-qbwtt030k-div3rsa.vercel.app",
+  "project": "prj_xA3EDI1xztkkyx21e3LY4UhgYrWt",
+  "target": "preview",
+  "ready": true,
+  "actual_configured_git_build": true,
+  "anonymous_route_results": [
+    {
+      "path": "/admin",
+      "success": true,
+      "status": 200,
+      "deployment_id": "dpl_BL9zEoUJxcwdqkzfeC5b24F2gLzT",
+      "login_rendered": true,
+      "swedish_drift_copy": true,
+      "authenticated_admin_ui": "NOT_TESTED_NO_APP_SESSION",
+      "framework_error_digest": false
+    },
+    {
+      "path": "/admin/customers/intake",
+      "success": true,
+      "status": 200,
+      "deployment_id": "dpl_BL9zEoUJxcwdqkzfeC5b24F2gLzT",
+      "login_rendered": true,
+      "swedish_drift_copy": true,
+      "authenticated_admin_ui": "NOT_TESTED_NO_APP_SESSION",
+      "framework_error_digest": false
+    },
+    {
+      "path": "/admin/website-applications",
+      "success": true,
+      "status": 200,
+      "deployment_id": "dpl_BL9zEoUJxcwdqkzfeC5b24F2gLzT",
+      "login_rendered": true,
+      "swedish_drift_copy": true,
+      "authenticated_admin_ui": "NOT_TESTED_NO_APP_SESSION",
+      "framework_error_digest": false
+    },
+    {
+      "path": "/admin/work-queue",
+      "success": true,
+      "status": 200,
+      "deployment_id": "dpl_BL9zEoUJxcwdqkzfeC5b24F2gLzT",
+      "login_rendered": true,
+      "swedish_drift_copy": true,
+      "authenticated_admin_ui": "NOT_TESTED_NO_APP_SESSION",
+      "framework_error_digest": false
+    },
+    {
+      "path": "/admin/events",
+      "success": true,
+      "status": 200,
+      "deployment_id": "dpl_BL9zEoUJxcwdqkzfeC5b24F2gLzT",
+      "login_rendered": true,
+      "swedish_drift_copy": true,
+      "authenticated_admin_ui": "NOT_TESTED_NO_APP_SESSION",
+      "framework_error_digest": false
+    },
+    {
+      "path": "/admin/facility-requests",
+      "success": true,
+      "status": 200,
+      "deployment_id": "dpl_BL9zEoUJxcwdqkzfeC5b24F2gLzT",
+      "login_rendered": true,
+      "swedish_drift_copy": true,
+      "authenticated_admin_ui": "NOT_TESTED_NO_APP_SESSION",
+      "framework_error_digest": false
+    },
+    {
+      "path": "/admin/analytics/portfolio",
+      "success": true,
+      "status": 200,
+      "deployment_id": "dpl_BL9zEoUJxcwdqkzfeC5b24F2gLzT",
+      "login_rendered": true,
+      "swedish_drift_copy": true,
+      "authenticated_admin_ui": "NOT_TESTED_NO_APP_SESSION",
+      "framework_error_digest": false
+    }
+  ],
+  "authenticated_admin_pages": "NOT_VERIFIED_NO_APP_SESSION",
+  "production_cutover": "PENDING_CURRENT_FULL_CI_AND_DELIVERY",
+  "native_original_collection": "985 HEAD is preserved until its original clean job completes; final source is available through a dedicated published preview ref, no second native producer started."
+}

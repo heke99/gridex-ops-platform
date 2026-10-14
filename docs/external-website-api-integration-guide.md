@@ -1,6 +1,8 @@
 # Gridex Website Integration API
 
-Current contract: **2026-10-09.1**
+Current documentation: **2026-10-12.1**. Default response contract: **2026-10-09.1**.
+
+Documentation revisions describe the API and never require matching version headers on business requests. A newer documentation copy does not change the supported V1 response representation. Gridex can pin an older supported representation on the credential; see [API compatibility policy](api-compatibility-policy.md).
 
 You do not need to match the latest documentation revision exactly to use a supported API version. See the [compatibility policy](api-compatibility-policy.md) and the [migration guide](api-migration-guide.md).
 
@@ -90,6 +92,8 @@ For every non-fixed model, checkout market data is **indicative preview/audit ev
 
 Use `display_components` and the component visibility metadata for presentation. Use the authoritative quote totals and complete calculation data for acceptance, reconciliation and later audit.
 
+`vat_rate` is a decimal fraction: `0.25` means 25%. `vat_rate_percent`, when present, is the corresponding percentage (`25`). Newly authored standard consumption prices use 25% VAT. Explicit production or exempt treatment and frozen historical prices retain their recorded rate; do not replace an accepted rate with a current default.
+
 `valid_until` remains in V1-compatible quote payloads as compatibility and immutable audit metadata. Gridex does not expire a customer-visible website quote merely because wall-clock time passes. Explicit revocation, integrity mismatch or a commercially unavailable or withdrawn offer can still block submission.
 
 `valid_to` on a published price option or area price is a commercial validity boundary. `null` means no commercial end date is configured.
@@ -107,6 +111,8 @@ During migration from older website integrations, accepted customer-identity ali
 Transitional public aliases may remain documented for migration compatibility, but new integrations should use the canonical fields from the current OpenAPI specification.
 
 Swedish identity numbers are validated before anything is stored. `customer.personal_number` must be a real personnummer or samordningsnummer (valid date and check digit) as 10 or 12 digits, with or without `-` or `+`; otherwise the request is rejected with `422` and error code `personal_number_invalid`. `customer.org_number` must be a valid organisationsnummer (a sole trader may send the owner's personnummer); otherwise the request is rejected with `422` and error code `org_number_invalid`. Both errors name the field in `field` and are not retryable: correct the value and submit again. Accepted values are normalized, so `811218-9876` and `198112189876` identify the same customer; a 10-digit personnummer gets its century from the birth date, and the `+` separator marks a person aged 100 or more.
+
+For newly signed qualifying private distance agreements, Gridex stores `withdrawal_deadline_at` at the end of the fourteenth calendar day after the acceptance date in Europe/Stockholm. Use the returned stored timestamp; previously frozen agreements retain their recorded deadline. Confirmation delivery does not change that deadline.
 
 ## Asynchronous processing
 
@@ -128,9 +134,9 @@ Before deploying an integration update, read:
 
 `GET /api/v1/openapi/release-manifest.json`
 
-Verify that the release version, minimum supported integration version and SHA-256 digests match the OpenAPI documents you generated your client from. Immutable release URLs in the manifest can be retained for audit and reproducible builds.
+The manifest's release version identifies the current documentation; it does not have to equal the revision used to generate an existing supported client. Verify the SHA-256 digest for the exact OpenAPI document you fetch and retain its immutable URL for audit and reproducible builds. The minimum and per-surface compatibility policy describe support; neither creates a new documentation-version header requirement.
 
-For contract **2026-10-09.1**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
+For the stable response contract **2026-10-09.1**, an existing integration can keep its supported frozen specification, including the documented historical errata. Use verified request fields and business rules; updating the documentation copy is optional.
 
 ## Production checklist
 

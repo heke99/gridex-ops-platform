@@ -400,7 +400,7 @@ export async function calculateOfferQuote(input: {
       "invoice_delivery_method",
     );
   }
-  const siteCount = Math.trunc(input.siteCount ?? 1);
+  const siteCount = input.siteCount ?? 1;
   if (!Number.isSafeInteger(siteCount) || siteCount < 1) {
     throw new OfferQuoteError(
       "site_count måste vara ett heltal större än 0.",

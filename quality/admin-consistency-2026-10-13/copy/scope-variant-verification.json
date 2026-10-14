@@ -1,0 +1,377 @@
+{
+  "capturedAt": "2026-10-13T13:53:40.648892+00:00",
+  "scope": "19 qualified pages + 2 downloads; canonical shell/live gate/shared resolvers; final bounded six action modules. No production mutation by this workstream.",
+  "source": [
+    {
+      "path": "app/admin/billing/underlays/page.tsx",
+      "sha256": "4241dc174c9e1d1e94a9b0003151017a8dabfa1cc9f6595b98a5377ba4e7e596",
+      "canonicalReferences": [
+        {
+          "line": 12,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/underlays/[id]/page.tsx",
+      "sha256": "029055ac35ae7058a698323fd67e4a1c6814372ff4a05a8b5ecad4de095bfc3d",
+      "canonicalReferences": [
+        {
+          "line": 13,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/page.tsx",
+      "sha256": "93b5dd2c7cb2731820de73390b3a29d09646f067ab45293c0c79de2571fdcbf7",
+      "canonicalReferences": [
+        {
+          "line": 78,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/invoices/[id]/page.tsx",
+      "sha256": "22dd355bfc97965d8d9fb7bde2abf9197e591dde94803ea90d692be818b22771",
+      "canonicalReferences": [
+        {
+          "line": 49,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/quality/page.tsx",
+      "sha256": "06482217ac66e3520b72d6a6df6e0e63f1c02e7c41601c6fc4dddf689a052337",
+      "canonicalReferences": [
+        {
+          "line": 50,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/ai-parser/page.tsx",
+      "sha256": "1d070fe0c0da29133a7f98da683104f42b6b6a6b3c3b953a672938ac657e70ca",
+      "canonicalReferences": [
+        {
+          "line": 38,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/import/page.tsx",
+      "sha256": "52618c012c95afbd908f1ae7bdf50b029b576efb00f30f9e026a1ea49f73a406",
+      "canonicalReferences": [
+        {
+          "line": 15,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/integrations/page.tsx",
+      "sha256": "3b9d18e38cd94ef662db36259a1a47748eaf541fdcad4758466b7447004d5c68",
+      "canonicalReferences": [
+        {
+          "line": 44,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/company-settings/page.tsx",
+      "sha256": "9f78de4683d0509864de0f2f726b769410befaaa7429e613b9d073efcd703491",
+      "canonicalReferences": [
+        {
+          "line": 50,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(context, { allowMissing: true });"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/contracts/page.tsx",
+      "sha256": "e17ccbefd3035fc1360f9c25696ab4f58fa70c82b136f257e8bc6478940c040b",
+      "canonicalReferences": [
+        {
+          "line": 746,
+          "code": "...(await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })),"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/customer-info-requests/page.tsx",
+      "sha256": "435e87a4ff3d87d871e177c7cf8715e16d9f82c97cc41e60c8e915a5c9e25d05",
+      "canonicalReferences": [
+        {
+          "line": 164,
+          "code": "const { companyId } = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/customer-login/page.tsx",
+      "sha256": "63b6d591163c84b614465b47b579e6b79b58488e57ff526085ed0adde60bc3d4",
+      "canonicalReferences": [
+        {
+          "line": 12,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(context, { allowMissing: true });"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/customers/imports/page.tsx",
+      "sha256": "af2b614364fd16697a0ec8933304cba9841066ffce709066e7e17b54752dd774",
+      "canonicalReferences": [
+        {
+          "line": 138,
+          "code": "const companyScope = await resolveAdminSelectedCompanyReadScope(access);"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/metering/page.tsx",
+      "sha256": "57849ee1bac8fec1895fc0526ec526ea7a09ad5a191ea89e13c5dbe65b88db50",
+      "canonicalReferences": [
+        {
+          "line": 33,
+          "code": "const companyScope = await resolveAdminSelectedCompanyReadScope(context)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/operations/automation/page.tsx",
+      "sha256": "6d2d265d83fca5c40ddbddef58dc6d5b9b8d7982b0ad51e8cc398ba7cad3d063",
+      "canonicalReferences": [
+        {
+          "line": 35,
+          "code": "const scope = { ...(await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })), message: null }"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/operations/perioder/page.tsx",
+      "sha256": "3d163bb5e9a8f9e40d57ce273416a0838bc9bee186d3a01966132525cc1c4b95",
+      "canonicalReferences": [
+        {
+          "line": 28,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/pricing/market-sources/page.tsx",
+      "sha256": "30f21118005f6de1b83d3e13a69e0ccd15b1e4e643b8311ccc6bb1949eab114b",
+      "canonicalReferences": [
+        {
+          "line": 29,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/audit/page.tsx",
+      "sha256": "34943bc41d33128d10998b4f5c34f88a101fe724185036a59df129b27c1e38ae",
+      "canonicalReferences": [
+        {
+          "line": 52,
+          "code": "const scope = await resolveAdminTenantReadScope(context)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/system-health/page.tsx",
+      "sha256": "d9297ed87bf5bf2b3810cbd0860a7f590e59a5a0b01f5a9c31f5e3791ca66ea3",
+      "canonicalReferences": [
+        {
+          "line": 98,
+          "code": "const scope = await resolveAdminTenantReadScope(context)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/invoice-files/[id]/route.ts",
+      "sha256": "e9cdabdc89881bd511c920f1ef27477eba06d41c9f7f5c34820aa9d1337f8a0b",
+      "canonicalReferences": [
+        {
+          "line": 19,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/export-center/[id]/download/route.ts",
+      "sha256": "5036f7a0c7d41b741be77d57c6e3352902f7c8d4b2d53c62083731288b67f6be",
+      "canonicalReferences": [
+        {
+          "line": 19,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/layout.tsx",
+      "sha256": "94c02fdb37f9fbd5b90e442b891a80ad0a6231b3f22833b0242231d78be04c98",
+      "canonicalReferences": [
+        {
+          "line": 31,
+          "code": "resolveAdminSelectedCompanyReadScope(admin),"
+        }
+      ]
+    },
+    {
+      "path": "lib/tenant/adminScope.ts",
+      "sha256": "73b480401faaaa1c7204648c91dae4f3d2b4ea392357c784a57e6327edac15a2",
+      "canonicalReferences": []
+    },
+    {
+      "path": "lib/tenant/liveAccess.ts",
+      "sha256": "34425bc11eb51b9b3d4775d97ab074aa2bdf94b83c01c1733d54d98a3cb5f89d",
+      "canonicalReferences": [
+        {
+          "line": 47,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/operations/automation/actions.ts",
+      "sha256": "abb1e713ee2d745e359c0bcb5737f6689396c80142a8df6e464f71a63aa6b263",
+      "canonicalReferences": [
+        {
+          "line": 11,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin)"
+        },
+        {
+          "line": 39,
+          "code": "const companyId = await resolveCompanyId(admin)"
+        },
+        {
+          "line": 52,
+          "code": "const companyId = await resolveCompanyId(admin)"
+        },
+        {
+          "line": 70,
+          "code": "const companyId = await resolveCompanyId(admin)"
+        },
+        {
+          "line": 83,
+          "code": "const companyId = await resolveCompanyId(admin)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/billing/integrations/actions.ts",
+      "sha256": "748dcf62e85d6404ed96ff1cd80528124e8fa9d05352d0d0693ffc0f727de1d9",
+      "canonicalReferences": [
+        {
+          "line": 38,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(context)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/customer-cases/actions.ts",
+      "sha256": "b886b1daf532447fff558dc964744e473c44ba384e86a8934be587a36fadacb6",
+      "canonicalReferences": [
+        {
+          "line": 22,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(admin)"
+        },
+        {
+          "line": 44,
+          "code": "const companyId = await companyIdFor(admin)"
+        },
+        {
+          "line": 61,
+          "code": "const companyId = await companyIdFor(admin)"
+        },
+        {
+          "line": 84,
+          "code": "const companyId = await companyIdFor(admin)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/outbound/unresolved/actions.ts",
+      "sha256": "c1954c7b62bbf6a4fa1def347b91a9650791f7c71a274bcee5ffd9f1014fdd2c",
+      "canonicalReferences": [
+        {
+          "line": 23,
+          "code": "const scope = await resolveAdminTenantReadScope(access)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/cis/actions.ts",
+      "sha256": "e47b89f8929325c4a679c4fbe1741a89792e96349b0324839d37295894ca75af",
+      "canonicalReferences": [
+        {
+          "line": 165,
+          "code": "const scope = await resolveAdminSelectedCompanyReadScope(access)"
+        }
+      ]
+    },
+    {
+      "path": "app/admin/operations/control-actions.ts",
+      "sha256": "9c1e889d2b345abc8edd200979d5f79f7dec61bf0b965069241347afc4d9402a",
+      "canonicalReferences": [
+        {
+          "line": 335,
+          "code": "const companyScope = await resolveAdminSelectedCompanyReadScope(access)"
+        },
+        {
+          "line": 532,
+          "code": "const companyScope = await resolveAdminSelectedCompanyReadScope(access)"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "reads": {
+      "artifact": "remaining-pages-scope-verification-results.json",
+      "passed": 82,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    },
+    "automationRed": {
+      "artifact": "automation-actions-scope-red-results.json",
+      "passed": 4,
+      "failed": 14,
+      "pending": 0,
+      "success": false
+    },
+    "automationGreen": {
+      "artifact": "automation-actions-scope-verification-results.json",
+      "passed": 18,
+      "failed": 0,
+      "pending": 0,
+      "success": true
+    },
+    "finalCombined": {
+      "artifact": "final-canonical-scope-verification-results.json",
+      "passed": 198,
+      "failed": 0,
+      "pending": 0,
+      "success": true,
+      "testFiles": [
+        "__tests__/admin-controltower-billing-copy.test.ts",
+        "__tests__/admin-dashboard-canonical-scope.test.ts",
+        "__tests__/admin-operational-pages-canonical-scope.test.ts",
+        "__tests__/admin-remaining-pages-canonical-scope.test.ts",
+        "__tests__/admin-selected-company-and-layout-scope.test.ts",
+        "__tests__/admin-tenant-read-scope-canonical.test.ts",
+        "__tests__/analytics-pages-canonical-scope.test.ts",
+        "__tests__/billing-integration-actions-canonical-scope.test.ts",
+        "__tests__/cis-control-actions-canonical-scope.test.ts",
+        "__tests__/customer-cases-outbound-action-canonical-scope.test.ts",
+        "__tests__/operations-automation-actions-canonical-scope.test.ts"
+      ]
+    }
+  },
+  "sourceUnchangedDuringFinalProof": true
+}

@@ -1,0 +1,62 @@
+{
+  "qualification": "Bounded application-only tests and fixture/tools/document sync; no full-suite CI, native clean-prefix API parity, live producer, or deployment claim",
+  "source_receipt": "/tmp/gridex-runtime-union-api47-final-source-hashes.json",
+  "source_receipt_sha256": "026c062372354fc4d2724e5a8fcc4dd36088d7c1944aa96d26d2117e6fba7263",
+  "source_files": 55,
+  "all_final_source_hashes_match": true,
+  "checks": {
+    "tests": {
+      "files": 47,
+      "cases": 400,
+      "passed": 400,
+      "method": "46 unchanged files/376 passed cases from corrected47 run + final isolated internal billing24 passed cases",
+      "timeouts_unchanged": true,
+      "ci_loopback_and_synthetic_credentials": true,
+      "node_child_permissions": "require_escalated"
+    },
+    "eslint_47_fixtures": {
+      "exit_code": 0
+    },
+    "two_frozen_cjs_syntax_checks": {
+      "exit_code": 0
+    },
+    "tsconfig_tests": {
+      "exit_code": 0,
+      "command": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit --incremental false -p tsconfig.tests.json"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "/tmp/gridex-runtime-union-frozen-api47-corrected-ci.log",
+      "sha256": "9963bd0bafbfc6cd1310875fa6bae5b4c8963041148f6cb75cfd35cf32eb3fce"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-frozen-api47-corrected-ci-results.json",
+      "sha256": "8020ff21102686d64308d9372e59bd771113d5656c93c9f12b005907ec17ed19"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-internal-billing-final-ci.log",
+      "sha256": "d98a914e7da7a1101415f771d222cc7811fdb35a49b7195a7a8059c15dc02503"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-internal-billing-final-ci-results.json",
+      "sha256": "6a8c805c395b31e62ed9f59b930846858f09c185ca7df83b8db2ba2d979cf50e"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-isolated-ci.log",
+      "sha256": "7a0dbc50976e65c5a0938e1e5f781a825152cd037bf08b61bfa2a98dd8adc9df"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-measurement-isolated-ci-results.json",
+      "sha256": "451aa08c09a3c5e8033bffa7552cb98ff262514ba336d749777b1985d765ead6"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-api47-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-api47-test-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

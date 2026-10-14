@@ -1,0 +1,141 @@
+{
+  "date": "2026-10-13",
+  "method": "Run actual TypeScript function bodies extracted unchanged and Node stripTypeScriptTypes in vm; no DB reads/writes; synthetic inputs only.",
+  "queueActionFilter": [
+    {
+      "status": "needs_review",
+      "requiresAction": false,
+      "visibleAfterConsolidation": 0
+    },
+    {
+      "status": "failed",
+      "requiresAction": true,
+      "visibleAfterConsolidation": 1
+    },
+    {
+      "status": "blocked_missing_poa",
+      "requiresAction": false,
+      "visibleAfterConsolidation": 0
+    },
+    {
+      "status": "blocked_missing_grid_owner_contact",
+      "requiresAction": false,
+      "visibleAfterConsolidation": 0
+    },
+    {
+      "status": "blocked_missing_manual_mailbox",
+      "requiresAction": false,
+      "visibleAfterConsolidation": 0
+    }
+  ],
+  "queueKnownStatuses": [
+    {
+      "status": "negative_aperak",
+      "label": "negative_aperak",
+      "actionRequired": true
+    },
+    {
+      "status": "missing_binding_info",
+      "label": "missing_binding_info",
+      "actionRequired": true
+    },
+    {
+      "status": "missing_termination_info",
+      "label": "missing_termination_info",
+      "actionRequired": true
+    },
+    {
+      "status": "ready_for_switch",
+      "label": "ready_for_switch",
+      "actionRequired": true
+    },
+    {
+      "status": "process_decision_missing",
+      "label": "process_decision_missing",
+      "actionRequired": true
+    },
+    {
+      "status": "process_response_received",
+      "label": "process_response_received",
+      "actionRequired": true
+    }
+  ],
+  "websiteStatusLabels": [
+    {
+      "status": "facility_data_invalid",
+      "label": "Facility data invalid"
+    },
+    {
+      "status": "customer_information_mismatch",
+      "label": "Customer information mismatch"
+    },
+    {
+      "status": "needs_customer_correction",
+      "label": "Needs customer correction"
+    },
+    {
+      "status": "needs_grid_owner_followup",
+      "label": "Needs grid owner followup"
+    }
+  ],
+  "websiteResolutionLabels": [
+    {
+      "status": "postal_suggested",
+      "label": "Postal suggested"
+    },
+    {
+      "status": "grid_area_master_validated",
+      "label": "Grid area master validated"
+    },
+    {
+      "status": "facility_verified",
+      "label": "Facility verified"
+    },
+    {
+      "status": "needs_review",
+      "label": "Needs review"
+    }
+  ],
+  "eventStatusFalsePositive": [
+    {
+      "status": "queued",
+      "label": "Köad"
+    },
+    {
+      "status": "in_progress",
+      "label": "Pågår"
+    },
+    {
+      "status": "waiting_response",
+      "label": "Väntar på svar"
+    },
+    {
+      "status": "response_received",
+      "label": "Svar mottaget"
+    },
+    {
+      "status": "completed",
+      "label": "Klart"
+    },
+    {
+      "status": "needs_review",
+      "label": "Kräver åtgärd"
+    },
+    {
+      "status": "failed",
+      "label": "Misslyckat"
+    },
+    {
+      "status": "blocked",
+      "label": "Blockerad"
+    },
+    {
+      "status": "skipped",
+      "label": "Hoppad över"
+    },
+    {
+      "status": "cancelled",
+      "label": "Avbrutet"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "emptyBuilder": [
+    {
+      "result": {
+        "zones": 0,
+        "owners": 0,
+        "skipped": "no_customer_data",
+        "customers": 0
+      }
+    }
+  ],
+  "emptyMonthlyRows": [
+    {
+      "rows": 0
+    }
+  ],
+  "matureBuilder": [
+    {
+      "metering_values_missing": 5
+    }
+  ],
+  "sourceValidSelectedMonth": [
+    {
+      "expected": 2
+    }
+  ]
+}

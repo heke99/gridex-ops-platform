@@ -379,6 +379,10 @@ export async function setUserPermissionOverridesAction(
     const allowKeys = allowRaw.split(',').map((value) => value.trim()).filter(Boolean)
     const denyKeys = denyRaw.split(',').map((value) => value.trim()).filter(Boolean)
 
+    if (allowKeys.length > 0) {
+      return { ok: false, message: 'Globala permission overrides kan endast neka behörighet. Listan allow_permissions måste vara tom.' }
+    }
+
     const overlap = allowKeys.filter((key) => denyKeys.includes(key))
     if (overlap.length > 0) {
       return {

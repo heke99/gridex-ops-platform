@@ -1,0 +1,19 @@
+{
+  "parent_head": "d37fb138cd150e75a5662387f047b57b71e0564e",
+  "migration": "20261013174700_operational_quality_company_unique_keys.sql",
+  "migration_sha256": "9aa65266e97f3f3482275e8998d922eadfbc9f21ba58c692ae4b5ed496c5d772",
+  "independent_read_only_reviewers": [
+    "admin_copy_audit",
+    "portfolio_audit"
+  ],
+  "migration_author": "cleanup_consistency_audit",
+  "serial_executor": "root",
+  "latest_lifecycle_suite": "19/19PASS using actual2/7/10 and double replays",
+  "native_sql_fixture": "PASS:actual2/7/10 twice,index keys,four writer functions/five sites,owner/ACL/searchpath/security preservation,two-company nullable aggregates,history,wrong-company source rejection,source7 portal exclusion and unknown/manual preservation",
+  "native_5001": "PASS:all5001 owned points get an open missing-value finding;actual PostgreSQL17.5 scan23385.542ms;synthetic empty local fixture;ROLLBACK",
+  "wasm_budget": "Only the uncapped functional case now has120s execution budget for actual source7 eligibility. All5001/count/history assertions and production performance/native/tenant gates unchanged. The first local WASM run took~71s and exceeded its30s harness budget; subsequent complete19runPASS in60.67s. This is not a production SLO measurement.",
+  "diagnostic_local_catalog": "REJECTED for canonical export:PostgreSQL17.5 predecessor differs from authentic CI in6sections and lacks classification seed rows;no owners/functions guessed, no local schema artifact imported, no full invariant success claimed.",
+  "authentic_prior_capture": "Actual d37 clean artifact11835116529 has byte-identical types/schema/fingerprint to authenticated4ed source predecessor; preserved unchanged until authentic ten-forward capture.",
+  "live_install": "Compound canonical10toolcall expired INVALID_ARGUMENT and readback showed no changes. Compatible granular install still pending; old5constraints retained.",
+  "required_current_gate": "Fresh native/upgrade/browser/parity CI after authentic current-prefix capture remains required."
+}

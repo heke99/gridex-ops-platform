@@ -1,7 +1,7 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import CustomerLoginSetup, { type CustomerLoginProviderView } from "@/components/admin/customer-login/CustomerLoginSetup";
 import { requireAdminPageKeyAccess } from "@/lib/admin/guards";
-import { getOperationalCompanyScope } from "@/lib/tenant/scope";
+import { resolveAdminSelectedCompanyReadScope } from "@/lib/tenant/adminScope";
 import { tenantSelect } from "@/lib/supabase/tenantQuery";
 import { tenantKeyAudience, tenantKeyIssuer } from "@/lib/customer-portal/identityProviderSetup";
 
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CustomerLoginPage() {
   const context = await requireAdminPageKeyAccess("company.settings");
-  const scope = await getOperationalCompanyScope(context.userId);
+  const scope = await resolveAdminSelectedCompanyReadScope(context, { allowMissing: true });
   const companyId = scope.companyId;
 
   let providers: CustomerLoginProviderView[] = [];

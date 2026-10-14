@@ -1,0 +1,27 @@
+{
+  "migration": "20261013130700_operational_quality_customer_source_consistency.sql",
+  "sha256": "0b1638fbd4ab1eef82dc95d2064519e66f1bbb787a8213c9a705d1ddb1ea5732",
+  "pglite": {
+    "passed": 3,
+    "total": 3,
+    "duration_seconds": 40.03,
+    "real_supported_writer": "saveMeteringPoint with meteringPointInputSchema",
+    "before": "excluded portal customer still produced point and canonical negative operational findings",
+    "after": "known portal findings resolved with history retained; ordinary inactive/orphan values and unknown manual review preserved"
+  },
+  "lint": "passed",
+  "diff_check": "passed",
+  "public_signatures_and_columns": "unchanged",
+  "private_delta": "gridex_quality schema and operational_customer_source_v1 UUID/text/UUID boolean stable SECURITY INVOKER helper; auth/service readonly access only",
+  "live_mutations_by_preparer": false,
+  "native_postgres": {
+    "engine": "PostgreSQL 17.5 Debian 17.5-1.pgdg110+1",
+    "database": "separate isolated local gridex_quality_source_20261013; not authentic capture",
+    "script": "customer-source-native-regression.sql",
+    "exit_code": 0,
+    "result": "native_customer_source_regression_passed",
+    "final_statement": "ROLLBACK",
+    "fixture_scope": "Synthetic minimal source relations with production issue/alert/forecast DDL and exact migration source; no production/FK-catalog replay claim",
+    "migration_replays": 2
+  }
+}

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { loadInvoiceFile, parseInvoiceFileFormat, renderInvoiceFile } from '@/lib/billing/invoiceFileExport'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,11 +16,7 @@ export async function GET(request: NextRequest, { params }: RouteProps) {
   if (!admin.permissions.includes('billing_underlay.export')) {
     return new NextResponse('Saknar behörighet.', { status: 403 })
   }
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const scope = user ? await getOperationalCompanyScope(user.id) : null
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   if (!scope?.companyId) return new NextResponse('Bolag saknas.', { status: 403 })
 
   const { id } = await params

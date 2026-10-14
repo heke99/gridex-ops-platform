@@ -4,6 +4,7 @@
  * Mounted at app/api/v1/customer/support/cases/** (contract releases 2026-10-01.1 and 2026-10-02.1).
  */
 import { NextRequest } from 'next/server'
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { createHash, randomUUID } from 'node:crypto'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'
@@ -37,10 +38,19 @@ import {
 export const SUPPORT_NEXT_CURSOR_HEADER = 'X-Gridex-Next-Cursor'
 const continuationHeaders = (nextCursor: string | null): Record<string, string> => (nextCursor ? { [SUPPORT_NEXT_CURSOR_HEADER]: nextCursor } : {})
 
+export const getSupportCases = withApiContractRepresentation('customer', getSupportCasesHandler)
+export const postSupportCase = withApiContractRepresentation('customer', postSupportCaseHandler)
+export const getSupportCase = withApiContractRepresentation('customer', getSupportCaseHandler)
+export const getSupportMessages = withApiContractRepresentation('customer', getSupportMessagesHandler)
+export const postSupportMessage = withApiContractRepresentation('customer', postSupportMessageHandler)
+export const getSupportAttachments = withApiContractRepresentation('customer', getSupportAttachmentsHandler)
+export const postSupportAttachment = withApiContractRepresentation('customer', postSupportAttachmentHandler)
+export const getSupportAttachmentFile = withApiContractRepresentation('customer', getSupportAttachmentFileHandler)
+
 type Params = { params: Promise<{ reference: string }> }
 type AttachmentParams = { params: Promise<{ reference: string; attachmentReference: string }> }
 
-export async function getSupportCases(request: NextRequest) {
+async function getSupportCasesHandler(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_support.read'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
@@ -55,7 +65,7 @@ export async function getSupportCases(request: NextRequest) {
   }
 }
 
-export async function postSupportCase(request: NextRequest) {
+async function postSupportCaseHandler(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_support.write'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
@@ -89,7 +99,7 @@ export async function postSupportCase(request: NextRequest) {
   }
 }
 
-export async function getSupportCase(request: NextRequest, contextInput: { params: Promise<{ reference: string }> }) {
+async function getSupportCaseHandler(request: NextRequest, contextInput: { params: Promise<{ reference: string }> }) {
   const context = await requireCustomerPortalApiContext(request, ['customer_support.read'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
@@ -104,7 +114,7 @@ export async function getSupportCase(request: NextRequest, contextInput: { param
   }
 }
 
-export async function getSupportMessages(request: NextRequest, contextInput: Params) {
+async function getSupportMessagesHandler(request: NextRequest, contextInput: Params) {
   const context = await requireCustomerPortalApiContext(request, ['customer_support.read'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
@@ -119,7 +129,7 @@ export async function getSupportMessages(request: NextRequest, contextInput: Par
   }
 }
 
-export async function postSupportMessage(request: NextRequest, contextInput: Params) {
+async function postSupportMessageHandler(request: NextRequest, contextInput: Params) {
   const context = await requireCustomerPortalApiContext(request, ['customer_support.write'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
@@ -151,7 +161,7 @@ export async function postSupportMessage(request: NextRequest, contextInput: Par
   }
 }
 
-export async function getSupportAttachments(request: NextRequest, contextInput: Params) {
+async function getSupportAttachmentsHandler(request: NextRequest, contextInput: Params) {
   const context = await requireCustomerPortalApiContext(request, ['customer_support.read'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
@@ -195,7 +205,7 @@ function headerFileName(request: NextRequest): string | null {
   try { return decodeURIComponent(raw).slice(0, 200) } catch { return raw.slice(0, 200) }
 }
 
-export async function postSupportAttachment(request: NextRequest, contextInput: Params) {
+async function postSupportAttachmentHandler(request: NextRequest, contextInput: Params) {
   const context = await requireCustomerPortalApiContext(request, ['customer_support.write'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {
@@ -247,7 +257,7 @@ export async function postSupportAttachment(request: NextRequest, contextInput: 
   }
 }
 
-export async function getSupportAttachmentFile(request: NextRequest, contextInput: AttachmentParams) {
+async function getSupportAttachmentFileHandler(request: NextRequest, contextInput: AttachmentParams) {
   const context = await requireCustomerPortalApiContext(request, ['customer_support.read'], { enforceBinding: true })
   if (!context.ok) return context.response
   try {

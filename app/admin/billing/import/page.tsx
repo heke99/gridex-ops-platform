@@ -1,6 +1,6 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { supabaseService } from '@/lib/supabase/service'
 import { importBillingUnderlayFileAction } from './actions'
 import { formatStatusLabel } from '@/lib/ui/format'
@@ -12,7 +12,7 @@ REPLACE_CUSTOMER_UUID;;REPLACE_METERING_POINT_UUID;2026;4;1250;875.50;SEK;partne
 
 export default async function BillingImportPage({ searchParams }: { searchParams?: Promise<{ status?: string; message?: string }> }) {
   const admin = await requireAdminPageKeyAccess('billing.import')
-  const scope = await getOperationalCompanyScope(admin.userId)
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const companyId = scope.companyId
   const notice = searchParams ? await searchParams : {}
 
@@ -42,7 +42,7 @@ export default async function BillingImportPage({ searchParams }: { searchParams
 
         <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">Operativt bolag</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950">{scope.companyName ?? 'Bolagskoppling saknas'}</h2>
+          <h2 className="mt-2 text-xl font-semibold text-slate-950">{scope.companyName ?? (companyId ? 'Valt elhandelsbolag' : 'Bolagskoppling saknas')}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">Importerade rader kopplas alltid till tenantens company_id. Felaktiga rader sparas som blockerade import rows för uppföljning.</p>
         </section>
 

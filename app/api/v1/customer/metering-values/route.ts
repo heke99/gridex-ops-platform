@@ -1,3 +1,4 @@
+import { withApiContractRepresentation } from '@/lib/integrations/apiResponseProfile'
 import { NextRequest } from 'next/server'
 import { supabaseService } from '@/lib/supabase/service'
 import {
@@ -27,7 +28,7 @@ function optionalParam(request: NextRequest, key: string): string | null {
   return value || null
 }
 
-export async function GET(request: NextRequest) {
+ async function profiledGET(request: NextRequest) {
   const context = await requireCustomerPortalApiContext(request, ['customer_metering.read'])
   if (!context.ok) return context.response
 
@@ -100,3 +101,5 @@ export async function GET(request: NextRequest) {
     return handleCustomerPortalRouteError({ request, client: context.client, startedAt: context.startedAt, error })
   }
 }
+
+export const GET = withApiContractRepresentation('customer', profiledGET)

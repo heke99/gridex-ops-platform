@@ -1,0 +1,8 @@
+{
+  "scope": "website_customer_applications",
+  "before_count": 1,
+  "after_count": 0,
+  "empty_row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e",
+  "execution_authority": "root",
+  "evidence": "Root confirmed focused reset under customer-empty guard and reviewed single-application hash, then verified remaining application count0. No other baseline fingerprints refreshed."
+}

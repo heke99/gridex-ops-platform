@@ -50,19 +50,20 @@ function routeSource({ version, contractName }) {
   return `import { NextRequest } from 'next/server'\nimport ${variableName} from '@/docs/openapi/releases/${version}/${contractName}.json'\nimport { openApiDocumentResponse } from '@/lib/integrations/openApiResponse'\n\nexport const runtime = 'nodejs'\nexport const dynamic = 'force-dynamic'\n\nexport async function GET(request: NextRequest) {\n  return openApiDocumentResponse(\n    request,\n    ${variableName},\n    'gridex-${contractName}-${version}.json',\n    { cacheControl: 'public, max-age=31536000, immutable' },\n  )\n}\n`
 }
 
-const materialized = specifications.map((specification) => {
+const prepared = specifications.map((specification) => {
   const current = canonicalBytes(specification.currentPath)
   const version = String(current.document.info?.version ?? '')
-  if (!/^\d{4}-\d{2}-\d{2}\.\d+$/.test(version)) {
-    throw new Error(
-      `${specification.currentPath}: invalid OpenAPI release version ${version}`,
-    )
+  const runtimeVersion = String(current.document['x-contract-schema-version'] ?? '')
+  if (!/^\d{4}-\d{2}-\d{2}\.\d+$/.test(version) || !/^\d{4}-\d{2}-\d{2}\.\d+$/.test(runtimeVersion)) {
+    throw new Error(`${specification.currentPath}: invalid documentation or runtime revision`)
   }
-  if (String(current.document['x-contract-schema-version'] ?? '') !== version) {
-    throw new Error(
-      `${specification.currentPath}: x-contract-schema-version must equal info.version`,
-    )
-  }
+  return { specification, current, version, runtimeVersion }
+})
+if (new Set(prepared.map(entry => entry.version)).size !== 1 || new Set(prepared.map(entry => entry.runtimeVersion)).size !== 1) {
+  throw new Error('All public OpenAPI documentation revisions and runtime schema revisions must independently match.')
+}
+
+const materialized = prepared.map(({ specification, current, version }) => {
 
   const releasePath =
     `docs/openapi/releases/${version}/${specification.contractName}.json`

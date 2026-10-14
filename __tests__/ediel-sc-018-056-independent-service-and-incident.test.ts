@@ -7,15 +7,15 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const io = vi.hoisted(() => ({
   from: vi.fn(), rpc: vi.fn(), admin: vi.fn(), apiAdmin: vi.fn(),
-  operational: vi.fn(), operationalRead: vi.fn(), operate: vi.fn(),
+  operational: vi.fn(), operationalRead: vi.fn(), operate: vi.fn(), readable: vi.fn(), companyPermissions: vi.fn(),
   audit: vi.fn(), revalidate: vi.fn(), utilts: vi.fn(), z13: vi.fn(), z18: vi.fn(),
   legacyRequest: vi.fn(), legacyOutbound: vi.fn(),
 }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: vi.fn(async () => ({})) }))
 vi.mock('@/lib/admin/guards', () => ({ requireAdminActionAccess: io.admin, isPlatformAdminContext: () => false }))
-vi.mock('@/lib/admin/apiGuards', () => ({ requireAdminApiAccess: io.apiAdmin }))
-vi.mock('@/lib/tenant/scope', () => ({ requireOperationalCompanyId: io.operational, getOperationalCompanyScope: io.operationalRead, assertUserCanOperateCompany: io.operate }))
+vi.mock('@/lib/admin/apiGuards', () => ({ requireAdminApiAccess: io.apiAdmin, assertAdminApiCompanyPermissions: io.companyPermissions }))
+vi.mock('@/lib/tenant/scope', () => ({ requireOperationalCompanyId: io.operational, getOperationalCompanyScope: io.operationalRead, assertUserCanOperateCompany: io.operate, assertTenantUserCanReadCompany: io.readable }))
 vi.mock('@/lib/audit/actionLogger', () => ({ logAdminActionAndUsage: io.audit, logUsageEvent: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: io.revalidate }))
 vi.mock('@/lib/cis/edielAutomation', () => ({ ensureAndPrepareUtiltsFromDataRequest: io.utilts }))
@@ -72,6 +72,8 @@ beforeEach(() => {
   io.from.mockImplementation(query)
   io.admin.mockResolvedValue(guard); io.apiAdmin.mockResolvedValue({ guard })
   io.operational.mockResolvedValue(company); io.operationalRead.mockResolvedValue({ companyId: company, companyName: 'Own provider' }); io.operate.mockResolvedValue(undefined)
+  io.readable.mockResolvedValue(company)
+  io.companyPermissions.mockResolvedValue(undefined)
   io.rpc.mockImplementation(async (name: string) => {
     if (name === 'gridex_actor_has_company_permission') return { data: meteringWrite, error: null }
     if (name === 'ediel_service_permission_manual_context_v1') return { data: held, error: null }
@@ -91,6 +93,8 @@ describe('SC-018 active supply is separate from the requested ESCO service', () 
       p_selection: { code: 'Z13', permissionId: null, assignmentId: null, expectedVersion: null, mode: null, fromDate: null, toDate: null },
     })
     expect(io.operate).toHaveBeenCalledWith(actor, company)
+    expect(io.companyPermissions).toHaveBeenCalledWith(guard, company)
+    expect(io.readable).toHaveBeenCalledWith(actor, company)
     expect(io.audit).toHaveBeenCalledWith(expect.objectContaining({ action: 'ediel_service_permission_manual_command', entityId: customer, metadata: { customerId: customer, result: held } }))
     const meterReads = reads.filter(row => row.table === 'grid_owner_data_requests')
     expect(meterReads).toHaveLength(2)
@@ -117,6 +121,7 @@ describe('SC-018 active supply is separate from the requested ESCO service', () 
   it('a foreign customer is rejected by the actual customer mutation boundary before service preparation', async () => {
     customerCompany = id(90)
     await expect(createGridOwnerDataRequestAction(form())).rejects.toThrow('Du saknar behörighet för valt bolag')
+    expect(io.readable).not.toHaveBeenCalled()
     expect(io.rpc).not.toHaveBeenCalled(); expect(io.audit).not.toHaveBeenCalled(); expect(io.z13).not.toHaveBeenCalled()
   })
 })

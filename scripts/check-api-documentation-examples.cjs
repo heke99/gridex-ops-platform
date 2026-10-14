@@ -92,8 +92,8 @@ for (const field of schema?.required ?? []) {
   if (!(field in (schema.properties ?? {}))) failures.push(`MarketReference required field ${field} has no property schema.`)
 }
 
-const currentVersion = String(website.info?.version ?? '')
-const publicContractsFixturePath = `docs/fixtures/public-contracts-response-${currentVersion}.json`
+const { currentDocumentationVersion: currentVersion, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
+const publicContractsFixturePath = `docs/fixtures/public-contracts-response-${runtimeContractVersion}.json`
 if (!fs.existsSync(publicContractsFixturePath)) {
   failures.push(`Production-like public-contracts fixture is missing for ${currentVersion}.`)
 } else {
@@ -112,8 +112,8 @@ if (!fs.existsSync(publicContractsFixturePath)) {
   if (Object.prototype.hasOwnProperty.call(publicContractsExample?.meta ?? {}, 'tenant_reference')) {
     failures.push('Current public-contracts fixture must not expose tenant_reference.')
   }
-  if (publicContractsExample?.meta?.contract_schema_version !== currentVersion) {
-    failures.push('Current public-contracts fixture contract_schema_version must match info.version.')
+  if (publicContractsExample?.meta?.contract_schema_version !== runtimeContractVersion) {
+    failures.push('Current public-contracts fixture contract_schema_version must match the runtime wire revision.')
   }
 }
 
@@ -193,7 +193,7 @@ for (const forbiddenPartnerInput of [
 for (const requiredLegacyTerm of [
   `/developers/customer-portal-api`,
   `/api/v1/openapi/website-integration-v1.json`,
-  `Current contract: **${currentVersion}**`,
+  `Current documentation: **${currentVersion}**`,
   'The API credential determines the organization and permissions.',
 ]) {
   if (!legacyWebsiteGuide.includes(requiredLegacyTerm)) {

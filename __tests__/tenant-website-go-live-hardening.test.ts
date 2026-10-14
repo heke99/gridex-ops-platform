@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
+import { API_DOCUMENTATION_VERSION, WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const migrationPath = 'supabase/migrations/20260814125600_tenant_website_go_live_hardening.sql'
 const activationGuardPath = 'supabase/migrations/20260814133500_tenant_website_activation_guard.sql'
@@ -193,7 +193,8 @@ describe('tenant website canonical go-live hardening', () => {
     ]) {
       expect(docs).not.toContain(forbidden)
     }
-    expect(docs).toContain(`Current contract: **${WEBSITE_INTEGRATION_CONTRACT_VERSION}**`)
+    expect(docs).toContain(`Current documentation: **${API_DOCUMENTATION_VERSION}**`)
+    expect(docs).toContain(`Default response contract: **${WEBSITE_INTEGRATION_CONTRACT_VERSION}**`)
     expect(docs).toContain('/developers/customer-portal-api#customer-portal')
     expect(docs).toContain('/api/v1/openapi/customer-portal-v1.json')
     expect(docs).toContain('server-to-server')

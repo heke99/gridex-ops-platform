@@ -37,6 +37,12 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 // New consumers use legal_bundle_reference/document_reference. The release
 // manifest carries the removal date; no other generic `id` path is exempt.
 const LEGACY_LEGAL_ID_PATH_ALLOWLIST = [
+  // The exact same immutable legal evidence is also served by legal-bundle.
+  /^\$\.data\.legal\.(?:legal_bundle_version_id|power_of_attorney_version_id)$/,
+  /^\$\.data\.legal\.(?:module_versions|customer_documents)\[\d+\]\.(?:id|legal_bundle_version_id|primary_document_id)$/,
+  /^\$\.data\.legal\.customer_documents\[\d+\]\.source_document_ids\[\d+\]$/,
+  /^\$\.data\.requirements\[\d+\]\.(?:legal_bundle_version_id|primary_document_id)$/,
+  /^\$\.data\.requirements\[\d+\]\.source_document_ids\[\d+\]$/,
   /^\$\.(?:data|contracts)\[\d+\]\.legal\.legal_bundle_version_id$/,
   /^\$\.(?:data|contracts)\[\d+\]\.legal\.power_of_attorney_version_id$/,
   /^\$\.(?:data|contracts)\[\d+\]\.legal\.(?:module_versions|customer_documents)\[\d+\]\.(?:id|legal_bundle_version_id|primary_document_id)$/,
@@ -46,9 +52,14 @@ const LEGACY_LEGAL_ID_PATH_ALLOWLIST = [
 const LEGACY_OFFER_ALIAS_PATH =
   /^\$\.(?:data|contracts)\[\d+\]\.(?:id|contract_offer_id)$/
 const EXTERNAL_OFFER_REFERENCE = /^[a-z0-9][a-z0-9_-]{2,99}$/
+// GET /api/v1/events already documents this derived webhook event reference.
+// Only the event list envelope path and the mapper's exact opaque format qualify.
+const PUBLIC_EVENT_REFERENCE_PATH = /^\$\.data\[\d+\]\.event_id$/
+const PUBLIC_EVENT_REFERENCE = /^event_[a-f0-9]{32}$/
 
 function isVersionedPublicIdException(path: string, value: unknown): boolean {
   if (LEGACY_LEGAL_ID_PATH_ALLOWLIST.some((pattern) => pattern.test(path))) return true
+  if (PUBLIC_EVENT_REFERENCE_PATH.test(path) && typeof value === 'string' && PUBLIC_EVENT_REFERENCE.test(value)) return true
   return LEGACY_OFFER_ALIAS_PATH.test(path) &&
     typeof value === 'string' &&
     EXTERNAL_OFFER_REFERENCE.test(value) &&

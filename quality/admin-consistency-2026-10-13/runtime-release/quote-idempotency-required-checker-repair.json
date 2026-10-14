@@ -1,0 +1,182 @@
+{
+  "kind": "BOUNDED_REQUIRED_QUOTE_CHECKER_DOCUMENTATION_WIRE_ALIGNMENT",
+  "recorded_at": "2026-10-14T01:45:54.178453+00:00",
+  "baseline_head": "9ebc2bf78a411acebee2dded5f3d7452e443eb0a",
+  "baseline_tree": "bb0468ffd95cd30340ee03025d703931bf2694dc",
+  "owned_paths": [
+    "scripts/gridex-quote-idempotency-multitenant-regression.cjs",
+    "quality/admin-consistency-2026-10-13/runtime-release/quote-idempotency-required-checker-repair.json"
+  ],
+  "checker_sha256": "585218d368301a8d2cc5f0cfb7ac17c6970f96b66e9a7a0f58f3c5e70a94904b",
+  "baseline_and_frozen_donor_sha256": "a0401dfd9a923658625c630a0d81e5295150fddb011022a37d409baf59203d9e",
+  "frozen_donor": "d899ac6b36d754aa784333ed4da07702e47619e0",
+  "donor_imported": false,
+  "donor_disposition": "Byteidentical legacy checker also compares business wire source against OpenAPI document version; no corrected donor exists for this file.",
+  "confirmed_trigger": {
+    "runtime_wire": "2026-10-09.1",
+    "current_documentation": "2026-10-12.1",
+    "baseline_exit_code": 1,
+    "baseline_failure_count": 1,
+    "baseline_failure": "Contract version drift: source=2026-10-09.1 openapi=2026-10-12.1"
+  },
+  "minimal_change": "Use already-published current-api-contract helper. Check wire source/x-contract-schema-version against runtimeContractVersion; check info.version and immutable release paths against currentDocumentationVersion.",
+  "all_nonversion_checker_bytes_preserved_by_exact_inverse": true,
+  "new_dependency": "scripts/lib/current-api-contract.cjs",
+  "dependency_scope": "Existing pure filesystem version helper reads actual runtime source and three current OpenAPI documents. No installer, capture, migration import, backend call or generated output.",
+  "qualification": {
+    "actual_current_checker_exit_code": 0,
+    "node_syntax_exit_code": 0,
+    "negative_oracles_passed": 8,
+    "negative_oracles": [
+      {
+        "name": "actual_current_inputs",
+        "expected_rejection": null,
+        "exit_code": 0,
+        "log": [
+          "Quote idempotency multitenant regression passed for 2026-10-12.1: internal database uniqueness, public organization boundary, immutable OpenAPI release and canonical developer guide are aligned."
+        ]
+      },
+      {
+        "name": "website-integration-v1_wire_drift",
+        "expected_rejection": "Current API revision drift (website-integration-v1)",
+        "exit_code": 1,
+        "error": "Current API revision drift (website-integration-v1): documentation=2026-10-12.1, runtime=2099-01-01.1; expected documentation=2026-10-12.1, runtime=2026-10-09.1",
+        "log": []
+      },
+      {
+        "name": "customer-portal-v1_wire_drift",
+        "expected_rejection": "Current API revision drift (customer-portal-v1)",
+        "exit_code": 1,
+        "error": "Current API revision drift (customer-portal-v1): documentation=2026-10-12.1, runtime=2099-01-01.1; expected documentation=2026-10-12.1, runtime=2026-10-09.1",
+        "log": []
+      },
+      {
+        "name": "staff-v1_wire_drift",
+        "expected_rejection": "Current API revision drift (staff-v1)",
+        "exit_code": 1,
+        "error": "Current API revision drift (staff-v1): documentation=2026-10-12.1, runtime=2099-01-01.1; expected documentation=2026-10-12.1, runtime=2026-10-09.1",
+        "log": []
+      },
+      {
+        "name": "documentation_changed_to_wire",
+        "expected_rejection": "Current API revision drift (website-integration-v1)",
+        "exit_code": 1,
+        "error": "Current API revision drift (website-integration-v1): documentation=2026-10-09.1, runtime=2026-10-09.1; expected documentation=2026-10-12.1, runtime=2026-10-09.1",
+        "log": []
+      },
+      {
+        "name": "tenant_scope_fragments_removed",
+        "expected_rejection": "idempotency replay lookup: missing",
+        "exit_code": 1,
+        "error": "checker exit",
+        "log": [
+          "Quote idempotency multitenant regression failed (1):",
+          "- idempotency replay lookup: missing .eq('company_id', input.companyId)"
+        ]
+      },
+      {
+        "name": "idempotency_header_not_required",
+        "expected_rejection": "Idempotency-Key must be a required quote header",
+        "exit_code": 1,
+        "error": "checker exit",
+        "log": [
+          "Quote idempotency multitenant regression failed (1):",
+          "- OpenAPI: Idempotency-Key must be a required quote header"
+        ]
+      },
+      {
+        "name": "database_company_key_removed",
+        "expected_rejection": "database organization/client/route uniqueness: missing",
+        "exit_code": 1,
+        "error": "checker exit",
+        "log": [
+          "Quote idempotency multitenant regression failed (1):",
+          "- database organization/client/route uniqueness: missing unique(company_id, api_client_id, route, idempotency_key)"
+        ]
+      }
+    ],
+    "lint": "No lint credit: repository intentionally ignores scripts/**/*.cjs. Configured command exit0 with ignored-file warning; forced --no-ignore exit1 with CommonJS require import-rule errors. No lint rules changed.",
+    "remainder_static_commands": [
+      {
+        "command": "node scripts/gridex-partner-api-business-contract-regression.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-gridex-partner-api-business-contract-regression.cjs.log",
+        "log_sha256": "c1658978e4099b32eecc160b01a1889b331edc79ebd62523f5bbbb89b921850c"
+      },
+      {
+        "command": "node scripts/gridex-papilite-centroid-regression.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-gridex-papilite-centroid-regression.cjs.log",
+        "log_sha256": "5e5720e73a9ff4c77c69b660266f0ac49e4b55dcb82eebd9e01f59842c2c831e"
+      },
+      {
+        "command": "node scripts/ops-hardening-regression.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-ops-hardening-regression.cjs.log",
+        "log_sha256": "6005e748968bc469ecf8a03c8b45214f48de20709fb68c354dccbf717f29fb4f"
+      },
+      {
+        "command": "node scripts/ops-hardening-behavior-regression.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-ops-hardening-behavior-regression.cjs.log",
+        "log_sha256": "f19aa6d7318830ee02ef1736cbbf1696f9d629f01ee0317aaeb5234d6a20fa51"
+      },
+      {
+        "command": "node scripts/gridex-remaining-masterpoints-golden-path-regression.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-gridex-remaining-masterpoints-golden-path-regression.cjs.log",
+        "log_sha256": "e6febe5ce85976ccd07e6d872a1305f72e5853cadc0a127c095ff9d2b1ea3434"
+      },
+      {
+        "command": "node scripts/gridex-canonical-architecture-57-point-regression.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-gridex-canonical-architecture-57-point-regression.cjs.log",
+        "log_sha256": "10525da43ca549500c65733bb7af3e324d3e3d52ad9cbaadcd16464c013118b9"
+      },
+      {
+        "command": "node scripts/gridex-ops-post-108-health-residuals-regression.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-gridex-ops-post-108-health-residuals-regression.cjs.log",
+        "log_sha256": "2cee4e46167cff03ad20850529cb43a64dc7140a67c5a1abe489594a1d300bd0"
+      },
+      {
+        "command": "node scripts/gridex-ops-post-332-field-511-health-residuals-regression.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-gridex-ops-post-332-field-511-health-residuals-regression.cjs.log",
+        "log_sha256": "ebfb4b1a873fe573ec9325b2dddf6dbd877f37b7abb845b06b07b284fe7b21ec"
+      },
+      {
+        "command": "node scripts/ops-final-contract-regression.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-ops-final-contract-regression.cjs.log",
+        "log_sha256": "b8fdef98bffac24eaf6aa4f05e5229ec3757b97f1e44feda169f935085ffd0c9"
+      },
+      {
+        "command": "node scripts/check-api-error-boundaries.cjs",
+        "exit_code": 0,
+        "log_path": "/tmp/gridex-verify-remainder-check-api-error-boundaries.cjs.log",
+        "log_sha256": "f20e251fd4b6203f55145d8d0ea2e4634c40d8465993eaae4286e26474acb969"
+      }
+    ],
+    "remainder_wire_doc_misclassifications_confirmed": 0,
+    "original_9eb_ci": "Preserved and still independently collecting; no rerun, cancel or push by this task.",
+    "not_qualified": "New resulting-head full CI, native/GEN/replay, business/backend behavior, live delivery and held API backend remain separate mandatory owner gates."
+  },
+  "evidence_sha256": {
+    "/tmp/gridex-quote-idempotency-checker-before.log": "6c9096e92b9e5728bd0c0a3c78c5d9f3efcfd21ae9b7b4b8dcf6c8f0b3815125",
+    "/tmp/gridex-quote-idempotency-checker-after.log": "d8b9e6e896b41d4fb24c1b87a9cafe0de2ca134d6c2c983fda6104ec43cb868e",
+    "/tmp/gridex-quote-idempotency-negative-oracles.json": "9fd6cc2323bbb067ea1684056ce90b5a9cd3cfba9c0d39a8d4daf017b67289e3",
+    "/tmp/gridex-quote-idempotency-checker-lint.log": "48bd1d3e1b1eace04b03579981f9044c7cc8565c5303690f973cf6e5a36296a5",
+    "/tmp/gridex-quote-idempotency-checker-lint-no-ignore.log": "00d777eae12ebf877ce05d96ae42cabc228bb4698bcce84c308b746e16368def"
+  },
+  "skill_routing": {
+    "activated": [
+      "systematic-debugging",
+      "test-driven-development",
+      "verification-before-completion"
+    ],
+    "fp_check": "Confirmed by actual script RED, exact immutable donor comparison, frozen runtime/OpenAPI/helper relation and focused in-memory negatives; no security vulnerability claim.",
+    "skipped": "No runtime/UI/DB/auth/producers changed, so platform implementation, SQL/RLS, browser, native, broad security/performance, multiagent orchestration and Ediel masterplan work are outside this bounded repair."
+  },
+  "next_action": "Two independent read-only reviews of this frozen checker and receipt, then root serial adoption only after original9eb clean-native terminal; resulting-head mandatory CI before delivery."
+}
