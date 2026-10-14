@@ -32,6 +32,7 @@ try{
  CREATE TABLE gridex_received_sources.validation_assessments(id uuid PRIMARY KEY,company_id uuid,environment text,source_message_id uuid,source_payload_hash text,facts_text text);
  CREATE TABLE gridex_received_sources.prodat_object_validation_facets(assessment_id uuid,company_id uuid,environment text,source_message_id uuid,source_payload_hash text,facts_text text,facts_hash text);
  CREATE TABLE gridex_received_sources.prodat_response_facets(assessment_id uuid,company_id uuid,environment text,source_message_id uuid,source_payload_hash text,response_facts_text text,response_facts_hash text);
+ CREATE TABLE gridex_received_sources.prodat_ignored_field_facets(canonical_assessment_id uuid PRIMARY KEY,company_id uuid NOT NULL,environment text NOT NULL CHECK(environment IN('test','production')),source_message_id uuid NOT NULL,source_payload_hash text NOT NULL,fields_text text NOT NULL CHECK(octet_length(fields_text)<=262144),fields_hash text NOT NULL CHECK(fields_hash=encode(sha256(convert_to(fields_text,'UTF8')),'hex')));
  CREATE TABLE application_owner_fixture(company_id uuid,source_id uuid,raw_hash text,facet jsonb);
  CREATE TABLE legal_context_fixture(company_id uuid,source_id uuid,context jsonb);
  CREATE SCHEMA gridex_ediel_retention;CREATE TABLE gridex_ediel_retention.blob_tombstones(retention_class text,target_id uuid,company_id uuid,source_hash text,created_at timestamptz);
@@ -65,6 +66,9 @@ try{
  await db.exec('REVOKE ALL ON FUNCTION canonical_onboard_customer_graph(jsonb) FROM PUBLIC,anon,authenticated;GRANT EXECUTE ON FUNCTION canonical_onboard_customer_graph(jsonb) TO service_role')
  const metadata=async()=>(await db.query("SELECT oid,proowner,proacl,proconfig,prosecdef FROM pg_proc WHERE oid='canonical_onboard_customer_graph(jsonb)'::regprocedure")).rows[0]
  const prior=await metadata();await db.exec(migration('20261001083359_ediel_prodat_object_batch_current_source_first_effect.sql'));assert.deepEqual(await metadata(),prior);checks++;await db.exec(migration('20261001092757_ediel_completed_object_batch_read_after_retention.sql'))
+ // Current source-only forward; the private canonical/facet storage below is
+ // DECLARED finite IO, not a newly admitted/native canonical owner.
+ await db.exec(migration('20261014011520_ediel_sc031_source_owned_business_projection.sql'))
  for(const [wire,expected] of [["NAD+UD+X::89++A?'B??C'LIN+1++P:::89'",["NAD+UD+X::89++A?'B??C",'LIN+1++P:::89']],['UNA;*.! ~NAD*UD*X;;89**A!~B!!C~LIN*1**P;;;89~',['NAD*UD*X;;89**A!~B!!C','LIN*1**P;;;89']]]){assert.deepEqual((await db.query('SELECT gridex_prodat_object_batch.raw_segments_v1($1) x',[wire])).rows[0].x,expected);checks++}
  await db.query("INSERT INTO auth.users VALUES($1,NULL,NULL);",[id(2)]);await db.query("INSERT INTO companies VALUES($1,'active',true)",[id(1)]);await db.query("INSERT INTO user_profiles VALUES($1,'active')",[id(2)]);await db.query("INSERT INTO company_memberships VALUES($1,$2,'active',true,now())",[id(2),id(1)])
  for(const [n,p]of [[100,'communication.write'],[101,'customers.write']]){await db.query("INSERT INTO permissions VALUES($1,$2,$2,true)",[id(n),p]);await db.query("INSERT INTO user_permissions VALUES($1,$2,$3,$4,'allow','active',true)",[id(2),id(1),id(n),p])}
@@ -75,6 +79,9 @@ try{
  const own=['A','B'].map((point,i)=>({objectId:point,identityAgency:'89',messageReference:'M',messageIndex:0,registers:[{lineIndex:i,lineNumber:String(i+1),segmentIndex:i?7:5}],applicationDecision:'accepted',reasonCodes:[]}))
  const app={version:1,owner:'canonical-prodat-application-all-v1',coverage:'canonical_own_application_only',sourcePayloadHash:rawHash,headerDecision:'accepted',objects:own,assessmentId:id(6)}
  await db.query('INSERT INTO application_owner_fixture VALUES($1,$2,$3,$4)',[id(1),id(3),rawHash,app]);await db.query("INSERT INTO gridex_received_sources.validation_assessments VALUES($1,$2,'test',$3,$4,$5)",[id(6),id(1),id(3),rawHash,JSON.stringify({syntaxDecision:'accepted',functionalDecision:'accepted'})])
+ // Explicit recorded empty decision for THIS assessment/source. A missing
+ // historical facet must still HOLD business apply; never NULL-as-empty.
+ await db.query("INSERT INTO gridex_received_sources.prodat_ignored_field_facets VALUES($1,$2,'test',$3,$4,$5,$6)",[id(6),id(1),id(3),rawHash,'[]',hash('[]')])
  const full={sharedAccepted:true,objects:own.map((x,i)=>({objectId:x.objectId,identityAgency:'89',messageReference:'M',firstLineIndex:i,lineItemReference:null,disposition:'accepted'}))},response={objects:own.map((x,i)=>({id:x.objectId,li:null,lineIndex:i?7:5,outcome:'positive'})),responses:[]}
  for(const [table,value,col]of [['prodat_object_validation_facets',full,'facts'],['prodat_response_facets',response,'response_facts']])await db.query(`INSERT INTO gridex_received_sources.${table}(assessment_id,company_id,environment,source_message_id,source_payload_hash,${col}_text,${col}_hash) VALUES($1,$2,'test',$3,$4,$5,$6)`,[id(6),id(1),id(3),rawHash,JSON.stringify(value),hash(JSON.stringify(value))])
  await db.query("INSERT INTO ediel_inbound_cases(id,company_id,ediel_message_id,status,updated_at) VALUES($1,$2,$3,'pending_review',$4)",[id(7),id(1),id(3),received])
