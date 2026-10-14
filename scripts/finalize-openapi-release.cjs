@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const { currentContractVersion: version } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion: version, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -10,14 +10,14 @@ const portal = JSON.parse(fs.readFileSync(portalPath, 'utf8'))
 const publicContractsExample = JSON.parse(
   fs.readFileSync('docs/fixtures/public-contracts-response-2026-08-19.2.json', 'utf8'),
 )
-publicContractsExample.meta.contract_schema_version = version
+publicContractsExample.meta.contract_schema_version = runtimeContractVersion
 
 const string = { type: 'string' }
 const nullableString = { type: ['string', 'null'] }
 const uuid = { type: 'string', format: 'uuid' }
 const nullableUuid = { type: ['string', 'null'], format: 'uuid' }
 const dateTime = { type: 'string', format: 'date-time' }
-const contractVersion = { type: 'string', const: version }
+const contractVersion = { type: 'string', const: runtimeContractVersion }
 
 const priorVersion = '2026-08-20.2'
 const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', priorVersion, '2026-10-02.2', '2026-10-02.3', version]
@@ -104,7 +104,7 @@ function setResponse(spec, path, schema, method = 'get', status = '200') {
 
 function normalizeContractVersionMetadata(document) {
   document.info.version = version
-  document['x-contract-schema-version'] = version
+  document['x-contract-schema-version'] = runtimeContractVersion
 
   function walk(value) {
     if (!value || typeof value !== 'object') return
@@ -117,7 +117,7 @@ function normalizeContractVersionMetadata(document) {
         child.schema &&
         typeof child.schema === 'object'
       ) {
-        child.schema.const = version
+        child.schema.const = runtimeContractVersion
       }
 
       if (
@@ -125,7 +125,7 @@ function normalizeContractVersionMetadata(document) {
         typeof child === 'string' &&
         /^\d{4}-\d{2}-\d{2}\.\d+$/.test(child)
       ) {
-        value[key] = version
+        value[key] = key === 'contract_schema_version' ? runtimeContractVersion : version
         continue
       }
 
@@ -136,7 +136,7 @@ function normalizeContractVersionMetadata(document) {
         typeof child.const === 'string' &&
         /^\d{4}-\d{2}-\d{2}\.\d+$/.test(child.const)
       ) {
-        child.const = version
+        child.const = key === 'contract_schema_version' ? runtimeContractVersion : version
       }
 
       walk(child)
@@ -144,6 +144,16 @@ function normalizeContractVersionMetadata(document) {
   }
 
   walk(document)
+  // Document endpoints label the fetched document, independently of business wire metadata.
+  for (const [path, item] of Object.entries(document.paths ?? {})) {
+    if (!path.includes('/openapi/') || path.endsWith('release-manifest.json')) continue
+    const documentVersion = /^\/api\/v1\/openapi\/(\d{4}-\d{2}-\d{2}\.\d+)\//.exec(path)?.[1] ?? version
+    for (const response of Object.values(item.get?.responses ?? {})) {
+      if (response.headers?.['X-Gridex-Contract-Version']) {
+        response.headers['X-Gridex-Contract-Version'] = { schema: { type: 'string', const: documentVersion } }
+      }
+    }
+  }
 }
 
 for (const document of [website, portal]) {
@@ -310,8 +320,8 @@ legalBundleResponse.required = Array.from(
 )
 
 const application = website.components.schemas.CustomerApplicationRequest
-application.properties.customer_portal_user_id = uuid
-application.properties.auth_user_id = uuid
+application.properties.customer_portal_user_id = { ...uuid }
+application.properties.auth_user_id = { ...uuid }
 application.properties.legal_bundle_version = string
 application.properties.legal_acceptances = {
   $ref: '#/components/schemas/LegalAcceptances',
@@ -1164,7 +1174,7 @@ if (quoteExample?.data) {
   quoteExample.data.mandatory_component_references ??= []
   quoteExample.data.conditional_component_references ??= []
   quoteExample.data.site_count ??= 1
-  quoteExample.contract_schema_version = version
+  quoteExample.contract_schema_version = runtimeContractVersion
 }
 
 const marketPriceExample =
@@ -1178,7 +1188,7 @@ if (marketPriceExample?.data) {
     marketPriceExample.data.selected_resolution,
   ]
   marketPriceExample.data.fallback_used ??= false
-  marketPriceExample.contract_schema_version = version
+  marketPriceExample.contract_schema_version = runtimeContractVersion
 }
 
 website.components.schemas.WebsitePortfolioPriceData = {
@@ -1262,10 +1272,10 @@ website.components.schemas.WebsiteQuoteValidationData = {
     offer_reference: string,
     valid_until: dateTime,
     status: string,
-    resolution_id: uuid,
+    resolution_id: { ...uuid, description: 'Server-issued organization-scoped energy and location resolution identifier used by market-price, quote and validation.' },
     resolver_version: nullableString,
     geodata_version: nullableString,
-    market_reference: { $ref: '#/components/schemas/MarketReference' },
+    market_reference: { anyOf: [{ $ref: '#/components/schemas/MarketReference' }, { type: 'null' }], description: 'Null for fixed-price quotes or pricing sources without a market reference.' },
     energy_direction: { $ref: '#/components/schemas/EnergyDirection' },
     price_option_reference: nullableString,
     area_price_reference: nullableString,
@@ -1485,7 +1495,7 @@ website.components.schemas.PublicationChangedWebhook = {
 }
 
 Object.assign(website.components.schemas, require('./lib/openapi-release-schemas.cjs')
-  .releaseManifestSchemas(version, '2026-10-02.3'))
+  .releaseManifestSchemas(version, '2026-10-02.3', { runtimeVersion: runtimeContractVersion, includeStaff: true }))
 website.paths['/api/v1/openapi/release-manifest.json'] = {
   get: {
     operationId: 'getOpenApiReleaseManifest',
@@ -1693,6 +1703,10 @@ portal.components.schemas.ClosedPortalMutationRequest = {
     metadata: { type: 'object' },
   },
 }
+portal.components.schemas.ClosedPortalResourceEnvelope.properties.page = { oneOf: [
+  { $ref: '#/components/schemas/PortalPage' },
+  { type: 'object', additionalProperties: false, required: ['sites'], properties: { sites: { $ref: '#/components/schemas/PortalPage' } } },
+] }
 require('./finalize-openapi-release.portal.cjs')({
   application,
   canonicalErrorEnvelope,
@@ -1713,6 +1727,7 @@ require('./finalize-openapi-release.portal.cjs')({
   string,
   uuid,
   version,
+  runtimeContractVersion,
   website,
   websitePath,
 })

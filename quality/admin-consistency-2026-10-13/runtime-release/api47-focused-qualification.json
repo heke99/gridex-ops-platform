@@ -1,10 +1,10 @@
 {
   "kind": "47_FILE_CURRENT_SOURCE_FOCUSED_API_QUALIFICATION",
   "files": 47,
-  "assertions": 400,
+  "assertions": 403,
   "failures": 0,
   "skips": 0,
-  "method": "46 byte-unchanged successful files in the corrected47 run plus complete isolated final internal-billing run; failed earlier result replaced only for that exact file after its catalog-key fixture correction. Not a full-repository CI result.",
+  "method": "45 unchanged successful files in corrected47 run plus final billing24 and final measurement12 after finite date-port allocation repair. Original5000ms unchanged; all original400 cases remain, plus3 boundary/mutation cases. Not a full-repository CI result.",
   "sources": [
     {
       "file": "__tests__/admin-api-current-permission-context.test.ts",
@@ -182,8 +182,8 @@
     },
     {
       "file": "__tests__/partner-measurement-completeness.test.ts",
-      "source_sha256": "5225823d2fe81ca57b343dc4fdc79b03528a668259baaebc9db70ed6c35f86ed",
-      "assertions": 9,
+      "source_sha256": "4c57542f462f5622c829689aa93c527d46929c8161f98dc5c437d41cd7a6d74c",
+      "assertions": 12,
       "result": "PASS"
     },
     {

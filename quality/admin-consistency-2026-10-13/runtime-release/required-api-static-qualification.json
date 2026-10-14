@@ -1,0 +1,262 @@
+{
+  "source_before_import": "9850639908441d8115bb70533cb9fa50a9a8e653",
+  "kind": "MINIMAL_REQUIRED_APP_ONLY_STATIC_API_CLOSURE",
+  "source_files": [
+    {
+      "path": "scripts/gridex-contract-channel-publication-regression.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "41fa12f519e8e9e26e6799931725ca872ca76059cc36e4021271decff1120e97"
+    },
+    {
+      "path": "scripts/gridex-api-billing-tenant-hardening-regression.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "18668561716125b642d6e33e4ca32bcfb45f284fe229b5d13e2be052ab3c6f54"
+    },
+    {
+      "path": "scripts/check-api-documentation-version.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "9f58345519cfdd4dd28044b58f7e83d586df7519c04e595d14642698b354cea0"
+    },
+    {
+      "path": "scripts/check-api-documentation-examples.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "c334a1081c1df80ea5114266d42b055dcf64841a85b1e3d4cec4b9d3adf26564"
+    },
+    {
+      "path": "scripts/check-public-contract-runtime-openapi.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "03c4eb73e465c6bb48ec74d58159709eec1f1acc4c6f45f6048c0f1f80f189ba"
+    },
+    {
+      "path": "scripts/check-api-compatibility.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "dff40f925aa83b5f8683694bb3e7a29fdc1ccb0477bf5c3cf3384ee73aa81cfb"
+    },
+    {
+      "path": "scripts/verify-openapi-release.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "d91094aa70175f8c0fdbc90e18e544e5d1935705152103cc10b4f0b6e19d94aa"
+    },
+    {
+      "path": "scripts/check-public-api-error-registry.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "1169c61219ba14b950e55371d29104b744b95b2baae10e5e3bd426b5f2b7d982"
+    },
+    {
+      "path": "scripts/canonical-external-api-runtime-parity.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "a0f2edd42b7e753a46648780866a35c74242676479c28d7b41b50dd5acbc0b35"
+    },
+    {
+      "path": "scripts/lib/current-api-contract.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "932d507c46dee1b443199692c34673bd1deea92437906ea6afc834cdc8e94733"
+    },
+    {
+      "path": "docs/single-api-key-tenant-integration.md",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "d7272cbe4619d141ceb6de1dfebac773b1cb2a2d7f8e62aa84b4b00c93b2c8ba"
+    },
+    {
+      "path": "scripts/finalize-openapi-release.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "9e1c7f88453aed7d1f0f8fd6762a978bbf68dcb5646b82b88ad2af6a11d53c68",
+      "role": "source-only future document/wire version compatibility; generator not executed"
+    },
+    {
+      "path": "scripts/finalize-openapi-release.portal.cjs",
+      "source": "d899ac6b36d754aa784333ed4da07702e47619e0",
+      "sha256": "ff3b90ff0f43d0a24f5b8d8b3f8bbb871fe6f9c3fbb4a00eb9926b222b6289b9",
+      "role": "source-only future document/wire version compatibility; generator not executed"
+    }
+  ],
+  "restored_optional_sources": [
+    {
+      "path": "scripts/gridex-canonical-fixed-area-flow-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "c94d5fd6ccd162d95f89e538d6f466e72d89fac7a43e151a4f0427b1ff8f4bd5"
+    },
+    {
+      "path": "scripts/gridex-canonical-market-resolution-quote-billing-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "353fe4a64c5fa9136558bc1176cc3e8a39b88d059d15e7436c2280fe47cfa901"
+    },
+    {
+      "path": "scripts/gridex-canonical-portfolio-pricing-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "87050305bb5b0ae40463f19ba6c1a75344fbefadcb772ed09ea3235e1b914a75"
+    },
+    {
+      "path": "scripts/gridex-contract-api-signature-visibility-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "a22abb479ce1f291921f8c4ef07bcd8916d17b5aa69dbafec9943483568d84b0"
+    },
+    {
+      "path": "scripts/gridex-contract-commercial-selection-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "e815001c62516ec477091f4cca5debf80fb7f5cdd3bdfba1be9052836fb26d8c"
+    },
+    {
+      "path": "scripts/gridex-contract-go-live-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "7c99fc865a637d434deb1ec108200831feb99dca944f71acb6b6cd0032be63df"
+    },
+    {
+      "path": "scripts/gridex-contract-security-energy-direction-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "6e77a92601cc0cc760c83af61e4c108365c1edfee7201f85f1cc944aa02ddd79"
+    },
+    {
+      "path": "scripts/gridex-invoice-fee-canonical-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "d5174208afa03300776d63cffa94eaf1a0b595f291c7c34e639166c59b055b38"
+    },
+    {
+      "path": "scripts/gridex-market-price-api-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "1eff77ee530299b2454305c963387000e7f1c03905fad2ed117b1c41dd040407"
+    },
+    {
+      "path": "scripts/gridex-multitenant-website-application-flow-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "0aaf57188f7381a3dcd1eebdf573c33320a71022c9fff480180e9c04ef61f3b9"
+    },
+    {
+      "path": "scripts/gridex-price-area-assurance-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "1ce3fd22d62625fc5d0cea4d56c0181547a8c69cf305f0569137db9c07fe3af4"
+    },
+    {
+      "path": "scripts/gridex-svk-billing-area-regression.cjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "5b5cd34a14b0e19c8882dd2ec55783265ddb1258fce2300b28efe625ca3059d9"
+    },
+    {
+      "path": "scripts/gridex-website-quote-integrity-regression.mjs",
+      "restored_exact_source": "64e09149da5194d2b3208e20b16a1c69b6577119",
+      "sha256": "90aeaeaf3e3c384faeacc7bd56d95e6c55ed284ae013789481b5260b414f1ba2"
+    }
+  ],
+  "actual_ci_static_api_steps": {
+    "passed": 14,
+    "failed": 0,
+    "env": "CI, memory-only NODE_OPTIONS, no preload, optional GRIDEX_API_BASE_URL absent"
+  },
+  "quality_performance": {
+    "passed": 3,
+    "failed": 0
+  },
+  "legacy_smoke_helper_contract": "PASS for documentation12/runtime9 and three release paths; full production E2E script remains exact64 and was never executed",
+  "syntax_checks": [
+    {
+      "path": "scripts/gridex-contract-channel-publication-regression.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/gridex-api-billing-tenant-hardening-regression.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/check-api-documentation-version.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/check-api-documentation-examples.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/check-public-contract-runtime-openapi.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/check-api-compatibility.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/verify-openapi-release.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/check-public-api-error-registry.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/canonical-external-api-runtime-parity.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/lib/current-api-contract.cjs",
+      "exit_code": 0
+    },
+    {
+      "path": "scripts/finalize-openapi-release.cjs",
+      "exit_code": 0,
+      "execution": "syntax only"
+    },
+    {
+      "path": "scripts/finalize-openapi-release.portal.cjs",
+      "exit_code": 0,
+      "execution": "syntax only"
+    }
+  ],
+  "optional_probe_evidence": [
+    {
+      "script": "scripts/gridex-canonical-fixed-area-flow-regression.cjs",
+      "label": "Tenantautentiserad OPS resolver ska vara aktiv",
+      "expected_fragment": "resolveEnergyContext in app/api/v1/website/energy-area/resolve/route.ts",
+      "actual": "The route retains website_energy_area.resolve authorization but calls resolveWebsiteEnergyContext from lib/energy/websiteResolutionCache.ts; literal helper name changed. Other named customer application modules are not customerApplications.part-N and the generic part bundler does not follow them.",
+      "qualification": "Old optional single-file source-pattern mismatch; not a behavioral pass claim."
+    },
+    {
+      "script": "scripts/gridex-canonical-market-resolution-quote-billing-regression.cjs",
+      "label": "Settlementcron ska verifiera och l\u00e5sa canonical m\u00e5nadssummering f\u00f6re billing",
+      "expected_fragment": "settlement_locked: true in app/api/cron/pricing/spot-settlement/route.ts",
+      "actual": "The same route calls lockSpotSettlementMonth for each area, collects failedAreas, and reports settlement_locked: failedAreas.length === 0 with status500 on failures; unconditional true is absent.",
+      "qualification": "Old literal result-shape predicate; no real settlement producer run or whole business-semantic certification."
+    },
+    {
+      "script": "scripts/gridex-contract-security-energy-direction-regression.cjs",
+      "label": "Quote valideras f\u00f6re atomisk konsumering och ans\u00f6kningscommit / Kundavtal skapas med publicerad energiriktning",
+      "expected_fragment": "validateWebsiteQuote -> onboardCanonicalWebsiteCustomerGraph and energy_direction: selected.energyDirection in lib/website/customerApplications.ts",
+      "actual": "The facade exports named modules. Validation and graph call are in lib/website/customerApplicationProcess.ts:759/822; direction and quote binding are in lib/website/customerApplicationOnboarding.ts:304/469.",
+      "qualification": "Optional monolithic-source expectation; no assertion rewritten or removed."
+    },
+    {
+      "script": "scripts/gridex-contract-security-energy-direction-regression.cjs",
+      "label": "Billing underlay saknar h\u00e5rdkodad consumption",
+      "expected_fragment": "No energy_direction: consumption literal anywhere in lib/billing/underlayEngine.ts",
+      "actual": "Literal exists in buildReconciliations charge-final rows. Input candidates are scoped to company and energy_direction=consumption; final normalized rows are filtered to consumption. The global literal ban conflates consumption-specific reconciliation with general production billing.",
+      "qualification": "Concrete scoped-source explanation only; no complete production-direction behavior qualification or concern silently waived."
+    },
+    {
+      "script": "scripts/gridex-contract-api-signature-visibility-regression.cjs",
+      "label": "Tenant med contracts.read f\u00e5r se avtalsfliken and related render/navigation checks",
+      "expected_fragment": "All customer page conditions present in app/admin/customers/[id]/page.tsx alone",
+      "actual": "Existing refactor-safe-static-read preload concatenates the actual page.part-N sources and this optional probe passes; no source or assertion edits.",
+      "qualification": "Single-file extraction false positive; static model only."
+    }
+  ],
+  "generator_boundary": "Two exact frozen d899 finalizer source files retain separate document12/wire9 bindings for future tool-input compatibility; builtin fs/crypto + existing local schema helper/portal module only, no SQL/held/native dependency. Neither finalizer nor any GEN/materialization was executed; generator output/producer qualification is not claimed.",
+  "qualification": "Static application dependency closure only. Not an API-expanded clean-schema/type capture, final whole-suite CI, live functional acceptance or deployment claim.",
+  "artifacts": [
+    {
+      "path": "/tmp/gridex-runtime-union-required-api-quality-final.log",
+      "sha256": "d85798c714a4d6d7d893ad8780872b8267403ceeb9586cc754a1d23de6c55342"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-required-api-quality-final-results.json",
+      "sha256": "fcd52be1df6940adc6dda982705f86639a98e8b9d8cd6f3091bf1aecd8c40ca3"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-smoke-helper-contract.log",
+      "sha256": "757d1089defc6f7894bcb330f462572d668932228f5cb3b16bf7feaa89818045"
+    },
+    {
+      "path": "/tmp/gridex-runtime-union-static-api-source-family-fp.json",
+      "sha256": "17658a95d8c1aaf11bf7d3cc36abe755b1caf381d698aa86609da79551141789"
+    }
+  ],
+  "script_source_count": 12,
+  "documentation_source_count": 1,
+  "restored_optional_count": 13
+}

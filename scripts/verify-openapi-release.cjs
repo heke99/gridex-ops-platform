@@ -3,7 +3,7 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
 
-const { currentContractVersion: version } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion: version, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 const specifications = [
   {
     key: 'website',
@@ -77,7 +77,7 @@ async function verify() {
     if (document.info.version !== version) {
       throw new Error(`${specification.key}: version mismatch`)
     }
-    if (document['x-contract-schema-version'] !== version) {
+    if (document['x-contract-schema-version'] !== runtimeContractVersion) {
       throw new Error(`${specification.key}: x-contract-schema-version mismatch`)
     }
     if (!/^[a-f0-9]{64}$/.test(sha256(body))) {
@@ -113,7 +113,7 @@ async function verify() {
     throw new Error('deployed manifest has the wrong content type')
   }
   const manifest = await manifestResponse.json()
-  if (manifest.release_version !== version) {
+  if (manifest.release_version !== version || manifest.guide_version !== version || manifest.runtime_contract_version !== runtimeContractVersion) {
     throw new Error('deployed manifest version mismatch')
   }
   for (const specification of specifications) {

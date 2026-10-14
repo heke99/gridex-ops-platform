@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const { currentContractVersion: version } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion: version, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 const website = JSON.parse(
   fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
 )
@@ -19,7 +19,7 @@ for (const [name, document] of [
 ]) {
   assert(document.info.version === version, `${name}: wrong info.version`)
   assert(
-    document['x-contract-schema-version'] === version,
+    document['x-contract-schema-version'] === runtimeContractVersion,
     `${name}: wrong contract schema version`,
   )
 }

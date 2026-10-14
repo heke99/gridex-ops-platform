@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const { currentContractVersion: legacyExpected } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion: legacyExpected, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 const partnerExpected = '2026-08-17.1'
 const legacyFiles = [
   'lib/integrations/websiteIntegrationContract.ts',
@@ -32,7 +32,7 @@ if (/API_CONTRACT_RESPONSE_SCHEMA_VERSION\s*=\s*['"]/.test(mapperSource)) {
 for (const file of ['docs/openapi/website-integration-v1.json', 'docs/openapi/customer-portal-v1.json', 'docs/openapi/staff-v1.json']) {
   const spec = JSON.parse(fs.readFileSync(file, 'utf8'))
   if (spec.info?.version !== legacyExpected) failures.push(`${file} info.version mismatch`)
-  if (spec['x-contract-schema-version'] !== legacyExpected) failures.push(`${file} x-contract-schema-version mismatch`)
+  if (spec['x-contract-schema-version'] !== runtimeContractVersion) failures.push(`${file} x-contract-schema-version mismatch`)
 }
 
 const partnerOpenApi = fs.readFileSync('lib/partner-api/openApi.ts', 'utf8')

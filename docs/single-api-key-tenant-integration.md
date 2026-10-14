@@ -1,6 +1,8 @@
 # Gridex server-side API credential
 
-Current contract: **2026-10-09.1**
+Current documentation: **2026-10-12.1**. Default response contract: **2026-10-09.1**.
+
+An API credential and its scopes authorize a supported V1 integration. No comparison with the latest documentation revision is an admission condition. Website/customer scopes do not implicitly grant Staff access; Staff requires its explicit scopes and signed staff identity. OPS may pin a supported response profile on this credential without changing the tenant's request headers.
 
 You do not need to match the latest documentation revision exactly to use a supported API version. See [docs/api-compatibility-policy.md](api-compatibility-policy.md).
 

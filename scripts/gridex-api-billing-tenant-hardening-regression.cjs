@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 const crypto = require('node:crypto')
 const fs = require('node:fs')
 const path = require('node:path')
-const { currentContractVersion } = require('./lib/current-api-contract.cjs')
+const { currentDocumentationVersion } = require('./lib/current-api-contract.cjs')
 
 const root = process.cwd()
 const read = (relative) =>
@@ -53,7 +53,7 @@ assert.match(
 const website = JSON.parse(
   read('docs/openapi/website-integration-v1.json'),
 )
-assert.equal(website.info.version, currentContractVersion)
+assert.equal(website.info.version, currentDocumentationVersion)
 const integrationContextSchema = website.components.schemas.IntegrationContext
 assert.ok(integrationContextSchema.properties.organization_reference)
 assert.ok(!integrationContextSchema.properties.tenant_reference)
@@ -140,5 +140,5 @@ for (const version of [
 assert.match(repair, /history_repair_preflight_failed/)
 
 console.log(
-  `API context and billing tenant hardening regression passed (${currentContractVersion}).`,
+  `API context and billing tenant hardening regression passed (${currentDocumentationVersion}).`,
 )

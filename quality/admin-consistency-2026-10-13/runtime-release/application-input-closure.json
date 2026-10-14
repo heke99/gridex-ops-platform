@@ -151,7 +151,7 @@
   },
   "focused_current_api_regression": {
     "files": 47,
-    "assertions": 400,
+    "assertions": 403,
     "failed": 0,
     "skipped": 0,
     "receipt": "api47-focused-qualification.json"
@@ -169,6 +169,42 @@
     "result": "PASS",
     "strengthened_CAS_and_archive_assertions": true
   },
-  "full_final_source_ci": "PENDING_CURRENT_SOURCE_PULL_REQUEST",
-  "preview": "READY dpl_EKziiavnJMtht6cCArsz4xBRebmF on source416; configuredVercelGitbuild. Final source preview still required after commit."
+  "full_final_source_ci": "PENDING_AFTER_ALL_JUSTIFIED_LOCAL_REPAIRS; do not interrupt the outstanding authentic clean-native collection before its terminal result.",
+  "preview": "READY dpl_EKziiavnJMtht6cCArsz4xBRebmF on source416; configuredVercelGitbuild. Final source preview still required after commit.",
+  "required_static_compatibility_inputs": {
+    "scripts/gridex-contract-channel-publication-regression.cjs": "41fa12f519e8e9e26e6799931725ca872ca76059cc36e4021271decff1120e97",
+    "scripts/gridex-api-billing-tenant-hardening-regression.cjs": "18668561716125b642d6e33e4ca32bcfb45f284fe229b5d13e2be052ab3c6f54",
+    "scripts/check-api-documentation-version.cjs": "9f58345519cfdd4dd28044b58f7e83d586df7519c04e595d14642698b354cea0",
+    "scripts/check-api-documentation-examples.cjs": "c334a1081c1df80ea5114266d42b055dcf64841a85b1e3d4cec4b9d3adf26564",
+    "scripts/check-public-contract-runtime-openapi.cjs": "03c4eb73e465c6bb48ec74d58159709eec1f1acc4c6f45f6048c0f1f80f189ba",
+    "scripts/check-api-compatibility.cjs": "dff40f925aa83b5f8683694bb3e7a29fdc1ccb0477bf5c3cf3384ee73aa81cfb",
+    "scripts/verify-openapi-release.cjs": "d91094aa70175f8c0fdbc90e18e544e5d1935705152103cc10b4f0b6e19d94aa",
+    "scripts/check-public-api-error-registry.cjs": "1169c61219ba14b950e55371d29104b744b95b2baae10e5e3bd426b5f2b7d982",
+    "scripts/canonical-external-api-runtime-parity.cjs": "a0f2edd42b7e753a46648780866a35c74242676479c28d7b41b50dd5acbc0b35",
+    "scripts/lib/current-api-contract.cjs": "932d507c46dee1b443199692c34673bd1deea92437906ea6afc834cdc8e94733",
+    "docs/single-api-key-tenant-integration.md": "d7272cbe4619d141ceb6de1dfebac773b1cb2a2d7f8e62aa84b4b00c93b2c8ba",
+    "scripts/finalize-openapi-release.cjs": "9e1c7f88453aed7d1f0f8fd6762a978bbf68dcb5646b82b88ad2af6a11d53c68",
+    "scripts/finalize-openapi-release.portal.cjs": "ff3b90ff0f43d0a24f5b8d8b3f8bbb871fe6f9c3fbb4a00eb9926b222b6289b9"
+  },
+  "required_static_compatibility_qualification": {
+    "actual_api_steps": 14,
+    "performance_steps": 3,
+    "result": "17/17PASS",
+    "source_only_finalizers": "Two exact frozen documentation generators kept compatible with separate document/wire versions; neither executed."
+  },
+  "initial_composed_full_ci": {
+    "source": "9850639908441d8115bb70533cb9fa50a9a8e653",
+    "run": 38484514283,
+    "unit_files": 1146,
+    "unit_assertions": 18350,
+    "passed_assertions": 18349,
+    "failed_assertions": 1,
+    "sole_unit_failure": "41k testport timeout5000 due repeated date allocations; finite cache keeps all filters and invalidates rawfieldchanges,12cases+54concurrentPASS; no runtime or timeout change.",
+    "quality_cases": "64/64PASS",
+    "production_build": "PASS",
+    "upgrade_native_replay": "PASS",
+    "clean_native_replay": "STILL_IN_PROGRESS; do not call it complete",
+    "verify_failure": "Legacy document/wire version equality check; exact frozen current checkers now17requiredgatesPASS",
+    "smoke_failure": "14/15passed; old versionhelper rejected document12/wire9; current helper direct contract probePASS."
+  }
 }
