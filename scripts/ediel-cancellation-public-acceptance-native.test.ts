@@ -119,7 +119,7 @@ async function nativePhase<T>(phase: string, run: () => Promise<T>): Promise<T> 
   try { return await run() }
   catch (cause) { throw new Error('native_cancellation_phase:'+phase, { cause }) }
 }
-async function receiveProdat(f: Fixture, wire: string, code: 'Z04' | 'Z05' | 'Z15', subtype: 'L' | 'C') {
+async function receiveProdat(f: Fixture, wire: string, code: 'Z04' | 'Z05' | 'Z15', subtype: 'L' | 'LK' | 'C') {
   return nativePhase('public_intake_'+code+subtype, async () => {
     const receivedAt = new Date().toISOString(), config = assertEdielSmtpReadiness()
     const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.companyId, environment: 'test', raw: wire,
@@ -991,6 +991,96 @@ describe('actual native supplier cancellation chains', () => {
     expect((await prepareAndQueueSwitchCancellation({companyId:f.companyId,switchRequestId:f.switchId,actorUserId:f.actorUserId,
       preferredRouteId:f.routeId,environment:'test'})).status).toBe('queued')
     expect(sql(`SELECT to_jsonb(status) FROM public.supplier_switch_requests WHERE id=${literal(f.switchId)};`)).toBe('cancellation_requested')
+  },180000)
+
+  // SOURCE proposal only: the retained producer must execute this registered
+  // case under a separately qualified current source/backend/input epoch.
+  // LK/day0 is prospective public input. No original, period, confirmation,
+  // activation receipt or database clock is rewritten to create this premise.
+  it('holds cancellation of a genuinely activated own LK start in a durable source-bound compensation review', async () => {
+    configureSmtp()
+    const today = sql<string>(`SELECT to_jsonb((clock_timestamp()+interval '1 hour')::date);`)
+    const stage = await seedNormalSwitchNativeFixture({deferOriginal:true,requestedStartDate:today})
+    sql(`UPDATE public.supplier_switch_requests SET prodat_variant='LK',prodat_reason='Z23',request_type='move_in'
+      WHERE id=${literal(stage.switchId)} AND company_id=${literal(stage.companyId)};`)
+    const route=randomUUID(),profile=randomUUID(),config=assertEdielSmtpReadiness()
+    sql(`INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email)
+      VALUES(${literal(route)},${literal(stage.companyId)},'Synthetic cancellation ACK route','ediel_ack',${literal(stage.gridId)},'bilateral_test',true,'recipient@example.invalid');
+      INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,payload_format,transport_security_mode,smtp_to,receiver_email,mailbox,smtp_host,smtp_port)
+      VALUES(${literal(profile)},${literal(stage.companyId)},${literal(route)},'Synthetic cancellation ACK profile','test','edifact',${literal(stage.sender)},${literal(stage.receiver)},'23-DDQ-PRODAT',true,true,'edifact','unencrypted','recipient@example.invalid','recipient@example.invalid',${literal(config.from)},${literal(config.host)},${config.port});`)
+    const queued=await prepareAndQueueEdielZ03({actorUserId:stage.actorUserId,switchRequestId:stage.switchId,communicationRouteId:stage.routeId,environment:'test'})
+    await sendEdielMessageViaSmtp(queued,{actorUserId:stage.actorUserId,smtpMimeMode:'nodemailer-attachment'})
+    const sent=(await getEdielMessageById(queued.id))!
+    expect(sent).toMatchObject({company_id:stage.companyId,direction:'outbound',message_code:'Z03',status:'sent'})
+    expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m
+      WHERE m.id=${literal(sent.id)} AND m.company_id=${literal(stage.companyId)};`)).toBe(true)
+    const tokens=tokenizeEdifact(sent.raw_payload!),li=tokens.segments.find(segment=>segment.tag==='RFF'&&segmentComposite(segment,1,tokens.una)[0]==='LI')
+    if(!li)throw Error('native_compensation_genuine_sent_li_required')
+    const f:Fixture={...stage,originalZ03:sent,caseReference:segmentComposite(li,1,tokens.una)[1],endMinute:futureNativeSupplyDate(28).replaceAll('-','')+'0000'}
+    const confirmation=await receiveProdat(f,envelope(f,buildCancellationProspectiveZ04(f).replace('CAV+Z22','CAV+Z23'),'Z04'),'Z04','LK')
+    await process(f,confirmation);assertConfirmedSupplyPrecondition(f,confirmation)
+    expect(sql(`SELECT to_jsonb((clock_timestamp()+interval '1 hour')::date);`)).toBe(today)
+    await cancellationSupply.advanceSupplyMarketDeadlines({actorUserId:f.actorUserId,companyId:f.companyId,limit:1})
+    const witness=sql<Array<{period_id:string;original_message_id:string;source_message_id:string;switch_id:string;status:string;actual_start_date:string;due:boolean;activation:Record<string,unknown>}>>(`
+      SELECT coalesce(jsonb_agg(jsonb_build_object('period_id',p.id,'original_message_id',c.original_message_id,
+        'source_message_id',c.source_message_id,'switch_id',c.switch_id,'status',p.status,'actual_start_date',p.actual_start_date,
+        'due',c.market_start_at<=clock_timestamp(),'activation',to_jsonb(a))),'[]')
+      FROM gridex_received_sources.normal_switch_confirmations c JOIN public.customer_supply_periods p ON p.id=c.period_id AND p.company_id=c.company_id
+      JOIN gridex_received_sources.normal_supply_activations a ON a.period_id=p.id AND a.company_id=p.company_id
+      WHERE c.company_id=${literal(f.companyId)} AND c.switch_id=${literal(f.switchId)};`)
+    expect(witness).toHaveLength(1)
+    expect(witness[0]).toMatchObject({original_message_id:sent.id,source_message_id:confirmation.id,switch_id:f.switchId,status:'active',actual_start_date:today,due:true,
+      activation:{company_id:f.companyId,source_message_id:confirmation.id,actor_user_id:f.actorUserId,resulting_period:{id:witness[0].period_id,status:'active'}}})
+    expect(switchState(f)).toMatchObject({status:'completed',original:sent.id,inbound:confirmation.id})
+    const protectedGraph=()=>({business:supplyBusinessState(f),switch:sql(`SELECT to_jsonb(s) FROM public.supplier_switch_requests s WHERE s.id=${literal(f.switchId)} AND s.company_id=${literal(f.companyId)};`),
+      graph:sql(`SELECT jsonb_build_object('customers',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.customers x WHERE company_id=${literal(f.companyId)}),
+        'sites',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.customer_sites x WHERE company_id=${literal(f.companyId)}),
+        'points',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.metering_points x WHERE company_id=${literal(f.companyId)}),
+        'contracts',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM public.customer_contracts x WHERE company_id=${literal(f.companyId)}),
+        'activations',(SELECT jsonb_agg(to_jsonb(x) ORDER BY period_id) FROM gridex_received_sources.normal_supply_activations x WHERE company_id=${literal(f.companyId)}));`)})
+    const before=protectedGraph(),source=await receiveProdat(f,z04(f,'Z24'),'Z04','C')
+    const sourceIdentity=()=>sql(`SELECT jsonb_build_object('id',id,'company_id',company_id,'environment',environment,'direction',direction,
+      'raw_payload',raw_payload,'hash',immutable_payload_hash,'received_at',message_received_at,'mail',inbound_email_message_id)
+      FROM public.ediel_messages WHERE id=${literal(source.id)} AND company_id=${literal(f.companyId)};`)
+    const birth=sourceIdentity(),apply=vi.spyOn(cancellationSupply,'applySupplyMarketSource')
+    let result:cancellationSupply.SupplyMarketResult
+    try{
+      await process(f,source)
+      const own=apply.mock.calls.flatMap((args,index)=>args[0].message.id===source.id&&args[0].actorUserId===f.actorUserId?[apply.mock.results[index]]:[])
+      expect(own).toHaveLength(1);expect(own[0].type).toBe('return');result=await own[0].value as cancellationSupply.SupplyMarketResult
+    }finally{apply.mockRestore()}
+    expect(result!).toMatchObject({applied:false,fullyApplied:false,reviewRequired:true,effectReceiptIds:[],commits:[],partition:[{
+      object:{objectId:f.external,identityAgency:'9'},disposition:'held',reason:'z04c_effect_already_executed_compensation_required'}]})
+    type Review={id:string;status:string;company_id:string;ediel_message_id:string;customer_id:string;site_id:string;metering_point_id:string;
+      parsed_customer:Record<string,unknown>;parsed_metering_point:Record<string,unknown>;parsed_contract:Record<string,unknown>;
+      proposed_action:{action:string;objectCount:number;objects:Array<{meteringPointId:string;registers:Array<{lineItemReference:string}>}>};review_decision:unknown;created_at:string}
+    const readReview=()=>sql<Review[]>(`SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY id),'[]') FROM public.ediel_inbound_cases c
+      WHERE c.company_id=${literal(f.companyId)} AND c.ediel_message_id=${literal(source.id)};`)
+    const cases=readReview();expect(cases).toHaveLength(1)
+    const saved=cases[0]
+    expect(saved).toMatchObject({company_id:f.companyId,ediel_message_id:source.id,message_code:'Z04',transaction_type:'Z24',status:'pending_review',
+      customer_id:f.customerId,site_id:f.siteId,metering_point_id:f.pointId,created_by:f.actorUserId,
+      parsed_customer:{personalNumber:f.customerIdentity.id},parsed_metering_point:{meterPointId:f.external,identityAgency:'9'},
+      parsed_contract:{startDate:today.replaceAll('-','')+'0000'},proposed_action:{action:'pending_admin_review',objectCount:1}})
+    expect(saved.proposed_action.objects[0]).toMatchObject({meteringPointId:f.external,registers:[{lineItemReference:f.caseReference}]})
+    const warnings=()=>sql<Array<{id:string;payload:{inboundCaseId:string;sourceObjectPartition:unknown}}>>(`SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY created_at,id),'[]') FROM public.ediel_message_events e
+      WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(source.id)} AND e.event_type='validated' AND e.event_status='warning'
+      AND e.payload->>'inboundCaseId'=${literal(saved.id)};`)
+    const firstWarnings=warnings();expect(firstWarnings).toHaveLength(1)
+    expect(firstWarnings[0]).toMatchObject({company_id:f.companyId,ediel_message_id:source.id,created_by:f.actorUserId,event_status:'warning',
+      payload:{inboundCaseId:saved.id,reviewRequired:true,fullyApplied:false,applied:false,committedEffectReceiptIds:[],sourceObjectPartition:result!.partition}})
+    expect(protectedGraph()).toEqual(before);expect(sourceIdentity()).toEqual(birth)
+    expect(positiveAperakCount(f,source.id)).toBe(0)
+    // A new database read after coordinator completion proves saved outputs;
+    // replay preserves the same review/bindings and creates no supply effect.
+    await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+    const replay=readReview();expect(replay).toHaveLength(1)
+    expect(replay[0]).toMatchObject({id:saved.id,status:'pending_review',company_id:saved.company_id,ediel_message_id:saved.ediel_message_id,
+      customer_id:saved.customer_id,site_id:saved.site_id,metering_point_id:saved.metering_point_id,parsed_customer:saved.parsed_customer,
+      parsed_metering_point:saved.parsed_metering_point,parsed_contract:saved.parsed_contract,proposed_action:saved.proposed_action,
+      review_decision:saved.review_decision,created_at:saved.created_at})
+    expect(warnings().some(event=>event.id===firstWarnings[0].id)).toBe(true)
+    expect(protectedGraph()).toEqual(before);expect(sourceIdentity()).toEqual(birth);expect(positiveAperakCount(f,source.id)).toBe(0)
   },180000)
 
   // Source-only SC039 supplement. Reuses public nativeB's C-first/late-L
