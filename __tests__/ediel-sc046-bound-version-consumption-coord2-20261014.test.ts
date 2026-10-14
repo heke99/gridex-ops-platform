@@ -108,7 +108,7 @@ describe('private validated version classification, with legacy explicitly separ
     expect(ports.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 0.25 }))
     expect(ports.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '0.25' }))
   })
-  it.each([null, true, false, 0, '', 'CURRENT', 'historical', 'legacy_unspecified', {}, [], undefined])('refuses provided malformed versionState %j, leaving its original object unbound', async state => {
+  it.each([null, true, false, 0, '', 'CURRENT', 'historical', 'legacy_unspecified', {}, [], undefined].map(state => [state]))('refuses provided malformed versionState %j, leaving its original object unbound', async state => {
     const f = fixture(['current'])
     malformedState(f.rows[0], state)
     expect(() => validateUtiltsPersistenceResults(f.input, f.rows)).toThrow('version_state')
