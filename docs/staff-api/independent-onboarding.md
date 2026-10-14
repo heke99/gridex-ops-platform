@@ -155,8 +155,8 @@ passwords or access tokens are copied into central account rows or receipts.
 A signed tenant receipt establishes the immutable issuer/local-subject mapping
 and exact delivery provenance; no conflict-upsert merges an existing binding.
 
-The tenant’s single private delivery migration creates only a private durability
-registry and service-only claim/complete/Auth-recipient lookup RPCs. Claim commits
+The tenant must implement a private durability registry with service-only
+claim/complete/Auth-recipient lookup operations. Claim commits
 before the Auth/email provider call. A completed retry uses stored receipt data
 and signs a fresh receipt; a started delivery with an unknown outcome returns
 `409 delivery_indeterminate` and cannot automatically send a second email.
@@ -167,8 +167,10 @@ local account for an explicitly authorized invitation only; it grants no role.
 
 Tenant Auth must separately allow the own `/auth/invitation` callback. Registering
 an API origin does not configure Auth redirects. Qualify the actual email
-callback and tenant SMTP before enabling real delivery. Server configuration
-for the tenant bridge is documented in the web app’s `apps/support/README.md`.
+callback and tenant SMTP before enabling real delivery. The complete OPS-to-tenant
+request, signing configuration and closed receipt contract are documented in
+[Tenant invitation delivery](tenant-invitation-delivery.md). This specifies the
+required bridge; it does not certify an existing tenant implementation.
 
 ## Explicit acceptance and revocation
 

@@ -125,6 +125,11 @@
       "path": "bootstrap/20260815_ediel_test_runs_environment_type_prerequisite.sql",
       "afterLedgerVersion": "20260815093959",
       "beforeLedgerVersion": "20260815095427"
+    },
+    {
+      "path": "bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
+      "afterLedgerVersion": "20261013093621",
+      "beforeLedgerVersion": "20261013093922"
     }
   ],
   "derivedBootstrap": {
@@ -384,6 +389,13 @@
       "artifactSha256": "74d82d3a269770d99ae82052946faadde22892b69f61eec96178fc397752af69",
       "preserveSourceReplay": true,
       "purpose": "Replay the checksum-pinned legacy Ediel operations schema at the exact late boundary where canonical UTILTS persistence first extends meter_reading_series and meter_reading_values; no tenant or metering rows are seeded."
+    },
+    "bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql": {
+      "source": "migrations/20261013093906_ops_api_website_quote_nonexpiring_policy.sql",
+      "sourceSha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+      "artifactSha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b",
+      "preserveSourceReplay": false,
+      "purpose": "Replay-only exact source-SHA-bound complete-state adapter: canonical007d is a verified no-op; legacy4daec removes only the exact retired TTL anchor; unknown body or full metadata refuses. Preserve original published SQL/hash and distinguish original source from executed derived artifact."
     }
   }
 }

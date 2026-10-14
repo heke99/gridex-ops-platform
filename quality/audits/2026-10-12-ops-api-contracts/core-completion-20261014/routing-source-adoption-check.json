@@ -1,0 +1,37 @@
+{
+  "scope": "ACTUAL_CANONICAL_SIX_SOURCE_MATCHES_REVIEWED_PROPOSAL_ONLY",
+  "routing_source_claim": "488d0c344ffc5667661832a5fb81dd1f2fca3e29",
+  "four_code_artifacts_byte_equal": true,
+  "clean_routing_patch_byte_equal": true,
+  "descriptor_only_append_preserves_all_old_values": true,
+  "python_ast": "PASS",
+  "source_files": [
+    {
+      "path": "scripts/gridex-aud-003-clean-replay.sh",
+      "sha256": "7c2ab100784fe3aab8ee8a350254e272adbfb96aad04f2a61d199a5d7cc0c8cb"
+    },
+    {
+      "path": "scripts/gridex-ediel-history-union-inputs.py",
+      "sha256": "4005c1ad9d0b52596e4f5bc52e009c68cbfc3d923f9ffe5e7d844c58f45d5750"
+    },
+    {
+      "path": "scripts/gridex-aud-003-legacy-foundation.additions.json",
+      "sha256": "7a3cfad2dcccb999517874b743e4184ef3d08d1c4cbf85c4eb617fef7d6d7b83"
+    },
+    {
+      "path": "scripts/gridex-derived-replay-inputs.py",
+      "sha256": "f198a4e7cd800f4faa9629a9a34ae99d003f637613eb3831d77449d9595acb6c"
+    },
+    {
+      "path": "scripts/gridex-ediel-upgrade-inputs.py",
+      "sha256": "2286b227e967c9686c7e0541397c2fcb5814de5e1a02c5d5286bd17314e3c5de"
+    },
+    {
+      "path": "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
+      "sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b"
+    }
+  ],
+  "full_history_replay": "NOT_RUN",
+  "canonical_gen": "NOT_RUN",
+  "native_writes": 0
+}

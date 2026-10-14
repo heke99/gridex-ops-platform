@@ -6,6 +6,8 @@ The existing OPS API supports an independent tenant's e-mail/password login thro
 
 An external commercial SSO/OIDC provider is not required. `CustomerIdentityProvider.kind='tenant_key'` permits the tenant backend's asymmetric public JWK. The database table's word “provider” describes the registered issuer/audience/signature verification configuration; it does not mandate BankID, Freja or a separate SSO vendor. The tenant Auth access token and this backend-signed OPS assertion are separate credentials.
 
+Implement the tenant invitation endpoint using the self-contained [delivery and signed receipt contract](tenant-invitation-delivery.md). The OPS-facing resolve/accept endpoints alone do not deliver an invitation or configure tenant Auth, redirects or SMTP.
+
 ## Minimum verified facts before OPS registration
 
 | Fact | Needed value/evidence |

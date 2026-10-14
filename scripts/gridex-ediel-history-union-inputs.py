@@ -15,6 +15,7 @@ _spec = importlib.util.spec_from_file_location(
 _strict = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_strict)
 git, manifest = _strict.git, _strict.manifest
+_replay = _strict._replay
 FORMAT = 'gridex_ediel_history_union_upgrade_v1'
 NEW_NAME = re.compile(r'\d{14}_[A-Za-z0-9_]+\.sql')
 SHA = re.compile(r'[a-f0-9]{40}')
@@ -215,17 +216,18 @@ def prepare(root, out, contract_path, candidate='HEAD'):
     # union inputs either; same contract file and exact-byte binding as upgrade.
     excluded = noncanonical(root, head, committed, current)
     excluded_names = {row['name'] for row in excluded}
-    # No source SQL runs here; outputs contain exact committed input bytes.
+    derived = _replay.substitutions(root, head, current, set(additions) - excluded_names)
+    # No source SQL runs here; source and executed artifact hashes remain distinct.
     out.mkdir(parents=True, exist_ok=False)
     inputs = out / 'inputs'
     inputs.mkdir()
     rows = []
     for name in [name for name in additions if name not in excluded_names]:
-        target = inputs / name
-        target.write_bytes(committed[name])
-        rows.append({'name': name, 'sha256': current[name], 'path': str(target),
-                     'earlierAbsentInput': name in earlier,
-                     'sourceCommit': classified[name]['sourceCommit'] if name in earlier else head})
+        row = _replay.materialize(name, committed[name], current[name],
+                                  inputs, out / 'original-sources', derived)
+        row.update({'earlierAbsentInput': name in earlier,
+                    'sourceCommit': classified[name]['sourceCommit'] if name in earlier else head})
+        rows.append(row)
     result = {
         'format': FORMAT, 'baseSha': base, 'integratedParentSha': other,
         'candidateSha': head, 'candidateTree': git(root, 'rev-parse', head + '^{tree}').decode().strip(),
@@ -233,6 +235,7 @@ def prepare(root, out, contract_path, candidate='HEAD'):
         'contractGeneratedFromSha': snapshot, 'historicalMigrationsPreserved': len(previous),
         'earlierAbsentInputs': len(earlier), 'pendingMigrations': rows,
         'excludedNoncanonical': excluded,
+        'derivedReplayInputs': len(derived),
         'alreadyAppliedTxtSource': applied,
         'provenance': ('original committed branch ported through pinned source/main witnesses; complete historical bytes preserved'
                        if bridge else 'actual committed branch ancestor and exact absent checksummed inputs; old source bytes preserved'),

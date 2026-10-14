@@ -29,8 +29,8 @@ export type StaffInvitationAcceptancePorts = {
   canonicalAccept: (command: AcceptCommand) => Promise<unknown>;
   logRequest: typeof logIntegrationApiRequest;
 }
-function json(data: unknown, status = 200): Response {
-  const requestId = randomUUID(), projectRef = staffStorageProjectRef()
+function json(requestId: string, data: unknown, status = 200): Response {
+  const projectRef = staffStorageProjectRef()
   return Response.json({ ...(status < 400 ? { data } : { error: data }), request_id: requestId, contract_schema_version: STAFF_ONBOARDING_CONTRACT_VERSION },
     { status, headers: { 'Cache-Control': 'no-store', 'X-Request-ID': requestId, 'X-Gridex-Contract-Version': STAFF_ONBOARDING_CONTRACT_VERSION, ...(projectRef ? { 'X-Gridex-Project-Ref': projectRef } : {}) } })
 }
@@ -43,12 +43,13 @@ function tokenHeader(request: NextRequest, name: string): string {
 /** Explicit local Auth -> durable binding -> central canonical actor; no OPS Auth login required. */
 export function createStaffInvitationAcceptanceHandler(ports: StaffInvitationAcceptancePorts): (request: NextRequest) => Promise<Response> {
   return async request => {
-    if (request.method !== 'POST') return json({ code: 'method_not_allowed', message: 'Use an explicit POST to accept the invitation.' }, 405)
+    const requestId = randomUUID()
+    if (request.method !== 'POST') return json(requestId, { code: 'method_not_allowed', message: 'Use an explicit POST to accept the invitation.' }, 405)
     try {
       if (!request.headers.get('x-gridex-expected-project-ref') || !staffStorageProjectRef()) denied('storage_project_mismatch', 412)
       assertStaffStorageTarget(request.headers)
     } catch (error) {
-      return json({ code: error instanceof ApiInputError ? error.code : 'internal_error', message: 'The requested API project is unavailable.' }, error instanceof ApiInputError ? error.status : 500)
+      return json(requestId, { code: error instanceof ApiInputError ? error.code : 'internal_error', message: 'The requested API project is unavailable.' }, error instanceof ApiInputError ? error.status : 500)
     }
     const startedAt = Date.now()
     let client: Extract<IntegrationApiAuthResult, { ok: true }>['client'] | undefined
@@ -88,13 +89,13 @@ export function createStaffInvitationAcceptanceHandler(ports: StaffInvitationAcc
         verified_email: user.email.trim().toLowerCase(), email_confirmed: true,
         idempotency_key: `${client.id}:staff-invitation-accept:${idempotencyKey}` })
       actorUserId = binding.actor_user_id
-      await ports.logRequest({ request, client, startedAt, statusCode: 200, metadata: { channel: 'staff_onboarding', actor_user_id: actorUserId } })
-      return json({ status: 'accepted' })
+      await ports.logRequest({ request, requestId, client, startedAt, statusCode: 200, metadata: { channel: 'staff_onboarding', actor_user_id: actorUserId } })
+      return json(requestId, { status: 'accepted' })
     } catch (error) {
       const known = error instanceof ApiInputError
       const code = known ? error.code : ((error as { message?: string })?.message === 'IDEMPOTENCY_KEY_REUSE_MISMATCH' ? 'idempotency_conflict' : 'staff_invitation_invalid')
-      const response = json({ code, message: 'The staff invitation could not be accepted.' }, known ? error.status : code === 'idempotency_conflict' ? 409 : 403)
-      if (client) await ports.logRequest({ request, client, startedAt, statusCode: response.status, errorCode: code,
+      const response = json(requestId, { code, message: 'The staff invitation could not be accepted.' }, known ? error.status : code === 'idempotency_conflict' ? 409 : 403)
+      if (client) await ports.logRequest({ request, requestId, client, startedAt, statusCode: response.status, errorCode: code,
         metadata: { channel: 'staff_onboarding', ...(actorUserId ? { actor_user_id: actorUserId } : {}) } })
       return response
     }

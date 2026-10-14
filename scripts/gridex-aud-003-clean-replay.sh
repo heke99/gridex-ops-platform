@@ -163,7 +163,16 @@ order=json.loads(order_path.read_text())
 noncanonical=json.loads(noncanonical_path.read_text())
 checksums={**history.get('files',{}),**history_add.get('files',{}),**history_runtime_add.get('files',{})}
 allowed={k:sorted(v) for k,v in (history.get('allowedLegacyCollisions') or {}).items()}
-derived={**(plan.get('derivedBootstrap') or {}),**(plan_add.get('derivedBootstrap') or {})}
+derived={}
+for descriptors in (plan.get('derivedBootstrap') or {},plan_add.get('derivedBootstrap') or {}):
+    for rel,meta in descriptors.items():
+        if not isinstance(meta,dict):
+            raise SystemExit(f'invalid derived bootstrap descriptor: {rel}')
+        previous=derived.get(rel,{})
+        for key in ('source','sourceKind','artifactSha256','sourceSha256'):
+            if key in previous and key in meta and previous[key]!=meta[key]:
+                raise SystemExit(f'conflicting derived bootstrap identity: {rel}: {key}')
+        derived[rel]={**previous,**meta}
 declared=set([*(plan.get('foundation') or []),*(plan_add.get('foundation') or [])])
 foundation=order.get('foundation') or []
 interleaved=plan_add.get('interleaved') or []
@@ -200,6 +209,8 @@ def validate_derived(rel):
     source=resolve(source_rel) if source_rel else None
     if not source or not source.exists(): raise SystemExit(f'derived bootstrap source missing: {source_rel}')
     pinned_source(source)
+    if meta.get('sourceSha256') is not None and digest(source) != meta['sourceSha256']:
+        raise SystemExit(f'derived bootstrap original-source pin mismatch: {rel}')
     return actual,source,meta
 
 def should_skip_timestamp_source(source,meta):

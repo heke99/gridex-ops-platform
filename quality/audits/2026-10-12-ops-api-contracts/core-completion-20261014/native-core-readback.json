@@ -1,0 +1,21 @@
+{
+  "observed_at": "2026-10-14T16:59:40.146884+00:00",
+  "project": "piidsfebjqjmnepdpnas",
+  "functions": 25,
+  "relations": 19,
+  "missing_functions": [],
+  "missing_columns": [],
+  "signature_gaps": [],
+  "rls_enabled_relations": 19,
+  "public_function_execute_count": 0,
+  "internal_postgres_only_helpers": [
+    "gridex_staff_assert_external_actor_v1",
+    "gridex_staff_identity_registration_v1"
+  ],
+  "native_writes": 0,
+  "business_rpc_calls": 0,
+  "configured_tenant_session_qualified": false,
+  "core_scope": "Source-traced Staff requirements and actual native catalog; no authenticated/provider end-to-end claim.",
+  "signature_normalization": "PostgreSQL timestamptz alias normalized to timestamp with time zone; argument names/order/types preserved.",
+  "internal_helper_authority": "Both non-service-callable helpers are reached only through postgres SECURITY DEFINER native wrappers; no grants changed."
+}
