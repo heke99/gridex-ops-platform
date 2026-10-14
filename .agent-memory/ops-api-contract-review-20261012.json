@@ -3,10 +3,10 @@
   "baseline": "f36dbba1",
   "branch": "codex/ops-api-contract-review-20261012",
   "audit": "quality/audits/2026-10-12-ops-api-contracts/README.md",
-  "status": "CODE_DEPLOYED_AUTHFREE13_NATIVE_APPLIED1243_FUNCTIONS_VERIFIED_STAFF_CONFIGURATION_PENDING",
+  "status": "CURRENT_APP_DEPLOYED_TWO_MORE_NATIVE_FORWARDS_APPLIED_SIGNING_CONCURRENCY_AND_FULL_SQL_TYPES_OPEN",
   "authority": "Actual code, genuine PostgreSQL and native/hosted metadata; no unit-test oracle",
   "native_project": "piidsfebjqjmnepdpnas",
-  "native_writes": 85,
+  "native_writes": 87,
   "business_rpc_invocations": 0,
   "deployments": 3,
   "native_blockers": [
@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Qualify actual committed ten-source strictupgrade/history inputs; proxy publish exactreviewed code toPR794 with expectedhead6b3. Then currentordinary clean SQL/capture+existingqualifiedsource service; native SC031 actualsource alignment and canonicaltypes outstanding. No greenclaim.",
+  "next_action": "Qualify new post-sealed retained signing concurrency correction and inherited retention/request lock inversion; integrate bounded owned replay composition. New postlock adapter custody/publication CLI presently401; no newref/sourceartifact write. Full SQL/schema/types and real Staff registration remain pending.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "573d74371086da585a5cff6abee95eadfe58899e",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -989,5 +989,28 @@
     "documentationCheck": "16_PASS_EXISTING_CHECK_ALL_OLD_BEHAVIOR_ASSERTIONS_RETAINED",
     "fullSQL": "CURRENT_PUBLISHED9ca_CLEAN_AND_UPGRADE_PASS_ACTOR_THEN_REFUSE060124_SIGNING_CANONICAL_WRAPPER_DIFFERENCE",
     "next": "Publish exact actor-source/checksum/docs assertion+one-sentence guide correction; qualify separate paired retained signing/SC031 composition and its native routing forward; existing GEN fullsource capture/typewriter retained."
+  },
+  "core_completion_20261014_signing": {
+    "status": "TRANSITIONAL_COMPONENTS_TWO_SOURCE_FINALS_RUNTIME_HOLD",
+    "published_head": "fdc22fd28578848c0ea571ff71ac58f6b23efbba",
+    "standalone_sha256": "3302b837142d4b48547a39d10b2583a0915161a0d1e59d7680be710f879cc8e3",
+    "compound_sha256": "65e596c757a9b50354e68053debb4060d5394632a2a4a3f70d29feee147584c5",
+    "sourceOnlyPhase": {
+      "ownedEffectCustody": "251f34bacf30d0b4c9df50de8aba1a4a6bd651a7",
+      "descriptorCustody": "488d0c344ffc5667661832a5fb81dd1f2fca3e29",
+      "ack": "Same ROOT accepts ONLY replacement of owned effect bootstrap and its existing artifact digest/reason; original historicalSQL/sealedbytes and all descriptorentries remain.",
+      "distinctGO": "ROOT_BOUNDED_SOURCE_GO_EFFECT65e_AND_EXISTING_DESCRIPTOR_HASH_ONLY",
+      "effectPreimageSHA256": "29a8213426de1eeb0be2ed29976846aef1622239347f269325f0005a9ea97e55",
+      "descriptorPreimageSHA256": "041bb666a5b5555b60c25c4ee7c24d776c591edb2c6541d23a7c996943e59afd"
+    },
+    "qualification": "ExistingPG17.6 NOSUPER:3302canonicalfirst/replay core8bd\u2192CEE only; publicfullrowunchanged;65e nativeandcanonicalfirst/replay3fullrowsunchanged. Two independent bounded source clears. NotwholeSQL or runtimegreen.",
+    "runtimeCandidateSHA256": "4a154989bb05c794c6677f7eb04d8934eff9a1e207b7e77d58c086848523d87d",
+    "blockers": [
+      "Old93 proposed wrapper SHARE\u2192UPDATE confirmed concurrent prepare deadlock; no native apply. New4a prelocks company then contractUPDATE before unchangedhelper, genuinecanonicalDDLfirstpassed; runtimeconcurrency pending.",
+      "Inherited purge holds signature-requestSHARE before contractSHARE; prepare holds contractUPDATE before pendingrequestUPDATE; independent review found potentialcycle; private correction investigation active.",
+      "New bootstrap claim proxy401 beforemutations; no custodyacquired, no unclaimedsourcewrites.",
+      "Synthetic engine constructor failed missing compositelegal helper; transactionrollback0businessrows, originalfailurepreserved. Actualnativehelperexists; canonicalhistoricalbodydiffers so no guessed historicalrestore.",
+      "WholeSQL060 source adaptation/current schema/types still pending owningGEN."
+    ]
   }
 }

@@ -436,10 +436,10 @@
       "source": "migrations/20261014113214_ops_api_atomic_bb0b_authfree_effect.sql",
       "sourceKind": "timestampedMigration",
       "sourceSha256": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
-      "artifactSha256": "29a8213426de1eeb0be2ed29976846aef1622239347f269325f0005a9ea97e55",
+      "artifactSha256": "65e596c757a9b50354e68053debb4060d5394632a2a4a3f70d29feee147584c5",
       "preserveSourceReplay": false,
       "execution": "sourcePosition",
-      "reason": "Exact SC031 original function row restored after unchanged sealed installer execution within one transaction; old-state branch remains old."
+      "reason": "Preserve all original transport/sealed guards; temporarily normalize exact canonical signing core and SC031 projection before unchanged sealed installer, then restore both complete function rows and unchanged retained public wrapper in the same transaction. New runtime concurrency forward remains separately required."
     },
     "bootstrap/20261013_ops_market_actor_normalizer_replay_adapter.sql": {
       "source": "migrations/20261013151412_ops_api_market_actor_normalizers.sql",

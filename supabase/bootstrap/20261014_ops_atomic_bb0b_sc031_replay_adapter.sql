@@ -1,16 +1,584 @@
--- PRIVATE finite SOURCE proposal only; NOT executed, not canonical source, not GEN/native proof.
--- Derived from immutable effect a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d.
--- All original transport source/executable byte/hash checks remain unchanged.
--- Temporarily normalize only exact SC031 current body for the original sealed installer,
--- then restore identical original body/catalog row in the SAME transaction.
--- The resulting catalog does not claim the sealed module whole fingerprint.
--- ONE effect-loader proposal for OPS atomic SHA256 bb0bd0cedeabc3ba40872eae8cead8b6a8a9ff298c567baa324a1b4044045b04.
--- The 12 earlier stages register source transport only. Eight logical component
--- references remain provenance, never eight fabricated applied child migrations.
+-- PRIVATE triple source composition; NOT EXECUTED. Exact signed/source literals remain pinned.
 BEGIN;
 SET LOCAL search_path=pg_catalog;
 DO $ops_compact_apply$
 DECLARE raw bytea; executable bytea;
+ signing_public oid; signing_core oid; signing_public_before pg_catalog.pg_proc%rowtype; signing_public_after pg_catalog.pg_proc%rowtype;
+ signing_core_before pg_catalog.pg_proc%rowtype; signing_core_during pg_catalog.pg_proc%rowtype; signing_core_after pg_catalog.pg_proc%rowtype;
+ signing_current pg_catalog.pg_proc%rowtype; signing_profile text; signing_expected_acl aclitem[]; signing_expected_config text[];
+ signing_public_definition text; signing_core_definition text; signing_current_definition text; signing_source52 bytea;
+ signing_old constant text:=$signing_old_source$
+declare
+  v_contract public.customer_contracts%rowtype;
+  v_company public.companies%rowtype;
+  v_binding jsonb;
+  v_snapshot_id uuid;
+  v_snapshot jsonb;
+  v_base_components jsonb;
+  v_price_components jsonb;
+  v_pricing_model text;
+  v_request public.customer_contract_signature_requests%rowtype;
+  v_event jsonb;
+begin
+  perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.create');
+
+  if p_company_id is null or p_customer_id is null or p_contract_id is null then
+    raise exception using errcode='22023',message='signature_request_company_customer_contract_required';
+  end if;
+  if coalesce(p_token_hash,'') !~ '^[0-9a-f]{64}$' then
+    raise exception using errcode='22023',message='signature_request_token_hash_invalid';
+  end if;
+  if nullif(btrim(coalesce(p_recipient_email,'')),'') is null or position('@' in p_recipient_email)=0 then
+    raise exception using errcode='22023',message='signature_request_recipient_email_required';
+  end if;
+  if p_channel not in ('internal','website','partner_api','customer_portal') then
+    raise exception using errcode='22023',message='signature_request_channel_invalid';
+  end if;
+  if p_expires_at is null or p_expires_at <= now() or p_expires_at > now()+interval '14 days' then
+    raise exception using errcode='22023',message='signature_request_expiry_invalid';
+  end if;
+
+  select * into v_company from public.companies where id=p_company_id for share;
+  if not found or not coalesce(v_company.is_active,false) or coalesce(v_company.lifecycle_status,'')<>'active' or v_company.suspended_at is not null then
+    raise exception using errcode='55000',message='signature_request_tenant_not_operational';
+  end if;
+
+  select * into v_contract
+  from public.customer_contracts
+  where id=p_contract_id and company_id=p_company_id and customer_id=p_customer_id
+  for update;
+  if not found then
+    raise exception using errcode='P0002',message='signature_request_contract_not_found_for_tenant';
+  end if;
+  if v_contract.status in ('signed','active','terminated','cancelled','expired') or v_contract.signed_at is not null then
+    raise exception using errcode='23514',message='signature_request_contract_already_finalized';
+  end if;
+  if v_contract.status not in ('draft','pending_signature','signature_failed') then
+    raise exception using errcode='23514',message='signature_request_contract_state_invalid';
+  end if;
+
+  if v_contract.contract_publication_version_id is null
+     or v_contract.contract_product_version_id is null
+     or v_contract.price_plan_version_id is null
+     or v_contract.legal_bundle_version_id is null then
+    if v_contract.contract_offer_id is not null then
+      perform public.gridex_ensure_internal_contract_publication(p_company_id,v_contract.contract_offer_id,p_actor_user_id);
+      update public.customer_contracts
+      set contract_offer_id=v_contract.contract_offer_id,updated_by=p_actor_user_id,updated_at=now()
+      where id=v_contract.id and company_id=p_company_id
+      returning * into v_contract;
+    else
+      v_binding:=public.gridex_prepare_manual_contract_binding(
+        p_company_id,
+        jsonb_strip_nulls(jsonb_build_object(
+          'name',v_contract.contract_name,
+          'customer_type',(select c.customer_type from public.customers c where c.id=v_contract.customer_id and c.company_id=p_company_id),
+          'contract_type',v_contract.contract_type,
+          'energy_direction',v_contract.energy_direction,
+          'campaign_code',v_contract.campaign_code,
+          'campaign_version',v_contract.campaign_version,
+          'terms_version',v_contract.terms_version,
+          'binding_months',v_contract.binding_months,
+          'notice_months',v_contract.notice_months,
+          'valid_from',coalesce(v_contract.starts_at::date,current_date),
+          'valid_to',v_contract.ends_at::date
+        )),
+        coalesce(v_contract.price_snapshot,'{}'::jsonb) || jsonb_strip_nulls(jsonb_build_object(
+          'contract_type',v_contract.contract_type,
+          'energy_direction',v_contract.energy_direction,
+          'price_area',v_contract.price_area_used,
+          'fixed_price_ore_per_kwh',v_contract.fixed_price_ore_per_kwh,
+          'spot_markup_ore_per_kwh',v_contract.spot_markup_ore_per_kwh,
+          'variable_fee_ore_per_kwh',v_contract.variable_fee_ore_per_kwh,
+          'monthly_fee_sek',v_contract.monthly_fee_sek,
+          'invoice_fee_sek',v_contract.invoice_fee_sek,
+          'green_fee_mode',v_contract.green_fee_mode,
+          'green_fee_value',v_contract.green_fee_value,
+          'discount_value',v_contract.discount_value,
+          'discount_unit',v_contract.discount_unit,
+          'start_fee_sek',v_contract.start_fee_sek,
+          'admin_fee_sek',v_contract.admin_fee_sek,
+          'break_fee_sek',v_contract.break_fee_sek,
+          'vat_rate',v_contract.vat_rate
+        )),
+        p_actor_user_id
+      );
+      update public.customer_contracts set
+        contract_offer_id=nullif(v_binding->>'contract_offer_id','')::uuid,
+        contract_product_id=nullif(v_binding->>'contract_product_id','')::uuid,
+        contract_product_version_id=nullif(v_binding->>'contract_product_version_id','')::uuid,
+        contract_publication_version_id=nullif(v_binding->>'contract_publication_version_id','')::uuid,
+        price_plan_id=nullif(v_binding->>'price_plan_id','')::uuid,
+        price_plan_version_id=nullif(v_binding->>'price_plan_version_id','')::uuid,
+        price_book_id=nullif(v_binding->>'price_book_id','')::uuid,
+        legal_bundle_version_id=nullif(v_binding->>'legal_bundle_version_id','')::uuid,
+        offer_reference=v_binding->>'offer_reference',
+        commercial_snapshot=coalesce(v_binding->'commercial_snapshot','{}'::jsonb),
+        legal_snapshot=coalesce(v_binding->'legal_snapshot','{}'::jsonb),
+        updated_by=p_actor_user_id,updated_at=now()
+      where id=v_contract.id and company_id=p_company_id
+      returning * into v_contract;
+    end if;
+  end if;
+
+  if v_contract.contract_publication_version_id is null
+     or v_contract.contract_product_version_id is null
+     or v_contract.price_plan_version_id is null
+     or v_contract.legal_bundle_version_id is null then
+    raise exception using errcode='23514',message='signature_request_exact_contract_chain_missing';
+  end if;
+
+  if v_contract.contract_price_snapshot_id is null then
+    select coalesce(cpv.pricing_model,'spot') into v_pricing_model
+    from public.contract_product_versions cpv where cpv.id=v_contract.contract_product_version_id;
+    v_base_components:=coalesce(
+      v_contract.price_snapshot->'base_price_components_snapshot',
+      v_contract.commercial_snapshot->'base_price_components_snapshot',
+      v_contract.commercial_snapshot->'base_components',
+      '[]'::jsonb
+    );
+    v_price_components:=coalesce(
+      v_contract.price_snapshot->'price_components_snapshot',
+      v_contract.commercial_snapshot->'price_components_snapshot',
+      v_contract.commercial_snapshot->'price_components',
+      '[]'::jsonb
+    );
+    if jsonb_typeof(v_base_components)<>'array' then v_base_components:='[]'::jsonb; end if;
+    if jsonb_typeof(v_price_components)<>'array' then v_price_components:='[]'::jsonb; end if;
+    v_snapshot:=jsonb_strip_nulls(coalesce(v_contract.price_snapshot,'{}'::jsonb) || jsonb_build_object(
+      'snapshot_schema','gridex_contract_pricing_v7_signed_receipt',
+      'source','signature_prepare',
+      'company_id',v_contract.company_id,
+      'contract_id',v_contract.id,
+      'contract_number',v_contract.contract_number,
+      'customer_number',v_contract.customer_number,
+      'contract_type',v_contract.contract_type,
+      'energy_direction',v_contract.energy_direction,
+      'price_area',v_contract.price_area_used,
+      'fixed_price_ore_per_kwh',v_contract.fixed_price_ore_per_kwh,
+      'spot_markup_ore_per_kwh',v_contract.spot_markup_ore_per_kwh,
+      'variable_fee_ore_per_kwh',v_contract.variable_fee_ore_per_kwh,
+      'monthly_fee_sek',v_contract.monthly_fee_sek,
+      'invoice_fee_sek',v_contract.invoice_fee_sek,
+      'green_fee_mode',v_contract.green_fee_mode,
+      'green_fee_value',v_contract.green_fee_value,
+      'discount_value',v_contract.discount_value,
+      'discount_unit',v_contract.discount_unit,
+      'start_fee_sek',v_contract.start_fee_sek,
+      'admin_fee_sek',v_contract.admin_fee_sek,
+      'break_fee_sek',v_contract.break_fee_sek,
+      'vat_rate',v_contract.vat_rate,
+      'binding_months',v_contract.binding_months,
+      'notice_months',v_contract.notice_months,
+      'starts_at',v_contract.starts_at,
+      'ends_at',v_contract.ends_at,
+      'offer_reference',v_contract.offer_reference,
+      'contract_publication_version_id',v_contract.contract_publication_version_id,
+      'contract_product_version_id',v_contract.contract_product_version_id,
+      'price_plan_version_id',v_contract.price_plan_version_id,
+      'legal_bundle_version_id',v_contract.legal_bundle_version_id,
+      'base_price_components_snapshot',v_base_components,
+      'price_components_snapshot',v_price_components
+    ));
+    v_snapshot:=private.gridex_normalize_fixed_area_snapshot_v1(v_snapshot);
+    insert into public.contract_price_snapshots(
+      company_id,contract_id,customer_id,price_plan_version_id,pricing_model,
+      base_price_components_snapshot,price_components_snapshot,snapshot_json,
+      valid_from,valid_to,source,contract_number,customer_number,snapshot_hash,
+      snapshot_quality,snapshot_schema_version
+    ) values(
+      p_company_id,v_contract.id,v_contract.customer_id,v_contract.price_plan_version_id,
+      coalesce(v_pricing_model,'spot'),v_snapshot->'base_price_components_snapshot',
+      coalesce(v_snapshot->'price_components_snapshot','[]'::jsonb),v_snapshot,
+      coalesce(v_contract.starts_at::date,current_date),v_contract.ends_at::date,
+      'signature_prepare',v_contract.contract_number,v_contract.customer_number,
+      encode(extensions.digest(convert_to(v_snapshot::text,'UTF8'),'sha256'),'hex'),
+      'canonical','gridex_contract_pricing_v7_signed_receipt'
+    ) returning id into v_snapshot_id;
+    update public.customer_contracts
+    set contract_price_snapshot_id=v_snapshot_id,price_snapshot=v_snapshot,updated_by=p_actor_user_id,updated_at=now()
+    where id=v_contract.id and company_id=p_company_id
+    returning * into v_contract;
+  end if;
+
+  if not exists(
+    select 1
+    from public.contract_publication_versions cpv
+    join public.contract_publications cp on cp.id=cpv.contract_publication_id
+    join public.tenant_contract_assignments ta on ta.id=cp.assignment_id and ta.company_id=p_company_id
+    join public.contract_product_versions ctv on ctv.id=cpv.contract_product_version_id
+    join public.price_plan_versions ppv on ppv.id=cpv.price_plan_version_id
+    join public.legal_bundle_versions lbv on lbv.id=cpv.legal_bundle_version_id
+    join public.contract_price_snapshots cps on cps.id=v_contract.contract_price_snapshot_id and cps.contract_id=v_contract.id and cps.company_id=p_company_id
+    where cpv.id=v_contract.contract_publication_version_id
+      and cpv.contract_product_version_id=v_contract.contract_product_version_id
+      and cpv.price_plan_version_id=v_contract.price_plan_version_id
+      and cpv.legal_bundle_version_id=v_contract.legal_bundle_version_id
+      and cpv.status='published' and cpv.locked_at is not null
+      and ctv.status='approved' and ctv.locked_at is not null
+      and ppv.status in ('published','approved','active') and ppv.locked_at is not null
+      and lbv.status='published' and lbv.locked_at is not null and cardinality(lbv.unresolved_variables)=0
+      and nullif(cps.snapshot_hash,'') is not null
+  ) then
+    raise exception using errcode='23514',message='signature_request_exact_locked_chain_invalid';
+  end if;
+  if not exists(select 1 from public.legal_bundle_version_documents d where d.legal_bundle_version_id=v_contract.legal_bundle_version_id) then
+    raise exception using errcode='23514',message='signature_request_legal_document_set_missing';
+  end if;
+
+  if v_contract.status in ('draft','signature_failed') then
+    update public.customer_contracts
+    set status='pending_signature',lifecycle_stage='agreement_ready',updated_by=p_actor_user_id,updated_at=now()
+    where id=v_contract.id and company_id=p_company_id
+    returning * into v_contract;
+  end if;
+
+  update public.customer_contract_signature_requests
+  set revoked_at=now()
+  where company_id=p_company_id and customer_contract_id=p_contract_id
+    and used_at is null and revoked_at is null;
+
+  insert into public.customer_contract_signature_requests(
+    company_id,customer_id,customer_contract_id,token_hash,recipient_email,
+    channel,expires_at,created_by,metadata
+  ) values(
+    p_company_id,p_customer_id,p_contract_id,p_token_hash,lower(btrim(p_recipient_email)),
+    p_channel,p_expires_at,p_actor_user_id,
+    jsonb_build_object(
+      'contract_number',v_contract.contract_number,
+      'offer_reference',v_contract.offer_reference,
+      'contract_publication_version_id',v_contract.contract_publication_version_id,
+      'price_plan_version_id',v_contract.price_plan_version_id,
+      'legal_bundle_version_id',v_contract.legal_bundle_version_id,
+      'contract_price_snapshot_id',v_contract.contract_price_snapshot_id
+    )
+  ) returning * into v_request;
+
+  v_event:=public.gridex_record_customer_contract_event_v1(
+    p_company_id,v_contract.id,v_contract.customer_id,'signature_requested',now(),
+    'Online-signering begärd',
+    jsonb_build_object('signature_request_id',v_request.id,'channel',p_channel,'expires_at',p_expires_at),
+    p_actor_user_id,null,
+    encode(extensions.digest(convert_to((v_request.id::text||':signature_requested'),'UTF8'),'sha256'),'hex')
+  );
+
+  return jsonb_build_object(
+    'ok',true,
+    'request_id',v_request.id,
+    'company_id',p_company_id,
+    'customer_id',v_contract.customer_id,
+    'contract_id',v_contract.id,
+    'contract_number',v_contract.contract_number,
+    'contract_name',v_contract.contract_name,
+    'status',v_contract.status,
+    'recipient_email',v_request.recipient_email,
+    'expires_at',v_request.expires_at,
+    'channel',v_request.channel,
+    'offer_reference',v_contract.offer_reference,
+    'contract_publication_version_id',v_contract.contract_publication_version_id,
+    'price_plan_version_id',v_contract.price_plan_version_id,
+    'legal_bundle_version_id',v_contract.legal_bundle_version_id,
+    'contract_price_snapshot_id',v_contract.contract_price_snapshot_id
+  );
+end
+$signing_old_source$;
+ signing_wrapper constant text:=$signing_wrapper_source$BEGIN
+ PERFORM public.ediel_require_contract_records_available_v1(p_company_id,p_contract_id);
+ RETURN public.gridex_prepare_signature_before_record_retention_v1(p_company_id,p_customer_id,p_contract_id,p_token_hash,p_recipient_email,p_expires_at,p_actor_user_id,p_channel);
+END$signing_wrapper_source$;
+ signing_cee constant text:=$signing_cee_source$
+declare
+  v_contract public.customer_contracts%rowtype;
+  v_company public.companies%rowtype;
+  v_binding jsonb;
+  v_snapshot_id uuid;
+  v_snapshot jsonb;
+  v_base_components jsonb;
+  v_price_components jsonb;
+  v_pricing_model text;
+  v_request public.customer_contract_signature_requests%rowtype;
+  v_event jsonb;
+begin
+  perform public.gridex_assert_contract_permission(p_actor_user_id,'contracts.create');
+
+  if p_company_id is null or p_customer_id is null or p_contract_id is null then
+    raise exception using errcode='22023',message='signature_request_company_customer_contract_required';
+  end if;
+  if coalesce(p_token_hash,'') !~ '^[0-9a-f]{64}$' then
+    raise exception using errcode='22023',message='signature_request_token_hash_invalid';
+  end if;
+  if nullif(btrim(coalesce(p_recipient_email,'')),'') is null or position('@' in p_recipient_email)=0 then
+    raise exception using errcode='22023',message='signature_request_recipient_email_required';
+  end if;
+  if p_channel not in ('internal','website','partner_api','customer_portal') then
+    raise exception using errcode='22023',message='signature_request_channel_invalid';
+  end if;
+  if p_expires_at is null or p_expires_at <= clock_timestamp() or p_expires_at > clock_timestamp()+interval '14 days' then
+    raise exception using errcode='22023',message='signature_request_expiry_invalid';
+  end if;
+
+  select * into v_company from public.companies where id=p_company_id for share;
+  if not found or not coalesce(v_company.is_active,false) or coalesce(v_company.lifecycle_status,'')<>'active' or v_company.suspended_at is not null then
+    raise exception using errcode='55000',message='signature_request_tenant_not_operational';
+  end if;
+
+  select * into v_contract
+  from public.customer_contracts
+  where id=p_contract_id and company_id=p_company_id and customer_id=p_customer_id
+  for update;
+  if not found then
+    raise exception using errcode='P0002',message='signature_request_contract_not_found_for_tenant';
+  end if;
+  if v_contract.status in ('signed','active','terminated','cancelled','expired') or v_contract.signed_at is not null then
+    raise exception using errcode='23514',message='signature_request_contract_already_finalized';
+  end if;
+  if v_contract.status not in ('draft','pending_signature','signature_failed') then
+    raise exception using errcode='23514',message='signature_request_contract_state_invalid';
+  end if;
+
+  if v_contract.contract_publication_version_id is null
+     or v_contract.contract_product_version_id is null
+     or v_contract.price_plan_version_id is null
+     or v_contract.legal_bundle_version_id is null then
+    if v_contract.contract_offer_id is not null then
+      perform public.gridex_ensure_internal_contract_publication(p_company_id,v_contract.contract_offer_id,p_actor_user_id);
+      update public.customer_contracts
+      set contract_offer_id=v_contract.contract_offer_id,updated_by=p_actor_user_id,updated_at=now()
+      where id=v_contract.id and company_id=p_company_id
+      returning * into v_contract;
+    else
+      v_binding:=public.gridex_prepare_manual_contract_binding(
+        p_company_id,
+        jsonb_strip_nulls(jsonb_build_object(
+          'name',v_contract.contract_name,
+          'customer_type',(select c.customer_type from public.customers c where c.id=v_contract.customer_id and c.company_id=p_company_id),
+          'contract_type',v_contract.contract_type,
+          'energy_direction',v_contract.energy_direction,
+          'campaign_code',v_contract.campaign_code,
+          'campaign_version',v_contract.campaign_version,
+          'terms_version',v_contract.terms_version,
+          'binding_months',v_contract.binding_months,
+          'notice_months',v_contract.notice_months,
+          'valid_from',coalesce(v_contract.starts_at::date,current_date),
+          'valid_to',v_contract.ends_at::date
+        )),
+        coalesce(v_contract.price_snapshot,'{}'::jsonb) || jsonb_strip_nulls(jsonb_build_object(
+          'contract_type',v_contract.contract_type,
+          'energy_direction',v_contract.energy_direction,
+          'price_area',v_contract.price_area_used,
+          'fixed_price_ore_per_kwh',v_contract.fixed_price_ore_per_kwh,
+          'spot_markup_ore_per_kwh',v_contract.spot_markup_ore_per_kwh,
+          'variable_fee_ore_per_kwh',v_contract.variable_fee_ore_per_kwh,
+          'monthly_fee_sek',v_contract.monthly_fee_sek,
+          'invoice_fee_sek',v_contract.invoice_fee_sek,
+          'green_fee_mode',v_contract.green_fee_mode,
+          'green_fee_value',v_contract.green_fee_value,
+          'discount_value',v_contract.discount_value,
+          'discount_unit',v_contract.discount_unit,
+          'start_fee_sek',v_contract.start_fee_sek,
+          'admin_fee_sek',v_contract.admin_fee_sek,
+          'break_fee_sek',v_contract.break_fee_sek,
+          'vat_rate',v_contract.vat_rate
+        )),
+        p_actor_user_id
+      );
+      update public.customer_contracts set
+        contract_offer_id=nullif(v_binding->>'contract_offer_id','')::uuid,
+        contract_product_id=nullif(v_binding->>'contract_product_id','')::uuid,
+        contract_product_version_id=nullif(v_binding->>'contract_product_version_id','')::uuid,
+        contract_publication_version_id=nullif(v_binding->>'contract_publication_version_id','')::uuid,
+        price_plan_id=nullif(v_binding->>'price_plan_id','')::uuid,
+        price_plan_version_id=nullif(v_binding->>'price_plan_version_id','')::uuid,
+        price_book_id=nullif(v_binding->>'price_book_id','')::uuid,
+        legal_bundle_version_id=nullif(v_binding->>'legal_bundle_version_id','')::uuid,
+        offer_reference=v_binding->>'offer_reference',
+        commercial_snapshot=coalesce(v_binding->'commercial_snapshot','{}'::jsonb),
+        legal_snapshot=coalesce(v_binding->'legal_snapshot','{}'::jsonb),
+        updated_by=p_actor_user_id,updated_at=now()
+      where id=v_contract.id and company_id=p_company_id
+      returning * into v_contract;
+    end if;
+  end if;
+
+  if v_contract.contract_publication_version_id is null
+     or v_contract.contract_product_version_id is null
+     or v_contract.price_plan_version_id is null
+     or v_contract.legal_bundle_version_id is null then
+    raise exception using errcode='23514',message='signature_request_exact_contract_chain_missing';
+  end if;
+
+  if v_contract.contract_price_snapshot_id is null then
+    select coalesce(cpv.pricing_model,'spot') into v_pricing_model
+    from public.contract_product_versions cpv where cpv.id=v_contract.contract_product_version_id;
+    v_base_components:=coalesce(
+      v_contract.price_snapshot->'base_price_components_snapshot',
+      v_contract.commercial_snapshot->'base_price_components_snapshot',
+      v_contract.commercial_snapshot->'base_components',
+      '[]'::jsonb
+    );
+    v_price_components:=coalesce(
+      v_contract.price_snapshot->'price_components_snapshot',
+      v_contract.commercial_snapshot->'price_components_snapshot',
+      v_contract.commercial_snapshot->'price_components',
+      '[]'::jsonb
+    );
+    if jsonb_typeof(v_base_components)<>'array' then v_base_components:='[]'::jsonb; end if;
+    if jsonb_typeof(v_price_components)<>'array' then v_price_components:='[]'::jsonb; end if;
+    v_snapshot:=jsonb_strip_nulls(coalesce(v_contract.price_snapshot,'{}'::jsonb) || jsonb_build_object(
+      'snapshot_schema','gridex_contract_pricing_v7_signed_receipt',
+      'source','signature_prepare',
+      'company_id',v_contract.company_id,
+      'contract_id',v_contract.id,
+      'contract_number',v_contract.contract_number,
+      'customer_number',v_contract.customer_number,
+      'contract_type',v_contract.contract_type,
+      'energy_direction',v_contract.energy_direction,
+      'price_area',v_contract.price_area_used,
+      'fixed_price_ore_per_kwh',v_contract.fixed_price_ore_per_kwh,
+      'spot_markup_ore_per_kwh',v_contract.spot_markup_ore_per_kwh,
+      'variable_fee_ore_per_kwh',v_contract.variable_fee_ore_per_kwh,
+      'monthly_fee_sek',v_contract.monthly_fee_sek,
+      'invoice_fee_sek',v_contract.invoice_fee_sek,
+      'green_fee_mode',v_contract.green_fee_mode,
+      'green_fee_value',v_contract.green_fee_value,
+      'discount_value',v_contract.discount_value,
+      'discount_unit',v_contract.discount_unit,
+      'start_fee_sek',v_contract.start_fee_sek,
+      'admin_fee_sek',v_contract.admin_fee_sek,
+      'break_fee_sek',v_contract.break_fee_sek,
+      'vat_rate',v_contract.vat_rate,
+      'binding_months',v_contract.binding_months,
+      'notice_months',v_contract.notice_months,
+      'starts_at',v_contract.starts_at,
+      'ends_at',v_contract.ends_at,
+      'offer_reference',v_contract.offer_reference,
+      'contract_publication_version_id',v_contract.contract_publication_version_id,
+      'contract_product_version_id',v_contract.contract_product_version_id,
+      'price_plan_version_id',v_contract.price_plan_version_id,
+      'legal_bundle_version_id',v_contract.legal_bundle_version_id,
+      'base_price_components_snapshot',v_base_components,
+      'price_components_snapshot',v_price_components
+    ));
+    v_snapshot:=private.gridex_normalize_fixed_area_snapshot_v1(v_snapshot);
+    insert into public.contract_price_snapshots(
+      company_id,contract_id,customer_id,price_plan_version_id,pricing_model,
+      base_price_components_snapshot,price_components_snapshot,snapshot_json,
+      valid_from,valid_to,source,contract_number,customer_number,snapshot_hash,
+      snapshot_quality,snapshot_schema_version
+    ) values(
+      p_company_id,v_contract.id,v_contract.customer_id,v_contract.price_plan_version_id,
+      coalesce(v_pricing_model,'spot'),v_snapshot->'base_price_components_snapshot',
+      coalesce(v_snapshot->'price_components_snapshot','[]'::jsonb),v_snapshot,
+      coalesce(v_contract.starts_at::date,current_date),v_contract.ends_at::date,
+      'signature_prepare',v_contract.contract_number,v_contract.customer_number,
+      encode(extensions.digest(convert_to(v_snapshot::text,'UTF8'),'sha256'),'hex'),
+      'canonical','gridex_contract_pricing_v7_signed_receipt'
+    ) returning id into v_snapshot_id;
+    update public.customer_contracts
+    set contract_price_snapshot_id=v_snapshot_id,price_snapshot=v_snapshot,updated_by=p_actor_user_id,updated_at=now()
+    where id=v_contract.id and company_id=p_company_id
+    returning * into v_contract;
+  end if;
+
+  if not exists(
+    select 1
+    from public.contract_publication_versions cpv
+    join public.contract_publications cp on cp.id=cpv.contract_publication_id
+    join public.tenant_contract_assignments ta on ta.id=cp.assignment_id and ta.company_id=p_company_id
+    join public.contract_product_versions ctv on ctv.id=cpv.contract_product_version_id
+    join public.price_plan_versions ppv on ppv.id=cpv.price_plan_version_id
+    join public.legal_bundle_versions lbv on lbv.id=cpv.legal_bundle_version_id
+    join public.contract_price_snapshots cps on cps.id=v_contract.contract_price_snapshot_id and cps.contract_id=v_contract.id and cps.company_id=p_company_id
+    where cpv.id=v_contract.contract_publication_version_id
+      and cpv.contract_product_version_id=v_contract.contract_product_version_id
+      and cpv.price_plan_version_id=v_contract.price_plan_version_id
+      and cpv.legal_bundle_version_id=v_contract.legal_bundle_version_id
+      and cpv.status='published' and cpv.locked_at is not null
+      and ctv.status='approved' and ctv.locked_at is not null
+      and ppv.status in ('published','approved','active') and ppv.locked_at is not null
+      and lbv.status='published' and lbv.locked_at is not null and cardinality(lbv.unresolved_variables)=0
+      and nullif(cps.snapshot_hash,'') is not null
+  ) then
+    raise exception using errcode='23514',message='signature_request_exact_locked_chain_invalid';
+  end if;
+  if not exists(select 1 from public.legal_bundle_version_documents d where d.legal_bundle_version_id=v_contract.legal_bundle_version_id) then
+    raise exception using errcode='23514',message='signature_request_legal_document_set_missing';
+  end if;
+
+  if v_contract.status in ('draft','signature_failed') then
+    update public.customer_contracts
+    set status='pending_signature',lifecycle_stage='agreement_ready',updated_by=p_actor_user_id,updated_at=now()
+    where id=v_contract.id and company_id=p_company_id
+    returning * into v_contract;
+  end if;
+
+  -- Wait for current pending request writers before checking wall-clock expiry.
+  -- The contract lock serializes preparation; mark-sent locks these rows directly.
+  perform id
+  from public.customer_contract_signature_requests
+  where company_id=p_company_id and customer_contract_id=p_contract_id
+    and used_at is null and revoked_at is null
+  order by id for update;
+
+  -- Revalidate freshness after the company/contract/publication/snapshot locks.
+  -- A failed recheck rolls back all preparation; no prior link is revoked.
+  if p_expires_at is null or p_expires_at <= clock_timestamp() or p_expires_at > clock_timestamp()+interval '14 days' then
+    raise exception using errcode='22023',message='signature_request_expiry_invalid';
+  end if;
+
+  update public.customer_contract_signature_requests
+  set revoked_at=now()
+  where company_id=p_company_id and customer_contract_id=p_contract_id
+    and used_at is null and revoked_at is null;
+
+  insert into public.customer_contract_signature_requests(
+    company_id,customer_id,customer_contract_id,token_hash,recipient_email,
+    channel,expires_at,created_by,metadata
+  ) values(
+    p_company_id,p_customer_id,p_contract_id,p_token_hash,lower(btrim(p_recipient_email)),
+    p_channel,p_expires_at,p_actor_user_id,
+    jsonb_build_object(
+      'customer_full_name',(select coalesce(nullif(btrim(c.full_name),''),nullif(btrim(c.company_name),''),
+        nullif(btrim(concat_ws(' ',c.first_name,c.last_name)),''))
+        from public.customers c where c.id=p_customer_id and c.company_id=p_company_id),
+      'contract_number',v_contract.contract_number,
+      'offer_reference',v_contract.offer_reference,
+      'contract_publication_version_id',v_contract.contract_publication_version_id,
+      'price_plan_version_id',v_contract.price_plan_version_id,
+      'legal_bundle_version_id',v_contract.legal_bundle_version_id,
+      'contract_price_snapshot_id',v_contract.contract_price_snapshot_id
+    )
+  ) returning * into v_request;
+
+  v_event:=public.gridex_record_customer_contract_event_v1(
+    p_company_id,v_contract.id,v_contract.customer_id,'signature_requested',now(),
+    'Online-signering begärd',
+    jsonb_build_object('signature_request_id',v_request.id,'channel',p_channel,'expires_at',p_expires_at),
+    p_actor_user_id,null,
+    encode(extensions.digest(convert_to((v_request.id::text||':signature_requested'),'UTF8'),'sha256'),'hex')
+  );
+
+  return jsonb_build_object(
+    'ok',true,
+    'request_id',v_request.id,
+    'company_id',p_company_id,
+    'customer_id',v_contract.customer_id,
+    'contract_id',v_contract.id,
+    'contract_number',v_contract.contract_number,
+    'contract_name',v_contract.contract_name,
+    'status',v_contract.status,
+    'recipient_email',v_request.recipient_email,
+    'expires_at',v_request.expires_at,
+    'channel',v_request.channel,
+    'offer_reference',v_contract.offer_reference,
+    'contract_publication_version_id',v_contract.contract_publication_version_id,
+    'price_plan_version_id',v_contract.price_plan_version_id,
+    'legal_bundle_version_id',v_contract.legal_bundle_version_id,
+    'contract_price_snapshot_id',v_contract.contract_price_snapshot_id
+  );
+end
+$signing_cee_source$;
+
  projection_before pg_catalog.pg_proc%rowtype; projection_during pg_catalog.pg_proc%rowtype; projection_after pg_catalog.pg_proc%rowtype;
  projection_target oid; projection_definition text; projection_normalized boolean:=false;
  projection_old constant text:=$projection_old$
@@ -255,6 +823,78 @@ BEGIN
  executable:=substring(raw from 1 for 79) || substring(raw from 86 for 966460) || substring(raw from 966553);
  IF octet_length(executable)<>966540 OR encode(sha256(executable),'hex')<>'af1652d62cadee0e0184af0574342c0d5104982705eab5b100c51fdf90afc02b' THEN RAISE EXCEPTION 'ops_compact_transport_executable_mismatch'; END IF;
 
+
+ LOCK TABLE ops_api_sql_transport_20261013.payload_parts IN ACCESS EXCLUSIVE MODE;
+ 
+ IF NOT EXISTS(SELECT FROM pg_catalog.pg_namespace n WHERE n.nspname='ops_api_sql_transport_20261013' AND n.nspowner=(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='postgres')) THEN RAISE EXCEPTION 'ops_sql_transport_schema_owner_drift'; END IF;
+ IF EXISTS(SELECT FROM pg_catalog.pg_namespace n CROSS JOIN LATERAL pg_catalog.aclexplode(coalesce(n.nspacl,pg_catalog.acldefault('n',n.nspowner))) a WHERE n.nspname='ops_api_sql_transport_20261013' AND (a.grantee<>n.nspowner OR a.grantor<>n.nspowner OR a.is_grantable)) THEN RAISE EXCEPTION 'ops_sql_transport_schema_acl_drift'; END IF;
+ IF EXISTS(SELECT FROM pg_catalog.pg_roles r WHERE r.rolname IN('anon','authenticated','service_role') AND pg_catalog.pg_has_role(r.oid,(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='postgres'),'MEMBER')) THEN RAISE EXCEPTION 'ops_sql_transport_app_owner_membership'; END IF;
+ IF (SELECT array_agg(c.relname||':'||c.relkind::text ORDER BY c.relname COLLATE "C") FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='ops_api_sql_transport_20261013') IS DISTINCT FROM ARRAY['payload_parts:r','payload_parts_pkey:i']::text[] THEN RAISE EXCEPTION 'ops_sql_transport_relation_set_drift'; END IF;
+ IF NOT EXISTS(SELECT FROM pg_catalog.pg_class c WHERE c.oid='ops_api_sql_transport_20261013.payload_parts'::regclass AND c.relkind='r' AND c.relpersistence='p' AND c.relowner=(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='postgres') AND c.relrowsecurity AND c.relforcerowsecurity AND NOT c.relispartition AND c.reltablespace=0 AND c.reloptions IS NULL AND c.relam=(SELECT oid FROM pg_catalog.pg_am WHERE amname='heap')) THEN RAISE EXCEPTION 'ops_sql_transport_table_shape_drift'; END IF;
+ IF EXISTS(SELECT FROM pg_catalog.pg_class c CROSS JOIN LATERAL pg_catalog.aclexplode(coalesce(c.relacl,pg_catalog.acldefault('r',c.relowner))) a WHERE c.oid='ops_api_sql_transport_20261013.payload_parts'::regclass AND (a.grantee<>c.relowner OR a.grantor<>c.relowner OR a.is_grantable)) THEN RAISE EXCEPTION 'ops_sql_transport_table_acl_drift'; END IF;
+ IF (SELECT jsonb_agg(jsonb_build_array(a.attname,pg_catalog.format_type(a.atttypid,a.atttypmod),a.attnotnull,a.attidentity,a.attgenerated) ORDER BY a.attnum) FROM pg_catalog.pg_attribute a WHERE a.attrelid='ops_api_sql_transport_20261013.payload_parts'::regclass AND a.attnum>0 AND NOT a.attisdropped) IS DISTINCT FROM '[["part_no","integer",true,"",""],["payload","bytea",true,"",""],["part_sha256","text",true,"",""]]'::jsonb OR EXISTS(SELECT FROM pg_catalog.pg_attribute WHERE attrelid='ops_api_sql_transport_20261013.payload_parts'::regclass AND attnum>0 AND (attisdropped OR atthasdef OR attacl IS NOT NULL)) THEN RAISE EXCEPTION 'ops_sql_transport_column_drift'; END IF;
+ IF EXISTS(SELECT FROM pg_catalog.pg_attribute a WHERE a.attrelid='ops_api_sql_transport_20261013.payload_parts'::regclass AND a.attnum>0 AND (a.attndims<>0 OR a.atttypmod<>-1 OR a.attcompression<>'' OR a.atttypid<>CASE a.attname WHEN 'part_no' THEN 'pg_catalog.int4'::regtype WHEN 'payload' THEN 'pg_catalog.bytea'::regtype WHEN 'part_sha256' THEN 'pg_catalog.text'::regtype ELSE 0::oid END OR a.attcollation<>CASE WHEN a.attname='part_sha256' THEN 'pg_catalog."default"'::regcollation ELSE 0::oid END OR a.attstorage<>CASE WHEN a.attname='part_no' THEN 'p'::"char" ELSE 'x'::"char" END)) THEN RAISE EXCEPTION 'ops_sql_transport_column_type_collation_drift'; END IF;
+ IF (SELECT jsonb_agg(jsonb_build_array(c.conname,c.contype,pg_catalog.pg_get_constraintdef(c.oid,false),c.convalidated,c.condeferrable,c.condeferred) ORDER BY c.conname COLLATE "C") FROM pg_catalog.pg_constraint c WHERE c.conrelid='ops_api_sql_transport_20261013.payload_parts'::regclass) IS DISTINCT FROM '[["payload_parts_pkey","p","PRIMARY KEY (part_no)",true,false,false]]'::jsonb THEN RAISE EXCEPTION 'ops_sql_transport_constraint_drift'; END IF;
+ IF NOT EXISTS(SELECT FROM pg_catalog.pg_index i WHERE i.indexrelid='ops_api_sql_transport_20261013.payload_parts_pkey'::regclass AND i.indrelid='ops_api_sql_transport_20261013.payload_parts'::regclass AND i.indisprimary AND i.indisunique AND i.indisvalid AND i.indisready AND i.indexprs IS NULL AND i.indpred IS NULL AND pg_catalog.pg_get_indexdef(i.indexrelid)='CREATE UNIQUE INDEX payload_parts_pkey ON ops_api_sql_transport_20261013.payload_parts USING btree (part_no)') THEN RAISE EXCEPTION 'ops_sql_transport_index_drift'; END IF;
+ IF EXISTS(SELECT FROM pg_catalog.pg_trigger WHERE tgrelid='ops_api_sql_transport_20261013.payload_parts'::regclass) OR EXISTS(SELECT FROM pg_catalog.pg_policy WHERE polrelid='ops_api_sql_transport_20261013.payload_parts'::regclass) OR EXISTS(SELECT FROM pg_catalog.pg_rewrite WHERE ev_class='ops_api_sql_transport_20261013.payload_parts'::regclass) OR EXISTS(SELECT FROM pg_catalog.pg_inherits WHERE inhrelid='ops_api_sql_transport_20261013.payload_parts'::regclass OR inhparent='ops_api_sql_transport_20261013.payload_parts'::regclass) THEN RAISE EXCEPTION 'ops_sql_transport_execution_adjunct_drift'; END IF;
+ IF (SELECT array_agg(t.typname||':'||t.typtype::text ORDER BY t.typname COLLATE "C") FROM pg_catalog.pg_type t JOIN pg_catalog.pg_namespace n ON n.oid=t.typnamespace WHERE n.nspname='ops_api_sql_transport_20261013') IS DISTINCT FROM ARRAY['_payload_parts:b','payload_parts:c']::text[] THEN RAISE EXCEPTION 'ops_sql_transport_type_set_drift'; END IF;
+ IF EXISTS(SELECT FROM pg_catalog.pg_type t JOIN pg_catalog.pg_namespace n ON n.oid=t.typnamespace WHERE n.nspname='ops_api_sql_transport_20261013' AND t.typowner<>(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='postgres')) OR EXISTS(SELECT FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='ops_api_sql_transport_20261013' AND c.relowner<>(SELECT oid FROM pg_catalog.pg_roles WHERE rolname='postgres')) THEN RAISE EXCEPTION 'ops_sql_transport_internal_owner_drift'; END IF;
+ IF EXISTS(SELECT FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='ops_api_sql_transport_20261013') OR EXISTS(SELECT FROM pg_catalog.pg_operator p JOIN pg_catalog.pg_namespace n ON n.oid=p.oprnamespace WHERE n.nspname='ops_api_sql_transport_20261013') OR EXISTS(SELECT FROM pg_catalog.pg_collation p JOIN pg_catalog.pg_namespace n ON n.oid=p.collnamespace WHERE n.nspname='ops_api_sql_transport_20261013') OR EXISTS(SELECT FROM pg_catalog.pg_conversion p JOIN pg_catalog.pg_namespace n ON n.oid=p.connamespace WHERE n.nspname='ops_api_sql_transport_20261013') OR EXISTS(SELECT FROM pg_catalog.pg_statistic_ext p JOIN pg_catalog.pg_namespace n ON n.oid=p.stxnamespace WHERE n.nspname='ops_api_sql_transport_20261013') OR EXISTS(SELECT FROM pg_catalog.pg_ts_config p JOIN pg_catalog.pg_namespace n ON n.oid=p.cfgnamespace WHERE n.nspname='ops_api_sql_transport_20261013') OR EXISTS(SELECT FROM pg_catalog.pg_ts_dict p JOIN pg_catalog.pg_namespace n ON n.oid=p.dictnamespace WHERE n.nspname='ops_api_sql_transport_20261013') OR EXISTS(SELECT FROM pg_catalog.pg_ts_parser p JOIN pg_catalog.pg_namespace n ON n.oid=p.prsnamespace WHERE n.nspname='ops_api_sql_transport_20261013') OR EXISTS(SELECT FROM pg_catalog.pg_ts_template p JOIN pg_catalog.pg_namespace n ON n.oid=p.tmplnamespace WHERE n.nspname='ops_api_sql_transport_20261013') THEN RAISE EXCEPTION 'ops_sql_transport_unknown_namespace_object'; END IF;
+
+ IF (SELECT array_agg(part_no ORDER BY part_no) FROM ops_api_sql_transport_20261013.payload_parts) IS DISTINCT FROM ARRAY[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51]::integer[] THEN RAISE EXCEPTION 'ops_sql_transport_missing_or_extra_parts'; END IF;
+ IF EXISTS(WITH expected(part_no,bytes,sha256) AS(VALUES (1,131072,'975ae1b44340f10fb267fc9f9fa83b56101058af4f39edd76315e12a98ee47e1'),(2,131072,'b5f7727500caac93ba814b972e35f33a89143645885293651fe3c79d6370e1e1'),(3,131072,'76d7020bb5bbc19978b8dcd77dca6918db6e1e6cb5c77a357aa7d2385eb8d00d'),(4,131072,'379f99bc8633ea6bd3a8115594a6cc3fd6917f6ee769f7597bf2ca023412764f'),(5,131072,'367b445e0ac19d843b623e78940562d8ac399502ef92641b08fa7a7f68106b2c'),(6,131072,'d3fe3f36d73e639f4c0c6cd24b9f9b98ae96f5c0850e545b2075d83c797f38e2'),(7,131072,'daa468f5fa1569a26edb3513dd1cf47d019f3763eb3accacae2448ff1dd236b3'),(8,131072,'6d64bca32664a4a605829dd4618b80aea9b21066a251769540b3def1b8139a3a'),(9,131072,'0a2204d709ff773038b93080ff01bd438cebf206311ceae62ec704570892e624'),(10,131072,'ec0a36a06cadfad185335166bbed0a8d84e46220312daa33b00ad7d9859a622a'),(11,131072,'949ac1fea5271c12a63a4845bad0789f94de8b06ea9e93390730d93174e66142'),(12,131072,'96f46c6616d171f61661ec20ea02492e5e46d872f2a8df0f2fc48a62480a94c2'),(13,131072,'db6b0941991a3029285d6ce31a6264808c44bac65b9133f4d1d3bb61bac2ec15'),(14,131072,'4cfc9c9b2bd20df2afbc170f48d183c792624fd3dd106ca78d79f7b7b4ef1b66'),(15,131072,'e0ec1160ac01cb5186ea02cd6f342b8793c929ddf88d80c90b033defd05f115c'),(16,131072,'638757110b1887c5c7ee8b7f5708e221eef56e9747520e9e49d2919b774294f7'),(17,131072,'4a616a8a2ed6642a495cdd564740c43e2e7c4cd465a7b175620719fffdb356ed'),(18,131072,'a092ec77cc8d85508deac6b1441b353ceea7b77506c68af524c2769bad2dc475'),(19,131072,'cd35d674541a0987fc05b46dd30176465e63bea6ff198b0e670d2bd2b750a7a3'),(20,131072,'d2b0257ce4ae0ebeda2bd44f86be37dfb978d08f2d30652acac06ff33321440e'),(21,131072,'b80aeb275935b572b9009b55e11015a2ee8aeeb9f32d927227d1842ea62513ba'),(22,131072,'3dd09640a52db6a3df1c00ebc7f505eea11df2d7ecb47bc8d83d07b643492780'),(23,131072,'5b96eb93808909de88b684957e7dfb7a6765e6f55da1f28b8f7b09f8e0e358de'),(24,131072,'8902effd972edc277276adff32fe7d0ec9520795935348469531321607c8abd4'),(25,131072,'366cea81c8854c6c082799cfef99a87f28a3e7da2a813552eb699cebeb7ccbef'),(26,131072,'105ce2924fbe1ff0c01072b401779e29b3718436e1b3fa9a7a5a6854e0f4ceca'),(27,131072,'32c45b3c3a25352b9c6857d70051bd4b650b51aad8beb0619b87af758aa47955'),(28,131072,'e90ae558f5d7b00d1645e7518bd5443bba9326216300c767ff019ee2e0f25989'),(29,131072,'d432289f907c4997709539f40bf862789e5e7fa077f78ab7eaaa75d790697c60'),(30,131072,'77972b50e696f78cb35ebdbfa1aba84aafa6c94a1583f9ddfa465356eef7e859'),(31,131072,'ae8338aa6f98f25508d70d7eab513dd5967ce555919e08537d0979c60050375d'),(32,131072,'5d18d95b7fcd63c37abc4b1461d0d8db236a8d74291294663d574dec49ce7be8'),(33,131072,'9e0974c088c554260ce74fec70a136ac1dd13ddd76a947d4c7c605e6b0a21597'),(34,131072,'260d3801adbc656f3d6f89bf23240d89ab96c90b628c6ceb003232439a60bd39'),(35,131072,'63897df7625c6df36546d40ad1cd0184dbd32afbb968ce00b7a43de465e18a68'),(36,131072,'657f1cad607408b899977473e55343288afb47c89b2284efdd0ba49be4f0d0b2'),(37,131072,'d39c9cfe12977b9ef865abeea06ae9f98982702c9f562c519699407f0c6bb92b'),(38,131072,'ff5cb1bc019dae8a2c8b5d884fb205c1d5437e2993b368e38dbd38d603c38a2c'),(39,131072,'24acd1e8569241699adf0c4d2cb840d0844366154d6781195b3b5b2d74ef101a'),(40,131072,'3f504bb3aeb6be485653f0a0c1edc7427738c638ac31a4ecae91f80be1199450'),(41,131072,'1f62a9d60e5c47f3c80c6c271be51e6dd347c053bfec1e9e36400aff1680aae5'),(42,131072,'b33d05c36b269b642a78b38c54db8d53e3c0aa62fba9f067a7bd9624266b4153'),(43,131072,'3db4e0c7071cb62f931173a2a752b8f0890b1231f55abb65c95f62f57a206262'),(44,131072,'21b24221b75a4006d9bfc08ed924f3578194b06a010f3f3a76f6932d1873567d'),(45,131072,'d87accd2a00b1e08939e675561d7872905c4d1030ec8a0bc2dbec80681ba2b4e'),(46,131072,'d877792ae126077ec5fde37fbf52a63c8a7011b1c9a170b11daca694ddcc6514'),(47,131072,'b83b96202dad2e89e880121d05daffccfdbfdda3133e697e4b48c824bbd5c1b4'),(48,131072,'121d901dacfe95f9e6f0b88f628655f74ead7551ed6edbe7bb9eaaf7b2c54d03'),(49,131072,'b15c3964ae25614aa31dc515562ed4978f997d490f80c4093a9a360f24101aba'),(50,131072,'383ffd42a0b7eef5e7876538f3adc4fce8804b035af6f80376f44bf05559aa17'),(51,74749,'9e33e3f68244ba53c91980acbe295419819f334bd4dc1fcb599cf1ab4532f1e2')) SELECT FROM expected e LEFT JOIN ops_api_sql_transport_20261013.payload_parts p USING(part_no) WHERE pg_catalog.octet_length(p.payload) IS DISTINCT FROM e.bytes OR p.part_sha256 IS DISTINCT FROM e.sha256 OR pg_catalog.encode(pg_catalog.sha256(p.payload),'hex') IS DISTINCT FROM e.sha256) THEN RAISE EXCEPTION 'ops_sql_transport_part_hash_invalid'; END IF;
+ SELECT pg_catalog.string_agg(payload,''::bytea ORDER BY part_no) INTO signing_source52 FROM ops_api_sql_transport_20261013.payload_parts;
+ IF pg_catalog.octet_length(signing_source52)<>6628349 OR pg_catalog.encode(pg_catalog.sha256(signing_source52),'hex')<>'bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600' THEN RAISE EXCEPTION 'ops_sql_transport_approved_source_hash_invalid'; END IF;
+
+
+ signing_public:=to_regprocedure('public.gridex_prepare_customer_contract_signature_request_v1(uuid,uuid,uuid,text,text,timestamptz,uuid,text)');
+ signing_core:=to_regprocedure('public.gridex_prepare_signature_before_record_retention_v1(uuid,uuid,uuid,text,text,timestamptz,uuid,text)');
+ SELECT * INTO STRICT signing_public_before FROM pg_catalog.pg_proc WHERE oid=signing_public;
+ SELECT * INTO STRICT signing_core_before FROM pg_catalog.pg_proc WHERE oid=signing_core;
+ signing_public_definition:=pg_get_functiondef(signing_public);
+ signing_core_definition:=pg_get_functiondef(signing_core);
+ IF md5(signing_old)<>'2be908317a4861f6f38fcc293df30845'
+ OR md5(signing_wrapper)<>'1496a94629cf9f43d9fbd5d7d0f3f8e5'
+ OR md5(signing_cee)<>'cee1222f070383e440a9fd4f71cdf591'
+ THEN RAISE EXCEPTION 'signing_atomic_literal_unknown'; END IF;
+ IF signing_public_before.prosrc=signing_wrapper AND md5(signing_public_before.prosrc)='1496a94629cf9f43d9fbd5d7d0f3f8e5'
+ AND signing_core_before.prosrc=signing_cee AND md5(signing_core_before.prosrc)='cee1222f070383e440a9fd4f71cdf591' THEN
+  signing_profile:='canonical_wrapper';
+ ELSIF signing_public_before.prosrc=signing_cee AND md5(signing_public_before.prosrc)='cee1222f070383e440a9fd4f71cdf591'
+ AND md5(signing_public_definition)='0e6cbec5c3c542330d33e88be75ed060'
+ AND signing_core_before.prosrc=signing_old AND md5(signing_core_before.prosrc)='2be908317a4861f6f38fcc293df30845' THEN
+  signing_profile:='native_public_core';
+ ELSE RAISE EXCEPTION 'signing_atomic_unknown_or_mixed_profile'; END IF;
+ FOR signing_current IN SELECT p.* FROM pg_catalog.pg_proc p WHERE p.oid IN(signing_public,signing_core) LOOP
+  signing_expected_acl:=CASE WHEN signing_current.oid=signing_public THEN ARRAY['postgres=X/postgres','service_role=X/postgres']::aclitem[] ELSE ARRAY['postgres=X/postgres']::aclitem[] END;
+  signing_expected_config:=CASE WHEN signing_current.oid=signing_public AND signing_profile='canonical_wrapper' THEN ARRAY['search_path=pg_catalog']::text[] ELSE ARRAY['search_path=public, private, extensions, pg_temp']::text[] END;
+  IF pg_get_userbyid(signing_current.proowner) IS DISTINCT FROM 'postgres'
+  OR signing_current.pronamespace IS DISTINCT FROM 'public'::regnamespace OR signing_current.prokind IS DISTINCT FROM 'f'::"char"
+  OR signing_current.proacl IS DISTINCT FROM signing_expected_acl
+  OR signing_current.proargtypes IS DISTINCT FROM ARRAY['uuid'::regtype::oid,'uuid'::regtype::oid,'uuid'::regtype::oid,'text'::regtype::oid,'text'::regtype::oid,'timestamptz'::regtype::oid,'uuid'::regtype::oid,'text'::regtype::oid]::oidvector
+  OR signing_current.pronargs IS DISTINCT FROM 8::smallint OR signing_current.proallargtypes IS NOT NULL OR signing_current.proargmodes IS NOT NULL
+  OR signing_current.proargnames IS DISTINCT FROM ARRAY['p_company_id','p_customer_id','p_contract_id','p_token_hash','p_recipient_email','p_expires_at','p_actor_user_id','p_channel']::text[]
+  OR signing_current.prorettype IS DISTINCT FROM 'jsonb'::regtype OR signing_current.proretset
+  OR signing_current.pronargdefaults IS DISTINCT FROM 1::smallint OR pg_get_expr(signing_current.proargdefaults,0) IS DISTINCT FROM $signing_default$'internal'::text$signing_default$
+  OR NOT signing_current.prosecdef OR signing_current.proisstrict OR signing_current.proleakproof
+  OR signing_current.provolatile IS DISTINCT FROM 'v'::"char" OR signing_current.proparallel IS DISTINCT FROM 'u'::"char"
+  OR signing_current.proconfig IS DISTINCT FROM signing_expected_config
+  OR(SELECT lanname FROM pg_language WHERE oid=signing_current.prolang) IS DISTINCT FROM 'plpgsql'
+  OR signing_current.procost IS DISTINCT FROM 100::real OR signing_current.prorows IS DISTINCT FROM 0::real
+  OR signing_current.provariadic IS DISTINCT FROM 0::oid OR signing_current.prosupport IS DISTINCT FROM 0::oid
+  OR signing_current.protrftypes IS NOT NULL OR signing_current.probin IS NOT NULL OR signing_current.prosqlbody IS NOT NULL
+  THEN RAISE EXCEPTION 'signing_atomic_full_metadata_unknown'; END IF;
+ END LOOP;
+ IF signing_profile='canonical_wrapper' THEN
+  IF strpos(signing_core_definition,signing_cee)=0 THEN RAISE EXCEPTION 'signing_atomic_core_definition_unknown'; END IF;
+  EXECUTE replace(signing_core_definition,signing_cee,signing_old);
+ END IF;
+ SELECT * INTO STRICT signing_core_during FROM pg_catalog.pg_proc WHERE oid=signing_core;
+ IF(to_jsonb(signing_core_during)-'prosrc') IS DISTINCT FROM(to_jsonb(signing_core_before)-'prosrc')
+ OR signing_core_during.prosrc IS DISTINCT FROM signing_old
+ OR(SELECT to_jsonb(p) FROM pg_catalog.pg_proc p WHERE p.oid=signing_public) IS DISTINCT FROM to_jsonb(signing_public_before)
+ THEN RAISE EXCEPTION 'signing_atomic_normalization_changed_identity'; END IF;
+
  -- Both exact source literals and full known function ABI/attributes are mandatory.
  projection_target:=to_regprocedure('gridex_prodat_object_batch.require_wire_projection_v1(text,jsonb,jsonb,text,uuid)');
  SELECT * INTO STRICT projection_before FROM pg_catalog.pg_proc WHERE oid=projection_target;
@@ -270,7 +910,7 @@ BEGIN
  OR projection_before.prosecdef OR projection_before.proisstrict OR projection_before.proleakproof
  OR projection_before.provolatile<>'v' OR projection_before.proparallel<>'u'
  OR projection_before.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog']::text[]
- OR (SELECT lanname FROM pg_catalog.pg_language WHERE oid=projection_before.prolang)<>'plpgsql'
+ OR (SELECT lanname FROM pg_catalog.pg_language WHERE oid=projection_before.prolang) IS DISTINCT FROM 'plpgsql'
  OR projection_before.procost<>100 OR projection_before.prorows<>0 OR projection_before.provariadic<>0 OR projection_before.prosupport<>0
  OR projection_before.protrftypes IS NOT NULL OR projection_before.probin IS NOT NULL OR projection_before.prosqlbody IS NOT NULL
  THEN RAISE EXCEPTION 'sc031_atomic_replay_projection_full_metadata_unknown'; END IF;
@@ -294,6 +934,22 @@ BEGIN
   RAISE EXCEPTION 'sc031_atomic_replay_projection_body_unknown';
  END IF;
  EXECUTE convert_from(executable,'UTF8');
+ SELECT * INTO STRICT signing_public_after FROM pg_catalog.pg_proc WHERE oid=signing_public;
+ SELECT * INTO STRICT signing_core_during FROM pg_catalog.pg_proc WHERE oid=signing_core;
+ IF to_jsonb(signing_public_after) IS DISTINCT FROM to_jsonb(signing_public_before)
+ OR pg_get_functiondef(signing_public) IS DISTINCT FROM signing_public_definition
+ OR(to_jsonb(signing_core_during)-'prosrc') IS DISTINCT FROM(to_jsonb(signing_core_before)-'prosrc')
+ OR signing_core_during.prosrc IS DISTINCT FROM signing_old
+ THEN RAISE EXCEPTION 'signing_atomic_installer_changed_known_signing_profile'; END IF;
+ IF signing_profile='canonical_wrapper' THEN EXECUTE signing_core_definition; END IF;
+ SELECT * INTO STRICT signing_public_after FROM pg_catalog.pg_proc WHERE oid=signing_public;
+ SELECT * INTO STRICT signing_core_after FROM pg_catalog.pg_proc WHERE oid=signing_core;
+ IF to_jsonb(signing_public_after) IS DISTINCT FROM to_jsonb(signing_public_before)
+ OR to_jsonb(signing_core_after) IS DISTINCT FROM to_jsonb(signing_core_before)
+ OR pg_get_functiondef(signing_public) IS DISTINCT FROM signing_public_definition
+ OR pg_get_functiondef(signing_core) IS DISTINCT FROM signing_core_definition
+ THEN RAISE EXCEPTION 'signing_atomic_exact_final_signing_rows_not_restored'; END IF;
+
  -- Restore only after every unchanged sealed component/global assertion completes.
  SELECT * INTO STRICT projection_during FROM pg_catalog.pg_proc WHERE oid=projection_target;
  IF (to_jsonb(projection_during)-'prosrc') IS DISTINCT FROM (to_jsonb(projection_before)-'prosrc')
