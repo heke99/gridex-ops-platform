@@ -521,6 +521,27 @@ it('actual canonical functional owner and native reservations qualify same/diffe
 })
 
 type Sc046Shape = 'E66-512' | 'S01-532'
+// Stage attribution preserves the original native error and SQLSTATE as cause.
+// The first F E66 failure did not expose its phase; no phase is inferred here.
+async function sc046Consume<T>(shape: Sc046Shape, stage: string, consume: () => Promise<T>): Promise<T> {
+  try { return await consume() } catch (cause) {
+    const detail = cause instanceof Error ? cause.message : String((cause as { message?: unknown })?.message ?? cause)
+    const error = new Error(`SC046 ${shape} stage=${stage}: ${detail}`, { cause })
+    Object.assign(error, { code: (cause as { code?: unknown })?.code })
+    throw error
+  }
+}
+function sc046MeterProjection(company: string) {
+  return sql<{ normalized: Record<string, unknown>[]; links: Record<string, unknown>[] }>(`SELECT jsonb_build_object(
+    'normalized',(SELECT coalesce(jsonb_agg(to_jsonb(n) ORDER BY id),'[]') FROM public.normalized_metering_values n WHERE company_id=${literal(company)}),
+    'links',(SELECT coalesce(jsonb_agg(to_jsonb(l) ORDER BY id),'[]') FROM public.metering_value_sources l WHERE company_id=${literal(company)}))`)
+}
+async function sc046DirectMeter(company: string, actor: string, source: EdielMessageRow, reference: string, override?: Record<string, unknown>) {
+  const contract = sql<Record<string, unknown>>(`SELECT contract FROM gridex_utilts_binding.contracts WHERE company_id=${literal(company)} AND source_message_id=${literal(source.id)} AND transaction_id=${literal(reference)}`)
+  expect(contract).toBeTruthy()
+  return supabaseService.rpc('gridex_consume_utilts_metering_v1', { p_company_id: company, p_source_message_id: source.id,
+    p_transaction_id: reference, p_observation_ordinal: 0, p_actor_id: actor, p_expected_contract: override ?? contract })
+}
 type Sc046BusinessRows = { meter: Record<string, unknown>[]; billing: Record<string, unknown>[]; requestPayload: unknown }
 function sc046BusinessRows(company: string, request: string): Sc046BusinessRows {
   return sql(`SELECT jsonb_build_object(
@@ -545,9 +566,9 @@ async function seedSc046(shape: Sc046Shape) {
     sql(`UPDATE public.ediel_route_profiles SET application_reference='23-DDK-S01-S' WHERE id=${literal(f.ids.profile)} AND company_id=${literal(f.ids.company)}`)
   }
   const receptionActor = await decisionUser(f.ids.company, ['communication.send'], randomUUID() + 'Aa1!')
-  const insert = async (label: 'NEWER' | 'OLDER' | 'NEWEST', versionTime: string, quantity: string) => {
+  const insert = async (label: 'NEWER' | 'OLDER' | 'NEWEST' | 'EQUAL', versionTime: string, quantity: string) => {
     const reference = `SC046-${shape}-${label}`
-    const receivedAt = `2026-10-15T20:${label === 'NEWER' ? '00' : label === 'OLDER' ? '01' : '02'}:00Z`
+    const receivedAt = `2026-10-15T20:${label === 'NEWER' ? '00' : label === 'OLDER' ? '01' : label === 'NEWEST' ? '02' : '03'}:00Z`
     const template = utiltsErrGatewayFixture({ company: f.ids.company, receiver, transactions: [{ reference, outcome: 'accepted' }] })
     let raw = template.raw_payload!.replaceAll('91100', issuer)
       .replaceAll('GRIDEX2607E66MSG001', `D${randomUUID().replaceAll('-', '').slice(0, 16)}`)
@@ -606,7 +627,7 @@ it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, 
   const f = await seedSc046(shape)
   await sc046RealSinks()
   const newer = await f.insert('NEWER', '202607010040', '500')
-  const first = await f.consume(newer.source)
+  const first = await sc046Consume(shape, 'NEWER', () => f.consume(newer.source))
   await assertSc046Positive(newer.source, newer.reference, f.ids.company)
   const businessBefore = sc046BusinessRows(f.ids.company, f.ids.request)
   if (shape === 'E66-512') {
@@ -626,7 +647,7 @@ it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, 
   // the only difference from an otherwise accepted version, not a guide fault.
   const older = await f.insert('OLDER', '202607010020', '7')
   expect(Date.parse(older.source.message_received_at ?? '')).toBeGreaterThan(Date.parse(newer.source.message_received_at ?? ''))
-  await f.consume(older.source)
+  await sc046Consume(shape, 'OLDER', () => f.consume(older.source))
   const oldState = await assertSc046Positive(older.source, older.reference, f.ids.company)
   expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled()
   expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(businessBefore)
@@ -643,7 +664,7 @@ it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, 
   expect(versions()).toHaveLength(2)
   expect(sql(`SELECT parsed_payload#>'{normalizedMeteringPayload,utiltsTransactionPersistenceResults}' FROM public.ediel_messages WHERE id=${literal(older.source.id)}`))
     .toMatchObject([{ transactionId: older.reference, disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted', versionState: 'late_older_history' }])
-  await f.consume(older.source)
+  await sc046Consume(shape, 'OLDER_RETRY', () => f.consume(older.source))
   expect(await assertSc046Positive(older.source, older.reference, f.ids.company)).toEqual(oldState)
   expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(businessBefore)
   expect(versions()).toHaveLength(2)
@@ -652,7 +673,31 @@ it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, 
   // no-op for every source that happens to arrive after the first one.
   const newest = await f.insert('NEWEST', '202607010100', '11')
   expect(Date.parse(newest.source.message_received_at ?? '')).toBeGreaterThan(Date.parse(older.source.message_received_at ?? ''))
-  await f.consume(newest.source)
+  if (shape === 'E66-512') {
+    // Catch a blanket bypass of old content guards: persist the genuine newest
+    // head through the real processor, but a corrupted old business row must
+    // refuse correction without meter/normalized/billing/lineage side effects.
+    sql(`UPDATE public.metering_values SET value_kwh=501 WHERE company_id=${literal(f.ids.company)} AND is_current`)
+    const corrupt = sc046BusinessRows(f.ids.company, f.ids.request), projection = sc046MeterProjection(f.ids.company)
+    try {
+      await expect(sc046Consume(shape, 'NEWEST_OLD_METER_CORRUPT', () => f.consume(newest.source)))
+        .rejects.toThrow(/stage=NEWEST_OLD_METER_CORRUPT: .*utilts_consumption_existing_metering_conflict/)
+      expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrupt)
+      expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
+    } finally { sql(`UPDATE public.metering_values SET value_kwh=500 WHERE company_id=${literal(f.ids.company)} AND is_current`) }
+    expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(businessBefore)
+    // The committed protected head above can retry; a tampered normalized old
+    // row must still pass its OWN checker before the quantity-changing branch.
+    sql(`UPDATE public.normalized_metering_values SET quantity_kwh=501 WHERE company_id=${literal(f.ids.company)} AND revision_status='current'`)
+    const normalizedCorrupt = sc046MeterProjection(f.ids.company)
+    try {
+      const refused = await sc046DirectMeter(f.ids.company, f.ids.actor, newest.source, newest.reference)
+      expect(refused.error?.message).toContain('utilts_consumption_existing_normalized_conflict')
+      expect(sc046MeterProjection(f.ids.company)).toEqual(normalizedCorrupt)
+      expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(businessBefore)
+    } finally { sql(`UPDATE public.normalized_metering_values SET quantity_kwh=500 WHERE company_id=${literal(f.ids.company)} AND revision_status='current'`) }
+  }
+  const newestResult = await sc046Consume(shape, 'NEWEST', () => f.consume(newest.source))
   await assertSc046Positive(newest.source, newest.reference, f.ids.company)
   expect(versions().filter(row => row.current).map(row => row.transaction)).toEqual([newest.reference])
   expect(versions()).toHaveLength(3)
@@ -664,5 +709,65 @@ it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, 
     expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled()
   } else {
     expect(sinks.meter).toHaveBeenCalled(); expect(sinks.bill).toHaveBeenCalled()
+    // Genuine atomic revision and projection effects, not merely sink calls.
+    const corrected = sc046BusinessRows(f.ids.company, f.ids.request), projection = sc046MeterProjection(f.ids.company)
+    const current = corrected.meter.filter(row => row.is_current)
+    expect(corrected.meter).toHaveLength(2); expect(current).toHaveLength(1)
+    expect(current[0]).toMatchObject({ id: newestResult.ingestedMeterValueIds?.[0], value_kwh: 11, company_id: f.ids.company,
+      previous_value_id: businessBefore.meter[0].id, revision_number: 2, source_ediel_message_id: newest.source.id,
+      source_transaction_reference: newest.reference, revision_status: 'current', value_status: 'current' })
+    expect(corrected.meter.find(row => row.id === businessBefore.meter[0].id)).toMatchObject({ value_kwh: 500,
+      is_current: false, revision_status: 'replaced', value_status: 'replaced', replaced_by_value_id: current[0].id })
+    expect(projection.normalized).toHaveLength(2)
+    expect(projection.normalized.filter(row => row.revision_status === 'current')).toMatchObject([{ quantity_kwh: 11,
+      source_metering_value_id: current[0].id, source_message_id: newest.source.id, company_id: f.ids.company,
+      previous_value_id: businessBefore.meter[0].id, revision_number: 2 }])
+    expect(projection.normalized.find(row => row.source_metering_value_id === businessBefore.meter[0].id))
+      .toMatchObject({ quantity_kwh: 500, revision_status: 'replaced', replaced_by_value_id: current[0].id })
+    expect(projection.links).toHaveLength(2)
+    expect(projection.links).toEqual(expect.arrayContaining([expect.objectContaining({ metering_value_id: current[0].id,
+      source_ediel_message_id: newest.source.id, source_transaction_reference: newest.reference, company_id: f.ids.company })]))
+    expect(corrected.billing).toHaveLength(2)
+    expect(corrected.billing.find(row => row.id === newestResult.billingUnderlayId)).toMatchObject({ total_kwh: 11, company_id: f.ids.company })
+    const newestState = await assertSc046Positive(newest.source, newest.reference, f.ids.company)
+    await sc046Consume(shape, 'NEWEST_RETRY', () => f.consume(newest.source))
+    expect(await assertSc046Positive(newest.source, newest.reference, f.ids.company)).toEqual(newestState)
+    expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
+    expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
+    // The same qualified source uses one current revision under concurrent
+    // direct retries; the incumbent native cohort owns these local RPCs.
+    const concurrentRetries = await Promise.all([0, 1].map(() =>
+      sc046DirectMeter(f.ids.company, f.ids.actor, newest.source, newest.reference)))
+    expect(concurrentRetries.map(result => result.error)).toEqual([null, null])
+    expect(concurrentRetries.map(result => (result.data as { id: string }).id)).toEqual([current[0].id, current[0].id])
+    expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
+    expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
+    // Direct late history and stale source consumption cannot add lineage or
+    // undo11. Flipping the late row's mutable flag cannot mint current birth.
+    for (const candidate of [older, newer]) {
+      const refused = await sc046DirectMeter(f.ids.company, f.ids.actor, candidate.source, candidate.reference)
+      expect(refused.error?.message).toMatch(/utilts_consumption_(late_history|stale_version)/)
+      expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
+      expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
+    }
+    sql(`UPDATE public.meter_reading_series SET is_current=true WHERE source_ediel_message_id=${literal(older.source.id)} AND company_id=${literal(f.ids.company)}`)
+    try {
+      expect((await sc046DirectMeter(f.ids.company, f.ids.actor, older.source, older.reference)).error?.message).toContain('utilts_consumption_late_history')
+      expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
+      expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
+    } finally { sql(`UPDATE public.meter_reading_series SET is_current=false WHERE source_ediel_message_id=${literal(older.source.id)} AND company_id=${literal(f.ids.company)}`) }
+    // Caller-supplied foreign attribution is never protected correction input.
+    const ownContract = sql<Record<string, unknown>>(`SELECT contract FROM gridex_utilts_binding.contracts WHERE source_message_id=${literal(newest.source.id)} AND transaction_id=${literal(newest.reference)}`)
+    expect((await sc046DirectMeter(f.ids.company, f.ids.actor, newest.source, newest.reference,
+      { ...ownContract, companyId: randomUUID() })).error?.message).toContain('utilts_consumption_returned_contract_changed')
+    expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
+    expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
+    // Equal own version time with different quantity must refuse, even though
+    // canonical persistence accepts that source and exposes a current series.
+    const equal = await f.insert('EQUAL', '202607010100', '13')
+    await expect(sc046Consume(shape, 'EQUAL_TIME_DIFFERENT_QUANTITY', () => f.consume(equal.source)))
+      .rejects.toThrow(/stage=EQUAL_TIME_DIFFERENT_QUANTITY: .*utilts_consumption_correction_not_newer/)
+    expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(corrected)
+    expect(sc046MeterProjection(f.ids.company)).toEqual(projection)
   }
 })
