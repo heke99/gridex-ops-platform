@@ -9,6 +9,9 @@ import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegist
 import { prodatDateState, prodatDateValue } from '@/lib/ediel/prodat/prodatDateFields'
 import { prodatDateToIsoDate } from '@/lib/ediel/prodat/render/dates'
 import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
+import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
+import { prodatEndUserWireSubtype } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
+import { resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -164,12 +167,23 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     ? prodatReferenceValue(field, sourceSegments, parseUna(message.raw_payload))
     : valueFromParsed(payload, ...fallbackKeys)
   const una = parseUna(message.raw_payload)
-  const ud = readProdatParty('UD', sourceSegments, una)
-  const it = readProdatParty('IT', sourceSegments, una)
+  const messageCode = hasWireSource ? facts.messageCode ?? '' : String(message.message_code)
+  // Incoming national extras remain in raw/register evidence, but cannot
+  // supply customer matching, staging or subsequent onboarding fields.
+  const incomingWire = hasWireSource && message.direction === 'inbound'
+  const sourceSubtype = prodatEndUserWireSubtype(messageCode, sourceSegments, una)
+  const ignoredUd = incomingWire
+    && isProdatFieldInInapplicableParent({ messageCode,
+      subtype: sourceSubtype, fieldNumber: 'END_USER_GROUP' })
+  const ignoredIt = incomingWire
+    && isProdatFieldInInapplicableParent({ messageCode, subtype: sourceSubtype, fieldNumber: 'INSTALLATION_GROUP' })
+  const ignoredReference = incomingWire
+    && resolveProdatSourceSubtypeRequirement({ messageCode, subtype: sourceSubtype, fieldNumber: '319' }) === 'forbidden'
+  const ud = readProdatParty('UD', ignoredUd ? [] : sourceSegments, una)
+  const it = readProdatParty('IT', ignoredIt ? [] : sourceSegments, una)
   const balanceResponsible = readProdatParty('Z02', sourceSegments, una)
   const partyValue = (value: string | null, ...fallbackKeys: string[]): string | null => hasWireSource
     ? value : valueFromParsed(payload, ...fallbackKeys)
-  const messageCode = hasWireSource ? facts.messageCode ?? '' : String(message.message_code)
   const meterPointId = hasWireSource ? selectedLine?.meteringPointId ?? null
     : valueFromParsed(payload, 'meterPointId', 'meteringPointId', 'installationId', 'facilityId')
   const contractStart = hasWireSource ? prodatDateValue('210', sourceSegments, una)
@@ -187,7 +201,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
   const annualEnergy =
     numberOrNull(hasWireSource ? selectedLine?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
   const referenceToMeteringPoint =
-    reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
+    ignoredReference ? null : reference('319', 'referenceToMeteringPoint', 'reference_to_metering_point')
 
   const customerId = partyValue(ud.id, 'customerId', 'endUserId')
   const customerIdQualifier =
