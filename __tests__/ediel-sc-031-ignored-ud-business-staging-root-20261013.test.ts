@@ -11,6 +11,7 @@ import { permissionObject } from './fixtures/prodat-energy-product'
 import { alphabets, characteristic, line, raw, type Parts } from './fixtures/prodat-register'
 import { head, source } from './fixtures/prodat-identity'
 import { structuralOwnerSource } from './helpers/structuralOwnerFixtures'
+import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 
 // These tests call the full production parser, staging and approval consumers.
 // Only SDK persistence, protected source/actor RPC, event and canonical graph IO
@@ -274,5 +275,88 @@ describe('SC-031 actual object-scoped approval reprojects each physical source',
     await expect(approveBatch()).rejects.toThrow('DECLARED_SOURCE_HELD')
     expect(commands).toEqual([])
     expect(stored?.status).toBe('pending_review')
+  })
+})
+
+// Supported Z10M source shape, actual pure production projection only. These
+// cases do not invent accepted facets, protected RPCs or native intake results.
+const forbiddenZ10Scalars = [
+  { field: '261', extra: "RFF+ANJ:IGNORED-AGREEMENT'", target: 'agreementReference' },
+  { field: '306', extra: "CCI++Z07'CAV+Z12'", target: 'installationStatus' },
+  { field: '212', extra: "DTM+51:203012010000:203'", target: 'firstMeterReadingDate' },
+] as const
+
+function withFirstObjectExtra(row: EdielMessageRow, extra: string): EdielMessageRow {
+  const added = extra.split("'").filter(Boolean).length
+  const wire = row.raw_payload!.replace(/(LIN[^']*')/, `$1${extra}`)
+    .replace(/UNT\+(\d+)\+/, (_, count: string) => `UNT+${Number(count) + added}+`)
+  return { ...row, raw_payload: wire }
+}
+
+function scalarBusiness(row: ReturnType<typeof parseInboundProdatBusinessData>) {
+  const meteringPoint = { ...row.meteringPoint }
+  delete meteringPoint.registers
+  return { customer: row.customer, site: row.site, meteringPoint, contract: row.contract, production: row.production }
+}
+
+describe('SC-031 three forbidden incoming Z10 scalars stay out of business projections', () => {
+  for (const item of forbiddenZ10Scalars) it(`supported Z10M ignores canonical-minus${item.field} business scalar while retaining its raw source`, () => {
+    expect(canonicalProdat26AFieldRules('Z10').find(rule => rule.fieldNumber === item.field)?.requirement).toBe('forbidden')
+    const base = { ...structuralOwnerSource('Z10', 'E58'), company_id: COMPANY }
+    const extra = withFirstObjectExtra(base, item.extra), before = structuredClone(extra)
+    const baseline = parseInboundProdatBusinessData(base), result = parseInboundProdatBusinessData(extra)
+    expect(scalarBusiness(result)).toEqual(scalarBusiness(baseline))
+    const scalar = item.field === '261' ? result.contract[item.target] : item.field === '306' ? result.production[item.target] : result.meteringPoint[item.target]
+    expect(scalar).toBeNull()
+    expect(result.meteringPoint.registers).not.toEqual(baseline.meteringPoint.registers)
+    expect(result.proposedAction.objects).not.toEqual(baseline.proposedAction.objects)
+    expect(extra.raw_payload).toContain(item.extra)
+    expect(extra).toEqual(before)
+  })
+
+  it('uses actual wire Z10 usage despite cached allowed code and scalar values', () => {
+    const base = structuralOwnerSource('Z10', 'E58')
+    const row = { ...withFirstObjectExtra(base, forbiddenZ10Scalars.map(item => item.extra).join('')), message_code: 'Z04',
+      parsed_payload: { agreementReference: 'CACHED', installationStatus: 'Z11', firstMeterReadingDate: '199901010000' } }
+    const result = parseInboundProdatBusinessData(row)
+    expect(result.contract.agreementReference).toBeNull()
+    expect(result.production.installationStatus).toBeNull()
+    expect(result.meteringPoint.firstMeterReadingDate).toBeNull()
+  })
+
+  it('preserves permitted scalar values in their canonical incoming source codes', () => {
+    expect(canonicalProdat26AFieldRules('Z03').find(rule => rule.fieldNumber === '261')?.requirement).toBe('required')
+    const agreement = withFirstObjectExtra(ownWire('Z03', 'Z22', false), forbiddenZ10Scalars[0].extra)
+    expect(parseInboundProdatBusinessData(agreement).contract.agreementReference).toBe('IGNORED-AGREEMENT')
+    const supplied = withFirstObjectExtra(structuralOwnerSource('Z04'), forbiddenZ10Scalars[2].extra)
+    expect(canonicalProdat26AFieldRules('Z04').find(rule => rule.fieldNumber === '306')?.requirement).toBe('required')
+    expect(canonicalProdat26AFieldRules('Z04').find(rule => rule.fieldNumber === '212')?.requirement).toBe('optional')
+    expect(parseInboundProdatBusinessData(supplied).production.installationStatus).toBe('Z12')
+    expect(parseInboundProdatBusinessData(supplied).meteringPoint.firstMeterReadingDate).toBe('203012010000')
+  })
+
+  it('preserves supplied outbound and no-wire legacy scalar projections', () => {
+    const extra = withFirstObjectExtra(structuralOwnerSource('Z10', 'E58'), forbiddenZ10Scalars.map(item => item.extra).join(''))
+    const outbound = parseInboundProdatBusinessData({ ...extra, direction: 'outbound' })
+    expect(outbound.contract.agreementReference).toBe('IGNORED-AGREEMENT')
+    expect(outbound.production.installationStatus).toBe('Z12')
+    expect(outbound.meteringPoint.firstMeterReadingDate).toBe('203012010000')
+    const legacy = parseInboundProdatBusinessData({ ...extra, raw_payload: null,
+      parsed_payload: { agreementReference: 'LEGACY', installationStatus: 'Z11', firstMeterReadingDate: '199901010000' } })
+    expect(legacy.contract.agreementReference).toBe('LEGACY')
+    expect(legacy.production.installationStatus).toBe('Z11')
+    expect(legacy.meteringPoint.firstMeterReadingDate).toBe('199901010000')
+  })
+
+  it('preserves Z10 dependent210 and optional213 rather than applying a blanket scalar mask', () => {
+    expect(canonicalProdat26AFieldRules('Z10').find(rule => rule.fieldNumber === '210')?.requirement).toBe('dependent')
+    expect(canonicalProdat26AFieldRules('Z10').find(rule => rule.fieldNumber === '213')?.requirement).toBe('optional')
+    const base = withFirstObjectExtra(structuralOwnerSource('Z10', 'E58'), "QTY+31:1234:KWH'")
+    const result = parseInboundProdatBusinessData(withFirstObjectExtra(base, "DTM+92:203012010000:203'"))
+    expect(result.site.contractStartDate).toBe('203012010000')
+    expect(result.contract.startDate).toBe('203012010000')
+    expect(result.site.annualEnergyKwh).toEqual(parseInboundProdatBusinessData(base).site.annualEnergyKwh)
+    expect(result.site.annualEnergyKwh).toBe(1234)
+    expect(result.site.validityStartDate).toEqual(parseInboundProdatBusinessData(base).site.validityStartDate)
   })
 })

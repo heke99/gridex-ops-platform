@@ -182,6 +182,8 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     && resolveProdatSourceSubtypeRequirement({ messageCode, subtype: sourceSubtype, fieldNumber: '319' }) === 'forbidden'
   const ignoredBirthDate = incomingWire
     && canonicalProdat26AFieldRules(messageCode).some(rule => rule.fieldNumber === '249' && rule.requirement === 'forbidden')
+  const ignoredBusinessScalar = (fieldNumber: '261' | '306' | '212'): boolean => incomingWire
+    && canonicalProdat26AFieldRules(messageCode).some(rule => rule.fieldNumber === fieldNumber && rule.requirement === 'forbidden')
   const ud = readProdatParty('UD', ignoredUd ? [] : sourceSegments, una)
   const it = readProdatParty('IT', ignoredIt ? [] : sourceSegments, una)
   const balanceResponsible = readProdatParty('Z02', sourceSegments, una)
@@ -200,7 +202,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
   const settlementMethod =
     characteristic('254', 'settlementMethod', 'settlement_method')
   const installationStatus =
-    characteristic('306', 'installationStatus', 'installation_status')
+    ignoredBusinessScalar('306') ? null : characteristic('306', 'installationStatus', 'installation_status')
   const annualEnergy =
     numberOrNull(hasWireSource ? selectedLine?.annualConsumption : valueFromParsed(payload, 'annualEnergy', 'estimatedAnnualEnergy', 'annual_consumption_kwh'))
   const referenceToMeteringPoint =
@@ -253,7 +255,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     registers: objects[0]?.registers ?? [],
     observationLength: hasWireSource ? prodatDateValue('508', sourceSegments, una) : valueFromParsed(payload, 'observationLength'),
     observationLengthFormat: hasWireSource ? prodatDateState('508', sourceSegments, una).format : valueFromParsed(payload, 'observationLengthFormat'),
-    firstMeterReadingDate: hasWireSource ? prodatDateValue('212', sourceSegments, una) : valueFromParsed(payload, 'firstMeterReadingDate'),
+    firstMeterReadingDate: ignoredBusinessScalar('212') ? null : hasWireSource ? prodatDateValue('212', sourceSegments, una) : valueFromParsed(payload, 'firstMeterReadingDate'),
     referenceToMeteringPoint,
     meteringMethod,
     meteringMethodLabel: edielCodeLabel('metering_method', meteringMethod),
@@ -268,7 +270,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
 
   const contract = {
     startDate: contractStart,
-    agreementReference: reference('261', 'agreementReference'),
+    agreementReference: ignoredBusinessScalar('261') ? null : reference('261', 'agreementReference'),
     balanceResponsibleId: partyValue(balanceResponsible.id, 'balanceResponsibleId'),
     gridAreaCode: reference('260', 'gridAreaCode', 'networkAreaId'),
   }
