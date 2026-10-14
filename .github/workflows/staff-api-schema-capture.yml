@@ -95,12 +95,14 @@ jobs:
 
           manifest = json.loads(pathlib.Path('scripts/supabase-types-manifest.json').read_text())
           sc031 = os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc031-main795-20261014'
-          pending = manifest.get('pending_sc031_capture' if sc031 else 'pending_joint_c3_capture', {})
-          epoch = 'gridex-C2-SC031-GEN-20261014-v1' if sc031 else 'gridex-C2-joint-C3-GEN-20261013-v3'
-          producer_branch = 'codex/c2-gen-sc031-main795-20261014' if sc031 else 'codex/c2-gen-joint-c3-20261013'
-          checkpoint = ('.agent-memory/takeover-C2-GEN-SC031-20261014-checkpoint.md' if sc031
-                        else '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md')
-          own_branch = sc031 or os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-joint-c3-20261013', 'codex/c2-gen-esco-01a131d2')
+          sc046 = os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-main573-20261014'
+          pending = manifest.get('pending_sc046_capture' if sc046 else ('pending_sc031_capture' if sc031 else 'pending_joint_c3_capture'), {})
+          epoch = 'gridex-C2-SC046-GEN-20261014-v1' if sc046 else ('gridex-C2-SC031-GEN-20261014-v1' if sc031 else 'gridex-C2-joint-C3-GEN-20261013-v3')
+          producer_branch = 'codex/c2-gen-sc046-main573-20261014' if sc046 else ('codex/c2-gen-sc031-main795-20261014' if sc031 else 'codex/c2-gen-joint-c3-20261013')
+          checkpoint = ('.agent-memory/takeover-C2-GEN-SC046-20261014-checkpoint.md' if sc046 else
+                        ('.agent-memory/takeover-C2-GEN-SC031-20261014-checkpoint.md' if sc031
+                         else '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md'))
+          own_branch = sc031 or sc046 or os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-joint-c3-20261013', 'codex/c2-gen-esco-01a131d2')
           primary = own_branch and manifest.get('composition_capture_pending') is True and pending.get('input_epoch') == epoch
           corroboration = (own_branch and manifest.get('composition_capture_pending') is False
                            and manifest.get('capture', {}).get('source_epoch_attestation', {}).get('custody', {}).get('input_epoch') == epoch)
@@ -133,6 +135,26 @@ jobs:
                   or native_workflow.get('config_path') != native_config_path
                   or native_workflow.get('config_sha256') != '1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a'):
                   raise SystemExit('capture_sc031_native_workflow_not_bound')
+          if sc046:
+              sc046_sources = {'lib/ediel/utilts/transactionPersistence.ts': {'mode': '100644', 'blob': 'fa06bb397aae317d232ada1754d532c8cfd634f7', 'sha256': 'f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece', 'receipt': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'lib/ediel/utilts/consumptionSinks.ts': {'mode': '100644', 'blob': '14e29821de4d1f5fc7d82822158fbc76ba780bb4', 'sha256': 'cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, '__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts': {'mode': '100644', 'blob': 'c95f76a4aa837e373ee96bd9dc72ffede6ceac79', 'sha256': 'f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': {'mode': '100644', 'blob': '890a2e21d61b033b52d92f47e696f91afa06a443', 'sha256': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, '__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts': {'mode': '100644', 'blob': '0681ea590b9a6cf4f9b13004c672a6d822511bf2', 'sha256': '9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, 'scripts/ediel-utilts-consumption-native.test.ts': {'mode': '100644', 'blob': 'fc34621b4052f82fcfe4b6fc3d571d41aa722e9e', 'sha256': '9b26e7950c73b992130e4e47408446849c2a7b95c264ff71ca8e2f1c65f412d8', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '2b68fa6e1856198efa7bc0076c8d7cc7f15da803', 'source_tree': '3fba26e706902b4f16c92ef82a1754390c712433'}, 'scripts/ediel-utilts-err-gateway-native.test.ts': {'mode': '100644', 'blob': 'c26c36d3a310a690ded9ab4c015dd39bd278b804', 'sha256': '358ff5311594002bc9fb5c8a75217fab1cabf7c95bf8051a22d1e542798b468d', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '2b68fa6e1856198efa7bc0076c8d7cc7f15da803', 'source_tree': '3fba26e706902b4f16c92ef82a1754390c712433'}}
+              sc046_resources = {'slot-C1': 'b971ef0cfa9724b02f4e0e3a985a4436e11a1f60', 'file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6': '7b0cf6038a686e5c889700c300cc251efb72756b'}
+              sc046_workflow_path = '.github/workflows/staff-api-schema-capture.yml'
+              sc046_workflow = pending.get('owned_capture_workflow_input', {})
+              if (pending.get('input_union_status') != 'FROZEN_REVIEWED_COMPLETE'
+                  or pending.get('source_receiving_neutral') != 'bf16f99a6d3a785ca3c57200a9d89d020b262fe9'
+                  or pending.get('branch') != producer_branch or pending.get('checkpoint') != checkpoint
+                  or pending.get('portable_source_inputs') != sc046_sources
+                  or pending.get('source_resources') != sc046_resources
+                  or pending.get('producer_sources', {}).get('immutableSourceInputs') != sc046_sources
+                  or pending.get('sql_sha256') != {'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34'}):
+                  raise SystemExit('capture_sc046_source_union_not_bound')
+              if (sc046_workflow.get('path') != sc046_workflow_path
+                  or sc046_workflow.get('mode') != '100644'
+                  or sc046_workflow.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or not re.fullmatch(r'[0-9a-f]{40}', sc046_workflow.get('blob', ''))
+                  or not re.fullmatch(r'[0-9a-f]{64}', sc046_workflow.get('sha256', ''))
+                  or pending.get('producer_sources', {}).get('ownedCaptureWorkflowInput') != sc046_workflow):
+                  raise SystemExit('capture_sc046_owned_workflow_not_bound')
           def git(*args):
               return subprocess.check_output(['git', *args])
           def working(path):
@@ -149,6 +171,7 @@ jobs:
                       for p in sorted(path.rglob('*')) if not p.is_dir() or p.is_symlink()}
           inputs = {}
           sc031_blob_ids = {}
+          sc046_blob_ids = {}
           for record in git('ls-tree', '-rz', '--full-tree', 'HEAD').split(b'\0'):
               if not record:
                   continue
@@ -163,6 +186,8 @@ jobs:
               inputs[path] = expected
               if sc031 and path in (native_path, native_workflow_path, native_config_path):
                   sc031_blob_ids[path] = oid
+              if sc046 and path in set(sc046_sources) | {sc046_workflow_path}:
+                  sc046_blob_ids[path] = oid
           if sc031:
               # Verify the coupled received source before any Docker or replay call.
               if (inputs.get(native_path) != {'mode': native['mode'], 'sha256': native['sha256']}
@@ -171,6 +196,11 @@ jobs:
                   or sc031_blob_ids.get(native_workflow_path) != native_workflow['blob']
                   or inputs.get(native_config_path) != {'mode': '100644', 'sha256': native_workflow['config_sha256']}):
                   raise SystemExit('capture_sc031_coupled_native_inputs_unqualified')
+          if sc046:
+              for path, expected in {**sc046_sources, sc046_workflow_path: sc046_workflow}.items():
+                  if (inputs.get(path) != {'mode': expected['mode'], 'sha256': expected['sha256']}
+                      or sc046_blob_ids.get(path) != expected['blob']):
+                      raise SystemExit('capture_sc046_tracked_source_mismatch: ' + path)
           initial = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
           if initial:
               raise SystemExit('capture_initial_container_quiescence_unqualified')
@@ -196,6 +226,11 @@ jobs:
                            '.github/workflows/ediel-esco-z14vh-z15v-native.yml',
                            '.github/workflows/staff-api-schema-capture.yml',
                            '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md']
+              if sc046:
+                  own_files = ['scripts/migration-history-manifest.json', 'scripts/supabase-types-manifest.json',
+                               'supabase/database.types.ts', 'supabase/schema.fingerprint.json', 'supabase/schema.sql',
+                               '.github/workflows/staff-api-schema-capture.yml']
+                  refs.update(sc046_resources)
               refs.update({'file-' + hashlib.sha256(path.encode()).hexdigest(): writer for path in own_files})
               if sc031:
                   source_receipts = {
@@ -249,6 +284,10 @@ jobs:
                   or [parent['sha'] for parent in commit['parents']] != [base]
                   or commit['tree']['sha'] != api('git/commits/' + base)['tree']['sha']):
                   raise SystemExit('capture_primary_producer_protocol_mismatch')
+              if sc046 and (receipt.get('epoch') != 'gridex-five-agent-20261012' or receipt.get('slot') != 'C2'
+                  or receipt.get('retainedWriterReceipt') != writer
+                  or set(receipt['files']) != set(own_files) | {checkpoint}):
+                  raise SystemExit('capture_sc046_producer_scope_not_bound')
               if (receipt['sources'] != pending['producer_sources']
                   or pending['portable_source_inputs'] != receipt['sources']['immutableSourceInputs']):
                   raise SystemExit('capture_primary_producer_sources_mismatch')
@@ -295,6 +334,14 @@ jobs:
                   'tracked_blob_ids': sc031_blob_ids,
                   'verification': 'EXACT_TRACKED_MODES_BLOBS_AND_SHA256_BEFORE_REPLAY',
               }
+          if sc046:
+              state['sc046_source_input_binding'] = {
+                  'source_receiving_neutral': pending['source_receiving_neutral'],
+                  'source_inputs': sc046_sources, 'source_resources': sc046_resources,
+                  'owned_workflow': sc046_workflow, 'tracked_blob_ids': sc046_blob_ids,
+                  'verification': 'EXACT_SEVEN_TRACKED_MODES_BLOBS_SHA256_AND_SOURCE_RECEIPTS',
+                  'current_receipts_checked': custody['producer_checked'],
+              }
           pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).write_text(json.dumps(state, indent=2) + '\n')
           print('Frozen exact capture source and measured runner; primary custody verified when applicable.')
           PY_FREEZE
@@ -320,6 +367,33 @@ jobs:
                   'measurement_phase': 'AFTER_CANONICAL_REPLAY_BEFORE_GEN',
                   'approved_scope': 'COMPLETE_CANONICAL_EMPTY_ISOLATED_INPUT_ONLY',
                   'populated_partial_legacy_upgrade': 'NOT_QUALIFIED_P2_OPEN'}
+              if os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-main573-20261014':
+                  # Frozen 890a checks live before/after equality but emits no NOTICE.
+                  # This is an actual after-only catalog query in the same existing replay.
+                  catalog_text = subprocess.check_output([
+                      'psql', os.environ['CAPTURE_DB_URL'], '-XAtq', '-v', 'ON_ERROR_STOP=1', '-c',
+                      "SELECT jsonb_build_object('namespace', n.nspname, 'metadata', to_jsonb(p)-'prosrc', "
+                      "'body_sha256', encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'))::text "
+                      "FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace "
+                      "WHERE p.oid='public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)'::regprocedure;"
+                  ], text=True).strip()
+                  try:
+                      catalog = json.loads(catalog_text)
+                      metadata = catalog['metadata']
+                      if (catalog['namespace'] != 'public' or catalog['body_sha256'] != '4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f'
+                          or metadata['proname'] != 'gridex_persist_utilts_consumption_v1'
+                          or metadata['pronargs'] != 7
+                          or metadata['proargtypes'] != ['2950', '25', '2950', '25', '25', '3802', '2950']
+                          or metadata['prorettype'] != '3802' or metadata['prokind'] != 'f'
+                          or metadata['prosecdef'] is not True or metadata['proconfig'] != ['search_path=pg_catalog']):
+                          raise ValueError('catalog mismatch')
+                  except (ValueError, KeyError, TypeError):
+                      raise SystemExit('capture_sc046_catalog_after_unqualified') from None
+                  state['sc046_catalog_after'] = {
+                      'catalog': catalog, 'postgres_jsonb_text': catalog_text,
+                      'measurement_phase': 'AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN',
+                      'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION',
+                  }
               path.write_text(json.dumps(state, indent=2) + '\n')
           PY_EMPTY
           export CAPTURE_LATEST_MIGRATION_VERSION="$REPLAY_MIGRATION_VERSION"
@@ -450,6 +524,46 @@ jobs:
                   'measurement_phase': 'ACTUAL_CANONICAL_MIGRATION_REPLAY',
                   'digest_format': 'EXACT_POSTGRESQL_JSONB_TEXT; not Python JSON canonicalization',
               }
+          if os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-main573-20261014':
+              migration = 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
+              migration_sha256 = '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34'
+              manifest = json.loads(Path('scripts/supabase-types-manifest.json').read_text())
+              state = json.loads(Path(os.environ['CAPTURE_INPUT_STATE']).read_text())
+              frozen = state.get('tracked_inputs', {}).get(migration)
+              matches = [path for path in replay_migrations if path.name == Path(migration).name]
+              if (state.get('checkout_sha') != receipt['checkout_sha'] or state.get('checkout_tree') != receipt['checkout_tree']
+                  or frozen != {'mode': '100644', 'sha256': migration_sha256}
+                  or manifest.get('pending_sc046_capture', {}).get('sql_sha256', {}).get(migration) != migration_sha256
+                  or len(matches) != 1 or digest(matches[0]) != migration_sha256):
+                  raise SystemExit('capture_sc046_replay_source_unqualified')
+              marker = 'CREATE FUNCTION public.gridex_persist_utilts_consumption_v1('
+              schema = (output / 'schema.sql').read_text()
+              if schema.count(marker) != 1:
+                  raise SystemExit('capture_sc046_schema_definition_unqualified')
+              tail = schema[schema.index(marker):]
+              import re
+              dollar = re.search(r'\bAS (\$\$|\$_\$)', tail)
+              if dollar is None:
+                  raise SystemExit('capture_sc046_schema_definition_unqualified')
+              end = tail.find(dollar[1] + ';', dollar.end())
+              definition = tail[:end + len(dollar[1]) + 1] if end >= 0 else ''
+              if hashlib.sha256(definition.encode()).hexdigest() != '4bc75fd84c537507ee46f38d799499e62fcdac966516b3cee705d2f157f66835':
+                  raise SystemExit('capture_sc046_schema_definition_unqualified')
+              catalog_after = state.get('sc046_catalog_after', {})
+              if (catalog_after.get('catalog', {}).get('body_sha256') != '4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f'
+                  or catalog_after.get('before_snapshot') != 'NOT_EMITTED_BY_FROZEN_MIGRATION'):
+                  raise SystemExit('capture_sc046_catalog_after_unqualified')
+              receipt['sc046_catalog_preservation'] = {
+                  'target': 'public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)',
+                  'migration': migration, 'migration_sha256': migration_sha256,
+                  'migration_input_binding': {'frozen_original': {'path': migration, **frozen},
+                                              'actual_replay': {'path': str(matches[0]), 'sha256': digest(matches[0])}},
+                  'guard_execution': 'SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FROZEN_BEFORE_AFTER_METADATA_AND_BODY_GUARDS',
+                  'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION',
+                  'catalog_after': catalog_after, 'schema_definition_sha256': hashlib.sha256(definition.encode()).hexdigest(),
+                  'catalog_after_postgres_text_sha256': hashlib.sha256(catalog_after['postgres_jsonb_text'].encode()).hexdigest(),
+                  'latest_replay_migration_role': 'ACTUAL_MAXIMUM; SC046_OLDER_INPUT_BOUND_SEPARATELY',
+              }
           (output / 'capture-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
           print('Capture-only artifacts and receipt written; native tests and parity were not run.')
           PY
@@ -496,6 +610,8 @@ jobs:
               'docker_remaining_container_ids': remaining, 'zero_all_containers': True}
           if 'sc031_native_input_binding' in state:
               receipt['source_epoch_attestation']['sc031_native_input_binding'] = state['sc031_native_input_binding']
+          if 'sc046_source_input_binding' in state:
+              receipt['source_epoch_attestation']['sc046_source_input_binding'] = state['sc046_source_input_binding']
           path.write_text(json.dumps(receipt, indent=2) + '\n')
           print('Exact original inputs restored and all disposable containers absent; capture-only limits retained.')
           PY_RESTORED

@@ -5,7 +5,7 @@
   "sha256": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
   "latest_migration": "20261014011520_ediel_sc031_source_owned_business_projection.sql",
   "latest_migration_schema_effect": "SC031 changes only the existing private five-argument wire comparator body. Genuine same-replay metadata preserves all29 properties including owner/OID/ACL/config/security. Current795 and all prior forwards are preserved; generated types unchanged. Capture-only; native/browser/upgrade/parity/current-head CI remain separate.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-14T06:51:48.331572+00:00",
@@ -131288,5 +131288,212 @@
       "catalog_preservation_capture": "NOT_YET_CANONICAL; local020e DECLAREDonly"
     },
     "meaning": "Complete immutable genuine preimportF2 manifest and every replaced prior active value retained; all existing795/earlier histories preserved. Historical source reference only, no competing active baseline."
+  },
+  "pre_sc046_source_preparation_main573": {
+    "actual_main": "573d74371086da585a5cff6abee95eadfe58899e",
+    "carrier_head": "be8b117b0fd221dd64616476e4215860486f1f59",
+    "original_manifest_blob": "212a107923d7ec589ea8eb73052acb6e4c5e14b8",
+    "original_manifest_sha256": "a3535251a4d836bd76d4c0dbdafa958bd9a8aa7a717aa00bf1245443b731c160",
+    "original_bytes": 7277263,
+    "replaced_values": {
+      "composition_capture_pending": false
+    },
+    "all_other_original_top_level_values": "RETAINED_IN_PLACE; NO_COMPLETE_MANIFEST_DUPLICATION"
+  },
+  "pending_sc046_capture": {
+    "input_epoch": "gridex-C2-SC046-GEN-20261014-v1",
+    "owner": "codex-takeover-C2-GEN-joint-C3-20261013",
+    "custody_receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+    "base": "573d74371086da585a5cff6abee95eadfe58899e",
+    "base_tree": "21ff53152c0f0057778eb4243ae336fad4790a12",
+    "branch": "codex/c2-gen-sc046-main573-20261014",
+    "checkpoint": ".agent-memory/takeover-C2-GEN-SC046-20261014-checkpoint.md",
+    "source_receiving_neutral": "bf16f99a6d3a785ca3c57200a9d89d020b262fe9",
+    "source_resources": {
+      "slot-C1": "b971ef0cfa9724b02f4e0e3a985a4436e11a1f60",
+      "file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+      "file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+      "file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+      "file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079": "3f0c88be9759dd2833ee6f98333df1367f497511",
+      "file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804": "3f0c88be9759dd2833ee6f98333df1367f497511",
+      "file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9": "7b0cf6038a686e5c889700c300cc251efb72756b",
+      "file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6": "7b0cf6038a686e5c889700c300cc251efb72756b"
+    },
+    "portable_source_inputs": {
+      "lib/ediel/utilts/transactionPersistence.ts": {
+        "mode": "100644",
+        "blob": "fa06bb397aae317d232ada1754d532c8cfd634f7",
+        "sha256": "f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece",
+        "receipt": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+        "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+        "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+      },
+      "lib/ediel/utilts/consumptionSinks.ts": {
+        "mode": "100644",
+        "blob": "14e29821de4d1f5fc7d82822158fbc76ba780bb4",
+        "sha256": "cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a",
+        "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+        "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+        "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+      },
+      "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts": {
+        "mode": "100644",
+        "blob": "c95f76a4aa837e373ee96bd9dc72ffede6ceac79",
+        "sha256": "f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3",
+        "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+        "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+        "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+      },
+      "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": {
+        "mode": "100644",
+        "blob": "890a2e21d61b033b52d92f47e696f91afa06a443",
+        "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
+        "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+        "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+        "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+      },
+      "__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts": {
+        "mode": "100644",
+        "blob": "0681ea590b9a6cf4f9b13004c672a6d822511bf2",
+        "sha256": "9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0",
+        "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+        "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+        "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+      },
+      "scripts/ediel-utilts-consumption-native.test.ts": {
+        "mode": "100644",
+        "blob": "fc34621b4052f82fcfe4b6fc3d571d41aa722e9e",
+        "sha256": "9b26e7950c73b992130e4e47408446849c2a7b95c264ff71ca8e2f1c65f412d8",
+        "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+        "source_head": "2b68fa6e1856198efa7bc0076c8d7cc7f15da803",
+        "source_tree": "3fba26e706902b4f16c92ef82a1754390c712433"
+      },
+      "scripts/ediel-utilts-err-gateway-native.test.ts": {
+        "mode": "100644",
+        "blob": "c26c36d3a310a690ded9ab4c015dd39bd278b804",
+        "sha256": "358ff5311594002bc9fb5c8a75217fab1cabf7c95bf8051a22d1e542798b468d",
+        "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+        "source_head": "2b68fa6e1856198efa7bc0076c8d7cc7f15da803",
+        "source_tree": "3fba26e706902b4f16c92ef82a1754390c712433"
+      }
+    },
+    "producer_sources": {
+      "actualMain": "573d74371086da585a5cff6abee95eadfe58899e",
+      "actualMainTree": "21ff53152c0f0057778eb4243ae336fad4790a12",
+      "SC046ReceivingCarrier": {
+        "head": "be8b117b0fd221dd64616476e4215860486f1f59",
+        "tree": "c75a10524382d704f3acceeed983d0af2fd8f622",
+        "soleParent": "58c36b8bff5ede3dc6bad898583d41f118156eff",
+        "worktree": "/workspace/sc046-whole-delivery-root-20261014",
+        "freezeSHA256": "57830b23d0f0aa7729f73d17e98eab06f7ac16e98ad8c4cd45660b864a9fc9b2",
+        "positiveROOTFreeze": 6172635534
+      },
+      "immutableSourceInputs": {
+        "lib/ediel/utilts/transactionPersistence.ts": {
+          "mode": "100644",
+          "blob": "fa06bb397aae317d232ada1754d532c8cfd634f7",
+          "sha256": "f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece",
+          "receipt": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+          "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+          "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+        },
+        "lib/ediel/utilts/consumptionSinks.ts": {
+          "mode": "100644",
+          "blob": "14e29821de4d1f5fc7d82822158fbc76ba780bb4",
+          "sha256": "cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a",
+          "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+          "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+        },
+        "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts": {
+          "mode": "100644",
+          "blob": "c95f76a4aa837e373ee96bd9dc72ffede6ceac79",
+          "sha256": "f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3",
+          "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+          "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+        },
+        "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": {
+          "mode": "100644",
+          "blob": "890a2e21d61b033b52d92f47e696f91afa06a443",
+          "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
+          "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+          "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+        },
+        "__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts": {
+          "mode": "100644",
+          "blob": "0681ea590b9a6cf4f9b13004c672a6d822511bf2",
+          "sha256": "9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0",
+          "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+          "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+        },
+        "scripts/ediel-utilts-consumption-native.test.ts": {
+          "mode": "100644",
+          "blob": "fc34621b4052f82fcfe4b6fc3d571d41aa722e9e",
+          "sha256": "9b26e7950c73b992130e4e47408446849c2a7b95c264ff71ca8e2f1c65f412d8",
+          "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "source_head": "2b68fa6e1856198efa7bc0076c8d7cc7f15da803",
+          "source_tree": "3fba26e706902b4f16c92ef82a1754390c712433"
+        },
+        "scripts/ediel-utilts-err-gateway-native.test.ts": {
+          "mode": "100644",
+          "blob": "c26c36d3a310a690ded9ab4c015dd39bd278b804",
+          "sha256": "358ff5311594002bc9fb5c8a75217fab1cabf7c95bf8051a22d1e542798b468d",
+          "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "source_head": "2b68fa6e1856198efa7bc0076c8d7cc7f15da803",
+          "source_tree": "3fba26e706902b4f16c92ef82a1754390c712433"
+        }
+      },
+      "ownedCaptureWorkflowInput": {
+        "path": ".github/workflows/staff-api-schema-capture.yml",
+        "mode": "100644",
+        "blob": "d601c7bdbdd3b081e6fffeb8b032134d864b0c56",
+        "sha256": "da5150416b1f100bfea83982482625fd407b0c0b22b27d688e1191bef792adcf",
+        "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+        "origin": "OWN_AUTHORED_SC046_PROFILE_NOT_A_DONOR_OR_CIRCULAR_PREPARED_HEAD",
+        "basis": {
+          "carrier_head": "be8b117b0fd221dd64616476e4215860486f1f59",
+          "preimage_blob": "88656511c93f2b2557f15e83b46d0733106e64e8",
+          "preimage_sha256": "f3bd867f57c2e6272276f7d11774a2296cf8ba67a40f35f3007fe48b41631797"
+        }
+      }
+    },
+    "owned_capture_workflow_input": {
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "mode": "100644",
+      "blob": "d601c7bdbdd3b081e6fffeb8b032134d864b0c56",
+      "sha256": "da5150416b1f100bfea83982482625fd407b0c0b22b27d688e1191bef792adcf",
+      "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+      "origin": "OWN_AUTHORED_SC046_PROFILE_NOT_A_DONOR_OR_CIRCULAR_PREPARED_HEAD",
+      "basis": {
+        "carrier_head": "be8b117b0fd221dd64616476e4215860486f1f59",
+        "preimage_blob": "88656511c93f2b2557f15e83b46d0733106e64e8",
+        "preimage_sha256": "f3bd867f57c2e6272276f7d11774a2296cf8ba67a40f35f3007fe48b41631797"
+      }
+    },
+    "sql_sha256": {
+      "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34"
+    },
+    "input_union_status": "FROZEN_PROFILE_CANDIDATE_SOURCE_REVIEW_PENDING",
+    "producer_stage": "SOURCE_PREPARATION_ONLY_PRODUCER_AND_RUNTIME_GO_PENDING",
+    "producer_receipt": null,
+    "native_tests": "NOT_RUN",
+    "catalog_preservation_capture": "PENDING_GENUINE_EXISTING_CAPTURE_AFTER_FROZEN_GUARD_EXECUTION; NO_SC046_NOTICE_OR_BEFORE_SNAPSHOT",
+    "expected_schema_delta": {
+      "only_function_body": "public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)",
+      "expected_body_sha256": "4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f",
+      "expected_dump_definition_sha256": "4bc75fd84c537507ee46f38d799499e62fcdac966516b3cee705d2f157f66835",
+      "types_abi": "UNCHANGED_SIGNATURE; ACTUAL_RAW_CAPTURE_PENDING"
+    },
+    "actual_latest_migration": "20261014011520_ediel_sc031_source_owned_business_projection.sql",
+    "history": {
+      "primary_before_count": 907,
+      "primary_after_count": 908,
+      "added_exact_file": "20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql",
+      "old907_records": "PRESERVED_UNCHANGED"
+    },
+    "pending_BRP_dependencies": "EXCLUDED; NO_DQ_FIX_OR909_OR_FULL_GREEN_CLAIM"
   }
 }

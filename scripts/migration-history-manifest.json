@@ -924,6 +924,7 @@
     "20261013130700_operational_quality_customer_source_consistency.sql": "0b1638fbd4ab1eef82dc95d2064519e66f1bbb787a8213c9a705d1ddb1ea5732",
     "20261013131746_consumption_forecast_customer_source_guard.sql": "6e06c41e8b7c4ccea41a0a960fb9c2a66149781fe638c3f3dd38c2180d39e3c1",
     "20261013140502_manual_inbound_retired_source_consistency.sql": "d68f09fa4ab18d62fbffa8c412d8fa53fa1db3d58e53ed519f45af1fc145fee0",
+    "20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
     "20261013174700_operational_quality_company_unique_keys.sql": "9aa65266e97f3f3482275e8998d922eadfbc9f21ba58c692ae4b5ed496c5d772",
     "20261014004020_admin_api_current_context_projection.sql": "852f0517f86b31e1baffd756f48e9cf3faad798df4d802d77f99300cfb92ed59",
     "20261014011520_ediel_sc031_source_owned_business_projection.sql": "d4555df6177b1d702a4262fc0d305986e0e029bbf50124a285e5418e3beb3a89",
