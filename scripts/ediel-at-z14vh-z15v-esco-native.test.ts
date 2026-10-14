@@ -36,6 +36,8 @@ import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRu
 import {approveEdielInboundCase,createOrUpdateInboundProdatCase,type EdielInboundCaseRow} from '@/lib/ediel/inboundCases'
 import {supabaseService} from '@/lib/supabase/service'
 import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {edielCodeLabel} from '@/lib/ediel/codeLabels'
 
 beforeEach(resetNativeEscoFixture)
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
@@ -757,11 +759,22 @@ for(const subtype of ['L','LK'] as const)for(const count of [1,2] as const){
   }
  },120000)
 }
-function sc031N(p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>,f:Fixture,extra:boolean){
+function sc031N(p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>,f:Fixture,extra:boolean,scalarProbe=false){
  const rendered=renderProdat({code:'Z14',variant:'N',mode:'test',actor:{senderEdielId:f.receiver,receiverEdielId:f.sender},route:{applicationReference:f.app},version,
   context:{code:'Z14',customerName:'',meterPointId:'',bgmReference:randomUUID().replaceAll('-','').slice(0,20),transactionReference:p.li,senderEdielId:f.receiver,receiverEdielId:f.sender,legalSenderId:f.receiver,legalReceiverId:f.sender,reasonForTransaction:'Z96',permissionStatus:'A76'}})
  expect(rendered.issues.filter(x=>x.severity==='error'&&!/_UNDETERMINED$/.test(x.code))).toEqual([])
  const segments=structuredClone(rendered.segments)
+ if(scalarProbe&&extra){
+  // Four canonical-minus Z14 fields on this same physical own LIN. Keep
+  // SG8 dates before SG14 characteristics, SG16 references before SG17 NAD.
+  const line=segments.findIndex(segment=>segment.startsWith('LIN+'))
+  expect(line).toBeGreaterThanOrEqual(0)
+  expect(segments.filter(segment=>segment.startsWith('LIN+'))).toHaveLength(1)
+  segments.splice(line+1,0,'DTM+329:19900101:102','DTM+51:202610011200:203')
+  const refs=segments.findIndex((segment,index)=>index>line&&/^(RFF|NAD)\+/.test(segment))
+  expect(refs).toBeGreaterThan(line)
+  segments.splice(refs,0,'CCI++Z07','CAV+Z12','RFF+ANJ:SC031-SCALAR-ANJ')
+ }
  if(extra){
   // Extra national parents, with legal D97A NAD shapes and unchanged actual
   // own N object, register, LI and request. Never change accepted receipts.
@@ -770,8 +783,8 @@ function sc031N(p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>
  }
  return envelope(f,segments)
 }
-async function sc031NativeN(extra:boolean){
- const f=await seed(),p=await prepareNativeEscoPermissionFixture(f),profile=ackRoute(f),before=sc031Master(f.ids.company),raw=sc031N(p,f,extra)
+async function sc031NativeN(extra:boolean,scalarProbe=false){
+ const f=await seed(),p=await prepareNativeEscoPermissionFixture(f),profile=ackRoute(f),before=sc031Master(f.ids.company),raw=sc031N(p,f,extra,scalarProbe)
  expect(validateEdifactEnvelope(raw).syntaxOk).toBe(true)
  const source=await receive(f,raw,'Z14','PRODAT:Z14:N:26.A:r3'),stored=await processed(f,source)
  expect(stored.validation_report).toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted'})
@@ -790,6 +803,39 @@ async function sc031NativeN(extra:boolean){
  expect(staged?.parsed_customer.fullName).not.toBe('SC031 Ignored Person')
  expect(staged?.parsed_site.street).not.toBe('SC031 Ignored Site')
  expect(staged?.parsed_site.city).not.toBe('SC031 Ignored City')
+ let persisted:EdielInboundCaseRow|null=null
+ if(scalarProbe){
+  const wire=tokenizeEdifact(raw),groups=prodatRegisterGroups(wire.segments,wire.una,'Z14').groups
+  expect(groups).toHaveLength(1)
+  const own=groups[0],ownRaw=own.segments.map(segment=>segment.raw)
+  expect(own.lineIndex).toBe(0)
+  expect(own.firstLineIndex).toBe(0)
+  expect(own.validRegisterChain).toBe(true)
+  const scalars=[
+   {field:'249',tokens:['DTM+329:19900101:102']},
+   {field:'261',tokens:['RFF+ANJ:SC031-SCALAR-ANJ']},
+   {field:'306',tokens:['CCI++Z07','CAV+Z12']},
+   {field:'212',tokens:['DTM+51:202610011200:203']},
+  ]
+  for(const scalar of scalars){
+   for(const token of scalar.tokens)expect(ownRaw.filter(segment=>segment===token)).toHaveLength(extra?1:0)
+   if(scalar.field==='306'&&extra)expect(ownRaw[ownRaw.indexOf('CCI++Z07')+1]).toBe('CAV+Z12')
+   const ignored=bound.fields.filter(field=>field.fieldNumber===scalar.field)
+   expect(ignored).toHaveLength(extra?1:0)
+   if(extra)expect(ignored[0]).toMatchObject({fieldNumber:scalar.field,sourceRule:'PRODAT26A:P119',occurrence:{scope:'object',lineIndex:own.lineIndex,lineNumber:own.lineNumber,registerPosition:1,objectId:own.itemId,identityAgency:own.identityAgency,lineItemReference:p.li,messageReference:segmentComposite(wire.segments.find(segment=>segment.tag==='UNH'),1,wire.una)[0]}})
+  }
+  persisted=sql<EdielInboundCaseRow>(`SELECT to_jsonb(c) FROM public.ediel_inbound_cases c WHERE company_id=${lit(f.ids.company)} AND ediel_message_id=${lit(source.id)} AND id=${lit(staged!.id)}`)
+  expect(persisted).toMatchObject({id:staged!.id,company_id:f.ids.company,ediel_message_id:source.id})
+  for(const column of ['parsed_customer','parsed_site','parsed_metering_point','parsed_contract','parsed_production'] as const)expect(persisted[column]).toEqual(staged![column])
+  expect(persisted.parsed_customer.birthDate).toBeNull()
+  expect(persisted.parsed_contract.agreementReference).toBeNull()
+  expect(persisted.parsed_metering_point.firstMeterReadingDate).toBeNull()
+  expect(persisted.parsed_production.installationStatus).toBeNull()
+  expect(persisted.parsed_production.installationStatusLabel).toBe(edielCodeLabel('installation_status',null))
+  const registers=persisted.parsed_metering_point.registers as {rawSegments:string[]}[]
+  expect(registers).toHaveLength(1)
+  expect(registers[0].rawSegments).toEqual(ownRaw)
+ }
  const acks=sc031ActualAcks(f.ids.company,source.id)
  expect(acks.acks.map(a=>a.message_family).sort()).toEqual(['APERAK','CONTRL'])
  for(const ack of acks.acks){
@@ -828,9 +874,27 @@ async function sc031NativeN(extra:boolean){
  const {registers,...meterBusiness}=staged!.parsed_metering_point
  expect(Array.isArray(registers)).toBe(true)
  expect(JSON.stringify(registers).includes('SC031 Ignored')).toBe(extra)
+ if(scalarProbe){
+  expect((await getEdielMessageById(source.id))?.raw_payload).toBe(raw)
+  expect(sc031BindEvidence(f.ids.company,stored,plan!.plans[0].canonicalAssessmentId).evidence).toEqual(bound.evidence)
+  const after=sql<EdielInboundCaseRow>(`SELECT to_jsonb(c) FROM public.ediel_inbound_cases c WHERE company_id=${lit(f.ids.company)} AND ediel_message_id=${lit(source.id)} AND id=${lit(staged!.id)}`)
+  for(const column of ['parsed_customer','parsed_site','parsed_metering_point','parsed_contract','parsed_production'] as const)expect(after[column]).toEqual(persisted![column])
+  const {registers:rawRegisters,...persistedMeter}=persisted!.parsed_metering_point
+  return {customer:persisted!.parsed_customer,site:persisted!.parsed_site,meter:persistedMeter,contract:persisted!.parsed_contract,production:persisted!.parsed_production,rawRegisters}
+ }
  return {customer:staged!.parsed_customer,site:staged!.parsed_site,meter:meterBusiness,production:staged!.parsed_production}
 }
 it('SC031 real N extra UD/IT preserves staging and actual masterdata, positive processing ACKs and the supplier-only generic graph ROLE_HOLD',async()=>{
  const baseline=await sc031NativeN(false),extra=await sc031NativeN(true)
  expect(extra).toEqual(baseline)
+},120000)
+it('SC031 real N extra UD/IT and ignored249/261/306/212 preserve five persisted business projections, masterdata, positive ACKs and ROLE_HOLD',async()=>{
+ const baseline=await sc031NativeN(false,true),extra=await sc031NativeN(true,true)
+ expect(baseline).toHaveProperty('contract')
+ expect(extra).toHaveProperty('contract')
+ if(!('rawRegisters' in baseline)||!('rawRegisters' in extra))throw Error('SC031_native_persisted_scalar_probe_required')
+ const {rawRegisters:baselineRaw,...baselineBusiness}=baseline
+ const {rawRegisters:extraRaw,...extraBusiness}=extra
+ expect(extraBusiness).toEqual(baselineBusiness)
+ expect(extraRaw).not.toEqual(baselineRaw)
 },120000)
