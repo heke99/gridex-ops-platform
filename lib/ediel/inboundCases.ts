@@ -12,7 +12,7 @@ import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatEndUserWireSubtype } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import { resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
-import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import { canonicalProdatBusinessProjectionFieldIsForbidden, type CanonicalProdatBusinessProjectionField } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -173,17 +173,17 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
   // supply customer matching, staging or subsequent onboarding fields.
   const incomingWire = hasWireSource && message.direction === 'inbound'
   const sourceSubtype = prodatEndUserWireSubtype(messageCode, sourceSegments, una)
-  const ignoredUd = incomingWire
+  const ignoredCanonicalField = (fieldNumber: CanonicalProdatBusinessProjectionField): boolean => incomingWire
+    && canonicalProdatBusinessProjectionFieldIsForbidden(messageCode, fieldNumber)
+  const ignoredUd = ignoredCanonicalField('END_USER_GROUP') || (incomingWire
     && isProdatFieldInInapplicableParent({ messageCode,
-      subtype: sourceSubtype, fieldNumber: 'END_USER_GROUP' })
-  const ignoredIt = incomingWire
-    && isProdatFieldInInapplicableParent({ messageCode, subtype: sourceSubtype, fieldNumber: 'INSTALLATION_GROUP' })
-  const ignoredReference = incomingWire
-    && resolveProdatSourceSubtypeRequirement({ messageCode, subtype: sourceSubtype, fieldNumber: '319' }) === 'forbidden'
-  const ignoredBirthDate = incomingWire
-    && canonicalProdat26AFieldRules(messageCode).some(rule => rule.fieldNumber === '249' && rule.requirement === 'forbidden')
-  const ignoredBusinessScalar = (fieldNumber: '261' | '306' | '212'): boolean => incomingWire
-    && canonicalProdat26AFieldRules(messageCode).some(rule => rule.fieldNumber === fieldNumber && rule.requirement === 'forbidden')
+      subtype: sourceSubtype, fieldNumber: 'END_USER_GROUP' }))
+  const ignoredIt = ignoredCanonicalField('INSTALLATION_GROUP') || (incomingWire
+    && isProdatFieldInInapplicableParent({ messageCode, subtype: sourceSubtype, fieldNumber: 'INSTALLATION_GROUP' }))
+  const ignoredReference = ignoredCanonicalField('319') || (incomingWire
+    && resolveProdatSourceSubtypeRequirement({ messageCode, subtype: sourceSubtype, fieldNumber: '319' }) === 'forbidden')
+  const ignoredBirthDate = ignoredCanonicalField('249')
+  const ignoredBusinessScalar = (fieldNumber: '261' | '306' | '212'): boolean => ignoredCanonicalField(fieldNumber)
   const ud = readProdatParty('UD', ignoredUd ? [] : sourceSegments, una)
   const it = readProdatParty('IT', ignoredIt ? [] : sourceSegments, una)
   const balanceResponsible = readProdatParty('Z02', sourceSegments, una)

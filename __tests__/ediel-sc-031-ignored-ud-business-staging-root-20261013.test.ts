@@ -360,3 +360,108 @@ describe('SC-031 three forbidden incoming Z10 scalars stay out of business proje
     expect(result.site.validityStartDate).toEqual(parseInboundProdatBusinessData(base).site.validityStartDate)
   })
 })
+
+import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import * as canonicalFacade from '@/lib/ediel/rulebook/canonicalEdielFacade'
+
+// Extend this repository-owned receiving regression only. Encode the extras
+// with the retained fixture codec, then append them after local RFFs and before
+// the final NAD+Z02. Header parties, group order, UNA and UNT stay intact.
+function withZ10BusinessExtra(row: EdielMessageRow, parts: readonly Parts[]): EdielMessageRow {
+  const encoded = tokenizeEdifact(raw(parts, 'Z10')).segments.slice(5, -2)
+  const extra = encoded.map(segment => segment.raw + "'").join('')
+  if (!row.raw_payload?.includes('NAD+Z02')) throw Error('OWN_Z10_PARTY_ANCHOR_REQUIRED')
+  const wire = row.raw_payload.replace('NAD+Z02', extra + 'NAD+Z02')
+    .replace(/UNT\+(\d+)\+/, (_, count: string) => `UNT+${Number(count) + encoded.length}+`)
+  return { ...row, raw_payload: wire }
+}
+const ignoredZ10PartiesAndReference = [
+  { field: 'END_USER_GROUP', parts: [ud()] },
+  { field: 'INSTALLATION_GROUP', parts: [['NAD', 'IT', ['735123456789012345', '', '9'], '', '', 'Ignored Site Street', 'Ignored Site City', '', '12345', 'SE'] as Parts] },
+  { field: '319', parts: [['RFF', ['Z07', '735123456789012352']] as Parts] },
+] as const
+
+describe('SC-031 canonical base exclusions compose with existing source exclusions', () => {
+  for (const item of ignoredZ10PartiesAndReference) it(`accepted own Z10M ignores ${item.field} business projection while retaining its source`, () => {
+    expect(canonicalProdat26AFieldRules('Z10').find(rule => rule.fieldNumber === item.field)?.requirement).toBe('forbidden')
+    const base = structuralOwnerSource('Z10', 'E58'), extra = withZ10BusinessExtra(base, item.parts)
+    const before = structuredClone(extra)
+    for (const input of [base, extra]) {
+      const decision = resolveCanonicalRuntimeDecision(input)
+      expect([decision.syntaxDecision, decision.applicationDecision]).toEqual(['accepted', 'accepted'])
+      expect(decision.responsePlan.some(plan => plan.family === 'APERAK' && plan.outcome === 'negative')).toBe(false)
+      if (input === extra) expect(decision.prodatIgnoredFields).toContainEqual(expect.objectContaining({ fieldNumber: item.field }))
+    }
+    const baseline = parseInboundProdatBusinessData(base), result = parseInboundProdatBusinessData(extra)
+    expect(scalarBusiness(result)).toEqual(scalarBusiness(baseline))
+    expect(result.site).toMatchObject({ facilityId: '735123456789012345', siteName: 'Ediel 735123456789012345', validityStartDate: '202610150000' })
+    expect(result.meteringPoint.referenceToMeteringPoint).toBeNull()
+    expect(result.production.referenceToMeteringPoint).toBeNull()
+    expect(result.proposedAction.objects).not.toEqual(baseline.proposedAction.objects)
+    expect(result.meteringPoint.registers).not.toEqual(baseline.meteringPoint.registers)
+    expect(extra).toEqual(before)
+  })
+
+  it('own Z10 code and selected point/agency defeat cached allowed party/reference values', () => {
+    const base = structuralOwnerSource('Z10', 'E58')
+    const row = { ...withZ10BusinessExtra(base, [
+      ...ignoredZ10PartiesAndReference[2].parts, ...ignoredZ10PartiesAndReference[0].parts, ...ignoredZ10PartiesAndReference[1].parts,
+    ]), message_code: 'Z04', parsed_payload: { subtype: 'D', customerName: 'Cached Name', customerId: 'CACHED', siteAddress: 'Cached Street', referenceToMeteringPoint: 'CACHED-POINT' } }
+    const before = structuredClone(row)
+    const selected = { meteringPointId: '735123456789012345', identityAgency: '9' }
+    expect(scalarBusiness(parseInboundProdatBusinessData(row, selected))).toEqual(scalarBusiness(parseInboundProdatBusinessData(base, selected)))
+    expect(() => parseInboundProdatBusinessData(row, { ...selected, identityAgency: '89' })).toThrow('PRODAT_OBJECT_SELECTION_INVALID')
+    expect(row).toEqual(before)
+  })
+
+  it('required Z13 UD identity/name/country survives independently forbidden address children', () => {
+    expect(canonicalProdat26AFieldRules('Z13').find(rule => rule.fieldNumber === 'END_USER_GROUP')?.requirement).toBe('required')
+    expect(canonicalProdat26AFieldRules('Z13').find(rule => rule.fieldNumber === '229')?.requirement).toBe('forbidden')
+    const result = parseInboundProdatBusinessData(ownWire('Z13', 'E34'))
+    expect(result.customer).toMatchObject({ customerId: '0000000000', fullName: 'Ignored Name', country: 'SE' })
+  })
+
+  it('source Z04D keeps319 while Z04L still excludes the same own reference', () => {
+    const extra = "RFF+Z07:735123456789012352'"
+    const supplied = (reason: string) => {
+      const row = ownWire('Z04', reason, false)
+      return { ...row, raw_payload: row.raw_payload!.replace(/UNT\+(\d+)\+/, (_, count: string) => `${extra}UNT+${Number(count) + 1}+`) }
+    }
+    const retained = parseInboundProdatBusinessData(supplied('Z70'))
+    expect(retained.meteringPoint.referenceToMeteringPoint).toBe('735123456789012352')
+    expect(retained.production.referenceToMeteringPoint).toBe('735123456789012352')
+    const ignored = parseInboundProdatBusinessData(supplied('Z22'))
+    expect(ignored.meteringPoint.referenceToMeteringPoint).toBeNull()
+    expect(ignored.production.referenceToMeteringPoint).toBeNull()
+  })
+
+  it('outbound and legacy no-wire party/reference projection remains supplied', () => {
+    const row = withZ10BusinessExtra(structuralOwnerSource('Z10', 'E58'), [
+      ...ignoredZ10PartiesAndReference[2].parts, ...ignoredZ10PartiesAndReference[0].parts, ...ignoredZ10PartiesAndReference[1].parts,
+    ])
+    const outbound = parseInboundProdatBusinessData({ ...row, direction: 'outbound' })
+    expect(outbound.customer.fullName).toBe('Ignored Name')
+    expect(outbound.site.street).toBe('Ignored Site Street')
+    expect(outbound.meteringPoint.referenceToMeteringPoint).toBe('735123456789012352')
+    expect(outbound.production.referenceToMeteringPoint).toBe('735123456789012352')
+    const legacy = parseInboundProdatBusinessData({ ...row, raw_payload: null,
+      parsed_payload: { customerName: 'Legacy Name', siteAddress: 'Legacy Street', referenceToMeteringPoint: 'LEGACY-POINT' } })
+    expect(legacy.customer.fullName).toBe('Legacy Name')
+    expect(legacy.site.street).toBe('Legacy Street')
+    expect(legacy.meteringPoint.referenceToMeteringPoint).toBe('LEGACY-POINT')
+    expect(legacy.production.referenceToMeteringPoint).toBe('LEGACY-POINT')
+  })
+
+  it('narrow facade derives forbidden only and retains allowed/unknown outcomes', () => {
+    for (const field of ['END_USER_GROUP', 'INSTALLATION_GROUP', '319', '249', '261', '306', '212'] as const)
+      expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden('Z10', field)).toBe(true)
+    expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden('Z13', 'END_USER_GROUP')).toBe(false)
+    expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden('Z04', '319')).toBe(false)
+    expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden('Z06', '249')).toBe(false)
+    expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden('Z03', '261')).toBe(false)
+    expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden('Z06', '306')).toBe(false)
+    expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden('Z04', '212')).toBe(false)
+    for (const code of [null, undefined, '', 'UNKNOWN'])
+      expect(canonicalFacade.canonicalProdatBusinessProjectionFieldIsForbidden(code, '319')).toBe(false)
+  })
+})
