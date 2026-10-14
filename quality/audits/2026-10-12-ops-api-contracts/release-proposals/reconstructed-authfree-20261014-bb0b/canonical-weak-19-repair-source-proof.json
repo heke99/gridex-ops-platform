@@ -1,0 +1,1559 @@
+{
+  "base_sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+  "status": "SOURCE_PROPOSAL_NO_DATABASE_EXECUTION",
+  "exact_closed_variants": [
+    {
+      "signature": "gridex_ediel_retention.blob_current_v1(gridex_ediel_retention.blob_decisions)",
+      "original_body_md5": "d83401a52d40e82dad7b7194e2578fa7",
+      "strong_body_md5": "435d96a430601a5b401401e73def6b12",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "uuid",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "d83401a52d40e82dad7b7194e2578fa7",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.blob_current_v1(gridex_ediel_retention.blob_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "uuid",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "435d96a430601a5b401401e73def6b12",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.blob_current_v1(gridex_ediel_retention.blob_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "358149c6ce714c79cc7e7eccbf78cb5821cd0d418260f0573323c92748077f43",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.blob_receipt_v1(gridex_ediel_retention.blob_decisions)",
+      "original_body_md5": "5fe9349bb3eefd03f22177fba8490c3e",
+      "strong_body_md5": "d63617dacd8ac89827ec51d980f365f2",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "5fe9349bb3eefd03f22177fba8490c3e",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.blob_receipt_v1(gridex_ediel_retention.blob_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "d63617dacd8ac89827ec51d980f365f2",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.blob_receipt_v1(gridex_ediel_retention.blob_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "8e5a4716d4bebe78e8ad2174ece6d961bb83979727f505c14cacf3d4bebd434b",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.finance_guard_v1_2a0dd5ac4e9330f1c07d8aae314f6f3b()",
+      "original_body_md5": "00aee1974a1a1521f39ab97c8ca1042d",
+      "strong_body_md5": "3e0ed8a95f4e22fc43b52bc57ba25a91",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "00aee1974a1a1521f39ab97c8ca1042d",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_2a0dd5ac4e9330f1c07d8aae314f6f3b()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "3e0ed8a95f4e22fc43b52bc57ba25a91",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_2a0dd5ac4e9330f1c07d8aae314f6f3b()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "repair_create_sql_sha256": "7d69cd250b0107afa21c789526c8b628f1cdddfb9bd8f61c98b9401d1398ac4a",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.finance_guard_v1_4b456f7ba70048a2ee25293af993be96()",
+      "original_body_md5": "70131ae5da19e5fd42f78dc3e0c1e3f2",
+      "strong_body_md5": "fdd415048fe134410e045dcc7292fce1",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=\"public, pg_temp\""
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "70131ae5da19e5fd42f78dc3e0c1e3f2",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_4b456f7ba70048a2ee25293af993be96()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=\"public, pg_temp\""
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "fdd415048fe134410e045dcc7292fce1",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_4b456f7ba70048a2ee25293af993be96()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "repair_create_sql_sha256": "f00a878bdf11d8851de463320334d328aeda17df0f3fff009e9ab5eaed8f87ab",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.finance_guard_v1_920138d4568f5425448044a4962765ea()",
+      "original_body_md5": "c4fc5068cea8f790e3acfcd8b0e189ae",
+      "strong_body_md5": "8ba7f76a6f9db95747de0558cfd657b4",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=\"public, pg_temp\""
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "c4fc5068cea8f790e3acfcd8b0e189ae",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_920138d4568f5425448044a4962765ea()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=\"public, pg_temp\""
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "8ba7f76a6f9db95747de0558cfd657b4",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_920138d4568f5425448044a4962765ea()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "repair_create_sql_sha256": "51eb0b606fa179d8d91c86fb95a30cfdbd580fb97d49325607545afe7d18a589",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.finance_guard_v1_af0ed0f697cd8415944398b0334f752d()",
+      "original_body_md5": "6d0e0f4e5ca78fc0a540e9da4214b4e3",
+      "strong_body_md5": "7eec909ca6f5eb71e6347a8553e9801a",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=\"public, pg_temp\""
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "6d0e0f4e5ca78fc0a540e9da4214b4e3",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_af0ed0f697cd8415944398b0334f752d()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=\"public, pg_temp\""
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "7eec909ca6f5eb71e6347a8553e9801a",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_af0ed0f697cd8415944398b0334f752d()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "repair_create_sql_sha256": "056872be682f2f7811a1ef320d4e01332abb755a1dc0b8c2ea66a1b9573eadd1",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.finance_guard_v1_b73f12ceefeb096bb3e00fe783ed6214()",
+      "original_body_md5": "5381cf73f95c30210d0f5901da2db193",
+      "strong_body_md5": "fe44f17cc8295440da1a3e0fc01986a4",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "5381cf73f95c30210d0f5901da2db193",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_b73f12ceefeb096bb3e00fe783ed6214()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "fe44f17cc8295440da1a3e0fc01986a4",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_b73f12ceefeb096bb3e00fe783ed6214()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "c4f08aa37ae0cdda2d4d453b1e3db2325438b7d4abcc350795ab1a9c51cc8f4f",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.finance_guard_v1_fdc2215667d256f07f3c0fbb40e0d73f()",
+      "original_body_md5": "687f5034ae710c0fafb940e3c432223b",
+      "strong_body_md5": "9bc51dc8dd0517c76c310e6017a9f851",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=\"public, pg_temp\""
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "687f5034ae710c0fafb940e3c432223b",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_fdc2215667d256f07f3c0fbb40e0d73f()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=\"public, pg_temp\""
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "trigger",
+        "argmodes": null,
+        "argnames": null,
+        "body_md5": "9bc51dc8dd0517c76c310e6017a9f851",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_guard_v1_fdc2215667d256f07f3c0fbb40e0d73f()",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": false
+      },
+      "repair_create_sql_sha256": "3d79d49cbea04b19154201dab530c1b2eece006fb18ef770dbf5da4591590b4d",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.finance_receipt_v1(gridex_ediel_retention.finance_decisions)",
+      "original_body_md5": "d54809275681fd4474c5bcd4c373b147",
+      "strong_body_md5": "3c874cb1b29f61269c8b11489aecb60f",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "d54809275681fd4474c5bcd4c373b147",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_receipt_v1(gridex_ediel_retention.finance_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "3c874cb1b29f61269c8b11489aecb60f",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.finance_receipt_v1(gridex_ediel_retention.finance_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "c0d42b79c783e313c0085e76f278be9b2a09444a9f3bac448225e55503977a68",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.process_receipt_v1(gridex_ediel_retention.process_decisions)",
+      "original_body_md5": "ec5cdc320266e083f12cced52ebaf7aa",
+      "strong_body_md5": "250cb36960a8574433490b1a69ca90a3",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "ec5cdc320266e083f12cced52ebaf7aa",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.process_receipt_v1(gridex_ediel_retention.process_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "250cb36960a8574433490b1a69ca90a3",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.process_receipt_v1(gridex_ediel_retention.process_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "bcd5a463aadf11860589aab34f61fc7e6299bdbb462199421eb0b1176f9e174a",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.receipt_v1(gridex_ediel_retention.decisions)",
+      "original_body_md5": "4e5d354109e9305d7c18ac3319a7b7c0",
+      "strong_body_md5": "8022872a54a67429e4f4b99c1a5485c7",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "4e5d354109e9305d7c18ac3319a7b7c0",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.receipt_v1(gridex_ediel_retention.decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "8022872a54a67429e4f4b99c1a5485c7",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.receipt_v1(gridex_ediel_retention.decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "a9bae00e67cb3e151e8ec4cc8ed17b448e1cfdf0769f07c1d2e51a76f4bb5c19",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.record_current_review_v1(gridex_ediel_retention.record_decisions)",
+      "original_body_md5": "7dcd40c3835773d6254c8e51c5eb13c4",
+      "strong_body_md5": "ccc5d537244b59c2f7d3c0f3fd4f4c08",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "uuid",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "7dcd40c3835773d6254c8e51c5eb13c4",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.record_current_review_v1(gridex_ediel_retention.record_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "uuid",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "ccc5d537244b59c2f7d3c0f3fd4f4c08",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.record_current_review_v1(gridex_ediel_retention.record_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "48d333ee7107e1737147d34fa87d1cd8bb0fc8fccbf2300fd79d9030cf9af0bd",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.record_permission_v1(uuid, uuid, text)",
+      "original_body_md5": "4e85ddcbe6d2ca6b1ac46067fb3023a5",
+      "strong_body_md5": "eefef257bac12b0742e3c1d0381889b7",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "boolean",
+        "argmodes": null,
+        "argnames": [
+          "c",
+          "actor",
+          "k"
+        ],
+        "body_md5": "4e85ddcbe6d2ca6b1ac46067fb3023a5",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.record_permission_v1(uuid, uuid, text)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "boolean",
+        "argmodes": null,
+        "argnames": [
+          "c",
+          "actor",
+          "k"
+        ],
+        "body_md5": "eefef257bac12b0742e3c1d0381889b7",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.record_permission_v1(uuid, uuid, text)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "8c1c7a99c9d5ddcf94041e8fc4e2aca992bed4ee239e0b934df0e145475f5a41",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "gridex_ediel_retention.record_receipt_v1(gridex_ediel_retention.record_decisions)",
+      "original_body_md5": "de636571b8ae4842d8b09b44a46308d5",
+      "strong_body_md5": "8e4c7465fd85b060228040d8384a1937",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "de636571b8ae4842d8b09b44a46308d5",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.record_receipt_v1(gridex_ediel_retention.record_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "d"
+        ],
+        "body_md5": "8e4c7465fd85b060228040d8384a1937",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "gridex_ediel_retention.record_receipt_v1(gridex_ediel_retention.record_decisions)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "e7baa97db0f17c8394fd5d102ffab368e7d14ccd999777190684b4af74a5687d",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "public.ediel_begin_customer_record_retention_v1(uuid, uuid, uuid)",
+      "original_body_md5": "9449aec8ea95863bd4135a88a3b6bef8",
+      "strong_body_md5": "7cee6f310e643b42a04fe77012c4812f",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_decision_id"
+        ],
+        "body_md5": "9449aec8ea95863bd4135a88a3b6bef8",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_begin_customer_record_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_decision_id"
+        ],
+        "body_md5": "7cee6f310e643b42a04fe77012c4812f",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_begin_customer_record_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "7143cc511aad982f4591a080fefd9d3e805d69a14ea226c566d4ec415cb82486",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "public.ediel_purge_artifact_retention_v1(uuid, uuid, uuid)",
+      "original_body_md5": "92195c1cd3ab238138606f306e62f90c",
+      "strong_body_md5": "387693dc8d95a0a3335e0cc52b96326d",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_decision_id"
+        ],
+        "body_md5": "92195c1cd3ab238138606f306e62f90c",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_purge_artifact_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_decision_id"
+        ],
+        "body_md5": "387693dc8d95a0a3335e0cc52b96326d",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_purge_artifact_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "06fe80a9cfd4db391f9e185db300625c9de74ece9f69d26c73e8a475a592840a",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "public.ediel_purge_decision_evidence_retention_v1(uuid, uuid, uuid)",
+      "original_body_md5": "e67416846e4b14aeb6434eae10476822",
+      "strong_body_md5": "d79c29568eb6c1abc9f53b913f49fbd6",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_policy_id"
+        ],
+        "body_md5": "e67416846e4b14aeb6434eae10476822",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_purge_decision_evidence_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_policy_id"
+        ],
+        "body_md5": "d79c29568eb6c1abc9f53b913f49fbd6",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_purge_decision_evidence_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "5f319fe9cd9a6cfe675f75abbe26bc5ef9c92bc92ddf2044fccc729a6bbd8087",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "public.ediel_purge_finance_copy_retention_v1(uuid, uuid, uuid)",
+      "original_body_md5": "45aa10f6510a3da55824eb8c6b42834f",
+      "strong_body_md5": "1ea8a584c5ca51a62f88ecda5c4b3d15",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_decision_id"
+        ],
+        "body_md5": "45aa10f6510a3da55824eb8c6b42834f",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_purge_finance_copy_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_decision_id"
+        ],
+        "body_md5": "1ea8a584c5ca51a62f88ecda5c4b3d15",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_purge_finance_copy_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "e9fa63cb0f5037de4d23c6143c1c321dd9bc0a481f46465ded7696f721cb79a0",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    },
+    {
+      "signature": "public.ediel_purge_process_journal_retention_v1(uuid, uuid, uuid)",
+      "original_body_md5": "6a307b544abcb1685f2931f1a8392259",
+      "strong_body_md5": "779c23b82236976153a4f8af427361c4",
+      "weak_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_decision_id"
+        ],
+        "body_md5": "6a307b544abcb1685f2931f1a8392259",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_purge_process_journal_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "strong_metadata": {
+        "acl": [
+          {
+            "grantee": "authenticated",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          },
+          {
+            "grantee": "gridex_ediel_retention_owner",
+            "grantable": false,
+            "privilege": "EXECUTE"
+          }
+        ],
+        "kind": "f",
+        "owner": "gridex_ediel_retention_owner",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "exists": true,
+        "strict": false,
+        "returns": "jsonb",
+        "argmodes": null,
+        "argnames": [
+          "p_company_id",
+          "p_actor_user_id",
+          "p_decision_id"
+        ],
+        "body_md5": "779c23b82236976153a4f8af427361c4",
+        "defaults": null,
+        "parallel": "u",
+        "leakproof": false,
+        "signature": "public.ediel_purge_process_journal_retention_v1(uuid, uuid, uuid)",
+        "volatility": "v",
+        "allargtypes": null,
+        "returns_set": false,
+        "default_count": 0,
+        "security_definer": true
+      },
+      "repair_create_sql_sha256": "538f573f482fba0cce24a8899596a6c72ab22d2430b7db0866f9fe1243c4546f",
+      "full_non_prosrc_pg_proc_snapshot_preserved": true,
+      "extra_attributes_guarded": [
+        "language",
+        "cost",
+        "rows",
+        "variadic",
+        "support",
+        "transforms",
+        "binary",
+        "sql_body"
+      ]
+    }
+  ],
+  "repair_execution_requires_global_complete_state_digest": true,
+  "raw_native_existing_body_guards_unchanged": true
+}

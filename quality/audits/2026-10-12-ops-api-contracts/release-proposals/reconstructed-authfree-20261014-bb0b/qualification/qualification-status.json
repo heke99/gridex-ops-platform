@@ -1,0 +1,17 @@
+{
+  "status": "PARTIAL_GENUINE_ENGINE_QUALIFICATION_FINAL_PROOFS_PENDING",
+  "atomic_sha256": "bb0bd0cedeabc3ba40872eae8cead8b6a8a9ff298c567baa324a1b4044045b04",
+  "compact_manifest_sha256": "6316d319f5399768b90afe3b97a2b89a15653c42db8fcdd23decc1149572d5c2",
+  "engine": "PostgreSQL 17.6/PostGIS 3.3.7 isolated OPS fixture",
+  "known_source_weak_19_repair": "Root executed COMMIT; entire resulting catalog equals previously qualified strong622 catalog byte-for-byte under canonical JSON comparison.",
+  "receipt": "knownweak-19-repair-whole-catalog-comparison.json",
+  "pending": [
+    "exact compact12 cold first installation",
+    "exact compact12 restaged same-database replay",
+    "exact candidate negative unknown metadata and bad part refusals",
+    "exact candidate late rollback preservation",
+    "two final independent source reviews"
+  ],
+  "native_apply_performed": false,
+  "lost_a6_proof_transfer_claim": false
+}

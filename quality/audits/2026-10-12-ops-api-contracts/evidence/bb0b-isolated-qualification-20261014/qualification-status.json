@@ -1,0 +1,35 @@
+{
+  "at": "2026-10-14T09:53:31.848206+00:00",
+  "atomic_sha256": "bb0bd0cedeabc3ba40872eae8cead8b6a8a9ff298c567baa324a1b4044045b04",
+  "status": "GENUINE_ISOLATED_QUALIFICATION_NATIVE_NOT_APPLIED",
+  "engine": "Official Supabase postgres17.6.1.084 amd64 image, PostgreSQL17.6; isolated ordinary postgres NOSUPER; ICUen-US fresh cluster",
+  "cold_install_commit": true,
+  "strong_replay_whole_catalog_and_global_exact": true,
+  "source_proven_known_weak_19_repair_whole_catalog_equal_original_strong": true,
+  "unknown_metadata_refusals": 3,
+  "whole_catalog_global_source_rollback_for_all3": true,
+  "late_after_all8_exact_source_forced_refusal": true,
+  "business_rpc_calls": 0,
+  "native_writes_for_this_revision": 0,
+  "caveats": [
+    "Cold source-mode canonical new roles and new global configuration reviewed separately; no authenticated Staff/provider traffic or production runtime database binding evidenced."
+  ],
+  "proofs": [
+    {
+      "file": "gridex-bb0b-knownweak-repair-catalog-comparison.json",
+      "sha256": "bd2d3826902fdcbfbe1141df9101f6a5ec50bba44eb37bb5b319fa56c6a0fb0d"
+    },
+    {
+      "file": "gridex-bb0b-fresh-replay-catalog-comparison.json",
+      "sha256": "8799c138b56646a5d6e2c8be7f0b9dd4d670dc0a4065bf79250fb85fa2b3f6d2"
+    },
+    {
+      "file": "gridex-bb0b-fresh-replay-global-comparison.json",
+      "sha256": "b5f17d67ceec8380a10ebbb44c766163638806f2c73786c881e706feb99247e6"
+    },
+    {
+      "file": "negative-results.json",
+      "sha256": "3012086e0c18640cdfc659ca1952ba92437225e126ed52195ad1e3b6d7d62c0c"
+    }
+  ]
+}
