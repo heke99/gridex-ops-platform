@@ -120,6 +120,19 @@ jobs:
                   or not re.fullmatch(r'[0-9a-f]{64}', native.get('sha256', ''))
                   or not all(re.fullmatch(r'[0-9a-f]{40}', native.get(key, '')) for key in ('source_head', 'source_tree', 'blob'))):
                   raise SystemExit('capture_sc031_native_source_not_bound')
+              native_workflow_path = '.github/workflows/ediel-esco-z14vh-z15v-native.yml'
+              native_config_path = 'scripts/ediel-at-z14vh-z15v-esco-native.config.ts'
+              native_workflow = pending.get('owned_native_workflow_input', {})
+              if (pending.get('esco_workflow_pin_receiving_status') != 'EXACT_FINAL_NATIVE_PIN_POSTIMAGE_BOUND'
+                  or native_workflow.get('path') != native_workflow_path
+                  or native_workflow.get('mode') != '100644'
+                  or native_workflow.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or not re.fullmatch(r'[0-9a-f]{64}', native_workflow.get('sha256', ''))
+                  or not re.fullmatch(r'[0-9a-f]{40}', native_workflow.get('blob', ''))
+                  or native_workflow.get('native_test_sha256') != native['sha256']
+                  or native_workflow.get('config_path') != native_config_path
+                  or native_workflow.get('config_sha256') != '1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a'):
+                  raise SystemExit('capture_sc031_native_workflow_not_bound')
           def git(*args):
               return subprocess.check_output(['git', *args])
           def working(path):
@@ -135,6 +148,7 @@ jobs:
               return {p.relative_to(path).as_posix(): working(p)
                       for p in sorted(path.rglob('*')) if not p.is_dir() or p.is_symlink()}
           inputs = {}
+          sc031_blob_ids = {}
           for record in git('ls-tree', '-rz', '--full-tree', 'HEAD').split(b'\0'):
               if not record:
                   continue
@@ -147,6 +161,16 @@ jobs:
               if working(pathlib.Path(path)) != expected:
                   raise SystemExit('capture_git_input_mismatch: ' + path)
               inputs[path] = expected
+              if sc031 and path in (native_path, native_workflow_path, native_config_path):
+                  sc031_blob_ids[path] = oid
+          if sc031:
+              # Verify the coupled received source before any Docker or replay call.
+              if (inputs.get(native_path) != {'mode': native['mode'], 'sha256': native['sha256']}
+                  or sc031_blob_ids.get(native_path) != native['blob']
+                  or inputs.get(native_workflow_path) != {'mode': native_workflow['mode'], 'sha256': native_workflow['sha256']}
+                  or sc031_blob_ids.get(native_workflow_path) != native_workflow['blob']
+                  or inputs.get(native_config_path) != {'mode': '100644', 'sha256': native_workflow['config_sha256']}):
+                  raise SystemExit('capture_sc031_coupled_native_inputs_unqualified')
           initial = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
           if initial:
               raise SystemExit('capture_initial_container_quiescence_unqualified')
@@ -193,6 +217,8 @@ jobs:
                   if any(pending['portable_source_inputs'][path].get('receipt') != receipt
                          for path, receipt in source_receipts.items()):
                       raise SystemExit('capture_sc031_source_receipts_not_bound')
+                  if pending.get('producer_sources', {}).get('ownedNativeWorkflowInput') != native_workflow:
+                      raise SystemExit('capture_sc031_owned_workflow_source_not_bound')
                   refs.update(source_resources)
               for path, expected in pending['portable_source_inputs'].items():
                   if inputs[path]['sha256'] != expected['sha256'] or inputs[path]['mode'] != expected['mode']:
@@ -262,6 +288,13 @@ jobs:
                        ['docker', 'info', '--format', '{{.Driver}}'], text=True).strip(),
                        'free_bytes_before_replay': shutil.disk_usage(os.environ['RUNNER_TEMP']).free,
                        'initial_container_ids': initial}}
+          if sc031:
+              state['sc031_native_input_binding'] = {
+                  'native': native, 'owned_workflow': native_workflow,
+                  'config': {'path': native_config_path, **inputs[native_config_path]},
+                  'tracked_blob_ids': sc031_blob_ids,
+                  'verification': 'EXACT_TRACKED_MODES_BLOBS_AND_SHA256_BEFORE_REPLAY',
+              }
           pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).write_text(json.dumps(state, indent=2) + '\n')
           print('Frozen exact capture source and measured runner; primary custody verified when applicable.')
           PY_FREEZE
@@ -450,6 +483,8 @@ jobs:
               'atomic_canonical_input': state['atomic_canonical_input'],
               'input_restoration': 'EXACT_MODES_AND_BYTES', 'migration_directory_restoration': 'EXACT',
               'docker_remaining_container_ids': remaining, 'zero_all_containers': True}
+          if 'sc031_native_input_binding' in state:
+              receipt['source_epoch_attestation']['sc031_native_input_binding'] = state['sc031_native_input_binding']
           path.write_text(json.dumps(receipt, indent=2) + '\n')
           print('Exact original inputs restored and all disposable containers absent; capture-only limits retained.')
           PY_RESTORED

@@ -88872,6 +88872,19 @@
         "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
         "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
         "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+      },
+      "scripts/ediel-at-z14vh-z15v-esco-native.test.ts": {
+        "blob": "eb4f448d9baa609a6cca46daa57becdd5dd71e7d",
+        "sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+        "mode": "100644",
+        "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+        "source_head": "a80712d5d26c182a877d7ff26b6521e3993f084e",
+        "source_tree": "279aa71cbba15b452a20b670007c4567fc765775",
+        "scope": "EXACT_NATIVE_SCRIPT_TECHNICAL_ADOPTION_ONLY; nativeCPexcluded; old30+5sourcecases, runtimeNOT_RUN",
+        "source_final_receipts": [
+          "ca77d33d4c5e603881bbc57bab2c889579d84ca01f20a22b28ba2cc783ccc233",
+          "87138897ff9a83d5f7eacc8697b84678b41b7acbb4f4ef855c9bbe4e13f74f77"
+        ]
       }
     },
     "producer_sources": {
@@ -88930,7 +88943,43 @@
           "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
           "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
           "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+        },
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts": {
+          "blob": "eb4f448d9baa609a6cca46daa57becdd5dd71e7d",
+          "sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+          "mode": "100644",
+          "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "source_head": "a80712d5d26c182a877d7ff26b6521e3993f084e",
+          "source_tree": "279aa71cbba15b452a20b670007c4567fc765775",
+          "scope": "EXACT_NATIVE_SCRIPT_TECHNICAL_ADOPTION_ONLY; nativeCPexcluded; old30+5sourcecases, runtimeNOT_RUN",
+          "source_final_receipts": [
+            "ca77d33d4c5e603881bbc57bab2c889579d84ca01f20a22b28ba2cc783ccc233",
+            "87138897ff9a83d5f7eacc8697b84678b41b7acbb4f4ef855c9bbe4e13f74f77"
+          ]
         }
+      },
+      "ownedNativeWorkflowInput": {
+        "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+        "mode": "100644",
+        "blob": "fc1a5d30941a259e1f0478b3ffd0273cd73bd60c",
+        "sha256": "dd03fe3a05236b3e83edf72ac51956c97ccfdf0f99bf9cc40fd0ab828f75c18a",
+        "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+        "native_test_sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+        "config_path": "scripts/ediel-at-z14vh-z15v-esco-native.config.ts",
+        "config_sha256": "1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a",
+        "origin": "OWN_AUTHORED_ONE_FINAL_NATIVE_SHA_PIN_UPDATE",
+        "basis": {
+          "base": "7952177b13c911427fe529a56fd787d7f3abfc99",
+          "preimage_sha256": "7f38047f3bfe4ee59b82e39c52fe2fd4ddaaad0db7d6bb49f4c206dbbb6d4f9b",
+          "old_native_sha256": "68e418b6f4e50834d4e9cf30a0378033a7a118776d22b88c1a1f3252a3da49b1"
+        },
+        "scope": "ONEliteralpinonly; allotherworkflowbytes/config/currentgates preserved; no donor/preparedhead self-reference"
+      },
+      "SC031Native": {
+        "head": "a80712d5d26c182a877d7ff26b6521e3993f084e",
+        "tree": "279aa71cbba15b452a20b670007c4567fc765775",
+        "sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+        "scope": "EXACT_NATIVE_SCRIPT_TECHNICAL_ADOPTION_ONLY; nativeCPexcluded; old30+5sourcecases, runtimeNOT_RUN"
       }
     },
     "sql_sha256": {
@@ -89065,15 +89114,32 @@
       "duplicate_default_acl_header_pairs": 3
     },
     "expected_schema_delta": "Exactlyone existing private5arg wire-comparator body; all16561other ordered FULL dumpblocks including distinct repeated DEFAULT ACL headers,2210other fullfunctions and12currentnonfunction sections exact. RAWtypes actuallymeasured; ownerOIDACLconfig actualsame-replay complete29NOTICE witness required. No new objects/grants/role/schema/helper/signature.",
-    "input_union_status": "NOT_FINAL_NATIVE_AND_ESCO_PIN_INPUT_PENDING",
-    "native_source_receiving_status": "NOT_RECEIVED",
-    "esco_workflow_pin_receiving_status": "NOT_RECEIVED",
-    "producer_stage": "SOURCE_PREPARATION_ONLY_NO_PRODUCER_CAPTURE_OR_PUBLICATION_GO",
+    "input_union_status": "FROZEN_SOURCE_CANDIDATE_PROTOCOL_REVIEW_PENDING",
+    "native_source_receiving_status": "EXACT_REVIEWED_POSTIMAGE_RECEIVED",
+    "esco_workflow_pin_receiving_status": "EXACT_FINAL_NATIVE_PIN_POSTIMAGE_BOUND",
+    "producer_stage": "SOURCE_CANDIDATE_ONLY_TWO_OTHER_PROTOCOL_REVIEWS_AND_PRODUCER_GO_PENDING",
     "producer_receipt": null,
     "native_tests": "NOT_RUN",
     "catalog_preservation_capture": "NOT_YET_CANONICAL; local020e DECLAREDonly",
     "atomic_input_scope": "COMPLETE_CANONICAL_EMPTY_ISOLATED_INPUT_ONLY; P2_POPULATED_PARTIAL_LEGACY_UPGRADE_OPEN",
     "receiving_appointment": 6160283447,
-    "source_preparation_GO": 6160402751
+    "source_preparation_GO": 6160402751,
+    "owned_native_workflow_input": {
+      "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+      "mode": "100644",
+      "blob": "fc1a5d30941a259e1f0478b3ffd0273cd73bd60c",
+      "sha256": "dd03fe3a05236b3e83edf72ac51956c97ccfdf0f99bf9cc40fd0ab828f75c18a",
+      "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+      "native_test_sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+      "config_path": "scripts/ediel-at-z14vh-z15v-esco-native.config.ts",
+      "config_sha256": "1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a",
+      "origin": "OWN_AUTHORED_ONE_FINAL_NATIVE_SHA_PIN_UPDATE",
+      "basis": {
+        "base": "7952177b13c911427fe529a56fd787d7f3abfc99",
+        "preimage_sha256": "7f38047f3bfe4ee59b82e39c52fe2fd4ddaaad0db7d6bb49f4c206dbbb6d4f9b",
+        "old_native_sha256": "68e418b6f4e50834d4e9cf30a0378033a7a118776d22b88c1a1f3252a3da49b1"
+      },
+      "scope": "ONEliteralpinonly; allotherworkflowbytes/config/currentgates preserved; no donor/preparedhead self-reference"
+    }
   }
 }
