@@ -4,7 +4,7 @@
   "branch": "codex/ops-api-contract-review-20261012",
   "audit": "quality/audits/2026-10-12-ops-api-contracts/README.md",
   "status": "CODE_DEPLOYED_AUTHFREE13_NATIVE_APPLIED1243_FUNCTIONS_VERIFIED_STAFF_CONFIGURATION_PENDING",
-  "authority": "Actual source and read-only native metadata; tests support local regressions only",
+  "authority": "Actual code, genuine PostgreSQL and native/hosted metadata; no unit-test oracle",
   "native_project": "piidsfebjqjmnepdpnas",
   "native_writes": 85,
   "business_rpc_invocations": 0,
@@ -815,5 +815,6 @@
     "project": "piidsfebjqjmnepdpnas",
     "receipt": "quality/audits/2026-10-12-ops-api-contracts/evidence/bb0b-native-delivery-20261014/production-staff-project-target-attestation.json",
     "business_rpc_calls": 0
-  }
+  },
+  "runtime_capability_gate_after_effect": "PASS actual liveview; exact deployedrequiredversion, fingerprintvalid, blockingissues[], missingfunctions/relations/columns/functionACL/RLS/policy/viewsecuritygaps[];service_roleSELECTtrue; rowverified_atbaseline preservedasdated."
 }

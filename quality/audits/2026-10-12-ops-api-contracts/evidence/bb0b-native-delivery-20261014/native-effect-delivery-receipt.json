@@ -52,5 +52,6 @@
     "signing_forward_peer_one:CLEAR",
     "signing_forward_peer_two:CLEAR"
   ],
-  "deployed_service_sdk_project_url_attestation": "PASS piidsfebjqjmnepdpnas; source-traced401missing-api-token and412project-mismatch beforedatabaseaccess"
+  "deployed_service_sdk_project_url_attestation": "PASS piidsfebjqjmnepdpnas; source-traced401missing-api-token and412project-mismatch beforedatabaseaccess",
+  "live_deployed_runtime_capability_gate": "PASS is_ready=true, exact required version/fingerprint, blocking_issues=[], all listed capability gaps empty, service_role SELECT=true"
 }
