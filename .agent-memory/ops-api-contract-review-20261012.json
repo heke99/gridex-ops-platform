@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Publish reviewed exactcurrent-source fix to approvedPR794; evaluate existing ordinary clean/upgrade/capture actualsource gates; use retained qualifiedservice for canonicaloutput reconciliation. Existing SC031 source/native alignment remains pending, no green or merge claim.",
+  "next_action": "Qualify actual committed ten-source strictupgrade/history inputs; proxy publish exactreviewed code toPR794 with expectedhead6b3. Then currentordinary clean SQL/capture+existingqualifiedsource service; native SC031 actualsource alignment and canonicaltypes outstanding. No greenclaim.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "573d74371086da585a5cff6abee95eadfe58899e",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -852,6 +852,8 @@
       "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql",
       "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql",
       "supabase/bootstrap/20261013_ops_permission_catalog_replay_adapter.sql",
+      "supabase/bootstrap/20261014_ops_atomic_bb0b_sc031_replay_adapter.sql",
+      "supabase/bootstrap/20261013_ops_permission_catalog_replay_adapter.sql",
       "supabase/bootstrap/20261014_ops_atomic_bb0b_sc031_replay_adapter.sql"
     ],
     "resource_readback": "234existingpreserved+6ownnew=240;full76protocols/otheropenPRpaths/ancestorchecksnooverlap",
@@ -921,7 +923,8 @@
       "source_guard_profiles": "Source-proved paired native/canonical permissioncatalog + exact SC031 same-transaction temporary normalization/restoration.",
       "routing": "Exact original timestamp source-position replacement for these two artifacts; needed for terminal effect and adjacent substituted source endpoint. No fabricated timestamp boundary.",
       "qualification": "TWO_CURRENT_CANONICAL_SEVEN_FILE_UNION_SOURCE_CLEARS_AND_CURRENT_INPUT_PREFLIGHT_PASS",
-      "native_writes": 0
+      "native_writes": 0,
+      "stage": "CURRENT_SEVEN_FILE_UNION_TWO_INDEPENDENT_CLEARS_INPUT_PREFLIGHT_PASS"
     }
   }
 }
