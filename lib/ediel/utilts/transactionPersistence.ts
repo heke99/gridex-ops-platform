@@ -60,6 +60,7 @@ export type UtiltsTransactionPersistenceResult = {
   contractHash?: string
   contractVersion?: number
   sourceBinding?: { sourceMessageId: string; rawHash: string; boundAt: string }
+  versionState?: 'current' | 'late_older_history'
 }
 
 export type UtiltsBoundPersistenceInput = {
@@ -73,12 +74,22 @@ export type UtiltsBoundPersistenceInput = {
 }
 // Only the trusted persistence adapter registers write authority. JSON loaded
 // from parsed_payload (or a caller's status/hash marker) cannot enter this map.
-const returnedAuthority = new WeakMap<UtiltsTransactionPersistenceResult, { sourceMessageId: string; contract: UtiltsConsumptionContract }>()
+type StoredUtiltsVersionState = 'current' | 'late_older_history' | 'legacy_unspecified'
+type ReturnedUtiltsAuthority = { sourceMessageId: string; contract: UtiltsConsumptionContract; versionState: StoredUtiltsVersionState }
+const returnedAuthority = new WeakMap<UtiltsTransactionPersistenceResult, ReturnedUtiltsAuthority>()
 
 export function storedUtiltsConsumption(result: UtiltsTransactionPersistenceResult, sourceMessageId: string): UtiltsConsumptionContract | null {
   const authority = returnedAuthority.get(result)
   if (!authority || authority.sourceMessageId !== sourceMessageId) return null
   return structuredClone(authority.contract)
+}
+
+/** Classification captured at the validated service boundary, never a later
+ * response marker or mutable is_current flag. Missing metadata retains only
+ * the old consumer ABI; it does not establish a database version state. */
+export function storedUtiltsConsumptionVersionState(result: UtiltsTransactionPersistenceResult, sourceMessageId: string): StoredUtiltsVersionState | null {
+  const authority = returnedAuthority.get(result)
+  return authority?.sourceMessageId === sourceMessageId ? authority.versionState : null
 }
 
 /** Validate the actual service RPC boundary, including exact membership and
@@ -89,6 +100,7 @@ export function validateUtiltsPersistenceResults(input: UtiltsBoundPersistenceIn
   if (new Set(ids).size !== ids.length || ids.some(id => !id)) consumptionConflict('physical_membership')
   const rawHash = createHash('sha256').update(input.rawPayload, 'utf8').digest('hex')
   const results = data as UtiltsTransactionPersistenceResult[]
+  const staged: Array<{ row: UtiltsTransactionPersistenceResult; authority: ReturnedUtiltsAuthority }> = []
   for (const [index, item] of input.transactions.entries()) {
     const found = results.filter(row => row && row.transactionId === item.transactionId)
     if (found.length !== 1) consumptionConflict('result_membership')
@@ -111,8 +123,16 @@ export function validateUtiltsPersistenceResults(input: UtiltsBoundPersistenceIn
       ? legacyUtiltsRetryComparison(prepared,input.rawPayload) : prepared
     if (contract.version===3 || !row.seriesId || row.contractVersion !== contract.version || !/^[a-f0-9]{64}$/.test(row.contractHash ?? '') || !consumptionEqual(contract, comparison) ||
       contract.companyId !== input.companyId || contract.environment !== input.environment || contract.messageCode !== input.messageCode || contract.transactionId !== item.transactionId) consumptionConflict('returned_contract')
-    returnedAuthority.set(row, { sourceMessageId: input.sourceMessageId, contract: structuredClone(contract) })
+    let versionState: StoredUtiltsVersionState = 'legacy_unspecified'
+    if (Object.prototype.hasOwnProperty.call(row, 'versionState')) {
+      if (row.versionState !== 'current' && row.versionState !== 'late_older_history') consumptionConflict('version_state')
+      versionState = row.versionState
+    }
+    staged.push({ row, authority: { sourceMessageId: input.sourceMessageId, contract: structuredClone(contract), versionState } })
   }
+  // A later refused sibling (or clone failure) must not publish new authority
+  // for earlier originals. Prior separately successful calls remain intact.
+  for (const { row, authority } of staged) returnedAuthority.set(row, authority)
   return results
 }
 
