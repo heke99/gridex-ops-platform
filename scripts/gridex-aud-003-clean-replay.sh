@@ -169,7 +169,7 @@ for descriptors in (plan.get('derivedBootstrap') or {},plan_add.get('derivedBoot
         if not isinstance(meta,dict):
             raise SystemExit(f'invalid derived bootstrap descriptor: {rel}')
         previous=derived.get(rel,{})
-        for key in ('source','sourceKind','artifactSha256','sourceSha256'):
+        for key in ('source','sourceKind','artifactSha256','sourceSha256','execution'):
             if key in previous and key in meta and previous[key]!=meta[key]:
                 raise SystemExit(f'conflicting derived bootstrap identity: {rel}: {key}')
         derived[rel]={**previous,**meta}
@@ -242,6 +242,24 @@ for item in interleaved:
     if should_skip_timestamp_source(source,meta): skip_timestamp_names.add(source.name)
     interleaved_paths.append((actual,after,before))
 
+# A derived input at its original timestamp needs no artificial next migration
+# boundary. Preserve source names separately from the executed artifact paths.
+source_position_paths={}
+interleaved_names={item.get('path','') for item in interleaved}
+for rel,meta in derived.items():
+    mode=meta.get('execution')
+    if mode not in (None,'sourcePosition'):
+        raise SystemExit(f'unknown derived replay execution: {rel}')
+    if mode!='sourcePosition': continue
+    if not rel.startswith('bootstrap/') or rel in declared or rel in interleaved_names or meta.get('sourceKind')!='timestampedMigration' or meta.get('preserveSourceReplay') is not False:
+        raise SystemExit(f'ambiguous derived source-position declaration: {rel}')
+    actual,source,meta=validate_derived(rel)
+    if source is None or not re.fullmatch(r'migrations/\d{14}_[^/]+\.sql',str(meta.get('source',''))):
+        raise SystemExit(f'derived source-position input must name a timestamped migration: {rel}')
+    if source.name in source_position_paths or source.name in skip_timestamp_names:
+        raise SystemExit(f'ambiguous derived source-position input: {source.name}')
+    source_position_paths[source.name]=actual
+
 excluded=set()
 artifacts=noncanonical.get('artifacts') or []
 if not artifacts: raise SystemExit('noncanonical artifact contract is empty')
@@ -260,7 +278,7 @@ for item in artifacts:
     pinned_source(actual)
     if not re.fullmatch(r'[0-9a-f]{64}',expected) or digest(actual) != expected or checksums.get(actual.name) != expected:
         raise SystemExit(f'noncanonical artifact checksum mismatch: {rel}')
-    if actual.name in skip_timestamp_names:
+    if actual.name in skip_timestamp_names or actual.name in source_position_paths:
         raise SystemExit(f'noncanonical artifact overlaps foundation/substitution: {rel}')
     excluded.add(actual.name)
 
@@ -275,21 +293,23 @@ for version,names in collisions.items():
     if len(names)>1 and sorted(names) != allowed.get(version,[]):
         raise SystemExit(f'unapproved migration version collision {version}: {sorted(names)}')
 files.sort(key=lambda p:p.name)
+if not set(source_position_paths).issubset({p.name for p in files}):
+    raise SystemExit('derived source-position original is absent from executable history')
 
 versions={p.name[:14] for p in files}
-execution=list(files)
+execution=[(p.name,source_position_paths.get(p.name,p)) for p in files]
 for actual,after,before in sorted(interleaved_paths,key=lambda row: row[2]):
     if after not in versions or before not in versions:
         raise SystemExit(f'interleaved boundary missing from canonical timestamped history for {actual.name}: {after}..{before}')
-    idx=next((i for i,p in enumerate(execution) if re.match(r'^\d{14}_',p.name) and p.name[:14] == before),None)
+    idx=next((i for i,(name,p) in enumerate(execution) if re.match(r'^\d{14}_',name) and name[:14] == before),None)
     if idx is None: raise SystemExit(f'interleaved before-boundary not executable: {before}')
-    prior_versions=[p.name[:14] for p in execution[:idx] if re.match(r'^\d{14}_',p.name)]
+    prior_versions=[name[:14] for name,p in execution[:idx] if re.match(r'^\d{14}_',name)]
     if after not in prior_versions: raise SystemExit(f'interleaved after-boundary not reached before {before}: {after}')
-    execution.insert(idx,actual)
+    execution.insert(idx,(actual.name,actual))
 
 foundation_out.write_text(''.join(str(p)+'\n' for p in foundation_paths))
-timestamp_out.write_text(''.join(str(p)+'\n' for p in execution))
-print(f'[GRIDEX-REM-002 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)} substitutions, {len(excluded)} noncanonical exclusions, {len(interleaved_paths)} interleaved artifacts, {len(files)} canonical timestamped files')
+timestamp_out.write_text(''.join(str(p)+'\n' for name,p in execution))
+print(f'[GRIDEX-REM-002 replay] preflight: {len(foundation_paths)} foundation inputs, {len(skip_timestamp_names)+len(source_position_paths)} substitutions, {len(excluded)} noncanonical exclusions, {len(interleaved_paths)} interleaved artifacts, {len(source_position_paths)} source-position artifacts, {len(files)} canonical timestamped files')
 PY
 
 python3 - "$LEDGER" "$LEDGER_MARKERS" <<'PY'

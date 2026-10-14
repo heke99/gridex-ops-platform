@@ -89,7 +89,7 @@ def prepare(root, base, out):
             excluded.append({'name': name, 'sha256': item['sha256'], 'finding': item.get('finding')})
     excluded_names = {row['name'] for row in excluded}
     additions = [name for name in additions if name not in excluded_names]
-    derived = _replay.substitutions(root, head, current, set(additions))
+    derived = _replay.substitutions(root, head, current, set(additions), excluded_names)
     out.mkdir(parents=True, exist_ok=False)
     inputs = out / 'inputs'
     inputs.mkdir()

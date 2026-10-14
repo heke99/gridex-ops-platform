@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Publish exact eight-file source union/currentmain573 integration to approved PR794; OPS-only application delivery on currentmain573 parent, then existing sole producer complete actual SQL/schema/types qualification. Green certification still false.",
+  "next_action": "Qualify committed actual ten-file source inputs, publish approved PR794 via existing valid proxy (root CLI401), then single existing wholeSQL/schema/type lane qualifies exactsource. Native currentmainSC031 function alignment remains a separate guarded delivery requirement, not green.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "573d74371086da585a5cff6abee95eadfe58899e",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -38,7 +38,7 @@
   "latest_native_preflight": "Fresh10:01:58UTC before13:519ledger/422Authhooks/51B3parts/CEEprepare, no drift. After13:532ledger/648Authhooks exactly422old+226/113sourceallowed new, wholeprepare unchanged and transports removed; native1243function comparisonPASS.",
   "handover": "Application d899ac6b deployed to OPS production READY20:11:57.854UTC, integrated latest main4e52854e, realbuild175.12s and two independent integration-source reviews. No new module SQL/GEN/mainmerge performed. Fresh portal HTTP fetch auto-review rejected; current public frontend DB binding NOT_VERIFIED. PR794 draft; future main release must integrate branch API corrections.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "47a23b7573543021f79df172b44fb051024d2714 (deployed application); repositoryhead differs onlySQL/docs/provenance",
+  "current_source_head": "6b3a51b2f84ea6dfaed6559a877d6db3c8130f77 (current released application code); later changes are replay source only",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "85actualwrites=18scoped+64source-only+3metadata actions; latest13=12source-only+1atomic effect with8logical componentreferences; no fake childledger.",
   "gen_owner": "No competing capture. Latest existing main4e52854e canonical GEN files imported byte-identically. Fresh module/semantic capture requires actual owning producer follow-up.",
@@ -850,7 +850,9 @@
       "scripts/gridex-ediel-upgrade-inputs.py",
       "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
       "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql",
-      "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql"
+      "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql",
+      "supabase/bootstrap/20261013_ops_permission_catalog_replay_adapter.sql",
+      "supabase/bootstrap/20261014_ops_atomic_bb0b_sc031_replay_adapter.sql"
     ],
     "resource_readback": "234existingpreserved+6ownnew=240;full76protocols/otheropenPRpaths/ancestorchecksnooverlap",
     "source_firstwrite_authority": "Current user instruction is direct source completion GO; own checkpoint recorded before canonical six-file implementation.",
@@ -859,7 +861,7 @@
     "trace_fix": "One server requestID per onboarding request shared by envelope/header/log; app typecheckpassed/twoindependentSOURCEreviews",
     "documentation_fix": "Standalone exact tenant invitation delivery/receipt contract; correct lifecycle/body errors; missing immutableStaffpublication row",
     "green_certification": false,
-    "stage": "SOURCE_BUILT_PUBLISHED_AND_INPUT_ROUTING_QUALIFIED_NATIVE_CHAIN_GEN_PENDING",
+    "stage": "API_APP_RELEASED_CURRENT_TEN_SOURCE_BUILT_AND_SOURCE_REVIEWED_FULL_SQL_SCHEMA_TYPES_PENDING",
     "recorded_at": "2026-10-14T17:10:06.957202+00:00",
     "source_routing_implemented": true,
     "independent_final_routing_reviews": "TWO_CURRENT_CANONICAL_UNION_SOURCE_CLEARS",
@@ -867,7 +869,7 @@
     "committed_source": "b4146a58e0a571ea04dd7537a2e50cce68c9764d",
     "source_materialization": "PASS exactcommitted b414: strictupgrade605/historyunion363 files,3adapters,allsource+executedhashesverified; cleanpreflight12substitutions23interleaved. Latermain573 SQLinputunion requires current rebinding.",
     "source_public_coordination": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6175115768",
-    "source_writer": "PAUSED_EXACT_EIGHT_POSTIMAGES",
+    "source_writer": "PAUSED_EXACT_TEN_POSTIMAGES",
     "native_or_schema_capture_qualified": false,
     "permission_replay_correction": {
       "claim": "6ac91ce485c2c00ee8fd6450bf259e3195b477d7",
@@ -907,6 +909,19 @@
       "app_typecheck": "PASS exact merged application",
       "migration_integrity": "PASS1252files1155versiongroups checksums",
       "schema_types_scope": "Imported latestmain5GEN files byte-identical; no new canonicalcapture/wholeSQL qualification."
+    },
+    "remaining_replay_correction": {
+      "claim": "251f34bacf30d0b4c9df50de8aba1a4a6bd651a7",
+      "root_mcp_own2_and_editable3_readback": "EXACT_MATCH",
+      "source_firstwrite": "OWN_CHECKPOINT_FIRST",
+      "source_files": [
+        "supabase/bootstrap/20261013_ops_permission_catalog_replay_adapter.sql",
+        "supabase/bootstrap/20261014_ops_atomic_bb0b_sc031_replay_adapter.sql"
+      ],
+      "source_guard_profiles": "Source-proved paired native/canonical permissioncatalog + exact SC031 same-transaction temporary normalization/restoration.",
+      "routing": "Exact original timestamp source-position replacement for these two artifacts; needed for terminal effect and adjacent substituted source endpoint. No fabricated timestamp boundary.",
+      "qualification": "TWO_CURRENT_CANONICAL_SEVEN_FILE_UNION_SOURCE_CLEARS_AND_CURRENT_INPUT_PREFLIGHT_PASS",
+      "native_writes": 0
     }
   }
 }

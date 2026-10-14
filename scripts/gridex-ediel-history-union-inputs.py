@@ -216,7 +216,7 @@ def prepare(root, out, contract_path, candidate='HEAD'):
     # union inputs either; same contract file and exact-byte binding as upgrade.
     excluded = noncanonical(root, head, committed, current)
     excluded_names = {row['name'] for row in excluded}
-    derived = _replay.substitutions(root, head, current, set(additions) - excluded_names)
+    derived = _replay.substitutions(root, head, current, set(additions) - excluded_names, excluded_names)
     # No source SQL runs here; source and executed artifact hashes remain distinct.
     out.mkdir(parents=True, exist_ok=False)
     inputs = out / 'inputs'

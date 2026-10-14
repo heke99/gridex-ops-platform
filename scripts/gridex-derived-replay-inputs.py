@@ -29,12 +29,12 @@ def _merge_derived(derived,incoming):
         if not isinstance(meta,dict):
             raise ValueError('invalid_derived_replay_descriptor:'+path)
         previous=derived.get(path,{})
-        for key in ('source','sourceKind','artifactSha256','sourceSha256'):
+        for key in ('source','sourceKind','artifactSha256','sourceSha256','execution'):
             if key in previous and key in meta and previous[key]!=meta[key]:
                 raise ValueError('conflicting_derived_replay_identity:'+path+':'+key)
         derived[path]={**previous,**meta}
 
-def substitutions(root,revision,checksums,selected_names):
+def substitutions(root,revision,checksums,selected_names,excluded_names=()):
     derived={};declared=set();boundaries={}
     for plan_path in PLANS:
         exists=subprocess.run(['git','cat-file','-e',revision+':'+plan_path],cwd=root,
@@ -53,7 +53,20 @@ def substitutions(root,revision,checksums,selected_names):
     result={}
     for path,meta in derived.items():
         path=_safe(path)
+        execution=meta.get('execution')
+        if execution not in (None,'sourcePosition'):
+            raise ValueError('unknown_derived_replay_execution:'+path)
+        at_source=execution=='sourcePosition'
+        if at_source and (path in declared or meta.get('sourceKind')!='timestampedMigration'
+                          or meta.get('preserveSourceReplay') is not False):
+            raise ValueError('ambiguous_derived_replay_source_position:'+path)
         source=meta.get('source')
+        if at_source:
+            source=_safe(source)
+            if not source.startswith('migrations/') or len(PurePosixPath(source).parts)!=2 or not re.fullmatch(r'\d{14}_.+\.sql',PurePosixPath(source).name):
+                raise ValueError('derived_replay_source_position_requires_timestamped_source:'+path)
+            if PurePosixPath(source).name in excluded_names:
+                raise ValueError('derived_replay_source_position_noncanonical_overlap:'+path)
         if not source or meta.get('sourceKind')=='verified_live_schema' or meta.get('preserveSourceReplay',False):
             continue
         source=_safe(source)
@@ -61,7 +74,7 @@ def substitutions(root,revision,checksums,selected_names):
             raise ValueError('derived_replay_source_must_be_migration:'+path)
         name=PurePosixPath(source).name
         if name not in selected_names:continue
-        if path not in declared or not path.startswith('bootstrap/'):
+        if (path not in declared and not at_source) or not path.startswith('bootstrap/'):
             raise ValueError('undeclared_derived_replay_artifact:'+path)
         if name in result:raise ValueError('ambiguous_derived_replay_source:'+name)
         expected=checksums.get(name)

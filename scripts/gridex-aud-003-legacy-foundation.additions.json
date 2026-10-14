@@ -422,6 +422,24 @@
       "artifactSha256": "070b2e524b964c78e9e99a91553f8d4eab74811fb8a76e994cfe8e52088b84fa",
       "preserveSourceReplay": false,
       "reason": "Two exact historical Staff acceptance predecessor bodies differ from native originals only in comments. Paired original/hash acceptance preserves native applicability and all five target bodies/attribute guards."
+    },
+    "bootstrap/20261013_ops_permission_catalog_replay_adapter.sql": {
+      "source": "migrations/20261013104143_ops_api_seven_permission_catalog_keys.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "2ce4e07ee2dee8ffb352e0e387092e7eb8a9bc6802723d408b40b9e0671e4519",
+      "artifactSha256": "1c2bdd4276b99f15d838a80adb1bb63def487e8db2e31405e5821264f4a7c5d9",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Exact source-qualified canonical/native permissioncatalog profiles, raw state preserved."
+    },
+    "bootstrap/20261014_ops_atomic_bb0b_sc031_replay_adapter.sql": {
+      "source": "migrations/20261014113214_ops_api_atomic_bb0b_authfree_effect.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
+      "artifactSha256": "29a8213426de1eeb0be2ed29976846aef1622239347f269325f0005a9ea97e55",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Exact SC031 original function row restored after unchanged sealed installer execution within one transaction; old-state branch remains old."
     }
   }
 }
