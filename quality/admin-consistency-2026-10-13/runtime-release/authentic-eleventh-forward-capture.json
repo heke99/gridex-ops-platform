@@ -1,0 +1,25 @@
+{
+  "run_id": 38493642877,
+  "job_id": 115624361710,
+  "run_conclusion": "SUCCESS",
+  "artifact_id": 11862693157,
+  "artifact_zip_sha256": "afd3d8911047450a38e6d562e941f48424c6622ce22ea09c8f9e092042028f3f",
+  "published_artifact_digest": "sha256:afd3d8911047450a38e6d562e941f48424c6622ce22ea09c8f9e092042028f3f",
+  "source_head": "7bba708dc75427f4f99cb86961e5946b2b623d04",
+  "source_tree": "9dceb7dca2ddd6b9d965fde365c6af58adf2bb6c",
+  "all_eight_source_inputs_verified": true,
+  "all_four_zip_members_crc_verified": true,
+  "latest_migration": {
+    "name": "20261014004020_admin_api_current_context_projection.sql",
+    "sha256": "852f0517f86b31e1baffd756f48e9cf3faad798df4d802d77f99300cfb92ed59"
+  },
+  "raw_three_outputs_verified": {
+    "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+    "schema.sql": "623cbb9b10a305700f8a66e1c66947bddc15a9750ae1b92248d2f6735b01328c",
+    "schema.fingerprint.json": "07b9ef5700e6b101417f7d0d6e54c1305f35a5e118fb388a82a6edda694c5be9"
+  },
+  "schema_fingerprint": "7986a49f83bd6a770bae905817b360cd1f2ac0a36e0fc4bbde77b4e5315161f9",
+  "captured_scoped_body_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+  "historical_manifest_objects_preserved": true,
+  "qualification": "Authentic capture-only complete own eleven-forward prefix. Final-head mandatory native/browser/upgrade/parity/application and delivery gates remain pending; held expanded API backend stack is not imported or qualified."
+}

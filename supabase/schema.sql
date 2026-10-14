@@ -37222,7 +37222,7 @@ COMMENT ON FUNCTION public.canonical_authenticated_tenant_context(p_selected_com
 --
 
 CREATE FUNCTION public.canonical_authenticated_tenant_context_v1_scoped(p_selected_company_id uuid DEFAULT NULL::uuid) RETURNS jsonb
-    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
     AS $$
 declare
@@ -37234,6 +37234,8 @@ declare
   v_memberships jsonb := '[]'::jsonb;
   v_roles jsonb := '[]'::jsonb;
   v_permissions jsonb := '[]'::jsonb;
+  v_active_permission_keys jsonb := '[]'::jsonb;
+  v_denied_permissions jsonb := '[]'::jsonb;
   v_company jsonb;
   v_policy jsonb := '{}'::jsonb;
 begin
@@ -37245,7 +37247,7 @@ begin
     select 1 from auth.users u
     join public.user_profiles profile on profile.id=u.id
     where u.id=v_user_id and u.deleted_at is null
-      and (u.banned_until is null or u.banned_until <= now())
+      and (u.banned_until is null or u.banned_until <= clock_timestamp())
       and u.email_confirmed_at is not null
       and profile.user_status='active'
   ) into v_profile_active;
@@ -37357,6 +37359,24 @@ begin
         and (d.valid_to is null or clock_timestamp()<d.valid_to)
     );
 
+  -- Platform authority remains implicit; explicit current DENY and catalog
+  -- availability are projected separately for actual API requirement evaluation.
+  select coalesce(jsonb_agg(permission.key order by permission.key),'[]'::jsonb)
+  into v_active_permission_keys from public.permissions permission where permission.is_active;
+  select coalesce(jsonb_agg(denied.permission_key order by denied.permission_key),'[]'::jsonb)
+  into v_denied_permissions from (
+    select coalesce(nullif(d.permission_key,''),p.key) as permission_key
+    from public.user_permissions d left join public.permissions p on p.id=d.permission_id
+    where d.user_id=v_user_id and (d.company_id is null or d.company_id=v_selected_company_id)
+      and d.is_active and d.status='active' and d.effect='deny'
+    union
+    select d.permission_key from public.user_permission_overrides d
+    where d.user_id=v_user_id and (d.company_id is null or d.company_id=v_selected_company_id)
+      and d.is_active and d.effect='deny'
+      and (d.valid_from is null or d.valid_from<=clock_timestamp())
+      and (d.valid_to is null or clock_timestamp()<d.valid_to)
+  ) denied where denied.permission_key is not null;
+
   if v_selected_company_id is not null then
     select jsonb_build_object(
       'id',company.id,
@@ -37390,6 +37410,8 @@ begin
     'memberships',v_memberships,
     'roles',v_roles,
     'permissions',v_permissions,
+    'active_permission_keys',v_active_permission_keys,
+    'denied_permissions',v_denied_permissions,
     'company',v_company,
     'operation_policy',v_policy,
     'access_invariant_ok',v_platform or v_selected_company_id is not null
