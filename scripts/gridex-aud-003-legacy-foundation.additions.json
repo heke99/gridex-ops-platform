@@ -130,6 +130,11 @@
       "path": "bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
       "afterLedgerVersion": "20261013093621",
       "beforeLedgerVersion": "20261013093922"
+    },
+    {
+      "path": "bootstrap/20261013_ops_current_permission_replay_adapter.sql",
+      "afterLedgerVersion": "20261013094648",
+      "beforeLedgerVersion": "20261013100622"
     }
   ],
   "derivedBootstrap": {
@@ -396,6 +401,14 @@
       "artifactSha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b",
       "preserveSourceReplay": false,
       "purpose": "Replay-only exact source-SHA-bound complete-state adapter: canonical007d is a verified no-op; legacy4daec removes only the exact retired TTL anchor; unknown body or full metadata refuses. Preserve original published SQL/hash and distinguish original source from executed derived artifact."
+    },
+    "bootstrap/20261013_ops_current_permission_replay_adapter.sql": {
+      "source": "migrations/20261013095628_ops_api_current_context_permission_denies.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "c0b42937d124b8a50e77e2d773a4a9ce03062a24eff3abb6d93eb49b0affc418",
+      "artifactSha256": "d5e7d62982719ffea9ff0ca65149ca6b93e5e07e5caa3518f4e651c6688328f8",
+      "preserveSourceReplay": false,
+      "reason": "Exact source-proven historical global permission body differs from native preimage by two comments only; identical hardened outputs/guards with stronger full identity preservation."
     }
   }
 }

@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Receive existing qualified schema/type service exact separate API-source branch/base/six-file intake; bounded immutable loan and coherent source epoch. Then qualify genuine entire SQL reconstruction, schema/types and exact final gates; user green approval follows completion. Existing selected masterplan packet stays separate.",
+  "next_action": "Complete proven immutable95628 comment-only derived replay correction, source planning, independent exact review, then existing sole GEN integration.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "7952177b13c911427fe529a56fd787d7f3abfc99",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -848,7 +848,8 @@
       "scripts/gridex-derived-replay-inputs.py",
       "scripts/gridex-ediel-history-union-inputs.py",
       "scripts/gridex-ediel-upgrade-inputs.py",
-      "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql"
+      "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
+      "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql"
     ],
     "resource_readback": "234existingpreserved+6ownnew=240;full76protocols/otheropenPRpaths/ancestorchecksnooverlap",
     "source_firstwrite_authority": "Current user instruction is direct source completion GO; own checkpoint recorded before canonical six-file implementation.",
@@ -865,7 +866,21 @@
     "committed_source": "847650c5521c8ffa2a15740828d3d3acc17a0314",
     "source_materialization": "Cleanpreflight/strictupgrade605/historyunion363PASS;644and886historicalsourcespreserved/allactualexecutedhashesmatch/1quoteadaptereach",
     "source_public_coordination": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6175115768",
-    "source_writer": "PAUSED_EXACT_SIX_POSTIMAGES",
-    "native_or_schema_capture_qualified": false
+    "source_writer": "PAUSED_EXACT_SEVEN_POSTIMAGES_AFTER_PERMISSION_CORRECTION",
+    "native_or_schema_capture_qualified": false,
+    "permission_replay_correction": {
+      "claim": "6ac91ce485c2c00ee8fd6450bf259e3195b477d7",
+      "newpath": "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql",
+      "finding": "Current exact-head clean CI fails immutable95628: global permission historical/native preimages differ in exactly2comments; confirmed2independent code reviews.",
+      "stage": "TWO_FINAL_SOURCE_CLEARS_AND_INPUT_PREFLIGHT_PASS",
+      "source_head": "7da5d8dd80e9be7fc750d068ea07016bb9a9789a",
+      "native_writes": 0,
+      "next_action": "Own checkpoint FIRST, sourcebound exact95628 derived adapter with one extra qualified historical hash, all original target/guards preserved; route exact chronological bracket and2independent finals.",
+      "source_reviews": [
+        "permission-replay-final-one.md",
+        "permission-replay-final-two.md"
+      ]
+    },
+    "public_coordination_metadata": "Automatic review rejected expanded claim metadata comment; no such disclosure performed. Prior approved public code-only coordination remains."
   }
 }
