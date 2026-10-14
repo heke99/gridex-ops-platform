@@ -218,6 +218,16 @@ jobs:
           kernel_legacy_basis = {'source_revision':kernel_revision,'path':kernel_legacy_path,
             'historical_alias':'BASE56','current_alias':'ROOT',
             'base':expected_base_kernel_legacy,'root':expected_current_kernel_legacy}
+          canonical_facade_path = 'lib/ediel/rulebook/canonicalEdielFacade.ts'
+          canonical_facade_revision = 'ca892c14643181656e842bf4d8ffa8b6d829dec2'
+          expected_base_facade = {'mode':'100644','git_blob_oid':'a170889bc7a9463e757302989cb596e30f527c6f',
+            'sha256':'d395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'}
+          expected_current_facade = {'mode':'100644','git_blob_oid':'6012241de1210e35b50b55fa646e92930b8f330c',
+            'sha256':'f979775551293c9221d3cecff8fb51ae8b17f02dff99ee4222ae8dff0ed32d86'}
+          subprocess.run(['git','merge-base','--is-ancestor',canonical_facade_revision,head],check=True)
+          canonical_facade_basis = {'source_revision':canonical_facade_revision,'path':canonical_facade_path,
+            'historical_alias':'BASE56','current_alias':'ROOT',
+            'base':expected_base_facade,'root':expected_current_facade}
           for path in canonical_dependencies:
               if path == kernel_path:
                   if baseline['blobs'][path] != expected_base_kernel or current['blobs'][path] != expected_current_kernel:
@@ -225,6 +235,9 @@ jobs:
               elif path == kernel_legacy_path:
                   if baseline['blobs'][path] != expected_base_kernel_legacy or current['blobs'][path] != expected_current_kernel_legacy:
                       raise RuntimeError('exact historical/current legacy kernel identity changed')
+              elif path == canonical_facade_path:
+                  if baseline['blobs'][path] != expected_base_facade or current['blobs'][path] != expected_current_facade:
+                      raise RuntimeError('exact historical/current canonical facade identity changed')
               elif current['blobs'][path] != baseline['blobs'][path]:
                   raise RuntimeError('AGT canonical dependency differs from BASE: '+path)
           receipt = {'purpose':'supplemental_BASE56_plus_snapshot_repair_prebirth_plus_current_AGT_producer_and_prospective_legacy_DTO_then_two_owned_forwards_actual_native',
@@ -242,6 +255,7 @@ jobs:
               'canonical_dependency_identity':{p:{'base':baseline['blobs'][p],'root':current['blobs'][p]} for p in canonical_dependencies},
               'kernel_basis':kernel_basis,
               'kernel_legacy_basis':kernel_legacy_basis,
+              'canonical_facade_basis':canonical_facade_basis,
               'public_creator_input':{'source':'BASE56','port':'createEdielMessage','field':'partyAddressId',
                 'when':'historical_AGT_Z09_L7_before_INSERT','value_origin':'existing_prospective_legacy_fixture_UUID',
                 'mutation':'ONLY_partyAddressId','scope':'one_exact_company_actor_profile_route_birth','restore':'finally','authority':'NO_authority_or_accepted_fact'}},
@@ -277,7 +291,8 @@ jobs:
           # Identical recorded package/lock/config inputs qualify this shared
           # installation. Historical @ resolves to BASE except the one recorded
           # committed ROOT AGT producer. Historical kernel remains fixed BASE;
-          # the current phase uses the separately pinned delivered231b9ef8 kernel pair.
+          # the current phase uses the separately pinned delivered231b9ef8 kernel pair
+          # and adoptedca892 facade. Historical facade remains its unchanged BASE bytes.
           ln -s "$CURRENT_ROOT/node_modules" "$DB01_BASE_ROOT/node_modules"
           # The embedded observer is bound by this workflow's frozen Git blob.
           # Its catalog reads use the same sole native database; no global GEN
@@ -664,12 +679,23 @@ jobs:
           if basis.get('kernel_legacy_basis')!=expected_kernel_legacy_basis:
               raise RuntimeError('JUnit qualification requires exact historical/current legacy kernel basis')
           subprocess.run(['git','merge-base','--is-ancestor',expected_kernel_basis['source_revision'],receipt['checkout_sha']],check=True)
+          expected_canonical_facade_basis={'source_revision':'ca892c14643181656e842bf4d8ffa8b6d829dec2',
+            'path':'lib/ediel/rulebook/canonicalEdielFacade.ts','historical_alias':'BASE56','current_alias':'ROOT',
+            'base':{'mode':'100644','git_blob_oid':'a170889bc7a9463e757302989cb596e30f527c6f',
+              'sha256':'d395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'},
+            'root':{'mode':'100644','git_blob_oid':'6012241de1210e35b50b55fa646e92930b8f330c',
+              'sha256':'f979775551293c9221d3cecff8fb51ae8b17f02dff99ee4222ae8dff0ed32d86'}}
+          if basis.get('canonical_facade_basis')!=expected_canonical_facade_basis:
+              raise RuntimeError('JUnit qualification requires exact historical/current canonical facade basis')
+          subprocess.run(['git','merge-base','--is-ancestor',expected_canonical_facade_basis['source_revision'],receipt['checkout_sha']],check=True)
           for path in dependencies:
               base=receipt['base_source']['blobs'][path]; current_input=receipt['root_source']['blobs'][path]
               if path==expected_kernel_basis['path']:
                   exact_pair=base==expected_kernel_basis['base'] and current_input==expected_kernel_basis['root']
               elif path==expected_kernel_legacy_basis['path']:
                   exact_pair=base==expected_kernel_legacy_basis['base'] and current_input==expected_kernel_legacy_basis['root']
+              elif path==expected_canonical_facade_basis['path']:
+                  exact_pair=base==expected_canonical_facade_basis['base'] and current_input==expected_canonical_facade_basis['root']
               else:
                   exact_pair=base==current_input
               if not exact_pair or basis['canonical_dependency_identity'][path]!={'base':base,'root':current_input} or \
