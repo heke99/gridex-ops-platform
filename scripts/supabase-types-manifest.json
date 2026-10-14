@@ -131750,9 +131750,9 @@
       "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
       "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9"
     },
-    "input_union_status": "FROZEN_PROFILE_CANDIDATE_SOURCE_REVIEW_PENDING",
-    "producer_stage": "SOURCE_PREPARATION_ONLY_PRODUCER_AND_RUNTIME_GO_PENDING",
-    "producer_receipt": null,
+    "input_union_status": "FROZEN_REVIEWED_COMPLETE",
+    "producer_stage": "SOURCE_FINAL_BINDING_COMPLETE_RUNTIME_GO_PENDING",
+    "producer_receipt": "dbd31213c0d58be5b23ec11fd7eadebb593599d3",
     "native_tests": "NOT_RUN",
     "catalog_preservation_capture": "PENDING_GENUINE_EXISTING_CAPTURE_AFTER_FROZEN_GUARD_EXECUTION; NO_SC046_NOTICE_OR_BEFORE_SNAPSHOT",
     "expected_schema_delta": {
