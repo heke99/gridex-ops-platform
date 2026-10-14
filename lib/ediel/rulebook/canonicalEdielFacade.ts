@@ -213,7 +213,20 @@ export function canonicalRegisteredEdielGuideScopes(){
  }))
 }
 
-import {PRODAT_26A_FIELD_MATRIX} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+import {PRODAT_26A_FIELD_MATRIX, canonicalProdat26AFieldRules} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+export type CanonicalProdatBusinessProjectionField =
+  | 'END_USER_GROUP' | 'INSTALLATION_GROUP' | '319' | '249' | '261' | '306' | '212'
+
+/** Known base exclusions for the bounded incoming business projection. This
+ * derived lookup does not select a guide or resolve dependent conditions. */
+export function canonicalProdatBusinessProjectionFieldIsForbidden(
+  messageCode: string | null | undefined,
+  fieldNumber: CanonicalProdatBusinessProjectionField,
+): boolean {
+  return canonicalProdat26AFieldRules(messageCode).some(rule =>
+    rule.fieldNumber === fieldNumber && rule.requirement === 'forbidden')
+}
+
 /** Physical field metadata only; no usage, dependency or revision decision. */
 export function canonicalProdatFieldWireDescriptor(fieldNumber:string):Readonly<{fieldNumber:string;fieldKey:string;segmentPath:string}>|null {
  const row=PRODAT_26A_FIELD_MATRIX.find(item=>item.fieldNumber===fieldNumber)

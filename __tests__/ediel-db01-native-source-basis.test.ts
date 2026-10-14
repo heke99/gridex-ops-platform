@@ -12,6 +12,12 @@ type Input = {mode: string; git_blob_oid: string; sha256: string}
 const root = resolve(__dirname, '..'), baseRevision = '56e58b95518ec4d5eef210ba16ba46228afb40ac'
 const producer = 'lib/ediel/testing/agtEngine.ts', kernel = 'lib/ediel/core/kernel.ts'
 const kernelLegacy = 'lib/ediel/core/kernelLegacy.ts'
+const facade = 'lib/ediel/rulebook/canonicalEdielFacade.ts'
+const adoptedFacadeRevision = 'ca892c14643181656e842bf4d8ffa8b6d829dec2'
+const expectedBaseFacade: Input = {mode: '100644', git_blob_oid: 'a170889bc7a9463e757302989cb596e30f527c6f',
+  sha256: 'd395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'}
+const expectedCurrentFacade: Input = {mode: '100644', git_blob_oid: '6012241de1210e35b50b55fa646e92930b8f330c',
+  sha256: 'f979775551293c9221d3cecff8fb51ae8b17f02dff99ee4222ae8dff0ed32d86'}
 const adoptedRevision = '231b9ef84e5a9c5e737c44dc9d72dd33edb0b56c'
 const dependencies = [kernel, kernelLegacy, 'lib/ediel/core/outboundOwnerWitness.ts',
   'lib/ediel/rulebook/canonicalEdielFacade.ts', 'lib/ediel/testing/tgtCanonicalDraftRoute.ts',
@@ -56,6 +62,8 @@ print(json.dumps({'root':n['required'],'base':n['required_base'],'reader':n['cur
       historical_alias: 'BASE56', current_alias: 'ROOT', ...identities[kernel]},
     kernel_legacy_basis: {source_revision: adoptedRevision, path: kernelLegacy,
       historical_alias: 'BASE56', current_alias: 'ROOT', ...identities[kernelLegacy]},
+    canonical_facade_basis: {source_revision: adoptedFacadeRevision, path: facade,
+      historical_alias: 'BASE56', current_alias: 'ROOT', ...identities[facade]},
     public_creator_input: {source: 'BASE56', port: 'createEdielMessage', field: 'partyAddressId', when: 'historical_AGT_Z09_L7_before_INSERT',
       value_origin: 'existing_prospective_legacy_fixture_UUID', mutation: 'ONLY_partyAddressId',
       scope: 'one_exact_company_actor_profile_route_birth', restore: 'finally', authority: 'NO_authority_or_accepted_fact'}}
@@ -85,7 +93,10 @@ async function load(phase: 'historical' | 'current') {
 it.each(['historical', 'current'] as const)('admits only the declared %s aliases and exact historical/current kernel pair', async phase => {
   expect(identities[kernel].base).not.toEqual(identities[kernel].root)
   expect(identities[kernelLegacy].base).not.toEqual(identities[kernelLegacy].root)
-  for (const path of dependencies.filter(path => path !== kernel && path !== kernelLegacy)) expect(identities[path].base).toEqual(identities[path].root)
+  expect(identities[facade].base).toEqual(expectedBaseFacade)
+  expect(identities[facade].root).toEqual(expectedCurrentFacade)
+  expect(identities[facade].base).not.toEqual(identities[facade].root)
+  for (const path of dependencies.filter(path => path !== kernel && path !== kernelLegacy && path !== facade)) expect(identities[path].base).toEqual(identities[path].root)
   const config = await load(phase)
   expect(config.resolve?.alias).toContainEqual({find: '@', replacement: phase === 'historical' ? baseRoot : root})
 })
@@ -126,10 +137,41 @@ it('refuses changed historical legacy bytes and restores the original fixture', 
   finally {writeFileSync(path, before)}
 })
 
+
+// The changed facade has a separate, exactly adopted lineage. These operate
+// on the real configuration admission, never a native execution receipt.
+it.each(['absent', 'extra'] as const)('refuses %s canonical facade basis shape', async kind => {
+  const historical = receipt.historical_source_basis as Record<string, unknown>
+  if (kind === 'absent') delete historical.canonical_facade_basis
+  else (historical.canonical_facade_basis as Record<string, unknown>).unqualified = true
+  await expect(load('current')).rejects.toThrow('db01_native_exact_canonical_facade_basis_required')
+})
+it.each(['path', 'source_revision', 'historical_alias', 'current_alias'] as const)('refuses changed canonical facade basis %s', async field => {
+  const historical = receipt.historical_source_basis as {canonical_facade_basis: Record<string, unknown>}
+  historical.canonical_facade_basis[field] = field === 'source_revision' ? baseRevision : 'unqualified'
+  await expect(load('current')).rejects.toThrow('db01_native_exact_canonical_facade_basis_required')
+})
+it.each(['mode', 'git_blob_oid', 'sha256'] as const)('refuses forged current facade %s with agreeing receipt copies', async field => {
+  identities[facade].root[field] = field === 'mode' ? '100755' : 'f'.repeat(field === 'sha256' ? 64 : 40)
+  await expect(load('current')).rejects.toThrow('db01_native_exact_canonical_facade_basis_required')
+})
+it.each(['mode', 'git_blob_oid', 'sha256'] as const)('refuses forged BASE facade %s with agreeing receipt copies', async field => {
+  identities[facade].base[field] = field === 'mode' ? '100755' : 'f'.repeat(field === 'sha256' ? 64 : 40)
+  await expect(load('historical')).rejects.toThrow('db01_native_exact_canonical_facade_basis_required')
+})
+it('refuses changed historical facade bytes and restores the original disposable fixture', async () => {
+  const path = join(baseRoot, facade), before = readFileSync(path)
+  try {writeFileSync(path, Buffer.concat([before, Buffer.from('\nchanged')])); await expect(load('historical')).rejects.toThrow('db01_native_BASE_canonical_dependency_mismatch')}
+  finally {writeFileSync(path, before)}
+})
+
 // Execute each workflow's actual Python basis checks with declared inventory
 // inputs. These are admission/refusal tests, never native execution receipts.
 const changes = ['valid', 'kernel-mode', 'kernel-git_blob_oid', 'kernel-sha256',
-  'legacy-mode', 'legacy-git_blob_oid', 'legacy-sha256', 'unchanged-sha256'] as const
+  'legacy-mode', 'legacy-git_blob_oid', 'legacy-sha256', 'unchanged-sha256',
+  'facade-mode', 'facade-git_blob_oid', 'facade-sha256',
+  'facadeBase-mode', 'facadeBase-git_blob_oid', 'facadeBase-sha256',
+  'facadeBasis-path', 'facadeBasis-source_revision', 'facadeBasis-historical_alias', 'facadeBasis-current_alias', 'facadeBasis-absent'] as const
 it.each(['admission', 'qualification'] as const)('keeps workflow %s strict for both changed kernels and unchanged dependencies', stage => {
   const python = `import json,pathlib,subprocess,sys,textwrap
 receipt=json.loads(sys.stdin.read())
@@ -144,24 +186,42 @@ env={'subprocess':subprocess,'head':receipt['checkout_sha'],'baseline':receipt['
  'canonical_dependencies':list(basis['canonical_dependency_identity']),'receipt':receipt,'basis':basis,
  'dependencies':set(basis['canonical_dependency_identity'])}
 exec(compile(code,'<actual-workflow-basis-'+stage+'>','exec'),env)
+if stage=='admission':print(json.dumps(env['canonical_facade_basis']))
 `
   for (const change of changes) {
     const declared = structuredClone(receipt) as typeof receipt
     if (change !== 'valid') {
       const [target, field] = change.split('-')
-      const path = target === 'kernel' ? kernel : target === 'legacy' ? kernelLegacy : dependencies[2]
-      const rootInputs = declared.root_source as {blobs: Record<string, Input>}
       const historical = declared.historical_source_basis as {canonical_dependency_identity: Record<string, {base: Input; root: Input}>;
-        kernel_basis: {root: Input}; kernel_legacy_basis: {root: Input}}
-      const inputField = field as keyof Input
-      const forged = inputField === 'mode' ? '100755' : 'f'.repeat(inputField === 'sha256' ? 64 : 40)
-      rootInputs.blobs[path][inputField] = forged
-      historical.canonical_dependency_identity[path].root[inputField] = forged
-      if (target === 'kernel') historical.kernel_basis.root[inputField] = forged
-      if (target === 'legacy') historical.kernel_legacy_basis.root[inputField] = forged
+        kernel_basis: {root: Input}; kernel_legacy_basis: {root: Input};
+        canonical_facade_basis: {base: Input; root: Input} & Record<string, unknown>}
+      if (target === 'facadeBasis') {
+        if (field === 'absent') delete (historical as unknown as Record<string, unknown>).canonical_facade_basis
+        else historical.canonical_facade_basis[field] = field === 'source_revision' ? baseRevision : 'unqualified'
+      } else {
+        const path = target === 'kernel' ? kernel : target === 'legacy' ? kernelLegacy
+          : target === 'facade' || target === 'facadeBase' ? facade : dependencies[2]
+        const side = target === 'facadeBase' ? 'base' : 'root'
+        const inputs = declared[side === 'base' ? 'base_source' : 'root_source'] as {blobs: Record<string, Input>}
+        const inputField = field as keyof Input
+        const forged = inputField === 'mode' ? '100755' : 'f'.repeat(inputField === 'sha256' ? 64 : 40)
+        inputs.blobs[path][inputField] = forged
+        historical.canonical_dependency_identity[path][side][inputField] = forged
+        if (target === 'kernel') historical.kernel_basis.root[inputField] = forged
+        if (target === 'legacy') historical.kernel_legacy_basis.root[inputField] = forged
+        if (target === 'facade' || target === 'facadeBase') historical.canonical_facade_basis[side][inputField] = forged
+      }
     }
-    const execute = () => execFileSync('python3', ['-c', python, stage], {cwd: root, input: JSON.stringify(declared), stdio: ['pipe', 'pipe', 'pipe']})
-    if (change === 'valid') expect(execute, `${stage} actual source identities`).not.toThrow()
+    const execute = () => {
+      const output = execFileSync('python3', ['-c', python, stage], {cwd: root, input: JSON.stringify(declared), stdio: ['pipe', 'pipe', 'pipe']})
+      if (stage === 'admission') {
+        // Admission creates a fresh pinned receipt; it does not consume a
+        // caller's basis. Qualification independently rejects forged copies.
+        expect(JSON.parse(output.toString())).toEqual((receipt.historical_source_basis as Record<string, unknown>).canonical_facade_basis)
+      }
+      return output
+    }
+    if (change === 'valid' || (stage === 'admission' && change.startsWith('facadeBasis-'))) expect(execute, `${stage} actual source identities`).not.toThrow()
     else expect(execute, `${stage} refuses self-consistent ${change}`).toThrow()
   }
 })

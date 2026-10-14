@@ -1,4 +1,4 @@
-// masterplan: AT-Z14VH-ESCO, AT-Z15V-ESCO
+// masterplan: AT-Z14VH-ESCO, AT-Z15V-ESCO, SC-031
 // Genuine full-schema PostgreSQL/PostgREST consumers after canonical clean
 // replay. Only upstream legal/issuer/mail input and the SMTP provider are
 // synthetic; they confer no TGT/LIVE market or legal approval.
@@ -25,6 +25,19 @@ import {getEdielMessageById} from '@/lib/ediel/db'
 import {applyPermissionMarketSource} from '@/lib/ediel/permissions/permissionMarketTransition'
 import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {prepareNativeEscoPermissionFixture} from './fixtures/ediel-service-evidence-native'
+import {seedNormalSwitchNativeFixture} from './helpers/ediel-normal-switch-native-fixture'
+import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
+import {matchOutboundRequestForInbound,matchMeteringPointForInbound} from '@/lib/inbound-mail/inboundMatcher'
+import {resolveCanonicalRuntimeDecisionWithRegistry,readReceivedCanonicalProdatApplicationObjects} from '@/lib/ediel/core/runtimeDecision'
+import {bindReceivedProdatIgnoredFields} from '@/lib/ediel/core/receivedProdatIgnoredFieldBinding'
+import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
+import {approveEdielInboundCase,createOrUpdateInboundProdatCase,type EdielInboundCaseRow} from '@/lib/ediel/inboundCases'
+import {supabaseService} from '@/lib/supabase/service'
+import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {edielCodeLabel} from '@/lib/ediel/codeLabels'
 
 beforeEach(resetNativeEscoFixture)
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
@@ -539,3 +552,349 @@ it('bounded Z14VH missing own report end gets a correlated negative APERAK and l
  expect(snapshot()).toEqual(before);expect(historyRows(p.permissionId)).toEqual(historyBefore)
  expect(readAcks()).toEqual(acks);expect(positiveAperaks(f,source)).toBe(0)
 })
+
+// --------------------------------------------------------------- SC-031 ----
+// Native assertions, NOT a local mocked graph. The existing ordinary lane
+// must supply its real current canonical replay and local PostgREST backend.
+// Reintroducing raw ignored319 into staging/onboarding must break these
+// field-value oracles; counts alone cannot satisfy them. Native source phase
+// does not claim these new cases have executed.
+type Sc031Row=Record<string,unknown>
+const sc031Sha=(text:string)=>createHash('sha256').update(text).digest('hex')
+function sc031Master(companyId:string){
+ return sql<{customers:Sc031Row[];sites:Sc031Row[];meters:Sc031Row[]}>(`SELECT jsonb_build_object(
+ 'customers',(SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.id),'[]') FROM public.customers c WHERE company_id=${lit(companyId)}),
+ 'sites',(SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id),'[]') FROM public.customer_sites s WHERE company_id=${lit(companyId)}),
+ 'meters',(SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.id),'[]') FROM public.metering_points m WHERE company_id=${lit(companyId)}))`)
+}
+function sc031SourceEvidence(companyId:string,sourceId:string,assessmentId:string){
+ return sql<{source:Sc031Row;assessment:Sc031Row;ignored:Sc031Row;application:Sc031Row;receptions:Sc031Row[];mail:Sc031Row}>(`SELECT jsonb_build_object(
+ 'source',(SELECT to_jsonb(s) FROM gridex_received_sources.sources s WHERE company_id=${lit(companyId)} AND source_message_id=${lit(sourceId)}),
+ 'assessment',(SELECT to_jsonb(a) FROM gridex_received_sources.validation_assessments a WHERE company_id=${lit(companyId)} AND source_message_id=${lit(sourceId)} AND id=${lit(assessmentId)}),
+ 'ignored',(SELECT to_jsonb(i) FROM gridex_received_sources.prodat_ignored_field_facets i WHERE company_id=${lit(companyId)} AND source_message_id=${lit(sourceId)} AND canonical_assessment_id=${lit(assessmentId)}),
+ 'application',(SELECT to_jsonb(a) FROM gridex_received_sources.prodat_application_facets a WHERE company_id=${lit(companyId)} AND source_message_id=${lit(sourceId)} AND assessment_id=${lit(assessmentId)}),
+ 'receptions',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY r.id),'[]') FROM gridex_ediel_inbound_receptions.receptions r WHERE company_id=${lit(companyId)} AND source_message_id=${lit(sourceId)}),
+ 'mail',(SELECT to_jsonb(m) FROM public.inbound_email_messages m JOIN public.ediel_messages e ON e.inbound_email_message_id=m.id AND e.company_id=m.company_id WHERE e.company_id=${lit(companyId)} AND e.id=${lit(sourceId)}))`)
+}
+function sc031ActualAcks(companyId:string,sourceId:string){
+ return sql<{acks:EdielMessageRow[];outbox:Sc031Row[]}>(`SELECT jsonb_build_object(
+ 'acks',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.id),'[]') FROM public.ediel_messages a WHERE company_id=${lit(companyId)} AND direction='outbound' AND related_message_id=${lit(sourceId)}),
+ 'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o WHERE company_id=${lit(companyId)} AND source_message_id=${lit(sourceId)}))`)
+}
+function sc031BindEvidence(companyId:string,message:EdielMessageRow,assessmentId:string){
+ const evidence=sc031SourceEvidence(companyId,message.id,assessmentId),hash=sc031Sha(message.raw_payload!)
+ expect(evidence.source).toMatchObject({company_id:companyId,source_message_id:message.id,environment:'test',origin:'database_insert',raw_payload:message.raw_payload,payload_hash:hash})
+ expect(evidence.source.received_context).toEqual((message.execution_context_snapshot as Sc031Row)?.receivedProdatContext)
+ expect(Date.parse(String(evidence.source.source_received_at))).toBe(Date.parse(String(message.message_received_at)))
+ expect(evidence.assessment).toMatchObject({id:assessmentId,company_id:companyId,source_message_id:message.id,environment:'test',source_payload_hash:hash})
+ expect(sc031Sha(String(evidence.assessment.facts_text))).toBe(evidence.assessment.facts_hash)
+ expect(evidence.ignored).toMatchObject({canonical_assessment_id:assessmentId,company_id:companyId,source_message_id:message.id,environment:'test',source_payload_hash:hash})
+ expect(sc031Sha(String(evidence.ignored.fields_text))).toBe(evidence.ignored.fields_hash)
+ expect(evidence.application).toMatchObject({assessment_id:assessmentId,company_id:companyId,source_message_id:message.id,environment:'test',source_payload_hash:hash})
+ expect(sc031Sha(String(evidence.application.application_facts_text))).toBe(evidence.application.application_facts_hash)
+ expect(evidence.mail.raw_edifact_payload).toBe(message.raw_payload)
+ expect(evidence.receptions).toHaveLength(1)
+ expect(evidence.receptions[0]).toMatchObject({source_message_id:message.id,company_id:companyId,environment:'test',classification:'first_reception',canonical_payload_hash:hash,received_payload_hash:hash,inbound_email_message_id:message.inbound_email_message_id})
+ expect(Date.parse(String(evidence.mail.received_at))).toBe(Date.parse(String(evidence.receptions[0].received_at)))
+ const fields=bindReceivedProdatIgnoredFields(JSON.parse(String(evidence.ignored.fields_text)),message.raw_payload!)
+ expect(fields).not.toBeNull()
+ return {evidence,fields:fields!}
+}
+type Sc031Supplier=Awaited<ReturnType<typeof sc031Supplier>>
+async function sc031Supplier(subtype:'L'|'LK',extra:boolean,count:1|2){
+ const base=await seedNormalSwitchNativeFixture({deferOriginal:true}),document='S'+randomUUID().replaceAll('-','').slice(0,13).toUpperCase()
+ // Agency89 point labels are independent prospective fixture identities,
+ // not immutable existing masterdata or a fabricated accepted source.
+ const points=Array.from({length:count},(_,i)=>String.fromCharCode(65+i)+randomUUID().replaceAll('-','').slice(0,23).toUpperCase())
+ const markers=points.map((_,i)=>'SC031-IGNORED-'+i)
+ const reason=subtype==='L'?'Z22':'Z23'
+ const segments=[`UNH+${document}+PRODAT:D:97A:UN:E2SE6A`,`BGM+Z04+${document}+9+AB`,'DTM+137:202610011200:203','DTM+ZZZ:1:805',`NAD+FR+${base.receiver}:160:SVK+++++++SE`,`NAD+DO+${base.sender}:160:SVK+++++++SE`,
+  ...points.flatMap((point,i)=>[`LIN+${i+1}++${point}:::89`,'DTM+92:202611010000:203','DTM+354:15:806',`QTY+31:${i+1}00:KWH`,'CCI++Z13',`CAV+${reason}`,'CCI++Z04','CAV+Z03','CCI++Z07','CAV+Z12','CCI++Z12','CAV+:::W','CCI++Z15','CAV+Z32','CCI++Z14','CAV+:::L917:8716867000030','CCI++Z02','CAV+:::1','CCI++Z05','CAV+:::6','CCI++Z16','CAV+:::111',`RFF+MG:METER-${i}`,'RFF+Z05:TES',`RFF+LI:SC031-CASE-${i}`,...(extra?[`RFF+Z07:${markers[i]}`]:[]),`NAD+UD+CUSTOMER${i}::89++Synthetic ${i}+Testgatan+Teststad++12345+SE`,`NAD+IT+${point}::89+++Testgatan+Teststad++12345+SE`,`NAD+Z02+${base.brpEdielId}:160:SVK`])]
+ const raw=`UNA:+.? 'UNB+UNOC:3+${base.receiver}:14+${base.sender}:14+261001:1200+${document}++23-DDQ-PRODAT++1++1'${segments.join("'")}'UNT+${segments.length+1}+${document}'UNZ+1+${document}'`
+ expect(validateEdifactEnvelope(raw).syntaxOk).toBe(true)
+ sql(`INSERT INTO public.permissions(key,name,is_active) VALUES('communication.write','Synthetic SC031 communication',true),('customers.write','Synthetic SC031 customer',true) ON CONFLICT(key) DO NOTHING;
+ INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active) SELECT ${lit(base.actorUserId)},${lit(base.companyId)},p.id,p.key,'allow','active',true FROM public.permissions p WHERE p.key IN('communication.write','customers.write');`)
+ const masterBefore=sc031Master(base.companyId)
+ const mail=await seedOriginalMailboxNative(sql,lit,{companyId:base.companyId,environment:'test',raw,smtpFrom:edielSmtpConfig().from})
+ const outboundMatch=await matchOutboundRequestForInbound({companyId:base.companyId,parsed:mail.parsed,inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId})
+ const meteringPointMatch=await matchMeteringPointForInbound({companyId:base.companyId,parsed:mail.parsed})
+ const sourceId=await createInboundEdielMessage({companyId:base.companyId,actorUserId:base.actorUserId,environment:'test',inboundEmailMessageId:mail.inboundEmailMessageId,parseResultId:mail.parseResultId,parsed:mail.parsed,outboundMatch,meteringPointMatch})
+ expect(sourceId).toMatch(/^[a-f0-9-]{36}$/)
+ const message=(await getEdielMessageById(sourceId!))!
+ expect(message).toMatchObject({company_id:base.companyId,direction:'inbound',environment:'test',message_code:'Z04',rule_profile_key:`PRODAT:Z04:${subtype}:26.A:r3`,raw_payload:raw,inbound_email_message_id:mail.inboundEmailMessageId})
+ const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message,{actorUserId:base.actorUserId})
+ expect({syntax:decision.syntaxDecision,application:decision.applicationDecision,functional:decision.functionalDecision},JSON.stringify(decision.issues)).toEqual({syntax:'accepted',application:'accepted',functional:'accepted'})
+ const application=readReceivedCanonicalProdatApplicationObjects(decision,message)
+ expect(application?.headerDecision).toBe('accepted')
+ expect(application?.objects.map(o=>[o.objectId,o.identityAgency,o.applicationDecision])).toEqual(points.map(point=>[point,'89','accepted']))
+ const ignored=bindReceivedProdatIgnoredFields(decision.prodatIgnoredFields,raw)
+ expect(ignored).not.toBeNull()
+ expect(ignored!.filter(field=>field.fieldNumber==='319').map(field=>field.occurrence.objectId)).toEqual(extra?points:[])
+ const recorded=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:base.companyId,decision})
+ expect(recorded.status).toBe('recorded')
+ if(recorded.status!=='recorded')throw Error('SC031_native_real_canonical_receipt_required')
+ await captureFreshEdielSourceRulePackEvidence(base.companyId,message.id)
+ const bound=sc031BindEvidence(base.companyId,message,recorded.assessmentId)
+ expect(bound.fields).toEqual(ignored)
+ // Actual intake/ACK processing, then actual source-owned staging. No mocked
+ // positive plan or accepted/private facet is inserted by this test.
+ await processInboundEdielMessage({actorUserId:base.actorUserId,edielMessageId:message.id})
+ const stored=(await getEdielMessageById(message.id))!
+ expect(stored.validation_report).toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted'})
+ expect(stored.raw_payload).toBe(raw)
+ const inboundCase=await createOrUpdateInboundProdatCase({actorUserId:base.actorUserId,message:stored})
+ expect(inboundCase?.status).toBe('pending_review')
+ expect(inboundCase?.parsed_metering_point.referenceToMeteringPoint).toBeNull()
+ expect(inboundCase?.parsed_production.referenceToMeteringPoint).toBeNull()
+ expect(sc031Master(base.companyId)).toEqual(masterBefore)
+ if(count===2){
+  const protectedSource=await supabaseService.rpc('ediel_read_prodat_object_batch_source_v1',{p_company_id:base.companyId,p_source_message_id:message.id,p_actor_user_id:base.actorUserId})
+  expect(protectedSource.error).toBeNull()
+  expect(protectedSource.data).toMatchObject({version:1,assessmentId:recorded.assessmentId,sourcePayloadHash:sc031Sha(raw),sourceMessage:{id:message.id,company_id:base.companyId,raw_payload:raw}})
+ }else{
+  // A single object is a valid complete canonical application, while the
+  // native batch owner deliberately requires at least two. This existing
+  // service read binds the committed original/current owner, not actor/role
+  // approval; the actual single approval and graph consumers remain below.
+  const single=await readReceivedProdatApplicationObjects({companyId:base.companyId,sourceMessageId:message.id,rawPayload:raw})
+  expect(single).not.toBeNull()
+  expect(single).toMatchObject({assessmentId:recorded.assessmentId,sourcePayloadHash:sc031Sha(raw),owner:'canonical-prodat-application-all-v1',coverage:'canonical_own_application_only',headerDecision:'accepted'})
+  expect(single!.objects).toHaveLength(1)
+  expect(single!.objects).toEqual(application!.objects)
+  expect(single!.objects[0]).toMatchObject({objectId:points[0],identityAgency:'89',applicationDecision:'accepted'})
+ }
+ const acks=sc031ActualAcks(base.companyId,message.id)
+ expect(acks.acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='negative')).toEqual([])
+ expect(acks.acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
+ // No native supply receipt exists for these unmatched prospective points;
+ // generic onboarding alone cannot manufacture a positive domain reply.
+ const finalPlan=await readReceivedProdatFinalResponsePlan({companyId:base.companyId,sourceMessageId:message.id,rawPayload:raw})
+ expect(finalPlan?.plans??[]).toEqual([])
+ return {...base,subtype,extra,points,markers,raw,mail,message:stored,case:inboundCase!,assessmentId:recorded.assessmentId,sourceEvidence:bound.evidence,masterBefore,processingAcks:acks}
+}
+function sc031SupplierApprove(f:Sc031Supplier){
+ return approveEdielInboundCase({companyId:f.companyId,actorUserId:f.actorUserId,caseId:f.case.id,
+  ...(f.points.length===1?{mode:'create_new_customer' as const}:{objectDecisions:f.points.map(meteringPointId=>({meteringPointId,identityAgency:'89',mode:'create_new_customer' as const}))})})
+}
+type Sc031Graph={operation:Sc031Row;customer:Sc031Row;site:Sc031Row;meter:Sc031Row;application:Sc031Row}
+function sc031ResultGraphs(f:Sc031Supplier,applied:EdielInboundCaseRow){
+ const ids=f.points.length===1?[String(applied.review_decision?.onboardingOperationId)]:sql<string[]>(`SELECT coalesce(jsonb_agg(operation_id ORDER BY object_key),'[]') FROM gridex_prodat_object_batch.graph_receipts WHERE company_id=${lit(f.companyId)} AND case_id=${lit(f.case.id)} AND source_message_id=${lit(f.message.id)}`)
+ expect(ids).toHaveLength(f.points.length)
+ return ids.map(id=>{
+  expect(id).toMatch(/^[a-f0-9-]{36}$/)
+  const graph=sql<Sc031Graph>(`SELECT jsonb_build_object('operation',to_jsonb(o),'customer',to_jsonb(c),'site',to_jsonb(s),'meter',to_jsonb(m),'application',to_jsonb(a))
+   FROM public.customer_onboarding_operations o
+   JOIN public.customers c ON c.id=(o.result_snapshot->>'customer_id')::uuid AND c.company_id=o.company_id
+   JOIN public.customer_sites s ON s.id=(o.result_snapshot->>'site_id')::uuid AND s.company_id=o.company_id AND s.customer_id=c.id
+   JOIN public.metering_points m ON m.id=(o.result_snapshot->>'metering_point_id')::uuid AND m.company_id=o.company_id AND m.customer_id=c.id AND m.site_id=s.id
+   JOIN public.customer_onboarding_applications a ON a.id=(o.result_snapshot->>'application_id')::uuid AND a.company_id=o.company_id AND a.onboarding_operation_id=o.id AND a.customer_id=c.id AND a.customer_site_id=s.id AND a.metering_point_id=m.id
+   WHERE o.company_id=${lit(f.companyId)} AND o.id=${lit(id)}`)
+  expect(graph).toBeTruthy()
+  expect(graph.operation).toMatchObject({id,company_id:f.companyId,channel:'ediel_inbound',status:'completed'})
+  const command=graph.operation.command_snapshot as {actor_user_id:string;company_id:string;customer:Sc031Row;site:Sc031Row;metering_point:Sc031Row;application:{source_record_type:string;source_record_id:string;payload_snapshot:Sc031Row}}
+  expect(command).toMatchObject({company_id:f.companyId,actor_user_id:f.actorUserId})
+  expect(graph.meter.ediel_reference).toBeNull()
+  expect(command.metering_point.ediel_reference).toBeNull()
+  expect(graph.site.internal_notes).toBe(command.site.internal_notes)
+  expect(String(graph.site.internal_notes)).not.toContain('SC031-IGNORED-')
+  expect(JSON.stringify({customer:command.customer,site:command.site,meter:command.metering_point})).not.toContain('SC031-IGNORED-')
+  // Raw register snapshots intentionally retain the ignored reference. They
+  // are source evidence, not the meter/site/customer business command.
+  const rawRegisters=JSON.stringify(command.application.payload_snapshot.prodatRegisters)
+  expect(rawRegisters.includes('SC031-IGNORED-')).toBe(f.extra)
+  expect(graph.application).toMatchObject({company_id:f.companyId,onboarding_operation_id:id,customer_id:graph.customer.id,customer_site_id:graph.site.id,metering_point_id:graph.meter.id,channel:'ediel_inbound',source_record_type:'ediel_inbound_case',source_record_id:command.application.source_record_id,status:'committed'})
+  expect(graph.application.payload_snapshot).toEqual(command.application.payload_snapshot)
+  expect((graph.application.payload_snapshot as Sc031Row).edielMessageId).toBe(f.message.id)
+  expect(graph.customer).toMatchObject({id:(graph.operation.result_snapshot as Sc031Row).customer_id,company_id:f.companyId})
+  expect(graph.site).toMatchObject({id:(graph.operation.result_snapshot as Sc031Row).site_id,company_id:f.companyId,customer_id:graph.customer.id,grid_owner_id:f.gridId})
+  expect(graph.meter).toMatchObject({id:(graph.operation.result_snapshot as Sc031Row).metering_point_id,company_id:f.companyId,customer_id:graph.customer.id,site_id:graph.site.id,grid_owner_id:f.gridId})
+  expect(f.points).toContain(graph.meter.meter_point_id)
+  expect(graph.meter.metering_point_id).toBe(graph.meter.meter_point_id)
+  expect(graph.site.facility_id).toBe(graph.meter.meter_point_id)
+  expect(graph.meter.site_facility_id).toBe(graph.meter.meter_point_id)
+  expect(command.site.facility_id).toBe(graph.site.facility_id)
+  expect(command.metering_point.meter_point_id).toBe(graph.meter.meter_point_id)
+  const index=f.points.indexOf(String(graph.meter.meter_point_id))
+  expect(graph.customer).toMatchObject({customer_type:'private',status:'draft',first_name:'Synthetic',last_name:String(index),full_name:`Synthetic ${index}`,source:'ediel_inbound'})
+  expect(graph.site).toMatchObject({site_type:'consumption',status:'draft',street:'Testgatan',postal_code:'12345',city:'Teststad',country:'SE',annual_consumption_kwh:(index+1)*100})
+  expect(graph.meter).toMatchObject({status:'draft',measurement_type:'consumption',is_settlement_relevant:true})
+  return graph
+ }).sort((a,b)=>f.points.indexOf(String(a.meter.meter_point_id))-f.points.indexOf(String(b.meter.meter_point_id)))
+}
+function sc031Business(graph:Sc031Graph,ownPoint:string){
+ const pick=(row:Sc031Row,keys:readonly string[])=>Object.fromEntries(keys.map(key=>[key,row[key]??null]))
+ // Physical point labels are prospective per-cohort inputs, not ignored data:
+ // their exact values/relationships are asserted above. Normalize ONLY that
+ // one explicit identity in a fixture-derived site name; do not omit notes,
+ // addresses, reference, production or any other projected business field.
+ const site=pick(graph.site,['site_name','site_type','status','move_in_date','annual_consumption_kwh','street','postal_code','city','country','internal_notes'])
+ site.site_name=String(site.site_name).replaceAll(ownPoint,'<OWN-PHYSICAL-POINT>')
+ return {customer:pick(graph.customer,['customer_type','status','first_name','last_name','full_name','company_name','personal_number','org_number','source']),
+  site,meter:pick(graph.meter,['ediel_reference','status','measurement_type','reading_frequency','start_date','is_settlement_relevant'])}
+}
+for(const subtype of ['L','LK'] as const)for(const count of [1,2] as const){
+ it(`SC031 ${subtype} ${count===1?'single':'two own objects'}: ignored319 preserves real staged and committed customer/site/meter business values and original lineage`,async()=>{
+  const baseline=await sc031Supplier(subtype,false,count),extra=await sc031Supplier(subtype,true,count)
+  const baselineApplied=await sc031SupplierApprove(baseline),extraApplied=await sc031SupplierApprove(extra)
+  expect(baselineApplied.status).toBe('applied');expect(extraApplied.status).toBe('applied')
+  const baselineGraphs=sc031ResultGraphs(baseline,baselineApplied),extraGraphs=sc031ResultGraphs(extra,extraApplied)
+  expect(extraGraphs.map((g,i)=>sc031Business(g,extra.points[i]))).toEqual(baselineGraphs.map((g,i)=>sc031Business(g,baseline.points[i])))
+  // Preserve complete seeded sibling graphs, not only new customer counts.
+  for(const f of [baseline,extra]){
+   const after=sc031Master(f.companyId)
+   expect(after.customers.filter(r=>f.masterBefore.customers.some(old=>old.id===r.id))).toEqual(f.masterBefore.customers)
+   expect(after.sites.filter(r=>f.masterBefore.sites.some(old=>old.id===r.id))).toEqual(f.masterBefore.sites)
+   expect(after.meters.filter(r=>f.masterBefore.meters.some(old=>old.id===r.id))).toEqual(f.masterBefore.meters)
+   expect(after.customers).toHaveLength(f.masterBefore.customers.length+count)
+   expect(after.sites).toHaveLength(f.masterBefore.sites.length+count)
+   expect(after.meters).toHaveLength(f.masterBefore.meters.length+count)
+   const evidence=sc031BindEvidence(f.companyId,f.message,f.assessmentId)
+   expect(evidence.evidence).toEqual(f.sourceEvidence)
+   expect((await getEdielMessageById(f.message.id))?.raw_payload).toBe(f.raw)
+   expect(sc031ActualAcks(f.companyId,f.message.id)).toEqual(f.processingAcks)
+   if(count===1)await expect(sc031SupplierApprove(f)).rejects.toThrow(/Inbound-caset har status applied/)
+   else expect((await sc031SupplierApprove(f)).status).toBe('applied')
+   expect(sc031Master(f.companyId)).toEqual(after)
+   expect(sc031ActualAcks(f.companyId,f.message.id)).toEqual(f.processingAcks)
+  }
+ },120000)
+}
+function sc031N(p:Awaited<ReturnType<typeof prepareNativeEscoPermissionFixture>>,f:Fixture,extra:boolean,scalarProbe=false){
+ const rendered=renderProdat({code:'Z14',variant:'N',mode:'test',actor:{senderEdielId:f.receiver,receiverEdielId:f.sender},route:{applicationReference:f.app},version,
+  context:{code:'Z14',customerName:'',meterPointId:'',bgmReference:randomUUID().replaceAll('-','').slice(0,20),transactionReference:p.li,senderEdielId:f.receiver,receiverEdielId:f.sender,legalSenderId:f.receiver,legalReceiverId:f.sender,reasonForTransaction:'Z96',permissionStatus:'A76'}})
+ expect(rendered.issues.filter(x=>x.severity==='error'&&!/_UNDETERMINED$/.test(x.code))).toEqual([])
+ const segments=structuredClone(rendered.segments)
+ if(scalarProbe&&extra){
+  // Four canonical-minus Z14 fields on this same physical own LIN. Keep
+  // SG8 dates before SG14 characteristics, SG16 references before SG17 NAD.
+  const line=segments.findIndex(segment=>segment.startsWith('LIN+'))
+  expect(line).toBeGreaterThanOrEqual(0)
+  expect(segments.filter(segment=>segment.startsWith('LIN+'))).toHaveLength(1)
+  segments.splice(line+1,0,'DTM+329:19900101:102','DTM+51:202610011200:203')
+  const refs=segments.findIndex((segment,index)=>index>line&&/^(RFF|NAD)\+/.test(segment))
+  expect(refs).toBeGreaterThan(line)
+  segments.splice(refs,0,'CCI++Z07','CAV+Z12','RFF+ANJ:SC031-SCALAR-ANJ')
+ }
+ if(extra){
+  // Extra national parents, with legal D97A NAD shapes and unchanged actual
+  // own N object, register, LI and request. Never change accepted receipts.
+  segments.push('NAD+UD+199001011234:SE2:260++SC031 Ignored Person+SC031 Ignored Street+SC031 Ignored City++54321+NO')
+  segments.push('NAD+IT+SC031-IGNORED-IT::89+++SC031 Ignored Site+SC031 Ignored City++54321+NO')
+ }
+ return envelope(f,segments)
+}
+async function sc031NativeN(extra:boolean,scalarProbe=false){
+ const f=await seed(),p=await prepareNativeEscoPermissionFixture(f),profile=ackRoute(f),before=sc031Master(f.ids.company),raw=sc031N(p,f,extra,scalarProbe)
+ expect(validateEdifactEnvelope(raw).syntaxOk).toBe(true)
+ const source=await receive(f,raw,'Z14','PRODAT:Z14:N:26.A:r3'),stored=await processed(f,source)
+ expect(stored.validation_report).toMatchObject({syntaxDecision:'accepted',applicationDecision:'accepted'})
+ const permission=market(f,p.permissionId)
+ expect(permission.permission).toMatchObject({status:'rejected_passive_timeout',inbound_z14_message_id:source.id})
+ expect(permission.sites).toEqual([])
+ const plan=await readReceivedProdatFinalResponsePlan({companyId:f.ids.company,sourceMessageId:source.id,rawPayload:raw})
+ expect(plan?.plans).toHaveLength(1)
+ expect(plan!.plans[0]).toMatchObject({effectKind:'metering_permission',outcome:'positive'})
+ const bound=sc031BindEvidence(f.ids.company,stored,plan!.plans[0].canonicalAssessmentId)
+ const parents=bound.fields.filter(field=>['END_USER_GROUP','INSTALLATION_GROUP'].includes(field.fieldNumber))
+ expect(parents.map(field=>field.fieldNumber).sort()).toEqual(extra?['END_USER_GROUP','INSTALLATION_GROUP']:[])
+ const staged=await createOrUpdateInboundProdatCase({actorUserId:f.ids.actor,message:stored})
+ expect(staged).not.toBeNull()
+ expect(staged?.parsed_customer.personalNumber).toBeNull()
+ expect(staged?.parsed_customer.fullName).not.toBe('SC031 Ignored Person')
+ expect(staged?.parsed_site.street).not.toBe('SC031 Ignored Site')
+ expect(staged?.parsed_site.city).not.toBe('SC031 Ignored City')
+ let persisted:EdielInboundCaseRow|null=null
+ if(scalarProbe){
+  const wire=tokenizeEdifact(raw),groups=prodatRegisterGroups(wire.segments,wire.una,'Z14').groups
+  expect(groups).toHaveLength(1)
+  const own=groups[0],ownRaw=own.segments.map(segment=>segment.raw)
+  expect(own.lineIndex).toBe(0)
+  expect(own.firstLineIndex).toBe(0)
+  expect(own.validRegisterChain).toBe(true)
+  const scalars=[
+   {field:'249',tokens:['DTM+329:19900101:102']},
+   {field:'261',tokens:['RFF+ANJ:SC031-SCALAR-ANJ']},
+   {field:'306',tokens:['CCI++Z07','CAV+Z12']},
+   {field:'212',tokens:['DTM+51:202610011200:203']},
+  ]
+  for(const scalar of scalars){
+   for(const token of scalar.tokens)expect(ownRaw.filter(segment=>segment===token)).toHaveLength(extra?1:0)
+   if(scalar.field==='306'&&extra)expect(ownRaw[ownRaw.indexOf('CCI++Z07')+1]).toBe('CAV+Z12')
+   const ignored=bound.fields.filter(field=>field.fieldNumber===scalar.field)
+   expect(ignored).toHaveLength(extra?1:0)
+   if(extra)expect(ignored[0]).toMatchObject({fieldNumber:scalar.field,sourceRule:'PRODAT26A:P119',occurrence:{scope:'object',lineIndex:own.lineIndex,lineNumber:own.lineNumber,registerPosition:1,objectId:own.itemId,identityAgency:own.identityAgency,lineItemReference:p.li,messageReference:segmentComposite(wire.segments.find(segment=>segment.tag==='UNH'),1,wire.una)[0]}})
+  }
+  persisted=sql<EdielInboundCaseRow>(`SELECT to_jsonb(c) FROM public.ediel_inbound_cases c WHERE company_id=${lit(f.ids.company)} AND ediel_message_id=${lit(source.id)} AND id=${lit(staged!.id)}`)
+  expect(persisted).toMatchObject({id:staged!.id,company_id:f.ids.company,ediel_message_id:source.id})
+  for(const column of ['parsed_customer','parsed_site','parsed_metering_point','parsed_contract','parsed_production'] as const)expect(persisted[column]).toEqual(staged![column])
+  expect(persisted.parsed_customer.birthDate).toBeNull()
+  expect(persisted.parsed_contract.agreementReference).toBeNull()
+  expect(persisted.parsed_metering_point.firstMeterReadingDate).toBeNull()
+  expect(persisted.parsed_production.installationStatus).toBeNull()
+  expect(persisted.parsed_production.installationStatusLabel).toBe(edielCodeLabel('installation_status',null))
+  const registers=persisted.parsed_metering_point.registers as {rawSegments:string[]}[]
+  expect(registers).toHaveLength(1)
+  expect(registers[0].rawSegments).toEqual(ownRaw)
+ }
+ const acks=sc031ActualAcks(f.ids.company,source.id)
+ expect(acks.acks.map(a=>a.message_family).sort()).toEqual(['APERAK','CONTRL'])
+ for(const ack of acks.acks){
+  expect(ack).toMatchObject({company_id:f.ids.company,environment:'test',direction:'outbound',related_message_id:source.id,ack_outcome:'positive'})
+  expect(validateEdifactEnvelope(ack.raw_payload!).syntaxOk).toBe(true)
+  const physical=readPhysicalAckSourceCorrelation(ack,source)
+  expect(physical.classification.outcome).toBe('positive')
+  expect(physical.acknowledgedReferences).toContain(ack.message_family==='CONTRL'?EdifactEnvelopeCodec.decode(raw).interchangeReference:p.li)
+  const outer=EdifactEnvelopeCodec.decode(ack.raw_payload!)
+  expect([outer.sender,outer.receiver]).toEqual([f.sender,f.receiver])
+  if(ack.message_family==='APERAK'){
+   expect(ack.route_profile_id).toBe(profile)
+   const wire=tokenizeEdifact(raw),line=wire.segments.find(segment=>segment.tag==='LIN')!
+   expect(physical.prodatObjectOutcomes).toMatchObject([{objectId:null,firstLineIndex:line.index,lineItemReference:p.li,outcome:'positive'}])
+   expect(physical.lookupReferences).toContainEqual({type:'BGM_REF',value:segmentComposite(wire.segments.find(segment=>segment.tag==='BGM'),2,wire.una)[0]})
+  }
+  expect(acks.outbox.filter(o=>o.ediel_message_id===ack.id)).toEqual([expect.objectContaining({company_id:f.ids.company,source_message_id:source.id,ack_outcome:'positive',message_family:ack.message_family})])
+ }
+ expect(acks.outbox).toHaveLength(2)
+ expect(sc031Master(f.ids.company)).toEqual(before)
+ const graphCount=()=>sql<number>(`SELECT to_jsonb(count(*)) FROM public.customer_onboarding_operations WHERE company_id=${lit(f.ids.company)} AND channel='ediel_inbound'`)
+ expect(graphCount()).toBe(0)
+ const held=await supabaseService.rpc('ediel_read_prodat_object_batch_source_v1',{p_company_id:f.ids.company,p_source_message_id:source.id,p_actor_user_id:f.ids.actor})
+ expect(held.error).not.toBeNull()
+ expect(held.error?.message).toMatch(/prodat_object_batch_current_receiver_role_required/)
+ expect(graphCount()).toBe(0)
+ expect(sc031Master(f.ids.company)).toEqual(before)
+ expect(sc031ActualAcks(f.ids.company,source.id)).toEqual(acks)
+ expect(sc031BindEvidence(f.ids.company,stored,plan!.plans[0].canonicalAssessmentId).evidence).toEqual(bound.evidence)
+ await processed(f,source)
+ expect(sc031Master(f.ids.company)).toEqual(before)
+ expect(sc031ActualAcks(f.ids.company,source.id)).toEqual(acks)
+ // Registers retain physical raw parents and can legitimately differ. Only
+ // their business projection is compared; exact raw/facet custody above is
+ // asserted separately and must not be erased to obtain equality.
+ const {registers,...meterBusiness}=staged!.parsed_metering_point
+ expect(Array.isArray(registers)).toBe(true)
+ expect(JSON.stringify(registers).includes('SC031 Ignored')).toBe(extra)
+ if(scalarProbe){
+  expect((await getEdielMessageById(source.id))?.raw_payload).toBe(raw)
+  expect(sc031BindEvidence(f.ids.company,stored,plan!.plans[0].canonicalAssessmentId).evidence).toEqual(bound.evidence)
+  const after=sql<EdielInboundCaseRow>(`SELECT to_jsonb(c) FROM public.ediel_inbound_cases c WHERE company_id=${lit(f.ids.company)} AND ediel_message_id=${lit(source.id)} AND id=${lit(staged!.id)}`)
+  for(const column of ['parsed_customer','parsed_site','parsed_metering_point','parsed_contract','parsed_production'] as const)expect(after[column]).toEqual(persisted![column])
+  const {registers:rawRegisters,...persistedMeter}=persisted!.parsed_metering_point
+  return {customer:persisted!.parsed_customer,site:persisted!.parsed_site,meter:persistedMeter,contract:persisted!.parsed_contract,production:persisted!.parsed_production,rawRegisters}
+ }
+ return {customer:staged!.parsed_customer,site:staged!.parsed_site,meter:meterBusiness,production:staged!.parsed_production}
+}
+it('SC031 real N extra UD/IT preserves staging and actual masterdata, positive processing ACKs and the supplier-only generic graph ROLE_HOLD',async()=>{
+ const baseline=await sc031NativeN(false),extra=await sc031NativeN(true)
+ expect(extra).toEqual(baseline)
+},120000)
+it('SC031 real N extra UD/IT and ignored249/261/306/212 preserve five persisted business projections, masterdata, positive ACKs and ROLE_HOLD',async()=>{
+ const baseline=await sc031NativeN(false,true),extra=await sc031NativeN(true,true)
+ expect(baseline).toHaveProperty('contract')
+ expect(extra).toHaveProperty('contract')
+ if(!('rawRegisters' in baseline)||!('rawRegisters' in extra))throw Error('SC031_native_persisted_scalar_probe_required')
+ const {rawRegisters:baselineRaw,...baselineBusiness}=baseline
+ const {rawRegisters:extraRaw,...extraBusiness}=extra
+ expect(extraBusiness).toEqual(baselineBusiness)
+ expect(extraRaw).not.toEqual(baselineRaw)
+},120000)
