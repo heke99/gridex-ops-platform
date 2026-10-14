@@ -1,0 +1,300 @@
+{
+  "kind": "READ_ONLY_GENUINE_ORIGINAL_CLEAN_REPLAY_TERMINAL_REVIEW",
+  "reviewed_at_utc": "2026-10-14T00:38:54Z",
+  "reviewer_scope": "Original clean-replay logs, source bindings, terminal test counts, unchanged six post-browser fixtures and fresh-prefix API ABI. No rerun, CI/native/GEN producer, database write or production-source edit.",
+  "original": {
+    "head": "9850639908441d8115bb70533cb9fa50a9a8e653",
+    "tree": "3e23fe697e40ccd27108b5f3924da798ea8c3869",
+    "run_id": 38484514283,
+    "job_id": 115594828185,
+    "terminal": "FAILURE",
+    "clean_step_conclusion": "failure",
+    "credentials_redaction": "success",
+    "evidence_upload": "success",
+    "decoded_log": {
+      "path": "/tmp/gridex-clean985-original-job115594828185.log",
+      "sha256": "7072ed4862732d6a71404e36ec0671f2abc9755be80b5acd70238a914dd3c239",
+      "origin": "GitHub connector decoded job-log endpoint; preserved local UTF-8 copy, not an artifact ZIP hash"
+    },
+    "artifact": {
+      "id": 11861317645,
+      "name": "gridex-rem-002-clean-replay",
+      "zip_sha256": "d7b9cd34b43ae1b362fa91f9aff1eb42364454dd89fa58b156881bffb6a18981",
+      "size_bytes": 208887679,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38484514283/artifacts/11861317645",
+      "downloaded_by_reviewer": false
+    },
+    "native_base": {
+      "files": 59,
+      "passed": 737,
+      "failed": 0,
+      "skipped": 1,
+      "invocations": 1
+    },
+    "native_pre_browser": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 1,
+      "invocations": 12
+    },
+    "browser": {
+      "cases": 31,
+      "passed": 19,
+      "failed": 12,
+      "skipped": 0,
+      "duration_reported": "5.9m",
+      "log_lines": [
+        28823,
+        31218
+      ],
+      "existing_retries_preserved": true
+    },
+    "native_after_browser": {
+      "passed": 6,
+      "failed": 6,
+      "skipped": 5,
+      "invocations": 12
+    },
+    "counts_boundary": "Native summaries describe repeated phase invocations of existing fixture files; counts are not unique test-file coverage across phases.",
+    "tenant_invariants": "PASS: all checks passed",
+    "parity_selftest": {
+      "status": "PASS",
+      "required_injected_drift_classes": 15,
+      "identical_schema_blocking_comparison": "PASS",
+      "every_required_drift_class_detected": true
+    },
+    "generated_types": {
+      "status": "PASS",
+      "sha256": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+      "comparison_failed_annotation_present": false
+    },
+    "schema_comparison": {
+      "status": "PASS",
+      "verified_fingerprint": "7be78399d1ef663a56c6900ceeb080d01721f19305d46b4d86f3efb27b063100"
+    },
+    "actual_failure_annotations": [
+      "2026-10-14T00:30:40.8591698Z ##[error]NATIVE_SUITE_FAILED set at step line 241",
+      "2026-10-14T00:30:48.6448277Z ##[error]NATIVE_SUITE_FAILED set at step line 252",
+      "2026-10-14T00:30:51.9695547Z ##[error]NATIVE_SUITE_FAILED set at step line 258",
+      "2026-10-14T00:30:55.5781633Z ##[error]NATIVE_SUITE_FAILED set at step line 263",
+      "2026-10-14T00:30:58.9545242Z ##[error]NATIVE_SUITE_FAILED set at step line 268",
+      "2026-10-14T00:31:02.8092040Z ##[error]NATIVE_SUITE_FAILED set at step line 273",
+      "2026-10-14T00:31:22.1347504Z ##[error]NATIVE_SUITE_FAILED set at step line 303",
+      "2026-10-14T00:31:50.7904380Z ##[error]Process completed with exit code 1."
+    ],
+    "final_process_exit_code": 1
+  },
+  "previous_genuine_admin64": {
+    "head": "64e09149da5194d2b3208e20b16a1c69b6577119",
+    "tree": "4f6afaba24ca28b4cdc447f57e3035a6469a297f",
+    "run_id": 38469299697,
+    "job_id": 115544197123,
+    "terminal": "SUCCESS",
+    "decoded_log": {
+      "path": "/tmp/gridex-clean64-original-job115544197123.log",
+      "sha256": "535ce44dd41e3a019d2d4dcfb359391979ce1f40342b57bce3342122cf565c68",
+      "origin": "GitHub connector decoded job-log endpoint; preserved local UTF-8 copy"
+    },
+    "native_base": {
+      "files": 59,
+      "passed": 737,
+      "failed": 0,
+      "skipped": 1,
+      "invocations": 1
+    },
+    "native_pre_browser": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 1,
+      "invocations": 12
+    },
+    "browser": {
+      "cases": 31,
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0,
+      "duration_reported": "4.8m"
+    },
+    "native_after_browser": {
+      "passed": 12,
+      "failed": 0,
+      "skipped": 5,
+      "invocations": 12
+    },
+    "tenant_invariants": "PASS",
+    "parity_selftest": "PASS",
+    "generated_types_sha256": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+    "schema_verified_fingerprint": "7be78399d1ef663a56c6900ceeb080d01721f19305d46b4d86f3efb27b063100",
+    "actual_failure_annotations": []
+  },
+  "browser_failure_map": [
+    {
+      "file": "e2e/browser/ediel-ai-purpose-local.spec.mjs",
+      "test_line": 8,
+      "assertion_line": 14,
+      "assertion_column": 266,
+      "category": "archive_positive",
+      "expected": 201,
+      "received": 503
+    },
+    {
+      "file": "e2e/browser/ediel-ai-purpose-local.spec.mjs",
+      "test_line": 24,
+      "category": "read_only_mutation_refusal",
+      "expected": 403,
+      "received": 503
+    },
+    {
+      "file": "e2e/browser/ediel-bilateral-customer-source-local.spec.mjs",
+      "test_line": 8,
+      "category": "archive_positive",
+      "expected": 201,
+      "received": 503
+    },
+    {
+      "file": "e2e/browser/ediel-bilateral-customer-source-local.spec.mjs",
+      "test_line": 24,
+      "category": "reader_detail",
+      "expected": "Godkänt visible",
+      "received": "element not found",
+      "timeout_ms": 10000
+    },
+    {
+      "file": "e2e/browser/ediel-bilateral-prodat-profile-local.spec.mjs",
+      "test_line": 7,
+      "category": "archive_positive",
+      "expected": "archived",
+      "received": "undefined",
+      "observed_archive_http_status": 503
+    },
+    {
+      "file": "e2e/browser/ediel-business-incident-local.spec.mjs",
+      "test_line": 8,
+      "category": "incident_create_positive",
+      "expected": 201,
+      "received": 503
+    },
+    {
+      "file": "e2e/browser/ediel-business-incident-local.spec.mjs",
+      "test_line": 17,
+      "category": "read_only_mutation_refusal",
+      "expected": 403,
+      "received": 503
+    },
+    {
+      "file": "e2e/browser/ediel-network-registry-local.spec.mjs",
+      "test_line": 8,
+      "category": "archive_positive",
+      "expected": 201,
+      "received": 503
+    },
+    {
+      "file": "e2e/browser/ediel-network-registry-local.spec.mjs",
+      "test_line": 20,
+      "category": "read_only_mutation_refusal",
+      "expected": 403,
+      "received": 503
+    },
+    {
+      "file": "e2e/browser/ediel-regulated-supply-ground-local.spec.mjs",
+      "test_line": 7,
+      "category": "archive_positive",
+      "expected": "archived",
+      "received": "undefined",
+      "observed_archive_http_status": 503
+    },
+    {
+      "file": "e2e/browser/ediel-requested-change-local.spec.mjs",
+      "test_line": 9,
+      "category": "archive_positive",
+      "expected": 201,
+      "received": 503
+    },
+    {
+      "file": "e2e/browser/ediel-requested-change-local.spec.mjs",
+      "test_line": 34,
+      "category": "reader_detail",
+      "expected": "Godkänt visible",
+      "received": "element not found",
+      "timeout_ms": 10000
+    }
+  ],
+  "post_browser_native_failure_map": [
+    {
+      "file": "scripts/ediel-requested-change-browser-native.test.ts",
+      "assertion": "38:21",
+      "error": "Target cannot be null or undefined.",
+      "missing_fact": "Browser-source artifact/review origin JSON aggregation is null",
+      "sha256": "a5c901d8dd75271ca4057a755867835b8ce3ecbe16e2497bf9a9a4acc5d12507"
+    },
+    {
+      "file": "scripts/ediel-regulated-supply-ground-browser-native.test.ts",
+      "assertion": "14:796",
+      "error": "Expected originals/grounds/origins=1; received all 0",
+      "missing_fact": "Browser-original, regulated ground and review origin",
+      "sha256": "ca678ba1ce5ebf05b01161213d8da9b70e3d594500dc4c61b707d98346098292"
+    },
+    {
+      "file": "scripts/ediel-bilateral-customer-browser-native.test.ts",
+      "assertion": "21:1068",
+      "error": "Expected artifacts/origins/versions=1; received all 0",
+      "missing_fact": "Browser agreement artifact, independent review origin and confirmed version",
+      "sha256": "18eeb2a52dd0d51073edfc95e871d343938b7f379046bffa805c6199c6274265"
+    },
+    {
+      "file": "scripts/ediel-bilateral-prodat-profile-browser-native.test.ts",
+      "assertion": "14:1163",
+      "error": "Expected originals/profiles/origins=1; received all 0",
+      "missing_fact": "Browser original, bilateral profile and review origin",
+      "sha256": "7456b3324ff2ee4097cf9b389cb80015eeb1bf219d3307adae420170bc9fd19e"
+    },
+    {
+      "file": "scripts/ediel-ai-purpose-source-native.test.ts",
+      "assertion": "25:16",
+      "error": "Target cannot be null or undefined.",
+      "missing_fact": "Browser-source artifact/review origin JSON aggregation is null",
+      "sha256": "8e784fa7f1056f1d8405bd6afb3767712d0ff30f326f07e12d2ad8a36c8b91c0"
+    },
+    {
+      "file": "scripts/ediel-fresh-business-incident-native.test.ts",
+      "assertion": "71:30",
+      "error": "Expected undefined to be truthy",
+      "missing_fact": "Fixture browserIncidentId was never created",
+      "sha256": "386b8f69b6bf6dc6e24c8ebfbd44a948ac852225e4da690f335b303bce1f151f"
+    }
+  ],
+  "classification": {
+    "six_native_files_byte_exact_admin64": true,
+    "all_six_pre_browser_native_seed_invocations_passed_on_original985": true,
+    "original_browser_fixture_and_config_sources_byte_exact_admin64": "Independently confirmed by admin-copy reviewer",
+    "fresh_prefix_scoped_context_body_md5": "20800ecdbc19c53dd48b5bd8f3376bc1",
+    "fresh_prefix_missing_fields": [
+      "active_permission_keys",
+      "denied_permissions"
+    ],
+    "required_runtime_source": "lib/admin/apiGuards.ts:44-49 and 191-193",
+    "actual_runtime_behavior": "Nonempty permission requirements fail closed with HTTP 503 when either policy array is absent or malformed.",
+    "already_installed_live_scoped_context_body_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+    "live_observation_boundary": "Known prior root read-only Oracle observation; this reviewer performed no new live query.",
+    "verdict": "Confirmed application/fresh-prefix ABI mismatch; six post-browser native failures are derivative missing browser-produced facts. Not an EPERM/environmental or historical-fixture assertion failure.",
+    "guard_error_response_body_in_raw_log": false,
+    "qualification_limit": "HTTP statuses alone did not establish the cause. Source-level captured body MD5/field absence and unchanged runtime guard establish the ABI mismatch; the archived browser response body remains separate artifact evidence."
+  },
+  "historical_208_fixture": {
+    "file": "__tests__/admin-context-current-permission-deny-forward.test.ts",
+    "explicit_forward_path": "supabase/migrations/20261013023000_admin_context_current_permission_deny.sql",
+    "fixture_install_line": 126,
+    "metadata_and_inverse_assertions_lines": [
+      315,
+      326,
+      330
+    ],
+    "deployed_api_fixture_exact_md5": "d205c4e8ba1989b27b4df6b1b76af631",
+    "savepoint_restoration_lines": [
+      142,
+      155
+    ],
+    "applicability": "Existing metadata/inverse assertions intentionally qualify replayed historical208 and can remain byte-exact. They do not assert latest future-forward11 metadata identity; forward11 requires separate bounded native/behavior qualification."
+  },
+  "closure": "Original985 collection is terminal and preserved. This is not a PASS for985 or local a1, a forward11 approval, held API-stack import authorization, new authentic capture or deployment qualification."
+}

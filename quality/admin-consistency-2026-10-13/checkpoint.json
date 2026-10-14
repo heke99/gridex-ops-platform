@@ -1,10 +1,10 @@
 {
   "task": "admin-consistency-remediation",
-  "status": "AUTHENTIC_MAIN4E_TEN_CAPTURE_IMPORTED_FINAL_CI_PENDING_PRODUCTION_API_INTEGRATION_REQUIRED",
-  "date": "2026-10-13",
+  "status": "ELEVENTH_ADMIN_CONTEXT_FORWARD_QUALIFIED_AUTHENTIC_CAPTURE_PENDING",
+  "date": "2026-10-14",
   "initial_source_head": "51f5fa5e80c42350d697bfed42520672749d4467",
   "delivery_base": "95d8d160491e79b172342654d8dc643346758105",
-  "branch": "codex/admin-consistency-remediation-20261013",
+  "branch": "codex/admin-api-runtime-composition-20261013",
   "parallel_agents": 3,
   "live_project_ref": "piidsfebjqjmnepdpnas",
   "source_or_database_mutations": true,
@@ -22,7 +22,7 @@
     "empty_monthly_rebuilds_skip": true,
     "forward_migrations_applied": 10,
     "dqi_expand_only_until_new_app_deployment": true,
-    "latest_full_empty_assertion": "PASS approximately20:50UTC after completed live10 company-key finalization:140emptycustomergraphtables/17zero reviewedscopes",
+    "latest_full_empty_assertion": "PASS actual read-only00:29:09UTC20261014:140emptycustomergraphtables/17zero reviewedscopes",
     "retired_source_hashes": 2,
     "manual_inbound_messages": 0,
     "tenth_forward_pending": false,
@@ -66,11 +66,11 @@
     "tenth_forward": "19/19 latest-source lifecyclePASS; native two-company fixturePASS and uncapped5001 PostgreSQLPASS; two independent exact-source reviews; manifests/migration legal/contract/type integrityPASS.",
     "ten_forward_first_ci": "20abea4a:quality release/full unit,verify,upgrade replayPASS; native59files737assertions+browserPASS; unchanged tenant invariantPASS; parity selftest reached. Final clean gate fails only old committed9-forward schema baseline, now replaced by actual10-forward capture. Fresh resulting-head gates required."
   },
-  "next_action": "Publish authentic composed snapshot and current proof once. Await required exact resulting-head CI and two independent snapshot/source final reviews. Preserve existing deployedPR794 API runtime through qualified bounded integration before production/main-only replacement. After verified compatible deployment and oldwriter drain, drop only2legacyqualityconstraints and repeat140/17zero assertions.",
-  "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/799",
+  "next_action": "Produce one authenticated complete-prefix capture for ownforward11 using existing workflow. Validate exactsource/tree/eightinputs/tail/raw3, import bytes, freeze finalsource with two independent reviews, pass mandatory currentheadCI. Deliver compatiblemain/app, verifydrainedwriters, droponly2legacyconstraints using strengthenedguard, repeat140/17zero and currentmetadata assertions. Do not import heldAPIstack or reinterpret historical208proof.",
+  "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/802",
   "first_delivery_head": "77b9ab751bb24893d306f8acb2d049811e36bbb0",
   "current_source_head": "52a348c8d113f79a9884324c470949f8423c821a",
-  "incoming_main": "4e52854ecc19f0bd1266825cb114c19a3e983f27",
+  "incoming_main": "636f1fdc8e9dc9dd5b66169b749dcd6c17aafe0a",
   "current_composition_verification": {
     "compatibility": "PASS:three independent read-only slices, incoming5 unchanged",
     "targeted_tests": "PASS:182 assertions across9 files; historical source fetched for H fixture",
@@ -81,5 +81,20 @@
     "live10_company_index_finalization": "PASS:canonical issue and alert indexes are UNIQUE(company_id,open_key); five targets/four metadata preserved",
     "production": "BLOCKED:production d899 contains unmergedPR794 API runtime fixes; preserve existing fixes before main-only replacement",
     "legacy_two_constraints": "RETAINED until compatible deployment and drained writers"
+  },
+  "runtime_union_qualification": {
+    "application_parent_source": "a1f00da4ba9449228baaca2192e81788b41796b4",
+    "admin64_complete_ci": "PASS:all required checks;1117unitfiles18116assertions;native/browser/invariants/parity/schemaPASS",
+    "original985_clean_native": "FAIL:genuine job115594828185/source985:12browser503failures and6derivative missing-browser-fact assertions;invariants15driftclasses/types/schemaPASS",
+    "confirmed_root_cause": "Captured208 scoped context lacks active_permission_keys/denied_permissions required by preservedAPIguard; existing-live scoped bodyd205 has both.",
+    "own_forward11": "20261014004020_admin_api_current_context_projection.sql SHA852f0517f86b31e1baffd756f48e9cf3faad798df4d802d77f99300cfb92ed59; exact existing-lived205 body, preserved identity/ACL/wrapper/dependencies; no heldAPIinstallerstack.",
+    "focused_context_tests": "PASS78:35new+34unchanged historical+9existingAPI",
+    "quality_cutover_guards": "PASS11actualPGlite cases; canonicalindex/knownlegacydefinition guard/fullpg_proc snapshot+comment; record/function preservation, replay and refusal rollback.",
+    "new_authentic_capture": "PENDING",
+    "current_head_required_ci": "PENDING_AFTER_CAPTURE_ADOPTION",
+    "production": "PENDING_QUALIFIED_DELIVERY",
+    "legacy_constraints": "RETAINED_TWO_UNTIL_COMPATIBLE_PRODUCTION_AND_DRAIN",
+    "authenticated_preview": "Anonymous protected-route loginPASS on appsourcea1; authenticatedadminUI NOT_VERIFIED_NO_APP_SESSION",
+    "current_verdict_receipt": "quality/admin-consistency-2026-10-13/runtime-release/final-delivery-verification.json"
   }
 }
