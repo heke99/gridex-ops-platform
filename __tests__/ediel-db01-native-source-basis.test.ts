@@ -13,11 +13,11 @@ const root = resolve(__dirname, '..'), baseRevision = '56e58b95518ec4d5eef210ba1
 const producer = 'lib/ediel/testing/agtEngine.ts', kernel = 'lib/ediel/core/kernel.ts'
 const kernelLegacy = 'lib/ediel/core/kernelLegacy.ts'
 const facade = 'lib/ediel/rulebook/canonicalEdielFacade.ts'
-const adoptedFacadeRevision = 'ca892c14643181656e842bf4d8ffa8b6d829dec2'
+const adoptedFacadeRevision = 'eb4daee5d40dfaa5f1685c9f4461e9ed13edea56'
 const expectedBaseFacade: Input = {mode: '100644', git_blob_oid: 'a170889bc7a9463e757302989cb596e30f527c6f',
   sha256: 'd395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'}
-const expectedCurrentFacade: Input = {mode: '100644', git_blob_oid: '6012241de1210e35b50b55fa646e92930b8f330c',
-  sha256: 'f979775551293c9221d3cecff8fb51ae8b17f02dff99ee4222ae8dff0ed32d86'}
+const expectedCurrentFacade: Input = {mode: '100644', git_blob_oid: 'ada8116658728e49740008be2738c1ff8262e1b6',
+  sha256: '895d99d5daf54b72e8ccbc5583e0981c012fb985b0a6223f3e70ffdafd3d2c9c'}
 const adoptedRevision = '231b9ef84e5a9c5e737c44dc9d72dd33edb0b56c'
 const dependencies = [kernel, kernelLegacy, 'lib/ediel/core/outboundOwnerWitness.ts',
   'lib/ediel/rulebook/canonicalEdielFacade.ts', 'lib/ediel/testing/tgtCanonicalDraftRoute.ts',

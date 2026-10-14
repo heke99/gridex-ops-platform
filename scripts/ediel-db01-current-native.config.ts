@@ -7,7 +7,7 @@ import {defineConfig} from 'vitest/config'
 // Reconstructed historical composition: BASE source/default alias + snapshot
 // repair + one committed ROOT AGT producer over fixed BASE canonical
 // dependencies. The current kernel pair is separately pinned to delivered
-// source231b9ef8, and its facade to the reviewed adoptedca892 source. None
+// source231b9ef8, and its facade to the reviewed public224 source. None
 // replaces the historical BASE aliases or their fixed canonical source bytes.
 // Its BASE public creator alone receives a prospective legacy
 // DTO hint. Two containment forwards and twelve delivered current reader/guard
@@ -96,11 +96,11 @@ if (!kernelLegacyBasis || Object.keys(kernelLegacyBasis).length !== 6 || kernelL
 }
 execFileSync('git', ['merge-base', '--is-ancestor', kernelRevision, head], {cwd: root})
 const canonicalFacadePath = 'lib/ediel/rulebook/canonicalEdielFacade.ts'
-const canonicalFacadeRevision = 'ca892c14643181656e842bf4d8ffa8b6d829dec2'
+const canonicalFacadeRevision = 'eb4daee5d40dfaa5f1685c9f4461e9ed13edea56'
 const expectedBaseFacade: GitInput = {mode: '100644', git_blob_oid: 'a170889bc7a9463e757302989cb596e30f527c6f',
   sha256: 'd395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'}
-const expectedCurrentFacade: GitInput = {mode: '100644', git_blob_oid: '6012241de1210e35b50b55fa646e92930b8f330c',
-  sha256: 'f979775551293c9221d3cecff8fb51ae8b17f02dff99ee4222ae8dff0ed32d86'}
+const expectedCurrentFacade: GitInput = {mode: '100644', git_blob_oid: 'ada8116658728e49740008be2738c1ff8262e1b6',
+  sha256: '895d99d5daf54b72e8ccbc5583e0981c012fb985b0a6223f3e70ffdafd3d2c9c'}
 const canonicalFacadeBasis = basis.canonical_facade_basis
 if (!canonicalFacadeBasis || Object.keys(canonicalFacadeBasis).length !== 6 || canonicalFacadeBasis.source_revision !== canonicalFacadeRevision ||
     canonicalFacadeBasis.path !== canonicalFacadePath || canonicalFacadeBasis.historical_alias !== 'BASE56' || canonicalFacadeBasis.current_alias !== 'ROOT' ||
