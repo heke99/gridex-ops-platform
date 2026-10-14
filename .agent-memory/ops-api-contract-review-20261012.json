@@ -1052,5 +1052,27 @@
     ],
     "sourceHead": "41b07f9368c410f08642d8d8c2b3c2dacc215bd7",
     "integrationTree": "706d2d89ffa7ef5cf3fa2b13855eb5177cc2afd6"
+  },
+  "current_delivery_20261014_signing56": {
+    "published_head": "56d2c68fbc82d1804a193febc23d20c5067bbb2c",
+    "remote_readback": "confirmed",
+    "source_delta": "Three reviewed files only: bootstrap3302+one sourcePosition descriptor+own checkpoint",
+    "application": "Combined main6ce plus reviewed API5 application41 is READY on app.gridex.se; SQL-only56 does not change app runtime",
+    "actual_concurrency": "Existing isolated NOSUPER PG: actual old1496 prepare calls reproduce40P01; new9fba actual calls both refuse23514 without40P01; all20 qualified table fingerprints unchanged including correction facts/epochs/gaps and operation jobs/tasks/events; original wrapper fullpg_proc restored; independent bounded review approves.",
+    "limits": "Negative DRAFT refusal proof only. No successful signing, full SQL/schema/types or Staff identity green. No signing native forward applied.",
+    "next": "Qualify all-three canonical signing-core sealed composition; complete cross-path lock ordering and exact source-derived manual alias fix; two independent finals then bounded forward source/native execution.",
+    "documentation": "Live release manifest build41 readback; Staff, customer-portal and website version2026-10-12.1 immutable bytes all match advertised SHA256. Does not prove authenticated Staff integration."
+  },
+  "all_canonical_signing_core_composition_phase_20261014": {
+    "base_head": "56d2c68fbc82d1804a193febc23d20c5067bbb2c",
+    "owned_bootstrap_ref": "251f34bacf30d0b4c9df50de8aba1a4a6bd651a7",
+    "owned_descriptor_ref": "488d0c344ffc5667661832a5fb81dd1f2fca3e29",
+    "bootstrap_preimage_sha256": "65e596c757a9b50354e68053debb4060d5394632a2a4a3f70d29feee147584c5",
+    "descriptor_preimage_sha256": "a2f0ef17246303f179f1ba4eeefb892206c8a53d92d67e9a64aeadb8b7e7720a",
+    "target_sha256": "ca6b5b3fdda7b7d35fd97bed88f9822c317e0f74c335cab981116bc5691c73d5",
+    "ack": "Same ROOT accepts only current owned bootstrap+one existing descriptor artifactSha update+own checkpoint; no applied historical SQL edits, grants, real business calls or GEN inputs/capture/type changes.",
+    "distinctSourceGO": "ROOT_BOUNDED_SOURCE_GO_ALL_CANONICAL_SIGNING_CORE_COMPOSITION_CA6B",
+    "qualification": "Two noncoauthor exact candidate source finals; actual existing NOSUPER engine canonical and native first/replay with64original transports per run, all7fullrows unchanged, both staging schemas removed and originalengine fully restored. This is component composition, not whole SQL/history/runtime green.",
+    "next": "Materialize exact ca6b; current3fileunion two noncoauthor finals, integrity and actual inputbuilder qualification; normal nonforce publication to existing PR794."
   }
 }

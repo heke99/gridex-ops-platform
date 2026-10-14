@@ -436,7 +436,7 @@
       "source": "migrations/20261014113214_ops_api_atomic_bb0b_authfree_effect.sql",
       "sourceKind": "timestampedMigration",
       "sourceSha256": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
-      "artifactSha256": "65e596c757a9b50354e68053debb4060d5394632a2a4a3f70d29feee147584c5",
+      "artifactSha256": "ca6b5b3fdda7b7d35fd97bed88f9822c317e0f74c335cab981116bc5691c73d5",
       "preserveSourceReplay": false,
       "execution": "sourcePosition",
       "reason": "Preserve all original transport/sealed guards; temporarily normalize exact canonical signing core and SC031 projection before unchanged sealed installer, then restore both complete function rows and unchanged retained public wrapper in the same transaction. New runtime concurrency forward remains separately required."
