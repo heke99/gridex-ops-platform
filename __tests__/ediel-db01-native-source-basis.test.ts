@@ -172,7 +172,8 @@ const changes = ['valid', 'kernel-mode', 'kernel-git_blob_oid', 'kernel-sha256',
   'facade-mode', 'facade-git_blob_oid', 'facade-sha256',
   'facadeBase-mode', 'facadeBase-git_blob_oid', 'facadeBase-sha256',
   'facadeBasis-path', 'facadeBasis-source_revision', 'facadeBasis-historical_alias', 'facadeBasis-current_alias', 'facadeBasis-absent'] as const
-it.each(['admission', 'qualification'] as const)('keeps workflow %s strict for both changed kernels and unchanged dependencies', stage => {
+it.each((['admission', 'qualification'] as const).flatMap(stage => changes.map(change => [stage, change] as const)))(
+  'keeps workflow %s strict for %s across changed kernels and unchanged dependencies', (stage, change) => {
   const python = `import json,pathlib,subprocess,sys,textwrap
 receipt=json.loads(sys.stdin.read())
 workflow=pathlib.Path('.github/workflows/ediel-db01-current-native.yml').read_text()
@@ -188,42 +189,40 @@ env={'subprocess':subprocess,'head':receipt['checkout_sha'],'baseline':receipt['
 exec(compile(code,'<actual-workflow-basis-'+stage+'>','exec'),env)
 if stage=='admission':print(json.dumps(env['canonical_facade_basis']))
 `
-  for (const change of changes) {
-    const declared = structuredClone(receipt) as typeof receipt
-    if (change !== 'valid') {
-      const [target, field] = change.split('-')
-      const historical = declared.historical_source_basis as {canonical_dependency_identity: Record<string, {base: Input; root: Input}>;
-        kernel_basis: {root: Input}; kernel_legacy_basis: {root: Input};
-        canonical_facade_basis: {base: Input; root: Input} & Record<string, unknown>}
-      if (target === 'facadeBasis') {
-        if (field === 'absent') delete (historical as unknown as Record<string, unknown>).canonical_facade_basis
-        else historical.canonical_facade_basis[field] = field === 'source_revision' ? baseRevision : 'unqualified'
-      } else {
-        const path = target === 'kernel' ? kernel : target === 'legacy' ? kernelLegacy
-          : target === 'facade' || target === 'facadeBase' ? facade : dependencies[2]
-        const side = target === 'facadeBase' ? 'base' : 'root'
-        const inputs = declared[side === 'base' ? 'base_source' : 'root_source'] as {blobs: Record<string, Input>}
-        const inputField = field as keyof Input
-        const forged = inputField === 'mode' ? '100755' : 'f'.repeat(inputField === 'sha256' ? 64 : 40)
-        inputs.blobs[path][inputField] = forged
-        historical.canonical_dependency_identity[path][side][inputField] = forged
-        if (target === 'kernel') historical.kernel_basis.root[inputField] = forged
-        if (target === 'legacy') historical.kernel_legacy_basis.root[inputField] = forged
-        if (target === 'facade' || target === 'facadeBase') historical.canonical_facade_basis[side][inputField] = forged
-      }
+  const declared = structuredClone(receipt) as typeof receipt
+  if (change !== 'valid') {
+    const [target, field] = change.split('-')
+    const historical = declared.historical_source_basis as {canonical_dependency_identity: Record<string, {base: Input; root: Input}>;
+      kernel_basis: {root: Input}; kernel_legacy_basis: {root: Input};
+      canonical_facade_basis: {base: Input; root: Input} & Record<string, unknown>}
+    if (target === 'facadeBasis') {
+      if (field === 'absent') delete (historical as unknown as Record<string, unknown>).canonical_facade_basis
+      else historical.canonical_facade_basis[field] = field === 'source_revision' ? baseRevision : 'unqualified'
+    } else {
+      const path = target === 'kernel' ? kernel : target === 'legacy' ? kernelLegacy
+        : target === 'facade' || target === 'facadeBase' ? facade : dependencies[2]
+      const side = target === 'facadeBase' ? 'base' : 'root'
+      const inputs = declared[side === 'base' ? 'base_source' : 'root_source'] as {blobs: Record<string, Input>}
+      const inputField = field as keyof Input
+      const forged = inputField === 'mode' ? '100755' : 'f'.repeat(inputField === 'sha256' ? 64 : 40)
+      inputs.blobs[path][inputField] = forged
+      historical.canonical_dependency_identity[path][side][inputField] = forged
+      if (target === 'kernel') historical.kernel_basis.root[inputField] = forged
+      if (target === 'legacy') historical.kernel_legacy_basis.root[inputField] = forged
+      if (target === 'facade' || target === 'facadeBase') historical.canonical_facade_basis[side][inputField] = forged
     }
-    const execute = () => {
-      const output = execFileSync('python3', ['-c', python, stage], {cwd: root, input: JSON.stringify(declared), stdio: ['pipe', 'pipe', 'pipe']})
-      if (stage === 'admission') {
-        // Admission creates a fresh pinned receipt; it does not consume a
-        // caller's basis. Qualification independently rejects forged copies.
-        expect(JSON.parse(output.toString())).toEqual((receipt.historical_source_basis as Record<string, unknown>).canonical_facade_basis)
-      }
-      return output
-    }
-    if (change === 'valid' || (stage === 'admission' && change.startsWith('facadeBasis-'))) expect(execute, `${stage} actual source identities`).not.toThrow()
-    else expect(execute, `${stage} refuses self-consistent ${change}`).toThrow()
   }
+  const execute = () => {
+    const output = execFileSync('python3', ['-c', python, stage], {cwd: root, input: JSON.stringify(declared), stdio: ['pipe', 'pipe', 'pipe']})
+    if (stage === 'admission') {
+      // Admission creates a fresh pinned receipt; it does not consume a
+      // caller's basis. Qualification independently rejects forged copies.
+      expect(JSON.parse(output.toString())).toEqual((receipt.historical_source_basis as Record<string, unknown>).canonical_facade_basis)
+    }
+    return output
+  }
+  if (change === 'valid' || (stage === 'admission' && change.startsWith('facadeBasis-'))) expect(execute, `${stage} actual source identities`).not.toThrow()
+  else expect(execute, `${stage} refuses self-consistent ${change}`).toThrow()
 })
 
 // The actual e9 national case failed before legal/archive guards because its
