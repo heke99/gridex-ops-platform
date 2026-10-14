@@ -26,6 +26,8 @@ import { readSwitchCancellationSource } from '@/lib/ediel/production/switchCance
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
 import { applySupplyMarketSource } from '@/lib/ediel/flows/supplyMarketTransition'
+import * as cancellationSupply from '@/lib/ediel/flows/supplyMarketTransition'
+import { readPhysicalAckSourceCorrelation } from '@/lib/ediel/ack/sourceCorrelation'
 import { processInboundAckMessage } from '@/lib/ediel/flows/inboundAckProcessing'
 import { createInboundEdielMessage } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { matchOutboundRequestForInbound, matchMeteringPointForInbound } from '@/lib/inbound-mail/inboundMatcher'
@@ -989,5 +991,171 @@ describe('actual native supplier cancellation chains', () => {
     expect((await prepareAndQueueSwitchCancellation({companyId:f.companyId,switchRequestId:f.switchId,actorUserId:f.actorUserId,
       preferredRouteId:f.routeId,environment:'test'})).status).toBe('queued')
     expect(sql(`SELECT to_jsonb(status) FROM public.supplier_switch_requests WHERE id=${literal(f.switchId)};`)).toBe('cancellation_requested')
+  },180000)
+
+  // Source-only SC039 supplement. Reuses public nativeB's C-first/late-L
+  // controls; no C-before-future-outbound-original or executed-period premise.
+  // Until a retained producer executes this exact source, this case is NOT_RUN.
+  it('preserves C-before-matching-L custody and deadlines without activating the cancelled own start', async () => {
+    const f = await seed(), foreign = await seed()
+    const beforeOriginal = original(f), beforePermission = permissions(f)
+    const foreignOriginal = original(foreign), foreignSwitch = switchState(foreign)
+    expect(f.originalZ03).toMatchObject({ direction:'outbound',message_family:'PRODAT',message_code:'Z03',status:'sent' })
+    expect(sql<string>(`SELECT to_jsonb(immutable_payload_hash) FROM public.ediel_messages
+      WHERE id=${literal(f.originalZ03.id)} AND company_id=${literal(f.companyId)};`))
+      .toBe(createHash('sha256').update(f.originalZ03.raw_payload!).digest('hex'))
+    expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m))
+      FROM public.ediel_messages m WHERE id=${literal(f.originalZ03.id)} AND company_id=${literal(f.companyId)};`)).toBe(true)
+    expect(periods(f)).toEqual([])
+    const previousSwitch = sql<Record<string,unknown>>(`SELECT to_jsonb(s) FROM public.supplier_switch_requests s
+      WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)};`)
+    expect(previousSwitch).toMatchObject({ outbound_z03_message_id:f.originalZ03.id,rff_li_reference:f.caseReference,
+      inbound_z04_message_id:null })
+
+    // A call-through observer does not fabricate a return or repeat an apply.
+    // The coordinator returns an EdielMessageRow; only this actual adapter
+    // invocation can supply SupplyMarketResult/partition evidence.
+    const observedProcess = async (source:EdielMessageRow) => {
+      const apply = vi.spyOn(cancellationSupply,'applySupplyMarketSource')
+      try {
+        const processed = await process(f,source)
+        const own = apply.mock.calls.flatMap((args,index) => args[0].message.id === source.id
+          && args[0].actorUserId === f.actorUserId ? [apply.mock.results[index]] : [])
+        expect(own).toHaveLength(1)
+        expect(own[0].type).toBe('return')
+        const result = await own[0].value as cancellationSupply.SupplyMarketResult
+        const events = sql<Array<{payload:{sourceObjectPartition:unknown}}>>(`SELECT coalesce(jsonb_agg(to_jsonb(e)
+          ORDER BY e.created_at,e.id),'[]') FROM public.ediel_message_events e
+          WHERE e.company_id=${literal(f.companyId)} AND e.ediel_message_id=${literal(source.id)}
+          AND e.event_type='validated' AND e.payload ? 'sourceObjectPartition';`)
+        expect(events.length).toBeGreaterThan(0)
+        expect(events.at(-1)!.payload.sourceObjectPartition).toEqual(result.partition)
+        return { processed,result }
+      } finally { apply.mockRestore() }
+    }
+    const custody = (source:EdielMessageRow) => sql(`SELECT jsonb_build_object(
+      'source',jsonb_build_object('id',m.id,'company_id',m.company_id,'environment',m.environment,'direction',m.direction,
+        'raw_payload',m.raw_payload,'immutable_payload_hash',m.immutable_payload_hash,'message_received_at',m.message_received_at,
+        'immutable_rendered_at',m.immutable_rendered_at,'execution_context_snapshot',m.execution_context_snapshot,
+        'rule_profile_key',m.rule_profile_key,'canonical_rule_pack_id',m.canonical_rule_pack_id,'rule_pack_checksum',m.rule_pack_checksum,
+        'rule_profile_version_id',m.rule_profile_version_id,'related_message_id',m.related_message_id,'outbound_request_id',m.outbound_request_id),
+      'mail',(SELECT to_jsonb(x) FROM public.inbound_email_messages x WHERE id=m.inbound_email_message_id),
+      'parse',(SELECT to_jsonb(x) FROM public.inbound_ediel_parse_results x WHERE id=(SELECT parse_result_id
+        FROM gridex_ediel_inbound_receptions.receptions WHERE source_message_id=m.id AND classification='first_reception')),
+      'captured',(SELECT to_jsonb(x) FROM gridex_received_sources.sources x WHERE source_message_id=m.id AND company_id=m.company_id),
+      'context',(SELECT to_jsonb(x) FROM gridex_ediel_inbound_context.receipts x WHERE source_message_id=m.id AND company_id=m.company_id),
+      'receptions',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM gridex_ediel_inbound_receptions.receptions x
+        WHERE source_message_id=m.id AND company_id=m.company_id),
+      'rawBirth',(SELECT to_jsonb(x) FROM gridex_unattributed_intake.raw_births x WHERE inbound_email_message_id=m.inbound_email_message_id),
+      'parseBirth',(SELECT to_jsonb(x) FROM gridex_unattributed_intake.parse_births x WHERE parse_result_id=(SELECT parse_result_id
+        FROM gridex_ediel_inbound_receptions.receptions WHERE source_message_id=m.id AND classification='first_reception')))
+      FROM public.ediel_messages m WHERE m.id=${literal(source.id)} AND m.company_id=${literal(f.companyId)};`)
+    const receipts = (source:EdielMessageRow) => sql<{
+      effects:Array<{id:string;source_message_id:string;company_id:string;environment:string;payload_hash:string;
+        effect_text:string;effect_hash:string;canonical_assessment_id:string}>;
+      partitions:Array<{source_message_id:string;payload_hash:string;canonical_assessment_id:string;partition_text:string;partition_hash:string;result:unknown}>;
+      transitions:Record<string,unknown>[];normal:Record<string,unknown>[]
+    }>(`SELECT jsonb_build_object(
+      'effects',(SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY id),'[]') FROM gridex_received_sources.supply_object_effect_receipts x
+        WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(source.id)}),
+      'partitions',(SELECT coalesce(jsonb_agg(to_jsonb(x)),'[]') FROM gridex_received_sources.supply_object_partitions x
+        WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(source.id)}),
+      'transitions',(SELECT coalesce(jsonb_agg(to_jsonb(x)),'[]') FROM gridex_received_sources.supply_source_transitions x
+        WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(source.id)}),
+      'normal',(SELECT coalesce(jsonb_agg(to_jsonb(x)),'[]') FROM gridex_received_sources.normal_switch_confirmations x
+        WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(source.id)}));`)
+    const protocol = (source:EdielMessageRow) => sql(`SELECT jsonb_build_object(
+      'acks',(SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY a.id),'[]') FROM public.ediel_messages a
+        WHERE a.company_id=${literal(f.companyId)} AND a.related_message_id=${literal(source.id)} AND a.direction='outbound'),
+      'outbox',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM public.ediel_outbox o
+        WHERE o.company_id=${literal(f.companyId)} AND o.source_message_id=${literal(source.id)}));`)
+    const assertSentWithinOwnDeadline = (source:EdielMessageRow,ack:EdielMessageRow) => {
+      expect(ack).toMatchObject({company_id:f.companyId,environment:'test',direction:'outbound',related_message_id:source.id,status:'sent'})
+      expect(ack.ack_outcome).toBe('positive')
+      expect(readPhysicalAckSourceCorrelation(ack,source).classification.outcome).toBe(ack.ack_outcome)
+      const timerType = ack.message_family === 'CONTRL' ? 'contrl_due' : 'aperak_due'
+      const timers = sql<Array<{due_at:string;payload:{receivedAt:string;anchorKind:string;anchorCertainty:string}}>>(`SELECT coalesce(jsonb_agg(to_jsonb(t)),'[]')
+        FROM public.ediel_sla_timers t WHERE t.company_id=${literal(f.companyId)} AND t.ediel_message_id=${literal(source.id)}
+        AND t.timer_type=${literal(timerType)};`)
+      expect(timers).toHaveLength(1)
+      expect(timers[0].payload).toMatchObject({anchorKind:'local_ingress_at',anchorCertainty:'observed'})
+      expect(Date.parse(timers[0].payload.receivedAt)).toBe(Date.parse(source.message_received_at!))
+      const received = Date.parse(source.message_received_at!),sent = Date.parse(ack.message_sent_at!),due = Date.parse(timers[0].due_at)
+      expect(Number.isFinite(received) && Number.isFinite(sent) && Number.isFinite(due)).toBe(true)
+      // The current national ACK deadline is 30 minutes, not an arbitrary
+      // extended timer supplied by a malformed setup or later implementation.
+      expect(due - received).toBe(30 * 60_000)
+      expect(sent).toBeGreaterThanOrEqual(received); expect(sent).toBeLessThanOrEqual(due)
+      expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_payloads WHERE ediel_message_id=${literal(ack.id)};`)).toBeGreaterThan(0)
+    }
+    const physicalLi = (source:EdielMessageRow) => {
+      const wire = tokenizeEdifact(source.raw_payload!)
+      const li = wire.segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment,1,wire.una)[0] === 'LI')
+      expect(li).toHaveLength(1)
+      return segmentComposite(li[0],1,wire.una)[1]
+    }
+
+    const cancellation = await receiveProdat(f,z04(f,'Z24'),'Z04','C'),cBirth = custody(cancellation)
+    expect(physicalLi(cancellation)).toBe(f.caseReference)
+    expect(Date.parse(cancellation.message_received_at!)).toBeGreaterThanOrEqual(Date.parse(f.originalZ03.message_sent_at!))
+    const applied = await observedProcess(cancellation)
+    expect(applied.result).toMatchObject({applied:true,fullyApplied:true,reviewRequired:false,periods:[],commits:[]})
+    const committed = receipts(cancellation)
+    expect(committed.effects).toHaveLength(1); expect(committed.partitions).toHaveLength(1)
+    expect(committed.transitions).toHaveLength(1); expect(committed.normal).toEqual([])
+    const effect = committed.effects[0],partition = committed.partitions[0]
+    expect(effect).toMatchObject({source_message_id:cancellation.id,company_id:f.companyId,environment:'test',
+      payload_hash:createHash('sha256').update(cancellation.raw_payload!).digest('hex')})
+    expect(createHash('sha256').update(effect.effect_text).digest('hex')).toBe(effect.effect_hash)
+    expect(createHash('sha256').update(partition.partition_text).digest('hex')).toBe(partition.partition_hash)
+    const facts = JSON.parse(effect.effect_text)
+    expect(facts).toMatchObject({owner:'inbound-supply-object-v1',sourceMessageId:cancellation.id,sourcePayloadHash:effect.payload_hash,
+      companyId:f.companyId,environment:'test',canonicalAssessmentId:effect.canonical_assessment_id,
+      object:{objectId:f.external,identityAgency:'9'},plan:{kind:'cancel_start',switchId:f.switchId,periodId:null},
+      resultingStates:[],wire:{li:f.caseReference,reason:'Z24'}})
+    expect(Object.hasOwn(facts.plan,'periodId')).toBe(true)
+    const cancelledSwitch = sql<Record<string,unknown>>(`SELECT to_jsonb(s) FROM public.supplier_switch_requests s
+      WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)};`)
+    expect(cancelledSwitch).toMatchObject({status:'cancelled_before_start',outbound_z03_message_id:f.originalZ03.id,
+      inbound_z04_message_id:cancellation.id,rff_li_reference:f.caseReference})
+    expect(cancelledSwitch.completed_at).not.toBeNull()
+    expect(facts.previousSwitches).toEqual([previousSwitch]); expect(facts.resultingSwitches).toEqual([cancelledSwitch])
+    expect(partition).toMatchObject({source_message_id:cancellation.id,payload_hash:effect.payload_hash,
+      canonical_assessment_id:effect.canonical_assessment_id,result:{applied:true,periods:[],commits:[],effectReceiptIds:[effect.id]}})
+    expect(periods(f)).toEqual([]); expect(custody(cancellation)).toEqual(cBirth)
+    await sendOwnAcks(f,cancellation.id)
+    const cAcks = sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY message_family),'[]')
+      FROM public.ediel_messages a WHERE a.company_id=${literal(f.companyId)} AND a.related_message_id=${literal(cancellation.id)} AND a.direction='outbound';`)
+    expect(cAcks.map(ack => [ack.message_family,ack.ack_outcome])).toEqual([['APERAK','positive'],['CONTRL','positive']])
+    for (const ack of cAcks) assertSentWithinOwnDeadline(cancellation,ack)
+    const cProtocol = protocol(cancellation)
+
+    const late = await receiveProdat(f,z04(f),'Z04','L'),lBirth = custody(late)
+    expect(late.id).not.toBe(cancellation.id); expect(physicalLi(late)).toBe(f.caseReference)
+    expect(Date.parse(late.message_received_at!)).toBeGreaterThanOrEqual(Date.parse(cancellation.message_received_at!))
+    const held = await observedProcess(late)
+    expect(held.result).toMatchObject({applied:false,fullyApplied:false,reviewRequired:true,effectReceiptIds:[],periods:[],commits:[],
+      partition:[{disposition:'held',reason:'normal_z04_locked_original_scope_required'}]})
+    expect(receipts(late)).toEqual({effects:[],partitions:[],transitions:[],normal:[]})
+    const lAcks = sql<EdielMessageRow[]>(`SELECT coalesce(jsonb_agg(to_jsonb(a) ORDER BY message_family),'[]')
+      FROM public.ediel_messages a WHERE a.company_id=${literal(f.companyId)} AND a.related_message_id=${literal(late.id)} AND a.direction='outbound';`)
+    expect(lAcks.filter(ack => ack.message_family === 'APERAK' && ack.ack_outcome === 'positive')).toEqual([])
+    const technical = lAcks.filter(ack => ack.message_family === 'CONTRL')
+    expect(technical).toHaveLength(1)
+    await sendEdielMessageViaSmtp(technical[0],{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})
+    assertSentWithinOwnDeadline(late,(await getEdielMessageById(technical[0].id))!)
+    // A timely technical reply is observed, not invented final business success
+    // or a claim that an eventual operator contact has already occurred.
+    const lProtocol = protocol(late)
+    for (const source of [cancellation,late]) {
+      await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:source.id})
+      expect(receipts(cancellation)).toEqual(committed); expect(receipts(late)).toEqual({effects:[],partitions:[],transitions:[],normal:[]})
+      expect(switchState(f)).toMatchObject({status:'cancelled_before_start',original:f.originalZ03.id,inbound:cancellation.id})
+      expect(periods(f)).toEqual([]); expect(original(f)).toEqual(beforeOriginal); expect(permissions(f)).toEqual(beforePermission)
+      expect(custody(cancellation)).toEqual(cBirth); expect(custody(late)).toEqual(lBirth)
+      expect(protocol(cancellation)).toEqual(cProtocol); expect(protocol(late)).toEqual(lProtocol)
+      // This is a genuine FOREIGN-company control, not a same-tenant sibling.
+      expect(original(foreign)).toEqual(foreignOriginal); expect(switchState(foreign)).toEqual(foreignSwitch); expect(periods(foreign)).toEqual([])
+    }
   },180000)
 })
