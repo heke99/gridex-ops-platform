@@ -35,6 +35,7 @@ import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceVal
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {approveEdielInboundCase,createOrUpdateInboundProdatCase,type EdielInboundCaseRow} from '@/lib/ediel/inboundCases'
 import {supabaseService} from '@/lib/supabase/service'
+import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
 
 beforeEach(resetNativeEscoFixture)
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
@@ -644,9 +645,22 @@ async function sc031Supplier(subtype:'L'|'LK',extra:boolean,count:1|2){
  expect(inboundCase?.parsed_metering_point.referenceToMeteringPoint).toBeNull()
  expect(inboundCase?.parsed_production.referenceToMeteringPoint).toBeNull()
  expect(sc031Master(base.companyId)).toEqual(masterBefore)
- const protectedSource=await supabaseService.rpc('ediel_read_prodat_object_batch_source_v1',{p_company_id:base.companyId,p_source_message_id:message.id,p_actor_user_id:base.actorUserId})
- expect(protectedSource.error).toBeNull()
- expect(protectedSource.data).toMatchObject({version:1,assessmentId:recorded.assessmentId,sourcePayloadHash:sc031Sha(raw),sourceMessage:{id:message.id,company_id:base.companyId,raw_payload:raw}})
+ if(count===2){
+  const protectedSource=await supabaseService.rpc('ediel_read_prodat_object_batch_source_v1',{p_company_id:base.companyId,p_source_message_id:message.id,p_actor_user_id:base.actorUserId})
+  expect(protectedSource.error).toBeNull()
+  expect(protectedSource.data).toMatchObject({version:1,assessmentId:recorded.assessmentId,sourcePayloadHash:sc031Sha(raw),sourceMessage:{id:message.id,company_id:base.companyId,raw_payload:raw}})
+ }else{
+  // A single object is a valid complete canonical application, while the
+  // native batch owner deliberately requires at least two. This existing
+  // service read binds the committed original/current owner, not actor/role
+  // approval; the actual single approval and graph consumers remain below.
+  const single=await readReceivedProdatApplicationObjects({companyId:base.companyId,sourceMessageId:message.id,rawPayload:raw})
+  expect(single).not.toBeNull()
+  expect(single).toMatchObject({assessmentId:recorded.assessmentId,sourcePayloadHash:sc031Sha(raw),owner:'canonical-prodat-application-all-v1',coverage:'canonical_own_application_only',headerDecision:'accepted'})
+  expect(single!.objects).toHaveLength(1)
+  expect(single!.objects).toEqual(application!.objects)
+  expect(single!.objects[0]).toMatchObject({objectId:points[0],identityAgency:'89',applicationDecision:'accepted'})
+ }
  const acks=sc031ActualAcks(base.companyId,message.id)
  expect(acks.acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='negative')).toEqual([])
  expect(acks.acks.filter(a=>a.message_family==='APERAK'&&a.ack_outcome==='positive')).toEqual([])
