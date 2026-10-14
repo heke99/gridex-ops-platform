@@ -95,10 +95,11 @@ jobs:
 
           manifest = json.loads(pathlib.Path('scripts/supabase-types-manifest.json').read_text())
           sc031 = os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc031-main795-20261014'
-          sc046 = os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-main573-20261014'
-          pending = manifest.get('pending_sc046_capture_v2' if sc046 else ('pending_sc031_capture' if sc031 else 'pending_joint_c3_capture'), {})
-          epoch = 'gridex-C2-SC046-GEN-20261014-v2' if sc046 else ('gridex-C2-SC031-GEN-20261014-v1' if sc031 else 'gridex-C2-joint-C3-GEN-20261013-v3')
-          producer_branch = 'codex/c2-gen-sc046-main573-20261014' if sc046 else ('codex/c2-gen-sc031-main795-20261014' if sc031 else 'codex/c2-gen-joint-c3-20261013')
+          sc046_v3 = os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014'
+          sc046 = sc046_v3 or os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-main573-20261014'
+          pending = manifest.get('pending_sc046_capture_v3' if sc046_v3 else ('pending_sc046_capture_v2' if sc046 else ('pending_sc031_capture' if sc031 else 'pending_joint_c3_capture')), {})
+          epoch = 'gridex-C2-SC046-GEN-20261014-v3' if sc046_v3 else ('gridex-C2-SC046-GEN-20261014-v2' if sc046 else ('gridex-C2-SC031-GEN-20261014-v1' if sc031 else 'gridex-C2-joint-C3-GEN-20261013-v3'))
+          producer_branch = 'codex/c2-gen-sc046-v3-main6ce6-20261014' if sc046_v3 else ('codex/c2-gen-sc046-main573-20261014' if sc046 else ('codex/c2-gen-sc031-main795-20261014' if sc031 else 'codex/c2-gen-joint-c3-20261013'))
           checkpoint = ('.agent-memory/takeover-C2-GEN-SC046-20261014-checkpoint.md' if sc046 else
                         ('.agent-memory/takeover-C2-GEN-SC031-20261014-checkpoint.md' if sc031
                          else '.agent-memory/takeover-C2-GEN-joint-C3-20261013-checkpoint.md'))
@@ -135,7 +136,7 @@ jobs:
                   or native_workflow.get('config_path') != native_config_path
                   or native_workflow.get('config_sha256') != '1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a'):
                   raise SystemExit('capture_sc031_native_workflow_not_bound')
-          if sc046:
+          if sc046 and not sc046_v3:
               sc046_sources = {'lib/ediel/utilts/transactionPersistence.ts': {'mode': '100644', 'blob': 'fa06bb397aae317d232ada1754d532c8cfd634f7', 'sha256': 'f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece', 'receipt': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'lib/ediel/utilts/consumptionSinks.ts': {'mode': '100644', 'blob': '14e29821de4d1f5fc7d82822158fbc76ba780bb4', 'sha256': 'cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, '__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts': {'mode': '100644', 'blob': 'c95f76a4aa837e373ee96bd9dc72ffede6ceac79', 'sha256': 'f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': {'mode': '100644', 'blob': '890a2e21d61b033b52d92f47e696f91afa06a443', 'sha256': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, '__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts': {'mode': '100644', 'blob': '0681ea590b9a6cf4f9b13004c672a6d822511bf2', 'sha256': '9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, 'scripts/ediel-utilts-consumption-native.test.ts': {'mode': '100644', 'blob': 'fc34621b4052f82fcfe4b6fc3d571d41aa722e9e', 'sha256': '9b26e7950c73b992130e4e47408446849c2a7b95c264ff71ca8e2f1c65f412d8', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '2b68fa6e1856198efa7bc0076c8d7cc7f15da803', 'source_tree': '3fba26e706902b4f16c92ef82a1754390c712433'}, 'scripts/ediel-utilts-err-gateway-native.test.ts': {'mode': '100644', 'blob': 'c26c36d3a310a690ded9ab4c015dd39bd278b804', 'sha256': '358ff5311594002bc9fb5c8a75217fab1cabf7c95bf8051a22d1e542798b468d', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '2b68fa6e1856198efa7bc0076c8d7cc7f15da803', 'source_tree': '3fba26e706902b4f16c92ef82a1754390c712433'}}
               sc046_sources.update({'scripts/gridex-website-quote-integrity-regression.mjs': {'mode': '100644', 'blob': '86bf85ef582cbbed4d74f2612951e7d563364a38', 'sha256': '1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'scripts/gridex-price-area-assurance-regression.cjs': {'mode': '100755', 'blob': 'b72b962e1685215f0780a65ba342d01df604a327', 'sha256': '4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': {'mode': '100644', 'blob': 'c8609b4460c4564be8d854877056a10534542a63', 'sha256': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}})
               sc046_resources = {'slot-C1': 'b971ef0cfa9724b02f4e0e3a985a4436e11a1f60', 'file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6': '7b0cf6038a686e5c889700c300cc251efb72756b'}
@@ -167,6 +168,37 @@ jobs:
                   or pending.get('supplemental_source_receiving_neutral') != '8b087530be629e6bfcb6d976c4cd6486764470dc'
                   or pending.get('producer_sources', {}).get('supplementalImmutableSourceInputs') != sc046_unit_sources):
                   raise SystemExit('capture_sc046_supplemental_unit_source_not_bound')
+          if sc046_v3:
+              sc046_sources = {'lib/ediel/utilts/transactionPersistence.ts': {'mode': '100644', 'blob': 'fa06bb397aae317d232ada1754d532c8cfd634f7', 'sha256': 'f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece', 'receipt': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'lib/ediel/utilts/consumptionSinks.ts': {'mode': '100644', 'blob': '14e29821de4d1f5fc7d82822158fbc76ba780bb4', 'sha256': 'cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, '__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts': {'mode': '100644', 'blob': 'c95f76a4aa837e373ee96bd9dc72ffede6ceac79', 'sha256': 'f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3', 'receipt': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'source_head': '50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80', 'source_tree': '9cf682a99e1d61b08cabe07ad76604ff61f89fff'}, 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': {'mode': '100644', 'blob': '890a2e21d61b033b52d92f47e696f91afa06a443', 'sha256': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, '__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts': {'mode': '100644', 'blob': '0681ea590b9a6cf4f9b13004c672a6d822511bf2', 'sha256': '9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0', 'receipt': '3f0c88be9759dd2833ee6f98333df1367f497511', 'source_head': '45bcaf034d614022216ec51e82ac179d3ed07811', 'source_tree': 'a3f49d52b911de9739b9f493554b577f5269ae74'}, 'scripts/ediel-utilts-consumption-native.test.ts': {'mode': '100644', 'blob': 'bf5342a9a9734d4274a398cbdf55296ecaeecfe4', 'sha256': 'ad9551afb71cb27046c80a911d9f6dff71671fe60688462e1b318fa3351a1238', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '4c3e88e08cf40bbae3e5dee739dfe89b2a116148', 'source_tree': '260a986759d31b9cc9051c8ba7ae8b368d679484'}, 'scripts/ediel-utilts-err-gateway-native.test.ts': {'mode': '100644', 'blob': '30d8f26964acff1abf4f12a7bf438e014591d58d', 'sha256': 'b1e78ef8b9aa696b1b0bbeebf7a6786010cff040dd2245041e9e8b259e86423b', 'receipt': '7b0cf6038a686e5c889700c300cc251efb72756b', 'source_head': '7670274d8258fe4d54e080eb30e2383c2d37b973', 'source_tree': 'b049504fe46fe7edc1ef332a64e6d38bd117e580'}, 'scripts/gridex-website-quote-integrity-regression.mjs': {'mode': '100644', 'blob': '86bf85ef582cbbed4d74f2612951e7d563364a38', 'sha256': '1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'scripts/gridex-price-area-assurance-regression.cjs': {'mode': '100755', 'blob': 'b72b962e1685215f0780a65ba342d01df604a327', 'sha256': '4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': {'mode': '100644', 'blob': 'c8609b4460c4564be8d854877056a10534542a63', 'sha256': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'receipt': 'a39624608a39dfbd4416b7f5181568c79972477b', 'source_head': 'fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b', 'source_tree': '49249704c7bebfc5b3135555133304bec0127598'}, 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql': {'mode': '100644', 'blob': '969610a6092959e9643ef00b78cf05ae54d30a86', 'sha256': '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b', 'receipt': 'e30dad004faeae98e8411a278806cbfc357bfdf6', 'source_head': '7670274d8258fe4d54e080eb30e2383c2d37b973', 'source_tree': 'b049504fe46fe7edc1ef332a64e6d38bd117e580'}}
+              sc046_resources = {'slot-C1': 'b971ef0cfa9724b02f4e0e3a985a4436e11a1f60', 'file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157': '4caaff9f0c79b28f7e2b968b628f81f73e05ef12', 'file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a': 'ee70dfb2fd1826dd7ccc7fbda767acae7af8e112', 'file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804': '3f0c88be9759dd2833ee6f98333df1367f497511', 'file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6': '7b0cf6038a686e5c889700c300cc251efb72756b', 'file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e': 'a39624608a39dfbd4416b7f5181568c79972477b', 'file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3': 'e30dad004faeae98e8411a278806cbfc357bfdf6'}
+              sc046_workflow_path = '.github/workflows/staff-api-schema-capture.yml'
+              sc046_workflow = pending.get('owned_capture_workflow_input', {})
+              sc046_unit_sources = {'__tests__/ediel-db01-native-source-basis.test.ts': {'mode': '100644', 'blob': '218d85081fab25684560cd09cefdefa596539a54', 'sha256': '6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7', 'receipt': 'ef088907a6e85783b5d6205594bfd548ddf242de', 'source_head': '057c9aea742209f85b66f5898f0b7272fe8acf71', 'source_tree': '68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8'}}
+              sc046_unit_resources = {'file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07': 'ef088907a6e85783b5d6205594bfd548ddf242de'}
+              if (pending.get('input_union_status') != 'FROZEN_REVIEWED_COMPLETE'
+                  or pending.get('source_receiving_neutral') != 'b24cd34d3de0935d72fce7ae5e91f26f5051c208'
+                  or pending.get('base') != '6ce6d49eafa8ca24bcefbeec717dd55b63abad66' or pending.get('base_tree') != 'fbe51ee680b61f5404b680a64c9e3e2d225dc282'
+                  or pending.get('branch') != producer_branch or pending.get('checkpoint') != checkpoint
+                  or pending.get('source_input_count') != 11
+                  or pending.get('portable_source_inputs') != sc046_sources
+                  or pending.get('source_resources') != sc046_resources
+                  or pending.get('producer_sources', {}).get('immutableSourceInputs') != sc046_sources
+                  or pending.get('producer_sources', {}).get('actualMain') != '6ce6d49eafa8ca24bcefbeec717dd55b63abad66'
+                  or pending.get('producer_sources', {}).get('actualMainTree') != 'fbe51ee680b61f5404b680a64c9e3e2d225dc282'
+                  or pending.get('actual_latest_migration') != '20261014211648_ediel_sc046_bound_newer_metering_correction.sql'
+                  or pending.get('sql_sha256') != {'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql': '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34', 'supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql': '4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9', 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql': '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b'}):
+                  raise SystemExit('capture_sc046_v3_source_union_not_bound')
+              if (sc046_workflow.get('path') != sc046_workflow_path or sc046_workflow.get('mode') != '100644'
+                  or sc046_workflow.get('receipt') != 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                  or not re.fullmatch(r'[0-9a-f]{40}', sc046_workflow.get('blob', ''))
+                  or not re.fullmatch(r'[0-9a-f]{64}', sc046_workflow.get('sha256', ''))
+                  or pending.get('producer_sources', {}).get('ownedCaptureWorkflowInput') != sc046_workflow):
+                  raise SystemExit('capture_sc046_v3_owned_workflow_not_bound')
+              if (pending.get('supplemental_source_inputs') != sc046_unit_sources
+                  or pending.get('supplemental_source_resources') != sc046_unit_resources
+                  or pending.get('supplemental_source_receiving_neutral') != '8b087530be629e6bfcb6d976c4cd6486764470dc'
+                  or pending.get('producer_sources', {}).get('supplementalImmutableSourceInputs') != sc046_unit_sources):
+                  raise SystemExit('capture_sc046_v3_supplemental_unit_source_not_bound')
           def git(*args):
               return subprocess.check_output(['git', *args])
           def working(path):
@@ -227,6 +259,22 @@ jobs:
                   unit_current_ref = json.load(response)
               if unit_current_ref.get('object', {}).get('sha') != sc046_unit_resources[unit_resource]:
                   raise SystemExit('capture_sc046_supplemental_unit_custody_mismatch')
+          if sc046_v3:
+              current_source_refs = {**sc046_resources, **sc046_unit_resources,
+                                     'slot-C2': 'ce80cdd3fb4be418ea54daebb596d798889442cd'}
+              current_source_refs.update({'file-' + hashlib.sha256(path.encode()).hexdigest(): 'ce80cdd3fb4be418ea54daebb596d798889442cd'
+                                         for path in ['scripts/migration-history-manifest.json', 'scripts/supabase-types-manifest.json',
+                                                      'supabase/database.types.ts', 'supabase/schema.fingerprint.json', 'supabase/schema.sql',
+                                                      '.github/workflows/staff-api-schema-capture.yml']})
+              for resource, expected in sorted(current_source_refs.items()):
+                  request = urllib.request.Request(
+                      'https://api.github.com/repos/' + os.environ['GITHUB_REPOSITORY'] + '/git/ref/tags/agent-claims/masterplan/' + resource,
+                      headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'], 'Accept': 'application/vnd.github+json',
+                               'X-GitHub-Api-Version': '2022-11-28'})
+                  with urllib.request.urlopen(request, timeout=30) as response:
+                      current_ref = json.load(response)
+                  if current_ref.get('object', {}).get('sha') != expected:
+                      raise SystemExit('capture_sc046_v3_current_source_custody_mismatch: ' + resource)
           initial = subprocess.check_output(['docker', 'ps', '-aq'], text=True).splitlines()
           if initial:
               raise SystemExit('capture_initial_container_quiescence_unqualified')
@@ -315,6 +363,10 @@ jobs:
                   or receipt.get('retainedWriterReceipt') != writer
                   or set(receipt['files']) != set(own_files) | {checkpoint}):
                   raise SystemExit('capture_sc046_producer_scope_not_bound')
+              if sc046_v3 and (not isinstance(pending.get('producer_only_writer'), str)
+                  or not pending['producer_only_writer'].strip()
+                  or receipt.get('onlyWriter') != pending['producer_only_writer']):
+                  raise SystemExit('capture_sc046_v3_producer_writer_not_bound')
               if (receipt['sources'] != pending['producer_sources']
                   or pending['portable_source_inputs'] != receipt['sources']['immutableSourceInputs']):
                   raise SystemExit('capture_primary_producer_sources_mismatch')
@@ -366,13 +418,15 @@ jobs:
                   'source_receiving_neutral': pending['source_receiving_neutral'],
                   'source_inputs': sc046_sources, 'source_resources': sc046_resources,
                   'owned_workflow': sc046_workflow, 'tracked_blob_ids': sc046_blob_ids,
-                  'verification': 'EXACT_TEN_CANONICAL_INPUTS_PLUS_SUPPLEMENTAL_UNIT_MODES_BLOBS_SHA256_AND_SOURCE_RECEIPTS',
+                  'verification': ('EXACT_ELEVEN_CANONICAL_INPUTS_PLUS_SUPPLEMENTAL_UNIT_CURRENT_RECEIPTS' if sc046_v3 else
+                                    'EXACT_TEN_CANONICAL_INPUTS_PLUS_SUPPLEMENTAL_UNIT_MODES_BLOBS_SHA256_AND_SOURCE_RECEIPTS'),
                   'canonical_input_count': len(sc046_sources),
                   'supplemental_source_inputs': sc046_unit_sources,
                   'supplemental_source_resources': sc046_unit_resources,
                   'supplemental_receiving_neutral': pending['supplemental_source_receiving_neutral'],
                   'supplemental_current_ref_get_match': unit_current_ref['object']['sha'],
-                  'current_receipts_checked': custody['producer_checked'],
+                  'current_receipts_checked': True if sc046_v3 else custody['producer_checked'],
+                  **({'current_source_refs_get_match': current_source_refs, 'prior_v2_source_epoch': 'gridex-C2-SC046-GEN-20261014-v2'} if sc046_v3 else {}),
               }
           pathlib.Path(os.environ['CAPTURE_INPUT_STATE']).write_text(json.dumps(state, indent=2) + '\n')
           print('Frozen exact capture source and measured runner; primary custody verified when applicable.')
@@ -399,7 +453,7 @@ jobs:
                   'measurement_phase': 'AFTER_CANONICAL_REPLAY_BEFORE_GEN',
                   'approved_scope': 'COMPLETE_CANONICAL_EMPTY_ISOLATED_INPUT_ONLY',
                   'populated_partial_legacy_upgrade': 'NOT_QUALIFIED_P2_OPEN'}
-              if os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-main573-20261014':
+              if os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-sc046-main573-20261014', 'codex/c2-gen-sc046-v3-main6ce6-20261014'):
                   # Frozen 890a checks live before/after equality but emits no NOTICE.
                   # This is an actual after-only catalog query in the same existing replay.
                   catalog_text = subprocess.check_output([
@@ -426,6 +480,33 @@ jobs:
                       'measurement_phase': 'AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN',
                       'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION',
                   }
+              if os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014':
+                  correction_text = subprocess.check_output([
+                      'psql', os.environ['CAPTURE_DB_URL'], '-XAtq', '-v', 'ON_ERROR_STOP=1', '-c',
+                      "SELECT jsonb_build_object('namespace', n.nspname, 'metadata', to_jsonb(p)-'prosrc', "
+                      "'body_sha256', encode(sha256(convert_to(p.prosrc,'UTF8')),'hex'), "
+                      "'return_type_namespace', rt.nspname, 'return_type_name', t.typname)::text "
+                      "FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace "
+                      "JOIN pg_type t ON t.oid=p.prorettype JOIN pg_namespace rt ON rt.oid=t.typnamespace "
+                      "WHERE p.oid='public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)'::regprocedure;"
+                  ], text=True).strip()
+                  try:
+                      correction = json.loads(correction_text)
+                      metadata = correction['metadata']
+                      if (correction['namespace'] != 'public'
+                          or correction['body_sha256'] != 'd0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca'
+                          or correction['return_type_namespace'] != 'public' or correction['return_type_name'] != 'metering_values'
+                          or metadata['proname'] != 'gridex_consume_utilts_metering_v1' or metadata['pronargs'] != 6
+                          or metadata['proargtypes'] != ['2950', '2950', '25', '23', '2950', '3802']
+                          or metadata['prokind'] != 'f' or metadata['prosecdef'] is not True
+                          or metadata['proconfig'] != ['search_path=pg_catalog, public, extensions', 'TimeZone=UTC']):
+                          raise ValueError('correction catalog mismatch')
+                  except (ValueError, KeyError, TypeError):
+                      raise SystemExit('capture_sc046_v3_correction_catalog_after_unqualified') from None
+                  state['sc046_v3_correction_catalog_after'] = {
+                      'catalog': correction, 'postgres_jsonb_text': correction_text,
+                      'measurement_phase': 'AFTER_SUCCESSFUL_CANONICAL_REPLAY_BEFORE_GEN',
+                      'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION'}
               path.write_text(json.dumps(state, indent=2) + '\n')
           PY_EMPTY
           export CAPTURE_LATEST_MIGRATION_VERSION="$REPLAY_MIGRATION_VERSION"
@@ -556,16 +637,18 @@ jobs:
                   'measurement_phase': 'ACTUAL_CANONICAL_MIGRATION_REPLAY',
                   'digest_format': 'EXACT_POSTGRESQL_JSONB_TEXT; not Python JSON canonicalization',
               }
-          if os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-main573-20261014':
+          if os.environ['SOURCE_HEAD_REF'] in ('codex/c2-gen-sc046-main573-20261014', 'codex/c2-gen-sc046-v3-main6ce6-20261014'):
               migration = 'supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
               migration_sha256 = '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34'
               manifest = json.loads(Path('scripts/supabase-types-manifest.json').read_text())
+              sc046_receipt_v3 = os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014'
+              pending_receipt = manifest.get('pending_sc046_capture_v3' if sc046_receipt_v3 else 'pending_sc046_capture_v2', {})
               state = json.loads(Path(os.environ['CAPTURE_INPUT_STATE']).read_text())
               frozen = state.get('tracked_inputs', {}).get(migration)
               matches = [path for path in replay_migrations if path.name == Path(migration).name]
               if (state.get('checkout_sha') != receipt['checkout_sha'] or state.get('checkout_tree') != receipt['checkout_tree']
                   or frozen != {'mode': '100644', 'sha256': migration_sha256}
-                  or manifest.get('pending_sc046_capture_v2', {}).get('sql_sha256', {}).get(migration) != migration_sha256
+                  or pending_receipt.get('sql_sha256', {}).get(migration) != migration_sha256
                   or len(matches) != 1 or digest(matches[0]) != migration_sha256):
                   raise SystemExit('capture_sc046_replay_source_unqualified')
               marker = 'CREATE FUNCTION public.gridex_persist_utilts_consumption_v1('
@@ -591,9 +674,9 @@ jobs:
               dependency_matches = [path for path in replay_migrations if path.name == Path(dependency).name]
               dependency_frozen = state.get('tracked_inputs', {}).get(dependency)
               if (dependency_frozen != {'mode': '100644', 'sha256': dependency_sha256}
-                  or manifest.get('pending_sc046_capture_v2', {}).get('sql_sha256', {}).get(dependency) != dependency_sha256
-                  or manifest.get('pending_sc046_capture_v2', {}).get('actual_latest_migration') != Path(dependency).name
-                  or receipt['latest_replay_migration'] != {'name': Path(dependency).name, 'sha256': dependency_sha256}
+                  or pending_receipt.get('sql_sha256', {}).get(dependency) != dependency_sha256
+                  or (not sc046_receipt_v3 and pending_receipt.get('actual_latest_migration') != Path(dependency).name)
+                  or (not sc046_receipt_v3 and receipt['latest_replay_migration'] != {'name': Path(dependency).name, 'sha256': dependency_sha256})
                   or len(dependency_matches) != 1 or digest(dependency_matches[0]) != dependency_sha256):
                   raise SystemExit('capture_sc046_dependency_replay_source_unqualified')
               receipt['sc046_dependency_migration'] = {
@@ -614,6 +697,44 @@ jobs:
                   'catalog_after_postgres_text_sha256': hashlib.sha256(catalog_after['postgres_jsonb_text'].encode()).hexdigest(),
                   'latest_replay_migration_role': 'ACTUAL_MAXIMUM; SC046_OLDER_INPUT_BOUND_SEPARATELY',
               }
+          if os.environ['SOURCE_HEAD_REF'] == 'codex/c2-gen-sc046-v3-main6ce6-20261014':
+              migration = 'supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql'
+              expected_sha = '760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b'
+              pending_v3 = manifest.get('pending_sc046_capture_v3', {})
+              frozen = state.get('tracked_inputs', {}).get(migration)
+              matches = [path for path in replay_migrations if path.name == Path(migration).name]
+              if (frozen != {'mode': '100644', 'sha256': expected_sha}
+                  or pending_v3.get('sql_sha256', {}).get(migration) != expected_sha
+                  or pending_v3.get('actual_latest_migration') != Path(migration).name
+                  or receipt['latest_replay_migration'] != {'name': Path(migration).name, 'sha256': expected_sha}
+                  or len(matches) != 1 or digest(matches[0]) != expected_sha):
+                  raise SystemExit('capture_sc046_v3_correction_replay_source_unqualified')
+              marker = 'CREATE FUNCTION public.gridex_consume_utilts_metering_v1('
+              schema = (output / 'schema.sql').read_text()
+              if schema.count(marker) != 1:
+                  raise SystemExit('capture_sc046_v3_correction_schema_definition_unqualified')
+              tail = schema[schema.index(marker):]
+              dollar = re.search(r'\bAS (\$\$|\$_\$)', tail)
+              if dollar is None:
+                  raise SystemExit('capture_sc046_v3_correction_schema_definition_unqualified')
+              end = tail.find(dollar[1] + ';', dollar.end())
+              definition = tail[:end + len(dollar[1]) + 1] if end >= 0 else ''
+              if hashlib.sha256(definition.encode()).hexdigest() != '3d26267b755e2eee344ded0f1b66bb51b5ee5eef572b08f6db7ae3edeff8c22e':
+                  raise SystemExit('capture_sc046_v3_correction_schema_definition_unqualified')
+              after = state.get('sc046_v3_correction_catalog_after', {})
+              if (after.get('catalog', {}).get('body_sha256') != 'd0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca'
+                  or after.get('before_snapshot') != 'NOT_EMITTED_BY_FROZEN_MIGRATION'):
+                  raise SystemExit('capture_sc046_v3_correction_catalog_after_unqualified')
+              receipt['sc046_v3_correction_catalog_preservation'] = {
+                  'target': 'public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)',
+                  'migration': migration, 'migration_sha256': expected_sha,
+                  'migration_input_binding': {'frozen_original': {'path': migration, **frozen},
+                                              'actual_replay': {'path': str(matches[0]), 'sha256': digest(matches[0])}},
+                  'guard_execution': 'SUCCESSFUL_EXACT_CANONICAL_REPLAY_OF_FROZEN_TARGET_METADATA_AND_FIVE_FULL_HELPER_ROWS_AND_INVERSE_GUARDS',
+                  'before_snapshot': 'NOT_EMITTED_BY_FROZEN_MIGRATION', 'catalog_after': after,
+                  'schema_definition_sha256': hashlib.sha256(definition.encode()).hexdigest(),
+                  'catalog_after_postgres_text_sha256': hashlib.sha256(after['postgres_jsonb_text'].encode()).hexdigest(),
+                  'latest_replay_migration_role': 'ACTUAL_MAXIMUM;OLD_WRAPPER_AND_DQ_INPUTS_PINNED_SEPARATELY'}
           (output / 'capture-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
           print('Capture-only artifacts and receipt written; native tests and parity were not run.')
           PY

@@ -3,9 +3,9 @@
   "generated_at": "2026-10-14T19:46:06.506853+00:00",
   "generated_with": "supabase-cli-2.101.0-authentic-sc046-primary-capture-run38625432394",
   "sha256": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
-  "latest_migration": "20261014153206_gridex_data_quality_active_status_search_path.sql",
-  "latest_migration_schema_effect": "Genuine SC046 PRIMARY changes only the seven-argument UTILTS consumption wrapper body and the selected DQ function search_path=pg_catalog. Frozen same-replay metadata-minus-prosrc and proconfig-only guards succeeded; actual after-only catalog is bound. Types/signatures/owners/ACL and all other ordered schema blocks are preserved. Capture-only; whole/native/current CI remain separate.",
-  "composition_capture_pending": false,
+  "latest_migration": "20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+  "latest_migration_schema_effect": "Current SOURCE v3 adds the exact guarded newer-bound-metering consumer body correction. Public ABI and old RAW bytes are retained; old F/v2 capture remains historical and does not qualify this changed SQL. Genuine v3 capture/import and mandatory clean/upgrade/native gates are pending.",
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-14T19:46:06.506853+00:00",
@@ -91337,5 +91337,362 @@
       }
     },
     "meaning": "Complete immutable F manifest retains all replaced original active values; historical source reference only. All untouched existing JSON spans/profiles remain exact. No full-manifest self-copy or original ZIP export."
+  },
+  "pending_sc046_capture_v3": {
+    "input_epoch": "gridex-C2-SC046-GEN-20261014-v3",
+    "owner": "codex-takeover-C2-GEN-joint-C3-20261013",
+    "custody_receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+    "base": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
+    "base_tree": "fbe51ee680b61f5404b680a64c9e3e2d225dc282",
+    "branch": "codex/c2-gen-sc046-v3-main6ce6-20261014",
+    "checkpoint": ".agent-memory/takeover-C2-GEN-SC046-20261014-checkpoint.md",
+    "source_receiving_neutral": "b24cd34d3de0935d72fce7ae5e91f26f5051c208",
+    "source_resources": {
+      "slot-C1": "b971ef0cfa9724b02f4e0e3a985a4436e11a1f60",
+      "file-c56a1232335a1031742fd8da7eb61d5888f4c715b4cf4a8531de000a34682157": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+      "file-7fbbd51546b2efc2dd404cf57ab362c8436e8fa61382fce8ae0e1652c31a4523": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+      "file-9507d60388ae24281bdeba7909926663b63dea1618bdf8c8d7b7906fd149cb2a": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+      "file-fef96a27a1909cbda90900334cc8632ddc438ab552daba6967cdbdc7beb42079": "3f0c88be9759dd2833ee6f98333df1367f497511",
+      "file-88a689d6f57449eb3fad91022c0c8c58692ff13057a63a6ec0a340ec399f1804": "3f0c88be9759dd2833ee6f98333df1367f497511",
+      "file-225c6a02b1c73b7fc8510f580badba5396a88270bb6c4c9def1d1ea07f9937f9": "7b0cf6038a686e5c889700c300cc251efb72756b",
+      "file-53f7e3ab1f3687eae389f0e4f807bd25d5665b80d996174f1c8456643c4fdfa6": "7b0cf6038a686e5c889700c300cc251efb72756b",
+      "file-4169f973073330d6fba420869fa9b6cfc224b7d31b4bfed050a84234028954a0": "a39624608a39dfbd4416b7f5181568c79972477b",
+      "file-9c35bd4fc2ca19106199fb6023aa451889f99dd9179a8da10cbf99159a2eb3e4": "a39624608a39dfbd4416b7f5181568c79972477b",
+      "file-dfb34ca36754832144093fa8b0cb3020efc4e9b19ed439c3ecf82d0c1718d81e": "a39624608a39dfbd4416b7f5181568c79972477b",
+      "file-30aae965f99e838ef24fbbddb8c752d107677a12cfa196bd1ab2291a958f77f3": "e30dad004faeae98e8411a278806cbfc357bfdf6"
+    },
+    "portable_source_inputs": {
+      "lib/ediel/utilts/transactionPersistence.ts": {
+        "mode": "100644",
+        "blob": "fa06bb397aae317d232ada1754d532c8cfd634f7",
+        "sha256": "f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece",
+        "receipt": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+        "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+        "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+      },
+      "lib/ediel/utilts/consumptionSinks.ts": {
+        "mode": "100644",
+        "blob": "14e29821de4d1f5fc7d82822158fbc76ba780bb4",
+        "sha256": "cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a",
+        "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+        "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+        "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+      },
+      "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts": {
+        "mode": "100644",
+        "blob": "c95f76a4aa837e373ee96bd9dc72ffede6ceac79",
+        "sha256": "f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3",
+        "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+        "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+        "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+      },
+      "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": {
+        "mode": "100644",
+        "blob": "890a2e21d61b033b52d92f47e696f91afa06a443",
+        "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
+        "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+        "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+        "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+      },
+      "__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts": {
+        "mode": "100644",
+        "blob": "0681ea590b9a6cf4f9b13004c672a6d822511bf2",
+        "sha256": "9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0",
+        "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+        "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+        "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+      },
+      "scripts/ediel-utilts-consumption-native.test.ts": {
+        "mode": "100644",
+        "blob": "bf5342a9a9734d4274a398cbdf55296ecaeecfe4",
+        "sha256": "ad9551afb71cb27046c80a911d9f6dff71671fe60688462e1b318fa3351a1238",
+        "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+        "source_head": "4c3e88e08cf40bbae3e5dee739dfe89b2a116148",
+        "source_tree": "260a986759d31b9cc9051c8ba7ae8b368d679484"
+      },
+      "scripts/ediel-utilts-err-gateway-native.test.ts": {
+        "mode": "100644",
+        "blob": "30d8f26964acff1abf4f12a7bf438e014591d58d",
+        "sha256": "b1e78ef8b9aa696b1b0bbeebf7a6786010cff040dd2245041e9e8b259e86423b",
+        "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+        "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
+        "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+      },
+      "scripts/gridex-website-quote-integrity-regression.mjs": {
+        "mode": "100644",
+        "blob": "86bf85ef582cbbed4d74f2612951e7d563364a38",
+        "sha256": "1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41",
+        "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+        "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+        "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+      },
+      "scripts/gridex-price-area-assurance-regression.cjs": {
+        "mode": "100755",
+        "blob": "b72b962e1685215f0780a65ba342d01df604a327",
+        "sha256": "4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d",
+        "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+        "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+        "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+      },
+      "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql": {
+        "mode": "100644",
+        "blob": "c8609b4460c4564be8d854877056a10534542a63",
+        "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9",
+        "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+        "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+        "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+      },
+      "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": {
+        "mode": "100644",
+        "blob": "969610a6092959e9643ef00b78cf05ae54d30a86",
+        "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b",
+        "receipt": "e30dad004faeae98e8411a278806cbfc357bfdf6",
+        "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
+        "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+      }
+    },
+    "producer_sources": {
+      "actualMain": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
+      "actualMainTree": "fbe51ee680b61f5404b680a64c9e3e2d225dc282",
+      "SC046ReceivingCarrier": {
+        "head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
+        "tree": "d2ecbcfd099665b0e024d4bf667a7936a456e2a7",
+        "orderedParents": [
+          "2f5581c3f8ee5fd00469c03bcb7055618f348b9b",
+          "6ce6d49eafa8ca24bcefbeec717dd55b63abad66"
+        ],
+        "sourceNeutral": "b24cd34d3de0935d72fce7ae5e91f26f5051c208"
+      },
+      "immutableSourceInputs": {
+        "lib/ediel/utilts/transactionPersistence.ts": {
+          "mode": "100644",
+          "blob": "fa06bb397aae317d232ada1754d532c8cfd634f7",
+          "sha256": "f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece",
+          "receipt": "4caaff9f0c79b28f7e2b968b628f81f73e05ef12",
+          "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+          "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+        },
+        "lib/ediel/utilts/consumptionSinks.ts": {
+          "mode": "100644",
+          "blob": "14e29821de4d1f5fc7d82822158fbc76ba780bb4",
+          "sha256": "cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a",
+          "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+          "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+        },
+        "__tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts": {
+          "mode": "100644",
+          "blob": "c95f76a4aa837e373ee96bd9dc72ffede6ceac79",
+          "sha256": "f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3",
+          "receipt": "ee70dfb2fd1826dd7ccc7fbda767acae7af8e112",
+          "source_head": "50cbf806d52f19c5e4fba6c911cb1ff9ef9a1d80",
+          "source_tree": "9cf682a99e1d61b08cabe07ad76604ff61f89fff"
+        },
+        "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": {
+          "mode": "100644",
+          "blob": "890a2e21d61b033b52d92f47e696f91afa06a443",
+          "sha256": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
+          "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+          "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+        },
+        "__tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts": {
+          "mode": "100644",
+          "blob": "0681ea590b9a6cf4f9b13004c672a6d822511bf2",
+          "sha256": "9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0",
+          "receipt": "3f0c88be9759dd2833ee6f98333df1367f497511",
+          "source_head": "45bcaf034d614022216ec51e82ac179d3ed07811",
+          "source_tree": "a3f49d52b911de9739b9f493554b577f5269ae74"
+        },
+        "scripts/ediel-utilts-consumption-native.test.ts": {
+          "mode": "100644",
+          "blob": "bf5342a9a9734d4274a398cbdf55296ecaeecfe4",
+          "sha256": "ad9551afb71cb27046c80a911d9f6dff71671fe60688462e1b318fa3351a1238",
+          "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "source_head": "4c3e88e08cf40bbae3e5dee739dfe89b2a116148",
+          "source_tree": "260a986759d31b9cc9051c8ba7ae8b368d679484"
+        },
+        "scripts/ediel-utilts-err-gateway-native.test.ts": {
+          "mode": "100644",
+          "blob": "30d8f26964acff1abf4f12a7bf438e014591d58d",
+          "sha256": "b1e78ef8b9aa696b1b0bbeebf7a6786010cff040dd2245041e9e8b259e86423b",
+          "receipt": "7b0cf6038a686e5c889700c300cc251efb72756b",
+          "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
+          "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+        },
+        "scripts/gridex-website-quote-integrity-regression.mjs": {
+          "mode": "100644",
+          "blob": "86bf85ef582cbbed4d74f2612951e7d563364a38",
+          "sha256": "1aa9b3abd4168bf1db47d95543022d3a27b21ca822317b7c18e3be07966ace41",
+          "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+          "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+        },
+        "scripts/gridex-price-area-assurance-regression.cjs": {
+          "mode": "100755",
+          "blob": "b72b962e1685215f0780a65ba342d01df604a327",
+          "sha256": "4b3a45bcda0823d04114ba48608d5c57f957d47003c83cf77676c40532a5b62d",
+          "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+          "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+        },
+        "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql": {
+          "mode": "100644",
+          "blob": "c8609b4460c4564be8d854877056a10534542a63",
+          "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9",
+          "receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+          "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+          "source_tree": "49249704c7bebfc5b3135555133304bec0127598"
+        },
+        "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": {
+          "mode": "100644",
+          "blob": "969610a6092959e9643ef00b78cf05ae54d30a86",
+          "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b",
+          "receipt": "e30dad004faeae98e8411a278806cbfc357bfdf6",
+          "source_head": "7670274d8258fe4d54e080eb30e2383c2d37b973",
+          "source_tree": "b049504fe46fe7edc1ef332a64e6d38bd117e580"
+        }
+      },
+      "ownedCaptureWorkflowInput": {
+        "path": ".github/workflows/staff-api-schema-capture.yml",
+        "mode": "100644",
+        "blob": "b77de30d4da13378d58fb2a118d026ba1e4ae165",
+        "sha256": "b87035f9760caf90e1978f4edd2f3589a1a8dfe385c3cba944c80e623b0e569d",
+        "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+        "origin": "OWN_AUTHORED_SEPARATE_V3_ELEVEN_PLUS_UNIT_BINDING",
+        "basis": {
+          "carrier_head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
+          "preimage_blob": "78ce8a83bd09d813eee5fe68dbaef65a291a5a82",
+          "preimage_sha256": "df3c73d94db9d716af728fe3565afbf7d038b27b0b0bb17ec5facf3eb47e2396"
+        }
+      },
+      "supplementalImmutableSourceInputs": {
+        "__tests__/ediel-db01-native-source-basis.test.ts": {
+          "mode": "100644",
+          "blob": "218d85081fab25684560cd09cefdefa596539a54",
+          "sha256": "6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7",
+          "receipt": "ef088907a6e85783b5d6205594bfd548ddf242de",
+          "source_head": "057c9aea742209f85b66f5898f0b7272fe8acf71",
+          "source_tree": "68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8"
+        }
+      }
+    },
+    "owned_capture_workflow_input": {
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "mode": "100644",
+      "blob": "b77de30d4da13378d58fb2a118d026ba1e4ae165",
+      "sha256": "b87035f9760caf90e1978f4edd2f3589a1a8dfe385c3cba944c80e623b0e569d",
+      "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+      "origin": "OWN_AUTHORED_SEPARATE_V3_ELEVEN_PLUS_UNIT_BINDING",
+      "basis": {
+        "carrier_head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
+        "preimage_blob": "78ce8a83bd09d813eee5fe68dbaef65a291a5a82",
+        "preimage_sha256": "df3c73d94db9d716af728fe3565afbf7d038b27b0b0bb17ec5facf3eb47e2396"
+      }
+    },
+    "sql_sha256": {
+      "supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql": "84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34",
+      "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9",
+      "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
+    },
+    "input_union_status": "PREPARED_SOURCE_AWAITING_INDEPENDENT_REVIEW",
+    "producer_stage": "SOURCE_PREPARATION_PRODUCER_NOT_ACTIVATED",
+    "producer_receipt": "",
+    "native_tests": "NOT_RUN",
+    "catalog_preservation_capture": "NOT_RUN_NEW_V3_SQL;OLD_F_CAPTURE_RETAINED_UNCHANGED",
+    "expected_schema_delta": {
+      "expected_body_sha256": "4e61080dc64e5aa748519bcbc563d0bf77a29e49b64a5f8a6e06aa218680a21f",
+      "expected_dump_definition_sha256": "4bc75fd84c537507ee46f38d799499e62fcdac966516b3cee705d2f157f66835",
+      "types_abi": "GENUINE_PRIMARY_TYPES_BYTEEXACT_8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+      "function_body": "public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)",
+      "additional_function_configuration": {
+        "target": "public.gridex_data_quality_active_status_v1(text)",
+        "change": "search_path=pg_catalog ONLY; frozen same-replay equality removes only proconfig",
+        "actual_capture": "QUALIFIED_GENUINE_PRIMARY_DQ_SEARCH_PATH_ONLY;SUCCESSFUL_SAME_REPLAY_PROCONFIG_ONLY_GUARD"
+      },
+      "newer_bound_metering_correction": {
+        "target": "public.gridex_consume_utilts_metering_v1(uuid,uuid,text,integer,uuid,jsonb)",
+        "predecessor_body_sha256": "8a6ad23846ee6af5ed96ffa0aa22318359b70d1075b9cac6fcea12299acae85e",
+        "expected_body_sha256": "d0bafd57804b2fb416927807856590fba46d92fa7d322e1a9a2afb582d7af1ca",
+        "expected_dump_definition_sha256": "3d26267b755e2eee344ded0f1b66bb51b5ee5eef572b08f6db7ae3edeff8c22e",
+        "expectation_basis": "Qualified F/G2 dump definition exact predecessor body replaced with frozen public767 new_body; SOURCE expectation, not an executed new capture",
+        "preservation": "Frozen forward checks all pg_proc fields minus prosrc and five entire unchanged helper rows, plus inverse function definition. Actual after-only catalog remains required."
+      }
+    },
+    "actual_latest_migration": "20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+    "history": {
+      "primary_before_count": 909,
+      "primary_after_count": 910,
+      "added_exact_file": "20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+      "old909_records": "PRESERVED_UNCHANGED"
+    },
+    "pending_BRP_dependencies": "EXACT_REVIEWED_PUBLIC_THREE_POSTIMAGES_RECEIVED; SOURCE_ONLY_RUNTIME_NOT_RUN",
+    "immutable_dependency_loan": {
+      "positive_loan": 6174574780,
+      "actual_publication": 6174686609,
+      "source_head": "fad92bd92fcb49ffaa3cca5a2c8345b1ba6d798b",
+      "source_tree": "49249704c7bebfc5b3135555133304bec0127598",
+      "sole_parent": "573d74371086da585a5cff6abee95eadfe58899e",
+      "custody_receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
+      "donor_checkpoint": "EXCLUDED",
+      "source_behavior_proofs": "OriginalFAD3/3 source proofs retained historically; final composition price/advisors must qualify current manifest/SQL listing once. Website requires complete original environment applicability or one current environment-bound source check."
+    },
+    "source_input_count": 11,
+    "source_applicability": "Old eight canonical inputs and separate UNIT exact; current native budget and gateway plus genuinely newer correction SQL are exact public SOURCE loans. Old F raw outputs and v2 capture do not qualify changed SQL epoch v3.",
+    "supplemental_source_inputs": {
+      "__tests__/ediel-db01-native-source-basis.test.ts": {
+        "mode": "100644",
+        "blob": "218d85081fab25684560cd09cefdefa596539a54",
+        "sha256": "6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7",
+        "receipt": "ef088907a6e85783b5d6205594bfd548ddf242de",
+        "source_head": "057c9aea742209f85b66f5898f0b7272fe8acf71",
+        "source_tree": "68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8"
+      }
+    },
+    "supplemental_source_resources": {
+      "file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07": "ef088907a6e85783b5d6205594bfd548ddf242de"
+    },
+    "supplemental_source_receiving_neutral": "8b087530be629e6bfcb6d976c4cd6486764470dc",
+    "supplemental_unit_qualification": {
+      "positive_exact_loan": 6175748116,
+      "source_author": "Both source paths explicitly paused; exact unit copy only",
+      "independent_SOURCE_final_C": "52772384a7bc28f717296652dd0c5669e083f0bf1244780d3d327b0f55fd2a08",
+      "independent_SOURCE_final_D": "f0c1f1dbe6fcda138fbf1b6c219eefad9765546d77edbd0c523056a7f9d608a2",
+      "source_receiving_status": "EXACT_REVIEWED_PUBLIC_POSTIMAGE_RECEIVED",
+      "actual_unit_scope": "OLD601/f979/ca892 pins/default5000/all38oracles retained; no EB/b13/config/facade import",
+      "execution": "SOURCE_POSTIMAGE_ONLY;NO_NATIVE_RUNTIME"
+    },
+    "witness_scope": "ELEVEN canonical inputs plus ONE separate supplemental UNIT; old v2 source/capture identity retained without relabeling",
+    "producer_only_writer": "codex-sc046-incumbent-gen-v3-source-helper-20261014",
+    "source_loans": {
+      "budget_public": "4c3e88e08cf40bbae3e5dee739dfe89b2a116148",
+      "budget_positive_loan": 6178363678,
+      "correction_public": "7670274d8258fe4d54e080eb30e2383c2d37b973",
+      "correction_positive_loan": 6179873499,
+      "source_receiving_ACK": 6180013065,
+      "distinct_local_SOURCEGO": 6180041469,
+      "donor_checkpoints": "EXCLUDED"
+    }
+  },
+  "current_sc046_v3_source_preparation": {
+    "actual_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
+    "receiving_carrier": {
+      "head": "26a4e5d18a342576c4c365f81b56e407cf509e1c",
+      "tree": "d2ecbcfd099665b0e024d4bf667a7936a456e2a7",
+      "parents": [
+        "2f5581c3f8ee5fd00469c03bcb7055618f348b9b",
+        "6ce6d49eafa8ca24bcefbeec717dd55b63abad66"
+      ]
+    },
+    "previous_active_fields": {
+      "composition_capture_pending": false,
+      "latest_migration": "20261014153206_gridex_data_quality_active_status_search_path.sql",
+      "latest_migration_schema_effect": "Genuine SC046 PRIMARY changes only the seven-argument UTILTS consumption wrapper body and the selected DQ function search_path=pg_catalog. Frozen same-replay metadata-minus-prosrc and proconfig-only guards succeeded; actual after-only catalog is bound. Types/signatures/owners/ACL and all other ordered schema blocks are preserved. Capture-only; whole/native/current CI remain separate."
+    },
+    "state": "SOURCE_PREPARATION_AWAITING_OTHER_REVIEWS;PRODUCER_NOT_ACTIVATED",
+    "raw_outputs": "OLD_GENUINE_F_V2_BYTES_RETAINED_READONLY_NOT_CURRENT_V3",
+    "old_v2_capture": "PRESERVED_UNCHANGED;NOT_APPLICABLE_TO_CHANGED_SQL_V3",
+    "native_tests": "NOT_RUN",
+    "whole_delivery": "SC046_PARTIAL;LEDGER_UNCHANGED"
   }
 }
