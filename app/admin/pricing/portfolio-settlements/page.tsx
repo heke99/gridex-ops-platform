@@ -77,76 +77,81 @@ export default async function PortfolioSettlementsPage({
     ? params.portfolioId!
     : String(portfolios[0]?.id ?? "");
 
-  const planResult = await supabaseService
-    .from("price_plans")
-    .select("id,name")
-    .eq("company_id", companyId)
-    .in("pricing_model", ["portfolio", "mixed"]);
-  if (planResult.error) throw planResult.error;
-  const planIds = (planResult.data ?? []).map((plan) => String(plan.id));
-  const planNames = new Map(
-    (planResult.data ?? []).map((plan) => [String(plan.id), String(plan.name)]),
-  );
-  const versionResult =
-    planIds.length === 0
-      ? { data: [], error: null }
-      : await supabaseService
-          .from("price_plan_versions")
-          .select("id,price_plan_id,version_label,status,snapshot_json")
-          .eq("company_id", companyId)
-          .in("price_plan_id", planIds)
-          .order("created_at", { ascending: false });
-  if (versionResult.error) throw versionResult.error;
-  const versions = (versionResult.data ?? []).filter((version) => {
-    const snapshot =
-      version.snapshot_json && typeof version.snapshot_json === "object"
-        ? (version.snapshot_json as Record<string, unknown>)
-        : {};
-    const method =
-      snapshot.portfolio_method && typeof snapshot.portfolio_method === "object"
-        ? (snapshot.portfolio_method as Record<string, unknown>)
-        : {};
-    return !portfolioId || String(method.portfolio_id ?? "") === portfolioId;
-  });
+  async function readPlanVersions() {
+    const planResult = await supabaseService
+      .from("price_plans")
+      .select("id,name")
+      .eq("company_id", companyId)
+      .in("pricing_model", ["portfolio", "mixed"]);
+    if (planResult.error) throw planResult.error;
+    const planIds = (planResult.data ?? []).map((plan) => String(plan.id));
+    const planNames = new Map(
+      (planResult.data ?? []).map((plan) => [String(plan.id), String(plan.name)]),
+    );
+    const versionResult =
+      planIds.length === 0
+        ? { data: [], error: null }
+        : await supabaseService
+            .from("price_plan_versions")
+            .select("id,price_plan_id,version_label,status,snapshot_json")
+            .eq("company_id", companyId)
+            .in("price_plan_id", planIds)
+            .order("created_at", { ascending: false });
+    if (versionResult.error) throw versionResult.error;
+    const versions = (versionResult.data ?? []).filter((version) => {
+      const snapshot =
+        version.snapshot_json && typeof version.snapshot_json === "object"
+          ? (version.snapshot_json as Record<string, unknown>)
+          : {};
+      const method =
+        snapshot.portfolio_method && typeof snapshot.portfolio_method === "object"
+          ? (snapshot.portfolio_method as Record<string, unknown>)
+          : {};
+      return !portfolioId || String(method.portfolio_id ?? "") === portfolioId;
+    });
+    return { versions, planNames };
+  }
 
-  const settlementsResult = portfolioId
-    ? await supabaseService
-        .from("portfolio_monthly_settlements")
-        .select("*")
-        .eq("company_id", companyId)
-        .eq("portfolio_id", portfolioId)
-        .order("delivery_month", { ascending: false })
-        .order("price_area_code", { ascending: true })
-        .order("revision_no", { ascending: false })
-        .limit(240)
-    : { data: [], error: null };
+  const [{ versions, planNames }, settlementsResult, estimatesResult, auditResult] =
+    await Promise.all([
+      readPlanVersions(),
+      portfolioId
+        ? supabaseService
+            .from("portfolio_monthly_settlements")
+            .select("*")
+            .eq("company_id", companyId)
+            .eq("portfolio_id", portfolioId)
+            .order("delivery_month", { ascending: false })
+            .order("price_area_code", { ascending: true })
+            .order("revision_no", { ascending: false })
+            .limit(240)
+        : { data: [], error: null },
+      portfolioId
+        ? supabaseService
+            .from("portfolio_price_estimates")
+            .select(
+              "id,estimate_month,price_area_code,estimate_source,estimate_price_ore_per_kwh,confidence,non_binding,reason,estimate_generated_at,is_current",
+            )
+            .eq("company_id", companyId)
+            .eq("portfolio_id", portfolioId)
+            .order("estimate_month", { ascending: false })
+            .order("estimate_generated_at", { ascending: false })
+            .limit(100)
+        : { data: [], error: null },
+      portfolioId
+        ? supabaseService
+            .from("portfolio_settlement_audit_log")
+            .select("id,actor_user_id,action,reason,occurred_at,settlement_id")
+            .eq("company_id", companyId)
+            .eq("portfolio_id", portfolioId)
+            .order("occurred_at", { ascending: false })
+            .limit(50)
+        : { data: [], error: null },
+    ]);
   if (settlementsResult.error) throw settlementsResult.error;
-  const settlements = settlementsResult.data ?? [];
-
-  const estimatesResult = portfolioId
-    ? await supabaseService
-        .from("portfolio_price_estimates")
-        .select(
-          "id,estimate_month,price_area_code,estimate_source,estimate_price_ore_per_kwh,confidence,non_binding,reason,estimate_generated_at,is_current",
-        )
-        .eq("company_id", companyId)
-        .eq("portfolio_id", portfolioId)
-        .order("estimate_month", { ascending: false })
-        .order("estimate_generated_at", { ascending: false })
-        .limit(100)
-    : { data: [], error: null };
   if (estimatesResult.error) throw estimatesResult.error;
-
-  const auditResult = portfolioId
-    ? await supabaseService
-        .from("portfolio_settlement_audit_log")
-        .select("id,actor_user_id,action,reason,occurred_at,settlement_id")
-        .eq("company_id", companyId)
-        .eq("portfolio_id", portfolioId)
-        .order("occurred_at", { ascending: false })
-        .limit(50)
-    : { data: [], error: null };
   if (auditResult.error) throw auditResult.error;
+  const settlements = settlementsResult.data ?? [];
 
   const selectedCompany = companies.find((company) => company.id === companyId);
   const selectedPortfolio = portfolios.find(

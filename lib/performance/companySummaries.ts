@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { getVerifiedPlatformDashboardSummary } from '@/lib/performance/platformDashboardSummary'
+import { InvalidReadModelResponseError } from '@/lib/read-models/readResult'
 
 function toNumber(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -301,28 +302,34 @@ export async function listCompanyWorkQueue(
   companyId: string | null | undefined,
   options: { limit?: number } = {}
 ): Promise<CompanyWorkQueueRow[]> {
-  try {
-    const limit = options.limit ?? 200
-    const rpcResult = await supabase.rpc('gridex_get_work_queue', { p_company_id: companyId ?? null, p_limit: limit })
-    const rows = rpcRows(rpcResult.data)
-    if (rpcResult.error) return []
+  const limit = options.limit ?? 200
+  const rpcResult = await supabase.rpc('gridex_get_work_queue', { p_company_id: companyId ?? null, p_limit: limit })
+  if (rpcResult.error) throw rpcResult.error
+  if (!Array.isArray(rpcResult.data)) throw new InvalidReadModelResponseError()
+  // A malformed or foreign row must not disappear into a healthy empty result.
+  const rows: RawRow[] = rpcResult.data.map((value: unknown) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new InvalidReadModelResponseError()
+    const row = value as RawRow
+    if (['id', 'company_id', 'customer_id'].some(key => typeof row[key] !== 'string' || !String(row[key]).trim())) {
+      throw new InvalidReadModelResponseError()
+    }
+    if (companyId && row.company_id !== companyId) throw new InvalidReadModelResponseError()
+    return row
+  })
 
-    return rows.map((row) => ({
-      id: String(row.id),
-      companyId: String(row.company_id),
-      customerId: String(row.customer_id),
-      source: typeof row.source === 'string' ? row.source : 'Ärende',
-      customerNumber: typeof row.customer_number === 'string' ? row.customer_number : null,
-      customerLabel: typeof row.customer_label === 'string' ? row.customer_label : 'Kund utan namn',
-      title: typeof row.title === 'string' ? row.title : 'Åtgärd krävs',
-      description: typeof row.description === 'string' ? row.description : '',
-      status: typeof row.status === 'string' ? row.status : 'open',
-      priority: normalizeWorkQueuePriority(row.priority),
-      createdAt: typeof row.created_at === 'string' ? row.created_at : null,
-      href: typeof row.href === 'string' ? row.href : `/admin/customers/${String(row.customer_id)}`,
-      actionLabel: typeof row.action_label === 'string' ? row.action_label : 'Öppna',
-    }))
-  } catch {
-    return []
-  }
+  return rows.map((row) => ({
+    id: String(row.id),
+    companyId: String(row.company_id),
+    customerId: String(row.customer_id),
+    source: typeof row.source === 'string' ? row.source : 'Ärende',
+    customerNumber: typeof row.customer_number === 'string' ? row.customer_number : null,
+    customerLabel: typeof row.customer_label === 'string' ? row.customer_label : 'Kund utan namn',
+    title: typeof row.title === 'string' ? row.title : 'Åtgärd krävs',
+    description: typeof row.description === 'string' ? row.description : '',
+    status: typeof row.status === 'string' ? row.status : 'open',
+    priority: normalizeWorkQueuePriority(row.priority),
+    createdAt: typeof row.created_at === 'string' ? row.created_at : null,
+    href: typeof row.href === 'string' ? row.href : `/admin/customers/${String(row.customer_id)}`,
+    actionLabel: typeof row.action_label === 'string' ? row.action_label : 'Öppna',
+  }))
 }
