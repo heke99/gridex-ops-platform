@@ -889,6 +889,48 @@ it('private storage and old unbound function are unavailable to service callers'
 // Run this only against the frozen, completely replayed native database. OID
 // dependencies and effective role ACLs are database observations; untracked
 // string-body/dynamic calls are a separate installed-source inventory below.
+// The SC046 forward changes only this wrapper's prosrc. Derive its installed
+// expectation from the exact committed predecessor and immutable forward; the
+// installed catalog itself must never supply the expected body.
+function sc046ExpectedWrapperBody(baseBody: string, migrationSource: string): string {
+  const hash = (value: string) => createHash('sha256').update(value).digest('hex')
+  if (hash(migrationSource) !== '84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34') {
+    throw Error('native_sc046_migration_checksum_conflict')
+  }
+  if (hash(baseBody) !== 'd1072ccfd2c9ed9d7edd8e4bf780c0809bb4d904fe61a579be5239dfa6f220b1') {
+    throw Error('native_sc046_predecessor_conflict')
+  }
+  const block = (name: 'declarations' | 'classification') => {
+    const start = `${name} text := $${name}$`, end = `$${name}$;`
+    if (migrationSource.split(start).length !== 2 || migrationSource.split(end).length !== 2) {
+      throw Error('native_sc046_block_conflict')
+    }
+    const at = migrationSource.indexOf(start) + start.length, stop = migrationSource.indexOf(end, at)
+    if (stop < at) throw Error('native_sc046_block_conflict')
+    return migrationSource.slice(at, stop)
+  }
+  const declarationAnchor = 'DECLARE source public.ediel_messages%rowtype;result jsonb;'
+  const returnAnchor = ' -- The preserved owner may wait on its source/advisory locks.'
+  const declarations = block('declarations'), classification = block('classification')
+  if (baseBody.split(declarationAnchor).length !== 2 || baseBody.split(returnAnchor).length !== 2 || baseBody.includes('sc046_')) {
+    throw Error('native_sc046_anchor_conflict')
+  }
+  // Callback replacements keep every literal $ inside the PL/pgSQL untouched.
+  const body = baseBody.replace(declarationAnchor, () => declarationAnchor + declarations)
+    .replace(returnAnchor, () => classification + returnAnchor)
+  const inverse = body.replace(declarationAnchor + declarations, () => declarationAnchor).replace(classification, () => '')
+  if (inverse !== baseBody || inverse.replace(declarationAnchor, () => declarationAnchor + declarations)
+    .replace(returnAnchor, () => classification + returnAnchor) !== body) throw Error('native_sc046_inverse_conflict')
+  return body
+}
+function committedSc046ReturnStateBody(revision: string, base: { body: string; migrationHash: string }) {
+  const migration = '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql'
+  const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
+  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
+  const migrationHash = createHash('sha256').update(source).digest('hex')
+  expect(migrationHash, migration).toBe(manifest.files[migration])
+  return { body: sc046ExpectedWrapperBody(base.body, source), migrationHash }
+}
 const persistenceCatalogOwners = [
   ['public.gridex_persist_utilts_consumption_v1(uuid,text,uuid,text,text,jsonb,uuid)',
     '20261001110500_ediel_utilts_current_execution_actor.sql', 'public.gridex_persist_utilts_consumption_v1'],
@@ -975,7 +1017,9 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
   const expected = persistenceCatalogOwners.map(([signature, migration, functionName]) => {
     const committed = committedPersistenceBody(revision, migration, functionName)
     const patch = bodyPatches[signature]
-    return { signature, migration: patch ? patch[0] : migration, ...(patch ? committedPatchedBody(revision, committed, patch[0], patch[1]) : committed) }
+    const installed = signature === publicEntry ? committedSc046ReturnStateBody(revision, committed)
+      : patch ? committedPatchedBody(revision, committed, patch[0], patch[1]) : committed
+    return { signature, migration: signature === publicEntry ? '20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql' : patch ? patch[0] : migration, ...installed }
   })
   // Conservative named-call discovery supplies the late-bound callsite review.
   // It neither parses PL/pgSQL nor proves dynamically assembled SQL absent.
