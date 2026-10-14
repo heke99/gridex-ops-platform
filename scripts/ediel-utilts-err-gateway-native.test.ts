@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture, type UtiltsAckFixtureTransaction } from '../__tests__/helpers/utiltsErrGatewayFixture'
-import { utiltsNativeSourceFixture } from '../__tests__/helpers/utiltsNativeSourceFixture'
+import { utiltsNativeSourceFixture, utiltsRecountUnt } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import { seedOriginalMailboxNative, recordOriginalMailboxNativeReception } from './helpers/originalMailboxNative'
 import { decisionUser } from './helpers/ediel-decision-original-native-fixture'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
@@ -23,7 +23,7 @@ import {qualifyReceivedUtiltsStructure} from '@/lib/ediel/utilts/qualifyReceived
 import {prepareUtiltsConsumptionContracts} from '@/lib/ediel/utilts/consumptionPreparation'
 import {buildUtiltsTransactionPersistencePayload,persistUtiltsTransactionResults} from '@/lib/ediel/utilts/transactionPersistence'
 import { supabaseService } from '@/lib/supabase/service'
-import { recordUtiltsTechnicalReception, registerUtiltsIssuer, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
+import { recordUtiltsTechnicalReception, registerUtiltsIssuer, seedUtiltsIssuerHistoryGround, setUtiltsReceiverRole } from './helpers/utiltsConsumptionParties'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 // Real local DB, source ownership, matching, canonical dispatcher, reservations,
@@ -518,4 +518,151 @@ it('actual canonical functional owner and native reservations qualify same/diffe
   sql(`UPDATE public.tenant_actor_roles SET valid_to=now() WHERE company_id=${literal(f.ids.company)} AND actor_id=${literal(f.ids.actor)}`)
   await expect(create(references[0])).rejects.toThrow();expect(countEffects()).toEqual(after)
   expect(sinks.meter).not.toHaveBeenCalled();expect(sinks.bill).not.toHaveBeenCalled();expect(sinks.complete).not.toHaveBeenCalled()
+})
+
+type Sc046Shape = 'E66-512' | 'S01-532'
+type Sc046BusinessRows = { meter: Record<string, unknown>[]; billing: Record<string, unknown>[]; requestPayload: unknown }
+function sc046BusinessRows(company: string, request: string): Sc046BusinessRows {
+  return sql(`SELECT jsonb_build_object(
+    'meter',(SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY id),'[]') FROM public.metering_values m WHERE company_id=${literal(company)}),
+    'billing',(SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY id),'[]') FROM public.billing_underlays b WHERE company_id=${literal(company)}),
+    'requestPayload',(SELECT response_payload FROM public.grid_owner_data_requests WHERE id=${literal(request)} AND company_id=${literal(company)}))`)
+}
+async function sc046RealSinks() {
+  const meter = await vi.importActual<typeof import('@/lib/metering/normalizeMeteringValues')>('@/lib/metering/normalizeMeteringValues')
+  const billing = await vi.importActual<typeof import('@/lib/cis/db-data')>('@/lib/cis/db-data')
+  sinks.meter.mockImplementation(meter.normalizeAndStoreMeteringValue)
+  sinks.bill.mockImplementation(billing.ingestBillingUnderlay)
+}
+// New sources use the existing ordinary in-repo admission and mailbox surface.
+// No accepted series, reservation, contract or versionState is fixture-inserted.
+// E66 owns field512; S01 owns field532 and deliberately has no individual sink.
+async function seedSc046(shape: Sc046Shape) {
+  const f = await seed(shape === 'E66-512' ? '54352' : '54353', [{ reference: `SC046-${shape}-SEED`, outcome: 'accepted' }])
+  const code = shape === 'E66-512' ? 'E66' : 'S01', receiver = f.source.receiver_ediel_id!, issuer = f.source.sender_ediel_id!
+  if (shape === 'S01-532') {
+    setUtiltsReceiverRole(sql, literal, f.ids.company, f.ids.actor, 'S01')
+    sql(`UPDATE public.ediel_route_profiles SET application_reference='23-DDK-S01-S' WHERE id=${literal(f.ids.profile)} AND company_id=${literal(f.ids.company)}`)
+  }
+  const receptionActor = await decisionUser(f.ids.company, ['communication.send'], randomUUID() + 'Aa1!')
+  const insert = async (label: 'NEWER' | 'OLDER' | 'NEWEST', versionTime: string, quantity: string) => {
+    const reference = `SC046-${shape}-${label}`
+    const receivedAt = `2026-10-15T20:${label === 'NEWER' ? '00' : label === 'OLDER' ? '01' : '02'}:00Z`
+    const template = utiltsErrGatewayFixture({ company: f.ids.company, receiver, transactions: [{ reference, outcome: 'accepted' }] })
+    let raw = template.raw_payload!.replaceAll('91100', issuer)
+      .replaceAll('GRIDEX2607E66MSG001', `D${randomUUID().replaceAll('-', '').slice(0, 16)}`)
+      .replace('DTM+597:202607010020:203', `DTM+${shape === 'E66-512' ? '597' : '368'}:${versionTime}:203`)
+      .replace('QTY+136:500', `QTY+136:${quantity}`)
+    if (shape === 'S01-532') {
+      // Same supported aggregate source shape as consumption-native568-601.
+      raw = raw.replace('BGM+E66::260', 'BGM+S01:SVK:260').replace('23-DDQ-E66-T', '23-DDK-S01-S')
+        .split('\n').filter(segment => !segment.startsWith('DTM+597:')).join('\n')
+    }
+    const physical = utiltsNativeSourceFixture(utiltsRecountUnt(raw), randomUUID())
+    const mail = await seedOriginalMailboxNative(sql, literal, { companyId: f.ids.company, environment: 'test', raw: physical.raw,
+      parsed: physical.parsed, receivedAt, smtpFrom: 'native-err@example.invalid', senderEmail: 'counterparty@example.invalid' })
+    const individual = (value: string) => shape === 'E66-512' ? literal(value) : 'NULL'
+    sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,inbound_email_message_id,mailbox_message_id)
+      VALUES(${literal(physical.id)},${literal(f.ids.company)},${individual(f.ids.customer)},${individual(f.ids.site)},${individual(f.ids.point)},${individual(f.ids.grid)},${individual(f.ids.request)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(physical.raw)},'{}','{}',${literal(receivedAt)},'{}',${literal(physical.parsed.applicationReference)},${literal(issuer)},${literal(receiver)},${literal(physical.parsed.interchangeReference)},${literal(mail.inboundEmailMessageId)},${literal(mail.inboundEmailMessageId)});`)
+    const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', physical.id).single()
+    expect(error).toBeNull()
+    expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
+      databaseRole: 'evidence_only', family: 'UTILTS', code, effectiveDate: '2026-10-15' })
+    const source = data as EdielMessageRow
+    await recordOriginalMailboxNativeReception({ ...mail, companyId: f.ids.company, sourceMessageId: physical.id, actorUserId: receptionActor.id })
+    await recordUtiltsTechnicalReception(source, f.ids.actor)
+    seedUtiltsIssuerHistoryGround(sql, literal, physical.id, f.ids.actor)
+    return { source, reference }
+  }
+  return { ...f, insert }
+}
+async function assertSc046Positive(source: EdielMessageRow, reference: string, company: string) {
+  const state = snapshot(source.id), own = state.acks.filter(row => row.family === 'APERAK' && row.reference === reference)
+  expect(own).toHaveLength(1)
+  expect(state.acks.filter(row => row.family === 'UTILTS_ERR')).toEqual([])
+  expect(own[0]).toMatchObject({ outcome: 'positive', scope: 'transaction', company,
+    operation: `ediel_ack:${source.id}:APERAK:${reference}`,
+    policy: { authority: 'resolveCanonicalEdielPolicy', inheritedFromSourceMessage: true, sourceMessageId: source.id } })
+  expect(own[0].wire).toContain('BGM+312')
+  expect(own[0].wire).toContain(`RFF+ACW:${reference}'`)
+  expect(state.reservations).toMatchObject([{ transaction: reference, disposition: 'accepted', plan: 'positive_aperak', final: 'positive_aperak', ack: own[0].id }])
+  expect(state.reservations).toHaveLength(1); expect(state.contracts).toHaveLength(1)
+  expect(state.reservations[0].row).toMatchObject({ company_id: company, environment: 'test', source_message_id: source.id,
+    persistence_status: 'persisted', persistence_error: null, issue_codes: [] })
+  expect(state.reservations[0].series).toBe((state.contracts[0] as { series_id: string }).series_id)
+  expect(state.reservations[0].series).toEqual(expect.any(String))
+  const saved = await database.getEdielMessageById(own[0].id)
+  expect(saved).not.toBeNull(); expect(saved?.environment).toBe(source.environment)
+  const originalWire = tokenizeEdifact(source.raw_payload!), ackWire = tokenizeEdifact(saved!.raw_payload!)
+  const document = segmentComposite(originalWire.segments.find(segment => segment.tag === 'BGM'), 2, originalWire.una)[0]
+  expect(segmentComposite(ackWire.segments.find(segment => segment.tag === 'DOC'), 2, ackWire.una)[0]).toBe(document)
+  const dm = ackWire.segments.filter(segment => segment.tag === 'RFF').map(segment => segmentComposite(segment, 1, ackWire.una)).find(c => c[0] === 'DM')![1]
+  expect(dm).toBeTruthy(); expect(dm).not.toBe(document)
+  await expect(assertUtiltsPositiveAckAuthorityForSend(saved!)).resolves.toBeUndefined()
+  expect(state.outbox.some(row => JSON.stringify(row).includes('UTILTS_ERR'))).toBe(false)
+  return state
+}
+it.each(['E66-512', 'S01-532'] as const)('SC046 %s older-last keeps newer data, stores its positive ACK without ERR and retries without rebilling', async shape => {
+  const f = await seedSc046(shape)
+  await sc046RealSinks()
+  const newer = await f.insert('NEWER', '202607010040', '500')
+  const first = await f.consume(newer.source)
+  await assertSc046Positive(newer.source, newer.reference, f.ids.company)
+  const businessBefore = sc046BusinessRows(f.ids.company, f.ids.request)
+  if (shape === 'E66-512') {
+    expect(businessBefore.meter).toHaveLength(1); expect(businessBefore.billing).toHaveLength(1)
+    expect(first.ingestedMeterValueIds).toHaveLength(1)
+    expect(businessBefore.meter[0]).toMatchObject({ id: first.ingestedMeterValueIds?.[0], value_kwh: 500,
+      company_id: f.ids.company, customer_id: f.ids.customer, site_id: f.ids.site, metering_point_id: f.ids.point, grid_owner_id: f.ids.grid })
+    expect(businessBefore.billing[0]).toMatchObject({ id: first.billingUnderlayId, total_kwh: 500, company_id: f.ids.company })
+  } else {
+    expect(businessBefore.meter).toEqual([]); expect(businessBefore.billing).toEqual([])
+    expect(first.ingestedMeterValueIds ?? []).toEqual([]); expect(first.billingUnderlayId ?? null).toBeNull()
+  }
+  const newerSeriesBefore = sql<Record<string, unknown>>(`SELECT to_jsonb(s) FROM public.meter_reading_series s WHERE source_ediel_message_id=${literal(newer.source.id)} AND company_id=${literal(f.ids.company)}`)
+  expect(newerSeriesBefore).toMatchObject({ is_current: true, series_kind: shape === 'E66-512' ? 'actual' : 'aggregate' })
+  sinks.meter.mockClear(); sinks.bill.mockClear()
+  // Older512/532 is still after the same quarter-period end. Arrival order is
+  // the only difference from an otherwise accepted version, not a guide fault.
+  const older = await f.insert('OLDER', '202607010020', '7')
+  expect(Date.parse(older.source.message_received_at ?? '')).toBeGreaterThan(Date.parse(newer.source.message_received_at ?? ''))
+  await f.consume(older.source)
+  const oldState = await assertSc046Positive(older.source, older.reference, f.ids.company)
+  expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled()
+  expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(businessBefore)
+  expect(sql(`SELECT to_jsonb(s) FROM public.meter_reading_series s WHERE source_ediel_message_id=${literal(newer.source.id)} AND company_id=${literal(f.ids.company)}`)).toEqual(newerSeriesBefore)
+  const versions = () => sql<{ transaction: string; current: boolean; registrationAbsent: boolean; latestAbsent: boolean; ownTime: boolean; value: string }[]>(`SELECT jsonb_agg(jsonb_build_object(
+    'transaction',s.source_transaction_reference,'current',s.is_current,'registrationAbsent',s.registration_date IS NULL,'latestAbsent',s.latest_update_date IS NULL,
+    'ownTime',coalesce(s.latest_update_date,s.registration_date)=CASE WHEN s.source_transaction_reference=${literal(newer.reference)} THEN '2026-06-30T22:40:00Z'::timestamptz WHEN s.source_transaction_reference=${literal(older.reference)} THEN '2026-06-30T22:20:00Z'::timestamptz ELSE '2026-06-30T23:00:00Z'::timestamptz END,
+    'value',(SELECT v.quantity::text FROM public.meter_reading_values v WHERE v.series_id=s.id ORDER BY source_order LIMIT 1)) ORDER BY s.source_transaction_reference)
+    FROM public.meter_reading_series s WHERE s.company_id=${literal(f.ids.company)}`)
+  expect(versions()).toEqual(expect.arrayContaining([
+    { transaction: newer.reference, current: true, registrationAbsent: shape === 'S01-532', latestAbsent: shape === 'E66-512', ownTime: true, value: '500' },
+    { transaction: older.reference, current: false, registrationAbsent: shape === 'S01-532', latestAbsent: shape === 'E66-512', ownTime: true, value: '7' },
+  ]))
+  expect(versions()).toHaveLength(2)
+  expect(sql(`SELECT parsed_payload#>'{normalizedMeteringPayload,utiltsTransactionPersistenceResults}' FROM public.ediel_messages WHERE id=${literal(older.source.id)}`))
+    .toMatchObject([{ transactionId: older.reference, disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted', versionState: 'late_older_history' }])
+  await f.consume(older.source)
+  expect(await assertSc046Positive(older.source, older.reference, f.ids.company)).toEqual(oldState)
+  expect(sc046BusinessRows(f.ids.company, f.ids.request)).toEqual(businessBefore)
+  expect(versions()).toHaveLength(2)
+  expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled()
+  // A genuinely newer correction remains applicable: this is not a blanket
+  // no-op for every source that happens to arrive after the first one.
+  const newest = await f.insert('NEWEST', '202607010100', '11')
+  expect(Date.parse(newest.source.message_received_at ?? '')).toBeGreaterThan(Date.parse(older.source.message_received_at ?? ''))
+  await f.consume(newest.source)
+  await assertSc046Positive(newest.source, newest.reference, f.ids.company)
+  expect(versions().filter(row => row.current).map(row => row.transaction)).toEqual([newest.reference])
+  expect(versions()).toHaveLength(3)
+  expect(versions().find(row => row.transaction === newest.reference)).toMatchObject({ current: true, ownTime: true, value: '11' })
+  expect(snapshot(older.source.id)).toEqual(oldState)
+  if (shape === 'S01-532') {
+    expect(sc046BusinessRows(f.ids.company, f.ids.request).meter).toEqual([])
+    expect(sc046BusinessRows(f.ids.company, f.ids.request).billing).toEqual([])
+    expect(sinks.meter).not.toHaveBeenCalled(); expect(sinks.bill).not.toHaveBeenCalled()
+  } else {
+    expect(sinks.meter).toHaveBeenCalled(); expect(sinks.bill).toHaveBeenCalled()
+  }
 })

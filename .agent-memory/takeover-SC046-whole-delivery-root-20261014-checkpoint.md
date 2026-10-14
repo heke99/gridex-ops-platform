@@ -33,3 +33,22 @@ Selector/discovery read-only check0276e38e confirms no missing tag: SC046 CJS ta
 Fresh API794 is OPEN DRAFT `d086941e288c9062d153b7652c3ca1d4077d3aa4`, tree `3bfd790d2fa73759ff157f32ceed2b2f130fe6ad`, sole604743 parent,484 complete paths. Main573 remains unchanged. Administrative read-only check32d1c5ab verifies0/7 overlap with our native2/publicfive, exact two immutable donor images unchanged, and a public positive exact-file pause/copy loan specifically to existing BRP helper. A public source-guarded SQL proposalc8609b44/41530675 uses `search_path=pg_catalog`; it is not an applied canonical migration and must not be relabeled identical to the earlier pg_temp plan. ROOT new bounded receiving instruction [6171906269](https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6171906269) selects only that BRP receiver and asks for exact source/canonical path/own neutral+custody/ACK/GO before writes. Dependency sources remain pending receiving; existing owners keep other scopes.
 
 API-agent's separate auto-review-rejected #766 publication remains pending. Its blocked comment is not reposted or relayed by ROOT or another agent, and this new receiving instruction gives no approval for it. Only existing public source/loan facts were read for the new bounded masterplan dependencies. No private input or original was collected. Same ce80 remains paused until exact qualified source union; no new producer or run. SC046 stillPARTIAL, current main327/+0.
+
+
+## 2026-10-14 — immutable seven-file whole-delivery receiving
+
+Actual main573/tree21ff; prepared58/tree5586017. Neutral a633439970138423fabc10aa630d3a8287b9db0d and CLAIM6172552574; own ACK SHA256 b172723d4f6badd209b12c5f1ee028a3389e89fb6e744c2b33a1858e6cd613e6 followed by distinct local immutable-copy GO SHA256 8de847f2886e81299a2062d4c3478d74d16d2f094bc6ba0026bc00e752166347. Fresh current234 refs retain all previous231 exactly; three new refs belong only to existing BRP receiving. Positive bounded immutable handoffs five585ef12e and two0d014ada authenticated. ROOT is sole immutable adopter; source code writers remain paused, all original editing restrictions retained.
+
+Own checkpoint is written FIRST. Copy exactly these reviewed public technical postimages, excluding donor checkpoints/whole branches:
+
+- lib/ediel/utilts/transactionPersistence.ts — fa06bb397aae317d232ada1754d532c8cfd634f7 / SHA256 f107881077ab3c919a15ec63d0e6804bc97402949f235bdd4bea4ad826fbfece
+- lib/ediel/utilts/consumptionSinks.ts — 14e29821de4d1f5fc7d82822158fbc76ba780bb4 / SHA256 cd975ef07a3e2d6d5859bcacf834dc7b2b8e1d69f3ecc112c33686480f55696a
+- __tests__/ediel-sc046-bound-version-consumption-coord2-20261014.test.ts — c95f76a4aa837e373ee96bd9dc72ffede6ceac79 / SHA256 f85a6e53931e38dd135ef865c700650d1afe194e8d872c1032999d466caff0a3
+- supabase/migrations/20261013141048_ediel_sc046_persistence_return_state_cb17b044.sql — 890a2e21d61b033b52d92f47e696f91afa06a443 / SHA256 84602eca793c51180d838679e8019001bc0e9f1d82e2e6e8861ca2d404de5b34
+- __tests__/ediel-sc-046-persistence-return-state-cb17b044.test.ts — 0681ea590b9a6cf4f9b13004c672a6d822511bf2 / SHA256 9c406df47e252153ebef0e2dcf56e0ee49bd6d20355146a8f99d2777a0dd1bd0
+- scripts/ediel-utilts-consumption-native.test.ts — fc34621b4052f82fcfe4b6fc3d571d41aa722e9e / SHA256 9b26e7950c73b992130e4e47408446849c2a7b95c264ff71ca8e2f1c65f412d8
+- scripts/ediel-utilts-err-gateway-native.test.ts — c26c36d3a310a690ded9ab4c015dd39bd278b804 / SHA256 358ff5311594002bc9fb5c8a75217fab1cabf7c95bf8051a22d1e542798b468d
+
+SOURCE qualification is preserved: two union-source APPs for five and two independent native-source APPs fc228/e1d81 for public2b68, published by normal new-branch push9fba/zero Actions. Native/GEN execution still NOT_RUN. All unrelated prepared58 tuples, RAW3, frozen contracts and ledger must remain exact. Full tuple inverse and local clean freeze follow this immutable adoption; no new code/tests/compiler/SQL/native/GEN/producer/CI/publication/row-write authorization. SC046 PARTIAL; actual main327/352,+0.
+
+Next: hand this exact frozen carrier to existing same-ce80 service for its separate owned4-path SOURCE profile preparation. Pending BRP dependencies now have distinct local SOURCEGO6172587765 after ownACK6172537319; they remain outside this seven-copy and cannot be claimed fixed until actual source handoff/rebinding. Separate API publication approval remains unanswered.
