@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Complete two exact current app-integration finals, commit/publish ownbranch merge, restore authorized OPS application release. Then materialize own3302 replay artifact and broaden compound preservation only to independently source-proven canonical receipt/finalizer cores; runtime signing locks and fullschema/types remain open.",
+  "next_action": "Materialize exact3302 and its sole sourcePosition entry after owncheckpoint-first; validate currentclean/upgrade/history inputs, two finalunion reviewers then publish. Preserve actualapp41 release until verifiedREADY. Separately correct threecanonical fingerprint inputs and common signing locks; schema/types remainowningGENservice.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -38,7 +38,7 @@
   "latest_native_preflight": "Fresh10:01:58UTC before13:519ledger/422Authhooks/51B3parts/CEEprepare, no drift. After13:532ledger/648Authhooks exactly422old+226/113sourceallowed new, wholeprepare unchanged and transports removed; native1243function comparisonPASS.",
   "handover": "Application d899ac6b deployed to OPS production READY20:11:57.854UTC, integrated latest main4e52854e, realbuild175.12s and two independent integration-source reviews. No new module SQL/GEN/mainmerge performed. Fresh portal HTTP fetch auto-review rejected; current public frontend DB binding NOT_VERIFIED. PR794 draft; future main release must integrate branch API corrections.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "Published535 API5 postimages + verified incomingmain6ce exactworkingtree; combined commit/source finals pending",
+  "current_source_head": "41b07f9368c410f08642d8d8c2b3c2dacc215bd7 reviewed combined application; OPS production build started, READY/readback pending",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "85actualwrites=18scoped+64source-only+3metadata actions; latest13=12source-only+1atomic effect with8logical componentreferences; no fake childledger.",
   "gen_owner": "No competing capture. Latest existing main4e52854e canonical GEN files imported byte-identically. Fresh module/semantic capture requires actual owning producer follow-up.",
@@ -1011,10 +1011,24 @@
       "New bootstrap claim proxy401 beforemutations; no custodyacquired, no unclaimedsourcewrites.",
       "Synthetic engine constructor failed missing compositelegal helper; transactionrollback0businessrows, originalfailurepreserved. Actualnativehelperexists; canonicalhistoricalbodydiffers so no guessed historicalrestore.",
       "WholeSQL060 source adaptation/current schema/types still pending owningGEN."
-    ]
+    ],
+    "postlockAdapterSourcePhase": {
+      "status": "OWN_CUSTODY_MCP_VERIFIED_CHECKPOINT_FIRST_SOURCE_WRITE_GO",
+      "neutral": "2cda15abc7c17a1ae4cec72a66eb719938137fd6",
+      "file": "supabase/bootstrap/20261014_ops_signing_prepare_postlock_replay_adapter.sql",
+      "artifactSHA256": "3302b837142d4b48547a39d10b2583a0915161a0d1e59d7680be710f879cc8e3",
+      "source": "supabase/migrations/20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql",
+      "immutableSourceSHA256": "105f32d496c611edb82764eabe43ad035ebadf5648d76db8779ee2a9c5b2598b",
+      "descriptorCustody": "488d0c344ffc5667661832a5fb81dd1f2fca3e29",
+      "descriptorPreimageSHA256": "b5ede0893b0070e94f29cfdc4ec35dfd174d3a012daf5bfc0eb91d108085ef9f",
+      "ack": "Same ROOT accepts ONLY exact3302 materialization and ONE derived sourcePosition descriptor entry, no historicalSQL edits, no native or GEN/type role.",
+      "distinctSourceGO": "ROOT_BOUNDED_SOURCE_GO_ADAPTER3302_AND_ONE_DESCRIPTOR_ENTRY",
+      "verification": "Two noncoauthor candidate source finals; genuine canonical FIRST/replay core8bd\u2192CEE bodyonly/publicfullrowpreserved. Newdescriptor builder integration stillrequiresfinalverification.",
+      "downstream": "65e currenttransitionaleffect remains; additional canonical renamedreceipt/finalizercore fingerprint correction is separately required and under private source review. No fullSQL/runtimegreen."
+    }
   },
   "core_completion_20261014_runtime_main_restore": {
-    "status": "NORMAL_MAIN_MERGE_NO_CONFLICTS_EXACT49_MAIN_AND_API5_APP_TYPECHECK_PASS_FINAL_REVIEWS_PENDING",
+    "status": "COMMITTED_PUBLISHED_APP41_TWO_INDEPENDENT_SOURCE_FINALS_PRODUCTION_BUILD_STARTED",
     "published_parent": "535f4afc638ac85021d51fec99b61ad382344e4a",
     "incomingMain": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
     "incomingTree": "fbe51ee680b61f5404b680a64c9e3e2d225dc282",
@@ -1035,6 +1049,8 @@
     "mergeParents": [
       "535f4afc638ac85021d51fec99b61ad382344e4a",
       "6ce6d49eafa8ca24bcefbeec717dd55b63abad66"
-    ]
+    ],
+    "sourceHead": "41b07f9368c410f08642d8d8c2b3c2dacc215bd7",
+    "integrationTree": "706d2d89ffa7ef5cf3fa2b13855eb5177cc2afd6"
   }
 }

@@ -449,6 +449,15 @@
       "preserveSourceReplay": false,
       "execution": "sourcePosition",
       "reason": "Canonical history explicitly replaces actor display-name uniqueness with exact nonunique search index; preserve unique per-actor aliases and all original catalog/row guards."
+    },
+    "bootstrap/20261014_ops_signing_prepare_postlock_replay_adapter.sql": {
+      "source": "migrations/20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "105f32d496c611edb82764eabe43ad035ebadf5648d76db8779ee2a9c5b2598b",
+      "artifactSha256": "3302b837142d4b48547a39d10b2583a0915161a0d1e59d7680be710f879cc8e3",
+      "preserveSourceReplay": false,
+      "execution": "sourcePosition",
+      "reason": "Preserve exact native public-core applicability and canonical retained public wrapper; apply original pending-request locking correction only to the source-qualified effective core, preserving its full other metadata. Downstream sealed fingerprint and runtime concurrency corrections are separate gates."
     }
   }
 }
