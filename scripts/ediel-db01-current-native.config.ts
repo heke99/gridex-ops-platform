@@ -7,7 +7,8 @@ import {defineConfig} from 'vitest/config'
 // Reconstructed historical composition: BASE source/default alias + snapshot
 // repair + one committed ROOT AGT producer over fixed BASE canonical
 // dependencies. The current kernel pair is separately pinned to delivered
-// source231b9ef8; neither current file replaces the historical BASE aliases.
+// source231b9ef8, and its facade to the reviewed adoptedca892 source. None
+// replaces the historical BASE aliases or their fixed canonical source bytes.
 // Its BASE public creator alone receives a prospective legacy
 // DTO hint. Two containment forwards and twelve delivered current reader/guard
 // forwards remain separately receipted phases before fresh ROOT owners.
@@ -29,6 +30,7 @@ const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as {
     canonical_dependency_identity: Record<string, {base: GitInput; root: GitInput}>;
     kernel_basis: {source_revision: string; path: string; historical_alias: string; current_alias: string; base: GitInput; root: GitInput};
     kernel_legacy_basis: {source_revision: string; path: string; historical_alias: string; current_alias: string; base: GitInput; root: GitInput};
+    canonical_facade_basis: {source_revision: string; path: string; historical_alias: string; current_alias: string; base: GitInput; root: GitInput};
     public_creator_input: Record<string, string>}
   current_database_basis: {kind: string; forwards: Array<GitInput & {path: string}>; schema_path: string}
   current_guard_result?: {status: string; source_sha: string; source_schema_sha256: string; reader_function_names: number; helper_function_names: number; function_definitions: number; delivered_relation_objects: number; mismatches: unknown[]}
@@ -93,10 +95,24 @@ if (!kernelLegacyBasis || Object.keys(kernelLegacyBasis).length !== 6 || kernelL
   throw new Error('db01_native_exact_kernel_legacy_basis_required')
 }
 execFileSync('git', ['merge-base', '--is-ancestor', kernelRevision, head], {cwd: root})
+const canonicalFacadePath = 'lib/ediel/rulebook/canonicalEdielFacade.ts'
+const canonicalFacadeRevision = 'ca892c14643181656e842bf4d8ffa8b6d829dec2'
+const expectedBaseFacade: GitInput = {mode: '100644', git_blob_oid: 'a170889bc7a9463e757302989cb596e30f527c6f',
+  sha256: 'd395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f'}
+const expectedCurrentFacade: GitInput = {mode: '100644', git_blob_oid: '6012241de1210e35b50b55fa646e92930b8f330c',
+  sha256: 'f979775551293c9221d3cecff8fb51ae8b17f02dff99ee4222ae8dff0ed32d86'}
+const canonicalFacadeBasis = basis.canonical_facade_basis
+if (!canonicalFacadeBasis || Object.keys(canonicalFacadeBasis).length !== 6 || canonicalFacadeBasis.source_revision !== canonicalFacadeRevision ||
+    canonicalFacadeBasis.path !== canonicalFacadePath || canonicalFacadeBasis.historical_alias !== 'BASE56' || canonicalFacadeBasis.current_alias !== 'ROOT' ||
+    !sameInput(canonicalFacadeBasis.base, expectedBaseFacade) || !sameInput(canonicalFacadeBasis.root, expectedCurrentFacade)) {
+  throw new Error('db01_native_exact_canonical_facade_basis_required')
+}
+execFileSync('git', ['merge-base', '--is-ancestor', canonicalFacadeRevision, head], {cwd: root})
 for (const path of dependencies) {
   const input = basis.canonical_dependency_identity[path], baseInput = receipt.base_source?.blobs?.[path], rootInput = receipt.root_source?.blobs?.[path]
   const exactPair = path === kernelPath ? sameInput(baseInput, expectedBaseKernel) && sameInput(rootInput, expectedCurrentKernel)
     : path === kernelLegacyPath ? sameInput(baseInput, expectedBaseKernelLegacy) && sameInput(rootInput, expectedCurrentKernelLegacy)
+    : path === canonicalFacadePath ? sameInput(baseInput, expectedBaseFacade) && sameInput(rootInput, expectedCurrentFacade)
     : sameInput(baseInput, rootInput)
   if (!input || !sameInput(input.base, baseInput) || !sameInput(input.root, rootInput) || !exactPair ||
       baseInput?.mode !== '100644' || !receipt.required_input_paths.includes(path) || !receipt.required_base_input_paths.includes(path) ||
