@@ -9,6 +9,7 @@ import { deriveProdatAperakValidationIssues } from '@/lib/ediel/testing/aperakEr
 import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import type { EdielMessageRow, CreateEdielMessageInput } from '@/lib/ediel/types'
 import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData'
+import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 
 const db = vi.hoisted(() => ({ from: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: db }))
@@ -40,7 +41,16 @@ describe('PRODAT reference projection through customer staging', () => {
       expect(result.meteringPoint.meterNumber).toBe(value)
       expect(result.meteringPoint.referenceToMeteringPoint).toBe(value)
       expect(result.production.referenceToMeteringPoint).toBe(value)
-      expect(result.contract.agreementReference).toBe(value)
+      expect(canonicalProdat26AFieldRules('Z04').find(rule => rule.fieldNumber === '261')?.requirement).toBe('forbidden')
+      expect(result.contract.agreementReference).toBeNull()
+      const objects = result.proposedAction.objects as { registers: { rawSegments: string[] }[] }[]
+      expect(objects[0].registers[0].rawSegments).toContain(`RFF+ANJ:${encode(value)}:LINE:VERSION`)
+      // Preserve the literal ANJ/C506 positive oracle on its own allowed
+      // business source; the Z04 MG/319/Z05 context remains unchanged.
+      expect(canonicalProdat26AFieldRules('Z03').find(rule => rule.fieldNumber === '261')?.requirement).toBe('required')
+      const agreement = parseInboundProdatBusinessData(message(
+        payload('Z03', [`RFF+ANJ:${encode(value)}:LINE:VERSION`]), { agreementReference: 'STALE' }, 'Z03'))
+      expect(agreement.contract.agreementReference).toBe(value)
       expect(result.contract.gridAreaCode).toBe(value)
       expect(result.site.gridAreaCode).toBe(value)
       expect(db.from).not.toHaveBeenCalled()
