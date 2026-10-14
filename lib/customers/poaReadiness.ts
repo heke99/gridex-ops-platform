@@ -17,6 +17,55 @@
 
 type PoaLike = Record<string, unknown>
 
+export type SitePoaScope = 'facility_information_lookup' | 'supplier_switch'
+export type SitePoaRowFact = {
+  poaId: string
+  evidenceComplete: boolean
+  legallyAccepted: boolean
+  lifecycle: PowerOfAttorneyLifecycleStatus
+  usableNow: boolean | null
+}
+/** POA prerequisite only; this is never a route, sender or full action permit. */
+export type SitePoaReadiness = {
+  companyId: string | null
+  customerId: string | null
+  siteId: string | null
+  meteringPointId: string | null
+  actorId: string | null
+  scope: SitePoaScope
+  asOf: string
+  parentCoverage: 'complete' | 'partial' | 'unknown'
+  kind: 'ready' | 'blocked' | 'unknown'
+  usableNow: boolean | null
+  evidenceComplete: boolean
+  legallyAccepted: boolean
+  powerOfAttorneyId: string | null
+  explanation: string
+  rows: SitePoaRowFact[]
+}
+export type CustomerCardPoaReadiness = {
+  facility: SitePoaReadiness
+  supplierSwitch: SitePoaReadiness
+}
+
+export function unknownSitePoaReadiness(input: {
+  scope: SitePoaScope
+  companyId?: string | null
+  customerId?: string | null
+  siteId?: string | null
+  meteringPointId?: string | null
+  asOf?: string
+}): SitePoaReadiness {
+  return {
+    companyId: input.companyId ?? null, customerId: input.customerId ?? null,
+    siteId: input.siteId ?? null, meteringPointId: input.meteringPointId ?? null,
+    actorId: null, scope: input.scope, asOf: input.asOf ?? new Date().toISOString(),
+    parentCoverage: 'unknown', kind: 'unknown', usableNow: null,
+    evidenceComplete: false, legallyAccepted: false, powerOfAttorneyId: null, rows: [],
+    explanation: 'Fullmakten för vald anläggning kan inte verifieras. Läs om kundkortet eller granska fullmaktsunderlaget.',
+  }
+}
+
 function clean(value: unknown): string | null {
   if (typeof value === 'string') {
     const trimmed = value.trim()

@@ -1,4 +1,5 @@
 // lib/operations/types.ts
+import type { Database } from "@/supabase/database.types";
 
 export type CustomerBlockerSeverity = "info" | "warning" | "blocking" | "critical";
 
@@ -38,6 +39,8 @@ export type PowerOfAttorneyStatus =
 
 export type PowerOfAttorneyRow = {
   id: string;
+  // Older projections can omit ownership; callers must qualify it before use.
+  company_id?: Database["public"]["Tables"]["powers_of_attorney"]["Row"]["company_id"];
   customer_id: string;
   site_id: string | null;
   scope: PowerOfAttorneyScope;

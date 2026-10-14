@@ -205,18 +205,22 @@ export async function getOverviewBreakdowns(companyId: string, month: string): P
   return { biddingZones, missingByGridOwner }
 }
 
-export async function getLatestForecastByBiddingZone(companyId: string, filters: AnalyticsFilters): Promise<ForecastSummaryRow[]> {
-  const runQuery = supabaseService
+function latestCompletedConsumptionRunQuery(companyId: string, month: string) {
+  return supabaseService
     .from('forecast_runs')
     .select('id')
     .eq('company_id', companyId)
     .eq('forecast_type', 'consumption')
-    .lte('period_start', filters.month)
-    .gte('period_end', filters.month)
+    .eq('status', 'completed')
+    .lte('period_start', month)
+    .gt('period_end', month)
     .order('created_at', { ascending: false })
     .limit(1)
+}
 
-  const { data: runs, error: runError } = await runQuery
+export async function getLatestForecastByBiddingZone(companyId: string, filters: AnalyticsFilters): Promise<ForecastSummaryRow[]> {
+  const targetMonth = monthStart(filters.month)
+  const { data: runs, error: runError } = await latestCompletedConsumptionRunQuery(companyId, targetMonth)
   if (runError) {
     if (isMissingRelationError(runError)) return []
     throw runError
@@ -229,6 +233,8 @@ export async function getLatestForecastByBiddingZone(companyId: string, filters:
     .select('bidding_zone_code, grid_owner_id, customer_id, metering_point_id, forecast_kwh, actual_kwh, diff_kwh, diff_percent, confidence_score, method')
     .eq('company_id', companyId)
     .eq('forecast_run_id', runId)
+    .gte('period_start', targetMonth)
+    .lt('period_start', monthEndExclusive(targetMonth))
 
   if (filters.biddingZoneCode) itemQuery = itemQuery.eq('bidding_zone_code', filters.biddingZoneCode)
   if (filters.gridOwnerId) itemQuery = itemQuery.eq('grid_owner_id', filters.gridOwnerId)
@@ -292,17 +298,8 @@ export async function getLatestForecastByBiddingZone(companyId: string, filters:
 }
 
 export async function getLatestForecastByGridOwner(companyId: string, filters: AnalyticsFilters): Promise<ForecastSummaryRow[]> {
-  const runQuery = supabaseService
-    .from('forecast_runs')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('forecast_type', 'consumption')
-    .lte('period_start', filters.month)
-    .gte('period_end', filters.month)
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  const { data: runs, error: runError } = await runQuery
+  const targetMonth = monthStart(filters.month)
+  const { data: runs, error: runError } = await latestCompletedConsumptionRunQuery(companyId, targetMonth)
   if (runError) {
     if (isMissingRelationError(runError)) return []
     throw runError
@@ -315,6 +312,8 @@ export async function getLatestForecastByGridOwner(companyId: string, filters: A
     .select('grid_owner_id, bidding_zone_code, customer_id, metering_point_id, forecast_kwh, actual_kwh, diff_kwh, confidence_score, method')
     .eq('company_id', companyId)
     .eq('forecast_run_id', runId)
+    .gte('period_start', targetMonth)
+    .lt('period_start', monthEndExclusive(targetMonth))
 
   if (filters.biddingZoneCode) itemQuery = itemQuery.eq('bidding_zone_code', filters.biddingZoneCode)
   if (filters.gridOwnerId) itemQuery = itemQuery.eq('grid_owner_id', filters.gridOwnerId)

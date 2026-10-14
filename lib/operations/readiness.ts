@@ -1,16 +1,11 @@
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import { hasMeteringPointIdentity } from '@/lib/customers/meteringIdentity'
+import { derivePowerOfAttorneyLifecycleStatus } from '@/lib/customers/poaReadiness'
 import type {
   PowerOfAttorneyRow,
   SwitchReadinessIssue,
   SwitchReadinessResult,
 } from '@/lib/operations/types'
-
-function toDateOrNull(value: string | null): Date | null {
-  if (!value) return null
-  const parsed = new Date(value)
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
 
 function poaExtraString(poa: PowerOfAttorneyRow, key: string): string | null {
   const value = (poa as unknown as Record<string, unknown>)[key]
@@ -22,23 +17,9 @@ function isSignedAndValidPowerOfAttorney(
   now: Date
 ): boolean {
   if (poa.status !== 'signed') return false
-
-  const hasEvidence = Boolean(
-    poa.document_path?.trim() ||
-    poa.signed_at ||
-    poaExtraString(poa, 'accepted_at') ||
-    poa.reference ||
-    (poa as unknown as Record<string, unknown>).fullmakt_snapshot
-  )
-  if (!hasEvidence) return false
-
-  const validFrom = toDateOrNull(poa.valid_from)
-  const validTo = toDateOrNull(poa.valid_to) ?? toDateOrNull(poaExtraString(poa, 'valid_until'))
-
-  if (validFrom && validFrom > now) return false
-  if (validTo && validTo < now) return false
-
-  return true
+  const expiresAt = poaExtraString(poa, 'expires_at')
+  if (expiresAt && (!Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) < now.getTime())) return false
+  return derivePowerOfAttorneyLifecycleStatus(poa as unknown as Record<string, unknown>, { now }) === 'valid'
 }
 
 function selectCandidateMeteringPoint(
@@ -56,7 +37,7 @@ function selectCandidateMeteringPoint(
 }
 
 function getRelevantPowerOfAttorney(
-  customerSiteId: string,
+  site: CustomerSiteRow,
   powersOfAttorney: PowerOfAttorneyRow[]
 ): PowerOfAttorneyRow | null {
   // Site is an operational identity boundary. A POA for Site A (or a legacy
@@ -67,7 +48,8 @@ function getRelevantPowerOfAttorney(
     .filter((poa) => poa.scope === 'supplier_switch')
     .filter((poa) => {
       const rowSite = poa.site_id ?? poaExtraString(poa, 'customer_site_id')
-      return rowSite === customerSiteId
+      return rowSite === site.id && poa.customer_id === site.customer_id
+        && (!site.company_id || poa.company_id === site.company_id)
     })
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
 
@@ -84,8 +66,10 @@ export function evaluateSiteSwitchReadiness(params: {
   const now = params.now ?? new Date()
 
   const issues: SwitchReadinessIssue[] = []
-  const candidateMeteringPoint = selectCandidateMeteringPoint(meteringPoints)
-  const latestPowerOfAttorney = getRelevantPowerOfAttorney(site.id, powersOfAttorney)
+  const candidateMeteringPoint = selectCandidateMeteringPoint(meteringPoints.filter(point => point.site_id === site.id
+    && (!site.company_id || point.company_id === site.company_id)
+    && (!point.customer_id || point.customer_id === site.customer_id)))
+  const latestPowerOfAttorney = getRelevantPowerOfAttorney(site, powersOfAttorney)
 
   if (!latestPowerOfAttorney) {
     issues.push({

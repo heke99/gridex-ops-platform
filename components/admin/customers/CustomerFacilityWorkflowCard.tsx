@@ -15,7 +15,7 @@ import {
   type FacilityWorkQueueStatus,
 } from "@/lib/facility/workQueue";
 import {
-  hasValidPowerOfAttorney,
+  selectCustomerCardMeteringPoint,
   type CustomerCardSnapshot,
 } from "@/lib/customers/customerCardSnapshot";
 import { hasMeteringPointIdentity, meteringPointIdentityLabel } from "@/lib/customers/meteringIdentity";
@@ -98,16 +98,16 @@ function buildFacilityItems(input: {
   gridOwners: GridOwnerRow[];
   snapshot?: CustomerCardSnapshot;
 }): FacilityCardItem[] {
-  const hasSignedPower =
-    input.snapshot?.hasAuthorization ??
-    hasValidPowerOfAttorney(input.powersOfAttorney, input.documents ?? []);
-
   return input.sites.map((site) => {
     const points = input.meteringPoints.filter(
       (point) => point.site_id === site.id,
     );
-    const primaryPoint =
-      points.find((point) => point.status === "active") ?? points[0];
+    const primaryPoint = selectCustomerCardMeteringPoint(site, points) ?? undefined;
+    const poa = input.snapshot?.poaReadinessBySiteId?.[site.id]?.supplierSwitch;
+    const hasSignedPower = Boolean(poa?.usableNow === true && poa.actorId
+      && poa.customerId === input.customerId && poa.customerId === site.customer_id
+      && poa.companyId === site.company_id && poa.siteId === site.id
+      && poa.meteringPointId === (primaryPoint?.id ?? null));
     const effectiveGridOwnerId = firstText(
       site.grid_owner_id,
       primaryPoint?.grid_owner_id,
@@ -138,6 +138,8 @@ function buildFacilityItems(input: {
 
     const status: FacilityWorkQueueStatus = openRequest
       ? "awaiting_grid_owner"
+      : !hasSignedPower
+        ? "manual_review"
       : missingFields.length === 0
         ? "ready_for_switch"
         : missingFields.includes("power_of_attorney")
@@ -147,7 +149,9 @@ function buildFacilityItems(input: {
             : "needs_facility_data";
 
     const nextAction =
-      status === "ready_for_switch"
+      !hasSignedPower && !openRequest
+        ? "Kontrollera fullmakt"
+      : status === "ready_for_switch"
         ? "Starta leverantörsbyte"
         : status === "awaiting_grid_owner"
           ? "Följ upp svar"
@@ -171,9 +175,11 @@ function buildFacilityItems(input: {
       href: `/admin/customers/${input.customerId}?tab=${status === "ready_for_switch" ? "switch-operations" : status === "missing_authorization" ? "authorization-documents" : "data-requests"}`,
       statusDescription: openRequest
         ? "Begäran är redan startad och väntar på nätägaren eller manuell uppföljning."
+        : !hasSignedPower
+          ? poa?.explanation ?? "Fullmakten för denna anläggning behöver kontrolleras. Ett kundövergripande godkännande är inte ett anläggningsspecifikt tillstånd."
         : missingFields.length === 0
-          ? "Anläggningen har tillräckliga uppgifter för nästa driftsteg."
-          : `Saknas: ${missingFields.map(facilityMissingFieldLabel).join(", ")}.`,
+          ? "Anläggningsuppgifterna och fullmaktsvillkoren i urvalet är klara. Övriga startvillkor kontrolleras när åtgärden körs."
+          : `Behöver kontrolleras: ${missingFields.map(facilityMissingFieldLabel).join(", ")}.`,
     };
   });
 }
@@ -212,19 +218,19 @@ export default function CustomerFacilityWorkflowCard(input: {
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-700">
             Kunden får finnas kvar även när anläggnings-ID, mätpunkt eller
             nätägare saknas. Systemet kontrollerar anläggnings-ID, mätpunkt och
-            nätägare innan leverantörsbyte kan begäras. Fullmakt räknas
-            automatiskt när signerad fullmakt eller fullmaktsdokument finns.
+            nätägare innan leverantörsbyte kan begäras. Fullmaktsvillkoren
+            kontrolleras separat för varje anläggning och åtgärd.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs font-bold">
           <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-800">
-            {missingDataCount} behöver kompletteras
+            {missingDataCount} att kontrollera i urvalet
           </span>
           <span className="rounded-full bg-sky-50 px-3 py-1 text-sky-800">
-            {waitingCount} väntar svar
+            {waitingCount} väntar svar i urvalet
           </span>
           <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-800">
-            {readyCount} redo
+            {readyCount} redo att granskas i urvalet
           </span>
         </div>
       </div>
