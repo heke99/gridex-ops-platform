@@ -60,6 +60,7 @@ function query(table: string) {
   }
   return q
 }
+vi.mock('server-only', () => ({}))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: query, rpc: m.rpc } }))
 vi.mock('@/lib/ediel/retention/customerRecordClasses', () => ({ requirePortalRetentionAccess: vi.fn() }))
 vi.mock('@/lib/ediel/retention/invoiceFileRetention', () => ({ requireInvoiceFileCopyAvailable: vi.fn() }))

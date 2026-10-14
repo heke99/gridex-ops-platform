@@ -101,9 +101,9 @@ beforeEach(async () => {
   ports.site.mockResolvedValue({ id: 'site', company_id: 'company', customer_id: 'customer',
     grid_owner_id: 'grid', grid_area_code: 'STH', price_area_code: 'SE3',
     current_supplier_name: 'Original supplier', move_in_date: '2026-10-06' })
-  ports.points.mockResolvedValue([{ id: 'point', site_id: 'site', status: 'active',
+  ports.points.mockResolvedValue([{ id: 'point', company_id: 'company', customer_id: 'customer', site_id: 'site', status: 'active',
     meter_point_id: '735999000000000001', grid_owner_id: 'grid', grid_area_code: 'STH', price_area_code: 'SE3' }])
-  ports.poa.mockResolvedValue([{ id: 'poa', customer_id: 'customer', site_id: 'site',
+  ports.poa.mockResolvedValue([{ id: 'poa', company_id: 'company', customer_id: 'customer', site_id: 'site',
     scope: 'supplier_switch', status: 'signed', signed_at: '2026-09-01T12:00:00Z',
     valid_from: '2026-09-01', valid_to: null }])
   ports.produce.mockResolvedValue({ id: 'original', message_code: 'Z03', outbound_request_id: 'outbound' })

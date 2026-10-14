@@ -4,7 +4,9 @@ import type { CustomerInfoRequestRow } from "@/lib/onboarding/infoRequests";
 import { hasMeteringPointIdentity } from "@/lib/customers/meteringIdentity";
 import {
   derivePowerOfAttorneyLifecycleStatus,
-  hasExternallySendablePoa,
+  hasLegalPoaAcceptance,
+  unknownSitePoaReadiness,
+  type CustomerCardPoaReadiness,
   type PowerOfAttorneyLifecycleStatus,
 } from "@/lib/customers/poaReadiness";
 import type {
@@ -32,6 +34,9 @@ type SnapshotInput = {
   workQueueItems?: AnyRow[];
   events?: AnyRow[];
   actionResults?: AnyRow[];
+  poaReadiness?: CustomerCardPoaReadiness;
+  poaReadinessBySiteId?: Record<string, CustomerCardPoaReadiness>;
+  asOf?: string;
 };
 
 export type CustomerCardStatus =
@@ -47,6 +52,9 @@ export type CustomerCardSnapshot = {
   hasAuthorization: boolean;
   hasExternallySendablePoa: boolean;
   hasLegalAcceptance: boolean;
+  hasCustomerLegalPoaAcceptance: boolean;
+  poaReadiness?: CustomerCardPoaReadiness;
+  poaReadinessBySiteId?: Record<string, CustomerCardPoaReadiness>;
   hasFacilityId: boolean;
   hasMeteringPoint: boolean;
   hasGridOwner: boolean;
@@ -352,44 +360,58 @@ function latestLabel(rows: AnyRow[]): string | null {
   return str(row.title) || str(row.event_type) || str(row.status) || null;
 }
 
+export function selectCustomerCardSite(sites: CustomerSiteRow[]): CustomerSiteRow | null {
+  return sites.find(site => site.status === "active") ?? sites[0] ?? null;
+}
+
+export function selectCustomerCardMeteringPoint(site: CustomerSiteRow | null, points: MeteringPointRow[]): MeteringPointRow | null {
+  if (!site) return null;
+  const owned = points.filter(point => point.site_id === site.id
+    && point.company_id === site.company_id && point.customer_id === site.customer_id);
+  return owned.find(point => point.status === "active") ?? owned[0] ?? null;
+}
+
 export function buildCustomerCardSnapshot(
   input: SnapshotInput,
 ): CustomerCardSnapshot {
-  const documents = [
-    ...(input.documents ?? []),
-    ...(input.customerDocuments ?? []),
-  ];
-  const primarySite =
-    input.sites.find((site) => site.status === "active") ??
-    input.sites[0] ??
-    null;
-  const primaryMeteringPoint = primarySite
-    ? (input.meteringPoints.find(
-        (point) =>
-          point.site_id === primarySite.id && point.status === "active",
-      ) ??
-      input.meteringPoints.find((point) => point.site_id === primarySite.id) ??
-      null)
-    : (input.meteringPoints[0] ?? null);
-
-  const hasAuthorization = hasValidPowerOfAttorney(
-    input.powersOfAttorney ?? [],
-    documents,
+  const primarySite = selectCustomerCardSite(input.sites);
+  const primaryMeteringPoint = selectCustomerCardMeteringPoint(primarySite, input.meteringPoints);
+  const asOf = input.asOf ?? new Date().toISOString();
+  const unknown = (scope: "facility_information_lookup" | "supplier_switch", site = primarySite, point = primaryMeteringPoint) => unknownSitePoaReadiness({
+    scope, companyId: site?.company_id, customerId: site?.customer_id,
+    siteId: site?.id, meteringPointId: point?.id, asOf,
+  });
+  const matchesTarget = (fact: CustomerCardPoaReadiness["facility"] | undefined, scope: "facility_information_lookup" | "supplier_switch", site = primarySite, point = primaryMeteringPoint) => Boolean(
+    fact && site && fact.scope === scope && fact.siteId === site.id
+    && fact.companyId === site.company_id && fact.customerId === site.customer_id
+    && fact.meteringPointId === (point?.id ?? null) && fact.asOf === asOf,
   );
-  // Distinct from legal acceptance: a POA is only externally sendable to a grid
-  // owner when it carries customer identity, signer/evidence/method and a
-  // snapshot or document. "Fullmakt klar" for external use must use this.
-  const hasExternallySendable = (input.powersOfAttorney ?? []).some((poa) =>
-    hasExternallySendablePoa(poa as AnyRow),
-  );
-  // Newest POA drives the derived lifecycle status (missing when none exists).
-  const newestPoa = [...(input.powersOfAttorney ?? [])].sort((a, b) =>
+  const poaReadinessBySiteId = Object.fromEntries(input.sites.map(site => {
+    const point = selectCustomerCardMeteringPoint(site, input.meteringPoints);
+    const facts = input.poaReadinessBySiteId?.[site.id] ?? (site.id === primarySite?.id ? input.poaReadiness : undefined);
+    return [site.id, {
+      facility: matchesTarget(facts?.facility, "facility_information_lookup", site, point) ? facts!.facility : unknown("facility_information_lookup", site, point),
+      supplierSwitch: matchesTarget(facts?.supplierSwitch, "supplier_switch", site, point) ? facts!.supplierSwitch : unknown("supplier_switch", site, point),
+    }];
+  }));
+  const primaryFacts = primarySite ? poaReadinessBySiteId[primarySite.id] : undefined;
+  const poaReadiness = {
+    facility: primaryFacts?.facility ?? unknown("facility_information_lookup"),
+    supplierSwitch: primaryFacts?.supplierSwitch ?? unknown("supplier_switch"),
+  };
+  const hasAuthorization = poaReadiness.facility.legallyAccepted;
+  const hasExternallySendable = poaReadiness.facility.evidenceComplete;
+  const hasCustomerLegalPoaAcceptance = (input.powersOfAttorney ?? []).some(row => hasLegalPoaAcceptance(row as unknown as AnyRow));
+  // Lifecycle is for the selected anläggning; customer-wide history stays separate.
+  const newestPoa = [...(input.powersOfAttorney ?? [])].filter(row => primarySite
+    && row.customer_id === primarySite.customer_id && row.company_id === primarySite.company_id
+    && (row.site_id ?? str((row as AnyRow).customer_site_id)) === primarySite.id).sort((a, b) =>
     String((b as AnyRow).created_at ?? "").localeCompare(
       String((a as AnyRow).created_at ?? ""),
     ),
   )[0] as AnyRow | undefined;
   const poaLifecycleStatus = derivePowerOfAttorneyLifecycleStatus(
-    newestPoa ?? null,
+    newestPoa ?? null, { now: new Date(asOf) },
   );
   const hasFacilityId = truthy(primarySite?.facility_id);
   const hasMeteringPoint = hasMeteringPointIdentity(primaryMeteringPoint);
@@ -443,7 +465,7 @@ export function buildCustomerCardSnapshot(
   const missingLabels = Array.from(
     new Set(
       [
-        hasAuthorization ? null : "Signerad fullmakt",
+        poaReadiness.supplierSwitch.usableNow === true ? null : "Giltig fullmakt för vald anläggning",
         legal.ok ? null : "Juridiska godkännanden",
         hasFacilityId ? null : "Anläggnings-ID",
         hasMeteringPoint ? null : "Mätpunkt",
@@ -483,7 +505,7 @@ export function buildCustomerCardSnapshot(
     recommendedAction === "request_switch"
       ? "Grunduppgifterna ser klara ut. Systemet gör en sista kontroll innan något skickas."
       : switchBlockerLabels.length > 0
-        ? `Saknas: ${switchBlockerLabels.join(", ")}.`
+        ? `${poaReadiness.supplierSwitch.kind === "unknown" ? "Behöver verifieras" : "Saknas"}: ${switchBlockerLabels.join(", ")}.`
         : "Systemet väntar på svar eller komplettering.";
 
   return {
@@ -505,7 +527,10 @@ export function buildCustomerCardSnapshot(
     nextStepDescription,
     recommendedAction,
     hasOpenInfoRequest,
-    authorizationStatus: hasAuthorization ? "ready" : "missing",
+    authorizationStatus: poaReadiness.facility.usableNow === true ? "ready" : poaReadiness.facility.kind === "unknown" ? "needs_review" : "blocked",
+    hasCustomerLegalPoaAcceptance,
+    poaReadiness,
+    poaReadinessBySiteId,
     poaLifecycleStatus,
     legalStatus: legal.ok ? "ready" : "missing",
     facilityStatus: hasFacilityId ? "ready" : "missing",
@@ -544,12 +569,8 @@ export function buildCustomerReadinessItems(
     },
     {
       label: "Fullmakt",
-      ok: snapshot.hasAuthorization,
-      detail: !snapshot.hasAuthorization
-        ? "Fullmakt saknas"
-        : snapshot.hasExternallySendablePoa
-          ? "Fullmakt klar för nätägarkommunikation"
-          : "Fullmakt finns (juridiskt), men saknar underlag för extern sändning",
+      ok: snapshot.poaReadiness?.facility.usableNow === true,
+      detail: snapshot.poaReadiness?.facility.explanation ?? "Fullmakt för vald anläggning behöver kontrolleras",
     },
     {
       label: "Anläggning",

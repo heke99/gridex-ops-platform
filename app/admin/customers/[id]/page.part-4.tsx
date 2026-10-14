@@ -7,6 +7,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { isPlatformAdminContext, requireAdminPageAccess } from "@/lib/admin/guards"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 import { resolveAdminTenantReadScope } from "@/lib/tenant/adminScope"
+import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
+import { readResult } from "@/lib/read-models/readResult"
 import CustomerEdielOperationsCard from "@/components/admin/customers/CustomerEdielOperationsCard"
 import { getCustomerSiteById, getMeteringPointById, listCustomerInternalNotesByCustomerId, listCustomerSitesByCustomerId, listGridOwners, listMasterdataAuditLogsForCustomer, listMeteringPointsBySiteIds, listPriceAreas } from "@/lib/masterdata/db"
 import { listContractOffers, listCustomerContractsByCustomerId } from "@/lib/customer-contracts/db"
@@ -59,6 +61,7 @@ import { customerStatusLabel } from "@/lib/customers/statusLabels"
 import { evaluateCustomerOpsMasterReadiness, listCustomerDocuments, listCustomerLegalAcceptances, listCustomerOpsTimeline } from "@/lib/opsMaster/readiness"
 import { buildAdminDataChain } from "@/lib/customer-portal/status"
 import { buildCustomerCardSnapshot, buildCustomerReadinessItems } from "@/lib/customers/customerCardSnapshot"
+import { buildCustomerCardSitePoaReadiness, type SitePoaReadContext } from "@/lib/customers/sitePoaReadiness.server"
 import type { CustomerPageProps, CustomerWorkspaceTab, PowerOfAttorneyScopeRow } from './page.part-1'
 import { CUSTOMER_WORKSPACE_TABS, CustomerLookupProblem, SectionAnchor, buildCustomerLifecycleSummary, canShowCustomerWorkspaceTab, customerTabHref, customerTypeLabel, formatCustomerName, getBestContactEmail, getBestContactPhone, getCustomer, identityPrimaryLabel, identityPrimaryValue, identitySecondaryLabel, identitySecondaryValue, normalizeCustomerType, normalizeWorkspaceTab, statusTone } from './page.part-1'
 import { AuditSection, CustomerBlockersBanner, CustomerWebsiteTraceabilityCard, LifecycleDecisionSection, NotesSection, PowerOfAttorneyScopesSection } from './page.part-2'
@@ -502,7 +505,28 @@ export async function CustomerAdminDetailPage({
 
   const hasUsablePowerOfAttorney = opsMasterReadiness.hasActivePowerOfAttorney;
 
+  let canOperatePoaAction: boolean | null = false;
+  if (["overview", "legal-readiness", "sites", "data-requests", "switch-operations", "technical-details"].includes(activeTab)
+    && (isPlatformAdmin || access.permissions.includes(MASTERDATA_PERMISSIONS.WRITE))) {
+    const actorEligibility = await readResult(
+      () => assertUserCanOperateCompany(access.userId, customerCompanyId),
+      { definitionVersion: "customer_card_poa_actor_v1", errorCode: "POA_ACTOR_UNAVAILABLE" },
+    );
+    canOperatePoaAction = actorEligibility.kind !== "unavailable" && actorEligibility.data === customerCompanyId ? true : null;
+  }
+  const cardAsOf = new Date().toISOString();
+  const poaContext: SitePoaReadContext = {
+    companyId: customerCompanyId!, customerId: id, asOf: cardAsOf,
+    actor: { id: access.userId, companyId: access.companyId, isPlatformAdmin,
+      canOperate: canOperatePoaAction },
+    // This existing parent read is capped at50; no source certificate proves exhaustion.
+    parentCoverage: "unknown",
+    customerIdentity: customer.personal_number ?? customer.org_number ?? null,
+  };
   const customerCardSnapshot = buildCustomerCardSnapshot({
+    asOf: cardAsOf,
+    poaReadinessBySiteId: buildCustomerCardSitePoaReadiness({ sites, meteringPoints,
+      powersOfAttorney: poaRows as unknown as Array<Record<string, unknown>>, context: poaContext }),
     sites,
     meteringPoints,
     powersOfAttorney: poaRows,

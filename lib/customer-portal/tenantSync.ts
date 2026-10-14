@@ -1151,6 +1151,9 @@ async function syncCustomerProfile(input: {
   if (!input.profile || Object.keys(input.profile).length === 0) {
     return { updated: false, skipped: true }
   }
+  const profile = input.profile
+  const profileValue = (field: keyof NonNullable<TenantCustomerSyncPayload['profile']>) =>
+    Object.hasOwn(profile, field) && profile[field] !== undefined ? clean(profile[field]) : undefined
   const existing = await supabaseService
     .from('customers')
     .select('metadata')
@@ -1159,13 +1162,13 @@ async function syncCustomerProfile(input: {
     .maybeSingle()
   if (existing.error) throw existing.error
   const payload = nonNull({
-    first_name: clean(input.profile.first_name),
-    last_name: clean(input.profile.last_name),
-    full_name: clean(input.profile.full_name),
-    company_name: clean(input.profile.company_name),
-    phone: clean(input.profile.phone),
-    invoice_email: clean(input.profile.invoice_email),
-    preferred_language: clean(input.profile.language_code),
+    first_name: profileValue('first_name'),
+    last_name: profileValue('last_name'),
+    full_name: profileValue('full_name'),
+    company_name: profileValue('company_name'),
+    phone: profileValue('phone'),
+    invoice_email: profileValue('invoice_email'),
+    preferred_language: profileValue('language_code'),
     metadata: input.profile.timezone
       ? { ...asRecord(existing.data?.metadata), portal_timezone: input.profile.timezone }
       : undefined,

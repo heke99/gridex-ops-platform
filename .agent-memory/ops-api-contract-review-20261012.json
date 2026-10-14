@@ -28,9 +28,9 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Qualify new post-sealed retained signing concurrency correction and inherited retention/request lock inversion; integrate bounded owned replay composition. New postlock adapter custody/publication CLI presently401; no newref/sourceartifact write. Full SQL/schema/types and real Staff registration remain pending.",
+  "next_action": "Complete two exact current app-integration finals, commit/publish ownbranch merge, restore authorized OPS application release. Then materialize own3302 replay artifact and broaden compound preservation only to independently source-proven canonical receipt/finalizer cores; runtime signing locks and fullschema/types remain open.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
-  "integrated_main": "573d74371086da585a5cff6abee95eadfe58899e",
+  "integrated_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
   "independent_review": "Both SOURCE peers independently cleared final sealedsource/genuinequalification, all13actualregistrations/protectednative metadata and1243actualfunctiondefinitions/ABI/ACL/attrs.",
   "verification_record": "quality/audits/2026-10-12-ops-api-contracts/verification.json",
@@ -38,7 +38,7 @@
   "latest_native_preflight": "Fresh10:01:58UTC before13:519ledger/422Authhooks/51B3parts/CEEprepare, no drift. After13:532ledger/648Authhooks exactly422old+226/113sourceallowed new, wholeprepare unchanged and transports removed; native1243function comparisonPASS.",
   "handover": "Application d899ac6b deployed to OPS production READY20:11:57.854UTC, integrated latest main4e52854e, realbuild175.12s and two independent integration-source reviews. No new module SQL/GEN/mainmerge performed. Fresh portal HTTP fetch auto-review rejected; current public frontend DB binding NOT_VERIFIED. PR794 draft; future main release must integrate branch API corrections.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "6b3a51b2f84ea6dfaed6559a877d6db3c8130f77 (current released application code); later changes are replay source only",
+  "current_source_head": "Published535 API5 postimages + verified incomingmain6ce exactworkingtree; combined commit/source finals pending",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "85actualwrites=18scoped+64source-only+3metadata actions; latest13=12source-only+1atomic effect with8logical componentreferences; no fake childledger.",
   "gen_owner": "No competing capture. Latest existing main4e52854e canonical GEN files imported byte-identically. Fresh module/semantic capture requires actual owning producer follow-up.",
@@ -1011,6 +1011,30 @@
       "New bootstrap claim proxy401 beforemutations; no custodyacquired, no unclaimedsourcewrites.",
       "Synthetic engine constructor failed missing compositelegal helper; transactionrollback0businessrows, originalfailurepreserved. Actualnativehelperexists; canonicalhistoricalbodydiffers so no guessed historicalrestore.",
       "WholeSQL060 source adaptation/current schema/types still pending owningGEN."
+    ]
+  },
+  "core_completion_20261014_runtime_main_restore": {
+    "status": "NORMAL_MAIN_MERGE_NO_CONFLICTS_EXACT49_MAIN_AND_API5_APP_TYPECHECK_PASS_FINAL_REVIEWS_PENDING",
+    "published_parent": "535f4afc638ac85021d51fec99b61ad382344e4a",
+    "incomingMain": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
+    "incomingTree": "fbe51ee680b61f5404b680a64c9e3e2d225dc282",
+    "scope": "Adopt exact normally merged main runtime without changing its postimages; preserve exactly5 previously reviewed OPS API compatibility/correlation runtime corrections. Existing source-only migration work is separate.",
+    "runtimeDeltaAgainstMain": [
+      "app/api/v1/events/route.ts",
+      "lib/integrations/apiResponseProfile.ts",
+      "lib/integrations/webhooks.ts",
+      "lib/staff-api/identityResolution.ts",
+      "lib/staff-api/onboarding.ts"
+    ],
+    "ack": "Same ROOT/API branch accepts normal incoming-main integration, no foreign source rewrites or main merge.",
+    "sourceGO": "ROOT_DISTINCT_BOUND_SOURCE_GO_NORMAL_MAIN_ADOPTION_PRESERVE_API5",
+    "qualification": "Current published parent quality-release-gates passed; exact combined app typecheck and two independent integration-source finals required before authorized OPS deployment. Whole migrations/types/runtime signing still pending.",
+    "next": "Merge verified actualmain into own branch, confirm incoming runtime blobs unchanged and API5 exactprior postimages, app typecheck, two independent reviewers, nonforce PR794 publication then existing authorized OPS deployment.",
+    "incomingRuntimePreservation": "ALL49 exactincomingmainblobtuples preserved; fiveAPIpostimages identicaltopublished535; nosourceSQL/GEN/native/Auth changes.",
+    "appTypecheck": "PASS actualcombinedapplication npm run typecheck exit0",
+    "mergeParents": [
+      "535f4afc638ac85021d51fec99b61ad382344e4a",
+      "6ce6d49eafa8ca24bcefbeec717dd55b63abad66"
     ]
   }
 }
