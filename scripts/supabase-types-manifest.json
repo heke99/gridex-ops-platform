@@ -544,7 +544,7 @@
     "all8_input_hashes": "EXACT",
     "canonical_source_inputs": 10,
     "supplemental_UNIT": 1,
-    "current_custody_refs": 21,
+    "current_custody_refs": 20,
     "raw_output_sha256": {
       "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
       "schema.sql": "f33a5ffdd1956345c6f3e10df2a419954bf46f6d1fc92a97c04681d8f0a37457",
