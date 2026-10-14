@@ -2,7 +2,7 @@ import { sumUtiltsDecimals, retainedV1NumberDecimal } from './exactDecimal'
 import { normalizeAndStoreMeteringValue } from '@/lib/metering/normalizeMeteringValues'
 import { updateMeterValueBillingReadiness } from '@/lib/billing/meterValueBillingMatcher'
 import { ingestBillingUnderlay } from '@/lib/cis/db'
-import { storedUtiltsConsumption, type UtiltsTransactionPersistenceResult } from './transactionPersistence'
+import { storedUtiltsConsumption, storedUtiltsConsumptionVersionState, type UtiltsTransactionPersistenceResult } from './transactionPersistence'
 import { consumptionConflict, consumptionEqual } from './consumptionContract'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { MeteringValueRow } from '@/lib/cis/types'
@@ -15,7 +15,10 @@ function contracts(input: BoundSinkInput) {
     if (row.persistenceStatus !== 'persisted' || row.disposition !== 'accepted' || row.responseType !== 'positive_aperak') return []
     const contract = storedUtiltsConsumption(row, input.message.id)
     if (!contract) consumptionConflict('sink_unbound_outcome')
-    if (contract.companyId !== input.message.company_id || contract.environment !== input.message.environment || contract.messageCode !== input.message.message_code) consumptionConflict('sink_source_scope')
+    if (contract.companyId !== input.message.company_id || contract.environment !== input.message.environment || contract.messageCode !== input.message.message_code || contract.transactionId !== row.transactionId) consumptionConflict('sink_source_scope')
+    // Even historical no-op requires genuine object/source/scope authority.
+    // Only the immutable validated classification can exclude a stored row.
+    if (storedUtiltsConsumptionVersionState(row, input.message.id) === 'late_older_history') return []
     return [contract]
   })
 }
