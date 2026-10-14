@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Complete proven immutable95628 comment-only derived replay correction, source planning, independent exact review, then existing sole GEN integration.",
+  "next_action": "Qualify committed eight-file replay inputunion, publish source fixes to approved PR794, then existing sole producer qualifies entire current-source SQL/schema/types before main release. No native or green claim from source checks.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "7952177b13c911427fe529a56fd787d7f3abfc99",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -849,7 +849,8 @@
       "scripts/gridex-ediel-history-union-inputs.py",
       "scripts/gridex-ediel-upgrade-inputs.py",
       "supabase/bootstrap/20261013_ops_quote_nonexpiring_replay_adapter.sql",
-      "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql"
+      "supabase/bootstrap/20261013_ops_current_permission_replay_adapter.sql",
+      "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql"
     ],
     "resource_readback": "234existingpreserved+6ownnew=240;full76protocols/otheropenPRpaths/ancestorchecksnooverlap",
     "source_firstwrite_authority": "Current user instruction is direct source completion GO; own checkpoint recorded before canonical six-file implementation.",
@@ -866,7 +867,7 @@
     "committed_source": "847650c5521c8ffa2a15740828d3d3acc17a0314",
     "source_materialization": "Cleanpreflight/strictupgrade605/historyunion363PASS;644and886historicalsourcespreserved/allactualexecutedhashesmatch/1quoteadaptereach",
     "source_public_coordination": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6175115768",
-    "source_writer": "PAUSED_EXACT_SEVEN_POSTIMAGES_AFTER_PERMISSION_CORRECTION",
+    "source_writer": "PAUSED_EXACT_EIGHT_POSTIMAGES",
     "native_or_schema_capture_qualified": false,
     "permission_replay_correction": {
       "claim": "6ac91ce485c2c00ee8fd6450bf259e3195b477d7",
@@ -881,6 +882,13 @@
         "permission-replay-final-two.md"
       ]
     },
-    "public_coordination_metadata": "Automatic review rejected expanded claim metadata comment; no such disclosure performed. Prior approved public code-only coordination remains."
+    "public_coordination_metadata": "Automatic review rejected expanded claim metadata comment; no such disclosure performed. Prior approved public code-only coordination remains.",
+    "expiry_replay_correction": {
+      "claim": "aa396b0189db512344e23c378a12b666719af8a1",
+      "stage": "TWO_FINAL_SOURCE_CLEARS_AND_INPUT_PREFLIGHT_PASS",
+      "finding": "Two canonical/native Staff acceptance preimages differ only by 4/2 SQLcomment lines. Other3 exact historical transformations equal sealednative originals. Native/canonical pairedexactliteral+hash guard retains same5targets/fullattrs.",
+      "native_writes": 0,
+      "artifact": "supabase/bootstrap/20261013_ops_auth_expiry_replay_adapter.sql"
+    }
   }
 }

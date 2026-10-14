@@ -135,6 +135,11 @@
       "path": "bootstrap/20261013_ops_current_permission_replay_adapter.sql",
       "afterLedgerVersion": "20261013094648",
       "beforeLedgerVersion": "20261013100622"
+    },
+    {
+      "path": "bootstrap/20261013_ops_auth_expiry_replay_adapter.sql",
+      "afterLedgerVersion": "20261013104143",
+      "beforeLedgerVersion": "20261013110544"
     }
   ],
   "derivedBootstrap": {
@@ -409,6 +414,14 @@
       "artifactSha256": "d5e7d62982719ffea9ff0ca65149ca6b93e5e07e5caa3518f4e651c6688328f8",
       "preserveSourceReplay": false,
       "reason": "Exact source-proven historical global permission body differs from native preimage by two comments only; identical hardened outputs/guards with stronger full identity preservation."
+    },
+    "bootstrap/20261013_ops_auth_expiry_replay_adapter.sql": {
+      "source": "migrations/20261013105521_ops_api_current_auth_token_expiry.sql",
+      "sourceKind": "timestampedMigration",
+      "sourceSha256": "9e3dc9544031b8d42acdaa850c9ba1963d8b6b6ff0c7d35c76f1be49368ba7bf",
+      "artifactSha256": "070b2e524b964c78e9e99a91553f8d4eab74811fb8a76e994cfe8e52088b84fa",
+      "preserveSourceReplay": false,
+      "reason": "Two exact historical Staff acceptance predecessor bodies differ from native originals only in comments. Paired original/hash acceptance preserves native applicability and all five target bodies/attribute guards."
     }
   }
 }
