@@ -1,0 +1,265 @@
+[
+  {
+    "file": "app/admin/audit/page.tsx",
+    "imports": [
+      "import CompanySelect from '@/components/admin/CompanySelect'\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { supabaseService } from '@/lib/supabase/service'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/ai-parser/page.tsx",
+    "imports": [
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { createDocumentAiExtractionAction, reviewDocumentAiExtractionAction } from './actions'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/import/page.tsx",
+    "imports": [
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { supabaseService } from '@/lib/supabase/service'\n",
+      "import { importBillingUnderlayFileAction } from './actions'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/integrations/page.tsx",
+    "imports": [
+      "import AdminDisclosurePanel from \"@/components/admin/ui/AdminDisclosurePanel\"\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'\n",
+      "import {\n  reprocessInvoiceProviderEventsAction,\n  saveNordfinClientIdAction,\n  selectInvoiceProviderAction,\n  setInvoiceDispatchEnabledAction,\n  testCapwayConnectionAction,\n} from './actions'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/invoices/[id]/page.tsx",
+    "imports": [
+      "import Link from 'next/link'\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/page.tsx",
+    "imports": [
+      "import Link from 'next/link'\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { listInvoiceReviewRows, type InvoiceReviewStatus } from '@/lib/billing/invoiceReviewData'\n",
+      "import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/stockholm'\n",
+      "import { approveAndSendReadyInvoicesAction } from './actions'\n",
+      "import { createInvoiceFileAction } from './invoice-files/actions'\n",
+      "import { listInvoiceFileCandidates, listInvoiceFiles, type InvoiceFileRecord } from '@/lib/billing/invoiceFileExport'\n",
+      "import { isFileProvider, loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/quality/page.tsx",
+    "imports": [
+      "import Link from 'next/link'\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/underlays/[id]/page.tsx",
+    "imports": [
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/underlays/page.tsx",
+    "imports": [
+      "import Link from 'next/link'\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'\n"
+    ]
+  },
+  {
+    "file": "app/admin/company-settings/page.tsx",
+    "imports": [
+      "import AdminDisclosurePanel from \"@/components/admin/ui/AdminDisclosurePanel\";",
+      "import AdminHeader from \"@/components/admin/AdminHeader\";",
+      "import CompanyUserInviteForm from \"@/components/admin/companies/CompanyUserInviteForm\";",
+      "import { requireAdminPageKeyAccess } from \"@/lib/admin/guards\";",
+      "import { getOperationalCompanyScope } from \"@/lib/tenant/scope\";",
+      "import {\n  getCompanyById,\n  listCompanyUsersForGovernance,\n} from \"@/lib/tenant/governance\";",
+      "import {\n  updateCompanyResponsibleUserAction,\n  updateCompanySettingsAction,\n} from \"./actions\";",
+      "import { getTenantLegalProfile } from \"@/lib/contracts/canonical\";",
+      "import { legalProfileMissingFieldDetail } from \"@/lib/tenant/companyLegalProfile\";",
+      "import {\n  COMPANY_USER_ROLE_OPTIONS,\n  getCompanyMembershipRoleLabel,\n  getCompanyUserRoleLabel,\n} from \"@/lib/tenant/companyUserRoles\";"
+    ]
+  },
+  {
+    "file": "app/admin/contracts/page.tsx",
+    "imports": [
+      "import Link from \"next/link\";",
+      "import AdminHeader from \"@/components/admin/AdminHeader\";",
+      "import { createSupabaseServerClient } from \"@/lib/supabase/server\";",
+      "import { supabaseService } from \"@/lib/supabase/service\";",
+      "import { requireAdminPageAccess } from \"@/lib/admin/guards\";",
+      "import {\n  getContractOfferById,\n  getPreviousContractOfferVersion,\n} from \"@/lib/customer-contracts/db\";",
+      "import {\n  cleanupUnusedContractDraftsAction,\n  closeContractOfferAction,\n  copyContractOfferAction,\n  publishContractVersionAction,\n  updateTenantContractChannelAction,\n} from \"./actions\";",
+      "import {\n  getOperationalCompanyScope,\n  listPlatformCompanies,\n} from \"@/lib/tenant/scope\";",
+      "import type {\n  ContractChannelReadiness,\n  ContractChannelStatus,\n  ContractOfferRow,\n  CustomerContractRow,\n} from \"@/lib/customer-contracts/types\";",
+      "import {\n  getTenantLegalProfile,\n  listCanonicalContractCatalog,\n  listPublicationReadiness,\n  listTenantLegalOverrides,\n} from \"@/lib/contracts/canonical\";",
+      "import { legalProfileMissingFieldDetail } from \"@/lib/tenant/companyLegalProfile\";",
+      "import { toSafeContractError } from \"@/lib/errors/safeActionErrors\";",
+      "import ContractOfferAdminForm from \"@/components/admin/contracts/ContractOfferAdminForm\";",
+      "import CustomerDisclosurePanel from \"@/components/admin/customers/CustomerDisclosurePanel\";",
+      "import ContractDeleteControl from \"@/components/admin/contracts/ContractDeleteControl\";",
+      "import ContractChannelControl from \"@/components/admin/contracts/ContractChannelControl\";",
+      "import { contractLifecycleAllows } from \"@/lib/contracts/lifecycle\";",
+      "import {\n  listTenantContractProducts,\n  previewContractDelete,\n} from \"@/lib/contracts/adminRepository\";",
+      "import {\n  CONTRACT_ADMIN_VIEW_LABELS,\n  parseContractAdminView,\n  type ContractAdminView,\n} from \"@/lib/contracts/adminDto\";"
+    ]
+  },
+  {
+    "file": "app/admin/customer-info-requests/page.tsx",
+    "imports": [
+      "import AdminDisclosurePanel from \"@/components/admin/ui/AdminDisclosurePanel\"\n",
+      "import Link from 'next/link'\n",
+      "import { readManualServicePermissionOptions, type ManualServicePermissionOption } from '@/lib/ediel/services/manualPermissionOptions'\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { isCompanyWritableInTenantWorkspace } from '@/lib/tenant/lifecycle'\n",
+      "import { readEdielProcessNextActions, type EdielProcessNextAction } from '@/lib/ediel/operations/processNextAction'\n",
+      "import {\n  listAuthorizationScopes,\n  listCustomerInfoRequests,\n  listCustomerInfoRequestResourceOptions,\n  listCustomersForInfoRequestSelector,\n  listMeteringPermissions,\n} from '@/lib/onboarding/infoRequests'\n",
+      "import {\n  applyZ14SnapshotAction,\n  closeCustomerInfoRequestAction,\n  createAuthorizationScopeAction,\n  createCustomerInfoRequestAction,\n  createMeteringPermissionDraftAction,\n  queueCustomerInfoRequestAction,\n  queueMeteringPermissionZ13Action,\n} from './actions'\n",
+      "import { formatStatusLabel } from '@/lib/ui/format'\n",
+      "import { canCloseInfoRequest } from '@/lib/onboarding/infoRequestClosure'\n",
+      "import { listPortalRepliesForInfoRequests, type InfoRequestPortalReply } from '@/lib/onboarding/infoRequestPortalReplies'\n"
+    ]
+  },
+  {
+    "file": "app/admin/customer-login/page.tsx",
+    "imports": [
+      "import AdminHeader from \"@/components/admin/AdminHeader\";",
+      "import CustomerLoginSetup, { type CustomerLoginProviderView } from \"@/components/admin/customer-login/CustomerLoginSetup\";",
+      "import { requireAdminPageKeyAccess } from \"@/lib/admin/guards\";",
+      "import { getOperationalCompanyScope } from \"@/lib/tenant/scope\";",
+      "import { tenantSelect } from \"@/lib/supabase/tenantQuery\";",
+      "import { tenantKeyAudience, tenantKeyIssuer } from \"@/lib/customer-portal/identityProviderSetup\";"
+    ]
+  },
+  {
+    "file": "app/admin/customers/imports/page.tsx",
+    "imports": [
+      "import Link from \"next/link\";",
+      "import AdminHeader from \"@/components/admin/AdminHeader\";",
+      "import { requireAdminPageAccess } from \"@/lib/admin/guards\";",
+      "import { createSupabaseServerClient } from \"@/lib/supabase/server\";",
+      "import { getOperationalCompanyScope } from \"@/lib/tenant/scope\";",
+      "import {\n  createCustomerFromImportRowAction,\n  linkCustomerImportRowToExistingCustomerAction,\n  rejectCustomerImportRowAction,\n} from \"@/app/admin/customers/actions\";"
+    ]
+  },
+  {
+    "file": "app/admin/metering/page.tsx",
+    "imports": [
+      "import AdminDisclosurePanel from \"@/components/admin/ui/AdminDisclosurePanel\"\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import {\n listAllGridOwnerDataRequests,\n listAllMeteringValues,\n} from '@/lib/cis/db'\n"
+    ]
+  },
+  {
+    "file": "app/admin/operations/automation/page.tsx",
+    "imports": [
+      "import Link from 'next/link'\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { listBatch2BControlTower } from '@/lib/operations/batch2bAutomation'\n",
+      "import { listBatch2CControlTowerSummary } from '@/lib/operations/batch2cAutomation'\n"
+    ]
+  },
+  {
+    "file": "app/admin/operations/perioder/page.tsx",
+    "imports": [
+      "import Link from 'next/link'\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { listBatch2CDriftQueue } from '@/lib/operations/batch2cAutomation'\n"
+    ]
+  },
+  {
+    "file": "app/admin/pricing/market-sources/page.tsx",
+    "imports": [
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { saveMarketSourcePolicyAction, testMarketSourceConnectionAction } from './actions'\n"
+    ]
+  },
+  {
+    "file": "app/admin/system-health/page.tsx",
+    "imports": [
+      "import { tenantReadCompanyId } from '@/lib/tenant/adminScope'\n",
+      "import AdminHeader from '@/components/admin/AdminHeader'\n",
+      "import { isPlatformAdminContext, requireAdminPageAccess } from '@/lib/admin/guards'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n",
+      "import { humanizeLaunchError, safeCount } from '@/lib/launch/readiness'\n",
+      "import { supabaseService } from '@/lib/supabase/service'\n",
+      "import { runProductionConsistencyChecks, type ReconciliationCheckResult } from '@/lib/ops/reconciliation'\n",
+      "import { getOpsHealth } from '@/lib/ops/health'\n",
+      "import { requeueUncertainEmailAction } from './actions'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/invoice-files/[id]/route.ts",
+    "imports": [
+      "import { NextRequest, NextResponse } from 'next/server'\n",
+      "import { requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { loadInvoiceFile, parseInvoiceFileFormat, renderInvoiceFile } from '@/lib/billing/invoiceFileExport'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n"
+    ]
+  },
+  {
+    "file": "app/admin/billing/export-center/[id]/download/route.ts",
+    "imports": [
+      "import { NextRequest, NextResponse } from 'next/server'\n",
+      "import { createSupabaseServerClient } from '@/lib/supabase/server'\n",
+      "import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'\n",
+      "import { getOperationalCompanyScope } from '@/lib/tenant/scope'\n"
+    ]
+  },
+  {
+    "file": "app/admin/layout.tsx",
+    "imports": [
+      "import { Suspense, type ReactNode } from 'react'\n",
+      "import { cookies } from 'next/headers'\n",
+      "import { isPlatformAdminContext, requireAdminAccess } from '@/lib/admin/guards'\n",
+      "import { logoutAction } from '@/lib/auth/logoutAction'\n",
+      "import AdminSidebar from '@/components/admin/AdminSidebar'\n",
+      "import { getOperationalCompanyScope, TENANT_COMPANY_REQUIRED_MESSAGE, TenantCompanyRequiredError } from '@/lib/tenant/scope'\n",
+      "import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'\n"
+    ]
+  }
+]

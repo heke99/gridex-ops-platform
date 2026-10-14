@@ -1,8 +1,10 @@
 // Finite PostgreSQL behavior model: real historical context SQL and whole
-// forward SQL -> real Admin API guard -> real invoice dispute route. Only
+// forward SQL and an exact, separately scoped deployed API-context fixture
+// -> real Admin API guard -> real invoice dispute route. Only
 // auth transport, unrelated tenant operation policy and provider IO are ports.
 // This does not qualify a live catalog, backend RLS/locks, GEN or native proof.
 import { existsSync, readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { PGlite } from '@electric-sql/pglite'
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
@@ -36,6 +38,43 @@ function definition(sql: string, name: string) {
   return block.slice(0, end + delimiter[1].length + 1)
 }
 const oldDefinition = definition(historical, 'canonical_authenticated_tenant_context')
+// The main forward remains the subject of all migration/body/metadata tests.
+// API transport uses the already deployed context observed as d205c4e8, within
+// a rollback-only PGlite savepoint. This is not installation of its held forward.
+const deployedApiProjection = `  -- Platform authority remains implicit; explicit current DENY and catalog
+  -- availability are projected separately for actual API requirement evaluation.
+  select coalesce(jsonb_agg(permission.key order by permission.key),'[]'::jsonb)
+  into v_active_permission_keys from public.permissions permission where permission.is_active;
+  select coalesce(jsonb_agg(denied.permission_key order by denied.permission_key),'[]'::jsonb)
+  into v_denied_permissions from (
+    select coalesce(nullif(d.permission_key,''),p.key) as permission_key
+    from public.user_permissions d left join public.permissions p on p.id=d.permission_id
+    where d.user_id=v_user_id and (d.company_id is null or d.company_id=v_selected_company_id)
+      and d.is_active and d.status='active' and d.effect='deny'
+    union
+    select d.permission_key from public.user_permission_overrides d
+    where d.user_id=v_user_id and (d.company_id is null or d.company_id=v_selected_company_id)
+      and d.is_active and d.effect='deny'
+      and (d.valid_from is null or d.valid_from<=clock_timestamp())
+      and (d.valid_to is null or clock_timestamp()<d.valid_to)
+  ) denied where denied.permission_key is not null;
+
+`
+let deployedApiDefinition = definition(forward(), 'canonical_authenticated_tenant_context_v1_scoped')
+for (const [before, after] of [
+  ['LANGUAGE plpgsql STABLE SECURITY DEFINER', 'LANGUAGE plpgsql VOLATILE SECURITY DEFINER'],
+  ["  v_permissions jsonb := '[]'::jsonb;", "  v_permissions jsonb := '[]'::jsonb;\n  v_active_permission_keys jsonb := '[]'::jsonb;\n  v_denied_permissions jsonb := '[]'::jsonb;"],
+  ['u.banned_until <= now()', 'u.banned_until <= clock_timestamp()'],
+  ['  if v_selected_company_id is not null then', `${deployedApiProjection}  if v_selected_company_id is not null then`],
+  ["    'permissions',v_permissions,", "    'permissions',v_permissions,\n    'active_permission_keys',v_active_permission_keys,\n    'denied_permissions',v_denied_permissions,"],
+] as const) {
+  if (deployedApiDefinition.split(before).length !== 2) throw new Error('deployed_api_fixture_source_unqualified')
+  deployedApiDefinition = deployedApiDefinition.replace(before, after)
+}
+const deployedApiBody = /\bas\s+(\$[^$]*\$)([\s\S]*?)\1/i.exec(deployedApiDefinition)?.[2]
+if (!deployedApiBody || createHash('md5').update(deployedApiBody).digest('hex') !== 'd205c4e8ba1989b27b4df6b1b76af631') {
+  throw new Error('deployed_api_fixture_body_unqualified')
+}
 const renameStart = remediation.indexOf('alter function public.canonical_authenticated_tenant_context(uuid)')
 const renameEnd = remediation.indexOf('create function public.canonical_authenticated_tenant_context(', renameStart)
 const rename = remediation.slice(renameStart, renameEnd)
@@ -90,6 +129,32 @@ async function fixture(installForward = true) {
 async function context(company: string | null = selected) {
   return (await db.query<{ context: Record<string, unknown> }>('select public.canonical_authenticated_tenant_context($1::uuid) context', [company])).rows[0].context
 }
+async function apiFixtureState() {
+  return {
+    metadata: await metadata(db),
+    projection: (await db.query(`select
+      md5((select prosrc from pg_proc where oid='public.canonical_authenticated_tenant_context_v1_scoped(uuid)'::regprocedure)) source_md5,
+      (select jsonb_agg(to_jsonb(p) order by to_jsonb(p)::text) from public.permissions p) catalog,
+      (select jsonb_agg(to_jsonb(p) order by to_jsonb(p)::text) from public.user_permissions p) direct_permissions,
+      (select jsonb_agg(to_jsonb(p) order by to_jsonb(p)::text) from public.user_permission_overrides p) overrides`)).rows[0],
+  }
+}
+async function deployedApiContext(company: string | null) {
+  const before = await apiFixtureState()
+  await db.exec('savepoint deployed_api_fixture')
+  try {
+    await db.exec(deployedApiDefinition)
+    // The deployed invoice route requires this catalog key. Rename the finite
+    // fixture's write key, retaining every role/direct/override ID and effect.
+    await db.exec(`update public.permissions set key='billing_underlay.export' where key='billing.write';
+      update public.user_permissions set permission_key='billing_underlay.export' where permission_key='billing.write';
+      update public.user_permission_overrides set permission_key='billing_underlay.export' where permission_key='billing.write';`)
+    return await context(company)
+  } finally {
+    await db.exec('rollback to savepoint deployed_api_fixture; release savepoint deployed_api_fixture')
+    expect(await apiFixtureState()).toEqual(before)
+  }
+}
 async function actorPermission(permission = 'billing.write') {
   return (await db.query<{ permitted: boolean }>('select public.gridex_actor_has_company_permission($1,$2,$3) permitted', [own.actor, own.company, permission])).rows[0].permitted
 }
@@ -119,9 +184,9 @@ async function deny(table: 'direct' | 'override', company: string | null, option
   else await db.query(`insert into public.user_permission_overrides values ($1,$2,'billing.write',$3,$4,$5::timestamptz,$6::timestamptz)`,
     [own.actor, company, options.effect ?? 'deny', options.active ?? true, options.from ?? null, options.to ?? null])
 }
-async function deniedWithoutEffects(status = 403) {
+async function deniedWithoutEffects(status = 403, company = own.company) {
   const before = structuredClone(invoice)
-  const response = await dispute()
+  const response = await dispute(company)
   expect({ status: response.status, providerClients: io.provider.mock.calls.length,
     providerRequests: io.dispute.mock.calls.length, serviceReadsAndWrites: io.from.mock.calls.length,
     events: io.event.mock.calls.length, invoice }).toEqual({ status, providerClients: 0,
@@ -148,7 +213,7 @@ beforeEach(async () => {
   io.server.mockImplementation(async () => ({ auth: { getUser: async () => ({ data: { user: authUser ? { id: authUser, email: 'synthetic@example.invalid' } : null }, error: null }) },
     rpc: async (name: string, args: { p_selected_company_id: string | null }) => {
       if (name !== 'canonical_authenticated_tenant_context') throw new Error(`undeclared_admin_rpc:${name}`)
-      return sdkError ? { data: null, error: { code: '57014' } } : { data: await context(args.p_selected_company_id), error: null }
+      return sdkError ? { data: null, error: { code: '57014' } } : { data: await deployedApiContext(args.p_selected_company_id), error: null }
     } }))
   io.from.mockImplementation(invoicePort)
   io.scope.mockImplementation(async (actor: string, company: string | null) => {
@@ -201,9 +266,9 @@ it('DENY wins over competing direct ALLOW without granting a new direct permissi
 
 it('allOf and anyOf consume deny-filtered real SQL permissions independently', async () => {
   await deny('direct', own.company)
-  expect((await requireAdminApiAccess({ allOf: ['billing.read', 'billing.write'] })).response?.status).toBe(403)
-  expect((await requireAdminApiAccess({ anyOf: ['billing.write', 'documents.write'] })).response?.status).toBe(403)
-  expect((await requireAdminApiAccess({ anyOf: ['billing.read', 'billing.write'] })).guard?.companyId).toBe(own.company)
+  expect((await requireAdminApiAccess({ allOf: ['billing.read', 'billing_underlay.export'] })).response?.status).toBe(403)
+  expect((await requireAdminApiAccess({ anyOf: ['billing_underlay.export', 'documents.write'] })).response?.status).toBe(403)
+  expect((await requireAdminApiAccess({ anyOf: ['billing.read', 'billing_underlay.export'] })).guard?.companyId).toBe(own.company)
   await deniedWithoutEffects()
 })
 
@@ -218,7 +283,7 @@ it.each(['profile', 'banned', 'deleted', 'unconfirmed', 'membership', 'role', 'f
     if (kind === 'foreign-company') selected = own.foreign
     if (kind === 'different-user') authUser = id(50)
     if (kind === 'unauthenticated') authUser = null
-    await deniedWithoutEffects(kind === 'unauthenticated' ? 401 : 403)
+    await deniedWithoutEffects(kind === 'unauthenticated' ? 401 : 403, kind === 'foreign-company' ? own.foreign : own.company)
   })
 
 it('a failed SDK context read fails closed before effects', async () => {
@@ -238,13 +303,13 @@ it('retains default company selection and full historical paused context without
   await deniedWithoutEffects()
 })
 
-it('preserves the existing explicit platform Admin API bypass policy', async () => {
+it('current deployed DENY outranks platform Admin API authority before effects', async () => {
   await db.query("insert into public.admin_users values ($1,'super_admin',true)", [own.actor])
   await deny('direct', own.company)
   expect(await actorPermission()).toBe(false)
   expect((await context()).permissions).toEqual(['billing.read'])
-  expect((await requireAdminApiAccess(['billing.write'])).guard?.isPlatformAdmin).toBe(true)
-  expect((await dispute()).status).toBe(200); expect(io.dispute).toHaveBeenCalledTimes(1)
+  expect((await requireAdminApiAccess(['billing_underlay.export'])).response?.status).toBe(403)
+  await deniedWithoutEffects()
 })
 
 it('inverse old source restores the bad grant while every other context field remains identical', async () => {

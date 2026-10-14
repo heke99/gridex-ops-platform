@@ -1,0 +1,9 @@
+# Billing canonical company scope
+
+Fixed the exact handed-off eight billing pages, invoice-file download, and integrations action scope. They now use the company selected by the permission guard through the shared selected-company resolver. A second legacy membership lookup cannot send a guard-A read or provider change to company B.
+
+Underlay list/detail and integration lists use the strict tenant mode because null would otherwise remove their company filter. Billing main/quality/AI/import retain their explicitly guarded empty states; invoice detail retains its existing choose-company error; invoice download retains its permission check and missing-company HTTP403. Selected platform reads remain selected; existing platform-null global list behavior remains. The import heading distinguishes an unnamed selected company from a missing company.
+
+The integrations action helper retains its authenticated-user check, permission gate and explicit company requirement. Provider selection, dispatch activation, Nordfin client ID, Capway testing and event retries use the authorized company. Provider business-readiness errors, status changes, redirects and auditing remain unchanged. The separately reauthorizing billing import action was excluded from this handoff.
+
+Verification: the shared actual-page/download billing subset passes28/28; owned action runtime tests pass16/16 after14 red failures and2 existing refusal passes. The initial page red run included one module-fixture error, corrected by the shared test owner; the remaining failures proved wrong-company/missing-company behavior. Exact sources and result hashes are in `billing-canonical-scope-receipt.json`. No shared helper/tests, DB migrations, generated schema/types, global memory or live data were edited. Root owns final build and rollout.

@@ -8,115 +8,34 @@ export type DashboardAlertInput = {
   message?: string
   entityType?: string
   entityId?: string
+  source?: string
 }
 
 export async function createDashboardAlert(input: DashboardAlertInput): Promise<void> {
-  const { error } = await supabaseService
-    .from('dashboard_alerts')
-    .upsert({
-      company_id: input.companyId,
-      alert_type: input.alertType,
-      severity: input.severity ?? 'info',
-      title: input.title,
-      message: input.message ?? null,
-      entity_type: input.entityType ?? null,
-      entity_id: input.entityId ?? null,
-      status: 'open',
-      resolved_at: null,
-    }, { onConflict: 'company_id,alert_type,entity_type,entity_id,status' })
-
-  if (error && !/does not exist|schema cache|Could not find/i.test(error.message)) throw error
+  const { error } = await supabaseService.rpc('gridex_upsert_dashboard_alert_v1', {
+    p_company: input.companyId,
+    p_alert_type: input.alertType,
+    p_severity: input.severity ?? 'info',
+    p_title: input.title,
+    p_message: input.message ?? null,
+    p_entity_type: input.entityType ?? null,
+    p_entity: input.entityId ?? null,
+    p_source: input.source ?? 'manual',
+  })
+  if (error) throw error
 }
 
 export async function refreshDashboardAlerts(companyId: string): Promise<void> {
-  const { data: issues, error } = await supabaseService
-    .from('data_quality_issues')
-    .select('issue_type, severity, status')
-    .eq('company_id', companyId)
-    .eq('status', 'open')
-
-  if (error) {
-    if (/does not exist|schema cache|Could not find/i.test(error.message)) return
-    throw error
-  }
-
-  const counts = new Map<string, { count: number; severity: 'info' | 'warning' | 'critical' }>()
-  for (const issue of issues ?? []) {
-    const key = issue.issue_type ?? 'data_quality'
-    const previous = counts.get(key) ?? { count: 0, severity: 'info' as const }
-    counts.set(key, {
-      count: previous.count + 1,
-      severity: issue.severity === 'critical' || previous.severity === 'critical' ? 'critical' : 'warning',
-    })
-  }
-
-  for (const [type, summary] of counts) {
-    if (type === 'missing_metering_values') {
-      await createDashboardAlert({
-        companyId,
-        alertType: type,
-        severity: summary.severity,
-        title: `${summary.count} mätpunkter saknar mätvärden`,
-        message: 'Följ upp saknade mätvärden för vald period.',
-      })
-    } else if (type === 'missing_bidding_zone') {
-      await createDashboardAlert({
-        companyId,
-        alertType: type,
-        severity: summary.severity,
-        title: `${summary.count} mätpunkter saknar SE-område`,
-        message: 'Komplettera SE-område eller lägg till en säker nätområdesmappning.',
-      })
-    } else if (type === 'missing_grid_owner') {
-      await createDashboardAlert({
-        companyId,
-        alertType: type,
-        severity: summary.severity,
-        title: `${summary.count} mätpunkter saknar nätägare`,
-        message: 'Komplettera nätägare innan prognos och mätvärdesuppföljning används.',
-      })
-    } else if (type === 'forecast_deviation') {
-      await createDashboardAlert({
-        companyId,
-        alertType: type,
-        severity: summary.severity,
-        title: `${summary.count} prognoser avviker mot faktiskt utfall`,
-        message: 'Granska prognosavvikelser per mätpunkt och kund.',
-      })
-    } else if (type === 'failed_ediel_message') {
-      await createDashboardAlert({
-        companyId,
-        alertType: type,
-        severity: 'critical',
-        title: `${summary.count} Ediel-meddelanden har misslyckats`,
-        message: 'Följ upp misslyckade PRODAT, UTILTS, CONTRL eller APERAK-meddelanden.',
-      })
-    } else if (type === 'slow_grid_owner_response') {
-      await createDashboardAlert({
-        companyId,
-        alertType: type,
-        severity: summary.severity,
-        title: `${summary.count} nätägarsvar är försenade`,
-        message: 'Följ upp uppgifts- eller mätvärdesbegäran som väntar på svar.',
-      })
-    } else if (type === 'incomplete_customer_onboarding') {
-      await createDashboardAlert({
-        companyId,
-        alertType: type,
-        severity: summary.severity,
-        title: `${summary.count} kunder har ofullständig kunddata`,
-        message: 'Komplettera kunddata innan statistik, prognos och drift används fullt ut.',
-      })
-    }
-  }
+  const { error } = await supabaseService.rpc('gridex_reconcile_data_quality_v1', {
+    p_company: companyId,
+  })
+  if (error) throw error
 }
 
 export async function resolveDashboardAlert(alertId: string, companyId: string): Promise<void> {
-  const { error } = await supabaseService
-    .from('dashboard_alerts')
-    .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-    .eq('id', alertId)
-    .eq('company_id', companyId)
-
+  const { error } = await supabaseService.rpc('gridex_resolve_dashboard_alert_v1', {
+    p_company: companyId,
+    p_alert: alertId,
+  })
   if (error) throw error
 }

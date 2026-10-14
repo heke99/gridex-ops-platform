@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { upsertManagedDataQualityIssue } from '@/lib/analytics/dataQuality'
 
 export type BiddingZoneResolverInput = {
   companyId: string
@@ -27,20 +28,13 @@ function cleanPostalCode(value?: string | null): string | null {
 }
 
 async function createMissingIssue(companyId: string, meteringPointId?: string | null): Promise<void> {
-  const { error } = await supabaseService
-    .from('data_quality_issues')
-    .upsert({
-      company_id: companyId,
-      entity_type: 'metering_point',
-      entity_id: meteringPointId ?? null,
-      issue_type: 'missing_bidding_zone',
-      severity: 'warning',
-      message: 'Mätpunkt saknar SE-område och kunde inte lösas med tillräcklig säkerhet.',
-      status: 'open',
-      resolved_at: null,
-    }, { onConflict: 'company_id,entity_type,entity_id,issue_type,status' })
-
-  if (error && !/does not exist|schema cache|Could not find/i.test(error.message)) throw error
+  if (!meteringPointId) return
+  await upsertManagedDataQualityIssue({
+    companyId,
+    entityId: meteringPointId,
+    issueType: 'missing_bidding_zone',
+    message: 'Mätpunkt saknar SE-område och kunde inte lösas med tillräcklig säkerhet.',
+  })
 }
 
 export async function resolveBiddingZone(input: BiddingZoneResolverInput): Promise<BiddingZoneResolution> {

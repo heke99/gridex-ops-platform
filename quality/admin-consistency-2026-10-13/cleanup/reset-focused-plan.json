@@ -1,0 +1,19 @@
+{
+  "execution_order": [
+    "c-events",
+    "b-read-models",
+    "a-quality",
+    "d-inbound"
+  ],
+  "source_application_receipt": "application-reset-receipt.json",
+  "original_baseline_archive": "reset-approved-baseline-before-application-reset.json",
+  "guard_policy": "Original reviewed counts/hashes, physical customer/site/meter/application-empty roots, validated FKs, pinned UUID deletes, NULL-safe unchanged technical/admin rowsets, per-batch zero scope/pinned assertions. No blanket FK/trigger disable. Final read-only check verifies all140 originally empty graph tables and all17 scopes. Shared technical producers remain enabled; root checks current live state after completion.",
+  "files": [
+    "reset-focused-c-events.sql",
+    "reset-focused-b-read-models.sql",
+    "reset-focused-a-quality.sql",
+    "reset-focused-d-inbound.sql"
+  ],
+  "final_verification": "reset-focused-final-verification.sql",
+  "root_only_live_execution": true
+}

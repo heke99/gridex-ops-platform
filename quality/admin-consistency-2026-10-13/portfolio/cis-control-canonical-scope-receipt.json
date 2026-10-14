@@ -1,0 +1,29 @@
+{
+  "scope": "Final exact two-module handoff only: CIS private bulk company resolver and operations control sweep/billing-export guard scopes",
+  "files": {
+    "app/admin/cis/actions.ts": "e47b89f8929325c4a679c4fbe1741a89792e96349b0324839d37295894ca75af",
+    "app/admin/operations/control-actions.ts": "9c1e889d2b345abc8edd200979d5f79f7dec61bf0b965069241347afc4d9402a",
+    "__tests__/cis-control-actions-canonical-scope.test.ts": "b11bd34b62d7eb5a5d5d11d66919167c4274758d3bae9988792fa2c86feba455"
+  },
+  "tests": {
+    "red": {
+      "path": "/tmp/gridex-cis-control-canonical-scope-red.json",
+      "sha256": "9a8b1954902aead23364047ece3037c5e1d19199f178cff9c16b2b371272944e",
+      "passed": 5,
+      "failed": 22,
+      "success": false
+    },
+    "green": {
+      "path": "/tmp/gridex-cis-control-canonical-scope-green.json",
+      "sha256": "7234463d0e9e5ff6f29664772f6ee35e4d64b6bc2e5e4af059779449c47d32b8",
+      "passed": 35,
+      "failed": 0,
+      "success": true
+    }
+  },
+  "unchanged": "CIS individual/Ediel paths, permission sets, actor lookup, membership/lifecycle checks, row criteria and downstream commands",
+  "platform_semantics": "CIS no-selected platform context remains global; operations control still requires selected company",
+  "shared_helper_or_global_tests_edited": false,
+  "source_frozen": true,
+  "no_live_writes_migrations_generated_artifacts_or_global_memory": true
+}

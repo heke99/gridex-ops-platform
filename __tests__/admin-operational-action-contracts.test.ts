@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const s = vi.hoisted(() => ({ access: vi.fn(), scope: vi.fn(), createInfo: vi.fn(), createScope: vi.fn(), createPermission: vi.fn(), queueInfo: vi.fn(), queuePermission: vi.fn(), snapshot: vi.fn(), manualSent: vi.fn(), complete: vi.fn(), selectProvider: vi.fn(), enableProvider: vi.fn(), revalidate: vi.fn(), platform: false, requestCompany: 'company-a', user: 'actor-a' }));
 vi.mock('next/cache', () => ({ revalidatePath: s.revalidate }));
 vi.mock('next/navigation', () => ({ redirect: (url: string) => { throw new Error('redirect:' + url); }, unstable_rethrow: () => { } }));
-vi.mock('@/lib/admin/guards', () => ({ requireAdminActionAccess: s.access, isPlatformAdminContext: () => s.platform }));
+vi.mock('@/lib/admin/guards', async (importOriginal) => ({ ...await importOriginal<typeof import('@/lib/admin/guards')>(), requireAdminActionAccess: s.access }));
 vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () => ({ auth: { getUser: async () => ({ data: { user: s.user ? { id: s.user } : null } }) } }) }));
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { company_id: s.requestCompany }, error: null }) }) }) }) } }));
-vi.mock('@/lib/tenant/scope', () => ({ requireOperationalCompanyId: s.scope, getOperationalCompanyScope: async () => ({ companyId: await s.scope() }) }));
+vi.mock('@/lib/tenant/scope', async (importOriginal) => ({ ...await importOriginal<typeof import('@/lib/tenant/scope')>(), requireOperationalCompanyId: s.scope, getOperationalCompanyScope: async () => ({ companyId: await s.scope() }) }));
 vi.mock('@/lib/onboarding/infoRequests', () => ({ createCustomerInfoRequest: s.createInfo, createAuthorizationScope: s.createScope, createMeteringPermissionDraft: s.createPermission, queueCustomerInfoRequestForDispatch: s.queueInfo, queueMeteringPermissionForZ13: s.queuePermission, applyZ14SnapshotToMeteringPermission: s.snapshot }));
 vi.mock('@/lib/ediel/services/manualPermission', () => ({ parseManualServiceAssignmentSelection: (v: string | null) => ({ selection: v }) }));
 vi.mock('@/lib/facility/facilityLookupWorkflow', () => ({ markFacilityLookupSentManually: s.manualSent }));
@@ -19,10 +19,11 @@ vi.mock('@/lib/integrations/billing/capway/client', () => ({}));
 import { createAuthorizationScopeAction, createCustomerInfoRequestAction, createMeteringPermissionDraftAction, queueCustomerInfoRequestAction, queueMeteringPermissionZ13Action, applyZ14SnapshotAction } from '@/app/admin/customer-info-requests/actions';
 import { completeFacilityLookupAction, markFacilityLookupSentManuallyAction } from '@/app/admin/facility-requests/actions';
 import { selectInvoiceProviderAction, setInvoiceDispatchEnabledAction } from '@/app/admin/billing/integrations/actions';
+import { TenantCompanyRequiredError, TENANT_COMPANY_REQUIRED_MESSAGE } from '@/lib/tenant/scope';
 const form = (v: Record<string, string | string[]>) => { const f = new FormData(); for (const [k, x] of Object.entries(v))
     for (const value of Array.isArray(x) ? x : [x])
         f.append(k, value); return f; };
-beforeEach(() => { vi.resetAllMocks(); s.platform = false; s.requestCompany = 'company-a'; s.user = 'actor-a'; s.access.mockResolvedValue({ userId: 'actor-a' }); s.scope.mockResolvedValue('company-a'); });
+beforeEach(() => { vi.resetAllMocks(); s.platform = false; s.requestCompany = 'company-a'; s.user = 'actor-a'; s.access.mockImplementation(async () => ({ userId: 'actor-a', roles: [], permissions: [], isAdmin: true, isPlatformAdmin: s.platform, companyId: await s.scope() })); s.scope.mockResolvedValue('company-a'); });
 describe('information request buttons', () => {
     it('binds creation to the authenticated actor/company and retains repeated categories', async () => { await createCustomerInfoRequestAction(form({ customer_id: 'customer-a', company_id: 'company-forged', actor_user_id: 'forged', requested_data_categories: ['customer_masterdata', 'metering_data'], notes: '  Notering  ' })); expect(s.createInfo).toHaveBeenCalledWith(expect.objectContaining({ companyId: 'company-a', actorUserId: 'actor-a', customerId: 'customer-a', requestedDataCategories: ['customer_masterdata', 'metering_data'], notes: 'Notering' })); });
     it('preserves authorization checkboxes and validity dates', async () => { await createAuthorizationScopeAction(form({ customer_id: 'customer-a', covers_grid_owner_data: 'on', covers_metering_data: 'on', valid_from: '2026-10-05' })); expect(s.createScope).toHaveBeenCalledWith(expect.objectContaining({ companyId: 'company-a', coversGridOwnerData: true, coversCurrentSupplierContract: false, coversMeteringData: true, validFrom: '2026-10-05' })); });
@@ -43,5 +44,5 @@ describe('facility request buttons', () => {
 describe('billing provider buttons', () => {
     it('uses the selected company and actor and redirects after provider selection', async () => { await expect(selectInvoiceProviderAction(form({ company_id: 'company-forged', provider: 'file_export', environment: 'test' }))).rejects.toThrow('redirect:/admin/billing/integrations?provider=selected'); expect(s.selectProvider).toHaveBeenCalledWith({ companyId: 'company-a', provider: 'file_export', environment: 'test', actorUserId: 'actor-a' }); });
     it('uses the explicit enabled flag and refreshes the integration view', async () => { await expect(setInvoiceDispatchEnabledAction(form({ enabled: 'false' }))).rejects.toThrow('provider=disabled'); expect(s.enableProvider).toHaveBeenCalledWith({ companyId: 'company-a', enabled: false, actorUserId: 'actor-a' }); expect(s.revalidate).toHaveBeenCalledWith('/admin/billing/integrations'); });
-    it('requires a selected company before provider changes', async () => { s.scope.mockResolvedValue(null); await expect(selectInvoiceProviderAction(form({ provider: 'capway_aptic' }))).rejects.toThrow('Välj ett elhandelsbolag'); expect(s.selectProvider).not.toHaveBeenCalled(); });
+    it('requires a selected company before provider changes', async () => { s.scope.mockResolvedValue(null); const attempt = selectInvoiceProviderAction(form({ provider: 'capway_aptic' })); await expect(attempt).rejects.toThrow(TenantCompanyRequiredError); await expect(attempt).rejects.toMatchObject({ message: TENANT_COMPANY_REQUIRED_MESSAGE }); expect(s.selectProvider).not.toHaveBeenCalled(); });
 });

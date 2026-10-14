@@ -1,0 +1,569 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts (14 tests | 12 failed) 270ms
+   × 'work queue' scopes the actual page and every native read to the permission guard company 59ms
+   × 'facility requests' scopes the actual page and every native read to the permission guard company 23ms
+   × 'work queue' fails closed when a tenant guard has no company despite a legacy fallback 15ms
+   × 'facility requests' fails closed when a tenant guard has no company despite a legacy fallback 5ms
+   × facility request join fallback retains the canonical company filter 3ms
+   × 'events' uses the canonical company rather than a legacy owner membership 10ms
+   × 'intake' uses the canonical company rather than a legacy owner membership 6ms
+   × 'events' retains an explicitly selected platform company instead of reading across tenants 3ms
+   × 'intake' retains an explicitly selected platform company instead of reading across tenants 2ms
+   × 'events' requires a platform company selection and never borrows a legacy company 104ms
+   × 'intake' requires a platform company selection and never borrows a legacy company 12ms
+   × intake fails closed for a missing canonical tenant company before loading offers or setup 16ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'work queue' scopes the actual page and every native read to the permission guard company
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'facility requests' scopes the actual page and every native read to the permission guard company
+AssertionError: expected "vi.fn()" to be called with arguments: [ Anything, 'guard-A', Anything ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   Anything,
+-   "guard-A",
+-   Anything,
++   {
++     "auth": {
++       "getUser": [Function getUser],
++     },
++     "from": [Function from],
++   },
++   "legacy-B",
++   {
++     "limit": 250,
++   },
+  ]
+
+
+Number of calls: 1
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:76:18
+     74| it.each(globalPages)('$name scopes the actual page and every native re…
+     75|   const html = renderToStaticMarkup(await page())
+     76|   expect(loader).toHaveBeenCalledWith(expect.anything(), 'guard-A', ex…
+       |                  ^
+     77|   expect(io.queries.length).toBeGreaterThan(0)
+     78|   expect(io.queries.every(q => q.filters.some(([key, value]) => key ==…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'work queue' fails closed when a tenant guard has no company despite a legacy fallback
+AssertionError: promise resolved "{ …(10) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
+- }
++ <div
++   className="min-h-screen bg-slate-50"
++ >
++   <default
++     subtitle="Det som behöver din åtgärd. Allt som sker automatiskt syns under Händelser."
++     title="Arbetskö"
++     userEmail="operator@example.invalid"
++     workspaceMode="tenant"
++     workspaceName="Legacybolag B"
++   />
++   <main
++     className="space-y-4 p-4 lg:p-6"
++   >
++     <section
++       className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950 shadow-sm"
++     >
++       Arbetskön visar bara manuella åtgärder. Pågående automation och mottagna svar visas under Händelser.
++     </section>
++     <section
++       className="grid grid-cols-2 gap-2 xl:grid-cols-4"
++     >
++       <StatCard
++         label="Synliga kunder"
++         value={0}
++       />
++       <StatCard
++         label="Ärenden i kö"
++         value={0}
++       />
++       <StatCard
++         label="Hög prioritet"
++         value={0}
++       />
++       <StatCard
++         label="Saknar fullmakt"
++         value={0}
++       />
++     </section>
++     <section
++       className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
++     >
++       <div
++         className="border-b border-slate-200 px-6 py-5"
++       >
++         <h2
++           className="text-lg font-bold text-slate-950"
++         >
++           Nästa åtgärder
++         </h2>
++         <p
++           className="mt-1 text-sm text-slate-600"
++         >
++           Visar endast nästa manuella åtgärd per pågående automatisk kedja. Historik och svar finns under Händelser.
++         </p>
++       </div>
++       <div
++         className="px-6 py-12 text-center"
++       >
++         <h3
++           className="text-lg font-bold text-slate-950"
++         >
++           Inga aktiva driftuppgifter hittades
++         </h3>
++         <p
++           className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-600"
++         >
++           Det betyder att det inte finns något som behöver åtgärdas, inga uppgiftsbegäran eller leverantörsbyten kopplade till synliga kunder. Äldre testuppgifter och poster utan kundkoppling visas inte här.
++         </p>
++         <div
++           className="mt-6 flex flex-wrap justify-center gap-3"
++         >
++           <default
++             className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50"
++             href="/admin/customers"
++           >
++             Öppna kundregister
++           </default>
++           <default
++             className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
++             href="/admin/customers/intake"
++           >
++             Skapa kund
++           </default>
++         </div>
++       </div>
++     </section>
++   </main>
++ </div>
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:84:23
+     82| it.each(globalPages)('$name fails closed when a tenant guard has no co…
+     83|   io.companyId = null
+     84|   await expect(page()).rejects.toThrow('saknar ett aktivt bolag')
+       |                       ^
+     85|   expect(loader).not.toHaveBeenCalled()
+     86|   expect(io.queries).toEqual([])
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'facility requests' fails closed when a tenant guard has no company despite a legacy fallback
+AssertionError: promise resolved "{ …(10) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
+- }
++ <div
++   className="min-h-screen bg-slate-50"
++ >
++   <default
++     subtitle="Kö för kunder där anläggnings-ID, mätpunkt, nätägare, elområde eller fullmakt behöver kompletteras innan leverantörsbyte."
++     title="Anläggningsuppgifter"
++     userEmail="operator@example.invalid"
++     workspaceMode="tenant"
++     workspaceName="Legacybolag B"
++   />
++   <main
++     className="space-y-4 p-4 lg:p-6"
++   >
++     <section
++       className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-950 shadow-sm"
++     >
++       <div
++         className="font-bold"
++       >
++         Affärsregel
++       </div>
++       <p
++         className="mt-1 leading-6"
++       >
++         Adress och postnummer får användas som förslag. Verifierad sanning är nätområdeskod, anläggnings-ID, mätpunkt eller bekräftelse från nätägare. Systemet får inte starta leverantörsbyte när kritiska anläggningsuppgifter saknas.
++       </p>
++     </section>
++     <section
++       className="grid grid-cols-2 gap-2 xl:grid-cols-5"
++     >
++       <StatCard
++         description="Utskick stoppas tills signerad fullmakt finns."
++         label="Saknar fullmakt"
++         value={0}
++       />
++       <StatCard
++         description="Anläggnings-ID, mätpunkt eller elområde saknas."
++         label="Saknar uppgifter"
++         value={0}
++       />
++       <StatCard
++         description="Resolver-förslag räcker inte för switch."
++         label="Nätägare behöver verifieras"
++         value={0}
++       />
++       <StatCard
++         description="Begäran är skickad eller köad."
++         label="Väntar nätägare"
++         value={0}
++       />
++       <StatCard
++         description="Kan fortsätta mot leverantörsbyte."
++         label="Redo"
++         value={0}
++       />
++     </section>
++     <section
++       className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
++     >
++       <div
++         className="border-b border-slate-200 px-6 py-5"
++       >
++         <div
++           className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
++         >
++           <div>
++             <h2
++               className="text-lg font-bold text-slate-950"
++             >
++               Facility-arbetskö
++             </h2>
++             <p
++               className="mt-1 text-sm text-slate-600"
++             >
++               Visar bara kundkopplade anläggningar med aktiv brist, väntande nätägarsvar eller nästa åtgärd.
++             </p>
++           </div>
++           <default
++             className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50"
++             href="/admin/work-queue"
++           >
++             Öppna hela arbetskön
++           </default>
++         </div>
++       </div>
++       <EmptyState />
++     </section>
++   </main>
++ </div>
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:84:23
+     82| it.each(globalPages)('$name fails closed when a tenant guard has no co…
+     83|   io.companyId = null
+     84|   await expect(page()).rejects.toThrow('saknar ett aktivt bolag')
+       |                       ^
+     85|   expect(loader).not.toHaveBeenCalled()
+     86|   expect(io.queries).toEqual([])
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > facility request join fallback retains the canonical company filter
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:101:110
+     99|   const requests = io.queries.filter(q => q.table === 'grid_owner_info…
+    100|   expect(requests).toHaveLength(2)
+    101|   expect(requests.every(q => q.filters.some(([key, value]) => key === …
+       |                                                                                                              ^
+    102| })
+    103|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'events' uses the canonical company rather than a legacy owner membership
+AssertionError: expected "vi.fn()" to be called with arguments: [ Anything, 'guard-A', Anything ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   Anything,
+-   "guard-A",
+-   Anything,
++   {
++     "auth": {
++       "getUser": [Function getUser],
++     },
++     "from": [Function from],
++   },
++   "legacy-B",
++   {
++     "actionRequired": null,
++     "cursor": undefined,
++     "cursorId": undefined,
++     "dateFrom": null,
++     "dateTo": null,
++     "eventGroup": undefined,
++     "limit": 50,
++     "search": undefined,
++     "status": undefined,
++   },
+  ]
+
+
+Number of calls: 1
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:111:41
+    109| it.each(selectedPages)('$name uses the canonical company rather than a…
+    110|   const html = renderToStaticMarkup(await page())
+    111|   if (name === 'events') expect(loader).toHaveBeenCalledWith(expect.an…
+       |                                         ^
+    112|   else {
+    113|     expect(loader).toHaveBeenCalledWith({ activeOnly: true, companyId:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'intake' uses the canonical company rather than a legacy owner membership
+AssertionError: expected "vi.fn()" to be called with arguments: [ { activeOnly: true, …(1) } ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+    {
+      "activeOnly": true,
+-     "companyId": "guard-A",
++     "companyId": "legacy-B",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:113:20
+    111|   if (name === 'events') expect(loader).toHaveBeenCalledWith(expect.an…
+    112|   else {
+    113|     expect(loader).toHaveBeenCalledWith({ activeOnly: true, companyId:…
+       |                    ^
+    114|     expect(io.suppliers).toHaveBeenCalledWith(expect.anything(), expec…
+    115|     expect(io.goLive).toHaveBeenCalledWith('guard-A')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'events' retains an explicitly selected platform company instead of reading across tenants
+AssertionError: expected "vi.fn()" to be called with arguments: [ Anything, 'guard-A', Anything ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   Anything,
+-   "guard-A",
+-   Anything,
++   {
++     "auth": {
++       "getUser": [Function getUser],
++     },
++     "from": [Function from],
++   },
++   "legacy-B",
++   {
++     "actionRequired": null,
++     "cursor": undefined,
++     "cursorId": undefined,
++     "dateFrom": null,
++     "dateTo": null,
++     "eventGroup": undefined,
++     "limit": 50,
++     "search": undefined,
++     "status": undefined,
++   },
+  ]
+
+
+Number of calls: 1
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:123:41
+    121|   io.platform = true
+    122|   await page()
+    123|   if (name === 'events') expect(loader).toHaveBeenCalledWith(expect.an…
+       |                                         ^
+    124|   else expect(loader).toHaveBeenCalledWith({ activeOnly: true, company…
+    125| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'intake' retains an explicitly selected platform company instead of reading across tenants
+AssertionError: expected "vi.fn()" to be called with arguments: [ { activeOnly: true, …(1) } ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+    {
+      "activeOnly": true,
+-     "companyId": "guard-A",
++     "companyId": "legacy-B",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:124:23
+    122|   await page()
+    123|   if (name === 'events') expect(loader).toHaveBeenCalledWith(expect.an…
+    124|   else expect(loader).toHaveBeenCalledWith({ activeOnly: true, company…
+       |                       ^
+    125| })
+    126|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'events' requires a platform company selection and never borrows a legacy company
+AssertionError: expected '<div class="min-h-screen bg-slate-50"…' to contain 'Välj ett bolag'
+
+Expected: "Välj ett bolag"
+Received: "<div class="min-h-screen bg-slate-50"><header>Legacybolag B</header><main class="space-y-4 p-4 lg:p-6"><section class="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-950 shadow-sm">En rad beskriver ett faktiskt steg i kundens operativa kedja. Arbetskön visar bara sådant som kräver åtgärd; den här vyn visar även pågående och klara steg.</section><section class="grid grid-cols-2 gap-2 lg:grid-cols-4"><div class="rounded-3xl border p-3 border-slate-200 bg-white"><div class="text-sm font-bold text-slate-700">Visade händelser</div><div class="mt-1 text-2xl font-black tracking-tight text-slate-950">0</div></div><div class="rounded-3xl border p-3 border-emerald-200 bg-emerald-50"><div class="text-sm font-bold text-slate-700">Kräver åtgärd</div><div class="mt-1 text-2xl font-black tracking-tight text-slate-950">0</div></div><div class="rounded-3xl border p-3 border-emerald-200 bg-emerald-50"><div class="text-sm font-bold text-slate-700">Väntar på svar</div><div class="mt-1 text-2xl font-black tracking-tight text-slate-950">0</div></div><div class="rounded-3xl border p-3 border-slate-200 bg-white"><div class="text-sm font-bold text-slate-700">Svar mottaget</div><div class="mt-1 text-2xl font-black tracking-tight text-slate-950">0</div></div></section><form class="grid min-w-0 grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-3 lg:grid-cols-6"><label class="grid min-w-0 grid-cols-1 gap-1 lg:col-span-2"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Sök</span><input placeholder="Kund, kundnummer, e-post, adress, anläggning, mätpunkt eller nätägare" class="min-w-0 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" name="q" value=""/></label><label class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Status</span><select name="status" aria-label="Status" class="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="" selected="">Alla händelser</option><option value="needs_review">Kräver åtgärd</option><option value="in_progress">Pågår</option><option value="waiting_response">Väntar på svar</option><option value="response_received">Svar mottaget</option><option value="completed">Klart</option><option value="failed">Misslyckat</option><option value="blocked">Blockerat</option><option value="cancelled">Avbrutet</option><option value="skipped">Hoppad över</option></select></label><label class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Område</span><select name="group" aria-label="Område" class="min-w-0 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="" selected="">Alla områden</option><option value="customer_data">Uppgiftsbegäran</option><option value="facility">Anläggning</option><option value="supplier_switch">Leverantörsbyte</option><option value="operation">Automationsjobb</option></select></label><label class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Från</span><input type="date" class="min-w-0 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" name="from" value=""/></label><label class="grid min-w-0 grid-cols-1 gap-1"><span class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-600">Till</span><input type="date" class="min-w-0 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" name="to" value=""/></label><div class="flex flex-wrap items-end gap-2 lg:col-span-6"><label class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-800"><input type="checkbox" name="action" value="required"/> Endast kräver åtgärd</label><button class="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-800">Filtrera</button><a href="/admin/events">Rensa</a></div></form><section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"><div class="p-10 text-center"><h2 class="text-lg font-semibold text-slate-950">Inga händelser matchar urvalet</h2><p class="mt-2 text-sm text-slate-600">När automatiska kontroller, svar eller manuella steg sker visas de här.</p></div></section></main></div>"
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:131:16
+    129|   io.companyId = null
+    130|   const html = renderToStaticMarkup(await page())
+    131|   expect(html).toContain('Välj ett bolag')
+       |                ^
+    132|   expect(loader).not.toHaveBeenCalled()
+    133|   expect(io.goLive).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > 'intake' requires a platform company selection and never borrows a legacy company
+AssertionError: expected '<div class="min-h-screen"><header></h…' to contain 'Välj ett bolag'
+
+Expected: "Välj ett bolag"
+Received: "<div class="min-h-screen"><header></header><div class="mx-auto max-w-5xl space-y-4 p-4 sm:p-6"><div class="flex flex-wrap items-center justify-between gap-3"><a href="/admin/customers">← Kundregister</a></div><div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">Registrerar i <span class="font-semibold text-slate-950">Legacybolag B</span></div><details class="rounded-2xl border p-4 text-sm border-amber-200 bg-amber-50 text-amber-950"><summary class="cursor-pointer font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Automatiska utskick: Blockerade / inställningar saknas</summary><p class="mt-3 leading-6">Kunden sparas även om uppgifter saknas. Saknade uppgifter stoppar senare uppgiftsbegäran, leverantörsbyte eller export tills uppgifterna är kompletta.</p></details></div></div>"
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:131:16
+    129|   io.companyId = null
+    130|   const html = renderToStaticMarkup(await page())
+    131|   expect(html).toContain('Välj ett bolag')
+       |                ^
+    132|   expect(loader).not.toHaveBeenCalled()
+    133|   expect(io.goLive).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  __tests__/admin-operational-pages-canonical-scope.test.ts > intake fails closed for a missing canonical tenant company before loading offers or setup
+AssertionError: promise resolved "{ …(10) }" instead of rejecting
+
+- Expected
++ Received
+
+- Error {
+-   "message": "rejected promise",
++ <div
++   className="min-h-screen"
++ >
++   <default
++     subtitle="Registrera en kund eller importera flera kunder."
++     title="Kundintag"
++     userEmail="operator@example.invalid"
++   />
++   <div
++     className="mx-auto max-w-5xl space-y-4 p-4 sm:p-6"
++   >
++     <div
++       className="flex flex-wrap items-center justify-between gap-3"
++     >
++       <default
++         className="text-sm font-semibold text-slate-700 hover:text-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
++         href="/admin/customers"
++       >
++         ← Kundregister
++       </default>
++       <default
++         ariaLabel="Fler vyer från kundintag"
++       >
++         <default
++           href="/admin/contracts"
++         >
++           Hantera avtalskatalog
++         </default>
++       </default>
++     </div>
++     <div
++       className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600"
++     >
++       Registrerar i 
++       <span
++         className="font-semibold text-slate-950"
++       >
++         Legacybolag B
++       </span>
++     </div>
++     <details
++       className="rounded-2xl border p-4 text-sm border-amber-200 bg-amber-50 text-amber-950"
++     >
++       <summary
++         className="cursor-pointer font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700"
++       >
++         Automatiska utskick: 
++         Blockerade / inställningar saknas
++       </summary>
++       <p
++         className="mt-3 leading-6"
++       >
++         Kunden sparas även om uppgifter saknas. Saknade uppgifter stoppar senare uppgiftsbegäran, leverantörsbyte eller export tills uppgifterna är kompletta.
++       </p>
++     </details>
++     <default
++       bulk={
++         <default
++           contractOffers={[]}
++           example="customer_type;intake_flow_type;first_name;last_name;contact_title;company_name;email;phone;personal_number;org_number;apartment_number;site_name;facility_id;meter_point_id;grid_owner_id;grid_area_code;price_area_code;move_in_date;annual_consumption_kwh;street;postal_code;city;care_of;country;current_supplier_name;current_supplier_org_number;customer_confirmation_status;authorization_status;authorization_valid_from;authorization_valid_to;expected_start_date;confirmed_start_date;start_date_source;moved_from_street;moved_from_postal_code;moved_from_city;moved_from_supplier_name;contract_offer_id;contract_status;binding_months;notice_months
++ private;switch;Anna;Svensson;;;anna@example.se;0700000000;199001011234;;1201;Anna Svensson - Lägenhet;735999111111111111;735999000000000001;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-06-01;12000;Storgatan 1;11122;Stockholm;;SE;Fortum;5560000000;confirmed;signed;2026-05-21;2027-05-21;2026-06-01;;customer_expected;;;;;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;1
++ association;move_in;Sara;Ek;Ordförande;Brf Solrosen;sara@solrosen.se;0701111111;;769600-1234;;Brf Solrosen Huvudanläggning;735999111111111112;735999000000000002;REPLACE_GRID_OWNER_UUID;STHLM;SE3;2026-08-01;54000;Föreningsgatan 4;11123;Stockholm;c/o Styrelsen;SE;E.ON;5561000000;confirmed;sent;2026-05-21;2027-05-21;2026-08-01;;customer_expected;Gamla vägen 9;11121;Stockholm;Vattenfall;REPLACE_CONTRACT_OFFER_UUID;pending_signature;12;3"
++         />
++       }
++       manual={
++         <default
++           contractOffers={[]}
++           electricitySuppliers={[]}
++           gridOwners={[]}
++           priceAreas={[]}
++         />
+        }
++       mode="manual"
++     />
++   </div>
++ </div>
+
+ ❯ __tests__/admin-operational-pages-canonical-scope.test.ts:138:66
+    136| it('intake fails closed for a missing canonical tenant company before …
+    137|   io.companyId = null
+    138|   await expect(IntakePage({ searchParams: Promise.resolve({}) })).reje…
+       |                                                                  ^
+    139|   expect(io.offers).not.toHaveBeenCalled()
+    140|   expect(io.goLive).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 2 passed (14)
+   Start at  12:43:02
+   Duration  5.03s (transform 2.18s, setup 155ms, import 2.63s, tests 270ms, environment 0ms)
+

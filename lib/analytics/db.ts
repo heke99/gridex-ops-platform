@@ -79,6 +79,18 @@ export async function getCustomerGrowthSeries(companyId: string, month: string):
   return (data ?? []) as MonthlyMetricRow[]
 }
 
+export async function countMissingMeteringPoints(companyId: string, month: string, customerId: string | null = null): Promise<number> {
+  const { data, error } = await supabaseService.rpc('gridex_missing_metering_points_count_v1', {
+    p_company: companyId,
+    p_month: monthStart(month),
+    p_customer: customerId,
+  })
+  if (error) throw error
+  const count = typeof data === 'number' ? data : typeof data === 'string' && /^\d+$/.test(data) ? Number(data) : NaN
+  if (!Number.isSafeInteger(count) || count < 0) throw new Error('Invalid missing-metering-point count')
+  return count
+}
+
 export async function buildLiveMonthlyFallback(companyId: string, month: string): Promise<MonthlyMetricRow> {
   const start = `${monthStart(month)}T00:00:00.000Z`
   const end = `${monthEndExclusive(month)}T00:00:00.000Z`
@@ -102,7 +114,7 @@ export async function buildLiveMonthlyFallback(companyId: string, month: string)
     safeCount('metering_points', companyId),
     safeCount('metering_points', companyId, (query) => query.in('status', ACTIVE_STATUSES)),
     safeCount('metering_values', companyId, (query) => query.gte('period_start', start).lt('period_start', end)),
-    safeCount('data_quality_issues', companyId, (query) => query.eq('status', 'open').eq('issue_type', 'missing_metering_values')),
+    countMissingMeteringPoints(companyId, month),
   ])
 
   return {
@@ -369,7 +381,7 @@ export async function getLatestForecastByGridOwner(companyId: string, filters: A
 }
 
 export async function getDeviationRows(companyId: string): Promise<DeviationRow[]> {
-  const issues = await safeRows<any>('data_quality_issues', 'id, entity_type, entity_id, issue_type, severity, message, status', companyId, (query) =>
+  const issues = await safeRows<any>('gridex_actionable_data_quality_issues_v', 'id, entity_type, entity_id, issue_type, severity, message, status', companyId, (query) =>
     query.eq('status', 'open').order('detected_at', { ascending: false }).limit(50)
   )
 
@@ -399,7 +411,7 @@ export async function getPlatformAnalyticsIssueSummary(month = monthStart()) {
     const [failedEdiel, unresolvedEdiel, issues, forecast] = await Promise.all([
       safeCount('ediel_messages', company.id, (query) => query.in('status', ['failed', 'error', 'rejected', 'blocked'])),
       safeCount('ediel_messages', company.id, (query) => query.in('status', ['pending', 'queued', 'received', 'manual_review'])),
-      safeCount('data_quality_issues', company.id, (query) => query.eq('status', 'open')),
+      safeCount('gridex_actionable_data_quality_issues_v', company.id),
       getMonthlyMetric(company.id, month),
     ])
     return {
@@ -435,10 +447,13 @@ export async function getReportRows(companyId: string, report: string, month: st
   if (report === 'forecast_run_items') {
     return safeRows<Record<string, unknown>>('forecast_run_items', '*', companyId, (query) => query.gte('period_start', safeMonth).lt('period_start', addMonths(safeMonth, 1)).limit(5000))
   }
-  if (report === 'data_quality_issues' || report === 'missing_metering_values') {
-    return safeRows<Record<string, unknown>>('data_quality_issues', '*', companyId, (query) =>
-      report === 'missing_metering_values' ? query.eq('issue_type', 'missing_metering_values').limit(5000) : query.limit(5000)
+  if (report === 'missing_metering_values') {
+    return safeRows<Record<string, unknown>>('gridex_actionable_data_quality_issues_v', '*', companyId, (query) =>
+      query.eq('issue_type', 'missing_metering_values').limit(5000)
     )
+  }
+  if (report === 'data_quality_issues') {
+    return safeRows<Record<string, unknown>>('data_quality_issues', '*', companyId, (query) => query.limit(5000))
   }
   return safeRows<Record<string, unknown>>('company_monthly_metrics', '*', companyId, (query) => query.eq('month', safeMonth))
 }
@@ -454,7 +469,7 @@ export async function getCustomerAnalytics(companyId: string, customerId: string
   const [sites, meteringPoints, missingIssues] = await Promise.all([
     safeCount('customer_sites', companyId, (query) => query.eq('customer_id', customerId)),
     safeCount('metering_points', companyId, (query) => query.eq('customer_id', customerId)),
-    safeCount('data_quality_issues', companyId, (query) => query.eq('status', 'open').eq('entity_type', 'metering_point').eq('issue_type', 'missing_metering_values')),
+    countMissingMeteringPoints(companyId, safeMonth, customerId),
   ])
   const pointRows = await safeRows<{ bidding_zone_code: string | null; grid_owner_id: string | null }>('metering_points', 'bidding_zone_code, grid_owner_id', companyId, (query) =>
     query.eq('customer_id', customerId).limit(500)

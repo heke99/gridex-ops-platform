@@ -37,7 +37,7 @@ describe('authenticated shell performance invariants', () => {
     const layout = read('app/admin/layout.tsx')
 
     expect(layout).toMatch(
-      /const \[cookieStore, scope, liveAccess\] = await Promise\.all\(\[\s*cookies\(\),\s*getOperationalCompanyScope\(admin\.userId\),\s*getTenantLiveAccessForAdmin\(admin\),\s*\]\)/,
+      /const \[cookieStore, canonicalScope, liveAccess, operationalScope\] = await Promise\.all\(\[\s*cookies\(\),\s*resolveAdminSelectedCompanyReadScope\(admin\),\s*getTenantLiveAccessForAdmin\(admin\),\s*isPlatformAdmin \? getOperationalCompanyScope\(admin\.userId\) : Promise\.resolve\(null\),\s*\]\)/,
     )
   })
 
@@ -63,7 +63,12 @@ describe('authenticated shell performance invariants', () => {
     const page = read('app/admin/metering/page.tsx')
 
     expect(page).toContain("requirePermissionServer('metering.read')")
-    expect(page).toContain('getOperationalCompanyScope(context.userId)')
+    expect(page).toContain('const companyScope = await resolveAdminSelectedCompanyReadScope(context)')
+    expect(page).toContain('const companyId = companyScope.companyId')
+    expect(page).toMatch(
+      /const \[requests, values\] = await Promise\.all\(\[\s*listAllGridOwnerDataRequests\(\{\s*status: 'all',\s*scope: 'meter_values',\s*query,\s*companyId,\s*\}\),\s*listAllMeteringValues\(\{\s*query,\s*companyId,\s*\}\),\s*\]\)/,
+    )
+    expect(page).not.toContain('getOperationalCompanyScope')
     expect(page).toContain('userEmail={context.email}')
     expect(page).not.toContain('createSupabaseServerClient')
     expect(page).not.toContain('.auth.getUser()')

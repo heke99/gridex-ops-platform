@@ -1,0 +1,321 @@
+{
+  "recorded_at": "2026-10-13T12:13:29.063457+00:00",
+  "original_status": "incomplete; root session 95745 terminated with exit 130 after >9 minutes without output",
+  "original_log": "/tmp/gridex-admin-full-suite.log",
+  "original_json_exists": false,
+  "reported_file_count": 1091,
+  "reported_problem_file_count": 37,
+  "reported_problem_files": [
+    {
+      "file": "__tests__/ediel-z02-enqueue-diagnostics-component.test.ts",
+      "marker": "❯",
+      "summary": "167 tests | 3 failed",
+      "duration_ms": 8043
+    },
+    {
+      "file": "__tests__/ediel-received-z04h-address-availability.test.ts",
+      "marker": "❯",
+      "summary": "133 tests | 1 failed",
+      "duration_ms": 33257
+    },
+    {
+      "file": "__tests__/ediel-confirmed-customer-final-response.test.ts",
+      "marker": "❯",
+      "summary": "62 tests | 1 failed",
+      "duration_ms": 278379
+    },
+    {
+      "file": "__tests__/ediel-sc-012-dual-role-state-isolation.test.ts",
+      "marker": "❯",
+      "summary": "1 test | 1 skipped",
+      "duration_ms": 42456
+    },
+    {
+      "file": "__tests__/ediel-z05-rejected-identity-authority.test.ts",
+      "marker": "❯",
+      "summary": "85 tests | 1 failed",
+      "duration_ms": 7743
+    },
+    {
+      "file": "__tests__/ediel-sc-053-null-vs-zero-storage.test.ts",
+      "marker": "❯",
+      "summary": "8 tests | 2 failed",
+      "duration_ms": 19451
+    },
+    {
+      "file": "__tests__/tenantservice-portal-resolver-read-only.test.ts",
+      "marker": "❯",
+      "summary": "24 tests | 1 failed",
+      "duration_ms": 355
+    },
+    {
+      "file": "__tests__/staff-customer-retention-read-prerequisite-sql.test.ts",
+      "marker": "❯",
+      "summary": "17 tests | 1 failed",
+      "duration_ms": 64070
+    },
+    {
+      "file": "__tests__/ediel-db01-native-source-basis.test.ts",
+      "marker": "❯",
+      "summary": "27 tests | 27 skipped",
+      "duration_ms": 32
+    },
+    {
+      "file": "__tests__/ediel-source-qualified-technical-contrl-admission.test.ts",
+      "marker": "❯",
+      "summary": "0 test",
+      "duration_ms": null
+    },
+    {
+      "file": "__tests__/ediel-test-configuration-route-source.test.ts",
+      "marker": "❯",
+      "summary": "0 test",
+      "duration_ms": null
+    },
+    {
+      "file": "__tests__/ediel-technical-contrl-single-claim.test.ts",
+      "marker": "❯",
+      "summary": "64 tests | 2 failed",
+      "duration_ms": 217963
+    },
+    {
+      "file": "__tests__/ediel-prodat-z10-own-source-runtime-integration.test.ts",
+      "marker": "❯",
+      "summary": "38 tests | 1 failed",
+      "duration_ms": 1586
+    },
+    {
+      "file": "__tests__/staff-api-openapi.test.ts",
+      "marker": "❯",
+      "summary": "11 tests | 1 failed",
+      "duration_ms": 674
+    },
+    {
+      "file": "__tests__/ediel-sc-054-storage-failure-no-positive-aperak.test.ts",
+      "marker": "❯",
+      "summary": "5 tests | 2 failed",
+      "duration_ms": 10533
+    },
+    {
+      "file": "__tests__/support-attachment-quarantine-carrier.test.ts",
+      "marker": "❯",
+      "summary": "24 tests | 24 skipped",
+      "duration_ms": 20070
+    },
+    {
+      "file": "__tests__/ediel-z13-ack-customer-waiting-sql.test.ts",
+      "marker": "❯",
+      "summary": "46 tests | 2 failed",
+      "duration_ms": 158704
+    },
+    {
+      "file": "__tests__/staff-customer-detail-retention-prerequisite.test.ts",
+      "marker": "❯",
+      "summary": "4 tests | 4 skipped",
+      "duration_ms": 10630
+    },
+    {
+      "file": "__tests__/ediel-db02-profile-periods.test.ts",
+      "marker": "❯",
+      "summary": "25 tests | 2 failed",
+      "duration_ms": 125858
+    },
+    {
+      "file": "__tests__/ediel-sc-010-beneficiary-export.test.ts",
+      "marker": "❯",
+      "summary": "12 tests | 1 failed",
+      "duration_ms": 9035
+    },
+    {
+      "file": "__tests__/gridex-aud-003-clean-replay-cleanup.test.ts",
+      "marker": "❯",
+      "summary": "0 test",
+      "duration_ms": null
+    },
+    {
+      "file": "__tests__/ediel-canonical-inbound-parser-v2.test.ts",
+      "marker": "❯",
+      "summary": "6 tests | 1 failed",
+      "duration_ms": 135
+    },
+    {
+      "file": "__tests__/staff-user-rbac-audit.test.ts",
+      "marker": "❯",
+      "summary": "20 tests | 1 failed",
+      "duration_ms": 517
+    },
+    {
+      "file": "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+      "marker": "❯",
+      "summary": "2 tests | 2 failed",
+      "duration_ms": 39002
+    },
+    {
+      "file": "__tests__/native-lock-process.test.ts",
+      "marker": "❯",
+      "summary": "6 tests | 4 failed",
+      "duration_ms": 16590
+    },
+    {
+      "file": "__tests__/ediel-smime-roundtrip.test.ts",
+      "marker": "❯",
+      "summary": "3 tests | 1 failed",
+      "duration_ms": 273
+    },
+    {
+      "file": "__tests__/ediel-sc-016-partial-permission-membership.test.ts",
+      "marker": "❯",
+      "summary": "3 tests | 3 skipped",
+      "duration_ms": 12080
+    },
+    {
+      "file": "__tests__/ediel-z05c-current-sender-sql.test.ts",
+      "marker": "❯",
+      "summary": "1 test | 1 failed",
+      "duration_ms": 7075
+    },
+    {
+      "file": "__tests__/ediel-source-vm-xml-boundary.test.ts",
+      "marker": "❯",
+      "summary": "1 test | 1 failed",
+      "duration_ms": 202
+    },
+    {
+      "file": "__tests__/ediel-sc-010-071-current-grant.test.ts",
+      "marker": "❯",
+      "summary": "1 test | 1 failed",
+      "duration_ms": 12229
+    },
+    {
+      "file": "__tests__/n-plus-one-query-budget-scope.test.ts",
+      "marker": "❯",
+      "summary": "7 tests | 5 failed",
+      "duration_ms": 7767
+    },
+    {
+      "file": "__tests__/gridex-tenant-runtime-target-guard.test.ts",
+      "marker": "❯",
+      "summary": "3 tests | 2 failed",
+      "duration_ms": 287
+    },
+    {
+      "file": "__tests__/webhook-transport-pinned-lookup.test.ts",
+      "marker": "❯",
+      "summary": "2 tests | 2 skipped",
+      "duration_ms": 10027
+    },
+    {
+      "file": "__tests__/ediel-at-z09b-brp-ack-confirmation.test.ts",
+      "marker": "❯",
+      "summary": "1 test | 1 failed",
+      "duration_ms": 4912
+    },
+    {
+      "file": "__tests__/ediel-prodat-free-text.test.ts",
+      "marker": "❯",
+      "summary": "1 test | 1 failed",
+      "duration_ms": 9309
+    },
+    {
+      "file": "__tests__/ediel-unb-ack-request.test.ts",
+      "marker": "❯",
+      "summary": "1 test | 1 failed",
+      "duration_ms": 7523
+    },
+    {
+      "file": "__tests__/website-application-customer-relation-regression.test.ts",
+      "marker": "❯",
+      "summary": "2 tests | 1 failed",
+      "duration_ms": 27
+    }
+  ],
+  "unreported_preexisting_file": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+  "new_current_workstream_tests": [
+    "__tests__/actionable-status.test.ts",
+    "__tests__/admin-controltower-billing-copy.test.ts",
+    "__tests__/admin-dashboard-canonical-scope.test.ts",
+    "__tests__/admin-tenant-read-scope-canonical.test.ts",
+    "__tests__/admin-website-application-copy.test.ts",
+    "__tests__/admin-work-queue-action-visibility.test.ts",
+    "__tests__/canonical-admin-application-work-items.test.ts",
+    "__tests__/customer-analytics-missing-source-scope.test.ts",
+    "__tests__/customer-flow-integrity-empty-statistics.test.ts",
+    "__tests__/customer-portfolio-calendar.test.ts",
+    "__tests__/customer-portfolio-consistency-sql.test.ts",
+    "__tests__/customer-portfolio-page-scope.test.ts",
+    "__tests__/data-quality-lifecycle-consistency.test.ts",
+    "__tests__/forecast-cron-empty-source.test.ts",
+    "__tests__/forecast-run-evidence-errors.test.ts",
+    "__tests__/metering-forecast-quality-lifecycle.test.ts",
+    "__tests__/website-application-detail-identity.test.ts",
+    "__tests__/website-application-read-model.test.ts"
+  ],
+  "rerun_files": [
+    "__tests__/actionable-status.test.ts",
+    "__tests__/admin-controltower-billing-copy.test.ts",
+    "__tests__/admin-dashboard-canonical-scope.test.ts",
+    "__tests__/admin-tenant-read-scope-canonical.test.ts",
+    "__tests__/admin-website-application-copy.test.ts",
+    "__tests__/admin-work-queue-action-visibility.test.ts",
+    "__tests__/canonical-admin-application-work-items.test.ts",
+    "__tests__/customer-analytics-missing-source-scope.test.ts",
+    "__tests__/customer-flow-integrity-empty-statistics.test.ts",
+    "__tests__/customer-portfolio-calendar.test.ts",
+    "__tests__/customer-portfolio-consistency-sql.test.ts",
+    "__tests__/customer-portfolio-page-scope.test.ts",
+    "__tests__/data-quality-lifecycle-consistency.test.ts",
+    "__tests__/ediel-at-z09b-brp-ack-confirmation.test.ts",
+    "__tests__/ediel-canonical-inbound-parser-v2.test.ts",
+    "__tests__/ediel-confirmed-customer-final-response.test.ts",
+    "__tests__/ediel-db01-native-source-basis.test.ts",
+    "__tests__/ediel-db02-profile-periods.test.ts",
+    "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+    "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+    "__tests__/ediel-prodat-free-text.test.ts",
+    "__tests__/ediel-prodat-z10-own-source-runtime-integration.test.ts",
+    "__tests__/ediel-received-z04h-address-availability.test.ts",
+    "__tests__/ediel-sc-010-071-current-grant.test.ts",
+    "__tests__/ediel-sc-010-beneficiary-export.test.ts",
+    "__tests__/ediel-sc-012-dual-role-state-isolation.test.ts",
+    "__tests__/ediel-sc-016-partial-permission-membership.test.ts",
+    "__tests__/ediel-sc-053-null-vs-zero-storage.test.ts",
+    "__tests__/ediel-sc-054-storage-failure-no-positive-aperak.test.ts",
+    "__tests__/ediel-smime-roundtrip.test.ts",
+    "__tests__/ediel-source-qualified-technical-contrl-admission.test.ts",
+    "__tests__/ediel-source-vm-xml-boundary.test.ts",
+    "__tests__/ediel-technical-contrl-single-claim.test.ts",
+    "__tests__/ediel-test-configuration-route-source.test.ts",
+    "__tests__/ediel-unb-ack-request.test.ts",
+    "__tests__/ediel-z02-enqueue-diagnostics-component.test.ts",
+    "__tests__/ediel-z05-rejected-identity-authority.test.ts",
+    "__tests__/ediel-z05c-current-sender-sql.test.ts",
+    "__tests__/ediel-z13-ack-customer-waiting-sql.test.ts",
+    "__tests__/forecast-cron-empty-source.test.ts",
+    "__tests__/forecast-run-evidence-errors.test.ts",
+    "__tests__/gridex-aud-003-clean-replay-cleanup.test.ts",
+    "__tests__/gridex-tenant-runtime-target-guard.test.ts",
+    "__tests__/metering-forecast-quality-lifecycle.test.ts",
+    "__tests__/n-plus-one-query-budget-scope.test.ts",
+    "__tests__/native-lock-process.test.ts",
+    "__tests__/operations-support-controltower-phase-5-6.test.ts",
+    "__tests__/staff-api-openapi.test.ts",
+    "__tests__/staff-customer-detail-retention-prerequisite.test.ts",
+    "__tests__/staff-customer-retention-read-prerequisite-sql.test.ts",
+    "__tests__/staff-user-rbac-audit.test.ts",
+    "__tests__/support-attachment-quarantine-carrier.test.ts",
+    "__tests__/tenantservice-portal-resolver-read-only.test.ts",
+    "__tests__/webhook-transport-pinned-lookup.test.ts",
+    "__tests__/website-application-customer-relation-regression.test.ts",
+    "__tests__/website-application-detail-identity.test.ts",
+    "__tests__/website-application-read-model.test.ts"
+  ],
+  "rerun_file_count": 57,
+  "rerun_options": {
+    "hookTimeout": 60000,
+    "testTimeout": 45000,
+    "maxWorkers": 2,
+    "node": "/tmp/gridex-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node",
+    "boundary": "escalated local Node subprocess and loopback; no remote production"
+  },
+  "interpretation": "Problem reports include failed suites/imports/hooks and skipped-only suites; no complete full-suite result or baseline classification is inferred before rerun."
+}

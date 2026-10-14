@@ -1,0 +1,44 @@
+{
+  "source_parent": "a1f00da4ba9449228baaca2192e81788b41796b4",
+  "required_change_trigger": "Genuine original985 browser503 failures exposed missing policy arrays in208 clean context; no blind rerun or assertion weakening.",
+  "source_sha256": {
+    "quality/admin-consistency-2026-10-13/cleanup/dqi-after-verified-deployment-cutover.sql": "ba8477493df22161c3333ae293e7b62babafee397abd266c01b0e5862e830e59",
+    "__tests__/operational-quality-cutover-guards.test.ts": "daead08bc8005389066d55476ef2622ed2301e0d2f069968df8294369a4cda27",
+    "supabase/migrations/20261014004020_admin_api_current_context_projection.sql": "852f0517f86b31e1baffd756f48e9cf3faad798df4d802d77f99300cfb92ed59",
+    "__tests__/admin-api-current-context-projection-forward.test.ts": "4d38e31f39aef6b9c06bdddd9032232e2f4d50bde8c9b72e35bc617ffb4d7a27"
+  },
+  "scoped_context_fixture": {
+    "files": 3,
+    "passed": 78,
+    "failed": 0,
+    "skipped": 0,
+    "new_projection_cases": 35,
+    "unchanged_historical_cases": 34,
+    "existing_api_cases": 9,
+    "log_sha256": "aa90734ea2d5d1621f887a53fd214ecb9c13244afcaffdb8a1e37f7efacbed78"
+  },
+  "quality_cutover_fixture": {
+    "files": 1,
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 16.53,
+    "log_sha256": "57074add19467d93c237ffbfd44c20b9e79b53af0b171aba7d90b7f10a81e210",
+    "scope": "Actual PGlite SQL drop/noop/reject/rollback, record+function preservation, nonNULL resolved history and actual company/open_key conflict inference; no separate invalid-index flag mutation case."
+  },
+  "lint": "PASS:both new fixture files",
+  "test_types": "PASS:complete tsconfig.tests.json on final35+11 sources; originalunknown PGlite row generics corrected; no domain assertions changed.",
+  "independent_final_source_reviews": [
+    "admin_copy_audit nonownedrootmanifests/cutover PASS",
+    "cleanup_consistency_audit nonownedrootmanifests/cutover+newprojection PASS",
+    "portfolio_audit nonownedprojection+cutover PASS"
+  ],
+  "historical_manifest_checksums": "All905 oldpins unchanged, exactlyone new11checksum852f added.",
+  "historical_manifest_provenance": "13previousactivefields archived exactly; all other old nestedhistory objects preserved.",
+  "actual_vendor_metadata": "Read-only auth.users.email oracle00:49:48UTC:character varying(255), precisely modeled by new fixture; no user rows retrieved.",
+  "production_data_read_only": "Actual00:29:09UTC final assertionPASS:140emptycustomergraphtables/17zero reviewedscopes.",
+  "capture": "PENDING_AUTHENTIC_CURRENT_PREFIX_CAPTURE",
+  "current_head_full_ci": "PENDING_AFTER_AUTHENTIC_CAPTURE_ADOPTION",
+  "production_delivery": "PENDING_QUALIFIED_VERSION",
+  "two_constraint_cutover": "NOT_EXECUTED; requires compatibleverifieddeployment anddrain."
+}

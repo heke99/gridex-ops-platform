@@ -15,7 +15,7 @@ import {
   resetOutboundRequestForRetry,
   updateOutboundRequestStatus,
 } from '@/lib/cis/db'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
   createSupplierSwitchEvent,
@@ -324,7 +324,7 @@ async function autoProcessOutboundRequest(params: {
 }
 
 export async function runOperationsAutomationSweepAction(): Promise<void> {
-  await requireAdminActionAccess([
+  const access = await requireAdminActionAccess([
     'switching.write',
     'metering.write',
     'billing_underlay.write',
@@ -332,7 +332,7 @@ export async function runOperationsAutomationSweepAction(): Promise<void> {
   ])
 
   const actor = await getActor()
-  const companyScope = await getOperationalCompanyScope(actor.id)
+  const companyScope = await resolveAdminSelectedCompanyReadScope(access)
   const companyId = companyScope.companyId
 
   if (!companyId) {
@@ -523,13 +523,13 @@ export async function bulkQueueReadyBillingExportsAction(
   candidateCount: number
   batchKey: string
 }> {
-  await requireAdminActionAccess([
+  const access = await requireAdminActionAccess([
     'billing_underlay.write',
     'partner_exports.write',
   ])
 
   const actor = await getActor()
-  const companyScope = await getOperationalCompanyScope(actor.id)
+  const companyScope = await resolveAdminSelectedCompanyReadScope(access)
   const companyId = companyScope.companyId
   const period = normalizeMonthInput(formValue(formData, 'period_month'))
   const targetSystem = formValue(formData, 'target_system') || 'billing_partner'
@@ -539,7 +539,7 @@ export async function bulkQueueReadyBillingExportsAction(
   }
 
   if (!companyId) {
-    throw new Error(companyScope.message ?? 'Aktivt bolag saknas för exportkörningen.')
+    throw new Error('Aktivt bolag saknas för exportkörningen.')
   }
 
   await requireCompanyOperationalForWrites(companyId)

@@ -1,0 +1,817 @@
+[
+  {
+    "table_name": "ai_list_discrepancies",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ai_list_import_rows",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ai_list_imports",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "authorization_scopes",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "bidding_zone_monthly_metrics",
+    "exact_count": 48,
+    "row_fingerprint": "12870fa545eea5e7aa28303a5afecd6b"
+  },
+  {
+    "table_name": "billing_adjustment_cases",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "billing_export_run_items",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "billing_underlay_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "billing_underlay_items",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "billing_underlays",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "canonical_energy_flow_events",
+    "exact_count": 25147,
+    "row_fingerprint": "ae88f1ec66f7df803186d62d065f6068"
+  },
+  {
+    "table_name": "communication_log_events",
+    "exact_count": 30,
+    "row_fingerprint": "bd9ad1003a5d6fe92a875068c201504a"
+  },
+  {
+    "table_name": "communication_logs",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "company_monthly_metrics",
+    "exact_count": 12,
+    "row_fingerprint": "6055fa3dee187a1f1c2ac67cfceb0659"
+  },
+  {
+    "table_name": "contract_charge_ledger",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "contract_price_snapshots",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_addresses",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_application_intakes",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_application_provisioning_steps",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_application_workflow_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_application_workflows",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_authorization_documents",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_billing_profile_revisions",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_blockers",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_case_attachments",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_case_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_cases",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_communication_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_communications",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_contacts",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_contract_acceptances",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_contract_confirmation_deliveries",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_contract_documents",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_contract_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_contract_evidence",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_contract_signature_requests",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_contracts",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_correction_requests",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_data_tasks",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_documents",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_duplicate_resolution_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_identity_change_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_identity_change_requests",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_info_request_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_info_requests",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_internal_notes",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_invoice_documents",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_invoice_lines",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_invoices",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_legal_acceptances",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_lifecycle_decisions",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_lifecycle_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_match_review_cases",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_monthly_metrics",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_notifications",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_onboarding_applications",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_onboarding_legal_snapshots",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_onboarding_operations",
+    "exact_count": 9,
+    "row_fingerprint": "4da4ad530f72cfc39a0495f5d0246f36"
+  },
+  {
+    "table_name": "customer_operation_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_operation_jobs",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_operation_request_snapshots",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_operation_tasks",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_portal_accounts",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_portal_api_access_logs",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_portal_claims",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_portal_completions",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_portal_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_portal_identities",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_portal_requests",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_portal_write_idempotency",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_portfolio_forecast_snapshots",
+    "exact_count": 72,
+    "row_fingerprint": "20c6751a708f923dc17f7097eb11f608"
+  },
+  {
+    "table_name": "customer_readiness_snapshots",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_site_address_conflicts",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_site_address_history",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_site_resolution",
+    "exact_count": 39,
+    "row_fingerprint": "b5f340212b9decb1e2fdab57628acce4"
+  },
+  {
+    "table_name": "customer_sites",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customer_supply_periods",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "customers",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "dashboard_alerts",
+    "exact_count": 350,
+    "row_fingerprint": "e0259fb55af15732bf664bf2c25a0b3c"
+  },
+  {
+    "table_name": "data_quality_issues",
+    "exact_count": 18,
+    "row_fingerprint": "79a7fec90f876cfd7c7def5d9756842f"
+  },
+  {
+    "table_name": "document_ai_extractions",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "domain_events",
+    "exact_count": 180,
+    "row_fingerprint": "ac2bbe740496f5f73d6237100922e4b4"
+  },
+  {
+    "table_name": "ediel_ack_chains",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_ack_lifecycle",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_ack_transaction_results",
+    "exact_count": 1,
+    "row_fingerprint": "45de60414c3fa947e9cbe3f8646116ea"
+  },
+  {
+    "table_name": "ediel_business_correlations",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_business_errors",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_business_expectations",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_business_references",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_decision_traces",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_engine_runs",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_inbound_cases",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_masterdata_reconciliation_items",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_match_candidates",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_message_events",
+    "exact_count": 2,
+    "row_fingerprint": "8fbd0dfeca1d17ba0b675d43885dd19e"
+  },
+  {
+    "table_name": "ediel_message_intents",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_message_validation_issues",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_messages",
+    "exact_count": 1,
+    "row_fingerprint": "e34dd7281d99c5f141dbe42ae9b78a6b"
+  },
+  {
+    "table_name": "ediel_outbound_queue",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_outbox",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_permission_cases",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_permission_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_portal_validation_feedback",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_process_links",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_processing_runs",
+    "exact_count": 260,
+    "row_fingerprint": "1309e6c93f35acef10eb8601614a0d19"
+  },
+  {
+    "table_name": "ediel_routing_decisions",
+    "exact_count": 22,
+    "row_fingerprint": "e75789b7089cc7c1251d9c25642c4275"
+  },
+  {
+    "table_name": "ediel_rule_pack_backfill_issues",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_rule_pack_snapshots",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_sla_timers",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "ediel_unresolved_items",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "energy_service_permissions",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "event_outbox",
+    "exact_count": 49,
+    "row_fingerprint": "f2371d19d50dc7cc711fd8e7f389db90"
+  },
+  {
+    "table_name": "external_contract_intakes",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "facility_data_quality_issues",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "forecast_adjustments",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "forecast_run_items",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "forecast_runs",
+    "exact_count": 38,
+    "row_fingerprint": "cd4f43b887ac211e4d6f0461070adaa4"
+  },
+  {
+    "table_name": "grid_owner_data_requests",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "grid_owner_information_requests",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "grid_owner_monthly_metrics",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "inbound_operation_events",
+    "exact_count": 1,
+    "row_fingerprint": "347ceadae98f0635d6975190bb2da000"
+  },
+  {
+    "table_name": "invoice_documents",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "invoice_export_attempts",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "invoice_export_items",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "invoice_provider_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "invoice_purchase_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "manual_email_outbox",
+    "exact_count": 6,
+    "row_fingerprint": "6cdcccd6d3b5ce0e36d4196337c85b95"
+  },
+  {
+    "table_name": "manual_inbound_messages",
+    "exact_count": 1,
+    "row_fingerprint": "38ce4b37ae7cea047f146500ef7a6d92"
+  },
+  {
+    "table_name": "meter_reading_series",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "meter_reading_values",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_period_gaps",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_permission_sites",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_permissions",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_point_monthly_consumption",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_points",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_requirements",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_value_batches",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_value_errors",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_value_sources",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "metering_values",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "normalized_metering_values",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "outbound_dispatch_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "outbound_requests",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "partner_exports",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "platform_customer_relationship_observations",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "platform_data_quality_issues",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "portfolio_settlement_invoice_bindings",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "power_of_attorney_scopes",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "powers_of_attorney",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "pricing_interval_evidence",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "pricing_preview_lines",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "pricing_run_items",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "pricing_runs",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "route_decision_logs",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "supplier_switch_events",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "supplier_switch_requests",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "tenant_email_outbox",
+    "exact_count": 3,
+    "row_fingerprint": "e37f6b3346d6af4c9f9655598f006870"
+  },
+  {
+    "table_name": "tenant_portal_customer_links",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "webhook_deliveries",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "website_application_review_items",
+    "exact_count": 0,
+    "row_fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  {
+    "table_name": "website_contract_quotes",
+    "exact_count": 24,
+    "row_fingerprint": "00f41acc1a04c4ab872f27ede9e9f576"
+  },
+  {
+    "table_name": "website_customer_applications",
+    "exact_count": 1,
+    "row_fingerprint": "7a4e0bbf7231598bda6daa45d64e70ba"
+  }
+]

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('node:fs')
+const { currentDocumentationVersion, runtimeContractVersion } = require('./lib/current-api-contract.cjs')
 
 const failures = []
 
@@ -106,13 +107,16 @@ const sourceVersionMatch = contractSource.match(
 )
 if (!sourceVersionMatch) {
   failures.push('Contract source: version constant missing')
-} else if (openapi.info?.version !== sourceVersionMatch[1]) {
+} else if (sourceVersionMatch[1] !== runtimeContractVersion || openapi['x-contract-schema-version'] !== runtimeContractVersion) {
   failures.push(
-    `Contract version drift: source=${sourceVersionMatch[1]} openapi=${openapi.info?.version}`,
+    `Contract version drift: source=${sourceVersionMatch[1]} openapi=${openapi['x-contract-schema-version']}`,
   )
 }
 
-const currentVersion = String(openapi.info?.version ?? '')
+const currentVersion = currentDocumentationVersion
+if (openapi.info?.version !== currentVersion) {
+  failures.push(`Documentation version drift: source=${currentVersion} openapi=${openapi.info?.version}`)
+}
 if (!/^\d{4}-\d{2}-\d{2}\.\d+$/.test(currentVersion)) {
   failures.push(`OpenAPI: invalid current version ${currentVersion}`)
 } else {

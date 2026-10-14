@@ -2,7 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { listInvoiceReviewRows, type InvoiceReviewStatus } from '@/lib/billing/invoiceReviewData'
 import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/stockholm'
 import { approveAndSendReadyInvoicesAction } from './actions'
@@ -66,7 +66,7 @@ function productLabel(contractType: string | null, contractName: string | null) 
 }
 
 export default async function AdminBillingPage({ searchParams }: PageProps) {
-  await requirePermissionServer('billing_underlay.read')
+  const admin = await requirePermissionServer('billing_underlay.read')
   const params = await searchParams
   let selectedMonth = previousStockholmBillingMonth()
   if (params.month) {
@@ -75,8 +75,8 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
 
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const scope = user ? await getOperationalCompanyScope(user.id) : null
-  const companyId = scope?.companyId ?? null
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
+  const companyId = scope.companyId
 
   const allRows = companyId ? await listInvoiceReviewRows({ companyId, billingMonth: selectedMonth }) : []
   const customerFilter = params.customer?.trim() || null

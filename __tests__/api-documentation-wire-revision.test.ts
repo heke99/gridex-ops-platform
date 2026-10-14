@@ -41,6 +41,7 @@ describe('documentation releases preserve the business wire revision', () => {
       mkdirSync(resolve(dir, 'docs/openapi'), { recursive: true })
       mkdirSync(resolve(dir, 'scripts/lib'), { recursive: true })
       copyFileSync(resolve('scripts/lib/unit-loopback-network-boundary.cjs'), resolve(dir, 'scripts/lib/unit-loopback-network-boundary.cjs'))
+      copyFileSync(resolve('scripts/lib/refactor-safe-static-read.cjs'), resolve(dir, 'scripts/lib/refactor-safe-static-read.cjs'))
       const source = (runtime: string, title = 'Public API') => JSON.stringify({ info: { version: '2026-10-12.1', title }, 'x-contract-schema-version': runtime })
       for (const name of names) writeFileSync(resolve(dir, `docs/openapi/${name}.json`), source('2026-10-09.1'))
       writeFileSync(resolve(dir, 'docs/openapi/staff-v1.json'), source('2026-10-05.2'))

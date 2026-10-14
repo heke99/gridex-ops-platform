@@ -824,8 +824,8 @@ export default function CustomerIntakeForm({
                 Nuvarande leverantör är okänd
               </span>
               <span className="mt-1 block text-xs leading-5">
-                Det stoppar inte kundskapandet, men preflight varnar innan ett
-                säkert byte körs.
+                Det stoppar inte kundskapandet, men kontrollen inför
+                leverantörsbytet varnar om uppgiften saknas.
               </span>
             </span>
           </label>
@@ -1137,7 +1137,7 @@ export default function CustomerIntakeForm({
               defaultValue={state.values.optionalFeeLines ?? ""}
               rows={4}
               placeholder={
-                "Etablering | 395 | sek\nNattillägg | 1.2 | ore_per_kwh"
+                "Etablering | 395 | sek"
               }
               className={inputClassName(state, "optionalFeeLines", "full")}
             />

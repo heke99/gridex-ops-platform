@@ -6,7 +6,7 @@ import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { listAnalyticsCompanyIds } from '@/lib/analytics/cron'
 import { buildCompanyMonthlyMetrics } from '@/lib/analytics/monthlyMetricsBuilder'
 import { scanCompanyDataQuality } from '@/lib/analytics/dataQuality'
-import { runCompanyForecast } from '@/lib/forecasting/forecastRuns'
+import { ForecastRunSkippedError, runCompanyForecast } from '@/lib/forecasting/forecastRuns'
 import { monthStart } from '@/lib/analytics/utils'
 
 async function auditPlatformAnalyticsAction(input: {
@@ -49,14 +49,20 @@ export async function runPlatformForecastAction() {
   const admin = await requirePlatformAdminAccess()
   const month = monthStart()
   const companyIds = await listAnalyticsCompanyIds()
+  let skippedCompanyCount = 0
   for (const companyId of companyIds) {
-    await runCompanyForecast({ companyId, periodStart: month, createdBy: admin.userId })
+    try {
+      await runCompanyForecast({ companyId, periodStart: month, createdBy: admin.userId })
+    } catch (error) {
+      if (!(error instanceof ForecastRunSkippedError)) throw error
+      skippedCompanyCount += 1
+    }
   }
   await auditPlatformAnalyticsAction({
     actorUserId: admin.userId,
     action: 'platform_forecast_run',
-    label: 'Plattformsprognos körd',
-    metadata: { month, companyCount: companyIds.length },
+    label: skippedCompanyCount ? `Plattformsprognos körd; ${skippedCompanyCount} bolag utan verklig kunddata hoppades över` : 'Plattformsprognos körd',
+    metadata: { month, companyCount: companyIds.length, skippedCompanyCount },
   })
   revalidatePath('/admin/platform/analytics')
 }
@@ -83,13 +89,19 @@ export async function runCompanyForecastAction(formData: FormData) {
   const companyId = String(formData.get('companyId') ?? '')
   if (!companyId) throw new Error('Bolag saknas.')
   const month = monthStart()
-  await runCompanyForecast({ companyId, periodStart: month, createdBy: admin.userId })
+  let skipped: ForecastRunSkippedError | null = null
+  try {
+    await runCompanyForecast({ companyId, periodStart: month, createdBy: admin.userId })
+  } catch (error) {
+    if (!(error instanceof ForecastRunSkippedError)) throw error
+    skipped = error
+  }
   await auditPlatformAnalyticsAction({
     actorUserId: admin.userId,
     action: 'company_forecast_run',
-    label: 'Bolagsprognos körd',
+    label: skipped?.message ?? 'Bolagsprognos körd',
     companyId,
-    metadata: { month },
+    metadata: { month, ...(skipped ? { skipped: skipped.reason } : {}) },
   })
   revalidatePath(`/admin/platform/companies/${companyId}/analytics`)
 }

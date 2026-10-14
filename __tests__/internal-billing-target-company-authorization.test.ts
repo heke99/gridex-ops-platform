@@ -5,7 +5,7 @@ const state = vi.hoisted(() => ({
   target: '22222222-2222-4222-8222-222222222222',
   userId: '33333333-3333-4333-8333-333333333333',
   targetPermissions: [] as string[],
-  selectedPermissions: ['billing.read', 'billing.write', 'billing.export'],
+  selectedPermissions: ['billing_underlay.read', 'billing_underlay.export'],
   platform: false,
   resolvedOverride: null as string | null,
   effects: [] as Array<{ operation: string; companyId: string }>,
@@ -52,6 +52,8 @@ vi.mock('@/lib/supabase/server', () => ({ createSupabaseServerClient: async () =
       selected_company_id: state.resolvedOverride ?? companyId,
       roles: state.platform ? ['platform_admin'] : ['finance'],
       permissions: companyId === state.target ? state.targetPermissions : state.selectedPermissions,
+      active_permission_keys: ['billing_underlay.read', 'billing_underlay.export', 'customers.read'],
+      denied_permissions: [],
     }, error: null }
   },
   from: (table: string) => query(table, true),
@@ -109,8 +111,8 @@ function call(route: typeof routes[number], target: string | null = state.target
 }
 
 beforeEach(() => {
-  state.targetPermissions = ['billing.read']
-  state.selectedPermissions = ['billing.read', 'billing.write', 'billing.export']
+  state.targetPermissions = ['billing_underlay.read']
+  state.selectedPermissions = ['billing_underlay.read', 'billing_underlay.export']
   state.effects = []
   state.resolutions = []
   state.platform = false
@@ -127,7 +129,7 @@ describe('internal billing authorizes the actual target company', () => {
     })
     it(`${route.name} accepts target B permissions even when selected A lacks billing rights`, async () => {
       state.selectedPermissions = ['customers.read']
-      state.targetPermissions = ['billing.read', 'billing.write', 'billing.export']
+      state.targetPermissions = ['billing_underlay.read', 'billing_underlay.export']
       const response = await call(route)
       expect(response.status).toBe(200)
       expect(state.effects.length).toBeGreaterThan(0)
@@ -149,13 +151,13 @@ describe('internal billing authorizes the actual target company', () => {
   })
   it('rejects a canonical context that resolves a different company instead of the explicit target', async () => {
     state.resolvedOverride = state.selected
-    state.targetPermissions = ['billing.read', 'billing.write', 'billing.export']
+    state.targetPermissions = ['billing_underlay.read', 'billing_underlay.export']
     const response = await call(routes.find(route => route.name === 'invoice dispute')!)
     expect(response.status).toBe(403)
     expect(state.effects).toEqual([])
   })
   it('preserves default guard selection for unrelated callers', async () => {
-    const result = await requireAdminApiAccess(['billing.write'])
+    const result = await requireAdminApiAccess(['billing_underlay.export'])
     expect(result.guard?.companyId).toBe(state.selected)
     expect(state.resolutions).toEqual([state.selected])
   })

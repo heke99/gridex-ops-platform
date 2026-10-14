@@ -2,7 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { getInvoiceReviewDetail } from '@/lib/billing/invoiceReviewData'
 
 export const dynamic = 'force-dynamic'
@@ -42,12 +42,12 @@ function customerName(row: Row) {
 }
 
 export default async function InvoiceReviewDetailPage({ params }: Props) {
-  await requirePermissionServer('billing_underlay.read')
+  const admin = await requirePermissionServer('billing_underlay.read')
   const { id } = await params
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const scope = user ? await getOperationalCompanyScope(user.id) : null
-  const companyId = scope?.companyId ?? null
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
+  const companyId = scope.companyId
   if (!companyId) throw new Error('Välj ett bolag innan fakturan granskas.')
   const detail = await getInvoiceReviewDetail({ companyId, invoiceExportItemId: id })
   const invoice: Row = detail.invoice ?? {}

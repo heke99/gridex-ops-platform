@@ -1,7 +1,6 @@
-import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { humanizeLaunchError, safeCount } from '@/lib/launch/readiness'
 import { supabaseService } from '@/lib/supabase/service'
 import { runProductionConsistencyChecks, type ReconciliationCheckResult } from '@/lib/ops/reconciliation'
@@ -96,8 +95,8 @@ async function loadErrors(companyId: string | null, isPlatformAdmin: boolean) {
 export default async function SystemHealthPage() {
   const context = await requireAdminPageAccess(['admin.dashboard.read'])
   const isPlatformAdmin = isPlatformAdminContext(context)
-  const scope = await getOperationalCompanyScope(context.userId)
-  const companyId = tenantReadCompanyId(isPlatformAdmin, scope.companyId)
+  const scope = await resolveAdminTenantReadScope(context)
+  const companyId = scope.companyId
 
   const [
     apiErrors,

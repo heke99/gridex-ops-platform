@@ -144,6 +144,7 @@ beforeEach(() => {
   }
   io.from.mockImplementation(table => new Query(table))
   io.rpc.mockImplementation(async (name, args: Row) => {
+    if (name === 'gridex_manual_inbound_source_retired_v1') return { data: false, error: null }
     if (name !== 'gridex_complete_facility_response') throw new Error(`undeclared RPC: ${name}`)
     io.completionCount++
     if (io.rpcThrown) throw io.rpcThrown

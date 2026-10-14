@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { resolveAdminSelectedCompanyReadScope } from '@/lib/tenant/adminScope'
 import { getLatestForecastByBiddingZone, getLatestForecastByGridOwner, listAnalyticsFilterOptions } from '@/lib/analytics/db'
 import { formatMwh, monthStart } from '@/lib/analytics/utils'
 import { AnalyticsFilters, AnalyticsTabs, ForecastTable, GridOwnerForecastTable, MetricCards } from '../_components'
@@ -15,7 +15,7 @@ type PageProps = {
 
 export default async function AnalyticsForecastPage({ searchParams }: PageProps) {
   const admin = await requireAdminPageKeyAccess('analytics.workspace')
-  const scope = await getOperationalCompanyScope(admin.userId)
+  const scope = await resolveAdminSelectedCompanyReadScope(admin, { allowMissing: true })
   const companyId = scope.companyId
   const params = await searchParams
   const month = monthStart(params.month)

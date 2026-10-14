@@ -1,9 +1,18 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { monthEndExclusive, monthStart } from '@/lib/analytics/utils'
 import { calculateMeteringPointForecast } from '@/lib/forecasting/meteringPointForecast'
-import { buildCompanyMonthlyMetrics } from '@/lib/analytics/monthlyMetricsBuilder'
+import { buildCompanyMonthlyMetrics, hasCustomerAnalyticsData } from '@/lib/analytics/monthlyMetricsBuilder'
 
 const ACTIVE_STATUSES = ['active', 'live', 'ongoing']
+
+export class ForecastRunSkippedError extends Error {
+  readonly reason = 'no_customer_data' as const
+
+  constructor() {
+    super('Prognosen hoppades över eftersom bolaget saknar verklig kunddata.')
+    this.name = 'ForecastRunSkippedError'
+  }
+}
 
 export async function createForecastRun(input: {
   companyId: string
@@ -42,7 +51,7 @@ export async function generateForecastRunItems(input: {
   const periodEnd = input.periodEnd ?? monthEndExclusive(periodStart)
   const { data: meteringPoints, error } = await supabaseService
     .from('metering_points')
-    .select('id, customer_id, site_id, grid_owner_id, bidding_zone_code')
+    .select('id, customer_id, site_id, grid_owner_id, bidding_zone_code, source_customer:customers!metering_points_company_customer_fk(company_id,source)')
     .eq('company_id', input.companyId)
     .in('status', ACTIVE_STATUSES)
     .limit(10000)
@@ -52,6 +61,11 @@ export async function generateForecastRunItems(input: {
   let items = 0
   let missing = 0
   for (const mp of meteringPoints ?? []) {
+    // Use the same explicit portal source exclusion as SQL quality eligibility.
+    // The named composite FK prevents a parent from another company matching.
+    // A retained production point without a parent still needs its diagnosis.
+    const sourceCustomers = Array.isArray(mp.source_customer) ? mp.source_customer : [mp.source_customer]
+    if (sourceCustomers.some(customer => customer?.company_id === input.companyId && customer.source === 'ediel_portal_test')) continue
     const forecast = await calculateMeteringPointForecast({
       companyId: input.companyId,
       meteringPointId: mp.id,
@@ -60,7 +74,7 @@ export async function generateForecastRunItems(input: {
     })
     if (forecast.method === 'missing_basis') missing += 1
 
-    const { data: actualRows } = await supabaseService
+    const { data: actualRows, error: actualError } = await supabaseService
       .from('metering_values')
       .select('quantity_kwh, value_kwh')
       .eq('company_id', input.companyId)
@@ -68,7 +82,8 @@ export async function generateForecastRunItems(input: {
       .gte('period_start', `${periodStart}T00:00:00.000Z`)
       .lt('period_start', `${periodEnd}T00:00:00.000Z`)
 
-    const actualKwh = (actualRows ?? []).reduce((sum, row) => sum + Number(row.quantity_kwh ?? row.value_kwh ?? 0), 0)
+    if (actualError) throw actualError
+    const actualKwh = (actualRows ?? []).reduce((sum, row) => sum + Number(row.value_kwh ?? row.quantity_kwh ?? 0), 0)
     const diffKwh = forecast.forecastKwh === null ? null : actualKwh - forecast.forecastKwh
     const diffPercent = forecast.forecastKwh ? ((actualKwh - forecast.forecastKwh) / forecast.forecastKwh) * 100 : null
 
@@ -97,12 +112,13 @@ export async function generateForecastRunItems(input: {
     items += 1
   }
 
-  await supabaseService
+  const { error: completionError } = await supabaseService
     .from('forecast_runs')
     .update({ status: 'completed', completed_at: new Date().toISOString() })
     .eq('id', input.forecastRunId)
     .eq('company_id', input.companyId)
 
+  if (completionError) throw completionError
   await buildCompanyMonthlyMetrics(input.companyId, periodStart)
   return { items, missing }
 }
@@ -113,6 +129,7 @@ export async function runCompanyForecast(input: {
   periodEnd?: string
   createdBy?: string | null
 }): Promise<{ forecastRunId: string; items: number; missing: number }> {
+  if (!(await hasCustomerAnalyticsData(input.companyId))) throw new ForecastRunSkippedError()
   const forecastRunId = await createForecastRun(input)
   const result = await generateForecastRunItems({
     companyId: input.companyId,

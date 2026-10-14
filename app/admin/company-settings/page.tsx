@@ -2,7 +2,7 @@ import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel";
 import AdminHeader from "@/components/admin/AdminHeader";
 import CompanyUserInviteForm from "@/components/admin/companies/CompanyUserInviteForm";
 import { requireAdminPageKeyAccess } from "@/lib/admin/guards";
-import { getOperationalCompanyScope } from "@/lib/tenant/scope";
+import { resolveAdminSelectedCompanyReadScope } from "@/lib/tenant/adminScope";
 import {
   getCompanyById,
   listCompanyUsersForGovernance,
@@ -47,7 +47,7 @@ function roleLabel(value: string) {
 
 export default async function CompanySettingsPage() {
   const context = await requireAdminPageKeyAccess("company.settings");
-  const scope = await getOperationalCompanyScope(context.userId);
+  const scope = await resolveAdminSelectedCompanyReadScope(context, { allowMissing: true });
   const companyId = scope.companyId;
   const company = companyId ? await getCompanyById(companyId) : null;
   const legalProfile = companyId ? await getTenantLegalProfile(companyId) : null;

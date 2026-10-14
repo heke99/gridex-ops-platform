@@ -1,0 +1,66 @@
+{
+  "capturedAt": "2026-10-13T14:16:34.249287+00:00",
+  "files": [
+    {
+      "path": "supabase/migrations/20261013140502_manual_inbound_retired_source_consistency.sql",
+      "sha256": "d68f09fa4ab18d62fbffa8c412d8fa53fa1db3d58e53ed519f45af1fc145fee0"
+    },
+    {
+      "path": "lib/inbound-mail/manualInboundIngestion.ts",
+      "sha256": "c6dba0e3027f5c4cf1c37e60ae8dc09c80cca4c5e26cb307d3dfbaf8c2277515"
+    },
+    {
+      "path": "__tests__/manual-inbound-retired-source-consistency.test.ts",
+      "sha256": "f18d28b1483e06378f942172db91ae1af12422f6537b9c77a41a564ce7e40ff1"
+    },
+    {
+      "path": "__tests__/manual-inbound-retired-source-retry.test.ts",
+      "sha256": "7dfa84761a117ed35fb2616731ef47da197cd6c6f11a38b96cae24280c9ca8ba"
+    },
+    {
+      "path": "lib/forecasting/forecastRuns.ts",
+      "sha256": "a679e50f3451727dceb9f93bf5fe25b72863e4a4b547b7325e43e62b6f43c47e"
+    },
+    {
+      "path": "__tests__/forecast-run-production-source.test.ts",
+      "sha256": "0fb7cc8471f9891e51c7fa3911c3ff78a90d723731afd17bcfe29f099ab50f90"
+    },
+    {
+      "path": "app/admin/audit/page.tsx",
+      "sha256": "1cb368c5789da6ef24fa51d7c129b427f2ff34a527c35b5baf790e53c22791ea"
+    },
+    {
+      "path": "quality/admin-consistency-2026-10-13/cleanup/manual-inbound-retired-source-native.sql",
+      "sha256": "5d97a2cf0838859c07d3bb55c59de423f3069855d6b8a31cbb265724b039310c"
+    },
+    {
+      "path": "quality/admin-consistency-2026-10-13/cleanup/manual-inbound-retired-source-native-race.py",
+      "sha256": "77f78ed57026ee47941250973631ee89c2d11f4f381f95bd382fb4e3871c951a"
+    },
+    {
+      "path": "quality/admin-consistency-2026-10-13/cleanup/manual-inbound-retired-source-native-race-proof.json",
+      "sha256": "119386a4adbc231d78e745249560cbbbf3c958b7093cfc48c6fb1c6bb8aed579"
+    }
+  ],
+  "sourceUnchangedDuringProof": true,
+  "verification": {
+    "artifact": "retired-source-independent-verification-results.json",
+    "passed": 34,
+    "failed": 0,
+    "pending": 0,
+    "success": true
+  },
+  "nativeReview": {
+    "engine": "PostgreSQL17.5",
+    "proof": "quality/admin-consistency-2026-10-13/cleanup/manual-inbound-retired-source-native-race-proof.json",
+    "insertWaitSeconds": 1.022,
+    "lookupWaitSeconds": 1.042,
+    "outcome": "exact23514/message after committed retirement; lookup true; zero raw rows; separate local fixture only"
+  },
+  "typeRepairReviewedAfterRun": {
+    "path": "quality/admin-consistency-2026-10-13/cleanup/customer-source-consistency.test.ts",
+    "line": 79,
+    "sha256": "39b936492514343ff59f6f1a9166b790634f7904397bd3ffc95913f84643ace0",
+    "scope": "as unknown as Parameters<typeof saveMeteringPoint>[0]; runtime adapter/query/assertions unchanged"
+  }
+}

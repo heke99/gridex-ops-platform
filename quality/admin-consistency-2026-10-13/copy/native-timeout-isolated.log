@@ -1,0 +1,77 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ✓ __tests__/ediel-confirmed-customer-final-response.test.ts (62 tests) 233300ms
+   ✓ the actual final-response wrapper recognizes a committed confirmed death version and its separate availability without modern or structural receipts  6555ms
+   ✓ actual confirmed death response refuses 'missing separately observed availabil…' without modifying owner rows  4604ms
+   ✓ actual confirmed death response refuses 'availability cannot see the version t…' without modifying owner rows  3364ms
+   ✓ actual confirmed death response refuses 'missing current source authority' without modifying owner rows  2490ms
+   ✓ actual confirmed death response refuses 'incomplete current selection' without modifying owner rows  3767ms
+   ✓ actual confirmed death response refuses 'foreign selection tenant' without modifying owner rows  2864ms
+   ✓ actual confirmed death response refuses 'current source is a foreign customer' without modifying owner rows  3228ms
+   ✓ actual confirmed death response refuses 'source bytes differ from the committe…' without modifying owner rows  3112ms
+   ✓ actual confirmed death response refuses 'source reception clock differs from t…' without modifying owner rows  2717ms
+   ✓ actual confirmed death response refuses 'death event no longer belongs to the …' without modifying owner rows  3381ms
+   ✓ actual confirmed death response refuses 'missing death event' without modifying owner rows  2905ms
+   ✓ actual confirmed death response refuses 'actual canonical APP assessment diffe…' without modifying owner rows  2237ms
+   ✓ actual confirmed death response refuses 'actual canonical APP object is held' without modifying owner rows  3974ms
+   ✓ actual confirmed death response refuses 'missing actual APP facet' without modifying owner rows  3747ms
+   ✓ actual confirmed death response refuses 'actual APP facet belongs to a foreign…' without modifying owner rows  1809ms
+   ✓ actual confirmed death response refuses 'actual APP facet belongs to a foreign…' without modifying owner rows  2308ms
+   ✓ actual confirmed death response refuses 'actual APP facet belongs to another e…' without modifying owner rows  3414ms
+   ✓ actual confirmed death response refuses 'actual APP facet source hash differs' without modifying owner rows  3276ms
+   ✓ actual confirmed death response refuses 'actual APP object is rejected' without modifying owner rows  2050ms
+   ✓ actual confirmed death response refuses 'actual APP header and object are held' without modifying owner rows  2396ms
+   ✓ actual confirmed death response refuses 'accepted actual APP object has a reas…' without modifying owner rows  2331ms
+   ✓ actual confirmed death response refuses 'actual APP has no own object' without modifying owner rows  2163ms
+   ✓ actual confirmed death response refuses 'actual APP scope differs from canonic…' without modifying owner rows  2015ms
+   ✓ actual confirmed death response refuses 'actual canonical global FUNCTION is h…' without modifying owner rows  2586ms
+   ✓ actual confirmed death response refuses 'actual original rule witness differs' without modifying owner rows  4151ms
+   ✓ actual confirmed death response refuses 'actual canonical source was supersede…' without modifying owner rows  4168ms
+   ✓ actual confirmed death response refuses 'actual first own customer status is n…' without modifying owner rows  3594ms
+   ✓ actual confirmed death response refuses 'later register death cannot replace t…' without modifying owner rows  4153ms
+   ✓ actual confirmed death response refuses 'actual first own customer identity di…' without modifying owner rows  4217ms
+   ✓ actual confirmed death response refuses 'actual first own effective minute dif…' without modifying owner rows  3163ms
+   ✓ actual confirmed death response refuses 'actual first own LI differs from its …' without modifying owner rows  2955ms
+   ✓ actual confirmed death response refuses 'canonical own response is negative' without modifying owner rows  3355ms
+   ✓ actual confirmed death response refuses 'canonical own object identity differs' without modifying owner rows  7255ms
+   ✓ actual confirmed death response refuses 'applied result belongs to another sou…' without modifying owner rows  5629ms
+   ✓ actual confirmed death response refuses 'applied result has no own objects' without modifying owner rows  7983ms
+   ✓ actual confirmed death response refuses 'original national binding hash differs' without modifying owner rows  2435ms
+   ✓ actual confirmed death response refuses 'original national projection does not…' without modifying owner rows  2603ms
+   ✓ a genuinely validated present modern function facet keeps its distinct owner and the same admitted APP scope  2214ms
+   ✓ actual confirmed death response refuses 'a present malformed modern facet' without falling back to APP  3154ms
+   ✓ actual confirmed death response refuses 'a present modern facet under a foreig…' without falling back to APP  2214ms
+   ✓ actual confirmed death response refuses 'a present modern facet under a foreig…' without falling back to APP  1817ms
+   ✓ actual confirmed death response refuses 'a present modern facet under a foreig…' without falling back to APP  2497ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP  2045ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a missing…' without falling back to APP  21661ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP  4614ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP  2113ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a foreign…' without falling back to APP  4284ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a mismatc…' without falling back to APP  17594ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a held co…' without falling back to APP  4625ms
+   ✓ actual confirmed death response refuses 'a present modern facet with a differe…' without falling back to APP  3943ms
+   ✓ actual confirmed death response refuses 'a present modern facet with accepted …' without falling back to APP  2844ms
+   ✓ actual confirmed death response refuses 'a valid present modern facet whose ob…' without falling back to APP  2610ms
+   ✓ actual confirmed death response refuses 'a valid present modern facet whose ob…' without falling back to APP  3224ms
+   ✓ the actual modern facet hash CHECK refuses a corrupt storage hash without hiding or changing the present owner  2193ms
+   ✓ the actual response refuses an uncommitted version transaction  2962ms
+   ✓ the actual response refuses an uncommitted availability transaction  2513ms
+   ✓ the actual response refuses an uncommitted canonical transaction  2463ms
+   ✓ a modern context from the consuming transaction cannot qualify a present modern facet or fall back to legacy APP  2938ms
+   ✓ the real wrapper refuses foreign tenant and sibling selections and the public read retains its service boundary  2416ms
+   ✓ a source without any confirmed or primary effect preserves the existing no-positive result  2380ms
+   ✓ the retained actual modern receipt reader keeps its distinct proof when no generic death version exists  2667ms
+   ✓ the retained actual structural receipt reader keeps its distinct proof when no generic death version exists  2279ms
+ ✓ __tests__/ediel-sc-010-beneficiary-export.test.ts (12 tests) 12350ms
+     ✓ executes the real queue/lease/current-grant/internal-sink SQL assertions through the existing bounded harness  12282ms
+ ✓ __tests__/ediel-prodat-free-text.test.ts (1 test) 13581ms
+   ✓ preserves the source-qualified FTX scopes, inbound response and outbound send contract  13576ms
+
+ Test Files  3 passed (3)
+      Tests  75 passed (75)
+   Start at  12:41:00
+   Duration  265.14s (transform 3.18s, setup 117ms, import 4.36s, tests 259.23s, environment 1ms)
+
+JSON report written to /workspace/gridex-ops-platform/quality/admin-consistency-2026-10-13/copy/native-timeout-isolated-results.json

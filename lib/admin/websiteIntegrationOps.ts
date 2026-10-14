@@ -6,6 +6,7 @@ import type {
 import type { CompanyEmailDnsRecord } from "@/lib/email/dnsRecords";
 import type { CompanyEmailTemplate } from "@/lib/email/emailTemplates";
 import type { EmailEventRule } from "@/lib/email/emailEvents";
+import type { WebsiteApplicationWorkMetadata } from "@/lib/website/applicationState";
 
 type QueryResult<T> = Promise<T[]>;
 
@@ -18,7 +19,7 @@ function missingSchema(error: unknown): boolean {
   );
 }
 
-export type WebsiteApplicationAdminRow = {
+export type WebsiteApplicationAdminRow = WebsiteApplicationWorkMetadata & {
   id: string;
   company_id: string;
   api_client_id: string | null;
@@ -51,6 +52,10 @@ export type WebsiteApplicationAdminRow = {
   calculated_earliest_start_date?: string | null;
   resolution_id?: string | null;
   grid_owner_information_request_id?: string | null;
+  customer_info_request_id?: string | null;
+  customer_match_review_case_id?: string | null;
+  customer_operation_task_id?: string | null;
+  reference_resolution_issues?: string[];
   grid_area_code?: string | null;
   grid_owner_id?: string | null;
   price_area_code?: string | null;
@@ -171,17 +176,6 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function sourceKey(
-  row: Pick<
-    WebsiteApplicationAdminRow,
-    "company_id" | "id" | "idempotency_key"
-  >,
-): string {
-  return row.idempotency_key
-    ? `${row.company_id}:${row.idempotency_key}`
-    : `${row.company_id}:${row.id}`;
-}
-
 function mapWebsiteCustomerApplicationRow(
   row: Record<string, unknown>,
 ): WebsiteApplicationAdminRow {
@@ -222,7 +216,7 @@ function mergeExternalMirrorIntoWebsiteRow(
     response_payload: externalResponse,
   };
 
-  return {
+  const merged = {
     ...websiteRow,
     customer_id: websiteRow.customer_id ?? externalRow.customer_id,
     customer_site_id:
@@ -233,6 +227,9 @@ function mergeExternalMirrorIntoWebsiteRow(
     grid_owner_information_request_id:
       websiteRow.grid_owner_information_request_id ??
       externalRow.grid_owner_information_request_id,
+    customer_info_request_id: websiteRow.customer_info_request_id ?? externalRow.customer_info_request_id ?? null,
+    customer_match_review_case_id: websiteRow.customer_match_review_case_id ?? externalRow.customer_match_review_case_id ?? null,
+    customer_operation_task_id: websiteRow.customer_operation_task_id ?? externalRow.customer_operation_task_id ?? null,
     warnings: websiteRow.warnings ?? externalRow.warnings,
     missing_fields: websiteRow.missing_fields ?? externalRow.missing_fields,
     blocking_reasons:
@@ -247,6 +244,7 @@ function mergeExternalMirrorIntoWebsiteRow(
       external_contract_intake: externalMirror,
     },
   };
+  return addReferenceIssues(merged, externalRow.reference_resolution_issues ?? []);
 }
 
 function mapExternalContractIntakeRow(
@@ -330,7 +328,10 @@ function mapExternalContractIntakeRow(
     calculated_earliest_start_date: null,
     resolution_id: null,
     grid_owner_information_request_id:
-      (row.created_info_request_id as string | null) ?? null,
+      null,
+    customer_info_request_id: null,
+    customer_match_review_case_id: null,
+    customer_operation_task_id: null,
     grid_area_code: null,
     grid_owner_id: null,
     price_area_code: (row.price_area_code as string | null) ?? null,
@@ -358,30 +359,86 @@ function mapExternalContractIntakeRow(
   };
 }
 
+function addReferenceIssues(row: WebsiteApplicationAdminRow, issues: string[]): WebsiteApplicationAdminRow {
+  if (!issues.length) return row;
+  const combined = [...new Set([...(row.reference_resolution_issues ?? []), ...issues])];
+  const terminal = row.work_state === "completed" || row.work_state === "closed";
+  const existingBlocks = (row.blocking_reasons ?? []).filter((reason) => {
+    const record = asRecord(reason);
+    return record.field !== "reference" || !combined.includes(String(record.label ?? ""));
+  });
+  return {
+    ...row,
+    reference_resolution_issues: combined,
+    warnings: [...(row.warnings ?? []), ...combined.filter((issue) => !(row.warnings ?? []).includes(issue))],
+    blocking_reasons: terminal ? existingBlocks : [...existingBlocks, ...combined.map((label) => ({ field: "reference", label, action: "Granska kopplingen manuellt." }))],
+    next_step: terminal
+      ? "Historisk koppling kunde inte verifieras. Ansökans avslutade status är oförändrad."
+      : "Granska ansökans kopplingar manuellt innan driftflödet fortsätter.",
+  };
+}
+
+// Legacy info/case columns contain IDs from two different tables. Resolve only
+// a unique company-owned target; unknown or ambiguous IDs remain visible for review.
+async function resolveExternalIntakeReferences(rows: WebsiteApplicationAdminRow[]): Promise<WebsiteApplicationAdminRow[]> {
+  const infoIds = [...new Set(rows.map((row) => row.response_payload?.created_info_request_id).filter((id): id is string => typeof id === "string" && Boolean(id)))];
+  const caseIds = [...new Set(rows.map((row) => row.response_payload?.created_case_id).filter((id): id is string => typeof id === "string" && Boolean(id)))];
+  if (!infoIds.length && !caseIds.length) return rows;
+  const companies = [...new Set(rows.map((row) => row.company_id))];
+  const targets = [
+    ["grid_owner_information_requests", infoIds, "grid_owner_information_request_id"],
+    ["customer_info_requests", infoIds, "customer_info_request_id"],
+    ["customer_match_review_cases", caseIds, "customer_match_review_case_id"],
+    ["customer_operation_tasks", caseIds, "customer_operation_task_id"],
+  ] as const;
+  const owned = await Promise.all(targets.map(async ([table, ids]) => {
+    if (!ids.length) return new Set<string>();
+    const { data, error } = await supabaseService.from(table).select("id,company_id")
+      .in("id", ids).in("company_id", companies).limit(ids.length);
+    if (error) throw error;
+    return new Set(((data ?? []) as Array<{ id: string; company_id: string }>).map((row) => `${row.company_id}:${row.id}`));
+  }));
+  return rows.map((row) => {
+    const resolved = { ...row };
+    const issues: string[] = [];
+    for (const [key, indexes, label] of [
+      ["created_info_request_id", [0, 1], "uppgiftsbegäran"],
+      ["created_case_id", [2, 3], "granskningsärende eller driftuppgift"],
+    ] as const) {
+      const id = row.response_payload?.[key];
+      if (typeof id !== "string" || !id) continue;
+      const matches = indexes.filter((index) => owned[index].has(`${row.company_id}:${id}`));
+      if (matches.length === 1) resolved[targets[matches[0]][2]] = id;
+      else issues.push(`Kopplad ${label} kunde inte verifieras entydigt för bolaget.`);
+    }
+    return addReferenceIssues(resolved, issues);
+  });
+}
+
 async function listExternalContractIntakes(
   input: {
     companyId?: string | null;
     status?: string | null;
     limit?: number;
+    ids?: string[];
   } = {},
 ): QueryResult<WebsiteApplicationAdminRow> {
   let query = supabaseService
     .from("external_contract_intakes")
     .select("*,companies(name)")
     .order("created_at", { ascending: false })
-    .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
+    .limit(input.ids ? Math.max(input.ids.length, 1) : Math.min(Math.max(input.limit ?? 100, 1), 200));
 
   if (input.companyId) query = query.eq("company_id", input.companyId);
   if (input.status) query = query.eq("status", input.status);
+  if (input.ids) query = query.in("id", input.ids);
 
   const { data, error } = await query;
   if (error) {
     if (missingSchema(error)) return [];
     throw error;
   }
-  return ((data ?? []) as Array<Record<string, unknown>>).map(
-    mapExternalContractIntakeRow,
-  );
+  return resolveExternalIntakeReferences(((data ?? []) as Array<Record<string, unknown>>).map(mapExternalContractIntakeRow));
 }
 
 async function listLegacyWebsiteApplications(
@@ -389,6 +446,7 @@ async function listLegacyWebsiteApplications(
     companyId?: string | null;
     status?: string | null;
     limit?: number;
+    ids?: string[];
   } = {},
 ): QueryResult<WebsiteApplicationAdminRow> {
   let query = supabaseService
@@ -397,10 +455,11 @@ async function listLegacyWebsiteApplications(
       "*,companies(name),customers!website_customer_applications_company_customer_fkey(full_name,company_name,email,phone),integration_api_clients!website_customer_applications_company_api_client_fkey(name,key_prefix)",
     )
     .order("created_at", { ascending: false })
-    .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
+    .limit(input.ids ? Math.max(input.ids.length, 1) : Math.min(Math.max(input.limit ?? 100, 1), 200));
 
   if (input.companyId) query = query.eq("company_id", input.companyId);
   if (input.status) query = query.eq("status", input.status);
+  if (input.ids) query = query.in("id", input.ids);
 
   const { data, error } = await query;
   if (error) {
@@ -412,39 +471,59 @@ async function listLegacyWebsiteApplications(
   );
 }
 
-export async function listWebsiteApplications(
-  input: {
-    companyId?: string | null;
-    status?: string | null;
-    limit?: number;
-  } = {},
-): QueryResult<WebsiteApplicationAdminRow> {
+type WebsiteApplicationWorkRow = WebsiteApplicationWorkMetadata & {
+  application_id: string; company_id: string; status: string;
+  source_table: "website_customer_applications" | "external_contract_intakes";
+  linked_external_intake_id: string | null;
+};
+const WORK_ITEM_FIELDS = "application_id,company_id,source_table,status,work_state,is_pending,linked_external_intake_id";
+
+function applyWorkMetadata(row: WebsiteApplicationAdminRow, state: WebsiteApplicationWorkRow): WebsiteApplicationAdminRow {
+  const result = { ...row, status: state.status, work_state: state.work_state, is_pending: state.is_pending };
+  return addReferenceIssues(result, result.reference_resolution_issues ?? []);
+}
+
+async function hydrateApplicationWorkRows(work: WebsiteApplicationWorkRow[], companyId?: string | null): QueryResult<WebsiteApplicationAdminRow> {
+  if (!work.length) return [];
+  const websiteIds = work.filter(r => r.source_table === "website_customer_applications").map(r => r.application_id);
+  const externalIds = [...new Set(work.flatMap(r => r.linked_external_intake_id ? [r.linked_external_intake_id] : []))];
   const [website, external] = await Promise.all([
-    listLegacyWebsiteApplications(input),
-    listExternalContractIntakes(input),
+    websiteIds.length ? listLegacyWebsiteApplications({ companyId, ids: websiteIds }) : Promise.resolve([]),
+    externalIds.length ? listExternalContractIntakes({ companyId, ids: externalIds }) : Promise.resolve([]),
   ]);
-  const byKey = new Map<string, WebsiteApplicationAdminRow>();
+  const byWebsiteId = new Map(website.map(row => [row.id,row]));
+  const byExternalId = new Map(external.map(row => [row.id,row]));
+  return work.map(state => {
+    const primary = state.source_table === "website_customer_applications"
+      ? byWebsiteId.get(state.application_id) : byExternalId.get(state.application_id);
+    if (!primary || primary.company_id !== state.company_id) {
+      throw new Error("Ansökningslistan ändrades under hämtningen. Uppdatera sidan.");
+    }
+    const mirror = state.linked_external_intake_id ? byExternalId.get(state.linked_external_intake_id) : undefined;
+    if (mirror && mirror.company_id !== state.company_id) {
+      throw new Error("Ansökans bolagskoppling kunde inte verifieras.");
+    }
+    const row = state.source_table === "website_customer_applications" && mirror
+      ? mergeExternalMirrorIntoWebsiteRow(primary,mirror) : primary;
+    const resolved = state.source_table === "website_customer_applications" && state.linked_external_intake_id && !mirror
+      ? addReferenceIssues(row, ["Kopplad extern ansökan kunde inte verifieras."]) : row;
+    return applyWorkMetadata(resolved, state);
+  });
+}
 
-  // website_customer_applications is the canonical source for website signups.
-  // external_contract_intakes may contain a mirror/fallback row with the same
-  // idempotency key, but it must never hide the canonical application row because
-  // it often lacks customer_id/contract_id and breaks admin drill-down.
-  for (const row of website) {
-    byKey.set(sourceKey(row), row);
-  }
-
-  for (const row of external) {
-    const key = sourceKey(row);
-    const existing = byKey.get(key);
-    byKey.set(
-      key,
-      existing ? mergeExternalMirrorIntoWebsiteRow(existing, row) : row,
-    );
-  }
-
-  return [...byKey.values()]
-    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
-    .slice(0, Math.min(Math.max(input.limit ?? 100, 1), 200));
+export async function listWebsiteApplications(
+  input: { companyId?: string | null; status?: string | null; limit?: number } = {},
+): QueryResult<WebsiteApplicationAdminRow> {
+  // Resolve canonical identity before state filtering and the page limit.
+  let query = supabaseService.from("gridex_website_application_work_items_v")
+    .select(WORK_ITEM_FIELDS)
+    .order("created_at", { ascending: false }).order("application_id", { ascending: false })
+    .limit(Math.min(Math.max(input.limit ?? 100, 1), 200));
+  if (input.companyId) query = query.eq("company_id", input.companyId);
+  if (input.status) query = query.eq("status", input.status);
+  const { data, error } = await query;
+  if (error) throw error; // A missing shared read model is not an empty queue.
+  return hydrateApplicationWorkRows((data ?? []) as WebsiteApplicationWorkRow[], input.companyId);
 }
 
 export async function listWebsiteApplicationsForCustomer(
@@ -472,9 +551,7 @@ export async function listWebsiteApplicationsForCustomer(
 
   const externalRows = external.error
     ? []
-    : ((external.data ?? []) as Array<Record<string, unknown>>).map(
-        mapExternalContractIntakeRow,
-      );
+    : await resolveExternalIntakeReferences(((external.data ?? []) as Array<Record<string, unknown>>).map(mapExternalContractIntakeRow));
   const legacyRows = legacy.error
     ? []
     : ((legacy.data ?? []) as Array<Record<string, unknown>>).map(
@@ -494,33 +571,13 @@ export async function getWebsiteApplicationAdminRow(
   const loadExternal = sourceTable !== "website_customer_applications";
 
   if (loadWebsite) {
-    let query = supabaseService
-      .from("website_customer_applications")
-      .select(
-        "*,companies(name),customers!website_customer_applications_company_customer_fkey(full_name,company_name,email,phone),integration_api_clients!website_customer_applications_company_api_client_fkey(name,key_prefix)",
-      )
-      .eq("id", applicationId);
+    let query = supabaseService.from("gridex_website_application_work_items_v")
+      .select(WORK_ITEM_FIELDS).eq("application_id", applicationId).eq("source_table", "website_customer_applications");
     if (options.companyId) query = query.eq("company_id", options.companyId);
-
     const { data, error } = await query.maybeSingle();
-    if (error && !missingSchema(error)) throw error;
+    if (error) throw error;
     if (data) {
-      const websiteRow = mapWebsiteCustomerApplicationRow(
-        data as Record<string, unknown>,
-      );
-      if (websiteRow.idempotency_key) {
-        const externalRows = await listExternalContractIntakes({
-          companyId: websiteRow.company_id,
-          limit: 20,
-        });
-        const mirror = externalRows.find(
-          (row) => row.idempotency_key === websiteRow.idempotency_key,
-        );
-        return mirror
-          ? mergeExternalMirrorIntoWebsiteRow(websiteRow, mirror)
-          : websiteRow;
-      }
-      return websiteRow;
+      return (await hydrateApplicationWorkRows([data as WebsiteApplicationWorkRow], options.companyId))[0] ?? null;
     }
   }
 
@@ -533,8 +590,19 @@ export async function getWebsiteApplicationAdminRow(
 
     const { data, error } = await query.maybeSingle();
     if (error && !missingSchema(error)) throw error;
-    if (data)
-      return mapExternalContractIntakeRow(data as Record<string, unknown>);
+    if (data) {
+      const row = (await resolveExternalIntakeReferences([mapExternalContractIntakeRow(data as Record<string, unknown>)]))[0];
+      const { data: workData, error: workError } = await supabaseService.from("gridex_website_application_work_items_v")
+        .select(WORK_ITEM_FIELDS).eq("application_id", applicationId).eq("company_id", row.company_id).eq("source_table", "external_contract_intakes").maybeSingle();
+      if (workError) throw workError;
+      if (workData) {
+        const state = workData as WebsiteApplicationWorkRow;
+        return applyWorkMetadata(row, state);
+      }
+      // A legacy direct URL may refer to a mirror suppressed from the main list.
+      // Preserve its readable source record without guessing a canonical owner.
+      return addReferenceIssues(row, ["Ansökan är en sekundär eller ändrad post; huvudkopplingen är inte verifierad."]);
+    }
   }
 
   return null;

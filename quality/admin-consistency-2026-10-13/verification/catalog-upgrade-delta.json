@@ -1,0 +1,1952 @@
+{
+  "relations": {
+    "added": [
+      {
+        "nspname": "public",
+        "relkind": "v",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "partition_key": null,
+        "relrowsecurity": false,
+        "view_definition": " SELECT q.id,\n    q.company_id,\n    q.entity_type,\n    q.entity_id,\n    q.issue_type,\n    q.severity,\n    q.message,\n    q.status,\n    q.detected_at,\n    q.resolved_at,\n    q.created_at,\n    q.updated_at,\n    q.source,\n    q.period_month,\n    q.resolution_reason,\n    q.open_key\n   FROM data_quality_issues q\n     LEFT JOIN gridex_data_quality_rule_catalog_v r ON r.issue_type = q.issue_type AND r.entity_type = q.entity_type\n  WHERE q.status = 'open'::text AND COALESCE(gridex_data_quality_source_exists_v1(q.company_id, q.entity_type, q.entity_id, COALESCE(r.requires_active, false)), true) AND (q.period_month IS NULL OR q.period_month = date_trunc('month'::text, CURRENT_DATE::timestamp with time zone)::date);",
+        "relforcerowsecurity": false
+      },
+      {
+        "nspname": "public",
+        "relkind": "v",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "partition_key": null,
+        "relrowsecurity": false,
+        "view_definition": " SELECT issue_type,\n    entity_type,\n    requires_active,\n    period_dependent,\n    scanner,\n    severity,\n    message,\n    alert_type,\n    alert_title,\n    alert_message\n   FROM ( VALUES ('missing_bidding_zone'::text,'metering_point'::text,true,false,true,'warning'::text,'M\u00e4tpunkt saknar SE-omr\u00e5de.'::text,'missing_bidding_zone'::text,'m\u00e4tpunkter saknar SE-omr\u00e5de'::text,'Komplettera SE-omr\u00e5de eller l\u00e4gg till en s\u00e4ker n\u00e4tomr\u00e5desmappning.'::text), ('missing_grid_owner'::text,'metering_point'::text,true,false,true,'warning'::text,'M\u00e4tpunkt saknar n\u00e4t\u00e4gare.'::text,'missing_grid_owner'::text,'m\u00e4tpunkter saknar n\u00e4t\u00e4gare'::text,'Komplettera n\u00e4t\u00e4gare innan prognos och m\u00e4tv\u00e4rdesuppf\u00f6ljning anv\u00e4nds.'::text), ('missing_start_date'::text,'metering_point'::text,true,false,true,'warning'::text,'M\u00e4tpunkt saknar startdatum.'::text,NULL::text,NULL::text,NULL::text), ('missing_estimated_annual_consumption'::text,'metering_point'::text,true,false,true,'warning'::text,'M\u00e4tpunkt saknar b\u00e5de uppskattad \u00e5rsf\u00f6rbrukning och historiska m\u00e4tv\u00e4rden.'::text,NULL::text,NULL::text,NULL::text), ('active_metering_point_without_active_customer'::text,'metering_point'::text,true,false,true,'warning'::text,'M\u00e4tpunkt \u00e4r aktiv men kunden \u00e4r inte aktiv.'::text,NULL::text,NULL::text,NULL::text), ('missing_metering_values'::text,'metering_point'::text,true,true,true,'critical'::text,'M\u00e4tv\u00e4rden saknas f\u00f6r perioden.'::text,'missing_metering_values'::text,'m\u00e4tpunkter saknar m\u00e4tv\u00e4rden'::text,'F\u00f6lj upp saknade m\u00e4tv\u00e4rden f\u00f6r vald period.'::text), ('invalid_metering_value'::text,'metering_value'::text,false,false,true,'critical'::text,'M\u00e4tv\u00e4rde \u00e4r negativt och beh\u00f6ver kontrolleras.'::text,NULL::text,NULL::text,NULL::text), ('missing_customer_contract'::text,'customer'::text,true,false,true,'warning'::text,'Aktiv kund saknar aktiv m\u00e4tpunkt.'::text,NULL::text,NULL::text,NULL::text), ('incomplete_customer_onboarding'::text,'customer'::text,true,false,true,'warning'::text,'Kunddata \u00e4r ofullst\u00e4ndig f\u00f6r aktiv kund.'::text,'incomplete_customer_onboarding'::text,'kunder har ofullst\u00e4ndig kunddata'::text,'Komplettera kunddata innan statistik, prognos och drift anv\u00e4nds fullt ut.'::text), ('failed_ediel_message'::text,'ediel_message'::text,false,false,true,'critical'::text,'Ediel-meddelande misslyckades.'::text,'failed_ediel_message'::text,'Ediel-meddelanden har misslyckats'::text,'F\u00f6lj upp misslyckade PRODAT, UTILTS, CONTRL eller APERAK-meddelanden.'::text), ('slow_grid_owner_response'::text,'grid_owner_data_request'::text,false,false,true,'warning'::text,'N\u00e4t\u00e4garsvar har inte kommit inom 72 timmar.'::text,'slow_grid_owner_response'::text,'n\u00e4t\u00e4garsvar \u00e4r f\u00f6rsenade'::text,'F\u00f6lj upp uppgifts- eller m\u00e4tv\u00e4rdesbeg\u00e4ran som v\u00e4ntar p\u00e5 svar.'::text), ('forecast_deviation'::text,'metering_point'::text,true,true,true,'warning'::text,'Prognosen avviker mot faktiskt utfall.'::text,'forecast_deviation'::text,'prognoser avviker mot faktiskt utfall'::text,'Granska prognosavvikelser per m\u00e4tpunkt och kund.'::text), ('forecast_basis_missing'::text,'metering_point'::text,true,true,false,'warning'::text,'Prognosunderlag saknas f\u00f6r m\u00e4tpunkten.'::text,NULL::text,NULL::text,NULL::text)) r(issue_type, entity_type, requires_active, period_dependent, scanner, severity, message, alert_type, alert_title, alert_message);",
+        "relforcerowsecurity": false
+      },
+      {
+        "nspname": "public",
+        "relkind": "v",
+        "relname": "gridex_website_application_work_items_v",
+        "partition_key": null,
+        "relrowsecurity": false,
+        "view_definition": " WITH external_identity AS (\n         SELECT e.id,\n            e.company_id,\n            e.status,\n            e.source_channel,\n            e.idempotency_key,\n            e.customer_type,\n            e.first_name,\n            e.last_name,\n            e.company_name,\n            e.email,\n            e.phone,\n            e.personal_number,\n            e.org_number,\n            e.facility_id,\n            e.meter_point_id,\n            e.street,\n            e.postal_code,\n            e.city,\n            e.move_in_date,\n            e.price_area_code,\n            e.contract_offer_id,\n            e.requested_start_date,\n            e.created_customer_id,\n            e.created_site_id,\n            e.created_metering_point_id,\n            e.created_contract_id,\n            e.created_case_id,\n            e.created_info_request_id,\n            e.payload,\n            e.issues,\n            e.created_at,\n            e.updated_at,\n            e.external_customer_id,\n            e.customer_number,\n            e.application_number,\n            e.contract_number,\n            e.payload_hash,\n            e.request_id,\n            e.trace_id,\n            e.intake_id,\n            e.public_contract_offer_id,\n            e.offer_reference,\n            e.price_plan_id,\n            e.price_plan_version_id,\n                CASE\n                    WHEN NULLIF(TRIM(BOTH FROM e.payload ->> 'website_application_id'::text), ''::text) IS NOT NULL THEN ( SELECT w.id\n                       FROM website_customer_applications w\n                      WHERE w.company_id = e.company_id AND w.id::text = lower(TRIM(BOTH FROM e.payload ->> 'website_application_id'::text)))\n                    WHEN e.intake_id IS NOT NULL THEN ( SELECT\n                            CASE\n                                WHEN count(*) = 1 THEN min(w.id::text)::uuid\n                                ELSE NULL::uuid\n                            END AS \"case\"\n                       FROM website_customer_applications w\n                      WHERE w.company_id = e.company_id AND w.intake_id = e.intake_id)\n                    WHEN e.idempotency_key IS NOT NULL THEN ( SELECT\n                            CASE\n                                WHEN count(*) = 1 THEN min(w.id::text)::uuid\n                                ELSE NULL::uuid\n                            END AS \"case\"\n                       FROM website_customer_applications w\n                      WHERE w.company_id = e.company_id AND w.idempotency_key = e.idempotency_key)\n                    ELSE NULL::uuid\n                END AS canonical_application_id\n           FROM external_contract_intakes e\n        ), canonical AS (\n         SELECT w.id AS application_id,\n            w.company_id,\n            'website_customer_applications'::text AS source_table,\n            gridex_website_application_status(w.status, 'website_customer_applications'::text) AS status,\n            gridex_website_application_work_state(w.status) AS work_state,\n            w.created_at,\n            w.updated_at,\n            ( SELECT e.id\n                   FROM external_identity e\n                  WHERE e.company_id = w.company_id AND e.canonical_application_id = w.id\n                  ORDER BY e.created_at DESC, e.id\n                 LIMIT 1) AS linked_external_intake_id\n           FROM website_customer_applications w\n        ), fallback AS (\n         SELECT e.id AS application_id,\n            e.company_id,\n            'external_contract_intakes'::text AS source_table,\n            gridex_website_application_status(e.status, 'external_contract_intakes'::text) AS status,\n            gridex_website_application_work_state(e.status) AS work_state,\n            e.created_at,\n            e.updated_at,\n            e.id AS linked_external_intake_id\n           FROM external_identity e\n          WHERE e.canonical_application_id IS NULL\n        )\n SELECT application_id,\n    company_id,\n    source_table,\n    status,\n    work_state,\n    created_at,\n    updated_at,\n    linked_external_intake_id,\n    work_state <> ALL (ARRAY['completed'::text, 'closed'::text]) AS is_pending\n   FROM ( SELECT canonical.application_id,\n            canonical.company_id,\n            canonical.source_table,\n            canonical.status,\n            canonical.work_state,\n            canonical.created_at,\n            canonical.updated_at,\n            canonical.linked_external_intake_id\n           FROM canonical\n        UNION ALL\n         SELECT fallback.application_id,\n            fallback.company_id,\n            fallback.source_table,\n            fallback.status,\n            fallback.work_state,\n            fallback.created_at,\n            fallback.updated_at,\n            fallback.linked_external_intake_id\n           FROM fallback) a;",
+        "relforcerowsecurity": false
+      }
+    ],
+    "removed": [],
+    "changed": [
+      {
+        "before": {
+          "nspname": "public",
+          "relkind": "v",
+          "relname": "company_dashboard_summary_v",
+          "partition_key": null,
+          "relrowsecurity": false,
+          "view_definition": " SELECT id AS company_id,\n    name AS company_name,\n    ( SELECT count(*) AS count\n           FROM customers x\n          WHERE x.company_id = c.id AND COALESCE(x.source, ''::text) <> 'ediel_portal_test'::text AND (COALESCE(x.status, ''::text) <> ALL (ARRAY['archived'::text, 'deleted'::text, 'deleted_test_only'::text, 'pending_deletion'::text]))) AS customers_total,\n    ( SELECT count(*) AS count\n           FROM customer_contracts x\n          WHERE x.company_id = c.id) AS contracts_total,\n    ( SELECT count(*) AS count\n           FROM customer_sites x\n          WHERE x.company_id = c.id) AS sites_total,\n    ( SELECT count(*) AS count\n           FROM metering_points x\n          WHERE x.company_id = c.id) AS metering_points_total,\n    ( SELECT count(*) AS count\n           FROM customer_operation_tasks x\n          WHERE x.company_id = c.id AND x.status = 'open'::text) AS open_tasks,\n    ( SELECT count(*) AS count\n           FROM grid_owner_data_requests x\n          WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['sent'::text, 'waiting_response'::text, 'queued'::text, 'pending'::text]))) AS open_grid_owner_requests,\n    ( SELECT count(*) AS count\n           FROM supplier_switch_requests x\n          WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['open'::text, 'draft'::text, 'queued'::text, 'submitted'::text, 'accepted'::text, 'cancellation_requested'::text, 'cancellation_sent'::text, 'manual_followup_required'::text]))) AS open_switches,\n    ( SELECT count(*) AS count\n           FROM outbound_requests x\n          WHERE x.company_id = c.id) AS outbound_requests_total,\n    ( SELECT count(*) AS count\n           FROM metering_values x\n          WHERE x.company_id = c.id) AS metering_values_total,\n    ( SELECT count(*) AS count\n           FROM billing_underlays x\n          WHERE x.company_id = c.id) AS billing_underlays_total,\n    ( SELECT count(*) AS count\n           FROM supplier_switch_requests x\n          WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['draft'::text, 'queued'::text, 'submitted'::text, 'accepted'::text, 'cancellation_requested'::text, 'cancellation_sent'::text, 'manual_followup_required'::text]))) AS ongoing_supplier_switches,\n    ( SELECT count(*) AS count\n           FROM grid_owner_data_requests x\n          WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['sent'::text, 'waiting_response'::text, 'queued'::text]))) AS waiting_for_grid_owner,\n    ( SELECT count(*) AS count\n           FROM ediel_messages x\n          WHERE x.company_id = c.id AND x.ack_outcome = 'negative'::text) AS negative_acknowledgements,\n    ( SELECT count(*) AS count\n           FROM data_quality_issues x\n          WHERE x.company_id = c.id AND x.status = 'open'::text AND x.issue_type = 'missing_metering_values'::text) AS missing_metering_values,\n    ( SELECT count(*) AS count\n           FROM customer_operation_tasks x\n          WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['open'::text, 'in_progress'::text, 'blocked'::text]))) AS customers_action_required,\n    ( SELECT count(*) AS count\n           FROM metering_values x\n          WHERE x.company_id = c.id AND x.created_at >= (now() - '7 days'::interval)) AS latest_metering_values,\n    ( SELECT count(*) AS count\n           FROM customer_contracts x\n          WHERE x.company_id = c.id AND x.ends_at >= CURRENT_DATE AND x.ends_at <= (CURRENT_DATE + '30 days'::interval)) AS upcoming_terminations,\n    ( SELECT count(*) AS count\n           FROM external_contract_intakes x\n          WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['needs_review'::text, 'partially_created'::text, 'failed'::text]))) AS pending_customer_applications,\n    ( SELECT count(*) AS count\n           FROM billing_underlays x\n          WHERE x.company_id = c.id AND (COALESCE(x.readiness_status, x.status) = ANY (ARRAY['blocked'::text, 'failed'::text, 'needs_review'::text]))) AS billing_blocked_or_failed,\n    ( SELECT count(*) AS count\n           FROM integration_api_requests x\n          WHERE x.company_id = c.id AND COALESCE(x.status_code, 200) >= 400) AS api_errors,\n    ( SELECT count(*) AS count\n           FROM webhook_deliveries x\n          WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['failed'::text, 'dead'::text, 'dead_letter'::text, 'retrying'::text]))) AS webhook_failures,\n    ( SELECT COALESCE(sum(r.issue_count), 0::numeric) AS \"coalesce\"\n           FROM gridex_company_launch_blocker_reasons_v r\n          WHERE r.company_id = c.id AND r.issue_count > 0) AS customers_blocked_or_data_issues,\n    ( SELECT count(*) AS count\n           FROM gridex_route_readiness_v x\n          WHERE x.readiness_status = ANY (ARRAY['critical_missing_route'::text, 'recommended_missing_route'::text, 'not_sendable'::text, 'needs_review'::text])) AS route_missing_or_not_ready\n   FROM companies c;",
+          "relforcerowsecurity": false
+        },
+        "after": {
+          "nspname": "public",
+          "relkind": "v",
+          "relname": "company_dashboard_summary_v",
+          "partition_key": null,
+          "relrowsecurity": false,
+          "view_definition": " SELECT company_id,\n    company_name,\n    customers_total,\n    contracts_total,\n    sites_total,\n    metering_points_total,\n    open_tasks,\n    open_grid_owner_requests,\n    open_switches,\n    outbound_requests_total,\n    metering_values_total,\n    billing_underlays_total,\n    ongoing_supplier_switches,\n    waiting_for_grid_owner,\n    negative_acknowledgements,\n    ( SELECT count(*) AS count\n           FROM gridex_actionable_data_quality_issues_v q\n          WHERE q.company_id = base.company_id AND q.issue_type = 'missing_metering_values'::text) AS missing_metering_values,\n    customers_action_required,\n    latest_metering_values,\n    upcoming_terminations,\n    ( SELECT gridex_pending_website_application_count(base.company_id) AS gridex_pending_website_application_count) AS pending_customer_applications,\n    billing_blocked_or_failed,\n    api_errors,\n    webhook_failures,\n    customers_blocked_or_data_issues,\n    route_missing_or_not_ready\n   FROM ( SELECT c.id AS company_id,\n            c.name AS company_name,\n            ( SELECT count(*) AS count\n                   FROM customers x\n                  WHERE x.company_id = c.id AND COALESCE(x.source, ''::text) <> 'ediel_portal_test'::text AND (COALESCE(x.status, ''::text) <> ALL (ARRAY['archived'::text, 'deleted'::text, 'deleted_test_only'::text, 'pending_deletion'::text]))) AS customers_total,\n            ( SELECT count(*) AS count\n                   FROM customer_contracts x\n                  WHERE x.company_id = c.id) AS contracts_total,\n            ( SELECT count(*) AS count\n                   FROM customer_sites x\n                  WHERE x.company_id = c.id) AS sites_total,\n            ( SELECT count(*) AS count\n                   FROM metering_points x\n                  WHERE x.company_id = c.id) AS metering_points_total,\n            ( SELECT count(*) AS count\n                   FROM customer_operation_tasks x\n                  WHERE x.company_id = c.id AND x.status = 'open'::text) AS open_tasks,\n            ( SELECT count(*) AS count\n                   FROM grid_owner_data_requests x\n                  WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['sent'::text, 'waiting_response'::text, 'queued'::text, 'pending'::text]))) AS open_grid_owner_requests,\n            ( SELECT count(*) AS count\n                   FROM supplier_switch_requests x\n                  WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['open'::text, 'draft'::text, 'queued'::text, 'submitted'::text, 'accepted'::text, 'cancellation_requested'::text, 'cancellation_sent'::text, 'manual_followup_required'::text]))) AS open_switches,\n            ( SELECT count(*) AS count\n                   FROM outbound_requests x\n                  WHERE x.company_id = c.id) AS outbound_requests_total,\n            ( SELECT count(*) AS count\n                   FROM metering_values x\n                  WHERE x.company_id = c.id) AS metering_values_total,\n            ( SELECT count(*) AS count\n                   FROM billing_underlays x\n                  WHERE x.company_id = c.id) AS billing_underlays_total,\n            ( SELECT count(*) AS count\n                   FROM supplier_switch_requests x\n                  WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['draft'::text, 'queued'::text, 'submitted'::text, 'accepted'::text, 'cancellation_requested'::text, 'cancellation_sent'::text, 'manual_followup_required'::text]))) AS ongoing_supplier_switches,\n            ( SELECT count(*) AS count\n                   FROM grid_owner_data_requests x\n                  WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['sent'::text, 'waiting_response'::text, 'queued'::text]))) AS waiting_for_grid_owner,\n            ( SELECT count(*) AS count\n                   FROM ediel_messages x\n                  WHERE x.company_id = c.id AND x.ack_outcome = 'negative'::text) AS negative_acknowledgements,\n            ( SELECT count(*) AS count\n                   FROM data_quality_issues x\n                  WHERE x.company_id = c.id AND x.status = 'open'::text AND x.issue_type = 'missing_metering_values'::text) AS missing_metering_values,\n            ( SELECT count(*) AS count\n                   FROM customer_operation_tasks x\n                  WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['open'::text, 'in_progress'::text, 'blocked'::text]))) AS customers_action_required,\n            ( SELECT count(*) AS count\n                   FROM metering_values x\n                  WHERE x.company_id = c.id AND x.created_at >= (now() - '7 days'::interval)) AS latest_metering_values,\n            ( SELECT count(*) AS count\n                   FROM customer_contracts x\n                  WHERE x.company_id = c.id AND x.ends_at >= CURRENT_DATE AND x.ends_at <= (CURRENT_DATE + '30 days'::interval)) AS upcoming_terminations,\n            ( SELECT count(*) AS count\n                   FROM external_contract_intakes x\n                  WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['needs_review'::text, 'partially_created'::text, 'failed'::text]))) AS pending_customer_applications,\n            ( SELECT count(*) AS count\n                   FROM billing_underlays x\n                  WHERE x.company_id = c.id AND (COALESCE(x.readiness_status, x.status) = ANY (ARRAY['blocked'::text, 'failed'::text, 'needs_review'::text]))) AS billing_blocked_or_failed,\n            ( SELECT count(*) AS count\n                   FROM integration_api_requests x\n                  WHERE x.company_id = c.id AND COALESCE(x.status_code, 200) >= 400) AS api_errors,\n            ( SELECT count(*) AS count\n                   FROM webhook_deliveries x\n                  WHERE x.company_id = c.id AND (x.status = ANY (ARRAY['failed'::text, 'dead'::text, 'dead_letter'::text, 'retrying'::text]))) AS webhook_failures,\n            ( SELECT COALESCE(sum(r.issue_count), 0::numeric) AS \"coalesce\"\n                   FROM gridex_company_launch_blocker_reasons_v r\n                  WHERE r.company_id = c.id AND r.issue_count > 0) AS customers_blocked_or_data_issues,\n            ( SELECT count(*) AS count\n                   FROM gridex_route_readiness_v x\n                  WHERE x.readiness_status = ANY (ARRAY['critical_missing_route'::text, 'recommended_missing_route'::text, 'not_sendable'::text, 'needs_review'::text])) AS route_missing_or_not_ready\n           FROM companies c) base;",
+          "relforcerowsecurity": false
+        }
+      }
+    ]
+  },
+  "columns": {
+    "added": [
+      {
+        "attnum": 13,
+        "attname": "source",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 14,
+        "attname": "resolution_reason",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 15,
+        "attname": "open_key",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "s",
+        "is_nullable": true,
+        "column_default": "\nCASE\n    WHEN status = 'open'::text THEN gridex_quality_open_key_v1(company_id, source, entity_type, entity_id, alert_type, NULL::date)\n    ELSE NULL::text\nEND"
+      },
+      {
+        "attnum": 13,
+        "attname": "source",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 14,
+        "attname": "period_month",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "identity": "",
+        "udt_name": "date",
+        "data_type": "date",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 15,
+        "attname": "resolution_reason",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 16,
+        "attname": "open_key",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "s",
+        "is_nullable": true,
+        "column_default": "\nCASE\n    WHEN status = 'open'::text THEN gridex_quality_open_key_v1(company_id, source, entity_type, entity_id, issue_type, period_month)\n    ELSE NULL::text\nEND"
+      },
+      {
+        "attnum": 1,
+        "attname": "id",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "uuid",
+        "data_type": "uuid",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 10,
+        "attname": "resolved_at",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "timestamptz",
+        "data_type": "timestamp with time zone",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 11,
+        "attname": "created_at",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "timestamptz",
+        "data_type": "timestamp with time zone",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 12,
+        "attname": "updated_at",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "timestamptz",
+        "data_type": "timestamp with time zone",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 13,
+        "attname": "source",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 14,
+        "attname": "period_month",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "date",
+        "data_type": "date",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 15,
+        "attname": "resolution_reason",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 16,
+        "attname": "open_key",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 2,
+        "attname": "company_id",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "uuid",
+        "data_type": "uuid",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 3,
+        "attname": "entity_type",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 4,
+        "attname": "entity_id",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "uuid",
+        "data_type": "uuid",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 5,
+        "attname": "issue_type",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 6,
+        "attname": "severity",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 7,
+        "attname": "message",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 8,
+        "attname": "status",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 9,
+        "attname": "detected_at",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "identity": "",
+        "udt_name": "timestamptz",
+        "data_type": "timestamp with time zone",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 1,
+        "attname": "issue_type",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 10,
+        "attname": "alert_message",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 2,
+        "attname": "entity_type",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 3,
+        "attname": "requires_active",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "bool",
+        "data_type": "boolean",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 4,
+        "attname": "period_dependent",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "bool",
+        "data_type": "boolean",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 5,
+        "attname": "scanner",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "bool",
+        "data_type": "boolean",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 6,
+        "attname": "severity",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 7,
+        "attname": "message",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 8,
+        "attname": "alert_type",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 9,
+        "attname": "alert_title",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 1,
+        "attname": "application_id",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "identity": "",
+        "udt_name": "uuid",
+        "data_type": "uuid",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 2,
+        "attname": "company_id",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "identity": "",
+        "udt_name": "uuid",
+        "data_type": "uuid",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 3,
+        "attname": "source_table",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 4,
+        "attname": "status",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 5,
+        "attname": "work_state",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "identity": "",
+        "udt_name": "text",
+        "data_type": "text",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 6,
+        "attname": "created_at",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "identity": "",
+        "udt_name": "timestamptz",
+        "data_type": "timestamp with time zone",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 7,
+        "attname": "updated_at",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "identity": "",
+        "udt_name": "timestamptz",
+        "data_type": "timestamp with time zone",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 8,
+        "attname": "linked_external_intake_id",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "identity": "",
+        "udt_name": "uuid",
+        "data_type": "uuid",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      },
+      {
+        "attnum": 9,
+        "attname": "is_pending",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "identity": "",
+        "udt_name": "bool",
+        "data_type": "boolean",
+        "generated": "",
+        "is_nullable": true,
+        "column_default": ""
+      }
+    ],
+    "removed": [],
+    "changed": []
+  },
+  "constraints": {
+    "added": [
+      {
+        "conname": "external_intake_created_contract_fk",
+        "contype": "f",
+        "nspname": "public",
+        "relname": "external_contract_intakes",
+        "definition": "FOREIGN KEY (company_id, created_contract_id) REFERENCES customer_contracts(company_id, id) ON DELETE SET NULL (created_contract_id)",
+        "convalidated": true
+      },
+      {
+        "conname": "external_intake_created_customer_fk",
+        "contype": "f",
+        "nspname": "public",
+        "relname": "external_contract_intakes",
+        "definition": "FOREIGN KEY (company_id, created_customer_id) REFERENCES customers(company_id, id) ON DELETE SET NULL (created_customer_id)",
+        "convalidated": true
+      },
+      {
+        "conname": "external_intake_created_meter_fk",
+        "contype": "f",
+        "nspname": "public",
+        "relname": "external_contract_intakes",
+        "definition": "FOREIGN KEY (company_id, created_metering_point_id) REFERENCES metering_points(company_id, id) ON DELETE SET NULL (created_metering_point_id)",
+        "convalidated": true
+      },
+      {
+        "conname": "external_intake_created_site_fk",
+        "contype": "f",
+        "nspname": "public",
+        "relname": "external_contract_intakes",
+        "definition": "FOREIGN KEY (company_id, created_site_id) REFERENCES customer_sites(company_id, id) ON DELETE SET NULL (created_site_id)",
+        "convalidated": true
+      }
+    ],
+    "removed": [
+      {
+        "conname": "dashboard_alerts_company_id_alert_type_entity_type_entity_i_key",
+        "contype": "u",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "definition": "UNIQUE (company_id, alert_type, entity_type, entity_id, status)",
+        "convalidated": true
+      },
+      {
+        "conname": "data_quality_issues_company_id_entity_type_entity_id_issue__key",
+        "contype": "u",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "definition": "UNIQUE (company_id, entity_type, entity_id, issue_type, status)",
+        "convalidated": true
+      }
+    ],
+    "changed": []
+  },
+  "indexes": {
+    "added": [
+      {
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "indexname": "dashboard_alerts_open_key_uidx",
+        "definition": "CREATE UNIQUE INDEX dashboard_alerts_open_key_uidx ON public.dashboard_alerts USING btree (open_key)",
+        "indisunique": true,
+        "indisprimary": false
+      },
+      {
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "indexname": "data_quality_issues_open_key_uidx",
+        "definition": "CREATE UNIQUE INDEX data_quality_issues_open_key_uidx ON public.data_quality_issues USING btree (open_key)",
+        "indisunique": true,
+        "indisprimary": false
+      }
+    ],
+    "removed": [
+      {
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "indexname": "dashboard_alerts_company_id_alert_type_entity_type_entity_i_key",
+        "definition": "CREATE UNIQUE INDEX dashboard_alerts_company_id_alert_type_entity_type_entity_i_key ON public.dashboard_alerts USING btree (company_id, alert_type, entity_type, entity_id, status)",
+        "indisunique": true,
+        "indisprimary": false
+      },
+      {
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "indexname": "data_quality_issues_company_id_entity_type_entity_id_issue__key",
+        "definition": "CREATE UNIQUE INDEX data_quality_issues_company_id_entity_type_entity_id_issue__key ON public.data_quality_issues USING btree (company_id, entity_type, entity_id, issue_type, status)",
+        "indisunique": true,
+        "indisprimary": false
+      }
+    ],
+    "changed": []
+  },
+  "functions": {
+    "added": [
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_company_has_customer_data",
+        "body_md5": "f3d93e303741e473540d9a3a9332d1ea",
+        "arguments": "p_company_id uuid",
+        "volatility": "s",
+        "return_type": "boolean",
+        "security_definer": false,
+        "identity_arguments": "p_company_id uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_current_point_forecasts_v1",
+        "body_md5": "21b7c7d37454e44d6c51e048459a2158",
+        "arguments": "p_company uuid, p_month date",
+        "volatility": "s",
+        "return_type": "TABLE(metering_point_id uuid, forecast_run_id uuid, diff_percent numeric)",
+        "security_definer": false,
+        "identity_arguments": "p_company uuid, p_month date"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_customer_portfolio_cohorts_at",
+        "body_md5": "25c9e2322d1a0d899df258950e0065ea",
+        "arguments": "p_company_id uuid, p_as_of date, p_months integer DEFAULT 12",
+        "volatility": "s",
+        "return_type": "TABLE(cohort_month date, customers integer, retained_1m numeric, retained_3m numeric, retained_6m numeric, retained_12m numeric)",
+        "security_definer": true,
+        "identity_arguments": "p_company_id uuid, p_as_of date, p_months integer"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_data_quality_active_status_v1",
+        "body_md5": "95e621f8b2be024c6a6c42c221604371",
+        "arguments": "p_status text",
+        "volatility": "i",
+        "return_type": "boolean",
+        "security_definer": false,
+        "identity_arguments": "p_status text"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_data_quality_source_exists_v1",
+        "body_md5": "0c2b3c2a30e56de5b7c64148950642fe",
+        "arguments": "p_company uuid, p_entity_type text, p_entity_id uuid, p_requires_active boolean DEFAULT false",
+        "volatility": "s",
+        "return_type": "boolean",
+        "security_definer": false,
+        "identity_arguments": "p_company uuid, p_entity_type text, p_entity_id uuid, p_requires_active boolean"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_missing_metering_points_count_v1",
+        "body_md5": "a398d16c4700d8652e811727479399e1",
+        "arguments": "p_company uuid, p_month date, p_customer uuid DEFAULT NULL::uuid",
+        "volatility": "s",
+        "return_type": "bigint",
+        "security_definer": false,
+        "identity_arguments": "p_company uuid, p_month date, p_customer uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_missing_metering_points_v1",
+        "body_md5": "58417ea03267c617e7f0032fb1634812",
+        "arguments": "p_company uuid, p_month date",
+        "volatility": "s",
+        "return_type": "TABLE(metering_point_id uuid, grid_owner_id uuid)",
+        "security_definer": false,
+        "identity_arguments": "p_company uuid, p_month date"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_pending_website_application_count",
+        "body_md5": "787e768c6a1f21014fd5541dd8344f47",
+        "arguments": "p_company_id uuid DEFAULT NULL::uuid",
+        "volatility": "s",
+        "return_type": "bigint",
+        "security_definer": false,
+        "identity_arguments": "p_company_id uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_quality_lock_company_v1",
+        "body_md5": "76b558060cafe0749e7479f3d80cf4f5",
+        "arguments": "p_company uuid",
+        "volatility": "v",
+        "return_type": "void",
+        "security_definer": false,
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_quality_open_key_v1",
+        "body_md5": "ba658bc911887228c36186b88ef45c18",
+        "arguments": "p_company uuid, p_source text, p_entity_type text, p_entity_id uuid, p_kind text, p_period date DEFAULT NULL::date",
+        "volatility": "i",
+        "return_type": "text",
+        "security_definer": false,
+        "identity_arguments": "p_company uuid, p_source text, p_entity_type text, p_entity_id uuid, p_kind text, p_period date"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_reconcile_dashboard_alerts_internal_v1",
+        "body_md5": "23acae0baf3a8ea68db54040ab94448e",
+        "arguments": "p_company uuid",
+        "volatility": "v",
+        "return_type": "void",
+        "security_definer": true,
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_reconcile_dashboard_alerts_v1",
+        "body_md5": "73d011d35ad133d1fc103ea010b43b35",
+        "arguments": "p_company uuid",
+        "volatility": "v",
+        "return_type": "void",
+        "security_definer": true,
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_reconcile_data_quality_v1",
+        "body_md5": "a43420e7983d73d615ec575815a4daea",
+        "arguments": "p_company uuid",
+        "volatility": "v",
+        "return_type": "void",
+        "security_definer": true,
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_resolve_dashboard_alert_v1",
+        "body_md5": "ed2a332d91da5344e2fc2b96fd66dfeb",
+        "arguments": "p_company uuid, p_alert uuid",
+        "volatility": "v",
+        "return_type": "void",
+        "security_definer": true,
+        "identity_arguments": "p_company uuid, p_alert uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_resolve_data_quality_issue_v1",
+        "body_md5": "f4277e7e3f086032f4f183d2554f2b3b",
+        "arguments": "p_company uuid, p_issue uuid",
+        "volatility": "v",
+        "return_type": "void",
+        "security_definer": true,
+        "identity_arguments": "p_company uuid, p_issue uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_resolve_deleted_quality_sources_v1",
+        "body_md5": "904456bbf5db64701a832410e3174808",
+        "arguments": "",
+        "volatility": "v",
+        "return_type": "trigger",
+        "security_definer": true,
+        "identity_arguments": ""
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_resolve_managed_quality_rule_v1",
+        "body_md5": "af11b5aa58352c704ca0805851118ebc",
+        "arguments": "p_company uuid, p_entity uuid, p_issue_type text, p_period date DEFAULT NULL::date",
+        "volatility": "v",
+        "return_type": "void",
+        "security_definer": true,
+        "identity_arguments": "p_company uuid, p_entity uuid, p_issue_type text, p_period date"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_scan_data_quality_v1",
+        "body_md5": "93b3dfc0ac9032e2de48f9b0c8be9192",
+        "arguments": "p_company uuid, p_month date DEFAULT CURRENT_DATE, p_point uuid DEFAULT NULL::uuid",
+        "volatility": "v",
+        "return_type": "jsonb",
+        "security_definer": true,
+        "identity_arguments": "p_company uuid, p_month date, p_point uuid"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_upsert_dashboard_alert_v1",
+        "body_md5": "d1a0eeaad7b9fed1235f082e6c43ba68",
+        "arguments": "p_company uuid, p_alert_type text, p_severity text, p_title text, p_message text, p_entity_type text DEFAULT NULL::text, p_entity uuid DEFAULT NULL::uuid, p_source text DEFAULT 'manual'::text",
+        "volatility": "v",
+        "return_type": "uuid",
+        "security_definer": true,
+        "identity_arguments": "p_company uuid, p_alert_type text, p_severity text, p_title text, p_message text, p_entity_type text, p_entity uuid, p_source text"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_upsert_data_quality_issue_v1",
+        "body_md5": "1380bb2c0126c06f00e9b0bba7b7b680",
+        "arguments": "p_company uuid, p_entity uuid, p_issue_type text, p_severity text, p_message text, p_period date DEFAULT NULL::date",
+        "volatility": "v",
+        "return_type": "uuid",
+        "security_definer": true,
+        "identity_arguments": "p_company uuid, p_entity uuid, p_issue_type text, p_severity text, p_message text, p_period date"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_website_application_status",
+        "body_md5": "5c15b6911f01596d1c99eeac424d7f3d",
+        "arguments": "p_status text, p_source_table text",
+        "volatility": "i",
+        "return_type": "text",
+        "security_definer": false,
+        "identity_arguments": "p_status text, p_source_table text"
+      },
+      {
+        "kind": "f",
+        "nspname": "public",
+        "proname": "gridex_website_application_work_state",
+        "body_md5": "9b779c6b1ba1abbc8c2c0d9ab7fb1783",
+        "arguments": "p_status text",
+        "volatility": "i",
+        "return_type": "text",
+        "security_definer": false,
+        "identity_arguments": "p_status text"
+      }
+    ],
+    "removed": [],
+    "changed": [
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_cohorts",
+          "body_md5": "8726f7c84e99f56d693329327d242d6f",
+          "arguments": "p_company_id uuid, p_months integer DEFAULT 12",
+          "volatility": "s",
+          "return_type": "TABLE(cohort_month date, customers integer, retained_1m numeric, retained_3m numeric, retained_6m numeric, retained_12m numeric)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_months integer"
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_cohorts",
+          "body_md5": "16641986be68638af4cfa83542ad3eac",
+          "arguments": "p_company_id uuid, p_months integer DEFAULT 12",
+          "volatility": "s",
+          "return_type": "TABLE(cohort_month date, customers integer, retained_1m numeric, retained_3m numeric, retained_6m numeric, retained_12m numeric)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_months integer"
+        }
+      },
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_expiring_poa",
+          "body_md5": "cfe21745bcb34edba0add7d5a5348af2",
+          "arguments": "p_company_id uuid, p_days integer DEFAULT 30",
+          "volatility": "s",
+          "return_type": "TABLE(power_of_attorney_id uuid, customer_id uuid, customer_name text, scope text, valid_to date, days_left integer)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_days integer"
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_expiring_poa",
+          "body_md5": "e50b79c24d6916670addb8525b83ef31",
+          "arguments": "p_company_id uuid, p_days integer DEFAULT 30",
+          "volatility": "s",
+          "return_type": "TABLE(power_of_attorney_id uuid, customer_id uuid, customer_name text, scope text, valid_to date, days_left integer)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_days integer"
+        }
+      },
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_forecast_cached_internal",
+          "body_md5": "d712bb01237b4b175dfca00f8c4fc903",
+          "arguments": "p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE",
+          "volatility": "s",
+          "return_type": "TABLE(month date, month_index integer, forecast_kwh numeric, low_kwh numeric, high_kwh numeric, metering_points integer, points_with_history integer)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_as_of date"
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_forecast_cached_internal",
+          "body_md5": "afbccb3c8620b2e28a83042990e6c8c1",
+          "arguments": "p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE",
+          "volatility": "s",
+          "return_type": "TABLE(month date, month_index integer, forecast_kwh numeric, low_kwh numeric, high_kwh numeric, metering_points integer, points_with_history integer)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_as_of date"
+        }
+      },
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_forecast_internal",
+          "body_md5": "d534fd0f5740833d482b6884877b3c32",
+          "arguments": "p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE, p_months integer DEFAULT 12",
+          "volatility": "s",
+          "return_type": "TABLE(month date, month_index integer, forecast_kwh numeric, low_kwh numeric, high_kwh numeric, metering_points integer, points_with_history integer)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_as_of date, p_months integer"
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_forecast_internal",
+          "body_md5": "411b7215b83361e51cd1b65d9974f5ff",
+          "arguments": "p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE, p_months integer DEFAULT 12",
+          "volatility": "s",
+          "return_type": "TABLE(month date, month_index integer, forecast_kwh numeric, low_kwh numeric, high_kwh numeric, metering_points integer, points_with_history integer)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_as_of date, p_months integer"
+        }
+      },
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_monthly_internal",
+          "body_md5": "0c052ae78067edfaf963e2c86d72b1a7",
+          "arguments": "p_company_id uuid, p_from date, p_to date",
+          "volatility": "s",
+          "return_type": "TABLE(month date, active_customers_start integer, active_customers integer, new_customers integer, churned_customers integer, net_change integer, churn_rate numeric, active_metering_points integer, poa_requested integer, poa_signed integer, poa_active integer, metering_requests_total integer, metering_requests_historical integer, metering_requests_ongoing integer, metering_requests_failed integer)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_from date, p_to date"
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_monthly_internal",
+          "body_md5": "768eb740a2e76e7a09235c93353a5e9d",
+          "arguments": "p_company_id uuid, p_from date, p_to date",
+          "volatility": "s",
+          "return_type": "TABLE(month date, active_customers_start integer, active_customers integer, new_customers integer, churned_customers integer, net_change integer, churn_rate numeric, active_metering_points integer, poa_requested integer, poa_signed integer, poa_active integer, metering_requests_total integer, metering_requests_historical integer, metering_requests_ongoing integer, metering_requests_failed integer)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_from date, p_to date"
+        }
+      },
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_point_forecast_internal",
+          "body_md5": "f84124e0d3de23e381b1d28048e4e9d4",
+          "arguments": "p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE, p_months integer DEFAULT 12",
+          "volatility": "s",
+          "return_type": "TABLE(month date, month_index integer, metering_point_id uuid, kwh numeric, has_history boolean, exact boolean)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_as_of date, p_months integer"
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_customer_portfolio_point_forecast_internal",
+          "body_md5": "6152cf80de77aa24ea1af46024afac75",
+          "arguments": "p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE, p_months integer DEFAULT 12",
+          "volatility": "s",
+          "return_type": "TABLE(month date, month_index integer, metering_point_id uuid, kwh numeric, has_history boolean, exact boolean)",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_as_of date, p_months integer"
+        }
+      },
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_platform_dashboard_summary_v1",
+          "body_md5": "c1fb52c34f0acca4de5e395044cd5053",
+          "arguments": "",
+          "volatility": "s",
+          "return_type": "jsonb",
+          "security_definer": false,
+          "identity_arguments": ""
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_platform_dashboard_summary_v1",
+          "body_md5": "6af99b7a1cb629b77cd1214a98c11740",
+          "arguments": "",
+          "volatility": "s",
+          "return_type": "jsonb",
+          "security_definer": false,
+          "identity_arguments": ""
+        }
+      },
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_rebuild_company_analytics_month",
+          "body_md5": "fef7125e72c02556c3aa956bbe5f4f11",
+          "arguments": "p_company_id uuid, p_month date",
+          "volatility": "v",
+          "return_type": "jsonb",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_month date"
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_rebuild_company_analytics_month",
+          "body_md5": "6901a7bebd79db18bafa26655c11d51e",
+          "arguments": "p_company_id uuid, p_month date",
+          "volatility": "v",
+          "return_type": "jsonb",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_month date"
+        }
+      },
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_snapshot_customer_portfolio_month",
+          "body_md5": "27aa66f505ebb335caae2c5763e2c310",
+          "arguments": "p_company_id uuid, p_month date",
+          "volatility": "v",
+          "return_type": "company_monthly_metrics",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_month date"
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_snapshot_customer_portfolio_month",
+          "body_md5": "7bfb21b883670c59fe8b570366758557",
+          "arguments": "p_company_id uuid, p_month date",
+          "volatility": "v",
+          "return_type": "company_monthly_metrics",
+          "security_definer": true,
+          "identity_arguments": "p_company_id uuid, p_month date"
+        }
+      },
+      {
+        "before": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_whitelabel_portfolio_overview",
+          "body_md5": "3029029a0238ac1f9a4e0c9d7982d2cd",
+          "arguments": "p_white_label_platform_id uuid, p_month date DEFAULT CURRENT_DATE",
+          "volatility": "s",
+          "return_type": "TABLE(company_id uuid, company_name text, company_status text, active_customers integer, new_customers integer, churned_customers integer, net_change integer, poa_requested integer, poa_active integer, metering_requests_total integer, metering_requests_historical integer, forecast_month_kwh numeric, forecast_3m_kwh numeric, forecast_6m_kwh numeric, forecast_12m_kwh numeric)",
+          "security_definer": true,
+          "identity_arguments": "p_white_label_platform_id uuid, p_month date"
+        },
+        "after": {
+          "kind": "f",
+          "nspname": "public",
+          "proname": "gridex_whitelabel_portfolio_overview",
+          "body_md5": "1dfc697d056d66f0998524ea4352b9bd",
+          "arguments": "p_white_label_platform_id uuid, p_month date DEFAULT CURRENT_DATE",
+          "volatility": "s",
+          "return_type": "TABLE(company_id uuid, company_name text, company_status text, active_customers integer, new_customers integer, churned_customers integer, net_change integer, poa_requested integer, poa_active integer, metering_requests_total integer, metering_requests_historical integer, forecast_month_kwh numeric, forecast_3m_kwh numeric, forecast_6m_kwh numeric, forecast_12m_kwh numeric)",
+          "security_definer": true,
+          "identity_arguments": "p_white_label_platform_id uuid, p_month date"
+        }
+      }
+    ]
+  },
+  "triggers": {
+    "added": [
+      {
+        "tgname": "gridex_quality_source_deleted",
+        "enabled": "O",
+        "nspname": "public",
+        "relname": "customers",
+        "definition": "CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON customers REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION gridex_resolve_deleted_quality_sources_v1('customer')"
+      },
+      {
+        "tgname": "gridex_quality_source_deleted",
+        "enabled": "O",
+        "nspname": "public",
+        "relname": "ediel_messages",
+        "definition": "CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON ediel_messages REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION gridex_resolve_deleted_quality_sources_v1('ediel_message')"
+      },
+      {
+        "tgname": "gridex_quality_source_deleted",
+        "enabled": "O",
+        "nspname": "public",
+        "relname": "grid_owner_data_requests",
+        "definition": "CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON grid_owner_data_requests REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION gridex_resolve_deleted_quality_sources_v1('grid_owner_data_request')"
+      },
+      {
+        "tgname": "gridex_quality_source_deleted",
+        "enabled": "O",
+        "nspname": "public",
+        "relname": "metering_points",
+        "definition": "CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON metering_points REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION gridex_resolve_deleted_quality_sources_v1('metering_point')"
+      },
+      {
+        "tgname": "gridex_quality_source_deleted",
+        "enabled": "O",
+        "nspname": "public",
+        "relname": "metering_values",
+        "definition": "CREATE TRIGGER gridex_quality_source_deleted AFTER DELETE ON metering_values REFERENCING OLD TABLE AS deleted_quality_sources FOR EACH STATEMENT EXECUTE FUNCTION gridex_resolve_deleted_quality_sources_v1('metering_value')"
+      }
+    ],
+    "removed": [],
+    "changed": []
+  },
+  "relation_grants": {
+    "added": [
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "MAINTAIN"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "MAINTAIN"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_actionable_data_quality_issues_v",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "MAINTAIN"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "MAINTAIN"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_data_quality_rule_catalog_v",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "MAINTAIN"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "MAINTAIN"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "relname": "gridex_website_application_work_items_v",
+        "privilege_type": "UPDATE"
+      }
+    ],
+    "removed": [
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "dashboard_alerts",
+        "privilege_type": "UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "privilege_type": "REFERENCES"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "privilege_type": "TRIGGER"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "privilege_type": "TRUNCATE"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "relname": "data_quality_issues",
+        "privilege_type": "UPDATE"
+      }
+    ],
+    "changed": []
+  },
+  "function_grants": {
+    "added": [
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "proname": "gridex_company_has_customer_data",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company_id uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_company_has_customer_data",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company_id uuid"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_company_has_customer_data",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company_id uuid"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "proname": "gridex_current_point_forecasts_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_current_point_forecasts_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_current_point_forecasts_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "proname": "gridex_customer_portfolio_cohorts_at",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company_id uuid, p_as_of date, p_months integer"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_customer_portfolio_cohorts_at",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company_id uuid, p_as_of date, p_months integer"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_customer_portfolio_cohorts_at",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company_id uuid, p_as_of date, p_months integer"
+      },
+      {
+        "grantee": "PUBLIC",
+        "nspname": "public",
+        "proname": "gridex_data_quality_active_status_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_status text"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_data_quality_active_status_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_status text"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_data_quality_active_status_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_status text"
+      },
+      {
+        "grantee": "PUBLIC",
+        "nspname": "public",
+        "proname": "gridex_data_quality_source_exists_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_entity_type text, p_entity_id uuid, p_requires_active boolean"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_data_quality_source_exists_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_entity_type text, p_entity_id uuid, p_requires_active boolean"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_data_quality_source_exists_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_entity_type text, p_entity_id uuid, p_requires_active boolean"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "proname": "gridex_missing_metering_points_count_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date, p_customer uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_missing_metering_points_count_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date, p_customer uuid"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_missing_metering_points_count_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date, p_customer uuid"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "proname": "gridex_missing_metering_points_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_missing_metering_points_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_missing_metering_points_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "proname": "gridex_pending_website_application_count",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company_id uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_pending_website_application_count",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company_id uuid"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_pending_website_application_count",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company_id uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_quality_lock_company_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_quality_lock_company_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "grantee": "PUBLIC",
+        "nspname": "public",
+        "proname": "gridex_quality_open_key_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_source text, p_entity_type text, p_entity_id uuid, p_kind text, p_period date"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_quality_open_key_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_source text, p_entity_type text, p_entity_id uuid, p_kind text, p_period date"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_quality_open_key_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_source text, p_entity_type text, p_entity_id uuid, p_kind text, p_period date"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_reconcile_dashboard_alerts_internal_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_reconcile_dashboard_alerts_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_reconcile_dashboard_alerts_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_reconcile_data_quality_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_reconcile_data_quality_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_resolve_dashboard_alert_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_alert uuid"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_resolve_dashboard_alert_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_alert uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_resolve_data_quality_issue_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_issue uuid"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_resolve_data_quality_issue_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_issue uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_resolve_deleted_quality_sources_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": ""
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_resolve_managed_quality_rule_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_entity uuid, p_issue_type text, p_period date"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_resolve_managed_quality_rule_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_entity uuid, p_issue_type text, p_period date"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_scan_data_quality_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date, p_point uuid"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_scan_data_quality_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_month date, p_point uuid"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_upsert_dashboard_alert_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_alert_type text, p_severity text, p_title text, p_message text, p_entity_type text, p_entity uuid, p_source text"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_upsert_dashboard_alert_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_alert_type text, p_severity text, p_title text, p_message text, p_entity_type text, p_entity uuid, p_source text"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_upsert_data_quality_issue_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_entity uuid, p_issue_type text, p_severity text, p_message text, p_period date"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_upsert_data_quality_issue_v1",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_company uuid, p_entity uuid, p_issue_type text, p_severity text, p_message text, p_period date"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "proname": "gridex_website_application_status",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_status text, p_source_table text"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_website_application_status",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_status text, p_source_table text"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_website_application_status",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_status text, p_source_table text"
+      },
+      {
+        "grantee": "authenticated",
+        "nspname": "public",
+        "proname": "gridex_website_application_work_state",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_status text"
+      },
+      {
+        "grantee": "postgres",
+        "nspname": "public",
+        "proname": "gridex_website_application_work_state",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_status text"
+      },
+      {
+        "grantee": "service_role",
+        "nspname": "public",
+        "proname": "gridex_website_application_work_state",
+        "privilege_type": "EXECUTE",
+        "identity_arguments": "p_status text"
+      }
+    ],
+    "removed": [],
+    "changed": []
+  }
+}
