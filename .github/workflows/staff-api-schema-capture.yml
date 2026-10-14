@@ -387,7 +387,13 @@ jobs:
               migration = 'supabase/migrations/20261014011520_ediel_sc031_source_owned_business_projection.sql'
               migration_sha256 = 'd4555df6177b1d702a4262fc0d305986e0e029bbf50124a285e5418e3beb3a89'
               manifest = json.loads(Path('scripts/supabase-types-manifest.json').read_text())
-              if (latest.name != Path(migration).name or digest(migration) != migration_sha256
+              state = json.loads(Path(os.environ['CAPTURE_INPUT_STATE']).read_text())
+              frozen_migration = state.get('tracked_inputs', {}).get(migration)
+              if (state.get('checkout_sha') != receipt['checkout_sha']
+                  or state.get('checkout_tree') != receipt['checkout_tree']
+                  or frozen_migration != {'mode': '100644', 'sha256': migration_sha256}
+                  or latest.name != Path(migration).name or digest(latest) != migration_sha256
+                  or receipt['latest_replay_migration'] != {'name': latest.name, 'sha256': migration_sha256}
                   or manifest.get('pending_sc031_capture', {}).get('sql_sha256', {}).get(migration) != migration_sha256):
                   raise SystemExit('capture_sc031_catalog_source_unqualified')
               marker = 'SC031 catalog preservation '
@@ -435,6 +441,11 @@ jobs:
                   'before': before, 'after': after, 'metadata_property_count': len(properties),
                   'excluded_intended_property': 'prosrc', 'same_replay_before_after_equal': True,
                   'migration': migration, 'migration_sha256': migration_sha256,
+                  'migration_input_binding': {
+                      'frozen_original': {'path': migration, **frozen_migration},
+                      'actual_replay': {'path': str(latest), **receipt['latest_replay_migration']},
+                      'checkout_sha': state['checkout_sha'], 'checkout_tree': state['checkout_tree'],
+                  },
                   'notice_utf8_sha256': hashlib.sha256(lines[0].encode()).hexdigest(),
                   'measurement_phase': 'ACTUAL_CANONICAL_MIGRATION_REPLAY',
                   'digest_format': 'EXACT_POSTGRESQL_JSONB_TEXT; not Python JSON canonicalization',
