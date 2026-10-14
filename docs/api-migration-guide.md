@@ -8,7 +8,7 @@ This guide explains what changes between documentation revisions of the V1 contr
 
 ### Representation corrections and older validator errata (2026-10-14)
 
-A credential pinned to a supported older profile receives matching declared wire markers in the integration context and Website callbacks. The default Website, Customer and Staff representation stays `2026-10-09.1`; Staff onboarding stays `2026-10-05.2`. No new incoming version header or request field is required. Only an authorized OPS operator selects `metadata.api_contract_profiles`; a tenant request cannot override the profile, tenant, permissions or accepted legal and price evidence.
+A credential pinned to a supported older profile receives matching declared wire markers in the integration context and Website callbacks. The default Website, Customer and Staff representation stays `2026-10-09.1`; Staff onboarding stays `2026-10-05.2`. No new incoming version header or request field is required. Only an authorized platform operator selects metadata.api_contract_profiles; an API caller cannot override the profile, organization scope, permissions or accepted legal and price evidence.
 
 Closed Website callback bodies follow their selected schema. Delivery IDs remain available in every callback header; publication callbacks also retain their required body delivery ID. Publication revision tokens come from the original durable event. Queued source payloads and previous attempt hashes are preserved; a retry that would change an already recorded body requires reconciliation before transport. Partner and HTTP event-feed representations retain their own existing fields. See the [compatibility policy](api-compatibility-policy.md#website-webhook-representations).
 

@@ -957,5 +957,37 @@
     "ack": "ROOT receiver accepts only the exact one-entry prospective source append; no producer or type-manifest role.",
     "sourceWriteGO": "DISTINCT_ROOT_SOURCE_GO_ONE_ENTRY_ONLY",
     "afterSHA256": "4e0f0f8e4b2d0b59652b6bc2c89fbdd5f2237e85d70a225a2a24d8994c182842"
+  },
+  "core_completion_20261014_test_actor": {
+    "status": "FOUR_TECHNICAL_SOURCE_DELTA_TWO_CURRENT_INDEPENDENT_FINALS",
+    "neutral": "f68bc99e37c7b55b810c3f9c92ae246fb46745d7",
+    "files": [
+      "__tests__/api-supported-client-release-matrix.test.ts",
+      "supabase/migrations/20261014204830_ops_api_actor_legal_name_index_source_alignment.sql"
+    ],
+    "testScope": "Existing docs-only assertion aligned to truthful validator errata; all other behavior and policy assertions preserved.",
+    "nativeSourceSHA256": "3f4dff3513f89490774e6fe38409665407b359b13347dd7b70d2d45521f5da33",
+    "runtimeChecksumPhase": {
+      "originalRetainedRootCustody": "064f655cdb1f0202c4cbc8b92d0d2037de903447",
+      "preimageSHA256": "4e0f0f8e4b2d0b59652b6bc2c89fbdd5f2237e85d70a225a2a24d8994c182842",
+      "oldEntryCount": 226,
+      "boundedAppend": "20261014204830_ops_api_actor_legal_name_index_source_alignment.sql",
+      "sha256": "3f4dff3513f89490774e6fe38409665407b359b13347dd7b70d2d45521f5da33",
+      "receiver": "same original OPS ROOT continuation codex-ops-api-completion-20261014",
+      "ownACK": "Accept ONLY this truthful prospective one-entry append; all existing226 unchanged and originalfrozenloan preserved.",
+      "distinctSourceGO": "DISTINCT_ROOT_SOURCE_GO_ONE_ENTRY_ONLY",
+      "afterSHA256": "4a3b18d53c3b7719c6b2581a019cb87e1058e6b53b26547e6ed45bbbfa2c8b7c",
+      "status": "ONE_ENTRY_APPENDED_ALL226_OLD_UNCHANGED"
+    },
+    "guideSourcePhase": {
+      "neutral": "6b9abc76305ceaa90c6f8af99035b945c17219d3",
+      "preimageSHA256": "6140dc5ba149e3139e1af68a8c3fc3d90b8e3cebd1d8e7c9424d9313bab33945",
+      "status": "EXACT_ONE_SENTENCE_CORRECTION_TWO_FINALS",
+      "scope": "One sentence replaces internal OPS/tenant labels with authorized platform operator/organization scope; policy/errata and checks stay intact."
+    },
+    "migrationIntegrity": "PASS_1254_FILES_1157_VERSION_GROUPS",
+    "documentationCheck": "16_PASS_EXISTING_CHECK_ALL_OLD_BEHAVIOR_ASSERTIONS_RETAINED",
+    "fullSQL": "CURRENT_PUBLISHED9ca_CLEAN_AND_UPGRADE_PASS_ACTOR_THEN_REFUSE060124_SIGNING_CANONICAL_WRAPPER_DIFFERENCE",
+    "next": "Publish exact actor-source/checksum/docs assertion+one-sentence guide correction; qualify separate paired retained signing/SC031 composition and its native routing forward; existing GEN fullsource capture/typewriter retained."
   }
 }
