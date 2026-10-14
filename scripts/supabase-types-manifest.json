@@ -91595,9 +91595,9 @@
       "supabase/migrations/20261014153206_gridex_data_quality_active_status_search_path.sql": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9",
       "supabase/migrations/20261014211648_ediel_sc046_bound_newer_metering_correction.sql": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
     },
-    "input_union_status": "PREPARED_SOURCE_AWAITING_INDEPENDENT_REVIEW",
-    "producer_stage": "SOURCE_PREPARATION_PRODUCER_NOT_ACTIVATED",
-    "producer_receipt": "",
+    "input_union_status": "FROZEN_REVIEWED_COMPLETE",
+    "producer_stage": "SOURCE_FINAL_BINDING_COMPLETE_RUNTIME_GO_PENDING",
+    "producer_receipt": "48fca8ad6fe8b328b27e39349f9ca94d3cece5ea",
     "native_tests": "NOT_RUN",
     "catalog_preservation_capture": "NOT_RUN_NEW_V3_SQL;OLD_F_CAPTURE_RETAINED_UNCHANGED",
     "expected_schema_delta": {
