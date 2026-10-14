@@ -12,6 +12,7 @@ import { readProdatParty } from '@/lib/ediel/prodat/prodatPartyFields'
 import { isProdatFieldInInapplicableParent } from '@/lib/ediel/prodat/prodatParentApplicability'
 import { prodatEndUserWireSubtype } from '@/lib/ediel/rulebook/prodatEndUserPolicy'
 import { resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
+import { canonicalProdat26AFieldRules } from '@/lib/ediel/prodat/prodat26AFieldMatrix'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { postgrestEqAny } from '@/lib/ediel/matching/postgrestFilter'
 import { prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
@@ -179,6 +180,8 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     && isProdatFieldInInapplicableParent({ messageCode, subtype: sourceSubtype, fieldNumber: 'INSTALLATION_GROUP' })
   const ignoredReference = incomingWire
     && resolveProdatSourceSubtypeRequirement({ messageCode, subtype: sourceSubtype, fieldNumber: '319' }) === 'forbidden'
+  const ignoredBirthDate = incomingWire
+    && canonicalProdat26AFieldRules(messageCode).some(rule => rule.fieldNumber === '249' && rule.requirement === 'forbidden')
   const ud = readProdatParty('UD', ignoredUd ? [] : sourceSegments, una)
   const it = readProdatParty('IT', ignoredIt ? [] : sourceSegments, una)
   const balanceResponsible = readProdatParty('Z02', sourceSegments, una)
@@ -219,7 +222,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     customerType: isBusiness ? 'business' : isPerson ? 'private' : null,
     personalNumber: isPerson ? nationalId : null,
     orgNumber: isBusiness ? nationalId : null,
-    birthDate: hasWireSource ? prodatDateValue('249', sourceSegments, una) : valueFromParsed(payload, 'birthDate'),
+    birthDate: ignoredBirthDate ? null : hasWireSource ? prodatDateValue('249', sourceSegments, una) : valueFromParsed(payload, 'birthDate'),
     fullName: customerName,
     companyName: isBusiness ? customerName : null,
     firstName: !isBusiness ? customerName?.split(' ')[0] ?? null : null,
