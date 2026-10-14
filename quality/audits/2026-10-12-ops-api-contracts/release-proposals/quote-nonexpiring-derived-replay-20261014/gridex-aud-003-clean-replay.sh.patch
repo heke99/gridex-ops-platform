@@ -1,0 +1,11 @@
+--- a/scripts/gridex-aud-003-clean-replay.sh
++++ b/scripts/gridex-aud-003-clean-replay.sh
+@@ -200,6 +200,8 @@
+     source=resolve(source_rel) if source_rel else None
+     if not source or not source.exists(): raise SystemExit(f'derived bootstrap source missing: {source_rel}')
+     pinned_source(source)
++    if meta.get('sourceSha256') is not None and digest(source) != meta['sourceSha256']:
++        raise SystemExit(f'derived bootstrap original-source pin mismatch: {rel}')
+     return actual,source,meta
+ 
+ def should_skip_timestamp_source(source,meta):

@@ -1,0 +1,41 @@
+--- a/scripts/gridex-ediel-upgrade-inputs.py
++++ b/scripts/gridex-ediel-upgrade-inputs.py
+@@ -6,6 +6,14 @@
+ from pathlib import Path
+ import re
+ import subprocess
++
++
++import importlib.util
++import sys
++sys.dont_write_bytecode = True
++_replay_spec = importlib.util.spec_from_file_location('derived_replay_inputs', Path(__file__).with_name('gridex-derived-replay-inputs.py'))
++_replay = importlib.util.module_from_spec(_replay_spec)
++_replay_spec.loader.exec_module(_replay)
+ 
+ MANIFESTS = [
+     'scripts/migration-history-manifest.json',
+@@ -81,19 +89,20 @@
+             excluded.append({'name': name, 'sha256': item['sha256'], 'finding': item.get('finding')})
+     excluded_names = {row['name'] for row in excluded}
+     additions = [name for name in additions if name not in excluded_names]
++    derived = _replay.substitutions(root, head, current, set(additions))
+     out.mkdir(parents=True, exist_ok=False)
+     inputs = out / 'inputs'
+     inputs.mkdir()
+     rows = []
+     for name in additions:
+-        target = inputs / name
+-        target.write_bytes(committed[name])
+-        rows.append({'name': name, 'sha256': current[name], 'path': str(target)})
++        rows.append(_replay.materialize(name, committed[name], current[name],
++                                       inputs, out / 'original-sources', derived))
+     result = {
+         'baseSha': base_sha, 'candidateSha': head,
+         'candidateTree': git(root, 'rev-parse', 'HEAD^{tree}').decode().strip(),
+         'historicalMigrationsPreserved': len(previous), 'forwardMigrations': rows,
+         'excludedNoncanonical': excluded,
++        'derivedReplayInputs': len(derived),
+         'provenance': 'committed exact ancestor bytes and checksum-pinned manifests; no invented ledger',
+     }
+     (out / 'upgrade-inputs.json').write_text(json.dumps(result, indent=2) + '\n')

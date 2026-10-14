@@ -1,0 +1,217 @@
+{
+  "source_path": "/tmp/gridex-api-rebuild-20261014/publication-proposal-bb0b/bundle/effective-main-source.sql",
+  "source_sha256": "c11997abcc9ed915954cf43eff9ed23a86e0ec3786a9059bfb025d8a042fa1c7",
+  "catalogs": {
+    "permissions": {
+      "before_count": 76,
+      "after_count": 99,
+      "expected_new": {
+        "ediel.retention.submit": {
+          "key": "ediel.retention.submit",
+          "name": "Submit own retention evidence",
+          "category": "ediel",
+          "description": "Company-scoped source-bound retention workflow; no default role assignment.",
+          "is_active": true
+        },
+        "ediel.retention.review": {
+          "key": "ediel.retention.review",
+          "name": "Review own retention evidence",
+          "category": "ediel",
+          "description": "Company-scoped source-bound retention workflow; no default role assignment.",
+          "is_active": true
+        },
+        "ediel.retention.purge": {
+          "key": "ediel.retention.purge",
+          "name": "Enforce approved own artifact byte retention",
+          "category": "ediel",
+          "description": "Company-scoped source-bound retention workflow; no default role assignment.",
+          "is_active": true
+        },
+        "ediel.retention.source_bytes": {
+          "key": "ediel.retention.source_bytes",
+          "name": "Retention source artifact bytes",
+          "category": "ediel",
+          "description": "Explicit class authority for requested-change source artifact bytes",
+          "is_active": true
+        },
+        "ediel.retention.customer_fields": {
+          "key": "ediel.retention.customer_fields",
+          "name": "Retention current customer fields",
+          "category": "ediel",
+          "description": "Explicit class authority for closed customer canonical personal fields",
+          "is_active": true
+        },
+        "ediel.retention.original_bytes": {
+          "key": "ediel.retention.original_bytes",
+          "name": "Retention received original content",
+          "category": "ediel",
+          "description": "Explicit class authority for captured received message content",
+          "is_active": true
+        },
+        "ediel.retention.mime_bytes": {
+          "key": "ediel.retention.mime_bytes",
+          "name": "Retention transport MIME bytes",
+          "category": "ediel",
+          "description": "Explicit class authority for immutable entered transport MIME bytes",
+          "is_active": true
+        },
+        "ediel.service_evidence.review": {
+          "key": "ediel.service_evidence.review",
+          "name": "Granska egna Ediel-tj\u00e4nstbevis",
+          "description": "Separat bolagsbunden granskning av arkiverade och issuer-autentiserade tj\u00e4nstbevis.",
+          "category": "Ediel"
+        },
+        "ediel.retention.contract_pdf": {
+          "key": "ediel.retention.contract_pdf",
+          "name": "Retention contract PDF bytes",
+          "category": "ediel",
+          "description": "Explicit own class grant; no legal policy or role authority is implied",
+          "is_active": true
+        },
+        "ediel.retention.signature": {
+          "key": "ediel.retention.signature",
+          "name": "Retention signature personal records",
+          "category": "ediel",
+          "description": "Explicit own class grant; each actual target requires a separate decision",
+          "is_active": true
+        },
+        "ediel.retention.address_history": {
+          "key": "ediel.retention.address_history",
+          "name": "Retention address history",
+          "category": "ediel",
+          "description": "Explicit own class grant for inactive address personal fields",
+          "is_active": true
+        },
+        "ediel.retention.portal_history": {
+          "key": "ediel.retention.portal_history",
+          "name": "Retention portal history",
+          "category": "ediel",
+          "description": "Explicit own class grant for each portal/history personal target",
+          "is_active": true
+        },
+        "ediel.retention.legal_history": {
+          "key": "ediel.retention.legal_history",
+          "name": "Retention legal journal personal snapshots",
+          "category": "ediel",
+          "description": "Explicit own class grant preserving separately qualified minimal journal purpose",
+          "is_active": true
+        },
+        "ediel.retention.read": {
+          "key": "ediel.retention.read",
+          "name": "Read source-bound retention originals",
+          "category": "ediel",
+          "description": "Explicit own read grant and class authority, without submit/review/purge authority",
+          "is_active": true
+        },
+        "ediel.retention.artifact_decision_evidence": {
+          "key": "ediel.retention.artifact_decision_evidence",
+          "name": "Retention decision original: artifact_retention_decision_original_bytes",
+          "category": "ediel",
+          "description": "Explicit own original-byte class; no role/default assignment, issuer or deadline",
+          "is_active": true
+        },
+        "ediel.retention.blob_decision_evidence": {
+          "key": "ediel.retention.blob_decision_evidence",
+          "name": "Retention decision original: blob_retention_decision_original_bytes",
+          "category": "ediel",
+          "description": "Explicit own original-byte class; no role/default assignment, issuer or deadline",
+          "is_active": true
+        },
+        "ediel.retention.record_decision_evidence": {
+          "key": "ediel.retention.record_decision_evidence",
+          "name": "Retention decision original: record_retention_decision_original_bytes",
+          "category": "ediel",
+          "description": "Explicit own original-byte class; no role/default assignment, issuer or deadline",
+          "is_active": true
+        },
+        "ediel.retention.process_decision_evidence": {
+          "key": "ediel.retention.process_decision_evidence",
+          "name": "Retention decision original: process_retention_decision_original_bytes",
+          "category": "ediel",
+          "description": "Explicit own original-byte class; no role/default assignment, issuer or deadline",
+          "is_active": true
+        },
+        "ediel.retention.decision_policy_evidence": {
+          "key": "ediel.retention.decision_policy_evidence",
+          "name": "Retention decision original: decision_evidence_policy_original_bytes",
+          "category": "ediel",
+          "description": "Explicit own original-byte class; no role/default assignment, issuer or deadline",
+          "is_active": true
+        },
+        "ediel.retention.finance_decision_evidence": {
+          "key": "ediel.retention.finance_decision_evidence",
+          "name": "Retention finance decision original",
+          "category": "ediel",
+          "description": "Explicit own original-byte class; no default assignment, issuer or deadline",
+          "is_active": true
+        },
+        "ediel.retention.billing_source_evidence": {
+          "key": "ediel.retention.billing_source_evidence",
+          "name": "Retention finance copy: billing source",
+          "category": "ediel",
+          "description": "Explicit own original-byte class; no role/default assignment, issuer or deadline",
+          "is_active": true
+        },
+        "ediel.retention.invoice_copy_evidence": {
+          "key": "ediel.retention.invoice_copy_evidence",
+          "name": "Retention finance copy: invoice",
+          "category": "ediel",
+          "description": "Explicit own original-byte class; no role/default assignment, issuer or deadline",
+          "is_active": true
+        },
+        "ediel.retention.settlement_copy_evidence": {
+          "key": "ediel.retention.settlement_copy_evidence",
+          "name": "Retention finance copy: settlement",
+          "category": "ediel",
+          "description": "Explicit own original-byte class; no role/default assignment, issuer or deadline",
+          "is_active": true
+        }
+      },
+      "actual_new_keys": [
+        "ediel.retention.address_history",
+        "ediel.retention.artifact_decision_evidence",
+        "ediel.retention.billing_source_evidence",
+        "ediel.retention.blob_decision_evidence",
+        "ediel.retention.contract_pdf",
+        "ediel.retention.customer_fields",
+        "ediel.retention.decision_policy_evidence",
+        "ediel.retention.finance_decision_evidence",
+        "ediel.retention.invoice_copy_evidence",
+        "ediel.retention.legal_history",
+        "ediel.retention.mime_bytes",
+        "ediel.retention.original_bytes",
+        "ediel.retention.portal_history",
+        "ediel.retention.process_decision_evidence",
+        "ediel.retention.purge",
+        "ediel.retention.read",
+        "ediel.retention.record_decision_evidence",
+        "ediel.retention.review",
+        "ediel.retention.settlement_copy_evidence",
+        "ediel.retention.signature",
+        "ediel.retention.source_bytes",
+        "ediel.retention.submit",
+        "ediel.service_evidence.review"
+      ]
+    },
+    "record_class_catalog": {
+      "before_count": 12,
+      "after_count": 12,
+      "expected_new": {},
+      "actual_new_keys": []
+    }
+  },
+  "default_permission_fields": {
+    "category": null,
+    "description": null,
+    "is_active": true
+  },
+  "permission_generated_fields": [
+    "id",
+    "created_at"
+  ],
+  "generated_field_source": {
+    "id": "native gen_random_uuid()",
+    "created_at": "native now()"
+  },
+  "no_other_new_catalog_keys_allowed": true
+}

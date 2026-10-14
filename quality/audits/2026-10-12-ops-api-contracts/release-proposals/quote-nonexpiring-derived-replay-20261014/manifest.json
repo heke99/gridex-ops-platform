@@ -1,0 +1,57 @@
+{
+  "status": "PRIVATE_SOURCE_ROUTING_HANDOFF_PROPOSAL_NOT_APPLIED_NOT_GENUINE_REPLAY_QUALIFIED",
+  "files": [
+    {
+      "path": "20261013_ops_quote_nonexpiring_replay_adapter.sql",
+      "bytes": 4069,
+      "sha256": "3afea47b4343c5d5e6d97a4f709bccf5c8cf6f7cf33c179f022629ff4d7c481b"
+    },
+    {
+      "path": "HANDOFF.md",
+      "bytes": 3952,
+      "sha256": "e6ce2da3ceac7ce5ef331f18f658e1c3abddb4a22cfeca68e6a8b5fe951dd6d0"
+    },
+    {
+      "path": "builder-proposals/gridex-ediel-history-union-inputs.py",
+      "bytes": 14865,
+      "sha256": "4005c1ad9d0b52596e4f5bc52e009c68cbfc3d923f9ffe5e7d844c58f45d5750"
+    },
+    {
+      "path": "builder-proposals/gridex-ediel-upgrade-inputs.py",
+      "bytes": 6089,
+      "sha256": "2286b227e967c9686c7e0541397c2fcb5814de5e1a02c5d5286bd17314e3c5de"
+    },
+    {
+      "path": "gridex-aud-003-clean-replay.sh.patch",
+      "bytes": 558,
+      "sha256": "9f29c154e3593106e6d9eaa378d950ff72542f987200a95f06e29353b2ce6c44"
+    },
+    {
+      "path": "gridex-derived-replay-inputs.py",
+      "bytes": 5401,
+      "sha256": "b15d340650793d620c5bbb5c73b2404b147d747bb87713dcd60401828aa97a64"
+    },
+    {
+      "path": "gridex-ediel-history-union-inputs.py.patch",
+      "bytes": 2529,
+      "sha256": "4f2dde7dc0d9389d402c512a405a4ccbab2a41a870189cc40890755d5b273c79"
+    },
+    {
+      "path": "gridex-ediel-upgrade-inputs.py.patch",
+      "bytes": 1848,
+      "sha256": "4316db883d146d9454de7154114b9d12159f28ebf888172b9111c76a4290bd53"
+    },
+    {
+      "path": "legacy-foundation-additions-entry.json",
+      "bytes": 929,
+      "sha256": "315c1bc4ba1dcdaccce41b4a5129624f4af24896514a720a20fe4d2d3ded3faa"
+    }
+  ],
+  "original_published_source_sha256": "7eceae42dccce7a968182d144389329d1c11466bf0c896afff62250950f9f2ce",
+  "canonical_body_md5": "007d078d9d0065395edf2190d4f1d3b6",
+  "legacy_body_md5": "4daec568bdaf10d1354ddd39145d0d94",
+  "native_writes": 0,
+  "repository_changes": 0,
+  "shared_custody_changes": 0,
+  "canonical_gen_changes": 0
+}

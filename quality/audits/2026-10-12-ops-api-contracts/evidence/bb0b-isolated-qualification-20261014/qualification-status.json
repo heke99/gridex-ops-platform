@@ -30,6 +30,27 @@
     {
       "file": "negative-results.json",
       "sha256": "3012086e0c18640cdfc659ca1952ba92437225e126ed52195ad1e3b6d7d62c0c"
+    },
+    {
+      "file": "gridex-bb0b-late-valid-catalog-comparison.json",
+      "sha256": "ce7cc1d2f5672748d01115fe59873410ffff52d147a352cf58e7005afc3d00ce"
+    },
+    {
+      "file": "gridex-bb0b-late-valid-global-comparison.json",
+      "sha256": "b2e763741a21b05795ad4f4da43da9cfbb4de668eb26c9498870fa5bc7c5b52f"
+    },
+    {
+      "file": "bb0b-fresh-first-protected-comparison.json",
+      "sha256": "91534f84f5ade6570a4941c6331a1550e52273a00be5511af8f3540a393db02f"
     }
-  ]
+  ],
+  "late_whole_catalog_global_original51_and_compact12_rollback_exact": true,
+  "private_predicate_schema_usage_and5execute_generic_nonexecuting_plan_pass": true,
+  "cold_old_auth_hooks_preserved": 249,
+  "cold_new_source_allowed_auth_ri_hooks": 226,
+  "cold_new_source_allowed_auth_fk_pairs": 113,
+  "cold_source_qualified_old76_permissions_and12_record_classes_preserved": true,
+  "cold_source_qualified_exact_new_permissions": 23,
+  "cold_source_qualified_exact_new_roles": 3,
+  "late_rollback_scope": "Exact final compactloader after all8 on strong installed state; new cold role creation rollback not claimed by this receipt."
 }
