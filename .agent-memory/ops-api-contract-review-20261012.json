@@ -816,5 +816,14 @@
     "receipt": "quality/audits/2026-10-12-ops-api-contracts/evidence/bb0b-native-delivery-20261014/production-staff-project-target-attestation.json",
     "business_rpc_calls": 0
   },
-  "runtime_capability_gate_after_effect": "PASS actual liveview; exact deployedrequiredversion, fingerprintvalid, blockingissues[], missingfunctions/relations/columns/functionACL/RLS/policy/viewsecuritygaps[];service_roleSELECTtrue; rowverified_atbaseline preservedasdated."
+  "runtime_capability_gate_after_effect": "PASS actual liveview; exact deployedrequiredversion, fingerprintvalid, blockingissues[], missingfunctions/relations/columns/functionACL/RLS/policy/viewsecuritygaps[];service_roleSELECTtrue; rowverified_atbaseline preservedasdated.",
+  "main_release_helper_followthrough": {
+    "main": "573d74371086da585a5cff6abee95eadfe58899e",
+    "scope": "Selective immutable existingtwoAPI enforcement-script donors and private/source-proposed onefunctionsearchpathforward",
+    "status": "TwoindependentSQLSOURCE+genuinecomponentreviewsPASS; thirdforwardNOTnativeapplied",
+    "source_packet": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/main-full-three-fix-support-20261014",
+    "two_donor_files_paused": true,
+    "issue766_comment_blocked": "Auto-reviewreject: previousPR794authorization notseparateissue766; explicituserapprovalpending",
+    "next_action": "Publish ownreviewpacket toauthorizedexistingPR794; sendexacthandoffafterapproval; existingROOTreceiving/custody/GEN/native/serialowners execute their admittedscope."
+  }
 }
