@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'scripts/db-05-customer-close-due-purge-native.test.ts'
+      - 'scripts/ediel-customer-record-retention-native.test.ts'
+      - 'scripts/ediel-process-journal-retention-native.test.ts'
       - 'scripts/db-05-native.config.ts'
       - 'scripts/ediel-source-owner-native.config.ts'
       - 'scripts/gridex-aud-003-clean-replay.sh'
@@ -100,7 +102,7 @@ jobs:
           mkdir -p db05-native-working
           # The existing owner keeps its EXIT cleanup trap. Replay/status
           # output can contain disposable credentials and is never uploaded.
-          native_tests=(scripts/db-05-customer-close-due-purge-native.test.ts)
+          native_tests=(scripts/db-05-customer-close-due-purge-native.test.ts scripts/ediel-customer-record-retention-native.test.ts scripts/ediel-process-journal-retention-native.test.ts)
           export DB05_NATIVE_TEST_SCOPE
           DB05_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
           export DB05_INPUT_RECEIPT="$RUNNER_TEMP/db05-inputs.json"
@@ -127,6 +129,15 @@ jobs:
           paths = sorted(set(test_scope) | exact | {p for p in tracked if p and pathlib.Path(p).is_file()})
           missing = [p for p in paths if not pathlib.Path(p).is_file()]
           if missing: raise RuntimeError('required_native_input_missing:' + ','.join(missing))
+          # Immutable PUBLIC fe80 technical3 is checked before any replay/backend.
+          public_postlock_inputs = {
+              'scripts/ediel-customer-record-retention-native.test.ts': '07074276218ec88fb37dfc9be9d64f97a51d66d54aee429c3b72ff3c62790804',
+              'scripts/ediel-process-journal-retention-native.test.ts': 'f2ec5b276f436fd8ae87d76237dbd50948086be518a6dc879c73165f1ef4cb01',
+              'supabase/migrations/20261014124000_db05_record_process_post_lock_guards.sql': 'a9840cdb5a11e76719dccd7637bcb16e90277bd2d79233b80dd5cb503ba6a65f',
+          }
+          for path, expected in public_postlock_inputs.items():
+              if hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest() != expected:
+                  raise SystemExit('db05_public_postlock_source_mismatch:' + path)
           pathlib.Path(os.environ['DB05_INPUT_RECEIPT']).write_text(json.dumps({p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},sort_keys=True)+'\n')
           PY
           unset GRIDEX_REPLAY_DB_URL
@@ -163,12 +174,59 @@ jobs:
               'a scheduled ediel.retention.customer_fields DENY activating during an observed customer lock wait prevents erasure when the request resumes',
               'a scheduled reviewer ediel.retention.review DENY activating during an observed issuer lock wait holds the SAME customer without erasure',
               'a scheduled reviewer ediel.retention.customer_fields DENY activating during an observed issuer lock wait holds the SAME customer without erasure',
+              'actual signed publication/PDF/POA/Z03, canonical onboarding and own public histories feed all twelve distinct native class owners through scoped HTTP; actual JWT Storage removal has a real unavailable readback',
+              'missing legal competence, hostile tenant selectors and committed current reviewer class DENY hold actual source bytes and histories without partial tombstone or provider effects',
+              'DB05 record valid-HMAC issuedAt missing/NULL/nonfinite fails closed without partial source/portal effects',
+              'DB05 record valid-HMAC expiresAt missing/NULL/nonfinite fails closed without partial source/portal effects',
+              'DB05 record valid-HMAC retainUntil missing/NULL/nonfinite fails closed without partial source/portal effects',
+              'DB05 record valid-HMAC journalRetainUntil missing/NULL/nonfinite fails closed without partial source/portal effects',
+              'DB05 record issuer blockerPID wait receipt-expiry uses database clock and preserves or actually revokes/redacts',
+              'DB05 record issuer blockerPID wait issuer-expiry uses database clock and preserves or actually revokes/redacts',
+              'DB05 record portal blockerPID wait receipt-expiry uses database clock and preserves or actually revokes/redacts',
+              'DB05 record portal blockerPID wait journal-expiry uses database clock and preserves or actually revokes/redacts',
+              'DB05 record portal blockerPID wait reviewer-class-deny uses database clock and preserves or actually revokes/redacts',
+              'DB05 record portal blockerPID wait purger-operation-deny uses database clock and preserves or actually revokes/redacts',
+              'DB05 record issuer blockerPID wait valid uses database clock and preserves or actually revokes/redacts',
+              'DB05 record portal blockerPID wait valid uses database clock and preserves or actually revokes/redacts',
+              'DB05 record account-row actual SHARE-holderPID receipt-expiry finishes before the first effect',
+              'DB05 record claim-row actual SHARE-holderPID receipt-expiry finishes before the first effect',
+              'DB05 record source-row actual SHARE-holderPID receipt-expiry finishes before the first effect',
+              'DB05 record account-row actual SHARE-holderPID valid finishes before the first effect',
+              'DB05 record claim-row actual SHARE-holderPID valid finishes before the first effect',
+              'DB05 record source-row actual SHARE-holderPID valid finishes before the first effect',
+              'actual publication/signature/PDF/POA/native SMTP and prospective process/readset/combined owners feed three independent class decisions through real GoTrue/scoped HTTP; all hashes and immutable metadata survive only their own qualified redaction',
+              'actual all-included customer scope, current reviewer DENY, hostile company/actor, no issuer and late native audit failure hold the unchanged copies with no partial tombstone or provider side effect',
+              'DB05 process valid-HMAC issuedAt missing/NULL/nonfinite fails closed without partial source/portal effects',
+              'DB05 process valid-HMAC expiresAt missing/NULL/nonfinite fails closed without partial source/portal effects',
+              'DB05 process valid-HMAC retainUntil missing/NULL/nonfinite fails closed without partial source/portal effects',
+              'DB05 process valid-HMAC journalRetainUntil missing/NULL/nonfinite fails closed without partial source/portal effects',
+              'DB05 process issuer blockerPID wait receipt-expiry uses database clock and preserves or actually revokes/redacts',
+              'DB05 process issuer blockerPID wait issuer-expiry uses database clock and preserves or actually revokes/redacts',
+              'DB05 process portal blockerPID wait receipt-expiry uses database clock and preserves or actually revokes/redacts',
+              'DB05 process portal blockerPID wait journal-expiry uses database clock and preserves or actually revokes/redacts',
+              'DB05 process portal blockerPID wait reviewer-class-deny uses database clock and preserves or actually revokes/redacts',
+              'DB05 process portal blockerPID wait purger-operation-deny uses database clock and preserves or actually revokes/redacts',
+              'DB05 process issuer blockerPID wait valid uses database clock and preserves or actually revokes/redacts',
+              'DB05 process portal blockerPID wait valid uses database clock and preserves or actually revokes/redacts',
+              'DB05 process account-row actual SHARE-holderPID receipt-expiry finishes before the first effect',
+              'DB05 process claim-row actual SHARE-holderPID receipt-expiry finishes before the first effect',
+              'DB05 process source-row actual SHARE-holderPID receipt-expiry finishes before the first effect',
+              'DB05 process account-row actual SHARE-holderPID valid finishes before the first effect',
+              'DB05 process claim-row actual SHARE-holderPID valid finishes before the first effect',
+              'DB05 process source-row actual SHARE-holderPID valid finishes before the first effect',
           }
           junit = pathlib.Path('db05-native-working/native-junit.xml')
-          cases = list(ET.parse(junit).getroot().iter('testcase')) if junit.is_file() else []
-          qualified = (len(cases) == len(expected_names)
+          junit_root = ET.parse(junit).getroot() if junit.is_file() else None
+          cases = list(junit_root.iter('testcase')) if junit_root is not None else []
+          qualified = (len(expected_names) == 50
+              and int(os.environ['DB05_NATIVE_EXIT']) == 0
+              and len(cases) == 50
               and {c.get('name') for c in cases} == expected_names
-              and all(not any(c.find(t) is not None for t in ('failure', 'error', 'skipped')) for c in cases))
+              and all(not any(c.find(t) is not None for t in ('failure', 'error', 'skipped')) for c in cases)
+              and junit_root is not None
+              and all(not list(junit_root.iter(t)) for t in ('failure', 'error', 'skipped'))
+              and all(int(e.get(k, '0')) == 0 for e in junit_root.iter()
+                      for k in ('failures', 'errors', 'skipped')))
           replay=pathlib.Path(os.environ['RUNNER_TEMP'],'db05-replay.log').read_text()
           if '[GRIDEX-REM-002 replay] PASS: empty local Supabase' not in replay: raise SystemExit('db05_canonical_replay_unqualified')
           if subprocess.check_output(['docker','ps','-aq'],text=True).strip(): raise SystemExit('db05_backend_cleanup_unqualified')
@@ -182,7 +240,9 @@ jobs:
           import json, os, pathlib, subprocess
           test_scope = os.environ['DB05_NATIVE_TEST_SCOPE'].splitlines()
           receipt = {
-              'purpose': 'supplemental_same_customer_same_decision_due_purge',
+              'purpose': 'supplemental_same_customer_same_decision_due_purge_and_public_record_process_postlock',
+              'public_postlock_source': {'head': 'fe80b9fa0f47e271afff0f72d3a3aeaa9950a017', 'tree': '79801946333145015d02e03f7fa787359025cc5d',
+                  'immutable3_sha256': {'scripts/ediel-customer-record-retention-native.test.ts': '07074276218ec88fb37dfc9be9d64f97a51d66d54aee429c3b72ff3c62790804', 'scripts/ediel-process-journal-retention-native.test.ts': 'f2ec5b276f436fd8ae87d76237dbd50948086be518a6dc879c73165f1ef4cb01', 'supabase/migrations/20261014124000_db05_record_process_post_lock_guards.sql': 'a9840cdb5a11e76719dccd7637bcb16e90277bd2d79233b80dd5cb503ba6a65f'}},
               'epoch': 'gridex-five-agent-20261012',
               'source_input_epoch': os.environ['GITHUB_RUN_ID'] + ':' + os.environ['GITHUB_RUN_ATTEMPT'],
               'legal_basis_acceptance': 'NOT_PROVIDED_SYNTHETIC_MECHANISM_ONLY',
@@ -234,7 +294,7 @@ jobs:
           python3 - <<'PY'
           import json, pathlib
           if not json.loads(pathlib.Path('db05-native-evidence/qualification.json').read_text())['qualified']:
-              raise SystemExit('db05_actual_ten_case_native_proof_unqualified')
+              raise SystemExit('db05_actual_fifty_case_native_proof_unqualified')
           PY
       - name: Upload redacted native feedback
         if: always()
