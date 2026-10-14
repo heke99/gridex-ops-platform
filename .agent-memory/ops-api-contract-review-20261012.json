@@ -3,21 +3,20 @@
   "baseline": "f36dbba1",
   "branch": "codex/ops-api-contract-review-20261012",
   "audit": "quality/audits/2026-10-12-ops-api-contracts/README.md",
-  "status": "SIGNING_POST_ROW_LOCK_FORWARD_APPLIED_AUTH_FREE_REBUILD_REQUIRED",
+  "status": "OLDER_PROFILE_WEBHOOK_CORRECTIONS_DEPLOYED_AUTH_FREE_QUALIFICATION_CONTINUES",
   "authority": "Actual source and read-only native metadata; tests support local regressions only",
   "native_project": "piidsfebjqjmnepdpnas",
   "native_writes": 72,
   "business_rpc_invocations": 0,
-  "deployments": 2,
+  "deployments": 3,
   "native_blockers": [
-    "Historical owner packet failed closed as postgres NOSUPER. Direct RET Auth grants are source-refuted prerequisites; replacement Auth-free atomic packet is on HOLD while complete private cross-role capability closure is qualified.",
-    "Auth-free eight-input atomic installer NOT_APPLIED. Historical1c787 first COMMIT passed but replay refused at three expected catalog hashes using inconsistent schema qualification. Currenta6ea corrects those hashes and comments, has two source approvals and same-DB replay COMMIT2.997s; full catalog comparison, fresh-cluster first installation and final negative rollback proof remain pending, with fresh-cluster storage blocked.",
-    "Staff provider/client/binding aggregates all0 at16:47:42UTC; authenticated Staff E2E NOT_QUALIFIED.",
+    "New reconstructed Auth-free eight-input source037 is NOT_APPLIED; two independent SOURCE clears obtained, genuine engine qualification continues. Historical lost A6 proof does not qualify this new source.",
+    "Staff provider/client/binding/externalAuthClient aggregates all0 at2026-10-14T06:04:41Z; real tenant/IdP facts not supplied, configured authenticated Staff E2E NOT_QUALIFIED.",
     "Sole C2 canonical schema/type capture pending actual module and semantic installation.",
-    "Genuine clean/upgrade replay stops at published quote guard: canonical complete007d versus allowed native-onlyprebody4daec. Historical applied SQL/checksum not rewritten.",
-    "Canonical type-tail metadata is stale relative to actual own new forwards; sole GEN producer follow-up remains pending."
+    "Published quote migration accepts native prebody4daec but canonical007d is already complete; clean/upgrade exact-provenance replay adapter pending without rewriting historical SQL/checksum.",
+    "Canonical type-tail metadata requires sole GEN producer reconciliation after scoped forwards; no competing capture."
   ],
-  "documentation_version": "2026-10-12.1 frozen published specifications; exact-source HTTP verification was historical0256 deployment. Currentd899 frozen specs byte-identical in source, deploymentREADY verified by metadata; freshHTTP blocked and publicfrontendDBbindingNOTVERIFIED.",
+  "documentation_version": "2026-10-12.1; all53 public current/historical OPS OpenAPI routes verified200 and exact normalized-source matches after production47a23b deployment",
   "wire_version": "2026-10-09.1",
   "onboarding_wire_version": "2026-10-05.2",
   "old_frozen_docs": "preserved byte-identical; no version-header admission gate",
@@ -30,9 +29,9 @@
     "No all-native or provider end-to-end readiness claim",
     "No canonical schema/type GEN or active Ediel claims/shared memory writes"
   ],
-  "next_action": "Preserve signing forward/real native receipt in PR794; reconstruct Auth-free candidate from immutable published B3; qualify new source before atomic installation. Quote clean/upgrade replay and Staff configuration still open.",
-  "source_head": "d899ac6b36d754aa784333ed4da07702e47619e0",
-  "integrated_main": "4e52854ecc19f0bd1266825cb114c19a3e983f27",
+  "next_action": "Complete genuine PostgreSQL qualification of new sealed Auth-free source037 including restaged replay, strong-state/unknown refusal and whole rollback; regenerate and qualify compact delivery before native effect. Quote replay adapter and configured Staff qualification remain open.",
+  "source_head": "47a23b7573543021f79df172b44fb051024d2714",
+  "integrated_main": "7952177b13c911427fe529a56fd787d7f3abfc99",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
   "independent_review": "Two noncoauthor peers confirm no remaining introduced P1/P2 in reviewed final source",
   "verification_record": "quality/audits/2026-10-12-ops-api-contracts/verification.json",
@@ -718,5 +717,15 @@
   "native_ledger_count_observed": 519,
   "latest_signing_forward": "20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql",
   "auth_free_source_recovery": "Frozen A6 and final receipt were private /tmp files lost when environment was replaced. Exact A6 cannot be reconstructed from hashes. Original B3 source/stages remain preserved; rebuild requires new source hash and independent qualification.",
-  "production_observation": "READY deploymentdpl_2JbkdPS6zWD32qkgUqXUEfbHkbWX source main7952177b. Independent source comparison confirms all99 own app/lib files,54OpenAPI files, next.config.ts/package.json/package-lock.json byte-identical to PR794. No redeploy needed to restore audited runtime fixes; migration/provenance files still need PR integration."
+  "production_observation": "READY deploymentdpl_2JbkdPS6zWD32qkgUqXUEfbHkbWX source main7952177b. Independent source comparison confirms all99 own app/lib files,54OpenAPI files, next.config.ts/package.json/package-lock.json byte-identical to PR794. No redeploy needed to restore audited runtime fixes; migration/provenance files still need PR integration.",
+  "current_deployment": {
+    "commit": "47a23b7573543021f79df172b44fb051024d2714",
+    "id": "dpl_ADAyDfYPLkbPx6GJZdvhBYuAk68C",
+    "state": "READY",
+    "domain": "app.gridex.se",
+    "genuine_build_ms": 131855,
+    "runtime_source_reviews": 2,
+    "full_app_typecheck": "PASS",
+    "public_specifications": "53/53 HTTP200 and normalized-source exact"
+  }
 }

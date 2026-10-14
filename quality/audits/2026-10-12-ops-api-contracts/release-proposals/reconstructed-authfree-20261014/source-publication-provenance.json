@@ -1,0 +1,347 @@
+{
+  "status": "SOURCE_PUBLICATION_PROPOSAL_NOT_APPLIED_RUNTIME_QUALIFICATION_PENDING",
+  "target_directory": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014",
+  "atomic_sha256": "037e7aa66a40f4f3691fd904d48d71a8aa47c0b3ddfb55becfd293e35713925a",
+  "components": [
+    {
+      "order": 1,
+      "path": "/tmp/gridex-api-rebuild-20261014/main-proposal/auth-free-main-envelope.sql",
+      "bytes": 132997,
+      "sha256": "e9788627cf5b9b7469159ff803bb242be870fe6e1ad7484469b222a2a310b6e4",
+      "executable_sha256": "7a25e6666743459034912c28a5a81b42a34da6cd7d92e477edc36b42ca40982d",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 69,
+          "end_byte": 75,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 132989,
+          "end_byte": 132996,
+          "deleted": "COMMIT;"
+        }
+      ],
+      "published_source_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/auth-free-main-envelope.sql",
+      "already_published_unchanged_input": false
+    },
+    {
+      "order": 2,
+      "path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part1-forward.sql",
+      "bytes": 251146,
+      "sha256": "d821d77e00f5dbb25d599e339bc3d36cfd73b78133e2d2f36e29b56557420ff7",
+      "executable_sha256": "f24da46fb264037c9fa3858bd2e7e0ddd3a9cd885bb070328351baa93a942b67",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 481,
+          "end_byte": 487,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 251138,
+          "end_byte": 251145,
+          "deleted": "COMMIT;"
+        }
+      ],
+      "published_source_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part1-forward.sql",
+      "already_published_unchanged_input": true
+    },
+    {
+      "order": 3,
+      "path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part2-forward.sql",
+      "bytes": 104955,
+      "sha256": "edcd6154285a0f960ecf3599e34e2e961a2075531434c7ae8e139e42b3e74858",
+      "executable_sha256": "7e2c14f653e8d282ec4678b870a58306165948131fc4f9e55a465567a05f8ab7",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 248,
+          "end_byte": 254,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 104947,
+          "end_byte": 104954,
+          "deleted": "COMMIT;"
+        }
+      ],
+      "published_source_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-part2-forward.sql",
+      "already_published_unchanged_input": true
+    },
+    {
+      "order": 4,
+      "path": "/tmp/gridex-api-rebuild-20261014/main-proposal/derived-z02-strong-record-prerequisite.sql",
+      "bytes": 83709,
+      "sha256": "72793f458dac5407b7654aa577e31b7a4fbee72ba57f8c88bc64e78896c5032d",
+      "executable_sha256": "491578af2077004257e3e9018134f343e8a32cad50f34f372bdd4a1c77b2797c",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 394,
+          "end_byte": 400,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 83701,
+          "end_byte": 83708,
+          "deleted": "COMMIT;"
+        }
+      ],
+      "published_source_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/derived-z02-strong-record-prerequisite.sql",
+      "already_published_unchanged_input": false
+    },
+    {
+      "order": 5,
+      "path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-existing-trigger-forward.sql",
+      "bytes": 118932,
+      "sha256": "5feebfef8c7935867b6846b1c841ca15b46ccab284474c0912406614ddd5535a",
+      "executable_sha256": "dc51c66c19e05dbc7ffbef2fa021c2e15e3d8ee03aa1d3954c95d40cd5a19f71",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 344,
+          "end_byte": 350,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 118924,
+          "end_byte": 118931,
+          "deleted": "COMMIT;"
+        }
+      ],
+      "published_source_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/variant-existing-trigger-forward.sql",
+      "already_published_unchanged_input": true
+    },
+    {
+      "order": 6,
+      "path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/004-qualified-retention-install.sql",
+      "bytes": 94467,
+      "sha256": "2ff105e0d8f1a9cc9e84fbf7c060a52bf6bdf8d7f9c7e75a843f4bb209fa0425",
+      "executable_sha256": "90353fa60a87a39fea0326cd498a479061380b69d58e8127923a4e4734810ca2",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 240,
+          "end_byte": 246,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 94459,
+          "end_byte": 94466,
+          "deleted": "COMMIT;"
+        }
+      ],
+      "published_source_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/installer-capability/004-qualified-retention-install.sql",
+      "already_published_unchanged_input": true
+    },
+    {
+      "order": 7,
+      "path": "/tmp/gridex-api-rebuild-20261014/finance-proposal/five-adapters-four-target-guards.sql",
+      "bytes": 54217,
+      "sha256": "e1c684e32ae8cb7511e1451eb5ce775656a75606721d7f650772ce4b7d381cac",
+      "executable_sha256": "e1c684e32ae8cb7511e1451eb5ce775656a75606721d7f650772ce4b7d381cac",
+      "transaction_tokens_removed": [],
+      "published_source_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/five-adapters-four-target-guards.sql",
+      "already_published_unchanged_input": false
+    },
+    {
+      "order": 8,
+      "path": "/tmp/gridex-ops-final/quality/audits/2026-10-12-ops-api-contracts/release-proposals/semantic-forward-metadata-integrity.sql",
+      "bytes": 23828,
+      "sha256": "5aa1fd4fc45a85819b683dff4756d97ad3c3387e9e2d9bd1a9424b63ebb9d4c9",
+      "executable_sha256": "7e69a2260658c8bd90f09d2668397761fd2821b036ce6de09c600468bf272f01",
+      "transaction_tokens_removed": [
+        {
+          "start_byte": 320,
+          "end_byte": 326,
+          "deleted": "BEGIN;"
+        },
+        {
+          "start_byte": 23820,
+          "end_byte": 23827,
+          "deleted": "COMMIT;"
+        }
+      ],
+      "published_source_path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/semantic-forward-metadata-integrity.sql",
+      "already_published_unchanged_input": true
+    }
+  ],
+  "files": [
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/atomic-eight-input-proposal.sql",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/atomic-eight-input-proposal.sql",
+      "bytes": 865748,
+      "sha256": "037e7aa66a40f4f3691fd904d48d71a8aa47c0b3ddfb55becfd293e35713925a",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/atomic-eight-input-manifest.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/atomic-eight-input-manifest.json",
+      "bytes": 5565,
+      "sha256": "905edf343e803bac1f3f39e8b3eff78e453a951e6c02dc00b4c16bcb3f217dfc",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/auth-free-main-envelope.sql",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/auth-free-main-envelope.sql",
+      "bytes": 132997,
+      "sha256": "e9788627cf5b9b7469159ff803bb242be870fe6e1ad7484469b222a2a310b6e4",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/envelope-proposal-manifest.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/envelope-proposal-manifest.json",
+      "bytes": 947,
+      "sha256": "fefd3140b02b6954c4fc4e78d49d846ddeb5ac51800802998220d3a3ec314c15",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/effective-main-source.sql",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/effective-main-source.sql",
+      "bytes": 6640789,
+      "sha256": "cfe0abf95d99baf02664fb95162a56bf67e94b2123da36f68544eb27fa510dd8",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/effective-complete-state-manifest.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/effective-complete-state-manifest.json",
+      "bytes": 3058090,
+      "sha256": "6848ef594f3fc96ce45483a254d05f20af0ffc21220ec4b66719f1c0143df931",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/complete-state-manifest-byte-proof.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/complete-state-manifest-byte-proof.json",
+      "bytes": 343,
+      "sha256": "91b9b6093c77821a8fa50a943588a491e50408284f57b32837c2773def8b2f96",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/auth-fk-hook-allowlist.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/auth-fk-hook-allowlist.json",
+      "bytes": 11044,
+      "sha256": "8c3062d3a1b67cbda6dbecf0f106a9492b7e473d8f486a5850cb632d199e8d27",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/source-edits.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/source-edits.json",
+      "bytes": 88443,
+      "sha256": "a7a7fa1f97f5f9f2cbb2f5a0e6ac68a74270cf4aef96d631d9fb91793d7f1bb2",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/derived-z02-strong-record-prerequisite.sql",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/derived-z02-strong-record-prerequisite.sql",
+      "bytes": 83709,
+      "sha256": "72793f458dac5407b7654aa577e31b7a4fbee72ba57f8c88bc64e78896c5032d",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/five-adapters-four-target-guards.sql",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/finance-proposal/five-adapters-four-target-guards.sql",
+      "bytes": 54217,
+      "sha256": "e1c684e32ae8cb7511e1451eb5ce775656a75606721d7f650772ce4b7d381cac",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/freshness/manifest.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/freshness-proposal/manifest.json",
+      "bytes": 107025,
+      "sha256": "fcfe4b77b76a8eb1d0b179acc37dc9d50e8b9a733ae24afa91f5c04adc9cd58b",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/freshness/proposal.sql",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/freshness-proposal/proposal.sql",
+      "bytes": 53556,
+      "sha256": "595612f40a14dd56f225965786a3e7c431ca387606b2404f9243d1da7fd8ce41",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/finance/manifest.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/finance-proposal/manifest.json",
+      "bytes": 10588,
+      "sha256": "45d3c3c9b8a09f741dca87627f55eb6acf9fb09aaa7c58d27d6158b455176b73",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/finance/five-native-bound-functions.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/finance-proposal/five-native-bound-functions.json",
+      "bytes": 9103,
+      "sha256": "6da8c8ffcb7a733f24b081d9375ada2b17ce3d3ab3d6a6dc781a8a37c2b84185",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/inputs/reconstruction-inventory.json",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/reconstruction-inventory/reconstruction-inventory.json",
+      "bytes": 209039,
+      "sha256": "76531ff45357d51129693a88ef1f109b8173c35d8cfda71af1272b00f27f108b",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_main.py",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/build_main.py",
+      "bytes": 12966,
+      "sha256": "faaa4b23dd6d7fb116b26395d85f81d0fa4559a2a2fdb6d414705f878bc2a47f",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_envelope.py",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/build_envelope.py",
+      "bytes": 12583,
+      "sha256": "a81541d06b04c82710c28d142227898c4501b0a72081d05a9993c031b9bed8e4",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_atomic_eight.py",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/main-proposal/build_atomic_eight.py",
+      "bytes": 6567,
+      "sha256": "1156f8635df5a4a16c6e1171ce6dc8ee9a22248e81d5c880b63e608854c25c5b",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_freshness_proposal.py",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/freshness-proposal/build_proposal.py",
+      "bytes": 12753,
+      "sha256": "be2a660b211b79f557540b36315a1a3a7a003cf4092258c8a7d010f0e29ff6d2",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/builders/original/build_finance_proposal.py",
+      "private_source_path": "/tmp/gridex-api-rebuild-20261014/finance-proposal/build_finance_proposal.py",
+      "bytes": 10686,
+      "sha256": "dc12fbb1650fdece9e4674ad426ecd70214fc5111c4114eb682fae3a5a33ba9f",
+      "byte_identical_copy": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/inputs/guard-acl-inputs.json",
+      "bytes": 966,
+      "sha256": "9f334a934f028b3e10376e4c87252259f7d600afa4609d2495d6eeff62c030fa",
+      "minimal_source_generator_inputs": true,
+      "business_rows_or_secrets": false
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/README.md",
+      "bytes": 4958,
+      "sha256": "0ae9533770c7f9b8f5507a00e16e78f2b3dcba093deb9c38242e0d04fd5d774f",
+      "source_publication_support_only": true
+    },
+    {
+      "destination": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/reconstructed-authfree-20261014/reproduce.py",
+      "bytes": 2722,
+      "sha256": "fc8adc7e848af2a6568311a11e563c76b622c075e2730a93c757feff05b77baf",
+      "source_publication_support_only": true
+    }
+  ],
+  "native_migration_or_business_effects_claimed": false,
+  "new_semantic_child_ledger_entries_claimed": false,
+  "genuine_full_pipeline_qualified": false,
+  "original_b3": {
+    "path": "quality/audits/2026-10-12-ops-api-contracts/release-proposals/native-additive-reconciliation.sql",
+    "sha256": "bacf8944718c984d117f0400ed19fadd978feed6613ea9196784eff4591ac600",
+    "unchanged": true
+  },
+  "historical_a6": {
+    "sha256": "a6ea15ff597f64fd96641a985b686359c7b2066ae64c8078453c2a3a544cd171",
+    "exact_private_source_not_recovered": true,
+    "proof_not_transferable_to_this_candidate": true,
+    "actual_applied": false
+  },
+  "excluded": "Broad native catalog captures, provider/client credentials, business rows, Auth users, fixture data, system catalog row captures, canonical GEN output and fabricated migration history."
+}
