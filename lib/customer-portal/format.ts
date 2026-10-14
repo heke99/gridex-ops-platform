@@ -1,3 +1,8 @@
+/** Established customer-visible invoice statuses shared by web and API readers. */
+export const PORTAL_PUBLISHED_INVOICE_STATUSES = [
+  'issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited',
+] as const
+
 export function formatSek(value: number | null | undefined): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return '—'
   return new Intl.NumberFormat('sv-SE', {

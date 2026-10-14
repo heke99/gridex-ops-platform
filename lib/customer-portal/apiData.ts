@@ -4,6 +4,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { requirePortalRetentionAccess } from '@/lib/ediel/retention/customerRecordClasses'
 import { resolvePortalCustomer, isMissingPortalSchemaError } from '@/lib/customer-portal/customerResolver'
 import { PlatformSchemaNotReadyError } from '@/lib/platform/schemaReadiness'
+import { PORTAL_PUBLISHED_INVOICE_STATUSES } from '@/lib/customer-portal/format'
 import {
   buildPortalDatabasePage,
   decodePortalCursor,
@@ -195,7 +196,7 @@ async function portalTablePage(input: {
   selects: string[]
   orderColumn: string
   page: PortalDatabasePageInput
-  statuses?: string[]
+  statuses?: readonly string[]
 }) {
   const limit = portalPageLimit(input.page.limit)
   const cursor = decodePortalCursor({
@@ -416,7 +417,7 @@ export async function listPortalInvoices(context: PortalCustomerContext, route =
       .select(CUSTOMER_INVOICE_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
-      .in('status', ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'])
+      .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
       .order('period_start', { ascending: false, nullsFirst: false })
       .limit(100) as ListResult,
     async () => await supabaseService
@@ -424,7 +425,7 @@ export async function listPortalInvoices(context: PortalCustomerContext, route =
       .select(CUSTOMER_INVOICE_MINIMAL_SELECT)
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
-      .in('status', ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'])
+      .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
       .order('period_start', { ascending: false, nullsFirst: false })
       .limit(100) as ListResult,
   ])
@@ -442,7 +443,7 @@ export async function listPortalInvoicesPage(
     context, page, resource: 'invoices', table: 'customer_invoices',
     selects: [CUSTOMER_INVOICE_SELECT, CUSTOMER_INVOICE_MINIMAL_SELECT],
     orderColumn: 'created_at',
-    statuses: ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'],
+    statuses: PORTAL_PUBLISHED_INVOICE_STATUSES,
   })
 }
 
@@ -458,7 +459,7 @@ export async function getPortalInvoiceByReference(
     .eq('company_id', context.companyId)
     .eq('customer_id', context.customerId)
     .eq('invoice_reference', invoiceReference)
-    .in('status', ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'])
+    .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
     .maybeSingle()
   if (result.error) {
     if (isMissingSchemaError(result.error)) {
@@ -479,7 +480,7 @@ export async function getPortalInvoice(context: PortalCustomerContext, invoiceId
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .eq('id', invoiceId)
-      .in('status', ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'])
+      .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
       .limit(1) as ListResult,
     async () => await supabaseService
       .from('customer_invoices')
@@ -487,7 +488,7 @@ export async function getPortalInvoice(context: PortalCustomerContext, invoiceId
       .eq('company_id', context.companyId)
       .eq('customer_id', context.customerId)
       .eq('id', invoiceId)
-      .in('status', ['issued', 'sent', 'paid', 'overdue', 'cancelled', 'credited'])
+      .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
       .limit(1) as ListResult,
   ])
   return invoices[0] ?? null

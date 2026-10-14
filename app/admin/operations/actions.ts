@@ -25,9 +25,10 @@ import {
   resetOutboundRequestForRetry,
 } from '@/lib/cis/db'
 import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'
+import { readCompleteBulkReadySelection } from '@/lib/operations/readyBulkCandidates'
+import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import type {
   CustomerOperationTaskStatus,
-  SupplierSwitchRequestRow,
   SupplierSwitchRequestStatus,
 } from '@/lib/operations/types'
 
@@ -425,25 +426,13 @@ export async function finalizeSupplierSwitchExecutionAction(
 }
 
 export async function bulkFinalizeReadySupplierSwitchesAction(): Promise<void> {
-  await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const access = await requireAdminActionAccess([MASTERDATA_PERMISSIONS.WRITE])
+  const scope = await resolveAdminTenantReadScope(access)
 
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
 
-  const requestsQuery = await supabase
-    .from('supplier_switch_requests')
-    .select('*')
-    .eq('status', 'accepted')
-    .order('confirmed_start_date', { ascending: true, nullsFirst: false })
-    .order('requested_start_date', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: true })
-
-  if (requestsQuery.error) throw requestsQuery.error
-
-  const switchRequests = (requestsQuery.data ?? []) as SupplierSwitchRequestRow[]
-  const readyRequests = switchRequests.filter(
-    (request) => getSupplierSwitchActivationReadiness(request).ready
-  )
+  const { accepted: switchRequests, ready: readyRequests } = await readCompleteBulkReadySelection(supabase, scope.companyId)
 
   let completedCount = 0
 

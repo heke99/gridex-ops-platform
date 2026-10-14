@@ -7,10 +7,8 @@ import type {
 } from "@/lib/opsMaster/readiness";
 import {
   isAvailablePowerOfAttorneyDocument,
-  isSignedPowerOfAttorney,
   type CustomerCardSnapshot,
 } from "@/lib/customers/customerCardSnapshot";
-import { hasExternallySendablePoa as isPoaExternallySendable } from "@/lib/customers/poaReadiness";
 
 type PoaLike = Record<string, unknown>;
 
@@ -59,13 +57,6 @@ function poaScopeList(poa: PoaLike): string[] {
   return single ? [single] : [];
 }
 
-function poaScopeCovers(poa: PoaLike, scope: string): boolean {
-  const scopes = poaScopeList(poa).map((value) => value.toLowerCase());
-  if (scopes.includes(scope) || scopes.includes("supplier_switch") || scopes.includes("all")) return true;
-  const summary = poa.scope_summary as PoaLike | null | undefined;
-  return summary?.[scope] === true;
-}
-
 const ACCEPTANCE_LABELS: Record<string, string> = {
   terms: "Allmänna villkor",
   privacy_policy: "Integritetspolicy",
@@ -81,12 +72,12 @@ function formatDate(value: string | null | undefined) {
   return date.toLocaleString("sv-SE");
 }
 
-function Pill({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+function Pill({ ok, children, falseLabel = "saknas" }: { ok: boolean | null; children: React.ReactNode; falseLabel?: string }) {
   return (
     <span
-      className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`}
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${ok === null ? "border-amber-200 bg-amber-50 text-amber-900" : ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-800"}`}
     >
-      {children}: {ok ? "klar" : "saknas"}
+      {children}: {ok === null ? "behöver kontrolleras" : ok ? "klar" : falseLabel}
     </span>
   );
 }
@@ -97,7 +88,7 @@ function ReadinessBox({
   children,
 }: {
   title: string;
-  ok: boolean;
+  ok: boolean | null;
   children: React.ReactNode;
 }) {
   return (
@@ -110,7 +101,7 @@ function ReadinessBox({
         {title}
       </p>
       <p className="mt-2 text-2xl font-black text-slate-950">
-        {ok ? "Ja" : "Inte ännu"}
+        {ok === null ? "Behöver kontrolleras" : ok ? "Ja" : "Inte ännu"}
       </p>
       <div className="mt-3 text-sm font-semibold leading-6 text-slate-700">
         {children}
@@ -127,7 +118,6 @@ export default function CustomerLegalReadinessCard({
   timeline,
   snapshot,
   powersOfAttorney = [],
-  customerIdentity = null,
 }: Props) {
   const latestTimeline = timeline.slice(0, 10);
   const legalDocuments = documents.filter((doc) =>
@@ -154,9 +144,12 @@ export default function CustomerLegalReadinessCard({
     (readiness.hasActivePowerOfAttorney ||
       hasPowerDocument ||
       readiness.hasPowerOfAttorneyAcceptance);
-  // Legal acceptance is not the same as a fullmakt that can be sent externally
-  // to a grid owner. Only mark "klar" for external use when sendable.
-  const hasExternallySendablePoa = snapshot?.hasExternallySendablePoa ?? false;
+  const facilityPoa = snapshot?.poaReadiness?.facility;
+  const switchPoa = snapshot?.poaReadiness?.supplierSwitch;
+  const sameCustomer = (fact: typeof facilityPoa) => fact?.customerId === customerId
+    && fact?.siteId === snapshot?.primarySite?.id && fact?.companyId === snapshot?.primarySite?.company_id;
+  const facilityUsable = sameCustomer(facilityPoa) ? facilityPoa?.usableNow ?? null : null;
+  const switchUsable = sameCustomer(switchPoa) ? switchPoa?.usableNow ?? null : null;
   const visibleBlockers = readiness.blockers.filter((blocker) => {
     const code = String(blocker.code ?? "").toLowerCase();
     if (hasPowerOfAttorney && code.includes("power")) return false;
@@ -200,22 +193,16 @@ export default function CustomerLegalReadinessCard({
 
       <div className="grid gap-4 lg:grid-cols-3">
         <ReadinessBox
-          title="Kan starta leverantörsbyte"
-          ok={readiness.canStartSupplierSwitch}
+          title="Fullmakt för leverantörsbyte"
+          ok={switchUsable}
         >
-          {readiness.canStartSupplierSwitch
-            ? "Alla grundkrav är uppfyllda."
-            : "Flödet är blockerat tills punkterna nedan är åtgärdade."}
+          {switchPoa?.explanation ?? "Fullmakt för vald anläggning behöver kontrolleras. Övriga startvillkor verifieras när åtgärden körs."}
         </ReadinessBox>
         <ReadinessBox
-          title="Kan begära anläggningsuppgifter"
-          ok={hasExternallySendablePoa}
+          title="Fullmakt för anläggningsuppgifter"
+          ok={facilityUsable}
         >
-          {hasExternallySendablePoa
-            ? "Fullmakt är klar för nätägarkommunikation."
-            : hasPowerOfAttorney
-              ? "Fullmakt finns juridiskt, men saknar kund-/signeringsuppgifter för extern sändning. Granska fullmakten."
-              : "Fullmakt behöver kontrolleras."}
+          {facilityPoa?.explanation ?? "Fullmakt för vald anläggning behöver kontrolleras. Historiskt godkännande är inte ett aktuellt sändningstillstånd."}
         </ReadinessBox>
         <ReadinessBox title="Kan skicka kundmail" ok={legalLooksAccepted}>
           {legalLooksAccepted
@@ -244,7 +231,7 @@ export default function CustomerLegalReadinessCard({
       <div className="flex flex-wrap gap-2">
         <Pill ok={legalLooksAccepted}>Juridiska godkännanden</Pill>
         <Pill ok={readiness.hasPriceSnapshot}>Prisbild</Pill>
-        <Pill ok={hasPowerOfAttorney}>Fullmakt</Pill>
+        <Pill ok={hasPowerOfAttorney ? true : facilityPoa?.parentCoverage !== "complete" || facilityPoa.kind === "unknown" ? null : false}>Godkännande av fullmakt</Pill>
         <Pill ok={readiness.hasFacility}>Anläggning</Pill>
         <Pill ok={readiness.hasMeteringPoint}>Mätpunkt</Pill>
         <Pill ok={readiness.hasGridOwner}>Nätägare</Pill>
@@ -270,9 +257,8 @@ export default function CustomerLegalReadinessCard({
             {powersOfAttorney.slice(0, 4).map((poa, index) => {
               const status = String(poa.status ?? "").toLowerCase();
               const scopes = poaScopeList(poa);
-              const signed = isSignedPowerOfAttorney(poa);
-              const usableForSwitch = signed && poaScopeCovers(poa, "supplier_switch");
-              const usableForFacility = isPoaExternallySendable(poa, { customerIdentity }) && poaScopeCovers(poa, "facility_information_lookup");
+              const usableForSwitch = sameCustomer(switchPoa) ? switchPoa?.rows.find(row => row.poaId === poa.id)?.usableNow ?? null : null;
+              const usableForFacility = sameCustomer(facilityPoa) ? facilityPoa?.rows.find(row => row.poaId === poa.id)?.usableNow ?? null : null;
               const method = typeof poa.method === "string" ? poa.method : null;
               const signedAt = (poa.signed_at ?? poa.accepted_at) as string | null | undefined;
               const hasDocument = Boolean(poa.document_id || poa.document_path);
@@ -287,8 +273,8 @@ export default function CustomerLegalReadinessCard({
                     Omfattning: {scopes.length > 0 ? scopes.map((scope) => POA_SCOPE_LABELS[scope] ?? scope).join(", ") : "–"}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <Pill ok={usableForSwitch}>Leverantörsbyte</Pill>
-                    <Pill ok={usableForFacility}>Anläggningsuppgifter</Pill>
+                    <Pill ok={usableForSwitch} falseLabel="inte användbar">Leverantörsbyte</Pill>
+                    <Pill ok={usableForFacility} falseLabel="inte användbar">Anläggningsuppgifter</Pill>
                     <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-black ${hasDocument ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-white text-slate-600"}`}>
                       Dokument: {hasDocument ? "finns" : "saknas"}
                     </span>
