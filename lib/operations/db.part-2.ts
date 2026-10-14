@@ -5,11 +5,51 @@ import { evaluateSiteSwitchReadiness } from "@/lib/operations/readiness"
 import { resolveOwnElectricitySupplier } from "@/lib/masterdata/selfSupplier"
 import { calculateEarliestSwitchStartDate } from "@/lib/operations/switchStartDate"
 import { getSupplierSwitchActivationReadiness } from "@/lib/operations/supplierSwitchActivation"
+import { stockholmMarketDate } from "@/lib/operations/supplierSwitchActivation"
+import { scanAdminCandidates, type AdminCandidatePage } from "@/lib/operations/adminPagination"
+import { InvalidReadModelResponseError } from "@/lib/read-models/readResult"
 import { loadSupplierSwitchPolicy } from "@/lib/operations/supplierSwitchScheduler"
 import { resolveAuthorizationDocumentIdForPowerOfAttorney } from "@/lib/legal/authorizationChain"
 import { assertNoActiveSwitchLifecycleBlock, OPEN_SUPPLIER_SWITCH_STATUSES } from "@/lib/operations/switchLifecycleBlocks"
 import type { CustomerOperationTaskRow, CustomerOperationTaskStatus, SupplierSwitchEventRow, SupplierSwitchRequestRow, SupplierSwitchRequestStatus, SupplierSwitchRequestType, SwitchReadinessResult } from "@/lib/operations/types"
 import { getActorId, getSupplierSwitchRequestById, listPowersOfAttorneyByCustomerId } from './db.part-1'
+
+export async function listReadySupplierSwitchCandidatePage(
+  supabase: SupabaseClient,
+  input: { companyId: string | null; cursor?: string | null; limit?: number },
+): Promise<AdminCandidatePage<SupplierSwitchRequestRow>> {
+  const now = new Date()
+  return scanAdminCandidates<SupplierSwitchRequestRow>({
+    context: { companyId: input.companyId, resource: 'supplier_switch_ready', predicateVersion: `accepted_activation_v1:${stockholmMarketDate(now)}` },
+    cursor: input.cursor,
+    limit: input.limit,
+    eligible: request => getSupplierSwitchActivationReadiness(request, now).ready,
+    load: async (after, limit) => {
+      let query = supabase.from('supplier_switch_requests').select('*', { count: 'exact' })
+        .eq('status', 'accepted')
+        .order('created_at', { ascending: false, nullsFirst: false }).order('id', { ascending: false })
+        .limit(limit)
+      if (input.companyId) query = query.eq('company_id', input.companyId)
+      if (after?.createdAt) {
+        query = query.or(`created_at.lt.${after.createdAt},and(created_at.eq.${after.createdAt},id.lt.${after.id}),created_at.is.null`)
+      } else if (after) {
+        query = query.is('created_at', null).lt('id', after.id)
+      }
+      const { data, error, count } = await query
+      if (error) throw error
+      if (!Array.isArray(data) || !Number.isInteger(count)) throw new InvalidReadModelResponseError()
+      for (const row of data) {
+        if (!row || typeof row !== 'object' || row.status !== 'accepted'
+          || typeof row.company_id !== 'string' || !row.company_id
+          || ['customer_id', 'site_id', 'metering_point_id'].some(field => typeof row[field] !== 'string' || !row[field])
+          || (input.companyId !== null && row.company_id !== input.companyId)) {
+          throw new InvalidReadModelResponseError()
+        }
+      }
+      return { rows: data as SupplierSwitchRequestRow[], count: count as number }
+    },
+  })
+}
 
 export async function listAllSupplierSwitchRequests(
   supabase: SupabaseClient,

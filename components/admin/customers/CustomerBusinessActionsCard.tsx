@@ -197,6 +197,14 @@ export default function CustomerBusinessActionsCard({
     workflow,
     snapshot,
     visibility: isPlatformAdmin ? 'superadmin' : 'tenant',
+  }).map(action => {
+    if (!action.kind) return action
+    const fact = action.kind === 'customer_data' ? snapshot.poaReadiness?.facility : snapshot.poaReadiness?.supplierSwitch
+    const sameTarget = fact?.customerId === customerId && fact?.companyId === companyId
+      && fact?.siteId === snapshot.primarySite?.id && fact?.meteringPointId === (snapshot.primaryMeteringPoint?.id ?? null)
+    if (sameTarget && fact?.actorId && fact.usableNow === true) return action
+    return { ...action, kind: undefined, status: 'blocked' as const,
+      description: fact?.explanation ?? 'Fullmakt för vald anläggning och åtgärd behöver kontrolleras.' }
   })
   const workflowPrimaryAction = workflow.primaryAction
   const primaryAction = actions.find((action) => action.id === workflowPrimaryAction) ?? actions.find((action) => action.primary) ?? null

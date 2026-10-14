@@ -1,6 +1,6 @@
 import { portalInvoiceTitle } from '@/lib/customer-portal/labels'
 import Link from 'next/link'
-import { getPortalDashboardData } from '@/lib/customer-portal/db'
+import { getPortalOverviewData } from '@/lib/customer-portal/db'
 import {
   formatDate,
   formatKwh,
@@ -45,7 +45,7 @@ export default async function CustomerPortalPage({
 }) {
   const params = searchParams ? await searchParams : {}
   const { context, invoices, sites, meteringPoints, consumptionMonths, customerStatus, portalDisplayName } =
-    await getPortalDashboardData()
+    await getPortalOverviewData()
 
   if (context.customerIds.length === 0) return <EmptyPortalState brandName={context.branding.brandName} />
 

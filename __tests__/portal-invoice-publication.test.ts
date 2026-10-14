@@ -241,7 +241,7 @@ describe('existing published invoice policy shared by web and API reads', () => 
   it('retains existing web scalar details and lines for a published parent', async () => {
     io.tables.customer_invoices = [invoice(10, 'paid')]
     io.tables.customer_invoice_lines = [{
-      id: uuid(30), invoice_id: uuid(10), description: 'Elförbrukning',
+      id: uuid(30), company_id: company, invoice_id: uuid(10), description: 'Elförbrukning',
       sort_order: 1, created_at: '2026-10-01T00:00:00.000Z', amount_ex_vat: 800,
     }]
     const result = await getPortalInvoiceDetail(webContext, uuid(10))
