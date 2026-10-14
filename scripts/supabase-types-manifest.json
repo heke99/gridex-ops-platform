@@ -129850,12 +129850,12 @@
     },
     "portable_source_inputs": {
       "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts": {
-        "blob": "eb149430fdf3cecbd9ce20bc72dcf1eee98aa32d",
-        "sha256": "21b7c4057176974261b7893592d7cda1d8b8ccaa36f3149f797acaadfb647aef",
+        "blob": "ac7e97f092f50cd6eef01ef0e88c483e6da29474",
+        "sha256": "353dc4f27042fe128160e1e28ad96361f4c9bc7df7db4bbe41d8b772ba024c59",
         "mode": "100644",
         "receipt": "6868ab5a9f7c2889840952812835360cabbdab74",
-        "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
-        "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+        "source_head": "46186b0c934f3c597b6d4f4d527abacb9f3d81c8",
+        "source_tree": "84a94a87d6d8a4bf6b6044d8bf59a8ef2a89d235"
       },
       "__tests__/ediel-sc-031-source-owned-business-projection-root-20261014.test.ts": {
         "blob": "57e4f9760d1466bf1eeced375638ac99f2c52d8e",
@@ -129866,12 +129866,12 @@
         "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
       },
       "lib/ediel/inboundCases.ts": {
-        "blob": "9e5bddffe7bbfb1794ea735b519c11851db23bc6",
-        "sha256": "e925c1cf2fcab21c4b709b9980cbabbafb9d298f6b918ae35c9d24ac5ad6fae6",
+        "blob": "57029c044818e0225757e63c5532e4568fccc5a0",
+        "sha256": "0ca6697e42a7e6e753cac6846f4838431927d9baab8831dd90ff766d23d6fe1f",
         "mode": "100644",
         "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
-        "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
-        "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+        "source_head": "46186b0c934f3c597b6d4f4d527abacb9f3d81c8",
+        "source_tree": "84a94a87d6d8a4bf6b6044d8bf59a8ef2a89d235"
       },
       "scripts/ediel-prodat-object-batch-first-effect-sql-regression.mjs": {
         "blob": "ebfb4437c05a9f1d94391414e5957ceca909d062",
@@ -129898,16 +129898,16 @@
         "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
       },
       "scripts/ediel-at-z14vh-z15v-esco-native.test.ts": {
-        "blob": "eb4f448d9baa609a6cca46daa57becdd5dd71e7d",
-        "sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+        "blob": "8fd477defc9c597c5f8e356b03d8f8482838fc11",
+        "sha256": "411d93898d5d6f7b73c37cdecd45092929cc807867fb6e033a42afcd2cfc4ffc",
         "mode": "100644",
         "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-        "source_head": "a80712d5d26c182a877d7ff26b6521e3993f084e",
-        "source_tree": "279aa71cbba15b452a20b670007c4567fc765775",
-        "scope": "EXACT_NATIVE_SCRIPT_TECHNICAL_ADOPTION_ONLY; nativeCPexcluded; old30+5sourcecases, runtimeNOT_RUN",
+        "source_head": "ed13994b710b270d738cc0dd164aaee9175954e0",
+        "source_tree": "5ea7e7d5d516410e67f708f9e98a27f81214abf3",
+        "scope": "ONE_EXTRA_CANONICAL_MINUS_SCALAR_N_CASE_SOURCE; old35 preserved; prospective36 NOT_RUN; exact script technical postimage",
         "source_final_receipts": [
-          "ca77d33d4c5e603881bbc57bab2c889579d84ca01f20a22b28ba2cc783ccc233",
-          "87138897ff9a83d5f7eacc8697b84678b41b7acbb4f4ef855c9bbe4e13f74f77"
+          "1c02b319a85538bcf5aa531d40fd3822d32b4bdce36c0f6a1e78c04c379369a0",
+          "e29af1079f5a2dbf11aef1658dab7bd07d4b1e055fc9a2c3c27065613015a5ba"
         ]
       }
     },
@@ -130141,7 +130141,7 @@
     "input_union_status": "FROZEN_REVIEWED_COMPLETE",
     "native_source_receiving_status": "EXACT_REVIEWED_POSTIMAGE_RECEIVED",
     "esco_workflow_pin_receiving_status": "EXACT_FINAL_NATIVE_PIN_POSTIMAGE_BOUND",
-    "producer_stage": "CORROBORATION_CURRENT_SOURCE_REVIEWED_RUNTIME_GO_PENDING",
+    "producer_stage": "CORROBORATION_CURRENT_K_N_SOURCE_REVIEWED_RUNTIME_GO_PENDING",
     "producer_receipt": "86186406e9608396d0499a80457ab439c1264b8c",
     "native_tests": "NOT_RUN",
     "catalog_preservation_capture": "QUALIFIED_GENUINE_PRIMARY_RUN38524338045_A1_FULL29_CAPTURE_ONLY",
@@ -130151,10 +130151,10 @@
     "owned_native_workflow_input": {
       "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
       "mode": "100644",
-      "blob": "fc1a5d30941a259e1f0478b3ffd0273cd73bd60c",
-      "sha256": "dd03fe3a05236b3e83edf72ac51956c97ccfdf0f99bf9cc40fd0ab828f75c18a",
+      "blob": "599075bba440706d930ff0ab5a7ca043a61e1b0f",
+      "sha256": "fe71bb2d0ded325a92a3df4f38fb981a4a509a761ec2a313d1a65ebc29cd2ac3",
       "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-      "native_test_sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+      "native_test_sha256": "411d93898d5d6f7b73c37cdecd45092929cc807867fb6e033a42afcd2cfc4ffc",
       "config_path": "scripts/ediel-at-z14vh-z15v-esco-native.config.ts",
       "config_sha256": "1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a",
       "origin": "OWN_AUTHORED_ONE_FINAL_NATIVE_SHA_PIN_UPDATE",
@@ -130165,37 +130165,48 @@
       },
       "scope": "ONEliteralpinonly; allotherworkflowbytes/config/currentgates preserved; no donor/preparedhead self-reference"
     },
-    "producer_sources_role": "IMMUTABLE_HISTORICAL_QUALIFIED_PRIMARY_R2_BINDING; not current DOB249 source approval",
+    "producer_sources_role": "IMMUTABLE_HISTORICAL_QUALIFIED_PRIMARY_R2_BINDING; not current K/N source approval",
     "current_corroboration_sources": {
       "actualMain": "7952177b13c911427fe529a56fd787d7f3abfc99",
       "actualMainTree": "f14c99e485a6fe09f4ba4d909b4faacab79d131e",
-      "sourceCarrierH": {
-        "head": "02838a14aacfac4fad5240b7691f9a9943d18598",
-        "tree": "9c09c74893a807c7e9eb53011b01e9003711307d",
-        "soleParentG": "9dfca9dae89d8f0f02dd30fc33082e9c5f1d9beb",
-        "scope": "Adoption-only exact2 reviewed C1 technical postimages; all G GEN files/code beyond these2 unchanged"
+      "sourceCarrierL": {
+        "head": "4c17965082a137ee386a943ae9d7713849129e77",
+        "tree": "c76bf240c1405e5ea524e35ff1351e5ab59dfe6c",
+        "soleParentN": "ed13994b710b270d738cc0dd164aaee9175954e0",
+        "scope": "ROOT adoption-only exact reviewed K source2 into frozen N; all fourteen current technical/GEN inputs fixed before this two-file metadata binding"
       },
-      "DOB249SourceCorrection": {
-        "head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
-        "tree": "354542420b73ad27b9031bdeb4928380fceb0c1e",
+      "KSourceCorrection": {
+        "head": "46186b0c934f3c597b6d4f4d527abacb9f3d81c8",
+        "tree": "84a94a87d6d8a4bf6b6044d8bf59a8ef2a89d235",
         "paths": [
           "lib/ediel/inboundCases.ts",
           "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts"
         ],
         "sourceFinals": [
-          "028afddd6d3d89ab157ecf86acd51998d11c0c55d7b0d71843cfeac09dbd8754",
-          "8a87799a1a4651dfba4c777d8c4eb4829c03653c930575e74b94bf61b998e72c"
+          "83a721a0b72ada3774b8be2adbe36ce1cc17618ae753127e655561b3f5e66abe",
+          "a290cbe5c0793de90d6fc46159e1453af38ba3db32bab50dd072f24eb5b71a54"
         ],
-        "scope": "Canonical249 incoming businessDOB correction only; wholeSC031 PARTIAL/+0"
+        "scope": "Retains reviewed DOB249 correction and fixes canonical-minus261/306/212 business scalar projection; 210D/213O and no-wire behavior retained; no blanket conditional-D/all-field claim"
+      },
+      "NNativeSourceExtension": {
+        "head": "ed13994b710b270d738cc0dd164aaee9175954e0",
+        "tree": "5ea7e7d5d516410e67f708f9e98a27f81214abf3",
+        "sourceFinals": [
+          "1c02b319a85538bcf5aa531d40fd3822d32b4bdce36c0f6a1e78c04c379369a0",
+          "e29af1079f5a2dbf11aef1658dab7bd07d4b1e055fc9a2c3c27065613015a5ba"
+        ],
+        "nativeSHA256": "411d93898d5d6f7b73c37cdecd45092929cc807867fb6e033a42afcd2cfc4ffc",
+        "workflowSHA256": "fe71bb2d0ded325a92a3df4f38fb981a4a509a761ec2a313d1a65ebc29cd2ac3",
+        "scope": "Existing old35 source/default assertions byte-preserved plus one actual native N four-scalar persisted business/source/master/ACK/ROLE_HOLD case; prospective36 NOT_RUN"
       },
       "immutableSourceInputs": {
         "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts": {
-          "blob": "eb149430fdf3cecbd9ce20bc72dcf1eee98aa32d",
-          "sha256": "21b7c4057176974261b7893592d7cda1d8b8ccaa36f3149f797acaadfb647aef",
+          "blob": "ac7e97f092f50cd6eef01ef0e88c483e6da29474",
+          "sha256": "353dc4f27042fe128160e1e28ad96361f4c9bc7df7db4bbe41d8b772ba024c59",
           "mode": "100644",
           "receipt": "6868ab5a9f7c2889840952812835360cabbdab74",
-          "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
-          "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+          "source_head": "46186b0c934f3c597b6d4f4d527abacb9f3d81c8",
+          "source_tree": "84a94a87d6d8a4bf6b6044d8bf59a8ef2a89d235"
         },
         "__tests__/ediel-sc-031-source-owned-business-projection-root-20261014.test.ts": {
           "blob": "57e4f9760d1466bf1eeced375638ac99f2c52d8e",
@@ -130206,12 +130217,12 @@
           "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
         },
         "lib/ediel/inboundCases.ts": {
-          "blob": "9e5bddffe7bbfb1794ea735b519c11851db23bc6",
-          "sha256": "e925c1cf2fcab21c4b709b9980cbabbafb9d298f6b918ae35c9d24ac5ad6fae6",
+          "blob": "57029c044818e0225757e63c5532e4568fccc5a0",
+          "sha256": "0ca6697e42a7e6e753cac6846f4838431927d9baab8831dd90ff766d23d6fe1f",
           "mode": "100644",
           "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
-          "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
-          "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+          "source_head": "46186b0c934f3c597b6d4f4d527abacb9f3d81c8",
+          "source_tree": "84a94a87d6d8a4bf6b6044d8bf59a8ef2a89d235"
         },
         "scripts/ediel-prodat-object-batch-first-effect-sql-regression.mjs": {
           "blob": "ebfb4437c05a9f1d94391414e5957ceca909d062",
@@ -130238,26 +130249,26 @@
           "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
         },
         "scripts/ediel-at-z14vh-z15v-esco-native.test.ts": {
-          "blob": "eb4f448d9baa609a6cca46daa57becdd5dd71e7d",
-          "sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+          "blob": "8fd477defc9c597c5f8e356b03d8f8482838fc11",
+          "sha256": "411d93898d5d6f7b73c37cdecd45092929cc807867fb6e033a42afcd2cfc4ffc",
           "mode": "100644",
           "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-          "source_head": "a80712d5d26c182a877d7ff26b6521e3993f084e",
-          "source_tree": "279aa71cbba15b452a20b670007c4567fc765775",
-          "scope": "EXACT_NATIVE_SCRIPT_TECHNICAL_ADOPTION_ONLY; nativeCPexcluded; old30+5sourcecases, runtimeNOT_RUN",
+          "source_head": "ed13994b710b270d738cc0dd164aaee9175954e0",
+          "source_tree": "5ea7e7d5d516410e67f708f9e98a27f81214abf3",
+          "scope": "ONE_EXTRA_CANONICAL_MINUS_SCALAR_N_CASE_SOURCE; old35 preserved; prospective36 NOT_RUN; exact script technical postimage",
           "source_final_receipts": [
-            "ca77d33d4c5e603881bbc57bab2c889579d84ca01f20a22b28ba2cc783ccc233",
-            "87138897ff9a83d5f7eacc8697b84678b41b7acbb4f4ef855c9bbe4e13f74f77"
+            "1c02b319a85538bcf5aa531d40fd3822d32b4bdce36c0f6a1e78c04c379369a0",
+            "e29af1079f5a2dbf11aef1658dab7bd07d4b1e055fc9a2c3c27065613015a5ba"
           ]
         }
       },
       "ownedNativeWorkflowInput": {
         "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
         "mode": "100644",
-        "blob": "fc1a5d30941a259e1f0478b3ffd0273cd73bd60c",
-        "sha256": "dd03fe3a05236b3e83edf72ac51956c97ccfdf0f99bf9cc40fd0ab828f75c18a",
+        "blob": "599075bba440706d930ff0ab5a7ca043a61e1b0f",
+        "sha256": "fe71bb2d0ded325a92a3df4f38fb981a4a509a761ec2a313d1a65ebc29cd2ac3",
         "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-        "native_test_sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+        "native_test_sha256": "411d93898d5d6f7b73c37cdecd45092929cc807867fb6e033a42afcd2cfc4ffc",
         "config_path": "scripts/ediel-at-z14vh-z15v-esco-native.config.ts",
         "config_sha256": "1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a",
         "origin": "OWN_AUTHORED_ONE_FINAL_NATIVE_SHA_PIN_UPDATE",
@@ -130269,8 +130280,8 @@
         "scope": "ONEliteralpinonly; allotherworkflowbytes/config/currentgates preserved; no donor/preparedhead self-reference"
       },
       "retainedProducerReceipt": "86186406e9608396d0499a80457ab439c1264b8c",
-      "producerRole": "Same existing ce80 serial GEN service; immutable R2 sources retain historical PRIMARY facts. Current-source authority requires external exact ROOT cohort/collector GO.",
-      "workflowCustody": "CORROBORATION skips PRIMARY API/portable-six/R2-neutral checks and records producer_checked=false. ROOT/receiver must match current pins/refs and actual returned tracked_inputs."
+      "producerRole": "Same existing ce80 serial GEN service; R2 remains historical qualified PRIMARY binding. Current K/N source authority and actual runtime require external exact ROOT cohort/solecollector GO.",
+      "workflowCustody": "Existing CORROBORATION skips PRIMARY API/portable-six/R2-neutral checks and records producer_checked=false. ROOT/receiver must match current seven source pins/current refs and actual returned tracked_inputs. No private or new producer authority inferred."
     },
     "current_source_applicability": {
       "qualifiedPrimary": {
@@ -130285,60 +130296,128 @@
           "schema.sql": "ef8ade13f0876631c1c28fe228ac0f17588fae9b2026a951a2a44a51a64ecaeb",
           "schema.fingerprint.json": "39feaeeca7737b301b7369a1a1b6c9d00e4ffc4fcbc603948b66facf3cfa80ac"
         },
-        "scope": "Unchanged d455 SQL/catalog/RAW/replay semantics only; old application/test DOB249 acceptance superseded by reviewed ed211 source2"
+        "scope": "Unchanged d455 SQL/catalog/RAW/replay semantics only. Historical original application/test/native pins are not current K/N execution or final approval."
       },
-      "unchangedGGENAndSemanticInputs": "RAW3, primary907, SQLd455, replay/snapshot/nullability/config, native50f55/ESCOdd03/config1e3d byte exact; typesmanifest current source metadata differs and is not claimed original F2 input hash",
+      "unchangedGGENAndSemanticInputs": "RAW3, primary907, d455 SQL and full original PG metadata/replay body, snapshot/nullability, capture workflow and native configuration remain exact qualified G. Current K source2/N native script and one ESCO pin differ; genuine F2 PRIMARY is retained for source-qualified unchanged SQL/catalog/raw semantics, not relabeled current N execution.",
       "activeEpochAnchor": "Keep genuine PRIMARY capture unchanged; actual CORROBORATION receipt custody omits input_epoch and must be archived separately without synthetic fields.",
-      "source2OldToNew": {
-        "lib/ediel/inboundCases.ts": {
-          "before": {
-            "blob": "8f4ea68a5efd78cbbc529f8f66e24e93d31b1c51",
-            "sha256": "e47cb36df0cae99a680cb170759ce1e84f6624a9ae628031b8bea422db7eb2a2",
-            "mode": "100644",
-            "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
-            "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
-            "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
-          },
-          "after": {
-            "blob": "9e5bddffe7bbfb1794ea735b519c11851db23bc6",
-            "sha256": "e925c1cf2fcab21c4b709b9980cbabbafb9d298f6b918ae35c9d24ac5ad6fae6",
-            "mode": "100644",
-            "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
-            "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
-            "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
-          }
-        },
+      "remainingWholeGap": {
+        "status": "PARTIAL/+0",
+        "reviewedSourceScope": [
+          "UD/IT",
+          "319",
+          "249",
+          "261",
+          "306",
+          "212"
+        ],
+        "currentFourScalarNativeWitnesses": "SOURCE reviewed only; prospective native36 actual persisted/source/master/ACK/ROLE_HOLD execution and qualification pending",
+        "field210": "D(dependent); v5 forbidden210 claim superseded, actual condition qualification required",
+        "field213": "O(optional)",
+        "scope": "Known source causes and four additional native witnesses do not prove every canonical-minus field or every conditional D case; whole coverage, current mandatory CI and normal delivery remain pending"
+      },
+      "runtimeAuthority": "NONE_YET; two OTHER current integrated SOURCE/metadata final reviews then distinct exact ROOT one ordinary current36/CORROBORATION cohort and solecollector GO required",
+      "currentThreeOldToNew": {
         "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts": {
           "before": {
-            "blob": "da32961accd663c0cb85863c99aeb0ebd2f10aec",
-            "sha256": "97ce24af9004cf3cdfebec22f0e59a35c25af2c4140489f80902b21f3c0064ce",
-            "mode": "100644",
-            "receipt": "6868ab5a9f7c2889840952812835360cabbdab74",
-            "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
-            "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
-          },
-          "after": {
             "blob": "eb149430fdf3cecbd9ce20bc72dcf1eee98aa32d",
             "sha256": "21b7c4057176974261b7893592d7cda1d8b8ccaa36f3149f797acaadfb647aef",
             "mode": "100644",
             "receipt": "6868ab5a9f7c2889840952812835360cabbdab74",
             "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
             "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+          },
+          "after": {
+            "blob": "ac7e97f092f50cd6eef01ef0e88c483e6da29474",
+            "sha256": "353dc4f27042fe128160e1e28ad96361f4c9bc7df7db4bbe41d8b772ba024c59",
+            "mode": "100644",
+            "receipt": "6868ab5a9f7c2889840952812835360cabbdab74",
+            "source_head": "46186b0c934f3c597b6d4f4d527abacb9f3d81c8",
+            "source_tree": "84a94a87d6d8a4bf6b6044d8bf59a8ef2a89d235"
+          }
+        },
+        "lib/ediel/inboundCases.ts": {
+          "before": {
+            "blob": "9e5bddffe7bbfb1794ea735b519c11851db23bc6",
+            "sha256": "e925c1cf2fcab21c4b709b9980cbabbafb9d298f6b918ae35c9d24ac5ad6fae6",
+            "mode": "100644",
+            "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
+            "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
+            "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+          },
+          "after": {
+            "blob": "57029c044818e0225757e63c5532e4568fccc5a0",
+            "sha256": "0ca6697e42a7e6e753cac6846f4838431927d9baab8831dd90ff766d23d6fe1f",
+            "mode": "100644",
+            "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
+            "source_head": "46186b0c934f3c597b6d4f4d527abacb9f3d81c8",
+            "source_tree": "84a94a87d6d8a4bf6b6044d8bf59a8ef2a89d235"
+          }
+        },
+        "scripts/ediel-at-z14vh-z15v-esco-native.test.ts": {
+          "before": {
+            "blob": "eb4f448d9baa609a6cca46daa57becdd5dd71e7d",
+            "sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+            "mode": "100644",
+            "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+            "source_head": "a80712d5d26c182a877d7ff26b6521e3993f084e",
+            "source_tree": "279aa71cbba15b452a20b670007c4567fc765775",
+            "scope": "EXACT_NATIVE_SCRIPT_TECHNICAL_ADOPTION_ONLY; nativeCPexcluded; old30+5sourcecases, runtimeNOT_RUN",
+            "source_final_receipts": [
+              "ca77d33d4c5e603881bbc57bab2c889579d84ca01f20a22b28ba2cc783ccc233",
+              "87138897ff9a83d5f7eacc8697b84678b41b7acbb4f4ef855c9bbe4e13f74f77"
+            ]
+          },
+          "after": {
+            "blob": "8fd477defc9c597c5f8e356b03d8f8482838fc11",
+            "sha256": "411d93898d5d6f7b73c37cdecd45092929cc807867fb6e033a42afcd2cfc4ffc",
+            "mode": "100644",
+            "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+            "source_head": "ed13994b710b270d738cc0dd164aaee9175954e0",
+            "source_tree": "5ea7e7d5d516410e67f708f9e98a27f81214abf3",
+            "scope": "ONE_EXTRA_CANONICAL_MINUS_SCALAR_N_CASE_SOURCE; old35 preserved; prospective36 NOT_RUN; exact script technical postimage",
+            "source_final_receipts": [
+              "1c02b319a85538bcf5aa531d40fd3822d32b4bdce36c0f6a1e78c04c379369a0",
+              "e29af1079f5a2dbf11aef1658dab7bd07d4b1e055fc9a2c3c27065613015a5ba"
+            ]
           }
         }
       },
-      "remainingWholeGap": {
-        "status": "PARTIAL/+0",
-        "canonicalForbiddenZ10ScalarProjections": [
-          "261",
-          "306",
-          "212"
-        ],
-        "field210": "D(dependent); v5 forbidden210 claim superseded, actual condition qualification required",
-        "field213": "O(optional)",
-        "scope": "Further ROOT existing-owned cause work separate; no extra SQL/native/GEN edits inferred solely DOB"
-      },
-      "runtimeAuthority": "NONE_YET; current integrated two OTHER reviews and distinct exact ROOT one-corrob/cohort/solecollector GO required"
+      "currentOwnedNativeWorkflowOldToNew": {
+        "before": {
+          "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+          "mode": "100644",
+          "blob": "fc1a5d30941a259e1f0478b3ffd0273cd73bd60c",
+          "sha256": "dd03fe3a05236b3e83edf72ac51956c97ccfdf0f99bf9cc40fd0ab828f75c18a",
+          "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "native_test_sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+          "config_path": "scripts/ediel-at-z14vh-z15v-esco-native.config.ts",
+          "config_sha256": "1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a",
+          "origin": "OWN_AUTHORED_ONE_FINAL_NATIVE_SHA_PIN_UPDATE",
+          "basis": {
+            "base": "7952177b13c911427fe529a56fd787d7f3abfc99",
+            "preimage_sha256": "7f38047f3bfe4ee59b82e39c52fe2fd4ddaaad0db7d6bb49f4c206dbbb6d4f9b",
+            "old_native_sha256": "68e418b6f4e50834d4e9cf30a0378033a7a118776d22b88c1a1f3252a3da49b1"
+          },
+          "scope": "ONEliteralpinonly; allotherworkflowbytes/config/currentgates preserved; no donor/preparedhead self-reference"
+        },
+        "after": {
+          "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+          "mode": "100644",
+          "blob": "599075bba440706d930ff0ab5a7ca043a61e1b0f",
+          "sha256": "fe71bb2d0ded325a92a3df4f38fb981a4a509a761ec2a313d1a65ebc29cd2ac3",
+          "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "native_test_sha256": "411d93898d5d6f7b73c37cdecd45092929cc807867fb6e033a42afcd2cfc4ffc",
+          "config_path": "scripts/ediel-at-z14vh-z15v-esco-native.config.ts",
+          "config_sha256": "1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a",
+          "origin": "OWN_AUTHORED_ONE_FINAL_NATIVE_SHA_PIN_UPDATE",
+          "basis": {
+            "base": "7952177b13c911427fe529a56fd787d7f3abfc99",
+            "preimage_sha256": "7f38047f3bfe4ee59b82e39c52fe2fd4ddaaad0db7d6bb49f4c206dbbb6d4f9b",
+            "old_native_sha256": "68e418b6f4e50834d4e9cf30a0378033a7a118776d22b88c1a1f3252a3da49b1"
+          },
+          "scope": "ONEliteralpinonly; allotherworkflowbytes/config/currentgates preserved; no donor/preparedhead self-reference"
+        }
+      }
     },
     "pre_DOB249_current_source2_metadata_G": {
       "commit": "9dfca9dae89d8f0f02dd30fc33082e9c5f1d9beb",
@@ -130366,6 +130445,272 @@
       },
       "priorProducerStage": "PRIMARY_CAPTURE_IMPORTED_CORROBORATION_RUNTIME_GO_PENDING",
       "meaning": "Small immutable originalG manifest/source2 metadata reference, historical only; full actual PRIMARY and all older795/history retain their existing original values."
+    },
+    "pre_current_K_N_source_metadata_L": {
+      "commit": "4c17965082a137ee386a943ae9d7713849129e77",
+      "tree": "c76bf240c1405e5ea524e35ff1351e5ab59dfe6c",
+      "blob": "1b32d7057040de9fdc67ad0a81334e9646a297fc",
+      "sha256": "83e858d03394e3f3545d9496dedd00133f4efaee02bde23a50f63c6add41aa17",
+      "bytes": 7228882,
+      "replacedValues": {
+        "current_corroboration_sources": {
+          "actualMain": "7952177b13c911427fe529a56fd787d7f3abfc99",
+          "actualMainTree": "f14c99e485a6fe09f4ba4d909b4faacab79d131e",
+          "sourceCarrierH": {
+            "head": "02838a14aacfac4fad5240b7691f9a9943d18598",
+            "tree": "9c09c74893a807c7e9eb53011b01e9003711307d",
+            "soleParentG": "9dfca9dae89d8f0f02dd30fc33082e9c5f1d9beb",
+            "scope": "Adoption-only exact2 reviewed C1 technical postimages; all G GEN files/code beyond these2 unchanged"
+          },
+          "DOB249SourceCorrection": {
+            "head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
+            "tree": "354542420b73ad27b9031bdeb4928380fceb0c1e",
+            "paths": [
+              "lib/ediel/inboundCases.ts",
+              "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts"
+            ],
+            "sourceFinals": [
+              "028afddd6d3d89ab157ecf86acd51998d11c0c55d7b0d71843cfeac09dbd8754",
+              "8a87799a1a4651dfba4c777d8c4eb4829c03653c930575e74b94bf61b998e72c"
+            ],
+            "scope": "Canonical249 incoming businessDOB correction only; wholeSC031 PARTIAL/+0"
+          },
+          "immutableSourceInputs": {
+            "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts": {
+              "blob": "eb149430fdf3cecbd9ce20bc72dcf1eee98aa32d",
+              "sha256": "21b7c4057176974261b7893592d7cda1d8b8ccaa36f3149f797acaadfb647aef",
+              "mode": "100644",
+              "receipt": "6868ab5a9f7c2889840952812835360cabbdab74",
+              "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
+              "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+            },
+            "__tests__/ediel-sc-031-source-owned-business-projection-root-20261014.test.ts": {
+              "blob": "57e4f9760d1466bf1eeced375638ac99f2c52d8e",
+              "sha256": "b516869b8637b8c451b60debb41dfaccd9fe84e06c0cfe90f259dbf4ac70a01e",
+              "mode": "100644",
+              "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
+              "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+              "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+            },
+            "lib/ediel/inboundCases.ts": {
+              "blob": "9e5bddffe7bbfb1794ea735b519c11851db23bc6",
+              "sha256": "e925c1cf2fcab21c4b709b9980cbabbafb9d298f6b918ae35c9d24ac5ad6fae6",
+              "mode": "100644",
+              "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
+              "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
+              "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+            },
+            "scripts/ediel-prodat-object-batch-first-effect-sql-regression.mjs": {
+              "blob": "ebfb4437c05a9f1d94391414e5957ceca909d062",
+              "sha256": "69e3653738d11578ceb05c316738d235026af8c6c2b3462a1843f3fbf232041a",
+              "mode": "100644",
+              "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
+              "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+              "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+            },
+            "scripts/ediel-sc031-source-owned-business-projection-sql-regression-root-20261014.mjs": {
+              "blob": "6247efa091dbd528329e8f0f01ff1a8cf9ca0dc6",
+              "sha256": "83f956515a40f00507b3d41a8d3d1f987dfc34350a9f9342ccefc3131d83329f",
+              "mode": "100644",
+              "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
+              "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+              "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+            },
+            "supabase/migrations/20261014011520_ediel_sc031_source_owned_business_projection.sql": {
+              "blob": "f9ccfca47107e60708f93df3f382d20d15ebda57",
+              "sha256": "d4555df6177b1d702a4262fc0d305986e0e029bbf50124a285e5418e3beb3a89",
+              "mode": "100644",
+              "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
+              "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+              "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+            },
+            "scripts/ediel-at-z14vh-z15v-esco-native.test.ts": {
+              "blob": "eb4f448d9baa609a6cca46daa57becdd5dd71e7d",
+              "sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+              "mode": "100644",
+              "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+              "source_head": "a80712d5d26c182a877d7ff26b6521e3993f084e",
+              "source_tree": "279aa71cbba15b452a20b670007c4567fc765775",
+              "scope": "EXACT_NATIVE_SCRIPT_TECHNICAL_ADOPTION_ONLY; nativeCPexcluded; old30+5sourcecases, runtimeNOT_RUN",
+              "source_final_receipts": [
+                "ca77d33d4c5e603881bbc57bab2c889579d84ca01f20a22b28ba2cc783ccc233",
+                "87138897ff9a83d5f7eacc8697b84678b41b7acbb4f4ef855c9bbe4e13f74f77"
+              ]
+            }
+          },
+          "ownedNativeWorkflowInput": {
+            "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+            "mode": "100644",
+            "blob": "fc1a5d30941a259e1f0478b3ffd0273cd73bd60c",
+            "sha256": "dd03fe3a05236b3e83edf72ac51956c97ccfdf0f99bf9cc40fd0ab828f75c18a",
+            "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+            "native_test_sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+            "config_path": "scripts/ediel-at-z14vh-z15v-esco-native.config.ts",
+            "config_sha256": "1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a",
+            "origin": "OWN_AUTHORED_ONE_FINAL_NATIVE_SHA_PIN_UPDATE",
+            "basis": {
+              "base": "7952177b13c911427fe529a56fd787d7f3abfc99",
+              "preimage_sha256": "7f38047f3bfe4ee59b82e39c52fe2fd4ddaaad0db7d6bb49f4c206dbbb6d4f9b",
+              "old_native_sha256": "68e418b6f4e50834d4e9cf30a0378033a7a118776d22b88c1a1f3252a3da49b1"
+            },
+            "scope": "ONEliteralpinonly; allotherworkflowbytes/config/currentgates preserved; no donor/preparedhead self-reference"
+          },
+          "retainedProducerReceipt": "86186406e9608396d0499a80457ab439c1264b8c",
+          "producerRole": "Same existing ce80 serial GEN service; immutable R2 sources retain historical PRIMARY facts. Current-source authority requires external exact ROOT cohort/collector GO.",
+          "workflowCustody": "CORROBORATION skips PRIMARY API/portable-six/R2-neutral checks and records producer_checked=false. ROOT/receiver must match current pins/refs and actual returned tracked_inputs."
+        },
+        "current_source_applicability": {
+          "qualifiedPrimary": {
+            "head": "f218d8ada3e9660da09d75b5ac4532581fc075d6",
+            "tree": "be2505b26f5e4247c6dcf1c3175556f0676a3b90",
+            "run": "38524338045",
+            "attempt": "1",
+            "receiptSHA256": "ffe8a2a5d3eb7f5ac37e9004cfea3439ff8f82bd063e04fcb6a7f2c10d7e3283",
+            "ROOTFullQualificationSHA256": "c69702a58a9f689df4c3979bc324561ae77b9836003f42a179a44ad56de214c1",
+            "rawSHA256": {
+              "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+              "schema.sql": "ef8ade13f0876631c1c28fe228ac0f17588fae9b2026a951a2a44a51a64ecaeb",
+              "schema.fingerprint.json": "39feaeeca7737b301b7369a1a1b6c9d00e4ffc4fcbc603948b66facf3cfa80ac"
+            },
+            "scope": "Unchanged d455 SQL/catalog/RAW/replay semantics only; old application/test DOB249 acceptance superseded by reviewed ed211 source2"
+          },
+          "unchangedGGENAndSemanticInputs": "RAW3, primary907, SQLd455, replay/snapshot/nullability/config, native50f55/ESCOdd03/config1e3d byte exact; typesmanifest current source metadata differs and is not claimed original F2 input hash",
+          "activeEpochAnchor": "Keep genuine PRIMARY capture unchanged; actual CORROBORATION receipt custody omits input_epoch and must be archived separately without synthetic fields.",
+          "source2OldToNew": {
+            "lib/ediel/inboundCases.ts": {
+              "before": {
+                "blob": "8f4ea68a5efd78cbbc529f8f66e24e93d31b1c51",
+                "sha256": "e47cb36df0cae99a680cb170759ce1e84f6624a9ae628031b8bea422db7eb2a2",
+                "mode": "100644",
+                "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
+                "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+                "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+              },
+              "after": {
+                "blob": "9e5bddffe7bbfb1794ea735b519c11851db23bc6",
+                "sha256": "e925c1cf2fcab21c4b709b9980cbabbafb9d298f6b918ae35c9d24ac5ad6fae6",
+                "mode": "100644",
+                "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
+                "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
+                "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+              }
+            },
+            "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts": {
+              "before": {
+                "blob": "da32961accd663c0cb85863c99aeb0ebd2f10aec",
+                "sha256": "97ce24af9004cf3cdfebec22f0e59a35c25af2c4140489f80902b21f3c0064ce",
+                "mode": "100644",
+                "receipt": "6868ab5a9f7c2889840952812835360cabbdab74",
+                "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+                "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+              },
+              "after": {
+                "blob": "eb149430fdf3cecbd9ce20bc72dcf1eee98aa32d",
+                "sha256": "21b7c4057176974261b7893592d7cda1d8b8ccaa36f3149f797acaadfb647aef",
+                "mode": "100644",
+                "receipt": "6868ab5a9f7c2889840952812835360cabbdab74",
+                "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
+                "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+              }
+            }
+          },
+          "remainingWholeGap": {
+            "status": "PARTIAL/+0",
+            "canonicalForbiddenZ10ScalarProjections": [
+              "261",
+              "306",
+              "212"
+            ],
+            "field210": "D(dependent); v5 forbidden210 claim superseded, actual condition qualification required",
+            "field213": "O(optional)",
+            "scope": "Further ROOT existing-owned cause work separate; no extra SQL/native/GEN edits inferred solely DOB"
+          },
+          "runtimeAuthority": "NONE_YET; current integrated two OTHER reviews and distinct exact ROOT one-corrob/cohort/solecollector GO required"
+        },
+        "owned_native_workflow_input": {
+          "path": ".github/workflows/ediel-esco-z14vh-z15v-native.yml",
+          "mode": "100644",
+          "blob": "fc1a5d30941a259e1f0478b3ffd0273cd73bd60c",
+          "sha256": "dd03fe3a05236b3e83edf72ac51956c97ccfdf0f99bf9cc40fd0ab828f75c18a",
+          "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+          "native_test_sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+          "config_path": "scripts/ediel-at-z14vh-z15v-esco-native.config.ts",
+          "config_sha256": "1e3d2ebbb58169a4633d0fc5789a12e6a687275b112343af82796b1966efc45a",
+          "origin": "OWN_AUTHORED_ONE_FINAL_NATIVE_SHA_PIN_UPDATE",
+          "basis": {
+            "base": "7952177b13c911427fe529a56fd787d7f3abfc99",
+            "preimage_sha256": "7f38047f3bfe4ee59b82e39c52fe2fd4ddaaad0db7d6bb49f4c206dbbb6d4f9b",
+            "old_native_sha256": "68e418b6f4e50834d4e9cf30a0378033a7a118776d22b88c1a1f3252a3da49b1"
+          },
+          "scope": "ONEliteralpinonly; allotherworkflowbytes/config/currentgates preserved; no donor/preparedhead self-reference"
+        },
+        "portable_source_inputs": {
+          "__tests__/ediel-sc-031-ignored-ud-business-staging-root-20261013.test.ts": {
+            "blob": "eb149430fdf3cecbd9ce20bc72dcf1eee98aa32d",
+            "sha256": "21b7c4057176974261b7893592d7cda1d8b8ccaa36f3149f797acaadfb647aef",
+            "mode": "100644",
+            "receipt": "6868ab5a9f7c2889840952812835360cabbdab74",
+            "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
+            "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+          },
+          "__tests__/ediel-sc-031-source-owned-business-projection-root-20261014.test.ts": {
+            "blob": "57e4f9760d1466bf1eeced375638ac99f2c52d8e",
+            "sha256": "b516869b8637b8c451b60debb41dfaccd9fe84e06c0cfe90f259dbf4ac70a01e",
+            "mode": "100644",
+            "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
+            "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+            "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+          },
+          "lib/ediel/inboundCases.ts": {
+            "blob": "9e5bddffe7bbfb1794ea735b519c11851db23bc6",
+            "sha256": "e925c1cf2fcab21c4b709b9980cbabbafb9d298f6b918ae35c9d24ac5ad6fae6",
+            "mode": "100644",
+            "receipt": "051ec7e48eb08c14a5a50f6faedc356a99e764d9",
+            "source_head": "ed21109cb8be1408a3358c646c7ab2e1593a1f19",
+            "source_tree": "354542420b73ad27b9031bdeb4928380fceb0c1e"
+          },
+          "scripts/ediel-prodat-object-batch-first-effect-sql-regression.mjs": {
+            "blob": "ebfb4437c05a9f1d94391414e5957ceca909d062",
+            "sha256": "69e3653738d11578ceb05c316738d235026af8c6c2b3462a1843f3fbf232041a",
+            "mode": "100644",
+            "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
+            "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+            "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+          },
+          "scripts/ediel-sc031-source-owned-business-projection-sql-regression-root-20261014.mjs": {
+            "blob": "6247efa091dbd528329e8f0f01ff1a8cf9ca0dc6",
+            "sha256": "83f956515a40f00507b3d41a8d3d1f987dfc34350a9f9342ccefc3131d83329f",
+            "mode": "100644",
+            "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
+            "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+            "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+          },
+          "supabase/migrations/20261014011520_ediel_sc031_source_owned_business_projection.sql": {
+            "blob": "f9ccfca47107e60708f93df3f382d20d15ebda57",
+            "sha256": "d4555df6177b1d702a4262fc0d305986e0e029bbf50124a285e5418e3beb3a89",
+            "mode": "100644",
+            "receipt": "2da3c56acf7ffd82ed091e01145ae0b2a8e6151d",
+            "source_head": "3db5c15471ff7dc73e9a13548f26cb386ab5c7e7",
+            "source_tree": "ef2a0e473f68840617daa7d14ff3c0ff928ef50e"
+          },
+          "scripts/ediel-at-z14vh-z15v-esco-native.test.ts": {
+            "blob": "eb4f448d9baa609a6cca46daa57becdd5dd71e7d",
+            "sha256": "50f55dd52b9fef132e0fde443d876a36b4dbebe7cd848beada8646e6b5c225c1",
+            "mode": "100644",
+            "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+            "source_head": "a80712d5d26c182a877d7ff26b6521e3993f084e",
+            "source_tree": "279aa71cbba15b452a20b670007c4567fc765775",
+            "scope": "EXACT_NATIVE_SCRIPT_TECHNICAL_ADOPTION_ONLY; nativeCPexcluded; old30+5sourcecases, runtimeNOT_RUN",
+            "source_final_receipts": [
+              "ca77d33d4c5e603881bbc57bab2c889579d84ca01f20a22b28ba2cc783ccc233",
+              "87138897ff9a83d5f7eacc8697b84678b41b7acbb4f4ef855c9bbe4e13f74f77"
+            ]
+          }
+        },
+        "producer_sources_role": "IMMUTABLE_HISTORICAL_QUALIFIED_PRIMARY_R2_BINDING; not current DOB249 source approval",
+        "producer_stage": "CORROBORATION_CURRENT_SOURCE_REVIEWED_RUNTIME_GO_PENDING"
+      },
+      "meaning": "Complete replaced I-current metadata retained under its immutable L manifest reference; historical only, not a current dispatch or competing baseline. Historical full R2/PRIMARY and all older captures/history remain unchanged."
     }
   },
   "pre_sc031_PRIMARY_F2_manifest_source": {
