@@ -131712,28 +131712,38 @@
       "ownedCaptureWorkflowInput": {
         "path": ".github/workflows/staff-api-schema-capture.yml",
         "mode": "100644",
-        "blob": "e5c2a8fa1bac46bd83cdb2823f7dae7ee06bc369",
-        "sha256": "183c8b6b86e3f1b200cf7e67d549c5be33429edb27e5c632139bde1f713c5b55",
+        "blob": "78ce8a83bd09d813eee5fe68dbaef65a291a5a82",
+        "sha256": "df3c73d94db9d716af728fe3565afbf7d038b27b0b0bb17ec5facf3eb47e2396",
         "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-        "origin": "OWN_AUTHORED_SC046_TEN_V2_PROFILE_NOT_DONOR_OR_CIRCULAR_PREPARED_HEAD",
+        "origin": "OWN_AUTHORED_TEN_PLUS_UNIT_SOURCE_BINDING_NOT_DONOR_OR_CIRCULAR_PREPARED_HEAD",
         "basis": {
-          "carrier_head": "b99878b61d51265b07f7493b8521178500129af8",
-          "preimage_blob": "d601c7bdbdd3b081e6fffeb8b032134d864b0c56",
-          "preimage_sha256": "da5150416b1f100bfea83982482625fd407b0c0b22b27d688e1191bef792adcf"
+          "carrier_head": "3424a08dd4639a7242f2289fd6bed4c6f55de0c1",
+          "preimage_blob": "e5c2a8fa1bac46bd83cdb2823f7dae7ee06bc369",
+          "preimage_sha256": "183c8b6b86e3f1b200cf7e67d549c5be33429edb27e5c632139bde1f713c5b55"
+        }
+      },
+      "supplementalImmutableSourceInputs": {
+        "__tests__/ediel-db01-native-source-basis.test.ts": {
+          "mode": "100644",
+          "blob": "218d85081fab25684560cd09cefdefa596539a54",
+          "sha256": "6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7",
+          "receipt": "ef088907a6e85783b5d6205594bfd548ddf242de",
+          "source_head": "057c9aea742209f85b66f5898f0b7272fe8acf71",
+          "source_tree": "68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8"
         }
       }
     },
     "owned_capture_workflow_input": {
       "path": ".github/workflows/staff-api-schema-capture.yml",
       "mode": "100644",
-      "blob": "e5c2a8fa1bac46bd83cdb2823f7dae7ee06bc369",
-      "sha256": "183c8b6b86e3f1b200cf7e67d549c5be33429edb27e5c632139bde1f713c5b55",
+      "blob": "78ce8a83bd09d813eee5fe68dbaef65a291a5a82",
+      "sha256": "df3c73d94db9d716af728fe3565afbf7d038b27b0b0bb17ec5facf3eb47e2396",
       "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
-      "origin": "OWN_AUTHORED_SC046_TEN_V2_PROFILE_NOT_DONOR_OR_CIRCULAR_PREPARED_HEAD",
+      "origin": "OWN_AUTHORED_TEN_PLUS_UNIT_SOURCE_BINDING_NOT_DONOR_OR_CIRCULAR_PREPARED_HEAD",
       "basis": {
-        "carrier_head": "b99878b61d51265b07f7493b8521178500129af8",
-        "preimage_blob": "d601c7bdbdd3b081e6fffeb8b032134d864b0c56",
-        "preimage_sha256": "da5150416b1f100bfea83982482625fd407b0c0b22b27d688e1191bef792adcf"
+        "carrier_head": "3424a08dd4639a7242f2289fd6bed4c6f55de0c1",
+        "preimage_blob": "e5c2a8fa1bac46bd83cdb2823f7dae7ee06bc369",
+        "preimage_sha256": "183c8b6b86e3f1b200cf7e67d549c5be33429edb27e5c632139bde1f713c5b55"
       }
     },
     "sql_sha256": {
@@ -131773,9 +131783,55 @@
       "sole_parent": "573d74371086da585a5cff6abee95eadfe58899e",
       "custody_receipt": "a39624608a39dfbd4416b7f5181568c79972477b",
       "donor_checkpoint": "EXCLUDED",
-      "source_behavior_proofs": "Original actual3/3 source checks and two independent SOURCE approvals retained/apply to byteexact postimages; no healthy rerun"
+      "source_behavior_proofs": "OriginalFAD3/3 source proofs retained historically; final composition price/advisors must qualify current manifest/SQL listing once. Website requires complete original environment applicability or one current environment-bound source check."
     },
     "source_input_count": 10,
-    "source_applicability": "Existing unchanged seven SOURCE/native proofs retain exact original bindings. New BRP3 exact published postimages are qualified dependencies; no activeAPI6/app805806 inputs or runtime claim."
+    "source_applicability": "Exact canonical10 preserved from3424; immutable unit218d independently SOURCE-reviewed/publicly loaned. Old BRP3/3 alone is not a final TEN composed certificate; price/advisors consume changed inputs and current-environment website qualification is required in this SOURCE phase.",
+    "supplemental_source_inputs": {
+      "__tests__/ediel-db01-native-source-basis.test.ts": {
+        "mode": "100644",
+        "blob": "218d85081fab25684560cd09cefdefa596539a54",
+        "sha256": "6010913a95b9c0fdb771e53f18ce15a8899ee74b22a4ecf3e0b7ab68be472fe7",
+        "receipt": "ef088907a6e85783b5d6205594bfd548ddf242de",
+        "source_head": "057c9aea742209f85b66f5898f0b7272fe8acf71",
+        "source_tree": "68ae0c86ec27ac4a7d6a3cf00472a0cc1f0a52d8"
+      }
+    },
+    "supplemental_source_resources": {
+      "file-f37f50cfc47ba26832af7a72c33248f1b173a970e00e22d4a871ba4f17c63f07": "ef088907a6e85783b5d6205594bfd548ddf242de"
+    },
+    "supplemental_source_receiving_neutral": "8b087530be629e6bfcb6d976c4cd6486764470dc",
+    "supplemental_unit_qualification": {
+      "positive_exact_loan": 6175748116,
+      "source_author": "Both source paths explicitly paused; exact unit copy only",
+      "independent_SOURCE_final_C": "52772384a7bc28f717296652dd0c5669e083f0bf1244780d3d327b0f55fd2a08",
+      "independent_SOURCE_final_D": "f0c1f1dbe6fcda138fbf1b6c219eefad9765546d77edbd0c523056a7f9d608a2",
+      "source_receiving_status": "EXACT_REVIEWED_PUBLIC_POSTIMAGE_RECEIVED",
+      "actual_unit_scope": "OLD601/f979/ca892 pins/default5000/all38oracles retained; no EB/b13/config/facade import",
+      "execution": "SOURCE_POSTIMAGE_ONLY;NO_NATIVE_RUNTIME"
+    },
+    "witness_scope": "TEN canonical source inputs plus ONE supplemental mandatory SOURCE unit dependency; current11tracked source files do not change canonical count10 or SQL epochv2"
+  },
+  "pre_sc046_unit_source_binding_3424": {
+    "immutable_head": "3424a08dd4639a7242f2289fd6bed4c6f55de0c1",
+    "tree": "d12d3d307e91a8b94e762461920f8c0044dd95d0",
+    "manifest_blob": "b69de6510e63db43ebf462c2e904a4b2ed40ef50",
+    "manifest_sha256": "3b4b62883eabc91997153cfa60cda1c5d6559c961d2805f3856c6ca81c6cd934",
+    "replaced_owned_workflow_input": {
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "mode": "100644",
+      "blob": "e5c2a8fa1bac46bd83cdb2823f7dae7ee06bc369",
+      "sha256": "183c8b6b86e3f1b200cf7e67d549c5be33429edb27e5c632139bde1f713c5b55",
+      "receipt": "ce80cdd3fb4be418ea54daebb596d798889442cd",
+      "origin": "OWN_AUTHORED_SC046_TEN_V2_PROFILE_NOT_DONOR_OR_CIRCULAR_PREPARED_HEAD",
+      "basis": {
+        "carrier_head": "b99878b61d51265b07f7493b8521178500129af8",
+        "preimage_blob": "d601c7bdbdd3b081e6fffeb8b032134d864b0c56",
+        "preimage_sha256": "da5150416b1f100bfea83982482625fd407b0c0b22b27d688e1191bef792adcf"
+      }
+    },
+    "previous_pending_record": "Complete original immutable3424 blob retained; v2 canonical10/SQLhistory/oldepochs unchanged",
+    "previous_source_applicability": "Existing unchanged seven SOURCE/native proofs retain exact original bindings. New BRP3 exact published postimages are qualified dependencies; no activeAPI6/app805806 inputs or runtime claim.",
+    "previous_dependency_source_behavior_proofs": "Original actual3/3 source checks and two independent SOURCE approvals retained/apply to byteexact postimages; no healthy rerun"
   }
 }
