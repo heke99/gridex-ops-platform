@@ -19,6 +19,7 @@ import type {
   CustomerPortalInfoRequestRow,
 } from '@/lib/customer-portal/types'
 import { buildPortalCustomerStatus, displayNameFromCustomer } from '@/lib/customer-portal/status'
+import { PORTAL_PUBLISHED_INVOICE_STATUSES } from '@/lib/customer-portal/format'
 
 type PortalAccountLookupRow = {
   customer_id: string
@@ -208,6 +209,7 @@ export async function listPortalInvoices(
     .select('*')
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
+    .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
     .order('issued_at', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(100)
@@ -234,6 +236,7 @@ export async function getPortalInvoiceDetail(
     .eq('id', invoiceId)
     .eq('company_id', context.companyId)
     .in('customer_id', context.customerIds)
+    .in('status', PORTAL_PUBLISHED_INVOICE_STATUSES)
     .maybeSingle()
 
   if (invoiceError) throw invoiceError
