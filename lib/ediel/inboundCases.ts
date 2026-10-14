@@ -259,7 +259,7 @@ export function parseInboundProdatBusinessData(message: EdielMessageRow, object?
     referenceToMeteringPoint,
     meteringMethod,
     meteringMethodLabel: edielCodeLabel('metering_method', meteringMethod),
-    meterNumber: reference('224', 'meterNumber'),
+    meterNumber: ignoredCanonicalField('224') ? null : reference('224', 'meterNumber'),
     meterConstant: numberOrNull(hasWireSource ? prodatRegisterFieldValue('214',sourceSegments,una) : valueFromParsed(payload,'meterConstant')),
     meterDigits: numberOrNull(hasWireSource ? prodatRegisterFieldValue('218',sourceSegments,una) : valueFromParsed(payload,'meterDigits')),
     meterInterval: hasWireSource ? prodatRegisterFieldValue('259',sourceSegments,una) : valueFromParsed(payload,'meterInterval'),
