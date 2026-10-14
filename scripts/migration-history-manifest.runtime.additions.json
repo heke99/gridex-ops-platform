@@ -211,6 +211,19 @@
     "20261013145831_ops_api_native_reconciliation_part_050.sql": "31b956ad477e84d6010f2af6053d22d10a89a1f6336c208d1d81d96b7d5c35b6",
     "20261013145835_ops_api_native_reconciliation_part_051.sql": "ae937b54cfbbd42683b468ac72d3dedb26dc5241be07999c4a59bf7dda0346cd",
     "20261013151412_ops_api_market_actor_normalizers.sql": "2a5a5523fafaa80b416c5c489a8018a4640a910c66dc5486569751898c60b5cd",
-    "20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql": "105f32d496c611edb82764eabe43ad035ebadf5648d76db8779ee2a9c5b2598b"
+    "20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql": "105f32d496c611edb82764eabe43ad035ebadf5648d76db8779ee2a9c5b2598b",
+    "20261014100221_ops_api_atomic_bb0b_source_part_01.sql": "7d8540a0b4fae2dab41cc294e68eeeb6f0734257b5141cbe503faa4e3227c82b",
+    "20261014100309_ops_api_atomic_bb0b_source_part_02.sql": "6f1873b8c02fbf1413ae31c60cd1b9227410ee2920e2ce3885bc4586334a7ca7",
+    "20261014103422_ops_api_atomic_bb0b_source_part_03.sql": "590688b3b9fb2840c67463c0c248f87bcdda040b7c05857c70628dfb50dbcc3e",
+    "20261014103511_ops_api_atomic_bb0b_source_part_04.sql": "8d404758eff1abed55cdc27ac0f6a00e9f23683f97168012c8e4d5e2e130ff6d",
+    "20261014103528_ops_api_atomic_bb0b_source_part_05.sql": "da49e0772712f74944416f0df85ad1e7022c0afe8dc0875ae06868c90ab2e371",
+    "20261014103547_ops_api_atomic_bb0b_source_part_06.sql": "2c73e3cac05c7d647476d268ff776057daec2f814cd5fcb32e92f416ded90b6e",
+    "20261014103601_ops_api_atomic_bb0b_source_part_07.sql": "592cd947137f96e2f4fefba636dd0e021db246c5b4cad461577afd5c5048de80",
+    "20261014103617_ops_api_atomic_bb0b_source_part_08.sql": "cc100a72907b38c308427caadba7961c947a59b248858e7ca363e1fda0ec52c6",
+    "20261014103636_ops_api_atomic_bb0b_source_part_09.sql": "e920041cf6952f7add52108527d934efdc1ee17fecc6090aede8c22011bd920f",
+    "20261014103653_ops_api_atomic_bb0b_source_part_10.sql": "6f2801920a825ffc4d214e8cb507761e477cbe5b17227c98ab085035a45b585a",
+    "20261014103707_ops_api_atomic_bb0b_source_part_11.sql": "37cc15e5dfb1490c022d31585f9f07dea2fbe0dd6bfeee6339e91f83b0d8947f",
+    "20261014103745_ops_api_atomic_bb0b_source_part_12.sql": "76d5bcfa6a2ef3957b5cf7d2b0fef7c75992f03f7ee97f304fe2227b1fdd444f",
+    "20261014113214_ops_api_atomic_bb0b_authfree_effect.sql": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d"
   }
 }

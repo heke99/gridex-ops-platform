@@ -7,12 +7,14 @@ The additive onboarding contract is separate from the Staff response contract
 `docs/openapi/prototypes/2026-10-05.1`. Frozen Staff/Website/Customer release
 bytes remain unchanged.
 
-Gridex web and named `gridex-prod` (`ayiuxjlfazkjmmtlvhsl`) are one ordinary
-external tenant. Tenant Auth and delivery durability belong there. Central
-customers/cases/staff actors/membership/RBAC/audit remain in OPS. The central
-API project is independently configured and attested; no OPS migration history
-is copied into the tenant database. Prior catalog evidence is preserved but
-its Prod-as-OPS activation interpretation is superseded.
+The intended personal portal is `support123.gridex.se`, using tenant-local
+e-mail/password login. Tenant Auth and delivery durability belong to the
+separately registered tenant project. Central customers, cases, staff actors,
+membership, RBAC and audit remain in OPS. The central API project is independently
+configured and attested; no OPS migration history is copied into the tenant
+database. An existing Gridex Web project is not this portal's Auth registration
+by assumption. See the [support123 integration guide](support123-integration.md)
+for the exact registration and call sequence; an external SSO vendor is not required.
 
 ## Identity and access
 
@@ -76,7 +78,7 @@ The client registration is operator-owned; browser fields cannot supply it.
   "metadata": {
     "staff_onboarding_origin": "https://support123.gridex.se",
     "staff_tenant_auth": {
-      "url": "https://ayiuxjlfazkjmmtlvhsl.supabase.co",
+      "url": "https://<verified-tenant-project-ref>.supabase.co",
       "public_key": "<tenant public Auth key>"
     },
     "staff_tenant_delivery": {
@@ -215,7 +217,7 @@ The required native workflow runs
 rolls back fixture effects. Corrected-source codegen, final native clean/upgrade,
 application/type/lint/parity and browser gates remain mandatory. Historical
 checks are never relabeled as new-source acceptance. Apply the OPS forward only
-to central OPS and the private delivery migration only to tenant Prod.
+to central OPS and the private delivery migration only to the verified tenant Auth project.
 No hosted migration, account, email, environment or domain changes are part of
 these source checks. Operational qualification has two stages:
 
@@ -234,7 +236,7 @@ these source checks. Operational qualification has two stages:
    delivery requires reconciliation, not an automatic second email.
 
 Apply central OPS forwards only to OPS, and tenant private delivery SQL only
-to tenant `gridex-prod`. The independently hosted Gridex customer portal keeps
+to the verified tenant Auth project. The independently hosted Gridex customer portal keeps
 its separate Customer API compatibility prerequisites: its current paired
 customer identity headers are not a provider assertion. Enforcing a Customer
 provider requires that portal's actual assertion integration before enabling

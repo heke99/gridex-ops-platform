@@ -1,0 +1,56 @@
+{
+  "at": "2026-10-14T11:33:14.014771+00:00",
+  "status": "ALL13_NATIVE_MIGRATIONS_APPLIED_PROTECTED_METADATA_AND1243_SELECTED_FUNCTIONS_VERIFIED",
+  "project": "piidsfebjqjmnepdpnas",
+  "atomic_sha256": "bb0bd0cedeabc3ba40872eae8cead8b6a8a9ff298c567baa324a1b4044045b04",
+  "effect": {
+    "version": "20261014113214",
+    "name": "ops_api_atomic_bb0b_authfree_effect",
+    "statement_count": 1,
+    "bytes": 19343,
+    "sql_sha256": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
+    "filename": "20261014113214_ops_api_atomic_bb0b_authfree_effect.sql"
+  },
+  "ledger_before": 519,
+  "ledger_after": 532,
+  "own_actual_writes": 85,
+  "source_only_new_migrations": 12,
+  "new_effect_migrations": 1,
+  "logical_components": 8,
+  "fake_child_ledger_entries": 0,
+  "old_auth_hooks_preserved": 422,
+  "actual_new_auth_ri_hooks": 226,
+  "actual_new_auth_fk_pairs": 113,
+  "active_prepare_whole_pg_proc_preserved": true,
+  "old_auth_namespace_classes_columns_functions_roles_memberships_preserved": true,
+  "new_source_qualified_roles": 3,
+  "retention_direct_auth_privileges": false,
+  "app_retention_schema_usage_create": false,
+  "postgres_retention_schema_usage_only": true,
+  "five_private_predicate_execute": true,
+  "transport_flags": {
+    "bb0b_payload": false,
+    "bb0b_namespace": false,
+    "original_payload": false,
+    "original_namespace": false
+  },
+  "native_poststate_comparison_sha256": "c719f85469cb614ccbae12734c7d792b1a7d490f4f345eba4f5a0fde0a6a1fea",
+  "independent_native_protected_and13registered_sql_reviews": [
+    "signing_forward_peer_one:CLEAR",
+    "signing_forward_peer_two:CLEAR"
+  ],
+  "business_rpc_calls": 0,
+  "limits": [
+    "Staff/provider authenticated end-to-end unqualified; support123 email/password login not yet built/registered. Canonical C2 schema/types and quote whole-history routing pending."
+  ],
+  "source_selected_functions_verified": 1243,
+  "canonical_source_function_count": 1205,
+  "later_component_function_count": 38,
+  "function_verification_report_sha256": "532ada13d2baa66f1b6101dbf7a7a2e616bb194729a173fc0bc8e44b3cff3021",
+  "five_private_predicate_nonexecuting_native_plans": "PASS; force_generic_plan + PREPARE and EXPLAIN ANALYZE FALSE, rolled back, no function execution",
+  "independent_final_selected_function_reviews": [
+    "signing_forward_peer_one:CLEAR",
+    "signing_forward_peer_two:CLEAR"
+  ],
+  "deployed_service_sdk_project_url_attestation": "PASS piidsfebjqjmnepdpnas; source-traced401missing-api-token and412project-mismatch beforedatabaseaccess"
+}
