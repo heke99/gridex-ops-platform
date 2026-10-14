@@ -1,0 +1,55 @@
+{
+  "status": "TWO_INDEPENDENT_SOURCE_CLEARS_AND_FULL_APPLICATION_TYPECHECK_PASS_NOT_DEPLOYED",
+  "files": [
+    {
+      "original_path": "lib/integrations/apiResponseProfile.ts",
+      "proposal_path": "lib/integrations/apiResponseProfile.ts",
+      "original_sha256": "1e8c0a55371feefbae0530dc25221764315259b75bee5273b58d41bf41186122",
+      "proposal_sha256": "4c4193c762d0b739e11b2ade02e7dbc2a8bc2550b2d903322a481d620144ef75",
+      "proposal_bytes": 10476
+    },
+    {
+      "original_path": "lib/integrations/webhooks.ts",
+      "proposal_path": "lib/integrations/webhooks.ts",
+      "original_sha256": "ae84ca6481409fa5aae8d71be2e62620dfa32c3ae2ed71c8bec962ac366065c2",
+      "proposal_sha256": "8b2e68bfa5b4993fe29c7aaf8254603e0132d73c84df1efb9248b544f344ccbb",
+      "proposal_bytes": 36088
+    },
+    {
+      "original_path": "app/api/v1/events/route.ts",
+      "proposal_path": "app/api/v1/events/route.ts",
+      "original_sha256": "1f703def1a6ac39a0bc0d7c418c82cc6a33e60c60b36d79ce9e1de6fa98d59d2",
+      "proposal_sha256": "2890aa9e3bd27efe3052afdae43581bba38890aeb0ec83493ed81b4ef80bf61a",
+      "proposal_bytes": 8065
+    }
+  ],
+  "preserves": [
+    "Every frozen OpenAPI file",
+    "Existing domain events and queued webhook payloads",
+    "Previously recorded request body SHA and delivery reference on refusal",
+    "Partner body shape and credential lifecycle policy",
+    "Independent subscription ownership",
+    "Actual body/header delivery ID where explicitly declared",
+    "Tenant/company identity and legal/pricing metadata"
+  ],
+  "behavior": [
+    "Declared nested contract_version follows trusted selected representation",
+    "Website outbound payload uses same trusted supported Website pin as HTTP",
+    "Three documented Website event schemas project closed objects before UTF8 JSON/hash/HMAC",
+    "Existing request-body hash mismatch refuses transport for reconciliation rather than changing signed retry meaning"
+  ],
+  "known_boundary": "Two impossible/inaccurate historical validator errata still need explicit correction; no server-side all-old-validator certification claimed.",
+  "native_or_provider_calls": false,
+  "source_base": "7952177b13c911427fe529a56fd787d7f3abfc99",
+  "integration_commit": "38113260",
+  "reviewers": [
+    "signing_forward_peer_one",
+    "signing_forward_peer_two"
+  ],
+  "verification": {
+    "command": "npm run typecheck",
+    "exit_code": 0,
+    "scope": "Full tsconfig.app.json, actual latest-main application source with three reviewed compatibility changes; no unit tests as behavior oracle"
+  },
+  "at": "2026-10-14T07:54:51.793231+00:00"
+}
