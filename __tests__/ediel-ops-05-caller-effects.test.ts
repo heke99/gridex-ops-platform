@@ -117,6 +117,7 @@ vi.mock('@/lib/supabase/service', () => {
 })
 
 vi.mock('imapflow', () => ({ ImapFlow: class {
+  on() { return this }
   async connect() {}
   async getMailboxLock() { return { release() {} } }
   async *fetch() { yield { uid: 42, source: Buffer.from(port.mime), internalDate: new Date(), envelope: { messageId: '<ops05-fixture@example.invalid>', from: [{ address: 'source@example.invalid' }], to: [{ address: 'recipient@example.invalid' }], subject: 'Synthetic PRODAT' } } }

@@ -249,6 +249,12 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
     greetingTimeout: 15_000,
     socketTimeout: 90_000,
   })
+  // After connect imapflow reports connection failures (e.g. socket timeout) as
+  // 'error' events; without a listener Node throws them as uncaughtException.
+  // The in-flight command is rejected too, so the catch below records it.
+  client.on('error', (error: Error) => {
+    console.warn('[manual-inbound] IMAP connection error', { mailboxId, error: error.message })
+  })
 
   const maxMessages = envInt('MANUAL_INBOUND_MESSAGE_LIMIT_PER_MAILBOX', 25)
   const maxAttempts = envInt('MANUAL_INBOUND_MAX_ATTEMPTS_PER_MESSAGE', 5)

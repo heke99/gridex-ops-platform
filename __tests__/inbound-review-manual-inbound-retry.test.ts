@@ -82,6 +82,7 @@ vi.mock('@/lib/inbound-mail/manualInboundCorrelation', () => ({
 }))
 vi.mock('imapflow', () => ({
   ImapFlow: class {
+    on() { return this }
     async connect() {}
     async getMailboxLock() { return { release() {} } }
     async logout() {}

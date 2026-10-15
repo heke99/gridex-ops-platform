@@ -55,6 +55,7 @@ vi.mock('@/lib/customer-operations/manualFacilityResponseParser', () => ({
 }))
 vi.mock('@/lib/email/manualOperationsMailbox', () => ({ resolveManualMailboxSecret: () => 'fixture-password' }))
 vi.mock('imapflow', () => ({ ImapFlow: class {
+  on() { return this }
   async connect() {}
   async getMailboxLock() { return { release() {} } }
   async logout() {}

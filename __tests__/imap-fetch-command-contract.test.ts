@@ -12,6 +12,7 @@ const io = vi.hoisted(() => ({
   seen: [] as number[],
   violations: [] as string[],
   ingestFailures: new Set<string>(),
+  socketErrorDuringFetch: false,
 }))
 
 vi.mock('@/lib/supabase/service', () => {
@@ -49,22 +50,34 @@ vi.mock('@/lib/inbound-mail/manualInboundIngestion', () => ({
     return { resolutionStatus: 'unmatched', processingState: 'stored' }
   },
 }))
-vi.mock('imapflow', () => ({
-  ImapFlow: class {
+vi.mock('imapflow', async () => {
+  const { EventEmitter } = await import('node:events')
+  return { ImapFlow: class extends EventEmitter {
     fetching = false
     async connect() {}
     async getMailboxLock() { return { release() {} } }
     async logout() {}
     async *fetch() {
       this.fetching = true
-      try { for (const message of io.imapMessages) yield message } finally { this.fetching = false }
+      try {
+        if (io.socketErrorDuringFetch) {
+          // Like imapflow after connect: the socket timer emits 'error' outside the
+          // caller's stack (Node throws it as uncaughtException without a listener)
+          // and the in-flight command is rejected.
+          await new Promise(resolve => setTimeout(resolve, 0))
+          if (this.listenerCount('error') === 0) io.violations.push('error event without listener')
+          else this.emit('error', new Error('Socket timeout'))
+          throw new Error('Connection not available')
+        }
+        for (const message of io.imapMessages) yield message
+      } finally { this.fetching = false }
     }
     async messageFlagsAdd(uid: number) {
       if (this.fetching) { io.violations.push(`messageFlagsAdd(${uid}) during fetch`); throw new Error('Socket timeout') }
       io.seen.push(uid)
     }
-  },
-}))
+  } }
+})
 
 const message = (uid: number, subject: string) => ({
   uid, envelope: { subject, messageId: `<m${uid}@example.invalid>`, from: [{ address: 'natagare@example.invalid' }] },
@@ -80,6 +93,7 @@ beforeEach(() => {
   io.seen = []
   io.violations = []
   io.ingestFailures = new Set()
+  io.socketErrorDuringFetch = false
 })
 
 describe('manual mailbox poller against the imapflow fetch contract', () => {
@@ -101,5 +115,15 @@ describe('manual mailbox poller against the imapflow fetch contract', () => {
     expect(io.violations).toEqual([])
     expect(result.ingested).toBe(2)
     expect(io.seen).toEqual([21, 23])
+  })
+
+  it('records an IMAP socket error on the mailbox instead of leaving it unhandled', async () => {
+    io.imapMessages = [message(31, 'one')]
+    io.socketErrorDuringFetch = true
+    const { runManualInboundMailEngine } = await import('@/lib/inbound-mail/manualMailboxPoller')
+    const result = await runManualInboundMailEngine()
+    expect(io.violations).toEqual([])
+    expect(result.ingested).toBe(0)
+    expect(result.errors.join(' ')).toContain('Connection not available')
   })
 })
