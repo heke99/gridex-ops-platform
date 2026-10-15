@@ -66,15 +66,28 @@ describe.sequential('live chain B — metering to invoice for an existing custom
   })
 
   it('B3 the inbound cron receives every file and acknowledges it to the grid owner', async () => {
+    // Like Vercel Cron: one call per minute; the mailbox's own poll interval decides when it is due.
+    const deadlocks = () => sql<number>(`SELECT to_jsonb(deadlocks) FROM pg_stat_database WHERE datname=current_database()`)
+    const deadlocksBefore = deadlocks()
     const runs: unknown[] = []
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    const outboxRuns: unknown[] = []
+    const deadline = Date.now() + 15 * 60_000
+    for (;;) {
       const result = await cron('/api/internal/inbound-mail/cron?environment=test')
-      runs.push(result)
+      runs.push({ at: new Date().toISOString(), status: result.status, result: (result.body as { result?: unknown }).result ?? result.body })
       expect(result.status, JSON.stringify(result.body)).toBe(200)
-      const count = sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(tenant.companyId)} AND direction='inbound' AND message_family='UTILTS'`)
-      if (count >= 30) break
+      // vercel.json runs the Ediel outbox one minute after the inbound cron; it sends the CONTRL drafts.
+      const outbox = await cron('/api/ediel/outbox/process')
+      outboxRuns.push({ at: new Date().toISOString(), status: outbox.status, body: outbox.body })
+      const state = sql<{ inbound: number; sent: number }>(`SELECT jsonb_build_object(
+        'inbound',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(tenant.companyId)} AND direction='inbound' AND message_family='UTILTS'),
+        'sent',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(tenant.companyId)} AND direction='outbound' AND message_family='CONTRL' AND status='sent'))`)
+      if ((state.inbound >= 30 && state.sent >= 30) || Date.now() > deadline) break
+      await new Promise(resolve => setTimeout(resolve, 60_000))
     }
     report.inboundCronRuns = runs
+    report.outboxCronRuns = outboxRuns
+    report.deadlocksDuringReception = deadlocks() - deadlocksBefore
     const inbound = sql<Array<Record<string, unknown>>>(`SELECT coalesce(jsonb_agg(jsonb_build_object('code',message_code,'status',status,'match',business_match_status,'meter',metering_point_id IS NOT NULL) ORDER BY created_at),'[]')
       FROM public.ediel_messages WHERE company_id=${literal(tenant.companyId)} AND direction='inbound'`)
     report.inbound = inbound
