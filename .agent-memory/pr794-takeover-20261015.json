@@ -10,9 +10,9 @@
   "user_authorization": "User explicitly appoints this chat as new responsible owner of API PR794, to correct, review and merge, using multiple parallel agents.",
   "observed_head": "c777f903b05e336485e0dcf2d066eb0af3c8a1db",
   "observed_main": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
-  "observed_at": "2026-10-15T16:10:06.141539+00:00",
+  "observed_at": "2026-10-15T16:10:43.138021+00:00",
   "scope": "Existing API PR794. No transfer of other masterplan packets or shared GEN/native/serial delivery service.",
-  "status": "CUSTODY_VERIFIED_READY_TO_APPLY_REVIEWED_PATCH",
+  "status": "REVIEWED_REPAIR_APPLIED_AND_CURRENT_MAIN_INTEGRATED",
   "skill_routing": {
     "active": [
       "cloud-environment-runtime",
@@ -45,7 +45,7 @@
     "ci_diagnosis": "Current failed CI root cause; no reruns or producers",
     "test_validation": "Local affected tests and checks; no DB/native/GEN"
   },
-  "next_action": "Apply exact two-file independently approved patch000b686d, commit, merge actual main11bd normally, verify committed planners and two affected final readbacks, one ordinary existing PR publication.",
+  "next_action": "Freeze committed candidate after this own checkpoint, qualify exact committed clean/strict-upgrade/history input planners and two independent affected-source/head reviews, then one normal expected nonforce push of existing PR794 and current ordinary CI. Existing genuine source-qualified originals retained, no duplicate local native/GEN producer.",
   "ownership": {
     "takeoverComment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6196305923",
     "preparedNeutralReceipt": "32d31cf69ba0f2133947d9a2994fda3b8e9d0965",
@@ -123,8 +123,19 @@
       },
       "applicability": "Exact two-file proposal postimages only; post-materialization and final commit/full CI/GEN still required"
     },
-    "repositoryApplied": false,
-    "wholeReplayQualified": false
+    "repositoryApplied": true,
+    "wholeReplayQualified": false,
+    "materializedPostimagesMatchApproved": true
   },
-  "handoff_directory": "/workspace/pr794-handoff"
+  "handoff_directory": "/workspace/pr794-handoff",
+  "integration": {
+    "repairCommit": "2344ed092db6fa6dcde7c5a93fc18b57f6b43ab6",
+    "mergeCommit": "2a74bee53f9b806c7552d2667768a2b0b2130bfa",
+    "mergeTree": "bdd86a852fa7f8525964114f5706bd93056cbb27",
+    "integratedMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
+    "mergeConflicts": false,
+    "reviewedTwoFileHashesPreserved": true,
+    "migrationIntegrity": "PASS1263files/1166groups/checksums",
+    "meaning": "Current-main integration preserves delivered SC046 ledger and existing generated-output provenance; not actual current API replay/GEN qualification."
+  }
 }
