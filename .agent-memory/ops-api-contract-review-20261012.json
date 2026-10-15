@@ -2409,5 +2409,106 @@
     "custody_receipt": "/tmp/gridex-ops-core-completion-20261014/complete-source-v3-final-custody-authenticated-root-prewrite-private.json",
     "new_native_migration_or_reapplication": false,
     "no_runtime_green_claim": true
+  },
+  "complete_source_v3_0f1c_publication_20261015": {
+    "recorded_utc": "2026-10-15T14:26:17.267854+00:00",
+    "head": "0f1c92d023819fd1cd641d9b92da2e268b049afe",
+    "tree": "4cee6d560f849f54719092c7beeb0ca0023a23d0",
+    "parent": "4b59eb9f82faf6aae6b91d1dd5b7785e1e9ec7cf",
+    "publication": "NORMAL_GIT_PUSH_EXIT_0_AND_AUTHENTICATED_REF_COMMIT_TREE_PARENT_READBACK_MATCH",
+    "receipt": {
+      "path": "/tmp/gridex-ops-core-completion-20261014/complete-source-v3-0f1c-current-six-normal-publication-authenticated-root-readback-private.json",
+      "bytes": 948,
+      "sha256": "5bd44a93bbf56f2a5472636b9ef42a5b583ab39f117ef42c1abb0c1831fea5f6"
+    },
+    "source_finals": [
+      "f07cedf9a40a3d752cf970f8fc61ed242ce39248dd732c1f1912bd3168f3b063",
+      "d2c2572861b8f2e79711f3dcea36499c093c0f0f133a65f0cb92f472480f9f7c"
+    ],
+    "root_static": "Migration integrity1259files/1162groups, SQL/PL3layers+2children, bash/JSON/AST/exactsixfiles PASS",
+    "three_committed_input_plans": "PASS: clean59foundation/1151timestamped; strict53 historical644/forward613; history886/pending371. Exact eaa5 source-position route, preserved A2A and four native forward hashes/order. No SQL engine started or ledger claim.",
+    "owned_ops_run": {
+      "id": 38751189739,
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/38751189739",
+      "source_head": "0f1c92d023819fd1cd641d9b92da2e268b049afe",
+      "run_attempt": 1,
+      "status_at_readback": "queued"
+    },
+    "current_status": "PUBLISHED_CURRENT_CLEAN_FAIL_CONFIRMED_INTERNAL_ACL_CONTRADICTION",
+    "native89_to92": "Already applied; not reapplied. New V3 is installer/replay code only.",
+    "next_action": "Read own genuine clean/upgrade jobs at exact0f1c; retain old4b59 failures as history. No foreign Staff originals/GEN capture takeover. Source23 exactsourceecho retained so V5 rule reusable if new complete diagnostic actually appears. Require wholeSQL success before currentGEN/schema/types and actualStaff/signing/delivery gates.",
+    "no_all_api_green_or_merge_claim": true,
+    "private_gen_handoff": {
+      "path": "/tmp/gridex-ops-core-completion-20261014/ops-0f1c92-source23-gen-owner-handoff-addendum-private.md",
+      "bytes": 5090,
+      "sha256": "d29903c366a19e156aaad10bd483183b4046aef9582d2b165bc727bfdc1a7404",
+      "applicability": "Exact committed source eight input hashes; its push-pending statement is historical at assignment. Separate authenticated0f1c publication receipt now closes upload. Genuine clean/upgrade and GEN qualification remain pending."
+    },
+    "current_verify_job": {
+      "id": 116477716159,
+      "status": "completed",
+      "conclusion": "failure",
+      "reason": "Actual current log: generated-types manifest migration tail is behind20261015100259; qualifiedGEN remains pending until wholeSQL success. No manually advanced hashes/types.",
+      "receipt": "/tmp/gridex-ops-core-completion-20261014/ops-0f1c-verify-qualified-original-receipt-private.json",
+      "receipt_sha256": "20ff0489c3bf9e24183bce2493d564516caf397b57ebf6573558c185f0d6ba9a"
+    },
+    "owned_sql_jobs": {
+      "clean": 116477716197,
+      "upgrade": 116477716451,
+      "latest_status": "clean in_progress, upgrade queued; no terminal SQL result yet"
+    },
+    "actual_clean": {
+      "job": 116477716197,
+      "conclusion": "failure",
+      "error": "ops_source23_complete_profile_unknown",
+      "templateSHA256": "72b780e8c74aecf781414ef8de2522da45ab6affc7e819f54fe27b4bb1de03c0",
+      "newDDLReached": false,
+      "qualifiedOriginalReceipt": "/tmp/gridex-ops-core-completion-20261014/ops-0f1c-clean-qualified-original-download-receipt-private.json",
+      "qualifiedOriginalSHA256": "7b2e659c3536ff6203052cc59dfad6ba3543f0b47188050d74c6f09f86586054"
+    },
+    "corrective_finding": {
+      "scope": "public.ediel_apply_permission_source_v1(uuid,uuid,uuid,uuid) before/after profile semanticACL contains PG+service_role but rawtagpostgres_only requires PGonly; impossible conjunction. Other44 of46raw/semantic comparisons internally consistent. No permission revocation is justified; recognize exact existing source PG+service rawACL/grantors.",
+      "rootProof": "/tmp/gridex-ops-core-completion-20261014/ops-0f1c-source23-rawtag-semantic-acl-contradiction-root-private.json",
+      "docFinding": "/tmp/gridex-ops-core-completion-20261014/ops0f1c-sc023-nonbody-independent-finding-one.md",
+      "docFindingSHA256": "64f66762fc5e93abea2621a6fad28614c922893c75e5bae2f50f063276bd05ee",
+      "reviewStatus": "Prior V3 source approvals preserved as history, withdrawn/superseded for missed internal consistency; fresh corrected-source and exact-current-union independent reviews required.",
+      "next": "Main sole private correction author; Doc+DB independent reviews of exact corrective rawACL profile. Preserve unknown-state refusal, all original source/invariants. No new DB/native/Auth privilege changes."
+    },
+    "updated_utc": "2026-10-15T14:33:57.388045+00:00",
+    "actual_upgrade": {
+      "job": 116477716451,
+      "conclusion": "failure",
+      "error": "ops_source23_complete_profile_unknown",
+      "newSource23DDLReached": false,
+      "qualifiedOriginalSHA256": "2522a15ed818b03ad71a595425d600ed282714d1148e5320cac46d4aa7eeeab3",
+      "receipt": "/tmp/gridex-ops-core-completion-20261014/ops-0f1c-upgrade-qualified-original-download-receipt-private.json"
+    }
+  },
+  "complete_source_v4_acl_profile_correction_20261015": {
+    "recorded_utc": "2026-10-15T14:40:36.532366+00:00",
+    "state": "MATERIALIZED_CORRECTIVE_SOURCE_APPROVED_PENDING_CURRENT_UNION_AND_GENUINE_SQL",
+    "base_head": "0f1c92d023819fd1cd641d9b92da2e268b049afe",
+    "artifact_sha256": "4e46e72504896e74684fc266653a06b4f0a06f6d6896e5cf462d77f8b765c01b",
+    "artifact_bytes": 719397,
+    "atomic_sha256": "861a456584657ebfcd50c00d9365c23e9ecac1c22d3eea17bbabb22cb2ee6080",
+    "effective_template_sha256": "f570aabcac090f5ddd09baed21cc9e9c77288a82bac1c948ef7a764f237ce11d",
+    "confirmed_problem": "V3 public SC023 semantic ACL PG+service_role was inconsistent with raw PGonly guard in both phases, so actualclean/upgrade could never qualify whole23. Prior V3source/currentunion approvals withdrawn or superseded, retained unchanged as history.",
+    "exact_correction": "Only2publicfunction rawACLtags become postgres_and_service and4CASEsites require exact non-grantablePG/service_role entries granted byPG, preserving sourcearrayorder. No new grants/revokes/owner/body/role effects. Allother22profiles and entireV3effective source are byte-identical after inverse removal.",
+    "all_46_before_after_acl_pairs_consistent": true,
+    "source_finals": [
+      {
+        "path": "/tmp/gridex-ops-core-completion-20261014/complete-source23-v4-independent-source-final-one.md",
+        "sha256": "9d2648efd387f12ea9ed9e94de466a0a0e1a0c3c707f284b22e86c14cba6f136"
+      },
+      {
+        "path": "/tmp/gridex-ops-core-completion-20261014/complete-source23-v4-independent-database-audit-source-final-private.md",
+        "sha256": "ecac8c195b1901c7cad69eb20da342c059fd1dd31d19d55c172c3d225e3f5600"
+      }
+    ],
+    "root_static_receipt": "/tmp/gridex-ops-core-completion-20261014/complete-source-v4-private-independent-root-static-verification.json",
+    "custody_receipt": "/tmp/gridex-ops-core-completion-20261014/complete-source-v4-final-custody-authenticated-root-prewrite-private.json",
+    "native_migrations_reapplied": false,
+    "all_actual_profiles_or_sql_green_claim": false,
+    "next_action": "Fresh exactcurrent6two independent source finals, rootintegrity, commit and three committed-input planners; normalPR794push. Genuine SQL clean/upgrade must pass beforequalifiedGEN/types/schema/Staff/release."
   }
 }

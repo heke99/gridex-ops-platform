@@ -436,7 +436,7 @@
       "source": "migrations/20261014113214_ops_api_atomic_bb0b_authfree_effect.sql",
       "sourceKind": "timestampedMigration",
       "sourceSha256": "a2a7e91e1bbb97e0b2d73171b1e0893fad9e4acf915ca620c02f25b8e6aa4a0d",
-      "artifactSha256": "eaa5b507f01a57bb3b085d82976dfa4c1dd2a2a6b1c399db09780320578d07a7",
+      "artifactSha256": "4e46e72504896e74684fc266653a06b4f0a06f6d6896e5cf462d77f8b765c01b",
       "preserveSourceReplay": false,
       "execution": "sourcePosition",
       "reason": "Retain source-qualified Auth self-SELECT, membership, signing-core and SC031 normalization/restoration, the closed canonical 50-function profiles and strict canonical 64-row permission catalog alternative. Preserve original native clauses and all full-row guards. Add bounded convergence for exactly 23 source-qualified functions: 15 retention-owner transfers, five existing-source postgres EXECUTE grants and one PUBLIC EXECUTE revocation. Reuse the unchanged original 19-helper repair queue to strengthen six exact finance bodies. Preserve both current SC023 permission bodies, history hooks and writer lock; normalize only their guarded in-memory body fingerprints for the original complete-state comparison. Require the original whole-state projection before any new DDL, exact full-row postconditions, unchanged role/membership/namespace metadata, and coherent full-before or full-target replay profiles; unknown or partial profiles refuse. Original 64 source transports, source SHA, prior 81 overlay patches, diagnostics and later signing forwards remain pinned. Derived template and actual rendered SQL have separate checksums; actual post-metadata hashes remain distinct from the virtual complete-state projection."
