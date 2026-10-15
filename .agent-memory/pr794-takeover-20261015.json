@@ -359,7 +359,7 @@
     "evidence": "/tmp/pr794-ci-diagnosis/cohort-a3d770/db01-11997305048-extracted/",
     "parallel": "database_review assemblesboundedsourcedeliveryproposal; staff_native_fixtracespermission/ACL;expiry_guard_fixtracescommonheader/technicalACK",
     "scope": "MinimumONEexistingworkflowef088C1 only, via closedsource-derived canonicalprojection after12forwards/beforeunchanged840livecomparison. Config/sourcebasisunit unchanged54/35. No parenttechnicalwrites; concreteproposal/actualfinitecomponentchecks/twoSOURCEreviews beforeexplicitone-filetransferapproval.",
-    "state": "FROZEN_ONE_WORKFLOW_TWO_SOURCE_APPROVALS_27_COMPONENT_PASS_EXPLICIT_TRANSFER_QUESTION_PENDING",
+    "state": "EXPLICIT_USER_YES_MATCHED_ONE_REF_TRANSFER_PUBLICCLAIM_VERIFIED_TWO_SOURCE_APPROVALS_27_COMPONENT_PASS",
     "reviews": {
       "A": "11f6750bcb50378df40849def96aee87841eb15cd6007ff37c1c5270e8565bdb",
       "B": "340fcf2db00c759bafbd5748d46da9db6178fc106df2b9e6211b62eec530f49e"
@@ -368,7 +368,10 @@
     "postSHA256": "bf3d786b4baaff0c5a847c34fd2a38faebb19853d3b653ea273a2be1b4658f77",
     "proposedReceipt": "b25a66b29b11ea6df81843b0e8dde8e3140068f4",
     "incumbent": "ef088907a6e85783b5d6205594bfd548ddf242de",
-    "transferPerformed": false
+    "transferPerformed": true,
+    "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6200484579",
+    "restoreAfterVerifiedMergeTo": "ef088907a6e85783b5d6205594bfd548ddf242de",
+    "next": "Exactreviewedworkflowcopyafterthisowncheckpoint; frozen840comparison/nativegatesunchanged"
   },
   "remaining_sql_fixture_scope": {
     "historicalEvidence": "7SQLerrors,8nativeflags,2typeflags exactoldb1original; no currenta3failureclaim",
@@ -378,14 +381,68 @@
       "scripts/staff-customer-retention-read-prerequisite-regression.sql"
     ],
     "state": "P3frozenreview/componentpending; retentionminimumproposalactualNOINHERITcomponentinprogress",
-    "custody": "Bothabsentlastsnapshot;freshatomicclaimrequired beforeparentwrites",
-    "next": "Userworkflowapproval+twoSQLsourceproposalsreviews thenoneexactmeaningfulbatchnormalpush/currentsoleCI"
+    "custody": {
+      "receipt": "73890d5d309bd93310e8cf8f2fcf5a61ab6774d9",
+      "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6200409345",
+      "files": [
+        "scripts/staff-customer-retention-read-prerequisite-regression.sql",
+        "scripts/tenantservice-identity-billing-regression.sql"
+      ]
+    },
+    "next": "Applyexactretentiona98apostimage underown7389 afterthischeckpoint; P3exact2cealreadyapplied",
+    "P3": {
+      "sourceA": "944f48f305c1f6da8172a70a683c04a0b2b2f3006dc3fc3427d3f2911fd64939",
+      "sourceB": "bcb3884f2876b82a70a2786a0e422a7a4309036a119fdc4e5d8ff0d5a386cf13",
+      "component": "18PASS/15negative; syntheticSUPERUSER/INHERIT limitation notnativeauthorityproof",
+      "post": "2ce866064c808a7fc563eca55c7f0cb2f0361a1b07fd0936eb0b2aeb6c825b1f"
+    },
+    "retentionA": "f50d7a39262f40c2826d84d6f816eb27ee9f2b036946792321cbb0bcbed7e7ec",
+    "retentionB": "e4af9da250ac0d4b522ce28ba6b27910d37d76714bced47453832d60ec33d1e2"
   },
-  "updatedAt": "2026-10-15T19:19:32.857847+00:00",
+  "updatedAt": "2026-10-15T19:27:13.478048+00:00",
   "current_main_integration": {
     "actualMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
     "previousMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
     "scope": "Merge811 addsSC039nativeproof3cases+ownforeigncheckpoint only; ledger/canonicalSQL/GEN unchanged; no APIbranch overlap",
     "next": "Normal localmainmerge afterthisowncheckpoint; preserveSC039exactmainbytes; no publicpushuntilboundedDB01+2SQLfixesqualified"
+  },
+  "current_a3_terminal": {
+    "status": "30jobSUCCESS/3FAIL/11configuredSKIP/0pending",
+    "native": "738PASS/3FAIL/1SKIP=742; actualowneroriginalqualified",
+    "rootCauses": [
+      "P3staletgfoidfixture",
+      "retentionSQLownerfixture",
+      "2expirytestsregisteraftercustomerarchive",
+      "decisionoriginalprivateblob_receiptprobe",
+      "2browserprivatesyntheticissuerinserts",
+      "tenantinvariants3actualbreaches"
+    ],
+    "upstreamFixed": "5historicalStaffSQLpermissionfailuresnowabsent",
+    "browser": "0cases, missingprocessfixturemoduleimport;10downstreampostbrowserfailures",
+    "GEN": "actualprefixtureRAW3byteequalcommit/capture; finalpostbrowserparityNOT_RUN",
+    "qualification": "/tmp/pr794-ci-diagnosis/cohort-a3d770/clean-qualified-failure.json",
+    "next": "minimumsourcefixes+twoSOURCEreviews; onebatchordinarypushafterDB01explicitapproval"
+  },
+  "expiry_fixture_order": {
+    "manifest": "7e65a10748f6d9f1eebded083ef06b10be1b1a7ecf857384f2e9a6331d6ba35d",
+    "post": "ea688607d791199a2a850783d468df5495a1c44c8bfdcc9644a10467db56aaf4",
+    "sourceA": "eec2afa4f3412ec67896bc7ec28e6b47bb5295c4659e3dd78997554316f40003",
+    "sourceB": "7b4a7aacae7ba4d1f21b3836ae2d405915253a99cc415a8f829f46941248396d",
+    "custody": "e0f9178afa24b2b3b80c22b27639887abc39b26c",
+    "next": "OnlyswapunchangedlasttwoASTnodes, placingexpirytestregistrationbeforelegitimatecustomerarchival; exactcopyafterthischeckpoint"
+  },
+  "remaining_correction_custody": {
+    "receipt": "de8d3c18dcb9f18cd75bc3dad9b0822def0170c2",
+    "comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6200493697",
+    "allPreviousRefsPreserved": true,
+    "files": [
+      "__tests__/ops-migration-provenance-tenant-boundary.test.ts",
+      "scripts/ediel-blob-retention-browser-native.test.ts",
+      "scripts/ediel-decision-original-retention-native.test.ts",
+      "scripts/ediel-decision-original-browser-native.test.ts",
+      "scripts/ediel-process-journal-retention-browser-native.test.ts",
+      "supabase/migrations/20261015183000_ops_migration_provenance_tenant_boundary.sql"
+    ],
+    "next": "Frozenauthored4privatefixture andtenantforward+meaningfulunitproposal/integrityappend mustpasstwoSOURCEreviewsbeforeparentwrites; no native/backend/GENduplicate"
   }
 }
