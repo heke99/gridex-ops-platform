@@ -11278,14 +11278,20 @@ CREATE FUNCTION gridex_ediel_common_header.assert_ack_v1(m public.ediel_messages
     AS $_$
 DECLARE tokens jsonb;wire jsonb;source public.ediel_messages%rowtype;u jsonb;g jsonb;ftx jsonb;unb jsonb;unh jsonb;bgm jsonb;
 BEGIN
- IF e->>'assignedNegativeBirthReceiptId' IS NOT NULL THEN PERFORM gridex_ediel_header_negative_birth.assert_ack_v1(m,e);RETURN;END IF;
+ IF e->>'assignedNegativeBirthReceiptId' IS NOT NULL THEN SELECT parent.* INTO STRICT source FROM public.ediel_messages parent WHERE parent.id=m.related_message_id AND parent.direction='inbound' AND parent.environment=m.environment AND (parent.company_id=m.company_id OR parent.company_id IS NULL) AND EXISTS(
+   SELECT FROM gridex_ediel_technical_ack.sources receipt WHERE receipt.source_message_id=parent.id AND receipt.company_id=m.company_id
+    AND receipt.environment=parent.environment AND receipt.status='ready' AND receipt.source_received_at IS NOT DISTINCT FROM parent.message_received_at
+    AND receipt.payload_sha256=encode(sha256(convert_to(parent.raw_payload,'UTF8')),'hex')) FOR SHARE; PERFORM gridex_ediel_header_negative_birth.assert_ack_v1(m,e);RETURN;END IF;
  IF m.company_id::text IS DISTINCT FROM e->>'companyId' OR m.environment IS DISTINCT FROM e->>'environment' OR m.related_message_id::text IS DISTINCT FROM e->>'sourceMessageId' OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'APERAK' OR m.message_code IS DISTINCT FROM 'APERAK'
   OR m.canonical_rule_pack_id IS NOT NULL OR m.rule_profile_version_id IS NOT NULL OR m.rule_profile_key IS NOT NULL OR m.rule_profile_version IS NOT NULL OR m.rule_pack_checksum IS NOT NULL OR coalesce(m.rule_pack_snapshot,'{}')<>'{}' THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;
  tokens:=gridex_utilts_binding.wire_tokens_v1(m.raw_payload);wire:=gridex_ack_authority.wire_v1(m.raw_payload);
  IF wire IS NULL OR wire->>'family'<>'APERAK' OR wire->>'function' IS DISTINCT FROM '27' OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='ERC')<>1 OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='FTX')<>1 THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;
  SELECT t->'elements' INTO unb FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB';SELECT t->'elements' INTO unh FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNH';SELECT t->'elements' INTO bgm FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='BGM';
  SELECT t->'elements' INTO g FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='ERC';SELECT t->'elements' INTO ftx FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='FTX';
- SELECT * INTO STRICT source FROM public.ediel_messages WHERE id=m.related_message_id FOR SHARE;u:=gridex_ediel_technical_ack.envelope(source.raw_payload);
+ SELECT parent.* INTO STRICT source FROM public.ediel_messages parent WHERE parent.id=m.related_message_id AND parent.direction='inbound' AND parent.environment=m.environment AND (parent.company_id=m.company_id OR parent.company_id IS NULL) AND EXISTS(
+   SELECT FROM gridex_ediel_technical_ack.sources receipt WHERE receipt.source_message_id=parent.id AND receipt.company_id=m.company_id
+    AND receipt.environment=parent.environment AND receipt.status='ready' AND receipt.source_received_at IS NOT DISTINCT FROM parent.message_received_at
+    AND receipt.payload_sha256=encode(sha256(convert_to(parent.raw_payload,'UTF8')),'hex')) FOR SHARE;u:=gridex_ediel_technical_ack.envelope(source.raw_payload);
  IF unh->2 IS DISTINCT FROM e#>'{familyEdition,sourceProjection,catalog,ackConstraints,technicalProfile}' OR unb->2 IS DISTINCT FROM u->'receiver' OR unb->3 IS DISTINCT FROM u->'sender' OR coalesce(unb#>>'{7,0}','') IS DISTINCT FROM u->>'applicationReference' OR coalesce(unb#>>'{11,0}','') IS DISTINCT FROM u->>'testIndicator'
   OR g->1 IS DISTINCT FROM jsonb_build_array(e#>>'{field202,ercCode}','','260') OR ftx->1 IS DISTINCT FROM '["AAO"]'::jsonb OR ftx->3 IS DISTINCT FROM '["202","","260"]'::jsonb OR ftx->4 IS DISTINCT FROM jsonb_build_array(e#>>'{field202,text}') OR length(ftx#>>'{4,0}')>(e#>>'{familyEdition,sourceProjection,catalog,ackConstraints,textMax}')::integer
   OR wire->>'legalSender' IS DISTINCT FROM e#>>'{identities,legalReceiver,id}' OR wire->>'legalReceiver' IS DISTINCT FROM e#>>'{identities,legalSender,id}' THEN RAISE EXCEPTION 'ediel_common_header_negative_scope_invalid';END IF;
@@ -11521,7 +11527,7 @@ CREATE FUNCTION gridex_ediel_common_header.witness_before_route_v1(m public.edie
     SET search_path TO 'pg_catalog'
     AS $$
 DECLARE w gridex_ediel_common_header.negative_witnesses%rowtype;BEGIN
- SELECT * INTO w FROM gridex_ediel_common_header.negative_witnesses WHERE id=(m.execution_context_snapshot->>'prodatCommonHeaderNegativeWitnessId')::uuid FOR SHARE;
+ SELECT * INTO w FROM gridex_ediel_common_header.negative_witnesses WHERE id=(m.execution_context_snapshot->>'prodatCommonHeaderNegativeWitnessId')::uuid AND company_id=m.company_id AND environment=m.environment AND source_message_id=m.related_message_id AND payload_sha256=encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') FOR SHARE;
  IF w.id IS NULL OR w.company_id IS DISTINCT FROM m.company_id OR w.environment IS DISTINCT FROM m.environment OR w.source_message_id IS DISTINCT FROM m.related_message_id OR w.payload_sha256 IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'ediel_common_header_negative_witness_required';END IF;
  PERFORM gridex_ediel_common_header.assert_ack_v1(m,w.evidence);RETURN w;END$$;
 
@@ -13607,11 +13613,15 @@ CREATE FUNCTION gridex_ediel_retention.blob_current_v1(d gridex_ediel_retention.
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE r gridex_ediel_retention.blob_reviews%rowtype;claims jsonb;BEGIN
+DECLARE r gridex_ediel_retention.blob_reviews%rowtype;claims jsonb;observed_at timestamptz;BEGIN
+ LOCK TABLE public.permissions,public.roles,public.user_roles,public.role_permissions,public.user_permissions,public.user_permission_overrides IN SHARE MODE;
  SELECT * INTO r FROM gridex_ediel_retention.blob_reviews WHERE decision_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1 FOR SHARE;
  PERFORM public.ediel_retention_lock_auth_actor_v1(r.actor_user_id);PERFORM id FROM public.user_profiles WHERE id=r.actor_user_id FOR SHARE;PERFORM user_id FROM public.company_memberships WHERE company_id=d.company_id AND user_id=r.actor_user_id FOR SHARE;
  IF r.outcome IS DISTINCT FROM 'approved' OR NOT public.ediel_retention_lock_auth_actor_v1(r.actor_user_id) OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=r.actor_user_id AND user_status='active') OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=d.company_id AND user_id=r.actor_user_id AND status='active' AND is_active AND accepted_at IS NOT NULL) OR gridex_ediel_retention.permission_v1(d.company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN NULL;END IF;
- IF gridex_ediel_retention.class_permission_v1(d.company_id,r.actor_user_id,d.retention_class) IS NOT TRUE THEN RETURN NULL;END IF;claims:=gridex_ediel_retention.blob_receipt_v1(d);IF claims IS NULL OR (claims->>'retainUntil')::timestamptz>now() THEN RETURN NULL;END IF;RETURN r.id;
+ IF gridex_ediel_retention.class_permission_v1(d.company_id,r.actor_user_id,d.retention_class) IS NOT TRUE THEN RETURN NULL;END IF;claims:=gridex_ediel_retention.blob_receipt_v1(d);
+ IF r.outcome IS DISTINCT FROM 'approved' OR NOT public.ediel_retention_lock_auth_actor_v1(r.actor_user_id) OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=r.actor_user_id AND user_status='active') OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=d.company_id AND user_id=r.actor_user_id AND status='active' AND is_active AND accepted_at IS NOT NULL) OR gridex_ediel_retention.permission_v1(d.company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN NULL;END IF;
+ IF gridex_ediel_retention.class_permission_v1(d.company_id,r.actor_user_id,d.retention_class) IS NOT TRUE THEN RETURN NULL;END IF;
+ observed_at:=clock_timestamp();IF claims IS NULL OR (claims->>'retainUntil')::timestamptz>observed_at THEN RETURN NULL;END IF;RETURN r.id;
 END$$;
 
 --
@@ -13636,13 +13646,14 @@ CREATE FUNCTION gridex_ediel_retention.blob_receipt_v1(d gridex_ediel_retention.
     SET search_path TO 'pg_catalog'
     AS $_$
 DECLARE k gridex_ediel_retention.issuers%rowtype;p jsonb;b bytea;issued timestamptz;expires timestamptz;deadline timestamptz;
-BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
+observed_at timestamptz;BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
  IF jsonb_typeof(d.issuer_receipt) IS DISTINCT FROM 'object' OR coalesce(d.issuer_receipt->>'signatureHex','')!~'^[a-f0-9]{64}$' OR length(coalesce(d.issuer_receipt->>'payloadBase64','')) NOT BETWEEN 1 AND 32768 THEN RETURN NULL;END IF;
  SELECT * INTO k FROM gridex_ediel_retention.issuers WHERE id=(d.issuer_receipt->>'issuerId')::uuid AND company_id=d.company_id FOR SHARE;
- IF k.id IS NULL OR now()<k.valid_from OR now()>=k.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=k.id) OR EXISTS(SELECT FROM gridex_ediel_retention.blob_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
+ observed_at:=clock_timestamp();
+ IF k.id IS NULL OR observed_at<k.valid_from OR observed_at>=k.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=k.id) OR EXISTS(SELECT FROM gridex_ediel_retention.blob_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
  b:=decode(d.issuer_receipt->>'payloadBase64','base64');IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(b,k.signing_key),'hex') IS DISTINCT FROM d.issuer_receipt->>'signatureHex' THEN RETURN NULL;END IF;
  p:=convert_from(b,'UTF8')::jsonb;issued:=(p->>'issuedAt')::timestamptz;expires:=(p->>'expiresAt')::timestamptz;deadline:=(p->>'retainUntil')::timestamptz;
- IF p->>'format' IS DISTINCT FROM 'ediel_blob_retention_policy_v1' OR p->>'retentionClass' IS DISTINCT FROM d.retention_class OR p->>'companyId' IS DISTINCT FROM d.company_id::text OR p->>'targetId' IS DISTINCT FROM d.target_id::text OR p->>'messageId' IS DISTINCT FROM d.message_id::text OR p->>'sourceHash' IS DISTINCT FROM d.source_hash OR p->>'targetHash' IS DISTINCT FROM d.target_hash OR p->>'documentHash' IS DISTINCT FROM d.document_hash OR p->>'issuerLegalReference' IS DISTINCT FROM k.legal_reference OR nullif(p->>'legalBasisReference','') IS NULL OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR issued>now() OR expires<=now() OR issued<k.valid_from OR expires>k.valid_to THEN RETURN NULL;END IF;RETURN p;
+ IF p->>'format' IS DISTINCT FROM 'ediel_blob_retention_policy_v1' OR p->>'retentionClass' IS DISTINCT FROM d.retention_class OR p->>'companyId' IS DISTINCT FROM d.company_id::text OR p->>'targetId' IS DISTINCT FROM d.target_id::text OR p->>'messageId' IS DISTINCT FROM d.message_id::text OR p->>'sourceHash' IS DISTINCT FROM d.source_hash OR p->>'targetHash' IS DISTINCT FROM d.target_hash OR p->>'documentHash' IS DISTINCT FROM d.document_hash OR p->>'issuerLegalReference' IS DISTINCT FROM k.legal_reference OR nullif(p->>'legalBasisReference','') IS NULL OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR issued>observed_at OR expires<=observed_at OR issued<k.valid_from OR expires>k.valid_to THEN RETURN NULL;END IF;RETURN p;
 EXCEPTION WHEN invalid_text_representation OR invalid_parameter_value OR datetime_field_overflow OR character_not_in_repertoire THEN RETURN NULL;
 END$_$;
 
@@ -14608,6 +14619,56 @@ CREATE FUNCTION gridex_ediel_retention.finance_fresh_consumption_guard_v1() RETU
  ELSE source:=(r->>'billing_underlay_id')::uuid;IF source IS NOT NULL THEN PERFORM public.ediel_require_invoice_source_copies_available_v1(NEW.company_id,source);END IF;END IF;RETURN NEW;END$$;
 
 --
+-- Name: finance_guard_api_1fbd31c39b1cc7dfb67c2aa2d54a0d82(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.finance_guard_api_1fbd31c39b1cc7dfb67c2aa2d54a0d82() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN IF TG_OP='UPDATE' THEN IF pg_catalog.has_function_privilege(current_user,'public.ediel_is_qualified_finance_retention_transition_v1(text,text,jsonb,jsonb)','EXECUTE') THEN IF public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW; END IF; END IF; END IF; raise exception using errcode='55000',message='portfolio_settlement_audit_append_only'; end $$;
+
+--
+-- Name: finance_guard_api_3581904fc6fec84168a5786a4d342f71(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.finance_guard_api_3581904fc6fec84168a5786a4d342f71() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+BEGIN IF TG_OP='UPDATE' THEN IF pg_catalog.has_function_privilege(current_user,'public.ediel_is_qualified_finance_retention_transition_v1(text,text,jsonb,jsonb)','EXECUTE') THEN IF public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW; END IF; END IF; END IF;
+  if tg_op='DELETE' or old.customer_invoice_id is not null
+     or new.customer_invoice_id is null
+     or new.invoice_idempotency_key is null
+     or (to_jsonb(new)-'customer_invoice_id'-'invoice_idempotency_key')
+       <>(to_jsonb(old)-'customer_invoice_id'-'invoice_idempotency_key') then
+    raise exception using errcode='55000',message='portfolio_invoice_binding_immutable';
+  end if;
+  return new;
+end $$;
+
+--
+-- Name: finance_guard_api_ace058685c2b86bd37f10ec02f552213(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_retention.finance_guard_api_ace058685c2b86bd37f10ec02f552213() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN IF TG_OP='UPDATE' THEN IF pg_catalog.has_function_privilege(current_user,'public.ediel_is_qualified_finance_retention_transition_v1(text,text,jsonb,jsonb)','EXECUTE') THEN IF public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW; END IF; END IF; END IF;
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.customer_id IS NOT NULL THEN
+      SELECT c.billing_profile_revision INTO NEW.customer_billing_profile_revision
+        FROM public.customers c
+       WHERE c.id = NEW.customer_id AND c.company_id = NEW.company_id;
+    END IF;
+  ELSIF NEW.customer_billing_profile_revision IS DISTINCT FROM OLD.customer_billing_profile_revision THEN
+    RAISE EXCEPTION 'billing_item_profile_revision_immutable' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END $$;
+
+--
 -- Name: finance_guard_v1_2a0dd5ac4e9330f1c07d8aae314f6f3b(); Type: FUNCTION; Schema: gridex_ediel_retention; Owner: -
 --
 
@@ -14615,7 +14676,7 @@ CREATE FUNCTION gridex_ediel_retention.finance_guard_v1_2a0dd5ac4e9330f1c07d8aae
     LANGUAGE plpgsql
     SET search_path TO 'pg_catalog'
     AS $$
-BEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;
+BEGIN IF TG_OP='UPDATE' THEN IF pg_catalog.has_function_privilege(current_user,'public.ediel_is_qualified_finance_retention_transition_v1(text,text,jsonb,jsonb)','EXECUTE') THEN IF public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW;END IF;END IF;END IF;
   RAISE EXCEPTION 'received_source_evidence_is_append_only' USING ERRCODE = '23514';
 END
 $$;
@@ -14628,7 +14689,7 @@ CREATE FUNCTION gridex_ediel_retention.finance_guard_v1_4b456f7ba70048a2ee25293a
     LANGUAGE plpgsql
     SET search_path TO 'public, pg_temp'
     AS $$
-BEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;
+BEGIN IF TG_OP='UPDATE' THEN IF pg_catalog.has_function_privilege(current_user,'public.ediel_is_qualified_finance_retention_transition_v1(text,text,jsonb,jsonb)','EXECUTE') THEN IF public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW;END IF;END IF;END IF;
   if old.billing_configuration_snapshot_sha256 is not null
      and (
        new.billing_configuration_snapshot is distinct from old.billing_configuration_snapshot
@@ -14681,7 +14742,7 @@ CREATE FUNCTION gridex_ediel_retention.finance_guard_v1_920138d4568f5425448044a4
     AS $$
 declare
   protected boolean;
-BEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;
+BEGIN IF TG_OP='UPDATE' THEN IF pg_catalog.has_function_privilege(current_user,'public.ediel_is_qualified_finance_retention_transition_v1(text,text,jsonb,jsonb)','EXECUTE') THEN IF public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW;END IF;END IF;END IF;
   if coalesce(current_setting('app.gridex_billing_maintenance', true), '') = 'on' then
     if tg_op = 'DELETE' then
       return old;
@@ -14744,7 +14805,7 @@ CREATE FUNCTION gridex_ediel_retention.finance_guard_v1_af0ed0f697cd8415944398b0
     LANGUAGE plpgsql
     SET search_path TO 'public, pg_temp'
     AS $$
-BEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;
+BEGIN IF TG_OP='UPDATE' THEN IF pg_catalog.has_function_privilege(current_user,'public.ediel_is_qualified_finance_retention_transition_v1(text,text,jsonb,jsonb)','EXECUTE') THEN IF public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW;END IF;END IF;END IF;
   if tg_op = 'UPDATE' and old.status in ('issued', 'sent', 'exported', 'paid') and (
     new.portfolio_id is distinct from old.portfolio_id
     or new.customer_contract_id is distinct from old.customer_contract_id
@@ -14822,7 +14883,7 @@ CREATE FUNCTION gridex_ediel_retention.finance_guard_v1_b73f12ceefeb096bb3e00fe7
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-BEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;
+BEGIN IF TG_OP='UPDATE' THEN IF pg_catalog.has_function_privilege(current_user,'public.ediel_is_qualified_finance_retention_transition_v1(text,text,jsonb,jsonb)','EXECUTE') THEN IF public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW;END IF;END IF;END IF;
  IF EXISTS(SELECT FROM gridex_billing_source.underlay_bindings WHERE underlay_id=old.id) AND (tg_op='DELETE' OR
   ROW(new.company_id,new.customer_id,new.metering_point_id,new.supply_period_id,new.contract_id,new.pricing_snapshot_id,new.contract_price_snapshot_id,new.total_kwh,new.billing_period_start,new.billing_period_end,new.payload,new.pricing_snapshot,new.energy_direction,new.settlement_type)
   IS DISTINCT FROM ROW(old.company_id,old.customer_id,old.metering_point_id,old.supply_period_id,old.contract_id,old.pricing_snapshot_id,old.contract_price_snapshot_id,old.total_kwh,old.billing_period_start,old.billing_period_end,old.payload,old.pricing_snapshot,old.energy_direction,old.settlement_type)) THEN RAISE EXCEPTION 'billing_source_finalized_underlay_immutable' USING ERRCODE='55000'; END IF;
@@ -14837,7 +14898,7 @@ CREATE FUNCTION gridex_ediel_retention.finance_guard_v1_fdc2215667d256f07f3c0fbb
     LANGUAGE plpgsql
     SET search_path TO 'public, pg_temp'
     AS $$
-BEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) THEN RETURN NEW;END IF;
+BEGIN IF TG_OP='UPDATE' THEN IF pg_catalog.has_function_privilege(current_user,'public.ediel_is_qualified_finance_retention_transition_v1(text,text,jsonb,jsonb)','EXECUTE') THEN IF public.ediel_is_qualified_finance_retention_transition_v1(TG_TABLE_SCHEMA,TG_TABLE_NAME,to_jsonb(OLD),to_jsonb(NEW)) IS TRUE THEN RETURN NEW;END IF;END IF;END IF;
   if tg_op='DELETE' then raise exception using errcode='55000',message='portfolio_settlement_append_only'; end if;
   if old.status<>new.status and not (
     (old.status='draft' and new.status='calculated')
@@ -14916,10 +14977,11 @@ CREATE FUNCTION gridex_ediel_retention.finance_receipt_v1(d gridex_ediel_retenti
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$
-DECLARE issuer gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;issued timestamptz;expires timestamptz;deadline timestamptz;journal_end timestamptz;operation text;BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
+DECLARE issuer gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;issued timestamptz;expires timestamptz;deadline timestamptz;journal_end timestamptz;operation text;observed_at timestamptz;BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
  IF jsonb_typeof(d.issuer_receipt) IS DISTINCT FROM 'object' OR coalesce(d.issuer_receipt->>'signatureHex','')!~'^[a-f0-9]{64}$' OR length(coalesce(d.issuer_receipt->>'payloadBase64','')) NOT BETWEEN 1 AND 32768 THEN RETURN NULL;END IF;
  SELECT * INTO issuer FROM gridex_ediel_retention.issuers WHERE id=(d.issuer_receipt->>'issuerId')::uuid AND company_id=d.company_id FOR SHARE;
- IF issuer.id IS NULL OR now()<issuer.valid_from OR now()>=issuer.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id) OR EXISTS(SELECT FROM gridex_ediel_retention.finance_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
+ observed_at:=clock_timestamp();
+ IF issuer.id IS NULL OR observed_at<issuer.valid_from OR observed_at>=issuer.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id) OR EXISTS(SELECT FROM gridex_ediel_retention.finance_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
  bytes:=decode(d.issuer_receipt->>'payloadBase64','base64');IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,issuer.signing_key),'hex') IS DISTINCT FROM d.issuer_receipt->>'signatureHex' THEN RETURN NULL;END IF;
  p:=convert_from(bytes,'UTF8')::jsonb;issued:=(p->>'issuedAt')::timestamptz;expires:=(p->>'expiresAt')::timestamptz;deadline:=(p->>'retainUntil')::timestamptz;journal_end:=(p->>'journalRetainUntil')::timestamptz;
  SELECT x.operation INTO STRICT operation FROM gridex_ediel_retention.finance_class_catalog x WHERE retention_class=d.retention_class;
@@ -14927,7 +14989,7 @@ DECLARE issuer gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;issued
  OR p->>'sourceTable' IS DISTINCT FROM (SELECT source_schema||'.'||source_table FROM gridex_ediel_retention.finance_class_catalog WHERE retention_class=d.retention_class)
  OR p->>'sourceHash' IS DISTINCT FROM d.source_hash OR p->>'targetHash' IS DISTINCT FROM d.target_hash OR p->>'scopeHash' IS DISTINCT FROM d.scope_hash OR p->>'documentHash' IS DISTINCT FROM d.document_hash OR p->>'operation' IS DISTINCT FROM operation
  OR p->>'issuerLegalReference' IS DISTINCT FROM issuer.legal_reference OR nullif(p->>'legalBasisReference','') IS NULL OR nullif(p->>'journalPurposeReference','') IS NULL OR p->>'accessRevocationRequired' IS DISTINCT FROM 'true'
- OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR isfinite(journal_end) IS DISTINCT FROM true OR journal_end<=now() OR issued>now() OR expires<=now() OR issued<issuer.valid_from OR expires>issuer.valid_to THEN RETURN NULL;END IF;RETURN p;
+ OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR isfinite(journal_end) IS DISTINCT FROM true OR journal_end<=observed_at OR issued>observed_at OR expires<=observed_at OR issued<issuer.valid_from OR expires>issuer.valid_to THEN RETURN NULL;END IF;RETURN p;
 EXCEPTION WHEN invalid_text_representation OR invalid_parameter_value OR datetime_field_overflow OR character_not_in_repertoire THEN RETURN NULL;END$_$;
 
 --
@@ -15461,10 +15523,11 @@ CREATE FUNCTION gridex_ediel_retention.process_receipt_v1(d gridex_ediel_retenti
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$
-DECLARE issuer gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;issued timestamptz;expires timestamptz;deadline timestamptz;journal_end timestamptz;operation text;BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
+DECLARE issuer gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;issued timestamptz;expires timestamptz;deadline timestamptz;journal_end timestamptz;operation text;observed_at timestamptz;BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
  IF jsonb_typeof(d.issuer_receipt) IS DISTINCT FROM 'object' OR coalesce(d.issuer_receipt->>'signatureHex','')!~'^[a-f0-9]{64}$' OR length(coalesce(d.issuer_receipt->>'payloadBase64','')) NOT BETWEEN 1 AND 32768 THEN RETURN NULL;END IF;
  SELECT * INTO issuer FROM gridex_ediel_retention.issuers WHERE id=(d.issuer_receipt->>'issuerId')::uuid AND company_id=d.company_id FOR SHARE;
- IF issuer.id IS NULL OR now()<issuer.valid_from OR now()>=issuer.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id) OR EXISTS(SELECT FROM gridex_ediel_retention.process_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
+ observed_at:=clock_timestamp();
+ IF issuer.id IS NULL OR observed_at<issuer.valid_from OR observed_at>=issuer.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id) OR EXISTS(SELECT FROM gridex_ediel_retention.process_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
  bytes:=decode(d.issuer_receipt->>'payloadBase64','base64');IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,issuer.signing_key),'hex') IS DISTINCT FROM d.issuer_receipt->>'signatureHex' THEN RETURN NULL;END IF;
  p:=convert_from(bytes,'UTF8')::jsonb;issued:=(p->>'issuedAt')::timestamptz;expires:=(p->>'expiresAt')::timestamptz;deadline:=(p->>'retainUntil')::timestamptz;journal_end:=(p->>'journalRetainUntil')::timestamptz;
  SELECT x.operation INTO STRICT operation FROM gridex_ediel_retention.process_class_catalog x WHERE retention_class=d.retention_class;
@@ -15472,7 +15535,7 @@ DECLARE issuer gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;issued
  OR p->>'sourceTable' IS DISTINCT FROM (SELECT source_table FROM gridex_ediel_retention.process_class_catalog WHERE retention_class=d.retention_class)
  OR p->>'sourceHash' IS DISTINCT FROM d.source_hash OR p->>'targetHash' IS DISTINCT FROM d.target_hash OR p->>'scopeHash' IS DISTINCT FROM d.scope_hash OR p->>'documentHash' IS DISTINCT FROM d.document_hash OR p->>'operation' IS DISTINCT FROM operation
  OR p->>'issuerLegalReference' IS DISTINCT FROM issuer.legal_reference OR nullif(p->>'legalBasisReference','') IS NULL OR nullif(p->>'journalPurposeReference','') IS NULL OR p->>'accessRevocationRequired' IS DISTINCT FROM 'true'
- OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR isfinite(journal_end) IS DISTINCT FROM true OR journal_end<=now() OR issued>now() OR expires<=now() OR issued<issuer.valid_from OR expires>issuer.valid_to THEN RETURN NULL;END IF;RETURN p;
+ OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR isfinite(journal_end) IS DISTINCT FROM true OR journal_end<=observed_at OR issued>observed_at OR expires<=observed_at OR issued<issuer.valid_from OR expires>issuer.valid_to THEN RETURN NULL;END IF;RETURN p;
 EXCEPTION WHEN invalid_text_representation OR invalid_parameter_value OR datetime_field_overflow OR character_not_in_repertoire THEN RETURN NULL;END$_$;
 
 --
@@ -15673,16 +15736,17 @@ CREATE FUNCTION gridex_ediel_retention.receipt_v1(d gridex_ediel_retention.decis
     SET search_path TO 'pg_catalog'
     AS $_$
 DECLARE k gridex_ediel_retention.issuers%rowtype;p jsonb;bytes bytea;issued timestamptz;expires timestamptz;deadline timestamptz;
-BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
+observed_at timestamptz;BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
  IF jsonb_typeof(d.issuer_receipt) IS DISTINCT FROM 'object' OR coalesce(d.issuer_receipt->>'signatureHex','')!~'^[a-f0-9]{64}$' OR length(coalesce(d.issuer_receipt->>'payloadBase64','')) NOT BETWEEN 1 AND 32768 THEN RETURN NULL;END IF;
  SELECT * INTO k FROM gridex_ediel_retention.issuers WHERE id=(d.issuer_receipt->>'issuerId')::uuid AND company_id=d.company_id FOR SHARE;
- IF k.id IS NULL OR now()<k.valid_from OR now()>=k.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=k.id) OR EXISTS(SELECT FROM gridex_ediel_retention.revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
+ observed_at:=clock_timestamp();
+ IF k.id IS NULL OR observed_at<k.valid_from OR observed_at>=k.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=k.id) OR EXISTS(SELECT FROM gridex_ediel_retention.revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
  bytes:=decode(d.issuer_receipt->>'payloadBase64','base64');IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,k.signing_key),'hex') IS DISTINCT FROM d.issuer_receipt->>'signatureHex' THEN RETURN NULL;END IF;
  p:=convert_from(bytes,'UTF8')::jsonb;issued:=(p->>'issuedAt')::timestamptz;expires:=(p->>'expiresAt')::timestamptz;deadline:=(p->>'retainUntil')::timestamptz;
  IF p->>'format' IS DISTINCT FROM 'ediel_retention_policy_v1' OR p->>'retentionClass' IS DISTINCT FROM 'requested_change_source_artifact_bytes'
  OR p->>'companyId' IS DISTINCT FROM d.company_id::text OR p->>'artifactId' IS DISTINCT FROM d.artifact_id::text OR p->>'sourceHash' IS DISTINCT FROM d.source_hash OR p->>'claimsHash' IS DISTINCT FROM d.claims_hash
  OR p->>'documentHash' IS DISTINCT FROM d.document_hash OR p->>'issuerLegalReference' IS DISTINCT FROM k.legal_reference OR nullif(p->>'legalBasisReference','') IS NULL
- OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR issued>now() OR expires<=now() OR issued<k.valid_from OR expires>k.valid_to THEN RETURN NULL;END IF;
+ OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR issued>observed_at OR expires<=observed_at OR issued<k.valid_from OR expires>k.valid_to THEN RETURN NULL;END IF;
  RETURN p;
 EXCEPTION WHEN invalid_text_representation OR invalid_parameter_value OR datetime_field_overflow OR character_not_in_repertoire THEN RETURN NULL;
 END$_$;
@@ -15760,17 +15824,25 @@ CREATE FUNCTION gridex_ediel_retention.record_basis_v1(c uuid, k text, target uu
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$
-DECLARE spec gridex_ediel_retention.record_class_catalog%rowtype;rowdata jsonb;customer uuid;contract uuid;source text;path text;bytes bigint;
+DECLARE spec gridex_ediel_retention.record_class_catalog%rowtype;rowdata jsonb;route_row jsonb;route_customer uuid;route_contract uuid;customer uuid;contract uuid;source text;path text;bytes bigint;
 BEGIN
  SELECT * INTO STRICT spec FROM gridex_ediel_retention.record_class_catalog WHERE retention_class=k;
+ -- Unlocked routing data supplies lock identities only; hashes use the locked reread.
+ EXECUTE format('SELECT to_jsonb(r) FROM public.%I r WHERE id=$1 AND company_id=$2',spec.source_table) INTO STRICT route_row USING target,c;
+ IF spec.source_table IN('customer_contract_documents','customer_contract_signature_requests','customer_contract_acceptances','customer_contract_evidence') THEN
+  route_contract:=(route_row->>'customer_contract_id')::uuid;SELECT customer_id INTO STRICT route_customer FROM public.customer_contracts WHERE id=route_contract AND company_id=c;
+ ELSIF spec.source_table='customer_contracts' THEN route_contract:=target;route_customer:=(route_row->>'customer_id')::uuid;
+ ELSIF spec.source_table='domain_events' THEN route_customer:=(route_row->>'subject_customer_id')::uuid;
+ ELSE route_customer:=(route_row->>'customer_id')::uuid;route_contract:=nullif(route_row->>'contract_id','')::uuid;END IF;
+ IF route_contract IS NOT NULL THEN PERFORM id FROM public.customer_contracts WHERE id=route_contract AND company_id=c AND customer_id=route_customer FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'retention_actual_record_contract_scope_required';END IF;END IF;
+ PERFORM id FROM public.customers WHERE id=route_customer AND company_id=c FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'retention_actual_record_customer_scope_required';END IF;
  EXECUTE format('SELECT to_jsonb(r) FROM public.%I r WHERE id=$1 AND company_id=$2 FOR SHARE',spec.source_table) INTO STRICT rowdata USING target,c;
  IF spec.source_table IN('customer_contract_documents','customer_contract_signature_requests','customer_contract_acceptances','customer_contract_evidence') THEN
-  contract:=(rowdata->>'customer_contract_id')::uuid;SELECT customer_id INTO STRICT customer FROM public.customer_contracts WHERE id=contract AND company_id=c FOR SHARE;
+  contract:=(rowdata->>'customer_contract_id')::uuid;customer:=route_customer;
  ELSIF spec.source_table='customer_contracts' THEN contract:=target;customer:=(rowdata->>'customer_id')::uuid;
  ELSIF spec.source_table='domain_events' THEN customer:=(rowdata->>'subject_customer_id')::uuid;
  ELSE customer:=(rowdata->>'customer_id')::uuid;contract:=nullif(rowdata->>'contract_id','')::uuid;END IF;
- PERFORM id FROM public.customers WHERE id=customer AND company_id=c FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'retention_actual_record_customer_scope_required';END IF;
- IF contract IS NOT NULL THEN PERFORM id FROM public.customer_contracts WHERE id=contract AND company_id=c AND customer_id=customer FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'retention_actual_record_contract_scope_required';END IF;END IF;
+ IF customer IS DISTINCT FROM route_customer OR contract IS DISTINCT FROM route_contract THEN RAISE EXCEPTION USING ERRCODE='40001',MESSAGE='retention_actual_record_scope_changed';END IF;
  source:=encode(sha256(convert_to(rowdata::text,'UTF8')),'hex');bytes:=octet_length(convert_to(rowdata::text,'UTF8'));
  IF k='contract_signed_pdf_bytes' THEN
   source:=rowdata->>'document_sha256';path:=rowdata->>'storage_path';
@@ -15830,6 +15902,20 @@ BEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_customer_record_transition
         raise exception using errcode='55000',message='signed_customer_contract_immutable:'||v_key;
       end if;
     end loop;
+
+    if new.snapshot_hash is distinct from old.snapshot_hash then
+      if nullif(btrim(new.snapshot_hash),'') is null
+         or not exists (
+           select 1 from public.contract_price_snapshots p
+           where p.id=old.contract_price_snapshot_id
+             and p.company_id=old.company_id
+             and p.contract_id=old.id
+             and p.snapshot_hash=new.snapshot_hash
+             and nullif(btrim(p.snapshot_hash),'') is not null
+         ) then
+        raise exception using errcode='55000',message='signed_customer_contract_price_hash_binding_invalid';
+      end if;
+    end if;
 
     if new.document_sha256 is distinct from old.document_sha256 then
       if old.document_sha256 is not null
@@ -15903,11 +15989,14 @@ CREATE FUNCTION gridex_ediel_retention.record_current_review_v1(d gridex_ediel_r
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE r gridex_ediel_retention.record_reviews%rowtype;claims jsonb;BEGIN
+DECLARE r gridex_ediel_retention.record_reviews%rowtype;claims jsonb;observed_at timestamptz;BEGIN
+ LOCK TABLE public.permissions,public.roles,public.user_roles,public.role_permissions,public.user_permissions,public.user_permission_overrides IN SHARE MODE;
  SELECT * INTO r FROM gridex_ediel_retention.record_reviews WHERE decision_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1 FOR SHARE;
  PERFORM public.ediel_retention_lock_auth_actor_v1(r.actor_user_id);PERFORM id FROM public.user_profiles WHERE id=r.actor_user_id FOR SHARE;PERFORM user_id FROM public.company_memberships WHERE company_id=d.company_id AND user_id=r.actor_user_id FOR SHARE;
  IF r.outcome IS DISTINCT FROM 'approved' OR r.actor_user_id=d.submitted_by OR gridex_ediel_retention.permission_v1(d.company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE OR gridex_ediel_retention.record_permission_v1(d.company_id,r.actor_user_id,d.retention_class) IS NOT TRUE THEN RETURN NULL;END IF;
- claims:=gridex_ediel_retention.record_receipt_v1(d);IF claims IS NULL OR (claims->>'retainUntil')::timestamptz>now() THEN RETURN NULL;END IF;RETURN r.id;
+ claims:=gridex_ediel_retention.record_receipt_v1(d);
+ IF r.outcome IS DISTINCT FROM 'approved' OR r.actor_user_id=d.submitted_by OR gridex_ediel_retention.permission_v1(d.company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE OR gridex_ediel_retention.record_permission_v1(d.company_id,r.actor_user_id,d.retention_class) IS NOT TRUE THEN RETURN NULL;END IF;
+ observed_at:=clock_timestamp();IF claims IS NULL OR (claims->>'retainUntil')::timestamptz>observed_at THEN RETURN NULL;END IF;RETURN r.id;
 END$$;
 
 --
@@ -15956,7 +16045,13 @@ CREATE FUNCTION gridex_ediel_retention.record_permission_v1(c uuid, actor uuid, 
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
-DECLARE wanted text;BEGIN
+DECLARE wanted text;observed_at timestamptz;BEGIN
+ LOCK TABLE public.permissions,public.roles,public.user_roles,public.role_permissions,public.user_permissions,public.user_permission_overrides IN SHARE MODE;
+ PERFORM public.ediel_retention_lock_auth_actor_v1(actor);
+ PERFORM id FROM public.companies WHERE id=c FOR SHARE;
+ PERFORM id FROM public.user_profiles WHERE id=actor FOR SHARE;
+ PERFORM user_id FROM public.company_memberships WHERE company_id=c AND user_id=actor FOR SHARE;
+ observed_at:=clock_timestamp();
  IF k='__read_scope__' THEN wanted:='ediel.retention.read';ELSE SELECT permission_key INTO wanted FROM gridex_ediel_retention.record_class_catalog WHERE retention_class=k;END IF;
  IF wanted IS NULL OR NOT EXISTS(SELECT FROM public.companies WHERE id=c AND status IN('active','archived','pending_deletion','closed'))
  OR NOT public.ediel_retention_lock_auth_actor_v1(actor)
@@ -15964,11 +16059,11 @@ DECLARE wanted text;BEGIN
  OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=c AND user_id=actor AND status='active' AND is_active AND accepted_at IS NOT NULL)
  OR NOT EXISTS(SELECT FROM public.permissions WHERE key=wanted AND is_active) THEN RETURN false;END IF;
  IF EXISTS(SELECT FROM public.user_permissions u JOIN public.permissions p ON p.id=u.permission_id OR u.permission_id IS NULL AND p.key=u.permission_key WHERE u.user_id=actor AND (u.company_id=c OR u.company_id IS NULL) AND u.is_active AND u.status='active' AND u.effect='deny' AND p.key=wanted)
- OR EXISTS(SELECT FROM public.user_permission_overrides o WHERE o.user_id=actor AND (o.company_id=c OR o.company_id IS NULL) AND o.is_active AND o.effect='deny' AND o.permission_key=wanted AND (o.valid_from IS NULL OR o.valid_from<=now()) AND (o.valid_to IS NULL OR now()<o.valid_to))
+ OR EXISTS(SELECT FROM public.user_permission_overrides o WHERE o.user_id=actor AND (o.company_id=c OR o.company_id IS NULL) AND o.is_active AND o.effect='deny' AND o.permission_key=wanted AND (o.valid_from IS NULL OR o.valid_from<=observed_at) AND (o.valid_to IS NULL OR observed_at<o.valid_to))
  OR EXISTS(SELECT FROM public.user_roles u JOIN public.roles r ON r.id=u.role_id JOIN public.role_permissions rp ON rp.role_id=r.id JOIN public.permissions p ON p.id=rp.permission_id OR rp.permission_id IS NULL AND p.key=rp.permission_key WHERE u.user_id=actor AND (u.company_id=c OR u.company_id IS NULL) AND u.is_active AND u.status='active' AND r.is_active AND rp.effect='deny' AND p.key=wanted) THEN RETURN false;END IF;
  RETURN EXISTS(SELECT FROM public.user_permissions u JOIN public.permissions p ON p.id=u.permission_id OR u.permission_id IS NULL AND p.key=u.permission_key WHERE u.user_id=actor AND u.company_id=c AND u.is_active AND u.status='active' AND u.effect='allow' AND p.is_active AND p.key=wanted)
  OR EXISTS(SELECT FROM public.user_roles u JOIN public.roles r ON r.id=u.role_id JOIN public.role_permissions rp ON rp.role_id=r.id JOIN public.permissions p ON p.id=rp.permission_id OR rp.permission_id IS NULL AND p.key=rp.permission_key WHERE u.user_id=actor AND u.company_id=c AND u.is_active AND u.status='active' AND r.is_active AND rp.effect='allow' AND p.is_active AND p.key=wanted)
- OR EXISTS(SELECT FROM public.user_permission_overrides o WHERE o.user_id=actor AND o.company_id=c AND o.is_active AND o.effect='allow' AND o.permission_key=wanted AND (o.valid_from IS NULL OR o.valid_from<=now()) AND (o.valid_to IS NULL OR now()<o.valid_to));
+ OR EXISTS(SELECT FROM public.user_permission_overrides o WHERE o.user_id=actor AND o.company_id=c AND o.is_active AND o.effect='allow' AND o.permission_key=wanted AND (o.valid_from IS NULL OR o.valid_from<=observed_at) AND (o.valid_to IS NULL OR observed_at<o.valid_to));
 END$$;
 
 --
@@ -15993,16 +16088,17 @@ CREATE FUNCTION gridex_ediel_retention.record_receipt_v1(d gridex_ediel_retentio
     SET search_path TO 'pg_catalog'
     AS $_$
 DECLARE issuer gridex_ediel_retention.issuers%rowtype;spec gridex_ediel_retention.record_class_catalog%rowtype;body jsonb;bytes bytea;issued timestamptz;expires timestamptz;deadline timestamptz;journal_deadline timestamptz;
-BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
+observed_at timestamptz;BEGIN IF d.document_bytes IS NULL OR encode(sha256(d.document_bytes),'hex') IS DISTINCT FROM d.document_hash THEN RETURN NULL;END IF;
  IF jsonb_typeof(d.issuer_receipt) IS DISTINCT FROM 'object' OR coalesce(d.issuer_receipt->>'signatureHex','')!~'^[a-f0-9]{64}$' OR length(coalesce(d.issuer_receipt->>'payloadBase64','')) NOT BETWEEN 1 AND 32768 THEN RETURN NULL;END IF;
  SELECT * INTO issuer FROM gridex_ediel_retention.issuers WHERE id=(d.issuer_receipt->>'issuerId')::uuid AND company_id=d.company_id FOR SHARE;
+ observed_at:=clock_timestamp();
  SELECT * INTO STRICT spec FROM gridex_ediel_retention.record_class_catalog WHERE retention_class=d.retention_class;
- IF issuer.id IS NULL OR now()<issuer.valid_from OR now()>=issuer.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id) OR EXISTS(SELECT FROM gridex_ediel_retention.record_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
+ IF issuer.id IS NULL OR observed_at<issuer.valid_from OR observed_at>=issuer.valid_to OR EXISTS(SELECT FROM gridex_ediel_retention.issuer_revocations WHERE issuer_id=issuer.id) OR EXISTS(SELECT FROM gridex_ediel_retention.record_revocations WHERE decision_id=d.id) THEN RETURN NULL;END IF;
  bytes:=decode(d.issuer_receipt->>'payloadBase64','base64');IF encode(gridex_requested_changes.receipt_hmac_sha256_v1(bytes,issuer.signing_key),'hex') IS DISTINCT FROM d.issuer_receipt->>'signatureHex' THEN RETURN NULL;END IF;
  body:=convert_from(bytes,'UTF8')::jsonb;issued:=(body->>'issuedAt')::timestamptz;expires:=(body->>'expiresAt')::timestamptz;deadline:=(body->>'retainUntil')::timestamptz;journal_deadline:=(body->>'journalRetainUntil')::timestamptz;
  IF body->>'format' IS DISTINCT FROM 'ediel_customer_record_retention_policy_v1' OR body->>'retentionClass' IS DISTINCT FROM d.retention_class OR body->>'sourceTable' IS DISTINCT FROM spec.source_table OR body->>'operation' IS DISTINCT FROM spec.operation OR body->>'companyId' IS DISTINCT FROM d.company_id::text OR body->>'customerId' IS DISTINCT FROM d.customer_id::text OR body->>'targetId' IS DISTINCT FROM d.target_id::text OR body->>'sourceHash' IS DISTINCT FROM d.source_hash OR body->>'targetHash' IS DISTINCT FROM d.target_hash OR body->>'documentHash' IS DISTINCT FROM d.document_hash OR body->>'issuerLegalReference' IS DISTINCT FROM issuer.legal_reference
  OR nullif(body->>'legalBasisReference','') IS NULL OR nullif(body->>'journalPurposeReference','') IS NULL OR body->>'accessRevocationRequired' IS DISTINCT FROM 'true'
- OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR isfinite(journal_deadline) IS DISTINCT FROM true OR issued>now() OR expires<=now() OR issued<issuer.valid_from OR expires>issuer.valid_to OR journal_deadline<=now() THEN RETURN NULL;END IF;
+ OR isfinite(issued) IS DISTINCT FROM true OR isfinite(expires) IS DISTINCT FROM true OR isfinite(deadline) IS DISTINCT FROM true OR isfinite(journal_deadline) IS DISTINCT FROM true OR issued>observed_at OR expires<=observed_at OR issued<issuer.valid_from OR expires>issuer.valid_to OR journal_deadline<=observed_at THEN RETURN NULL;END IF;
  RETURN body;
 EXCEPTION WHEN invalid_text_representation OR invalid_parameter_value OR datetime_field_overflow OR character_not_in_repertoire THEN RETURN NULL;
 END$_$;
@@ -17278,7 +17374,10 @@ BEGIN
   IF m.related_message_id IS NULL THEN RAISE EXCEPTION 'ediel_historical_technical_ack_private_chain_unavailable';END IF;
  END IF;
  IF m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'CONTRL' OR m.related_message_id IS NULL THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;
- SELECT * INTO source FROM public.ediel_messages WHERE id=m.related_message_id AND direction='inbound' FOR SHARE;
+ SELECT parent.* INTO source FROM public.ediel_messages parent WHERE parent.id=m.related_message_id AND parent.direction='inbound' AND parent.environment=m.environment AND (parent.company_id=m.company_id OR parent.company_id IS NULL) AND EXISTS(
+   SELECT FROM gridex_ediel_technical_ack.sources receipt WHERE receipt.source_message_id=parent.id AND receipt.company_id=m.company_id
+    AND receipt.environment=parent.environment AND receipt.status='ready' AND receipt.source_received_at IS NOT DISTINCT FROM parent.message_received_at
+    AND receipt.payload_sha256=encode(sha256(convert_to(parent.raw_payload,'UTF8')),'hex')) FOR SHARE;
  evidence:=gridex_ediel_technical_ack.require_source_v1(m.company_id,source.id);
  PERFORM gridex_ediel_technical_ack.require_current_endpoint_v1(evidence);
  IF m.environment IS DISTINCT FROM evidence->>'environment' THEN RAISE EXCEPTION 'ediel_technical_ack_basis_required';END IF;
@@ -17353,7 +17452,10 @@ CREATE FUNCTION gridex_ediel_technical_ack.require_source_v1(p_company_id uuid, 
     AS $$
 DECLARE m public.ediel_messages%rowtype;b gridex_ediel_technical_ack.sources%rowtype;r gridex_ediel_technical_ack.replies%rowtype;
 BEGIN
- SELECT * INTO m FROM public.ediel_messages WHERE id=p_message_id AND direction='inbound' FOR SHARE;
+ SELECT parent.* INTO m FROM public.ediel_messages parent WHERE parent.id=p_message_id AND parent.direction='inbound' AND (parent.company_id=p_company_id OR parent.company_id IS NULL) AND EXISTS(
+   SELECT FROM gridex_ediel_technical_ack.sources receipt WHERE receipt.source_message_id=parent.id AND receipt.company_id=p_company_id
+    AND receipt.environment=parent.environment AND receipt.status='ready' AND receipt.source_received_at IS NOT DISTINCT FROM parent.message_received_at
+    AND receipt.payload_sha256=encode(sha256(convert_to(parent.raw_payload,'UTF8')),'hex')) FOR SHARE;
  SELECT * INTO b FROM gridex_ediel_technical_ack.sources WHERE source_message_id=m.id;
  SELECT * INTO r FROM gridex_ediel_technical_ack.replies WHERE source_message_id=m.id;
  IF m.id IS NULL OR b.source_message_id IS NULL OR r.source_message_id IS NULL THEN RAISE EXCEPTION 'ediel_historical_technical_ack_basis_unavailable';END IF;
@@ -36800,6 +36902,7 @@ declare
   v_existing public.canonical_command_results%rowtype;
   v_result jsonb;
   v_event_id uuid;
+  v_accepted_at timestamptz;
 begin
   if v_actor_user_id is null or v_user_id is null or v_actor_user_id<>v_user_id
      or v_invitation_id is null or v_idempotency_key is null then
@@ -36846,7 +36949,7 @@ begin
   if coalesce(v_invitation.status,'')<>'pending' then
     raise exception using errcode='23514', message='tenant_invitation_not_pending';
   end if;
-  if v_invitation.expires_at is not null and v_invitation.expires_at<=now() then
+  if v_invitation.expires_at is not null and v_invitation.expires_at<=clock_timestamp() then
     raise exception using errcode='23514', message='tenant_invitation_expired';
   end if;
   if v_invitation.invited_user_id is not null and v_invitation.invited_user_id<>v_user_id then
@@ -36893,16 +36996,22 @@ begin
     raise exception using errcode='22023', message='canonical_tenant_role_definition_missing';
   end if;
 
+  -- Revalidate after the company lock and before first acceptance mutation.
+  v_accepted_at:=clock_timestamp();
+  if v_invitation.expires_at is not null and v_invitation.expires_at<=v_accepted_at then
+    raise exception using errcode='23514', message='tenant_invitation_expired';
+  end if;
+
   insert into public.company_memberships(
     company_id,user_id,membership_role,role_key,status,is_active,invited_email,
     invited_by,invited_at,accepted_at,disabled_at,removed_at,status_reason,metadata
   ) values(
     v_invitation.company_id,v_user_id,v_membership_role,v_role_key,'active',true,v_auth_email,
-    v_invitation.invited_by,coalesce(v_invitation.created_at,now()),now(),null,null,null,
+    v_invitation.invited_by,coalesce(v_invitation.created_at,now()),v_accepted_at,null,null,null,
     jsonb_build_object('canonical_invitation_id',v_invitation_id,'canonical_access_command',v_idempotency_key)
   ) on conflict(company_id,user_id) do update set
     membership_role=excluded.membership_role,role_key=excluded.role_key,status='active',is_active=true,
-    invited_email=excluded.invited_email,accepted_at=coalesce(public.company_memberships.accepted_at,now()),
+    invited_email=excluded.invited_email,accepted_at=coalesce(public.company_memberships.accepted_at,v_accepted_at),
     disabled_at=null,removed_at=null,status_reason=null,
     metadata=coalesce(public.company_memberships.metadata,'{}'::jsonb)||excluded.metadata,
     updated_at=now();
@@ -36927,7 +37036,7 @@ begin
   end if;
 
   update public.company_invitations
-  set status='accepted',accepted_at=now(),invited_user_id=v_user_id,
+  set status='accepted',accepted_at=v_accepted_at,invited_user_id=v_user_id,
       membership_role=v_membership_role,role_key=v_role_key,
       metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object(
         'access_source','canonical_verified_auth_invitation','accepted_by_verified_user',true
@@ -36954,6 +37063,11 @@ begin
     jsonb_build_object('company_id',v_invitation.company_id,'user_id',v_user_id,'invitation_id',v_invitation_id)
   );
 
+  -- Implicit write/FK/unique locks can also wait. Expiry rolls back this new acceptance.
+  if v_invitation.expires_at is not null and v_invitation.expires_at<=clock_timestamp() then
+    raise exception using errcode='23514', message='tenant_invitation_expired';
+  end if;
+
   v_result:=jsonb_build_object(
     'changed',true,'already_accepted',false,'company_id',v_invitation.company_id,
     'user_id',v_user_id,'invitation_id',v_invitation_id,
@@ -36964,6 +37078,9 @@ begin
   ) values(
     v_invitation.company_id,'tenant.invitation.accept',v_idempotency_key,v_hash,v_request,v_result,v_actor_user_id
   );
+  if v_invitation.expires_at is not null and v_invitation.expires_at<=clock_timestamp() then
+    raise exception using errcode='23514', message='tenant_invitation_expired';
+  end if;
   return v_result;
 end
 $$;
@@ -39479,6 +39596,9 @@ begin
     end if;
 
   elsif v_action='replace_overrides' then
+    if coalesce(array_length(v_allow,1),0)>0 then
+      raise exception using errcode='22023', message='global_permission_override_deny_only';
+    end if;
     select array_agg(value) into v_overlap
     from (
       select unnest(v_allow) value
@@ -39517,6 +39637,9 @@ begin
     where user_id=v_target_user_id and company_id is null;
 
   elsif v_action='upsert_override' then
+    if v_effect is distinct from 'deny' then
+      raise exception using errcode='22023', message='global_permission_override_deny_only';
+    end if;
     if v_permission_key is null or v_effect not in ('allow','deny') then
       raise exception using errcode='22023', message='permission_key_and_valid_effect_required';
     end if;
@@ -44869,19 +44992,33 @@ CREATE FUNCTION public.ediel_begin_customer_record_retention_v1(p_company_id uui
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $_$
-DECLARE d gridex_ediel_retention.record_decisions%rowtype;t gridex_ediel_retention.record_tombstones%rowtype;spec gridex_ediel_retention.record_class_catalog%rowtype;basis jsonb;claims jsonb;r uuid;customer public.customers%rowtype;at timestamptz:=clock_timestamp();assignments text;BEGIN
+DECLARE d gridex_ediel_retention.record_decisions%rowtype;t gridex_ediel_retention.record_tombstones%rowtype;spec gridex_ediel_retention.record_class_catalog%rowtype;basis jsonb;claims jsonb;r uuid;customer public.customers%rowtype;at timestamptz:=clock_timestamp();assignments text;locked_target jsonb;locked_customer uuid;locked_contract uuid;BEGIN
  PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge');SELECT * INTO STRICT d FROM gridex_ediel_retention.record_decisions WHERE id=p_decision_id AND company_id=p_company_id FOR UPDATE;
  IF gridex_ediel_retention.record_permission_v1(p_company_id,p_actor_user_id,d.retention_class) IS NOT TRUE THEN RAISE EXCEPTION 'retention_current_record_class_grant_required';END IF;
  SELECT * INTO t FROM gridex_ediel_retention.record_tombstones WHERE retention_class=d.retention_class AND target_id=d.target_id;
  IF FOUND THEN IF t.decision_id IS DISTINCT FROM d.id THEN RAISE EXCEPTION 'record_retention_tombstone_conflict';END IF;RETURN jsonb_build_object('status',CASE WHEN t.retention_class='contract_signed_pdf_bytes' AND NOT EXISTS(SELECT FROM gridex_ediel_retention.record_events WHERE retention_class=t.retention_class AND target_id=t.target_id AND kind='storage_object_absent') THEN 'storage_purge_pending' ELSE 'redacted' END,'retentionClass',t.retention_class,'targetId',t.target_id,'sourceHash',t.source_hash,'byteLength',t.byte_length,'storagePath',t.storage_path,'replay',true);END IF;
  r:=gridex_ediel_retention.record_current_review_v1(d);IF r IS NULL THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_exact_class_legal_review_deadline']);END IF;
  LOCK TABLE public.customer_supply_periods,public.customer_portal_accounts,public.customer_portal_claims IN SHARE ROW EXCLUSIVE MODE;
+ IF d.contract_id IS NOT NULL THEN PERFORM id FROM public.customer_contracts WHERE id=d.contract_id AND company_id=p_company_id AND customer_id=d.customer_id FOR UPDATE;IF NOT FOUND THEN RETURN jsonb_build_object('status','held','missing',ARRAY['exact_native_record_target_changed']);END IF;END IF;
  SELECT * INTO STRICT customer FROM public.customers WHERE id=d.customer_id AND company_id=p_company_id FOR UPDATE;
  IF customer.status IS DISTINCT FROM 'archived' OR EXISTS(SELECT FROM public.customer_supply_periods WHERE company_id=p_company_id AND customer_id=d.customer_id AND status NOT IN('cancelled','rejected','terminated','ended','closed','inactive') AND (coalesce(actual_end_date,end_date) IS NULL OR coalesce(actual_end_date,end_date)>=current_date)) THEN RETURN jsonb_build_object('status','held','missing',ARRAY['operative_customer_closed_and_no_active_supply']);END IF;
+ SELECT * INTO STRICT spec FROM gridex_ediel_retention.record_class_catalog WHERE retention_class=d.retention_class;
+ EXECUTE format('SELECT to_jsonb(r) FROM public.%I r WHERE id=$1 AND company_id=$2 FOR UPDATE',spec.source_table) INTO STRICT locked_target USING d.target_id,p_company_id;
+ IF spec.source_table IN('customer_contract_documents','customer_contract_signature_requests','customer_contract_acceptances','customer_contract_evidence') THEN
+  locked_contract:=(locked_target->>'customer_contract_id')::uuid;locked_customer:=d.customer_id;
+ ELSIF spec.source_table='customer_contracts' THEN locked_contract:=d.target_id;locked_customer:=(locked_target->>'customer_id')::uuid;
+ ELSIF spec.source_table='domain_events' THEN locked_customer:=(locked_target->>'subject_customer_id')::uuid;
+ ELSE locked_customer:=(locked_target->>'customer_id')::uuid;locked_contract:=nullif(locked_target->>'contract_id','')::uuid;END IF;
+ IF locked_customer IS DISTINCT FROM d.customer_id OR locked_contract IS DISTINCT FROM d.contract_id THEN RETURN jsonb_build_object('status','held','missing',ARRAY['exact_native_record_target_changed']);END IF;
  basis:=gridex_ediel_retention.record_basis_v1(p_company_id,d.retention_class,d.target_id);IF basis->>'targetHash' IS DISTINCT FROM d.target_hash OR basis->>'sourceHash' IS DISTINCT FROM d.source_hash THEN RETURN jsonb_build_object('status','held','missing',ARRAY['exact_native_record_target_changed']);END IF;
  SELECT * INTO STRICT spec FROM gridex_ediel_retention.record_class_catalog WHERE retention_class=d.retention_class;
  IF d.retention_class='customer_address_history' AND EXISTS(SELECT FROM public.customer_addresses WHERE id=d.target_id AND (is_active OR moved_out_at IS NULL OR moved_out_at>=current_date)) THEN RETURN jsonb_build_object('status','held','missing',ARRAY['inactive_historical_address_required']);END IF;
+ EXECUTE format('SELECT id FROM public.%I WHERE id=$1 AND company_id=$2 FOR UPDATE',spec.source_table) USING d.target_id,p_company_id;
  claims:=gridex_ediel_retention.record_receipt_v1(d);
+ PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge');
+ IF gridex_ediel_retention.record_permission_v1(p_company_id,p_actor_user_id,d.retention_class) IS NOT TRUE THEN RAISE EXCEPTION 'retention_current_record_class_grant_required';END IF;
+ r:=gridex_ediel_retention.record_current_review_v1(d);at:=clock_timestamp();
+ IF r IS NULL OR claims IS NULL OR (claims->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_exact_class_legal_review_deadline']);END IF;
  UPDATE public.customer_portal_accounts SET status='revoked',is_active=false,updated_at=at WHERE company_id=p_company_id AND customer_id=d.customer_id;
  UPDATE public.customer_portal_claims SET status='revoked',updated_at=at WHERE company_id=p_company_id AND customer_id=d.customer_id;
  INSERT INTO gridex_ediel_retention.record_tombstones(retention_class,target_id,company_id,customer_id,contract_id,decision_id,review_id,source_hash,target_hash,byte_length,storage_path,actor_user_id,journal_retain_until,journal_purpose_reference,created_at) VALUES(d.retention_class,d.target_id,p_company_id,d.customer_id,d.contract_id,d.id,r,d.source_hash,d.target_hash,(basis->>'byteLength')::bigint,basis->>'storagePath',p_actor_user_id,(claims->>'journalRetainUntil')::timestamptz,claims->>'journalPurposeReference',at);
@@ -45287,10 +45424,43 @@ END$$;
 CREATE FUNCTION public.ediel_capture_customer_record_retention_origin_v1(p_table text, p_old jsonb, p_new jsonb) RETURNS boolean
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$DECLARE t gridex_ediel_retention.record_tombstones%rowtype;BEGIN
+    AS $_$DECLARE t gridex_ediel_retention.record_tombstones%rowtype;
+ o gridex_ediel_retention.process_retention_origins%rowtype;
+BEGIN
  IF public.ediel_is_qualified_customer_record_transition_v1(p_table,p_old,p_new) IS NOT TRUE THEN RETURN false;END IF;
- SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid AND x.target_hash=encode(sha256(convert_to(p_old::text,'UTF8')),'hex');
- INSERT INTO gridex_ediel_retention.process_retention_origins(company_id,source_table,target_id,decision_id,original_hash,redacted_hash,journal_retain_until,journal_purpose_reference) VALUES(t.company_id,p_table,t.target_id,t.decision_id,t.target_hash,encode(sha256(convert_to(p_new::text,'UTF8')),'hex'),t.journal_retain_until,t.journal_purpose_reference) ON CONFLICT DO NOTHING;RETURN true;END$$;
+ SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x
+  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class
+  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid AND x.company_id=(p_old->>'company_id')::uuid;
+ SELECT x.* INTO o FROM gridex_ediel_retention.process_retention_origins x
+  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;
+ IF FOUND THEN
+  -- The captured full redacted hash is immutable evidence, not a hash of a
+  -- later row whose permitted updated_at may have changed repeatedly. Current
+  -- OLD/NEW state remains protected by the unchanged exact class qualifier.
+  IF o.original_hash IS DISTINCT FROM t.target_hash OR o.redacted_hash!~'^[a-f0-9]{64}$'
+   OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until
+   OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN
+   RAISE EXCEPTION 'record_retention_existing_origin_binding_mismatch' USING ERRCODE='23514';END IF;
+  RETURN true; -- No insertion, replacement, new hash or historical fabrication.
+ END IF;
+ -- First capture still requires the exact immutable original before erasure.
+ -- An already-redacted legacy row with no established origin must fail closed.
+ SELECT x.* INTO STRICT t FROM gridex_ediel_retention.record_tombstones x
+  JOIN gridex_ediel_retention.record_class_catalog k ON k.retention_class=x.retention_class
+  WHERE k.source_table=p_table AND x.target_id=(p_old->>'id')::uuid
+   AND x.target_hash=encode(sha256(convert_to(p_old::text,'UTF8')),'hex');
+ INSERT INTO gridex_ediel_retention.process_retention_origins(company_id,source_table,target_id,decision_id,original_hash,redacted_hash,journal_retain_until,journal_purpose_reference)
+ VALUES(t.company_id,p_table,t.target_id,t.decision_id,t.target_hash,encode(sha256(convert_to(p_new::text,'UTF8')),'hex'),t.journal_retain_until,t.journal_purpose_reference) ON CONFLICT DO NOTHING;
+ SELECT x.* INTO STRICT o FROM gridex_ediel_retention.process_retention_origins x
+  WHERE x.company_id=t.company_id AND x.source_table=p_table AND x.target_id=t.target_id AND x.decision_id=t.decision_id;
+ IF o.original_hash IS DISTINCT FROM t.target_hash
+  OR o.redacted_hash IS DISTINCT FROM encode(sha256(convert_to(p_new::text,'UTF8')),'hex')
+  OR o.journal_retain_until IS DISTINCT FROM t.journal_retain_until
+  OR o.journal_purpose_reference IS DISTINCT FROM t.journal_purpose_reference THEN
+  RAISE EXCEPTION 'record_retention_first_origin_binding_mismatch' USING ERRCODE='23514';END IF;
+ RETURN true;
+END
+$_$;
 
 --
 -- Name: ediel_capture_source_rule_pack_basis_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -47375,11 +47545,18 @@ BEGIN PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'edie
  OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=p_company_id AND user_id=r.actor_user_id AND status='active' AND is_active AND accepted_at IS NOT NULL)
  OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_retention_reviewer_authority']);END IF;
  IF gridex_ediel_retention.class_permission_v1(p_company_id,r.actor_user_id,'requested_change_source_artifact_bytes') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_retention_class_reviewer_authority']);END IF;claims:=gridex_ediel_retention.receipt_v1(d);
- IF r.outcome IS DISTINCT FROM 'approved' OR claims IS NULL OR (claims->>'retainUntil')::timestamptz>now() THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_approved_legal_retention_deadline']);END IF;
+ IF r.outcome IS DISTINCT FROM 'approved' OR claims IS NULL OR (claims->>'retainUntil')::timestamptz>clock_timestamp() THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_approved_legal_retention_deadline']);END IF;
  IF a.source_hash IS DISTINCT FROM d.source_hash OR a.claims_hash IS DISTINCT FROM d.claims_hash OR a.source_bytes IS NULL OR encode(sha256(a.source_bytes),'hex') IS DISTINCT FROM d.source_hash THEN RAISE EXCEPTION 'ediel_retention_target_original_changed';END IF;
  SELECT * INTO o FROM gridex_requested_changes.review_origins WHERE artifact_id=a.id AND company_id=p_company_id FOR SHARE;
  IF o.event_id IS NOT NULL THEN
   PERFORM id FROM gridex_requested_changes.events WHERE id=o.event_id AND company_id=p_company_id FOR UPDATE;
+ END IF;
+ PERFORM gridex_ediel_retention.actor_v1(p_company_id,p_actor_user_id,'ediel.retention.purge');
+ IF gridex_ediel_retention.class_permission_v1(p_company_id,p_actor_user_id,'requested_change_source_artifact_bytes') IS NOT TRUE THEN RAISE EXCEPTION 'retention_current_class_grant_required';END IF;
+ claims:=gridex_ediel_retention.receipt_v1(d);
+ IF NOT public.ediel_retention_lock_auth_actor_v1(r.actor_user_id) OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE OR gridex_ediel_retention.class_permission_v1(p_company_id,r.actor_user_id,'requested_change_source_artifact_bytes') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_retention_reviewer_authority']);END IF;
+ at:=clock_timestamp();IF r.outcome IS DISTINCT FROM 'approved' OR claims IS NULL OR (claims->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_approved_legal_retention_deadline']);END IF;
+ IF o.event_id IS NOT NULL THEN
   INSERT INTO gridex_requested_changes.revocations(event_id,source_reference,source_sha256,actor_user_id) VALUES(o.event_id,claims->>'legalBasisReference',d.document_hash,p_actor_user_id) ON CONFLICT DO NOTHING;
  END IF;
  INSERT INTO gridex_ediel_retention.purges(artifact_id,company_id,decision_id,review_id,source_hash,claims_hash,byte_length,actor_user_id,event_id,created_at) VALUES(a.id,a.company_id,d.id,r.id,a.source_hash,a.claims_hash,octet_length(a.source_bytes),p_actor_user_id,o.event_id,at);
@@ -47406,6 +47583,12 @@ CREATE FUNCTION public.ediel_purge_decision_evidence_retention_v1(p_company_id u
  IF p IS NULL OR (p->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','policyId',d.id,'missing',ARRAY['current_exact_original_deadline']);END IF;
  basis:=gridex_ediel_retention.decision_evidence_basis_v1(p_company_id,d.retention_class,d.target_id);IF basis->>'sourceHash' IS DISTINCT FROM d.source_hash OR basis->>'targetMetadataHash' IS DISTINCT FROM d.target_metadata_hash THEN RETURN jsonb_build_object('status','held','policyId',d.id,'missing',ARRAY['unchanged_original_source_metadata']);END IF;
  SELECT * INTO STRICT spec FROM gridex_ediel_retention.decision_evidence_catalog WHERE retention_class=d.retention_class;
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(p_company_id,p_actor_user_id,d.retention_class,'ediel.retention.purge');
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,r.actor_user_id,d.retention_class);
+ p:=gridex_ediel_retention.decision_evidence_receipt_v1(d);
+ PERFORM gridex_ediel_retention.decision_evidence_actor_v1(p_company_id,p_actor_user_id,d.retention_class,'ediel.retention.purge');
+ PERFORM gridex_ediel_retention.decision_evidence_lock_reviewer_v1(p_company_id,r.actor_user_id,d.retention_class);
+ at:=clock_timestamp();IF p IS NULL OR (p->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','policyId',d.id,'missing',ARRAY['current_exact_original_deadline']);END IF;
  -- Invalidate the consumed original policy before physical byte removal. Its
  -- already completed receipts remain available as immutable historical facts.
  IF d.retention_class IN('masterdata_declaration_agreement_original_bytes','masterdata_declaration_source_original_bytes','masterdata_preparation_agreement_original_bytes','masterdata_preparation_source_original_bytes','metering_contract_request_agreement_original_bytes','metering_contract_request_source_original_bytes','metering_method_event_agreement_original_bytes','metering_method_event_source_original_bytes') THEN INSERT INTO gridex_ediel_retention.contract_copy_revocations(retention_class,target_id,company_id,policy_id,review_id,source_hash,actor_user_id) VALUES(d.retention_class,d.target_id,d.company_id,d.id,r.id,d.source_hash,p_actor_user_id);ELSIF d.retention_class IN('life_event_classification_source_original_bytes','life_event_classification_receipt_original_bytes','life_event_classification_revocation_original_bytes') THEN INSERT INTO gridex_ediel_retention.classification_copy_revocations(retention_class,classification_id,company_id,source_message_id,policy_id,review_id,source_hash,actor_user_id) SELECT d.retention_class,d.target_id,d.company_id,q.source_message_id,d.id,r.id,d.source_hash,p_actor_user_id FROM gridex_customer_life_events.inbound_classifications q WHERE q.id=d.target_id AND q.company_id=d.company_id;ELSE IF EXISTS(SELECT FROM gridex_ediel_retention.protected_copy_specs WHERE retention_class=d.retention_class) THEN INSERT INTO gridex_ediel_retention.protected_copy_revocations(retention_class,target_id,company_id,policy_id,review_id,source_hash,actor_user_id) VALUES(d.retention_class,d.target_id,d.company_id,d.id,r.id,d.source_hash,p_actor_user_id);ELSE EXECUTE format('INSERT INTO gridex_ediel_retention.%I(%I,actor_user_id,reason) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',spec.revocation_table,spec.revocation_id_column) USING d.target_id,p_actor_user_id,left('Qualified decision-original policy: '||(p->>'legalBasisReference'),4000); END IF; END IF;
@@ -47422,15 +47605,21 @@ END$_$;
 CREATE FUNCTION public.ediel_purge_finance_copy_retention_v1(p_company_id uuid, p_actor_user_id uuid, p_decision_id uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $_$DECLARE d gridex_ediel_retention.finance_decisions%rowtype;t gridex_ediel_retention.finance_tombstones%rowtype;r gridex_ediel_retention.finance_reviews%rowtype;spec gridex_ediel_retention.finance_class_catalog%rowtype;p jsonb;basis jsonb;oldrow jsonb;redacted jsonb;cols text;BEGIN
+    AS $_$DECLARE d gridex_ediel_retention.finance_decisions%rowtype;t gridex_ediel_retention.finance_tombstones%rowtype;r gridex_ediel_retention.finance_reviews%rowtype;spec gridex_ediel_retention.finance_class_catalog%rowtype;p jsonb;basis jsonb;oldrow jsonb;redacted jsonb;cols text;at timestamptz;BEGIN
  SELECT * INTO STRICT d FROM gridex_ediel_retention.finance_decisions WHERE id=p_decision_id AND company_id=p_company_id FOR UPDATE;PERFORM gridex_ediel_retention.finance_actor_v1(p_company_id,p_actor_user_id,d.retention_class,'ediel.retention.purge');SELECT * INTO t FROM gridex_ediel_retention.finance_tombstones WHERE retention_class=d.retention_class AND target_id=d.target_id;IF FOUND THEN IF t.decision_id IS DISTINCT FROM d.id OR t.company_id IS DISTINCT FROM p_company_id THEN RAISE EXCEPTION 'finance_retention_replay_conflict';END IF;RETURN jsonb_build_object('status','redacted','retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',d.source_hash,'byteLength',t.byte_length,'replay',true);END IF;
- SELECT * INTO r FROM gridex_ediel_retention.finance_reviews WHERE decision_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1;SELECT * INTO STRICT spec FROM gridex_ediel_retention.finance_class_catalog WHERE retention_class=d.retention_class;
+ SELECT * INTO r FROM gridex_ediel_retention.finance_reviews WHERE decision_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1 FOR SHARE;SELECT * INTO STRICT spec FROM gridex_ediel_retention.finance_class_catalog WHERE retention_class=d.retention_class;
  IF r.outcome IS DISTINCT FROM 'approved' OR r.actor_user_id=d.submitted_by OR public.ediel_retention_lock_auth_actor_v1(r.actor_user_id) IS NOT TRUE OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,spec.permission_key) IS NOT TRUE OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_separate_exact_class_review']);END IF;
  p:=gridex_ediel_retention.finance_receipt_v1(d);IF p IS NULL OR (p->>'retainUntil')::timestamptz>clock_timestamp() THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_exact_class_legal_deadline']);END IF;
  basis:=gridex_ediel_retention.finance_basis_v1(p_company_id,d.retention_class,d.target_id);IF basis->>'sourceHash' IS DISTINCT FROM d.source_hash OR basis->>'targetHash' IS DISTINCT FROM d.target_hash OR basis->>'scopeHash' IS DISTINCT FROM d.scope_hash OR basis->>'allIncludedScopesClosed' IS DISTINCT FROM 'true' OR p->>'periodStart' IS DISTINCT FROM basis->>'periodStart' OR p->>'periodEnd' IS DISTINCT FROM basis->>'periodEnd' THEN RETURN jsonb_build_object('status','held','missing',ARRAY['unchanged_source_native_period_all_scopes_closed']);END IF;
- LOCK TABLE public.customer_portal_accounts,public.customer_portal_claims IN SHARE ROW EXCLUSIVE MODE;UPDATE public.customer_portal_accounts SET status='revoked',is_active=false,updated_at=clock_timestamp() WHERE company_id=p_company_id AND customer_id IN(SELECT value::uuid FROM jsonb_array_elements_text(basis->'includedCustomers'));UPDATE public.customer_portal_claims SET status='revoked',updated_at=clock_timestamp() WHERE company_id=p_company_id AND customer_id IN(SELECT value::uuid FROM jsonb_array_elements_text(basis->'includedCustomers'));
+ LOCK TABLE public.customer_portal_accounts,public.customer_portal_claims IN SHARE ROW EXCLUSIVE MODE;EXECUTE format('SELECT to_jsonb(x) FROM %I.%I x WHERE %I::text=$1 AND company_id=$2 FOR UPDATE',spec.source_schema,spec.source_table,spec.id_column) INTO oldrow USING d.target_id,p_company_id;
+ PERFORM id FROM public.user_profiles WHERE id=r.actor_user_id FOR SHARE;PERFORM user_id FROM public.company_memberships WHERE company_id=p_company_id AND user_id=r.actor_user_id FOR SHARE;
+ p:=gridex_ediel_retention.finance_receipt_v1(d);
+ PERFORM gridex_ediel_retention.finance_actor_v1(p_company_id,p_actor_user_id,d.retention_class,'ediel.retention.purge');
+ IF r.outcome IS DISTINCT FROM 'approved' OR r.actor_user_id=d.submitted_by OR public.ediel_retention_lock_auth_actor_v1(r.actor_user_id) IS NOT TRUE OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,spec.permission_key) IS NOT TRUE OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_separate_exact_class_review']);END IF;
+ at:=clock_timestamp();IF p IS NULL OR (p->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_exact_class_legal_deadline']);END IF;
+UPDATE public.customer_portal_accounts SET status='revoked',is_active=false,updated_at=at WHERE company_id=p_company_id AND customer_id IN(SELECT value::uuid FROM jsonb_array_elements_text(basis->'includedCustomers'));UPDATE public.customer_portal_claims SET status='revoked',updated_at=at WHERE company_id=p_company_id AND customer_id IN(SELECT value::uuid FROM jsonb_array_elements_text(basis->'includedCustomers'));
  INSERT INTO gridex_ediel_retention.finance_tombstones(retention_class,target_id,company_id,decision_id,review_id,source_hash,target_hash,scope_hash,byte_length,actor_user_id,journal_retain_until,journal_purpose_reference) VALUES(d.retention_class,d.target_id,p_company_id,d.id,r.id,d.source_hash,d.target_hash,d.scope_hash,(basis->>'byteLength')::bigint,p_actor_user_id,(p->>'journalRetainUntil')::timestamptz,p->>'journalPurposeReference');
- EXECUTE format('SELECT to_jsonb(x) FROM %I.%I x WHERE %I::text=$1 AND company_id=$2 FOR UPDATE',spec.source_schema,spec.source_table,spec.id_column) INTO oldrow USING d.target_id,p_company_id;redacted:=gridex_ediel_retention.finance_redacted_v1(d.retention_class,oldrow,d.source_hash);SELECT string_agg(format('%I',v),',') INTO cols FROM unnest(spec.body_columns)v;EXECUTE format('UPDATE %I.%I SET (%s)=(SELECT %s FROM jsonb_populate_record(NULL::%I.%I,$1)) WHERE %I::text=$2 AND company_id=$3',spec.source_schema,spec.source_table,cols,cols,spec.source_schema,spec.source_table,spec.id_column) USING redacted,d.target_id,p_company_id;
+ redacted:=gridex_ediel_retention.finance_redacted_v1(d.retention_class,oldrow,d.source_hash);SELECT string_agg(format('%I',v),',') INTO cols FROM unnest(spec.body_columns)v;EXECUTE format('UPDATE %I.%I SET (%s)=(SELECT %s FROM jsonb_populate_record(NULL::%I.%I,$1)) WHERE %I::text=$2 AND company_id=$3',spec.source_schema,spec.source_table,cols,cols,spec.source_schema,spec.source_table,spec.id_column) USING redacted,d.target_id,p_company_id;
  INSERT INTO gridex_ediel_retention.finance_events(retention_class,target_id,actor_user_id) VALUES(d.retention_class,d.target_id,p_actor_user_id);INSERT INTO public.audit_logs(actor_user_id,company_id,entity_type,entity_id,action,metadata) VALUES(p_actor_user_id,p_company_id,'finance_copy_retention',d.id,'ediel.retention.finance_redacted',jsonb_build_object('retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',d.source_hash,'scopeHash',d.scope_hash,'journalRetainUntil',p->>'journalRetainUntil','journalPurposeReference',p->>'journalPurposeReference','complete',false,'authority','none'));RETURN jsonb_build_object('status','redacted','retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',d.source_hash,'byteLength',(basis->>'byteLength')::bigint,'replay',false);END$_$;
 
 --
@@ -47443,12 +47632,20 @@ CREATE FUNCTION public.ediel_purge_process_journal_retention_v1(p_company_id uui
     AS $_$DECLARE d gridex_ediel_retention.process_decisions%rowtype;t gridex_ediel_retention.process_tombstones%rowtype;p jsonb;basis jsonb;r gridex_ediel_retention.process_reviews%rowtype;spec gridex_ediel_retention.process_class_catalog%rowtype;at timestamptz:=clock_timestamp();BEGIN
  PERFORM gridex_ediel_retention.record_actor_v1(p_company_id,p_actor_user_id,'legal_acceptance_personal_snapshot','ediel.retention.purge');SELECT * INTO STRICT d FROM gridex_ediel_retention.process_decisions WHERE id=p_decision_id AND company_id=p_company_id FOR UPDATE;
  SELECT * INTO t FROM gridex_ediel_retention.process_tombstones WHERE retention_class=d.retention_class AND target_id=d.target_id;IF FOUND THEN IF t.decision_id IS DISTINCT FROM d.id OR t.company_id IS DISTINCT FROM p_company_id THEN RAISE EXCEPTION 'process_retention_replay_conflict';END IF;RETURN jsonb_build_object('status','redacted','retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',d.source_hash,'byteLength',t.byte_length,'replay',true);END IF;
- SELECT * INTO r FROM gridex_ediel_retention.process_reviews WHERE decision_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1;IF r.outcome IS DISTINCT FROM 'approved' OR r.actor_user_id=d.submitted_by OR gridex_ediel_retention.record_permission_v1(p_company_id,r.actor_user_id,'legal_acceptance_personal_snapshot') IS NOT TRUE OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_separate_exact_class_review']);END IF;
+ SELECT * INTO r FROM gridex_ediel_retention.process_reviews WHERE decision_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1 FOR SHARE;IF r.outcome IS DISTINCT FROM 'approved' OR r.actor_user_id=d.submitted_by OR gridex_ediel_retention.record_permission_v1(p_company_id,r.actor_user_id,'legal_acceptance_personal_snapshot') IS NOT TRUE OR gridex_ediel_retention.permission_v1(p_company_id,r.actor_user_id,'ediel.retention.review') IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_separate_exact_class_review']);END IF;
  -- Re-lock the separate reviewer's actual auth/row/grant graph, not a cached UI.
  PERFORM gridex_ediel_retention.record_lock_review_actor_v1(p_company_id,r.actor_user_id);
  p:=gridex_ediel_retention.process_receipt_v1(d);IF p IS NULL OR (p->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_exact_class_legal_deadline']);END IF;
  basis:=gridex_ediel_retention.process_basis_v1(p_company_id,d.retention_class,d.target_id);IF basis->>'sourceHash' IS DISTINCT FROM d.source_hash OR basis->>'targetHash' IS DISTINCT FROM d.target_hash OR basis->>'scopeHash' IS DISTINCT FROM d.scope_hash OR basis->>'allIncludedScopesClosed' IS DISTINCT FROM 'true' THEN RETURN jsonb_build_object('status','held','missing',ARRAY['unchanged_source_and_all_included_scopes_closed']);END IF;
  LOCK TABLE public.customer_portal_accounts,public.customer_portal_claims IN SHARE ROW EXCLUSIVE MODE;
+ SELECT * INTO STRICT spec FROM gridex_ediel_retention.process_class_catalog WHERE retention_class=d.retention_class;
+ EXECUTE format('SELECT id FROM gridex_correction_process.%I WHERE id::text=$1 AND company_id=$2 FOR UPDATE',spec.source_table) USING d.target_id,p_company_id;
+ PERFORM gridex_ediel_retention.record_actor_v1(p_company_id,p_actor_user_id,'legal_acceptance_personal_snapshot','ediel.retention.purge');
+ PERFORM gridex_ediel_retention.record_lock_review_actor_v1(p_company_id,r.actor_user_id);
+ p:=gridex_ediel_retention.process_receipt_v1(d);
+ PERFORM gridex_ediel_retention.record_actor_v1(p_company_id,p_actor_user_id,'legal_acceptance_personal_snapshot','ediel.retention.purge');
+ PERFORM gridex_ediel_retention.record_lock_review_actor_v1(p_company_id,r.actor_user_id);
+ at:=clock_timestamp();IF p IS NULL OR (p->>'retainUntil')::timestamptz>at THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_exact_class_legal_deadline']);END IF;
  UPDATE public.customer_portal_accounts SET status='revoked',is_active=false,updated_at=at WHERE company_id=p_company_id AND customer_id IN(SELECT value::uuid FROM jsonb_array_elements_text(basis->'includedCustomers'));UPDATE public.customer_portal_claims SET status='revoked',updated_at=at WHERE company_id=p_company_id AND customer_id IN(SELECT value::uuid FROM jsonb_array_elements_text(basis->'includedCustomers'));
  INSERT INTO gridex_ediel_retention.process_tombstones(retention_class,target_id,company_id,decision_id,review_id,source_hash,target_hash,scope_hash,byte_length,actor_user_id,journal_retain_until,journal_purpose_reference,created_at) VALUES(d.retention_class,d.target_id,p_company_id,d.id,r.id,d.source_hash,d.target_hash,d.scope_hash,(basis->>'byteLength')::bigint,p_actor_user_id,(p->>'journalRetainUntil')::timestamptz,p->>'journalPurposeReference',at);
  SELECT * INTO STRICT spec FROM gridex_ediel_retention.process_class_catalog WHERE retention_class=d.retention_class;
@@ -51220,11 +51417,16 @@ BEGIN
  IF NOT FOUND OR NOT EXISTS(SELECT FROM auth.users u JOIN public.user_profiles profile ON profile.id=u.id WHERE u.id=b.actor_user_id AND u.deleted_at IS NULL
   AND (u.banned_until IS NULL OR u.banned_until<=clock_timestamp()) AND profile.user_status='active')
  THEN RAISE EXCEPTION 'staff_identity_actor_inactive' USING ERRCODE='42501'; END IF;
+ -- All registration/invitation locks are already held; refresh time after Auth/binding waits.
+ PERFORM public.gridex_staff_identity_registration_v1(p_command,true);
+ PERFORM public.gridex_staff_identity_invitation_v1(p_command,false);
  IF b.status='pending' THEN UPDATE public.tenant_staff_identity_bindings SET status='active' WHERE id=b.id; END IF;
- -- Stable authority only. No tenant access token, password or verification
- -- snapshot enters the unchanged command hash, audit or membership engine.
- RETURN public.canonical_accept_tenant_invitation(jsonb_build_object('company_id',b.company_id,'invitation_id',b.invitation_id,'user_id',b.actor_user_id,'actor_user_id',b.actor_user_id,
+ result:=public.canonical_accept_tenant_invitation(jsonb_build_object('company_id',b.company_id,'invitation_id',b.invitation_id,'user_id',b.actor_user_id,'actor_user_id',b.actor_user_id,
    'api_client_id',b.api_client_id,'channel','staff_external_onboarding','idempotency_key',p_command->>'idempotency_key'));
+ -- A wait inside canonical acceptance must not admit an expired client/invitation.
+ PERFORM public.gridex_staff_identity_registration_v1(p_command,true);
+ PERFORM public.gridex_staff_identity_invitation_v1(p_command,false);
+ RETURN result;
 END $$;
 
 --
@@ -51254,6 +51456,7 @@ DECLARE
   v_banned timestamptz;
   v_company_status text;
   v_company_active boolean;
+  v_result jsonb;
 BEGIN
   IF v_company_id IS NULL OR v_user_id IS NULL OR v_actor_id IS DISTINCT FROM v_user_id
     OR v_invitation_id IS NULL OR v_client_id IS NULL OR v_provider_id IS NULL OR v_key IS NULL
@@ -51262,15 +51465,13 @@ BEGIN
     OR jsonb_typeof(p_command->'verified_provider') IS DISTINCT FROM 'object'
   THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_identity_invalid'; END IF;
 
-  -- Shared staff commands lock company first. Client/provider/Auth updates
-  -- cannot invalidate a checked snapshot during the canonical transaction.
   SELECT status,is_active INTO v_company_status,v_company_active FROM public.companies WHERE id=v_company_id FOR NO KEY UPDATE;
   IF NOT FOUND OR v_company_status IS DISTINCT FROM 'active' OR v_company_active IS DISTINCT FROM true
   THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_company_inactive'; END IF;
   SELECT * INTO v_client FROM public.integration_api_clients
     WHERE id=v_client_id AND company_id=v_company_id FOR SHARE;
   IF NOT FOUND OR v_client.status IS DISTINCT FROM 'active' OR v_client.deleted_at IS NOT NULL OR v_client.revoked_at IS NOT NULL
-    OR (v_client.expires_at IS NOT NULL AND v_client.expires_at<=now())
+    OR (v_client.expires_at IS NOT NULL AND v_client.expires_at<=clock_timestamp())
     OR NOT ('staff_users.write'=ANY(coalesce(v_client.scopes,ARRAY[]::text[])))
   THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_client_invalid'; END IF;
   v_origin := v_client.metadata->>'staff_onboarding_origin';
@@ -51303,7 +51504,7 @@ BEGIN
   IF NOT FOUND OR v_invitation.invited_user_id IS DISTINCT FROM v_user_id
     OR lower(btrim(v_invitation.email)) IS DISTINCT FROM v_email
     OR v_invitation.status NOT IN ('pending','accepted')
-    OR (v_invitation.status='pending' AND (v_invitation.expires_at IS NULL OR v_invitation.expires_at<=now()))
+    OR (v_invitation.status='pending' AND (v_invitation.expires_at IS NULL OR v_invitation.expires_at<=clock_timestamp()))
   THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_invitation_invalid'; END IF;
   SELECT request_payload INTO v_binding FROM public.canonical_command_results
     WHERE company_id=v_company_id AND command_type='tenant.invitation.create'
@@ -51314,12 +51515,22 @@ BEGIN
     OR v_binding->>'api_client_id' IS DISTINCT FROM v_client_id::text
   THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_invitation_client_mismatch'; END IF;
 
-  -- Only stable canonical authority fields enter the durable request/hash.
-  -- Verification snapshots and secrets are never copied into receipts/audits.
-  RETURN public.canonical_accept_tenant_invitation(jsonb_build_object(
+  -- Revalidate after all explicit locks before delegation.
+  IF v_client.expires_at IS NOT NULL AND v_client.expires_at<=clock_timestamp()
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_client_invalid'; END IF;
+  IF v_invitation.status='pending' AND (v_invitation.expires_at IS NULL OR v_invitation.expires_at<=clock_timestamp())
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_invitation_invalid'; END IF;
+
+  v_result := public.canonical_accept_tenant_invitation(jsonb_build_object(
     'company_id',v_company_id,'invitation_id',v_invitation_id,'user_id',v_user_id,
     'actor_user_id',v_user_id,'idempotency_key',v_key,
     'channel','staff_onboarding','api_client_id',v_client_id));
+  -- Nested acceptance can wait on write locks; reject atomically before returning.
+  IF v_client.expires_at IS NOT NULL AND v_client.expires_at<=clock_timestamp()
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_client_invalid'; END IF;
+  IF v_invitation.status='pending' AND (v_invitation.expires_at IS NULL OR v_invitation.expires_at<=clock_timestamp())
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_invitation_invalid'; END IF;
+  RETURN v_result;
 END;
 $_$;
 
@@ -52489,7 +52700,7 @@ CREATE TABLE public.platform_actor_roles (
 CREATE TABLE public.platform_market_actors (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
-    normalized_name text GENERATED ALWAYS AS (lower(regexp_replace(COALESCE(name, ''::text), '\\s+'::text, ' '::text, 'g'::text))) STORED,
+    normalized_name text GENERATED ALWAYS AS (lower(regexp_replace(COALESCE(name, ''::text), '\s+'::text, ' '::text, 'g'::text))) STORED,
     country_code text DEFAULT 'SE'::text NOT NULL,
     org_number text,
     legal_name text,
@@ -57352,12 +57563,12 @@ declare
   v_profile_rule_pack_id uuid;
 begin
   if new.direction='outbound' and new.message_family='APERAK' and new.execution_context_snapshot ? 'prodatCommonHeaderNegativeWitnessId' then
-    perform gridex_ediel_common_header.witness_v1(new);return new;
+    perform public.gridex_require_outbound_reply_basis_v1(new);return new;
   end if;
   -- A protected technical CONTRL does not borrow a nonexistent businesspack.
   -- The actual original syntax owner and qualified endpoint/wire scope suffice.
   if new.direction='outbound' and new.message_family='CONTRL' then
-    perform gridex_ediel_technical_ack.require_contrl_v1(new);
+    perform public.gridex_require_outbound_reply_basis_v1(new);
     return new;
   end if;
   if new.direction='outbound' and new.message_family in ('PRODAT','UTILTS','CONTRL','APERAK','UTILTS_ERR') then
@@ -63192,6 +63403,22 @@ begin
   order by created_at limit 1;
   v_reused:=v_version_id is not null;
 
+  -- Only new consumption versions or a new publication transition use the
+  -- current25% policy. Existing frozen hash reuse retains its historic snapshot.
+  if (v_version_id is null or (p_publish and exists(
+        select 1 from public.price_plan_versions old_version where old_version.id=v_version_id
+          and (old_version.status<>'published' or old_version.locked_at is null))))
+     and (case when nullif(v_snapshot->>'energy_direction','') is not null
+      then lower(v_snapshot->>'energy_direction')<>'production'
+      else coalesce(v_snapshot#>>'{production,enabled}','false')<>'true'
+        and coalesce(v_snapshot->>'production_enabled','false') not in ('true','on') end) then
+    if nullif(v_snapshot->>'vat_rate','')::numeric is distinct from 0.25
+       or (v_snapshot ? 'vat_rate_percent'
+           and nullif(v_snapshot->>'vat_rate_percent','')::numeric is distinct from 25) then
+      raise exception using errcode='23514',message='consumption_authoring_vat_must_be_25_percent';
+    end if;
+  end if;
+
   if v_version_id is null then
     select id into v_previous_version_id from public.price_plan_versions where price_plan_id=v_plan_id order by version_number desc limit 1;
     select coalesce(max(version_number),0)+1 into v_version_number from public.price_plan_versions where price_plan_id=v_plan_id;
@@ -65917,6 +66144,7 @@ CREATE FUNCTION public.gridex_decide_customer_identity_change_v1(p_company_id uu
 DECLARE
   r public.customer_identity_change_requests%rowtype;
   v_current text;
+  v_decided_at timestamptz;
 BEGIN
   IF p_outcome NOT IN ('applied', 'rejected', 'expired', 'cancelled') THEN
     RAISE EXCEPTION 'identity_change_outcome_invalid' USING ERRCODE = '22023';
@@ -65939,8 +66167,9 @@ BEGIN
   IF p_outcome = 'applied' AND r.approval_required AND p_decided_by <> 'customer' THEN
     RAISE EXCEPTION 'identity_change_requires_customer_approval' USING ERRCODE = '42501';
   END IF;
-  IF p_outcome IN ('applied', 'rejected') AND r.approval_required AND r.expires_at <= now() THEN
-    UPDATE public.customer_identity_change_requests SET status = 'expired', decided_at = now(), decided_by = 'system' WHERE id = r.id;
+  v_decided_at := clock_timestamp();
+  IF p_outcome IN ('applied', 'rejected') AND r.approval_required AND r.expires_at <= v_decided_at THEN
+    UPDATE public.customer_identity_change_requests SET status = 'expired', decided_at = v_decided_at, decided_by = 'system' WHERE id = r.id;
     INSERT INTO public.customer_identity_change_events (company_id, customer_id, request_id, event_type, actor_kind, field, previous_value_masked, new_value_masked)
     VALUES (r.company_id, r.customer_id, r.id, 'expired', 'system', r.field,
             public.gridex_mask_identity_number(r.previous_value), public.gridex_mask_identity_number(r.new_value));
@@ -65966,14 +66195,27 @@ BEGIN
     IF v_current IS DISTINCT FROM r.previous_value THEN
       RAISE EXCEPTION 'identity_change_stale' USING ERRCODE = 'PT409';
     END IF;
+    -- Revalidate the existing Staff actor/client authority after the customer lock.
+    IF r.source_channel='staff_api' AND p_decided_by='staff' THEN
+      PERFORM public.gridex_staff_assert_write_actor_v1(r.company_id,p_actor_user_id,r.api_client_id,'customers.write');
+    END IF;
+    -- The customer lock may have waited beyond the approval deadline.
+    v_decided_at := clock_timestamp();
+    IF p_outcome IN ('applied', 'rejected') AND r.approval_required AND r.expires_at <= v_decided_at THEN
+      UPDATE public.customer_identity_change_requests SET status = 'expired', decided_at = v_decided_at, decided_by = 'system' WHERE id = r.id;
+      INSERT INTO public.customer_identity_change_events (company_id, customer_id, request_id, event_type, actor_kind, field, previous_value_masked, new_value_masked)
+      VALUES (r.company_id, r.customer_id, r.id, 'expired', 'system', r.field,
+              public.gridex_mask_identity_number(r.previous_value), public.gridex_mask_identity_number(r.new_value));
+      RETURN jsonb_build_object('status', 'expired', 'request_id', r.id);
+    END IF;
     EXECUTE format('UPDATE public.customers SET %I = $1, updated_at = now() WHERE company_id = $2 AND id = $3', r.field)
       USING r.new_value, r.company_id, r.customer_id;
   END IF;
 
   UPDATE public.customer_identity_change_requests
-     SET status = p_outcome, decided_at = now(), decided_by = p_decided_by,
+     SET status = p_outcome, decided_at = v_decided_at, decided_by = p_decided_by,
          acceptance_evidence = CASE WHEN p_outcome = 'applied' AND p_decided_by = 'customer' AND p_acceptance IS NOT NULL
-                                    THEN p_acceptance || jsonb_build_object('accepted_at', now())
+                                    THEN p_acceptance || jsonb_build_object('accepted_at', v_decided_at)
                                     ELSE acceptance_evidence END
    WHERE id = r.id;
 
@@ -70038,21 +70280,10 @@ COMMENT ON FUNCTION public.gridex_finalize_contract_publication_v1(p_publication
 CREATE FUNCTION public.gridex_finalize_customer_contract_signature_v1(p_token_hash text, p_signed_ip_hash text DEFAULT NULL::text, p_signed_user_agent text DEFAULT NULL::text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$DECLARE r public.customer_contract_signature_requests%rowtype;BEGIN
- SELECT * INTO STRICT r FROM public.customer_contract_signature_requests WHERE token_hash=p_token_hash FOR SHARE;PERFORM public.ediel_require_contract_records_available_v1(r.company_id,r.customer_contract_id);
- RETURN public.gridex_finalize_signature_before_record_retention_v1(p_token_hash,p_signed_ip_hash,p_signed_user_agent);
-END$$;
-
---
--- Name: gridex_finalize_signature_before_record_retention_v1(text, text, text); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.gridex_finalize_signature_before_record_retention_v1(p_token_hash text, p_signed_ip_hash text DEFAULT NULL::text, p_signed_user_agent text DEFAULT NULL::text) RETURNS jsonb
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public', 'extensions', 'pg_temp'
     AS $_$
 declare
   v_request public.customer_contract_signature_requests%rowtype;
+  v_locator public.customer_contract_signature_requests%rowtype;
   v_contract public.customer_contracts%rowtype;
   v_customer public.customers%rowtype;
   v_company public.companies%rowtype;
@@ -70060,6 +70291,7 @@ declare
   v_legal_versions jsonb;
   v_signature jsonb;
   v_signature_hash text;
+  v_accepted_at timestamptz;
   v_acceptance jsonb;
   v_acceptance_hash text;
   v_customer_type text;
@@ -70068,9 +70300,22 @@ declare
   v_event jsonb;
 begin
   if coalesce(p_token_hash,'') !~ '^[0-9a-f]{64}$' then raise exception using errcode='22023',message='signature_token_invalid'; end if;
+  select * into v_locator from public.customer_contract_signature_requests where token_hash=p_token_hash;
+  if not found then raise exception using errcode='P0002',message='signature_link_not_found'; end if;
+  perform id from public.companies where id=v_locator.company_id for share;
+  select * into v_contract from public.customer_contracts where id=v_locator.customer_contract_id and company_id=v_locator.company_id for update;
   select * into v_request from public.customer_contract_signature_requests where token_hash=p_token_hash for update;
   if not found then raise exception using errcode='P0002',message='signature_link_not_found'; end if;
-  select * into v_contract from public.customer_contracts where id=v_request.customer_contract_id and company_id=v_request.company_id for update;
+  if v_request.id is distinct from v_locator.id or v_request.token_hash is distinct from p_token_hash
+    or v_request.company_id is distinct from v_locator.company_id or v_request.customer_id is distinct from v_locator.customer_id
+    or v_request.customer_contract_id is distinct from v_locator.customer_contract_id then
+    raise exception using errcode='40001',message='signature_request_scope_changed';
+  end if;
+  if v_contract.id is distinct from v_request.customer_contract_id or v_contract.company_id is distinct from v_request.company_id
+    or v_contract.customer_id is distinct from v_request.customer_id then
+    raise exception using errcode='23514',message='signature_exact_locked_chain_invalid';
+  end if;
+  perform public.ediel_require_contract_records_available_v1(v_request.company_id,v_request.customer_contract_id);
   if v_request.used_at is not null then
     if v_contract.status in ('signed','active','terminated','cancelled','expired') and v_contract.signed_at is not null then
       return public.gridex_get_customer_contract_signature_receipt_v1(p_token_hash) || jsonb_build_object('already_signed',true);
@@ -70078,7 +70323,7 @@ begin
     raise exception using errcode='55000',message='signature_link_already_used';
   end if;
   if v_request.revoked_at is not null then raise exception using errcode='55000',message='signature_link_revoked'; end if;
-  if v_request.expires_at<=now() then raise exception using errcode='55000',message='signature_link_expired'; end if;
+  if v_request.expires_at<=clock_timestamp() then raise exception using errcode='55000',message='signature_link_expired'; end if;
   select * into v_company from public.companies where id=v_request.company_id for share;
   if not found or not coalesce(v_company.is_active,false) or coalesce(v_company.lifecycle_status,'')<>'active' or v_company.suspended_at is not null then
     raise exception using errcode='55000',message='signature_tenant_not_operational';
@@ -70115,14 +70360,28 @@ begin
   into v_legal_versions from public.legal_bundle_version_documents d where d.legal_bundle_version_id=v_contract.legal_bundle_version_id;
   if jsonb_array_length(v_legal_versions)=0 then raise exception using errcode='23514',message='signature_legal_document_set_missing'; end if;
 
+  -- Capture one actual acceptance instant after all blocking locks and validations.
+  -- Reuse it for the signature, acceptance/evidence, signed/used timestamps and event.
+  v_accepted_at:=clock_timestamp();
+  if v_request.expires_at<=v_accepted_at then
+    raise exception using errcode='55000',message='signature_link_expired';
+  end if;
+
   v_signature:=jsonb_build_object(
     'schema','gridex_online_contract_signature_v1','company_id',v_contract.company_id,'customer_id',v_contract.customer_id,
-    'contract_id',v_contract.id,'signature_request_id',v_request.id,'channel',v_request.channel,'accepted_at',now(),
+    'contract_id',v_contract.id,'signature_request_id',v_request.id,'channel',v_request.channel,'accepted_at',v_accepted_at,
     'recipient_email',v_request.recipient_email,'contract_number',v_contract.contract_number,'offer_reference',v_contract.offer_reference,
     'contract_publication_version_id',v_contract.contract_publication_version_id,'contract_product_version_id',v_contract.contract_product_version_id,
     'price_plan_version_id',v_contract.price_plan_version_id,'legal_bundle_version_id',v_contract.legal_bundle_version_id,
     'contract_price_snapshot_id',v_contract.contract_price_snapshot_id,'pricing_snapshot_sha256',v_price.snapshot_hash,
     'legal_versions',v_legal_versions,'tenant_communication_snapshot_sha256',v_contract.tenant_communication_snapshot_sha256,
+    'customer_identity_snapshot',jsonb_strip_nulls(jsonb_build_object(
+      'customer_id',v_customer.id,'customer_number',coalesce(v_contract.customer_number,v_customer.customer_number),
+      'email',v_customer.email,'customer_type',v_customer.customer_type,
+      'full_name',coalesce(nullif(btrim(v_request.metadata->>'customer_full_name'),''),
+        nullif(btrim(v_customer.full_name),''),nullif(btrim(v_customer.company_name),''),
+        nullif(btrim(concat_ws(' ',v_customer.first_name,v_customer.last_name)),''))
+    )),
     'request_evidence',jsonb_build_object('ip_hash',p_signed_ip_hash,'user_agent',left(p_signed_user_agent,1000))
   );
   v_signature_hash:=encode(extensions.digest(convert_to(v_signature::text,'UTF8'),'sha256'),'hex');
@@ -70155,7 +70414,7 @@ begin
   ) values(
     v_contract.company_id,v_contract.id,v_contract.contract_publication_version_id,(v_signature->>'accepted_at')::timestamptz,
     v_request.channel,'secure_link_click',p_signed_ip_hash,left(p_signed_user_agent,1000),
-    jsonb_strip_nulls(jsonb_build_object('customer_id',v_customer.id,'customer_number',coalesce(v_contract.customer_number,v_customer.customer_number),'email',v_customer.email,'customer_type',v_customer.customer_type)),
+    v_signature->'customer_identity_snapshot',
     '{}',v_acceptance,v_acceptance_hash
   ) on conflict (customer_contract_id,acceptance_sha256) do nothing;
 
@@ -70165,7 +70424,172 @@ begin
 
   select coalesce(v_customer.customer_type,'private') into v_customer_type;
   select exists(select 1 from public.legal_bundle_version_documents d where d.legal_bundle_version_id=v_contract.legal_bundle_version_id and d.module_key in ('withdrawal','withdrawal_right','withdrawal_form','distance_contract_information','pre_contract_information')) into v_withdrawal_required;
-  v_withdrawal_deadline:=case when v_customer_type='private' and v_withdrawal_required then (v_signature->>'accepted_at')::timestamptz+interval '14 days' else null end;
+  v_withdrawal_deadline:=case when v_customer_type='private' and v_withdrawal_required then ((((v_signature->>'accepted_at')::timestamptz AT TIME ZONE 'Europe/Stockholm')::date+15)::timestamp AT TIME ZONE 'Europe/Stockholm')-interval '1 microsecond' else null end;
+
+  update public.customer_contracts set
+    status='signed',signed_at=(v_signature->>'accepted_at')::timestamptz,
+    snapshot_hash=v_price.snapshot_hash,
+    is_distance_agreement=true,withdrawal_deadline_at=v_withdrawal_deadline,
+    legal_versions_snapshot=v_legal_versions,signature_snapshot=v_signature,signature_snapshot_sha256=v_signature_hash,
+    signed_ip_hash=p_signed_ip_hash,signed_user_agent=left(p_signed_user_agent,1000),locked_at=(v_signature->>'accepted_at')::timestamptz,
+    lifecycle_stage='agreement_signed',signed_version=coalesce(terms_version,contract_version,'v1'),terms_signed_version=coalesce(terms_version,'v1'),
+    metadata=coalesce(metadata,'{}'::jsonb)||jsonb_build_object('signature_status','signed','signature_method','secure_link_click','signature_request_id',v_request.id,'signature_snapshot_sha256',v_signature_hash,'pricing_snapshot_sha256',v_price.snapshot_hash),
+    updated_at=now()
+  where id=v_contract.id and company_id=v_contract.company_id
+  returning * into v_contract;
+
+  update public.customer_contract_signature_requests set used_at=(v_signature->>'accepted_at')::timestamptz where id=v_request.id;
+
+  v_event:=public.gridex_record_customer_contract_event_v1(
+    v_contract.company_id,v_contract.id,v_contract.customer_id,'signed',(v_signature->>'accepted_at')::timestamptz,
+    'Avtal signerat online via säker engångslänk',
+    jsonb_build_object('signature_request_id',v_request.id,'signature_snapshot_sha256',v_signature_hash,'pricing_snapshot_sha256',v_price.snapshot_hash,'channel',v_request.channel),
+    null,null,
+    encode(extensions.digest(convert_to((v_request.id::text||':signed'),'UTF8'),'sha256'),'hex')
+  );
+
+  return public.gridex_get_customer_contract_signature_receipt_v1(p_token_hash) || jsonb_build_object('already_signed',false,'withdrawal_deadline_at',v_withdrawal_deadline);
+end
+$_$;
+
+--
+-- Name: gridex_finalize_signature_before_record_retention_v1(text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_finalize_signature_before_record_retention_v1(p_token_hash text, p_signed_ip_hash text DEFAULT NULL::text, p_signed_user_agent text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_temp'
+    AS $_$
+declare
+  v_request public.customer_contract_signature_requests%rowtype;
+  v_contract public.customer_contracts%rowtype;
+  v_customer public.customers%rowtype;
+  v_company public.companies%rowtype;
+  v_price public.contract_price_snapshots%rowtype;
+  v_legal_versions jsonb;
+  v_signature jsonb;
+  v_signature_hash text;
+  v_accepted_at timestamptz;
+  v_acceptance jsonb;
+  v_acceptance_hash text;
+  v_customer_type text;
+  v_withdrawal_required boolean;
+  v_withdrawal_deadline timestamptz;
+  v_event jsonb;
+begin
+  if coalesce(p_token_hash,'') !~ '^[0-9a-f]{64}$' then raise exception using errcode='22023',message='signature_token_invalid'; end if;
+  select * into v_request from public.customer_contract_signature_requests where token_hash=p_token_hash for update;
+  if not found then raise exception using errcode='P0002',message='signature_link_not_found'; end if;
+  select * into v_contract from public.customer_contracts where id=v_request.customer_contract_id and company_id=v_request.company_id for update;
+  if v_request.used_at is not null then
+    if v_contract.status in ('signed','active','terminated','cancelled','expired') and v_contract.signed_at is not null then
+      return public.gridex_get_customer_contract_signature_receipt_v1(p_token_hash) || jsonb_build_object('already_signed',true);
+    end if;
+    raise exception using errcode='55000',message='signature_link_already_used';
+  end if;
+  if v_request.revoked_at is not null then raise exception using errcode='55000',message='signature_link_revoked'; end if;
+  if v_request.expires_at<=clock_timestamp() then raise exception using errcode='55000',message='signature_link_expired'; end if;
+  select * into v_company from public.companies where id=v_request.company_id for share;
+  if not found or not coalesce(v_company.is_active,false) or coalesce(v_company.lifecycle_status,'')<>'active' or v_company.suspended_at is not null then
+    raise exception using errcode='55000',message='signature_tenant_not_operational';
+  end if;
+  if v_contract.status<>'pending_signature' or v_contract.signed_at is not null then
+    raise exception using errcode='23514',message='contract_not_pending_signature';
+  end if;
+  select * into v_customer from public.customers where id=v_contract.customer_id and company_id=v_contract.company_id;
+  select * into v_price from public.contract_price_snapshots where id=v_contract.contract_price_snapshot_id and company_id=v_contract.company_id and contract_id=v_contract.id;
+  if not found or nullif(v_price.snapshot_hash,'') is null then raise exception using errcode='23514',message='signature_pricing_snapshot_missing'; end if;
+
+  if not exists(
+    select 1 from public.contract_publication_versions cpv
+    join public.contract_publications cp on cp.id=cpv.contract_publication_id
+    join public.tenant_contract_assignments ta on ta.id=cp.assignment_id and ta.company_id=v_contract.company_id
+    join public.contract_product_versions ctv on ctv.id=cpv.contract_product_version_id
+    join public.price_plan_versions ppv on ppv.id=cpv.price_plan_version_id
+    join public.legal_bundle_versions lbv on lbv.id=cpv.legal_bundle_version_id
+    where cpv.id=v_contract.contract_publication_version_id
+      and cpv.contract_product_version_id=v_contract.contract_product_version_id
+      and cpv.price_plan_version_id=v_contract.price_plan_version_id
+      and cpv.legal_bundle_version_id=v_contract.legal_bundle_version_id
+      and cpv.status='published' and cpv.locked_at is not null
+      and ctv.status='approved' and ctv.locked_at is not null
+      and ppv.status in ('published','approved','active') and ppv.locked_at is not null
+      and lbv.status='published' and lbv.locked_at is not null and cardinality(lbv.unresolved_variables)=0
+  ) then raise exception using errcode='23514',message='signature_exact_locked_chain_invalid'; end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'legal_bundle_version_document_id',d.id,'module_key',d.module_key,'title',d.title,
+    'legal_document_version',coalesce(d.template_version,left(d.content_sha256,12)),
+    'document_sha256',d.content_sha256,'body_sha256',d.content_sha256
+  ) order by d.sort_order,d.id),'[]'::jsonb)
+  into v_legal_versions from public.legal_bundle_version_documents d where d.legal_bundle_version_id=v_contract.legal_bundle_version_id;
+  if jsonb_array_length(v_legal_versions)=0 then raise exception using errcode='23514',message='signature_legal_document_set_missing'; end if;
+
+  -- Capture one actual acceptance instant after all blocking locks and validations.
+  -- Reuse it for the signature, acceptance/evidence, signed/used timestamps and event.
+  v_accepted_at:=clock_timestamp();
+  if v_request.expires_at<=v_accepted_at then
+    raise exception using errcode='55000',message='signature_link_expired';
+  end if;
+
+  v_signature:=jsonb_build_object(
+    'schema','gridex_online_contract_signature_v1','company_id',v_contract.company_id,'customer_id',v_contract.customer_id,
+    'contract_id',v_contract.id,'signature_request_id',v_request.id,'channel',v_request.channel,'accepted_at',v_accepted_at,
+    'recipient_email',v_request.recipient_email,'contract_number',v_contract.contract_number,'offer_reference',v_contract.offer_reference,
+    'contract_publication_version_id',v_contract.contract_publication_version_id,'contract_product_version_id',v_contract.contract_product_version_id,
+    'price_plan_version_id',v_contract.price_plan_version_id,'legal_bundle_version_id',v_contract.legal_bundle_version_id,
+    'contract_price_snapshot_id',v_contract.contract_price_snapshot_id,'pricing_snapshot_sha256',v_price.snapshot_hash,
+    'legal_versions',v_legal_versions,'tenant_communication_snapshot_sha256',v_contract.tenant_communication_snapshot_sha256,
+    'customer_identity_snapshot',jsonb_strip_nulls(jsonb_build_object(
+      'customer_id',v_customer.id,'customer_number',coalesce(v_contract.customer_number,v_customer.customer_number),
+      'email',v_customer.email,'customer_type',v_customer.customer_type,
+      'full_name',coalesce(nullif(btrim(v_request.metadata->>'customer_full_name'),''),
+        nullif(btrim(v_customer.full_name),''),nullif(btrim(v_customer.company_name),''),
+        nullif(btrim(concat_ws(' ',v_customer.first_name,v_customer.last_name)),''))
+    )),
+    'request_evidence',jsonb_build_object('ip_hash',p_signed_ip_hash,'user_agent',left(p_signed_user_agent,1000))
+  );
+  v_signature_hash:=encode(extensions.digest(convert_to(v_signature::text,'UTF8'),'sha256'),'hex');
+  v_acceptance:=jsonb_build_object(
+    'schema','gridex_contract_acceptance_v1','signature_request_id',v_request.id,'contract_id',v_contract.id,
+    'accepted_at',v_signature->>'accepted_at','channel',v_request.channel,'signing_method','secure_link_click',
+    'signature_snapshot_sha256',v_signature_hash,'pricing_snapshot_sha256',v_price.snapshot_hash,'legal_versions',v_legal_versions
+  );
+  v_acceptance_hash:=encode(extensions.digest(convert_to(v_acceptance::text,'UTF8'),'sha256'),'hex');
+
+  insert into public.customer_legal_acceptances(
+    company_id,customer_id,contract_id,acceptance_type,legal_text_version_id,
+    legal_bundle_version_document_id,legal_module_key,legal_document_version,legal_document_sha256,
+    accepted_at,accepted_ip_hash,accepted_user_agent,source,snapshot,metadata
+  )
+  select v_contract.company_id,v_contract.customer_id,v_contract.id,
+    case public.gridex_legacy_legal_type_for_module(d.module_key)
+      when 'privacy_policy' then 'privacy_policy' when 'withdrawal' then 'withdrawal_info'
+      when 'power_of_attorney' then 'power_of_attorney' when 'price_terms' then 'price_snapshot' else 'terms' end,
+    null,d.id,d.module_key,coalesce(d.template_version,left(d.content_sha256,12)),d.content_sha256,
+    (v_signature->>'accepted_at')::timestamptz,p_signed_ip_hash,left(p_signed_user_agent,1000),'customer_portal',
+    jsonb_build_object('signature_request_id',v_request.id,'signature_snapshot_sha256',v_signature_hash),
+    jsonb_build_object('channel',v_request.channel,'pricing_snapshot_sha256',v_price.snapshot_hash)
+  from public.legal_bundle_version_documents d where d.legal_bundle_version_id=v_contract.legal_bundle_version_id
+  on conflict do nothing;
+
+  insert into public.customer_contract_acceptances(
+    company_id,customer_contract_id,contract_publication_version_id,accepted_at,channel,signing_method,
+    ip_hash,user_agent,customer_identity_snapshot,power_of_attorney_snapshot,acceptance_snapshot,acceptance_sha256
+  ) values(
+    v_contract.company_id,v_contract.id,v_contract.contract_publication_version_id,(v_signature->>'accepted_at')::timestamptz,
+    v_request.channel,'secure_link_click',p_signed_ip_hash,left(p_signed_user_agent,1000),
+    v_signature->'customer_identity_snapshot',
+    '{}',v_acceptance,v_acceptance_hash
+  ) on conflict (customer_contract_id,acceptance_sha256) do nothing;
+
+  insert into public.customer_contract_evidence(company_id,customer_contract_id,evidence_type,evidence_snapshot,evidence_sha256,captured_at)
+  values(v_contract.company_id,v_contract.id,'online_acceptance',v_signature,v_signature_hash,(v_signature->>'accepted_at')::timestamptz)
+  on conflict (customer_contract_id,evidence_type,evidence_sha256) do nothing;
+
+  select coalesce(v_customer.customer_type,'private') into v_customer_type;
+  select exists(select 1 from public.legal_bundle_version_documents d where d.legal_bundle_version_id=v_contract.legal_bundle_version_id and d.module_key in ('withdrawal','withdrawal_right','withdrawal_form','distance_contract_information','pre_contract_information')) into v_withdrawal_required;
+  v_withdrawal_deadline:=case when v_customer_type='private' and v_withdrawal_required then ((((v_signature->>'accepted_at')::timestamptz AT TIME ZONE 'Europe/Stockholm')::date+15)::timestamp AT TIME ZONE 'Europe/Stockholm')-interval '1 microsecond' else null end;
 
   update public.customer_contracts set
     status='signed',signed_at=(v_signature->>'accepted_at')::timestamptz,
@@ -70476,6 +70900,11 @@ begin
   end if;
   if v_request.status = 'completed' then
     return jsonb_build_object('already_completed', true, 'request', to_jsonb(v_request));
+  end if;
+  -- Delegated actors are service-only; authenticated completion uses its signed JWT subject.
+  if auth.role() is distinct from 'service_role'
+     and (auth.uid() is null or p_actor_user_id is distinct from auth.uid()) then
+    raise exception using errcode='42501',message='supplier_switch_actor_binding_required';
   end if;
   if v_request.status <> 'accepted' or v_request.inbound_z04_message_id is null then
     raise exception using errcode = '23514', message = 'supplier_switch_finalize_requires_accepted_z04';
@@ -70917,7 +71346,7 @@ begin
   ) into v_withdrawal_required;
   v_withdrawal_deadline:=case
     when coalesce(v_customer_type,'private')='private' and v_withdrawal_required
-      then p_accepted_at+interval '14 days'
+      then (((p_accepted_at AT TIME ZONE 'Europe/Stockholm')::date+15)::timestamp AT TIME ZONE 'Europe/Stockholm')-interval '1 microsecond'
     else null
   end;
 
@@ -71977,11 +72406,63 @@ $$;
 CREATE FUNCTION public.gridex_get_customer_contract_signature_receipt_v1(p_token_hash text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$DECLARE r public.customer_contract_signature_requests%rowtype;BEGIN
- SELECT * INTO STRICT r FROM public.customer_contract_signature_requests WHERE token_hash=p_token_hash FOR SHARE;
- PERFORM public.ediel_require_contract_records_available_v1(r.company_id,r.customer_contract_id);
- RETURN public.gridex_get_signature_before_record_retention_v1(p_token_hash);
-END$$;
+    AS $$
+declare
+  v_request public.customer_contract_signature_requests%rowtype;
+  v_locator public.customer_contract_signature_requests%rowtype;
+  v_contract public.customer_contracts%rowtype;
+  v_customer public.customers%rowtype;
+  v_company public.companies%rowtype;
+  v_price public.contract_price_snapshots%rowtype;
+  v_legal_versions jsonb;
+begin
+  select * into v_locator from public.customer_contract_signature_requests where token_hash=p_token_hash;
+  if not found then raise exception using errcode='P0002',message='signature_link_not_found'; end if;
+  perform id from public.companies where id=v_locator.company_id for share;
+  select * into v_contract from public.customer_contracts where id=v_locator.customer_contract_id and company_id=v_locator.company_id for share;
+  select * into v_request from public.customer_contract_signature_requests where token_hash=p_token_hash for share;
+  if not found then raise exception using errcode='P0002',message='signature_link_not_found'; end if;
+  if v_request.id is distinct from v_locator.id or v_request.token_hash is distinct from p_token_hash
+    or v_request.company_id is distinct from v_locator.company_id or v_request.customer_id is distinct from v_locator.customer_id
+    or v_request.customer_contract_id is distinct from v_locator.customer_contract_id then
+    raise exception using errcode='40001',message='signature_request_scope_changed';
+  end if;
+  if v_contract.id is distinct from v_request.customer_contract_id or v_contract.company_id is distinct from v_request.company_id
+    or v_contract.customer_id is distinct from v_request.customer_id then
+    raise exception using errcode='23514',message='signature_exact_locked_chain_invalid';
+  end if;
+  perform public.ediel_require_contract_records_available_v1(v_request.company_id,v_request.customer_contract_id);
+  if v_request.revoked_at is not null then raise exception using errcode='55000',message='signature_link_revoked'; end if;
+  if v_request.used_at is null and v_request.expires_at<=clock_timestamp() then raise exception using errcode='55000',message='signature_link_expired'; end if;
+  select * into v_contract from public.customer_contracts where id=v_request.customer_contract_id and company_id=v_request.company_id;
+  select * into v_customer from public.customers where id=v_request.customer_id and company_id=v_request.company_id;
+  select * into v_company from public.companies where id=v_request.company_id;
+  select * into v_price from public.contract_price_snapshots where id=v_contract.contract_price_snapshot_id and company_id=v_request.company_id;
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id',d.id,'module_key',d.module_key,'title',d.title,
+    'version',coalesce(d.template_version,left(d.content_sha256,12)),
+    'document_sha256',d.content_sha256,'body',d.rendered_body
+  ) order by d.sort_order,d.id),'[]'::jsonb)
+  into v_legal_versions
+  from public.legal_bundle_version_documents d where d.legal_bundle_version_id=v_contract.legal_bundle_version_id;
+  return jsonb_build_object(
+    'request_id',v_request.id,'company_id',v_request.company_id,'customer_id',v_request.customer_id,
+    'contract_id',v_contract.id,'contract_number',v_contract.contract_number,'contract_name',v_contract.contract_name,
+    'contract_type',v_contract.contract_type,'status',v_contract.status,'signed_at',v_contract.signed_at,
+    'used_at',v_request.used_at,'expires_at',v_request.expires_at,'channel',v_request.channel,
+    'customer_name',coalesce(nullif(btrim(v_contract.signature_snapshot#>>'{customer_identity_snapshot,full_name}'),''),
+      nullif(btrim(v_request.metadata->>'customer_full_name'),''),
+      v_customer.full_name,v_customer.company_name,concat_ws(' ',v_customer.first_name,v_customer.last_name),v_customer.email),
+    'customer_email',coalesce(nullif(btrim(v_contract.signature_snapshot->>'recipient_email'),''),v_request.recipient_email,v_customer.email),'customer_number',coalesce(v_contract.customer_number,v_customer.customer_number),
+    'company_name',v_company.name,'offer_reference',v_contract.offer_reference,
+    'starts_at',v_contract.starts_at,'ends_at',v_contract.ends_at,'price_area',coalesce(v_contract.price_area_used,v_price.snapshot_json->>'price_area'),
+    'pricing_snapshot',v_price.snapshot_json,'pricing_snapshot_sha256',v_price.snapshot_hash,
+    'legal_versions',v_legal_versions,'legal_bundle_version_id',v_contract.legal_bundle_version_id,
+    'contract_publication_version_id',v_contract.contract_publication_version_id,'price_plan_version_id',v_contract.price_plan_version_id,
+    'signature_snapshot_sha256',v_contract.signature_snapshot_sha256
+  );
+end
+$$;
 
 --
 -- Name: customer_documents; Type: TABLE; Schema: public; Owner: -
@@ -72423,7 +72904,7 @@ begin
   select * into v_request from public.customer_contract_signature_requests where token_hash=p_token_hash;
   if not found then raise exception using errcode='P0002',message='signature_link_not_found'; end if;
   if v_request.revoked_at is not null then raise exception using errcode='55000',message='signature_link_revoked'; end if;
-  if v_request.used_at is null and v_request.expires_at<=now() then raise exception using errcode='55000',message='signature_link_expired'; end if;
+  if v_request.used_at is null and v_request.expires_at<=clock_timestamp() then raise exception using errcode='55000',message='signature_link_expired'; end if;
   select * into v_contract from public.customer_contracts where id=v_request.customer_contract_id and company_id=v_request.company_id;
   select * into v_customer from public.customers where id=v_request.customer_id and company_id=v_request.company_id;
   select * into v_company from public.companies where id=v_request.company_id;
@@ -72440,8 +72921,10 @@ begin
     'contract_id',v_contract.id,'contract_number',v_contract.contract_number,'contract_name',v_contract.contract_name,
     'contract_type',v_contract.contract_type,'status',v_contract.status,'signed_at',v_contract.signed_at,
     'used_at',v_request.used_at,'expires_at',v_request.expires_at,'channel',v_request.channel,
-    'customer_name',coalesce(v_customer.full_name,v_customer.company_name,concat_ws(' ',v_customer.first_name,v_customer.last_name),v_customer.email),
-    'customer_email',v_customer.email,'customer_number',coalesce(v_contract.customer_number,v_customer.customer_number),
+    'customer_name',coalesce(nullif(btrim(v_contract.signature_snapshot#>>'{customer_identity_snapshot,full_name}'),''),
+      nullif(btrim(v_request.metadata->>'customer_full_name'),''),
+      v_customer.full_name,v_customer.company_name,concat_ws(' ',v_customer.first_name,v_customer.last_name),v_customer.email),
+    'customer_email',coalesce(nullif(btrim(v_contract.signature_snapshot->>'recipient_email'),''),v_request.recipient_email,v_customer.email),'customer_number',coalesce(v_contract.customer_number,v_customer.customer_number),
     'company_name',v_company.name,'offer_reference',v_contract.offer_reference,
     'starts_at',v_contract.starts_at,'ends_at',v_contract.ends_at,'price_area',coalesce(v_contract.price_area_used,v_price.snapshot_json->>'price_area'),
     'pricing_snapshot',v_price.snapshot_json,'pricing_snapshot_sha256',v_price.snapshot_hash,
@@ -72457,7 +72940,7 @@ $$;
 --
 
 CREATE FUNCTION public.gridex_get_user_permissions(p_user_id uuid) RETURNS text[]
-    LANGUAGE sql STABLE SECURITY DEFINER
+    LANGUAGE sql SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
     AS $$
   with role_based as (
@@ -72470,11 +72953,13 @@ CREATE FUNCTION public.gridex_get_user_permissions(p_user_id uuid) RETURNS text[
       and coalesce(ur.is_active, true)
       and coalesce(ur.status, 'active') = 'active'
       and (
+        -- a genuinely global platform role
         (
           ur.company_id is null
           and public.gridex_normalize_platform_role(coalesce(r.key, r.name))
             in ('super_admin', 'platform_admin')
         )
+        -- or a company role, but only while that membership is actually active
         or exists (
           select 1 from public.company_memberships m
           where m.user_id = p_user_id
@@ -72484,12 +72969,37 @@ CREATE FUNCTION public.gridex_get_user_permissions(p_user_id uuid) RETURNS text[
         )
       )
       and coalesce(p.key, p.name) is not null
+      and not exists(
+      select 1 from public.user_permissions d left join public.permissions deny_catalog on deny_catalog.id=d.permission_id
+      where d.user_id=p_user_id and (d.company_id is null or d.company_id=ur.company_id)
+        and d.is_active and d.status='active' and d.effect='deny'
+        and coalesce(nullif(d.permission_key,''),deny_catalog.key)=coalesce(p.key,p.name)
+    ) and not exists(
+      select 1 from public.user_permission_overrides d
+      where d.user_id=p_user_id and (d.company_id is null or d.company_id=ur.company_id)
+        and d.is_active and d.effect='deny' and d.permission_key=coalesce(p.key,p.name)
+        and (d.valid_from is null or d.valid_from<=clock_timestamp())
+        and (d.valid_to is null or clock_timestamp()<d.valid_to)
+    )
   ),
   direct_permissions as (
     select distinct coalesce(p.key, p.name) as permission_name
     from public.user_permissions up
     join public.permissions p on p.id = up.permission_id
     where up.user_id = p_user_id and coalesce(p.key, p.name) is not null
+      and up.is_active and up.status='active' and up.effect='allow'
+      and not exists(
+      select 1 from public.user_permissions d left join public.permissions deny_catalog on deny_catalog.id=d.permission_id
+      where d.user_id=p_user_id and (d.company_id is null or d.company_id=up.company_id)
+        and d.is_active and d.status='active' and d.effect='deny'
+        and coalesce(nullif(d.permission_key,''),deny_catalog.key)=coalesce(p.key,p.name)
+    ) and not exists(
+      select 1 from public.user_permission_overrides d
+      where d.user_id=p_user_id and (d.company_id is null or d.company_id=up.company_id)
+        and d.is_active and d.effect='deny' and d.permission_key=coalesce(p.key,p.name)
+        and (d.valid_from is null or d.valid_from<=clock_timestamp())
+        and (d.valid_to is null or clock_timestamp()<d.valid_to)
+    )
   ),
   explicit_platform_admin_fallback as (
     select 'admin.access'::text as permission_name
@@ -72506,7 +73016,26 @@ CREATE FUNCTION public.gridex_get_user_permissions(p_user_id uuid) RETURNS text[
     union select permission_name from direct_permissions
     union select permission_name from explicit_platform_admin_fallback
   ) q
-  where permission_name is not null;
+  where permission_name is not null
+    and exists(
+      select 1 from auth.users u join public.user_profiles profile on profile.id=u.id
+      where u.id=p_user_id and u.deleted_at is null
+        and (u.banned_until is null or u.banned_until<=clock_timestamp())
+        and u.email_confirmed_at is not null and profile.user_status='active'
+    )
+    and exists(select 1 from public.permissions catalog where catalog.key=permission_name and catalog.is_active)
+    and not exists(
+      select 1 from public.user_permissions d left join public.permissions deny_catalog on deny_catalog.id=d.permission_id
+      where d.user_id=p_user_id and (d.company_id is null or d.company_id=null::uuid)
+        and d.is_active and d.status='active' and d.effect='deny'
+        and coalesce(nullif(d.permission_key,''),deny_catalog.key)=permission_name
+    ) and not exists(
+      select 1 from public.user_permission_overrides d
+      where d.user_id=p_user_id and (d.company_id is null or d.company_id=null::uuid)
+        and d.is_active and d.effect='deny' and d.permission_key=permission_name
+        and (d.valid_from is null or d.valid_from<=clock_timestamp())
+        and (d.valid_to is null or clock_timestamp()<d.valid_to)
+    );
 $$;
 
 --
@@ -72520,7 +73049,7 @@ COMMENT ON FUNCTION public.gridex_get_user_permissions(p_user_id uuid) IS 'F-18:
 --
 
 CREATE FUNCTION public.gridex_get_user_permissions_in_company(p_user_id uuid, p_company_id uuid) RETURNS text[]
-    LANGUAGE sql STABLE SECURITY DEFINER
+    LANGUAGE sql SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
     AS $$
   with role_based as (
@@ -72594,7 +73123,26 @@ CREATE FUNCTION public.gridex_get_user_permissions_in_company(p_user_id uuid, p_
     union select permission_name from direct_permissions
     union select permission_name from explicit_platform_admin_fallback
   ) q
-  where permission_name is not null;
+  where permission_name is not null
+    and exists(
+      select 1 from auth.users u join public.user_profiles profile on profile.id=u.id
+      where u.id=p_user_id and u.deleted_at is null
+        and (u.banned_until is null or u.banned_until<=clock_timestamp())
+        and u.email_confirmed_at is not null and profile.user_status='active'
+    )
+    and exists(select 1 from public.permissions catalog where catalog.key=permission_name and catalog.is_active)
+    and not exists(
+      select 1 from public.user_permissions d left join public.permissions deny_catalog on deny_catalog.id=d.permission_id
+      where d.user_id=p_user_id and (d.company_id is null or d.company_id=p_company_id)
+        and d.is_active and d.status='active' and d.effect='deny'
+        and coalesce(nullif(d.permission_key,''),deny_catalog.key)=permission_name
+    ) and not exists(
+      select 1 from public.user_permission_overrides d
+      where d.user_id=p_user_id and (d.company_id is null or d.company_id=p_company_id)
+        and d.is_active and d.effect='deny' and d.permission_key=permission_name
+        and (d.valid_from is null or d.valid_from<=clock_timestamp())
+        and (d.valid_to is null or clock_timestamp()<d.valid_to)
+    );
 $$;
 
 --
@@ -73570,11 +74118,17 @@ COMMENT ON FUNCTION public.gridex_guard_tenant_website_activation_v2() IS 'Fail-
 --
 
 CREATE FUNCTION public.gridex_has_permission(p_user_id uuid, p_permission text) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
+    LANGUAGE sql SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
     AS $$
   select p_user_id is not null
     and p_permission is not null
+    and exists(
+      select 1 from auth.users u join public.user_profiles profile on profile.id=u.id
+      where u.id=p_user_id and u.deleted_at is null
+        and (u.banned_until is null or u.banned_until<=clock_timestamp())
+        and u.email_confirmed_at is not null and profile.user_status='active'
+    )
     and p_permission = any(public.gridex_get_user_permissions(p_user_id));
 $$;
 
@@ -73589,12 +74143,18 @@ COMMENT ON FUNCTION public.gridex_has_permission(p_user_id uuid, p_permission te
 --
 
 CREATE FUNCTION public.gridex_has_permission_in_company(p_company_id uuid, p_permission text) RETURNS boolean
-    LANGUAGE sql STABLE SECURITY DEFINER
+    LANGUAGE sql SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
     AS $$
   select p_company_id is not null
     and p_permission is not null
     and (select auth.uid()) is not null
+    and exists(
+      select 1 from auth.users u join public.user_profiles profile on profile.id=u.id
+      where u.id=(select auth.uid()) and u.deleted_at is null
+        and (u.banned_until is null or u.banned_until<=clock_timestamp())
+        and u.email_confirmed_at is not null and profile.user_status='active'
+    )
     and p_permission = any(
       public.gridex_get_user_permissions_in_company((select auth.uid()), p_company_id)
     );
@@ -78294,7 +78854,7 @@ CREATE FUNCTION public.gridex_normalize_swedish_postal_code(p_postal_code text) 
     LANGUAGE sql IMMUTABLE
     SET search_path TO 'public', 'auth', 'extensions'
     AS $$
-  select nullif(regexp_replace(coalesce(p_postal_code, ''), '\\D', '', 'g'), '');
+  select nullif(regexp_replace(coalesce(p_postal_code, ''), E'\\D', '', 'g'), '');
 $$;
 
 --
@@ -80399,12 +80959,21 @@ end $$;
 CREATE FUNCTION public.gridex_persist_pricing_run(p_company_id uuid, p_billing_underlay_id uuid, p_result jsonb, p_pricing_snapshot jsonb DEFAULT '{}'::jsonb) RETURNS uuid
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'extensions', 'pg_temp'
-    AS $$
+    AS $_$
 declare
   v_underlay public.billing_underlays%rowtype;
   v_run_id uuid;
   v_final_status text:=coalesce(nullif(p_result->>'status',''),'failed');
   v_rows integer;
+  v_period_start timestamptz;
+  v_period_end timestamptz;
+  v_period_start_text text;
+  v_period_end_text text;
+  v_snapshot jsonb;
+  v_contract_type text;
+  v_expected_resolution text;
+  v_input_receipt jsonb;
+  v_current_snapshot jsonb;
 begin
   if p_company_id is null or p_billing_underlay_id is null then
     raise exception using errcode='22023',message='company_and_billing_underlay_required';
@@ -80423,15 +80992,99 @@ begin
     raise exception using errcode='55000',message='pricing_run_locked';
   end if;
 
+  if v_underlay.underlay_year is null or v_underlay.underlay_month is null then
+    raise exception using errcode='23514',message='pricing_run_period_month_required';
+  end if;
+  if coalesce(v_underlay.payload,'{}'::jsonb) ? 'billing_period_start_instant'
+     or coalesce(v_underlay.payload,'{}'::jsonb) ? 'billing_period_end_instant' then
+    if jsonb_typeof(v_underlay.payload->'billing_period_start_instant') is distinct from 'string'
+       or jsonb_typeof(v_underlay.payload->'billing_period_end_instant') is distinct from 'string' then
+      raise exception using errcode='23514',message='pricing_run_period_instant_pair_required';
+    end if;
+    v_period_start_text := v_underlay.payload->>'billing_period_start_instant';
+    v_period_end_text := v_underlay.payload->>'billing_period_end_instant';
+    if v_period_start_text !~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$'
+       or v_period_end_text !~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$' then
+      raise exception using errcode='23514',message='pricing_run_period_timezone_required';
+    end if;
+    v_period_start := v_period_start_text::timestamptz;
+    v_period_end := v_period_end_text::timestamptz;
+    if (v_underlay.payload ? 'billing_period_timezone'
+        and v_underlay.payload->>'billing_period_timezone' is distinct from 'Europe/Stockholm')
+       or (v_underlay.payload ? 'billing_period_end_exclusive'
+           and v_underlay.payload->'billing_period_end_exclusive' is distinct from 'true'::jsonb)
+       or (v_underlay.billing_period_start is not null and (v_period_start at time zone 'Europe/Stockholm')::date is distinct from v_underlay.billing_period_start)
+       or (v_underlay.billing_period_end is not null and (v_period_end at time zone 'Europe/Stockholm')::date is distinct from v_underlay.billing_period_end) then
+      raise exception using errcode='23514',message='pricing_run_period_metadata_mismatch';
+    end if;
+  else
+    v_period_start := coalesce(v_underlay.billing_period_start,make_date(v_underlay.underlay_year,v_underlay.underlay_month,1))::timestamp at time zone 'Europe/Stockholm';
+    v_period_end := coalesce(v_underlay.billing_period_end,(make_date(v_underlay.underlay_year,v_underlay.underlay_month,1)+interval '1 month')::date)::timestamp at time zone 'Europe/Stockholm';
+  end if;
+  if v_period_end <= v_period_start then
+    raise exception using errcode='23514',message='pricing_run_period_chronology_invalid';
+  end if;
+
+  -- Match engine.normalizePricingSnapshot and its interval-resolution fallback.
+  select (case when jsonb_typeof(v_underlay.pricing_snapshot)='object' then v_underlay.pricing_snapshot else '{}'::jsonb end)||(case when jsonb_typeof(s.snapshot_json)='object' then s.snapshot_json else '{}'::jsonb end), c.contract_type
+    into v_snapshot,v_contract_type
+  from public.customer_contracts c
+  left join public.contract_price_snapshots s
+    on s.company_id=p_company_id and s.contract_id=c.id
+    and s.id=coalesce(v_underlay.contract_price_snapshot_id,v_underlay.pricing_snapshot_id)
+  where c.company_id=p_company_id and c.id=v_underlay.contract_id and c.status in ('active','signed');
+  v_snapshot:=coalesce(v_snapshot,case when jsonb_typeof(v_underlay.pricing_snapshot)='object' then v_underlay.pricing_snapshot else '{}'::jsonb end);
+  v_expected_resolution:=coalesce(nullif(btrim(v_snapshot->>'interval_resolution'),''),
+    nullif(btrim(v_snapshot#>>'{pricing,interval_resolution}'),''),
+    case v_contract_type when 'variable_quarterly' then 'quarterly'
+      when 'variable_hourly' then 'hourly' else 'monthly' end);
+  -- Successful spot interval results and any captured interval evidence require
+  -- a native receipt. Missing receipt cannot silently skip the locked recheck.
+  if (jsonb_array_length(coalesce(p_result->'interval_evidence','[]'::jsonb))>0
+      or (v_final_status='success' and v_expected_resolution in ('hourly','quarterly')
+          and exists(select 1 from jsonb_array_elements(coalesce(p_result->'lines','[]'::jsonb)) x
+            where x->>'line_type'='base_price' and x#>>'{metadata,source_type}'='spot'
+              and coalesce((x#>>'{metadata,weight_percent}')::numeric,100)>0)))
+     and jsonb_typeof(p_result->'interval_input_snapshot') is distinct from 'object' then
+    raise exception using errcode='23514',message='interval_pricing_snapshot_receipt_required';
+  end if;
+  if p_result ? 'interval_input_snapshot' then
+    if jsonb_typeof(p_result->'interval_input_snapshot') is distinct from 'object' then
+      raise exception using errcode='23514',message='interval_pricing_snapshot_receipt_invalid';
+    end if;
+    v_input_receipt:=p_result->'interval_input_snapshot';
+    if (v_input_receipt->>'schema_version') is distinct from '1'
+       or (v_input_receipt->>'company_id') is distinct from p_company_id::text
+       or (v_input_receipt->>'billing_underlay_id') is distinct from p_billing_underlay_id::text
+       or (v_input_receipt->>'fingerprint') is null
+       or (v_input_receipt->>'fingerprint') !~ '^[0-9a-f]{64}$' then
+      raise exception using errcode='23514',message='interval_pricing_snapshot_receipt_invalid';
+    end if;
+    -- Existing advisory/underlay row lock is already held. SHARE blocks every
+    -- INSERT/UPDATE/DELETE price, child quantity and source-policy mutation until
+    -- commit. VOLATILE persist's following SPI SELECT gets a fresh snapshot
+    -- after lock waits; STABLE read sees that one fresh snapshot throughout.
+    lock table public.spot_price_intervals in share mode;
+    lock table public.billing_underlay_items in share mode;
+    lock table public.company_market_price_sources in share mode;
+    select public.gridex_read_interval_pricing_snapshot_v1(p_company_id,p_billing_underlay_id,
+      (v_input_receipt->>'period_start')::timestamptz,(v_input_receipt->>'period_end')::timestamptz,
+      v_input_receipt->>'price_area',v_input_receipt->>'required_resolution',to_jsonb(v_underlay))
+      into v_current_snapshot;
+    if v_current_snapshot->'receipt' is distinct from v_input_receipt then
+      raise exception using errcode='40001',message='interval_pricing_inputs_changed_retry';
+    end if;
+  end if;
+
   insert into public.pricing_runs(
     company_id,billing_underlay_id,customer_id,billing_period_start,billing_period_end,status,
     total_ex_vat,vat_amount,total_inc_vat,warnings,errors,metadata
   ) values (
-    p_company_id,p_billing_underlay_id,v_underlay.customer_id,v_underlay.billing_period_start,v_underlay.billing_period_end,
+    p_company_id,p_billing_underlay_id,v_underlay.customer_id,v_period_start,v_period_end,
     case when v_final_status='success' then 'needs_review' else v_final_status end,
     coalesce((p_result->>'total_ex_vat')::numeric,0),coalesce((p_result->>'vat_amount')::numeric,0),
     coalesce((p_result->>'total_inc_vat')::numeric,0),coalesce(p_result->'warnings','[]'::jsonb),
-    coalesce(p_result->'errors','[]'::jsonb),jsonb_build_object('source','pricing_core','atomic',true)
+    coalesce(p_result->'errors','[]'::jsonb),jsonb_build_object('source','pricing_core','atomic',true)||case when v_input_receipt is not null then jsonb_build_object('interval_input_snapshot',v_input_receipt) else '{}'::jsonb end
   ) returning id into v_run_id;
 
   insert into public.pricing_preview_lines(
@@ -80484,7 +81137,7 @@ begin
   end if;
   return v_run_id;
 end
-$$;
+$_$;
 
 --
 -- Name: gridex_persist_utilts_consumption_v1(uuid, text, uuid, text, text, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -81216,8 +81869,20 @@ CREATE FUNCTION public.gridex_prepare_customer_contract_signature_request_v1(p_c
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$BEGIN
+ -- Match the effective core's company-before-contract lock order.
+ -- Do not reject missing/invalid inputs here: the retained helper and exact core
+ -- keep their existing scope, customer, permission and expiry error precedence.
+ PERFORM id FROM public.companies WHERE id=p_company_id FOR SHARE;
+ PERFORM id FROM public.customer_contracts
+ WHERE id=p_contract_id AND company_id=p_company_id FOR UPDATE;
+ -- UPDATE is already held before helper SHARE; overlapping preparations serialize.
  PERFORM public.ediel_require_contract_records_available_v1(p_company_id,p_contract_id);
- RETURN public.gridex_prepare_signature_before_record_retention_v1(p_company_id,p_customer_id,p_contract_id,p_token_hash,p_recipient_email,p_expires_at,p_actor_user_id,p_channel);
+ -- Exact CEE core checks fresh expiry after these waits and again after every
+ -- publication/snapshot/pending-request lock; actor and all inputs pass unchanged.
+ RETURN public.gridex_prepare_signature_before_record_retention_v1(
+  p_company_id,p_customer_id,p_contract_id,p_token_hash,p_recipient_email,
+  p_expires_at,p_actor_user_id,p_channel
+ );
 END$$;
 
 --
@@ -81286,6 +81951,20 @@ begin
       errcode='23514',
       message='one_off_price_area_not_in_price_areas',
       detail=p_pricing_snapshot->>'price_area';
+  end if;
+
+  -- Only immutable20260727161000's explicit contract-type aliases are mapped.
+  -- Pricing model, intervals, numeric evidence and snapshot bytes are independent.
+  -- Missing/empty types keep the original default; unknown types keep CHECK refusal.
+  if lower(btrim(p_payload->>'contract_type')) in ('spot','variable','variable_spot','hourly_spot') then
+    p_payload := jsonb_set(p_payload,'{contract_type}',to_jsonb(
+      case lower(btrim(p_payload->>'contract_type'))
+        when 'spot' then 'variable_monthly'
+        when 'variable' then 'variable_monthly'
+        when 'variable_spot' then 'variable_monthly'
+        when 'hourly_spot' then 'variable_hourly'
+      end
+    ),false);
   end if;
 
   p_payload := p_payload || jsonb_build_object(
@@ -81425,7 +82104,7 @@ begin
   if p_channel not in ('internal','website','partner_api','customer_portal') then
     raise exception using errcode='22023',message='signature_request_channel_invalid';
   end if;
-  if p_expires_at is null or p_expires_at <= now() or p_expires_at > now()+interval '14 days' then
+  if p_expires_at is null or p_expires_at <= clock_timestamp() or p_expires_at > clock_timestamp()+interval '14 days' then
     raise exception using errcode='22023',message='signature_request_expiry_invalid';
   end if;
 
@@ -81624,6 +82303,20 @@ begin
     returning * into v_contract;
   end if;
 
+  -- Wait for current pending request writers before checking wall-clock expiry.
+  -- The contract lock serializes preparation; mark-sent locks these rows directly.
+  perform id
+  from public.customer_contract_signature_requests
+  where company_id=p_company_id and customer_contract_id=p_contract_id
+    and used_at is null and revoked_at is null
+  order by id for update;
+
+  -- Revalidate freshness after the company/contract/publication/snapshot locks.
+  -- A failed recheck rolls back all preparation; no prior link is revoked.
+  if p_expires_at is null or p_expires_at <= clock_timestamp() or p_expires_at > clock_timestamp()+interval '14 days' then
+    raise exception using errcode='22023',message='signature_request_expiry_invalid';
+  end if;
+
   update public.customer_contract_signature_requests
   set revoked_at=now()
   where company_id=p_company_id and customer_contract_id=p_contract_id
@@ -81636,6 +82329,9 @@ begin
     p_company_id,p_customer_id,p_contract_id,p_token_hash,lower(btrim(p_recipient_email)),
     p_channel,p_expires_at,p_actor_user_id,
     jsonb_build_object(
+      'customer_full_name',(select coalesce(nullif(btrim(c.full_name),''),nullif(btrim(c.company_name),''),
+        nullif(btrim(concat_ws(' ',c.first_name,c.last_name)),''))
+        from public.customers c where c.id=p_customer_id and c.company_id=p_company_id),
       'contract_number',v_contract.contract_number,
       'offer_reference',v_contract.offer_reference,
       'contract_publication_version_id',v_contract.contract_publication_version_id,
@@ -83482,6 +84178,34 @@ begin
     );
   end if;
 
+  -- This is a new channel activation, after the exact already-active replay.
+  -- Requalify locked canonical monetary inputs; immutable historical receipts
+  -- are retained, but their wrong VAT cannot enter a new publication.
+  select jsonb_build_object('direction',lower(pv.energy_direction),
+      'price',ppv.snapshot_json,'product',pv.commercial_snapshot)
+    into v_snapshot
+  from public.price_plan_versions ppv
+  join public.contract_product_versions pv on pv.id=o.contract_product_version_id
+    and pv.price_plan_version_id=ppv.id and pv.price_plan_id=ppv.price_plan_id
+  join public.contract_products product on product.id=pv.contract_product_id
+    and product.company_id=p_company_id
+  where ppv.id=o.price_plan_version_id and ppv.company_id=p_company_id
+    and ppv.price_plan_id=o.price_plan_id
+  for share of ppv,pv;
+  if not found then
+    raise exception using errcode='23514',message='publication_pricing_graph_missing';
+  end if;
+  if coalesce(v_snapshot->>'direction','consumption')<>'production'
+     and (o.vat_rate is distinct from 0.25
+       or nullif(v_snapshot#>>'{price,vat_rate}','')::numeric is distinct from 0.25
+       or (v_snapshot->'price' ? 'vat_rate_percent' and nullif(v_snapshot#>>'{price,vat_rate_percent}','')::numeric is distinct from 25)
+       or nullif(v_snapshot#>>'{product,vat_rate}','')::numeric is distinct from 0.25
+       or (v_snapshot->'product' ? 'vat_rate_percent' and nullif(v_snapshot#>>'{product,vat_rate_percent}','')::numeric is distinct from 25)
+       or nullif(o.commercial_snapshot->>'vat_rate','')::numeric is distinct from 0.25
+       or (o.commercial_snapshot ? 'vat_rate_percent' and nullif(o.commercial_snapshot->>'vat_rate_percent','')::numeric is distinct from 25)) then
+    raise exception using errcode='23514',message='consumption_publication_vat_must_be_25_percent';
+  end if;
+
   perform public.gridex_sync_internal_offer_to_canonical(o.id);
   select * into o from public.contract_offers where id=o.id;
 
@@ -83899,6 +84623,42 @@ begin
   where r.contract_publication_version_id=p_publication_version_id;
   if not found then raise exception 'publication_version_not_found'; end if;
   if coalesce(array_length(v_blockers,1),0)>0 then raise exception 'publication_not_ready:%',array_to_string(v_blockers,','); end if;
+  -- Existing published/active graph replay preserves its immutable history.
+  -- An ended/draft graph or channel reactivation is a future publication.
+  select * into strict v_row from public.contract_publication_versions
+    where id=p_publication_version_id for update;
+  if not (v_row.status='published' and v_row.locked_at is not null and exists(
+      select 1 from public.contract_publications cp
+      join public.tenant_contract_assignments ta on ta.id=cp.assignment_id
+      join public.tenant_contract_channels ch on ch.assignment_id=ta.id and ch.channel=cp.channel
+      where cp.id=v_row.contract_publication_id and cp.status='published'
+        and ta.status='active' and ch.status='active'
+        and (ch.valid_from is null or ch.valid_from<=now())
+        and (ch.valid_to is null or ch.valid_to>now()))) then
+    perform 1 from public.price_plan_versions ppv
+    join public.contract_product_versions pv on pv.id=v_row.contract_product_version_id
+      and pv.price_plan_version_id=ppv.id and pv.price_plan_id=ppv.price_plan_id
+    where ppv.id=v_row.price_plan_version_id and ppv.price_plan_id=v_row.price_plan_id
+      and ppv.company_id=v_company
+    for share of ppv,pv;
+    if not found then
+      raise exception using errcode='23514',message='publication_pricing_graph_missing';
+    end if;
+    if exists(select 1 from public.price_plan_versions ppv
+      join public.contract_product_versions pv on pv.id=v_row.contract_product_version_id
+      where ppv.id=v_row.price_plan_version_id
+        and coalesce(lower(pv.energy_direction),'consumption')<>'production'
+        and (nullif(ppv.snapshot_json->>'vat_rate','')::numeric is distinct from 0.25
+          or (ppv.snapshot_json ? 'vat_rate_percent' and nullif(ppv.snapshot_json->>'vat_rate_percent','')::numeric is distinct from 25)
+          or nullif(pv.commercial_snapshot->>'vat_rate','')::numeric is distinct from 0.25
+          or (pv.commercial_snapshot ? 'vat_rate_percent' and nullif(pv.commercial_snapshot->>'vat_rate_percent','')::numeric is distinct from 25)
+          or exists(select 1 from public.public_contract_offers pco
+            where pco.contract_publication_version_id=v_row.id
+              and pco.company_id=v_company and pco.vat_rate is distinct from 0.25))) then
+      raise exception using errcode='23514',message='consumption_publication_vat_must_be_25_percent';
+    end if;
+  end if;
+
   perform set_config('gridex.version_transition','on',true);
   update public.contract_publication_versions oldv set status='ended'
   from public.contract_product_versions oldpv
@@ -84661,6 +85421,147 @@ BEGIN
  evidence:=gridex_ediel_source_rules.require_v1(p_company_id,(result#>>'{sourceMessage,id}')::uuid);
  RETURN result||jsonb_build_object('sourceRulePackEvidence',evidence);
 END $$;
+
+--
+-- Name: gridex_read_interval_pricing_snapshot_v1(uuid, uuid, timestamp with time zone, timestamp with time zone, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_read_interval_pricing_snapshot_v1(p_company_id uuid, p_billing_underlay_id uuid, p_period_start timestamp with time zone, p_period_end timestamp with time zone, p_price_area text, p_required_resolution text, p_expected_underlay jsonb) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_temp'
+    SET "TimeZone" TO 'UTC'
+    AS $_$
+DECLARE
+  v_underlay public.billing_underlays%rowtype;
+  v_period_start timestamptz;
+  v_period_end timestamptz;
+  v_period_start_text text;
+  v_period_end_text text;
+  v_snapshot jsonb;
+  v_contract_type text;
+  v_expected_resolution text;
+  v_area text;
+  v_items jsonb;
+  v_prices jsonb;
+  v_policies jsonb;
+  v_receipt jsonb;
+  v_fingerprint text;
+BEGIN
+  if p_company_id is null or p_billing_underlay_id is null
+     or p_period_start is null or p_period_end is null
+     or not isfinite(p_period_start) or not isfinite(p_period_end)
+     or p_period_end<=p_period_start
+     or p_required_resolution is null or p_required_resolution not in ('hourly','quarterly')
+     or p_price_area is null or p_price_area not in ('SE1','SE2','SE3','SE4')
+     or jsonb_typeof(p_expected_underlay) is distinct from 'object' then
+    raise exception using errcode='22023',message='interval_pricing_snapshot_selector_invalid';
+  end if;
+  select * into v_underlay from public.billing_underlays
+    where company_id=p_company_id and id=p_billing_underlay_id;
+  if not found then
+    raise exception using errcode='P0002',message='billing_underlay_not_found_for_tenant';
+  end if;
+  if to_jsonb(v_underlay) is distinct from p_expected_underlay then
+    raise exception using errcode='40001',message='interval_pricing_underlay_changed_retry';
+  end if;
+  if v_underlay.underlay_year is null or v_underlay.underlay_month is null then
+    raise exception using errcode='23514',message='pricing_run_period_month_required';
+  end if;
+  if coalesce(v_underlay.payload,'{}'::jsonb) ? 'billing_period_start_instant'
+     or coalesce(v_underlay.payload,'{}'::jsonb) ? 'billing_period_end_instant' then
+    if jsonb_typeof(v_underlay.payload->'billing_period_start_instant') is distinct from 'string'
+       or jsonb_typeof(v_underlay.payload->'billing_period_end_instant') is distinct from 'string' then
+      raise exception using errcode='23514',message='pricing_run_period_instant_pair_required';
+    end if;
+    v_period_start_text := v_underlay.payload->>'billing_period_start_instant';
+    v_period_end_text := v_underlay.payload->>'billing_period_end_instant';
+    if v_period_start_text !~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$'
+       or v_period_end_text !~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$' then
+      raise exception using errcode='23514',message='pricing_run_period_timezone_required';
+    end if;
+    v_period_start := v_period_start_text::timestamptz;
+    v_period_end := v_period_end_text::timestamptz;
+    if (v_underlay.payload ? 'billing_period_timezone'
+        and v_underlay.payload->>'billing_period_timezone' is distinct from 'Europe/Stockholm')
+       or (v_underlay.payload ? 'billing_period_end_exclusive'
+           and v_underlay.payload->'billing_period_end_exclusive' is distinct from 'true'::jsonb)
+       or (v_underlay.billing_period_start is not null and (v_period_start at time zone 'Europe/Stockholm')::date is distinct from v_underlay.billing_period_start)
+       or (v_underlay.billing_period_end is not null and (v_period_end at time zone 'Europe/Stockholm')::date is distinct from v_underlay.billing_period_end) then
+      raise exception using errcode='23514',message='pricing_run_period_metadata_mismatch';
+    end if;
+  else
+    v_period_start := coalesce(v_underlay.billing_period_start,make_date(v_underlay.underlay_year,v_underlay.underlay_month,1))::timestamp at time zone 'Europe/Stockholm';
+    v_period_end := coalesce(v_underlay.billing_period_end,(make_date(v_underlay.underlay_year,v_underlay.underlay_month,1)+interval '1 month')::date)::timestamp at time zone 'Europe/Stockholm';
+  end if;
+  if v_period_end <= v_period_start then
+    raise exception using errcode='23514',message='pricing_run_period_chronology_invalid';
+  end if;
+
+  -- Match engine.normalizePricingSnapshot and its interval-resolution fallback.
+  select (case when jsonb_typeof(v_underlay.pricing_snapshot)='object' then v_underlay.pricing_snapshot else '{}'::jsonb end)||(case when jsonb_typeof(s.snapshot_json)='object' then s.snapshot_json else '{}'::jsonb end), c.contract_type
+    into v_snapshot,v_contract_type
+  from public.customer_contracts c
+  left join public.contract_price_snapshots s
+    on s.company_id=p_company_id and s.contract_id=c.id
+    and s.id=coalesce(v_underlay.contract_price_snapshot_id,v_underlay.pricing_snapshot_id)
+  where c.company_id=p_company_id and c.id=v_underlay.contract_id and c.status in ('active','signed');
+  v_snapshot:=coalesce(v_snapshot,case when jsonb_typeof(v_underlay.pricing_snapshot)='object' then v_underlay.pricing_snapshot else '{}'::jsonb end);
+  v_expected_resolution:=coalesce(nullif(btrim(v_snapshot->>'interval_resolution'),''),
+    nullif(btrim(v_snapshot#>>'{pricing,interval_resolution}'),''),
+    case v_contract_type when 'variable_quarterly' then 'quarterly'
+      when 'variable_hourly' then 'hourly' else 'monthly' end);
+  v_area:=coalesce(nullif(btrim(v_underlay.price_area),''),nullif(btrim(v_underlay.payload->>'price_area'),''));
+  if p_period_start is distinct from v_period_start or p_period_end is distinct from v_period_end
+     or p_price_area is distinct from v_area or p_required_resolution is distinct from v_expected_resolution then
+    raise exception using errcode='23514',message='interval_pricing_snapshot_underlay_selector_mismatch';
+  end if;
+
+  -- Exactly loadMarketPriceSourcePolicies + existing interval eligibility:
+  -- enabled company policy, required supported_resolutions, ascending priority.
+  -- price_areas is captured but does not introduce a new interval eligibility rule.
+  -- Native NOT NULL/check constraints prove JS defaults 100/180/[] cannot fire
+  -- on these actual columns; all other policy fields are captured unchanged.
+  with policies as materialized (
+    select p.* from public.company_market_price_sources p
+    where p.company_id=p_company_id and p.enabled=true
+      and p_required_resolution=any(p.supported_resolutions)
+    order by p.priority,p.source_key limit 150001
+  ), items as materialized (
+    select i.* from public.billing_underlay_items i
+    where i.company_id=p_company_id and i.billing_underlay_id=p_billing_underlay_id
+    order by i.period_start,i.id limit 150001
+  ), prices as materialized (
+    select s.* from public.spot_price_intervals s
+    where s.price_area=p_price_area and s.time_start<p_period_end and s.time_end>p_period_start
+      and exists(select 1 from policies p where p.source_key=s.source)
+    order by s.time_start,s.id limit 150001
+  )
+  select
+    coalesce((select jsonb_agg(to_jsonb(i) order by i.period_start,i.id) from items i),'[]'::jsonb),
+    coalesce((select jsonb_agg(to_jsonb(s) order by s.time_start,s.id) from prices s),'[]'::jsonb),
+    coalesce((select jsonb_agg(to_jsonb(p) order by p.priority,p.source_key) from policies p),'[]'::jsonb)
+  into v_items,v_prices,v_policies;
+  if jsonb_array_length(v_items)>150000 or jsonb_array_length(v_prices)>150000
+     or jsonb_array_length(v_policies)>150000 then
+    raise exception using errcode='54000',message='interval_pricing_snapshot_row_limit_exceeded';
+  end if;
+  v_receipt:=jsonb_build_object('schema_version',1,'company_id',p_company_id,
+    'billing_underlay_id',p_billing_underlay_id,'period_start',v_period_start,
+    'period_end',v_period_end,'price_area',v_area,'required_resolution',v_expected_resolution,
+    'item_count',jsonb_array_length(v_items),'price_count',jsonb_array_length(v_prices),
+    'policy_count',jsonb_array_length(v_policies));
+  v_fingerprint:=encode(extensions.digest(jsonb_build_object('selector',v_receipt,
+    'underlay',to_jsonb(v_underlay),'policies',v_policies,'items',v_items,'prices',v_prices)::text,'sha256'),'hex');
+  return jsonb_build_object('receipt',v_receipt||jsonb_build_object('fingerprint',v_fingerprint),
+    'items',v_items,'prices',v_prices,'policies',v_policies);
+END;
+$_$;
+
+--
+-- Name: FUNCTION gridex_read_interval_pricing_snapshot_v1(p_company_id uuid, p_billing_underlay_id uuid, p_period_start timestamp with time zone, p_period_end timestamp with time zone, p_price_area text, p_required_resolution text, p_expected_underlay jsonb); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.gridex_read_interval_pricing_snapshot_v1(p_company_id uuid, p_billing_underlay_id uuid, p_period_start timestamp with time zone, p_period_end timestamp with time zone, p_price_area text, p_required_resolution text, p_expected_underlay jsonb) IS 'Internal service-only bounded interval pricing snapshot; company/underlay selectors and mutation fingerprint are derived and verified natively.';
 
 --
 -- Name: gridex_read_outbound_acks_for_source_v1(uuid, text); Type: FUNCTION; Schema: public; Owner: -
@@ -88392,7 +89293,19 @@ CREATE FUNCTION public.gridex_require_outbound_reply_basis_v1(m public.ediel_mes
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
+DECLARE persisted public.ediel_messages%rowtype;
 BEGIN
+ -- JWT subject/tenant read permission precede every private source read or lock.
+ IF auth.role()='authenticated' AND (auth.uid() IS NULL OR m.company_id IS NULL OR public.gridex_actor_has_company_permission(auth.uid(),m.company_id,'communication.read') IS NOT TRUE) THEN
+  RAISE EXCEPTION 'ediel_reply_source_scope_required' USING ERRCODE='42501';
+ END IF;
+ IF auth.role()='authenticated' THEN
+  SELECT * INTO persisted FROM public.ediel_messages own WHERE own.id=m.id AND own.company_id=m.company_id;
+  IF NOT FOUND OR persisted IS DISTINCT FROM m THEN
+   RAISE EXCEPTION 'ediel_reply_source_scope_required' USING ERRCODE='42501';
+  END IF;
+ END IF;
+
  IF m.message_family='CONTRL' THEN PERFORM gridex_ediel_technical_ack.require_contrl_v1(m);
  ELSIF m.message_family='APERAK' AND m.execution_context_snapshot ? 'prodatCommonHeaderNegativeWitnessId' THEN PERFORM gridex_ediel_common_header.witness_v1(m);
  ELSE RAISE EXCEPTION 'canonical_ediel_rule_pack_required' USING ERRCODE='23502';
@@ -91666,7 +92579,7 @@ COMMENT ON FUNCTION public.gridex_staff_active_membership_v1(p_company_id uuid, 
 --
 
 CREATE FUNCTION public.gridex_staff_actor_permissions_v1(p_company_id uuid, p_actor_user_id uuid, p_allow_platform boolean DEFAULT false) RETURNS text[]
-    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$
 DECLARE
@@ -91674,21 +92587,23 @@ DECLARE
   v_permissions text[];
 BEGIN
   IF p_allow_platform AND public.canonical_actor_is_platform_admin(p_actor_user_id) THEN
-    RETURN public.gridex_staff_role_profile_v1('super_admin');
+    v_permissions := public.gridex_staff_role_profile_v1('super_admin');
+  ELSE
+    SELECT public.gridex_staff_normalize_role_v1(cm.role_key) INTO v_role_key
+    FROM public.company_memberships cm
+    JOIN public.user_profiles profile ON profile.id=cm.user_id AND profile.user_status='active'
+    JOIN auth.users auth_user ON auth_user.id=cm.user_id
+    WHERE cm.company_id=p_company_id AND cm.user_id=p_actor_user_id
+      AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL
+      AND auth_user.deleted_at IS NULL
+      AND (auth_user.banned_until IS NULL OR auth_user.banned_until<=now());
+    IF v_role_key IS NULL OR v_role_key IN ('super_admin','platform_admin','white_label_platform_admin','customer') THEN
+      RETURN ARRAY[]::text[];
+    END IF;
+    v_permissions := public.gridex_staff_role_profile_v1(v_role_key);
+    IF cardinality(v_permissions)=0 THEN RETURN ARRAY[]::text[]; END IF;
   END IF;
-  SELECT public.gridex_staff_normalize_role_v1(cm.role_key) INTO v_role_key
-  FROM public.company_memberships cm
-  JOIN public.user_profiles profile ON profile.id=cm.user_id AND profile.user_status='active'
-  JOIN auth.users auth_user ON auth_user.id=cm.user_id
-  WHERE cm.company_id=p_company_id AND cm.user_id=p_actor_user_id
-    AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL
-    AND auth_user.deleted_at IS NULL
-    AND (auth_user.banned_until IS NULL OR auth_user.banned_until<=now());
-  IF v_role_key IS NULL OR v_role_key IN ('super_admin','platform_admin','white_label_platform_admin','customer') THEN
-    RETURN ARRAY[]::text[];
-  END IF;
-  v_permissions := public.gridex_staff_role_profile_v1(v_role_key);
-  IF cardinality(v_permissions)=0 THEN RETURN ARRAY[]::text[]; END IF;
+
   SELECT coalesce(array_agg(DISTINCT granted.permission ORDER BY granted.permission),ARRAY[]::text[])
   INTO v_permissions
   FROM (
@@ -91700,13 +92615,26 @@ BEGIN
     WHERE up.company_id=p_company_id AND up.user_id=p_actor_user_id
       AND up.status='active' AND up.is_active AND up.effect='allow'
   ) granted
-  WHERE granted.permission IS NOT NULL
+  WHERE EXISTS (
+    SELECT FROM public.permissions active_catalog
+    WHERE active_catalog.key=granted.permission AND active_catalog.is_active
+  )
     AND NOT EXISTS (
-      SELECT FROM public.user_permissions up
-      LEFT JOIN public.permissions catalog ON catalog.id=up.permission_id AND catalog.is_active
-      WHERE up.company_id=p_company_id AND up.user_id=p_actor_user_id
-        AND up.status='active' AND up.is_active AND up.effect='deny'
-        AND coalesce(nullif(up.permission_key,''),catalog.key,catalog.name)=granted.permission
+      SELECT FROM public.user_permissions denied
+      LEFT JOIN public.permissions catalog ON catalog.id=denied.permission_id
+      WHERE denied.user_id=p_actor_user_id
+        AND (denied.company_id IS NULL OR denied.company_id=p_company_id)
+        AND denied.status='active' AND denied.is_active AND denied.effect='deny'
+        AND coalesce(nullif(denied.permission_key,''),catalog.key,catalog.name)=granted.permission
+    )
+    AND NOT EXISTS (
+      SELECT FROM public.user_permission_overrides denied
+      WHERE denied.user_id=p_actor_user_id
+        AND (denied.company_id IS NULL OR denied.company_id=p_company_id)
+        AND denied.is_active AND denied.effect='deny'
+        AND denied.permission_key=granted.permission
+        AND (denied.valid_from IS NULL OR denied.valid_from<=clock_timestamp())
+        AND (denied.valid_to IS NULL OR clock_timestamp()<denied.valid_to)
     );
   RETURN v_permissions;
 END;
@@ -92047,15 +92975,53 @@ $$;
 --
 
 CREATE FUNCTION public.gridex_staff_permission_overrides_v1(p_company_id uuid, p_user_id uuid) RETURNS TABLE(permission_key text, effect text, status text, is_active boolean)
-    LANGUAGE sql STABLE
+    LANGUAGE sql
     SET search_path TO ''
     AS $$
-  SELECT coalesce(nullif(up.permission_key,''),p.key,p.name),up.effect,up.status,up.is_active
+  -- Existing direct grants remain company-only. Inactive catalog entries
+  -- cannot extend the HTTP role profile through an explicit allow.
+  SELECT coalesce(nullif(up.permission_key,''),catalog.key,catalog.name),up.effect,up.status,up.is_active
   FROM public.user_permissions up
-  LEFT JOIN public.permissions p ON p.id=up.permission_id AND p.is_active
+  LEFT JOIN public.permissions catalog ON catalog.id=up.permission_id
   WHERE up.company_id=p_company_id AND up.user_id=p_user_id
     AND up.status='active' AND up.is_active
-    AND coalesce(nullif(up.permission_key,''),p.key,p.name) IS NOT NULL
+    AND coalesce(nullif(up.permission_key,''),catalog.key,catalog.name) IS NOT NULL
+    AND (up.effect='deny' OR EXISTS (
+      SELECT FROM public.permissions active_catalog
+      WHERE active_catalog.key=coalesce(nullif(up.permission_key,''),catalog.key,catalog.name)
+        AND active_catalog.is_active
+    ))
+  UNION
+  SELECT coalesce(nullif(up.permission_key,''),catalog.key,catalog.name),'deny'::text,'active'::text,true
+  FROM public.user_permissions up
+  LEFT JOIN public.permissions catalog ON catalog.id=up.permission_id
+  WHERE up.company_id IS NULL AND up.user_id=p_user_id
+    AND up.status='active' AND up.is_active AND up.effect='deny'
+    AND coalesce(nullif(up.permission_key,''),catalog.key,catalog.name) IS NOT NULL
+  UNION
+  SELECT denied.permission_key,'deny'::text,'active'::text,true
+  FROM public.user_permission_overrides denied
+  WHERE denied.user_id=p_user_id
+    AND (denied.company_id IS NULL OR denied.company_id=p_company_id)
+    AND denied.is_active AND denied.effect='deny'
+    AND (denied.valid_from IS NULL OR denied.valid_from<=clock_timestamp())
+    AND (denied.valid_to IS NULL OR clock_timestamp()<denied.valid_to)
+  UNION
+  -- Staff HTTP reconstructs the same static role profile in TypeScript.
+  -- Return removals for inactive/missing permissions so admission and locked
+  -- native writes agree without changing the existing RPC or public API shape.
+  SELECT role_permission.permission,'deny'::text,'active'::text,true
+  FROM public.company_memberships membership
+  CROSS JOIN LATERAL unnest(public.gridex_staff_role_profile_v1(
+    public.gridex_staff_normalize_role_v1(membership.role_key)
+  )) AS role_permission(permission)
+  WHERE membership.company_id=p_company_id AND membership.user_id=p_user_id
+    AND membership.status='active' AND membership.is_active
+    AND membership.accepted_at IS NOT NULL
+    AND NOT EXISTS (
+      SELECT FROM public.permissions active_catalog
+      WHERE active_catalog.key=role_permission.permission AND active_catalog.is_active
+    )
 $$;
 
 --
@@ -92249,7 +93215,7 @@ SELECT * INTO prior FROM gridex_billing_source.underlay_bindings WHERE underlay_
  END LOOP;
  IF total IS DISTINCT FROM (p_underlay->>'total_kwh')::numeric THEN RAISE EXCEPTION 'billing_underlay_exact_total_mismatch'; END IF;
  source_basis:=jsonb_build_object('values',rows_basis,'supply',legal_basis,'contractId',ct.id,'contractStatus',ct.status,'price',to_jsonb(price),'priceVersionHash',pv.content_sha256,'energyDirection',p_underlay->>'energy_direction','start',start_at,'end',end_at);
- basis_hash:=encode(digest(convert_to(source_basis::text,'UTF8'),'sha256'),'hex');
+ basis_hash:=encode(extensions.digest(convert_to(source_basis::text,'UTF8'),'sha256'),'hex');
  PERFORM 1 FROM public.billing_underlays WHERE id=u.id FOR UPDATE;
  IF prior.underlay_id IS NOT NULL THEN
   IF prior.source_basis_hash IS DISTINCT FROM basis_hash OR prior.exact_total_kwh IS DISTINCT FROM total THEN RAISE EXCEPTION 'billing_source_finalized_underlay_requires_correction' USING ERRCODE='55000'; END IF;
@@ -94953,6 +95919,16 @@ begin
   if v_vat_rate<0 or v_vat_rate>1 then
     raise exception using errcode='23514',message='invalid_vat_rate';
   end if;
+  -- Percent25 and canonical fraction0.25 were already normalized above.
+  -- Consumption scalar metadata must agree with the standard snapshot policy.
+  -- Explicit production configuration and per-component exemptions are retained.
+  if (case when nullif(p_pricing_snapshot->>'energy_direction','') is not null
+      then lower(p_pricing_snapshot->>'energy_direction')<>'production'
+      else coalesce(p_pricing_snapshot#>>'{production,enabled}','false')<>'true'
+        and coalesce(p_pricing_snapshot->>'production_enabled','false') not in ('true','on') end)
+     and v_vat_rate is distinct from 0.25 then
+    raise exception using errcode='23514',message='consumption_authoring_vat_must_be_25_percent';
+  end if;
   if coalesce(nullif(p_payload->>'start_fee_sek','')::numeric,0)<0
      or coalesce(nullif(p_payload->>'admin_fee_sek','')::numeric,0)<0
      or coalesce(nullif(p_payload->>'break_fee_sek','')::numeric,0)<0
@@ -95209,6 +96185,15 @@ begin
         ))
       );
     end if;
+  end if;
+
+  -- Preserve the existing validated direction precedence: snapshot, then payload.
+  -- Legacy payload-only authoring needs that direction in the canonical snapshot
+  -- before both native VAT guards/hash production; explicit snapshot bytes remain
+  -- unchanged, including case-insensitive production and existing hash reuse.
+  if nullif(p_pricing_snapshot->>'energy_direction','') is null then
+    p_pricing_snapshot:=jsonb_set(coalesce(p_pricing_snapshot,'{}'::jsonb),
+      '{energy_direction}',to_jsonb(v_energy_direction));
   end if;
 
   v_result:=public.gridex_upsert_internal_contract_offer(
@@ -96765,6 +97750,13 @@ begin
   if m.direction<>'outbound' then raise exception 'ediel_outbox_requires_outbound_message' using errcode='23514'; end if;
   if m.message_family in ('PRODAT','UTILTS','CONTRL','APERAK','UTILTS_ERR')
      and (m.rule_profile_version_id is null or nullif(m.rule_pack_checksum,'') is null)
+     and m.canonical_rule_pack_id is null and m.rule_profile_version_id is null
+     and (m.message_family='CONTRL'
+       or (m.message_family='APERAK' and m.execution_context_snapshot ? 'prodatCommonHeaderNegativeWitnessId')) then
+    perform public.gridex_require_outbound_reply_basis_v1(m);
+  end if;
+  if m.message_family in ('PRODAT','UTILTS','CONTRL','APERAK','UTILTS_ERR')
+     and (m.rule_profile_version_id is null or nullif(m.rule_pack_checksum,'') is null)
      and not (m.canonical_rule_pack_id is null and m.rule_profile_version_id is null
        and (m.message_family='CONTRL'
         or (m.message_family='APERAK' and m.execution_context_snapshot ? 'prodatCommonHeaderNegativeWitnessId'))) then
@@ -97912,6 +98904,19 @@ CREATE FUNCTION public.normalize_phone(p_phone text) RETURNS text
     SET search_path TO 'public', 'auth', 'extensions'
     AS $$
   select public.gridex_normalize_phone(p_phone)
+$$;
+
+--
+-- Name: ops_reject_migration_provenance_mutation_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ops_reject_migration_provenance_mutation_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ RAISE EXCEPTION 'ops_migration_provenance_receipt_is_append_only' USING ERRCODE='55000';
+END
 $$;
 
 --
@@ -119404,7 +120409,7 @@ CREATE VIEW public.gridex_metering_points_incomplete_area_context_v WITH (securi
 -- Name: gridex_migration_governance_v3; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.gridex_migration_governance_v3 WITH (security_invoker='true') AS
+CREATE VIEW public.gridex_migration_governance_v3 WITH (security_invoker='false') AS
  WITH manifest AS (
          SELECT count(*) AS manifest_file_count,
             count(DISTINCT canonical_migration_manifest.version) AS manifest_version_count,
@@ -119490,7 +120495,7 @@ CREATE VIEW public.gridex_migration_governance_v3 WITH (security_invoker='true')
 -- Name: VIEW gridex_migration_governance_v3; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON VIEW public.gridex_migration_governance_v3 IS 'Deployment governance with explicit ledger aliases and schema-effect evidence; it never expires on elapsed time.';
+COMMENT ON VIEW public.gridex_migration_governance_v3 IS 'Service-only aggregate migration governance under owner execution. No raw ledger grant. Existing strict readiness conditions and historical manifest rows remain unchanged; input/lineage receipts are separate.';
 
 --
 -- Name: gridex_multiple_permissive_policy_candidates_v; Type: VIEW; Schema: public; Owner: -
@@ -122822,6 +123827,152 @@ CREATE TABLE public.normalized_metering_values (
 );
 
 --
+-- Name: ops_migration_provenance_receipts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ops_migration_provenance_receipts (
+    receipt_id text NOT NULL,
+    project_ref text NOT NULL,
+    applied_ledger_version text NOT NULL,
+    applied_ledger_name text NOT NULL,
+    canonical_filename text NOT NULL,
+    source_file_sha256 text NOT NULL,
+    recorded_input_md5 text NOT NULL,
+    recorded_input_sha256 text NOT NULL,
+    receipt_kind text NOT NULL,
+    source_file_git_commit text,
+    source_observation_head text NOT NULL,
+    current_source_sha256 text,
+    current_source_git_commit text,
+    observed_at timestamp with time zone NOT NULL,
+    registered_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    effect_scope text NOT NULL,
+    effect_verified boolean DEFAULT false NOT NULL,
+    effect_evidence jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT ops_migration_provenance_receip_current_source_git_commit_check CHECK (((current_source_git_commit IS NULL) OR (current_source_git_commit ~ '^[a-f0-9]{40}$'::text))),
+    CONSTRAINT ops_migration_provenance_receipts_check CHECK ((((receipt_kind = 'exact_input'::text) AND (source_file_sha256 = recorded_input_sha256) AND (current_source_sha256 IS NULL)) OR ((receipt_kind = 'historical_source_lineage'::text) AND (source_file_git_commit IS NOT NULL) AND (current_source_sha256 IS NOT NULL) AND (current_source_git_commit IS NOT NULL) AND (effect_scope = 'historical_lineage_only'::text)))),
+    CONSTRAINT ops_migration_provenance_receipts_check1 CHECK ((effect_verified = (effect_scope = 'current_native_schema'::text))),
+    CONSTRAINT ops_migration_provenance_receipts_check2 CHECK (((effect_scope <> 'current_native_schema'::text) OR ((receipt_kind = 'exact_input'::text) AND (jsonb_typeof((effect_evidence -> 'native_snapshot'::text)) = 'object'::text)))),
+    CONSTRAINT ops_migration_provenance_receipts_current_source_sha256_check CHECK (((current_source_sha256 IS NULL) OR (current_source_sha256 ~ '^[a-f0-9]{64}$'::text))),
+    CONSTRAINT ops_migration_provenance_receipts_effect_evidence_check CHECK ((jsonb_typeof(effect_evidence) = 'object'::text)),
+    CONSTRAINT ops_migration_provenance_receipts_effect_scope_check CHECK ((effect_scope = ANY (ARRAY['input_only'::text, 'historical_lineage_only'::text, 'current_native_schema'::text]))),
+    CONSTRAINT ops_migration_provenance_receipts_project_ref_check CHECK ((project_ref = 'piidsfebjqjmnepdpnas'::text)),
+    CONSTRAINT ops_migration_provenance_receipts_receipt_kind_check CHECK ((receipt_kind = ANY (ARRAY['exact_input'::text, 'historical_source_lineage'::text]))),
+    CONSTRAINT ops_migration_provenance_receipts_recorded_input_md5_check CHECK ((recorded_input_md5 ~ '^[a-f0-9]{32}$'::text)),
+    CONSTRAINT ops_migration_provenance_receipts_recorded_input_sha256_check CHECK ((recorded_input_sha256 ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT ops_migration_provenance_receipts_source_file_git_commit_check CHECK (((source_file_git_commit IS NULL) OR (source_file_git_commit ~ '^[a-f0-9]{40}$'::text))),
+    CONSTRAINT ops_migration_provenance_receipts_source_file_sha256_check CHECK ((source_file_sha256 ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT ops_migration_provenance_receipts_source_observation_head_check CHECK ((source_observation_head ~ '^[a-f0-9]{40}$'::text))
+);
+
+ALTER TABLE ONLY public.ops_migration_provenance_receipts FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: TABLE ops_migration_provenance_receipts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.ops_migration_provenance_receipts IS 'Append-only reviewed input/lineage receipts. Source SHA256 and recorded SQL SHA256 are separate facts. Effect scope never implies a full tenant/API lifecycle.';
+
+--
+-- Name: user_permission_overrides; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_permission_overrides (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    user_id uuid NOT NULL,
+    permission_key text NOT NULL,
+    effect text DEFAULT 'allow'::text NOT NULL,
+    reason text,
+    valid_from timestamp with time zone,
+    valid_to timestamp with time zone,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    CONSTRAINT user_permission_overrides_global_deny_only CHECK (((company_id IS NOT NULL) OR (effect = 'deny'::text)))
+);
+
+--
+-- Name: ops_migration_provenance_summary_v1; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.ops_migration_provenance_summary_v1 WITH (security_invoker='false', security_barrier='true') AS
+ WITH receipts AS (
+         SELECT r.receipt_id,
+            r.project_ref,
+            r.applied_ledger_version,
+            r.applied_ledger_name,
+            r.canonical_filename,
+            r.source_file_sha256,
+            r.recorded_input_md5,
+            r.recorded_input_sha256,
+            r.receipt_kind,
+            r.source_file_git_commit,
+            r.source_observation_head,
+            r.current_source_sha256,
+            r.current_source_git_commit,
+            r.observed_at,
+            r.registered_at,
+            r.effect_scope,
+            r.effect_verified,
+            r.effect_evidence,
+            COALESCE(((l.name = r.applied_ledger_name) AND (md5(array_to_string(l.statements, '
+'::text)) = r.recorded_input_md5) AND (encode(extensions.digest(convert_to(array_to_string(l.statements, '
+'::text), 'UTF8'::name), 'sha256'::text), 'hex'::text) = r.recorded_input_sha256)), false) AS recorded_input_still_matches,
+            (r.effect_verified AND (jsonb_array_length(COALESCE((r.effect_evidence #> '{native_snapshot,functions}'::text[]), '[]'::jsonb)) = 3) AND (NOT (EXISTS ( SELECT
+                   FROM (jsonb_array_elements(COALESCE((r.effect_evidence #> '{native_snapshot,functions}'::text[]), '[]'::jsonb)) f(value)
+                     LEFT JOIN pg_proc p ON ((p.oid = (to_regprocedure((f.value ->> 'signature'::text)))::oid)))
+                  WHERE (jsonb_build_object('owner', pg_get_userbyid(p.proowner), 'arguments', pg_get_function_identity_arguments(p.oid), 'definition_sha256', encode(extensions.digest(convert_to(pg_get_functiondef(p.oid), 'UTF8'::name), 'sha256'::text), 'hex'::text), 'volatility', (p.provolatile)::text, 'security_definer', p.prosecdef, 'parallel', (p.proparallel)::text, 'config', to_jsonb(p.proconfig), 'acl', to_jsonb(p.proacl)) IS DISTINCT FROM (((f.value - 'name'::text) - 'signature'::text) - 'oid'::text))))) AND (NOT (EXISTS ( SELECT
+                   FROM ((jsonb_array_elements(COALESCE((r.effect_evidence #> '{native_snapshot,override_fields}'::text[]), '[]'::jsonb)) f(value)
+                     LEFT JOIN pg_attribute a ON (((a.attrelid = ('public.user_permission_overrides'::regclass)::oid) AND (a.attnum > 0) AND (NOT a.attisdropped) AND (a.attname = (f.value ->> 'name'::text)))))
+                     LEFT JOIN pg_attrdef d ON (((d.adrelid = a.attrelid) AND (d.adnum = a.attnum))))
+                  WHERE (jsonb_build_object('name', a.attname, 'type', format_type(a.atttypid, a.atttypmod), 'not_null', a.attnotnull, 'default', pg_get_expr(d.adbin, d.adrelid)) IS DISTINCT FROM f.value)))) AND (NOT (EXISTS ( SELECT
+                   FROM (jsonb_array_elements(COALESCE((r.effect_evidence #> '{native_snapshot,override_constraints}'::text[]), '[]'::jsonb)) f(value)
+                     LEFT JOIN pg_constraint c_1 ON (((c_1.conrelid = ('public.user_permission_overrides'::regclass)::oid) AND (c_1.conname = (f.value ->> 'name'::text)))))
+                  WHERE (jsonb_build_object('name', c_1.conname, 'definition', pg_get_constraintdef(c_1.oid), 'validated', c_1.convalidated) IS DISTINCT FROM f.value))))) AS current_bounded_schema_still_matches
+           FROM (public.ops_migration_provenance_receipts r
+             LEFT JOIN supabase_migrations.schema_migrations l ON ((l.version = r.applied_ledger_version)))
+        ), counts AS (
+         SELECT count(*) AS receipt_count,
+            count(*) FILTER (WHERE ((receipts.receipt_kind = 'exact_input'::text) AND receipts.recorded_input_still_matches)) AS exact_input_receipt_count,
+            count(*) FILTER (WHERE ((receipts.receipt_kind = 'historical_source_lineage'::text) AND receipts.recorded_input_still_matches)) AS lineage_receipt_count,
+            count(*) FILTER (WHERE (NOT receipts.effect_verified)) AS effect_not_assessed_receipt_count,
+            count(*) FILTER (WHERE (receipts.recorded_input_still_matches AND receipts.current_bounded_schema_still_matches)) AS current_bounded_schema_receipt_count,
+            count(*) FILTER (WHERE (receipts.effect_verified AND (NOT receipts.current_bounded_schema_still_matches))) AS changed_bounded_schema_receipt_count
+           FROM receipts
+        ), uncovered AS (
+         SELECT count(*) AS ledger_versions_without_exact_input_receipt
+           FROM supabase_migrations.schema_migrations l
+          WHERE (NOT (EXISTS ( SELECT
+                   FROM receipts r
+                  WHERE ((r.applied_ledger_version = l.version) AND (r.applied_ledger_name = l.name) AND (r.receipt_kind = 'exact_input'::text) AND r.recorded_input_still_matches))))
+        )
+ SELECT c.receipt_count,
+    c.exact_input_receipt_count,
+    c.lineage_receipt_count,
+    c.effect_not_assessed_receipt_count,
+    c.current_bounded_schema_receipt_count,
+    c.changed_bounded_schema_receipt_count,
+    u.ledger_versions_without_exact_input_receipt,
+    g.ledger_version_count,
+    g.latest_ledger_version,
+    g.unmapped_ledger_versions AS canonical_unmapped_ledger_versions,
+    g.is_ready AS canonical_governance_is_ready,
+    g.blockers AS canonical_governance_blockers,
+    false AS full_history_and_effect_qualification_claimed
+   FROM ((counts c
+     CROSS JOIN uncovered u)
+     CROSS JOIN public.gridex_migration_governance_v3 g);
+
+--
+-- Name: VIEW ops_migration_provenance_summary_v1; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON VIEW public.ops_migration_provenance_summary_v1 IS 'Bounded source-input and lineage coverage. Receipts are populated separately only from reviewed actual inputs. Bounded evidence this is not full governance or live lifecycle readiness.';
+
+--
 -- Name: ops_publication_state; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -122879,7 +124030,7 @@ CREATE TABLE public.platform_actor_aliases (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     actor_id uuid NOT NULL,
     alias text NOT NULL,
-    normalized_alias text GENERATED ALWAYS AS (lower(regexp_replace(COALESCE(alias, ''::text), '\\s+'::text, ' '::text, 'g'::text))) STORED,
+    normalized_alias text GENERATED ALWAYS AS (lower(regexp_replace(COALESCE(alias, ''::text), '\s+'::text, ' '::text, 'g'::text))) STORED,
     alias_source text DEFAULT 'system'::text NOT NULL,
     confidence numeric(5,4) DEFAULT 1 NOT NULL,
     is_verified boolean DEFAULT false NOT NULL,
@@ -125689,27 +126840,6 @@ CREATE VIEW public.tenant_website_readiness_v WITH (security_invoker='true') AS
 --
 
 COMMENT ON VIEW public.tenant_website_readiness_v IS 'Plain-language tenant readiness for website contracts, applications, legal texts and mail setup. Counts OPS public_contract_offers and legacy website-visible price plan versions.';
-
---
--- Name: user_permission_overrides; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.user_permission_overrides (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
-    user_id uuid NOT NULL,
-    permission_key text NOT NULL,
-    effect text DEFAULT 'allow'::text NOT NULL,
-    reason text,
-    valid_from timestamp with time zone,
-    valid_to timestamp with time zone,
-    is_active boolean DEFAULT true NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_by uuid,
-    updated_by uuid,
-    CONSTRAINT user_permission_overrides_global_deny_only CHECK (((company_id IS NOT NULL) OR (effect = 'deny'::text)))
-);
 
 --
 -- Name: user_permissions; Type: TABLE; Schema: public; Owner: -
@@ -133052,6 +134182,20 @@ ALTER TABLE ONLY public.normalized_metering_values
 
 ALTER TABLE ONLY public.operations_automation_runs
     ADD CONSTRAINT operations_automation_runs_pkey PRIMARY KEY (id);
+
+--
+-- Name: ops_migration_provenance_receipts ops_migration_provenance_rece_applied_ledger_version_applie_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ops_migration_provenance_receipts
+    ADD CONSTRAINT ops_migration_provenance_rece_applied_ledger_version_applie_key UNIQUE (applied_ledger_version, applied_ledger_name, canonical_filename, receipt_kind, source_file_sha256, observed_at);
+
+--
+-- Name: ops_migration_provenance_receipts ops_migration_provenance_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ops_migration_provenance_receipts
+    ADD CONSTRAINT ops_migration_provenance_receipts_pkey PRIMARY KEY (receipt_id);
 
 --
 -- Name: ops_publication_state ops_publication_state_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -143517,6 +144661,12 @@ CREATE INDEX normalized_metering_values_portal_keyset_idx ON public.normalized_m
 CREATE INDEX operations_automation_runs_company_created_idx ON public.operations_automation_runs USING btree (company_id, created_at DESC);
 
 --
+-- Name: ops_migration_provenance_ledger_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ops_migration_provenance_ledger_idx ON public.ops_migration_provenance_receipts USING btree (applied_ledger_version, applied_ledger_name);
+
+--
 -- Name: ops_publication_state_revision_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -150633,7 +151783,7 @@ CREATE TRIGGER billing_export_items_energy_flow_inherit BEFORE INSERT OR UPDATE 
 -- Name: billing_export_run_items billing_export_run_items_lock_profile_revision; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER billing_export_run_items_lock_profile_revision BEFORE INSERT OR UPDATE ON public.billing_export_run_items FOR EACH ROW EXECUTE FUNCTION public.gridex_billing_item_lock_profile_revision();
+CREATE TRIGGER billing_export_run_items_lock_profile_revision BEFORE INSERT OR UPDATE ON public.billing_export_run_items FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.finance_guard_api_ace058685c2b86bd37f10ec02f552213();
 
 --
 -- Name: normalized_metering_values billing_source_correction_journal; Type: TRIGGER; Schema: public; Owner: -
@@ -154322,6 +155472,18 @@ CREATE TRIGGER method_recovery_bind_message AFTER INSERT OR UPDATE OF created_by
 CREATE TRIGGER method_source_required_before_insert BEFORE INSERT ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_metering_method_changes.require_origin_before_insert_v1();
 
 --
+-- Name: ops_migration_provenance_receipts ops_migration_provenance_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER ops_migration_provenance_no_truncate BEFORE TRUNCATE ON public.ops_migration_provenance_receipts FOR EACH STATEMENT EXECUTE FUNCTION public.ops_reject_migration_provenance_mutation_v1();
+
+--
+-- Name: ops_migration_provenance_receipts ops_migration_provenance_no_update_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER ops_migration_provenance_no_update_delete BEFORE DELETE OR UPDATE ON public.ops_migration_provenance_receipts FOR EACH ROW EXECUTE FUNCTION public.ops_reject_migration_provenance_mutation_v1();
+
+--
 -- Name: outbound_dispatch_events outbound_dispatch_events_tenant; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -154367,13 +155529,13 @@ CREATE TRIGGER portfolio_price_estimates_history_guard BEFORE DELETE OR UPDATE O
 -- Name: portfolio_settlement_audit_log portfolio_settlement_audit_immutable; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER portfolio_settlement_audit_immutable BEFORE DELETE OR UPDATE ON public.portfolio_settlement_audit_log FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.finance_guard_v1_5deeea5777841dc25ff551d49db435fb();
+CREATE TRIGGER portfolio_settlement_audit_immutable BEFORE DELETE OR UPDATE ON public.portfolio_settlement_audit_log FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.finance_guard_api_1fbd31c39b1cc7dfb67c2aa2d54a0d82();
 
 --
 -- Name: portfolio_settlement_invoice_bindings portfolio_settlement_invoice_bindings_guard; Type: TRIGGER; Schema: public; Owner: -
 --
 
-CREATE TRIGGER portfolio_settlement_invoice_bindings_guard BEFORE DELETE OR UPDATE ON public.portfolio_settlement_invoice_bindings FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.finance_guard_v1_7ddb10144d6f8333b9c1b21ecec204e6();
+CREATE TRIGGER portfolio_settlement_invoice_bindings_guard BEFORE DELETE OR UPDATE ON public.portfolio_settlement_invoice_bindings FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.finance_guard_api_3581904fc6fec84168a5786a4d342f71();
 
 --
 -- Name: powers_of_attorney powers_of_attorney_legal_reference_normalize_tg; Type: TRIGGER; Schema: public; Owner: -
@@ -167046,6 +168208,13 @@ ALTER TABLE ONLY public.operations_automation_runs
 
 ALTER TABLE ONLY public.operations_automation_runs
     ADD CONSTRAINT operations_automation_runs_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: ops_migration_provenance_receipts ops_migration_provenance_receipts_applied_ledger_version_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ops_migration_provenance_receipts
+    ADD CONSTRAINT ops_migration_provenance_receipts_applied_ledger_version_fkey FOREIGN KEY (applied_ledger_version) REFERENCES supabase_migrations.schema_migrations(version) ON DELETE RESTRICT;
 
 --
 -- Name: outbound_dispatch_events outbound_dispatch_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -181231,6 +182400,36 @@ ALTER TABLE public.normalized_metering_values ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.operations_automation_runs ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: user_permission_overrides ops_api_platform_admin_delete_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ops_api_platform_admin_delete_guard ON public.user_permission_overrides AS RESTRICTIVE FOR DELETE TO authenticated USING (((company_id IS NOT NULL) AND ( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)));
+
+--
+-- Name: user_permission_overrides ops_api_platform_admin_insert_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ops_api_platform_admin_insert_guard ON public.user_permission_overrides AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK (((company_id IS NOT NULL) AND ( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)));
+
+--
+-- Name: user_permission_overrides ops_api_platform_admin_update_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ops_api_platform_admin_update_guard ON public.user_permission_overrides AS RESTRICTIVE FOR UPDATE TO authenticated USING (((company_id IS NOT NULL) AND ( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin))) WITH CHECK (((company_id IS NOT NULL) AND ( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin)));
+
+--
+-- Name: ops_migration_provenance_receipts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ops_migration_provenance_receipts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: ops_migration_provenance_receipts ops_migration_provenance_service_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY ops_migration_provenance_service_read ON public.ops_migration_provenance_receipts FOR SELECT TO service_role USING (true);
+
+--
 -- Name: ops_publication_state; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -189463,6 +190662,12 @@ GRANT USAGE ON SCHEMA gridex_ediel_common_header TO service_role;
 GRANT USAGE ON SCHEMA gridex_ediel_outbound_owner TO service_role;
 
 --
+-- Name: SCHEMA gridex_ediel_retention; Type: ACL; Schema: -; Owner: -
+--
+
+GRANT USAGE ON SCHEMA gridex_ediel_retention TO postgres;
+
+--
 -- Name: SCHEMA gridex_ediel_source_rules; Type: ACL; Schema: -; Owner: -
 --
 
@@ -192208,6 +193413,7 @@ REVOKE ALL ON FUNCTION gridex_ediel_retention.classification_copy_row_v1(c uuid,
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_retention.classification_copy_source_current_v1(c uuid, mid uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_ediel_retention.classification_copy_source_current_v1(c uuid, mid uuid) TO postgres;
 
 --
 -- Name: FUNCTION classification_copy_transition_v1(k text, o jsonb, n jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
@@ -192250,6 +193456,7 @@ REVOKE ALL ON FUNCTION gridex_ediel_retention.contract_copy_insert_v1() FROM PUB
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_retention.contract_copy_preparation_current_v1(c uuid, target uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_ediel_retention.contract_copy_preparation_current_v1(c uuid, target uuid) TO postgres;
 
 --
 -- Name: FUNCTION contract_copy_prepared_metadata_v1(b jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
@@ -192286,6 +193493,7 @@ REVOKE ALL ON FUNCTION gridex_ediel_retention.contract_copy_source_before_intake
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_retention.contract_copy_source_current_v1(c uuid, ns text, tab text, target uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_ediel_retention.contract_copy_source_current_v1(c uuid, ns text, tab text, target uuid) TO postgres;
 
 --
 -- Name: FUNCTION contract_copy_transition_v1(k text, o jsonb, n jsonb); Type: ACL; Schema: gridex_ediel_retention; Owner: -
@@ -192485,6 +193693,24 @@ REVOKE ALL ON FUNCTION gridex_ediel_retention.finance_decisions_original_guard_v
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_retention.finance_fresh_consumption_guard_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION finance_guard_api_1fbd31c39b1cc7dfb67c2aa2d54a0d82(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.finance_guard_api_1fbd31c39b1cc7dfb67c2aa2d54a0d82() FROM PUBLIC;
+
+--
+-- Name: FUNCTION finance_guard_api_3581904fc6fec84168a5786a4d342f71(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.finance_guard_api_3581904fc6fec84168a5786a4d342f71() FROM PUBLIC;
+
+--
+-- Name: FUNCTION finance_guard_api_ace058685c2b86bd37f10ec02f552213(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_retention.finance_guard_api_ace058685c2b86bd37f10ec02f552213() FROM PUBLIC;
 
 --
 -- Name: FUNCTION finance_guard_v1_2a0dd5ac4e9330f1c07d8aae314f6f3b(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
@@ -192743,6 +193969,7 @@ REVOKE ALL ON FUNCTION gridex_ediel_retention.protected_copy_basis_v1(c uuid, k 
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_retention.protected_copy_current_v1(c uuid, target uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_ediel_retention.protected_copy_current_v1(c uuid, target uuid) TO postgres;
 
 --
 -- Name: FUNCTION protected_copy_insert_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
@@ -192761,6 +193988,7 @@ REVOKE ALL ON FUNCTION gridex_ediel_retention.protected_copy_row_v1(c uuid, k te
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_retention.protected_copy_transition_v1(k text, o jsonb, n jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_ediel_retention.protected_copy_transition_v1(k text, o jsonb, n jsonb) TO postgres;
 
 --
 -- Name: FUNCTION protected_copy_view_update_v1(); Type: ACL; Schema: gridex_ediel_retention; Owner: -
@@ -195973,6 +197201,12 @@ REVOKE ALL ON FUNCTION gridex_switch_cancellations.customer_draft_v1(c uuid, ope
 --
 
 REVOKE ALL ON FUNCTION gridex_switch_cancellations.customer_source_v1(c uuid, sw uuid, actor uuid, phase text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION origin_immutable_v1(); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_switch_cancellations.origin_immutable_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION original_method_v1(c uuid, original uuid, expected_hash text, expected_environment text); Type: ACL; Schema: gridex_switch_cancellations; Owner: -
@@ -202818,6 +204052,13 @@ REVOKE ALL ON FUNCTION public.gridex_read_inbound_ack_source_v1(p_company_id uui
 GRANT ALL ON FUNCTION public.gridex_read_inbound_ack_source_v1(p_company_id uuid, p_environment text, p_ack_message_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_read_interval_pricing_snapshot_v1(p_company_id uuid, p_billing_underlay_id uuid, p_period_start timestamp with time zone, p_period_end timestamp with time zone, p_price_area text, p_required_resolution text, p_expected_underlay jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_read_interval_pricing_snapshot_v1(p_company_id uuid, p_billing_underlay_id uuid, p_period_start timestamp with time zone, p_period_end timestamp with time zone, p_price_area text, p_required_resolution text, p_expected_underlay jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_read_interval_pricing_snapshot_v1(p_company_id uuid, p_billing_underlay_id uuid, p_period_start timestamp with time zone, p_period_end timestamp with time zone, p_price_area text, p_required_resolution text, p_expected_underlay jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_read_outbound_acks_for_source_v1(p_source_message_id uuid, p_ack_family text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -204424,6 +205665,12 @@ GRANT ALL ON FUNCTION public.normalize_personal_number(p_value text) TO service_
 
 GRANT ALL ON FUNCTION public.normalize_phone(p_phone text) TO authenticated;
 GRANT ALL ON FUNCTION public.normalize_phone(p_phone text) TO service_role;
+
+--
+-- Name: FUNCTION ops_reject_migration_provenance_mutation_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ops_reject_migration_provenance_mutation_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION portal_customer_documents_page_v1(p_company_id uuid, p_customer_id uuid, p_cursor_created_at timestamp with time zone, p_cursor_source_rank integer, p_cursor_id uuid, p_limit integer); Type: ACL; Schema: public; Owner: -
@@ -207991,6 +209238,26 @@ GRANT ALL ON TABLE public.normalized_metering_values TO authenticated;
 GRANT ALL ON TABLE public.normalized_metering_values TO service_role;
 
 --
+-- Name: TABLE ops_migration_provenance_receipts; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.ops_migration_provenance_receipts TO service_role;
+
+--
+-- Name: TABLE user_permission_overrides; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.user_permission_overrides TO authenticated;
+GRANT ALL ON TABLE public.user_permission_overrides TO service_role;
+GRANT SELECT,UPDATE ON TABLE public.user_permission_overrides TO gridex_ediel_retention_owner;
+
+--
+-- Name: TABLE ops_migration_provenance_summary_v1; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE public.ops_migration_provenance_summary_v1 TO service_role;
+
+--
 -- Name: TABLE ops_publication_state; Type: ACL; Schema: public; Owner: -
 --
 
@@ -208581,14 +209848,6 @@ GRANT ALL ON TABLE public.tenant_website_installation_receipts TO service_role;
 --
 
 GRANT ALL ON TABLE public.tenant_website_readiness_v TO service_role;
-
---
--- Name: TABLE user_permission_overrides; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.user_permission_overrides TO authenticated;
-GRANT ALL ON TABLE public.user_permission_overrides TO service_role;
-GRANT SELECT,UPDATE ON TABLE public.user_permission_overrides TO gridex_ediel_retention_owner;
 
 --
 -- Name: TABLE user_permissions; Type: ACL; Schema: public; Owner: -

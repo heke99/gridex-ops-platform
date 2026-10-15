@@ -63330,6 +63330,69 @@ export type Database = {
           },
         ]
       }
+      ops_migration_provenance_receipts: {
+        Row: {
+          applied_ledger_name: string
+          applied_ledger_version: string
+          canonical_filename: string
+          current_source_git_commit: string | null
+          current_source_sha256: string | null
+          effect_evidence: Json
+          effect_scope: string
+          effect_verified: boolean
+          observed_at: string
+          project_ref: string
+          receipt_id: string
+          receipt_kind: string
+          recorded_input_md5: string
+          recorded_input_sha256: string
+          registered_at: string
+          source_file_git_commit: string | null
+          source_file_sha256: string
+          source_observation_head: string
+        }
+        Insert: {
+          applied_ledger_name: string
+          applied_ledger_version: string
+          canonical_filename: string
+          current_source_git_commit?: string | null
+          current_source_sha256?: string | null
+          effect_evidence?: Json
+          effect_scope: string
+          effect_verified?: boolean
+          observed_at: string
+          project_ref: string
+          receipt_id: string
+          receipt_kind: string
+          recorded_input_md5: string
+          recorded_input_sha256: string
+          registered_at?: string
+          source_file_git_commit?: string | null
+          source_file_sha256: string
+          source_observation_head: string
+        }
+        Update: {
+          applied_ledger_name?: string
+          applied_ledger_version?: string
+          canonical_filename?: string
+          current_source_git_commit?: string | null
+          current_source_sha256?: string | null
+          effect_evidence?: Json
+          effect_scope?: string
+          effect_verified?: boolean
+          observed_at?: string
+          project_ref?: string
+          receipt_id?: string
+          receipt_kind?: string
+          recorded_input_md5?: string
+          recorded_input_sha256?: string
+          registered_at?: string
+          source_file_git_commit?: string | null
+          source_file_sha256?: string
+          source_observation_head?: string
+        }
+        Relationships: []
+      }
       ops_publication_state: {
         Row: {
           changed_at: string | null
@@ -92849,6 +92912,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ops_migration_provenance_summary_v1: {
+        Row: {
+          canonical_governance_blockers: string[] | null
+          canonical_governance_is_ready: boolean | null
+          canonical_unmapped_ledger_versions: number | null
+          changed_bounded_schema_receipt_count: number | null
+          current_bounded_schema_receipt_count: number | null
+          effect_not_assessed_receipt_count: number | null
+          exact_input_receipt_count: number | null
+          full_history_and_effect_qualification_claimed: boolean | null
+          latest_ledger_version: string | null
+          ledger_version_count: number | null
+          ledger_versions_without_exact_input_receipt: number | null
+          lineage_receipt_count: number | null
+          receipt_count: number | null
+        }
+        Relationships: []
+      }
       platform_actor_route_duplicates_v: {
         Row: {
           actor_id: string | null
@@ -100414,6 +100495,18 @@ export type Database = {
           p_ack_message_id: string
           p_company_id: string
           p_environment: string
+        }
+        Returns: Json
+      }
+      gridex_read_interval_pricing_snapshot_v1: {
+        Args: {
+          p_billing_underlay_id: string
+          p_company_id: string
+          p_expected_underlay: Json
+          p_period_end: string
+          p_period_start: string
+          p_price_area: string
+          p_required_resolution: string
         }
         Returns: Json
       }

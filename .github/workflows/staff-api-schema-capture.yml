@@ -743,6 +743,7 @@ jobs:
           import hashlib
           import json
           import os
+          import re
           from pathlib import Path
           import subprocess
 
@@ -752,7 +753,10 @@ jobs:
           output = Path('staff-schema-capture')
           artifact_names = ['database.types.ts', 'schema.sql', 'schema.fingerprint.json']
           replay_migrations = [Path(line) for line in Path(os.environ['CAPTURE_REPLAY_MIGRATIONS']).read_text().splitlines() if line]
-          latest = max(replay_migrations, key=lambda path: path.name)
+          latest = max(
+              (path for path in replay_migrations if re.fullmatch(r'[0-9]{14}_.+\.sql', path.name)),
+              key=lambda path: path.name,
+          )
           assert latest.name[:14] == os.environ['CAPTURE_LATEST_MIGRATION_VERSION']
           fingerprint = json.loads((output / 'schema.fingerprint.json').read_text())
           receipt = {

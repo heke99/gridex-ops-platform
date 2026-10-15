@@ -1,10 +1,10 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-15T01:56:39.362659+00:00",
-  "generated_with": "supabase-cli-2.101.0-authentic-sc046-v3-primary-capture-run38652310163",
-  "sha256": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
-  "latest_migration": "20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql",
-  "latest_migration_schema_effect": "Genuine qualified F5 PRIMARY changes ONLY atomic ingest definition a580-to-d842 (1312-byte guarded correction) versus tracked qualified F3 schema; full dump7d837 and actual normalizedFPa218ffd9. Types ABI8fbaf is actual byte-identical. Successful canonical replay qualifies frozen full targetmetadata/allotherfunction/index/inverse guards; actual after-only catalog recorded. Current native/upgrade/allmandatoryCI/whole acceptance remain separate.",
+  "generated_at": "2026-10-15T16:22:24.1781263Z",
+  "generated_with": "supabase-cli-2.101.0-authentic-upgrade-clean-component-run38767413120-job116534121599-attempt1",
+  "sha256": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+  "latest_migration": "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+  "latest_migration_schema_effect": "Authentic current-source normalized schema, fingerprint and CLI types were generated independently by the clean and upgraded components of job116534121599 and are byte-identical. All617 forward source checksums and7 derived source/artifact pairs were qualified. This import reflects committed API SQL through20261015100259 while retaining SC046 forwards. Whole upgrade job failed at the stale committed-types comparison; later manifest comparison and historical scenario were not run.",
   "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
@@ -864,7 +864,7 @@
       }
     }
   },
-  "composition_note": "Imported ROOT-qualified genuine F5 PRIMARY schema/fingerprint and faithful actual F5 receipt summary. Original873/v3 capture5825 preserved dated; original F5 input10204/GEN8/source15 remain original, updated metadata/RAW/CP differs. v5 PRIMARY-only runtime intentionally refuses import; separate bounded current CORROBO source/properproducer required.",
+  "composition_note": "Byte-copy adoption of genuine independent clean/upgrade RAW3 from b1a94494 run38767413120/job116534121599/a1/artifact11990880473. Existing capture/capture_artifact and every SC046 epoch/primary/corroboration/history object remain unchanged historical originals. Current ordinary capture run38767412999 generated outputs but failed receipt latest-selection; no capture receipt or ordinary SUCCESS is fabricated. The workflow correction changes only timestamped latest-selection and preserves its equality assertion. Fresh exact-head ordinary capture and mandatory clean/upgrade/native/final CI remain separate gates.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -874,34 +874,32 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-    "kind": "authenticated_main6ce6_plus_genuine_v3_PRIMARY_capture",
-    "incoming_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
-    "capture_source": "873b4159784ee452e979658bc4afcfe9b6bc0a86",
-    "capture_tree": "32b78a9b67296ceb69c2664bd7d3634bd8b7748d",
-    "workflow_run_id": 38652310163,
-    "all10202_tracked_modes_hashes": "ROOT_QUALIFIED_EXACT_ACTUAL_SOURCE",
-    "qualified_inventory_sha256": "ef4569f7dc4993a05cae20180505e3bc50f5082b32850d0942a05da0c25e1aad",
-    "all8_input_hashes": "EXACT",
-    "canonical_source_inputs": 11,
-    "supplemental_UNIT": 1,
-    "owned_capture_workflow": 1,
-    "current_custody_refs": 21,
-    "current_source_refs": 20,
+    "kind": "genuine_independent_clean_upgrade_RAW3_COMPONENT_ONLY",
+    "source_head": "b1a944940ffe607f770e31c450cc6f8528541944",
+    "source_tree": "c595a6df4c20bdd77eb2fa2753060b4750243612",
+    "workflow_run_id": 38767413120,
+    "workflow_job_id": 116534121599,
+    "attempt": 1,
     "raw_output_sha256": {
-      "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
-      "schema.sql": "a8feeeee0b63f4199cccc2e86738030bb9fb3536a951a16c41f8e8bbefbb8298",
-      "schema.fingerprint.json": "96710f5f5584d164e16f5bc675368d51450fa765844f31aee3d0a54c6db20599"
+      "database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+      "schema.sql": "a53b2e0afbd2ee662f0b1ecbbd1780c681d87eb3b1c82bc6dec1d5125d72a481",
+      "schema.fingerprint.json": "d2fef2c9c4b55b9a40354e8e352296757cd357ed4e5f910e4fbcd42ef7d246d9"
     },
-    "types_abi": "BYTEEXACT_8fbaf_3728128B",
-    "comparison_to_qualified_old_F_schema": "ONLY_CONSUMER_DEFINITION_REPLACEMENT_ALL_OTHER_BYTES_IDENTICAL",
-    "latest_migration": {
-      "name": "20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
-      "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
+    "forward_source_checksums_verified": 617,
+    "derived_source_artifact_pairs_verified": 7,
+    "retained_source_unchanged_sha256": "3c8f3bf11c07b18090252089485aaa7fb0a62aa45d6afa66a46961d8a52a473c",
+    "catalog_junit": {
+      "cases": 141,
+      "passed": 1,
+      "skipped": 140,
+      "failed": 0
     },
-    "current_head_required_ci": "PENDING_CURRENT_CLEAN_NATIVE_UPGRADE_SOURCE_GUARD_CORRECTION_AND_FINAL_COHORT",
-    "native_tests": "NOT_RUN_BY_CAPTURE",
-    "upgrade_current": "ACTUAL_F3_FAILURE_RAW_SOURCE_COMMENT_FALSE_POSITIVE_SEPARATE_NATIVE_FIX_PENDING",
-    "ROOT_genuine_qualification_sha256": "5825e601d912b49415e9059e402230a3bfee21e5dfbb6ea32ab394b1f6ef81b2"
+    "whole_upgrade_pass": false,
+    "later_manifest_comparison": "NOT_RUN",
+    "later_historical_scenario": "NOT_RUN",
+    "ordinary_capture_receipt": "NOT_CREATED",
+    "current_head_final_gates": "PENDING; component evidence does not replace final-head CI",
+    "original_qualification_sha256": "c7c861f81ce865c05a5c8a5063c369515960324f0d672e71844e11acae97b2c0"
   },
   "superseded_capture": {
     "purpose": "capture_only",
@@ -1523,8 +1521,8 @@
     "sha256": "3aaf7d57962e2e3c4941cb055e95cd79a19cb1f63f7111f95d9c0de174c4c892"
   },
   "source_latest_migration": {
-    "name": "20261014153206_gridex_data_quality_active_status_search_path.sql",
-    "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9"
+    "name": "20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+    "sha256": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c"
   },
   "main_f88_composition_history": {
     "previous_ops_head": "dc2a49fd139c9d34c26c92407984c06e79ffe89e",
@@ -2258,17 +2256,37 @@
     "scope": "Exact authentic staff/P08 current-main origin, preserved historically while new composition capture is pending."
   },
   "active_generated_outputs_origin": {
-    "kind": "authenticated_ci_primary_capture",
-    "source_head": "e679ec159c355d8df90c6ceaebe83f892668c901",
-    "source_tree": "15098c9e9cbc10de4df2e553143cb07e9d74d5e9",
-    "workflow_run_id": 38625432394,
-    "artifact_id": 11923848377,
-    "output_sha256": {
-      "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
-      "schema.sql": "f33a5ffdd1956345c6f3e10df2a419954bf46f6d1fc92a97c04681d8f0a37457",
-      "schema.fingerprint.json": "38c784f006e001a5c6a4230fa271d4cd068f820dc141f88fe533832a168323c9"
+    "kind": "genuine_ci_independent_clean_and_upgrade_generated_components",
+    "source_head": "b1a944940ffe607f770e31c450cc6f8528541944",
+    "source_tree": "c595a6df4c20bdd77eb2fa2753060b4750243612",
+    "workflow": ".github/workflows/ops-hardening.yml",
+    "workflow_run_id": 38767413120,
+    "workflow_run_attempt": 1,
+    "workflow_job_id": 116534121599,
+    "artifact_id": 11990880473,
+    "artifact_name": "gridex-rem-002-upgrade-replay",
+    "archive_sha256": "b9983c03e73ff3234792d6f494665da246296d92dad487252d569d3b3d170d33",
+    "RAW3_artifact_members": {
+      "database.types.ts": "rem002-upgrade/clean/database.types.ts",
+      "schema.sql": "rem002-upgrade/clean/schema/schema.sql",
+      "schema.fingerprint.json": "rem002-upgrade/clean/schema/schema.fingerprint.json"
     },
-    "qualification": "GEN_CAPTURE_ONLY;TYPES_UNCHANGED;NATIVE_CURRENT_CI_WHOLE_SEPARATE"
+    "output_sha256": {
+      "database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+      "schema.sql": "a53b2e0afbd2ee662f0b1ecbbd1780c681d87eb3b1c82bc6dec1d5125d72a481",
+      "schema.fingerprint.json": "d2fef2c9c4b55b9a40354e8e352296757cd357ed4e5f910e4fbcd42ef7d246d9"
+    },
+    "schema_fingerprint": "4a19a9e0c4c568f0e6af1db6e76f549c43a6a332da0f2ed31cacf25e3ceb41b7",
+    "generation_completed_observed_at": "2026-10-15T16:22:24.1781263Z",
+    "upgrade_component_qualification_sha256": "c7c861f81ce865c05a5c8a5063c369515960324f0d672e71844e11acae97b2c0",
+    "whole_job_conclusion": "FAILURE",
+    "failure": "Committed database.types.ts comparison failed at byte2346490/line63333 after independent clean/upgraded RAW3 equality.",
+    "ordinary_capture_run38767412999": "FAILURE_AFTER_RAW3_BEFORE_RECEIPT;NO_RECEIPT_QUALIFIED",
+    "capture_receipt": "NOT_CREATED;NO_ORDINARY_CAPTURE_SUCCESS_CLAIM",
+    "later_upgrade_manifest_comparison": "NOT_RUN",
+    "later_historical_scenario": "NOT_RUN",
+    "native_browser_and_whole_delivery": "NOT_QUALIFIED_BY_THIS_COMPONENT_IMPORT",
+    "next_gate": "Fresh exact-head ordinary receipt plus all mandatory clean/upgrade/native/CI and two independent final reviews remain required."
   },
   "pre_intake_export_capture_manifest": {
     "commit": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
@@ -94756,5 +94774,124 @@
     "canonical_input_count": 15,
     "separate_unit_and_owned_workflow_count": 2,
     "original_F5_reuse": "UNCHANGED_F5_SQL_CODEGEN_ABI_ONLY;CURRENT_V6_FULL_TRACKED_GEN8_SOURCE17_AND_PRODUCER_SEPARATELY_VERIFIED"
+  },
+  "api794_upgrade_raw_components_adoption": {
+    "source_manifest": {
+      "commit": "b1a944940ffe607f770e31c450cc6f8528541944",
+      "tree": "c595a6df4c20bdd77eb2fa2753060b4750243612",
+      "path": "scripts/supabase-types-manifest.json",
+      "git_blob": "163579b02d2c1ea44184e48d1900d4695ddc53c6",
+      "sha256": "65e6a9309ec1768f056ad08339dabe5bf3ed23ca6c2ce51039e414fa4c3da814",
+      "bytes": 5454577
+    },
+    "exact_previous_active_changed_values": {
+      "generated_at": "2026-10-15T01:56:39.362659+00:00",
+      "generated_with": "supabase-cli-2.101.0-authentic-sc046-v3-primary-capture-run38652310163",
+      "sha256": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+      "latest_migration": "20261015003736_ediel_sc046_newest_metering_duplicate_guard.sql",
+      "source_latest_migration": {
+        "name": "20261014153206_gridex_data_quality_active_status_search_path.sql",
+        "sha256": "4153067538523442f6d040e28127b76335a3d4aea07479280d5dcd64a1e6b2c9"
+      },
+      "latest_migration_schema_effect": "Genuine qualified F5 PRIMARY changes ONLY atomic ingest definition a580-to-d842 (1312-byte guarded correction) versus tracked qualified F3 schema; full dump7d837 and actual normalizedFPa218ffd9. Types ABI8fbaf is actual byte-identical. Successful canonical replay qualifies frozen full targetmetadata/allotherfunction/index/inverse guards; actual after-only catalog recorded. Current native/upgrade/allmandatoryCI/whole acceptance remain separate.",
+      "composition_note": "Imported ROOT-qualified genuine F5 PRIMARY schema/fingerprint and faithful actual F5 receipt summary. Original873/v3 capture5825 preserved dated; original F5 input10204/GEN8/source15 remain original, updated metadata/RAW/CP differs. v5 PRIMARY-only runtime intentionally refuses import; separate bounded current CORROBO source/properproducer required.",
+      "current_prefix_verification": {
+        "kind": "authenticated_main6ce6_plus_genuine_v3_PRIMARY_capture",
+        "incoming_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
+        "capture_source": "873b4159784ee452e979658bc4afcfe9b6bc0a86",
+        "capture_tree": "32b78a9b67296ceb69c2664bd7d3634bd8b7748d",
+        "workflow_run_id": 38652310163,
+        "all10202_tracked_modes_hashes": "ROOT_QUALIFIED_EXACT_ACTUAL_SOURCE",
+        "qualified_inventory_sha256": "ef4569f7dc4993a05cae20180505e3bc50f5082b32850d0942a05da0c25e1aad",
+        "all8_input_hashes": "EXACT",
+        "canonical_source_inputs": 11,
+        "supplemental_UNIT": 1,
+        "owned_capture_workflow": 1,
+        "current_custody_refs": 21,
+        "current_source_refs": 20,
+        "raw_output_sha256": {
+          "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+          "schema.sql": "a8feeeee0b63f4199cccc2e86738030bb9fb3536a951a16c41f8e8bbefbb8298",
+          "schema.fingerprint.json": "96710f5f5584d164e16f5bc675368d51450fa765844f31aee3d0a54c6db20599"
+        },
+        "types_abi": "BYTEEXACT_8fbaf_3728128B",
+        "comparison_to_qualified_old_F_schema": "ONLY_CONSUMER_DEFINITION_REPLACEMENT_ALL_OTHER_BYTES_IDENTICAL",
+        "latest_migration": {
+          "name": "20261014211648_ediel_sc046_bound_newer_metering_correction.sql",
+          "sha256": "760b535d6b3e3d29cec87a4e19786b6713d47764e02d24a2c0cee848411e318b"
+        },
+        "current_head_required_ci": "PENDING_CURRENT_CLEAN_NATIVE_UPGRADE_SOURCE_GUARD_CORRECTION_AND_FINAL_COHORT",
+        "native_tests": "NOT_RUN_BY_CAPTURE",
+        "upgrade_current": "ACTUAL_F3_FAILURE_RAW_SOURCE_COMMENT_FALSE_POSITIVE_SEPARATE_NATIVE_FIX_PENDING",
+        "ROOT_genuine_qualification_sha256": "5825e601d912b49415e9059e402230a3bfee21e5dfbb6ea32ab394b1f6ef81b2"
+      },
+      "active_generated_outputs_origin": {
+        "kind": "authenticated_ci_primary_capture",
+        "source_head": "e679ec159c355d8df90c6ceaebe83f892668c901",
+        "source_tree": "15098c9e9cbc10de4df2e553143cb07e9d74d5e9",
+        "workflow_run_id": 38625432394,
+        "artifact_id": 11923848377,
+        "output_sha256": {
+          "database.types.ts": "8fbaf566c956192d9b64a2e504d764c7e8497b9261ac19a413479bb6c675f9f2",
+          "schema.sql": "f33a5ffdd1956345c6f3e10df2a419954bf46f6d1fc92a97c04681d8f0a37457",
+          "schema.fingerprint.json": "38c784f006e001a5c6a4230fa271d4cd068f820dc141f88fe533832a168323c9"
+        },
+        "qualification": "GEN_CAPTURE_ONLY;TYPES_UNCHANGED;NATIVE_CURRENT_CI_WHOLE_SEPARATE"
+      }
+    },
+    "preserved_historical_top_level_fields": [
+      "capture",
+      "capture_artifact",
+      "composition_capture_pending",
+      "composition_capture_pending_scope",
+      "active_sc046_input_epoch",
+      "pending_sc031_capture",
+      "pending_sc046_capture",
+      "pending_sc046_capture_v2",
+      "pending_sc046_capture_v3",
+      "pending_sc046_capture_v4",
+      "pending_sc046_capture_v5",
+      "pending_sc046_capture_v6"
+    ],
+    "source_component_provenance": {
+      "kind": "genuine_ci_independent_clean_and_upgrade_generated_components",
+      "source_head": "b1a944940ffe607f770e31c450cc6f8528541944",
+      "source_tree": "c595a6df4c20bdd77eb2fa2753060b4750243612",
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "workflow_run_id": 38767413120,
+      "workflow_run_attempt": 1,
+      "workflow_job_id": 116534121599,
+      "artifact_id": 11990880473,
+      "artifact_name": "gridex-rem-002-upgrade-replay",
+      "archive_sha256": "b9983c03e73ff3234792d6f494665da246296d92dad487252d569d3b3d170d33",
+      "RAW3_artifact_members": {
+        "database.types.ts": "rem002-upgrade/clean/database.types.ts",
+        "schema.sql": "rem002-upgrade/clean/schema/schema.sql",
+        "schema.fingerprint.json": "rem002-upgrade/clean/schema/schema.fingerprint.json"
+      },
+      "output_sha256": {
+        "database.types.ts": "4e0058b3446a3cefecc5430e01ae0715eecc1f6328ca7d36b3db8f6421f7e4ea",
+        "schema.sql": "a53b2e0afbd2ee662f0b1ecbbd1780c681d87eb3b1c82bc6dec1d5125d72a481",
+        "schema.fingerprint.json": "d2fef2c9c4b55b9a40354e8e352296757cd357ed4e5f910e4fbcd42ef7d246d9"
+      },
+      "schema_fingerprint": "4a19a9e0c4c568f0e6af1db6e76f549c43a6a332da0f2ed31cacf25e3ceb41b7",
+      "generation_completed_observed_at": "2026-10-15T16:22:24.1781263Z",
+      "upgrade_component_qualification_sha256": "c7c861f81ce865c05a5c8a5063c369515960324f0d672e71844e11acae97b2c0",
+      "whole_job_conclusion": "FAILURE",
+      "failure": "Committed database.types.ts comparison failed at byte2346490/line63333 after independent clean/upgraded RAW3 equality.",
+      "ordinary_capture_run38767412999": "FAILURE_AFTER_RAW3_BEFORE_RECEIPT;NO_RECEIPT_QUALIFIED",
+      "capture_receipt": "NOT_CREATED;NO_ORDINARY_CAPTURE_SUCCESS_CLAIM",
+      "later_upgrade_manifest_comparison": "NOT_RUN",
+      "later_historical_scenario": "NOT_RUN",
+      "native_browser_and_whole_delivery": "NOT_QUALIFIED_BY_THIS_COMPONENT_IMPORT",
+      "next_gate": "Fresh exact-head ordinary receipt plus all mandatory clean/upgrade/native/CI and two independent final reviews remain required."
+    },
+    "capture_latest_selection_fix": {
+      "path": ".github/workflows/staff-api-schema-capture.yml",
+      "before_sha256": "19b1dea9ba5d22df657b018a9a2f5050673ac760b377333d9578086abc732501",
+      "after_sha256": "e5eb15a3b859ebbb76630695d4a41a050a175c2e55210dd1434a0a0c68a340d8",
+      "selection": "Only canonical14-digit timestamped SQL basenames participate; complete executed path list and owner-version assertion unchanged."
+    },
+    "limits": "Existing same-source upgrade artifact reused only for authenticated RAW3 components; whole job FAILURE, capture receipt absent, later history NOT_RUN. No new producer, database, generation, artifact download/extraction or claim mutation."
   }
 }
