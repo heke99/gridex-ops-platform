@@ -5,7 +5,7 @@
 // edifact_dangling_release_character (and without UNA doubled the segments).
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const io = vi.hoisted(() => ({ parsedInputs: [] as Array<{ attachmentText?: string | null }>, parsed: [] as unknown[], parseErrors: [] as string[] }))
+const io = vi.hoisted(() => ({ parsedInputs: [] as Array<{ attachmentText?: string | null }>, parsed: [] as unknown[], parseErrors: [] as string[], mailCompany: null as string | null, linkedCompanies: [] as Array<string | null> }))
 const mocks = vi.hoisted(() => ({ update: vi.fn(), task: vi.fn(), tenant: vi.fn() }))
 
 vi.mock('@/lib/inbound-mail/edielEmailParser', async (original) => {
@@ -29,32 +29,46 @@ const raw = [...wire, `UNT+${wire.length - 1}+1'`, "UNZ+1+260901000001'"].join('
 
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from: (table: string) => {
-    const result = table === 'inbound_email_messages'
-      ? { data: { id: 'mail1', company_id: null, environment: 'test', raw_email: null, body_text: 'Ediel', raw_edifact_payload: raw, has_attachments: true }, error: null }
+    const result = () => table === 'inbound_email_messages'
+      ? { data: { id: 'mail1', company_id: io.mailCompany, environment: 'test', raw_email: null, body_text: 'Ediel', raw_edifact_payload: raw, has_attachments: true }, error: null }
       : table === 'inbound_email_attachments'
         ? { data: [{ id: 'att1', inbound_email_message_id: 'mail1', filename: 'E66.edi', raw_text: raw, is_edifact_candidate: true }], error: null }
         : { data: null, error: null }
     const query: Record<string, unknown> = {}
-    for (const method of ['select', 'eq', 'in', 'order', 'limit', 'is', 'not', 'or']) query[method] = () => query
-    query.maybeSingle = async () => result
-    query.single = async () => result
-    query.then = (resolve: (value: unknown) => unknown) => Promise.resolve(result).then(resolve)
+    let nullOnly = false
+    for (const method of ['select', 'eq', 'in', 'order', 'limit', 'not', 'or']) query[method] = () => query
+    query.is = (column: string, value: unknown) => { if (column === 'company_id' && value === null) nullOnly = true; return query }
+    query.update = (patch: { company_id?: string }) => {
+      query.then = (resolve: (value: unknown) => unknown) => {
+        if (table === 'inbound_email_messages' && patch.company_id && (!nullOnly || io.mailCompany === null)) io.mailCompany = patch.company_id
+        return Promise.resolve({ data: null, error: null }).then(resolve)
+      }
+      return query
+    }
+    query.maybeSingle = async () => result()
+    query.single = async () => result()
+    query.then = (resolve: (value: unknown) => unknown) => Promise.resolve(result()).then(resolve)
     return query
   },
   rpc: async () => ({ data: null, error: null }),
 } }))
 vi.mock('@/lib/inbound-mail/inboundStatusUpdater', () => ({
   updateInboundEmailProcessingStatus: mocks.update,
-  createParseResult: vi.fn(), createInboundEdielMessage: vi.fn(),
+  createParseResult: vi.fn(),
+  createInboundEdielMessage: vi.fn(async (input: { companyId: string }) => { io.linkedCompanies.push(io.mailCompany); void input; return 'message1' }),
   createUnresolvedInboundEdielMessage: vi.fn(), applySafeInboundStatusUpdate: vi.fn(),
 }))
 vi.mock('@/lib/inbound-mail/inboundTaskFactory', () => ({ createInboundMailTask: mocks.task }))
+vi.mock('@/lib/inbound-mail/inboundMatcher', () => ({
+  matchOutboundRequestForInbound: async () => ({ status: 'missing', entityId: null, entityType: null, reasons: ['unsolicited periodic values'], candidates: [] }),
+  matchMeteringPointForInbound: async () => ({ status: 'missing', entityId: null, entityType: null, reasons: [], candidates: [] }),
+}))
 vi.mock('@/lib/inbound-mail/inboundTenantResolver', () => ({ resolveTenantForInboundEdiel: mocks.tenant }))
 
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
 
 beforeEach(() => {
-  io.parsedInputs = []; io.parsed = []; io.parseErrors = []
+  io.parsedInputs = []; io.parsed = []; io.parseErrors = []; io.mailCompany = null; io.linkedCompanies = []
   vi.clearAllMocks()
   mocks.tenant.mockResolvedValue({ status: 'unresolved', companyId: null, reasons: ['fixture stops after parse'], evidence: [] })
 })
@@ -67,5 +81,20 @@ describe('inbound e-mail with an EDIFACT attachment', () => {
     expect(io.parsedInputs[0].attachmentText?.match(/UNA:/g)).toHaveLength(1)
     expect(io.parsed[0]).toMatchObject({ messageFamily: 'UTILTS', messageCode: 'E66', segments: expect.any(Array) })
     expect((io.parsed[0] as { segments: unknown[] }).segments).toHaveLength(wire.length + 1)
+  })
+
+  it('attributes shared-mailbox mail to the verified tenant before an Ediel message is created from it', async () => {
+    mocks.tenant.mockResolvedValue({ status: 'resolved', companyId: 'tenant-a', reasons: [], evidence: [], shared: null })
+    await processInboundEmailMessage({ inboundEmailMessageId: 'mail1', actorUserId: 'actor-1' }).catch(() => undefined)
+    expect(io.mailCompany).toBe('tenant-a')
+    expect(io.linkedCompanies).toEqual(['tenant-a'])
+  })
+
+  it('stops instead of re-attributing mail that already belongs to another tenant', async () => {
+    io.mailCompany = 'tenant-b'
+    mocks.tenant.mockResolvedValue({ status: 'resolved', companyId: 'tenant-a', reasons: [], evidence: [], shared: null })
+    await expect(processInboundEmailMessage({ inboundEmailMessageId: 'mail1', actorUserId: 'actor-1' })).rejects.toThrow('inbound_email_tenant_attribution_conflict')
+    expect(io.mailCompany).toBe('tenant-b')
+    expect(io.linkedCompanies).toEqual([])
   })
 })
