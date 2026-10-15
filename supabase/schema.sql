@@ -60435,13 +60435,112 @@ CREATE FUNCTION public.gridex_consume_utilts_metering_v1(p_company_id uuid, p_so
     SET "TimeZone" TO 'UTC'
     AS $$
 DECLARE v_contract jsonb; v_attribution jsonb; v_observation jsonb; v_key text; v_payload jsonb; v_result public.metering_values%rowtype;
+ -- SC046 authentic newer correction declarations.
+ sc046_own public.meter_reading_series%rowtype; sc046_pre public.meter_reading_series%rowtype;
+ sc046_old public.meter_reading_series%rowtype; sc046_hop public.meter_reading_series%rowtype;
+ sc046_graph text; sc046_graph_after text; sc046_cohort jsonb; sc046_sources uuid[]; sc046_sources_after uuid[];
+ sc046_contract jsonb; sc046_old_contract jsonb; sc046_old_observation jsonb; sc046_old_payload jsonb;
+ sc046_candidates uuid[]; sc046_seen uuid[]; sc046_origin_id uuid; sc046_source uuid;
+ sc046_time timestamptz; sc046_old_time timestamptz; sc046_previous_time timestamptz;
+ sc046_count bigint; sc046_ordinal integer; sc046_field text; sc046_id uuid;
+ sc046_old_result public.metering_values%rowtype; sc046_current_count bigint;
+
 BEGIN
+ -- Match the unchanged canonical persistence table-lock order FIRST.
+ -- This prevents a writer holding its source/graph while a sink holds an
+ -- older source and waits for that writer. No table lock is upgraded later.
+ PERFORM gridex_utilts_binding.lock_storage_graph_v1();
+ -- SC046 source locks precede the storage graph, which precedes ACK/series
+ -- SHARE locks. Preliminary reads confer no authority. The identity spelling
+ -- is copied from persist_series_v2, including raw date strings and defaults.
+ SELECT h.* INTO sc046_pre FROM public.ediel_ack_transaction_results a
+ JOIN public.meter_reading_series h ON h.id=a.persisted_series_id
+ WHERE a.company_id=p_company_id AND a.source_message_id=p_source_message_id AND a.source_transaction_id=p_transaction_id;
+ IF NOT FOUND THEN RAISE EXCEPTION 'utilts_consumption_not_accepted' USING ERRCODE='P0U01'; END IF;
+ sc046_cohort:=jsonb_build_array(p_company_id::text,sc046_pre.series_kind,sc046_pre.message_code,
+  coalesce(sc046_pre.external_metering_point_id,''),coalesce(sc046_pre.grid_area_id,''),
+  sc046_pre.period_start,sc046_pre.period_end,sc046_pre.resolution,coalesce(sc046_pre.product_id,''));
+ SELECT concat_ws('|',p_company_id::text,o.environment,coalesce(sc046_pre.raw_transaction->>'seriesKind','actual'),
+  o.message_code,coalesce(sc046_pre.raw_transaction->>'externalMeteringPointId',''),coalesce(sc046_pre.raw_transaction->>'gridAreaId',''),
+  coalesce(sc046_pre.raw_transaction->>'periodStart',''),coalesce(sc046_pre.raw_transaction->>'periodEnd',''),
+  coalesce(sc046_pre.raw_transaction->>'resolution','UNKNOWN'),coalesce(sc046_pre.raw_transaction->>'productId','')) INTO sc046_graph FROM public.ediel_messages o WHERE o.id=p_source_message_id;
+ v_attribution:=sc046_pre.raw_transaction#>'{consumptionContract,metering}';
+ v_observation:=sc046_pre.raw_transaction#>'{consumptionContract,observations}'->p_observation_ordinal;
+ v_key:=concat_ws('|',p_company_id::text,v_attribution->>'meteringPointId',v_observation->>'periodStart',v_observation->>'periodEnd',
+  coalesce(v_observation->>'registerCode','default-register'),coalesce(v_observation->>'productCode','default-product'),v_observation->>'direction',v_observation->>'unit');
+ SELECT (SELECT array_agg(DISTINCT source_id ORDER BY source_id) FROM (
+   SELECT p_source_message_id AS source_id
+   UNION SELECT h.source_ediel_message_id FROM public.meter_reading_series h WHERE jsonb_build_array(h.company_id::text,h.series_kind,h.message_code,coalesce(h.external_metering_point_id,''),
+    coalesce(h.grid_area_id,''),h.period_start,h.period_end,h.resolution,coalesce(h.product_id,''))=sc046_cohort
+   UNION SELECT m.source_ediel_message_id FROM public.metering_values m WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
+   UNION SELECT l.source_ediel_message_id FROM public.metering_value_sources l JOIN public.metering_values m ON m.id=l.metering_value_id AND m.company_id=l.company_id
+    WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
+  ) sources WHERE source_id IS NOT NULL) INTO sc046_sources;
+ PERFORM 1 FROM public.ediel_messages o WHERE o.id=ANY(sc046_sources) ORDER BY o.id FOR SHARE;
+ IF sc046_graph IS NULL THEN RAISE EXCEPTION 'utilts_consumption_source_unavailable' USING ERRCODE='P0U01'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(sc046_graph,0));
+ -- Recheck all preliminary bindings after both source and graph waits. New
+ -- source membership requires a retry; never acquire a new source row below.
+ SELECT h.* INTO sc046_own FROM public.ediel_ack_transaction_results a
+ JOIN public.meter_reading_series h ON h.id=a.persisted_series_id
+ WHERE a.company_id=p_company_id AND a.source_message_id=p_source_message_id AND a.source_transaction_id=p_transaction_id;
+ IF NOT FOUND OR sc046_own.id IS DISTINCT FROM sc046_pre.id
+  OR (to_jsonb(sc046_own)-'is_current') IS DISTINCT FROM (to_jsonb(sc046_pre)-'is_current') THEN
+  RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='P0U01'; END IF;
+ SELECT concat_ws('|',p_company_id::text,o.environment,coalesce(sc046_pre.raw_transaction->>'seriesKind','actual'),
+  o.message_code,coalesce(sc046_pre.raw_transaction->>'externalMeteringPointId',''),coalesce(sc046_pre.raw_transaction->>'gridAreaId',''),
+  coalesce(sc046_pre.raw_transaction->>'periodStart',''),coalesce(sc046_pre.raw_transaction->>'periodEnd',''),
+  coalesce(sc046_pre.raw_transaction->>'resolution','UNKNOWN'),coalesce(sc046_pre.raw_transaction->>'productId','')) INTO sc046_graph_after FROM public.ediel_messages o WHERE o.id=p_source_message_id;
+ SELECT (SELECT array_agg(DISTINCT source_id ORDER BY source_id) FROM (
+   SELECT p_source_message_id AS source_id
+   UNION SELECT h.source_ediel_message_id FROM public.meter_reading_series h WHERE jsonb_build_array(h.company_id::text,h.series_kind,h.message_code,coalesce(h.external_metering_point_id,''),
+    coalesce(h.grid_area_id,''),h.period_start,h.period_end,h.resolution,coalesce(h.product_id,''))=sc046_cohort
+   UNION SELECT m.source_ediel_message_id FROM public.metering_values m WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
+   UNION SELECT l.source_ediel_message_id FROM public.metering_value_sources l JOIN public.metering_values m ON m.id=l.metering_value_id AND m.company_id=l.company_id
+    WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
+  ) sources WHERE source_id IS NOT NULL) INTO sc046_sources_after;
+ IF sc046_graph_after IS DISTINCT FROM sc046_graph OR sc046_sources_after IS DISTINCT FROM sc046_sources THEN
+  RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='P0U01'; END IF;
+ -- Immutable late-history birth cannot be promoted with a mutable current bit.
+ IF sc046_own.version_no>1 AND sc046_own.supersedes_series_id IS NULL THEN
+  RAISE EXCEPTION 'utilts_consumption_late_history' USING ERRCODE='P0U01'; END IF;
  v_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,p_source_message_id,p_transaction_id);
  IF p_expected_contract IS DISTINCT FROM v_contract THEN RAISE EXCEPTION 'utilts_consumption_returned_contract_changed' USING ERRCODE='P0U01'; END IF;
  v_attribution:=v_contract->'metering';
  IF p_observation_ordinal IS NULL OR p_observation_ordinal<0 OR p_observation_ordinal>=jsonb_array_length(v_contract->'observations') THEN
   RAISE EXCEPTION 'utilts_consumption_observation_missing' USING ERRCODE='P0U01'; END IF;
  v_observation:=v_contract->'observations'->p_observation_ordinal;
+ -- Check complete same-cohort candidates, without filtering invalid origins
+ -- out of existence. Mutable current flags never hide a strictly later birth.
+ sc046_time:=coalesce(sc046_own.latest_update_date,sc046_own.registration_date);
+ FOR sc046_hop IN SELECT h.* FROM public.meter_reading_series h WHERE jsonb_build_array(h.company_id::text,h.series_kind,h.message_code,coalesce(h.external_metering_point_id,''),
+    coalesce(h.grid_area_id,''),h.period_start,h.period_end,h.resolution,coalesce(h.product_id,''))=sc046_cohort AND (EXISTS(SELECT FROM public.ediel_messages o WHERE o.id=h.source_ediel_message_id AND o.environment=v_contract->>'environment') OR EXISTS(SELECT FROM gridex_utilts_binding.receipts r WHERE r.source_message_id=h.source_ediel_message_id AND r.environment=v_contract->>'environment') OR EXISTS(SELECT FROM gridex_utilts_binding.contracts c WHERE c.series_id=h.id AND c.environment=v_contract->>'environment') OR NOT EXISTS(SELECT FROM public.ediel_messages o WHERE o.id=h.source_ediel_message_id)) ORDER BY h.id FOR SHARE LOOP
+  IF sc046_hop.source_ediel_message_id IS NULL OR NOT (sc046_hop.source_ediel_message_id=ANY(sc046_sources)) THEN
+   RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='P0U01'; END IF;
+  sc046_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,sc046_hop.source_ediel_message_id,sc046_hop.source_transaction_reference);
+  IF NOT EXISTS(SELECT FROM public.ediel_messages o JOIN public.ediel_ack_transaction_results a ON a.source_message_id=o.id
+    JOIN gridex_utilts_binding.contracts c ON c.series_id=a.persisted_series_id
+    WHERE o.id=sc046_hop.source_ediel_message_id AND o.company_id=p_company_id AND o.environment=v_contract->>'environment'
+     AND o.direction='inbound' AND o.message_family='UTILTS' AND o.message_code=sc046_own.message_code
+     AND a.company_id=p_company_id AND a.environment=o.environment AND a.source_transaction_id=sc046_hop.source_transaction_reference
+     AND a.persisted_series_id=sc046_hop.id AND a.disposition='accepted' AND a.persistence_status='persisted'
+     AND a.planned_response_type='positive_aperak' AND (a.final_response_type IS NULL OR a.final_response_type='positive_aperak')
+     AND c.company_id=p_company_id AND c.environment=o.environment AND c.source_message_id=o.id
+     AND c.transaction_id=a.source_transaction_id AND c.contract=sc046_contract)
+   OR sc046_hop.raw_transaction->>'transactionId' IS DISTINCT FROM sc046_hop.source_transaction_reference
+   OR sc046_hop.raw_transaction->'consumptionContract' IS DISTINCT FROM sc046_contract
+   OR sc046_hop.immutable_hash IS DISTINCT FROM encode(sha256(convert_to(sc046_hop.raw_transaction::text,'UTF8')),'hex') THEN
+   RAISE EXCEPTION 'utilts_consumption_correction_binding_invalid' USING ERRCODE='P0U01'; END IF;
+  BEGIN
+   IF sc046_hop.registration_date IS DISTINCT FROM nullif(sc046_hop.raw_transaction->>'registrationDate','')::timestamptz
+    OR sc046_hop.latest_update_date IS DISTINCT FROM nullif(sc046_hop.raw_transaction->>'latestUpdateDate','')::timestamptz THEN
+    RAISE EXCEPTION 'utilts_consumption_correction_time_invalid' USING ERRCODE='P0U01'; END IF;
+  EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow THEN
+   RAISE EXCEPTION 'utilts_consumption_correction_time_invalid' USING ERRCODE='P0U01'; END;
+  IF sc046_hop.id<>sc046_own.id AND sc046_hop.version_no>1 AND sc046_hop.supersedes_series_id IS NOT NULL
+   AND coalesce(sc046_hop.latest_update_date,sc046_hop.registration_date)>sc046_time THEN
+   RAISE EXCEPTION 'utilts_consumption_stale_version' USING ERRCODE='P0U01'; END IF;
+ END LOOP;
  PERFORM gridex_utilts_binding.lock_attribution_v1(p_company_id,v_attribution,false);
  v_key:=concat_ws('|',p_company_id::text,v_attribution->>'meteringPointId',v_observation->>'periodStart',v_observation->>'periodEnd',
   coalesce(v_observation->>'registerCode','default-register'),coalesce(v_observation->>'productCode','default-product'),v_observation->>'direction',v_observation->>'unit');
@@ -60458,7 +60557,127 @@ BEGIN
  SELECT m.* INTO v_result FROM public.metering_values m WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current
   ORDER BY m.created_at DESC,m.id DESC LIMIT 1 FOR UPDATE;
  IF FOUND THEN
-  PERFORM gridex_utilts_binding.check_metering_result_v1(v_result,v_payload,v_contract->>'environment');
+  BEGIN
+   PERFORM gridex_utilts_binding.check_metering_result_v1(v_result,v_payload,v_contract->>'environment');
+  EXCEPTION WHEN SQLSTATE 'P0U01' THEN
+   -- Only a quantity difference may request correction. Environment, identity,
+   -- normalized corruption and every other original error retain their checks.
+   IF SQLERRM IS DISTINCT FROM 'utilts_consumption_existing_metering_conflict'
+    OR v_result.value_kwh IS NOT DISTINCT FROM (v_payload->>'value_kwh')::numeric THEN RAISE; END IF;
+   sc046_old_result:=v_result;
+   SELECT count(*) INTO sc046_current_count FROM public.metering_values m
+    WHERE m.company_id=p_company_id AND m.canonical_dedupe_key=v_key AND m.is_current;
+   IF sc046_current_count<>1 THEN RAISE EXCEPTION 'utilts_consumption_existing_metering_conflict' USING ERRCODE='P0U01'; END IF;
+   IF v_result.source_ediel_message_id IS NULL OR NOT (v_result.source_ediel_message_id=ANY(sc046_sources)) THEN
+    RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='P0U01'; END IF;
+   SELECT h.* INTO sc046_old FROM public.ediel_ack_transaction_results a JOIN public.meter_reading_series h ON h.id=a.persisted_series_id
+    WHERE a.company_id=p_company_id AND a.source_message_id=v_result.source_ediel_message_id
+     AND a.source_transaction_id=v_result.source_transaction_reference;
+   IF NOT FOUND OR sc046_old.source_ediel_message_id IS DISTINCT FROM v_result.source_ediel_message_id
+    OR sc046_old.source_transaction_reference IS DISTINCT FROM v_result.source_transaction_reference
+    OR jsonb_build_array(sc046_old.company_id::text,sc046_old.series_kind,sc046_old.message_code,coalesce(sc046_old.external_metering_point_id,''),
+    coalesce(sc046_old.grid_area_id,''),sc046_old.period_start,sc046_old.period_end,sc046_old.resolution,coalesce(sc046_old.product_id,'')) IS DISTINCT FROM sc046_cohort THEN
+    RAISE EXCEPTION 'utilts_consumption_correction_binding_invalid' USING ERRCODE='P0U01'; END IF;
+  IF sc046_old.source_ediel_message_id IS NULL OR NOT (sc046_old.source_ediel_message_id=ANY(sc046_sources)) THEN
+   RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='P0U01'; END IF;
+  sc046_old_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,sc046_old.source_ediel_message_id,sc046_old.source_transaction_reference);
+  IF NOT EXISTS(SELECT FROM public.ediel_messages o JOIN public.ediel_ack_transaction_results a ON a.source_message_id=o.id
+    JOIN gridex_utilts_binding.contracts c ON c.series_id=a.persisted_series_id
+    WHERE o.id=sc046_old.source_ediel_message_id AND o.company_id=p_company_id AND o.environment=sc046_old_contract->>'environment'
+     AND o.direction='inbound' AND o.message_family='UTILTS' AND o.message_code=sc046_own.message_code
+     AND a.company_id=p_company_id AND a.environment=o.environment AND a.source_transaction_id=sc046_old.source_transaction_reference
+     AND a.persisted_series_id=sc046_old.id AND a.disposition='accepted' AND a.persistence_status='persisted'
+     AND a.planned_response_type='positive_aperak' AND (a.final_response_type IS NULL OR a.final_response_type='positive_aperak')
+     AND c.company_id=p_company_id AND c.environment=o.environment AND c.source_message_id=o.id
+     AND c.transaction_id=a.source_transaction_id AND c.contract=sc046_old_contract)
+   OR sc046_old.raw_transaction->>'transactionId' IS DISTINCT FROM sc046_old.source_transaction_reference
+   OR sc046_old.raw_transaction->'consumptionContract' IS DISTINCT FROM sc046_old_contract
+   OR sc046_old.immutable_hash IS DISTINCT FROM encode(sha256(convert_to(sc046_old.raw_transaction::text,'UTF8')),'hex') THEN
+   RAISE EXCEPTION 'utilts_consumption_correction_binding_invalid' USING ERRCODE='P0U01'; END IF;
+  BEGIN
+   IF sc046_old.registration_date IS DISTINCT FROM nullif(sc046_old.raw_transaction->>'registrationDate','')::timestamptz
+    OR sc046_old.latest_update_date IS DISTINCT FROM nullif(sc046_old.raw_transaction->>'latestUpdateDate','')::timestamptz THEN
+    RAISE EXCEPTION 'utilts_consumption_correction_time_invalid' USING ERRCODE='P0U01'; END IF;
+  EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow THEN
+   RAISE EXCEPTION 'utilts_consumption_correction_time_invalid' USING ERRCODE='P0U01'; END;
+   SELECT count(*),min(ordinality::integer)-1 INTO sc046_count,sc046_ordinal
+    FROM jsonb_array_elements(sc046_old_contract->'observations') WITH ORDINALITY observations(o,ordinality)
+    WHERE concat_ws('|',p_company_id::text,sc046_old_contract#>>'{metering,meteringPointId}',o->>'periodStart',o->>'periodEnd',
+     coalesce(o->>'registerCode','default-register'),coalesce(o->>'productCode','default-product'),o->>'direction',o->>'unit')=v_key;
+   IF sc046_count<>1 OR sc046_old_contract#>>'{metering,capability}' IS DISTINCT FROM 'write' THEN
+    RAISE EXCEPTION 'utilts_consumption_correction_binding_invalid' USING ERRCODE='P0U01'; END IF;
+   sc046_old_observation:=sc046_old_contract->'observations'->sc046_ordinal;
+   PERFORM gridex_utilts_binding.lock_attribution_v1(p_company_id,sc046_old_contract->'metering',false);
+ sc046_old_payload:=jsonb_build_object('company_id',p_company_id,'customer_id',(sc046_old_contract->'metering')->'customerId','site_id',(sc046_old_contract->'metering')->'siteId','customer_site_id',(sc046_old_contract->'metering')->'customerSiteId',
+  'metering_point_id',(sc046_old_contract->'metering')->'meteringPointId','grid_owner_id',(sc046_old_contract->'metering')->'gridOwnerId','source_request_id',(sc046_old_contract->'metering')->'sourceRequestId',
+  'period_start',sc046_old_observation->'periodStart','period_end',sc046_old_observation->'periodEnd','read_at',sc046_old_observation->'readAt','resolution',sc046_old_observation->'resolution',
+  'value_kwh',sc046_old_observation->'quantity','quality_code',sc046_old_observation->'quality','reading_type',sc046_old_observation->'readingType','direction',sc046_old_observation->'direction','unit',sc046_old_observation->'unit',
+  'register_code',sc046_old_observation->'registerCode','product_code',sc046_old_observation->'productCode','facility_id',sc046_old_observation->'externalPoint','grid_area',sc046_old_observation->'gridArea',
+  'source_line_reference',sc046_old_observation->'sourceLineReference','source_system',sc046_old_contract->'sourceType','source_ediel_message_id',sc046_old.source_ediel_message_id,
+  'source_transaction_reference',sc046_old.source_transaction_reference,'created_by',p_actor_id,'canonical_dedupe_key',v_key,
+  'raw_payload',jsonb_build_object('consumptionContract',sc046_old_contract,'sourceOrdinal',sc046_old_observation->'sourceOrdinal','edielMessageId',sc046_old.source_ediel_message_id));
+   -- Revalidate old rows against their OWN protected contract in the incoming
+   -- environment, not raw_payload or incoming quantity. Preserve all original
+   -- meter/normalized/timestamp/identity/environment corruption refusals.
+   PERFORM gridex_utilts_binding.check_metering_result_v1(sc046_old_result,sc046_old_payload,v_contract->>'environment');
+   IF (v_payload-ARRAY['value_kwh','source_ediel_message_id','source_transaction_reference','source_line_reference','created_by','raw_payload'])
+    IS DISTINCT FROM (sc046_old_payload-ARRAY['value_kwh','source_ediel_message_id','source_transaction_reference','source_line_reference','created_by','raw_payload']) THEN
+    RAISE EXCEPTION 'utilts_consumption_existing_metering_conflict' USING ERRCODE='P0U01'; END IF;
+   sc046_old_time:=coalesce(sc046_old.latest_update_date,sc046_old.registration_date);
+   IF sc046_time IS NULL OR sc046_old_time IS NULL OR sc046_time<=sc046_old_time
+    OR sc046_own.is_current IS DISTINCT FROM true OR sc046_own.version_no<=1
+    OR sc046_own.supersedes_series_id IS NULL OR sc046_own.source_ediel_message_id IS DISTINCT FROM p_source_message_id
+    OR sc046_own.source_transaction_reference IS DISTINCT FROM p_transaction_id THEN
+    RAISE EXCEPTION 'utilts_consumption_correction_not_newer' USING ERRCODE='P0U01'; END IF;
+   SELECT array_agg(h.id ORDER BY h.id) INTO sc046_candidates FROM public.meter_reading_series h
+    WHERE jsonb_build_array(h.company_id::text,h.series_kind,h.message_code,coalesce(h.external_metering_point_id,''),
+    coalesce(h.grid_area_id,''),h.period_start,h.period_end,h.resolution,coalesce(h.product_id,''))=sc046_cohort AND h.is_current AND (EXISTS(SELECT FROM public.ediel_messages o WHERE o.id=h.source_ediel_message_id AND o.environment=v_contract->>'environment') OR EXISTS(SELECT FROM gridex_utilts_binding.receipts r WHERE r.source_message_id=h.source_ediel_message_id AND r.environment=v_contract->>'environment') OR EXISTS(SELECT FROM gridex_utilts_binding.contracts c WHERE c.series_id=h.id AND c.environment=v_contract->>'environment') OR NOT EXISTS(SELECT FROM public.ediel_messages o WHERE o.id=h.source_ediel_message_id));
+   IF sc046_candidates IS DISTINCT FROM ARRAY[sc046_own.id] THEN
+    RAISE EXCEPTION 'utilts_consumption_correction_head_ambiguous' USING ERRCODE='P0U01'; END IF;
+   -- Authenticate every predecessor, including equal-content intermediate
+   -- versions whose business row retains the first source as primary origin.
+   sc046_hop:=sc046_own;sc046_seen:=ARRAY[sc046_own.id];sc046_previous_time:=sc046_time;
+   LOOP
+    sc046_id:=sc046_hop.supersedes_series_id;
+    IF sc046_id IS NULL OR sc046_id=ANY(sc046_seen) THEN
+     RAISE EXCEPTION 'utilts_consumption_correction_ancestry_invalid' USING ERRCODE='P0U01'; END IF;
+    sc046_seen:=array_append(sc046_seen,sc046_id);
+    SELECT h.* INTO sc046_pre FROM public.meter_reading_series h WHERE h.id=sc046_id FOR SHARE;
+    IF NOT FOUND OR sc046_pre.version_no<>sc046_hop.version_no-1
+     OR jsonb_build_array(sc046_pre.company_id::text,sc046_pre.series_kind,sc046_pre.message_code,coalesce(sc046_pre.external_metering_point_id,''),
+    coalesce(sc046_pre.grid_area_id,''),sc046_pre.period_start,sc046_pre.period_end,sc046_pre.resolution,coalesce(sc046_pre.product_id,'')) IS DISTINCT FROM sc046_cohort THEN
+     RAISE EXCEPTION 'utilts_consumption_correction_ancestry_invalid' USING ERRCODE='P0U01'; END IF;
+    sc046_hop:=sc046_pre;
+  IF sc046_hop.source_ediel_message_id IS NULL OR NOT (sc046_hop.source_ediel_message_id=ANY(sc046_sources)) THEN
+   RAISE EXCEPTION 'utilts_consumption_graph_changed_retry' USING ERRCODE='P0U01'; END IF;
+  sc046_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,sc046_hop.source_ediel_message_id,sc046_hop.source_transaction_reference);
+  IF NOT EXISTS(SELECT FROM public.ediel_messages o JOIN public.ediel_ack_transaction_results a ON a.source_message_id=o.id
+    JOIN gridex_utilts_binding.contracts c ON c.series_id=a.persisted_series_id
+    WHERE o.id=sc046_hop.source_ediel_message_id AND o.company_id=p_company_id AND o.environment=v_contract->>'environment'
+     AND o.direction='inbound' AND o.message_family='UTILTS' AND o.message_code=sc046_own.message_code
+     AND a.company_id=p_company_id AND a.environment=o.environment AND a.source_transaction_id=sc046_hop.source_transaction_reference
+     AND a.persisted_series_id=sc046_hop.id AND a.disposition='accepted' AND a.persistence_status='persisted'
+     AND a.planned_response_type='positive_aperak' AND (a.final_response_type IS NULL OR a.final_response_type='positive_aperak')
+     AND c.company_id=p_company_id AND c.environment=o.environment AND c.source_message_id=o.id
+     AND c.transaction_id=a.source_transaction_id AND c.contract=sc046_contract)
+   OR sc046_hop.raw_transaction->>'transactionId' IS DISTINCT FROM sc046_hop.source_transaction_reference
+   OR sc046_hop.raw_transaction->'consumptionContract' IS DISTINCT FROM sc046_contract
+   OR sc046_hop.immutable_hash IS DISTINCT FROM encode(sha256(convert_to(sc046_hop.raw_transaction::text,'UTF8')),'hex') THEN
+   RAISE EXCEPTION 'utilts_consumption_correction_binding_invalid' USING ERRCODE='P0U01'; END IF;
+  BEGIN
+   IF sc046_hop.registration_date IS DISTINCT FROM nullif(sc046_hop.raw_transaction->>'registrationDate','')::timestamptz
+    OR sc046_hop.latest_update_date IS DISTINCT FROM nullif(sc046_hop.raw_transaction->>'latestUpdateDate','')::timestamptz THEN
+    RAISE EXCEPTION 'utilts_consumption_correction_time_invalid' USING ERRCODE='P0U01'; END IF;
+  EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow THEN
+   RAISE EXCEPTION 'utilts_consumption_correction_time_invalid' USING ERRCODE='P0U01'; END;
+    IF coalesce(sc046_hop.latest_update_date,sc046_hop.registration_date) IS NULL
+     OR coalesce(sc046_hop.latest_update_date,sc046_hop.registration_date)>sc046_previous_time
+     OR sc046_time<=coalesce(sc046_hop.latest_update_date,sc046_hop.registration_date) THEN
+     RAISE EXCEPTION 'utilts_consumption_correction_not_newer' USING ERRCODE='P0U01'; END IF;
+    sc046_previous_time:=coalesce(sc046_hop.latest_update_date,sc046_hop.registration_date);
+    EXIT WHEN sc046_hop.id=sc046_old.id;
+   END LOOP;
+  END;
  END IF;
  SELECT * INTO v_result FROM public.gridex_ingest_metering_value_atomic(v_payload);
  -- Recheck the returned row too: any legacy writer racing an absent key must
@@ -65447,6 +65666,7 @@ COMMENT ON FUNCTION public.gridex_customer_status_counts_v1(p_company_id uuid, p
 
 CREATE FUNCTION public.gridex_data_quality_active_status_v1(p_status text) RETURNS boolean
     LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
     AS $$
   select lower(coalesce(p_status,''))=any(array['active','live','ongoing'])
 $$;
@@ -73868,6 +74088,25 @@ begin
     return v_existing;
   end if;
 
+  -- A retained pre-forward row may have no legacy ID even with a reference.
+  -- Preserve its physical duplicate boundary before any replacement writes;
+  -- equal-value/quality reuse has already returned above, unchanged.
+  if v_source_tx is not null and exists (
+    select 1 from public.metering_values legacy
+     where legacy.company_id=v_company_id and legacy.metering_point_id=v_metering_point_id
+       and coalesce(legacy.product_code,'')=coalesce(nullif(p_payload->>'product_code',''),'')
+       and coalesce(legacy.register_code,'')=coalesce(nullif(p_payload->>'register_code',''),'')
+       and coalesce(legacy.meter_number,'')=''
+       and legacy.period_start=(p_payload->>'period_start')::timestamptz
+       and legacy.period_end=(p_payload->>'period_end')::timestamptz
+       and coalesce(legacy.reading_type,'')=coalesce(nullif(p_payload->>'reading_type',''),'consumption')
+       and coalesce(legacy.source_transaction_id,'')=''
+       and legacy.source_transaction_reference=v_source_tx
+  ) then
+    raise exception 'duplicate key value violates unique constraint "ux_metering_values_company_ediel_duplicate_guard"'
+      using errcode='23505',constraint='ux_metering_values_company_ediel_duplicate_guard',schema='public',table='metering_values';
+  end if;
+
   if v_existing.id is not null then
     v_revision := coalesce(v_existing.revision_number,1)+1;
     update public.metering_values
@@ -73882,14 +74121,14 @@ begin
   insert into public.metering_values(
     company_id,customer_id,site_id,customer_site_id,metering_point_id,source_request_id,grid_owner_id,reading_type,
     value_kwh,quality_code,read_at,period_start,period_end,source_system,raw_payload,source_ediel_message_id,
-    source_transaction_reference,source_line_reference,price_area,resolution,canonical_dedupe_key,is_current,previous_value_id,
+    source_transaction_id,source_transaction_reference,source_line_reference,price_area,resolution,canonical_dedupe_key,is_current,previous_value_id,
     revision_number,correction_reason,value_status,revision_status,billing_status,register_code,product_code,direction,unit,created_by
   ) values (
     v_company_id,v_customer_id,v_site_id,v_customer_site_id,v_metering_point_id,nullif(p_payload->>'source_request_id','')::uuid,
     nullif(p_payload->>'grid_owner_id','')::uuid,coalesce(nullif(p_payload->>'reading_type',''),'consumption'),
     (p_payload->>'value_kwh')::numeric,nullif(p_payload->>'quality_code',''),(p_payload->>'read_at')::timestamptz,
     (p_payload->>'period_start')::timestamptz,(p_payload->>'period_end')::timestamptz,coalesce(nullif(p_payload->>'source_system',''),'grid_owner'),
-    v_raw,v_source_message_id,v_source_tx,
+    v_raw,v_source_message_id,v_source_tx,v_source_tx,
     v_source_line,nullif(p_payload->>'price_area',''),nullif(p_payload->>'resolution',''),v_key,true,
     v_existing.id,v_revision,case when v_existing.id is null then null else coalesce(nullif(p_payload->>'correction_reason',''),'Korrigerat mätvärde.') end,
     'current','current','pending_match',nullif(p_payload->>'register_code',''),nullif(p_payload->>'product_code',''),v_direction,v_unit,
@@ -80256,6 +80495,12 @@ CREATE FUNCTION public.gridex_persist_utilts_consumption_v1(p_company_id uuid, p
     SET search_path TO 'pg_catalog'
     AS $$
 DECLARE source public.ediel_messages%rowtype;result jsonb;
+ -- SC046 return-state declarations
+ sc046_item jsonb; sc046_answer jsonb := '[]'::jsonb; sc046_contract jsonb;
+ sc046_series public.meter_reading_series%rowtype; sc046_count bigint;
+ sc046_state text; sc046_heads uuid[];
+ sc046_head public.meter_reading_series%rowtype; sc046_head_source public.ediel_messages%rowtype;
+ sc046_head_contract jsonb; sc046_returned_time timestamptz; sc046_head_time timestamptz;
 BEGIN
  IF coalesce(current_setting('role',true),'')<>'service_role' AND current_user<>'service_role' AND session_user<>'service_role' THEN
   RAISE EXCEPTION 'service_role_required' USING ERRCODE='42501';END IF;
@@ -80271,6 +80516,216 @@ BEGIN
  -- Same check applies to immutable replay: history cannot be disclosed or used
  -- for new sink/ACK effects after this operator's current grant was revoked.
  result:=gridex_utilts_binding.persist_consumption_before_actor_v1(p_company_id,p_environment,p_source_message_id,p_message_code,p_raw_payload,p_transactions);
+ -- SC046 stored return-state begin
+ IF jsonb_typeof(result) IS DISTINCT FROM 'array' THEN
+  RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
+ END IF;
+ FOR sc046_item IN SELECT value FROM jsonb_array_elements(result) LOOP
+  IF jsonb_typeof(sc046_item) IS DISTINCT FROM 'object' THEN
+   RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
+  END IF;
+  IF sc046_item->>'persistenceStatus'='persisted' THEN
+   -- The result is from the retained lower owner, never caller metadata.
+   -- Persisted classification requires one own accepted ACK reservation and
+   -- the exact returned series/transaction plus its genuine contract origin.
+   IF sc046_item->>'disposition' IS DISTINCT FROM 'accepted'
+    OR sc046_item->>'responseType' IS DISTINCT FROM 'positive_aperak'
+    OR nullif(sc046_item->>'transactionId','') IS NULL
+    OR sc046_item ? 'versionState'
+    OR sc046_item#>>'{sourceBinding,sourceMessageId}' IS DISTINCT FROM source.id::text
+    OR sc046_item#>>'{sourceBinding,rawHash}' IS DISTINCT FROM encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex')
+    OR (SELECT count(*) FROM jsonb_array_elements(result) x
+      WHERE x->>'transactionId'=sc046_item->>'transactionId')<>1 THEN
+    RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
+   END IF;
+   -- Lock candidate rows after the retained graph/source locks; check every
+   -- binding below AFTER any row-lock wait, including mutable origin context.
+   -- Authentic reuse may have an earlier source origin in the SAME scope.
+   SELECT s.* INTO sc046_series FROM public.ediel_ack_transaction_results a
+   JOIN public.meter_reading_series s ON s.id=a.persisted_series_id
+   JOIN public.ediel_messages o ON o.id=s.source_ediel_message_id
+   JOIN gridex_utilts_binding.contracts c ON c.series_id=s.id
+   WHERE a.company_id=p_company_id AND a.environment=p_environment
+    AND a.source_message_id=source.id AND a.source_transaction_id=sc046_item->>'transactionId'
+    AND s.id::text=sc046_item->>'seriesId'
+   FOR SHARE OF a,s,o,c;
+   IF NOT FOUND THEN
+    RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
+   END IF;
+   SELECT count(*) INTO sc046_count
+   FROM public.ediel_ack_transaction_results a
+   JOIN public.meter_reading_series s ON s.id=a.persisted_series_id
+   JOIN public.ediel_messages o ON o.id=s.source_ediel_message_id
+   JOIN gridex_utilts_binding.contracts c ON c.series_id=s.id
+   WHERE a.company_id=p_company_id AND a.environment=p_environment
+    AND a.source_message_id=source.id AND a.source_transaction_id=sc046_item->>'transactionId'
+    AND a.disposition='accepted' AND a.persistence_status='persisted' AND a.planned_response_type='positive_aperak'
+    AND (a.final_response_type IS NULL OR a.final_response_type='positive_aperak')
+    AND s.id::text=sc046_item->>'seriesId' AND s.company_id=p_company_id
+    AND s.message_code=p_message_code AND s.source_transaction_reference=a.source_transaction_id
+    AND o.company_id=p_company_id AND o.environment=p_environment AND o.direction='inbound'
+    AND o.message_family='UTILTS' AND o.message_code=p_message_code AND o.raw_payload IS NOT NULL
+    AND c.company_id=p_company_id AND c.environment=p_environment
+    AND c.source_message_id=o.id AND c.transaction_id=a.source_transaction_id
+    AND c.contract_version IN (1,2) AND c.contract->'version'=to_jsonb(c.contract_version)
+    AND c.contract_version::text=sc046_item->>'contractVersion' AND c.contract_hash=sc046_item->>'contractHash'
+    AND c.contract_hash=encode(sha256(convert_to(c.contract::text,'UTF8')),'hex')
+    AND c.contract=sc046_item->'consumptionContract'
+    AND s.raw_transaction->'consumptionContract'=c.contract
+    AND jsonb_typeof(s.raw_transaction)='object'
+    AND s.immutable_hash=encode(sha256(convert_to(s.raw_transaction::text,'UTF8')),'hex');
+   IF sc046_count<>1 THEN
+    RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
+   END IF;
+   -- This existing port independently validates stored raw/contract/source and
+   -- supported point/decimal authority. NULL or disagreement is never current.
+   sc046_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,source.id,sc046_item->>'transactionId');
+   IF jsonb_typeof(sc046_contract) IS DISTINCT FROM 'object'
+    OR sc046_contract IS DISTINCT FROM sc046_item->'consumptionContract' THEN
+    RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
+   END IF;
+   -- Installed immutable-series guard permits changing only is_current.
+   -- Initial1 and correction-with-predecessor are born current, including
+   -- later noncurrent replay. U04's higher/no-predecessor birth is late history.
+   IF sc046_series.version_no=1 AND sc046_series.supersedes_series_id IS NULL THEN
+    sc046_state:='current';
+   ELSIF sc046_series.version_no>1 AND sc046_series.supersedes_series_id IS NOT NULL THEN
+    SELECT count(*) INTO sc046_count FROM public.meter_reading_series p
+    JOIN public.ediel_messages o ON o.id=p.source_ediel_message_id
+    WHERE p.id=sc046_series.supersedes_series_id AND p.id<>sc046_series.id
+     AND p.company_id=p_company_id AND o.company_id=p_company_id AND o.environment=p_environment
+     AND o.direction='inbound' AND o.message_family='UTILTS' AND o.message_code=p_message_code
+     AND p.version_no=sc046_series.version_no-1
+     AND p.series_kind=sc046_series.series_kind AND p.message_code IS NOT DISTINCT FROM sc046_series.message_code
+     AND coalesce(p.external_metering_point_id,'')=coalesce(sc046_series.external_metering_point_id,'')
+     AND coalesce(p.grid_area_id,'')=coalesce(sc046_series.grid_area_id,'')
+     AND p.period_start IS NOT DISTINCT FROM sc046_series.period_start
+     AND p.period_end IS NOT DISTINCT FROM sc046_series.period_end
+     AND p.resolution=sc046_series.resolution AND coalesce(p.product_id,'')=coalesce(sc046_series.product_id,'');
+    IF sc046_count<>1 THEN
+     RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
+    END IF;
+    sc046_state:='current';
+   ELSIF sc046_series.version_no>1 AND sc046_series.supersedes_series_id IS NULL AND sc046_series.is_current IS FALSE THEN
+    sc046_state:='late_older_history';
+   ELSE
+    RAISE EXCEPTION 'utilts_return_state_unavailable' USING ERRCODE='P0U01';
+   END IF;
+   -- Birth remains the compatibility default. A distinct active same-cohort
+   -- series supplies historical consumer interpretation only with complete
+   -- own-source/ACK/raw/contract authority and strictly newer stored532/512.
+   -- Admission of the requested source still belongs to the retained owner;
+   -- no caller namespace, lineage or mutable is_current flag qualifies it.
+   IF sc046_state='current' THEN
+    SELECT array_agg(h.id ORDER BY h.id) INTO sc046_heads
+    FROM public.meter_reading_series h
+    LEFT JOIN public.ediel_messages o ON o.id=h.source_ediel_message_id
+    WHERE h.id<>sc046_series.id AND h.company_id=p_company_id AND h.is_current
+     AND (o.environment=p_environment OR o.id IS NULL)
+     AND h.series_kind=sc046_series.series_kind AND h.message_code IS NOT DISTINCT FROM sc046_series.message_code
+     AND coalesce(h.external_metering_point_id,'')=coalesce(sc046_series.external_metering_point_id,'')
+     AND coalesce(h.grid_area_id,'')=coalesce(sc046_series.grid_area_id,'')
+     AND h.period_start IS NOT DISTINCT FROM sc046_series.period_start
+     AND h.period_end IS NOT DISTINCT FROM sc046_series.period_end
+     AND h.resolution=sc046_series.resolution AND coalesce(h.product_id,'')=coalesce(sc046_series.product_id,'');
+    IF coalesce(cardinality(sc046_heads),0)>0 THEN
+     -- The returned A counts too when current: two mutable current markers
+     -- cannot silently choose a head. Invalid witness bindings never become
+     -- the no-head compatibility branch by filtering the bad metadata away.
+     IF cardinality(sc046_heads)<>1 OR sc046_series.is_current IS TRUE THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     SELECT * INTO sc046_head FROM public.meter_reading_series WHERE id=sc046_heads[1] FOR SHARE;
+     SELECT * INTO sc046_head_source FROM public.ediel_messages WHERE id=sc046_head.source_ediel_message_id FOR SHARE;
+     IF NOT FOUND OR sc046_head_source.company_id IS DISTINCT FROM p_company_id
+      OR sc046_head_source.environment IS DISTINCT FROM p_environment OR sc046_head_source.direction IS DISTINCT FROM 'inbound'
+      OR sc046_head_source.message_family IS DISTINCT FROM 'UTILTS' OR sc046_head_source.message_code IS DISTINCT FROM p_message_code
+      OR sc046_head_source.raw_payload IS NULL OR sc046_head.is_current IS DISTINCT FROM true
+      OR sc046_head.version_no<=sc046_series.version_no OR sc046_head.supersedes_series_id IS NULL
+      OR jsonb_typeof(sc046_head.raw_transaction) IS DISTINCT FROM 'object'
+      OR sc046_head.raw_transaction->>'transactionId' IS DISTINCT FROM sc046_head.source_transaction_reference
+      OR sc046_head.immutable_hash IS DISTINCT FROM encode(sha256(convert_to(sc046_head.raw_transaction::text,'UTF8')),'hex') THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     -- The existing storage graph serializes series/ACK/receipt/contract
+     -- writers. These row locks precede all mutable context qualification.
+     PERFORM 1 FROM public.ediel_ack_transaction_results a WHERE a.source_message_id=sc046_head_source.id
+      AND a.source_transaction_id=sc046_head.source_transaction_reference FOR SHARE;
+     PERFORM 1 FROM gridex_utilts_binding.receipts r WHERE r.source_message_id=sc046_head_source.id FOR SHARE;
+     SELECT c.contract INTO sc046_head_contract FROM gridex_utilts_binding.contracts c WHERE c.series_id=sc046_head.id FOR SHARE;
+     SELECT count(*) INTO sc046_count FROM public.ediel_ack_transaction_results a
+     JOIN gridex_utilts_binding.receipts r ON r.source_message_id=a.source_message_id
+     JOIN gridex_utilts_binding.contracts c ON c.series_id=a.persisted_series_id
+     WHERE a.source_message_id=sc046_head_source.id AND a.source_transaction_id=sc046_head.source_transaction_reference
+      AND a.company_id=p_company_id AND a.environment=p_environment AND a.persisted_series_id=sc046_head.id
+      AND a.disposition='accepted' AND a.persistence_status='persisted' AND a.planned_response_type='positive_aperak'
+      AND (a.final_response_type IS NULL OR a.final_response_type='positive_aperak')
+      AND r.company_id=p_company_id AND r.environment=p_environment AND r.message_code=p_message_code
+      AND r.raw_hash=encode(sha256(convert_to(sc046_head_source.raw_payload,'UTF8')),'hex')
+      AND r.source_context=gridex_utilts_binding.source_context_v1(sc046_head_source)
+      AND r.membership ? sc046_head.source_transaction_reference
+      AND c.company_id=p_company_id AND c.environment=p_environment AND c.source_message_id=sc046_head_source.id
+      AND c.transaction_id=sc046_head.source_transaction_reference AND c.contract_version IN (1,2)
+      AND c.contract_version=r.contract_version AND c.contract->'version'=to_jsonb(c.contract_version)
+      AND c.contract->>'companyId'=p_company_id::text AND c.contract->>'environment'=p_environment
+      AND c.contract->>'messageCode'=p_message_code AND c.contract->>'transactionId'=sc046_head.source_transaction_reference
+      AND c.contract_hash=encode(sha256(convert_to(c.contract::text,'UTF8')),'hex')
+      AND c.contract=sc046_head.raw_transaction->'consumptionContract';
+     IF sc046_count<>1 OR (SELECT count(*) FROM public.ediel_ack_transaction_results a
+      WHERE a.source_message_id=sc046_head_source.id AND a.source_transaction_id=sc046_head.source_transaction_reference)<>1 THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     -- A higher current head must have the canonical correction birth, with
+     -- a genuine same-cohort predecessor. A late-history bit flip cannot mint
+     -- a current head, nor can a foreign/mismatched predecessor qualify it.
+     SELECT count(*) INTO sc046_count FROM public.meter_reading_series p
+     JOIN public.ediel_messages o ON o.id=p.source_ediel_message_id
+     WHERE p.id=sc046_head.supersedes_series_id AND p.id<>sc046_head.id
+      AND p.company_id=p_company_id AND o.company_id=p_company_id AND o.environment=p_environment
+      AND o.direction='inbound' AND o.message_family='UTILTS' AND o.message_code=p_message_code
+      AND p.version_no=sc046_head.version_no-1
+      AND p.series_kind=sc046_head.series_kind AND p.message_code IS NOT DISTINCT FROM sc046_head.message_code
+      AND coalesce(p.external_metering_point_id,'')=coalesce(sc046_head.external_metering_point_id,'')
+      AND coalesce(p.grid_area_id,'')=coalesce(sc046_head.grid_area_id,'')
+      AND p.period_start IS NOT DISTINCT FROM sc046_head.period_start
+      AND p.period_end IS NOT DISTINCT FROM sc046_head.period_end
+      AND p.resolution=sc046_head.resolution AND coalesce(p.product_id,'')=coalesce(sc046_head.product_id,'');
+     IF sc046_count<>1 THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     sc046_contract:=gridex_utilts_binding.stored_contract_v1(p_company_id,sc046_head_source.id,sc046_head.source_transaction_reference);
+     IF jsonb_typeof(sc046_contract) IS DISTINCT FROM 'object' OR sc046_contract IS DISTINCT FROM sc046_head_contract THEN
+      RAISE EXCEPTION 'utilts_return_state_head_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     -- Use the same532-before512 fallback as canonical v2. No-head legacy
+     -- rows keep their old behavior; a witness with missing/unbound time fails
+     -- closed, including malformed immutable raw dates rather than guessing.
+     BEGIN
+      IF sc046_series.registration_date IS DISTINCT FROM nullif(sc046_series.raw_transaction->>'registrationDate','')::timestamptz
+       OR sc046_series.latest_update_date IS DISTINCT FROM nullif(sc046_series.raw_transaction->>'latestUpdateDate','')::timestamptz
+       OR sc046_head.registration_date IS DISTINCT FROM nullif(sc046_head.raw_transaction->>'registrationDate','')::timestamptz
+       OR sc046_head.latest_update_date IS DISTINCT FROM nullif(sc046_head.raw_transaction->>'latestUpdateDate','')::timestamptz THEN
+       RAISE EXCEPTION 'utilts_return_state_head_time_unavailable' USING ERRCODE='P0U01';
+      END IF;
+     EXCEPTION WHEN invalid_datetime_format OR datetime_field_overflow THEN
+      RAISE EXCEPTION 'utilts_return_state_head_time_unavailable' USING ERRCODE='P0U01';
+     END;
+     sc046_returned_time:=coalesce(sc046_series.latest_update_date,sc046_series.registration_date);
+     sc046_head_time:=coalesce(sc046_head.latest_update_date,sc046_head.registration_date);
+     IF sc046_returned_time IS NULL OR sc046_head_time IS NULL THEN
+      RAISE EXCEPTION 'utilts_return_state_head_time_unavailable' USING ERRCODE='P0U01';
+     END IF;
+     IF sc046_head_time>sc046_returned_time THEN sc046_state:='late_older_history'; END IF;
+    END IF;
+   END IF;
+   sc046_item:=sc046_item||jsonb_build_object('versionState',sc046_state);
+  END IF;
+  -- Array iteration retains order; all existing members and nonpersisted
+  -- results (including negative outcomes and NULL content) stay untouched.
+  sc046_answer:=sc046_answer||jsonb_build_array(sc046_item);
+ END LOOP;
+ result:=sc046_answer;
+ -- SC046 stored return-state end
  -- The preserved owner may wait on its source/advisory locks. Expiry during
  -- that wait rejects the result and rolls back every mutation in this call.
  PERFORM gridex_utilts_binding.require_execution_actor_v1(p_company_id,p_actor_user_id);
