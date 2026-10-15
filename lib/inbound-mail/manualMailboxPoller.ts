@@ -259,6 +259,10 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
     const lock = await client.getMailboxLock(folder)
     try {
       let fetched = 0
+      // imapflow cannot run another IMAP command while a fetch() iterator is
+      // open (it deadlocks until the socket times out). Handled UIDs are
+      // flagged \Seen after the loop.
+      const seenUids: number[] = []
       for await (const message of client.fetch({ seen: false }, { uid: true, envelope: true, source: true })) {
         if (fetched >= maxMessages) break
         fetched += 1
@@ -296,7 +300,7 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
           result.ingested += 1
           countResolution(result, ingestResult)
           if (dedupKey) delete attempts[dedupKey]
-          if (typeof uid === 'number') await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true })
+          if (typeof uid === 'number') seenUids.push(uid)
         } catch (ingestError) {
           // A failed message stays unseen so the next poll retries a transient
           // DB/schema/provider issue. After maxAttempts it is dead-lettered
@@ -314,11 +318,12 @@ async function pollOneMailbox(mailbox: JsonRecord, workerId: string, result: Man
             }
             if (deadLetter) {
               result.deadLettered += 1
-              if (typeof uid === 'number') await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true }).catch(() => undefined)
+              if (typeof uid === 'number') seenUids.push(uid)
             }
           }
         }
       }
+      for (const uid of seenUids) await client.messageFlagsAdd(uid, ['\\Seen'], { uid: true })
     } finally {
       lock.release()
       await client.logout().catch(() => undefined)

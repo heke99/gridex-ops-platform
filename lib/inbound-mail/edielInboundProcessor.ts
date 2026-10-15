@@ -184,11 +184,14 @@ export async function processInboundEmailMessage(input: {
       status: 'processed', matchStatus: 'ai_bi_reconciled', matchPayload: { classification: 'ai_bi_reconciliation', sourceMessageId: message.id } })
     return { status: 'processed', companyId, parseResultId: null }
   }
-  const attachmentText = [
+  // raw_edifact_payload is normally extracted from the same attachment; joining
+  // both would hand the parser two copies of one interchange (a second UNA, or
+  // doubled segments). Identical texts are therefore included once.
+  const attachmentText = [...new Set([
     typeof row.raw_edifact_payload === 'string' ? row.raw_edifact_payload : null,
     ...attachments
       .map((attachment) => typeof attachment.raw_text === 'string' ? attachment.raw_text : null),
-  ].filter((value): value is string => Boolean(value)).join('\n\n')
+  ].filter((value): value is string => Boolean(value)))].join('\n\n')
 
   const parsed = parseInboundEmailContent({
     rawEmail: typeof row.raw_email === 'string' ? row.raw_email : null,

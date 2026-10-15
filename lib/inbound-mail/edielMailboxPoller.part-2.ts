@@ -385,6 +385,10 @@ export async function pollEdielMailbox(input: {
         internalDate: true,
       };
       const seenUids = new Set<number>();
+      // imapflow cannot run another IMAP command while a fetch() iterator is
+      // open (it deadlocks until the socket times out). Stored messages are
+      // collected here and flagged \Seen after the fetch loops have ended.
+      const storedUids: number[] = [];
 
       const handleFetchedMessage = async (
         message: unknown,
@@ -422,7 +426,7 @@ export async function pollEdielMailbox(input: {
         }
 
         if (input.markSeen !== false && typeof uid === "number") {
-          await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
+          storedUids.push(uid);
         }
         return true;
       };
@@ -451,6 +455,10 @@ export async function pollEdielMailbox(input: {
           );
           if (!shouldContinue || fetched >= maxMessages) break;
         }
+      }
+
+      for (const uid of storedUids) {
+        await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
       }
     } finally {
       lock.release();
