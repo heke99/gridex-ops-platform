@@ -389,7 +389,7 @@
         "scripts/tenantservice-identity-billing-regression.sql"
       ]
     },
-    "next": "Applyexactretentiona98apostimage underown7389 afterthischeckpoint; P3exact2cealreadyapplied",
+    "next": "Both reviewed SQLfixtures exactapplied/committed; actual22parentPASS in2existingfiles. CurrentwholeCIpending ordinarymeaningfulsourcepush.",
     "P3": {
       "sourceA": "944f48f305c1f6da8172a70a683c04a0b2b2f3006dc3fc3427d3f2911fd64939",
       "sourceB": "bcb3884f2876b82a70a2786a0e422a7a4309036a119fdc4e5d8ff0d5a386cf13",
@@ -399,7 +399,7 @@
     "retentionA": "f50d7a39262f40c2826d84d6f816eb27ee9f2b036946792321cbb0bcbed7e7ec",
     "retentionB": "e4af9da250ac0d4b522ce28ba6b27910d37d76714bced47453832d60ec33d1e2"
   },
-  "updatedAt": "2026-10-15T19:46:47.496931+00:00",
+  "updatedAt": "2026-10-15T19:50:24.500508+00:00",
   "current_main_integration": {
     "actualMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
     "previousMain": "11bd50430b0cfd5e525dce7034e4659756c8d5e0",
@@ -429,7 +429,7 @@
     "sourceA": "eec2afa4f3412ec67896bc7ec28e6b47bb5295c4659e3dd78997554316f40003",
     "sourceB": "7b4a7aacae7ba4d1f21b3836ae2d405915253a99cc415a8f829f46941248396d",
     "custody": "e0f9178afa24b2b3b80c22b27639887abc39b26c",
-    "next": "OnlyswapunchangedlasttwoASTnodes, placingexpirytestregistrationbeforelegitimatecustomerarchival; exactcopyafterthischeckpoint"
+    "next": "Exactea688 postimagecommitted; fullscriptsTSCactualPASS; currentgenuinenativeexpirycaseexecutionpending"
   },
   "remaining_correction_custody": {
     "receipt": "de8d3c18dcb9f18cd75bc3dad9b0822def0170c2",
@@ -458,12 +458,12 @@
   },
   "parent_targeted_SQL_tests": "Actual22/22PASS/2files/0SKIP/exit0session92991; report29078aed...; no fullnativeclaim",
   "tenant_boundary_forward": {
-    "state": "V2_FROZEN_TWO_INDEPENDENT_SOURCE_APPROVALS_17PASS_TARGETED_TSC_PASS_APPLY_NEXT",
+    "state": "EXACT_V2_MATERIALIZED_AND_TECHNICALLY_COMMITTED_17PARENT_TESTS_PASS",
     "v1_manifest": "5fa5a42a05506e3efa9dd82cfa07d15ca1fc7d8ec1621999ea4212c8929b1471",
     "blocker": "AuthenticcanonicalgovernanceV3serviceALLTABLEdefault differsfromv1SELECT-onlyguard; unitomittedTABLEdefaults; summary/receiptsreallySELECTonly",
     "A_finding": "ac1e6e4af21ba0b4810321adc82ef759f1ddb385a1f02e2d45bd7a551f6b6b63",
     "B_v1_approval_superseded": "da81310d4d3587d3cedcf324cb4b6d31fb8dacae70c88d9e85ca896e833c52e7",
-    "next": "Freshowncustodyfornewmigration+testde8/historye0; exact3postimagesafterthischeckpointFIRST; actualnewunit/sourcebasis+migrationintegrity, exactsourcecommit/twoSOURCEbindings thenoneordinarypublicationforrequiredgenuineGEN; finalDELIVERYnotapproved",
+    "next": "Publish reviewedsourcebatchfor genuineordinaryGEN/currentCI; exactfinalschema/types import+twoSOURCEreviews stillrequired; no mergegreenclaim",
     "newGEN": "Requiredfromgenuineexistingordinaryproducerafterreviewedcanonicalsourcepublication; no inventedRAW3/types",
     "manifest": "a95df50c4a3ac2cc8b2f33e615161d3be00cceb41dfbdfd0c89a611f8214227c",
     "sourceA": "68cad6bc941c63d045a8507fd38413d01cae6609ec3f7554009792339eb0fe86",
@@ -474,5 +474,24 @@
     "v1": "Rejected/nevermaterialized; frozenbytes/sourcefinding/supersededBapprovalpreserved"
   },
   "actual_native_scripts_typecheck": "PASS actualparent96930 EXIT0/fulltsconfig.scripts noEmit incrementalfalse Node22/TS5.9; native/source8postimagespinned; notnativeexecution",
-  "postmerge_restoration": "Sevenexplicitlyapprovedexactrefs planned at final-source-preflight/postmerge-seven-reference-restoration-plan.json; role-merge releaseFIRST, thenGEN5ce80+process006aad+DB01ef088; no newpermissionpending"
+  "postmerge_restoration": "Sevenexplicitlyapprovedexactrefs planned at final-source-preflight/postmerge-seven-reference-restoration-plan.json; role-merge releaseFIRST, thenGEN5ce80+process006aad+DB01ef088; no newpermissionpending",
+  "source_batch_delivery": {
+    "state": "ALL11_EXACT_REVIEWED_POSTIMAGES_COMMITTED_ACTUAL_LOCAL_CHECKS_PASS_FINAL_SOURCE_BINDINGS_NEXT",
+    "technicalCommit": "a713d42fd4846b37a65d2dbdccdcdb6362ccf75c",
+    "integratedMain": "d9fc4397be806321723fb1cac42441ca2b3106f3",
+    "publicPRHeadBeforePush": "a3d770e0ff16dcca296f0f2426eaa627bbbff5ad",
+    "scope": "11reviewedfiles +2exactmain811paths+owncheckpoint only; allothera3paths/oldGEN5/ledgerunchanged",
+    "actualTests": {
+      "first": "22PASS/0FAIL/0SKIP twoexistingSQLunitfiles actualsession92991",
+      "second": "93PASS/0FAIL/0SKIP new17tenant+76DB01sourcebasis actualsession85264",
+      "total": "115 actualPASS in2distinctcohorts/4files",
+      "actualReports": "final-source-preflight/actual-sql-fixture-parent-tests.json +actual-final-tenant-db01-parent-tests.json"
+    },
+    "actualTypes": "Fulltsconfig.scripts Node22/TS5.9 noEmit incrementalfalse EXIT0actualsession96930; private4readonlytestsTC3607files/4overlays/0diag independentauthor37518",
+    "actualMigrationIntegrity": "PASS1266files/1169groups/fullchecksums",
+    "freshCustody": "All41ownrefs matched19:48:34;producerGENbac unchanged;mergeroleabsent;main d9",
+    "GEN": "CurrentGEN5retainauthentica3bytes intentionally. Newcanonical183000requiresfreshgenuineordinarycapture; latesttypesmanifest172100 is historical untilqualifiednewadoption. No inventedgeneratedoutput or blindrerun. Existingordinaryproduceronly.",
+    "next": "Finalmetadataonlycommitafterthischeckpoint; both independentnonauthor SOURCE reviewers bindexactfinalhead/tree/base. One normalnonforcepush containing11technicalchanges, qualifygenuinecapture/GENadoption, fullmandatoryfinalCI+twoDELIVERYverdicts/normalmerge/7approvedrestores+matchedowncleanup.",
+    "wholeDeliveryApproved": false
+  }
 }
