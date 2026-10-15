@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Materialize exact3302 and its sole sourcePosition entry after owncheckpoint-first; validate currentclean/upgrade/history inputs, two finalunion reviewers then publish. Preserve actualapp41 release until verifiedREADY. Separately correct threecanonical fingerprint inputs and common signing locks; schema/types remainowningGENservice.",
+  "next_action": "Finish two independent current-three-file final reviews/integrity and normal PR794 upload. Then acquire bounded Auth replay adapter custody using current verified base and explicit #766 metadata authorization; publish separately after final reviews/input qualification. No wholehistory/Staffgreen/merge claim.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -756,7 +756,7 @@
   "historical_source_head": "79333e8a2ae93ed27de425c81c4668564d57d6f6",
   "historical_review_packet_commit": "50ac032bbf37c2edd08fb6df43da16fefa8cbaa0",
   "historical_fixture_head": "4b3a32ab328821d9763e22b0aff527da098d3509",
-  "observed_at": "2026-10-14T11:33:14.014771+00:00",
+  "observed_at": "2026-10-15T07:00:21.105216+00:00",
   "native_ledger_count_observed": 532,
   "latest_signing_forward": "20261014060124_ops_api_signing_prepare_post_row_lock_freshness.sql",
   "auth_free_source_recovery": "Frozen A6 and final receipt were private /tmp files lost when environment was replaced. Exact A6 cannot be reconstructed from hashes. Original B3 source/stages remain preserved; rebuild requires new source hash and independent qualification.",
@@ -1073,6 +1073,82 @@
     "ack": "Same ROOT accepts only current owned bootstrap+one existing descriptor artifactSha update+own checkpoint; no applied historical SQL edits, grants, real business calls or GEN inputs/capture/type changes.",
     "distinctSourceGO": "ROOT_BOUNDED_SOURCE_GO_ALL_CANONICAL_SIGNING_CORE_COMPOSITION_CA6B",
     "qualification": "Two noncoauthor exact candidate source finals; actual existing NOSUPER engine canonical and native first/replay with64original transports per run, all7fullrows unchanged, both staging schemas removed and originalengine fully restored. This is component composition, not whole SQL/history/runtime green.",
-    "next": "Materialize exact ca6b; current3fileunion two noncoauthor finals, integrity and actual inputbuilder qualification; normal nonforce publication to existing PR794."
+    "next": "Materialize exact ca6b; current3fileunion two noncoauthor finals, integrity and actual inputbuilder qualification; normal nonforce publication to existing PR794.",
+    "published_head": "d9868dd49521f01d1d5d9d69b6724e614a379cac",
+    "publication": "Normal nonforce push and independent authenticated remote readback; exact8c0afffd tree matches two noncoauthor current-union finals; integrity1254/1157 and actual committed1150+104/886+366 inputbuilders sourceca6 PASS. Component only, whole SQL/history/runtime remains pending."
+  },
+  "manual_alias_prospective_native_runtime_entry_phase_20261014": {
+    "source_base_head": "d9868dd49521f01d1d5d9d69b6724e614a379cac",
+    "runtime_manifest_retained_original_ref": "064f655cdb1f0202c4cbc8b92d0d2037de903447",
+    "runtime_manifest_preimage_sha256": "4a3b18d53c3b7719c6b2581a019cb87e1058e6b53b26547e6ed45bbbfa2c8b7c",
+    "old_entries": 227,
+    "source_sha256": "712e66737e2083cb05d216d137aaa67eddb689b4ff3a71956db383ccbf001cee",
+    "source_bytes": 42138,
+    "ack": "Same ROOT accepts ONE prospective runtime checksum entry for actual native ledger version/name and exact712e source only. Preserve all227 old entries and frozen442/cb206 loan; no other shared GEN inputs/outputs/type/schema capture or role transfer. New canonical timestamped SQL file must acquire fresh exact-file custody before materialization after actual version is known.",
+    "distinctGO": "ROOT_BOUNDED_NATIVE_AND_ONE_RUNTIME_ENTRY_GO_MANUAL_ALIAS_712E",
+    "qualification": "Two noncoauthor9bed source finals; header-only712e rebind; genuine same existing NOSUPER engine both native/canonical first+replay fullmetadata/upsert/constraints preserved; real public prepare passes oldaliasCHECK then isolatedlegal-rule refusal with20table exactrollback; actual native rule coverage exists for6types. No fullsuccessfulsigning/Staffgreen claim.",
+    "native_actions_before_phase": 87,
+    "next": "Qualify genuinely narrower compact exact-body/target-hash/one-anchor14-line patch and prove equivalence/currentauthority before any prospective direct native retry; no applied claim/source ledger entry.",
+    "outcome": "AUTO_REVIEW_REJECTED_BEFORE_EXECUTION",
+    "native_actions_after_attempt": 87,
+    "actual_migration_or_ledger_created": false,
+    "runtime_manifest_still_entries": 227,
+    "rejection": "Automatic reviewer treated complete preserved legacy function clauses as broader publication/pricing/date/reservation changes. No SQL ran. Original712e stays blocked; no retry or indirect execution of blocked payload."
+  },
+  "manual_alias_compact_native_runtime_entry_phase_20261015": {
+    "source_base_head": "d9868dd49521f01d1d5d9d69b6724e614a379cac",
+    "runtime_manifest_retained_original_ref": "064f655cdb1f0202c4cbc8b92d0d2037de903447",
+    "runtime_manifest_preimage_sha256": "4a3b18d53c3b7719c6b2581a019cb87e1058e6b53b26547e6ed45bbbfa2c8b7c",
+    "old_entries": 227,
+    "source_sha256": "de6372aa60398ca6a3711365ad2246b2216889c9833c1c7044fd894405ce53ee",
+    "source_bytes": 10558,
+    "ack": "Same ROOT accepts ONE prospective runtime checksum entry for exact compact de637 source and actual auto ledger version/name only. Preserve all227 prior entries and frozen442/cb206 loan, no shared GEN/type/schema capture role. Fresh exact new timestamped-file custody required before canonical materialization.",
+    "distinctGO": "ROOT_BOUNDED_COMPACT_ALIAS_SOURCE_AND_ONE_ACTUAL_NATIVE_RUNTIME_ENTRY_DE637",
+    "prior_block": "Original712e fullbody action rejected by automatic review BEFORE SQL; not retried or routed indirectly. Its phase remains closed blocked; no ledger claim.",
+    "safer_scope_proof": "New compact source contains ONLY strict admitted before/after MD5+SHA and a unique702-byte14-line alias insertion. Two independent source reviews prove both complete resulting bodies equal prior reviewed alias-only targets, every legacy publication/date/price/reservation statement unchanged. Original full metadata/upsertSHA/validatedCHECK/constraints guards preserved. Actual exact compact native+canonical FIRST/replay four engine passes preserve fullattrs/upsert/constraints and restore original helper. No business calls or permanent grants in installer.",
+    "native_actions_before_phase": 87,
+    "next": "Two independent final current-three-file-union reviews and integrity, then normal PR794 upload. Auth replay/source qualification remains separate pending work.",
+    "outcome": "DIRECT_MCP_APPROVED_AND_ACTUALLY_APPLIED",
+    "actual_version": "20261015015221",
+    "actual_source_bytes": 10558,
+    "actual_source_sha256": "de6372aa60398ca6a3711365ad2246b2216889c9833c1c7044fd894405ce53ee",
+    "native_actions_after": 88,
+    "native_delta": "Actual2e\u2192e578 only14linealiasinsertion. Complete sameOID/allotherpg_proc fields, fullupsert and all3relationconstraint snapshots preserved. Exactoneactualledgerrow/one10558Bstatement/hashde637 verified; no realbusinessRPC/data/Auth/provider/domain operation.",
+    "canonical_file": "supabase/migrations/20261015015221_ops_api_manual_contract_binding_legacy_alias_alignment.sql",
+    "distinctSourceMaterializationGO": "ROOT_BOUNDED_SOURCE_GO_ONE_ACTUAL_DE637_MIGRATION_AND_ONE_RUNTIME_ENTRY",
+    "source_custody_receipt": "61b82795bb7eb895faad501e1c6eeeaed6b243da",
+    "source_custody_packet": "566a8edb-5010-486f-96f0-f2ff17ded214",
+    "source_custody_resource": "file-b563a455b5e7e99965f709bf4ec62bdba105b24b97ed9ba1bd8033f20cfe9dd9",
+    "source_custody_readback": "Neutral soleparent actualmain6ce/treefbe, one exact file; fresh independent MCP ref+commit+protocol and retained064f matched;267refs includes only one own add preserving all266 old refs.",
+    "source_comment_gate": "USER_EXPLICIT_APPROVAL_AND_SUCCESS: exact claim posted and authenticated readback matched https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6186407955; prior rejected attempts were not posted.",
+    "source_materialized": "Exact actual autoledger20261015015221 source10558B/de637 copied with single runtime entry (227\u2192228), every prior entry preserved; no reapplication to native."
+  },
+  "continuation_20261015_after_auth_retry": {
+    "source_head": "d9868dd49521f01d1d5d9d69b6724e614a379cac",
+    "main_readback": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
+    "github_cli_retry": "Authenticated exact source/main readback succeeded; no auth token printed.",
+    "whole_migration_status": "BLOCKED: existing clean and upgrade jobs now reach unchanged atomic envelope and reject historical direct retention Auth capabilities. Historical retention foundation grants are under source-applicability investigation; no guard weakened or native Auth change performed.",
+    "signing_cache_alignment": {
+      "source_sha256": "4f87d7a8626941c529e350f7784af0c42fab58740598db47c7c1ad5c5e04a705",
+      "source_bytes": 5472,
+      "qualification": "Two independent source reviews. Existing isolated NOSUPER engine native and canonical first/replay all4 PASS; exact sole41byte canonical assignment. All nine original function rows/definitions and full namespace/roles/membership state restored. No business RPC or actual native application. Historical f712 replay after later cache alignment remains unqualified."
+    },
+    "native_action_count": 88,
+    "source_copy_gate": "RESOLVED: explicit user approval of named metadata to #766; comment6186407955 exact body readback matched. Canonical de637 migration and one runtime checksum entry now materialized.",
+    "next": "Finish two independent current-three-file final reviews/integrity and normal PR794 upload. Then acquire bounded Auth replay adapter custody using current verified base and explicit #766 metadata authorization; publish separately after final reviews/input qualification. No wholehistory/Staffgreen/merge claim.",
+    "historical_auth_replay_private_proposal": {
+      "immutable_source_sha256": "24a2026b0b37f42d02c242a0f218ab028f938f2affbc0f093355ef32c938468e",
+      "derived_sha256": "67af9213292f6ae5b7851a00d37e8f73e322c91c88d167e13c47b1aa47e5ee36",
+      "bytes": 23004,
+      "delta": "Exactly83byte subtraction of retention Auth schema/table/function grant fragments; all other original bytes preserved. Original migration/sealed guards unchanged. Intermediate source-applicability reviewed; independent finals in progress. No canonical file/descriptor edit or new Auth operation.",
+      "review": "Root exact83byte comparison and two independent bounded source approvals; old transport constructors only stage original bytes. SourcePosition input builders and genuine whole-history SQL execution still pending. No native Auth operation."
+    },
+    "source_legal_constructor_closure": {
+      "source_sha256": "7c06fb30f8b1d4871abb7d5eee60ad6069299179adeea8953616613730ed52db",
+      "scope": "Existing isolated engine only. Exact source-authored rule INSERTs/extensionUPDATE and v2 canonical legal seed, compact alias body and genuine synthetic DRAFT public prepare inside rolled-back transaction. No fake approved/signed fixture.",
+      "result": "Source catalog initialization passed; public prepare refused one_off_publication_refused / contract_version_not_publishable with missing invoice fee, price areas, interval resolution, reviewed legal profile and tenant routing. These are incomplete synthetic inputs/readiness, not yet classified real production defects. API old-doc defaults applicability review in progress.",
+      "restoration": "All358 existing relations/sequences fingerprints, whole pg_proc hash, nine functions/definitions and full qualified namespace/role/membership snapshot equal before/after. No actual native call or successful signing claim.",
+      "api_false_positive_boundary": "Bounded independent review complete: Staff has no contract-create/sign endpoint; website canonical offer/quote/resolution route has no promised missing-price-field defaults. Catalog authoring normalizes canonical prices/invoice. Admin intake stores supplied/catalog invoice fee or NULL; placeholder0 is not a default, auto-send skipped on draft and pending-send failure is reported. No confirmed new producer defect established; full noncatalog enrichment remains unqualified. Five isolated incomplete-input/readiness blockers remain; no signing/concurrency/API-green credit."
+    }
   }
 }
