@@ -3,7 +3,7 @@
   "baseline": "f36dbba1",
   "branch": "codex/ops-api-contract-review-20261012",
   "audit": "quality/audits/2026-10-12-ops-api-contracts/README.md",
-  "status": "CURRENT_APP_DEPLOYED_TWO_MORE_NATIVE_FORWARDS_APPLIED_SIGNING_CONCURRENCY_AND_FULL_SQL_TYPES_OPEN",
+  "status": "OPS_API_REMEDIATION_IN_PROGRESS_NATIVE_SIGNED_CACHE_GUARD_92_APPLIED_SOURCE_SYNC_AND_FULL_SQL_TYPES_OPEN",
   "authority": "Actual code, genuine PostgreSQL and native/hosted metadata; no unit-test oracle",
   "native_project": "piidsfebjqjmnepdpnas",
   "native_writes": 87,
@@ -28,7 +28,7 @@
     "No canonical schema/type GEN or active Ediel claims/shared memory writes",
     "401/412source-tracedSDKURLattestation verifies runtime target only; no authenticatedbusiness/provider call"
   ],
-  "next_action": "Finalize/publish exactStorageeventdomain4fileunion, actualexistingCIqualifiesownerbootstrap/fullhistory. Inparallelqualifyreviewed9c055guardDDLfirst/replay+exactrestore inexistingcomponent afterdriverreview; canonicalownertrace remainsbounded, no fakebusinessproof/GEN/wholeGREEN ormerge.",
+  "next_action": "Freezeactual6postimages, twoNONauthorcurrentFINALs, localcommit, exactcommittedclean/strict53/historyunioninputplanners+integrity, freshrelevantproducerterminal/ref checks thennormalchanged-inputsourcepush. ExistingqualifiedCIoriginalcollectoronly. SharedCURRENTcleanhook needsfutureSQLpinrebind afteractualownerproof; remainsPRIVATE/HOLD.",
   "source_head": "47a23b7573543021f79df172b44fb051024d2714",
   "integrated_main": "6ce6d49eafa8ca24bcefbeec717dd55b63abad66",
   "draft_pr": "https://github.com/heke99/gridex-ops-platform/pull/794",
@@ -38,7 +38,7 @@
   "latest_native_preflight": "Fresh10:01:58UTC before13:519ledger/422Authhooks/51B3parts/CEEprepare, no drift. After13:532ledger/648Authhooks exactly422old+226/113sourceallowed new, wholeprepare unchanged and transports removed; native1243function comparisonPASS.",
   "handover": "Application d899ac6b deployed to OPS production READY20:11:57.854UTC, integrated latest main4e52854e, realbuild175.12s and two independent integration-source reviews. No new module SQL/GEN/mainmerge performed. Fresh portal HTTP fetch auto-review rejected; current public frontend DB binding NOT_VERIFIED. PR794 draft; future main release must integrate branch API corrections.",
   "user_authorization": "User2026-10-13 Stockholm explicitly approves npm audit and all code/database/migration fixes; no repeated permission request needed for scoped OPS remediation.",
-  "current_source_head": "efa9df65a8b21bc76844ba6701c125abfd3b9f3c",
+  "current_source_head": "5d2ff3cc08bbb4bcaf8fdbc4867035a45df6bb61",
   "dependency_audit": "Passed with existing scoped node-forge exception; latest1.4.0 has no patched advisory version.",
   "migration_scope": "85actualwrites=18scoped+64source-only+3metadata actions; latest13=12source-only+1atomic effect with8logical componentreferences; no fake childledger.",
   "gen_owner": "No competing capture. Latest existing main4e52854e canonical GEN files imported byte-identically. Fresh module/semantic capture requires actual owning producer follow-up.",
@@ -1252,9 +1252,9 @@
         "public_readback": "Three public OpenAPI JSONs exactlyequalreviewedsource, all2026-10-12.1; release-manifest200. No login/provider/businessinvoke. Saved email-aed8-production-public-api-readback-private.json."
       }
     },
-    "native_actions": 91,
+    "native_actions": 92,
     "production": "OPS app.gridex.se READY on reviewed aed8 with email hold; other API/native wholechain gates still open.",
-    "updated_at": "2026-10-15T09:54:31.696937+00:00",
+    "updated_at": "2026-10-15T10:19:59.834003+00:00",
     "supply_probe": {
       "corrected_driver": "9c1100e22e76792f8f13693e2009b8f8e97ba656516d6322d5cc563f414fc5e2",
       "two_independent_source_reviews": "APPROVE finite isolated prefix scope",
@@ -1605,7 +1605,90 @@
           "91d67d7182bf51175356d051ac9fe0308623f5ea7ac1c6c93e87482e2441771d"
         ],
         "scope": "OnlyapplicableGRANT/REVOKEddl_start/enddomain andexactofficialinertddlwatchidentity/owner/language/ABI/invoker/config/bodyprofile admitted; unknownapplicablehooksstillrefused viaISNOTTRUE. No hookdisabled, no Auth/role/grant/row/canonicalmigrationchange. Allotherowner/namespace/empty/RLS/catalogpreservation/diagnostic/txguards byteunchanged; helperonlySQLpin/workflow4pins.",
-        "next": "Twoindependent current4finals thennormalchangedsourceinputpublication; sameexistingqualifiedCIchecksactualABI/ownerACL/fullhistory. No ownerSQLorwholeGREEN claimed."
+        "next": "Twoindependent current4finals thennormalchangedsourceinputpublication; sameexistingqualifiedCIchecksactualABI/ownerACL/fullhistory. No ownerSQLorwholeGREEN claimed.",
+        "publication": {
+          "status": "NORMAL_PUSH_AUTHENTICATED",
+          "head": "5d2ff3cc08bbb4bcaf8fdbc4867035a45df6bb61",
+          "tree": "5b101c7c5497d6339ce684a609db3309b200f02a",
+          "parent": "efa9df65a8b21bc76844ba6701c125abfd3b9f3c",
+          "two_actual_current_finals": [
+            "46018a8b40bcca6e0f4ed304c93ab747a999284d49ceb39d16f9f73f330af804",
+            "160481387f8aa072bd62d389af7a84454181ddac8232317a3e0916344ae2b524"
+          ],
+          "ops_run": 38716859579,
+          "staff_capture_run": 38716859393
+        },
+        "actual_outcome": {
+          "status": "BOTH_PRE_OWNER_DDL_FAILURE_SCHEMA_EXTENSIONS_LOOKUP",
+          "clean_job": 116361666409,
+          "upgrade_job": 116361666290,
+          "originals": [
+            "ops5d-clean-job-authenticated-original-private.json",
+            "ops5d-upgrade-job-authenticated-original-private.json"
+          ],
+          "cause": "Guardto_regprocedure extensions lookup requiresUSAGE beforemetadataidentitycomparison, sourceguardcannotreachACLDDL. No extensiongrantadded. TinycatalogOID/nameidentityreplacementc019/543/c0bafprivate, twoindependentfinals pending."
+        }
+      },
+      "signed_cache_native_phase": {
+        "action": 92,
+        "status": "ACTUAL_NATIVE_APPLY_SUCCESS_AND_PROTECTED_READBACK_VERIFIED",
+        "project": "piidsfebjqjmnepdpnas",
+        "managed_version": "20261015100259",
+        "managed_name": "ops_api_signed_contract_price_cache_binding_guard_alignment",
+        "sql_bytes": 9385,
+        "sql_sha256": "9c055dba7b020aad3bb867f6ff2b02f8854fee4bc136db2de4042bc6347dc83c",
+        "target_oid": "3003836",
+        "old_body": "6f77e381c01f5f3abd65428241bf0c86599ef85614d185c60ac80d2c4d85f63a",
+        "new_body": "91fe59f41ba140cfd47ba766fb4fc0992e3985513ede3d90d0fc25bf15af276e",
+        "actual_effect": "TargetrowONLYprosrc+deriveddefinition; allABI/ACL/owner/config/defaultattrs/OID unchanged. Other9fullsigning/retentionfunctions,35roles(attr/configSHA),27members,184FULLnamespace rows,Authusersmetadata/Authuid,allotherpg_proc+trigger/event/constraint/policyhashesexactequal. ONEmanagedledgerrowONEexactstatement9385B9c055.",
+        "authority": "ExistingPGNOSUPER17.6 SETretentionowner ownsfnandnamespace, noAuthowner orGRANT/role/namespacechanges.",
+        "component_evidence": "ActualknowncomponentFIRST+REPLAY2PASS+exactoriginalwholeprotectedrestored, drivercc0f, independentactualfinalscbce64f0/20e31573. No businessDML orfakeSIGNEDfixtures.",
+        "source_finals": [
+          "bf21e314f11f07091de0e4e9b26ee8a7751cf96d7c1add1b691838bc6a57ad50",
+          "b6ff5d28464481d663349aa791df656208d04a0a3e13ba915f61c5f7163da8f0"
+        ],
+        "native_evidence_finals": [
+          "bf4e65d200da2b8ba11ca3d7fa6043b5dac1f837e20b40fcfa739785ff9dda6e",
+          "0401e8151e7960db8a475ce37b9ff0fa5a5ee7277e42ca63785a357029473a31"
+        ],
+        "receipt": "signed-cache-guard-native-protected-and-ledger-verification-private.json",
+        "scope": "SignedcachemetadataP2 targetedfix; no customerrows/backfill/directPATCH/rejection/happyflowsigning/fullcanonical/GEN/wholeGREEN proven."
+      },
+      "signed_cache_source_claim_phase": {
+        "status": "ONE_CREATE_ONLY_CUSTODY_AND_REQUIRED_CLAIM_AUTHENTICATED_BEFORE_SOURCE_WRITE",
+        "new_path": "supabase/migrations/20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+        "driver_sha256": "1107b20d93717b68e6c64b5cb7cb8cf5c682a788d13bbbc0c4f83dc47c0982e5",
+        "manifest_sha256": "df861b1c9748624bc3ac4fc774d204a0154fed11e8c5d1c8c3ce948722062f33",
+        "driver_independent_delta_final": "1fe5e5c167225d1a98f641f88d4274a6847a8cae5c49fe1a20f2abfa4d7b156f",
+        "preflight": "signed-cache-onefile-readonly-preflight-private.json noPOST/refs/comments/canonicalnewfile",
+        "external_closure": "FourforeignopenPRs810/809/808/776 fullpaginatedpaths allnewtargetabsent; actualmain6ce/tree fbe/source5d checked; allprior283refsunchanged andonlysixnewrefs own0223938 frompreviousqualifiedclaim, no unqualifiednewforeignrefs/protocol/producer/IDtakeover.",
+        "next": "Materializeexactactualnative9c055file andONEruntimechecksum; finalcurrent6union+committedplanners+normalPR794sourcepublication.",
+        "receipt": "5afc73ca0d3cd4a51e9e3e2b6d96f240c110ccb6",
+        "packet": "0ccfa0f3-e0c0-40c8-aee1-127a97cee749",
+        "resource": "refs/tags/agent-claims/masterplan/file-7a931300e2d42efe73dd3dadae196c82e28461d42f719611fb5b813892380583",
+        "claim_comment": "https://github.com/heke99/gridex-ops-platform/issues/766#issuecomment-6189706031",
+        "independent_verification": "RootMCPproperneutralJSON/solemain6ce/sametreefbe+exactnewref+exactcommentbodyverified;289foreignmapbefore/afterequal; fourforeignopenPRallfilesnoexacttargetoverlap; no force/update/delete/producer/GEN/IDtakeover."
+      },
+      "combined_signed_cache_storage_identity_source_phase": {
+        "status": "ROOT_CANONICAL_SIX_FILE_MATERIALIZATION_FOR_TWO_CURRENT_FINALS",
+        "source_parent": "5d2ff3cc08bbb4bcaf8fdbc4867035a45df6bb61",
+        "files": [
+          "supabase/migrations/20261015100259_ops_api_signed_contract_price_cache_binding_guard_alignment.sql",
+          "scripts/migration-history-manifest.runtime.additions.json",
+          "scripts/sql/gridex-local-storage-owner-bootstrap.sql",
+          "scripts/gridex-local-storage-lifecycle.py",
+          ".github/workflows/ops-hardening.yml",
+          ".agent-memory/ops-api-contract-review-20261012.json"
+        ],
+        "new_native_migration": "ONEactualmanagedversion20261015100259 statement9385B9c055; no native reapply/backfill. Runtime231priorentries preserved+one9c055=232.",
+        "storage_fix": "ONLY2schema-name-resolverclauses→catalogpg_namespaceOID/nameEXISTS; boundexistingevtfoid/procOID+fnname/zeroargABI/fullbodyownerprofile retainsidentity without additionalUSAGE/extensionexec. Allotherdiag/strictunknown/empty/RLS/catalog/authorityguards untouched. HelperonlySQLpin/workflow4pins.",
+        "storage_source_finals": [
+          "67079add3fe6386c63b770b694411ba93532b10cad6239a65d59748f71077f70",
+          "e6f4cfc88a0770cadf5667484835566aafb78e276a690f9478e73df9039ac509"
+        ],
+        "custody": "FreshfiveMCPGETMATCH ofnewmigration5afc/runtime064f/bootstraphelperworkflow0223938; requirednewCLAIMmetadataonlyverified. OwnuniqueCP firstupdate. Rootsolecanonicalwriter.",
+        "checks": "Actualnative+componentguardproofs completeonlytheirfiniteDDLscope; wholefresh/upgrade SQL/ownerbootstrap c019/GEN/Staffpositive/fullbusinesssigning stillopen. No API_GREEN/merge.",
+        "next": "Freezeactual6postimages, twoNONauthorcurrentFINALs, localcommit, exactcommittedclean/strict53/historyunioninputplanners+integrity, freshrelevantproducerterminal/ref checks thennormalchanged-inputsourcepush. ExistingqualifiedCIoriginalcollectoronly. SharedCURRENTcleanhook needsfutureSQLpinrebind afteractualownerproof; remainsPRIVATE/HOLD."
       }
     }
   }

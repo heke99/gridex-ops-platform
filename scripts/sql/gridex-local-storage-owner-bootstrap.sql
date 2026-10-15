@@ -76,8 +76,8 @@ BEGIN
     e.evtname='pgrst_ddl_watch' AND e.evtevent='ddl_command_end'
     AND e.evtenabled='O' AND e.evttags IS NULL
     AND pg_get_userbyid(e.evtowner)='supabase_admin'
-    AND p.oid=to_regprocedure('extensions.pgrst_ddl_watch()')
-    AND p.pronamespace=to_regnamespace('extensions')
+    AND EXISTS(SELECT FROM pg_namespace n
+      WHERE n.oid=p.pronamespace AND n.nspname='extensions')
     AND p.proname='pgrst_ddl_watch'
     AND pg_get_userbyid(p.proowner)='supabase_admin'
     AND (SELECT lanname FROM pg_language WHERE oid=p.prolang)='plpgsql'
