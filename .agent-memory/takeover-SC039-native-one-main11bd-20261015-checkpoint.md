@@ -11,3 +11,13 @@ Native/source tests are NOT_RUN here. Direct registrations14→16 are not a full
 Only exact frozen copy plus affected static parse/type/lint/budget/inverse checks are authorized, then freeze/PAUSE. No test/config import, native, backend, GEN, capture, original acquisition, producer claim, publication, PR activation or coverage promotion. Existing main11bd push-backends are still active; any future existing PR-only native cohort needs canonical producer-cancellation receipt bound retained ROOT/C1/currentsource/backend/inputepoch/collector, own ACK and distinct runtime GO after main replays close. No live transport/customer activation authority is asserted.
 
 First-write timestamp: 2026-10-15T15:57:42.134447+00:00
+
+## Actual immutable SOURCE intake — frozen / PAUSED
+
+Exact offered6aae postimage has been copied after the separate own-checkpoint-first commit7b9a879f9666858ab948f499fb0c7ce05ee78173. Removing only the two appended cases, their two added imports and the LK intake-helper union member restores every90781 current-main byte, including all prior assertions/defaults/wire controls. Only this native file and this NEW own checkpoint may differ from actualmain11bd; no donor checkpoint or stale donor branch content is adopted.
+
+Current TypeScript project check `tsc --noEmit -p tsconfig.scripts.json` passes; affected ESLint passes with max-warnings0; existing large-source budget passes at1251 physical lines. These are static checks; all33 genuine native behaviors remain NOT_RUN. Their durable result SHA256 are types fb62c4dbfdcf461119566d6f6defb2d3dff0ed990000c13e4b6390ef3504ca76, lint7368b3d0ca32b4e08a602761b6d3fe66f81f3fa819c44844566bd43118e9eb95 and budget62354aa45adb367c5a3edbaf81683f9ff4361795c596df253f090184c5af723a.
+
+SOURCE_READY6179643506 reports two independent exact-source finals, but their individual full report hashes/transport references are not yet available to this receiver. Reference-only request6196453661 asks for those existing reports; no third unchanged source review is ordered. Local frozen intake is not publication or runtime approval. Canonical producer-cancellation mandate/receipt, new actual source/backend/inputepoch binding, own ACK and distinct runtime GO remain required after current-main replays close. No new GEN is needed solely for this unchanged-SQL/native-only source; old F6 fulltracked proof cannot be relabeled as the new source vector.
+
+Freeze timestamp: 2026-10-15T16:03:23.262005+00:00
